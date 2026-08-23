@@ -1,0 +1,18 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "login": true,
+  "preferredVersions": {
+    "php": "8.3",
+    "wp": "latest"
+  },
+  "steps": [
+    {
+      "step": "activatePlugin",
+      "pluginPath": "vergelabs-media-library/vergelabs-media-library.php"
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php\nrequire_once '/wordpress/wp-load.php';\nrequire_once ABSPATH . 'wp-admin/includes/image.php';\n\nfunction vgml_demo_png( $w, $h, $r, $g, $b ) {\n    $raw = '';\n    for ( $y = 0; $y < $h; $y++ ) {\n        $raw .= chr( 0 ) . str_repeat( chr( $r ) . chr( $g ) . chr( $b ), $w );\n    }\n    $chunk = function ( $type, $data ) {\n        return pack( 'N', strlen( $data ) ) . $type . $data . pack( 'N', crc32( $type . $data ) );\n    };\n    $ihdr = pack( 'NN', $w, $h ) . chr( 8 ) . chr( 2 ) . chr( 0 ) . chr( 0 ) . chr( 0 );\n    return \"\\x89PNG\\r\\n\\x1a\\n\" . $chunk( 'IHDR', $ihdr ) . $chunk( 'IDAT', gzcompress( $raw, 6 ) ) . $chunk( 'IEND', '' );\n}\n\nforeach ( array( 'Logos', 'Photos', 'Icons', 'Screenshots' ) as $name ) {\n    if ( ! term_exists( $name, 'media_category' ) ) {\n        wp_insert_term( $name, 'media_category' );\n    }\n}\n\nif ( ! get_user_by( 'login', 'editor' ) ) {\n    wp_insert_user( array(\n        'user_login'   => 'editor',\n        'user_pass'    => wp_generate_password(),\n        'role'         => 'editor',\n        'display_name' => 'Second Author',\n    ) );\n}\n\n$terms = get_terms( array( 'taxonomy' => 'media_category', 'hide_empty' => false ) );\n$dir   = wp_upload_dir();\n\n$samples = array(\n    array( 'Wordmark, dark',      'Logos',       31, 56, 100 ),\n    array( 'Wordmark, reversed',  'Logos',       44, 82, 140 ),\n    array( 'Harbour at dusk',     'Photos',     176, 104,  62 ),\n    array( 'Ridgeline study',     'Photos',      92, 118,  92 ),\n    array( 'Cart icon',           'Icons',       58, 110, 130 ),\n    array( 'Search icon',         'Icons',       74, 134, 156 ),\n    array( 'Grid view, wide',     'Screenshots', 96,  92, 128 ),\n    array( 'Grid view, narrow',   'Screenshots', 118, 112, 150 ),\n);\n\n$by_name = array();\nforeach ( (array) $terms as $t ) {\n    $by_name[ $t->name ] = (int) $t->term_id;\n}\n\n$i = 0;\nforeach ( $samples as $s ) {\n\n    list( $title, $term, $r, $g, $b ) = $s;\n\n    $path = trailingslashit( $dir['path'] ) . 'sample-' . ( ++$i ) . '.png';\n    file_put_contents( $path, vgml_demo_png( 480, 320, $r, $g, $b ) );\n\n    $id = wp_insert_attachment( array(\n        'post_title'     => $title,\n        'post_mime_type' => 'image/png',\n        'post_status'    => 'inherit',\n    ), $path );\n\n    wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $path ) );\n\n    if ( isset( $by_name[ $term ] ) ) {\n        wp_set_object_terms( $id, array( $by_name[ $term ] ), 'media_category' );\n    }\n}\n\n// show every filter and search column, so there is something to try\n$o = get_option( 'vergeml_lib_options', array() );\n$o['filters_to_show'] = array( 'types', 'dates', 'authors', 'taxonomies' );\n$o['search_in']       = array( 'titles', 'captions', 'descriptions', 'filenames', 'authors', 'taxonomies' );\nupdate_option( 'vergeml_lib_options', $o );\n"
+    }
+  ]
+}

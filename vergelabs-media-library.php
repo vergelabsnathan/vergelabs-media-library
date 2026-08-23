@@ -823,7 +823,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                     'media_popup_taxonomy_edit' => 0, // since 2.7
 
                     'sort' => 0,
-                    'show_in_rest' => 0,
+                    'show_in_rest' => 1,
                     'rewrite' => array(
                         'slug' => 'media_category',
                         'with_front' => 1
@@ -847,7 +847,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                 'media_popup_taxonomy_edit' => 0, // since 2.7
 
                 'sort' => 0,
-                'show_in_rest' => 0,
+                'show_in_rest' => 1,
                 'rewrite' => array(
                     'slug' => '',
                     'with_front' => 1
@@ -880,6 +880,26 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                 }
             } // foreach
         } // if
+
+        /*
+         *  Media taxonomies were registered with show_in_rest off, inherited from
+         *  Enhanced Media Library, which predates the flag. That keeps them out of
+         *  wp/v2/media entirely: the REST API cannot report which folders a file is
+         *  in, so nothing built on it -- the folder tree, the block editor, any
+         *  other plugin -- can see the categories the user has been filling in.
+         *
+         *  Turned on once, for media taxonomies only. Non-media taxonomies keep
+         *  whatever the site already chose, and anyone who wants it off can still
+         *  switch it off afterwards: this runs on the 3.0.0 boundary and never again.
+         */
+        if ( version_compare( get_option( 'vergeml_version', '' ), '3.0.0', '<' ) ) {
+
+            foreach ( $vergeml_taxonomies as $taxonomy => $params ) {
+                if ( ! empty( $params['eml_media'] ) ) {
+                    $vergeml_taxonomies[$taxonomy]['show_in_rest'] = 1;
+                }
+            }
+        }
 
         update_option( 'vergeml_taxonomies', $vergeml_taxonomies );
 
@@ -1083,6 +1103,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/auto-assign.php' );
         include_once( 'core/bulk-terms.php' );
         include_once( 'core/system-report.php' );
+        include_once( 'core/rest-tree.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {
             include_once( 'core/medialist.php' );
