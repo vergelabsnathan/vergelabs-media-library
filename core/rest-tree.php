@@ -125,10 +125,14 @@ function vergeml_register_tree_routes() {
         'permission_callback' => 'vergeml_can_assign',
         'args'                => array(
             'taxonomy'    => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
-            'attachments' => array( 'required' => true, 'type' => 'array' ),
+            // Not required at this layer: a batch call carries its attachments
+            // inside each group instead. The handler refuses a call that has
+            // neither, so nothing gets through unnamed.
+            'attachments' => array( 'type' => 'array' ),
             'add'         => array( 'type' => 'array' ),
             'remove'      => array( 'type' => 'array' ),
             'mode'        => array( 'type' => 'string' ),
+            'batch'       => array( 'type' => 'array' ),
         ),
     ) );
 }
@@ -288,6 +292,21 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
         return new WP_Error( 'vergeml_unknown_taxonomy', __( 'That is not a media taxonomy.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
     }
 
+    /*
+     *  A batch is several (attachments, add, remove) groups in one call, and it
+     *  exists because that is the shape an undo has to take: files in a single
+     *  drag can have moved differently, so taking it back is several different
+     *  operations that must all land or none of them.
+     *
+     *  Applied by calling this same handler per group, so a batch cannot behave
+     *  differently from the individual calls it is made of.
+     */
+    $batch = $request->get_param( 'batch' );
+
+    if ( is_array( $batch ) && ! empty( $batch ) ) {
+        return vergeml_rest_assign_batch( $request, $taxonomy, $batch );
+    }
+
     $attachments = array_filter( array_map( 'absint', (array) $request->get_param( 'attachments' ) ) );
     $add         = array_filter( array_map( 'absint', (array) $request->get_param( 'add' ) ) );
     $remove      = array_filter( array_map( 'absint', (array) $request->get_param( 'remove' ) ) );
@@ -320,6 +339,22 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
     $changed = array();
     $refused = array();
 
+    /*
+     *  Undo is built from what actually changed, never from what was asked for.
+     *
+     *  Those are different things and the difference destroys work. Drag three
+     *  files onto Summer when one of them was already in Summer, and an inverse
+     *  derived from the request removes Summer from all three -- including the
+     *  file that was there first and should have stayed. The user asked to take
+     *  back their last action and lost an earlier one instead.
+     *
+     *  So each file's membership is read before and compared after, and the
+     *  inverse names only files whose membership actually moved. A file already
+     *  in the requested state still counts as changed -- the caller's intent was
+     *  satisfied -- but contributes nothing to the undo.
+     */
+    $deltas = array();
+
     wp_defer_term_counting( true );
 
     foreach ( $attachments as $attachment_id ) {
@@ -334,22 +369,49 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
             continue;
         }
 
+        $before = wp_get_object_terms( $attachment_id, $taxonomy, array( 'fields' => 'ids' ) );
+        $before = is_wp_error( $before ) ? array() : array_map( 'absint', $before );
+
         if ( 'move' === $mode ) {
             // Replace outright: the target terms become the whole membership.
             wp_set_object_terms( $attachment_id, $add, $taxonomy, false );
-            $changed[] = $attachment_id;
-            continue;
+            $after = $add;
+        } else {
+            if ( ! empty( $add ) ) {
+                wp_set_object_terms( $attachment_id, $add, $taxonomy, true );
+            }
+            if ( ! empty( $remove ) ) {
+                wp_remove_object_terms( $attachment_id, $remove, $taxonomy );
+            }
+            $after = array_diff( array_unique( array_merge( $before, $add ) ), $remove );
         }
 
-        if ( ! empty( $add ) ) {
-            wp_set_object_terms( $attachment_id, $add, $taxonomy, true );
-        }
-
-        if ( ! empty( $remove ) ) {
-            wp_remove_object_terms( $attachment_id, $remove, $taxonomy );
-        }
+        $gained = array_values( array_diff( $after, $before ) );
+        $lost   = array_values( array_diff( $before, $after ) );
 
         $changed[] = $attachment_id;
+
+        if ( empty( $gained ) && empty( $lost ) ) {
+            continue; // Already in the requested state; there is nothing to take back.
+        }
+
+        /*
+         *  Grouped by identical delta. A drag of forty files usually produces one
+         *  or two distinct ones, so the undo stays a short payload rather than a
+         *  per-file list.
+         */
+        sort( $gained );
+        sort( $lost );
+        $key = implode( ',', $gained ) . '|' . implode( ',', $lost );
+
+        if ( ! isset( $deltas[ $key ] ) ) {
+            $deltas[ $key ] = array(
+                'attachments' => array(),
+                'add'         => $lost,   // to undo: give back what was lost
+                'remove'      => $gained, // and take away what was gained
+            );
+        }
+        $deltas[ $key ]['attachments'][] = $attachment_id;
     }
 
     wp_defer_term_counting( false );
@@ -361,8 +423,13 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
      *  the database now says rather than from arithmetic the browser did on the
      *  way -- which is how a count drifts and never comes back.
      */
+    $touched = array_merge( $add, $remove );
+    foreach ( $deltas as $d ) {
+        $touched = array_merge( $touched, $d['add'], $d['remove'] );
+    }
+
     $counts = array();
-    foreach ( array_unique( array_merge( $add, $remove ) ) as $term_id ) {
+    foreach ( array_unique( $touched ) as $term_id ) {
         $term = get_term( $term_id, $taxonomy );
         if ( $term instanceof WP_Term )
             $counts[ (int) $term_id ] = (int) $term->count;
@@ -374,14 +441,96 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
         'counts'     => $counts,
         'unassigned' => vergeml_count_unassigned( $taxonomy ),
         /*
-         *  What to send back to undo this. The interface shows a toast; the
-         *  inverse is computed here so both sides cannot disagree about it.
+         *  What to send back to undo this. The toast posts it straight back to
+         *  this endpoint, so the inverse is computed here and the browser never
+         *  has an opinion about it.
+         *
+         *  A batch rather than one set of terms, because different files can have
+         *  moved differently in the same drag. 'move' is undoable too: replacing a
+         *  file's whole membership is only irreversible if you failed to write
+         *  down what it was.
          */
-        'undo'       => 'move' === $mode ? null : array(
-            'taxonomy'    => $taxonomy,
-            'attachments' => $changed,
-            'add'         => $remove,
-            'remove'      => $add,
+        'undo'       => empty( $deltas ) ? null : array(
+            'taxonomy' => $taxonomy,
+            'batch'    => array_values( $deltas ),
         ),
+    ) );
+}
+
+
+/**
+ *  vergeml_rest_assign_batch
+ *
+ *  Several assign groups in one call.
+ *
+ *  Undo needs this. A single drag can move different files differently -- one
+ *  gained a folder, another swapped one for another, a third was already where
+ *  it was being dragged to -- so taking that drag back is several distinct
+ *  operations, and offering the user a toast that only reverses some of them
+ *  would be worse than offering none.
+ *
+ *  Each group is run through the single-group handler rather than reimplemented,
+ *  so a batch cannot drift from the behaviour of the calls it is made of: the
+ *  per-attachment capability check, the term validation and the deferred
+ *  counting are all the same code.
+ */
+
+function vergeml_rest_assign_batch( WP_REST_Request $request, $taxonomy, array $batch ) {
+
+    $changed = array();
+    $refused = array();
+    $counts  = array();
+    $undo    = array();
+
+    foreach ( $batch as $group ) {
+
+        if ( ! is_array( $group ) ) {
+            continue;
+        }
+
+        $sub = new WP_REST_Request( 'POST', '/' . VERGEML_REST_NS . '/assign' );
+        $sub->set_param( 'taxonomy', $taxonomy );
+        $sub->set_param( 'attachments', isset( $group['attachments'] ) ? (array) $group['attachments'] : array() );
+        $sub->set_param( 'add', isset( $group['add'] ) ? (array) $group['add'] : array() );
+        $sub->set_param( 'remove', isset( $group['remove'] ) ? (array) $group['remove'] : array() );
+        $sub->set_param( 'mode', isset( $group['mode'] ) ? $group['mode'] : 'add' );
+
+        $result = vergeml_rest_assign( $sub );
+
+        /*
+         *  One bad group fails the whole call. A half-applied undo leaves the
+         *  library in a state the user never asked for and cannot name, which is
+         *  worse than an undo that visibly did not work.
+         */
+        if ( is_wp_error( $result ) ) {
+            return $result;
+        }
+
+        $data = $result instanceof WP_REST_Response ? $result->get_data() : (array) $result;
+
+        $changed = array_merge( $changed, isset( $data['changed'] ) ? $data['changed'] : array() );
+        $refused = array_merge( $refused, isset( $data['refused'] ) ? $data['refused'] : array() );
+        $counts  = isset( $data['counts'] ) ? $counts + $data['counts'] : $counts;
+
+        if ( ! empty( $data['undo']['batch'] ) ) {
+            $undo = array_merge( $undo, $data['undo']['batch'] );
+        }
+    }
+
+    // Counts were gathered group by group, so the last group's figures are the
+    // current ones; re-read anything an earlier group reported.
+    foreach ( array_keys( $counts ) as $term_id ) {
+        $term = get_term( $term_id, $taxonomy );
+        if ( $term instanceof WP_Term ) {
+            $counts[ $term_id ] = (int) $term->count;
+        }
+    }
+
+    return rest_ensure_response( array(
+        'changed'    => array_values( array_unique( $changed ) ),
+        'refused'    => array_values( array_unique( $refused ) ),
+        'counts'     => $counts,
+        'unassigned' => vergeml_count_unassigned( $taxonomy ),
+        'undo'       => empty( $undo ) ? null : array( 'taxonomy' => $taxonomy, 'batch' => $undo ),
     ) );
 }
