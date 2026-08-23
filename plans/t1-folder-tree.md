@@ -54,6 +54,24 @@ From the interview. Each one is a constraint, not a preference:
     keep working across the entire tree, which rules out lazy-loading children.
 16. **Keyboard operation and RTL are in T1, not deferred.** ARIA tree roles, arrow-key
     navigation, Enter to filter, a context-menu key for actions.
+17. **Counts are dual and computed in one pass.** Every node carries `count` (files directly in
+    that folder) and `total` (including descendants). The tree displays `total`, because
+    decision 5 says clicking always includes descendants, and a node that reads 0 while showing
+    files when clicked is a bug report. One `GROUP BY` for direct counts, then a single
+    post-order roll-up in PHP. No extra queries — the 4-query budget holds.
+18. **Skins are a free option, not a paid one, and are pure CSS.** Four of them, plus an
+    independent density control. Implemented as `data-skin` / `data-density` on the tree root
+    driving CSS custom properties — one stylesheet, no per-skin file, no JS colour injection.
+    Stored per user alongside the rest of the tree state.
+    - **Native** (default) — derives its accent from the user's own WordPress admin colour
+      scheme via `get_user_option( 'admin_color' )`. The tree looks like part of the admin
+      rather than bolted onto it. FileBird has no `admin_color` awareness anywhere.
+    - **Classic** — filled folder icons, tighter rows, file-manager feel.
+    - **Minimal** — no folder icons, colour dots and labels only, generous spacing.
+    - **High contrast** — heavier weights, larger hit targets, strong focus rings. An
+      accessibility choice, not a decoration.
+    - **Density**: comfortable / compact, orthogonal to skin.
+
 
 ## Out of scope
 
@@ -128,6 +146,35 @@ Ordered. Each verifiable on its own.
 14. **Virtualise past ~500 nodes** while keeping search and counts whole-tree.
 15. **RTL stylesheet** and a pass in an RTL locale.
 16. **The "one folder per file" setting** in the taxonomy options UI, default off.
+17. **Dual counts** in `vergeml/v1/tree`: one aggregate query for direct counts, one post-order
+    pass to roll descendants up. Assert the 4-query budget still holds afterwards.
+18. **Skins and density.** CSS custom properties on the tree root; the Native skin reads the
+    user's admin colour scheme. Ship all four free.
+
+
+## Architecture borrowed from FileBird
+
+Read from their source, reimplemented, not copied:
+
+- **Dual counts with a PHP roll-up** (`includes/Model/Folder.php`). One aggregate query plus an
+  in-memory roll-up over the nested map, returning `display` and `actual`. This is the right
+  shape and we take it. **Their version calls the roll-up once per folder in a loop, so deep
+  trees recompute the same subtrees repeatedly.** Ours does one post-order pass — strictly
+  fewer operations, and the harness can prove it.
+- **Model / Controller / Rest separation.** Their `includes/` split is cleaner than one large
+  class. `core/rest-tree.php` should grow the same seams as it takes on folder CRUD.
+- **An isolated integration shim per third party** (`Support/WPML.php`). Whatever we integrate
+  with later goes in its own file, not into the tree.
+- **A generalisation seam for post types** (`Addons/PostType/`). We are attachments-only in T1,
+  but the endpoints should not hard-code that assumption where avoiding it is free.
+
+What we deliberately do not take:
+
+- **10 MutationObservers and a 1.6MB JS bundle.** They observe the DOM because they fight core
+  instead of hooking it. We hook.
+- **Custom tables.** The lock-in is theirs; portability is our line.
+- **Gating three hex values behind a licence.** Their entire Pro "folder tree themes" feature is
+  a three-value constant, with a nag in free saying the switcher is preview-only.
 
 ## Validation strategy
 
@@ -136,7 +183,8 @@ adds a setting. Specifically:
 
 - **Query-count budget is the regression gate.** `vergeml/v1/tree` stays at **4 queries**. The
   new folder endpoints get their own budget: create/rename/colour ≤ 6, delete ≤ 10 (it
-  re-parents children). Measure with `tests/perf/bench.mjs`. A rise means an N+1 — hard fail,
+  re-parents children). Dual counts must not add a query — measure before and after
+  task 17 and show both numbers. Measure with `tests/perf/bench.mjs`. A rise means an N+1 — hard fail,
   even if it still feels fast.
 - **New test `tests/tree/t1-ui.js`**, driven through Playwright against Playground: tree
   renders, click filters, drag adds, Ctrl-drag moves, undo restores exactly the prior state,
@@ -145,7 +193,7 @@ adds a setting. Specifically:
 - **Scale run on the VPS at 2,000 folders** — Playground floors every request at ~2.4s and
   cannot tell you anything about rendering 2,000 nodes.
 - **Screenshots, required before this is called done:** grid and list, light and dark admin
-  scheme, LTR and RTL. Nathan asked for these explicitly. They catch the class of bug the tests
+  scheme, LTR and RTL, **and each of the four skins**. Nathan asked for these explicitly. They catch the class of bug the tests
   do not — the clipping and the empty popup were both found by eye, not by assertion.
 - **Nathan drives it himself** before merge.
 
