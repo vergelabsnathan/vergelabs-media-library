@@ -263,6 +263,10 @@
 
 				dropTarget( row, node.id );
 
+				if ( cfg.canManage ) {
+					dragSource( row, node.id );
+				}
+
 				item.appendChild( row );
 
 				if ( kids.length && open ) {
@@ -524,19 +528,55 @@
 		return Array.prototype.slice.call( checked ).map( function ( c ) { return parseInt( c.value, 10 ); } );
 	}
 
+	/*
+	 *  Which folder is being dragged, if any.
+	 *
+	 *  Kept here rather than read from the DataTransfer, because a drop handler
+	 *  cannot read custom data during dragover -- only on drop -- and the whole
+	 *  point of knowing early is to refuse an illegal target before the user lets
+	 *  go. The DataTransfer still carries it, so a drop that arrives without this
+	 *  (another window, a reload mid-drag) is treated as a file drag rather than
+	 *  silently reparenting the wrong thing.
+	 */
+	var draggingFolder = 0;
+
 	function dropTarget( row, termId ) {
+
 		row.addEventListener( 'dragover', function ( e ) {
 			e.preventDefault();
+
+			if ( draggingFolder && ! canReparent( draggingFolder, termId ) ) {
+				// Refused before the drop, so the cursor says no rather than the
+				// server saying no after the fact.
+				e.dataTransfer.dropEffect = 'none';
+				row.classList.add( 'is-refused' );
+				return;
+			}
+
 			row.classList.add( 'is-drop' );
 			// Ctrl or Alt turns an add into a move; the pointer says so.
-			e.dataTransfer.dropEffect = ( e.ctrlKey || e.altKey ) ? 'move' : 'copy';
+			e.dataTransfer.dropEffect = draggingFolder || e.ctrlKey || e.altKey ? 'move' : 'copy';
 		} );
+
 		row.addEventListener( 'dragleave', function () {
 			row.classList.remove( 'is-drop' );
+			row.classList.remove( 'is-refused' );
 		} );
+
 		row.addEventListener( 'drop', function ( e ) {
 			e.preventDefault();
 			row.classList.remove( 'is-drop' );
+			row.classList.remove( 'is-refused' );
+
+			var folder = draggingFolder || parseInt( e.dataTransfer.getData( 'text/vgml-folder' ), 10 ) || 0;
+
+			if ( folder ) {
+				draggingFolder = 0;
+				if ( canReparent( folder, termId ) ) {
+					folderMove( folder, termId );
+				}
+				return;
+			}
 
 			var ids = dragging && dragging.length ? dragging : selectionIds();
 			if ( ! ids.length ) {
@@ -545,6 +585,58 @@
 
 			assign( ids, termId, e.ctrlKey || e.altKey );
 			dragging = null;
+		} );
+	}
+
+	/*
+	 *  A folder may not be dropped into itself or into anything below it.
+	 *
+	 *  The endpoint refuses this too, and that is the check that matters -- but
+	 *  refusing it here as well means the user never gets to make the gesture. The
+	 *  consequence of letting it through is a branch detached from the tree with
+	 *  no screen that shows it, so it is worth saying no twice.
+	 */
+	function canReparent( id, parent ) {
+
+		if ( ! id || id === parent ) {
+			return false;
+		}
+
+		var walk = parent;
+		var guard = 0;
+
+		while ( walk && guard++ < 1000 ) {
+			if ( walk === id ) {
+				return false;
+			}
+			var node = state.byId[ walk ];
+			walk = node ? node.parent : 0;
+		}
+
+		return true;
+	}
+
+	function folderMove( id, parent ) {
+		folder( { action: 'move', id: id, parent: parent } );
+	}
+
+	// Rows are the drag source as well as the target.
+	function dragSource( row, termId ) {
+
+		row.setAttribute( 'draggable', 'true' );
+
+		row.addEventListener( 'dragstart', function ( e ) {
+			draggingFolder = termId;
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData( 'text/vgml-folder', String( termId ) );
+			// Some browsers refuse to start a drag without text/plain.
+			e.dataTransfer.setData( 'text/plain', state.byId[ termId ] ? state.byId[ termId ].name : '' );
+			row.classList.add( 'is-dragging' );
+		} );
+
+		row.addEventListener( 'dragend', function () {
+			draggingFolder = 0;
+			row.classList.remove( 'is-dragging' );
 		} );
 	}
 

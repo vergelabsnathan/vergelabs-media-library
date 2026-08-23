@@ -456,3 +456,20 @@ body.vgml-mode-grid .vgml-list {
 		margin-bottom: 16px;
 	}
 }
+
+/* --- dragging folders --------------------------------------------------- */
+
+.vgml-row.is-dragging {
+	opacity: 0.5;
+}
+
+/*
+ *  A target that would detach the branch. Refused on dragover rather than on
+ *  drop, so the gesture is never completed and there is nothing to undo.
+ */
+.vgml-row.is-refused {
+	outline: 2px solid var(--vgml-muted);
+	outline-offset: -2px;
+	cursor: not-allowed;
+	opacity: 0.5;
+}
