@@ -1,0 +1,448 @@
+/*
+ *  The folder tree.
+ *
+ *  Skins are CSS custom properties on the tree root, not four stylesheets and
+ *  not colours injected by JavaScript. A skin is a set of variables; everything
+ *  below reads them. That is why adding one costs a block rather than a file,
+ *  and why every skin gets dark mode and RTL for free.
+ *
+ *  The 'native' skin is the default and it has no colours of its own: it takes
+ *  --vgml-accent, which PHP read from whichever admin colour scheme the user
+ *  already chose. The tree then belongs to the admin it is sitting in.
+ */
+
+.vgml-tree {
+	--vgml-accent: #3858e9;
+	--vgml-bg: transparent;
+	--vgml-fg: #1e1e1e;
+	--vgml-muted: #646970;
+	--vgml-line: #dcdcde;
+	--vgml-hover: rgba( 0, 0, 0, 0.04 );
+	--vgml-selected: rgba( 56, 88, 233, 0.10 );
+	--vgml-radius: 3px;
+	--vgml-row: 30px;
+	--vgml-pad: 8px;
+	--vgml-font: 13px;
+	--vgml-dot: 8px;
+	--vgml-weight: 400;
+
+	position: relative;
+	flex: 0 0 auto;
+	min-width: 160px;
+	max-width: 640px;
+	box-sizing: border-box;
+	padding: 0 var(--vgml-pad) var(--vgml-pad);
+	border: 1px solid var(--vgml-line);
+	border-radius: var(--vgml-radius);
+	background: var(--vgml-bg);
+	color: var(--vgml-fg);
+	font-size: var(--vgml-font);
+}
+
+/* --- skins ------------------------------------------------------------- */
+
+.vgml-tree[data-skin="classic"] {
+	--vgml-accent: #dba617;
+	--vgml-selected: rgba( 219, 166, 23, 0.16 );
+	--vgml-row: 26px;
+	--vgml-dot: 10px;
+	--vgml-radius: 2px;
+}
+
+.vgml-tree[data-skin="minimal"] {
+	--vgml-line: transparent;
+	--vgml-row: 34px;
+	--vgml-pad: 12px;
+	--vgml-dot: 6px;
+	--vgml-selected: transparent;
+}
+
+.vgml-tree[data-skin="minimal"] .vgml-node.is-selected > .vgml-row .vgml-name {
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	text-decoration-thickness: 2px;
+	text-decoration-color: var(--vgml-accent);
+}
+
+/*
+ *  High contrast is an accessibility choice, not a dark decoration: heavier
+ *  weight, larger hit targets, and a focus ring nobody can miss.
+ */
+.vgml-tree[data-skin="contrast"] {
+	--vgml-fg: #000;
+	--vgml-muted: #000;
+	--vgml-line: #000;
+	--vgml-hover: #ffec9e;
+	--vgml-selected: #ffe000;
+	--vgml-row: 36px;
+	--vgml-weight: 600;
+	--vgml-radius: 0;
+}
+
+/* --- density ----------------------------------------------------------- */
+
+.vgml-tree[data-density="compact"] {
+	--vgml-row: 22px;
+	--vgml-font: 12px;
+	--vgml-pad: 6px;
+}
+
+/* --- layout ------------------------------------------------------------ */
+
+/*
+ *  The panel sits in a strip padded off the wrap, and core's own markup is left
+ *  exactly where it was.
+ *
+ *  This is the whole layout mechanism, and it works for both screens for one
+ *  reason: an absolutely positioned element resolves against its containing
+ *  block's *padding* box. The grid's media frame is absolute with inset 0, so
+ *  padding the wrap moves the frame across without overriding a single property
+ *  of core's. The list table is in normal flow and is moved by the same padding.
+ */
+body.vgml-has-tree .wrap {
+	position: relative;
+	padding-inline-start: calc( var( --vgml-panel-w, 240px ) + 16px );
+}
+
+body.vgml-has-tree .vgml-tree {
+	position: absolute;
+	top: 0;
+	inset-inline-start: 0;
+	width: var( --vgml-panel-w, 240px );
+}
+
+.vgml-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: var(--vgml-pad) 0;
+	border-bottom: 1px solid var(--vgml-line);
+}
+
+.vgml-title {
+	font-weight: 600;
+	flex: 1 1 auto;
+}
+
+.vgml-tax {
+	flex: 1 1 auto;
+	max-width: 100%;
+	font-size: var(--vgml-font);
+}
+
+.vgml-new {
+	flex: 0 0 auto;
+	width: 24px;
+	height: 24px;
+	line-height: 1;
+	font-size: 16px;
+	cursor: pointer;
+	border: 1px solid var(--vgml-line);
+	border-radius: var(--vgml-radius);
+	background: none;
+	color: var(--vgml-fg);
+}
+
+.vgml-search {
+	width: 100%;
+	margin: var(--vgml-pad) 0;
+	box-sizing: border-box;
+	font-size: var(--vgml-font);
+}
+
+.vgml-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	/*
+	 *  The list scrolls; the panel does not grow.
+	 *
+	 *  Without this a library with two thousand folders produced a panel 65,000
+	 *  pixels tall, which drags the whole admin page's scroll height with it and
+	 *  makes the media table unreachable. A tree is a navigation aid and it has
+	 *  to stay beside what it navigates.
+	 */
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	max-height: calc( 100vh - 320px );
+	min-height: 120px;
+}
+
+.vgml-group {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-node {
+	margin: 0;
+}
+
+.vgml-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	height: var(--vgml-row);
+	/*
+	 *  Indent comes from the script as a custom property rather than as inline
+	 *  padding, so it stays a *logical* start and flips with the document
+	 *  direction. An inline padding-left in pixels would indent RTL from the
+	 *  wrong edge and no stylesheet could override it.
+	 */
+	padding-inline-start: var(--vgml-indent, 8px);
+	padding-inline-end: 4px;
+	border-radius: var(--vgml-radius);
+	cursor: pointer;
+	font-weight: var(--vgml-weight);
+}
+
+.vgml-row:hover {
+	background: var(--vgml-hover);
+}
+
+.vgml-node.is-selected > .vgml-row {
+	background: var(--vgml-selected);
+}
+
+/*
+ *  Focus lands on the li, so the ring is drawn on the row inside it -- an
+ *  outline on a list item that contains a nested group would frame the whole
+ *  branch rather than the folder that has focus.
+ */
+.vgml-node:focus {
+	outline: none;
+}
+
+.vgml-node:focus > .vgml-row {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: -2px;
+}
+
+.vgml-twist {
+	flex: 0 0 auto;
+	width: 14px;
+	height: 14px;
+	padding: 0;
+	line-height: 1;
+	font-size: 10px;
+	border: 0;
+	background: none;
+	color: var(--vgml-muted);
+	cursor: pointer;
+}
+
+.vgml-twist.is-leaf {
+	cursor: default;
+	visibility: hidden;
+}
+
+.vgml-dot {
+	flex: 0 0 auto;
+	width: var(--vgml-dot);
+	height: var(--vgml-dot);
+	border-radius: 50%;
+	background: var(--vgml-accent);
+}
+
+.vgml-dot.is-none {
+	background: var(--vgml-muted);
+	opacity: 0.5;
+}
+
+.vgml-tree[data-skin="classic"] .vgml-dot {
+	border-radius: 2px; /* a folder tab rather than a bullet */
+}
+
+.vgml-name {
+	flex: 1 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.vgml-count {
+	flex: 0 0 auto;
+	color: var(--vgml-muted);
+	font-variant-numeric: tabular-nums;
+	font-size: 0.9em;
+}
+
+.vgml-kebab {
+	flex: 0 0 auto;
+	width: 20px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--vgml-muted);
+	cursor: pointer;
+	opacity: 0;
+}
+
+.vgml-row:hover .vgml-kebab,
+.vgml-node:focus .vgml-kebab {
+	opacity: 1;
+}
+
+.vgml-row.is-drop {
+	outline: 2px dashed var(--vgml-accent);
+	outline-offset: -2px;
+	background: var(--vgml-selected);
+}
+
+.vgml-empty {
+	padding: var(--vgml-pad);
+	color: var(--vgml-muted);
+	font-style: italic;
+}
+
+/* --- skin picker ------------------------------------------------------- */
+
+.vgml-skins {
+	display: flex;
+	gap: 4px;
+	margin-top: var(--vgml-pad);
+	padding-top: var(--vgml-pad);
+	border-top: 1px solid var(--vgml-line);
+}
+
+.vgml-skin {
+	width: 16px;
+	height: 16px;
+	padding: 0;
+	border: 1px solid var(--vgml-line);
+	border-radius: 50%;
+	cursor: pointer;
+}
+
+.vgml-skin[data-skin="native"]   { background: var(--vgml-accent); }
+.vgml-skin[data-skin="classic"]  { background: #dba617; }
+.vgml-skin[data-skin="minimal"]  { background: #fff; }
+.vgml-skin[data-skin="contrast"] { background: #000; }
+
+.vgml-density {
+	margin-inline-start: auto;
+	border: 1px solid var(--vgml-line);
+	border-radius: var(--vgml-radius);
+	background: none;
+	color: var(--vgml-fg);
+	cursor: pointer;
+	line-height: 1;
+}
+
+/* --- toast ------------------------------------------------------------- */
+
+.vgml-toast {
+	display: none;
+	align-items: center;
+	gap: 8px;
+	margin-top: var(--vgml-pad);
+	padding: 8px;
+	border-radius: var(--vgml-radius);
+	background: #1e1e1e;
+	color: #fff;
+	font-size: 12px;
+}
+
+.vgml-toast.is-shown {
+	display: flex;
+}
+
+.vgml-undo {
+	margin-inline-start: auto;
+	border: 0;
+	background: none;
+	color: #7eb6ff;
+	cursor: pointer;
+	text-decoration: underline;
+	font-size: 12px;
+}
+
+/* --- resize grip ------------------------------------------------------- */
+
+.vgml-grip {
+	position: absolute;
+	top: 0;
+	inset-inline-end: -8px;
+	width: 8px;
+	height: 100%;
+	cursor: col-resize;
+}
+
+/* --- narrow screens ---------------------------------------------------- */
+
+@media screen and ( max-width: 782px ) {
+
+	.vgml-tree {
+		width: auto !important;
+		max-width: none;
+		margin-bottom: 16px;
+	}
+
+	.vgml-grip {
+		display: none;
+	}
+
+	/* Touch targets, whatever the density says. */
+	.vgml-tree {
+		--vgml-row: 40px;
+	}
+}
+
+/* --- dark scheme ------------------------------------------------------- */
+
+@media ( prefers-color-scheme: dark ) {
+
+	.vgml-tree {
+		--vgml-fg: #e0e0e0;
+		--vgml-muted: #a7aaad;
+		--vgml-line: #3c434a;
+		--vgml-hover: rgba( 255, 255, 255, 0.06 );
+	}
+
+	.vgml-tree[data-skin="minimal"] {
+		--vgml-line: transparent;
+	}
+
+	.vgml-tree[data-skin="contrast"] {
+		--vgml-fg: #fff;
+		--vgml-muted: #fff;
+		--vgml-line: #fff;
+		--vgml-hover: #333;
+		--vgml-selected: #005fcc;
+	}
+}
+
+/* --- grid view --------------------------------------------------------- */
+
+/*
+ *  Grid gives the panel a full-height column, because the frame it sits beside
+ *  is full-height too and a short panel next to a tall grid reads as broken.
+ */
+
+body.vgml-mode-grid .vgml-tree {
+	bottom: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+body.vgml-mode-grid .vgml-list {
+	flex: 1 1 auto;
+	max-height: none;
+}
+
+@media screen and ( max-width: 782px ) {
+
+	body.vgml-has-tree .wrap {
+		padding-inline-start: 0;
+	}
+
+	body.vgml-has-tree .vgml-tree,
+	body.vgml-mode-grid .vgml-tree {
+		position: static;
+		width: auto;
+		height: auto;
+		display: block;
+		margin-bottom: 16px;
+	}
+}

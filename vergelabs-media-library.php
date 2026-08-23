@@ -1105,6 +1105,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/system-report.php' );
         include_once( 'core/rest-tree.php' );
         include_once( 'core/rest-folders.php' );
+        include_once( 'core/tree-ui.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {
             include_once( 'core/medialist.php' );

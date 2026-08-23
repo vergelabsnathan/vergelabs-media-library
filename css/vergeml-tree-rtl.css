@@ -1,0 +1,14 @@
+/*
+ *  RTL corrections for the folder tree.
+ *
+ *  Deliberately almost empty. The stylesheet uses logical properties throughout
+ *  -- padding-inline-start, margin-inline-start, inset-inline-end -- and the
+ *  indent arrives as a custom property rather than inline pixels, so direction
+ *  is already the browser's job. What remains is the one thing that carries a
+ *  direction of its own: a glyph.
+ */
+
+/* The disclosure arrow is a character, and characters do not flip. */
+.rtl .vgml-twist {
+	transform: scaleX( -1 );
+}
