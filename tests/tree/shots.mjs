@@ -39,10 +39,19 @@ async function session( { dark, rtl } ) {
 	const page = await ctx.newPage();
 
 	const errors = [];
-	// The stack matters: "reading 'serialize'" names nothing on its own.
+	/*
+	 *  The stack matters: "reading 'serialize'" names nothing on its own, and
+	 *  chasing it without one cost an hour. It turned out to come from core's own
+	 *  wp-admin/js/user-profile.js, thrown when this test submits the profile form
+	 *  to switch the admin language -- setup, not the thing under test, and it
+	 *  arrives late enough to survive the reset below. Excluded by origin rather
+	 *  than by message, so a real error from the same file would still be caught
+	 *  once this test stops touching profile.php.
+	 */
 	page.on( 'pageerror', ( e ) => {
-		const where = String( e.stack || '' ).split( /?
-/ ).slice( 1, 4 ).join( ' <- ' );
+		const stack = String( e.stack || '' );
+		if ( stack.indexOf( 'wp-admin/js/user-profile.js' ) !== -1 ) return;
+		const where = stack.split( String.fromCharCode( 10 ) ).slice( 1, 4 ).join( ' <- ' );
 		errors.push( String( e.message ) + ( where ? '  @ ' + where : '' ) );
 	} );
 	page.on( 'console', ( m ) => {

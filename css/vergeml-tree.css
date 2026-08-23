@@ -37,6 +37,16 @@
 	background: var(--vgml-bg);
 	color: var(--vgml-fg);
 	font-size: var(--vgml-font);
+	/*
+	 *  Nothing paints outside the panel.
+	 *
+	 *  The scrolling list clips its own rows, but folder dots were still being
+	 *  drawn in a column down the page below the panel border -- a scrolled row's
+	 *  layout box sits outside the scroller and, without a clip on the panel
+	 *  itself, some of it reached the page. Whatever the exact cause, a panel that
+	 *  cannot paint outside its border cannot produce that class of bug again.
+	 */
+	overflow: hidden;
 }
 
 /* --- skins ------------------------------------------------------------- */
