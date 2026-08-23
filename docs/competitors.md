@@ -66,3 +66,47 @@ Worth noting, not acting on yet:
 Both ship one. Premio's `class-review-box.php` is 717 lines and calendar-driven. The T4 plan's
 success-moment box is deliberately the same mechanic without the nagging: it fires once, after
 something actually worked, and dismisses forever.
+
+## Provenance warning
+
+The Pro zips surveyed here are **nulled builds**. FileBird Pro's entry file writes
+`filebird_code` and a hardcoded `filebird_supported_until => 01.01.2030`; Folders Pro hooks
+`pre_http_request` to intercept `go.premio.io` and return a forged lifetime licence. Both were
+modified by someone other than their authors.
+
+Consequence for this project: architecture and behaviour were read from them, **no code was
+copied**, and neither should ever be activated on a site that matters. A build already proven
+modified cannot be assumed to have been modified only where you can see.
+
+## What we take, concretely
+
+### From FileBird Pro
+
+| Taken | Where it lands |
+|---|---|
+| **Dual counts** — one `GROUP BY` for direct counts, PHP roll-up for descendant totals, return both | T1 task 17. Required by the always-include-descendants decision. Ours does one post-order pass; theirs loops the roll-up per folder. |
+| **`getNestedFolder()` adjacency map** — parent→children built once, reused everywhere | T1. Serves counts, self-descendant reparent checks, and search auto-expansion from one structure. |
+| **Model / Controller / Rest seams** | `core/rest-tree.php` as it grows folder CRUD. |
+| **Post-type generalisation seam** (`Addons/PostType/`) | T1: do not hard-code attachments where avoiding it is free. Folders for posts/CPTs later. |
+| **Per-integration shim** (`Support/WPML.php`) | Whatever we integrate with gets its own file, never the tree. |
+| **`Fallback.php` graceful degradation** | Pairs with our safe mode. |
+| **Theme switcher** | T1 decision 18 — four real skins, free, plus an admin-colour-scheme-native default they have no equivalent of. |
+| **Separated updater / licensing** | Our Pro's updater, not the free plugin. |
+
+Rejected: custom tables, the 1.6MB bundle, 10 MutationObservers, gallery/page-builder
+integrations (Elementor + Divi + Gutenberg is a permanent maintenance surface on other people's
+release schedules).
+
+### From Folders Pro
+
+| Taken | Where it lands |
+|---|---|
+| **Dynamic folders** — auto-file by year / month / author | Strong candidate for our Pro. For us it is a saved query over terms we already have, not a new storage model. |
+| **Replace a file, keep the URL** | Pro candidate. One of the most-requested media features in WordPress, and entirely folder-independent. |
+| **Unused-media scan and bulk delete** | Pro candidate. Pairs with the duplicate finder already planned. |
+| **SVG upload with sanitisation** | Later. They bundle a sanitiser library; the pattern is right. |
+| **Review box mechanic** | Already in T4 as the success-moment box — same mechanic, fires once after something worked, no calendar nag. |
+| **Native-taxonomy substrate** | Already the basis of our whole approach. They validated it. |
+
+Rejected: the 717-line calendar-driven review nag, and folders-for-everything as a free-tier
+feature.
