@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.10.1
+Stable tag: 3.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -207,7 +207,7 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 ## Changelog ##
 
-### 2.10.1 ###
+### 3.0.0 ###
 *Recovering from a white screen without FTP*
 
 = Added =

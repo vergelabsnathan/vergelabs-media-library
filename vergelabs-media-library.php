@@ -3,7 +3,7 @@
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
 Description: Categories, tags and custom taxonomies for the media library, MIME type management, and configurable media grid filters.
-Version: 2.10.0
+Version: 3.0.0
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '2.10.1' );
+if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.0.0' );
 if ( ! defined('VERGEML_FILE') )    define( 'VERGEML_FILE', __FILE__ );
 
 
