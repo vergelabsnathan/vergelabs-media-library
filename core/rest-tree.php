@@ -264,6 +264,13 @@ function vergeml_tree_state( $taxonomy ) {
         'open'     => isset( $mine['open'] ) && is_array( $mine['open'] ) ? array_map( 'intval', $mine['open'] ) : array(),
         'selected' => isset( $mine['selected'] ) ? (int) $mine['selected'] : 0,
         'width'    => isset( $mine['width'] ) ? (int) $mine['width'] : 0,
+        /*
+         *  'native' derives its accent from whichever admin colour scheme this
+         *  user already chose, so the tree looks like part of the admin rather
+         *  than bolted onto it. That is why it is the default.
+         */
+        'skin'     => isset( $mine['skin'] ) ? (string) $mine['skin'] : 'native',
+        'density'  => isset( $mine['density'] ) ? (string) $mine['density'] : 'comfortable',
     );
 }
 
