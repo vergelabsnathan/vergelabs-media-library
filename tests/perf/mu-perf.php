@@ -19,6 +19,52 @@ if ( ! defined( 'SAVEQUERIES' ) ) {
 	define( 'SAVEQUERIES', true );
 }
 
+/*
+ *  Admin pages, not just REST.
+ *
+ *  Competitors do not all expose a tree endpoint -- FileBird builds its tree into the
+ *  media page itself. Comparing our endpoint against their nothing would flatter us
+ *  and tell us nothing, so measure what a user actually waits for: the cost of the
+ *  media library screen with each plugin active. One line per request, appended to
+ *  wp-content/perf-admin.log.
+ */
+add_action(
+	'shutdown',
+	function () {
+		if ( ! is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return;
+		}
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '';
+		if ( strpos( $uri, 'upload.php' ) === false ) {
+			return;
+		}
+		$ms     = ( microtime( true ) - (float) $_SERVER['REQUEST_TIME_FLOAT'] ) * 1000;
+		$active = implode(
+			',',
+			array_map(
+				function ( $p ) {
+					$slash = strpos( $p, '/' );
+					return false === $slash ? $p : substr( $p, 0, $slash );
+				},
+				(array) get_option( 'active_plugins', array() )
+			)
+		);
+		error_log(
+			sprintf(
+				"%s\tqueries=%d\tms=%.1f\tmem=%.1fMB\tactive=%s\n",
+				$uri,
+				get_num_queries(),
+				$ms,
+				memory_get_peak_usage( true ) / 1048576,
+				$active
+			),
+			3,
+			WP_CONTENT_DIR . '/perf-admin.log'
+		);
+	},
+	PHP_INT_MAX
+);
+
 add_filter(
 	'rest_pre_dispatch',
 	function ( $result, $server, $request ) {
