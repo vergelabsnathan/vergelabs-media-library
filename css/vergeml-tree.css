@@ -398,64 +398,19 @@ body.vgml-has-tree .vgml-tree {
 	}
 }
 
-/* --- dark scheme ------------------------------------------------------- */
-
-@media ( prefers-color-scheme: dark ) {
-
-	.vgml-tree {
-		--vgml-fg: #e0e0e0;
-		--vgml-muted: #a7aaad;
-		--vgml-line: #3c434a;
-		--vgml-hover: rgba( 255, 255, 255, 0.06 );
-	}
-
-	.vgml-tree[data-skin="minimal"] {
-		--vgml-line: transparent;
-	}
-
-	.vgml-tree[data-skin="contrast"] {
-		--vgml-fg: #fff;
-		--vgml-muted: #fff;
-		--vgml-line: #fff;
-		--vgml-hover: #333;
-		--vgml-selected: #005fcc;
-	}
-}
-
-/* --- grid view --------------------------------------------------------- */
+/* --- the admin is not dark just because the OS is ------------------------ */
 
 /*
- *  Grid gives the panel a full-height column, because the frame it sits beside
- *  is full-height too and a short panel next to a tall grid reads as broken.
+ *  There is deliberately no prefers-color-scheme block here, and there was one --
+ *  it shipped light grey folder names onto WordPress's white content area, which
+ *  in a screenshot was almost unreadable.
+ *
+ *  WordPress admin colour schemes are a per-user setting, not an OS preference,
+ *  and every one of them keeps the content area light; only the chrome changes.
+ *  So the tree follows the admin, not the operating system. The 'native' skin
+ *  already takes its accent from whichever scheme the user picked, which is the
+ *  part that genuinely should follow them.
  */
-
-body.vgml-mode-grid .vgml-tree {
-	bottom: 0;
-	display: flex;
-	flex-direction: column;
-	overflow: hidden;
-}
-
-body.vgml-mode-grid .vgml-list {
-	flex: 1 1 auto;
-	max-height: none;
-}
-
-@media screen and ( max-width: 782px ) {
-
-	body.vgml-has-tree .wrap {
-		padding-inline-start: 0;
-	}
-
-	body.vgml-has-tree .vgml-tree,
-	body.vgml-mode-grid .vgml-tree {
-		position: static;
-		width: auto;
-		height: auto;
-		display: block;
-		margin-bottom: 16px;
-	}
-}
 
 /* --- dragging folders --------------------------------------------------- */
 
@@ -472,4 +427,65 @@ body.vgml-mode-grid .vgml-list {
 	outline-offset: -2px;
 	cursor: not-allowed;
 	opacity: 0.5;
+}
+
+/* --- grid view --------------------------------------------------------- */
+
+/*
+ *  Grid is a different layout problem from list.
+ *
+ *  Core positions .media-frame absolutely across the whole wrap with z-index 10,
+ *  so a panel placed beside it in the flow is simply covered -- visible, and not
+ *  clickable, because the frame swallows the pointer.
+ *
+ *  Padding on the wrap does NOT move it, and assuming it did cost a round of
+ *  this: an absolutely positioned child resolves `left: 0` against the outer edge
+ *  of its containing block's padding box, which is the border edge, so the
+ *  padding sits behind it. The frame is therefore offset explicitly here, and the
+ *  wrap's padding is taken back off so the two do not both try to make room.
+ */
+
+body.vgml-mode-grid .wrap {
+	padding-inline-start: 0;
+}
+
+body.vgml-mode-grid .media-frame {
+	inset-inline-start: calc( var( --vgml-panel-w, 240px ) + 16px );
+}
+
+body.vgml-mode-grid .vgml-tree {
+	/* Aligned with the frame, not the top of the wrap -- that is where the page
+	   heading lives, and the panel was sitting on top of it. */
+	top: var( --vgml-panel-top, 50px );
+	bottom: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+body.vgml-mode-grid .vgml-list {
+	flex: 1 1 auto;
+	max-height: none;
+	/*
+	 *  A flex item's min-height is auto -- "at least as tall as my content". With
+	 *  windowing the content is two thousand rows of spacer, some 54,000px, so the
+	 *  list refused to shrink and pushed the skin controls and the toast off the
+	 *  bottom of the screen. They were in the page and simply out of reach.
+	 */
+	min-height: 0;
+}
+
+@media screen and ( max-width: 782px ) {
+
+	body.vgml-mode-grid .media-frame {
+		inset-inline-start: 0;
+	}
+
+	body.vgml-mode-grid .vgml-tree {
+		position: static;
+		width: auto;
+		height: auto;
+		display: block;
+		margin-bottom: 16px;
+	}
 }

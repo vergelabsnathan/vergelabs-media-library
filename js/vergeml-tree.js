@@ -180,117 +180,194 @@
 
 	/* ------------------------------------------------------------- the view */
 
+	/*
+	 *  Flatten first, then draw only the window that is on screen.
+	 *
+	 *  The tree used to be nested <ul>s, which is the obvious shape and the wrong
+	 *  one: two thousand folders meant 12,764 DOM nodes and 103ms on every toggle,
+	 *  every search keystroke and every skin change -- to paint 54,660px of rows
+	 *  into a 630px panel. Ninety-seven per cent of that work was never seen.
+	 *
+	 *  A flat list carrying aria-level is an equally valid tree to a screen reader,
+	 *  and it makes windowing arithmetic: rows are a uniform height, so the slice in
+	 *  view can be calculated. Two spacer rows keep the scrollbar honest.
+	 *
+	 *  Below the threshold everything is drawn. Windowing costs a scroll handler and
+	 *  a repaint on scroll, and a fifty-folder library should not pay for a
+	 *  two-thousand-folder problem.
+	 */
+	var VIRTUALISE_ABOVE = 500;
+	var OVERSCAN = 8;
+
+	// Uniform, but the height depends on skin and density -- so it is read from the
+	// element rather than assumed.
+	function rowHeight() {
+		var v = parseInt( getComputedStyle( root ).getPropertyValue( '--vgml-row' ), 10 );
+		return v > 0 ? v : 30;
+	}
+
+	function flatten() {
+		var out = [];
+		var total = totals();
+
+		out.push( { pseudo: 'all', label: l10n.all, count: null, depth: 0, id: 0 } );
+		out.push( { pseudo: 'unassigned', label: l10n.unassigned, count: state.unassigned, depth: 0, id: -1 } );
+
+		( function walk( parentId, depth ) {
+			var siblings = ( state.children[ parentId ] || [] ).filter( visible );
+
+			siblings.forEach( function ( node, i ) {
+				var kids = ( state.children[ node.id ] || [] ).filter( visible );
+				// While searching, every branch on the way to a match is open.
+				var open = state.filter ? true : !! state.open[ node.id ];
+
+				out.push( {
+					node: node,
+					depth: depth,
+					id: node.id,
+					total: total[ node.id ],
+					kids: kids.length,
+					open: open,
+					posinset: i + 1,
+					setsize: siblings.length
+				} );
+
+				if ( kids.length && open ) {
+					walk( node.id, depth + 1 );
+				}
+			} );
+		} )( 0, 0 );
+
+		return out;
+	}
+
+	var flat = [];
+	var windowed = false;
+
 	function render() {
 		if ( ! listEl ) {
 			return;
 		}
 
-		var total = totals();
-		listEl.innerHTML = '';
-		listEl.setAttribute( 'role', 'tree' );
-		listEl.setAttribute( 'aria-label', l10n.folders );
-
-		listEl.appendChild( pseudo( 'all', l10n.all, null ) );
-		listEl.appendChild( pseudo( 'unassigned', l10n.unassigned, state.unassigned ) );
-
-		var shown = 0;
-
-		function branch( parentId, depth, into ) {
-			( state.children[ parentId ] || [] ).forEach( function ( node ) {
-				if ( ! visible( node ) ) {
-					return;
-				}
-				shown++;
-				var kids = ( state.children[ node.id ] || [] ).filter( visible );
-				// While searching, open everything on the way to a match.
-				var open = state.filter ? true : !! state.open[ node.id ];
-
-				var item = el( 'li', {
-					class: 'vgml-node' + ( state.selected === node.id ? ' is-selected' : '' ),
-					role: 'treeitem',
-					'aria-level': depth + 1,
-					'aria-selected': state.selected === node.id ? 'true' : 'false',
-					'data-id': node.id,
-					tabindex: '-1'
-				} );
-
-				if ( kids.length ) {
-					item.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
-				}
-
-				var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( depth * 14 + 8 ) + 'px' } );
-
-				var twist = el( 'button', {
-					class: 'vgml-twist' + ( kids.length ? '' : ' is-leaf' ),
-					type: 'button',
-					tabindex: '-1',
-					'aria-hidden': 'true'
-				} );
-				twist.innerHTML = kids.length ? ( open ? '&#9662;' : '&#9656;' ) : '';
-				twist.addEventListener( 'click', function ( e ) {
-					e.stopPropagation();
-					toggle( node.id );
-				} );
-				row.appendChild( twist );
-
-				var dot = el( 'span', { class: 'vgml-dot', 'aria-hidden': 'true' } );
-				if ( node.color ) {
-					dot.style.background = node.color;
-				}
-				row.appendChild( dot );
-
-				row.appendChild( el( 'span', { class: 'vgml-name' }, node.name ) );
-				row.appendChild( el( 'span', { class: 'vgml-count' }, String( total[ node.id ] ) ) );
-
-				if ( cfg.canManage ) {
-					var kebab = el( 'button', {
-						class: 'vgml-kebab',
-						type: 'button',
-						tabindex: '-1',
-						'aria-label': node.name
-					} );
-					kebab.innerHTML = '&#8942;';
-					kebab.addEventListener( 'click', function ( e ) {
-						e.stopPropagation();
-						menu( node );
-					} );
-					row.appendChild( kebab );
-				}
-
-				row.addEventListener( 'click', function () {
-					select( node.id );
-				} );
-
-				dropTarget( row, node.id );
-
-				if ( cfg.canManage ) {
-					dragSource( row, node.id );
-				}
-
-				item.appendChild( row );
-
-				if ( kids.length && open ) {
-					var group = el( 'ul', { role: 'group', class: 'vgml-group' } );
-					branch( node.id, depth + 1, group );
-					item.appendChild( group );
-				}
-
-				into.appendChild( item );
-			} );
-		}
-
-		branch( 0, 0, listEl );
-
-		if ( state.filter && shown === 0 ) {
-			listEl.appendChild( el( 'li', { class: 'vgml-empty', role: 'none' }, l10n.nothingFound ) );
-		}
+		flat = flatten();
+		windowed = flat.length > VIRTUALISE_ABOVE;
 
 		root.setAttribute( 'data-skin', state.skin );
 		root.setAttribute( 'data-density', state.density );
+
+		paint();
 	}
 
-	function pseudo( key, label, count ) {
+	function paint() {
+		var h = rowHeight();
+		var first = 0;
+		var last = flat.length;
+
+		if ( windowed ) {
+			var top = listEl.scrollTop;
+			var view = listEl.clientHeight || 400;
+			first = Math.max( 0, Math.floor( top / h ) - OVERSCAN );
+			last = Math.min( flat.length, Math.ceil( ( top + view ) / h ) + OVERSCAN );
+		}
+
+		listEl.innerHTML = '';
+
+		if ( first > 0 ) {
+			listEl.appendChild( spacer( first * h ) );
+		}
+
+		for ( var i = first; i < last; i++ ) {
+			listEl.appendChild( flat[ i ].pseudo ? pseudoRow( flat[ i ] ) : nodeRow( flat[ i ] ) );
+		}
+
+		if ( last < flat.length ) {
+			listEl.appendChild( spacer( ( flat.length - last ) * h ) );
+		}
+
+		if ( state.filter && flat.length <= 2 ) {
+			listEl.appendChild( el( 'li', { class: 'vgml-empty', role: 'none' }, l10n.nothingFound ) );
+		}
+	}
+
+	function spacer( px ) {
+		return el( 'li', { class: 'vgml-spacer', role: 'none', 'aria-hidden': 'true', style: 'height:' + px + 'px' } );
+	}
+
+	function nodeRow( entry ) {
+		var node = entry.node;
+
+		var item = el( 'li', {
+			class: 'vgml-node' + ( state.selected === node.id ? ' is-selected' : '' ),
+			role: 'treeitem',
+			'aria-level': entry.depth + 1,
+			'aria-posinset': entry.posinset,
+			'aria-setsize': entry.setsize,
+			'aria-selected': state.selected === node.id ? 'true' : 'false',
+			'data-id': node.id,
+			tabindex: '-1'
+		} );
+
+		if ( entry.kids ) {
+			item.setAttribute( 'aria-expanded', entry.open ? 'true' : 'false' );
+		}
+
+		var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( entry.depth * 14 + 8 ) + 'px' } );
+
+		var twist = el( 'button', {
+			class: 'vgml-twist' + ( entry.kids ? '' : ' is-leaf' ),
+			type: 'button',
+			tabindex: '-1',
+			'aria-hidden': 'true'
+		} );
+		twist.innerHTML = entry.kids ? ( entry.open ? '&#9662;' : '&#9656;' ) : '';
+		twist.addEventListener( 'click', function ( e ) {
+			e.stopPropagation();
+			toggle( node.id );
+		} );
+		row.appendChild( twist );
+
+		var dot = el( 'span', { class: 'vgml-dot', 'aria-hidden': 'true' } );
+		if ( node.color ) {
+			dot.style.background = node.color;
+		}
+		row.appendChild( dot );
+
+		row.appendChild( el( 'span', { class: 'vgml-name' }, node.name ) );
+		row.appendChild( el( 'span', { class: 'vgml-count' }, String( entry.total ) ) );
+
+		if ( cfg.canManage ) {
+			var kebab = el( 'button', {
+				class: 'vgml-kebab',
+				type: 'button',
+				tabindex: '-1',
+				'aria-label': node.name
+			} );
+			kebab.innerHTML = '&#8942;';
+			kebab.addEventListener( 'click', function ( e ) {
+				e.stopPropagation();
+				menu( node );
+			} );
+			row.appendChild( kebab );
+		}
+
+		row.addEventListener( 'click', function () {
+			select( node.id );
+		} );
+
+		dropTarget( row, node.id );
+
+		if ( cfg.canManage ) {
+			dragSource( row, node.id );
+		}
+
+		item.appendChild( row );
+		return item;
+	}
+
+	function pseudoRow( entry ) {
+		var key = entry.pseudo;
 		var selected = ( key === 'all' && ! state.selected ) || ( key === 'unassigned' && state.selected === -1 );
+
 		var item = el( 'li', {
 			class: 'vgml-node vgml-pseudo' + ( selected ? ' is-selected' : '' ),
 			role: 'treeitem',
@@ -299,16 +376,20 @@
 			'data-id': key === 'all' ? '0' : '-1',
 			tabindex: '-1'
 		} );
+
 		var row = el( 'div', { class: 'vgml-row' } );
 		row.appendChild( el( 'span', { class: 'vgml-twist is-leaf', 'aria-hidden': 'true' } ) );
 		row.appendChild( el( 'span', { class: 'vgml-dot is-none', 'aria-hidden': 'true' } ) );
-		row.appendChild( el( 'span', { class: 'vgml-name' }, label ) );
-		if ( count !== null ) {
-			row.appendChild( el( 'span', { class: 'vgml-count' }, String( count ) ) );
+		row.appendChild( el( 'span', { class: 'vgml-name' }, entry.label ) );
+
+		if ( entry.count !== null ) {
+			row.appendChild( el( 'span', { class: 'vgml-count' }, String( entry.count ) ) );
 		}
+
 		row.addEventListener( 'click', function () {
 			select( key === 'all' ? 0 : -1 );
 		} );
+
 		item.appendChild( row );
 		return item;
 	}
@@ -428,33 +509,51 @@
 		item.focus();
 	}
 
+	/*
+	 *  Navigation walks the model, not the DOM.
+	 *
+	 *  With windowing on, the page holds about forty rows out of two thousand, so
+	 *  "the next element" runs out at the edge of the window and the arrow keys
+	 *  stop. The flattened list is the real order; restoreFocus scrolls whatever it
+	 *  lands on into existence.
+	 */
+	function indexOfId( id ) {
+		for ( var i = 0; i < flat.length; i++ ) {
+			if ( flat[ i ].id === id ) { return i; }
+		}
+		return -1;
+	}
+
 	function onKey( e ) {
-		var all = rows();
 		var current = document.activeElement;
-		var i = all.indexOf( current );
+
+		if ( ! current || ! current.getAttribute || current.getAttribute( 'role' ) !== 'treeitem' ) {
+			return;
+		}
+
+		var id = parseInt( current.getAttribute( 'data-id' ), 10 );
+		var i = indexOfId( id );
 
 		if ( i === -1 ) {
 			return;
 		}
 
-		var id = parseInt( current.getAttribute( 'data-id' ), 10 );
-
 		switch ( e.key ) {
 			case 'ArrowDown':
 				e.preventDefault();
-				if ( all[ i + 1 ] ) { focusRow( all[ i + 1 ] ); }
+				if ( flat[ i + 1 ] ) { restoreFocus( flat[ i + 1 ].id ); }
 				break;
 			case 'ArrowUp':
 				e.preventDefault();
-				if ( all[ i - 1 ] ) { focusRow( all[ i - 1 ] ); }
+				if ( flat[ i - 1 ] ) { restoreFocus( flat[ i - 1 ].id ); }
 				break;
 			case 'ArrowRight':
 				e.preventDefault();
 				if ( current.getAttribute( 'aria-expanded' ) === 'false' ) {
 					toggle( id );
 					restoreFocus( id );
-				} else if ( all[ i + 1 ] ) {
-					focusRow( all[ i + 1 ] );
+				} else if ( flat[ i + 1 ] ) {
+					restoreFocus( flat[ i + 1 ].id );
 				}
 				break;
 			case 'ArrowLeft':
@@ -469,11 +568,11 @@
 				break;
 			case 'Home':
 				e.preventDefault();
-				focusRow( all[ 0 ] );
+				if ( flat[ 0 ] ) { restoreFocus( flat[ 0 ].id ); }
 				break;
 			case 'End':
 				e.preventDefault();
-				focusRow( all[ all.length - 1 ] );
+				if ( flat.length ) { restoreFocus( flat[ flat.length - 1 ].id ); }
 				break;
 			case 'Enter':
 			case ' ':
@@ -494,10 +593,34 @@
 		}
 	}
 
-	// render() rebuilds the list, so focus has to be put back by id rather than
-	// by holding a reference to an element that no longer exists.
+	/*
+	 *  Focus is restored by id, never by holding on to an element: render()
+	 *  rebuilds the list, and once windowing is on the row may not be in the page
+	 *  at all -- a folder eight hundred rows down exists in the model and nowhere
+	 *  in the DOM. So the list is scrolled to where that row belongs, repainted,
+	 *  and only then focused. Without this, keyboard navigation stops dead at the
+	 *  edge of the window, which is the failure that makes people stop trusting
+	 *  the keyboard.
+	 */
 	function restoreFocus( id ) {
+
 		var next = listEl.querySelector( '[data-id="' + id + '"]' );
+
+		if ( ! next && windowed ) {
+
+			var at = -1;
+			for ( var i = 0; i < flat.length; i++ ) {
+				if ( flat[ i ].id === id ) { at = i; break; }
+			}
+
+			if ( at !== -1 ) {
+				var h = rowHeight();
+				listEl.scrollTop = Math.max( 0, ( at * h ) - ( listEl.clientHeight / 2 ) );
+				paint();
+				next = listEl.querySelector( '[data-id="' + id + '"]' );
+			}
+		}
+
 		if ( next ) {
 			focusRow( next );
 		}
@@ -810,6 +933,23 @@
 
 		listEl = el( 'ul', { class: 'vgml-list', role: 'tree' } );
 		listEl.addEventListener( 'keydown', onKey );
+
+		/*
+		 *  Repaint the window as it scrolls, on the next frame rather than on every
+		 *  scroll event -- the browser fires those far faster than it paints, and
+		 *  doing the work per event is how a scroll starts to stutter.
+		 */
+		var pending = false;
+		listEl.addEventListener( 'scroll', function () {
+			if ( ! windowed || pending ) {
+				return;
+			}
+			pending = true;
+			window.requestAnimationFrame( function () {
+				pending = false;
+				paint();
+			} );
+		} );
 		root.appendChild( listEl );
 
 		var skinBar = el( 'div', { class: 'vgml-skins' } );
@@ -872,7 +1012,7 @@
 	 *  which is the correct failure for a screen that has changed shape.
 	 */
 	function mount() {
-		var host = document.querySelector( '.wp-list-table' ) || document.querySelector( '.media-frame' );
+		var host = document.querySelector( hostSelector() );
 		var wrap = document.querySelector( '.wrap' );
 
 		if ( ! host || ! wrap ) {
@@ -899,8 +1039,28 @@
 
 		document.body.classList.add( 'vgml-has-tree' );
 
-		if ( host.classList.contains( 'media-frame' ) ) {
+		/*
+		 *  Grid or list is a fact about the page, not about which element happened
+		 *  to be found first. Deciding it from `host` meant that whenever the list
+		 *  table turned up alongside the frame -- which it did in RTL -- the grid
+		 *  class was never added, none of the grid rules applied, and the frame
+		 *  covered the panel completely.
+		 */
+		var frame = isGridScreen() ? host : null;
+
+		if ( frame ) {
 			document.body.classList.add( 'vgml-mode-grid' );
+
+			/*
+			 *  Line the panel up with the frame rather than with the top of the
+			 *  wrap, which is where the page heading lives -- the panel was sitting
+			 *  on top of "Media Library". Measured rather than hard-coded, because
+			 *  that offset is core's heading and it changes. Re-measured shortly
+			 *  after, because the frame is still settling when this first runs and
+			 *  an early read gives zero.
+			 */
+			alignToFrame( frame, wrap );
+			setTimeout( function () { alignToFrame( frame, wrap ); }, 1200 );
 		}
 
 		setPanelWidth( state.width );
@@ -919,11 +1079,31 @@
 	 *  ten MutationObservers -- those run for the life of the page because they
 	 *  are re-imposing state core keeps overwriting. This one stops.
 	 */
+	/*
+	 *  Which screen this is comes from the URL, not from whichever container turns
+	 *  up first.
+	 *
+	 *  Racing the two selectors looked fine and was wrong: on the grid screen a
+	 *  list table can exist before the media frame is built, so the race was
+	 *  sometimes won by the wrong element -- the grid class was never added, none
+	 *  of the grid layout applied, and the frame sat on top of the panel. It went
+	 *  unnoticed because the race usually went the other way; RTL was simply slow
+	 *  enough to lose it every time.
+	 */
+	function isGridScreen() {
+		return /[?&]mode=grid/.test( window.location.search ) ||
+			document.body.classList.contains( 'eml-grid' );
+	}
+
+	function hostSelector() {
+		return isGridScreen() ? '.media-frame' : '.wp-list-table';
+	}
+
 	function whenHostExists( done ) {
 		var tries = 0;
 
 		( function look() {
-			if ( document.querySelector( '.wp-list-table' ) || document.querySelector( '.media-frame' ) ) {
+			if ( document.querySelector( hostSelector() ) ) {
 				done( true );
 				return;
 			}
@@ -940,6 +1120,13 @@
 	function setPanelWidth( w ) {
 		root.style.width = w + 'px';
 		document.body.style.setProperty( '--vgml-panel-w', w + 'px' );
+	}
+
+	function alignToFrame( frame, wrap ) {
+		var top = frame.getBoundingClientRect().top - wrap.getBoundingClientRect().top;
+		if ( top > 0 ) {
+			document.body.style.setProperty( '--vgml-panel-top', Math.round( top ) + 'px' );
+		}
 	}
 
 	function start() {

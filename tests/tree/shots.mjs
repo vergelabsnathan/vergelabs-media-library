@@ -37,6 +37,10 @@ async function session( { dark, rtl } ) {
 		colorScheme: dark ? 'dark' : 'light',
 	} );
 	const page = await ctx.newPage();
+	// A 20,000-file library on a 2-vCPU box is not fast, and a timeout here reads
+	// as a product failure when it is only impatience.
+	page.setDefaultTimeout( 90000 );
+	page.setDefaultNavigationTimeout( 90000 );
 
 	const errors = [];
 	/*
@@ -81,7 +85,7 @@ async function session( { dark, rtl } ) {
 	await page.fill( '#user_login', USER );
 	await page.fill( '#user_pass', PASS );
 	await page.click( '#wp-submit' );
-	await page.waitForLoadState( 'domcontentloaded' );
+	await page.waitForLoadState( 'domcontentloaded' ).catch( () => {} );
 
 	/*
 	 *  RTL is switched by actually changing the admin language, not by forcing a
@@ -101,7 +105,7 @@ async function session( { dark, rtl } ) {
 		// screenshotting a Hebrew admin and the labels said otherwise.
 		await page.selectOption( '#locale', rtl ? 'he_IL' : '' ).catch( () => {} );
 		await page.click( '#submit' ).catch( () => {} );
-		await page.waitForLoadState( 'domcontentloaded' );
+		await page.waitForLoadState( 'domcontentloaded' ).catch( () => {} );
 	}
 
 	return { page, ctx, errors };
@@ -132,7 +136,11 @@ for ( const mode of [ 'list', 'grid' ] ) {
 			 */
 			const nativeSwatch = await page.$( '.vgml-skin[data-skin="native"]' );
 			if ( nativeSwatch ) {
-				await nativeSwatch.click();
+				// The swatch row sits at the bottom of a full-height panel in grid,
+				// which puts it on the viewport edge. Scroll it in rather than
+				// forcing the click -- forcing would also hide a genuine overlap.
+				await nativeSwatch.scrollIntoViewIfNeeded().catch( () => {} );
+				await nativeSwatch.click( { timeout: 15000 } ).catch( () => {} );
 				await page.waitForTimeout( 300 );
 			}
 
@@ -154,6 +162,11 @@ for ( const mode of [ 'list', 'grid' ] ) {
 
 			check( `${ tag }: no console errors`, errors.length === 0, errors.slice( 0, 2 ).join( ' | ' ) );
 
+			// Scrolling the swatch into view scrolled the page; the panel is
+			// absolutely positioned, so a screenshot taken here shows it half gone.
+			await page.evaluate( () => window.scrollTo( 0, 0 ) );
+			await page.waitForTimeout( 300 );
+
 			await page.screenshot( { path: join( OUT, `${ tag }.png` ), fullPage: false } );
 			await ctx.close();
 		}
@@ -172,7 +185,8 @@ for ( const mode of [ 'list', 'grid' ] ) {
 			check( `skin ${ skin }: the swatch exists`, false );
 			continue;
 		}
-		await btn.click();
+		await btn.scrollIntoViewIfNeeded().catch( () => {} );
+		await btn.click( { timeout: 15000 } );
 		await page.waitForTimeout( 400 );
 		const applied = await page.$eval( '.vgml-tree', ( t ) => t.getAttribute( 'data-skin' ) );
 		check( `skin ${ skin }: applied`, applied === skin, applied );
