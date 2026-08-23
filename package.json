@@ -1,0 +1,14 @@
+{
+  "name": "vergelabs-media-library-dev",
+  "private": true,
+  "description": "Dev harness only. Nothing here ships -- the plugin has no build step.",
+  "scripts": {
+    "test:tree": "node tests/tree/t0-endpoints.js",
+    "test:builders": "node tests/builders/compat.mjs",
+    "watch": "node tools/watch-competitors.mjs",
+    "bench": "node tests/perf/bench.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}
