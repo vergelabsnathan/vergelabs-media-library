@@ -1,0 +1,66 @@
+> Verify the action inputs against the current docs before the first run;
+> action interfaces move, and a workflow that silently no-ops is worse than none.
+
+name: watch builders and competitors
+
+on:
+  schedule:
+    # Daily, early. Elementor and Gutenberg ship on their own cadence and we want
+    # to know the morning after, not from a support thread a fortnight later.
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check what moved
+        id: watch
+        run: |
+          node tools/watch-competitors.mjs --json > /tmp/watch.json
+          echo "moved=$(node -e "
+            const r = require('/tmp/watch.json');
+            console.log(r.filter(x => x.moved && !x.error).map(x => x.slug).join(','));
+          ")" >> "$GITHUB_OUTPUT"
+          node tools/watch-competitors.mjs || true
+
+      # The compat matrix is the point. A builder moving is only interesting if it
+      # broke something of ours, and the only way to know that is to run against it.
+      - name: Compat matrix against the builders that moved
+        if: steps.watch.outputs.moved != ''
+        run: node tests/builders/compat.mjs --only "${{ steps.watch.outputs.moved }}"
+        continue-on-error: true
+
+      - name: Open an issue when a builder broke us
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const moved = '${{ steps.watch.outputs.moved }}';
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Builder compat broke: ${moved}`,
+              body: [
+                'The nightly watch found a new release and our integration failed against it.',
+                '',
+                `Moved: \`${moved}\``,
+                '',
+                `[Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+              ].join('\n'),
+              labels: ['compat', 'builders'],
+            });
+
+      - name: Commit the new baseline
+        run: |
+          git config user.name  'competitor-watch'
+          git config user.email 'noreply@vergelabs.nl'
+          git add tools/competitors.json
+          git diff --staged --quiet || git commit -m 'chore(watch): record what shipped'
+          git push
