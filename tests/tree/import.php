@@ -90,8 +90,27 @@ t( 'the plan changed nothing', count_terms( $tax ) === $terms_before + 1, 'terms
 
 /* --- the import -------------------------------------------------------- */
 
+/*
+ *  The run is chunked, so the caller drives it -- one pass returns a resume token
+ *  and it is handed straight back. Anything importing from PHP (WP-CLI, a
+ *  migration script) has to do the same loop the browser does, so the test does
+ *  it here rather than pretending one call is the whole import.
+ */
+$passes = 0;
 $result = vergeml_import_run( 'filebird', $tax );
+
+while ( ! is_wp_error( $result ) && empty( $result['complete'] ) && ! empty( $result['resume'] ) ) {
+	$result = vergeml_import_run( 'filebird', $tax, $result['resume'] );
+	$passes++;
+
+	if ( $passes > 1000 ) {
+		break; // A resume token that never completes is a bug, not a long import.
+	}
+}
+
 t( 'the import ran', ! is_wp_error( $result ), is_wp_error( $result ) ? $result->get_error_code() : '' );
+t( 'it finished rather than running out of passes', ! is_wp_error( $result ) && ! empty( $result['complete'] ),
+	$passes . ' passes' );
 
 if ( ! is_wp_error( $result ) ) {
 

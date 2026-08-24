@@ -120,7 +120,7 @@ function vergeml_import_plan( $key, $taxonomy ) {
  *  afterwards stays filed.
  */
 
-function vergeml_import_run( $key, $taxonomy ) {
+function vergeml_import_run( $key, $taxonomy, $resume = null ) {
 
     $read = vergeml_import_read( $key );
 
@@ -187,21 +187,43 @@ function vergeml_import_run( $key, $taxonomy ) {
      *  a taxonomy after each of sixteen thousand assignments is the difference
      *  between seconds and hours.
      */
-    wp_defer_term_counting( true );
+    /*
+     *  Assignments are done in chunks.
+     *
+     *  Sixteen thousand of them will not finish inside one request on the kind of
+     *  shared host this plugin mostly runs on -- it would hit max_execution_time
+     *  half way through and leave an import nobody can undo, because the record is
+     *  written at the end. So the work is resumable: the caller passes back what
+     *  it got, and each pass writes its own progress.
+     */
+    $chunk = (int) apply_filters( 'vergeml_import_chunk', 500 );
 
-    $added = array();
+    $done  = ( $resume && isset( $resume['done'] ) ) ? (int) $resume['done'] : 0;
+    $added = ( $resume && isset( $resume['added'] ) ) ? (array) $resume['added'] : array();
 
+    // Flatten to a stable list so a resume lands exactly where it left off; the
+    // source's own order is what makes that stable.
+    $queue = array();
     foreach ( $files as $source_id => $ids ) {
-
         if ( ! isset( $map[ $source_id ] ) ) {
             continue;
         }
-
-        $term_id = (int) $map[ $source_id ];
-
         foreach ( array_unique( $ids ) as $attachment_id ) {
+            $queue[] = array( (int) $attachment_id, (int) $map[ $source_id ] );
+        }
+    }
 
-            $attachment_id = (int) $attachment_id;
+    $total = count( $queue );
+    $slice = array_slice( $queue, $done, $chunk );
+
+    wp_defer_term_counting( true );
+
+    foreach ( $slice as $job ) {
+
+        $attachment_id = $job[0];
+        $term_id       = $job[1];
+
+        {
 
             // Only what this import actually adds is recorded, so undo cannot
             // remove a file that was already in this folder before.
@@ -217,21 +239,44 @@ function vergeml_import_run( $key, $taxonomy ) {
         }
     }
 
+    $done += count( $slice );
+
     wp_defer_term_counting( false );
     wp_cache_delete( 'vergeml_unassigned_' . $taxonomy, 'vergeml' );
 
+    /*
+     *  Written on every pass, not at the end.
+     *
+     *  An import that dies half way through has still changed the library, and a
+     *  record that only exists on completion would leave that change with no way
+     *  back. This way the undo is always current with what has actually happened.
+     */
+    $id = ( $resume && ! empty( $resume['id'] ) ) ? $resume['id'] : uniqid( 'imp', false );
+
     $record = array(
-        'id'       => uniqid( 'imp', false ),
+        'id'       => $id,
         'source'   => $key,
         'taxonomy' => $taxonomy,
         'when'     => time(),
-        'created'  => $created,
+        'created'  => ( $resume && isset( $resume['created'] ) ) ? array_values( array_unique( array_merge( (array) $resume['created'], $created ) ) ) : $created,
         'added'    => $added,
     );
 
-    $log   = get_option( VERGEML_IMPORT_LOG, array() );
-    $log   = is_array( $log ) ? $log : array();
-    $log[] = $record;
+    $log = get_option( VERGEML_IMPORT_LOG, array() );
+    $log = is_array( $log ) ? $log : array();
+
+    $replaced = false;
+    foreach ( $log as $i => $entry ) {
+        if ( isset( $entry['id'] ) && $entry['id'] === $id ) {
+            $log[ $i ] = $record;
+            $replaced  = true;
+            break;
+        }
+    }
+
+    if ( ! $replaced ) {
+        $log[] = $record;
+    }
 
     // Only the last few are keepable: sixteen thousand pairs is not small, and an
     // import from six months ago is not something anyone is about to undo.
@@ -242,10 +287,25 @@ function vergeml_import_run( $key, $taxonomy ) {
     update_option( VERGEML_IMPORT_LOG, $log, false );
 
     return array(
-        'id'          => $record['id'],
-        'created'     => count( $created ),
-        'merged'      => count( $map ) - count( $created ),
+        'id'          => $id,
+        'created'     => count( $record['created'] ),
+        // Both sides of this have to be cumulative. $created holds only what this
+        // pass made, which is everything on the first pass and nothing after it --
+        // so the folders the import itself created came back as "merged into
+        // folders you already have" on every pass but the first.
+        'merged'      => max( 0, count( $map ) - count( $record['created'] ) ),
         'assignments' => count( $added ),
+        'done'        => $done,
+        'total'       => $total,
+        'complete'    => $done >= $total,
+        // Handed straight back on the next call; the caller never has to
+        // understand it.
+        'resume'      => $done >= $total ? null : array(
+            'id'      => $id,
+            'done'    => $done,
+            'added'   => $added,
+            'created' => $record['created'],
+        ),
     );
 }
 
@@ -262,6 +322,40 @@ function vergeml_import_run( $key, $taxonomy ) {
  */
 
 function vergeml_import_undo( $id ) {
+
+    $result = vergeml_import_undo_step( $id );
+    $passes = 0;
+
+    while ( ! is_wp_error( $result ) && empty( $result['complete'] ) && ! empty( $result['resume'] ) ) {
+
+        $result = vergeml_import_undo_step( $id, $result['resume'] );
+
+        if ( ++$passes > 10000 ) {
+            return new WP_Error( 'vergeml_undo_stuck', __( 'The undo did not finish.', 'vergelabs-media-library' ) );
+        }
+    }
+
+    return $result;
+}
+
+
+/**
+ *  vergeml_import_undo_step
+ *
+ *  One chunk of an undo.
+ *
+ *  Undoing sixteen thousand assignments takes long enough to hit a shared host's
+ *  execution limit, and the record is only cleared at the very end -- so a run
+ *  that times out starts again from nothing next time and an undo on a slow host
+ *  could never finish, however often it was retried. Chunked, each pass keeps
+ *  what it did.
+ *
+ *  Assignments first, then the folders: deleting a term would take its
+ *  assignments with it, and the record of what to unassign has to survive a
+ *  half-finished undo.
+ */
+
+function vergeml_import_undo_step( $id, $resume = null ) {
 
     $log = get_option( VERGEML_IMPORT_LOG, array() );
     $log = is_array( $log ) ? $log : array();
@@ -282,27 +376,56 @@ function vergeml_import_undo( $id ) {
     }
 
     $taxonomy = $found['taxonomy'];
+    $added    = (array) $found['added'];
+    $created  = (array) $found['created'];
+
+    $chunk = (int) apply_filters( 'vergeml_import_chunk', 500 );
+    $chunk = $chunk > 0 ? $chunk : 500;
+
+    $done  = ( $resume && isset( $resume['done'] ) ) ? (int) $resume['done'] : 0;
+    $terms = ( $resume && isset( $resume['terms'] ) ) ? (int) $resume['terms'] : 0;
+
+    $total = count( $added ) + count( $created );
 
     wp_defer_term_counting( true );
 
-    foreach ( (array) $found['added'] as $pair ) {
-        wp_remove_object_terms( (int) $pair[0], array( (int) $pair[1] ), $taxonomy );
-    }
+    if ( $done < count( $added ) ) {
 
-    foreach ( (array) $found['created'] as $term_id ) {
-        // Children created by the same import are in this list too, so deleting
-        // in any order is safe: wp_delete_term re-parents what is left.
-        wp_delete_term( (int) $term_id, $taxonomy );
+        foreach ( array_slice( $added, $done, $chunk ) as $pair ) {
+            wp_remove_object_terms( (int) $pair[0], array( (int) $pair[1] ), $taxonomy );
+            $done++;
+        }
+
+    } else {
+
+        foreach ( array_slice( $created, $terms, $chunk ) as $term_id ) {
+            // Children created by the same import are in this list too, so
+            // deleting in any order is safe: wp_delete_term re-parents what is
+            // left.
+            wp_delete_term( (int) $term_id, $taxonomy );
+            $terms++;
+        }
     }
 
     wp_defer_term_counting( false );
     wp_cache_delete( 'vergeml_unassigned_' . $taxonomy, 'vergeml' );
 
-    update_option( VERGEML_IMPORT_LOG, $rest, false );
+    $complete = $done >= count( $added ) && $terms >= count( $created );
+
+    if ( $complete ) {
+        // Only now: while the record is on file, a pass that dies can be retried
+        // and will pick up where it stopped.
+        update_option( VERGEML_IMPORT_LOG, $rest, false );
+    }
 
     return array(
-        'removed'     => count( (array) $found['created'] ),
-        'unassigned'  => count( (array) $found['added'] ),
+        'id'          => $id,
+        'removed'     => $terms,
+        'unassigned'  => $done,
+        'done'        => $done + $terms,
+        'total'       => $total,
+        'complete'    => $complete,
+        'resume'      => $complete ? null : array( 'done' => $done, 'terms' => $terms ),
     );
 }
 
