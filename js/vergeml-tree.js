@@ -995,53 +995,40 @@
 	 */
 	function unfileTarget( row ) {
 
-		row.addEventListener( 'dragover', function ( e ) {
-			e.preventDefault();
-			e.dataTransfer.dropEffect = 'move';
-			row.classList.add( 'is-drop' );
-		} );
+		var $ = window.jQuery;
 
-		row.addEventListener( 'dragleave', function () {
-			row.classList.remove( 'is-drop' );
-		} );
+		if ( ! $ || ! $.fn || ! $.fn.droppable ) {
+			return;
+		}
 
-		row.addEventListener( 'drop', function ( e ) {
-			e.preventDefault();
-			row.classList.remove( 'is-drop' );
+		/*
+		 *  Left on the HTML5 API when everything else moved to jQuery UI, so it
+		 *  silently did nothing -- the one route out of a folder by dragging, and
+		 *  it was dead. Nothing pointed at it because no test covered it.
+		 */
+		$( row ).droppable( {
+			addClasses: false,
+			tolerance: 'pointer',
+			hoverClass: 'is-drop',
+			drop: function () {
 
-			var carried = ( e.dataTransfer.getData( 'text/vgml-files' ) || '' )
-				.split( ',' ).map( function ( n ) { return parseInt( n, 10 ); } ).filter( Boolean );
+				if ( draggingFolder ) {
+					return; // folders are not unfiled; they are deleted or moved
+				}
 
-			var ids = ( dragging && dragging.length ) ? dragging : carried;
-			if ( ! ids.length ) {
-				return;
+				var ids = ( dragging && dragging.length ) ? dragging : selectionIds();
+
+				if ( ! ids.length ) {
+					return;
+				}
+
+				// 'move' with nothing to add empties the taxonomy for those files.
+				assign( ids, null, true );
+				dragging = null;
 			}
-
-			// 'move' with nothing to add empties the taxonomy for those files.
-			apiFetch( {
-				path: '/vergeml/v1/assign',
-				method: 'POST',
-				data: { taxonomy: state.taxonomy, attachments: ids, add: [], mode: 'move' }
-			} ).then( function ( res ) {
-				state.lastUndo = res.undo;
-				load();
-				toast( sprintf( l10n.undoAssigned, ( res.changed || [] ).length ), res.undo ? undo : null );
-			} ).catch( function () {
-				toast( l10n.failed, null );
-			} );
-
-			dragging = null;
 		} );
 	}
 
-	/*
-	 *  Folder rows accept drops, from files and from other folders.
-	 *
-	 *  `tolerance: 'pointer'` rather than the default: with 34px rows the default
-	 *  'intersect' fires on whichever row the dragged helper overlaps most, which
-	 *  is not the row the pointer is on, and dropping into the wrong folder is the
-	 *  worst possible way to be wrong here.
-	 */
 	function dropTarget( row, termId ) {
 
 		var $ = window.jQuery;
@@ -1175,16 +1162,45 @@
 			data: {
 				taxonomy: state.taxonomy,
 				attachments: ids,
-				add: [ termId ],
+				// A null term means "no folder", which with mode 'move' is unfiling.
+				add: termId ? [ termId ] : [],
 				mode: move ? 'move' : 'add'
 			}
 		} ).then( function ( res ) {
 			state.lastUndo = res.undo;
-			load();
+			applyCounts( res );
 			toast( sprintf( l10n.undoAssigned, ( res.changed || [] ).length ), res.undo ? undo : null );
 		} ).catch( function () {
 			toast( l10n.failed, null );
 		} );
+	}
+
+	/*
+	 *  Update the counts the server just sent, instead of refetching the tree.
+	 *
+	 *  Every drop used to call load(), which pulls the whole tree back -- 185KB at
+	 *  two thousand folders -- and repaints from scratch. That is the jolt after a
+	 *  drag: a network round trip and a full rebuild to change two numbers. The
+	 *  assign response already carries the fresh counts, so nothing needs fetching
+	 *  and only the rows whose numbers moved are touched.
+	 */
+	function applyCounts( res ) {
+
+		var counts = res.counts || {};
+
+		state.nodes.forEach( function ( n ) {
+			if ( Object.prototype.hasOwnProperty.call( counts, n.id ) ) {
+				n.count = counts[ n.id ];
+			}
+		} );
+
+		if ( typeof res.unassigned === 'number' ) {
+			state.unassigned = res.unassigned;
+		}
+
+		index();
+		flat = flatten();
+		paint( true );
 	}
 
 	function undo() {
@@ -1197,8 +1213,8 @@
 			path: '/vergeml/v1/assign',
 			method: 'POST',
 			data: { taxonomy: payload.taxonomy, batch: payload.batch }
-		} ).then( function () {
-			load();
+		} ).then( function ( res ) {
+			applyCounts( res );
 			toast( l10n.undone, null );
 		} ).catch( function () {
 			toast( l10n.failed, null );

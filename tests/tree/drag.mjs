@@ -181,6 +181,40 @@ if ( undoBtn ) {
 	check( 'undo went back as a batch', seen.some( ( s ) => !! s.batch ) );
 }
 
+console.log( '\n5. dropping on Unfiled takes it out of every folder' );
+await setTerms( fileId, [ A, B ] );
+await openLibrary();
+await reveal( 'Drag Target' );
+seen.length = 0;
+
+/*
+ *  This one had no coverage and was dead: it was left on the HTML5 drag API when
+ *  everything else moved to jQuery UI, so the only way to unfile something by
+ *  dragging silently did nothing.
+ */
+{
+	const from = await page.$( `#post-${ fileId }` );
+	const to = await page.$( '.vgml-pseudo[data-id="-1"] .vgml-row' );
+
+	if ( ! from || ! to ) {
+		check( 'the Unfiled row is a drop target', false, from ? 'no Unfiled row' : 'no file row' );
+	} else {
+		const a = await from.boundingBox();
+		const b = await to.boundingBox();
+		await page.mouse.move( a.x + 40, a.y + a.height / 2 );
+		await page.mouse.down();
+		await page.mouse.move( a.x + 60, a.y + a.height / 2, { steps: 4 } );
+		await page.mouse.move( b.x + b.width / 2, b.y + b.height / 2, { steps: 12 } );
+		const hovering = await to.evaluate( ( el ) => el.classList.contains( 'is-drop' ) );
+		await page.mouse.up();
+		await page.waitForTimeout( 1500 );
+
+		check( 'Unfiled showed it was a target', hovering === true );
+		check( 'it called assign', seen.length >= 1, JSON.stringify( seen[ 0 ] || {} ).slice( 0, 80 ) );
+		check( 'the file is in no folders', ( await termsOf( fileId ) ).length === 0 );
+	}
+}
+
 // Leave the fixture as the benchmarks expect it.
 await setTerms( fileId, [] );
 for ( const id of [ A, B ] ) {
