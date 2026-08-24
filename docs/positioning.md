@@ -119,3 +119,50 @@ these are the things that will actually cost us.
   browser, plus tags, plus a file that can live in two folders."
 - **vs both** — "You may already have folders. If you have used Enhanced Media Library, your
   categories become the tree on upgrade — nothing to import."
+
+---
+
+# Replacing all three, not competing with each
+
+Added 2026-08-24, once the roadmap committed to full parity.
+
+The three plugins in this category each do part of the job, and a site can end up
+running two of them at once. Enhanced Media Library gives taxonomies and no tree.
+FileBird gives a tree and no taxonomies. Premio Folders gives a tree on terms but
+no tags, one taxonomy, and a media browser it replaces wholesale.
+
+This plugin is the only one that can be all three at the same time, and the reason
+is the substrate rather than the feature list: folders here **are** taxonomy terms,
+so the folder tree and the taxonomy system are not two systems that must be kept in
+step -- they are one thing seen two ways.
+
+| From | What it contributes | Status |
+|---|---|---|
+| **Enhanced Media Library** | Any number of media taxonomies, tags for media, MIME control, search across filenames / captions / authors / terms, bulk term editing, auto-assign on upload | Already here. It is the base, and the 60,000 installs |
+| **Premio Folders** | Proof that native terms work as folders; portability; per-user tree state | The substrate. Their Pro items -- dynamic folders, replace-keeping-URL, unused-media scan, SVG -- are our Pro candidates |
+| **FileBird** | The interaction bar: tree, drag, counts, colours, manual order. Plus galleries, importers, WPML, CSV, per-user folders | The roadmap. All of it, Divi last |
+
+## What only the combination can do
+
+- **Folders and tags on the same file.** The folder plugins have no tags for media
+  at all; Enhanced Media Library has no tree.
+- **A file in two folders.** FileBird's schema forbids it -- one `parent`, one
+  `folder_id`. Premio's terms allow it and their product does not surface it.
+- **Several independent trees** over one library: Clients, Projects, Usage rights.
+  Both competitors have exactly one.
+- **Folders that survive uninstalling us**, because they are the categories the
+  site already had.
+- **AI descriptions.** None of the three has anything.
+
+## The sentence
+
+Not "another folder plugin". *The folder plugin that does not make you choose
+between folders and a real taxonomy system — and if you are already on Enhanced
+Media Library, your folders are already there.*
+
+## The switch worth naming on the comparison pages
+
+A site running Enhanced Media Library **and** FileBird together is running two data
+models for one job, and losing the FileBird half the day it deactivates. That is
+not a hypothetical pairing: FileBird ships an importer that reads `media_category`,
+so they built for exactly those users.
