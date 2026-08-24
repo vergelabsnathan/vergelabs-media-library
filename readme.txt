@@ -4,11 +4,11 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.0.0
+Stable tag: 3.1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Categories, tags and custom taxonomies for the media library. A maintained fork of Enhanced Media Library, repaired for WordPress 7.
+Folders for the media library, plus categories, tags and custom taxonomies. A maintained fork of Enhanced Media Library, repaired for WordPress 7.
 
 ## Description ##
 
@@ -19,6 +19,17 @@ VergeLabs Media Library is a maintained fork of [Enhanced Media Library](https:/
 Based on Enhanced Media Library by wpUXsolutions, and licensed GPLv2 or later as the original is.
 
 [Source and issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library)
+
+
+### Folders ###
+
+A folder tree sits beside the media library. Drag files onto a folder to file them, drag folders into each other to rearrange, rename in place, colour them, and arrange them in whatever order you want. It is in the list view, in the grid, and in the media panel that opens when you insert an image into a post — which is where a media library is most used, and where a folder plugin most often is not.
+
+**Your folders are ordinary media categories.** Nothing is kept in a private table of ours. That means your structure is readable by WordPress itself, by your theme, by WP-CLI and by any other plugin — and it is still there, intact and usable, if you ever remove this plugin. A folder plugin that stores your organisation somewhere only it can read is a folder plugin you cannot leave.
+
+**A file can be in more than one folder.** A photo can be in Products and in Autumn Campaign without a second copy of it existing. If you would rather it behaved like the folder plugins that have no choice about this, there is a setting for one folder per file.
+
+**Already using another folder plugin?** Settings → Import Folders reads FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders, Real Media Library and Enhanced Media Library. It shows you what it will do before it does it, says which folders will merge with ones you already have, and the whole import can be undone from the same screen. Nothing is taken from the other plugin — it keeps everything exactly as it was, so you can go back at any time.
 
 
 ### What this fork fixes ###
@@ -206,6 +217,21 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.1.0 ###
+*Folders*
+
+= Added =
+* **A folder tree beside the media library.** Drag files onto a folder to file them, drag folders into each other to rearrange, rename in place, and colour them. It is there in the list view, the grid, and in the media panel that opens when you insert an image into a post — which is where a media library is most often used and where a folder plugin most often is not.
+* **Folders are ordinary media categories.** Nothing is stored in a private table, so your structure is readable by WordPress itself, by your theme, by WP-CLI, and by any other plugin — and it is still there if you ever remove this one.
+* **A file can be in more than one folder.** Turn on "one folder per file" in the settings if you would rather it behaved like the folder plugins that have no choice about it.
+* **Import your folders from another plugin.** FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders, Real Media Library and Enhanced Media Library. It shows you what it will do before it does it, tells you which folders will merge with ones you already have, and the whole import can be undone from the same screen. Nothing is taken from the other plugin: it keeps everything exactly as it is.
+* **Arrange folders by hand.** Drop a folder on the top or bottom edge of another to place it beside that one rather than inside it, or use Alt+Up and Alt+Down. Folders stay alphabetical until you arrange them.
+* **Eight folder colours**, each one named, so the palette is usable without seeing colour.
+
+= Fixed =
+* **Filtering by a category could show an empty library.** Whether it worked depended on whether the URL still had the Filter button's name in it, so the dropdown worked but a bookmarked or shared filter link came back with nothing in it. The same fault made the "all" and "not in" options show nothing. Both forms of the URL now mean the same thing.
+* **Deleting the folder you were looking at left the library empty from then on.** The selection outlived the folder, so every later visit filtered on a category that no longer existed — with no explanation and no obvious way back.
 
 ### 3.0.0 ###
 *Recovering from a white screen without FTP*
