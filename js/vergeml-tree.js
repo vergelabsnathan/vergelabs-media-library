@@ -87,7 +87,20 @@
 
 	/* ------------------------------------------------------------- the data */
 
+	/*
+	 *  Bumped every time the node list is rebuilt.
+	 *
+	 *  paint() skips the work when nothing about the rows would look different,
+	 *  and it decided that by counting them. Anything that changes a row without
+	 *  changing how many there are -- an arrangement, a rename, a colour, a count
+	 *  going up after files are filed -- therefore reached the screen only on the
+	 *  next reload. The number of rows is not the same question as whether the
+	 *  rows changed.
+	 */
+	var revision = 0;
+
 	function index() {
+		revision++;
 		state.byId = {};
 		state.children = {};
 		state.nodes.forEach( function ( n ) {
@@ -314,7 +327,7 @@
 
 		// A key that changes whenever the rows themselves would look different,
 		// so a scroll that reveals nothing new costs nothing.
-		var key = state.skin + '|' + state.density + '|' + state.selected + '|' + flat.length + '|' + state.filter;
+		var key = state.skin + '|' + state.density + '|' + state.selected + '|' + flat.length + '|' + state.filter + '|' + revision;
 
 		if ( ! force && r.first === painted.first && r.last === painted.last && key === painted.key ) {
 			return;
@@ -794,6 +807,49 @@
 		return -1;
 	}
 
+	/*
+	 *  Move a folder one place among its siblings, from the keyboard.
+	 *
+	 *  Arranging by dragging is the obvious gesture and it is also the one nobody
+	 *  can use without a mouse. The tree is a real ARIA tree with full keyboard
+	 *  navigation everywhere else, so leaving one operation mouse-only would make
+	 *  it the single thing a keyboard user cannot do -- and it costs a handler.
+	 *
+	 *  Within siblings only. Alt+Arrow re-parenting would mean a keystroke that
+	 *  silently restructures the tree, which is not a thing to do by accident.
+	 */
+	function nudge( id, delta ) {
+
+		if ( ! cfg.canManage ) {
+			return;
+		}
+
+		var node = state.byId[ id ];
+
+		if ( ! node ) {
+			return;
+		}
+
+		var ids = ( state.children[ node.parent ] || [] ).map( function ( n ) {
+			return n.id;
+		} );
+
+		var at = ids.indexOf( id );
+		var to = at + delta;
+
+		if ( at === -1 || to < 0 || to >= ids.length ) {
+			return;
+		}
+
+		ids.splice( at, 1 );
+		ids.splice( to, 0, id );
+
+		folder( { action: 'order', parent: node.parent, ids: ids } ).then( function () {
+			// The row is rebuilt by the repaint, so focus is put back by id.
+			restoreFocus( id );
+		} );
+	}
+
 	function onKey( e ) {
 		var current = document.activeElement;
 
@@ -811,10 +867,13 @@
 		switch ( e.key ) {
 			case 'ArrowDown':
 				e.preventDefault();
+				// Alt moves the folder instead of moving to it.
+				if ( e.altKey ) { nudge( id, 1 ); break; }
 				if ( flat[ i + 1 ] ) { restoreFocus( flat[ i + 1 ].id ); }
 				break;
 			case 'ArrowUp':
 				e.preventDefault();
+				if ( e.altKey ) { nudge( id, -1 ); break; }
 				if ( flat[ i - 1 ] ) { restoreFocus( flat[ i - 1 ].id ); }
 				break;
 			case 'ArrowRight':
@@ -932,6 +991,73 @@
 	 *  silently reparenting the wrong thing.
 	 */
 	var draggingFolder = 0;
+
+	/*
+	 *  Where a dragged folder would land on the row under the pointer.
+	 *
+	 *  'into' re-parents, which is what dropping on a folder has always meant.
+	 *  The top and bottom thirds mean "between these two", which is the only way
+	 *  to express an order by hand -- without them a tree can be restructured but
+	 *  never arranged, and alphabetical order reads as a missing feature rather
+	 *  than as a decision.
+	 */
+	var dropZone = 'into';
+	var zoneRow = 0;
+
+	function rowTermId( row ) {
+		var item = row && row.closest ? row.closest( '.vgml-node' ) : null;
+		return item ? parseInt( item.getAttribute( 'data-id' ), 10 ) || 0 : 0;
+	}
+
+	function clearZones() {
+		var marked = document.querySelectorAll( '.vgml-row.is-before, .vgml-row.is-after' );
+		for ( var i = 0; i < marked.length; i++ ) {
+			marked[ i ].classList.remove( 'is-before', 'is-after' );
+		}
+		zoneRow = 0;
+		dropZone = 'into';
+	}
+
+	function trackZone( e ) {
+
+		if ( ! draggingFolder ) {
+			return;
+		}
+
+		var under = document.elementFromPoint( e.clientX, e.clientY );
+		var row = under && under.closest ? under.closest( '.vgml-row' ) : null;
+		var id = rowTermId( row );
+
+		if ( ! row || ! id || id === draggingFolder ) {
+			clearZones();
+			return;
+		}
+
+		var box = row.getBoundingClientRect();
+		var at = box.height ? ( e.clientY - box.top ) / box.height : 0.5;
+		var zone = at < 0.3 ? 'before' : ( at > 0.7 ? 'after' : 'into' );
+
+		if ( id === zoneRow && zone === dropZone ) {
+			return;
+		}
+
+		clearZones();
+
+		zoneRow = id;
+		dropZone = zone;
+
+		if ( 'into' === zone ) {
+			return;
+		}
+
+		// No line where the drop would be refused anyway: a folder cannot join the
+		// children of its own descendant.
+		var node = state.byId[ id ];
+		if ( node && canReparent( draggingFolder, node.parent ) ) {
+			row.classList.add( 'before' === zone ? 'is-before' : 'is-after' );
+		}
+	}
+
 
 	/*
 	 *  A drag ends with a click, and the click must not also select.
@@ -1228,12 +1354,22 @@
 				row.classList.remove( 'is-drop' );
 				row.classList.remove( 'is-refused' );
 
-				// A folder being dragged onto another folder: re-parent it.
+				// A folder being dragged onto another folder: re-parent it, or
+				// place it beside that folder if the pointer was on an edge.
 				if ( draggingFolder ) {
+
 					var moving = draggingFolder;
+					var zone = ( termId === zoneRow ) ? dropZone : 'into';
+
 					draggingFolder = 0;
-					if ( canReparent( moving, termId ) ) {
-						folderMove( moving, termId );
+					clearZones();
+
+					if ( 'into' === zone ) {
+						if ( canReparent( moving, termId ) ) {
+							folderMove( moving, termId );
+						}
+					} else {
+						folderPlace( moving, termId, zone );
 					}
 					return;
 				}
@@ -1293,6 +1429,40 @@
 	}
 
 	/*
+	 *  Put a folder beside another one.
+	 *
+	 *  The whole sibling list goes to the server rather than a position, because
+	 *  a position means nothing without the list it is a position in -- and the
+	 *  browser is already holding the list. One request, and it re-parents at the
+	 *  same time, so dragging a folder between two others in a different branch
+	 *  stays one gesture.
+	 */
+	function folderPlace( moving, targetId, zone ) {
+
+		var target = state.byId[ targetId ];
+
+		if ( ! target || ! canReparent( moving, target.parent ) ) {
+			return;
+		}
+
+		var ids = ( state.children[ target.parent ] || [] ).map( function ( n ) {
+			return n.id;
+		} ).filter( function ( id ) {
+			return id !== moving;
+		} );
+
+		var at = ids.indexOf( targetId );
+
+		if ( at === -1 ) {
+			return;
+		}
+
+		ids.splice( 'before' === zone ? at : at + 1, 0, moving );
+
+		folder( { action: 'order', parent: target.parent, ids: ids } );
+	}
+
+	/*
 	 *  Folder rows are drag sources too, so the tree can be rearranged by hand.
 	 *  Same mechanism as the files, so both drags feel identical rather than one
 	 *  behaving like the browser's and one like ours.
@@ -1323,11 +1493,14 @@
 			start: function () {
 				row.classList.add( 'is-dragging' );
 				document.body.classList.add( 'vgml-dragging-folder' );
+				document.addEventListener( 'mousemove', trackZone );
 				dragBegan();
 			},
 			stop: function () {
 				row.classList.remove( 'is-dragging' );
 				document.body.classList.remove( 'vgml-dragging-folder' );
+				document.removeEventListener( 'mousemove', trackZone );
+				clearZones();
 				draggingFolder = 0;
 				dragEnded();
 			}
@@ -1653,6 +1826,19 @@
 			if ( node ) { rename( node ); }
 		} );
 
+		/*
+		 *  Colour has had an endpoint, a palette and a rendered icon since the tree
+		 *  was built, and no way for anybody to reach it. A per-folder colour is
+		 *  one of the few things this does that FileBird does not -- theirs are
+		 *  global and there are three -- so shipping the half with no control was
+		 *  the worst of both.
+		 */
+		var colorBtn = el( 'button', { type: 'button', class: 'button button-small vgml-color', disabled: 'disabled', 'aria-haspopup': 'true' }, l10n.color );
+		colorBtn.addEventListener( 'click', function ( e ) {
+			e.stopPropagation();
+			if ( editTarget ) { toggleSwatches( colorBtn ); }
+		} );
+
 		var deleteBtn = el( 'button', { type: 'button', class: 'button button-small', disabled: 'disabled' }, l10n.delete );
 		deleteBtn.addEventListener( 'click', function () {
 			var node = state.byId[ editTarget ];
@@ -1667,11 +1853,76 @@
 		} );
 
 		bar.appendChild( renameBtn );
+		bar.appendChild( colorBtn );
 		bar.appendChild( deleteBtn );
 		bar.appendChild( more );
 
-		toolbarEls = { rename: renameBtn, remove: deleteBtn };
+		toolbarEls = { rename: renameBtn, color: colorBtn, remove: deleteBtn };
 		return bar;
+	}
+
+	/*
+	 *  The eight colours, named.
+	 *
+	 *  Same popover as the overflow menu rather than a second kind of panel: one
+	 *  menu shape in the tree means one set of dismiss rules, one bit of CSS, and
+	 *  nothing new to learn.
+	 */
+	function toggleSwatches( anchor ) {
+
+		var open = root.querySelector( '.vgml-overflow' );
+		if ( open ) {
+			open.remove();
+			return;
+		}
+
+		var node = state.byId[ editTarget ];
+
+		if ( ! node ) {
+			return;
+		}
+
+		var names = [ l10n.colorNone, l10n.colorRed, l10n.colorAmber, l10n.colorOlive,
+			l10n.colorGreen, l10n.colorTeal, l10n.colorBlue, l10n.colorViolet, l10n.colorMagenta ];
+
+		var menuEl = el( 'div', { class: 'vgml-overflow', role: 'menu' } );
+		menuEl.appendChild( el( 'p', { class: 'vgml-overflow-head' }, l10n.color ) );
+
+		var strip = el( 'div', { class: 'vgml-swatches' } );
+
+		( cfg.palette || [] ).forEach( function ( value, i ) {
+
+			var on = ( node.color || '' ) === value;
+
+			var dot = el( 'button', {
+				type: 'button',
+				class: 'vgml-swatch' + ( value ? '' : ' is-none' ) + ( on ? ' is-on' : '' ),
+				role: 'menuitemradio',
+				'aria-checked': on ? 'true' : 'false',
+				'aria-label': names[ i ] || value,
+				title: names[ i ] || value,
+				style: value ? 'color:' + value : ''
+			} );
+
+			dot.addEventListener( 'click', function () {
+				menuEl.remove();
+				folder( { action: 'color', id: node.id, color: value } );
+			} );
+
+			strip.appendChild( dot );
+		} );
+
+		menuEl.appendChild( strip );
+		root.appendChild( menuEl );
+
+		window.setTimeout( function () {
+			document.addEventListener( 'click', function away() {
+				menuEl.remove();
+				document.removeEventListener( 'click', away );
+			} );
+		}, 0 );
+
+		anchor.setAttribute( 'aria-expanded', 'true' );
 	}
 
 	// Picking a folder is also what arms the toolbar.
@@ -1680,6 +1931,7 @@
 		if ( toolbarEls ) {
 			var off = ! editTarget;
 			toolbarEls.rename.disabled = off;
+			toolbarEls.color.disabled = off;
 			toolbarEls.remove.disabled = off;
 		}
 	}

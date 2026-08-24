@@ -174,6 +174,21 @@ function vergeml_tree_assets( $hook ) {
             'newFolder'      => __( 'New folder', 'vergelabs-media-library' ),
             'rename'         => __( 'Rename', 'vergelabs-media-library' ),
             'color'          => __( 'Colour', 'vergelabs-media-library' ),
+            /*
+             *  Named, not just shown. Eight coloured circles with no names are
+             *  unusable with a screen reader and ambiguous with colour blindness,
+             *  which is most of the reason to have a fixed palette rather than a
+             *  hex field: a fixed set can be named.
+             */
+            'colorNone'      => __( 'No colour', 'vergelabs-media-library' ),
+            'colorRed'       => __( 'Red', 'vergelabs-media-library' ),
+            'colorAmber'     => __( 'Amber', 'vergelabs-media-library' ),
+            'colorOlive'     => __( 'Olive', 'vergelabs-media-library' ),
+            'colorGreen'     => __( 'Green', 'vergelabs-media-library' ),
+            'colorTeal'      => __( 'Teal', 'vergelabs-media-library' ),
+            'colorBlue'      => __( 'Blue', 'vergelabs-media-library' ),
+            'colorViolet'    => __( 'Violet', 'vergelabs-media-library' ),
+            'colorMagenta'   => __( 'Magenta', 'vergelabs-media-library' ),
             'delete'         => __( 'Delete', 'vergelabs-media-library' ),
             'search'         => __( 'Search folders', 'vergelabs-media-library' ),
             'folders'        => __( 'Folders', 'vergelabs-media-library' ),

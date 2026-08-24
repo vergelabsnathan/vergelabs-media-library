@@ -339,6 +339,42 @@ body.vgml-has-tree .vgml-tree {
 	opacity: 0.45;
 }
 
+/*
+ *  Dropping between two folders rather than into one.
+ *
+ *  The line wins over the "into" highlight rather than trying to suppress it:
+ *  jQuery UI adds and removes its own hover class from inside the drag loop, so
+ *  a rule that outranks it is reliable where racing it to remove the class is
+ *  not. Indented to the row's own text so the line starts where the folder it
+ *  would sit beside starts, which is what says which level it lands on.
+ */
+.vgml-row.is-before,
+.vgml-row.is-after {
+	position: relative;
+	background: transparent;
+	box-shadow: none;
+}
+
+.vgml-row.is-before::after,
+.vgml-row.is-after::after {
+	content: "";
+	position: absolute;
+	inset-inline-start: var( --vgml-indent, 8px );
+	inset-inline-end: 4px;
+	height: 2px;
+	background: var( --vgml-accent );
+	border-radius: 2px;
+	pointer-events: none;
+}
+
+.vgml-row.is-before::after {
+	top: -1px;
+}
+
+.vgml-row.is-after::after {
+	bottom: -1px;
+}
+
 .vgml-row.is-dragging {
 	opacity: 0.45;
 }
@@ -438,6 +474,58 @@ body.vgml-has-tree .vgml-tree {
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 	color: var( --vgml-muted );
+}
+
+/*
+ *  The colour strip.
+ *
+ *  Each swatch carries its colour as `color`, the same property the folder icon
+ *  reads, so the dot in the menu and the folder it will paint are the one value
+ *  rather than two that have to be kept in step.
+ */
+.vgml-swatches {
+	/* Nine colours, so three rows of three -- wrapping left seven and two, which
+	   reads as an accident rather than as a palette. */
+	display: grid;
+	grid-template-columns: repeat( 3, 20px );
+	gap: 7px;
+	padding: 2px 8px 8px;
+	justify-content: start;
+}
+
+.vgml-swatch {
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: 1px solid rgba( 0, 0, 0, 0.18 );
+	border-radius: 50%;
+	background: currentColor;
+	cursor: pointer;
+}
+
+/* The absence of a colour, shown as absence rather than as another colour. */
+.vgml-swatch.is-none {
+	background: transparent;
+	position: relative;
+}
+
+.vgml-swatch.is-none::after {
+	content: "";
+	position: absolute;
+	inset: 3px;
+	border-top: 1px solid var( --vgml-muted );
+	transform: rotate( -45deg );
+	transform-origin: center;
+}
+
+.vgml-swatch.is-on {
+	outline: 2px solid var( --vgml-accent );
+	outline-offset: 2px;
+}
+
+.vgml-swatch:focus-visible {
+	outline: 2px solid var( --vgml-accent );
+	outline-offset: 2px;
 }
 
 .vgml-overflow-item {
@@ -813,3 +901,104 @@ body.vgml-dragging-folder {
 		display: none;
 	}
 }
+
+/* --- the import screen -------------------------------------------------- */
+
+.vgml-import-card {
+	max-width: 46em;
+	margin: 16px 0;
+	padding: 16px 20px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.vgml-import-head {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+}
+
+.vgml-import-card h2 {
+	margin: 0;
+	font-size: 15px;
+}
+
+.vgml-import-by {
+	color: #646970;
+	font-size: 12px;
+}
+
+.vgml-import-found {
+	margin: 6px 0 14px;
+	font-size: 13px;
+	color: #1d2327;
+}
+
+.vgml-import-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.vgml-import-label {
+	font-size: 13px;
+	color: #646970;
+}
+
+.vgml-import-out {
+	margin-top: 12px;
+}
+
+.vgml-import-plan {
+	padding: 12px 14px;
+	border-inline-start: 3px solid #3858e9;
+	background: #f6f7f7;
+	border-radius: 0 4px 4px 0;
+}
+
+.vgml-import-plan-line {
+	margin: 0 0 6px;
+	font-weight: 600;
+}
+
+/*
+ *  Real progress, not a guess. An import of sixteen thousand files runs long
+ *  enough that an invented bar becomes a lie somebody notices, so this only ever
+ *  moves on counts the server actually returned.
+ */
+.vgml-import-bar {
+	height: 6px;
+	margin-top: 8px;
+	border-radius: 3px;
+	background: #dcdcde;
+	overflow: hidden;
+}
+
+.vgml-import-fill {
+	width: 0;
+	height: 100%;
+	background: #3858e9;
+	transition: width 200ms ease;
+}
+
+.vgml-import-history {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 0;
+	border-top: 1px solid #f0f0f1;
+	font-size: 13px;
+}
+
+.vgml-import-history:first-of-type {
+	border-top: 0;
+}
+
+.vgml-import-history .button {
+	margin-inline-start: auto;
+}
+
+.vgml-import-good { color: #2f8f45; }
+.vgml-import-bad  { color: #d63638; }

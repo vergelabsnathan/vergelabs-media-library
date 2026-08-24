@@ -36,6 +36,7 @@ function vergeml_register_folder_routes() {
             'parent'   => array( 'type' => 'integer' ),
             'name'     => array( 'type' => 'string' ),
             'color'    => array( 'type' => 'string' ),
+            'ids'      => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ) ),
         ),
     ) );
 
@@ -136,6 +137,7 @@ function vergeml_rest_folder( WP_REST_Request $request ) {
 
             $id = (int) $made['term_id'];
             vergeml_set_color( $id, $taxonomy, $request->get_param( 'color' ) );
+            vergeml_place_last( $id, $parent, $taxonomy );
             break;
 
         case 'rename':
@@ -185,6 +187,62 @@ function vergeml_rest_folder( WP_REST_Request $request ) {
             if ( is_wp_error( $done ) ) {
                 return new WP_Error( 'vergeml_move_failed', $done->get_error_message(), array( 'status' => 400 ) );
             }
+
+            vergeml_place_last( $id, $parent, $taxonomy );
+            break;
+
+        /*
+         *  Reordering by hand.
+         *
+         *  The whole sibling list is sent rather than "move this one up": a
+         *  position is only meaningful relative to the others, and a list that
+         *  the browser already has is one request instead of one per folder that
+         *  shifted. It doubles as the re-parent, because dragging a folder
+         *  between two others in a different branch is one gesture and should not
+         *  be two writes that can half-fail.
+         */
+        case 'order':
+
+            $ids = array_values( array_filter( array_map( 'absint', (array) $request->get_param( 'ids' ) ) ) );
+
+            if ( ! $ids ) {
+                return new WP_Error( 'vergeml_no_folders', __( 'No folders were given to order.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+            }
+
+            if ( $parent && ! vergeml_term_in( $parent, $taxonomy ) ) {
+                return new WP_Error( 'vergeml_unknown_term', __( 'That parent folder does not exist.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+            }
+
+            foreach ( $ids as $one ) {
+
+                if ( ! vergeml_term_in( $one, $taxonomy ) ) {
+                    return new WP_Error( 'vergeml_unknown_term', __( 'One of those folders does not exist.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+                }
+
+                // Same guard as a move, for the same reason: this action can
+                // re-parent, so it can detach a branch just as thoroughly.
+                if ( $parent === $one ) {
+                    return new WP_Error( 'vergeml_cycle', __( 'A folder cannot be put inside itself.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+                }
+                if ( $parent && in_array( $parent, vergeml_descendants( $one, $taxonomy ), true ) ) {
+                    return new WP_Error( 'vergeml_cycle', __( 'A folder cannot be put inside one of its own sub-folders.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+                }
+            }
+
+            foreach ( $ids as $position => $one ) {
+
+                $term = get_term( $one, $taxonomy );
+
+                if ( $term instanceof WP_Term && (int) $term->parent !== $parent ) {
+                    $moved = wp_update_term( $one, $taxonomy, array( 'parent' => $parent ) );
+                    if ( is_wp_error( $moved ) ) {
+                        return new WP_Error( 'vergeml_move_failed', $moved->get_error_message(), array( 'status' => 400 ) );
+                    }
+                }
+
+                update_term_meta( $one, VERGEML_TERM_ORDER, $position + 1 );
+            }
+
             break;
 
         case 'delete':
@@ -273,6 +331,56 @@ function vergeml_descendants( $id, $taxonomy ) {
     $kids = get_term_children( absint( $id ), $taxonomy );
 
     return is_wp_error( $kids ) ? array() : array_map( 'absint', $kids );
+}
+
+
+/**
+ *  vergeml_place_last
+ *
+ *  Put a folder at the end of its siblings, but only where that means anything.
+ *
+ *  Order is stored as a number and the tree sorts on it before falling back to
+ *  the name, so an unset order is zero and sorts ahead of every folder that has
+ *  been arranged by hand. A folder created or moved into a branch somebody had
+ *  already arranged therefore appeared at the top of it -- the one place nobody
+ *  would put a new folder deliberately.
+ *
+ *  A branch nobody has arranged is left alone: every order there is zero, the
+ *  tree is alphabetical, and stamping a number on one folder would quietly end
+ *  that for the whole branch.
+ */
+
+function vergeml_place_last( $id, $parent, $taxonomy ) {
+
+    $siblings = get_terms( array(
+        'taxonomy'   => $taxonomy,
+        'hide_empty' => false,
+        'parent'     => (int) $parent,
+        'fields'     => 'ids',
+    ) );
+
+    if ( is_wp_error( $siblings ) ) {
+        return;
+    }
+
+    $last = 0;
+
+    foreach ( $siblings as $sibling ) {
+
+        if ( (int) $sibling === (int) $id ) {
+            continue;
+        }
+
+        $order = (int) get_term_meta( $sibling, VERGEML_TERM_ORDER, true );
+
+        if ( $order > $last ) {
+            $last = $order;
+        }
+    }
+
+    if ( $last > 0 ) {
+        update_term_meta( $id, VERGEML_TERM_ORDER, $last + 1 );
+    }
 }
 
 

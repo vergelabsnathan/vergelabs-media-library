@@ -16,59 +16,61 @@ to 2,000 folders. Media taxonomies made REST-visible, with a migration.
 self-descendant guard, undo, four skins, keyboard and ARIA, windowed rendering,
 first paint with no request, and "one folder per file" for switchers.
 
+**T2 — the media modal.** The tree in every wp.media frame: insert into post,
+featured image, gallery, replace, the block editor's own flows, the upload tab
+and the customiser. Filtering sets the frame's own library props rather than
+faking a search, and the panel is removed on close -- wp.media detaches frames
+instead of destroying them, so mounting without removing leaked a fresh tree on
+every open.
+
+**T3 — the importers.** Seven sources, two readers. Plan, run, undo, all chunked
+and resumable in both directions. Proven against FileBird's real tables: 200
+folders and 16,000 files in ~29s, undone in ~17s, their tables untouched.
+
+**T4 — arranging by hand.** `order` on the folder endpoint takes a whole sibling
+list and re-parents while it is at it, so dragging a folder between two others in
+another branch stays one gesture. Drop zones on the top and bottom thirds of a
+row, an insertion line, and Alt+Up/Down for anyone not using a mouse. Folders
+created or moved into an arranged branch land at the end of it rather than the
+top.
+
+Three bugs came out of building it, all of them older than it:
+
+- **paint() decided nothing had changed by counting rows.** Anything that changed
+  a row without changing how many there were -- a rename, a colour, a file count,
+  an arrangement -- was fetched, stored and never drawn until the next reload.
+- **A remembered selection outlived its folder.** Delete the folder you were
+  looking at and every later visit filtered the library to a term that was gone,
+  so the media library came up empty and stayed empty.
+- **Folder colours had an endpoint, a palette and a rendered icon, and no control
+  anywhere.** Now in the toolbar, eight colours, each one named.
+
 ## Next, in order
 
-### 1. T2 — the media modal
-
-The largest hole and the reason it goes first: the tree does not exist when you
-insert an image into a post, which is half of what a media library is for. Seven
-contexts (insert into post, featured image, gallery, replace, block editor's own
-media flows, the upload tab, and the customiser) and each can break separately.
-
-Needs its own `/prime` -- seven contexts is exactly where things break quietly.
-
-### 2. T3 — importers
-
-Highest value per hour on the list, because it is the acquisition path. FileBird's
-own `Controller/Import` showed the shape: **one generic term importer** covers
-every taxonomy-based rival, plus a custom reader per custom-table one.
-
-Slugs, taken from their table: `media_folder` (Premio Folders), `happyfiles_category`,
-`wpmf-category` (WP Media Folder), `wf_attachment_folders` (Wicked Folders),
-`feml-folder`. Custom tables: FileBird's `fbv` / `fbv_attachment_folder`, and Real
-Media Library.
-
-### 3. Manual folder ordering
-
-`vergeml_order` term meta is already registered and unused, and the tree already
-sorts in PHP. This is a drag handler and a save. FileBird has an `ord` column and
-we have been sorting alphabetically, which reads as missing rather than as a
-choice.
-
-### 4. Folders for posts, pages and custom post types
+### 1. Folders for posts, pages and custom post types
 
 Cheaper here than for them: taxonomies already attach to any post type, so this is
 `register_taxonomy_for_object_type` plus a panel on the list screens and a setting
 for which post types. They needed a `type` column and an entire addon.
 
-### 5. CSV import and export
+### 2. CSV import and export
 
 Terms and assignments out, terms and assignments in. Cheap, and it is the answer
 to "how do I set up two hundred folders without clicking two hundred times".
 
-### 6. WPML and Polylang
+### 3. WPML and Polylang
 
 Also cheaper here: both translate taxonomies natively. FileBird had to write
 `Support/WPML.php` to keep custom tables in sync. Expect mostly testing plus a
 shim where the tree passes term ids around.
 
-### 7. Per-user folders
+### 4. Per-user folders
 
 Term meta for an owner and a filter on the tree. The work is not the storage, it
 is deciding what a file inside a folder only one person can see is supposed to do
 when somebody else opens the library.
 
-### 8. Galleries
+### 5. Galleries
 
 A folder becomes a gallery. Split deliberately, because the three integrations are
 not one job:
