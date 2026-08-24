@@ -705,3 +705,16 @@ body.vgml-dragging-folder {
 .vgml-tree[data-skin="contrast"] .vgml-icon .vgml-f-front {
 	fill: currentColor;
 }
+
+/* --- swapping the table ------------------------------------------------- */
+
+/*
+ *  A folder click fetches and replaces the table rather than reloading the page.
+ *  The fade is the only signal that anything is happening; without it a slow
+ *  response looks like a click that did nothing.
+ */
+.wp-list-table.vgml-busy {
+	opacity: 0.45;
+	transition: opacity 120ms ease;
+	pointer-events: none;
+}

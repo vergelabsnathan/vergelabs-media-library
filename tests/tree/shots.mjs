@@ -210,6 +210,27 @@ for ( const mode of [ 'list', 'grid' ] ) {
 	await ctx.close();
 }
 
+/*
+ *  Put the account back the way it was found.
+ *
+ *  Skin and density are per-user and persist, so this suite -- which walks all
+ *  four skins -- left whoever owns the account looking at high contrast: black
+ *  borders, yellow selection, heavy type. It is an accessibility skin, and as a
+ *  default it looks broken. Nathan spent an evening calling the tree ugly while
+ *  looking at a skin one of these runs had chosen for him.
+ */
+{
+	const { page, ctx } = await session( { dark: false, rtl: false } );
+	await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
+	await page.waitForTimeout( 3000 );
+	await page.evaluate( () => window.wp.apiFetch( {
+		path: '/vergeml/v1/state',
+		method: 'POST',
+		data: { taxonomy: 'media_category', skin: 'native', density: 'comfortable' },
+	} ) ).catch( () => {} );
+	await ctx.close();
+}
+
 await browser.close();
 
 const bad = results.filter( ( r ) => ! r.ok ).length;

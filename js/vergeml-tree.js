@@ -652,11 +652,36 @@
 			return;
 		}
 
-		// List view has no JS library to talk to, so it reloads with the filter
-		// in the query string -- the same one the dropdown produced.
+		/*
+		 *  List view has no JS library to talk to, so the filter goes in the query
+		 *  string -- the same one the dropdown produced. But it is fetched and the
+		 *  table swapped in place rather than navigated to.
+		 *
+		 *  Navigating was the honest first version and it made the screen feel like
+		 *  it was constantly reloading, because it was: every folder click threw the
+		 *  whole page away and rebuilt it, tree included. Clicking five folders to
+		 *  find something meant five full page loads.
+		 *
+		 *  Only the table and its navigation are replaced. The tree is not touched,
+		 *  so it keeps its scroll position, its open branches and its focus.
+		 */
 		var url = new URL( window.location.href );
+
 		if ( id > 0 ) {
-			url.searchParams.set( state.taxonomy, id );
+			/*
+			 *  The slug, not the id.
+			 *
+			 *  WordPress resolves a taxonomy query var by slug, so upload.php?
+			 *  media_category=3 matches a term whose slug is "3" -- which is to say
+			 *  nothing, silently. Verified against the live table: ?media_category=3
+			 *  returns 0 items and ?media_category=folder-1 returns 1,000.
+			 *
+			 *  Worth knowing: the plugin's own dropdown filter has the same bug.
+			 *  wp_dropdown_categories submits term ids by default, so choosing a
+			 *  folder from it has always returned an empty list view.
+			 */
+			var node = state.byId[ id ];
+			url.searchParams.set( state.taxonomy, node && node.slug ? node.slug : id );
 			url.searchParams.delete( 'uncategorized' );
 		} else if ( id === -1 ) {
 			url.searchParams.delete( state.taxonomy );
@@ -665,10 +690,82 @@
 			url.searchParams.delete( state.taxonomy );
 			url.searchParams.delete( 'uncategorized' );
 		}
-		if ( url.href !== window.location.href ) {
-			window.location.href = url.href;
+
+		// Paging belongs to the previous folder.
+		url.searchParams.delete( 'paged' );
+
+		if ( url.href === window.location.href ) {
+			return;
 		}
+
+		swapTable( url.href );
 	}
+
+	var swapping = null;
+
+	function swapTable( href ) {
+
+		var host = document.querySelector( '.wp-list-table' );
+
+		if ( ! host ) {
+			window.location.href = href; // no table to swap: fall back honestly
+			return;
+		}
+
+		// Clicking through folders quickly must not race: the last click wins.
+		var token = {};
+		swapping = token;
+
+		host.classList.add( 'vgml-busy' );
+
+		window.fetch( href, { credentials: 'same-origin' } )
+			.then( function ( r ) { return r.text(); } )
+			.then( function ( html ) {
+
+				if ( swapping !== token ) {
+					return; // a later click already took over
+				}
+
+				var doc = new DOMParser().parseFromString( html, 'text/html' );
+				var next = doc.querySelector( '.wp-list-table' );
+
+				if ( ! next ) {
+					window.location.href = href;
+					return;
+				}
+
+				host.parentNode.replaceChild( next, host );
+
+				// The counts and pager above and below the table belong to the
+				// result set, so they move with it.
+				var navs = document.querySelectorAll( '.tablenav' );
+				var freshNavs = doc.querySelectorAll( '.tablenav' );
+				for ( var i = 0; i < navs.length && i < freshNavs.length; i++ ) {
+					navs[ i ].parentNode.replaceChild( freshNavs[ i ], navs[ i ] );
+				}
+
+				window.history.pushState( {}, '', href );
+			} )
+			.catch( function () {
+				window.location.href = href;
+			} )
+			.then( function () {
+				var t = document.querySelector( '.wp-list-table' );
+				if ( t ) {
+					t.classList.remove( 'vgml-busy' );
+				}
+			} );
+	}
+
+	/*
+	 *  Back and forward have to work: pushState without this leaves the browser
+	 *  buttons pointing at URLs that never load anything.
+	 */
+	window.addEventListener( 'popstate', function () {
+		if ( document.querySelector( '.wp-list-table' ) ) {
+			swapTable( window.location.href );
+		}
+	} );
 
 	/* ------------------------------------------------------------- keyboard */
 
@@ -1645,6 +1742,32 @@
 				paint();
 			} );
 		} );
+
+		/*
+		 *  Repaint whenever the list changes height.
+		 *
+		 *  The window is computed from listEl.clientHeight, and painting now happens
+		 *  synchronously during mount -- before the browser has laid anything out,
+		 *  so the height is nearly zero and the window comes out at nine rows. There
+		 *  was no scroll to correct it and the tree simply stayed nine rows long.
+		 *
+		 *  Also covers the panel being dragged wider, the density changing, and the
+		 *  window being resized, none of which fire a scroll either.
+		 */
+		if ( window.ResizeObserver ) {
+			var lastH = 0;
+			new window.ResizeObserver( function () {
+				var h = listEl.clientHeight;
+				if ( Math.abs( h - lastH ) < 4 ) {
+					return;
+				}
+				lastH = h;
+				paint( true );
+			} ).observe( listEl );
+		} else {
+			// No observer: catch the common case, which is the first layout.
+			window.requestAnimationFrame( function () { paint( true ); } );
+		}
 		root.appendChild( listEl );
 
 		/*
@@ -1826,7 +1949,20 @@
 		if ( ! mount() ) {
 			return;
 		}
-		load();
+
+		/*
+		 *  Painted from what PHP already sent, so opening the library shows the
+		 *  tree immediately and never fetches it. The endpoint is still there for
+		 *  everything after this first paint.
+		 */
+		if ( cfg.boot && cfg.boot.nodes ) {
+			state.nodes = cfg.boot.nodes;
+			state.unassigned = cfg.boot.unassigned || 0;
+			index();
+			render();
+		} else {
+			load();
+		}
 
 		// Grid view builds itself asynchronously; if the frame arrives after we
 		// do, re-select so the library reflects the folder already highlighted.

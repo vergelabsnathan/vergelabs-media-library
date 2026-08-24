@@ -89,9 +89,36 @@ function vergeml_tree_assets( $hook ) {
 
     $state = vergeml_tree_state( $list[0]['name'] );
 
+    /*
+     *  The tree travels with the page, so opening the library never fetches it.
+     *
+     *  It used to render empty and then call vergeml/v1/tree, which meant a blank
+     *  panel followed by a pop -- on every single visit, for data this request
+     *  already had in hand. The endpoint stays, because everything after the first
+     *  paint still uses it, but the first paint costs nothing.
+     *
+     *  Built by calling the REST handler rather than by repeating its query here:
+     *  one code path produces the tree, so the first paint cannot disagree with
+     *  every paint after it.
+     */
+    $boot = null;
+
+    if ( class_exists( 'WP_REST_Request' ) && function_exists( 'vergeml_rest_tree' ) ) {
+
+        $request = new WP_REST_Request( 'GET', '/' . VERGEML_REST_NS . '/tree' );
+        $request->set_param( 'taxonomy', $list[0]['name'] );
+
+        $result = vergeml_rest_tree( $request );
+
+        if ( $result instanceof WP_REST_Response ) {
+            $boot = $result->get_data();
+        }
+    }
+
     wp_localize_script( 'vergeml-tree', 'vergemlTree', array(
         'taxonomies' => $list,
         'state'      => $state,
+        'boot'       => $boot,
         'canManage'  => current_user_can( 'manage_categories' ),
         'palette'    => vergeml_tree_palette(),
         'skins'      => vergeml_tree_skins(),
