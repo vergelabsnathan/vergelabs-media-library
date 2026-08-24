@@ -1171,9 +1171,15 @@
 					return;
 				}
 
-				// Ctrl or Alt turns an add into a move. Read from the original event,
-				// because jQuery UI hands us the mouse event that ended the drag.
-				var move = !! ( e && ( e.ctrlKey || e.altKey ) );
+				/*
+				 *  Ctrl or Alt turns an add into a move, read from the original
+				 *  event because jQuery UI hands us the mouse event that ended the
+				 *  drag. With "one folder per file" on, every plain drag is a move
+				 *  and the modifier is redundant rather than inverted -- inverting
+				 *  it would mean the same gesture doing opposite things on two
+				 *  installs, which is worse than a key that does nothing.
+				 */
+				var move = cfg.onePerFile || !! ( e && ( e.ctrlKey || e.altKey ) );
 
 				assign( ids, termId, move );
 				dragging = null;

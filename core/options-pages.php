@@ -2495,6 +2495,34 @@ function vergeml_print_taxonomies_options() {
                                         </td>
                                     </tr>
 
+                                    <?php
+                                        /*
+                                         *  The one setting that makes this behave like the folder
+                                         *  plugins people arrive from.
+                                         *
+                                         *  A file here can sit in several folders at once, which is
+                                         *  the thing neither FileBird nor Folders can do. It is also
+                                         *  not what somebody switching from them expects: after years
+                                         *  of folders that hold a file once, a drag that adds rather
+                                         *  than moves reads as a bug.
+                                         *
+                                         *  Off by default, because the capability is the point. On,
+                                         *  a plain drag moves and the library behaves exactly like
+                                         *  the one they left. Either way nothing already filed is
+                                         *  touched -- it changes what a drag means, not the data.
+                                         */
+                                    ?>
+                                    <tr>
+                                        <th scope="row"><?php esc_html_e( 'One folder per file', 'vergelabs-media-library' ); ?></th>
+                                        <td>
+                                            <fieldset>
+                                                <legend class="screen-reader-text"><span><?php esc_html_e( 'One folder per file', 'vergelabs-media-library' ); ?></span></legend>
+                                                <label><input name="vergeml_tax_options[one_folder_per_file]" type="hidden" value="0" /><input name="vergeml_tax_options[one_folder_per_file]" type="checkbox" value="1" <?php checked( true, ! empty( $vergeml_tax_options['one_folder_per_file'] ), true ); ?> /> <?php esc_html_e( 'Dragging a file into a folder moves it, instead of adding it', 'vergelabs-media-library' ); ?></label>
+                                                <p class="description"><?php esc_html_e( 'Off, a file can be in several folders at once and dragging adds it to another — hold Ctrl while dragging to move instead. On, each file lives in one folder, the way a normal folder tree works. Nothing already filed is changed either way.', 'vergelabs-media-library' ); ?></p>
+                                            </fieldset>
+                                        </td>
+                                    </tr>
+
                                 </table>
 
                                 <?php submit_button( __( 'Save Changes', 'vergelabs-media-library' ), 'primary', 'submit', true, array( 'id' => 'eml-submit-tax-settings' ) ); ?>

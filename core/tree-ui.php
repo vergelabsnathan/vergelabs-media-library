@@ -120,6 +120,13 @@ function vergeml_tree_assets( $hook ) {
         'state'      => $state,
         'boot'       => $boot,
         'canManage'  => current_user_can( 'manage_categories' ),
+        /*
+         *  When on, a plain drag moves instead of adding -- the behaviour someone
+         *  switching from FileBird or Folders expects, since their folders hold a
+         *  file once. Off by default: a file in several folders is the thing this
+         *  plugin can do that they cannot.
+         */
+        'onePerFile' => ! empty( get_option( 'vergeml_tax_options', array() )['one_folder_per_file'] ),
         'palette'    => vergeml_tree_palette(),
         'skins'      => vergeml_tree_skins(),
         'densities'  => vergeml_tree_densities(),

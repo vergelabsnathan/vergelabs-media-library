@@ -952,7 +952,13 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         $eml_tax_options_defaults = array(
             'tax_archives' => 0, // since 2.6
             'edit_all_as_hierarchical' => 0,
-            'bulk_edit_save_button' => 0 // since 2.7
+            'bulk_edit_save_button' => 0, // since 2.7
+            /*
+             *  Off, because a file living in several folders is the thing this
+             *  plugin can do and the others cannot. On, a plain drag moves --
+             *  which is what somebody switching from FileBird expects.
+             */
+            'one_folder_per_file' => 0 // since 3.1
         );
 
         $vergeml_tax_options = array_intersect_key( $vergeml_tax_options, $eml_tax_options_defaults );
