@@ -54,7 +54,17 @@ function vergeml_tree_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-tree',
         plugins_url( 'js/vergeml-tree.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        /*
+         *  jQuery UI draggable/droppable rather than the HTML5 drag API.
+         *
+         *  Both ship with WordPress and core's own media grid already uses them,
+         *  so this costs no download and adds no dependency. It matters because
+         *  the HTML5 API hands the browser control of the drag image, has no
+         *  distance threshold -- so a sloppy click becomes a drag -- and does not
+         *  work on touch at all. jQuery UI is plain pointer events with a helper
+         *  element we own, which is why it can show a real tile with a count.
+         */
+        array( 'wp-api-fetch', 'jquery', 'jquery-ui-draggable', 'jquery-ui-droppable' ),
         VERGEML_VERSION,
         true
     );
@@ -113,6 +123,10 @@ function vergeml_tree_assets( $hook ) {
             'deleteSimple'   => __( 'Delete the folder "%s"? No files are deleted — they simply leave this folder.', 'vergelabs-media-library' ),
             /* translators: %d: number of files. */
             'undoAssigned'   => __( '%d files filed', 'vergelabs-media-library' ),
+            'cancel'         => __( 'Cancel', 'vergelabs-media-library' ),
+            'oneFile'        => __( '1 file', 'vergelabs-media-library' ),
+            /* translators: %d: number of files being dragged. */
+            'manyFiles'      => __( '%d files', 'vergelabs-media-library' ),
             'undo'           => __( 'Undo', 'vergelabs-media-library' ),
             'undone'         => __( 'Put back', 'vergelabs-media-library' ),
             /* translators: %d: number of folders a file belongs to. */

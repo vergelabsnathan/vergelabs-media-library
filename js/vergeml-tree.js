@@ -238,6 +238,26 @@
 			} );
 		} )( 0, 0 );
 
+		// The row being typed into sits where the folder will end up, so the name
+		// is entered in the position it will occupy rather than in a dialog with no
+		// relationship to the tree.
+		if ( creatingUnder >= 0 ) {
+			var at = out.length;
+			var depth = 0;
+
+			if ( creatingUnder > 0 ) {
+				for ( var k = 0; k < out.length; k++ ) {
+					if ( out[ k ].id === creatingUnder ) {
+						depth = out[ k ].depth + 1;
+						at = k + 1;
+						break;
+					}
+				}
+			}
+
+			out.splice( at, 0, { creating: true, depth: depth, id: -2 } );
+		}
+
 		return out;
 	}
 
@@ -309,7 +329,7 @@
 		painted.key = key;
 
 		if ( painted.first === -1 ) {
-			build( r );
+			fillWindow( r );
 			return;
 		}
 
@@ -322,12 +342,49 @@
 
 	function rowFor( i ) {
 		var entry = flat[ i ];
+
+		// The row being renamed becomes the input, in place.
+		if ( ! entry.pseudo && editing === entry.id ) {
+			var editRow = editorRow( entry.depth, entry.node.name, function ( name ) {
+				var id = entry.id;
+				editing = 0;
+				if ( name && name !== entry.node.name ) {
+					folder( { action: 'rename', id: id, name: name } );
+				} else {
+					paint( true );
+				}
+			} );
+			editRow.setAttribute( 'data-i', i );
+			return editRow;
+		}
+
+		if ( entry.creating ) {
+			var newRow = editorRow( entry.depth, '', function ( name ) {
+				var parent = creatingUnder;
+				creatingUnder = -1;
+				if ( name ) {
+					folder( { action: 'create', name: name, parent: parent } );
+				} else {
+					render();
+				}
+			} );
+			newRow.setAttribute( 'data-i', i );
+			return newRow;
+		}
+
 		var node = entry.pseudo ? pseudoRow( entry ) : nodeRow( entry );
 		node.setAttribute( 'data-i', i );
 		return node;
 	}
 
-	function build( r ) {
+	/*
+	 *  Named for what it does, and named differently from the shell builder --
+	 *  both were called build(), function declarations hoist, and the later one
+	 *  silently replaced this. Painting then called the shell builder, which
+	 *  returns a fresh panel and appends nothing, so the tree drew zero rows with
+	 *  no error anywhere.
+	 */
+	function fillWindow( r ) {
 		listEl.innerHTML = '';
 
 		listEl.appendChild( topSpacer( r.first * r.h ) );
@@ -426,32 +483,26 @@
 		} );
 		row.appendChild( twist );
 
-		var dot = el( 'span', { class: 'vgml-dot', 'aria-hidden': 'true' } );
-		if ( node.color ) {
-			dot.style.background = node.color;
-		}
-		row.appendChild( dot );
+		row.appendChild( folderIcon( node.color, entry.open && entry.kids ) );
 
 		row.appendChild( el( 'span', { class: 'vgml-name' }, node.name ) );
-		row.appendChild( el( 'span', { class: 'vgml-count' }, String( entry.total ) ) );
 
-		if ( cfg.canManage ) {
-			var kebab = el( 'button', {
-				class: 'vgml-kebab',
-				type: 'button',
-				tabindex: '-1',
-				'aria-label': node.name
-			} );
-			kebab.innerHTML = '&#8942;';
-			kebab.addEventListener( 'click', function ( e ) {
-				e.stopPropagation();
-				menu( node );
-			} );
-			row.appendChild( kebab );
+		// A pill, not a bare number: it reads as a badge belonging to the row
+		// rather than as a second column of text competing with the name.
+		if ( entry.total ) {
+			row.appendChild( el( 'span', { class: 'vgml-count' }, String( entry.total ) ) );
 		}
 
 		row.addEventListener( 'click', function () {
 			select( node.id );
+			selectForEditing( node.id );
+		} );
+
+		// Renaming where the name is: the standard gesture, and it means the
+		// toolbar button is a discoverable second route rather than the only one.
+		row.addEventListener( 'dblclick', function ( e ) {
+			e.preventDefault();
+			if ( cfg.canManage ) { rename( node ); }
 		} );
 
 		dropTarget( row, node.id );
@@ -479,16 +530,29 @@
 
 		var row = el( 'div', { class: 'vgml-row' } );
 		row.appendChild( el( 'span', { class: 'vgml-twist is-leaf', 'aria-hidden': 'true' } ) );
-		row.appendChild( el( 'span', { class: 'vgml-dot is-none', 'aria-hidden': 'true' } ) );
+
+		var mark = el( 'span', { class: 'vgml-icon is-pseudo', 'aria-hidden': 'true' } );
+		mark.innerHTML = key === 'all'
+			? '<svg viewBox="0 0 16 16" width="15" height="15"><path d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z"/></svg>'
+			: '<svg viewBox="0 0 16 16" width="15" height="15"><path d="M8 1.5 14.5 14h-13L8 1.5Zm0 4.2-3 5.8h6l-3-5.8Z"/></svg>';
+		row.appendChild( mark );
+
 		row.appendChild( el( 'span', { class: 'vgml-name' }, entry.label ) );
 
-		if ( entry.count !== null ) {
+		if ( entry.count !== null && entry.count ) {
 			row.appendChild( el( 'span', { class: 'vgml-count' }, String( entry.count ) ) );
 		}
 
 		row.addEventListener( 'click', function () {
 			select( key === 'all' ? 0 : -1 );
+			selectForEditing( 0 );
 		} );
+
+		// Dropping onto "Unfiled" takes a file out of every folder -- the only way
+		// to unfile something by dragging.
+		if ( key === 'unassigned' ) {
+			unfileTarget( row );
+		}
 
 		item.appendChild( row );
 		return item;
@@ -764,64 +828,91 @@
 	var draggingFolder = 0;
 
 	/*
-	 *  Making the library's files draggable.
+	 *  Files are dragged with jQuery UI, not the HTML5 drag API.
 	 *
-	 *  This was missing entirely, which is why dragging did nothing: the drop
-	 *  handlers were correct and complete, and no drag could ever start, because
-	 *  neither a list-table row nor a grid attachment is draggable in WordPress.
-	 *  The tests did not catch it because they dispatched dragover and drop
-	 *  straight at the folder rows -- proving the half that worked and never
-	 *  touching the half that did not exist.
+	 *  The first version used HTML5 dragstart/dragover/drop. It worked and it felt
+	 *  wrong, and the reason is the mechanism rather than the polish: the browser
+	 *  owns the drag image and will not let go of it, there is no distance
+	 *  threshold so a slightly-moved click becomes a drag, dropEffect behaves
+	 *  differently per browser, and none of it works on touch.
 	 *
-	 *  Delegated from the document, because both screens replace their contents as
-	 *  the library loads and paginates: anything bound to the elements themselves
-	 *  is bound to elements that will not be there shortly.
+	 *  jQuery UI is plain pointer events with a helper element we own -- which is
+	 *  what makes a proper floating tile with a count possible -- plus a distance
+	 *  threshold, a hover class on the target, and revert on a missed drop. Both
+	 *  it and jQuery ship with WordPress and core's media grid already uses them,
+	 *  so nothing is added to the page.
 	 */
 	function wireFileDragging() {
 
-		document.addEventListener( 'mouseover', function ( e ) {
-			var item = fileElement( e.target );
-			if ( item && ! item.getAttribute( 'draggable' ) ) {
-				item.setAttribute( 'draggable', 'true' );
-			}
-		}, true );
+		var $ = window.jQuery;
 
-		document.addEventListener( 'dragstart', function ( e ) {
-			var item = fileElement( e.target );
+		if ( ! $ || ! $.fn || ! $.fn.draggable ) {
+			return; // No jQuery UI: the tree still filters, it just cannot be dragged onto.
+		}
 
-			if ( ! item ) {
+		/*
+		 *  Delegated, because both screens replace their contents as the library
+		 *  loads and paginates -- anything bound to the items themselves is bound
+		 *  to elements that will shortly not exist. `.draggable()` is applied the
+		 *  first time an item is touched and then left alone.
+		 */
+		$( document ).on( 'mouseenter', '.attachment, #the-list tr', function () {
+
+			var $item = $( this );
+
+			if ( $item.data( 'vgml-drag' ) ) {
 				return;
 			}
+			$item.data( 'vgml-drag', true );
 
-			var id = fileId( item );
-			if ( ! id ) {
-				return;
-			}
+			$item.draggable( {
+				addClasses: false,
+				appendTo: 'body',
+				cursorAt: { top: 12, left: 12 },
+				// 6px before a drag begins, so clicking a file stays a click.
+				distance: 6,
+				revert: 'invalid',
+				revertDuration: 150,
+				scroll: false,
+				zIndex: 100000,
+				helper: function () {
+					var ids = idsForDrag( fileId( this ) );
+					dragging = ids;
+					return $( '<div class="vgml-drag-helper"></div>' )
+						.attr( 'data-count', ids.length )
+						.text( ids.length === 1 ? l10n.oneFile : sprintf( l10n.manyFiles, ids.length ) );
+				},
+				start: function () {
+					document.body.classList.add( 'vgml-dragging-files' );
+				},
+				stop: function () {
+					document.body.classList.remove( 'vgml-dragging-files' );
+					dragging = null;
+				}
+			} );
+		} );
+	}
 
-			/*
-			 *  If the file being dragged is part of the current selection, the whole
-			 *  selection moves. If it is not, only it moves and the selection is
-			 *  cleared -- dragging something you did not select means you changed
-			 *  your mind about what you were acting on.
-			 */
-			var selected = selectionIds();
-			dragging = selected.indexOf( id ) !== -1 ? selected : [ id ];
+	/*
+	 *  Dragging a file that is part of the selection moves the whole selection.
+	 *  Dragging one that is not moves only it, and clears the selection -- picking
+	 *  up something you did not select means you changed your mind about what you
+	 *  were acting on.
+	 */
+	function idsForDrag( id ) {
 
-			if ( dragging.length === 1 ) {
-				clearLibrarySelection();
-			}
+		if ( ! id ) {
+			return [];
+		}
 
-			e.dataTransfer.effectAllowed = 'copyMove';
-			e.dataTransfer.setData( 'text/vgml-files', dragging.join( ',' ) );
-			e.dataTransfer.setData( 'text/plain', String( dragging.length ) );
+		var selected = selectionIds();
 
-			document.body.classList.add( 'vgml-dragging-files' );
-		}, true );
+		if ( selected.indexOf( id ) !== -1 ) {
+			return selected;
+		}
 
-		document.addEventListener( 'dragend', function () {
-			dragging = null;
-			document.body.classList.remove( 'vgml-dragging-files' );
-		}, true );
+		clearLibrarySelection();
+		return [ id ];
 	}
 
 	function fileElement( target ) {
@@ -861,57 +952,111 @@
 		);
 	}
 
-	function dropTarget( row, termId ) {
+	/*
+	 *  "Unfiled" as a drop target.
+	 *
+	 *  Dragging a file there empties its folders, which is the only way to unfile
+	 *  something by dragging -- otherwise the only route out of a folder is to
+	 *  open the file and clear the terms by hand.
+	 */
+	function unfileTarget( row ) {
 
 		row.addEventListener( 'dragover', function ( e ) {
 			e.preventDefault();
-
-			if ( draggingFolder && ! canReparent( draggingFolder, termId ) ) {
-				// Refused before the drop, so the cursor says no rather than the
-				// server saying no after the fact.
-				e.dataTransfer.dropEffect = 'none';
-				row.classList.add( 'is-refused' );
-				return;
-			}
-
+			e.dataTransfer.dropEffect = 'move';
 			row.classList.add( 'is-drop' );
-			// Ctrl or Alt turns an add into a move; the pointer says so.
-			e.dataTransfer.dropEffect = draggingFolder || e.ctrlKey || e.altKey ? 'move' : 'copy';
 		} );
 
 		row.addEventListener( 'dragleave', function () {
 			row.classList.remove( 'is-drop' );
-			row.classList.remove( 'is-refused' );
 		} );
 
 		row.addEventListener( 'drop', function ( e ) {
 			e.preventDefault();
 			row.classList.remove( 'is-drop' );
-			row.classList.remove( 'is-refused' );
-
-			var folder = draggingFolder || parseInt( e.dataTransfer.getData( 'text/vgml-folder' ), 10 ) || 0;
-
-			if ( folder ) {
-				draggingFolder = 0;
-				if ( canReparent( folder, termId ) ) {
-					folderMove( folder, termId );
-				}
-				return;
-			}
 
 			var carried = ( e.dataTransfer.getData( 'text/vgml-files' ) || '' )
-				.split( ',' )
-				.map( function ( n ) { return parseInt( n, 10 ); } )
-				.filter( Boolean );
+				.split( ',' ).map( function ( n ) { return parseInt( n, 10 ); } ).filter( Boolean );
 
-			var ids = ( dragging && dragging.length ) ? dragging : ( carried.length ? carried : selectionIds() );
-
+			var ids = ( dragging && dragging.length ) ? dragging : carried;
 			if ( ! ids.length ) {
 				return;
 			}
 
-			assign( ids, termId, e.ctrlKey || e.altKey );
+			// 'move' with nothing to add empties the taxonomy for those files.
+			apiFetch( {
+				path: '/vergeml/v1/assign',
+				method: 'POST',
+				data: { taxonomy: state.taxonomy, attachments: ids, add: [], mode: 'move' }
+			} ).then( function ( res ) {
+				state.lastUndo = res.undo;
+				load();
+				toast( sprintf( l10n.undoAssigned, ( res.changed || [] ).length ), res.undo ? undo : null );
+			} ).catch( function () {
+				toast( l10n.failed, null );
+			} );
+
 			dragging = null;
+		} );
+	}
+
+	/*
+	 *  Folder rows accept drops, from files and from other folders.
+	 *
+	 *  `tolerance: 'pointer'` rather than the default: with 34px rows the default
+	 *  'intersect' fires on whichever row the dragged helper overlaps most, which
+	 *  is not the row the pointer is on, and dropping into the wrong folder is the
+	 *  worst possible way to be wrong here.
+	 */
+	function dropTarget( row, termId ) {
+
+		var $ = window.jQuery;
+
+		if ( ! $ || ! $.fn || ! $.fn.droppable ) {
+			return;
+		}
+
+		$( row ).droppable( {
+			addClasses: false,
+			tolerance: 'pointer',
+			hoverClass: 'is-drop',
+			over: function ( e ) {
+				if ( draggingFolder && ! canReparent( draggingFolder, termId ) ) {
+					row.classList.remove( 'is-drop' );
+					row.classList.add( 'is-refused' );
+				}
+			},
+			out: function () {
+				row.classList.remove( 'is-refused' );
+			},
+			drop: function ( e, ui ) {
+
+				row.classList.remove( 'is-drop' );
+				row.classList.remove( 'is-refused' );
+
+				// A folder being dragged onto another folder: re-parent it.
+				if ( draggingFolder ) {
+					var moving = draggingFolder;
+					draggingFolder = 0;
+					if ( canReparent( moving, termId ) ) {
+						folderMove( moving, termId );
+					}
+					return;
+				}
+
+				var ids = ( dragging && dragging.length ) ? dragging : selectionIds();
+
+				if ( ! ids.length ) {
+					return;
+				}
+
+				// Ctrl or Alt turns an add into a move. Read from the original event,
+				// because jQuery UI hands us the mouse event that ended the drag.
+				var move = !! ( e && ( e.ctrlKey || e.altKey ) );
+
+				assign( ids, termId, move );
+				dragging = null;
+			}
 		} );
 	}
 
@@ -947,23 +1092,43 @@
 		folder( { action: 'move', id: id, parent: parent } );
 	}
 
-	// Rows are the drag source as well as the target.
+	/*
+	 *  Folder rows are drag sources too, so the tree can be rearranged by hand.
+	 *  Same mechanism as the files, so both drags feel identical rather than one
+	 *  behaving like the browser's and one like ours.
+	 */
 	function dragSource( row, termId ) {
 
-		row.setAttribute( 'draggable', 'true' );
+		var $ = window.jQuery;
 
-		row.addEventListener( 'dragstart', function ( e ) {
-			draggingFolder = termId;
-			e.dataTransfer.effectAllowed = 'move';
-			e.dataTransfer.setData( 'text/vgml-folder', String( termId ) );
-			// Some browsers refuse to start a drag without text/plain.
-			e.dataTransfer.setData( 'text/plain', state.byId[ termId ] ? state.byId[ termId ].name : '' );
-			row.classList.add( 'is-dragging' );
-		} );
+		if ( ! $ || ! $.fn || ! $.fn.draggable ) {
+			return;
+		}
 
-		row.addEventListener( 'dragend', function () {
-			draggingFolder = 0;
-			row.classList.remove( 'is-dragging' );
+		$( row ).draggable( {
+			addClasses: false,
+			appendTo: 'body',
+			cursorAt: { top: 12, left: 12 },
+			distance: 6,
+			revert: 'invalid',
+			revertDuration: 150,
+			scroll: false,
+			zIndex: 100000,
+			helper: function () {
+				draggingFolder = termId;
+				var node = state.byId[ termId ];
+				return $( '<div class="vgml-drag-helper is-folder"></div>' )
+					.text( node ? node.name : '' );
+			},
+			start: function () {
+				row.classList.add( 'is-dragging' );
+				document.body.classList.add( 'vgml-dragging-folder' );
+			},
+			stop: function () {
+				row.classList.remove( 'is-dragging' );
+				document.body.classList.remove( 'vgml-dragging-folder' );
+				draggingFolder = 0;
+			}
 		} );
 	}
 
@@ -1046,54 +1211,286 @@
 		} );
 	}
 
+	/*
+	 *  Naming a folder happens in the row itself.
+	 *
+	 *  This used to be window.prompt(), and a browser prompt is the single loudest
+	 *  signal that something is a prototype: it is grey, it is centred on the
+	 *  screen far from the thing it is about, it cannot be styled, and it blocks
+	 *  the page. Renaming in place is also simply better -- the name is edited
+	 *  where the name lives.
+	 */
+	var editing = 0;      // id of the folder being renamed
+	var creatingUnder = -1; // parent id for a new folder, -1 when not creating
+
 	function rename( node ) {
-		var name = window.prompt( sprintf( l10n.renamePrompt, node.name ), node.name );
-		if ( name && name !== node.name ) {
-			folder( { action: 'rename', id: node.id, name: name } );
+		editing = node.id;
+		creatingUnder = -1;
+		paint( true );
+		focusEditor();
+	}
+
+	function startCreate( parentId ) {
+		creatingUnder = parentId;
+		editing = 0;
+		// A new folder appears under its parent, so open the parent first.
+		if ( parentId ) {
+			state.open[ parentId ] = true;
 		}
+		render();
+		focusEditor();
+	}
+
+	function focusEditor() {
+		window.setTimeout( function () {
+			var input = listEl.querySelector( '.vgml-editor' );
+			if ( input ) {
+				input.focus();
+				input.select();
+			}
+		}, 0 );
+	}
+
+	function cancelEditing() {
+		editing = 0;
+		creatingUnder = -1;
+		paint( true );
+	}
+
+	// The input a row turns into, used for both renaming and creating.
+	function editorRow( depth, value, commit ) {
+
+		var item = el( 'li', { class: 'vgml-node vgml-editing', role: 'none' } );
+		var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( depth * 14 + 8 ) + 'px' } );
+
+		row.appendChild( el( 'span', { class: 'vgml-twist is-leaf', 'aria-hidden': 'true' } ) );
+		row.appendChild( folderIcon( '' ) );
+
+		var input = el( 'input', {
+			class: 'vgml-editor',
+			type: 'text',
+			value: value,
+			'aria-label': l10n.namePrompt,
+			maxlength: '200'
+		} );
+		input.value = value;
+
+		input.addEventListener( 'keydown', function ( e ) {
+			e.stopPropagation(); // the tree's arrow-key handler is not wanted here
+			if ( e.key === 'Enter' ) {
+				e.preventDefault();
+				commit( input.value.trim() );
+			} else if ( e.key === 'Escape' ) {
+				e.preventDefault();
+				cancelEditing();
+			}
+		} );
+
+		// Clicking away accepts, which is what every file manager does.
+		input.addEventListener( 'blur', function () {
+			commit( input.value.trim() );
+		} );
+
+		row.appendChild( input );
+		item.appendChild( row );
+		return item;
+	}
+
+	/*
+	 *  Deleting asks in the panel, not in a browser dialog.
+	 *
+	 *  The wording matters more than the styling here: "delete folder" reads as
+	 *  "delete my photos" to anyone who has not thought about it, and the whole
+	 *  reason folders are terms is that it is not true. So the question says so,
+	 *  in the place the folder is.
+	 */
+	function confirmDelete( node ) {
+
+		var kids = ( state.children[ node.id ] || [] ).length;
+
+		var box = el( 'div', { class: 'vgml-confirm', role: 'alertdialog', 'aria-label': l10n.delete } );
+		box.appendChild( el( 'p', { class: 'vgml-confirm-text' },
+			kids ? sprintf( l10n.deleteConfirm, node.name, kids ) : sprintf( l10n.deleteSimple, node.name ) ) );
+
+		var actions = el( 'div', { class: 'vgml-confirm-actions' } );
+
+		var no = el( 'button', { type: 'button', class: 'button button-small' }, l10n.cancel );
+		no.addEventListener( 'click', function () { box.remove(); } );
+
+		var yes = el( 'button', { type: 'button', class: 'button button-small vgml-danger' }, l10n.delete );
+		yes.addEventListener( 'click', function () {
+			box.remove();
+			folder( { action: 'delete', id: node.id } ).then( function () {
+				if ( state.selected === node.id ) {
+					select( 0 );
+				}
+			} );
+		} );
+
+		actions.appendChild( no );
+		actions.appendChild( yes );
+		box.appendChild( actions );
+
+		var existing = root.querySelector( '.vgml-confirm' );
+		if ( existing ) { existing.remove(); }
+
+		root.appendChild( box );
+		yes.focus();
 	}
 
 	function menu( node ) {
-		// Deliberately plain. A bespoke context menu is a second focus trap to
-		// get right, and this phase has a keyboard contract to honour first.
-		var choice = window.prompt(
-			node.name + '\n\n1 = ' + l10n.newFolder +
-			'\n2 = ' + l10n.rename +
-			'\n3 = ' + l10n.color +
-			'\n4 = ' + l10n.delete,
-			'1'
-		);
-
-		if ( choice === '1' ) {
-			var name = window.prompt( l10n.namePrompt, '' );
-			if ( name ) {
-				folder( { action: 'create', name: name, parent: node.id } );
-			}
-		} else if ( choice === '2' ) {
-			rename( node );
-		} else if ( choice === '3' ) {
-			var colour = window.prompt( l10n.color + ' (' + cfg.palette.filter( Boolean ).join( ' ' ) + ')', node.color || '' );
-			if ( colour !== null ) {
-				folder( { action: 'color', id: node.id, color: colour } );
-			}
-		} else if ( choice === '4' ) {
-			var kids = ( state.children[ node.id ] || [] ).length;
-			var msg = kids
-				? sprintf( l10n.deleteConfirm, node.name, kids )
-				: sprintf( l10n.deleteSimple, node.name );
-			if ( window.confirm( msg ) ) {
-				folder( { action: 'delete', id: node.id } );
-			}
-		}
+		// Kept as the keyboard route to the same actions the toolbar offers.
+		selectForEditing( node.id );
 	}
 
 	/* ----------------------------------------------------------- the shell */
+
+	/*
+	 *  A folder that looks like a folder.
+	 *
+	 *  This was a coloured dot, which reads as a status light rather than a
+	 *  container -- a row of them looks like a server dashboard. The icon carries
+	 *  the folder's colour as its fill, so the colour feature and the folder
+	 *  metaphor are the same object instead of two competing marks.
+	 *
+	 *  Inline SVG rather than an icon font or a sprite: no extra request, it
+	 *  inherits currentColor, and there is no build step to add one.
+	 */
+	function folderIcon( color, open ) {
+		var span = el( 'span', { class: 'vgml-icon', 'aria-hidden': 'true' } );
+		span.innerHTML = open
+			? '<svg viewBox="0 0 20 16" width="16" height="14"><path d="M0 2.5A1.5 1.5 0 0 1 1.5 1h5l2 2h6A1.5 1.5 0 0 1 16 4.5V5H4.2a1.5 1.5 0 0 0-1.44 1.08L1 12V2.5Z"/><path d="M4.2 6h14.3a1 1 0 0 1 .96 1.28l-1.7 6A1.5 1.5 0 0 1 16.32 15H1.5a1.5 1.5 0 0 1-1.44-1.92l1.7-6A1.5 1.5 0 0 1 3.2 6h1Z" opacity=".75"/></svg>'
+			: '<svg viewBox="0 0 20 16" width="16" height="14"><path d="M0 2.5A1.5 1.5 0 0 1 1.5 1h5l2 2h8A1.5 1.5 0 0 1 18 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 0 13.5v-11Z"/></svg>';
+		if ( color ) {
+			span.style.color = color;
+		}
+		return span;
+	}
+
+	/*
+	 *  The toolbar: what can be done, visible before you need it.
+	 *
+	 *  Rename and Delete stay disabled until a folder is picked, which is how the
+	 *  panel says "these apply to a folder" without a word of explanation. The
+	 *  previous build hid every one of these behind a kebab that appeared on
+	 *  hover, so the screen never told you they existed.
+	 */
+	var toolbarEls = null;
+	var editTarget = 0;
+
+	function buildToolbar() {
+
+		var bar = el( 'div', { class: 'vgml-tools' } );
+
+		var renameBtn = el( 'button', { type: 'button', class: 'button button-small', disabled: 'disabled' }, l10n.rename );
+		renameBtn.addEventListener( 'click', function () {
+			var node = state.byId[ editTarget ];
+			if ( node ) { rename( node ); }
+		} );
+
+		var deleteBtn = el( 'button', { type: 'button', class: 'button button-small', disabled: 'disabled' }, l10n.delete );
+		deleteBtn.addEventListener( 'click', function () {
+			var node = state.byId[ editTarget ];
+			if ( node ) { confirmDelete( node ); }
+		} );
+
+		var more = el( 'button', { type: 'button', class: 'button button-small vgml-more', 'aria-label': l10n.skin, 'aria-haspopup': 'true' } );
+		more.innerHTML = '&#8943;';
+		more.addEventListener( 'click', function ( e ) {
+			e.stopPropagation();
+			toggleOverflow( more );
+		} );
+
+		bar.appendChild( renameBtn );
+		bar.appendChild( deleteBtn );
+		bar.appendChild( more );
+
+		toolbarEls = { rename: renameBtn, remove: deleteBtn };
+		return bar;
+	}
+
+	// Picking a folder is also what arms the toolbar.
+	function selectForEditing( id ) {
+		editTarget = id > 0 ? id : 0;
+		if ( toolbarEls ) {
+			var off = ! editTarget;
+			toolbarEls.rename.disabled = off;
+			toolbarEls.remove.disabled = off;
+		}
+	}
+
+	function toggleOverflow( anchor ) {
+
+		var open = root.querySelector( '.vgml-overflow' );
+		if ( open ) {
+			open.remove();
+			return;
+		}
+
+		var menuEl = el( 'div', { class: 'vgml-overflow', role: 'menu' } );
+
+		menuEl.appendChild( el( 'p', { class: 'vgml-overflow-head' }, l10n.skin ) );
+
+		[ 'native', 'classic', 'minimal', 'contrast' ].forEach( function ( s ) {
+			var label = l10n[ 'skin' + s.charAt( 0 ).toUpperCase() + s.slice( 1 ) ] || s;
+			var b = el( 'button', {
+				type: 'button',
+				class: 'vgml-overflow-item' + ( state.skin === s ? ' is-on' : '' ),
+				role: 'menuitemradio',
+				'aria-checked': state.skin === s ? 'true' : 'false'
+			}, label );
+			b.addEventListener( 'click', function () {
+				state.skin = s;
+				render();
+				persist( { skin: s } );
+				menuEl.remove();
+			} );
+			menuEl.appendChild( b );
+		} );
+
+		var compact = state.density === 'compact';
+		var d = el( 'button', {
+			type: 'button',
+			class: 'vgml-overflow-item' + ( compact ? ' is-on' : '' ),
+			role: 'menuitemcheckbox',
+			'aria-checked': compact ? 'true' : 'false'
+		}, l10n.compact );
+		d.addEventListener( 'click', function () {
+			state.density = compact ? 'comfortable' : 'compact';
+			render();
+			persist( { density: state.density } );
+			menuEl.remove();
+		} );
+		menuEl.appendChild( d );
+
+		root.appendChild( menuEl );
+
+		// Dismiss on the next click anywhere else.
+		window.setTimeout( function () {
+			document.addEventListener( 'click', function away() {
+				menuEl.remove();
+				document.removeEventListener( 'click', away );
+			} );
+		}, 0 );
+
+		anchor.setAttribute( 'aria-expanded', 'true' );
+	}
 
 	function build() {
 		root = el( 'div', { class: 'vgml-tree', 'data-skin': state.skin, 'data-density': state.density } );
 		root.style.setProperty( '--vgml-accent', cfg.accent );
 		root.style.width = state.width + 'px';
 
+		/*
+		 *  Header, then a toolbar, then the search, then the tree.
+		 *
+		 *  The shape is deliberately the one every file manager uses, because it is
+		 *  the one people already know: what this is, what I can do to it, how I
+		 *  find something, and then the thing itself. The previous version had a
+		 *  title and a `+` in a bordered square, and every action hidden behind a
+		 *  kebab that only appeared on hover -- which meant nothing on the screen
+		 *  told you what was possible.
+		 */
 		var head = el( 'div', { class: 'vgml-head' } );
 
 		if ( cfg.taxonomies.length > 1 ) {
@@ -1108,6 +1505,8 @@
 			pick.addEventListener( 'change', function () {
 				state.taxonomy = pick.value;
 				state.selected = 0;
+				editing = 0;
+				creatingUnder = -1;
 				load();
 			} );
 			head.appendChild( pick );
@@ -1116,24 +1515,27 @@
 		}
 
 		if ( cfg.canManage ) {
-			var add = el( 'button', { type: 'button', class: 'vgml-new', 'aria-label': l10n.newFolder }, '+' );
+			var add = el( 'button', { type: 'button', class: 'button button-primary button-small vgml-new' }, l10n.newFolder );
 			add.addEventListener( 'click', function () {
-				var name = window.prompt( l10n.namePrompt, '' );
-				if ( name ) {
-					folder( { action: 'create', name: name, parent: 0 } );
-				}
+				startCreate( 0 );
 			} );
 			head.appendChild( add );
 		}
 
 		root.appendChild( head );
 
+		if ( cfg.canManage ) {
+			root.appendChild( buildToolbar() );
+		}
+
+		var find = el( 'div', { class: 'vgml-find' } );
 		searchEl = el( 'input', { type: 'search', class: 'vgml-search', placeholder: l10n.search, 'aria-label': l10n.search } );
 		searchEl.addEventListener( 'input', function () {
 			state.filter = searchEl.value.toLowerCase();
 			render();
 		} );
-		root.appendChild( searchEl );
+		find.appendChild( searchEl );
+		root.appendChild( find );
 
 		listEl = el( 'ul', { class: 'vgml-list', role: 'tree' } );
 		listEl.addEventListener( 'keydown', onKey );
@@ -1156,25 +1558,14 @@
 		} );
 		root.appendChild( listEl );
 
-		var skinBar = el( 'div', { class: 'vgml-skins' } );
-		[ 'native', 'classic', 'minimal', 'contrast' ].forEach( function ( s ) {
-			var b = el( 'button', { type: 'button', class: 'vgml-skin', 'data-skin': s, title: l10n[ 'skin' + s.charAt( 0 ).toUpperCase() + s.slice( 1 ) ] || s } );
-			b.addEventListener( 'click', function () {
-				state.skin = s;
-				render();
-				persist( { skin: s } );
-			} );
-			skinBar.appendChild( b );
-		} );
-		var dens = el( 'button', { type: 'button', class: 'vgml-density' } );
-		dens.textContent = '≡';
-		dens.addEventListener( 'click', function () {
-			state.density = state.density === 'compact' ? 'comfortable' : 'compact';
-			render();
-			persist( { density: state.density } );
-		} );
-		skinBar.appendChild( dens );
-		root.appendChild( skinBar );
+		/*
+		 *  The skin and density controls are gone from the panel.
+		 *
+		 *  Four unlabelled coloured circles sitting under the tree were the most
+		 *  obviously bolted-on thing on the screen: no labels, no active state, and
+		 *  permanently present for a choice made once. They live in the overflow
+		 *  menu now, where a once-a-year setting belongs.
+		 */
 
 		toastEl = el( 'div', { class: 'vgml-toast', role: 'status', 'aria-live': 'polite' } );
 		root.appendChild( toastEl );
