@@ -101,11 +101,17 @@ user's own admin colour scheme — free.
 Worth writing down, because a comparison page that only flatters is not believed and because
 these are the things that will actually cost us.
 
-- **No galleries, no page-builder integrations.** FileBird Pro turns a folder into an Elementor
-  widget, a Divi module and a Gutenberg block. We have decided not to follow: three companies'
-  release schedules is a permanent maintenance surface for one person.
-- **Attachments only.** Both competitors file posts, pages and custom post types. T1 leaves the
-  seam open; it is not built.
+- **No galleries yet.** FileBird Pro turns a folder into an Elementor widget, a Divi module and a
+  Gutenberg block. This was argued against here on maintenance grounds and that call was
+  overruled on 2026-08-24: it is on the roadmap, Gutenberg and a shortcode first, Elementor when
+  asked for, **Divi deferred** until Divi 5 settles. The maintenance argument was right about
+  Divi and wrong about the rest -- a dynamic Gutenberg block renders server-side and needs no
+  build step at all.
+- **Attachments only, for now.** Both competitors file posts, pages and custom post types. On
+  this substrate that is cheaper than it was for them -- taxonomies already attach to any post
+  type -- but it is not built.
+- **The media modal is missing.** The tree does not appear when inserting an image into a post,
+  which is half of what a media library is for. The largest current gap, and next.
 - **No users, no reviews, no track record.** They have years of both.
 - **Multi-folder is a support burden as well as a feature.** Counts exceeding the file total is
   correct and confusing. The copy has to carry it from day one.
