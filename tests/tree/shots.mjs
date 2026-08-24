@@ -29,6 +29,30 @@ const check = ( name, ok, detail = '' ) => {
 	console.log( `  ${ ok ? 'ok  ' : 'FAIL' } ${ name }${ detail ? '  -- ' + detail : '' }` );
 };
 
+/*
+ *  Skins moved out of the panel and into the overflow menu -- four unlabelled
+ *  colour circles permanently under the tree were the most bolted-on thing on the
+ *  screen, for a choice made once. So reaching one is now: open the menu, click
+ *  the named item.
+ */
+async function setSkin( page, skin ) {
+	const more = await page.$( '.vgml-more' );
+	if ( ! more ) {
+		return false;
+	}
+	await more.click( { timeout: 15000 } ).catch( () => {} );
+	await page.waitForTimeout( 250 );
+
+	const label = { native: 'Native', classic: 'Classic', minimal: 'Minimal', contrast: 'High contrast' }[ skin ];
+	const item = await page.$( `.vgml-overflow-item:text-is("${ label }")` );
+	if ( ! item ) {
+		return false;
+	}
+	await item.click( { timeout: 15000 } ).catch( () => {} );
+	await page.waitForTimeout( 400 );
+	return true;
+}
+
 const browser = await chromium.launch();
 
 async function session( { dark, rtl } ) {
@@ -134,15 +158,7 @@ for ( const mode of [ 'list', 'grid' ] ) {
 			 *  the default before shooting, or these images document whatever the
 			 *  last test happened to click.
 			 */
-			const nativeSwatch = await page.$( '.vgml-skin[data-skin="native"]' );
-			if ( nativeSwatch ) {
-				// The swatch row sits at the bottom of a full-height panel in grid,
-				// which puts it on the viewport edge. Scroll it in rather than
-				// forcing the click -- forcing would also hide a genuine overlap.
-				await nativeSwatch.scrollIntoViewIfNeeded().catch( () => {} );
-				await nativeSwatch.click( { timeout: 15000 } ).catch( () => {} );
-				await page.waitForTimeout( 300 );
-			}
+			await setSkin( page, 'native' );
 
 			const tree = await page.$( '.vgml-tree' );
 			check( `${ tag }: the tree is on the page`, !! tree );
@@ -180,19 +196,15 @@ for ( const mode of [ 'list', 'grid' ] ) {
 	await page.waitForTimeout( 3000 );
 
 	for ( const skin of [ 'native', 'classic', 'minimal', 'contrast' ] ) {
-		const btn = await page.$( `.vgml-skin[data-skin="${ skin }"]` );
-		if ( ! btn ) {
-			check( `skin ${ skin }: the swatch exists`, false );
-			continue;
-		}
-		await btn.scrollIntoViewIfNeeded().catch( () => {} );
-		await btn.click( { timeout: 15000 } );
-		await page.waitForTimeout( 400 );
-		const applied = await page.$eval( '.vgml-tree', ( t ) => t.getAttribute( 'data-skin' ) );
-		check( `skin ${ skin }: applied`, applied === skin, applied );
+		const ok = await setSkin( page, skin );
+		check( `skin ${ skin }: reachable from the overflow menu`, ok );
 
-		const tree = await page.$( '.vgml-tree' );
-		await tree.screenshot( { path: join( OUT, `skin-${ skin }.png` ) } );
+		if ( ok ) {
+			const applied = await page.$eval( '.vgml-tree', ( t ) => t.getAttribute( 'data-skin' ) );
+			check( `skin ${ skin }: applied`, applied === skin, applied );
+			const tree = await page.$( '.vgml-tree' );
+			await tree.screenshot( { path: join( OUT, `skin-${ skin }.png` ) } );
+		}
 	}
 
 	await ctx.close();

@@ -494,6 +494,9 @@
 		}
 
 		row.addEventListener( 'click', function () {
+			if ( justDragged ) {
+				return;
+			}
 			select( node.id );
 			selectForEditing( node.id );
 		} );
@@ -544,6 +547,9 @@
 		}
 
 		row.addEventListener( 'click', function () {
+			if ( justDragged ) {
+				return;
+			}
 			select( key === 'all' ? 0 : -1 );
 			selectForEditing( 0 );
 		} );
@@ -826,6 +832,34 @@
 	 *  silently reparenting the wrong thing.
 	 */
 	var draggingFolder = 0;
+
+	/*
+	 *  A drag ends with a click, and the click must not also select.
+	 *
+	 *  jQuery UI does not swallow the click that follows a drag, so releasing over
+	 *  a folder both dropped onto it and selected it -- and in list view selecting
+	 *  navigates, so every folder drag reloaded the page. The tree looked like it
+	 *  had emptied itself.
+	 */
+	var justDragged = 0;
+
+	/*
+	 *  Raised when a drag STARTS, not when it stops.
+	 *
+	 *  revert: 'invalid' defers jQuery UI's stop callback until after the revert
+	 *  animation, so a flag set there is set ~150ms too late -- the click has
+	 *  already fired and the folder has already been selected. In list view that
+	 *  selection is a page load, so every folder drag reloaded the page and the
+	 *  tree appeared to wipe itself.
+	 */
+	function dragBegan() {
+		justDragged = 1;
+	}
+
+	function dragEnded() {
+		// Cleared a beat after the click that follows mouseup would have fired.
+		window.setTimeout( function () { justDragged = 0; }, 300 );
+	}
 
 	/*
 	 *  Files are dragged with jQuery UI, not the HTML5 drag API.
@@ -1123,11 +1157,13 @@
 			start: function () {
 				row.classList.add( 'is-dragging' );
 				document.body.classList.add( 'vgml-dragging-folder' );
+				dragBegan();
 			},
 			stop: function () {
 				row.classList.remove( 'is-dragging' );
 				document.body.classList.remove( 'vgml-dragging-folder' );
 				draggingFolder = 0;
+				dragEnded();
 			}
 		} );
 	}

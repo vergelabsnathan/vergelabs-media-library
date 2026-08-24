@@ -72,28 +72,65 @@ await page.waitForTimeout( 5000 );
  *  match while a filter is active, which is exactly what is needed here.
  */
 async function revealFixture() {
+	// Cleared first: filling with the value already in the box is a no-op in some
+	// paths, and then the tree never re-filters and the fixture stays buried.
+	await page.fill( '.vgml-search', '' );
+	await page.waitForTimeout( 200 );
 	await page.fill( '.vgml-search', 'RP ' );
-	await page.waitForTimeout( 800 );
+	await page.waitForTimeout( 900 );
+	// Prove it worked rather than assuming; a silent miss here reads as a product
+	// bug three assertions later.
+	const shown = await page.evaluate( () => document.querySelectorAll( '.vgml-node:not(.vgml-pseudo)' ).length );
+	if ( shown < 3 ) {
+		check( 'the fixture is visible in the tree', false, `${ shown } folders shown` );
+	}
 }
 await revealFixture();
 
+/*
+ *  A folder drag, with a real mouse.
+ *
+ *  This dispatched DragEvents until the drag layer moved to jQuery UI, which does
+ *  not listen for them. Worse than merely failing: the three refusal cases went on
+ *  passing, because "nothing was sent" is trivially true when nothing happens at
+ *  all. Three green assertions over a mechanism that was no longer there.
+ *
+ *  jQuery UI drags on mouse events, so the mouse is what drives it -- press, move
+ *  past the 6px threshold, move onto the target, release.
+ */
 async function dragFolderOnto( fromId, toId ) {
-	return page.evaluate( ( d ) => {
-		const from = document.querySelector( `.vgml-node[data-id="${ d.fromId }"] .vgml-row` );
-		const to = document.querySelector( `.vgml-node[data-id="${ d.toId }"] .vgml-row` );
-		if ( ! from || ! to ) return { error: 'missing row ' + ( from ? d.toId : d.fromId ) };
 
-		const dt = new DataTransfer();
-		from.dispatchEvent( new DragEvent( 'dragstart', { bubbles: true, cancelable: true, dataTransfer: dt } ) );
+	const from = await page.$( `.vgml-node[data-id="${ fromId }"] .vgml-row` );
+	const to = await page.$( `.vgml-node[data-id="${ toId }"] .vgml-row` );
 
-		const over = new DragEvent( 'dragover', { bubbles: true, cancelable: true, dataTransfer: dt } );
-		to.dispatchEvent( over );
-		const refused = to.classList.contains( 'is-refused' ) || dt.dropEffect === 'none';
+	if ( ! from || ! to ) {
+		const present = await page.evaluate( () =>
+			[ ...document.querySelectorAll( '.vgml-node[data-id]' ) ]
+				.map( ( n ) => n.getAttribute( 'data-id' ) + ':' + ( n.querySelector( '.vgml-name' ) || {} ).textContent )
+				.slice( 0, 12 ) );
+		return { error: 'missing row ' + ( from ? toId : fromId ) + ' -- present: ' + present.join( ', ' ) };
+	}
 
-		to.dispatchEvent( new DragEvent( 'drop', { bubbles: true, cancelable: true, dataTransfer: dt } ) );
-		from.dispatchEvent( new DragEvent( 'dragend', { bubbles: true, cancelable: true, dataTransfer: dt } ) );
-		return { refused };
-	}, { fromId, toId } );
+	const a = await from.boundingBox();
+	const b = await to.boundingBox();
+
+	if ( ! a || ! b ) {
+		return { error: 'a row is off screen' };
+	}
+
+	await page.mouse.move( a.x + 60, a.y + a.height / 2 );
+	await page.mouse.down();
+	await page.mouse.move( a.x + 80, a.y + a.height / 2, { steps: 4 } );
+	await page.mouse.move( b.x + b.width / 2, b.y + b.height / 2, { steps: 12 } );
+
+	// Read the target's state while the pointer is still on it.
+	const refused = await to.evaluate( ( el ) => el.classList.contains( 'is-refused' ) );
+	const accepted = await to.evaluate( ( el ) => el.classList.contains( 'is-drop' ) );
+
+	await page.mouse.up();
+	await page.waitForTimeout( 1500 );
+
+	return { refused, accepted };
 }
 
 const parentOf = ( id ) => page.evaluate( async ( i ) => {
@@ -106,20 +143,27 @@ console.log( '\n1. a legal move' );
 calls.length = 0;
 const moved = await dragFolderOnto( ids.grand, ids.other );
 await page.waitForTimeout( 1500 );
+check( 'the target accepted it', moved && moved.accepted === true, JSON.stringify( moved ) );
 check( 'the move was sent', calls.some( ( c ) => c.action === 'move' ), ( moved && moved.error ) || JSON.stringify( calls[ 0 ] || {} ).slice( 0, 80 ) );
 check( 'the folder moved', ( await parentOf( ids.grand ) ) === ids.other );
 
 console.log( '\n2. into itself' );
 calls.length = 0;
 let r = await dragFolderOnto( ids.root, ids.root );
-check( 'refused during dragover', r.refused === true, r.error || '' );
+/*
+ *  No hover class here, and that is correct rather than a gap: the dragged row
+ *  and the target row are the same element, and jQuery UI never treats a
+ *  draggable as its own droppable, so nothing fires. The guarantee is that
+ *  nothing is sent -- which is what is asserted below.
+ */
+check( 'it was not accepted', r.accepted === false, JSON.stringify( r ) );
 await page.waitForTimeout( 800 );
 check( 'nothing was sent', calls.length === 0, `${ calls.length } calls` );
 
 console.log( '\n3. into its own child' );
 calls.length = 0;
 r = await dragFolderOnto( ids.root, ids.child );
-check( 'refused during dragover', r.refused === true, r.error || '' );
+check( 'refused while hovering it', r.refused === true && r.accepted === false, r.error || JSON.stringify( r ) );
 await page.waitForTimeout( 800 );
 check( 'nothing was sent', calls.length === 0, `${ calls.length } calls` );
 check( 'the root is still at the top', ( await parentOf( ids.root ) ) === 0 );
@@ -133,7 +177,7 @@ await revealFixture();
 
 calls.length = 0;
 r = await dragFolderOnto( ids.root, ids.grand );
-check( 'refused during dragover', r.refused === true, r.error || '' );
+check( 'refused while hovering it', r.refused === true && r.accepted === false, r.error || JSON.stringify( r ) );
 await page.waitForTimeout( 800 );
 check( 'nothing was sent', calls.length === 0, `${ calls.length } calls` );
 check( 'the tree is intact', ( await parentOf( ids.grand ) ) === ids.child && ( await parentOf( ids.root ) ) === 0 );
