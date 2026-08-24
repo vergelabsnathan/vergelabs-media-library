@@ -260,9 +260,26 @@ function vergeml_tree_state( $taxonomy ) {
 
     $mine = isset( $all[ $taxonomy ] ) && is_array( $all[ $taxonomy ] ) ? $all[ $taxonomy ] : array();
 
+    /*
+     *  A remembered selection is only worth remembering while the folder exists.
+     *
+     *  Delete the folder you were looking at and the selection outlived it: every
+     *  later visit filtered the library to a term that was not there any more, so
+     *  the media library came up empty, stayed empty, and said nothing about why.
+     *  The only way out was knowing to click "All files" -- and somebody whose
+     *  library has just gone blank is not thinking about the sidebar. Checked on
+     *  the way out rather than on delete, so it heals however the folder went:
+     *  our delete, another plugin's, WP-CLI, or a database restore.
+     */
+    $selected = isset( $mine['selected'] ) ? (int) $mine['selected'] : 0;
+
+    if ( $selected > 0 && ! get_term( $selected, $taxonomy ) instanceof WP_Term ) {
+        $selected = 0;
+    }
+
     return array(
         'open'     => isset( $mine['open'] ) && is_array( $mine['open'] ) ? array_map( 'intval', $mine['open'] ) : array(),
-        'selected' => isset( $mine['selected'] ) ? (int) $mine['selected'] : 0,
+        'selected' => $selected,
         'width'    => isset( $mine['width'] ) ? (int) $mine['width'] : 0,
         /*
          *  'native' derives its accent from whichever admin colour scheme this
