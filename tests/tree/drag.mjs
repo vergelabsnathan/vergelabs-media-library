@@ -108,16 +108,53 @@ async function setTerms( id, terms ) {
  *  API ignores -- so the events are dispatched directly with a DataTransfer,
  *  exactly as the browser would.
  */
-async function dropOnFolder( termId, { ctrl = false } = {} ) {
-	await page.evaluate( ( d ) => {
+/*
+ *  A drag that starts where a real one starts.
+ *
+ *  The first version of this dispatched dragover and drop straight at the folder
+ *  row and never touched the file. It passed while dragging was completely broken
+ *  in the browser, because nothing in the media library was marked draggable and
+ *  so no drag could ever begin -- the half being tested worked, and the half that
+ *  did not exist was never asked about.
+ *
+ *  So the sequence now begins on the file element itself, and fails loudly if the
+ *  element is not draggable.
+ */
+async function dropOnFolder( termId, { ctrl = false, fromId = null } = {} ) {
+	const outcome = await page.evaluate( ( d ) => {
+		const source = d.fromId
+			? document.querySelector( `#post-${ d.fromId }, .attachment[data-id="${ d.fromId }"]` )
+			: document.querySelector( '#the-list tr, .attachment' );
+
+		if ( ! source ) return { error: 'no file element to drag' };
+
+		// The plugin marks items draggable on hover; do what a pointer does.
+		source.dispatchEvent( new MouseEvent( 'mouseover', { bubbles: true } ) );
+
+		if ( source.getAttribute( 'draggable' ) !== 'true' ) {
+			return { error: 'the file is not draggable -- a real drag could not start' };
+		}
+
 		const row = document.querySelector( `.vgml-node[data-id="${ d.termId }"] .vgml-row` );
-		if ( ! row ) throw new Error( 'no row for ' + d.termId );
+		if ( ! row ) return { error: 'no folder row for ' + d.termId };
+
 		const dt = new DataTransfer();
 		const opts = { bubbles: true, cancelable: true, dataTransfer: dt, ctrlKey: d.ctrl };
+
+		source.dispatchEvent( new DragEvent( 'dragstart', opts ) );
 		row.dispatchEvent( new DragEvent( 'dragover', opts ) );
 		row.dispatchEvent( new DragEvent( 'drop', opts ) );
-	}, { termId, ctrl } );
+		source.dispatchEvent( new DragEvent( 'dragend', opts ) );
+
+		return { carried: dt.getData( 'text/vgml-files' ) };
+	}, { termId, ctrl, fromId } );
+
+	if ( outcome && outcome.error ) {
+		check( 'drag could start from the file', false, outcome.error );
+	}
+
 	await page.waitForTimeout( 1200 );
+	return outcome;
 }
 
 // The tree drags whatever is selected in the library, so tick the row's checkbox.
@@ -126,20 +163,20 @@ await page.click( '#the-list input[name="media[]"]' );
 console.log( '\n1. a plain drag adds' );
 await setTerms( fileId, [] );
 seen.length = 0;
-await dropOnFolder( A );
+await dropOnFolder( A, { fromId: fileId } );
 check( 'it called assign', seen.length === 1, JSON.stringify( seen[ 0 ] || {} ).slice( 0, 90 ) );
 check( 'in add mode', seen[ 0 ] && seen[ 0 ].mode === 'add', seen[ 0 ] && seen[ 0 ].mode );
 check( 'the file is in A', ( await termsOf( fileId ) ).indexOf( A ) !== -1 );
 
 console.log( '\n2. a second plain drag leaves it in both' );
 seen.length = 0;
-await dropOnFolder( B );
+await dropOnFolder( B, { fromId: fileId } );
 const both = await termsOf( fileId );
 check( 'the file is in two folders', both.length === 2, `in ${ both.length }` );
 
 console.log( '\n3. ctrl-drag moves instead of adding' );
 seen.length = 0;
-await dropOnFolder( A, { ctrl: true } );
+await dropOnFolder( A, { ctrl: true, fromId: fileId } );
 check( 'in move mode', seen[ 0 ] && seen[ 0 ].mode === 'move', seen[ 0 ] && seen[ 0 ].mode );
 const after = await termsOf( fileId );
 check( 'the file is now in exactly one folder', after.length === 1, `in ${ after.length }` );
@@ -148,7 +185,7 @@ check( 'and it is the one dropped on', after[ 0 ] === A );
 console.log( '\n4. the undo toast puts back what the drag did' );
 await setTerms( fileId, [ B ] );  // it was in B before the drag
 seen.length = 0;
-await dropOnFolder( A );
+await dropOnFolder( A, { fromId: fileId } );
 const toastShown = await page.$( '.vgml-toast.is-shown' );
 check( 'a toast appeared', !! toastShown );
 
@@ -167,7 +204,7 @@ if ( undoBtn ) {
 console.log( '\n5. dropping on a folder the file is already in changes nothing' );
 await setTerms( fileId, [ A ] );
 seen.length = 0;
-await dropOnFolder( A );
+await dropOnFolder( A, { fromId: fileId } );
 const same = await termsOf( fileId );
 check( 'still in exactly that one folder', same.length === 1 && same[ 0 ] === A, `in ${ same.length }` );
 

@@ -489,3 +489,25 @@ body.vgml-mode-grid .vgml-list {
 		margin-bottom: 16px;
 	}
 }
+
+/* --- dragging files from the library ------------------------------------ */
+
+/*
+ *  While files are in flight, folders read as targets. Without this the only
+ *  feedback is the cursor, and on a long tree it is not obvious that the panel
+ *  is what you are meant to be aiming at.
+ */
+body.vgml-dragging-files .vgml-node:not( .vgml-pseudo ) > .vgml-row {
+	outline: 1px dashed var( --vgml-line );
+	outline-offset: -3px;
+}
+
+body.vgml-dragging-files .vgml-row.is-drop {
+	outline: 2px solid var( --vgml-accent );
+	outline-offset: -2px;
+}
+
+.attachment[draggable="true"],
+#the-list tr[draggable="true"] {
+	cursor: grab;
+}

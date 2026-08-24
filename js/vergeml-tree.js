@@ -258,39 +258,139 @@
 		paint();
 	}
 
-	function paint() {
-		var h = rowHeight();
-		var first = 0;
-		var last = flat.length;
+	/*
+	 *  Painting keeps the rows that are already right.
+	 *
+	 *  The first version emptied the list and rebuilt it on every scroll frame,
+	 *  which is why the tree flickered: every row was destroyed and recreated
+	 *  sixty times a second, so anything under the pointer blinked, hover was lost
+	 *  and the whole panel visibly churned. Correct output, unusable to look at.
+	 *
+	 *  Now only the difference is applied -- rows leaving the window are removed,
+	 *  rows entering are inserted, and everything in between is left alone. And
+	 *  when scrolling has not moved the window at all, nothing happens.
+	 */
+	var painted = { first: -1, last: -1, key: '' };
 
-		if ( windowed ) {
-			var top = listEl.scrollTop;
-			var view = listEl.clientHeight || 400;
-			first = Math.max( 0, Math.floor( top / h ) - OVERSCAN );
-			last = Math.min( flat.length, Math.ceil( ( top + view ) / h ) + OVERSCAN );
+	function windowRange() {
+		var h = rowHeight();
+
+		if ( ! windowed ) {
+			return { first: 0, last: flat.length, h: h };
 		}
 
+		var top = listEl.scrollTop;
+		var view = listEl.clientHeight || 400;
+
+		return {
+			first: Math.max( 0, Math.floor( top / h ) - OVERSCAN ),
+			last: Math.min( flat.length, Math.ceil( ( top + view ) / h ) + OVERSCAN ),
+			h: h
+		};
+	}
+
+	function paint( force ) {
+		var r = windowRange();
+
+		// A key that changes whenever the rows themselves would look different,
+		// so a scroll that reveals nothing new costs nothing.
+		var key = state.skin + '|' + state.density + '|' + state.selected + '|' + flat.length + '|' + state.filter;
+
+		if ( ! force && r.first === painted.first && r.last === painted.last && key === painted.key ) {
+			return;
+		}
+
+		if ( force || key !== painted.key ) {
+			listEl.innerHTML = '';
+			painted.first = -1;
+			painted.last = -1;
+		}
+
+		painted.key = key;
+
+		if ( painted.first === -1 ) {
+			build( r );
+			return;
+		}
+
+		trim( r );
+		grow( r );
+
+		painted.first = r.first;
+		painted.last = r.last;
+	}
+
+	function rowFor( i ) {
+		var entry = flat[ i ];
+		var node = entry.pseudo ? pseudoRow( entry ) : nodeRow( entry );
+		node.setAttribute( 'data-i', i );
+		return node;
+	}
+
+	function build( r ) {
 		listEl.innerHTML = '';
 
-		if ( first > 0 ) {
-			listEl.appendChild( spacer( first * h ) );
+		listEl.appendChild( topSpacer( r.first * r.h ) );
+
+		for ( var i = r.first; i < r.last; i++ ) {
+			listEl.appendChild( rowFor( i ) );
 		}
 
-		for ( var i = first; i < last; i++ ) {
-			listEl.appendChild( flat[ i ].pseudo ? pseudoRow( flat[ i ] ) : nodeRow( flat[ i ] ) );
-		}
-
-		if ( last < flat.length ) {
-			listEl.appendChild( spacer( ( flat.length - last ) * h ) );
-		}
+		listEl.appendChild( bottomSpacer( ( flat.length - r.last ) * r.h ) );
 
 		if ( state.filter && flat.length <= 2 ) {
 			listEl.appendChild( el( 'li', { class: 'vgml-empty', role: 'none' }, l10n.nothingFound ) );
 		}
+
+		painted.first = r.first;
+		painted.last = r.last;
 	}
 
-	function spacer( px ) {
-		return el( 'li', { class: 'vgml-spacer', role: 'none', 'aria-hidden': 'true', style: 'height:' + px + 'px' } );
+	// Drop the rows that have left the window, from whichever end they left.
+	function trim( r ) {
+		var i;
+
+		for ( i = painted.first; i < Math.min( r.first, painted.last ); i++ ) {
+			var goneTop = listEl.querySelector( '[data-i="' + i + '"]' );
+			if ( goneTop ) { listEl.removeChild( goneTop ); }
+		}
+
+		for ( i = Math.max( r.last, painted.first ); i < painted.last; i++ ) {
+			var goneBottom = listEl.querySelector( '[data-i="' + i + '"]' );
+			if ( goneBottom ) { listEl.removeChild( goneBottom ); }
+		}
+	}
+
+	// Add the rows that have entered it, and resize the spacers to match.
+	function grow( r ) {
+		var top = listEl.querySelector( '.vgml-spacer-top' );
+		var bottom = listEl.querySelector( '.vgml-spacer-bottom' );
+		var i;
+
+		for ( i = Math.min( painted.first - 1, r.last - 1 ); i >= r.first; i-- ) {
+			if ( ! listEl.querySelector( '[data-i="' + i + '"]' ) ) {
+				listEl.insertBefore( rowFor( i ), top.nextSibling );
+			}
+		}
+
+		for ( i = Math.max( painted.last, r.first ); i < r.last; i++ ) {
+			if ( ! listEl.querySelector( '[data-i="' + i + '"]' ) ) {
+				listEl.insertBefore( rowFor( i ), bottom );
+			}
+		}
+
+		top.style.height = ( r.first * r.h ) + 'px';
+		bottom.style.height = ( ( flat.length - r.last ) * r.h ) + 'px';
+	}
+
+	// Two named spacers, always present, so their heights can be adjusted in place
+	// rather than the pair being rebuilt with the rows.
+	function topSpacer( px ) {
+		return el( 'li', { class: 'vgml-spacer vgml-spacer-top', role: 'none', 'aria-hidden': 'true', style: 'height:' + px + 'px' } );
+	}
+
+	function bottomSpacer( px ) {
+		return el( 'li', { class: 'vgml-spacer vgml-spacer-bottom', role: 'none', 'aria-hidden': 'true', style: 'height:' + px + 'px' } );
 	}
 
 	function nodeRow( entry ) {
@@ -663,6 +763,104 @@
 	 */
 	var draggingFolder = 0;
 
+	/*
+	 *  Making the library's files draggable.
+	 *
+	 *  This was missing entirely, which is why dragging did nothing: the drop
+	 *  handlers were correct and complete, and no drag could ever start, because
+	 *  neither a list-table row nor a grid attachment is draggable in WordPress.
+	 *  The tests did not catch it because they dispatched dragover and drop
+	 *  straight at the folder rows -- proving the half that worked and never
+	 *  touching the half that did not exist.
+	 *
+	 *  Delegated from the document, because both screens replace their contents as
+	 *  the library loads and paginates: anything bound to the elements themselves
+	 *  is bound to elements that will not be there shortly.
+	 */
+	function wireFileDragging() {
+
+		document.addEventListener( 'mouseover', function ( e ) {
+			var item = fileElement( e.target );
+			if ( item && ! item.getAttribute( 'draggable' ) ) {
+				item.setAttribute( 'draggable', 'true' );
+			}
+		}, true );
+
+		document.addEventListener( 'dragstart', function ( e ) {
+			var item = fileElement( e.target );
+
+			if ( ! item ) {
+				return;
+			}
+
+			var id = fileId( item );
+			if ( ! id ) {
+				return;
+			}
+
+			/*
+			 *  If the file being dragged is part of the current selection, the whole
+			 *  selection moves. If it is not, only it moves and the selection is
+			 *  cleared -- dragging something you did not select means you changed
+			 *  your mind about what you were acting on.
+			 */
+			var selected = selectionIds();
+			dragging = selected.indexOf( id ) !== -1 ? selected : [ id ];
+
+			if ( dragging.length === 1 ) {
+				clearLibrarySelection();
+			}
+
+			e.dataTransfer.effectAllowed = 'copyMove';
+			e.dataTransfer.setData( 'text/vgml-files', dragging.join( ',' ) );
+			e.dataTransfer.setData( 'text/plain', String( dragging.length ) );
+
+			document.body.classList.add( 'vgml-dragging-files' );
+		}, true );
+
+		document.addEventListener( 'dragend', function () {
+			dragging = null;
+			document.body.classList.remove( 'vgml-dragging-files' );
+		}, true );
+	}
+
+	function fileElement( target ) {
+		if ( ! target || ! target.closest ) {
+			return null;
+		}
+		// Grid: an attachment tile. List: a row in the media table.
+		return target.closest( '.attachment' ) || target.closest( '#the-list tr' );
+	}
+
+	function fileId( item ) {
+		if ( item.getAttribute( 'data-id' ) ) {
+			return parseInt( item.getAttribute( 'data-id' ), 10 );
+		}
+		// List rows are id="post-123"; fall back to the row's own checkbox.
+		var fromId = ( item.id || '' ).match( /post-(\d+)/ );
+		if ( fromId ) {
+			return parseInt( fromId[ 1 ], 10 );
+		}
+		var box = item.querySelector( 'input[name="media[]"]' );
+		return box ? parseInt( box.value, 10 ) : 0;
+	}
+
+	function clearLibrarySelection() {
+		var props = null;
+		if ( window.wp && wp.media && wp.media.frames && wp.media.frames.browse ) {
+			try {
+				props = wp.media.frames.browse.state().get( 'selection' );
+			} catch ( err ) { props = null; }
+		}
+		if ( props && props.reset ) {
+			props.reset();
+		}
+		Array.prototype.forEach.call(
+			document.querySelectorAll( '#the-list input[name="media[]"]:checked' ),
+			function ( c ) { c.checked = false; }
+		);
+	}
+
 	function dropTarget( row, termId ) {
 
 		row.addEventListener( 'dragover', function ( e ) {
@@ -701,7 +899,13 @@
 				return;
 			}
 
-			var ids = dragging && dragging.length ? dragging : selectionIds();
+			var carried = ( e.dataTransfer.getData( 'text/vgml-files' ) || '' )
+				.split( ',' )
+				.map( function ( n ) { return parseInt( n, 10 ); } )
+				.filter( Boolean );
+
+			var ids = ( dragging && dragging.length ) ? dragging : ( carried.length ? carried : selectionIds() );
+
 			if ( ! ids.length ) {
 				return;
 			}
@@ -1064,6 +1268,7 @@
 		}
 
 		setPanelWidth( state.width );
+		wireFileDragging();
 
 		return true;
 	}
