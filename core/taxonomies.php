@@ -616,26 +616,29 @@ function vergeml_backend_parse_tax_query( $query ) {
     }
 
 
+    /*
+     *  One filter value, four ways of arriving at it.
+     *
+     *  A taxonomy query var can reach this screen as a slug (`?media_category=
+     *  folder-141`, which is what a link and the folder tree produce) or as a term
+     *  id (`?media_category=143`, which is what the filter dropdown submits and
+     *  what core's own term-count links use). Both have to mean the same thing.
+     *
+     *  They did not. Whether the id form worked depended on `filter_action` -- the
+     *  name of the Filter button -- being in the URL, because that was what chose
+     *  between the two branches that used to be here. So the dropdown worked, and
+     *  the identical URL with the button's name stripped off, which is what a
+     *  bookmark or a shared link is, came back with an empty library: core resolves
+     *  the query var by slug, found no term called "143", and filtered everything
+     *  out. It looked like the media had gone.
+     *
+     *  Resolved once here instead, slug first and then id, and the query var is
+     *  normalised to the term id afterwards so the dropdown shows the folder that
+     *  is actually being filtered on however the screen was reached.
+     */
     foreach ( get_object_taxonomies( 'attachment','names' ) as $taxonomy ) {
 
-        if ( ! isset( $_REQUEST['filter_action'] ) && isset( $_REQUEST[$taxonomy] ) ) {
-
-            $term = get_term_by( 'slug', sanitize_text_field( wp_unslash( $_REQUEST[ $taxonomy ] ) ), $taxonomy );
-
-            if ( $term ) {
-
-                $tax_query[] = array(
-                    'taxonomy' => $taxonomy,
-                    'field' => 'term_id',
-                    'terms' => array( $term->term_id ),
-                    'include_children' => (bool) $vergeml_lib_options['include_children']
-                );
-
-                $query->query_vars[$taxonomy] = $term->term_id;
-                $query->query[$taxonomy] = $term->term_id;
-            }
-        }
-        elseif ( $uncategorized ) {
+        if ( $uncategorized ) {
 
             $tax_query[] = array(
                 'taxonomy' => $taxonomy,
@@ -644,31 +647,56 @@ function vergeml_backend_parse_tax_query( $query ) {
 
             unset( $query->query[$taxonomy] );
             unset( $query->query_vars[$taxonomy] );
+
+            continue;
         }
-        else {
 
-            if ( isset( $query->query[$taxonomy] ) && $query->query[$taxonomy] ) {
+        $raw = '';
 
-                if ( is_numeric( $query->query[$taxonomy] ) ) {
-
-                    $tax_query[] = array(
-                        'taxonomy' => $taxonomy,
-                        'field' => 'term_id',
-                        'terms' => array( $query->query[$taxonomy] ),
-                        'include_children' => (bool) $vergeml_lib_options['include_children']
-                    );
-                }
-                elseif ( 'in' === $query->query[$taxonomy] || 'not_in' === $query->query[$taxonomy] ) {
-
-                    $operator = ( 'in' === $query->query[$taxonomy] ) ? 'EXISTS' : 'NOT EXISTS';
-
-                    $tax_query[] = array(
-                        'taxonomy' => $taxonomy,
-                        'operator' => $operator
-                    );
-                }
-            }
+        if ( isset( $_REQUEST[ $taxonomy ] ) ) {
+            $raw = sanitize_text_field( wp_unslash( $_REQUEST[ $taxonomy ] ) );
+        } elseif ( isset( $query->query[ $taxonomy ] ) ) {
+            $raw = (string) $query->query[ $taxonomy ];
         }
+
+        if ( '' === $raw || '0' === $raw ) {
+            continue;
+        }
+
+        // "Any" and "none", which the dropdown offers above the folders.
+        if ( 'in' === $raw || 'not_in' === $raw ) {
+
+            $tax_query[] = array(
+                'taxonomy' => $taxonomy,
+                'operator' => ( 'in' === $raw ) ? 'EXISTS' : 'NOT EXISTS'
+            );
+
+            continue;
+        }
+
+        $term = get_term_by( 'slug', $raw, $taxonomy );
+
+        if ( ! $term && is_numeric( $raw ) ) {
+            $found = get_term( (int) $raw, $taxonomy );
+            $term  = ( $found instanceof WP_Term ) ? $found : false;
+        }
+
+        if ( ! $term ) {
+            continue;
+        }
+
+        $tax_query[] = array(
+            'taxonomy' => $taxonomy,
+            'field' => 'term_id',
+            'terms' => array( $term->term_id ),
+            'include_children' => (bool) $vergeml_lib_options['include_children']
+        );
+
+        // The dropdown's options carry term ids, so this is what makes it show
+        // the folder as selected when the URL named it by slug.
+        $query->query_vars[$taxonomy] = $term->term_id;
+        $query->query[$taxonomy] = $term->term_id;
+
     } // endforeach
 
     if ( ! empty( $tax_query ) ) {
