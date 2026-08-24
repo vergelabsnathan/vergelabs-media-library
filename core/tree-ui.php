@@ -20,14 +20,38 @@ if ( ! defined( 'ABSPATH' ) )
  */
 
 
-add_action( 'admin_enqueue_scripts', 'vergeml_tree_assets' );
+/*
+ *  Late on purpose. Whether a screen has a media modal is only knowable after
+ *  whoever wanted one has asked for it, and wp_enqueue_media() is itself usually
+ *  called from this same hook. At the default priority the answer is a coin toss
+ *  depending on which plugin registered first.
+ */
+add_action( 'admin_enqueue_scripts', 'vergeml_tree_assets', 20 );
 
 function vergeml_tree_assets( $hook ) {
 
-    if ( 'upload.php' !== $hook )
+    if ( ! current_user_can( 'upload_files' ) )
         return;
 
-    if ( ! current_user_can( 'upload_files' ) )
+    /*
+     *  The library screen, and anywhere the media modal can be opened.
+     *
+     *  This used to load on upload.php alone, which meant the tree did not exist
+     *  when inserting an image into a post -- half of what a media library is for.
+     *
+     *  Decided by asking whether wp.media is on the screen rather than by listing
+     *  screens, because that list goes stale: a plugin, a block, a metabox or the
+     *  next release of core can open a media modal anywhere. did_action gives the
+     *  honest answer, and everything below is a no-op when there is no frame.
+     */
+    $library = ( 'upload.php' === $hook );
+
+    // The one script every media modal needs. If it is going out, a frame can be
+    // opened on this screen; if it is not, nothing below would have anything to
+    // attach to anyway.
+    $modal = wp_script_is( 'media-views', 'enqueued' ) || wp_script_is( 'media-views', 'to_do' );
+
+    if ( ! $library && ! $modal )
         return;
 
     $taxonomies = vergeml_tree_taxonomies();
@@ -121,6 +145,14 @@ function vergeml_tree_assets( $hook ) {
         'boot'       => $boot,
         'canManage'  => current_user_can( 'manage_categories' ),
         /*
+         *  The modal is a different room: about 700px wide, opened to pick a file
+         *  rather than to reorganise. The panel is collapsible there, folders can
+         *  be dragged into but not renamed or deleted, and it always opens on All
+         *  files -- the folder someone was browsing on the library screen is
+         *  rarely the one they want when inserting an image into a post.
+         */
+        'onLibrary'  => $library,
+        /*
          *  When on, a plain drag moves instead of adding -- the behaviour someone
          *  switching from FileBird or Folders expects, since their folders hold a
          *  file once. Off by default: a file in several folders is the thing this
@@ -173,6 +205,8 @@ function vergeml_tree_assets( $hook ) {
             'comfortable'    => __( 'Comfortable', 'vergelabs-media-library' ),
             'compact'        => __( 'Compact', 'vergelabs-media-library' ),
             'nothingFound'   => __( 'No folders match', 'vergelabs-media-library' ),
+            /* translators: %d: number of folders not shown. */
+            'moreFolders'    => __( '%d more — use search to find them', 'vergelabs-media-library' ),
             'failed'         => __( 'That did not work. Nothing was changed.', 'vergelabs-media-library' ),
         ),
     ) );

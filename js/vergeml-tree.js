@@ -985,45 +985,108 @@
 		}
 
 		/*
-		 *  Delegated, because both screens replace their contents as the library
-		 *  loads and paginates -- anything bound to the items themselves is bound
-		 *  to elements that will shortly not exist. `.draggable()` is applied the
-		 *  first time an item is touched and then left alone.
+		 *  Armed when items appear, not when they are hovered.
+		 *
+		 *  Hover was the first approach and it is too fragile to keep: a delegated
+		 *  mouseenter does not fire for every way a pointer can arrive at an
+		 *  element -- moving it in programmatically does not trigger it at all --
+		 *  so a file could sit there looking draggable and simply not be. Arming on
+		 *  render means the first drag works however the pointer got there.
+		 *
+		 *  The observer is scoped to the containers the library renders into. Not
+		 *  the ten global ones FileBird runs, which exist because they are
+		 *  re-imposing state core keeps overwriting; this one arms new rows and
+		 *  does nothing else.
 		 */
-		$( document ).on( 'mouseenter', '.attachment, #the-list tr', function () {
+		armDraggables();
 
-			var $item = $( this );
+		if ( window.MutationObserver ) {
 
-			if ( $item.data( 'vgml-drag' ) ) {
-				return;
-			}
-			$item.data( 'vgml-drag', true );
-
-			$item.draggable( {
-				addClasses: false,
-				appendTo: 'body',
-				cursorAt: { top: 12, left: 12 },
-				// 6px before a drag begins, so clicking a file stays a click.
-				distance: 6,
-				revert: 'invalid',
-				revertDuration: 150,
-				scroll: false,
-				zIndex: 100000,
-				helper: function () {
-					var ids = idsForDrag( fileId( this ) );
-					dragging = ids;
-					return $( '<div class="vgml-drag-helper"></div>' )
-						.attr( 'data-count', ids.length )
-						.text( ids.length === 1 ? l10n.oneFile : sprintf( l10n.manyFiles, ids.length ) );
-				},
-				start: function () {
-					document.body.classList.add( 'vgml-dragging-files' );
-				},
-				stop: function () {
-					document.body.classList.remove( 'vgml-dragging-files' );
-					dragging = null;
-				}
+			var watcher = new window.MutationObserver( function () {
+				armDraggables();
 			} );
+
+			[ '#the-list', '.attachments', '.media-frame-content' ].forEach( function ( sel ) {
+				Array.prototype.forEach.call( document.querySelectorAll( sel ), function ( node ) {
+					watcher.observe( node, { childList: true, subtree: true } );
+				} );
+			} );
+		}
+
+		// A safety net for anything rendered somewhere unobserved.
+		$( document ).on( 'mouseenter mouseover', '.attachment, #the-list tr', function () {
+			armOne( $( this ) );
+		} );
+	}
+
+	function armDraggables() {
+
+		var $ = window.jQuery;
+
+		if ( ! $ || ! $.fn || ! $.fn.draggable ) {
+			return;
+		}
+
+		/*
+		 *  The cells as well as the row.
+		 *
+		 *  A list row is nearly a hundred pixels tall and its mousedown lands on
+		 *  whichever cell is under the pointer, not on the <tr>. Arming only the row
+		 *  meant dragging from the thumbnail or the title -- the two places anybody
+		 *  actually grabs -- did nothing at all, while dragging from the empty right
+		 *  of the row worked. Which is the worst possible way for it to be broken:
+		 *  it looks like the feature does not exist.
+		 *
+		 *  The checkbox column is left alone; jQuery UI cancels on inputs anyway,
+		 *  and a drag that starts by ticking a box is not what anyone meant.
+		 */
+		$( '.attachment, #the-list tr' ).each( function () {
+			armOne( $( this ) );
+		} );
+
+		$( '#the-list td:not(.check-column)' ).each( function () {
+			armOne( $( this ) );
+		} );
+	}
+
+	function armOne( $item ) {
+
+		var $ = window.jQuery;
+
+		if ( ! $ || ! $.fn || ! $.fn.draggable || ! $item.length || $item.data( 'vgml-drag' ) ) {
+			return;
+		}
+
+		$item.data( 'vgml-drag', true );
+
+		$item.draggable( {
+			addClasses: false,
+			appendTo: 'body',
+			cursorAt: { top: 12, left: 12 },
+			// 6px before a drag begins, so clicking a file stays a click.
+			distance: 6,
+			revert: 'invalid',
+			revertDuration: 150,
+			scroll: false,
+			zIndex: 100000,
+			helper: function () {
+				var ids = idsForDrag( fileId( this ) );
+				dragging = ids;
+				return $( '<div class="vgml-drag-helper"></div>' )
+					.attr( 'data-count', ids.length )
+					.text( ids.length === 1 ? l10n.oneFile : sprintf( l10n.manyFiles, ids.length ) );
+			},
+			start: function () {
+				document.body.classList.add( 'vgml-dragging-files' );
+				// Raised on start, not stop: revert:'invalid' defers stop until
+				// after the animation, by which time the click has already fired.
+				dragBegan();
+			},
+			stop: function () {
+				document.body.classList.remove( 'vgml-dragging-files' );
+				dragging = null;
+				dragEnded();
+			}
 		} );
 	}
 
@@ -1058,6 +1121,16 @@
 	}
 
 	function fileId( item ) {
+
+		// Armed elements can be a grid tile, a list row, or a cell inside one --
+		// so walk up to whichever of those carries the id.
+		if ( item.closest ) {
+			var owner = item.closest( '.attachment, tr[id^="post-"]' );
+			if ( owner ) {
+				item = owner;
+			}
+		}
+
 		if ( item.getAttribute( 'data-id' ) ) {
 			return parseInt( item.getAttribute( 'data-id' ), 10 );
 		}
@@ -1944,12 +2017,375 @@
 	}
 
 	function start() {
-		whenHostExists( function ( found ) {
-			if ( found ) {
-				begin();
-			}
-		} );
+
+		/*
+		 *  Two surfaces, and they are not the same job.
+		 *
+		 *  The library screen has one panel that lives as long as the page. The
+		 *  modal has a frame that is built, destroyed and rebuilt every time
+		 *  somebody opens it, in any of eight flavours, possibly several times on
+		 *  one screen -- so it cannot be mounted once and forgotten.
+		 */
+		if ( cfg.onLibrary ) {
+			whenHostExists( function ( found ) {
+				if ( found ) {
+					begin();
+				}
+			} );
+		}
+
+		watchModals();
 	}
+
+	/* --------------------------------------------------------- the modal */
+
+	/*
+	 *  Attach to whatever media frame appears, whenever it appears.
+	 *
+	 *  Not a list of screens: a plugin, a block, a metabox or the next release of
+	 *  core can open a media modal anywhere, and a list goes stale the moment one
+	 *  of them does. wp.media.view.Modal's own open() is the one thing every
+	 *  frame goes through, so it is wrapped -- once -- and the tree is built into
+	 *  whatever opened.
+	 *
+	 *  Wrapped rather than replaced: core's open runs first and unmodified, and if
+	 *  anything below throws, the modal has already done its job.
+	 */
+	function watchModals() {
+
+		if ( ! window.wp || ! wp.media || ! wp.media.view || ! wp.media.view.Modal ) {
+			return;
+		}
+
+		var proto = wp.media.view.Modal.prototype;
+
+		if ( proto.vgmlWrapped ) {
+			return;
+		}
+		proto.vgmlWrapped = true;
+
+		var open = proto.open;
+
+		proto.open = function () {
+
+			var result = open.apply( this, arguments );
+			var frame = this.controller;
+
+			var attach = function () {
+				try {
+					mountInModal( frame );
+				} catch ( e ) {
+					// A modal that opens without a tree is worth far more than a
+					// modal that does not open.
+				}
+			};
+
+			/*
+			 *  Attach whenever a library appears, not once when the modal opens.
+			 *
+			 *  Opening is the wrong moment: a frame can open on the Upload Files
+			 *  tab -- which is what a fresh "Select" frame does -- and there is no
+			 *  library to attach to until somebody switches tabs. Trying once and
+			 *  giving up meant the tree existed only in whichever context happened
+			 *  to open on the library, which is precisely the failure this phase is
+			 *  about.
+			 *
+			 *  content:render:browse is core's own signal that a browser has just
+			 *  been built, and it fires again on every tab switch and re-render.
+			 */
+			if ( frame && typeof frame.on === 'function' ) {
+
+				frame.on( 'content:render:browse', function () {
+					window.setTimeout( attach, 40 );
+				} );
+				frame.on( 'open ready', function () {
+					window.setTimeout( attach, 40 );
+				} );
+
+				/*
+				 *  Take the panel down when the modal closes.
+				 *
+				 *  wp.media does not destroy a frame on close, it detaches it -- the
+				 *  markup stays in the document, and a page where somebody has picked
+				 *  an image a dozen times is holding a dozen dead modals. Without
+				 *  this, each one keeps a tree of up to three hundred rows: the row
+				 *  count climbed 300, 600, 900, 1200 across four opens in the test,
+				 *  which is what made it visible.
+				 */
+				frame.on( 'close', function () {
+					try {
+						var stale = frame.$el.find( '.vgml-modal-tree' );
+						if ( stale && stale.length ) {
+							stale.remove();
+						}
+					} catch ( e ) { /* the frame is already gone */ }
+				} );
+			}
+
+			window.setTimeout( attach, 60 );
+
+			return result;
+		};
+	}
+
+	function mountInModal( frame ) {
+
+		if ( ! frame || typeof frame.$el === 'undefined' ) {
+			return;
+		}
+
+		var content = frame.$el.find( '.media-frame-content' )[ 0 ];
+
+		if ( ! content ) {
+			return; // an upload-only or details-only frame; nothing to filter
+		}
+
+		var browser = frame.$el.find( '.attachments-browser' )[ 0 ];
+
+		if ( ! browser ) {
+			return; // no library on this frame -- image details, audio details
+		}
+
+		if ( content.querySelector( '.vgml-modal-tree' ) ) {
+			return; // already mounted on this frame
+		}
+
+		var panel = buildModalPanel( frame );
+		content.insertBefore( panel, content.firstChild );
+		content.classList.add( 'vgml-modal-host' );
+	}
+
+	/*
+	 *  A tree for one modal frame.
+	 *
+	 *  It shares the folder data -- the folders are the same folders -- but keeps
+	 *  its own selection and its own DOM, because a modal is opened to pick a file
+	 *  and its filter has nothing to do with what the library screen behind it is
+	 *  showing. It also always starts at All files: the folder somebody happened to
+	 *  browse an hour ago is rarely the one they want when inserting an image, and
+	 *  a modal that opens showing three of twenty thousand files, with no visible
+	 *  reason, is a support ticket.
+	 *
+	 *  No folder editing here, by decision. Renaming and deleting belong on the
+	 *  library screen; a delete confirm inside a modal is a dialog inside a dialog.
+	 *  Files can still be dragged in, which is the one genuinely useful thing --
+	 *  filing something the moment it is uploaded.
+	 */
+	function modalTree( frame ) {
+
+		var box = el( 'div', { class: 'vgml-tree vgml-in-modal', 'data-skin': state.skin, 'data-density': state.density } );
+		box.style.setProperty( '--vgml-accent', cfg.accent );
+
+		// On a screen with no library tree, nothing has loaded the folders yet.
+		if ( ! state.nodes.length && cfg.boot && cfg.boot.nodes ) {
+			state.nodes = cfg.boot.nodes;
+			state.unassigned = cfg.boot.unassigned || 0;
+			index();
+		}
+
+		var find = el( 'div', { class: 'vgml-find' } );
+		var search = el( 'input', {
+			type: 'search',
+			class: 'vgml-search',
+			placeholder: l10n.search,
+			'aria-label': l10n.search
+		} );
+		find.appendChild( search );
+		box.appendChild( find );
+
+		var list = el( 'ul', { class: 'vgml-list', role: 'tree', 'aria-label': l10n.folders } );
+		box.appendChild( list );
+
+		var chosen = 0;   // always All files when the modal opens
+		var filter = '';
+
+		function rowsFor() {
+			// flatten() reads state.filter, so it is set for the call and restored:
+			// the library screen's own search must not move because a modal opened.
+			var was = state.filter;
+			state.filter = filter;
+			var out = flatten();
+			state.filter = was;
+			return out;
+		}
+
+		function draw() {
+
+			var rows = rowsFor();
+			list.innerHTML = '';
+
+			/*
+			 *  Capped rather than windowed. The modal list is short and scrolls, and
+			 *  a scroll-driven window here would need its own observer on an element
+			 *  that is destroyed every time the modal closes. Past the cap the search
+			 *  box is the way through -- which is what anyone with two thousand
+			 *  folders reaches for anyway.
+			 */
+			var cap = 300;
+			var shown = 0;
+
+			rows.forEach( function ( entry ) {
+
+				if ( shown >= cap ) {
+					return;
+				}
+				shown++;
+
+				var isPseudo = !! entry.pseudo;
+				var id = entry.id;
+
+				var item = el( 'li', {
+					class: 'vgml-node' + ( isPseudo ? ' vgml-pseudo' : '' ) + ( chosen === id ? ' is-selected' : '' ),
+					role: 'treeitem',
+					'aria-level': entry.depth + 1,
+					'aria-selected': chosen === id ? 'true' : 'false',
+					'data-id': id,
+					tabindex: '-1'
+				} );
+
+				var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( entry.depth * 14 + 8 ) + 'px' } );
+
+				var twist = el( 'button', {
+					class: 'vgml-twist' + ( ! isPseudo && entry.kids ? '' : ' is-leaf' ),
+					type: 'button',
+					tabindex: '-1',
+					'aria-hidden': 'true'
+				} );
+
+				if ( ! isPseudo && entry.kids ) {
+					item.setAttribute( 'aria-expanded', entry.open ? 'true' : 'false' );
+					twist.innerHTML = entry.open ? '&#9662;' : '&#9656;';
+					twist.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						state.open[ id ] = ! state.open[ id ];
+						draw();
+					} );
+				}
+				row.appendChild( twist );
+
+				row.appendChild( isPseudo
+					? el( 'span', { class: 'vgml-icon is-pseudo', 'aria-hidden': 'true' } )
+					: folderIcon( entry.node.color, entry.open && entry.kids, ! entry.total ) );
+
+				row.appendChild( el( 'span', { class: 'vgml-name' }, isPseudo ? entry.label : entry.node.name ) );
+
+				var count = isPseudo ? entry.count : entry.total;
+				if ( count ) {
+					row.appendChild( el( 'span', { class: 'vgml-count' }, String( count ) ) );
+				}
+
+				row.addEventListener( 'click', function () {
+					if ( justDragged ) {
+						return;
+					}
+					chosen = id;
+					filterFrame( frame, id );
+					draw();
+				} );
+
+				// Files can be dropped in; folders cannot be dragged out.
+				if ( ! isPseudo ) {
+					dropTarget( row, id );
+				} else if ( entry.pseudo === 'unassigned' ) {
+					unfileTarget( row );
+				}
+
+				item.appendChild( row );
+				list.appendChild( item );
+			} );
+
+			if ( shown >= cap ) {
+				list.appendChild( el( 'li', { class: 'vgml-empty', role: 'none' },
+					sprintf( l10n.moreFolders, rows.length - cap ) ) );
+			}
+		}
+
+		search.addEventListener( 'input', function () {
+			filter = search.value.toLowerCase();
+			draw();
+		} );
+
+		draw();
+		return box;
+	}
+
+	/*
+	 *  Point one frame's library at a folder.
+	 *
+	 *  The same props the modal's own dropdown sets, on that frame's own library --
+	 *  not the global one. Several modals can exist on a screen and they must not
+	 *  filter each other.
+	 */
+	function filterFrame( frame, id ) {
+
+		var props = null;
+
+		try {
+			var s = frame.state();
+			var lib = s && typeof s.get === 'function' ? s.get( 'library' ) : null;
+			props = lib && lib.props ? lib.props : null;
+		} catch ( e ) {
+			props = null;
+		}
+
+		if ( ! props ) {
+			return;
+		}
+
+		var next = {};
+
+		if ( id === -1 ) {
+			next[ state.taxonomy ] = null;
+			next.uncategorized = 1;
+		} else if ( id === 0 ) {
+			next[ state.taxonomy ] = null;
+			next.uncategorized = null;
+		} else {
+			next[ state.taxonomy ] = id;
+			next.uncategorized = null;
+		}
+
+		props.set( next );
+	}
+
+	function buildModalPanel( frame ) {
+
+		var wrap = el( 'div', { class: 'vgml-modal-tree' } );
+
+		/*
+		 *  A modal is about 700px of usable width, so the panel collapses -- and
+		 *  remembers, because someone who wants it out of the way wants it out of
+		 *  the way every time.
+		 */
+		var collapsed = window.localStorage && window.localStorage.getItem( 'vgmlModalCollapsed' ) === '1';
+
+		var toggle = el( 'button', {
+			type: 'button',
+			class: 'vgml-modal-toggle',
+			'aria-expanded': collapsed ? 'false' : 'true'
+		} );
+		toggle.innerHTML = '<span aria-hidden="true">' + ( collapsed ? '&#9656;' : '&#9666;' ) + '</span>';
+		toggle.setAttribute( 'aria-label', l10n.folders );
+
+		toggle.addEventListener( 'click', function () {
+			var now = wrap.classList.toggle( 'is-collapsed' );
+			toggle.setAttribute( 'aria-expanded', now ? 'false' : 'true' );
+			toggle.firstChild.innerHTML = now ? '&#9656;' : '&#9666;';
+			try {
+				window.localStorage.setItem( 'vgmlModalCollapsed', now ? '1' : '0' );
+			} catch ( e ) { /* private browsing */ }
+		} );
+
+		if ( collapsed ) {
+			wrap.classList.add( 'is-collapsed' );
+		}
+
+		wrap.appendChild( toggle );
+		wrap.appendChild( modalTree( frame ) );
+
+		return wrap;
+	}
+
 
 	function begin() {
 		if ( ! mount() ) {
@@ -1970,9 +2406,17 @@
 			load();
 		}
 
-		// Grid view builds itself asynchronously; if the frame arrives after we
-		// do, re-select so the library reflects the folder already highlighted.
-		if ( state.selected > 0 && window.wp && wp.media ) {
+		/*
+		 *  Grid view builds itself asynchronously, so the frame may arrive after we
+		 *  do; re-selecting makes the library reflect the folder already
+		 *  highlighted in the tree.
+		 *
+		 *  Only in grid. In list view the server has already rendered the right
+		 *  rows from the query string, and re-selecting there started a table swap
+		 *  on every single page load -- a pointless fetch that also faded the table
+		 *  for its duration.
+		 */
+		if ( state.selected > 0 && ! document.querySelector( '.wp-list-table' ) && window.wp && wp.media ) {
 			setTimeout( function () { select( state.selected ); }, 500 );
 		}
 	}

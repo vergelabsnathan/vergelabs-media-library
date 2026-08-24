@@ -713,8 +713,103 @@ body.vgml-dragging-folder {
  *  The fade is the only signal that anything is happening; without it a slow
  *  response looks like a click that did nothing.
  */
+/*
+ *  Faded while a swap is in flight, and nothing more.
+ *
+ *  This had pointer-events: none, which on a 20,000-item library meant the whole
+ *  media table was dead to the mouse for the two or three seconds a fetch takes --
+ *  and if a fetch never resolved, permanently. It was not only unclickable but
+ *  invisible to hit-testing, so dragging a file appeared to be a feature that did
+ *  not exist. Losing a click during a swap is a far smaller price than that.
+ */
 .wp-list-table.vgml-busy {
-	opacity: 0.45;
+	opacity: 0.55;
 	transition: opacity 120ms ease;
-	pointer-events: none;
+}
+
+/* --- the tree inside a media modal -------------------------------------- */
+
+/*
+ *  A modal is a much tighter room than the library screen: roughly 700px of
+ *  usable width, and every pixel the panel takes is a column of thumbnails the
+ *  person came here to look at. So it is narrower, it collapses, and it
+ *  remembers -- somebody who wants it out of the way wants that every time.
+ */
+.vgml-modal-host {
+	display: flex;
+	align-items: stretch;
+}
+
+.vgml-modal-host .attachments-browser {
+	flex: 1 1 auto;
+	min-width: 0;
+	position: relative;
+}
+
+.vgml-modal-tree {
+	position: relative;
+	flex: 0 0 auto;
+	width: 210px;
+	display: flex;
+	border-inline-end: 1px solid #dcdcde;
+	background: #f6f7f7;
+	transition: width 140ms ease;
+}
+
+.vgml-modal-tree.is-collapsed {
+	width: 22px;
+}
+
+.vgml-modal-tree.is-collapsed .vgml-tree {
+	display: none;
+}
+
+/*
+ *  The collapse handle sits on the panel's edge rather than inside it, so it
+ *  stays reachable when the panel is 22px wide.
+ */
+.vgml-modal-toggle {
+	flex: 0 0 auto;
+	width: 22px;
+	padding: 0;
+	border: 0;
+	border-inline-end: 1px solid #dcdcde;
+	background: #f0f0f1;
+	color: #646970;
+	cursor: pointer;
+	font-size: 11px;
+	line-height: 1;
+}
+
+.vgml-modal-toggle:hover {
+	background: #e8e9ea;
+	color: #1d2327;
+}
+
+.vgml-tree.vgml-in-modal {
+	flex: 1 1 auto;
+	min-width: 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	--vgml-row: 30px;
+	--vgml-pad: 8px;
+	--vgml-font: 12px;
+}
+
+.vgml-tree.vgml-in-modal .vgml-list {
+	max-height: none;
+	flex: 1 1 auto;
+}
+
+@media screen and ( max-width: 782px ) {
+
+	/* No room for both on a phone: the grid wins, the panel starts closed. */
+	.vgml-modal-tree {
+		width: 22px;
+	}
+
+	.vgml-modal-tree .vgml-tree {
+		display: none;
+	}
 }
