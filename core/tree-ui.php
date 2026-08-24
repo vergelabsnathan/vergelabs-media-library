@@ -200,7 +200,9 @@ function vergeml_tree_assets( $hook ) {
              *  my photos" to anyone who has not thought about it, and the whole
              *  reason folders are terms is that it is not true.
              */
+            /* translators: 1: folder name, 2: number of sub-folders. */
             'deleteConfirm'  => __( 'Delete the folder "%1$s"? Its %2$d sub-folders move up one level. No files are deleted — they simply leave this folder.', 'vergelabs-media-library' ),
+            /* translators: %s: folder name. */
             'deleteSimple'   => __( 'Delete the folder "%s"? No files are deleted — they simply leave this folder.', 'vergelabs-media-library' ),
             /* translators: %d: number of files. */
             'undoAssigned'   => __( '%d files filed', 'vergelabs-media-library' ),

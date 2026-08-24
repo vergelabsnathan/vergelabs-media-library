@@ -210,8 +210,16 @@ function vergeml_import_read_filebird() {
         return array( 'folders' => array(), 'files' => array() );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- another plugin's tables; the names are built from $wpdb->prefix and a literal.
-    $rows = $wpdb->get_results( "SELECT id, name, parent, ord FROM {$folders_table} WHERE type = 0" );
+    /*
+     *  Table and column names go through %i rather than into the string.
+     *
+     *  They are built from $wpdb->prefix and a literal, so there was nothing
+     *  unsafe here -- but %i is the supported way to place an identifier and it
+     *  means a reviewer does not have to take that on trust. It needs WordPress
+     *  6.2 and this plugin requires 6.5.
+     */
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- another plugin's tables, and a one-off read that must not be cached.
+    $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, name, parent, ord FROM %i WHERE type = 0', $folders_table ) );
 
     $folders = array();
 
@@ -227,12 +235,15 @@ function vergeml_import_read_filebird() {
 
     if ( vergeml_table_exists( $links_table ) ) {
 
-        $links = $wpdb->get_results(
-            "SELECT l.attachment_id, l.folder_id
-               FROM {$links_table} l
-               JOIN {$wpdb->posts} p ON p.ID = l.attachment_id
-              WHERE p.post_type = 'attachment'"
-        );
+        $links = $wpdb->get_results( $wpdb->prepare(
+            'SELECT l.attachment_id, l.folder_id
+               FROM %i l
+               JOIN %i p ON p.ID = l.attachment_id
+              WHERE p.post_type = %s',
+            $links_table,
+            $wpdb->posts,
+            'attachment'
+        ) );
 
         foreach ( (array) $links as $link ) {
             $files[ (int) $link->folder_id ][] = (int) $link->attachment_id;
@@ -264,8 +275,8 @@ function vergeml_import_read_rml() {
         return array( 'folders' => array(), 'files' => array() );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    $columns = $wpdb->get_col( "SHOW COLUMNS FROM {$folders_table}" );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- another plugin's tables, and a one-off read that must not be cached.
+    $columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $folders_table ) );
 
     $name_col   = in_array( 'name', $columns, true ) ? 'name' : null;
     $parent_col = in_array( 'parent', $columns, true ) ? 'parent' : null;
@@ -274,9 +285,28 @@ function vergeml_import_read_rml() {
         return array( 'folders' => array(), 'files' => array() );
     }
 
-    $order_col = in_array( 'ord', $columns, true ) ? ', ord' : '';
-
-    $rows = $wpdb->get_results( "SELECT id, {$name_col} AS name, {$parent_col} AS parent{$order_col} FROM {$folders_table}" );
+    /*
+     *  The order column is optional, so the statement is written out twice rather
+     *  than assembled. Holding the SQL in a variable first reads as the same
+     *  thing to a person and as an unprepared query to the scanner, which cannot
+     *  follow where the string came from -- and a reviewer reading a warning has
+     *  the same problem. Two literals answer the question on sight.
+     */
+    if ( in_array( 'ord', $columns, true ) ) {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            'SELECT id, %i AS name, %i AS parent, ord FROM %i',
+            $name_col,
+            $parent_col,
+            $folders_table
+        ) );
+    } else {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            'SELECT id, %i AS name, %i AS parent FROM %i',
+            $name_col,
+            $parent_col,
+            $folders_table
+        ) );
+    }
 
     $folders = array();
 
@@ -293,18 +323,24 @@ function vergeml_import_read_rml() {
 
     if ( vergeml_table_exists( $links_table ) ) {
 
-        $link_columns = $wpdb->get_col( "SHOW COLUMNS FROM {$links_table}" );
+        $link_columns = $wpdb->get_col( $wpdb->prepare( 'SHOW COLUMNS FROM %i', $links_table ) );
         $att_col      = in_array( 'attachment', $link_columns, true ) ? 'attachment' : 'attachment_id';
         $fid_col      = in_array( 'fid', $link_columns, true ) ? 'fid' : 'folder_id';
 
         if ( in_array( $att_col, $link_columns, true ) && in_array( $fid_col, $link_columns, true ) ) {
 
-            $links = $wpdb->get_results(
-                "SELECT l.{$att_col} AS attachment, l.{$fid_col} AS fid
-                   FROM {$links_table} l
-                   JOIN {$wpdb->posts} p ON p.ID = l.{$att_col}
-                  WHERE p.post_type = 'attachment'"
-            );
+            $links = $wpdb->get_results( $wpdb->prepare(
+                'SELECT l.%i AS attachment, l.%i AS fid
+                   FROM %i l
+                   JOIN %i p ON p.ID = l.%i
+                  WHERE p.post_type = %s',
+                $att_col,
+                $fid_col,
+                $links_table,
+                $wpdb->posts,
+                $att_col,
+                'attachment'
+            ) );
 
             foreach ( (array) $links as $link ) {
                 $files[ (int) $link->fid ][] = (int) $link->attachment;
