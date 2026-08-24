@@ -638,3 +638,70 @@ body.vgml-dragging-files,
 body.vgml-dragging-folder {
 	cursor: grabbing;
 }
+
+/* --- the folder mark ---------------------------------------------------- */
+
+/*
+ *  Two planes sharing one colour. The front takes the folder's colour directly;
+ *  the back is the same colour darkened by a filter rather than by a second
+ *  variable, so a folder only ever carries one value and the two planes cannot
+ *  drift apart.
+ *
+ *  brightness() on a fill is cheap, works on any hue including the greys, and
+ *  needs no second custom property per folder.
+ */
+.vgml-icon .vgml-f-back {
+	fill: currentColor;
+	filter: brightness( 0.72 );
+}
+
+.vgml-icon .vgml-f-front {
+	fill: currentColor;
+}
+
+/*
+ *  Empty folders step back. The mark keeps its silhouette so the column still
+ *  scans, but it stops competing with folders that actually hold something --
+ *  which on a long tree is what makes the full ones findable.
+ */
+.vgml-icon.is-empty .vgml-f-back {
+	fill: none;
+	filter: none;
+	stroke: currentColor;
+	stroke-width: 1.2;
+	opacity: 0.45;
+}
+
+/* Opening a folder shifts the front plane; the transition makes it read as the
+   same object moving rather than two different icons swapping. */
+.vgml-icon .vgml-f-front,
+.vgml-icon .vgml-f-back {
+	transition: opacity 120ms ease;
+}
+
+/* The selected row gets the full-strength mark even when the folder is empty,
+   because the thing you are looking at should not be the faintest on screen. */
+.vgml-node.is-selected .vgml-icon.is-empty .vgml-f-back {
+	opacity: 0.8;
+}
+
+/*
+ *  Classic wants a filing-cabinet folder rather than a two-plane one: a single
+ *  warm fill, which is the look people coming from FileBird expect.
+ */
+.vgml-tree[data-skin="classic"] .vgml-icon .vgml-f-back {
+	filter: brightness( 0.85 );
+}
+
+/* High contrast has no room for tonal separation -- it needs edges. */
+.vgml-tree[data-skin="contrast"] .vgml-icon .vgml-f-back {
+	fill: none;
+	filter: none;
+	stroke: currentColor;
+	stroke-width: 1.6;
+	opacity: 1;
+}
+
+.vgml-tree[data-skin="contrast"] .vgml-icon .vgml-f-front {
+	fill: currentColor;
+}

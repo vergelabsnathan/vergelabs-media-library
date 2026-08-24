@@ -483,7 +483,10 @@
 		} );
 		row.appendChild( twist );
 
-		row.appendChild( folderIcon( node.color, entry.open && entry.kids ) );
+		// `total` is descendant-inclusive, so a parent whose own count is zero but
+		// whose children hold files still reads as full -- which is what the user sees
+		// when they click it.
+		row.appendChild( folderIcon( node.color, entry.open && entry.kids, ! entry.total ) );
 
 		row.appendChild( el( 'span', { class: 'vgml-name' }, node.name ) );
 
@@ -1398,24 +1401,58 @@
 	/* ----------------------------------------------------------- the shell */
 
 	/*
-	 *  A folder that looks like a folder.
+	 *  The folder mark.
 	 *
-	 *  This was a coloured dot, which reads as a status light rather than a
-	 *  container -- a row of them looks like a server dashboard. The icon carries
-	 *  the folder's colour as its fill, so the colour feature and the folder
-	 *  metaphor are the same object instead of two competing marks.
+	 *  Two planes, not one shape. A back plane -- the tab and the body behind --
+	 *  and a front plane over it. The front carries the folder's colour and the
+	 *  back is the same colour darkened, which is what makes a 16px mark read as an
+	 *  object with a lid rather than a coloured blob. One flat fill at this size
+	 *  loses its silhouette against a busy row; two planes keep an internal edge.
 	 *
-	 *  Inline SVG rather than an icon font or a sprite: no extra request, it
-	 *  inherits currentColor, and there is no build step to add one.
+	 *  It is drawn once, in one path pair, and everything it can say it says by
+	 *  changing those two planes:
+	 *
+	 *    closed / open   the front plane slides down and skews, so an open branch
+	 *                    is legible from the icon alone rather than only from the
+	 *                    twisty at the far left
+	 *    colour          per folder, ours. FileBird has three, globally, behind a
+	 *                    licence; here every folder can differ and the mark is
+	 *                    where that lives
+	 *    empty           no front plane at all, and the back drops to a hairline
+	 *                    outline. An empty folder should not shout as loudly as a
+	 *                    full one, and on a two-thousand-row tree that difference
+	 *                    is what makes the filled ones findable
+	 *
+	 *  Inline SVG, sized in a 20x16 box: no request, no sprite, no icon font, and
+	 *  it inherits currentColor so the skins keep working without touching this.
+	 *
+	 *  The geometry is deliberately WordPress's: 1.5 corner radii and the same
+	 *  optical weight as Dashicons, so it sits beside core's own icons without
+	 *  looking like it came from somewhere else.
 	 */
-	function folderIcon( color, open ) {
-		var span = el( 'span', { class: 'vgml-icon', 'aria-hidden': 'true' } );
-		span.innerHTML = open
-			? '<svg viewBox="0 0 20 16" width="16" height="14"><path d="M0 2.5A1.5 1.5 0 0 1 1.5 1h5l2 2h6A1.5 1.5 0 0 1 16 4.5V5H4.2a1.5 1.5 0 0 0-1.44 1.08L1 12V2.5Z"/><path d="M4.2 6h14.3a1 1 0 0 1 .96 1.28l-1.7 6A1.5 1.5 0 0 1 16.32 15H1.5a1.5 1.5 0 0 1-1.44-1.92l1.7-6A1.5 1.5 0 0 1 3.2 6h1Z" opacity=".75"/></svg>'
-			: '<svg viewBox="0 0 20 16" width="16" height="14"><path d="M0 2.5A1.5 1.5 0 0 1 1.5 1h5l2 2h8A1.5 1.5 0 0 1 18 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 0 13.5v-11Z"/></svg>';
+	function folderIcon( color, open, empty ) {
+
+		var span = el( 'span', {
+			class: 'vgml-icon' + ( empty ? ' is-empty' : '' ) + ( open ? ' is-open' : '' ),
+			'aria-hidden': 'true'
+		} );
+
+		// The back plane: tab plus body. Always present -- it is the silhouette.
+		var back = '<path class="vgml-f-back" d="M0 2.5A1.5 1.5 0 0 1 1.5 1h5.2a1.5 1.5 0 0 1 1.06.44L9.5 3h7A1.5 1.5 0 0 1 18 4.5v9A1.5 1.5 0 0 1 16.5 15h-15A1.5 1.5 0 0 1 0 13.5v-11Z"/>';
+
+		// The front plane. Closed it sits square over the body; open it slides down
+		// and skews, which is the whole open/closed cue at this size.
+		var front = open
+			? '<path class="vgml-f-front" d="M4.3 6.6h14.2a1.2 1.2 0 0 1 1.16 1.52l-1.63 5.9A1.5 1.5 0 0 1 16.58 15H1.6a1.2 1.2 0 0 1-1.16-1.52l1.63-5.9A1.5 1.5 0 0 1 3.5 6.6h.8Z"/>'
+			: '<path class="vgml-f-front" d="M1.4 6.6h15.2a1.4 1.4 0 0 1 1.4 1.4v5.5A1.5 1.5 0 0 1 16.5 15h-15A1.5 1.5 0 0 1 0 13.5V8a1.4 1.4 0 0 1 1.4-1.4Z"/>';
+
+		span.innerHTML = '<svg viewBox="0 0 20 16" width="17" height="14">' +
+			back + ( empty ? '' : front ) + '</svg>';
+
 		if ( color ) {
 			span.style.color = color;
 		}
+
 		return span;
 	}
 
