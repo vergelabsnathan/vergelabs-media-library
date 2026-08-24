@@ -152,7 +152,18 @@ const picked = await page.evaluate( () => {
 check( 'a folder with files was clickable', !! picked, picked || 'none had a count' );
 
 if ( picked ) {
-	await page.waitForTimeout( 3500 );
+	/*
+	 *  Wait for the grid to redraw rather than guessing how long it takes. The
+	 *  frame's filter is set the moment the row is clicked, but wp.media refetches
+	 *  and re-renders on its own schedule, so a fixed wait reads a stale count
+	 *  whenever the box is a little slow.
+	 */
+	await page.waitForFunction(
+		( n ) => document.querySelectorAll( '.media-modal .attachment' ).length !== n,
+		before,
+		{ timeout: 30000 }
+	).catch( () => {} );
+
 	const after = await page.evaluate( () => ( {
 		count: document.querySelectorAll( '.media-modal .attachment' ).length,
 		selected: [ ...document.querySelectorAll( '.media-modal .vgml-node.is-selected .vgml-name' ) ].map( ( n ) => n.textContent ),
