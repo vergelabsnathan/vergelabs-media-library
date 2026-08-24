@@ -37,6 +37,9 @@ function vergeml_register_folder_routes() {
             'name'     => array( 'type' => 'string' ),
             'color'    => array( 'type' => 'string' ),
             'ids'      => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ) ),
+            // Which list the caller is showing, so the tree that comes back
+            // carries that list's counts rather than the media library's.
+            'post_type' => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
         ),
     ) );
 
@@ -295,6 +298,12 @@ function vergeml_rest_folder( WP_REST_Request $request ) {
      */
     $tree = new WP_REST_Request( 'GET', '/' . VERGEML_REST_NS . '/tree' );
     $tree->set_param( 'taxonomy', $taxonomy );
+
+    $for_type = (string) $request->get_param( 'post_type' );
+
+    if ( $for_type && 'attachment' !== $for_type ) {
+        $tree->set_param( 'post_type', $for_type );
+    }
 
     $result = vergeml_rest_tree( $tree );
     $data   = $result instanceof WP_REST_Response ? $result->get_data() : array();

@@ -114,9 +114,26 @@
 		} );
 	}
 
+	/*
+	 *  Every request that comes back with counts has to say which list it is for,
+	 *  or a post screen refreshes itself with the media library's numbers.
+	 */
+	function postTypeQuery() {
+		return ( cfg.postType && 'attachment' !== cfg.postType )
+			? '&post_type=' + encodeURIComponent( cfg.postType )
+			: '';
+	}
+
+	function forThisList( data ) {
+		if ( cfg.postType && 'attachment' !== cfg.postType ) {
+			data.post_type = cfg.postType;
+		}
+		return data;
+	}
+
 	function load() {
 		return apiFetch( {
-			path: '/vergeml/v1/tree?taxonomy=' + encodeURIComponent( state.taxonomy )
+			path: '/vergeml/v1/tree?taxonomy=' + encodeURIComponent( state.taxonomy ) + postTypeQuery()
 		} ).then( function ( data ) {
 			state.nodes = data.nodes || [];
 			state.unassigned = data.unassigned || 0;
@@ -684,24 +701,20 @@
 			/*
 			 *  The slug, not the id.
 			 *
-			 *  WordPress resolves a taxonomy query var by slug, so upload.php?
-			 *  media_category=3 matches a term whose slug is "3" -- which is to say
-			 *  nothing, silently. Verified against the live table: ?media_category=3
-			 *  returns 0 items and ?media_category=folder-1 returns 1,000.
-			 *
-			 *  Worth knowing: the plugin's own dropdown filter has the same bug.
-			 *  wp_dropdown_categories submits term ids by default, so choosing a
-			 *  folder from it has always returned an empty list view.
+			 *  WordPress resolves a taxonomy query var by slug, so ?media_category=3
+			 *  matches a term whose slug is "3" -- which is to say nothing, silently.
+			 *  The plugin now accepts either form on the library screen, but a link
+			 *  should still be written the way WordPress writes one.
 			 */
 			var node = state.byId[ id ];
 			url.searchParams.set( state.taxonomy, node && node.slug ? node.slug : id );
-			url.searchParams.delete( 'uncategorized' );
+			url.searchParams.delete( unfiledVar() );
 		} else if ( id === -1 ) {
 			url.searchParams.delete( state.taxonomy );
-			url.searchParams.set( 'uncategorized', '1' );
+			url.searchParams.set( unfiledVar(), '1' );
 		} else {
 			url.searchParams.delete( state.taxonomy );
-			url.searchParams.delete( 'uncategorized' );
+			url.searchParams.delete( unfiledVar() );
 		}
 
 		// Paging belongs to the previous folder.
@@ -715,6 +728,18 @@
 	}
 
 	var swapping = null;
+
+	/*
+	 *  "Unfiled" is asked for differently on the two screens.
+	 *
+	 *  The media library has answered `uncategorized=1` since long before the
+	 *  tree existed and links to it are in the wild, so it keeps that spelling. A
+	 *  post type's list screen has no such history and gets a query var of ours,
+	 *  which nothing else on that screen is going to collide with.
+	 */
+	function unfiledVar() {
+		return ( cfg.postType && 'attachment' !== cfg.postType ) ? 'vgml_unfiled' : 'uncategorized';
+	}
 
 	function swapTable( href ) {
 
@@ -976,7 +1001,8 @@
 				}
 			}
 		}
-		var checked = document.querySelectorAll( '#the-list input[name="media[]"]:checked' );
+		// media[] on the library screen, post[] on a post type's list screen.
+		var checked = document.querySelectorAll( '#the-list input[name="media[]"]:checked, #the-list input[name="post[]"]:checked' );
 		return Array.prototype.slice.call( checked ).map( function ( c ) { return parseInt( c.value, 10 ); } );
 	}
 
@@ -1511,13 +1537,13 @@
 		apiFetch( {
 			path: '/vergeml/v1/assign',
 			method: 'POST',
-			data: {
+			data: forThisList( {
 				taxonomy: state.taxonomy,
 				attachments: ids,
 				// A null term means "no folder", which with mode 'move' is unfiling.
 				add: termId ? [ termId ] : [],
 				mode: move ? 'move' : 'add'
-			}
+			} )
 		} ).then( function ( res ) {
 			state.lastUndo = res.undo;
 			applyCounts( res );
@@ -1604,6 +1630,7 @@
 
 	function folder( data ) {
 		data.taxonomy = state.taxonomy;
+		forThisList( data );
 		return apiFetch( { path: '/vergeml/v1/folder', method: 'POST', data: data } ).then( function ( res ) {
 			state.nodes = res.nodes || [];
 			state.unassigned = res.unassigned || 0;

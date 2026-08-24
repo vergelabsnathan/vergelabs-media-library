@@ -116,6 +116,14 @@ function vergeml_register_tree_routes() {
                 'type'              => 'string',
                 'sanitize_callback' => 'sanitize_key',
             ),
+            /*
+             *  Which post type the counts are about. Attachments unless asked
+             *  otherwise, so every existing caller keeps the answer it had.
+             */
+            'post_type' => array(
+                'type'              => 'string',
+                'sanitize_callback' => 'sanitize_key',
+            ),
         ),
     ) );
 
@@ -125,6 +133,12 @@ function vergeml_register_tree_routes() {
         'permission_callback' => 'vergeml_can_assign',
         'args'                => array(
             'taxonomy'    => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
+            /*
+             *  Which list the caller is looking at, so the counts that come back
+             *  are the ones it is showing. A post screen filing a post needs the
+             *  folder's post count, not its file count.
+             */
+            'post_type'   => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             // Not required at this layer: a batch call carries its attachments
             // inside each group instead. The handler refuses a call that has
             // neither, so nothing gets through unnamed.
@@ -152,7 +166,13 @@ function vergeml_can_read_tree() {
  */
 
 function vergeml_can_assign() {
-    return current_user_can( 'upload_files' );
+    /*
+     *  Coarse gate over two different jobs now: filing a file, and filing a post.
+     *  Someone who edits posts but cannot upload is still allowed to reach the
+     *  endpoint -- what they may actually touch is decided per object inside the
+     *  handler, which is where it has always really been decided.
+     */
+    return current_user_can( 'upload_files' ) || current_user_can( 'edit_posts' );
 }
 
 
@@ -185,6 +205,27 @@ function vergeml_rest_tree( WP_REST_Request $request ) {
         return new WP_Error( 'vergeml_terms_failed', $terms->get_error_message(), array( 'status' => 500 ) );
     }
 
+    /*
+     *  Counts belong to a post type, not to a term.
+     *
+     *  The number stored on a term is its attachment count -- that is what the
+     *  count callback maintains and what the media library reads, and it is free
+     *  because get_terms has already fetched it. A post screen is asking a
+     *  different question, so it gets a different answer: one grouped query for
+     *  every folder at once, which is why the tree costs one extra query there
+     *  rather than one per folder.
+     */
+    $post_type = (string) $request->get_param( 'post_type' );
+    $post_type = ( $post_type && 'attachment' !== $post_type && post_type_exists( $post_type ) ) ? $post_type : '';
+
+    if ( $post_type && function_exists( 'vergeml_folder_counts' ) ) {
+        $counts     = vergeml_folder_counts( $taxonomy, $post_type );
+        $unassigned = vergeml_folder_unfiled_count( $taxonomy, $post_type );
+    } else {
+        $counts     = null;
+        $unassigned = vergeml_count_unassigned( $taxonomy );
+    }
+
     $nodes = array();
 
     foreach ( $terms as $term ) {
@@ -195,7 +236,9 @@ function vergeml_rest_tree( WP_REST_Request $request ) {
             'parent' => (int) $term->parent,
             'name'   => $term->name,
             'slug'   => $term->slug,
-            'count'  => (int) $term->count,
+            'count'  => ( null === $counts )
+                ? (int) $term->count
+                : ( isset( $counts[ (int) $term->term_id ] ) ? (int) $counts[ (int) $term->term_id ] : 0 ),
             'color'  => (string) get_term_meta( $term->term_id, VERGEML_TERM_COLOR, true ),
             'order'  => $order === '' ? 0 : (int) $order,
         );
@@ -206,11 +249,12 @@ function vergeml_rest_tree( WP_REST_Request $request ) {
         'hierarchical' => $object instanceof WP_Taxonomy ? (bool) $object->hierarchical : false,
         'label'        => $object instanceof WP_Taxonomy ? $object->labels->name : $taxonomy,
         'nodes'        => $nodes,
+        'postType'     => $post_type ? $post_type : 'attachment',
         /*
-         *  Files with no term in this taxonomy. Counted here rather than by the
-         *  browser, which would otherwise have to fetch the library to find out.
+         *  Things with no term in this taxonomy. Counted here rather than by the
+         *  browser, which would otherwise have to fetch the list to find out.
          */
-        'unassigned'   => vergeml_count_unassigned( $taxonomy ),
+        'unassigned'   => $unassigned,
         'state'        => vergeml_tree_state( $taxonomy ),
     ) );
 }
@@ -289,6 +333,29 @@ function vergeml_tree_state( $taxonomy ) {
         'skin'     => isset( $mine['skin'] ) ? (string) $mine['skin'] : 'native',
         'density'  => isset( $mine['density'] ) ? (string) $mine['density'] : 'comfortable',
     );
+}
+
+
+/**
+ *  vergeml_assign_count
+ *
+ *  A folder's count, for whichever list asked.
+ *
+ *  The stored count is the attachment count and stays that way, so a post screen
+ *  cannot read it. Rather than fetching the whole tree again after every drop,
+ *  the assign response carries the number for the screen that made the call.
+ */
+
+function vergeml_assign_count( $term_id, $taxonomy, $post_type ) {
+
+    if ( $post_type && 'attachment' !== $post_type && function_exists( 'vergeml_folder_counts' ) ) {
+        $counts = vergeml_folder_counts( $taxonomy, $post_type );
+        return isset( $counts[ (int) $term_id ] ) ? (int) $counts[ (int) $term_id ] : 0;
+    }
+
+    $term = get_term( $term_id, $taxonomy );
+
+    return $term instanceof WP_Term ? (int) $term->count : 0;
 }
 
 
@@ -383,7 +450,18 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
 
     foreach ( $attachments as $attachment_id ) {
 
-        if ( 'attachment' !== get_post_type( $attachment_id ) ) {
+        /*
+         *  The object must be something this taxonomy is actually registered for.
+         *
+         *  This used to be "must be an attachment", which stopped being the whole
+         *  answer once a media taxonomy could be turned on for posts as well. The
+         *  registration is the right boundary rather than a list of post types
+         *  kept here: turning the setting off immediately stops the endpoint
+         *  accepting posts, without this code knowing the setting exists.
+         */
+        $object_type = get_post_type( $attachment_id );
+
+        if ( ! $object_type || ! is_object_in_taxonomy( $object_type, $taxonomy ) ) {
             $refused[] = $attachment_id;
             continue;
         }
@@ -452,11 +530,13 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
         $touched = array_merge( $touched, $d['add'], $d['remove'] );
     }
 
+    $for_type = (string) $request->get_param( 'post_type' );
+
     $counts = array();
     foreach ( array_unique( $touched ) as $term_id ) {
         $term = get_term( $term_id, $taxonomy );
         if ( $term instanceof WP_Term )
-            $counts[ (int) $term_id ] = (int) $term->count;
+            $counts[ (int) $term_id ] = vergeml_assign_count( $term_id, $taxonomy, $for_type );
     }
 
     return rest_ensure_response( array(
@@ -543,10 +623,12 @@ function vergeml_rest_assign_batch( WP_REST_Request $request, $taxonomy, array $
 
     // Counts were gathered group by group, so the last group's figures are the
     // current ones; re-read anything an earlier group reported.
+    $for_type = (string) $request->get_param( 'post_type' );
+
     foreach ( array_keys( $counts ) as $term_id ) {
         $term = get_term( $term_id, $taxonomy );
         if ( $term instanceof WP_Term ) {
-            $counts[ $term_id ] = (int) $term->count;
+            $counts[ $term_id ] = vergeml_assign_count( $term_id, $taxonomy, $for_type );
         }
     }
 

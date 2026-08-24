@@ -45,32 +45,49 @@ Three bugs came out of building it, all of them older than it:
 - **Folder colours had an endpoint, a palette and a rendered icon, and no control
   anywhere.** Now in the toolbar, eight colours, each one named.
 
+**T5 — folders on posts, pages and custom post types.** One argument to
+`register_taxonomy`, chosen per taxonomy in Media Taxonomies. The tree appears
+beside any list screen it is turned on for, filters it, and takes a dragged row.
+
+The work was not the storage, it was the counting: a folder now answers two
+different questions and only one number is stored on it. The stored count stays
+the *attachment* count, because that is what the media library, the filter
+dropdown and the Media Categories screen all read; post counts are one grouped
+query when a post screen asks. That costs the tree one extra query there and
+nothing at all on the media library.
+
+Two bugs came out of it, both older:
+
+- **A media taxonomy on posts stopped counting files.** Inherited code swapped in
+  a counter that counts everything *except* attachments whenever a taxonomy was
+  on both, so a folder holding one image and three posts reported three files --
+  on every screen that reads the stored count, all wrong together.
+- **A settings write that omitted the labels unregistered the taxonomy.** No
+  tree, no filters, no Media Categories screen, every term still in the database.
+  Every folder gone from the site with nothing to say why. Registration now names
+  an unlabelled taxonomy from its slug instead of skipping it, and the sanitiser
+  carries labels it was not given.
+
 ## Next, in order
 
-### 1. Folders for posts, pages and custom post types
-
-Cheaper here than for them: taxonomies already attach to any post type, so this is
-`register_taxonomy_for_object_type` plus a panel on the list screens and a setting
-for which post types. They needed a `type` column and an entire addon.
-
-### 2. CSV import and export
+### 1. CSV import and export
 
 Terms and assignments out, terms and assignments in. Cheap, and it is the answer
 to "how do I set up two hundred folders without clicking two hundred times".
 
-### 3. WPML and Polylang
+### 2. WPML and Polylang
 
 Also cheaper here: both translate taxonomies natively. FileBird had to write
 `Support/WPML.php` to keep custom tables in sync. Expect mostly testing plus a
 shim where the tree passes term ids around.
 
-### 4. Per-user folders
+### 3. Per-user folders
 
 Term meta for an owner and a filter on the tree. The work is not the storage, it
 is deciding what a file inside a folder only one person can see is supposed to do
 when somebody else opens the library.
 
-### 5. Galleries
+### 4. Galleries
 
 A folder becomes a gallery. Split deliberately, because the three integrations are
 not one job:

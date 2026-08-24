@@ -17,6 +17,23 @@ function vergeml_taxonomies_validate( $input ) {
 
     if ( ! $input ) $input = array();
 
+    /*
+     *  Anything this function does not write is carried over from what is stored.
+     *
+     *  It rebuilds each taxonomy from the input it was handed, which is right for
+     *  the settings form -- an unticked checkbox submits nothing and has to come
+     *  out as 0. It is wrong for every other caller. A write that does not happen
+     *  to include the labels dropped them, and a media taxonomy with no labels is
+     *  not registered at all: the taxonomy disappears, and with it the folder
+     *  tree, the filters and the Media Categories screen. The terms are all still
+     *  in the database and every folder is gone from the site, which is a very
+     *  hard thing to work out from the outside.
+     *
+     *  Booleans are not carried over -- those are exactly what an empty checkbox
+     *  means -- only keys this function never touches.
+     */
+    $stored = get_option( 'vergeml_taxonomies', array() );
+    $stored = is_array( $stored ) ? $stored : array();
 
     foreach ( $input as $taxonomy => $params ) {
 
@@ -55,6 +72,28 @@ function vergeml_taxonomies_validate( $input ) {
             $input[$taxonomy]['show_admin_column'] = isset($params['show_admin_column']) && !! $params['show_admin_column'] ? 1 : 0;
             $input[$taxonomy]['rewrite']['with_front'] = isset($params['rewrite']['with_front']) && !! $params['rewrite']['with_front'] ? 1 : 0;
             $input[$taxonomy]['rewrite']['slug'] = isset($params['rewrite']['slug']) ? vergeml_sanitize_slug( $params['rewrite']['slug'], $taxonomy ) : '';
+
+            /*
+             *  The post types this taxonomy also applies to. Checked against what
+             *  actually exists rather than stored as given: a post type can be
+             *  removed with the plugin that registered it, and a stale name here
+             *  would register the taxonomy for something that is not there.
+             */
+            $post_types = array();
+
+            if ( isset( $params['post_types'] ) && is_array( $params['post_types'] ) ) {
+
+                foreach ( $params['post_types'] as $post_type ) {
+
+                    $post_type = sanitize_key( $post_type );
+
+                    if ( $post_type && 'attachment' !== $post_type && post_type_exists( $post_type ) ) {
+                        $post_types[] = $post_type;
+                    }
+                }
+            }
+
+            $input[$taxonomy]['post_types'] = array_values( array_unique( $post_types ) );
         }
 
         if ( ! $input[$taxonomy]['eml_media'] ) {
@@ -89,6 +128,17 @@ function vergeml_taxonomies_validate( $input ) {
                 if ( empty($value) && isset($default_labels[$label]) )
                     $input[$taxonomy]['labels'][$label] = sanitize_text_field($default_labels[$label]);
             }
+        }
+    }
+
+    /*
+     *  Labels last: they are the one thing whose absence stops a taxonomy being
+     *  registered, and the one thing a partial write is most likely to omit.
+     */
+    foreach ( $input as $taxonomy => $params ) {
+
+        if ( empty( $params['labels'] ) && ! empty( $stored[ $taxonomy ]['labels'] ) ) {
+            $input[ $taxonomy ]['labels'] = $stored[ $taxonomy ]['labels'];
         }
     }
 

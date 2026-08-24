@@ -30,8 +30,35 @@ add_action( 'admin_enqueue_scripts', 'vergeml_tree_assets', 20 );
 
 function vergeml_tree_assets( $hook ) {
 
-    if ( ! current_user_can( 'upload_files' ) )
+    /*
+     *  Which post type's list screen this is, if it is one and folders are on for
+     *  it. Worked out first because it decides both whether to load at all and
+     *  what to load -- a post screen gets one taxonomy and counts for that post
+     *  type, not the media library's tree with the media library's numbers.
+     */
+    $folder_post_type = '';
+
+    if ( 'edit.php' === $hook && function_exists( 'vergeml_folder_taxonomy_for' ) ) {
+
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+        $type   = ( $screen && $screen->post_type ) ? $screen->post_type : 'post';
+
+        if ( vergeml_folder_taxonomy_for( $type ) ) {
+            $folder_post_type = $type;
+        }
+    }
+
+    /*
+     *  Uploading is the wrong question on a post screen. Somebody who edits posts
+     *  and cannot upload still has folders on their posts; what they may actually
+     *  change is decided per object by the endpoint.
+     */
+    if ( $folder_post_type ) {
+        if ( ! current_user_can( 'edit_posts' ) )
+            return;
+    } elseif ( ! current_user_can( 'upload_files' ) ) {
         return;
+    }
 
     /*
      *  The library screen, and anywhere the media modal can be opened.
@@ -51,10 +78,12 @@ function vergeml_tree_assets( $hook ) {
     // attach to anyway.
     $modal = wp_script_is( 'media-views', 'enqueued' ) || wp_script_is( 'media-views', 'to_do' );
 
-    if ( ! $library && ! $modal )
+    if ( ! $library && ! $modal && ! $folder_post_type )
         return;
 
-    $taxonomies = vergeml_tree_taxonomies();
+    $taxonomies = $folder_post_type
+        ? array( vergeml_folder_taxonomy_for( $folder_post_type ) )
+        : vergeml_tree_taxonomies();
 
     if ( empty( $taxonomies ) )
         return;
@@ -132,6 +161,10 @@ function vergeml_tree_assets( $hook ) {
         $request = new WP_REST_Request( 'GET', '/' . VERGEML_REST_NS . '/tree' );
         $request->set_param( 'taxonomy', $list[0]['name'] );
 
+        if ( $folder_post_type ) {
+            $request->set_param( 'post_type', $folder_post_type );
+        }
+
         $result = vergeml_rest_tree( $request );
 
         if ( $result instanceof WP_REST_Response ) {
@@ -151,7 +184,12 @@ function vergeml_tree_assets( $hook ) {
          *  files -- the folder someone was browsing on the library screen is
          *  rarely the one they want when inserting an image into a post.
          */
-        'onLibrary'  => $library,
+        'onLibrary'  => $library || (bool) $folder_post_type,
+        /*
+         *  Which list the tree is filtering. 'attachment' everywhere it always
+         *  was, so nothing that reads this has to know post folders exist.
+         */
+        'postType'   => $folder_post_type ? $folder_post_type : 'attachment',
         /*
          *  When on, a plain drag moves instead of adding -- the behaviour someone
          *  switching from FileBird or Folders expects, since their folders hold a
@@ -169,7 +207,16 @@ function vergeml_tree_assets( $hook ) {
          */
         'accent'     => vergeml_admin_accent(),
         'l10n'       => array(
-            'all'            => __( 'All files', 'vergelabs-media-library' ),
+            /*
+             *  "All files" is wrong above a list of pages. The post type's own
+             *  plural is what that screen calls them everywhere else, so it is
+             *  what the tree calls them too.
+             */
+            'all'            => $folder_post_type
+                ? ( get_post_type_object( $folder_post_type )
+                    ? get_post_type_object( $folder_post_type )->labels->all_items
+                    : __( 'All', 'vergelabs-media-library' ) )
+                : __( 'All files', 'vergelabs-media-library' ),
             'unassigned'     => __( 'Unfiled', 'vergelabs-media-library' ),
             'newFolder'      => __( 'New folder', 'vergelabs-media-library' ),
             'rename'         => __( 'Rename', 'vergelabs-media-library' ),

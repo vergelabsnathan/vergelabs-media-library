@@ -268,9 +268,30 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // register eml taxonomies
         foreach ( (array) $vergeml_taxonomies as $taxonomy => $params ) {
 
-            if ( $params['eml_media'] && ! empty( $params['labels']['singular_name'] ) && ! empty( $params['labels']['name'] ) ) {
+            if ( $params['eml_media'] ) {
 
-                $labels = array_map( 'sanitize_text_field', $params['labels'] );
+                /*
+                 *  Missing labels are named, not fatal.
+                 *
+                 *  Registration used to require a name and a singular name and
+                 *  skip the taxonomy silently without them. Anything that wrote
+                 *  the settings without carrying the labels through therefore
+                 *  unregistered the taxonomy outright -- every folder gone from
+                 *  the media library, the filters and the menu, with all the terms
+                 *  still sitting in the database. A label derived from the slug is
+                 *  an imperfect name; not registering is a missing feature.
+                 */
+                $labels = isset( $params['labels'] ) && is_array( $params['labels'] ) ? $params['labels'] : array();
+
+                if ( empty( $labels['name'] ) ) {
+                    $labels['name'] = ucwords( str_replace( array( '_', '-' ), ' ', $taxonomy ) );
+                }
+
+                if ( empty( $labels['singular_name'] ) ) {
+                    $labels['singular_name'] = $labels['name'];
+                }
+
+                $labels = array_map( 'sanitize_text_field', $labels );
 
                 if ( (bool) $vergeml_tax_options['tax_archives'] ) {
 
@@ -284,9 +305,15 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                     $rewrite = $public = false;
                 }
 
+                /*
+                 *  Attachments always, plus whatever else this taxonomy has been
+                 *  turned on for. One argument -- there is no second storage
+                 *  model for "folders on posts", because a taxonomy was never
+                 *  specific to one object type in the first place.
+                 */
                 register_taxonomy(
                     $taxonomy,
-                    'attachment',
+                    function_exists( 'vergeml_folder_object_types' ) ? vergeml_folder_object_types( $taxonomy ) : 'attachment',
                     array(
                         'labels'                => $labels,
                         'public'                => $public,
@@ -369,6 +396,27 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
          *  @since 2.3
          */
         foreach ( $taxonomies as $taxonomy => $params ) {
+
+            /*
+             *  A media taxonomy keeps counting attachments, whatever else it is
+             *  attached to.
+             *
+             *  The rule below was written when the only taxonomies on both posts
+             *  and attachments were other people's, and it swaps in a counter that
+             *  counts everything *except* attachments. Once a folder taxonomy
+             *  could be turned on for posts as well, that quietly redefined the
+             *  number the media library reads: a folder holding one image and
+             *  three blog posts reported three files. The tree, the dropdown and
+             *  the Media Categories screen all show that number, and all three
+             *  were wrong together, which is the kind of wrong nobody reports as a
+             *  bug -- they just stop trusting the counts.
+             *
+             *  Post counts are worked out per post type when a post screen asks
+             *  for them; see vergeml_folder_counts().
+             */
+            if ( ! empty( $vergeml_taxonomies[ $taxonomy ]['eml_media'] ) ) {
+                continue;
+            }
 
             if ( in_array( 'attachment', $params->object_type ) &&
                  isset( $wp_taxonomies[$taxonomy]->update_count_callback ) &&
@@ -1115,6 +1163,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/import-sources.php' );
         include_once( 'core/import.php' );
         include_once( 'core/import-ui.php' );
+        include_once( 'core/post-folders.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {
             include_once( 'core/medialist.php' );
