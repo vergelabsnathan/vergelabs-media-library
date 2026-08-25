@@ -1,0 +1,121 @@
+/*
+ *  The plugin's home screen.
+ *
+ *  Four cards and two numbers. It exists to answer "where is the thing I came
+ *  for", which is the only question anybody opens a plugin's own menu to ask --
+ *  so it is a signpost, not a dashboard, and there is nothing on it that has to
+ *  be kept true by hand.
+ *
+ *  Built from the admin's own colours rather than a palette of ours: this screen
+ *  should look like part of WordPress, not like a landing page that wandered in.
+ */
+
+.vgml-home {
+	--vgml-home-line: #dcdcde;
+	--vgml-home-muted: #646970;
+	--vgml-home-accent: #3858e9;
+	max-width: 1100px;
+}
+
+.vgml-home-head {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 0 0 4px;
+	padding: 0 0 14px;
+	border-block-end: 1px solid var( --vgml-home-line );
+}
+
+.vgml-home-head h1 {
+	margin: 0;
+	padding: 0;
+	font-size: 23px;
+	font-weight: 400;
+	line-height: 1.3;
+}
+
+/* Small, beside the name: a version is a fact you check, not a headline. */
+.vgml-home-version {
+	padding: 2px 8px;
+	border-radius: 10px;
+	background: rgba( 0, 0, 0, 0.06 );
+	color: var( --vgml-home-muted );
+	font-size: 12px;
+	line-height: 18px;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-home-counts {
+	margin: 0;
+	margin-inline-start: auto;
+	color: var( --vgml-home-muted );
+	font-size: 13px;
+}
+
+/*
+ *  Cards that are links, not cards with links in them. The whole rectangle is
+ *  the target, which is what everybody tries to click.
+ */
+.vgml-home-cards {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 280px, 1fr ) );
+	gap: 16px;
+	margin: 20px 0 0;
+}
+
+.vgml-home-card {
+	display: block;
+	padding: 18px 20px 20px;
+	border: 1px solid var( --vgml-home-line );
+	border-radius: 6px;
+	background: #fff;
+	color: inherit;
+	text-decoration: none;
+	transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.vgml-home-card:hover,
+.vgml-home-card:focus {
+	border-color: var( --vgml-home-accent );
+	box-shadow: 0 2px 8px rgba( 0, 0, 0, 0.07 );
+	color: inherit;
+}
+
+.vgml-home-card:focus-visible {
+	outline: 2px solid var( --vgml-home-accent );
+	outline-offset: 2px;
+}
+
+.vgml-home-card h2 {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.vgml-home-card p {
+	margin: 0;
+	color: var( --vgml-home-muted );
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.vgml-home-foot {
+	margin: 24px 0 0;
+	color: var( --vgml-home-muted );
+	font-size: 13px;
+}
+
+/*
+ *  The admin can be dark, and a white card on a dark page is a torch. Only the
+ *  surfaces move; the text colours come from the admin itself.
+ */
+@media ( prefers-color-scheme: dark ) {
+
+	body.admin-color-modern .vgml-home,
+	body[class*="admin-color-"] .vgml-home {
+		--vgml-home-line: rgba( 255, 255, 255, 0.14 );
+	}
+}

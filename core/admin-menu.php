@@ -1,0 +1,251 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) )
+    exit;
+
+
+/**
+ *  One home for the plugin's screens.
+ *
+ *  They were scattered across four entries under Settings -- Media Library, Media
+ *  Taxonomies, MIME Types, Import Folders -- which is where a plugin puts things
+ *  when nobody has decided where they go. Nothing named the plugin, nothing said
+ *  the four screens were related, and finding the folder settings meant knowing
+ *  they were called "Media Taxonomies".
+ *
+ *  A top-level menu with the screens under it, and a home page that says what is
+ *  here. The page slugs do not change, so everything registered against them
+ *  keeps working; only the parent moves, and the old Settings URLs are redirected
+ *  rather than left to 404.
+ *
+ *  @since 3.2
+ */
+
+/*
+ *  Defined in the main plugin file, not here.
+ *
+ *  This file only loads in the admin, and import-ui.php -- which names the menu
+ *  as its parent -- loads on every request. A constant that exists on some
+ *  requests and not others is a fatal error waiting for whichever one gets it
+ *  wrong.
+ */
+
+
+/**
+ *  Registered before the screens themselves, which hang off it.
+ *
+ *  options-pages.php runs at 12 and import-ui.php at 20, so 9 puts the parent in
+ *  place before either asks for it. A submenu whose parent does not exist yet is
+ *  silently dropped.
+ */
+
+add_action( 'admin_menu', 'vergeml_admin_menu', 9 );
+
+function vergeml_admin_menu() {
+
+    if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'manage_categories' ) ) {
+        return;
+    }
+
+    add_menu_page(
+        __( 'Media Library', 'vergelabs-media-library' ),
+        __( 'Media Library', 'vergelabs-media-library' ),
+        'manage_categories',
+        VERGEML_MENU,
+        'vergeml_admin_home',
+        vergeml_menu_icon(),
+        /*
+         *  Directly under Media. The plugin is about the media library, so it
+         *  belongs beside it rather than at the bottom with the tools.
+         */
+        11
+    );
+
+    // The first submenu repeats the parent, so it reads as a name rather than
+    // as whichever screen happens to be first.
+    add_submenu_page(
+        VERGEML_MENU,
+        __( 'Media Library', 'vergelabs-media-library' ),
+        __( 'Overview', 'vergelabs-media-library' ),
+        'manage_categories',
+        VERGEML_MENU,
+        'vergeml_admin_home'
+    );
+}
+
+
+/**
+ *  vergeml_menu_icon
+ *
+ *  The menu mark, as a data URI.
+ *
+ *  The same two-plane folder the tree draws, flattened to one colour because the
+ *  admin menu paints its icons with a CSS filter and a two-tone mark comes out as
+ *  mud. Inline rather than a file: one fewer request, and it cannot go missing.
+ */
+
+function vergeml_menu_icon() {
+
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">'
+        . '<path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h4.2a1.5 1.5 0 0 1 1.06.44L10.2 4.7H16.5A1.5 1.5 0 0 1 18 6.2v1.1H2V4.5Z"/>'
+        . '<path d="M2 8.6h16a1.2 1.2 0 0 1 1.16 1.52l-1.5 5.4A1.5 1.5 0 0 1 16.2 16.6H3.1a1.2 1.2 0 0 1-1.16-1.52l1.5-5.4A1.5 1.5 0 0 1 4.9 8.6H2Z"/>'
+        . '</svg>';
+
+    return 'data:image/svg+xml;base64,' . base64_encode( $svg );
+}
+
+
+/**
+ *  The old addresses still work.
+ *
+ *  These screens lived under Settings for years and people have them bookmarked,
+ *  linked from their own notes, and open in a tab. Moving a menu is not a reason
+ *  to break a URL.
+ */
+
+/*
+ *  admin_page_access_denied, not admin_init.
+ *
+ *  Once a screen is no longer registered under Settings, WordPress refuses the
+ *  request with a 403 before admin_init ever runs -- so a redirect hooked there
+ *  never fires and the old bookmark gets "Sorry, you are not allowed to access
+ *  this page", which is both wrong and alarming. This action is the moment just
+ *  before that refusal.
+ */
+
+add_action( 'admin_page_access_denied', 'vergeml_admin_menu_redirects' );
+add_action( 'admin_init', 'vergeml_admin_menu_redirects' );
+
+function vergeml_admin_menu_redirects() {
+
+    global $pagenow;
+
+    if ( 'options-general.php' !== $pagenow ) {
+        return;
+    }
+
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading which screen was asked for, not acting on it.
+    $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+
+    $moved = array( 'media-library', 'media-taxonomies', 'mime-types', 'media-import-folders' );
+
+    if ( ! in_array( $page, $moved, true ) ) {
+        return;
+    }
+
+    wp_safe_redirect( admin_url( 'admin.php?page=' . $page ), 301 );
+    exit;
+}
+
+
+/**
+ *  vergeml_admin_home
+ *
+ *  What is here, and where to go next.
+ *
+ *  Not a dashboard: a plugin's home screen exists to answer "where is the thing I
+ *  came for", and every number on it is a number somebody has to keep true. Four
+ *  cards, the version, and the two counts that are cheap and worth knowing.
+ */
+
+function vergeml_admin_home() {
+
+    if ( ! current_user_can( 'manage_categories' ) ) {
+        wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
+    }
+
+    $taxonomies = function_exists( 'vergeml_tree_taxonomies' ) ? vergeml_tree_taxonomies() : array();
+    $folders    = 0;
+
+    foreach ( $taxonomies as $taxonomy ) {
+        $terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids' ) );
+        $folders += is_wp_error( $terms ) ? 0 : count( $terms );
+    }
+
+    $files = (int) wp_count_posts( 'attachment' )->inherit;
+
+    $cards = array(
+        array(
+            'page'  => 'media-taxonomies',
+            'title' => __( 'Folders and taxonomies', 'vergelabs-media-library' ),
+            'text'  => __( 'Which taxonomies act as folders, what they are called, and which post types they apply to.', 'vergelabs-media-library' ),
+            'cap'   => 'manage_options',
+        ),
+        array(
+            'page'  => 'media-import-folders',
+            'title' => __( 'Import folders', 'vergelabs-media-library' ),
+            'text'  => __( 'Bring your folders over from FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders or Real Media Library. Nothing is taken from them, and it can be undone.', 'vergelabs-media-library' ),
+            'cap'   => 'manage_categories',
+        ),
+        array(
+            'page'  => 'media-library',
+            'title' => __( 'Library behaviour', 'vergelabs-media-library' ),
+            'text'  => __( 'Ordering, filters, what the grid and the list show, and how uploads are filed.', 'vergelabs-media-library' ),
+            'cap'   => 'manage_options',
+        ),
+        array(
+            'page'  => 'mime-types',
+            'title' => __( 'File types', 'vergelabs-media-library' ),
+            'text'  => __( 'Which file types may be uploaded, and how they are grouped in the library filters.', 'vergelabs-media-library' ),
+            'cap'   => 'manage_options',
+        ),
+    );
+
+    ?>
+    <div class="wrap vgml-home">
+
+        <div class="vgml-home-head">
+            <h1><?php esc_html_e( 'Media Library', 'vergelabs-media-library' ); ?></h1>
+            <span class="vgml-home-version"><?php echo esc_html( VERGEML_VERSION ); ?></span>
+            <p class="vgml-home-counts">
+                <?php
+                printf(
+                    /* translators: 1: number of folders, 2: number of files. */
+                    esc_html__( '%1$s folders, %2$s files', 'vergelabs-media-library' ),
+                    esc_html( number_format_i18n( $folders ) ),
+                    esc_html( number_format_i18n( $files ) )
+                );
+                ?>
+            </p>
+        </div>
+
+        <div class="vgml-home-cards">
+            <?php foreach ( $cards as $card ) : ?>
+                <?php if ( ! current_user_can( $card['cap'] ) ) { continue; } ?>
+                <a class="vgml-home-card" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $card['page'] ) ); ?>">
+                    <h2><?php echo esc_html( $card['title'] ); ?></h2>
+                    <p><?php echo esc_html( $card['text'] ); ?></p>
+                </a>
+            <?php endforeach; ?>
+        </div>
+
+        <p class="vgml-home-foot">
+            <?php
+            printf(
+                /* translators: %s: link to the media library. */
+                esc_html__( 'The folder tree itself lives on the %s.', 'vergelabs-media-library' ),
+                '<a href="' . esc_url( admin_url( 'upload.php' ) ) . '">' . esc_html__( 'media library screen', 'vergelabs-media-library' ) . '</a>'
+            );
+            ?>
+        </p>
+
+    </div>
+    <?php
+}
+
+
+add_action( 'admin_enqueue_scripts', 'vergeml_admin_home_styles' );
+
+function vergeml_admin_home_styles( $hook ) {
+
+    if ( 'toplevel_page_' . VERGEML_MENU !== $hook ) {
+        return;
+    }
+
+    wp_enqueue_style(
+        'vergeml-admin',
+        plugins_url( 'css/vergeml-admin.css', VERGEML_FILE ),
+        array(),
+        VERGEML_VERSION
+    );
+}

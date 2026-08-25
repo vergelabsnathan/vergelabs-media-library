@@ -20,8 +20,8 @@ add_action( 'admin_menu', 'vergeml_import_menu', 20 );
 function vergeml_import_menu() {
 
     add_submenu_page(
-        'options-general.php',
-        __( 'Import Folders', 'vergelabs-media-library' ) . ' &lsaquo; ' . __( 'Media Settings', 'vergelabs-media-library' ),
+        VERGEML_MENU,
+        __( 'Import Folders', 'vergelabs-media-library' ),
         __( 'Import Folders', 'vergelabs-media-library' ),
         'manage_categories',
         'media-import-folders',
@@ -200,7 +200,12 @@ add_action( 'admin_enqueue_scripts', 'vergeml_import_assets' );
 
 function vergeml_import_assets( $hook ) {
 
-    if ( 'settings_page_media-import-folders' !== $hook ) {
+    /*
+     *  The screen moved out of Settings into the plugin's own menu, so its hook
+     *  suffix moved with it. Matched on the slug rather than on the whole hook,
+     *  which is the part that does not change when the menu is rearranged again.
+     */
+    if ( 'media-import-folders' !== substr( (string) $hook, -20 ) ) {
         return;
     }
 

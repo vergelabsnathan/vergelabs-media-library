@@ -33,6 +33,9 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.1.0' );
+// The plugin's own top-level admin menu. Named here because screens registered
+// from files that load outside the admin still have to name their parent.
+if ( ! defined('VERGEML_MENU') ) define( 'VERGEML_MENU', 'vergelabs-media' );
 if ( ! defined('VERGEML_FILE') )    define( 'VERGEML_FILE', __FILE__ );
 
 
@@ -1171,6 +1174,8 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         }
 
         if ( is_admin() ) {
+            // Before the option pages: they hang their screens off its menu.
+            include_once( 'core/admin-menu.php' );
             include_once( 'core/options-pages.php' );
         }
     }
