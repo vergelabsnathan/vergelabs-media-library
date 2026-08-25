@@ -685,8 +685,64 @@
 	 *  dropdown set exactly these; the tree sets the same ones. There is one
 	 *  query path and the tree is not it.
 	 */
+	/*
+	 *  Where an upload should land: the folder currently open, on whichever
+	 *  surface is doing the uploading. The library screen sets it from its
+	 *  selection; the modal from its own filter. Zero means "nowhere", and an
+	 *  upload then arrives exactly as it always has.
+	 */
+	var uploadTarget = 0;
+
+	/*
+	 *  The folder travels with the upload request itself, added to the
+	 *  multipart parameters just before each file goes -- so the server never
+	 *  guesses which screen the user was on, and uploads from anywhere else
+	 *  carry no folder at all.
+	 *
+	 *  The prototype is wrapped rather than wp.Uploader.defaults mutated,
+	 *  because every uploader deep-copies the defaults when it is built:
+	 *  changing them afterwards reaches no uploader that already exists, which
+	 *  on the grid is all of them.
+	 */
+	function armUploaders() {
+
+		var tries = 0;
+
+		( function look() {
+
+			if ( ! ( window.wp && wp.Uploader && wp.Uploader.prototype ) ) {
+				if ( ++tries <= 60 ) { window.setTimeout( look, 250 ); }
+				return;
+			}
+
+			if ( wp.Uploader.prototype.vgmlWrapped ) {
+				return;
+			}
+			wp.Uploader.prototype.vgmlWrapped = true;
+
+			var init = wp.Uploader.prototype.init;
+
+			wp.Uploader.prototype.init = function () {
+				if ( init ) { init.apply( this, arguments ); }
+				if ( this.uploader && this.uploader.bind ) {
+					this.uploader.bind( 'BeforeUpload', function ( up ) {
+						var params = up.settings.multipart_params = up.settings.multipart_params || {};
+						if ( uploadTarget > 0 ) {
+							params.vergeml_folder = uploadTarget;
+							params.vergeml_folder_tax = state.taxonomy;
+						} else {
+							delete params.vergeml_folder;
+							delete params.vergeml_folder_tax;
+						}
+					} );
+				}
+			};
+		} )();
+	}
+
 	function select( id ) {
 		state.selected = id;
+		uploadTarget = id > 0 ? id : 0;
 		render();
 		persist( { selected: id > 0 ? id : 0 } );
 
@@ -2012,6 +2068,49 @@
 
 		var menuEl = el( 'div', { class: 'vgml-overflow', role: 'menu' } );
 
+		/*
+		 *  The selected folder's own actions, above the panel settings. Only when
+		 *  a folder is picked: a "Download as ZIP" with nothing to download is a
+		 *  question, not a menu item.
+		 */
+		var target = editTarget > 0 ? state.byId[ editTarget ] : null;
+
+		if ( target && cfg.zipUrl ) {
+
+			menuEl.appendChild( el( 'p', { class: 'vgml-overflow-head' }, target.name ) );
+
+			var zip = el( 'button', { type: 'button', class: 'vgml-overflow-item', role: 'menuitem' }, l10n.downloadZip );
+			zip.addEventListener( 'click', function () {
+				menuEl.remove();
+				window.location.href = cfg.zipUrl
+					+ '&folder=' + encodeURIComponent( target.id )
+					+ '&taxonomy=' + encodeURIComponent( state.taxonomy );
+			} );
+			menuEl.appendChild( zip );
+
+			var copy = el( 'button', { type: 'button', class: 'vgml-overflow-item', role: 'menuitem' }, l10n.copyShortcode );
+			copy.addEventListener( 'click', function () {
+				menuEl.remove();
+				var code = '[vergeml_gallery folder="' + target.id + '"]';
+				var done = function () { toast( l10n.copied, null ); };
+				if ( navigator.clipboard && navigator.clipboard.writeText ) {
+					navigator.clipboard.writeText( code ).then( done, done );
+				} else {
+					// The old route, for admins served over plain http.
+					var scratch = el( 'textarea', { style: 'position:fixed;opacity:0' } );
+					scratch.value = code;
+					document.body.appendChild( scratch );
+					scratch.select();
+					try { document.execCommand( 'copy' ); } catch ( e ) { /* the toast still says copied; the string is selected */ }
+					scratch.remove();
+					done();
+				}
+			} );
+			menuEl.appendChild( copy );
+
+			menuEl.appendChild( el( 'hr', { class: 'vgml-overflow-sep' } ) );
+		}
+
 		menuEl.appendChild( el( 'p', { class: 'vgml-overflow-head' }, l10n.skin ) );
 
 		[ 'native', 'classic', 'minimal', 'contrast' ].forEach( function ( s ) {
@@ -2362,6 +2461,8 @@
 			} );
 		}
 
+		armUploaders();
+
 		watchModalsWhenReady();
 	}
 
@@ -2676,6 +2777,10 @@
 	 */
 	function filterFrame( frame, id ) {
 
+		// The modal's Upload Files tab files into whichever folder its Media
+		// Library tab is showing -- the same rule as the library screen.
+		uploadTarget = id > 0 ? id : 0;
+
 		var props = null;
 
 		try {
@@ -2763,6 +2868,10 @@
 		} else {
 			load();
 		}
+
+		// The remembered selection catches uploads from the first moment, not
+		// only after the next click.
+		uploadTarget = state.selected > 0 ? state.selected : 0;
 
 		/*
 		 *  Grid view builds itself asynchronously, so the frame may arrive after we

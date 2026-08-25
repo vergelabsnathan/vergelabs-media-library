@@ -476,11 +476,19 @@
                     }
                 },
                 scrollAttachmentIntoView: function (t) {
+                    // The selected attachment's tile is not always in the DOM:
+                    // a fresh upload lands selected before its tile renders, and
+                    // a filtered grid may not show it at all. Inherited code
+                    // assumed [0] exists and threw on every upload.
                     var i = this.controller.state().get('selection');
-                    1 == i.length &&
-                        $(
+                    if (1 == i.length) {
+                        var el = $(
                             'li.attachment[data-id="' + i.single().get('id') + '"]',
-                        )[0].scrollIntoView(t);
+                        )[0];
+                        if (el && el.scrollIntoView) {
+                            el.scrollIntoView(t);
+                        }
+                    }
                 },
                 createToolbar: function () {
                     var browser = this,

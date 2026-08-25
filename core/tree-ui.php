@@ -218,6 +218,12 @@ function vergeml_tree_assets( $hook ) {
          *  in rather than announcing itself. Neither competitor reads this.
          */
         'accent'     => vergeml_admin_accent(),
+        /*
+         *  A ready-made, nonce-carrying download link; the browser only appends
+         *  which folder. Built here because a nonce cannot be minted in the
+         *  browser.
+         */
+        'zipUrl'     => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_zip' ), 'vergeml_zip' ),
         'l10n'       => array(
             /*
              *  "All files" is wrong above a list of pages. The post type's own
@@ -282,6 +288,9 @@ function vergeml_tree_assets( $hook ) {
             'undone'         => __( 'Put back', 'vergelabs-media-library' ),
             /* translators: %d: number of folders a file belongs to. */
             'inFolders'      => __( 'in %d folders', 'vergelabs-media-library' ),
+            'downloadZip'    => __( 'Download as ZIP', 'vergelabs-media-library' ),
+            'copyShortcode'  => __( 'Copy gallery shortcode', 'vergelabs-media-library' ),
+            'copied'         => __( 'Shortcode copied', 'vergelabs-media-library' ),
             'skin'           => __( 'Appearance', 'vergelabs-media-library' ),
             'skinNative'     => __( 'Native', 'vergelabs-media-library' ),
             'skinClassic'    => __( 'Classic', 'vergelabs-media-library' ),
