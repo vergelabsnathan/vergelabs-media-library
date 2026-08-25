@@ -131,7 +131,7 @@ function vergeml_admin_media_menu() {
     );
 
     $eml_medialibrary_options_page = add_submenu_page(
-        'options-general.php',
+        VERGEML_MENU,
         __('Media Library','vergelabs-media-library') . ' &lsaquo; ' . __('Media Settings','vergelabs-media-library'),
         __('Media Library','vergelabs-media-library'),
         'manage_options',
@@ -140,7 +140,7 @@ function vergeml_admin_media_menu() {
     );
 
     $eml_taxonomies_options_page = add_submenu_page(
-        'options-general.php',
+        VERGEML_MENU,
         __('Media Taxonomies','vergelabs-media-library') . ' &lsaquo; ' . __('Media Settings','vergelabs-media-library'),
         __('Media Taxonomies','vergelabs-media-library'),
         'manage_options',
@@ -149,7 +149,7 @@ function vergeml_admin_media_menu() {
     );
 
     $eml_mimetype_options_page = add_submenu_page(
-        'options-general.php',
+        VERGEML_MENU,
         __('MIME Types','vergelabs-media-library') . ' &lsaquo; ' . __('Media Settings','vergelabs-media-library'),
         __('MIME Types','vergelabs-media-library'),
         'manage_options',
@@ -2232,7 +2232,24 @@ function vergeml_print_taxonomies_options() {
 
                                 foreach ( get_taxonomies(array(),'object') as $taxonomy ) {
 
-                                    if ( (in_array('attachment',$taxonomy->object_type) && count($taxonomy->object_type) == 1) || empty($taxonomy->object_type) ) {
+                                    /*
+                                     *  Ours is ours, whatever else it is attached to.
+                                     *
+                                     *  This asked "is it on attachments and nothing else", which was a fair
+                                     *  test of "is this a media taxonomy" right up until a media taxonomy
+                                     *  could also be turned on for posts. After that our own folder taxonomy
+                                     *  failed it, dropped out of this editor, and reappeared further down the
+                                     *  screen in the list of other people's taxonomies -- where the form posts
+                                     *  eml_media and four checkboxes and nothing else.
+                                     *
+                                     *  The sanitiser then read that as a media taxonomy being saved with
+                                     *  hierarchical, show_in_rest, sort and post types all absent, and wrote
+                                     *  them off. One Save and the folder tree was gone from every screen.
+                                     *
+                                     *  eml_media is the question that was actually meant.
+                                     */
+                                    if ( ! empty( $vergeml_taxonomies[$taxonomy->name]['eml_media'] ) ||
+                                         (in_array('attachment',$taxonomy->object_type) && count($taxonomy->object_type) == 1) || empty($taxonomy->object_type) ) {
 
                                         $assigned = (bool) $vergeml_taxonomies[$taxonomy->name]['assigned'];
                                         $eml_media = (bool) $vergeml_taxonomies[$taxonomy->name]['eml_media'];
@@ -2245,6 +2262,14 @@ function vergeml_print_taxonomies_options() {
                                         $html .= '<li class="' . $li_class . '" id="' . esc_attr($taxonomy->name) . '">';
 
                                         $html .= '<input name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][eml_media]" type="hidden" value="' . $eml_media . '" />';
+                                        /*
+                                         *  This form carries the whole taxonomy.
+                                         *
+                                         *  Without it the sanitiser cannot tell an unticked checkbox from a control
+                                         *  that was never on the form, and has to read both as off -- so any screen
+                                         *  posting a partial taxonomy switched off everything it did not mention.
+                                         */
+                                        $html .= '<input name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][_full]" type="hidden" value="1" />';
                                         $html .= '<label><input class="vergeml-assigned" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][assigned]" type="checkbox" value="1" ' . checked( true, $assigned, false ) . ' title="' . __('Assign Taxonomy','vergelabs-media-library') . '" />' . esc_html($taxonomy->label) . '</label>';
                                         $html .= '<a class="vergeml-button-edit" title="' . __('Edit Taxonomy','vergelabs-media-library') . '" href="javascript:;">' . __('Edit','vergelabs-media-library') . ' &darr;</a>';
 
@@ -2275,13 +2300,28 @@ function vergeml_print_taxonomies_options() {
                                             $html .= '<h4>' . __('Settings','vergelabs-media-library') . '</h4>';
                                             $html .= '<ul>';
                                             $html .= '<li><label>' . __('Taxonomy Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-taxonomy-name" name="" value="' . esc_attr($taxonomy->name) . '" disabled="disabled" /></li>';
-                                            $html .= '<li><label>' . __('Hierarchical','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-hierarchical" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][hierarchical]" value="1" ' . checked( true, (bool) $taxonomy->hierarchical, false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Column for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_admin_column" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_admin_column]" value="1" ' . checked( true, (bool) $taxonomy->show_admin_column, false ) . ' /></li>';
+                                            /*
+                                             *  These four read the stored setting, not the registered taxonomy.
+                                             *
+                                             *  Reading the live object looks equivalent and is not: this page is one
+                                             *  form, so saving anything on it posts every checkbox, and a box that
+                                             *  renders from the object writes the object's state back over the setting.
+                                             *  The moment the two disagreed -- and they disagree whenever registration
+                                             *  falls back for any reason -- Save made the wrong one permanent.
+                                             *
+                                             *  Hierarchical is the one that hurts: turn it off and the taxonomy is no
+                                             *  longer drawn as a tree, so the folder panel disappears from every screen
+                                             *  while every folder sits untouched in the database. And because the box
+                                             *  then rendered unchecked, saving again kept it off. There was no way back
+                                             *  from inside the interface.
+                                             */
+                                            $html .= '<li><label>' . __('Hierarchical','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-hierarchical" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][hierarchical]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['hierarchical'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . __('Column for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_admin_column" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_admin_column]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['show_admin_column'], false ) . ' /></li>';
                                             $html .= '<li><label>' . __('Filter for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /></li>';
                                             $html .= '<li><label>' . __('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /></li>';
                                             $html .= '<li><label>' . __('Edit in Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Remember Terms Order (sort)','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-sort" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][sort]" value="1" ' . checked( true, (bool) $taxonomy->sort, false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Show in REST','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_in_rest" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_in_rest]" value="1" ' . checked( true, (bool) $taxonomy->show_in_rest, false ) . ' /></li>';
+                                            $html .= '<li><label>' . __('Remember Terms Order (sort)','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-sort" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][sort]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['sort'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . __('Show in REST','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_in_rest" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_in_rest]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['show_in_rest'], false ) . ' /></li>';
                                             $html .= '<li><label>' . __('Also use for','vergelabs-media-library') . '</label>' . vergeml_folder_post_types_field( $taxonomy->name ) . '</li>';
                                             $html .= '<li><label>' . __('Rewrite Slug','vergelabs-media-library') . '</label><input type="text" class="vergeml-slug" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][rewrite][slug]" value="' . esc_attr($vergeml_taxonomies[$taxonomy->name]['rewrite']['slug']) . '" /></li>';
                                             $html .= '<li><label>' . __('Slug with Front','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-with_front" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][rewrite][with_front]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['rewrite']['with_front'], false ) . ' /></li>';
@@ -2394,6 +2434,15 @@ function vergeml_print_taxonomies_options() {
                                                      $taxonomy->name == 'wp_theme'||
                                                      $taxonomy->name == 'wp_pattern_category'||
                                                      $taxonomy->name == 'wp_template_part_area' ) {
+                                                    continue;
+                                                }
+
+                                                /*
+                                                 *  A media taxonomy of ours is edited above, in full. Listing it
+                                                 *  here as well put it on the page twice, and the partial form
+                                                 *  down here overwrote everything the full one had just set.
+                                                 */
+                                                if ( ! empty( $vergeml_taxonomies[$taxonomy->name]['eml_media'] ) ) {
                                                     continue;
                                                 }
 

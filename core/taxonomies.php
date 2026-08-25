@@ -88,7 +88,24 @@ function vergeml_taxonomies_validate( $input ) {
 
         $input[$taxonomy]['eml_media'] = isset( $params['eml_media'] ) && !! $params['eml_media'] ? 1 : 0;
 
-        if ( $input[$taxonomy]['eml_media'] ) {
+        /*
+         *  Only a form that carried the whole taxonomy may rewrite the whole taxonomy.
+         *
+         *  Everything in the branch below is a checkbox, and an absent checkbox means
+         *  off -- correct when the box was on the form, catastrophic when it was not.
+         *  The full editor marks itself; anything else keeps what is already stored.
+         */
+        if ( $input[$taxonomy]['eml_media'] && empty( $params['_full'] ) ) {
+            foreach ( array( 'hierarchical', 'show_in_rest', 'sort', 'show_admin_column', 'rewrite', 'post_types', 'labels' ) as $keep ) {
+                if ( isset( $stored[ $taxonomy ][ $keep ] ) ) {
+                    $input[$taxonomy][ $keep ] = $stored[ $taxonomy ][ $keep ];
+                }
+            }
+        }
+        
+        unset( $input[$taxonomy]['_full'] );
+        
+        if ( $input[$taxonomy]['eml_media'] && ! empty( $params['_full'] ) ) {
             $input[$taxonomy]['hierarchical'] = isset($params['hierarchical']) && !! $params['hierarchical'] ? 1 : 0;
             $input[$taxonomy]['show_in_rest'] = isset($params['show_in_rest']) && !! $params['show_in_rest'] ? 1 : 0;
             $input[$taxonomy]['sort'] = isset($params['sort']) && !! $params['sort'] ? 1 : 0;

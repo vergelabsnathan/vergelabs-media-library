@@ -80,6 +80,60 @@ t( 'and the same for the options in that group',
 	count( (array) $opts_kept ) === count( (array) $opts_before ),
 	count( (array) $opts_kept ) . ' of ' . count( (array) $opts_before ) . ' kept' );
 
+/* --- the form that carried only part of it -------------------------------- */
+
+/*
+ *  The one that actually broke this install, twice.
+ *
+ *  The Media Taxonomies screen only gave a taxonomy its full editor when it was
+ *  attached to attachments and nothing else. The moment folders were turned on
+ *  for posts, our own taxonomy failed that test, dropped out of the editor, and
+ *  reappeared lower down among other people's taxonomies -- where the form posts
+ *  eml_media and four checkboxes and nothing more.
+ *
+ *  The sanitiser read that as a media taxonomy being saved with hierarchical,
+ *  show_in_rest, sort and post types all absent, and switched them off. One Save
+ *  and the folder tree was gone from every screen, with every folder still in the
+ *  database and nothing to say why.
+ *
+ *  Two guards now: the editor recognises its own taxonomies by eml_media, and a
+ *  form that carries the whole taxonomy says so, so a partial one cannot rewrite
+ *  what it never showed.
+ */
+$partial = array( $tax => array(
+	'eml_media'             => 1,
+	'assigned'              => 1,
+	'admin_filter'          => 1,
+	'media_uploader_filter' => 1,
+) );
+
+$_POST['vergeml_taxonomies'] = $partial;
+$survived = vergeml_taxonomies_validate( $partial );
+unset( $_POST['vergeml_taxonomies'] );
+
+t( 'a partial save keeps hierarchical', ! empty( $survived[ $tax ]['hierarchical'] ),
+	var_export( $survived[ $tax ]['hierarchical'] ?? null, true ) );
+t( 'and show_in_rest', ! empty( $survived[ $tax ]['show_in_rest'] ),
+	var_export( $survived[ $tax ]['show_in_rest'] ?? null, true ) );
+t( 'and the post types', isset( $survived[ $tax ]['post_types'] ) &&
+	$survived[ $tax ]['post_types'] === ( $before[ $tax ]['post_types'] ?? array() ),
+	wp_json_encode( $survived[ $tax ]['post_types'] ?? null ) );
+t( 'and the labels', ! empty( $survived[ $tax ]['labels']['name'] ) );
+
+// The full editor must still be able to turn things off, or the guard is a lock.
+$full = $partial;
+$full[ $tax ]['_full']        = 1;
+$full[ $tax ]['hierarchical'] = 1;
+
+$_POST['vergeml_taxonomies'] = $full;
+$written = vergeml_taxonomies_validate( $full );
+unset( $_POST['vergeml_taxonomies'] );
+
+t( 'the full editor still writes what it was given', 1 === (int) $written[ $tax ]['hierarchical'] );
+t( 'and can still switch something off', empty( $written[ $tax ]['show_in_rest'] ),
+	var_export( $written[ $tax ]['show_in_rest'] ?? null, true ) );
+t( 'the marker never reaches storage', ! isset( $written[ $tax ]['_full'] ) );
+
 /* --- a write that forgets the labels ------------------------------------- */
 
 $partial = $before;
