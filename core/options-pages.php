@@ -374,27 +374,6 @@ function vergeml_media_options_page() {
 
 
 /**
- *  vergeml_print_media_settings_tabs
- *
- *  @since    2.2.1
- *  @created  11/04/16
- */
-
-function vergeml_print_media_settings_tabs( $active ) { ?>
-
-    <h2 class="nav-tab-wrapper wp-clearfix" id="eml-options-media-tabs">
-        <a href="<?php echo esc_url( get_admin_url( null, 'options-general.php?page=media' ) ); ?>" class="nav-tab<?php echo ( 'media' === $active ) ? ' nav-tab-active' : ''; ?>"><?php esc_html_e( 'General', 'vergelabs-media-library' ); ?></a>
-        <a href="<?php echo esc_url( get_admin_url( null, 'options-general.php?page=media-library' ) ); ?>" class="nav-tab<?php echo ( 'library' === $active ) ? ' nav-tab-active' : ''; ?>"><?php esc_html_e( 'Media Library', 'vergelabs-media-library' ); ?></a>
-        <a href="<?php echo esc_url( get_admin_url( null, 'options-general.php?page=media-taxonomies' ) ); ?>" class="nav-tab<?php echo ( 'taxonomies' === $active ) ? ' nav-tab-active' : ''; ?>"><?php esc_html_e( 'Media Taxonomies', 'vergelabs-media-library' ); ?></a>
-        <a href="<?php echo esc_url( get_admin_url( null, 'options-general.php?page=mime-types' ) ); ?>" class="nav-tab<?php echo ( 'mimetypes' === $active ) ? ' nav-tab-active' : ''; ?>"><?php esc_html_e( 'MIME Types', 'vergelabs-media-library' ); ?></a>
-    </h2>
-
-<?php
-}
-
-
-
-/**
  *  vergeml_print_media_settings
  *
  *  Based on wp-admin/options-media.php
@@ -425,7 +404,19 @@ function vergeml_print_media_settings() {
     <div class="wrap">
     <h1><?php echo esc_html( $title ); ?></h1>
 
-    <?php vergeml_print_media_settings_tabs( 'media' ); ?>
+    <?php
+    /*
+     *  The tab strip is gone from the plugin's own screens -- they sit in a menu
+     *  of their own now, and a page carrying navigation that repeats the sidebar
+     *  beside it is asking to be read twice. This screen is not in that menu, so
+     *  it keeps a way back to it.
+     */
+    printf(
+        '<p><a href="%1$s">&larr; %2$s</a></p>',
+        esc_url( admin_url( 'admin.php?page=' . VERGEML_MENU ) ),
+        esc_html__( 'Media Library settings', 'vergelabs-media-library' )
+    );
+    ?>
 
     <form action="options.php" method="post">
     <?php settings_fields( 'media' ); ?>
@@ -1788,14 +1779,16 @@ function vergeml_print_media_library_options() {
 
 
     $vergeml_lib_options = get_option( 'vergeml_lib_options' );
-    $title = __( 'Media Settings', 'vergelabs-media-library' ); ?>
+    // Named for the screen, not for the group it used to sit in: the menu entry
+    // beside it says "Media Library", and a heading that disagrees with the thing
+    // you just clicked is a small lie about where you are.
+    $title = __( 'Media Library', 'vergelabs-media-library' ); ?>
 
 
     <div id="vergeml-media-library-options-wrap" class="wrap eml-options">
 
         <h1><?php echo esc_html( $title ); ?></h1>
 
-        <?php vergeml_print_media_settings_tabs( 'library' ); ?>
 
         <div id="poststuff">
 
@@ -2201,14 +2194,13 @@ function vergeml_print_taxonomies_options() {
 
 
     $vergeml_taxonomies = get_option( 'vergeml_taxonomies', array() );
-    $title = __( 'Media Settings', 'vergelabs-media-library' ); ?>
+    $title = __( 'Media Taxonomies', 'vergelabs-media-library' ); ?>
 
 
     <div id="vergeml-global-options-wrap" class="wrap eml-options">
 
         <h1><?php echo esc_html( $title ); ?></h1>
 
-        <?php vergeml_print_media_settings_tabs( 'taxonomies' ); ?>
 
         <div id="poststuff">
 
@@ -2631,7 +2623,7 @@ function vergeml_print_mimetypes_options() {
 
     $vergeml_mimes = get_option('vergeml_mimes');
 
-    $title = __( 'Media Settings', 'vergelabs-media-library' ); ?>
+    $title = __( 'MIME Types', 'vergelabs-media-library' ); ?>
 
     <div id="vergeml-global-options-wrap" class="wrap eml-options">
 
@@ -2659,7 +2651,6 @@ function vergeml_print_mimetypes_options() {
         );
         ?>
 
-        <?php vergeml_print_media_settings_tabs( 'mimetypes' ); ?>
 
         <div id="poststuff">
 
