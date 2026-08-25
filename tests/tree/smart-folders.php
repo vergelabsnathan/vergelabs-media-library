@@ -77,6 +77,48 @@ t( 'the featured image is used', '0' === vgml_unused_flag( $featured ) );
 t( 'the attached child is used', '0' === vgml_unused_flag( $attached ) );
 t( 'the untouched one is unused', '1' === vgml_unused_flag( $untouched ) );
 
+/* --- references that live outside post content ------------------------------ */
+
+echo "\nreferences outside post content\n";
+
+/*
+ *  The two that motivated widening the scan: Elementor keeps the whole layout
+ *  in postmeta as JSON with escaped slashes, and the site logo lives in an
+ *  option. Before the scan read those, every image a builder page used was
+ *  "unused" -- the delete key pointed at somebody's homepage.
+ */
+$more = get_posts( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => 2, 'offset' => 5, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC' ) );
+list( $in_meta, $in_option ) = array_map( 'intval', $more );
+
+$meta_url = str_replace( '/', '\\/', wp_get_attachment_url( $in_meta ) );
+$p3 = wp_insert_post( array( 'post_title' => 'smart probe builder', 'post_type' => 'page', 'post_status' => 'publish', 'post_content' => '' ) );
+update_post_meta( $p3, '_fake_builder_data', '[{"elType":"widget","settings":{"image":{"url":"' . $meta_url . '","id":' . $in_meta . '}}}]' );
+
+$mods_backup = get_option( 'theme_mods_vergeml_probe', null );
+update_option( 'theme_mods_vergeml_probe', array( 'custom_logo' => 'wp-image-' . $in_option . ' placeholder' ), false );
+
+$done2 = vgml_scan_to_end();
+
+t( 'a builder-meta reference is used', '0' === vgml_unused_flag( $in_meta ),
+    var_export( vgml_unused_flag( $in_meta ), true ) );
+t( 'an option reference is used', '0' === vgml_unused_flag( $in_option ),
+    var_export( vgml_unused_flag( $in_option ), true ) );
+
+/* --- and the scan remembers WHO uses each file ------------------------------- */
+
+echo "\nwhere is this used\n";
+
+$used_in = explode( ',', (string) get_post_meta( $by_id, VERGEML_META_USED_IN, true ) );
+t( 'the embedded image knows its post', in_array( (string) $p1, $used_in, true ), implode( ',', $used_in ) );
+
+$used_in_meta = explode( ',', (string) get_post_meta( $in_meta, VERGEML_META_USED_IN, true ) );
+t( 'the builder image knows its page', in_array( (string) $p3, $used_in_meta, true ), implode( ',', $used_in_meta ) );
+
+$used_in_opt = explode( ',', (string) get_post_meta( $in_option, VERGEML_META_USED_IN, true ) );
+t( 'the option image says the site itself', in_array( '0', $used_in_opt, true ), implode( ',', $used_in_opt ) );
+
+t( 'an unused file records no users', '' === (string) get_post_meta( $untouched, VERGEML_META_USED_IN, true ) );
+
 /* --- the size index came along ---------------------------------------------- */
 
 $size = (int) get_post_meta( $untouched, VERGEML_META_FILESIZE, true );
@@ -140,6 +182,12 @@ t( 'the unused query returns the stamped set', (int) $q->found_posts === (int) v
 t( 'and not the used ones', ! in_array( $featured, array_map( 'intval', $q->posts ), true ) );
 
 /* tidy */
+wp_delete_post( $p3, true );
+if ( null === $mods_backup ) {
+	delete_option( 'theme_mods_vergeml_probe' );
+} else {
+	update_option( 'theme_mods_vergeml_probe', $mods_backup );
+}
 wp_delete_attachment( $big_id, true );
 wp_delete_post( $p1, true );
 wp_delete_post( $p2, true );

@@ -25,6 +25,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 const VERGEML_META_UNUSED   = '_vergeml_unused';
+const VERGEML_META_USED_IN  = '_vergeml_used_in';
 const VERGEML_META_FILESIZE = '_vergeml_filesize';
 const VERGEML_SCAN_OPTION   = 'vergeml_smart_scan';
 
@@ -232,6 +233,78 @@ function vergeml_smart_scan_state() {
  *  both indexes.
  */
 
+/**
+ *  vergeml_refs_in
+ *
+ *  Every attachment a blob of text refers to. One extractor for post content,
+ *  postmeta and options, because a reference is a reference wherever it hides:
+ *  editor markup (wp-image-N), block and builder JSON ("id":N), gallery
+ *  shortcodes (ids=), and file URLs under the uploads directory -- including
+ *  the JSON-escaped form (http:\/\/...) that Elementor and every other
+ *  builder storing JSON writes, which a straight URL match never sees.
+ */
+
+function vergeml_refs_in( $blob, $base_url ) {
+
+    global $wpdb;
+
+    $refs = array();
+
+    if ( ! is_string( $blob ) || '' === $blob ) {
+        return $refs;
+    }
+
+    // JSON-escaped slashes unescaped once, so one set of patterns serves both.
+    if ( false !== strpos( $blob, '\/' ) ) {
+        $blob = str_replace( '\/', '/', $blob );
+    }
+
+    if ( preg_match_all( '/wp-image-(\d+)/', $blob, $m ) ) {
+        foreach ( $m[1] as $id ) {
+            $refs[ (int) $id ] = true;
+        }
+    }
+    if ( preg_match_all( '/"id"\s*:\s*(\d+)/', $blob, $m ) ) {
+        foreach ( $m[1] as $id ) {
+            $refs[ (int) $id ] = true;
+        }
+    }
+    if ( preg_match_all( '/ids="([\d,\s]+)"/', $blob, $m ) ) {
+        foreach ( $m[1] as $list ) {
+            foreach ( explode( ',', $list ) as $id ) {
+                if ( (int) $id > 0 ) {
+                    $refs[ (int) $id ] = true;
+                }
+            }
+        }
+    }
+
+    if ( $base_url && false !== strpos( $blob, $base_url )
+        && preg_match_all( '#' . preg_quote( $base_url, '#' ) . '([^\s"\'<>\?]+)#', $blob, $m ) ) {
+
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- resolving paths to ids inside the scan.
+        foreach ( array_unique( $m[1] ) as $path ) {
+            // A sized copy points at its original: photo-300x200.jpg is
+            // photo.jpg's use.
+            $path = preg_replace( '/-\d+x\d+(\.[a-z0-9]+)$/i', '$1', $path );
+
+            $found = $wpdb->get_var( $wpdb->prepare(
+                "SELECT post_id FROM {$wpdb->postmeta}
+                 WHERE meta_key = '_wp_attached_file' AND meta_value = %s LIMIT 1",
+                $path
+            ) );
+
+            if ( $found ) {
+                $refs[ (int) $found ] = true;
+            }
+        }
+        // phpcs:enable
+    }
+
+    return array_keys( $refs );
+}
+
+
 function vergeml_smart_scan_step( $resume = null ) {
 
     global $wpdb;
@@ -239,16 +312,42 @@ function vergeml_smart_scan_step( $resume = null ) {
     $chunk = (int) apply_filters( 'vergeml_scan_chunk', 200 );
     $chunk = $chunk > 0 ? $chunk : 200;
 
+    /*
+     *  refs is a map: attachment id => the post ids that use it (0 standing in
+     *  for "site settings" -- widgets, the customiser, the logo). It is what
+     *  makes "unused" checkable and "where is this used" answerable from the
+     *  same walk. Capped per attachment, because "used in 400 places" and
+     *  "used in 20 places, and more" call for the same caution.
+     */
     $state = is_array( $resume ) ? $resume : array(
         'phase' => 1,
         'at'    => 0,
-        'used'  => array(),
+        'refs'  => array(),
     );
+
+    $cap = 20;
 
     $uploads  = wp_get_upload_dir();
     $base_url = trailingslashit( $uploads['baseurl'] );
 
+    $refs = array();
+    foreach ( (array) $state['refs'] as $aid => $sources ) {
+        $refs[ (int) $aid ] = array_map( 'intval', (array) $sources );
+    }
+
+    $note = function ( $aid, $source ) use ( &$refs, $cap ) {
+        $aid = (int) $aid;
+        if ( ! isset( $refs[ $aid ] ) ) {
+            $refs[ $aid ] = array();
+        }
+        if ( count( $refs[ $aid ] ) < $cap && ! in_array( (int) $source, $refs[ $aid ], true ) ) {
+            $refs[ $aid ][] = (int) $source;
+        }
+    };
+
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- a bounded scan walking the tables directly is the entire feature.
+
+    /* --- phase one: posts, and their meta ----------------------------------- */
 
     if ( 1 === (int) $state['phase'] ) {
 
@@ -262,69 +361,68 @@ function vergeml_smart_scan_step( $resume = null ) {
             (int) $state['at']
         ) );
 
-        $used = array_fill_keys( array_map( 'intval', (array) $state['used'] ), true );
+        $ids = array_map( 'intval', wp_list_pluck( (array) $posts, 'ID' ) );
+
+        /*
+         *  The post's meta as well as its content. Elementor keeps the whole
+         *  layout in _elementor_data, custom-field plugins keep image ids in
+         *  their own keys -- a scan that reads only post_content calls every
+         *  image a builder page uses "unused", which is the delete key pointed
+         *  at somebody's homepage.
+         */
+        $meta_blobs = array();
+
+        if ( $ids ) {
+            $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+
+            $params   = $ids;
+            $params[] = $wpdb->esc_like( '_vergeml' ) . '%';
+            $params[] = '%' . $wpdb->esc_like( 'wp-image-' ) . '%';
+            $params[] = '%' . $wpdb->esc_like( 'uploads' ) . '%';
+
+            /*
+             *  $placeholders is a string of %d markers matching count( $ids ),
+             *  and every value -- ids and LIKE patterns alike -- travels
+             *  through prepare. The sniff cannot count a dynamic list.
+             */
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+            $rows = $wpdb->get_results( $wpdb->prepare(
+                "SELECT post_id, meta_value FROM {$wpdb->postmeta}
+                 WHERE post_id IN ( $placeholders )
+                   AND meta_key NOT LIKE %s
+                   AND ( meta_value LIKE %s OR meta_value LIKE %s )",
+                $params
+            ) );
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+            foreach ( (array) $rows as $row ) {
+                $meta_blobs[ (int) $row->post_id ][] = (string) $row->meta_value;
+            }
+        }
 
         foreach ( (array) $posts as $post ) {
 
-            // The featured image.
-            $thumb = (int) get_post_meta( $post->ID, '_thumbnail_id', true );
+            $pid = (int) $post->ID;
+
+            $thumb = (int) get_post_meta( $pid, '_thumbnail_id', true );
             if ( $thumb > 0 ) {
-                $used[ $thumb ] = true;
+                $note( $thumb, $pid );
             }
 
-            $content = (string) $post->post_content;
-
-            if ( '' === $content ) {
-                continue;
+            foreach ( vergeml_refs_in( (string) $post->post_content, $base_url ) as $aid ) {
+                $note( $aid, $pid );
             }
 
-            // Ids the editor writes into markup: wp-image-123, "id":123 in
-            // block comments, ids="1,2,3" in gallery shortcodes.
-            if ( preg_match_all( '/wp-image-(\d+)/', $content, $m ) ) {
-                foreach ( $m[1] as $id ) {
-                    $used[ (int) $id ] = true;
-                }
-            }
-            if ( preg_match_all( '/"id"\s*:\s*(\d+)/', $content, $m ) ) {
-                foreach ( $m[1] as $id ) {
-                    $used[ (int) $id ] = true;
-                }
-            }
-            if ( preg_match_all( '/ids="([\d,\s]+)"/', $content, $m ) ) {
-                foreach ( $m[1] as $list ) {
-                    foreach ( explode( ',', $list ) as $id ) {
-                        if ( (int) $id > 0 ) {
-                            $used[ (int) $id ] = true;
-                        }
-                    }
-                }
-            }
-
-            // File URLs, resolved back to attachments at the end of the phase
-            // would mean keeping every URL; resolving here keeps the state
-            // small. Only paths under the uploads directory can match.
-            if ( $base_url && false !== strpos( $content, $base_url )
-                && preg_match_all( '#' . preg_quote( $base_url, '#' ) . '([^\s"\'<>\?]+)#', $content, $m ) ) {
-
-                foreach ( array_unique( $m[1] ) as $path ) {
-                    // Sized copies point at their original: photo-300x200.jpg
-                    // is photo.jpg's use.
-                    $path = preg_replace( '/-\d+x\d+(\.[a-z0-9]+)$/i', '$1', $path );
-
-                    $found = $wpdb->get_var( $wpdb->prepare(
-                        "SELECT post_id FROM {$wpdb->postmeta}
-                         WHERE meta_key = '_wp_attached_file' AND meta_value = %s LIMIT 1",
-                        $path
-                    ) );
-
-                    if ( $found ) {
-                        $used[ (int) $found ] = true;
+            if ( isset( $meta_blobs[ $pid ] ) ) {
+                foreach ( $meta_blobs[ $pid ] as $blob ) {
+                    foreach ( vergeml_refs_in( $blob, $base_url ) as $aid ) {
+                        $note( $aid, $pid );
                     }
                 }
             }
         }
 
-        $state['used'] = array_keys( $used );
+        $state['refs'] = $refs;
         $state['at']   = (int) $state['at'] + count( (array) $posts );
 
         $total_posts = (int) $wpdb->get_var(
@@ -347,7 +445,48 @@ function vergeml_smart_scan_step( $resume = null ) {
         );
     }
 
-    /* --- phase two: stamp the attachments ---------------------------------- */
+    /* --- phase two: options -- widgets, the customiser, the logo ------------ */
+
+    if ( 2 === (int) $state['phase'] ) {
+
+        $options = $wpdb->get_col( $wpdb->prepare(
+            "SELECT option_value FROM {$wpdb->options}
+             WHERE option_name NOT LIKE %s AND option_name NOT LIKE %s
+               AND ( option_value LIKE %s OR option_value LIKE %s )
+             ORDER BY option_id ASC
+             LIMIT %d OFFSET %d",
+            $wpdb->esc_like( '_transient' ) . '%',
+            $wpdb->esc_like( '_site_transient' ) . '%',
+            '%' . $wpdb->esc_like( 'wp-image-' ) . '%',
+            '%' . $wpdb->esc_like( 'uploads' ) . '%',
+            $chunk,
+            (int) $state['at']
+        ) );
+
+        foreach ( (array) $options as $blob ) {
+            foreach ( vergeml_refs_in( (string) $blob, $base_url ) as $aid ) {
+                $note( $aid, 0 ); // 0: used by the site itself, not by a post.
+            }
+        }
+
+        $state['refs'] = $refs;
+        $state['at']   = (int) $state['at'] + count( (array) $options );
+
+        if ( count( (array) $options ) < $chunk ) {
+            $state['phase'] = 3;
+            $state['at']    = 0;
+        }
+
+        return array(
+            'complete' => false,
+            'phase'    => 2,
+            'done'     => 0,
+            'total'    => 0,
+            'resume'   => $state,
+        );
+    }
+
+    /* --- phase three: stamp the attachments --------------------------------- */
 
     $attachments = $wpdb->get_col( $wpdb->prepare(
         "SELECT ID FROM {$wpdb->posts}
@@ -358,18 +497,25 @@ function vergeml_smart_scan_step( $resume = null ) {
         (int) $state['at']
     ) );
 
-    $used = array_fill_keys( array_map( 'intval', (array) $state['used'] ), true );
-
     foreach ( (array) $attachments as $id ) {
 
         $id = (int) $id;
 
-        // Attached to a post is used, whatever the content says.
+        $sources = isset( $refs[ $id ] ) ? $refs[ $id ] : array();
+
+        // Attached to a post is used, whatever anything else says.
         $parent = (int) get_post_field( 'post_parent', $id );
+        if ( $parent > 0 && ! in_array( $parent, $sources, true ) ) {
+            $sources[] = $parent;
+        }
 
-        $is_used = $parent > 0 || isset( $used[ $id ] );
+        update_post_meta( $id, VERGEML_META_UNUSED, $sources ? '0' : '1' );
 
-        update_post_meta( $id, VERGEML_META_UNUSED, $is_used ? '0' : '1' );
+        if ( $sources ) {
+            update_post_meta( $id, VERGEML_META_USED_IN, implode( ',', array_slice( $sources, 0, $cap ) ) );
+        } else {
+            delete_post_meta( $id, VERGEML_META_USED_IN );
+        }
 
         // The size index, fed by the same walk.
         $file = get_attached_file( $id );
@@ -391,19 +537,17 @@ function vergeml_smart_scan_step( $resume = null ) {
 
         return array(
             'complete' => true,
-            'phase'    => 2,
+            'phase'    => 3,
             'done'     => $total,
             'total'    => $total,
             'resume'   => null,
-            // Every count, so the caller's five rows become real numbers at
-            // once -- and so completion means the same thing whoever asked.
             'counts'   => vergeml_smart_counts(),
         );
     }
 
     return array(
         'complete' => false,
-        'phase'    => 2,
+        'phase'    => 3,
         'done'     => (int) $state['at'],
         'total'    => $total,
         'resume'   => $state,
@@ -431,6 +575,70 @@ function vergeml_smart_stamp_new( $attachment_id ) {
     $file = get_attached_file( $attachment_id );
     $size = ( $file && file_exists( $file ) ) ? (int) filesize( $file ) : 0;
     update_post_meta( $attachment_id, VERGEML_META_FILESIZE, (string) $size );
+}
+
+
+/* ------------------------------------------------- where is this used */
+
+/**
+ *  "Used in", on every attachment's details.
+ *
+ *  The single question people delete files without being able to answer. The
+ *  scan already knows; this puts the answer where the delete button is --
+ *  linked post titles, or "Site settings" for the logo and widgets, or a plain
+ *  "nothing found" that tells somebody the file is safe to remove.
+ */
+
+add_filter( 'attachment_fields_to_edit', 'vergeml_used_in_field', 12, 2 );
+
+function vergeml_used_in_field( $fields, $post ) {
+
+    if ( empty( vergeml_smart_scan_state()['finished'] ) ) {
+        return $fields; // No index, no claims.
+    }
+
+    $raw = (string) get_post_meta( $post->ID, VERGEML_META_USED_IN, true );
+
+    if ( '' === $raw ) {
+
+        $unused = get_post_meta( $post->ID, VERGEML_META_UNUSED, true );
+
+        $html = '1' === $unused
+            ? '<em>' . esc_html__( 'Nothing found. The last scan saw no page, post or setting using this file.', 'vergelabs-media-library' ) . '</em>'
+            : '<em>' . esc_html__( 'Not scanned yet.', 'vergelabs-media-library' ) . '</em>';
+
+    } else {
+
+        $links = array();
+
+        foreach ( array_map( 'intval', explode( ',', $raw ) ) as $source ) {
+
+            if ( 0 === $source ) {
+                $links[] = esc_html__( 'Site settings', 'vergelabs-media-library' );
+                continue;
+            }
+
+            $title = get_the_title( $source );
+
+            if ( '' === $title ) {
+                continue; // The referencing post has been deleted since the scan.
+            }
+
+            $links[] = '<a href="' . esc_url( get_edit_post_link( $source ) ) . '">' . esc_html( $title ) . '</a>';
+        }
+
+        $html = $links
+            ? implode( ', ', $links )
+            : '<em>' . esc_html__( 'The pages that used this have since been deleted.', 'vergelabs-media-library' ) . '</em>';
+    }
+
+    $fields['vergeml_used_in'] = array(
+        'label' => __( 'Used in', 'vergelabs-media-library' ),
+        'input' => 'html',
+        'html'  => '<div style="padding-top:4px">' . $html . '</div>',
+    );
+
+    return $fields;
 }
 
 
