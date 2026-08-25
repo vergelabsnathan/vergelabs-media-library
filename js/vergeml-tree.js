@@ -1435,14 +1435,23 @@
 				}
 
 				/*
-				 *  Ctrl or Alt turns an add into a move, read from the original
-				 *  event because jQuery UI hands us the mouse event that ended the
-				 *  drag. With "one folder per file" on, every plain drag is a move
-				 *  and the modifier is redundant rather than inverted -- inverting
-				 *  it would mean the same gesture doing opposite things on two
-				 *  installs, which is worse than a key that does nothing.
+				 *  A plain drag MOVES. Ctrl or Alt adds to a second folder.
+				 *
+				 *  It began the other way round -- plain drag added, because a file
+				 *  in several folders is the thing this plugin can do that the
+				 *  competitors cannot. And the first person to try it read the add
+				 *  as a copy bug: "the original stays in the old folder". Thirty
+				 *  years of desktop file managers say plain drag moves and Ctrl
+				 *  copies, and a default that fights that reads as broken no matter
+				 *  what the toast says afterwards. Multi-folder is still here, on
+				 *  exactly the modifier that has always meant "copy".
+				 *
+				 *  With "one folder per file" on, Ctrl is ignored rather than
+				 *  inverted: every drop is a move, which is the promise the setting
+				 *  makes. The modifier is read from the original event because
+				 *  jQuery UI hands us the mouse event that ended the drag.
 				 */
-				var move = cfg.onePerFile || !! ( e && ( e.ctrlKey || e.altKey ) );
+				var move = cfg.onePerFile || ! ( e && ( e.ctrlKey || e.altKey ) );
 
 				assign( ids, termId, move );
 				dragging = null;

@@ -3,9 +3,11 @@
  *
  *      node tests/tree/one-folder.mjs http://185.229.224.239 admin VgmlTest7pass
  *
- *  Off, a plain drag adds and a file can sit in several folders -- the thing
- *  neither FileBird nor Folders can do. On, a plain drag moves, which is what
- *  somebody switching from them expects, because their folders hold a file once.
+ *  A plain drag always moves -- that is what thirty years of file managers
+ *  taught everyone a drag does. Ctrl-drag adds to a second folder, the thing
+ *  neither FileBird nor Folders can do, on the modifier that has always meant
+ *  "copy". This setting is for people who want the single-folder promise kept
+ *  absolutely: with it on, Ctrl is ignored and every drop is a move.
  *
  *  The setting is flipped through its own checkbox on Settings > Media
  *  Taxonomies rather than by writing the option directly: a checkbox that saves
@@ -110,7 +112,7 @@ async function reveal() {
 	await page.waitForTimeout( 800 );
 }
 
-async function dragOnto( termId ) {
+async function dragOnto( termId, ctrl = false ) {
 	const from = await page.$( `#post-${ fileId }` );
 	const to = await page.$( `.vgml-node[data-id="${ termId }"] .vgml-row` );
 	if ( ! from || ! to ) {
@@ -122,32 +124,34 @@ async function dragOnto( termId ) {
 	await page.mouse.down();
 	await page.mouse.move( a.x + 60, a.y + a.height / 2, { steps: 4 } );
 	await page.mouse.move( c.x + c.width / 2, c.y + c.height / 2, { steps: 12 } );
+	if ( ctrl ) { await page.keyboard.down( 'Control' ); }
 	await page.mouse.up();
+	if ( ctrl ) { await page.keyboard.up( 'Control' ); }
 	await page.waitForTimeout( 1800 );
 	return null;
 }
 
-console.log( '\noff (the default): a plain drag adds' );
+console.log( '\noff (the default): ctrl-drag may add a second folder' );
 
 check( 'the setting saves as off', await setOnePerFile( false ) );
 await setTerms( [ A ] );
 await openLibrary();
 await reveal();
 
-let err = await dragOnto( B );
+let err = await dragOnto( B, true );
 check( 'the drag landed', ! err, err || '' );
 
 const both = await termsOf();
 check( 'the file is in two folders', both.length === 2, `in ${ both.length }` );
 
-console.log( '\non: the same drag moves instead' );
+console.log( '\non: ctrl is ignored and the same drag moves' );
 
 check( 'the setting saves as on', await setOnePerFile( true ) );
 await setTerms( [ A ] );
 await openLibrary();
 await reveal();
 
-err = await dragOnto( B );
+err = await dragOnto( B, true );
 check( 'the drag landed', ! err, err || '' );
 
 const one = await termsOf();

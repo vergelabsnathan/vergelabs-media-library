@@ -134,7 +134,7 @@ async function dragFileTo( termId, { ctrl = false } = {} ) {
 	return { hovering };
 }
 
-console.log( '\n1. a plain drag adds' );
+console.log( '\n1. a plain drag moves, like every file manager' );
 await setTerms( fileId, [] );
 await reveal( 'Drag Target' );
 seen.length = 0;
@@ -143,22 +143,23 @@ let r = await dragFileTo( A );
 check( 'the drag started and reached the folder', ! r.error, r.error || '' );
 check( 'the folder showed it was a target', r.hovering === true );
 check( 'assign was called', seen.length >= 1, JSON.stringify( seen[ 0 ] || {} ).slice( 0, 80 ) );
-check( 'in add mode', seen[ 0 ] && seen[ 0 ].mode === 'add', seen[ 0 ] && seen[ 0 ].mode );
+check( 'in move mode', seen[ 0 ] && seen[ 0 ].mode === 'move', seen[ 0 ] && seen[ 0 ].mode );
 check( 'the file is in A', ( await termsOf( fileId ) ).indexOf( A ) !== -1 );
 
-console.log( '\n2. a second drag leaves it in both' );
+console.log( '\n2. a second plain drag moves it on -- no copies left behind' );
 seen.length = 0;
 await dragFileTo( B );
 const both = await termsOf( fileId );
-check( 'the file is in two folders', both.length === 2, `in ${ both.length }` );
+check( 'the file is in exactly one folder', both.length === 1, `in ${ both.length }` );
+check( 'and it is the new one', both[ 0 ] === B );
 
-console.log( '\n3. ctrl-drag moves instead of adding' );
+console.log( '\n3. ctrl-drag adds to a second folder -- the modifier that means copy' );
 seen.length = 0;
 await dragFileTo( A, { ctrl: true } );
-check( 'in move mode', seen[ 0 ] && seen[ 0 ].mode === 'move', seen[ 0 ] && seen[ 0 ].mode );
+check( 'in add mode', seen[ 0 ] && seen[ 0 ].mode === 'add', seen[ 0 ] && seen[ 0 ].mode );
 const after = await termsOf( fileId );
-check( 'the file is in exactly one folder', after.length === 1, `in ${ after.length }` );
-check( 'and it is the one dropped on', after[ 0 ] === A );
+check( 'the file is in two folders', after.length === 2, `in ${ after.length }` );
+check( 'the old folder kept it', after.indexOf( B ) !== -1 );
 
 console.log( '\n4. the undo toast puts back what the drag did' );
 await setTerms( fileId, [ B ] );

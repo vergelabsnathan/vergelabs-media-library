@@ -202,10 +202,11 @@ function vergeml_tree_assets( $hook ) {
          */
         'postType'   => $folder_post_type ? $folder_post_type : 'attachment',
         /*
-         *  When on, a plain drag moves instead of adding -- the behaviour someone
-         *  switching from FileBird or Folders expects, since their folders hold a
-         *  file once. Off by default: a file in several folders is the thing this
-         *  plugin can do that they cannot.
+         *  A plain drag always moves -- the default every file manager taught.
+         *  Ctrl-drag adds to a second folder, the thing the competitors cannot
+         *  do, on the modifier that has always meant "copy". This setting is for
+         *  keeping the single-folder promise absolute: with it on, Ctrl is
+         *  ignored and every drop is a move.
          */
         'onePerFile' => ! empty( get_option( 'vergeml_tax_options', array() )['one_folder_per_file'] ),
         'palette'    => vergeml_tree_palette(),

@@ -27,7 +27,7 @@ A folder tree sits beside the media library. Drag files onto a folder to file th
 
 **Your folders are ordinary media categories.** Nothing is kept in a private table of ours. That means your structure is readable by WordPress itself, by your theme, by WP-CLI and by any other plugin — and it is still there, intact and usable, if you ever remove this plugin. A folder plugin that stores your organisation somewhere only it can read is a folder plugin you cannot leave.
 
-**A file can be in more than one folder.** A photo can be in Products and in Autumn Campaign without a second copy of it existing. If you would rather it behaved like the folder plugins that have no choice about this, there is a setting for one folder per file.
+**A file can be in more than one folder.** Dragging a file moves it, exactly as it does on your desktop. Hold Ctrl while dropping and it is added to that folder as well -- the same photo in Products and in Autumn Campaign without a second copy of it existing, which is the thing single-folder plugins cannot do. If you want the one-folder promise kept absolutely, there is a setting that makes every drop a move.
 
 **A folder can be a gallery.** Add the Folder gallery block in the block editor -- or the Folder gallery widget in Elementor, or the Folder gallery module in Divi -- pick a folder, and it shows every image in it. It stays a folder rather than becoming a list of files: put a new image in the folder and every page using that gallery has it, with nothing re-edited. WordPress's own gallery block freezes a list of images at the moment you insert it.
 
