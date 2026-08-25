@@ -529,7 +529,8 @@
 			tabindex: '-1',
 			'aria-hidden': 'true'
 		} );
-		twist.innerHTML = entry.kids ? ( entry.open ? '&#9662;' : '&#9656;' ) : '';
+		twist.innerHTML = entry.kids ? chevron() : '';
+		if ( entry.open ) { twist.classList.add( 'is-open' ); }
 		twist.addEventListener( 'click', function ( e ) {
 			e.stopPropagation();
 			toggle( node.id );
@@ -887,6 +888,31 @@
 							delete params.vergeml_folder;
 							delete params.vergeml_folder_tax;
 						}
+					} );
+
+					/*
+					 *  When the queue finishes inside a folder, make the grid ask
+					 *  again. The file was filed on the server after the upload,
+					 *  so the browser's copy of it carries no folder -- the
+					 *  filtered collection cannot see that it belongs, and a fresh
+					 *  upload simply never appeared until a reload. A bumped
+					 *  throwaway prop forces the collection to requery the server,
+					 *  which does know; and the tree is refetched so the folder's
+					 *  own count moves too.
+					 */
+					this.uploader.bind( 'UploadComplete', function () {
+
+						if ( ! ( uploadTarget > 0 ) ) {
+							return;
+						}
+
+						var lib = libraryProps();
+
+						if ( lib ) {
+							lib.set( { vergeml_bump: String( Date.now() ) } );
+						}
+
+						load();
 					} );
 				}
 			};
@@ -1454,8 +1480,14 @@
 			addClasses: false,
 			appendTo: 'body',
 			cursorAt: { top: 12, left: 12 },
-			// 6px before a drag begins, so clicking a file stays a click.
-			distance: 6,
+			/*
+			 *  Fifteen pixels before a drag begins. It was six, and a click on a
+			 *  touchpad routinely wanders more than six -- the "click" became an
+			 *  aborted drag, the drag swallowed the click, and opening a file's
+			 *  details felt broken about one time in five. A drag toward a folder
+			 *  travels hundreds of pixels; it can afford to declare itself.
+			 */
+			distance: 15,
 			revert: 'invalid',
 			revertDuration: 150,
 			scroll: false,
@@ -1468,6 +1500,26 @@
 					.text( ids.length === 1 ? l10n.oneFile : sprintf( l10n.manyFiles, ids.length ) );
 			},
 			start: function () {
+				/*
+				 *  In Bulk select, clicks toggle selection -- and a click with a
+				 *  few pixels of hand movement is still a click to the person
+				 *  making it. With every tile armed as a draggable, that movement
+				 *  started a drag instead, the drag swallowed the click, and Bulk
+				 *  select read as simply broken.
+				 *
+				 *  But select mode is also where a multi-selection is made, and
+				 *  dragging that selection into a folder is the whole point of
+				 *  making one. So the line is drawn by what is under the pointer:
+				 *  an UNSELECTED tile in select mode is being clicked -- stand
+				 *  down and let the click land. A SELECTED tile is being picked
+				 *  up -- drag the selection.
+				 */
+				if ( document.querySelector( '.media-frame.mode-select' ) ) {
+					var tile = this.closest ? this.closest( '.attachment' ) : null;
+					if ( ! tile || ! tile.classList.contains( 'selected' ) ) {
+						return false;
+					}
+				}
 				document.body.classList.add( 'vgml-dragging-files' );
 				// Raised on start, not stop: revert:'invalid' defers stop until
 				// after the animation, by which time the click has already fired.
@@ -2056,6 +2108,19 @@
 	 *  optical weight as Dashicons, so it sits beside core's own icons without
 	 *  looking like it came from somewhere else.
 	 */
+	/*
+	 *  The disclosure chevron, drawn rather than typed.
+	 *
+	 *  It was a text triangle (&#9656;) at nine-ish pixels, which rendered
+	 *  differently on every platform and small everywhere. A stroked chevron is
+	 *  the same shape on every machine, big enough to see, and turns with a
+	 *  transition instead of being swapped for a different character.
+	 */
+	function chevron() {
+		return '<svg viewBox="0 0 12 12" width="12" height="12" fill="none">'
+			+ '<path d="M4.2 2.4 L8 6 L4.2 9.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+	}
+
 	function folderIcon( color, open, empty ) {
 
 		var span = el( 'span', {
@@ -2063,14 +2128,18 @@
 			'aria-hidden': 'true'
 		} );
 
-		// The back plane: tab plus body. Always present -- it is the silhouette.
-		var back = '<path class="vgml-f-back" d="M0 2.5A1.5 1.5 0 0 1 1.5 1h5.2a1.5 1.5 0 0 1 1.06.44L9.5 3h7A1.5 1.5 0 0 1 18 4.5v9A1.5 1.5 0 0 1 16.5 15h-15A1.5 1.5 0 0 1 0 13.5v-11Z"/>';
+		/*
+		 *  Rounder and simpler than the first draft, which had the sharp-tabbed
+		 *  silhouette of a 2005 file manager. The back plane is the whole folder
+		 *  with a soft tab; the front is a rounded panel that sits flat when
+		 *  closed and tilts open -- the same two-plane idea, in this decade's
+		 *  radii.
+		 */
+		var back = '<path class="vgml-f-back" d="M1 4.4a2.2 2.2 0 0 1 2.2-2.2h4a2.2 2.2 0 0 1 1.68.78l.9 1.06h7A2.2 2.2 0 0 1 19 6.24v6.56A2.2 2.2 0 0 1 16.8 15H3.2A2.2 2.2 0 0 1 1 12.8V4.4Z"/>';
 
-		// The front plane. Closed it sits square over the body; open it slides down
-		// and skews, which is the whole open/closed cue at this size.
 		var front = open
-			? '<path class="vgml-f-front" d="M4.3 6.6h14.2a1.2 1.2 0 0 1 1.16 1.52l-1.63 5.9A1.5 1.5 0 0 1 16.58 15H1.6a1.2 1.2 0 0 1-1.16-1.52l1.63-5.9A1.5 1.5 0 0 1 3.5 6.6h.8Z"/>'
-			: '<path class="vgml-f-front" d="M1.4 6.6h15.2a1.4 1.4 0 0 1 1.4 1.4v5.5A1.5 1.5 0 0 1 16.5 15h-15A1.5 1.5 0 0 1 0 13.5V8a1.4 1.4 0 0 1 1.4-1.4Z"/>';
+			? '<path class="vgml-f-front" d="M4.6 7.2h13.6a1.55 1.55 0 0 1 1.5 1.95l-1.15 4.2A2.2 2.2 0 0 1 16.43 15H2.6a1.55 1.55 0 0 1-1.5-1.95l1.15-4.2A2.2 2.2 0 0 1 4.37 7.2h.23Z"/>'
+			: '<path class="vgml-f-front" d="M1 8.3a1.8 1.8 0 0 1 1.8-1.8h14.4A1.8 1.8 0 0 1 19 8.3v4.5a2.2 2.2 0 0 1-2.2 2.2H3.2A2.2 2.2 0 0 1 1 12.8V8.3Z"/>';
 
 		span.innerHTML = '<svg viewBox="0 0 20 16" width="20" height="16">' +
 			back + ( empty ? '' : front ) + '</svg>';
@@ -2618,6 +2687,24 @@
 
 		armUploaders();
 
+		/*
+		 *  The toolbar labels are screen-reader-only now, which leaves the
+		 *  search input a naked box. Its own label already says what it is --
+		 *  move those words inside as the placeholder.
+		 */
+		var searchTries = 0;
+		var searchTimer = window.setInterval( function () {
+			var searchBox = document.querySelector( '.media-toolbar .search' );
+			if ( searchBox && ! searchBox.placeholder ) {
+				var searchLabel = searchBox.id && document.querySelector( 'label[for="' + searchBox.id + '"]' );
+				if ( searchLabel ) { searchBox.placeholder = searchLabel.textContent.trim(); }
+			}
+			// keep retrying for a while: the toolbar renders after boot
+			if ( ( searchBox && searchBox.placeholder ) || ++searchTries > 20 ) {
+				window.clearInterval( searchTimer );
+			}
+		}, 500 );
+
 		watchModalsWhenReady();
 	}
 
@@ -2872,7 +2959,8 @@
 
 				if ( ! isPseudo && entry.kids ) {
 					item.setAttribute( 'aria-expanded', entry.open ? 'true' : 'false' );
-					twist.innerHTML = entry.open ? '&#9662;' : '&#9656;';
+					twist.innerHTML = chevron();
+					if ( entry.open ) { twist.classList.add( 'is-open' ); }
 					twist.addEventListener( 'click', function ( e ) {
 						e.stopPropagation();
 						state.open[ id ] = ! state.open[ id ];

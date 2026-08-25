@@ -345,21 +345,39 @@ body.vgml-has-tree .vgml-tree {
  */
 .vgml-twist {
 	flex: 0 0 auto;
-	width: 18px;
-	height: 18px;
-	margin-inline-start: -3px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	margin-inline-start: -4px;
 	margin-inline-end: -3px;
 	padding: 0;
-	line-height: 18px;
-	font-size: 13px;
-	text-align: center;
 	border: 0;
-	border-radius: 3px;
+	border-radius: 4px;
 	background: none;
 	color: var( --vgml-fg );
 	opacity: 0.55;
 	cursor: pointer;
 	transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.vgml-twist svg {
+	display: block;
+	transition: transform 140ms ease;
+}
+
+/* One chevron that turns, instead of two characters that swap. */
+.vgml-twist.is-open svg {
+	transform: rotate( 90deg );
+}
+
+[dir="rtl"] .vgml-twist svg {
+	transform: rotate( 180deg );
+}
+
+[dir="rtl"] .vgml-twist.is-open svg {
+	transform: rotate( 90deg );
 }
 
 .vgml-twist:hover {
@@ -1198,3 +1216,116 @@ body.vgml-dragging-folder {
 
 .vgml-import-good { color: #2f8f45; }
 .vgml-import-bad  { color: #d63638; }
+
+/* == The grid-screen toolbar =================================================
+ *
+ *  Core gives the toolbar a fixed 58px box with overflow:auto, and the
+ *  heritage grid layout stacks a label row over a control row. With this
+ *  plugin's extra filters in the row, the whole thing runs wider than the
+ *  box and the search field is simply cut off at the right edge -- half a
+ *  control the user can see exists but cannot see.
+ *
+ *  One row instead: the labels go screen-reader-only (the selects say what
+ *  they filter), the box grows to its content, and nothing is clipped.
+ *  Scoped to the upload screen; the media modal keeps the stock layout.
+ */
+
+body.upload-php .media-frame .attachments-browser .media-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: auto;
+	overflow: visible;
+	padding: 12px 0;
+}
+
+/*  Flex, not grid: core pins its two filters to grid cells with id selectors,
+ *  and any grid override fights that pinning forever. A flex row has no cells
+ *  to pin to, so every control simply takes its place in line. */
+body.upload-php .media-frame .attachments-browser .media-toolbar-secondary {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 8px;
+	flex: 1 1 auto;
+	width: auto;
+	max-width: none;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar-primary {
+	display: flex;
+	align-items: center;
+	float: none;
+	flex: 0 0 auto;
+	margin-inline-start: auto;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar-secondary > label {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset( 50% );
+	white-space: nowrap;
+}
+
+/* the list/grid switch: two icons side by side, not stacked */
+body.upload-php .media-frame .attachments-browser .media-toolbar-secondary > .view-switch {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+/*  The search lives inside the same flex row; it goes last and hugs the right
+ *  edge, and the filter selects give up their max-content greed so the whole
+ *  bar fits on one line. When it genuinely cannot fit, the row wraps whole
+ *  controls instead of clipping half of one. */
+body.upload-php .media-frame .attachments-browser .media-toolbar select.attachment-filters {
+	max-width: 180px;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar .search {
+	flex: 1 1 130px;
+	width: auto;
+	min-width: 110px;
+	max-width: 220px;
+	margin: 0;
+	order: 10;
+	margin-inline-start: auto;
+}
+
+/* one height, one radius, for every control in the bar */
+body.upload-php .media-frame .attachments-browser .media-toolbar .button,
+body.upload-php .media-frame .attachments-browser .media-toolbar select,
+body.upload-php .media-frame .attachments-browser .media-toolbar .search {
+	height: 34px;
+	border-radius: 6px;
+}
+
+/* == Select mode ==============================================================
+ *
+ *  Stock select mode is two bare buttons pushed into the corner, and the one
+ *  that destroys files forever is the same friendly blue as every save
+ *  button. Red for the irreversible one, and room to breathe for both.
+ */
+
+body.upload-php .media-frame.mode-select .attachments-browser .media-toolbar-secondary > .media-button {
+	margin: 0;
+}
+
+body.upload-php .media-frame .media-toolbar .delete-selected-button {
+	background: #d63638;
+	border-color: #d63638;
+	color: #fff;
+}
+
+body.upload-php .media-frame .media-toolbar .delete-selected-button:hover,
+body.upload-php .media-frame .media-toolbar .delete-selected-button:focus {
+	background: #b32d2e;
+	border-color: #b32d2e;
+	color: #fff;
+}
+
+body.upload-php .media-frame .media-toolbar .delete-selected-button:focus {
+	box-shadow: 0 0 0 1px #fff, 0 0 0 3px #d63638;
+}

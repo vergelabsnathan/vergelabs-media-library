@@ -59,6 +59,7 @@ check( 'a folder to work with', !! folder, folder ? `${ folder.label } (${ folde
 
 await page.locator( `.vgml-tree .vgml-node[data-id="${ folder.id }"] .vgml-row` ).click();
 await page.waitForTimeout( 1500 );
+await page.evaluate( ( id ) => { window.__vgmlFolderId = id; }, folder.id );
 
 /* --- an upload lands in it -------------------------------------------------- */
 
@@ -94,6 +95,32 @@ check( 'the upload arrived', !! landed, landed ? `attachment ${ landed.id }` : '
 check( 'and landed in the open folder', landed && landed.terms.indexOf( folder.id ) !== -1,
 	landed ? landed.terms.join( ',' ) : '' );
 
+/* --- and appears on screen without a reload -------------------------------- */
+
+console.log( '\nit appears without a reload' );
+
+/*
+ *  The bug as reported: "i tried to add files to a specific folder but they
+ *  dont show up i need to reload the page to see them". The file was filed on
+ *  the server after the upload, so the browser's filtered collection could not
+ *  see that it belonged. Everything here is asserted on the screen as it
+ *  stands -- no navigation between the upload and the checks.
+ */
+await page.waitForFunction( ( stamp ) =>
+	[ ...document.querySelectorAll( '.attachment' ) ].some( ( a ) =>
+		( a.getAttribute( 'aria-label' ) || '' ).indexOf( stamp ) !== -1 ),
+	stamp, { timeout: 30000 } ).catch( () => {} );
+
+const visible = await page.evaluate( ( stamp ) => ( {
+	tile: [ ...document.querySelectorAll( '.attachment' ) ].some( ( a ) =>
+		( a.getAttribute( 'aria-label' ) || '' ).indexOf( stamp ) !== -1 ),
+	badge: parseInt( ( document.querySelector( `.vgml-tree .vgml-node[data-id="${ window.__vgmlFolderId }"] .vgml-count` ) || {} ).textContent || '0', 10 ),
+} ), stamp );
+
+check( 'the new file is in the filtered grid, no reload', visible.tile );
+check( 'and the folder count moved with it', visible.badge === folder.count + 1,
+	`${ visible.badge } vs ${ folder.count } + 1` );
+
 /* --- with nothing selected, uploads stay unfiled ---------------------------- */
 
 console.log( '\nan upload, with All files open' );
@@ -124,6 +151,131 @@ const unfiled = await page.evaluate( async ( args ) => {
 
 check( 'the upload arrived', !! unfiled, unfiled ? `attachment ${ unfiled.id }` : 'not found' );
 check( 'and stayed unfiled', unfiled && unfiled.terms.length === 0, unfiled ? unfiled.terms.join( ',' ) : '' );
+
+/* --- bulk select, with a human's click -------------------------------------- */
+
+console.log( '\nbulk select' );
+
+/*
+ *  The bug as reported: "bulk select is not working". Every tile is a
+ *  draggable with a six-pixel threshold, and a real click carries a few pixels
+ *  of hand movement -- so the click became an aborted drag and the selection
+ *  never toggled. The clicks here move the mouse a little on purpose, because
+ *  a perfectly still synthetic click would pass over the bug.
+ */
+await page.locator( '.vgml-tree .vgml-node[data-id="0"] .vgml-row' ).click();
+await page.waitForTimeout( 1500 );
+await page.click( 'button.select-mode-toggle-button' );
+await page.waitForTimeout( 600 );
+
+check( 'the grid entered select mode', await page.evaluate( () => !! document.querySelector( '.media-frame.mode-select' ) ) );
+
+/*
+ *  Fifteen pixels of wobble -- past the six-pixel drag threshold on purpose,
+ *  because a five-pixel wobble never starts a drag and would pass over the
+ *  bug it exists to catch.
+ */
+const wobblyClick = async ( nth ) => {
+	const box = await page.locator( '.attachment' ).nth( nth ).boundingBox();
+	await page.mouse.move( box.x + 40, box.y + 40 );
+	await page.mouse.down();
+	await page.mouse.move( box.x + 52, box.y + 49, { steps: 4 } );
+	await page.mouse.up();
+	await page.waitForTimeout( 400 );
+};
+
+await wobblyClick( 0 );
+await wobblyClick( 1 );
+
+const picked = await page.evaluate( () => document.querySelectorAll( '.attachment.selected' ).length );
+check( 'two wobbly clicks selected two files', picked === 2, `${ picked } selected` );
+
+/*
+ *  And the reason select mode exists at all: the selection, dragged into a
+ *  folder, files every file in it. The drag starts on a SELECTED tile, which
+ *  is the one place select mode still drags.
+ */
+const targetRow = await page.locator( `.vgml-tree .vgml-node[data-id="${ folder.id }"] .vgml-row` ).boundingBox();
+const firstTile = await page.locator( '.attachment.selected' ).first().boundingBox();
+
+const dragged = await page.evaluate( () =>
+	[ ...document.querySelectorAll( '.attachment.selected' ) ].map( ( a ) => parseInt( a.getAttribute( 'data-id' ), 10 ) ) );
+
+await page.mouse.move( firstTile.x + 40, firstTile.y + 40 );
+await page.mouse.down();
+await page.mouse.move( firstTile.x + 60, firstTile.y + 40, { steps: 4 } );
+await page.mouse.move( targetRow.x + targetRow.width / 2, targetRow.y + targetRow.height / 2, { steps: 12 } );
+await page.mouse.up();
+await page.waitForTimeout( 2000 );
+
+const filed = await page.evaluate( async ( args ) => {
+	const out = [];
+	for ( const id of args.ids ) {
+		const m = await window.wp.apiFetch( { path: '/wp/v2/media/' + id + '?_fields=media_category' } );
+		out.push( ( m.media_category || [] ).includes( args.folder ) );
+	}
+	return out;
+}, { ids: dragged, folder: folder.id } );
+
+check( 'dragging the selection filed both files', filed.length === 2 && filed.every( Boolean ),
+	JSON.stringify( filed ) );
+
+// put them back out of the folder
+await page.evaluate( async ( args ) => {
+	await window.wp.apiFetch( { path: '/vergeml/v1/assign', method: 'POST',
+		data: { taxonomy: 'media_category', attachments: args.ids, remove: [ args.folder ] } } );
+}, { ids: dragged, folder: folder.id } );
+
+// Leave select mode so nothing later is surprised by it.
+await page.click( '.media-toolbar .select-mode-toggle-button, button.select-mode-toggle-button' );
+await page.waitForTimeout( 500 );
+
+/* --- a wobbly click in NORMAL mode still lands ------------------------------- */
+
+/*
+ *  This grid is never in the stock click-opens-details mode: the eml-grid
+ *  heritage keeps it permanently selectable (click = select, details in the
+ *  sidebar, the hover pencil opens the edit modal). So the thing a wobbly
+ *  click must do in normal mode is SELECT the file -- and with every tile a
+ *  draggable, a too-low drag threshold ate exactly that.
+ */
+const tile0 = await page.locator( '.attachments-browser .attachments .attachment' ).first();
+const box0 = await tile0.boundingBox();
+await page.mouse.move( box0.x + 40, box0.y + 40 );
+await page.mouse.down();
+await page.mouse.move( box0.x + 52, box0.y + 49, { steps: 4 } );
+await page.mouse.up();
+await page.waitForTimeout( 800 );
+
+const landed2 = await tile0.evaluate( ( el ) => el.classList.contains( 'selected' ) );
+check( "a wobbly click in normal mode selects the file", landed2 );
+
+// and the hover pencil is the road to the edit modal. Dispatched, not
+// clicked: the pencil only paints on CSS hover, and the sidebar reflow has
+// already moved the tile out from under the parked mouse.
+await tile0.locator( '.eml-attacment-inline-toolbar .edit' ).dispatchEvent( 'click' );
+await page.waitForTimeout( 1500 );
+const details = await page.evaluate( () => !! document.querySelector( '.media-modal .attachment-details, .edit-attachment-frame' ) );
+check( 'the hover pencil opens the edit modal', details );
+
+if ( details ) {
+	await page.keyboard.press( 'Escape' );
+	await page.waitForTimeout( 400 );
+}
+// clear the selection so nothing later is surprised by it -- through the
+// model, because selecting opened the sidebar and reflowed the tiles.
+// wp.media.frame may now be the edit frame, which has no selection state
+await page.evaluate( () => {
+	document.querySelectorAll( '.attachments-browser .attachment.selected' ).forEach( ( el ) => {
+		const f = window.wp.media.frame;
+		try { f.state().get( 'selection' ).reset(); } catch ( e ) {}
+	} );
+	try {
+		const b = window.wp.media.frame;
+		b.states.each( ( st ) => { const sel = st.get( 'selection' ); if ( sel && sel.reset ) { sel.reset(); } } );
+	} catch ( e ) {}
+} );
+await page.waitForTimeout( 400 );
 
 /* --- the ZIP ----------------------------------------------------------------- */
 
