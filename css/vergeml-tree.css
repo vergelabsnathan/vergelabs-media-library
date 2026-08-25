@@ -493,22 +493,40 @@ body.vgml-has-tree .vgml-tree {
  *  is about, unstyleable, and it blocks the page. A name is edited where the
  *  name lives.
  */
+/*
+ *  One box, not two.
+ *
+ *  The row drew an accent ring and the input drew its own border inside it, so
+ *  renaming a folder produced a rectangle inside a rectangle -- and WordPress's
+ *  focus shadow on the input pushed the whole thing past the panel edge. The
+ *  input is the control; the row just holds it.
+ */
 .vgml-editing .vgml-row {
 	background: var( --vgml-selected );
-	box-shadow: inset 0 0 0 2px var( --vgml-accent );
 	cursor: default;
 }
 
 .vgml-editor {
 	flex: 1 1 auto;
+	box-sizing: border-box;
 	min-width: 0;
-	height: calc( var( --vgml-row ) - 10px );
-	padding: 0 6px;
+	max-width: 100%;
+	height: calc( var( --vgml-row ) - 12px );
+	margin: 0;
+	padding: 0 7px;
 	border: 1px solid var( --vgml-line );
 	border-radius: 3px;
 	font-size: var( --vgml-font );
+	line-height: normal;
 	background: #fff;
 	color: var( --vgml-fg );
+}
+
+.vgml-tree .vgml-editor:focus {
+	border-color: var( --vgml-accent );
+	/* Inset, so focus never widens the control past the panel it sits in. */
+	box-shadow: inset 0 0 0 1px var( --vgml-accent );
+	outline: none;
 }
 
 /* --- asking before deleting --------------------------------------------- */
@@ -537,15 +555,49 @@ body.vgml-has-tree .vgml-tree {
 	justify-content: flex-end;
 }
 
-.vgml-tree .vgml-danger {
-	border-color: #d63638;
-	color: #d63638;
+/*
+ *  The destructive answer should not look like the safe one.
+ *
+ *  Both buttons in the confirm were WordPress's default blue outline, so the
+ *  sheet asked a yes/no question in which yes and no were the same shape and
+ *  colour. Cancel is quiet; Delete is filled red and unmistakable.
+ */
+.vgml-tree .vgml-danger,
+.vgml-tree .vgml-confirm .vgml-danger {
+	border-color: #b32d2e;
+	background: #d63638;
+	color: #fff;
+	text-shadow: none;
 }
 
-.vgml-tree .vgml-danger:hover {
-	background: #d63638;
-	border-color: #d63638;
+.vgml-tree .vgml-danger:hover,
+.vgml-tree .vgml-confirm .vgml-danger:hover {
+	border-color: #8a2424;
+	background: #b32d2e;
 	color: #fff;
+}
+
+.vgml-tree .vgml-danger:focus-visible {
+	outline: 2px solid #b32d2e;
+	outline-offset: 1px;
+	box-shadow: none;
+}
+
+.vgml-tree .vgml-confirm .button:not( .vgml-danger ) {
+	border-color: transparent;
+	background: transparent;
+	box-shadow: none;
+	color: var( --vgml-muted );
+}
+
+.vgml-tree .vgml-confirm .button:not( .vgml-danger ):hover {
+	background: var( --vgml-hover );
+	color: var( --vgml-fg );
+}
+
+/* A sheet, not a panel that happens to be on top. */
+.vgml-confirm {
+	box-shadow: 0 8px 28px rgba( 0, 0, 0, 0.22 );
 }
 
 /* --- overflow menu ------------------------------------------------------ */
@@ -638,6 +690,13 @@ body.vgml-has-tree .vgml-tree {
 
 .vgml-overflow-item:hover {
 	background: var( --vgml-hover );
+}
+
+/* Density is a different question from appearance, and sat in the same list. */
+.vgml-overflow-sep {
+	margin: 6px 0;
+	border: 0;
+	border-block-start: 1px solid var( --vgml-line );
 }
 
 .vgml-overflow-item.is-on {

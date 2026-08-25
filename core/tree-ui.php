@@ -262,8 +262,17 @@ function vergeml_tree_assets( $hook ) {
             'deleteConfirm'  => __( 'Delete the folder "%1$s"? Its %2$d sub-folders move up one level. No files are deleted — they simply leave this folder.', 'vergelabs-media-library' ),
             /* translators: %s: folder name. */
             'deleteSimple'   => __( 'Delete the folder "%s"? No files are deleted — they simply leave this folder.', 'vergelabs-media-library' ),
+            /*
+             *  Two strings, because "1 files filed" is the sort of thing that makes
+             *  somebody trust the rest of the interface a little less. Not _n():
+             *  this is read by JavaScript, which cannot ask WordPress which plural
+             *  form a language wants, so the two cases it can distinguish are the
+             *  two it is given.
+             */
+            'undoAssignedOne' => __( '1 file filed', 'vergelabs-media-library' ),
             /* translators: %d: number of files. */
             'undoAssigned'   => __( '%d files filed', 'vergelabs-media-library' ),
+            'density'        => __( 'Density', 'vergelabs-media-library' ),
             'cancel'         => __( 'Cancel', 'vergelabs-media-library' ),
             'oneFile'        => __( '1 file', 'vergelabs-media-library' ),
             /* translators: %d: number of files being dragged. */

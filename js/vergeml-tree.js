@@ -1575,7 +1575,9 @@
 		} ).then( function ( res ) {
 			state.lastUndo = res.undo;
 			applyCounts( res );
-			toast( sprintf( l10n.undoAssigned, ( res.changed || [] ).length ), res.undo ? undo : null );
+			var moved = ( res.changed || [] ).length;
+			toast( 1 === moved ? l10n.undoAssignedOne : sprintf( l10n.undoAssigned, moved ),
+				res.undo ? undo : null );
 		} ).catch( function () {
 			toast( l10n.failed, null );
 		} );
@@ -2019,6 +2021,16 @@
 			} );
 			menuEl.appendChild( b );
 		} );
+
+		/*
+		 *  Density is not a fifth skin.
+		 *
+		 *  Compact sat directly under the four appearance choices with no break, so
+		 *  it read as one of them -- and picking it looked like it would replace the
+		 *  skin rather than tighten the rows.
+		 */
+		menuEl.appendChild( el( 'hr', { class: 'vgml-overflow-sep' } ) );
+		menuEl.appendChild( el( 'p', { class: 'vgml-overflow-head' }, l10n.density ) );
 
 		var compact = state.density === 'compact';
 		var d = el( 'button', {
