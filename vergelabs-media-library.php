@@ -1169,6 +1169,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/post-folders.php' );
         include_once( 'core/page-builders.php' );
         include_once( 'core/gallery-block.php' );
+        include_once( 'core/gallery-widgets.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {
             include_once( 'core/medialist.php' );

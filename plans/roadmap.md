@@ -106,15 +106,17 @@ Term meta for an owner and a filter on the tree. The work is not the storage, it
 is deciding what a file inside a folder only one person can see is supposed to do
 when somebody else opens the library.
 
-### 4. Galleries: the two that are left
+### 4. Galleries: what is left
 
-The block is done. What remains is the same renderer reached two other ways:
+Gutenberg, Elementor and Divi all have the gallery now -- one renderer, three
+doors, proven on the front of the site in each host's own save format. Remaining:
 
 - **Shortcode discoverability.** `[gallery media_category="press"]` already works
   and always has -- it just needs a "copy the shortcode" action on a folder, and
   something better than an empty gallery when the setting behind it is off.
-- **An Elementor widget.** A PHP widget class over the same renderer, once
-  somebody asks for it. Divi's module after that, or not at all.
+- **Carousel layout and a built-in lightbox**, which FileBird Pro's gallery has
+  and ours does not. "Link to file" already feeds any lightbox plugin.
+- **WPBakery**, which they cover and we do not. Only if somebody asks.
 
 A folder becomes a gallery. Split deliberately, because the three integrations are
 not one job:
