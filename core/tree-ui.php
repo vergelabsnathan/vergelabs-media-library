@@ -288,6 +288,11 @@ function vergeml_tree_assets( $hook ) {
             'undone'         => __( 'Put back', 'vergelabs-media-library' ),
             /* translators: %d: number of folders a file belongs to. */
             'inFolders'      => __( 'in %d folders', 'vergelabs-media-library' ),
+            'smartScan'      => __( 'Scan', 'vergelabs-media-library' ),
+            /* translators: 1: posts scanned, 2: posts total. */
+            'scanPosts'      => __( '%1$s / %2$s posts', 'vergelabs-media-library' ),
+            /* translators: 1: files stamped, 2: files total. */
+            'scanFiles'      => __( '%1$s / %2$s files', 'vergelabs-media-library' ),
             'downloadZip'    => __( 'Download as ZIP', 'vergelabs-media-library' ),
             'copyShortcode'  => __( 'Copy gallery shortcode', 'vergelabs-media-library' ),
             'copied'         => __( 'Shortcode copied', 'vergelabs-media-library' ),

@@ -438,6 +438,23 @@ body.vgml-has-tree .vgml-tree {
 	border-block-start: 1px solid var( --vgml-line );
 }
 
+/*
+ *  "Scan" where a count would be: an invitation, not a number, so it carries
+ *  the accent instead of the badge grey.
+ */
+.vgml-count.vgml-smart-scan {
+	background: transparent;
+	border: 1px solid var( --vgml-accent );
+	color: var( --vgml-accent );
+	font-weight: 600;
+}
+
+.vgml-count.vgml-smart-progress {
+	background: transparent;
+	color: var( --vgml-muted );
+	font-variant-numeric: tabular-nums;
+}
+
 .vgml-count {
 	flex: 0 0 auto;
 	padding: 1px 6px;

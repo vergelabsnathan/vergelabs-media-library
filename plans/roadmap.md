@@ -87,6 +87,23 @@ on a published page nobody touched.
 Core's own `wp-block-gallery has-nested-images` markup, so themes style it
 without knowing we exist.
 
+**T8 — folder tools.** Uploads land in the open folder (the folder travels
+inside the multipart request). Download as ZIP, sub-folders as directories.
+Copy gallery shortcode. One inherited crash-on-every-upload fixed on the way.
+
+**T9 — smart folders.** Unused media, Missing alt text, Large files,
+Unattached, This month: rows whose contents are a query, in the tree's top
+group. Unused and Large ride an index built by a chunked scan (posts walked
+once, references inverted -- ids, pasted URLs, featured, galleries; new uploads
+stamped live). "Scan" shown where a count would lie. Filters the grid via
+wp.media props and the list via a bookmarkable URL.
+
+The scan's byproducts are the next tier's foundation: a reference map and a
+size index enable where-is-this-used, safe cleanup/trash, duplicate merge with
+reference repointing, per-folder disk usage, a media health report, and broken
+reference detection -- one index, six features, none possible on a parent-child
+table.
+
 ## Next, in order
 
 ### 1. CSV import and export

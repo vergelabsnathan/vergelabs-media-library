@@ -300,12 +300,47 @@ function vergeml_rest_tree( WP_REST_Request $request ) {
         'nodes'        => $nodes,
         'postType'     => $post_type ? $post_type : 'attachment',
         /*
+         *  The smart folders, media-library only: their questions are about
+         *  files, and a post screen asking "which posts have no alt text" is
+         *  a category error.
+         */
+        'smart'        => vergeml_smart_for_tree( $post_type ),
+        /*
          *  Things with no term in this taxonomy. Counted here rather than by the
          *  browser, which would otherwise have to fetch the list to find out.
          */
         'unassigned'   => $unassigned,
         'state'        => vergeml_tree_state( $taxonomy ),
     ) );
+}
+
+
+/**
+ *  vergeml_smart_for_tree
+ *
+ *  The smart rows the panel shows: label, count, and whether the number is
+ *  real yet. Counted once for all five, not once each.
+ */
+
+function vergeml_smart_for_tree( $post_type ) {
+
+    if ( $post_type || ! function_exists( 'vergeml_smart_folders' ) ) {
+        return array();
+    }
+
+    $counts = vergeml_smart_counts();
+    $out    = array();
+
+    foreach ( vergeml_smart_folders() as $key => $spec ) {
+        $out[] = array(
+            'key'   => $key,
+            'label' => $spec['label'],
+            'count' => $counts[ $key ],
+            'scan'  => ! empty( $spec['scan'] ),
+        );
+    }
+
+    return $out;
 }
 
 

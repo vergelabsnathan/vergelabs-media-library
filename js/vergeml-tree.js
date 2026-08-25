@@ -131,12 +131,19 @@
 		return data;
 	}
 
+	/*
+	 *  Which smart folder is showing, or ''. Kept beside state.selected rather
+	 *  than inside it because they are different kinds of answer: a folder is a
+	 *  term, a smart folder is a question, and only one of the two filters the
+	 *  library at a time.
+	 */
 	function load() {
 		return apiFetch( {
 			path: '/vergeml/v1/tree?taxonomy=' + encodeURIComponent( state.taxonomy ) + postTypeQuery()
 		} ).then( function ( data ) {
 			state.nodes = data.nodes || [];
 			state.unassigned = data.unassigned || 0;
+			state.smart = data.smart || state.smart || [];
 			if ( data.state ) {
 				state.skin = data.state.skin || state.skin;
 				state.density = data.state.density || state.density;
@@ -243,6 +250,22 @@
 		out.push( { pseudo: 'all', label: l10n.all, count: null, depth: 0, id: 0 } );
 		out.push( { pseudo: 'unassigned', label: l10n.unassigned, count: state.unassigned, depth: 0, id: -1 } );
 
+		/*
+		 *  The smart folders: rows whose contents are a question. They live in
+		 *  the same top group as All files and Unfiled because all of them are
+		 *  views of the library rather than places in it.
+		 */
+		( state.smart || [] ).forEach( function ( sf, i ) {
+			out.push( {
+				pseudo: 'smart',
+				smart: sf,
+				label: sf.label,
+				count: sf.count,
+				depth: 0,
+				id: -100 - i
+			} );
+		} );
+
 		( function walk( parentId, depth ) {
 			var siblings = ( state.children[ parentId ] || [] ).filter( visible );
 
@@ -344,7 +367,7 @@
 
 		// A key that changes whenever the rows themselves would look different,
 		// so a scroll that reveals nothing new costs nothing.
-		var key = state.skin + '|' + state.density + '|' + state.selected + '|' + flat.length + '|' + state.filter + '|' + revision;
+		var key = state.skin + '|' + state.density + '|' + state.selected + '|' + ( state.smartSelected || '' ) + '|' + flat.length + '|' + state.filter + '|' + revision;
 
 		if ( ! force && r.first === painted.first && r.last === painted.last && key === painted.key ) {
 			return;
@@ -585,7 +608,13 @@
 
 	function pseudoRow( entry ) {
 		var key = entry.pseudo;
-		var selected = ( key === 'all' && ! state.selected ) || ( key === 'unassigned' && state.selected === -1 );
+
+		if ( 'smart' === key ) {
+			return smartRow( entry );
+		}
+
+		var selected = ( key === 'all' && ! state.selected && ! state.smartSelected )
+			|| ( key === 'unassigned' && state.selected === -1 );
 
 		var item = el( 'li', {
 			class: 'vgml-node vgml-pseudo' + ( selected ? ' is-selected' : '' ),
@@ -623,6 +652,130 @@
 
 		item.appendChild( row );
 		return item;
+	}
+
+	/*
+	 *  A row whose contents are a question.
+	 *
+	 *  A never-scanned one shows "Scan" where its count would be, because "we
+	 *  have not looked" and "there are none" are different answers and a zero
+	 *  would be a lie. Clicking it runs the scan in place, progress in the row,
+	 *  then filters -- one gesture from "unknown" to "here they are".
+	 */
+	function smartRow( entry ) {
+
+		var sf = entry.smart;
+		var selected = state.smartSelected === sf.key;
+
+		var item = el( 'li', {
+			class: 'vgml-node vgml-pseudo vgml-smart' + ( selected ? ' is-selected' : '' ),
+			role: 'treeitem',
+			'aria-level': '1',
+			'aria-selected': selected ? 'true' : 'false',
+			'data-smart': sf.key,
+			tabindex: '-1'
+		} );
+
+		var row = el( 'div', { class: 'vgml-row' } );
+		row.appendChild( el( 'span', { class: 'vgml-twist is-leaf', 'aria-hidden': 'true' } ) );
+
+		var mark = el( 'span', { class: 'vgml-icon is-pseudo', 'aria-hidden': 'true' } );
+		mark.innerHTML = '<svg viewBox="0 0 20 16" width="20" height="16">'
+			+ '<path d="M1.5 1h17a1 1 0 0 1 .78 1.63L13 9.6V14a1 1 0 0 1-.55.9l-4 2A1 1 0 0 1 7 16v-6.4L.72 2.63A1 1 0 0 1 1.5 1Z" transform="scale(0.95) translate(0.5,-0.5)"/></svg>';
+		row.appendChild( mark );
+
+		row.appendChild( el( 'span', { class: 'vgml-name' }, sf.label ) );
+
+		if ( sf._progress ) {
+			row.appendChild( el( 'span', { class: 'vgml-count vgml-smart-progress' }, sf._progress ) );
+		} else if ( null === sf.count || undefined === sf.count ) {
+			row.appendChild( el( 'span', { class: 'vgml-count vgml-smart-scan' }, l10n.smartScan ) );
+		} else if ( sf.count ) {
+			row.appendChild( el( 'span', { class: 'vgml-count' }, String( sf.count ) ) );
+		}
+
+		row.addEventListener( 'click', function () {
+			if ( justDragged || sf._progress ) {
+				return;
+			}
+			if ( null === sf.count || undefined === sf.count ) {
+				runSmartScan( sf );
+			} else {
+				smartSelect( sf.key );
+			}
+		} );
+
+		item.appendChild( row );
+		return item;
+	}
+
+	function smartSelect( key ) {
+
+		state.smartSelected = key;
+		state.selected = 0;
+		render();
+
+		var props = { vergeml_smart: key, uncategorized: null };
+		props[ state.taxonomy ] = null;
+
+		var lib = libraryProps();
+
+		if ( lib ) {
+			lib.set( props );
+			return;
+		}
+
+		var url = new URL( window.location.href );
+		url.searchParams.set( 'vgml_smart', key );
+		url.searchParams.delete( state.taxonomy );
+		url.searchParams.delete( unfiledVar() );
+		url.searchParams.delete( 'paged' );
+		swapTable( url.href );
+	}
+
+	function runSmartScan( sf ) {
+
+		function step( resume ) {
+
+			var data = resume ? { resume: resume } : {};
+
+			apiFetch( { path: '/vergeml/v1/smart-scan', method: 'POST', data: data } ).then( function ( res ) {
+
+				if ( ! res.complete && res.resume ) {
+					sf._progress = ( 1 === res.phase ? l10n.scanPosts : l10n.scanFiles )
+						.replace( '%1$s', res.done ).replace( '%2$s', res.total );
+					index();
+					render();
+					step( res.resume );
+					return;
+				}
+
+				// The finished scan hands back every count, so all five rows
+				// become real numbers at once.
+				delete sf._progress;
+
+				( state.smart || [] ).forEach( function ( row ) {
+					if ( res.counts && undefined !== res.counts[ row.key ] ) {
+						row.count = res.counts[ row.key ];
+					}
+				} );
+
+				index();
+				render();
+				smartSelect( sf.key );
+
+			} ).catch( function () {
+				delete sf._progress;
+				index();
+				render();
+				toast( l10n.failed, null );
+			} );
+		}
+
+		sf._progress = '…';
+		index();
+		render();
+		step( null );
 	}
 
 	function toggle( id ) {
@@ -742,11 +895,12 @@
 
 	function select( id ) {
 		state.selected = id;
+		state.smartSelected = '';
 		uploadTarget = id > 0 ? id : 0;
 		render();
 		persist( { selected: id > 0 ? id : 0 } );
 
-		var props = {};
+		var props = { vergeml_smart: null };
 
 		if ( id === -1 ) {
 			props[ state.taxonomy ] = null;
@@ -801,7 +955,8 @@
 			url.searchParams.delete( unfiledVar() );
 		}
 
-		// Paging belongs to the previous folder.
+		// Paging belongs to the previous folder, and so does a smart filter.
+		url.searchParams.delete( 'vgml_smart' );
 		url.searchParams.delete( 'paged' );
 
 		if ( url.href === window.location.href ) {
@@ -2665,7 +2820,11 @@
 			state.filter = filter;
 			var out = flatten();
 			state.filter = was;
-			return out;
+			// The modal exists to pick a file, not to audit the library; the
+			// smart rows would also start scans from inside a picker.
+			return out.filter( function ( entry ) {
+				return 'smart' !== entry.pseudo;
+			} );
 		}
 
 		function draw() {
@@ -2725,6 +2884,7 @@
 				row.appendChild( isPseudo
 					? pseudoIcon( entry.pseudo )
 					: folderIcon( entry.node.color, entry.open && entry.kids, ! entry.total ) );
+				// (smart rows never reach here; the modal filters them out)
 
 				row.appendChild( el( 'span', { class: 'vgml-name' }, isPseudo ? entry.label : entry.node.name ) );
 
@@ -2863,6 +3023,7 @@
 		if ( cfg.boot && cfg.boot.nodes ) {
 			state.nodes = cfg.boot.nodes;
 			state.unassigned = cfg.boot.unassigned || 0;
+			state.smart = cfg.boot.smart || [];
 			index();
 			render();
 		} else {
