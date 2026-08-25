@@ -61,6 +61,17 @@ function vergeml_tree_assets( $hook ) {
     }
 
     /*
+     *  A page builder asking for the tree directly.
+     *
+     *  Elementor and Divi both open wp.media, but neither reaches this function
+     *  the usual way: Elementor's editor runs on its own screen with its own
+     *  enqueue hook, and Divi's visual builder runs on the *front end*, where
+     *  admin_enqueue_scripts never fires at all. Everything below still applies;
+     *  only the decision about whether to load is theirs to make.
+     */
+    $forced = ! empty( $GLOBALS['vergeml_force_tree'] );
+
+    /*
      *  The library screen, and anywhere the media modal can be opened.
      *
      *  This used to load on upload.php alone, which meant the tree did not exist
@@ -78,7 +89,7 @@ function vergeml_tree_assets( $hook ) {
     // attach to anyway.
     $modal = wp_script_is( 'media-views', 'enqueued' ) || wp_script_is( 'media-views', 'to_do' );
 
-    if ( ! $library && ! $modal && ! $folder_post_type )
+    if ( ! $library && ! $modal && ! $folder_post_type && ! $forced )
         return;
 
     $taxonomies = $folder_post_type

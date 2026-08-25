@@ -44,7 +44,7 @@
 		filter: '',
 		skin: ( cfg.state && cfg.state.skin ) || 'native',
 		density: ( cfg.state && cfg.state.density ) || 'comfortable',
-		width: ( cfg.state && cfg.state.width ) || 240,
+		width: ( cfg.state && cfg.state.width ) || 300,
 		lastUndo: null
 	};
 
@@ -1822,7 +1822,7 @@
 			? '<path class="vgml-f-front" d="M4.3 6.6h14.2a1.2 1.2 0 0 1 1.16 1.52l-1.63 5.9A1.5 1.5 0 0 1 16.58 15H1.6a1.2 1.2 0 0 1-1.16-1.52l1.63-5.9A1.5 1.5 0 0 1 3.5 6.6h.8Z"/>'
 			: '<path class="vgml-f-front" d="M1.4 6.6h15.2a1.4 1.4 0 0 1 1.4 1.4v5.5A1.5 1.5 0 0 1 16.5 15h-15A1.5 1.5 0 0 1 0 13.5V8a1.4 1.4 0 0 1 1.4-1.4Z"/>';
 
-		span.innerHTML = '<svg viewBox="0 0 20 16" width="17" height="14">' +
+		span.innerHTML = '<svg viewBox="0 0 20 16" width="20" height="16">' +
 			back + ( empty ? '' : front ) + '</svg>';
 
 		if ( color ) {
@@ -2313,7 +2313,37 @@
 			} );
 		}
 
-		watchModals();
+		watchModalsWhenReady();
+	}
+
+	/*
+	 *  wp.media may not exist yet, and one attempt is not enough.
+	 *
+	 *  On an admin screen our script declares media-views as a dependency, so it
+	 *  is always there by the time this runs. Inside a page builder the script
+	 *  order belongs to the builder: Elementor's editor had wp.media, and did not
+	 *  have it *yet* at DOMContentLoaded. watchModals returned quietly, nothing
+	 *  retried, and the tree was missing from every media modal in the builder --
+	 *  with the script loaded and the config present, which is the most confusing
+	 *  possible way for it to be absent.
+	 */
+	function watchModalsWhenReady() {
+
+		var tries = 0;
+
+		( function look() {
+
+			if ( window.wp && wp.media && wp.media.view && wp.media.view.Modal ) {
+				watchModals();
+				return;
+			}
+
+			if ( ++tries > 60 ) { // ~15s, then it is genuinely not a media screen
+				return;
+			}
+
+			window.setTimeout( look, 250 );
+		} )();
 	}
 
 	/* --------------------------------------------------------- the modal */
