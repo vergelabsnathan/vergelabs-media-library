@@ -274,6 +274,31 @@ body.vgml-has-tree .vgml-tree {
 	background: var( --vgml-hover );
 }
 
+/*
+ *  A guide down each level of nesting.
+ *
+ *  The tree is a flat list -- rows carry their depth as an indent and nothing
+ *  else -- so two folders inside a third were fourteen pixels further along with
+ *  nothing to say they belonged to it. At a glance that reads as a list with
+ *  inconsistent margins rather than as a hierarchy.
+ *
+ *  Drawn on the row rather than between rows, so it needs no wrapper element and
+ *  survives the windowed rendering, which only ever has thirty rows in the page.
+ */
+.vgml-node[aria-level]:not( [aria-level="1"] ) > .vgml-row::before {
+	content: "";
+	position: absolute;
+	inset-block: 0;
+	inset-inline-start: calc( var( --vgml-indent, 8px ) - 11px );
+	width: 1px;
+	background: var( --vgml-line );
+	pointer-events: none;
+}
+
+.vgml-node[aria-level]:not( [aria-level="1"] ) > .vgml-row {
+	position: relative;
+}
+
 .vgml-node.is-selected > .vgml-row {
 	font-weight: 600;
 	background: var( --vgml-selected );

@@ -498,7 +498,7 @@
 			item.setAttribute( 'aria-expanded', entry.open ? 'true' : 'false' );
 		}
 
-		var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( entry.depth * 14 + 8 ) + 'px' } );
+		var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( entry.depth * 19 + 8 ) + 'px' } );
 
 		var twist = el( 'button', {
 			class: 'vgml-twist' + ( entry.kids ? '' : ' is-leaf' ),
@@ -1722,7 +1722,7 @@
 	function editorRow( depth, value, commit ) {
 
 		var item = el( 'li', { class: 'vgml-node vgml-editing', role: 'none' } );
-		var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( depth * 14 + 8 ) + 'px' } );
+		var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( depth * 19 + 8 ) + 'px' } );
 
 		row.appendChild( el( 'span', { class: 'vgml-twist is-leaf', 'aria-hidden': 'true' } ) );
 		row.appendChild( folderIcon( '' ) );
@@ -2592,7 +2592,7 @@
 					tabindex: '-1'
 				} );
 
-				var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( entry.depth * 14 + 8 ) + 'px' } );
+				var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( entry.depth * 19 + 8 ) + 'px' } );
 
 				var twist = el( 'button', {
 					class: 'vgml-twist' + ( ! isPseudo && entry.kids ? '' : ' is-leaf' ),
