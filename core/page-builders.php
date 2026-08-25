@@ -94,7 +94,9 @@ function vergeml_builder_is_divi_fb() {
     }
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading which screen this is, not acting on it.
-    return isset( $_GET['et_fb'] ) && '1' === (string) $_GET['et_fb'] && is_user_logged_in();
+    $flag = isset( $_GET['et_fb'] ) ? sanitize_text_field( wp_unslash( $_GET['et_fb'] ) ) : '';
+
+    return '1' === $flag && is_user_logged_in();
 }
 
 

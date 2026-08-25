@@ -551,6 +551,38 @@
 		return item;
 	}
 
+	/*
+	 *  The two rows that are not folders.
+	 *
+	 *  "Unfiled" borrows the folder silhouette and shows it hollow -- the same
+	 *  shape as everything below it, holding nothing, which is exactly what it
+	 *  means. It used to be a solid triangle, which reads as a warning.
+	 *
+	 *  "All files" is four tiles: the library itself rather than a folder. It was
+	 *  three stacked bars, which is a menu button.
+	 *
+	 *  Shared, because the panel and the modal drew these separately and the
+	 *  modal drew nothing at all -- an empty span where the mark should be.
+	 */
+	function pseudoIcon( key ) {
+
+		if ( 'unassigned' === key ) {
+			var hollow = folderIcon( '', false, true );
+			hollow.classList.add( 'is-pseudo' );
+			return hollow;
+		}
+
+		var span = el( 'span', { class: 'vgml-icon is-pseudo', 'aria-hidden': 'true' } );
+
+		span.innerHTML = '<svg viewBox="0 0 20 16" width="20" height="16">' +
+			'<rect x="0.5" y="1" width="8.5" height="6" rx="1.2"/>' +
+			'<rect x="11" y="1" width="8.5" height="6" rx="1.2"/>' +
+			'<rect x="0.5" y="9" width="8.5" height="6" rx="1.2"/>' +
+			'<rect x="11" y="9" width="8.5" height="6" rx="1.2"/></svg>';
+
+		return span;
+	}
+
 	function pseudoRow( entry ) {
 		var key = entry.pseudo;
 		var selected = ( key === 'all' && ! state.selected ) || ( key === 'unassigned' && state.selected === -1 );
@@ -567,11 +599,7 @@
 		var row = el( 'div', { class: 'vgml-row' } );
 		row.appendChild( el( 'span', { class: 'vgml-twist is-leaf', 'aria-hidden': 'true' } ) );
 
-		var mark = el( 'span', { class: 'vgml-icon is-pseudo', 'aria-hidden': 'true' } );
-		mark.innerHTML = key === 'all'
-			? '<svg viewBox="0 0 16 16" width="15" height="15"><path d="M2 3h12v2H2zM2 7h12v2H2zM2 11h12v2H2z"/></svg>'
-			: '<svg viewBox="0 0 16 16" width="15" height="15"><path d="M8 1.5 14.5 14h-13L8 1.5Zm0 4.2-3 5.8h6l-3-5.8Z"/></svg>';
-		row.appendChild( mark );
+		row.appendChild( pseudoIcon( key ) );
 
 		row.appendChild( el( 'span', { class: 'vgml-name' }, entry.label ) );
 
@@ -2573,7 +2601,7 @@
 				row.appendChild( twist );
 
 				row.appendChild( isPseudo
-					? el( 'span', { class: 'vgml-icon is-pseudo', 'aria-hidden': 'true' } )
+					? pseudoIcon( entry.pseudo )
 					: folderIcon( entry.node.color, entry.open && entry.kids, ! entry.total ) );
 
 				row.appendChild( el( 'span', { class: 'vgml-name' }, isPseudo ? entry.label : entry.node.name ) );

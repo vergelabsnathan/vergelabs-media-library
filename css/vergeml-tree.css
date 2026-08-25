@@ -124,7 +124,7 @@ body.vgml-has-tree .vgml-tree {
 .vgml-head {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 10px;
 	flex: 0 0 auto;
 	padding: var( --vgml-pad );
 	border-bottom: 1px solid var( --vgml-line );
@@ -164,15 +164,54 @@ body.vgml-has-tree .vgml-tree {
 	border-bottom: 1px solid var( --vgml-line );
 }
 
+/*
+ *  Three outlined blue buttons beside a filled blue one is four things shouting.
+ *
+ *  Rename, Colour and Delete are secondary to the folder list they act on, and
+ *  WordPress's .button paints every one of them like a call to action. Quietened
+ *  to text that lifts on hover, so "New folder" is the only thing in the panel
+ *  asking to be pressed.
+ */
 .vgml-tools .button {
 	flex: 0 0 auto;
+	height: 28px;
+	padding: 0 9px;
+	border-color: transparent;
+	background: transparent;
+	box-shadow: none;
+	color: var( --vgml-fg );
+	font-size: 12.5px;
+	line-height: 26px;
+}
+
+.vgml-tools .button:hover:not( :disabled ),
+.vgml-tools .button:focus:not( :disabled ) {
+	border-color: transparent;
+	background: var( --vgml-hover );
+	box-shadow: none;
+	color: var( --vgml-fg );
+}
+
+.vgml-tools .button:focus-visible:not( :disabled ) {
+	outline: 2px solid var( --vgml-accent );
+	outline-offset: 1px;
+}
+
+/* Unavailable, not broken: the same shape, just quieter. */
+.vgml-tools .button:disabled,
+.vgml-tools .button[disabled] {
+	border-color: transparent;
+	background: transparent;
+	color: var( --vgml-muted );
+	opacity: 0.5;
 }
 
 .vgml-tools .vgml-more {
 	margin-inline-start: auto;
 	min-width: 28px;
 	padding: 0 6px;
-	line-height: 1.6;
+	font-size: 15px;
+	line-height: 26px;
 }
 
 /* --- find --------------------------------------------------------------- */
@@ -255,18 +294,52 @@ body.vgml-has-tree .vgml-tree {
 	outline-offset: -2px;
 }
 
+/*
+ *  A magnifier inside the field rather than a bare box.
+ *
+ *  Drawn as a background image so the markup stays one <input> -- a wrapper with
+ *  an icon element beside it is three more nodes per panel and one more thing to
+ *  keep aligned in RTL.
+ */
+.vgml-search {
+	background-image: url( "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23787c82'%3E%3Cpath d='M6.75 1.5a5.25 5.25 0 1 0 3.2 9.41l3.32 3.32a.75.75 0 1 0 1.06-1.06l-3.32-3.32A5.25 5.25 0 0 0 6.75 1.5Zm0 1.5a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5Z'/%3E%3C/svg%3E" );
+	background-repeat: no-repeat;
+	background-size: 15px 15px;
+	background-position: left 9px center;
+	padding-inline-start: 30px !important;
+}
+
+[dir="rtl"] .vgml-search {
+	background-position: right 9px center;
+}
+
+/*
+ *  The disclosure arrow is the only control on the row, and at 9px of muted grey
+ *  it was invisible -- branches looked like they had no children until somebody
+ *  clicked one by accident. Bigger, darker, with a target worth aiming at.
+ */
 .vgml-twist {
 	flex: 0 0 auto;
-	width: 16px;
-	height: 16px;
+	width: 18px;
+	height: 18px;
+	margin-inline-start: -3px;
+	margin-inline-end: -3px;
 	padding: 0;
-	line-height: 16px;
-	font-size: 9px;
+	line-height: 18px;
+	font-size: 13px;
 	text-align: center;
 	border: 0;
+	border-radius: 3px;
 	background: none;
-	color: var( --vgml-muted );
+	color: var( --vgml-fg );
+	opacity: 0.55;
 	cursor: pointer;
+	transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.vgml-twist:hover {
+	opacity: 1;
+	background: var( --vgml-hover );
 }
 
 /*
@@ -330,6 +403,16 @@ body.vgml-has-tree .vgml-tree {
  *  A badge belonging to the row, not a second column of text competing with the
  *  name for attention.
  */
+/*
+ *  A hairline under the pair, so "All files" and "Unfiled" read as the view
+ *  switcher they are rather than as the first two folders in the list.
+ */
+.vgml-node.vgml-pseudo + .vgml-node:not( .vgml-pseudo ) {
+	margin-block-start: 5px;
+	padding-block-start: 5px;
+	border-block-start: 1px solid var( --vgml-line );
+}
+
 .vgml-count {
 	flex: 0 0 auto;
 	padding: 1px 6px;
