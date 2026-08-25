@@ -42,8 +42,11 @@ function vgml_front_imgs( $post_id ) {
 	$html = (string) wp_remote_retrieve_body( $got );
 
 	return array(
-		'gallery' => substr_count( $html, 'vgml-folder-gallery' ),
-		'imgs'    => substr_count( $html, '<img ' ),
+		'gallery'  => substr_count( $html, 'vgml-folder-gallery' ),
+		'imgs'     => substr_count( $html, '<img ' ),
+		'carousel' => substr_count( $html, 'is-carousel' ),
+		'lightbox' => substr_count( $html, 'vgml-lightbox' ),
+		'assets'   => ( false !== strpos( $html, 'vergeml-gallery.css' ) && false !== strpos( $html, 'vergeml-gallery.js' ) ),
 	);
 }
 
@@ -122,7 +125,7 @@ if ( ! did_action( 'elementor/loaded' ) && ! class_exists( '\Elementor\Plugin' )
 				'id'         => 'vgmltwid',
 				'elType'     => 'widget',
 				'widgetType' => 'vergeml-folder-gallery',
-				'settings'   => array( 'folder' => (string) $folder_id, 'columns' => '3', 'size' => 'medium' ),
+				'settings'   => array( 'folder' => (string) $folder_id, 'columns' => '3', 'size' => 'medium', 'layout' => 'carousel', 'link_to' => 'lightbox' ),
 				'elements'   => array(),
 			) ),
 		) ),
@@ -145,6 +148,9 @@ if ( ! did_action( 'elementor/loaded' ) && ! class_exists( '\Elementor\Plugin' )
 		isset( $front['err'] ) ? $front['err'] : $front['gallery'] . ' markers' );
 	t( 'with every image in the folder', isset( $front['imgs'] ) && $front['imgs'] >= $expected,
 		( $front['imgs'] ?? '?' ) . ' of ' . $expected );
+	t( 'as a carousel with lightbox links', ! empty( $front['carousel'] ) && $front['lightbox'] >= $expected,
+		( $front['carousel'] ?? 0 ) . ' carousel, ' . ( $front['lightbox'] ?? 0 ) . ' lightbox links' );
+	t( 'and the assets rode along', ! empty( $front['assets'] ) );
 }
 
 /* --- Divi ------------------------------------------------------------------- */
@@ -168,7 +174,7 @@ if ( ! class_exists( 'ET_Builder_Module' ) && ! defined( 'ET_BUILDER_PLUGIN_DIR'
 		'post_type'    => 'page',
 		'post_status'  => 'publish',
 		'post_content' => sprintf(
-			'[et_pb_section][et_pb_row][et_pb_column type="4_4"][vergeml_folder_gallery folder="%d" columns="3" size="medium"][/et_pb_column][/et_pb_row][/et_pb_section]',
+			'[et_pb_section][et_pb_row][et_pb_column type="4_4"][vergeml_folder_gallery folder="%d" columns="3" size="medium" layout="carousel" link_to="lightbox"][/et_pb_column][/et_pb_row][/et_pb_section]',
 			$folder_id
 		),
 	) );
@@ -182,8 +188,9 @@ if ( ! class_exists( 'ET_Builder_Module' ) && ! defined( 'ET_BUILDER_PLUGIN_DIR'
 		isset( $front['err'] ) ? $front['err'] : $front['gallery'] . ' markers' );
 	t( 'with every image in the folder', isset( $front['imgs'] ) && $front['imgs'] >= $expected,
 		( $front['imgs'] ?? '?' ) . ' of ' . $expected );
-	t( 'and the shortcode did not leak as text', ! isset( $front['err'] ),
-		'' );
+	t( 'as a carousel with lightbox links', ! empty( $front['carousel'] ) && $front['lightbox'] >= $expected,
+		( $front['carousel'] ?? 0 ) . ' carousel, ' . ( $front['lightbox'] ?? 0 ) . ' lightbox links' );
+	t( 'and the assets rode along', ! empty( $front['assets'] ) );
 }
 
 /* tidy */

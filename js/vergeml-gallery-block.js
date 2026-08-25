@@ -103,6 +103,16 @@
 					onChange: function ( v ) { setAttributes( { folder: parseInt( v, 10 ) || 0 } ); },
 				} ),
 
+				el( SelectControl, {
+					label: l10n.layout || 'Layout',
+					value: attributes.layout,
+					options: [
+						{ value: 'grid', label: l10n.layoutGrid || 'Grid' },
+						{ value: 'carousel', label: l10n.layoutCarousel || 'Carousel' },
+					],
+					onChange: function ( v ) { setAttributes( { layout: v } ); },
+				} ),
+
 				el( ToggleControl, {
 					label: l10n.subfolders || 'Include sub-folders',
 					checked: !! attributes.children,
@@ -150,6 +160,7 @@
 					value: attributes.linkTo,
 					options: [
 						{ value: 'none', label: l10n.linkNone || 'Nothing' },
+						{ value: 'lightbox', label: l10n.linkLightbox || 'A lightbox' },
 						{ value: 'file', label: l10n.linkFile || 'The image file' },
 						{ value: 'post', label: l10n.linkPage || 'The attachment page' },
 					],

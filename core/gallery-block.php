@@ -27,6 +27,32 @@ if ( ! defined( 'ABSPATH' ) )
  */
 
 
+add_action( 'init', 'vergeml_register_gallery_assets', 13 );
+
+/**
+ *  Registered up front, enqueued only from the render callback -- so a page
+ *  with a gallery pays for the carousel and lightbox once, and a page without
+ *  one pays nothing.
+ */
+function vergeml_register_gallery_assets() {
+
+    wp_register_style(
+        'vergeml-gallery',
+        plugins_url( 'css/vergeml-gallery.css', VERGEML_FILE ),
+        array(),
+        VERGEML_VERSION
+    );
+
+    wp_register_script(
+        'vergeml-gallery',
+        plugins_url( 'js/vergeml-gallery.js', VERGEML_FILE ),
+        array(),
+        VERGEML_VERSION,
+        true
+    );
+}
+
+
 add_action( 'init', 'vergeml_register_gallery_block', 14 );
 
 function vergeml_register_gallery_block() {
@@ -63,6 +89,10 @@ function vergeml_register_gallery_block() {
             'size'        => __( 'Image size', 'vergelabs-media-library' ),
             'linkTo'      => __( 'Link to', 'vergelabs-media-library' ),
             'linkNone'    => __( 'Nothing', 'vergelabs-media-library' ),
+            'linkLightbox' => __( 'A lightbox', 'vergelabs-media-library' ),
+            'layout'      => __( 'Layout', 'vergelabs-media-library' ),
+            'layoutGrid'  => __( 'Grid', 'vergelabs-media-library' ),
+            'layoutCarousel' => __( 'Carousel', 'vergelabs-media-library' ),
             'linkFile'    => __( 'The image file', 'vergelabs-media-library' ),
             'linkPage'    => __( 'The attachment page', 'vergelabs-media-library' ),
             'order'       => __( 'Order', 'vergelabs-media-library' ),
@@ -91,6 +121,7 @@ function vergeml_register_gallery_block() {
             'limit'      => array( 'type' => 'integer', 'default' => 0 ),
             'size'       => array( 'type' => 'string', 'default' => 'large' ),
             'linkTo'     => array( 'type' => 'string', 'default' => 'none' ),
+            'layout'     => array( 'type' => 'string', 'default' => 'grid' ),
             'orderBy'    => array( 'type' => 'string', 'default' => 'name' ),
             'children'   => array( 'type' => 'boolean', 'default' => true ),
         ),
@@ -237,6 +268,15 @@ function vergeml_render_gallery_block( $attributes ) {
         if ( 'file' === $link_to ) {
             $href = wp_get_attachment_url( $image->ID );
             $img  = '<a href="' . esc_url( $href ) . '">' . $img . '</a>';
+        } elseif ( 'lightbox' === $link_to ) {
+            /*
+             *  An ordinary link to the full-size file, marked for the script to
+             *  intercept. With JavaScript off it degrades to exactly the 'file'
+             *  behaviour it is dressed as -- the lightbox is an improvement on a
+             *  working link, never the only way to the image.
+             */
+            $href = wp_get_attachment_url( $image->ID );
+            $img  = '<a class="vgml-lightbox" href="' . esc_url( $href ) . '">' . $img . '</a>';
         } elseif ( 'post' === $link_to ) {
             $img = '<a href="' . esc_url( get_permalink( $image->ID ) ) . '">' . $img . '</a>';
         }
@@ -254,11 +294,31 @@ function vergeml_render_gallery_block( $attributes ) {
         return '';
     }
 
+    $layout   = ( isset( $attributes['layout'] ) && 'carousel' === $attributes['layout'] ) ? 'carousel' : 'grid';
+    $carousel = 'carousel' === $layout;
+
+    $classes = 'wp-block-gallery has-nested-images columns-' . $columns
+        . ( $carousel ? ' is-carousel' : ' is-layout-flex' )
+        . ' vgml-folder-gallery';
+
+    // How wide one slide is, from the same columns control the grid uses.
+    $style = $carousel
+        ? '--vgml-slide:calc((100% - ' . ( ( $columns - 1 ) * 16 ) . 'px)/' . $columns . ');'
+        : '';
+
     $wrapper = function_exists( 'get_block_wrapper_attributes' )
-        ? get_block_wrapper_attributes( array(
-            'class' => 'wp-block-gallery has-nested-images columns-' . $columns . ' is-layout-flex vgml-folder-gallery',
-        ) )
-        : 'class="wp-block-gallery has-nested-images columns-' . esc_attr( $columns ) . ' vgml-folder-gallery"';
+        ? get_block_wrapper_attributes( array_filter( array( 'class' => $classes, 'style' => $style ) ) )
+        : 'class="' . esc_attr( $classes ) . '"' . ( $style ? ' style="' . esc_attr( $style ) . '"' : '' );
+
+    /*
+     *  Assets ride along only when this render needs them, and the style comes
+     *  too for the carousel alone -- the grid is core's markup and the theme's
+     *  business.
+     */
+    if ( $carousel || 'lightbox' === $link_to ) {
+        wp_enqueue_style( 'vergeml-gallery' );
+        wp_enqueue_script( 'vergeml-gallery' );
+    }
 
     return '<figure ' . $wrapper . '>' . $items . '</figure>';
 }

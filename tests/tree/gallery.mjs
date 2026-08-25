@@ -198,11 +198,92 @@ if ( added ) {
 	}, { id: added, folder: folder.id } );
 }
 
-/* tidy: the published page was only ever a fixture */
-if ( made && made.id ) {
-	await page.evaluate( async ( id ) => {
-		await window.wp.apiFetch( { path: '/wp/v2/posts/' + id + '?force=true', method: 'DELETE' } );
-	}, made.id );
+/* --- carousel and lightbox ------------------------------------------------- */
+
+console.log( '\ncarousel and lightbox' );
+
+/*
+ *  Driven, not inspected: a carousel whose arrow does not scroll and a lightbox
+ *  whose overlay does not open both have perfectly plausible markup. The clicks
+ *  are the test.
+ */
+await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
+await page.waitForSelector( '.vgml-tree .vgml-row', { timeout: 60000 } );
+
+const fancy = await page.evaluate( async ( args ) => {
+	const content = '<!-- wp:vergelabs/folder-gallery {"folder":' + args.id
+		+ ',"columns":2,"size":"medium","layout":"carousel","linkTo":"lightbox"} /-->';
+	const post = await window.wp.apiFetch( {
+		path: '/wp/v2/posts',
+		method: 'POST',
+		data: { title: 'Folder gallery fancy ' + args.stamp, status: 'publish', content: content },
+	} );
+	return { id: post.id, link: post.link };
+}, { id: folder.id, stamp: Date.now() } );
+
+await page.goto( fancy.link, { waitUntil: 'domcontentloaded' } );
+await page.waitForTimeout( 1200 );
+
+const setup = await page.evaluate( () => ( {
+	carousel: !! document.querySelector( '.vgml-folder-gallery.is-carousel' ),
+	arrows: document.querySelectorAll( '.vgml-carousel-arrow' ).length,
+	lightboxLinks: document.querySelectorAll( 'a.vgml-lightbox' ).length,
+	css: !! document.querySelector( 'link[href*="vergeml-gallery.css"]' ),
+	js: !! document.querySelector( 'script[src*="vergeml-gallery.js"]' ),
+} ) );
+
+check( 'the carousel renders as one', setup.carousel );
+check( 'the script added its arrows', setup.arrows === 2, `${ setup.arrows } arrows` );
+check( 'every image is a lightbox link', setup.lightboxLinks === folder.count, `${ setup.lightboxLinks } links` );
+check( 'the assets came only because they were needed', setup.css && setup.js );
+
+// The arrow scrolls the strip.
+const before2 = await page.evaluate( () => document.querySelector( '.vgml-folder-gallery.is-carousel' ).scrollLeft );
+await page.click( '.vgml-carousel-arrow[data-dir="next"]' );
+await page.waitForTimeout( 900 );
+const after2 = await page.evaluate( () => document.querySelector( '.vgml-folder-gallery.is-carousel' ).scrollLeft );
+check( 'the next arrow scrolls the strip', after2 > before2, `${ Math.round( before2 ) } -> ${ Math.round( after2 ) }` );
+
+// The lightbox opens on the image that was clicked, navigates, and closes.
+await page.click( 'a.vgml-lightbox' );
+await page.waitForSelector( '.vgml-lightbox-overlay', { timeout: 10000 } );
+
+const opened = await page.evaluate( () => ( {
+	overlay: !! document.querySelector( '.vgml-lightbox-overlay' ),
+	src: ( document.querySelector( '.vgml-lightbox-overlay img' ) || {} ).src || '',
+	stillHere: location.pathname,
+} ) );
+check( 'clicking opens the lightbox instead of leaving the page', opened.overlay && /folder-gallery-fancy/.test( opened.stillHere ) );
+check( 'with the full-size image', /\.jpg/.test( opened.src ), opened.src.split( '/' ).pop() );
+
+await page.click( '.vgml-lightbox-nav[data-dir="next"]' );
+await page.waitForTimeout( 400 );
+const second = await page.evaluate( () => ( document.querySelector( '.vgml-lightbox-overlay img' ) || {} ).src || '' );
+check( 'the arrow moves to the next image', second !== opened.src, second.split( '/' ).pop() );
+
+await page.keyboard.press( 'Escape' );
+await page.waitForTimeout( 400 );
+check( 'Escape closes it', await page.evaluate( () => ! document.querySelector( '.vgml-lightbox-overlay' ) ) );
+
+// A plain grid page must not carry the assets it does not use.
+await page.goto( made.link, { waitUntil: 'domcontentloaded' } );
+await page.waitForTimeout( 800 );
+check( 'a plain grid page does not load them', await page.evaluate( () =>
+	! document.querySelector( 'link[href*="vergeml-gallery.css"]' ) && ! document.querySelector( 'script[src*="vergeml-gallery.js"]' ) ) );
+
+/*
+ *  Tidy from an admin screen: the checks above ended on the front of the site,
+ *  where wp.apiFetch does not exist.
+ */
+await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
+await page.waitForSelector( '.vgml-tree .vgml-row', { timeout: 60000 } );
+
+for ( const fixture of [ fancy, made ] ) {
+	if ( fixture && fixture.id ) {
+		await page.evaluate( async ( id ) => {
+			await window.wp.apiFetch( { path: '/wp/v2/posts/' + id + '?force=true', method: 'DELETE' } );
+		}, fixture.id );
+	}
 }
 
 check( 'no javascript errors from the block', ! errors.some( ( e ) => /vergeml|folder-gallery/i.test( e ) ),

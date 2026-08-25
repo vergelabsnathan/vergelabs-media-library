@@ -86,8 +86,9 @@ function vergeml_gallery_widget_atts( $settings ) {
         'columns'  => isset( $settings['columns'] ) ? max( 1, min( 8, (int) $settings['columns'] ) ) : 3,
         'limit'    => isset( $settings['limit'] ) ? max( 0, (int) $settings['limit'] ) : 0,
         'size'     => isset( $settings['size'] ) && '' !== $settings['size'] ? (string) $settings['size'] : 'large',
-        'linkTo'   => isset( $settings['link_to'] ) && in_array( $settings['link_to'], array( 'none', 'file', 'post' ), true )
+        'linkTo'   => isset( $settings['link_to'] ) && in_array( $settings['link_to'], array( 'none', 'lightbox', 'file', 'post' ), true )
             ? (string) $settings['link_to'] : 'none',
+        'layout'   => isset( $settings['layout'] ) && 'carousel' === $settings['layout'] ? 'carousel' : 'grid',
         'orderBy'  => isset( $settings['order_by'] ) && in_array( $settings['order_by'], array( 'name', 'newest', 'oldest', 'manual' ), true )
             ? (string) $settings['order_by'] : 'name',
         // Divi's toggles arrive as the strings 'on'/'off'; Elementor's as 'yes'/''.
@@ -162,6 +163,16 @@ function vergeml_register_elementor_gallery( $widgets_manager ) {
                 'default' => '0',
             ) );
 
+            $this->add_control( 'layout', array(
+                'label'   => __( 'Layout', 'vergelabs-media-library' ),
+                'type'    => \Elementor\Controls_Manager::SELECT,
+                'options' => array(
+                    'grid'     => __( 'Grid', 'vergelabs-media-library' ),
+                    'carousel' => __( 'Carousel', 'vergelabs-media-library' ),
+                ),
+                'default' => 'grid',
+            ) );
+
             $this->add_control( 'children', array(
                 'label'   => __( 'Include sub-folders', 'vergelabs-media-library' ),
                 'type'    => \Elementor\Controls_Manager::SWITCHER,
@@ -207,9 +218,10 @@ function vergeml_register_elementor_gallery( $widgets_manager ) {
                 'label'   => __( 'Link to', 'vergelabs-media-library' ),
                 'type'    => \Elementor\Controls_Manager::SELECT,
                 'options' => array(
-                    'none' => __( 'Nothing', 'vergelabs-media-library' ),
-                    'file' => __( 'The image file', 'vergelabs-media-library' ),
-                    'post' => __( 'The attachment page', 'vergelabs-media-library' ),
+                    'none'     => __( 'Nothing', 'vergelabs-media-library' ),
+                    'lightbox' => __( 'A lightbox', 'vergelabs-media-library' ),
+                    'file'     => __( 'The image file', 'vergelabs-media-library' ),
+                    'post'     => __( 'The attachment page', 'vergelabs-media-library' ),
                 ),
                 'default' => 'none',
             ) );
@@ -288,6 +300,16 @@ function vergeml_register_divi_gallery() {
                     'default'         => '0',
                     'option_category' => 'basic_option',
                 ),
+                'layout'   => array(
+                    'label'           => esc_html__( 'Layout', 'vergelabs-media-library' ),
+                    'type'            => 'select',
+                    'options'         => array(
+                        'grid'     => esc_html__( 'Grid', 'vergelabs-media-library' ),
+                        'carousel' => esc_html__( 'Carousel', 'vergelabs-media-library' ),
+                    ),
+                    'default'         => 'grid',
+                    'option_category' => 'layout',
+                ),
                 'children' => array(
                     'label'           => esc_html__( 'Include sub-folders', 'vergelabs-media-library' ),
                     'type'            => 'yes_no_button',
@@ -335,9 +357,10 @@ function vergeml_register_divi_gallery() {
                     'label'           => esc_html__( 'Link to', 'vergelabs-media-library' ),
                     'type'            => 'select',
                     'options'         => array(
-                        'none' => esc_html__( 'Nothing', 'vergelabs-media-library' ),
-                        'file' => esc_html__( 'The image file', 'vergelabs-media-library' ),
-                        'post' => esc_html__( 'The attachment page', 'vergelabs-media-library' ),
+                        'none'     => esc_html__( 'Nothing', 'vergelabs-media-library' ),
+                        'lightbox' => esc_html__( 'A lightbox', 'vergelabs-media-library' ),
+                        'file'     => esc_html__( 'The image file', 'vergelabs-media-library' ),
+                        'post'     => esc_html__( 'The attachment page', 'vergelabs-media-library' ),
                     ),
                     'default'         => 'none',
                     'option_category' => 'basic_option',

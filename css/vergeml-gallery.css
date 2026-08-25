@@ -1,0 +1,165 @@
+/*
+ *  The two gallery layouts and the lightbox.
+ *
+ *  Loaded only on pages that render a folder gallery -- the render callback
+ *  enqueues it, so a site full of galleries pays once and a site with none
+ *  pays nothing.
+ *
+ *  The grid needs no rules of ours at all: it is core's own wp-block-gallery
+ *  markup and the theme styles it. Everything here is for the two things core
+ *  has no idea about -- a carousel, and a lightbox.
+ */
+
+/* --- carousel ------------------------------------------------------------ */
+
+/*
+ *  Scroll-snap, not a JavaScript engine. The browser owns the physics --
+ *  touch, trackpad, momentum, RTL -- and the arrows are a convenience on top,
+ *  not the mechanism. With JavaScript missing entirely this is still a working
+ *  carousel that scrolls.
+ */
+.vgml-folder-gallery.is-carousel {
+	display: flex;
+	flex-wrap: nowrap;
+	gap: var( --wp--style--gallery-gap-default, 16px );
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: none;
+	position: relative;
+}
+
+.vgml-folder-gallery.is-carousel::-webkit-scrollbar {
+	display: none;
+}
+
+.vgml-folder-gallery.is-carousel > .wp-block-image {
+	flex: 0 0 var( --vgml-slide, calc( ( 100% - 32px ) / 3 ) );
+	scroll-snap-align: start;
+	margin: 0;
+}
+
+.vgml-folder-gallery.is-carousel > .wp-block-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* The arrows the script adds. Absent without it, and nothing is lost. */
+.vgml-carousel-wrap {
+	position: relative;
+}
+
+.vgml-carousel-arrow {
+	position: absolute;
+	top: 50%;
+	transform: translateY( -50% );
+	z-index: 2;
+	width: 38px;
+	height: 38px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: rgba( 255, 255, 255, 0.92 );
+	box-shadow: 0 1px 6px rgba( 0, 0, 0, 0.25 );
+	color: #1d2327;
+	font-size: 18px;
+	line-height: 38px;
+	cursor: pointer;
+}
+
+.vgml-carousel-arrow:hover {
+	background: #fff;
+}
+
+.vgml-carousel-arrow[data-dir="prev"] { inset-inline-start: 8px; }
+.vgml-carousel-arrow[data-dir="next"] { inset-inline-end: 8px; }
+
+.vgml-carousel-arrow[disabled] {
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* --- lightbox ------------------------------------------------------------- */
+
+.vgml-lightbox-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 999999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba( 10, 10, 12, 0.92 );
+}
+
+.vgml-lightbox-overlay img {
+	max-width: min( 92vw, 1600px );
+	max-height: 86vh;
+	width: auto;
+	height: auto;
+	box-shadow: 0 10px 40px rgba( 0, 0, 0, 0.6 );
+}
+
+.vgml-lightbox-caption {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 18px;
+	margin: 0;
+	color: #f0f0f1;
+	font-size: 14px;
+	text-align: center;
+	text-shadow: 0 1px 3px rgba( 0, 0, 0, 0.8 );
+}
+
+.vgml-lightbox-close,
+.vgml-lightbox-nav {
+	position: absolute;
+	z-index: 2;
+	border: 0;
+	background: rgba( 255, 255, 255, 0.12 );
+	color: #fff;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: background-color 120ms ease;
+}
+
+.vgml-lightbox-close:hover,
+.vgml-lightbox-nav:hover {
+	background: rgba( 255, 255, 255, 0.28 );
+}
+
+.vgml-lightbox-close {
+	top: 18px;
+	inset-inline-end: 18px;
+	width: 42px;
+	height: 42px;
+	font-size: 22px;
+	line-height: 42px;
+}
+
+.vgml-lightbox-nav {
+	top: 50%;
+	transform: translateY( -50% );
+	width: 46px;
+	height: 46px;
+	font-size: 22px;
+	line-height: 46px;
+}
+
+.vgml-lightbox-nav[data-dir="prev"] { inset-inline-start: 18px; }
+.vgml-lightbox-nav[data-dir="next"] { inset-inline-end: 18px; }
+
+/* One image: nothing to navigate to, so nothing pretending otherwise. */
+.vgml-lightbox-overlay.is-single .vgml-lightbox-nav {
+	display: none;
+}
+
+@media ( prefers-reduced-motion: no-preference ) {
+	.vgml-lightbox-overlay {
+		animation: vgml-lightbox-in 160ms ease;
+	}
+	@keyframes vgml-lightbox-in {
+		from { opacity: 0; }
+		to   { opacity: 1; }
+	}
+}
