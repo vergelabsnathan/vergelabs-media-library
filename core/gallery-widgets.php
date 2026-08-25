@@ -99,6 +99,151 @@ function vergeml_gallery_widget_atts( $settings ) {
 }
 
 
+/* ------------------------------------------------------- the shortcode */
+
+/*
+ *  [vergeml_gallery folder="12" columns="3" layout="carousel" link_to="lightbox"]
+ *
+ *  The fourth door, and the one that needs no builder at all: it works in a
+ *  plain post, a text widget, a theme that never heard of blocks. Registered
+ *  unconditionally -- unlike the inherited [gallery media_category=...]
+ *  enhancement, it hides behind no setting, because a shortcode somebody has to
+ *  switch on first is a shortcode that renders nothing with no explanation.
+ *
+ *  It is also what the WPBakery element maps onto: WPBakery's model is
+ *  "an element is a shortcode", so the door and the element are one thing.
+ */
+
+add_shortcode( 'vergeml_gallery', 'vergeml_gallery_shortcode' );
+
+function vergeml_gallery_shortcode( $atts ) {
+
+    $settings = shortcode_atts( array(
+        'folder'   => 0,
+        'columns'  => 3,
+        'limit'    => 0,
+        'size'     => 'large',
+        'link_to'  => 'none',
+        'order_by' => 'name',
+        'children' => 'yes',
+        'layout'   => 'grid',
+    ), $atts, 'vergeml_gallery' );
+
+    return vergeml_render_gallery_block( vergeml_gallery_widget_atts( $settings ) );
+}
+
+
+/* -------------------------------------------------------------- WPBakery */
+
+add_action( 'vc_before_init', 'vergeml_register_wpbakery_gallery' );
+
+function vergeml_register_wpbakery_gallery() {
+
+    if ( ! function_exists( 'vc_map' ) ) {
+        return;
+    }
+
+    /*
+     *  WPBakery's dropdown quirk, worth naming because it is exactly backwards:
+     *  'value' takes array( Label => value ), label first. Feed it value => label
+     *  and every option saves its label as its value.
+     */
+    $folders = array( __( 'Choose a folder', 'vergelabs-media-library' ) => '0' );
+
+    foreach ( vergeml_gallery_folder_options() as $id => $label ) {
+        $folders[ $label ] = (string) $id;
+    }
+
+    $sizes = array();
+
+    foreach ( vergeml_gallery_sizes() as $size ) {
+        $sizes[ $size['label'] ] = $size['value'];
+    }
+
+    vc_map( array(
+        'name'        => __( 'Folder gallery', 'vergelabs-media-library' ),
+        'base'        => 'vergeml_gallery',
+        'category'    => __( 'Content', 'vergelabs-media-library' ),
+        'icon'        => 'icon-wpb-images-stack',
+        'description' => __( 'Every image in a folder, kept current.', 'vergelabs-media-library' ),
+        'params'      => array(
+            array(
+                'type'        => 'dropdown',
+                'heading'     => __( 'Folder', 'vergelabs-media-library' ),
+                'param_name'  => 'folder',
+                'value'       => $folders,
+                'admin_label' => true,
+            ),
+            array(
+                'type'       => 'dropdown',
+                'heading'    => __( 'Layout', 'vergelabs-media-library' ),
+                'param_name' => 'layout',
+                'value'      => array(
+                    __( 'Grid', 'vergelabs-media-library' )     => 'grid',
+                    __( 'Carousel', 'vergelabs-media-library' ) => 'carousel',
+                ),
+                'std'        => 'grid',
+            ),
+            array(
+                'type'       => 'dropdown',
+                'heading'    => __( 'Include sub-folders', 'vergelabs-media-library' ),
+                'param_name' => 'children',
+                'value'      => array(
+                    __( 'Yes', 'vergelabs-media-library' ) => 'yes',
+                    __( 'No', 'vergelabs-media-library' )  => 'no',
+                ),
+                'std'        => 'yes',
+            ),
+            array(
+                'type'       => 'dropdown',
+                'heading'    => __( 'Columns', 'vergelabs-media-library' ),
+                'param_name' => 'columns',
+                'value'      => array_combine( array_map( 'strval', range( 1, 8 ) ), array_map( 'strval', range( 1, 8 ) ) ),
+                'std'        => '3',
+            ),
+            array(
+                'type'        => 'textfield',
+                'heading'     => __( 'Maximum images', 'vergelabs-media-library' ),
+                'param_name'  => 'limit',
+                'value'       => '0',
+                'description' => __( 'Zero shows every image in the folder.', 'vergelabs-media-library' ),
+            ),
+            array(
+                'type'       => 'dropdown',
+                'heading'    => __( 'Order', 'vergelabs-media-library' ),
+                'param_name' => 'order_by',
+                'value'      => array(
+                    __( 'By name', 'vergelabs-media-library' )                  => 'name',
+                    __( 'Newest first', 'vergelabs-media-library' )             => 'newest',
+                    __( 'Oldest first', 'vergelabs-media-library' )             => 'oldest',
+                    __( 'The order set in the library', 'vergelabs-media-library' ) => 'manual',
+                ),
+                'std'        => 'name',
+            ),
+            array(
+                'type'       => 'dropdown',
+                'heading'    => __( 'Image size', 'vergelabs-media-library' ),
+                'param_name' => 'size',
+                'value'      => $sizes,
+                'std'        => 'large',
+            ),
+            array(
+                'type'       => 'dropdown',
+                'heading'    => __( 'Link to', 'vergelabs-media-library' ),
+                'param_name' => 'link_to',
+                'value'      => array(
+                    __( 'Nothing', 'vergelabs-media-library' )             => 'none',
+                    __( 'A lightbox', 'vergelabs-media-library' )          => 'lightbox',
+                    __( 'The image file', 'vergelabs-media-library' )      => 'file',
+                    __( 'The attachment page', 'vergelabs-media-library' ) => 'post',
+                ),
+                'std'        => 'none',
+            ),
+        ),
+    ) );
+}
+
+
 /* ------------------------------------------------------------- Elementor */
 
 add_action( 'elementor/widgets/register', 'vergeml_register_elementor_gallery' );

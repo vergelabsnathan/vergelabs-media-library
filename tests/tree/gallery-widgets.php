@@ -96,6 +96,73 @@ $expected  = count( vergeml_gallery_query( array( 'folder' => $folder_id, 'child
 
 $made = array();
 
+/* --- the shortcode, with no builder at all --------------------------------- */
+
+echo "
+the shortcode
+";
+
+/*
+ *  The fourth door needs nothing installed, which is the point of it -- so it
+ *  is the one section here that can never be skipped.
+ */
+$out = do_shortcode( sprintf( '[vergeml_gallery folder=%d columns=3 size=medium]', $folder_id ) );
+
+t( 'a bare shortcode renders the gallery', substr_count( $out, '<img ' ) === $expected,
+	substr_count( $out, '<img ' ) . ' of ' . $expected );
+t( 'without being switched on anywhere', shortcode_exists( 'vergeml_gallery' ) );
+
+$fancy = do_shortcode( sprintf( '[vergeml_gallery folder=%d layout=carousel link_to=lightbox]', $folder_id ) );
+t( 'and it carries the carousel and lightbox too',
+	false !== strpos( $fancy, 'is-carousel' ) && substr_count( $fancy, 'vgml-lightbox' ) >= $expected );
+
+/* --- WPBakery --------------------------------------------------------------- */
+
+echo "
+WPBakery
+";
+
+if ( ! function_exists( 'vc_map' ) ) {
+
+	echo "  ---- WPBakery is not active here; skipped
+";
+
+} else {
+
+	do_action( 'vc_before_init' );
+
+	$mapped = class_exists( 'WPBMap' ) ? WPBMap::getShortCode( 'vergeml_gallery' ) : null;
+	t( 'the element is mapped', ! empty( $mapped ), $mapped ? $mapped['name'] . ', ' . count( $mapped['params'] ) . ' params' : '' );
+
+	/*
+	 *  WPBakery's model is "an element is a shortcode", so its saved page is the
+	 *  shortcode inside its row markup -- and the row itself rendering proves
+	 *  WPBakery processed the page rather than our shortcode merely firing.
+	 */
+	$bid = wp_insert_post( array(
+		'post_title'   => 'vgml widget probe wpbakery',
+		'post_type'    => 'page',
+		'post_status'  => 'publish',
+		'post_content' => sprintf(
+			'[vc_row][vc_column][vergeml_gallery folder="%d" columns="3" size="medium" layout="carousel" link_to="lightbox"][/vc_column][/vc_row]',
+			$folder_id
+		),
+	) );
+
+	update_post_meta( $bid, '_wpb_vc_js_status', 'true' );
+
+	$made[] = $bid;
+	$front  = vgml_front_imgs( $bid );
+
+	t( 'the page renders the gallery', ! isset( $front['err'] ) && $front['gallery'] > 0,
+		isset( $front['err'] ) ? $front['err'] : $front['gallery'] . ' markers' );
+	t( 'with every image in the folder', isset( $front['imgs'] ) && $front['imgs'] >= $expected,
+		( $front['imgs'] ?? '?' ) . ' of ' . $expected );
+	t( 'as a carousel with lightbox links', ! empty( $front['carousel'] ) && $front['lightbox'] >= $expected,
+		( $front['carousel'] ?? 0 ) . ' carousel, ' . ( $front['lightbox'] ?? 0 ) . ' lightbox links' );
+	t( 'and the assets rode along', ! empty( $front['assets'] ) );
+}
+
 /* --- Elementor ------------------------------------------------------------- */
 
 echo "\nElementor\n";
