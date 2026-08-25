@@ -29,6 +29,8 @@ A folder tree sits beside the media library. Drag files onto a folder to file th
 
 **A file can be in more than one folder.** A photo can be in Products and in Autumn Campaign without a second copy of it existing. If you would rather it behaved like the folder plugins that have no choice about this, there is a setting for one folder per file.
 
+**A folder can be a gallery.** Add the Folder gallery block to a page, pick a folder, and it shows every image in it. It stays a folder rather than becoming a list of files: put a new image in the folder and every page using that gallery has it, with nothing re-edited. WordPress's own gallery block freezes a list of images at the moment you insert it.
+
 **Already using another folder plugin?** Settings → Import Folders reads FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders, Real Media Library and Enhanced Media Library. It shows you what it will do before it does it, says which folders will merge with ones you already have, and the whole import can be undone from the same screen. Nothing is taken from the other plugin — it keeps everything exactly as it was, so you can go back at any time.
 
 

@@ -68,6 +68,25 @@ Two bugs came out of it, both older:
   an unlabelled taxonomy from its slug instead of skipping it, and the sanitiser
   carries labels it was not given.
 
+**T6 — page builders.** Elementor and Divi both open wp.media, so neither needed
+an interface of its own -- only an entry point. Elementor's editor has its own
+enqueue hook; Divi's visual builder runs on the front end, where
+admin_enqueue_scripts never fires at all. Verified in both, in a real browser.
+
+**T7 — the folder gallery block.** The query has existed since Enhanced Media
+Library; what it never had was a way to reach it. Pick a folder from a list,
+choose columns, size, order and what the images link to, and see the real
+gallery in the editor -- it renders on the server, so there is one renderer
+rather than two that drift.
+
+The point of it is that it stays a folder: add an image to Press and every page
+showing that gallery has it, with nothing re-edited. Core's gallery block freezes
+a list of ids at the moment you insert it. Proven end to end -- 6 images, then 7,
+on a published page nobody touched.
+
+Core's own `wp-block-gallery has-nested-images` markup, so themes style it
+without knowing we exist.
+
 ## Next, in order
 
 ### 1. CSV import and export
@@ -87,7 +106,15 @@ Term meta for an owner and a filter on the tree. The work is not the storage, it
 is deciding what a file inside a folder only one person can see is supposed to do
 when somebody else opens the library.
 
-### 4. Galleries
+### 4. Galleries: the two that are left
+
+The block is done. What remains is the same renderer reached two other ways:
+
+- **Shortcode discoverability.** `[gallery media_category="press"]` already works
+  and always has -- it just needs a "copy the shortcode" action on a folder, and
+  something better than an empty gallery when the setting behind it is off.
+- **An Elementor widget.** A PHP widget class over the same renderer, once
+  somebody asks for it. Divi's module after that, or not at all.
 
 A folder becomes a gallery. Split deliberately, because the three integrations are
 not one job:
