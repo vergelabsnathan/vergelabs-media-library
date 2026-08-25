@@ -85,6 +85,55 @@ function vergeml_sanitize_color( $value ) {
  *  drawn as a tree is a lie about the data.
  */
 
+/**
+ *  vergeml_ids
+ *
+ *  Ids from a request, as given -- not bent into different ones.
+ *
+ *  absint() was doing this, and absint( -5 ) is 5. A caller sending a negative id
+ *  did not get an error, they got a valid operation on an entirely different
+ *  object: -3 meant folder 3, and asking to file attachment -5 filed attachment
+ *  5. Nothing was ever exposed that a capability check would have allowed
+ *  through, but "the id you sent was rejected" and "we acted on a different one"
+ *  are not close to the same answer.
+ *
+ *  Anything that is not a positive integer is dropped, so the caller gets the
+ *  "nothing to do" refusal the endpoints already have.
+ */
+
+function vergeml_ids( $value ) {
+
+    $out = array();
+
+    foreach ( (array) $value as $one ) {
+
+        if ( ! is_numeric( $one ) ) {
+            continue;
+        }
+
+        $one = (int) $one;
+
+        if ( $one > 0 ) {
+            $out[] = $one;
+        }
+    }
+
+    return array_values( array_unique( $out ) );
+}
+
+
+/**
+ *  vergeml_id
+ *
+ *  One id, or zero for "none given".
+ */
+
+function vergeml_id( $value ) {
+    $ids = vergeml_ids( $value );
+    return $ids ? (int) $ids[0] : 0;
+}
+
+
 function vergeml_tree_taxonomies() {
 
     $found = get_object_taxonomies( 'attachment', 'objects' );
@@ -398,9 +447,9 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
         return vergeml_rest_assign_batch( $request, $taxonomy, $batch );
     }
 
-    $attachments = array_filter( array_map( 'absint', (array) $request->get_param( 'attachments' ) ) );
-    $add         = array_filter( array_map( 'absint', (array) $request->get_param( 'add' ) ) );
-    $remove      = array_filter( array_map( 'absint', (array) $request->get_param( 'remove' ) ) );
+    $attachments = vergeml_ids( $request->get_param( 'attachments' ) );
+    $add         = vergeml_ids( $request->get_param( 'add' ) );
+    $remove      = vergeml_ids( $request->get_param( 'remove' ) );
 
     /*
      *  'move' empties the taxonomy for these files before adding, which is what

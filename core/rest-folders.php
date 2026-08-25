@@ -116,9 +116,9 @@ function vergeml_rest_folder( WP_REST_Request $request ) {
     }
 
     $action = $request->get_param( 'action' );
-    $id     = absint( $request->get_param( 'id' ) );
+    $id     = vergeml_id( $request->get_param( 'id' ) );
     $name   = trim( (string) $request->get_param( 'name' ) );
-    $parent = absint( $request->get_param( 'parent' ) );
+    $parent = vergeml_id( $request->get_param( 'parent' ) );
 
     switch ( $action ) {
 
@@ -206,7 +206,7 @@ function vergeml_rest_folder( WP_REST_Request $request ) {
          */
         case 'order':
 
-            $ids = array_values( array_filter( array_map( 'absint', (array) $request->get_param( 'ids' ) ) ) );
+            $ids = vergeml_ids( $request->get_param( 'ids' ) );
 
             if ( ! $ids ) {
                 return new WP_Error( 'vergeml_no_folders', __( 'No folders were given to order.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
@@ -442,12 +442,13 @@ function vergeml_rest_state_set( WP_REST_Request $request ) {
     if ( null !== $request->get_param( 'open' ) ) {
         // Capped: an open-branch list is a convenience, not somewhere to accept
         // an unbounded array into user meta on every click.
-        $open         = array_slice( array_unique( array_map( 'absint', (array) $request->get_param( 'open' ) ) ), 0, 500 );
+        $open         = array_slice( vergeml_ids( $request->get_param( 'open' ) ), 0, 500 );
         $mine['open'] = array_values( array_filter( $open ) );
     }
 
     if ( null !== $request->get_param( 'selected' ) ) {
-        $mine['selected'] = absint( $request->get_param( 'selected' ) );
+        // -1 is 'Unfiled', a real value here, so this one is not an id.
+        $mine['selected'] = (int) $request->get_param( 'selected' );
     }
 
     if ( null !== $request->get_param( 'width' ) ) {
