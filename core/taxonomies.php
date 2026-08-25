@@ -15,6 +15,29 @@ if ( ! defined( 'ABSPATH' ) )
 
 function vergeml_taxonomies_validate( $input ) {
 
+    /*
+     *  A form that did not carry the taxonomies must not erase them.
+     *
+     *  vergeml_taxonomies and vergeml_tax_options are registered in the same
+     *  settings group, and the Media Taxonomies screen submits them from two
+     *  separate forms. WordPress saves every option in a group whenever any form
+     *  in it is posted, handing null to the options that were not there -- so
+     *  saving the options box handed this function nothing, and it rebuilt every
+     *  taxonomy from nothing.
+     *
+     *  What that looked like: tick one checkbox, press Save, and the folder tree
+     *  is gone. Not the folders -- every term is still in the database -- but the
+     *  taxonomy they hang from, unregistered, so no screen can show them. No
+     *  message, nothing to undo, and no way to guess what happened.
+     *
+     *  Absent is not empty, and this is the difference.
+     */
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- the Settings API checked the nonce for this option group before calling us.
+    if ( ! isset( $_POST['vergeml_taxonomies'] ) ) {
+        $kept = get_option( 'vergeml_taxonomies', array() );
+        return is_array( $kept ) ? $kept : array();
+    }
+
     if ( ! $input ) $input = array();
 
     /*
@@ -240,6 +263,14 @@ function vergeml_lib_options_validate( $input ) {
  */
 
 function vergeml_tax_options_validate( $input ) {
+
+    // The same trap the other way round: saving the taxonomies form carries no
+    // options, and rebuilding them from nothing switches every one of them off.
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- the Settings API checked the nonce for this option group before calling us.
+    if ( ! isset( $_POST['vergeml_tax_options'] ) ) {
+        $kept = get_option( 'vergeml_tax_options', array() );
+        return is_array( $kept ) ? $kept : array();
+    }
 
     foreach ( (array)$input as $key => $option ) {
         $input[$key] = isset( $option ) && !! $option ? 1 : 0;

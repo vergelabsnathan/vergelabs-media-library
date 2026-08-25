@@ -45,6 +45,41 @@ t( 'the taxonomy starts registered', taxonomy_exists( $tax ) );
 t( 'and has labels on file', ! empty( $before[ $tax ]['labels']['name'] ),
 	isset( $before[ $tax ]['labels']['name'] ) ? $before[ $tax ]['labels']['name'] : 'none' );
 
+/* --- the form that carried nothing --------------------------------------- */
+
+/*
+ *  The one that actually broke a real install.
+ *
+ *  vergeml_taxonomies and vergeml_tax_options live in the same settings group,
+ *  and the Media Taxonomies screen posts them from two separate forms. WordPress
+ *  saves every option in a group whenever any form in it is submitted, handing
+ *  null to the ones the form did not carry -- so saving the options box wiped the
+ *  taxonomies, and saving the taxonomies box wiped the options.
+ *
+ *  Tick one checkbox, press Save, and the folder tree is gone: hierarchical off,
+ *  show_in_rest off, post types cleared, every term still in the database and
+ *  nothing on any screen able to show them.
+ */
+unset( $_POST['vergeml_taxonomies'] );
+unset( $_POST['vergeml_tax_options'] );
+
+$kept = vergeml_taxonomies_validate( null );
+
+t( 'a form that did not carry the taxonomies keeps them', count( (array) $kept ) === count( (array) $before ),
+	count( (array) $kept ) . ' of ' . count( (array) $before ) . ' kept' );
+t( 'including this one', ! empty( $kept[ $tax ] ) );
+t( 'with hierarchical intact', ! empty( $kept[ $tax ]['hierarchical'] ),
+	var_export( $kept[ $tax ]['hierarchical'] ?? null, true ) );
+t( 'and show_in_rest intact', ! empty( $kept[ $tax ]['show_in_rest'] ),
+	var_export( $kept[ $tax ]['show_in_rest'] ?? null, true ) );
+
+$opts_before = get_option( 'vergeml_tax_options', array() );
+$opts_kept   = vergeml_tax_options_validate( null );
+
+t( 'and the same for the options in that group',
+	count( (array) $opts_kept ) === count( (array) $opts_before ),
+	count( (array) $opts_kept ) . ' of ' . count( (array) $opts_before ) . ' kept' );
+
 /* --- a write that forgets the labels ------------------------------------- */
 
 $partial = $before;
