@@ -24,19 +24,29 @@
 	--vgml-hover: rgba( 0, 0, 0, 0.045 );
 	--vgml-selected: #fff;
 	--vgml-badge: rgba( 0, 0, 0, 0.06 );
+	/*
+	 *  Sized against FileBird's panel rather than against nothing.
+	 *
+	 *  Theirs is about 300px of 36px rows; ours was 240px of 34px rows at 13px,
+	 *  and side by side that reads as cramped -- folder names truncate sooner,
+	 *  the marks are smaller, and every row is closer to its neighbours than to
+	 *  its own text. Wider and taller is not decoration here: a folder tree is
+	 *  read down a column of names, and the names need the room.
+	 */
 	--vgml-radius: 4px;
-	--vgml-row: 34px;
-	--vgml-pad: 12px;
-	--vgml-font: 13px;
+	--vgml-row: 38px;
+	--vgml-pad: 14px;
+	--vgml-font: 13.5px;
 	--vgml-weight: 400;
 	--vgml-icon: #8c8f94;
+	--vgml-gap: 9px;
 
 	position: relative;
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
-	min-width: 180px;
-	max-width: 640px;
+	min-width: 200px;
+	max-width: 680px;
 	background: var( --vgml-surface );
 	border: 1px solid var( --vgml-line );
 	border-radius: var( --vgml-radius );
@@ -54,7 +64,7 @@
 
 .vgml-tree[data-skin="classic"] {
 	--vgml-icon: #dba617;
-	--vgml-row: 30px;
+	--vgml-row: 34px;
 	--vgml-radius: 2px;
 }
 
@@ -62,8 +72,8 @@
 	--vgml-surface: transparent;
 	--vgml-line: transparent;
 	--vgml-selected: rgba( 0, 0, 0, 0.05 );
-	--vgml-row: 34px;
-	--vgml-pad: 14px;
+	--vgml-row: 38px;
+	--vgml-pad: 16px;
 	--vgml-badge: transparent;
 	--vgml-icon: #a7aaad;
 }
@@ -89,23 +99,24 @@
 }
 
 .vgml-tree[data-density="compact"] {
-	--vgml-row: 26px;
-	--vgml-font: 12px;
-	--vgml-pad: 8px;
+	--vgml-row: 30px;
+	--vgml-font: 13px;
+	--vgml-pad: 10px;
+	--vgml-gap: 7px;
 }
 
 /* --- where the panel sits ----------------------------------------------- */
 
 body.vgml-has-tree .wrap {
 	position: relative;
-	padding-inline-start: calc( var( --vgml-panel-w, 240px ) + 16px );
+	padding-inline-start: calc( var( --vgml-panel-w, 300px ) + 16px );
 }
 
 body.vgml-has-tree .vgml-tree {
 	position: absolute;
 	top: 0;
 	inset-inline-start: 0;
-	width: var( --vgml-panel-w, 240px );
+	width: var( --vgml-panel-w, 300px );
 }
 
 /* --- header ------------------------------------------------------------- */
@@ -206,14 +217,14 @@ body.vgml-has-tree .vgml-tree {
 .vgml-row {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var( --vgml-gap, 8px );
 	height: var( --vgml-row );
 	/*
 	 *  Indent arrives from the script as a custom property rather than as inline
 	 *  padding, so it stays a logical start and flips with the document direction.
 	 */
 	padding-inline-start: var( --vgml-indent, 8px );
-	padding-inline-end: 8px;
+	padding-inline-end: 10px;
 	border-radius: var( --vgml-radius );
 	cursor: pointer;
 	font-weight: var( --vgml-weight );
@@ -225,6 +236,7 @@ body.vgml-has-tree .vgml-tree {
 }
 
 .vgml-node.is-selected > .vgml-row {
+	font-weight: 600;
 	background: var( --vgml-selected );
 	box-shadow: inset 2px 0 0 var( --vgml-accent );
 	font-weight: 600;
@@ -628,7 +640,7 @@ body.vgml-mode-grid .wrap {
 }
 
 body.vgml-mode-grid .media-frame {
-	inset-inline-start: calc( var( --vgml-panel-w, 240px ) + 16px );
+	inset-inline-start: calc( var( --vgml-panel-w, 300px ) + 16px );
 }
 
 body.vgml-mode-grid .vgml-tree {
