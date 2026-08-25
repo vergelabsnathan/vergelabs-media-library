@@ -159,7 +159,15 @@ const resultLine = ( await page.textContent( '.vgml-import-good + .description, 
 const nums = resultLine.replace( /,/g, '' ).match( /\d+/g ) || [];
 const createdN = Number( nums[ 0 ] || 0 );
 const mergedN = /merged/.test( resultLine ) ? Number( nums[ 1 ] || 0 ) : 0;
-check( 'the result adds up', createdN + mergedN === 200, `${ createdN } + ${ mergedN } | ${ resultLine }` );
+/*
+ *  Compared against what the source card said it found, not against a number.
+ *  This asserted 200, which was true of one FileBird fixture and of nothing
+ *  else -- so a realistic source failed while importing every folder correctly.
+ */
+const sourceFolders = Number( ( ( filebird.summary || '' ).replace( /,/g, '' ).match( /\d+/ ) || [ 0 ] )[ 0 ] );
+
+check( 'the result adds up', sourceFolders > 0 && createdN + mergedN === sourceFolders,
+	`${ createdN } + ${ mergedN } of ${ sourceFolders } | ${ resultLine }` );
 
 const imported = await page.evaluate( async () => {
 	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } );

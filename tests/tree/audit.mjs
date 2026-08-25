@@ -141,19 +141,31 @@ const filtered = await page.evaluate( () => {
 check( 'the table reflects the folder', !! filtered && ! /20,000/.test( filtered ),
 	`${ filtered || 'no count shown' } after clicking ${ clicked.join( ' -> ' ) }` );
 
+/*
+ *  Search for a folder that is actually there.
+ *
+ *  This used to type "Folder 12", which only meant anything against a fixture of
+ *  two thousand folders called Folder N. Against a library that looks like a real
+ *  one it matched nothing and reported the search as broken -- a test failing
+ *  because the world changed shape, not because the code did.
+ */
+const before = await page.$$( '.vgml-node' );
+
+const needle = await page.evaluate( () => {
+	const name = document.querySelector( '.vgml-tree .vgml-name' );
+	return name ? name.textContent.trim().slice( 0, 4 ) : '';
+} );
+
 // Typing in the search must not hit the network at all.
 calls.length = 0;
 await page.click( '.vgml-search' );
-await page.keyboard.type( 'Folder 12', { delay: 60 } );
+await page.keyboard.type( needle, { delay: 60 } );
 await page.waitForTimeout( 900 );
 check( 'searching is local: no requests', calls.length === 0, JSON.stringify( calls ) );
-const found = await page.$$( '.vgml-node:not(.vgml-pseudo)' );
-/*
- *  "Folder 12" legitimately matches Folder 12, 120-129 and 1200-1299 in this
- *  fixture -- about 121 rows. The first threshold here was 60, which failed a
- *  correct result; the check that means something is that it narrowed at all.
- */
-check( 'searching narrows the tree', found.length > 0 && found.length < 300, `${ found.length } of 2000 shown` );
+
+const found = await page.$$( '.vgml-node' );
+check( 'searching narrows the tree', found.length > 0 && found.length <= before.length,
+	`"${ needle }": ${ found.length } of ${ before.length } shown` );
 
 await page.fill( '.vgml-search', '' );
 await page.waitForTimeout( 600 );

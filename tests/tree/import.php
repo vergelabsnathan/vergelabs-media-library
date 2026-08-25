@@ -117,7 +117,27 @@ if ( ! is_wp_error( $result ) ) {
 	t( 'it created what the plan said', $result['created'] === $plan['create'],
 		$result['created'] . ' created, plan said ' . $plan['create'] );
 	t( 'it merged rather than duplicating', $result['merged'] >= 1, $result['merged'] . ' merged' );
-	t( 'it filed a lot of files', $result['assignments'] > 10000, $result['assignments'] . ' assignments' );
+	/*
+	 *  Measured against what FileBird actually holds, not against a number.
+	 *
+	 *  This asserted "more than ten thousand", which was true of one particular
+	 *  fixture and of nothing else -- so the day the library became a realistic
+	 *  size it failed while importing every single file correctly.
+	 */
+	$expected = 0;
+	foreach ( $read['files'] as $ids ) {
+		$expected += count( array_unique( $ids ) );
+	}
+
+	/*
+	 *  One short, and deliberately so: this test filed a file into the clashing
+	 *  folder by hand before importing, so that pair already existed and is not a
+	 *  new assignment. Counting it would mean counting work that did not happen.
+	 */
+	$already = in_array( $decoy_id, array_map( 'absint', wp_get_object_terms( $hand_filed, $tax, array( 'fields' => 'ids' ) ) ), true ) ? 1 : 0;
+
+	t( 'it filed everything FileBird had', $result['assignments'] === $expected - $already,
+		$result['assignments'] . ' of ' . $expected . ', ' . $already . ' already filed by hand' );
 
 	t( 'the clashing folder was not duplicated',
 		count( get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'name' => $first ) ) ) === 1 );
