@@ -137,6 +137,87 @@ function vgml_fixture_attach( $name, $label, $width, $height, $hue, $thumbs = tr
 }
 
 
+/**
+ *  A document.
+ *
+ *  The seeded library was all JPEGs, so three things could not be tested on it:
+ *  the AI layer's refusal to describe a non-image, the health report's exact
+ *  md5 grouping -- whose honest demonstration is a re-uploaded document rather
+ *  than a photograph -- and the mime-family breakdown in the stats snapshot.
+ *
+ *  The box did have PDFs. They were uploaded by hand, and they vanished.
+ *  Anything a suite relies on has to be something a script puts there.
+ *
+ *  No wp_generate_attachment_metadata on purpose: nothing needs a thumbnail of
+ *  a document, and asking for one is how seeding fails on a box without
+ *  Imagick.
+ */
+
+function vgml_fixture_document( $name, $label, $seed = '' ) {
+
+	$uploads = wp_upload_dir();
+
+	if ( ! empty( $uploads['error'] ) ) {
+		return 0;
+	}
+
+	$file = trailingslashit( $uploads['path'] ) . $name;
+
+	/*
+	 *  The seed is what decides whether two of these are the same file, and it
+	 *  is separate from the label on purpose: a re-upload carries the same
+	 *  bytes under a different name, which is exactly the case the duplicates
+	 *  report exists to find. Without it every document here was byte-identical
+	 *  and the report correctly called all three of them copies.
+	 */
+	$seed = '' === $seed ? $label : $seed;
+
+	$objects = array(
+		"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+		"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+		"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>\nendobj\n",
+	);
+
+	// In the header, not among the objects: a comment is not an object, and
+	// counting it as one would put the xref table one entry out.
+	$pdf     = "%PDF-1.4\n% seed: " . $seed . "\n";
+	$offsets = array();
+
+	foreach ( $objects as $object ) {
+		$offsets[] = strlen( $pdf );
+		$pdf      .= $object;
+	}
+
+	$start = strlen( $pdf );
+	$pdf  .= 'xref' . "\n0 " . ( count( $objects ) + 1 ) . "\n0000000000 65535 f \n";
+
+	foreach ( $offsets as $offset ) {
+		$pdf .= sprintf( "%010d 00000 n \n", $offset );
+	}
+
+	$pdf .= 'trailer' . "\n<< /Size " . ( count( $objects ) + 1 ) . " /Root 1 0 R >>\nstartxref\n" . $start . "\n%%EOF\n";
+
+	if ( false === file_put_contents( $file, $pdf ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_put_contents
+		return 0;
+	}
+
+	$id = wp_insert_attachment( array(
+		'post_mime_type' => 'application/pdf',
+		'post_title'     => $label,
+		'post_content'   => '',
+		'post_status'    => 'inherit',
+	), $file );
+
+	if ( ! $id || is_wp_error( $id ) ) {
+		return 0;
+	}
+
+	wp_update_attachment_metadata( $id, array( 'file' => _wp_relative_upload_path( $file ) ) );
+
+	return (int) $id;
+}
+
+
 function vgml_fixture_folder( $name, $parent, $taxonomy, $colour = '' ) {
 
 	$existing = term_exists( $name, $taxonomy, $parent );
@@ -346,8 +427,32 @@ if ( 'wipe' === $mode ) {
 		}
 	}
 
-	printf( "built %d folders, %d filed images, %d cross-filed, %d unfiled\n",
-		count( $folders ), $made, $crossfiled, $unfiled );
+	/*
+	 *  Documents, including the same one twice.
+	 *
+	 *  A library of nothing but photographs cannot exercise the parts that care
+	 *  what a file is: describing refuses non-images, the duplicates report's
+	 *  exact md5 grouping is best demonstrated on a re-uploaded document, and
+	 *  the stats snapshot counts mime families. The pair is byte-identical on
+	 *  purpose -- that is the finding the health page exists to make.
+	 */
+	$documents = 0;
+
+	foreach ( array(
+		array( 'vgml-fx-invoice-0912.pdf', 'Invoice 0912', 'invoice-0912' ),
+		// Same bytes, different name: the re-upload the report should catch.
+		array( 'vgml-fx-invoice-0912-1.pdf', 'Invoice 0912 (re-uploaded)', 'invoice-0912' ),
+		// And one that is genuinely its own document, so the report has
+		// something to correctly leave alone.
+		array( 'vgml-fx-brand-guidelines.pdf', 'Brand guidelines', 'brand-guidelines' ),
+	) as $document ) {
+		if ( vgml_fixture_document( $document[0], $document[1], $document[2] ) ) {
+			$documents++;
+		}
+	}
+
+	printf( "built %d folders, %d filed images, %d cross-filed, %d unfiled, %d documents\n",
+		count( $folders ), $made, $crossfiled, $unfiled, $documents );
 
 } elseif ( 'filebird' === $mode ) {
 
