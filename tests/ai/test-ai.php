@@ -107,6 +107,14 @@ ai_check( 'and the toggle turns that off', ! in_array( $probe, $q2->posts, true 
 $settings['enrich_search'] = 1;
 update_option( 'vergeml_ai', $settings, false );
 
+echo "\nthe sealed licence\n";
+
+$sealed = vergeml_ai_seal( 'vgml_test_key_123' );
+ai_check( 'sealing produces a v1 blob, not the key', 0 === strpos( $sealed, 'v1:' ) && false === strpos( $sealed, 'test_key' ) );
+ai_check( 'and it unseals to the exact key', 'vgml_test_key_123' === vergeml_ai_unseal( $sealed ) );
+ai_check( 'garbage does not unseal', '' === vergeml_ai_unseal( 'v1:not-a-blob' ) && '' === vergeml_ai_unseal( 'plaintext' ) );
+ai_check( 'the service url is pinned to https', 0 === strpos( vergeml_ai_service_url(), 'https://' ) );
+
 echo "\nguard rails\n";
 
 $doc = get_posts( array( 'post_type' => 'attachment', 'post_mime_type' => 'application/pdf', 'posts_per_page' => 1, 'fields' => 'ids' ) );

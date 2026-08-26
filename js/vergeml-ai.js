@@ -26,13 +26,15 @@
 			$( 'vgml-ai-counts' ).textContent =
 				s.images + ' images · ' + s.indexed + ' described · ' + s.missing_alt + ' missing alt text';
 
-			if ( $( 'vgml-ai-endpoint' ) && ! $( 'vgml-ai-endpoint' ).value ) {
-				$( 'vgml-ai-endpoint' ).value = s.settings.endpoint;
-				$( 'vgml-ai-model' ).value = s.settings.model;
+			if ( $( 'vgml-ai-license' ) ) {
 				$( 'vgml-ai-enrich' ).checked = !! s.settings.enrich_search;
-				if ( s.settings.has_key ) {
-					$( 'vgml-ai-key' ).placeholder = '•••••••• (saved)';
+				if ( s.settings.has_license ) {
+					$( 'vgml-ai-license' ).placeholder = '•••••••• (saved)';
 				}
+			}
+
+			if ( $( 'vgml-ai-credits' ) && null !== s.credits && undefined !== s.credits ) {
+				$( 'vgml-ai-credits' ).textContent = s.credits + ' remaining';
 			}
 
 			return s;
@@ -117,13 +119,11 @@
 					path: '/vergeml/v1/ai-settings',
 					method: 'POST',
 					data: {
-						endpoint: $( 'vgml-ai-endpoint' ).value,
-						api_key: $( 'vgml-ai-key' ).value,
-						model: $( 'vgml-ai-model' ).value,
+						license_key: $( 'vgml-ai-license' ).value,
 						enrich_search: $( 'vgml-ai-enrich' ).checked ? 1 : 0,
 					},
 				} ).then( function () {
-					$( 'vgml-ai-key' ).value = '';
+					$( 'vgml-ai-license' ).value = '';
 					$( 'vgml-ai-save-note' ).textContent = 'Saved.';
 					window.setTimeout( function () {
 						$( 'vgml-ai-save-note' ).textContent = '';

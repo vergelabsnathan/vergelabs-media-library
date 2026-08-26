@@ -35,9 +35,7 @@ if ( ! defined( 'ABSPATH' ) )
 function vergeml_ai_settings() {
 
     $defaults = array(
-        'endpoint'      => 'https://openrouter.ai/api/v1',
-        'api_key'       => '',
-        'model'         => 'google/gemini-2.0-flash-lite-001',
+        'license_key'   => '',
         'auto_alt'      => 1,
         'enrich_search' => 1,
         'mock'          => 0,
@@ -48,9 +46,75 @@ function vergeml_ai_settings() {
     return array_merge( $defaults, is_array( $saved ) ? $saved : array() );
 }
 
+/**
+ *  The VergeLabs AI service. The plugin never talks to a model provider
+ *  directly: it sends images to this service with the site's licence key,
+ *  and the service meters credits, chooses the model, and answers with the
+ *  description.
+ *
+ *  Deliberately NOT filterable. The requests carry the licence key, and a
+ *  filter would let any other plugin on the site quietly redirect them to a
+ *  server that harvests keys. The only override is a wp-config constant --
+ *  the person who can edit wp-config already owns the site -- and anything
+ *  that is not https is refused outright.
+ */
+function vergeml_ai_service_url() {
+
+    $url = defined( 'VERGEML_AI_SERVICE' ) ? VERGEML_AI_SERVICE : 'https://ai.vergelabs.nl/v1';
+
+    if ( 0 !== strpos( $url, 'https://' ) && 0 !== strpos( $url, 'http://localhost' ) && 0 !== strpos( $url, 'http://127.0.0.1' ) ) {
+        $url = 'https://ai.vergelabs.nl/v1';
+    }
+
+    return untrailingslashit( $url );
+}
+
+/**
+ *  The licence key at rest. Sealed with a key derived from this site's auth
+ *  salt, so a copied database or a stray SQL export does not hand out
+ *  working licences. If the salts ever change the seal stops opening and the
+ *  licence simply reads as unset -- re-entering it is the recovery.
+ */
+function vergeml_ai_seal( $plain ) {
+
+    if ( '' === $plain ) {
+        return '';
+    }
+
+    $key = hash( 'sha256', wp_salt( 'auth' ), true );
+    $iv  = random_bytes( 12 );
+    $tag = '';
+
+    $sealed = openssl_encrypt( $plain, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag );
+
+    if ( false === $sealed ) {
+        return '';
+    }
+
+    return 'v1:' . base64_encode( $iv . $tag . $sealed );
+}
+
+function vergeml_ai_unseal( $stored ) {
+
+    if ( ! is_string( $stored ) || 0 !== strpos( $stored, 'v1:' ) ) {
+        return '';
+    }
+
+    $blob = base64_decode( substr( $stored, 3 ), true );
+
+    if ( false === $blob || strlen( $blob ) < 29 ) {
+        return '';
+    }
+
+    $key   = hash( 'sha256', wp_salt( 'auth' ), true );
+    $plain = openssl_decrypt( substr( $blob, 28 ), 'aes-256-gcm', $key, OPENSSL_RAW_DATA, substr( $blob, 0, 12 ), substr( $blob, 12, 16 ) );
+
+    return false === $plain ? '' : $plain;
+}
+
 function vergeml_ai_ready() {
     $s = vergeml_ai_settings();
-    return ! empty( $s['mock'] ) || defined( 'VERGEML_AI_MOCK' ) || ( ! empty( $s['api_key'] ) && ! empty( $s['endpoint'] ) );
+    return ! empty( $s['mock'] ) || defined( 'VERGEML_AI_MOCK' ) || '' !== vergeml_ai_unseal( $s['license_key'] );
 }
 
 
@@ -87,8 +151,10 @@ function vergeml_ai_describe( $attachment_id ) {
         );
     }
 
-    if ( empty( $settings['api_key'] ) ) {
-        return new WP_Error( 'vergeml_ai_no_key', __( 'No API key configured.', 'vergelabs-media-library' ) );
+    $license = vergeml_ai_unseal( $settings['license_key'] );
+
+    if ( '' === $license ) {
+        return new WP_Error( 'vergeml_ai_no_license', __( 'No licence key configured.', 'vergelabs-media-library' ) );
     }
 
     $file = vergeml_ai_image_payload( $attachment_id );
@@ -97,33 +163,19 @@ function vergeml_ai_describe( $attachment_id ) {
         return $file;
     }
 
-    $prompt = 'Describe this image for a media library. Reply with ONLY a JSON object, no prose: '
-        . '{"caption": one factual sentence, "alt": short alt text for accessibility, '
-        . '"tags": [3-6 lowercase keywords], "title": a short human title}';
-
-    $body = array(
-        'model'    => $settings['model'],
-        'messages' => array(
-            array(
-                'role'    => 'user',
-                'content' => array(
-                    array( 'type' => 'text', 'text' => $prompt ),
-                    array( 'type' => 'image_url', 'image_url' => array( 'url' => $file ) ),
-                ),
-            ),
-        ),
-        'max_tokens' => 300,
-    );
-
     $response = wp_remote_post(
-        rtrim( $settings['endpoint'], '/' ) . '/chat/completions',
+        vergeml_ai_service_url() . '/describe',
         array(
             'timeout' => 60,
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $settings['api_key'],
-                'Content-Type'  => 'application/json',
-            ),
-            'body'    => wp_json_encode( $body ),
+            'headers' => array( 'Content-Type' => 'application/json' ),
+            'sslverify' => true,
+            'body'    => wp_json_encode( array(
+                'license_key' => $license,
+                'site'        => home_url(),
+                'filename'    => wp_basename( get_attached_file( $attachment_id ) ),
+                'mime'        => get_post_mime_type( $attachment_id ),
+                'image'       => $file,
+            ) ),
         )
     );
 
@@ -132,28 +184,31 @@ function vergeml_ai_describe( $attachment_id ) {
     }
 
     $code = wp_remote_retrieve_response_code( $response );
+    $data = json_decode( wp_remote_retrieve_body( $response ), true );
 
-    if ( 200 !== $code ) {
+    if ( 402 === $code ) {
+        return new WP_Error( 'vergeml_ai_out_of_credits', __( 'This licence is out of credits.', 'vergelabs-media-library' ) );
+    }
+
+    if ( 401 === $code || 403 === $code ) {
+        return new WP_Error( 'vergeml_ai_bad_license', __( 'The licence key was not accepted.', 'vergelabs-media-library' ) );
+    }
+
+    if ( 200 !== $code || ! is_array( $data ) || empty( $data['caption'] ) ) {
         return new WP_Error(
-            'vergeml_ai_http_' . $code,
-            /* translators: %d: HTTP status code from the AI provider. */
-            sprintf( __( 'The AI provider answered with HTTP %d.', 'vergelabs-media-library' ), $code )
+            'vergeml_ai_service_error',
+            /* translators: %d: HTTP status code from the AI service. */
+            sprintf( __( 'The AI service answered with HTTP %d.', 'vergelabs-media-library' ), $code )
         );
     }
 
-    $json    = json_decode( wp_remote_retrieve_body( $response ), true );
-    $content = isset( $json['choices'][0]['message']['content'] ) ? $json['choices'][0]['message']['content'] : '';
-
-    // The strict-JSON instruction usually holds; when a model wraps it in a
-    // code fence anyway, the object is still in there.
-    if ( ! preg_match( '/\{.*\}/s', (string) $content, $m ) ) {
-        return new WP_Error( 'vergeml_ai_bad_reply', __( 'The AI reply carried no JSON.', 'vergelabs-media-library' ) );
-    }
-
-    $data = json_decode( $m[0], true );
-
-    if ( ! is_array( $data ) || empty( $data['caption'] ) ) {
-        return new WP_Error( 'vergeml_ai_bad_reply', __( 'The AI reply could not be parsed.', 'vergelabs-media-library' ) );
+    // The service reports the balance with every answer; remembered for the
+    // screen, so "how many credits are left" never needs its own request.
+    if ( isset( $data['credits'] ) && is_array( $data['credits'] ) ) {
+        update_option( 'vergeml_ai_credits', array(
+            'remaining' => isset( $data['credits']['remaining'] ) ? (int) $data['credits']['remaining'] : null,
+            'time'      => time(),
+        ), false );
     }
 
     return array(
@@ -256,7 +311,17 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
         $described = vergeml_ai_describe( $id );
 
         if ( is_wp_error( $described ) ) {
-            $errors[] = array( 'id' => $id, 'error' => $described->get_error_message() );
+
+            $fatal = in_array( $described->get_error_code(), array( 'vergeml_ai_out_of_credits', 'vergeml_ai_bad_license', 'vergeml_ai_no_license' ), true );
+
+            $errors[] = array( 'id' => $id, 'error' => $described->get_error_message(), 'fatal' => $fatal );
+
+            if ( $fatal ) {
+                // No stub and no next file: every further call would fail the
+                // same way, and burning the batch on it helps nobody.
+                break;
+            }
+
             // A stub keeps a permanently failing file from wedging the loop;
             // reindexing later replaces it.
             update_post_meta( $id, '_vergeml_ai', array( 'error' => $described->get_error_code(), 'time' => time() ) );
@@ -426,9 +491,7 @@ function vergeml_ai_routes() {
             return current_user_can( 'manage_options' );
         },
         'args'                => array(
-            'endpoint'      => array( 'type' => 'string' ),
-            'api_key'       => array( 'type' => 'string' ),
-            'model'         => array( 'type' => 'string' ),
+            'license_key'   => array( 'type' => 'string' ),
             'auto_alt'      => array( 'type' => 'integer' ),
             'enrich_search' => array( 'type' => 'integer' ),
             'mock'          => array( 'type' => 'integer' ),
@@ -446,6 +509,7 @@ function vergeml_ai_rest_status() {
     // phpcs:enable
 
     $settings = vergeml_ai_settings();
+    $credits  = get_option( 'vergeml_ai_credits', array() );
 
     return rest_ensure_response( array(
         'images'      => $images,
@@ -453,13 +517,12 @@ function vergeml_ai_rest_status() {
         'unindexed'   => count( vergeml_ai_pending( 'unindexed' ) ),
         'missing_alt' => count( vergeml_ai_pending( 'missing-alt' ) ),
         'ready'       => vergeml_ai_ready(),
+        'credits'     => isset( $credits['remaining'] ) ? $credits['remaining'] : null,
         'settings'    => array(
-            'endpoint'      => $settings['endpoint'],
-            'model'         => $settings['model'],
             'auto_alt'      => (int) $settings['auto_alt'],
             'enrich_search' => (int) $settings['enrich_search'],
             'mock'          => (int) $settings['mock'],
-            'has_key'       => '' !== $settings['api_key'],
+            'has_license'   => '' !== vergeml_ai_unseal( $settings['license_key'] ),
         ),
     ) );
 }
@@ -487,17 +550,11 @@ function vergeml_ai_rest_settings( WP_REST_Request $request ) {
 
     $settings = vergeml_ai_settings();
 
-    foreach ( array( 'endpoint', 'model' ) as $key ) {
-        if ( null !== $request->get_param( $key ) ) {
-            $settings[ $key ] = sanitize_text_field( $request->get_param( $key ) );
-        }
-    }
-
     // An empty string leaves the stored key alone, so the form can render a
-    // masked field without wiping the secret on every save.
-    $key = $request->get_param( 'api_key' );
+    // masked field without wiping the licence on every save.
+    $key = $request->get_param( 'license_key' );
     if ( null !== $key && '' !== $key ) {
-        $settings['api_key'] = sanitize_text_field( $key );
+        $settings['license_key'] = vergeml_ai_seal( sanitize_text_field( $key ) );
     }
 
     foreach ( array( 'auto_alt', 'enrich_search', 'mock' ) as $flag ) {
@@ -576,20 +633,20 @@ function vergeml_ai_page() {
 
         <?php if ( $can_configure ) : ?>
         <div class="vgml-ai-card">
-            <h2><?php esc_html_e( 'Provider', 'vergelabs-media-library' ); ?></h2>
-            <p class="description"><?php esc_html_e( 'Any OpenAI-compatible endpoint works: OpenRouter, OpenAI, or a local server. The key is stored on this site and used only to describe your images.', 'vergelabs-media-library' ); ?></p>
+            <h2><?php esc_html_e( 'Licence', 'vergelabs-media-library' ); ?></h2>
+            <p class="description"><?php esc_html_e( 'AI features run on VergeLabs credits. Your licence key connects this site; images are sent to the VergeLabs AI service only to be described, and nothing else leaves your site.', 'vergelabs-media-library' ); ?></p>
             <table class="form-table" role="presentation">
                 <tr>
-                    <th scope="row"><label for="vgml-ai-endpoint"><?php esc_html_e( 'Endpoint', 'vergelabs-media-library' ); ?></label></th>
-                    <td><input type="url" id="vgml-ai-endpoint" class="regular-text" placeholder="https://openrouter.ai/api/v1"></td>
+                    <th scope="row"><label for="vgml-ai-license"><?php esc_html_e( 'Licence key', 'vergelabs-media-library' ); ?></label></th>
+                    <td><input type="password" id="vgml-ai-license" class="regular-text" autocomplete="off" placeholder="<?php esc_attr_e( 'unchanged', 'vergelabs-media-library' ); ?>"></td>
                 </tr>
                 <tr>
-                    <th scope="row"><label for="vgml-ai-key"><?php esc_html_e( 'API key', 'vergelabs-media-library' ); ?></label></th>
-                    <td><input type="password" id="vgml-ai-key" class="regular-text" autocomplete="off" placeholder="<?php esc_attr_e( 'unchanged', 'vergelabs-media-library' ); ?>"></td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="vgml-ai-model"><?php esc_html_e( 'Model', 'vergelabs-media-library' ); ?></label></th>
-                    <td><input type="text" id="vgml-ai-model" class="regular-text" placeholder="google/gemini-2.0-flash-lite-001"></td>
+                    <th scope="row"><?php esc_html_e( 'Credits', 'vergelabs-media-library' ); ?></th>
+                    <td>
+                        <span id="vgml-ai-credits"><?php esc_html_e( 'Unknown until the first run', 'vergelabs-media-library' ); ?></span>
+                        &nbsp;·&nbsp;
+                        <a href="https://vergelabs.nl/ai-credits" target="_blank" rel="noopener"><?php esc_html_e( 'Get credits', 'vergelabs-media-library' ); ?></a>
+                    </td>
                 </tr>
                 <tr>
                     <th scope="row"><?php esc_html_e( 'Behaviour', 'vergelabs-media-library' ); ?></th>
