@@ -268,34 +268,35 @@ function vergeml_ai_pending( $scope, $limit = 0 ) {
 
     global $wpdb;
 
-    // The optional LIMIT cannot be a prepared placeholder mid-string without
-    // two query shapes; an int cast is the whole sanitisation a LIMIT needs.
-    $cap  = max( 0, (int) $limit );
-    $tail = $cap > 0 ? ' LIMIT ' . $cap : '';
+    // The LIMIT is always a prepared placeholder; "no limit" is simply the
+    // largest one MySQL accepts, which keeps the statement a single shape.
+    $cap  = $limit > 0 ? (int) $limit : PHP_INT_MAX;
     $mime = $wpdb->esc_like( 'image/' ) . '%';
 
     if ( 'missing-alt' === $scope ) {
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $tail is an int-cast LIMIT.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
             "SELECT p.ID FROM {$wpdb->posts} p
              LEFT JOIN {$wpdb->postmeta} alt ON alt.post_id = p.ID AND alt.meta_key = '_wp_attachment_image_alt'
              WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
                AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
-             ORDER BY p.ID ASC{$tail}",
-            $mime
+             ORDER BY p.ID ASC LIMIT %d",
+            $mime,
+            $cap
         ) ) );
         // phpcs:enable
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $tail is an int-cast LIMIT.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
         "SELECT p.ID FROM {$wpdb->posts} p
          LEFT JOIN {$wpdb->postmeta} ai ON ai.post_id = p.ID AND ai.meta_key = '_vergeml_ai'
          WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
            AND ai.meta_id IS NULL
-         ORDER BY p.ID ASC{$tail}",
-        $mime
+         ORDER BY p.ID ASC LIMIT %d",
+        $mime,
+        $cap
     ) ) );
     // phpcs:enable
 }
