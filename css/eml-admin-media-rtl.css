@@ -650,3 +650,80 @@ body.eml-media-css .attachments-browser .media-toolbar-secondary .search {
         grid-row: auto;
     }
 }
+
+
+/*
+ *  "Used in", on the attachment details.
+ *
+ *  Comma-separated links ran into the label and read as one grey sentence.
+ *  Each place a file is used is its own thing, so each gets its own pill --
+ *  and the ones that are not a destination (the site's own settings, or the
+ *  fact that nothing was found) are drawn dashed and unclickable so the
+ *  difference is visible before anything is read.
+ *
+ *  No directional properties anywhere: flex and gap carry the layout, so the
+ *  RTL stylesheet is this block unchanged.
+ */
+
+.vgml-used-in {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding-top: 3px;
+}
+
+.vgml-used-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    max-width: 100%;
+    padding: 3px 10px;
+    border: 1px solid #dcdcde;
+    border-radius: 999px;
+    background: #f6f7f7;
+    color: #2271b1;
+    font-size: 12px;
+    line-height: 1.6;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+a.vgml-used-pill:hover,
+a.vgml-used-pill:focus {
+    border-color: #3858e9;
+    background: #f0f6fc;
+    color: #135e96;
+}
+
+a.vgml-used-pill:focus-visible {
+    outline: 2px solid #3858e9;
+    outline-offset: 1px;
+}
+
+.vgml-used-type {
+    color: #646970;
+    font-size: 11px;
+    text-transform: lowercase;
+}
+
+.vgml-used-pill.is-site,
+.vgml-used-pill.is-none {
+    border-style: dashed;
+    background: #fff;
+    color: #50575e;
+}
+
+/* A real place, named for somebody who is not allowed to open it. */
+.vgml-used-pill.is-flat {
+    color: #50575e;
+}
+
+.vgml-used-note {
+    flex-basis: 100%;
+    max-width: 44em;
+    margin: 2px 0 0;
+    color: #646970;
+    font-size: 12px;
+    line-height: 1.5;
+}

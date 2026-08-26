@@ -320,6 +320,62 @@ h_check( 'and says what was not',
 h_check( 'it no longer says nothing was found',
     false === strpos( $html, 'Nothing found' ) );
 
+h_check( 'the empty state is a pill, not a paragraph of italics',
+    false !== strpos( $html, 'vgml-used-pill is-none' ) && false === strpos( $html, '<em>' ) );
+
+// A file that is used: one pill per place, each one a link to that place.
+$host = wp_insert_post( array(
+    'post_title'   => 'zzhealth host page',
+    'post_status'  => 'publish',
+    'post_type'    => 'page',
+    'post_content' => 'placeholder',
+) );
+
+update_post_meta( $a, VERGEML_META_USED_IN, $host . ',0' );
+update_post_meta( $a, VERGEML_META_UNUSED, '0' );
+
+// The CLI has no current user, and "can this person edit that post" is what
+// decides whether a pill is a link at all.
+$admin = get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ID' ) );
+wp_set_current_user( $admin ? (int) $admin[0] : 1 );
+
+$used = vergeml_used_in_field( array(), get_post( $a ) );
+$used_html = isset( $used['vergeml_used_in']['html'] ) ? $used['vergeml_used_in']['html'] : '';
+
+h_check( 'a used file links to where it is used',
+    false !== strpos( $used_html, 'post.php?post=' . $host )
+    && false !== strpos( $used_html, 'zzhealth host page' ), wp_strip_all_tags( $used_html ) );
+
+h_check( 'the link is a pill',
+    false !== strpos( $used_html, '<a class="vgml-used-pill"' ) );
+
+h_check( 'and it says what kind of thing it is',
+    false !== strpos( $used_html, 'vgml-used-type' ) );
+
+h_check( 'site settings is shown but is not a link',
+    false !== strpos( $used_html, 'vgml-used-pill is-site' )
+    && false === strpos( $used_html, '<a class="vgml-used-pill is-site"' ) );
+
+$pills = substr_count( $used_html, 'vgml-used-pill' );
+h_check( 'one pill per place, not a comma-separated run', 2 === $pills, "{$pills} pills" );
+
+h_check( 'no pill is a link to nowhere',
+    false === strpos( $used_html, 'href=""' ) );
+
+// Someone who cannot edit the referencing post still gets told where the file
+// is used -- as a fact rather than as a link that would refuse them.
+wp_set_current_user( 0 );
+$flat = vergeml_used_in_field( array(), get_post( $a ) );
+$flat_html = isset( $flat['vergeml_used_in']['html'] ) ? $flat['vergeml_used_in']['html'] : '';
+
+h_check( 'without edit rights the place is named but not linked',
+    false !== strpos( $flat_html, 'zzhealth host page' )
+    && false === strpos( $flat_html, '<a class="vgml-used-pill"' )
+    && false === strpos( $flat_html, 'href=""' ), wp_strip_all_tags( $flat_html ) );
+
+wp_delete_post( $host, true );
+delete_post_meta( $a, VERGEML_META_USED_IN );
+
 if ( false === $saved_scan ) {
     delete_option( VERGEML_SCAN_OPTION );
 } else {

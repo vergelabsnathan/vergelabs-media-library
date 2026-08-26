@@ -593,19 +593,25 @@ function vergeml_used_in_field( $fields, $post ) {
 
         $unused = get_post_meta( $post->ID, VERGEML_META_UNUSED, true );
 
+        /*
+         *  Not "nothing found", which reads as "safe to delete".
+         *
+         *  The scan covers post content, builder layouts, widgets and site
+         *  settings. It does not read theme files, stylesheets, or anything
+         *  off the site, so a file this scan cannot place may still be on the
+         *  homepage. The one-star reviews the competition collects are all the
+         *  same review -- somebody deleted what a tool called unused -- and the
+         *  wording is what invites it.
+         *
+         *  The headline is short enough to read and the caveat sits under it,
+         *  because a single italic paragraph is what people skim past.
+         */
         $html = '1' === $unused
-            /*
-             *  Not "nothing found", which reads as "safe to delete".
-             *
-             *  The scan covers post content, builder layouts, widgets and site
-             *  settings. It does not read theme files, stylesheets, or anything
-             *  off the site, so a file this scan cannot place may still be on
-             *  the homepage. The one-star reviews the competition collects are
-             *  all the same review -- somebody deleted what a tool called
-             *  unused -- and the wording is what invites it.
-             */
-            ? '<em>' . esc_html__( 'No references found in the locations the scan covers (post content, builder layouts, widgets and site settings). Other uses — theme files, external links — are not scanned.', 'vergelabs-media-library' ) . '</em>'
-            : '<em>' . esc_html__( 'Not scanned yet.', 'vergelabs-media-library' ) . '</em>';
+            ? '<span class="vgml-used-pill is-none">' . esc_html__( 'No references found', 'vergelabs-media-library' ) . '</span>'
+                . '<p class="vgml-used-note">'
+                . esc_html__( 'The scan covers post content, builder layouts, widgets and site settings. Other uses — theme files, external links — are not scanned.', 'vergelabs-media-library' )
+                . '</p>'
+            : '<span class="vgml-used-pill is-none">' . esc_html__( 'Not scanned yet', 'vergelabs-media-library' ) . '</span>';
 
     } else {
 
@@ -613,8 +619,11 @@ function vergeml_used_in_field( $fields, $post ) {
 
         foreach ( array_map( 'intval', explode( ',', $raw ) ) as $source ) {
 
+            // Not a link, because there is no one screen that is "the site's
+            // settings" -- the logo, the widgets and the customiser are three
+            // different places. Styled as a fact rather than a destination.
             if ( 0 === $source ) {
-                $links[] = esc_html__( 'Site settings', 'vergelabs-media-library' );
+                $links[] = '<span class="vgml-used-pill is-site">' . esc_html__( 'Site settings', 'vergelabs-media-library' ) . '</span>';
                 continue;
             }
 
@@ -624,18 +633,34 @@ function vergeml_used_in_field( $fields, $post ) {
                 continue; // The referencing post has been deleted since the scan.
             }
 
-            $links[] = '<a href="' . esc_url( get_edit_post_link( $source ) ) . '">' . esc_html( $title ) . '</a>';
+            $type  = get_post_type_object( get_post_type( $source ) );
+            $label = ( $type && isset( $type->labels->singular_name ) ) ? $type->labels->singular_name : '';
+            $edit  = get_edit_post_link( $source );
+
+            $inside = esc_html( $title )
+                . ( '' !== $label ? '<span class="vgml-used-type">' . esc_html( $label ) . '</span>' : '' );
+
+            /*
+             *  No edit link means this user cannot edit that post, and a pill
+             *  with an empty href is a link that looks clickable and goes
+             *  nowhere. Tell them where the file is used either way -- that is
+             *  the answer they came for -- but only make it a destination when
+             *  it actually is one.
+             */
+            $links[] = $edit
+                ? '<a class="vgml-used-pill" href="' . esc_url( $edit ) . '">' . $inside . '</a>'
+                : '<span class="vgml-used-pill is-flat">' . $inside . '</span>';
         }
 
         $html = $links
-            ? implode( ', ', $links )
-            : '<em>' . esc_html__( 'The pages that used this have since been deleted.', 'vergelabs-media-library' ) . '</em>';
+            ? implode( '', $links )
+            : '<span class="vgml-used-pill is-none">' . esc_html__( 'The pages that used this have since been deleted', 'vergelabs-media-library' ) . '</span>';
     }
 
     $fields['vergeml_used_in'] = array(
         'label' => __( 'Used in', 'vergelabs-media-library' ),
         'input' => 'html',
-        'html'  => '<div style="padding-top:4px">' . $html . '</div>',
+        'html'  => '<div class="vgml-used-in">' . $html . '</div>',
     );
 
     return $fields;
