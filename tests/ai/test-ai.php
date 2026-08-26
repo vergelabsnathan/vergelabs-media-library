@@ -162,6 +162,75 @@ $status_counts = array(
 ai_check( 'pending pools are countable', $status_counts['unindexed'] >= 0 && $status_counts['missing_alt'] >= 0,
     wp_json_encode( $status_counts ) );
 
+echo "\nthe attributes\n";
+
+$attr = vergeml_ai_describe( $images[0] );
+
+ai_check( 'describe returns the enums',
+    in_array( $attr['kind'], vergeml_ai_kinds(), true )
+    && is_bool( $attr['has_people'] ) && is_bool( $attr['has_text'] ),
+    "kind={$attr['kind']} people=" . var_export( $attr['has_people'], true ) . " text=" . var_export( $attr['has_text'], true ) );
+
+ai_check( 'document_type is set only for documents',
+    'document' === $attr['kind']
+        ? in_array( $attr['document_type'], vergeml_ai_document_types(), true )
+        : null === $attr['document_type'],
+    "kind={$attr['kind']} type=" . var_export( $attr['document_type'], true ) );
+
+/*
+ *  The release test the roadmap asks for by name. An attribute that is not
+ *  stable across runs is not an attribute, it is a guess, and it must not
+ *  become a column somebody filters on.
+ */
+$runs = array();
+for ( $i = 0; $i < 3; $i++ ) {
+    $r = vergeml_ai_describe( $images[0] );
+    $runs[] = wp_json_encode( array( $r['kind'], $r['has_people'], $r['has_text'], $r['document_type'] ) );
+}
+ai_check( 'same file, three runs, same enums', 1 === count( array_unique( $runs ) ), implode( ' | ', array_unique( $runs ) ) );
+
+$vec = $attr['embedding'];
+ai_check( 'an embedding comes back', is_array( $vec ) && count( $vec ) > 0, is_array( $vec ) ? count( $vec ) . ' dims' : 'none' );
+
+$length = 0.0;
+foreach ( (array) $vec as $v ) {
+    $length += $v * $v;
+}
+ai_check( 'and it is unit length', abs( sqrt( $length ) - 1.0 ) < 0.001, (string) sqrt( $length ) );
+
+// Similar names stand in for similar pictures, so clustering has something
+// with structure in it to be written against.
+$near = vergeml_ai_mock_vector( 'harbour-at-dusk-01' );
+$also = vergeml_ai_mock_vector( 'harbour-at-dusk-02' );
+$far  = vergeml_ai_mock_vector( 'quarterly-revenue-slide' );
+
+$dot = function ( $a, $b ) {
+    $t = 0.0;
+    foreach ( $a as $i => $v ) {
+        $t += $v * $b[ $i ];
+    }
+    return $t;
+};
+
+ai_check( 'similar names embed near each other', $dot( $near, $also ) > $dot( $near, $far ),
+    sprintf( 'near %.3f vs far %.3f', $dot( $near, $also ), $dot( $near, $far ) ) );
+
+// What the index step actually wrote.
+vergeml_index_delete( $images[0] );
+vergeml_ai_index_step( 'unindexed', 1, false );
+$stored = vergeml_index_get( $images[0] );
+
+ai_check( 'the enums reach the table',
+    is_array( $stored ) && in_array( $stored['kind'], vergeml_ai_kinds(), true ),
+    is_array( $stored ) ? "kind={$stored['kind']}" : 'no row' );
+ai_check( 'and so does the embedding',
+    is_array( $stored['embedding'] ) && (int) $stored['embedding_dims'] === count( $stored['embedding'] ),
+    (int) $stored['embedding_dims'] . ' dims' );
+
+ai_check( 'an unknown enum value is refused, not stored',
+    '' === vergeml_ai_enum( 'not-a-real-kind', vergeml_ai_kinds() )
+    && 'photo' === vergeml_ai_enum( 'photo', vergeml_ai_kinds() ) );
+
 echo "\nthe index itself\n";
 
 // The migration: a legacy blob, and the walk that copies it in.

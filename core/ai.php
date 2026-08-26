@@ -139,19 +139,7 @@ function vergeml_ai_describe( $attachment_id ) {
     }
 
     if ( ! empty( $settings['mock'] ) || defined( 'VERGEML_AI_MOCK' ) ) {
-
-        $name  = pathinfo( get_attached_file( $attachment_id ), PATHINFO_FILENAME );
-        $words = array_values( array_filter( preg_split( '/[^a-z0-9]+/i', strtolower( $name ) ) ) );
-
-        return array(
-            'caption'       => 'Mock caption describing ' . implode( ' ', $words ),
-            'alt'           => 'Mock alt for ' . implode( ' ', $words ),
-            'tags'          => array_slice( $words, 0, 5 ),
-            'title'         => ucwords( implode( ' ', $words ) ),
-            'model'         => 'mock',
-            'model_version' => VERGEML_VERSION,
-            'prompt_hash'   => substr( hash( 'sha256', 'mock:filename-words:v1' ), 0, 32 ),
-        );
+        return vergeml_ai_mock_describe( $attachment_id );
     }
 
     $license = vergeml_ai_unseal( $settings['license_key'] );
@@ -225,10 +213,143 @@ function vergeml_ai_describe( $attachment_id ) {
         'alt'           => sanitize_text_field( isset( $data['alt'] ) ? $data['alt'] : $data['caption'] ),
         'tags'          => array_map( 'sanitize_text_field', array_slice( (array) ( isset( $data['tags'] ) ? $data['tags'] : array() ), 0, 8 ) ),
         'title'         => sanitize_text_field( isset( $data['title'] ) ? $data['title'] : '' ),
+        'kind'          => vergeml_ai_enum( isset( $data['kind'] ) ? $data['kind'] : '', vergeml_ai_kinds() ),
+        'has_people'    => isset( $data['has_people'] ) ? (bool) $data['has_people'] : null,
+        'has_text'      => isset( $data['has_text'] ) ? (bool) $data['has_text'] : null,
+        'document_type' => vergeml_ai_enum( isset( $data['document_type'] ) ? $data['document_type'] : '', vergeml_ai_document_types() ),
+        'embedding'     => isset( $data['embedding'] ) && is_array( $data['embedding'] )
+            ? array_map( 'floatval', $data['embedding'] )
+            : null,
         'model'         => isset( $data['model'] ) ? sanitize_text_field( $data['model'] ) : '',
         'model_version' => isset( $data['model_version'] ) ? sanitize_text_field( $data['model_version'] ) : '',
         'prompt_hash'   => isset( $data['prompt_hash'] ) ? sanitize_text_field( $data['prompt_hash'] ) : '',
     );
+}
+
+/**
+ *  The enums, in one place, and the answer to anything not in them.
+ *
+ *  A value the service invented is dropped rather than stored: the whole
+ *  reason these are columns is that `kind = document` means the same thing on
+ *  every row, and one unexpected string in the set makes every filter over it
+ *  a guess. A new member ships in docs/ai-service.md first.
+ */
+function vergeml_ai_kinds() {
+    return array( 'photo', 'illustration', 'screenshot', 'document', 'diagram', 'logo', 'other' );
+}
+
+function vergeml_ai_document_types() {
+    return array( 'invoice', 'receipt', 'contract', 'form', 'slide', 'report', 'other' );
+}
+
+function vergeml_ai_enum( $value, $allowed ) {
+    $value = sanitize_key( (string) $value );
+    return in_array( $value, $allowed, true ) ? $value : '';
+}
+
+/**
+ *  vergeml_ai_mock_describe
+ *
+ *  The whole contract, answered from the filename, without a key or a credit.
+ *
+ *  This is the difference between the plugin waiting for the service and the
+ *  two being built at once. Everything `docs/ai-service.md` promises comes
+ *  back here in the right shape -- the enums, the stamp, the embedding -- so
+ *  the storage, the migrations, the filters and the screens can be finished
+ *  and tested now, and connecting the real service becomes a change of
+ *  provider rather than a change of design.
+ *
+ *  Deterministic, and that is the point twice over: the release test for the
+ *  attributes is "same file, three runs, same enums", and a mock that rolled
+ *  dice could not be used to check it.
+ */
+function vergeml_ai_mock_describe( $attachment_id ) {
+
+    $file  = get_attached_file( $attachment_id );
+    $name  = pathinfo( (string) $file, PATHINFO_FILENAME );
+    $words = array_values( array_filter( preg_split( '/[^a-z0-9]+/i', strtolower( $name ) ) ) );
+
+    // One stable number per file, and every answer below derives from it, so
+    // the same file always describes the same way on any machine.
+    $seed = hexdec( substr( md5( $name ), 0, 6 ) );
+
+    $kinds = array( 'photo', 'illustration', 'screenshot', 'document', 'diagram', 'logo' );
+    $kind  = $kinds[ $seed % count( $kinds ) ];
+
+    // The filename usually knows better than the hash does.
+    if ( preg_match( '/(screenshot|screen|grab)/i', $name ) ) {
+        $kind = 'screenshot';
+    } elseif ( preg_match( '/(invoice|receipt|contract|scan|form|report)/i', $name ) ) {
+        $kind = 'document';
+    } elseif ( preg_match( '/(logo|wordmark|lockup|monogram)/i', $name ) ) {
+        $kind = 'logo';
+    }
+
+    $document_type = null;
+
+    if ( 'document' === $kind ) {
+        $types = array( 'invoice', 'receipt', 'contract', 'form', 'slide', 'report', 'other' );
+        foreach ( $types as $type ) {
+            if ( false !== strpos( strtolower( $name ), $type ) ) {
+                $document_type = $type;
+                break;
+            }
+        }
+        $document_type = null === $document_type ? $types[ $seed % count( $types ) ] : $document_type;
+    }
+
+    return array(
+        'caption'       => 'Mock caption describing ' . implode( ' ', $words ),
+        'alt'           => 'Mock alt for ' . implode( ' ', $words ),
+        'tags'          => array_slice( $words, 0, 5 ),
+        'title'         => ucwords( implode( ' ', $words ) ),
+        'kind'          => $kind,
+        'has_people'    => (bool) ( ( $seed >> 3 ) & 1 ),
+        'has_text'      => in_array( $kind, array( 'screenshot', 'document', 'logo', 'diagram' ), true ),
+        'document_type' => $document_type,
+        'embedding'     => vergeml_ai_mock_vector( $name ),
+        'model'         => 'mock',
+        'model_version' => VERGEML_VERSION,
+        'prompt_hash'   => substr( hash( 'sha256', 'mock:filename:v2' ), 0, 32 ),
+    );
+}
+
+/**
+ *  A vector that behaves like one: unit length, stable per file, and close to
+ *  the vectors of files with similar names. Similar names standing in for
+ *  similar pictures is a fiction, but it is the fiction that lets clustering
+ *  be written and watched before a real embedding exists -- and a real one
+ *  drops in without the code around it changing.
+ */
+function vergeml_ai_mock_vector( $name, $dims = 64 ) {
+
+    $vector = array();
+    $sum    = 0.0;
+
+    // Each word nudges the same dimensions every time, so two filenames that
+    // share words come out near each other.
+    $words = array_filter( preg_split( '/[^a-z0-9]+/i', strtolower( $name ) ) );
+
+    for ( $i = 0; $i < $dims; $i++ ) {
+        $value = 0.0;
+        foreach ( $words as $word ) {
+            $value += ( hexdec( substr( md5( $word . ':' . $i ), 0, 4 ) ) / 65535 ) - 0.5;
+        }
+        $vector[] = $value;
+        $sum     += $value * $value;
+    }
+
+    $length = sqrt( $sum );
+
+    if ( $length <= 0 ) {
+        return array_fill( 0, $dims, 0.0 );
+    }
+
+    foreach ( $vector as $i => $value ) {
+        $vector[ $i ] = round( $value / $length, 6 );
+    }
+
+    return $vector;
 }
 
 /**
@@ -361,18 +482,34 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
          */
         vergeml_index_writing( true );
 
-        vergeml_index_set( $id, array(
+        $row = array(
             'caption'       => $described['caption'],
             'alt'           => $described['alt'],
             'title'         => $described['title'],
             'tags'          => $described['tags'],
+            'kind'          => isset( $described['kind'] ) ? $described['kind'] : '',
+            'document_type' => isset( $described['document_type'] ) ? $described['document_type'] : '',
             'orientation'   => vergeml_index_orientation( $id ),
             'model'         => $described['model'],
             'model_version' => $described['model_version'],
             'prompt_hash'   => $described['prompt_hash'],
             'error'         => '',
             'described_at'  => current_time( 'mysql', true ),
-        ) );
+        );
+
+        // Null is "the service did not say", which is not the same as false
+        // and must not be stored as it.
+        foreach ( array( 'has_people', 'has_text' ) as $flag ) {
+            if ( isset( $described[ $flag ] ) && null !== $described[ $flag ] ) {
+                $row[ $flag ] = $described[ $flag ] ? 1 : 0;
+            }
+        }
+
+        if ( ! empty( $described['embedding'] ) ) {
+            $row['embedding'] = $described['embedding'];
+        }
+
+        vergeml_index_set( $id, $row );
 
         if ( $apply_alt && '' === (string) get_post_meta( $id, '_wp_attachment_image_alt', true ) ) {
             update_post_meta( $id, '_wp_attachment_image_alt', $described['alt'] );

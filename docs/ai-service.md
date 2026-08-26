@@ -82,13 +82,77 @@ Server-side obligations:
 plugin currently learns the balance from /describe responses and does not
 require this.
 
+## Contract version
+
+Every `/describe` response carries the three fields the plugin stamps each
+description with, and stores them verbatim:
+
+| Field | Meaning |
+|---|---|
+| `model` | the exact model that answered — never a `latest` alias |
+| `model_version` | the provider's version string for it |
+| `prompt_hash` | a stable hash of the prompt that produced this answer |
+
+Without them a stored description is unreproducible: nothing says what asked
+for it, so nothing can decide whether it is worth re-running. The plugin
+invents none of the three — a hash the client made up would answer the
+question wrongly rather than not at all — so a service that omits them leaves
+the columns empty and every description looks equally unattributable.
+
+## The attributes
+
+`/describe` also returns a fixed set of enums per image. They are enums, not
+free text, because their whole purpose is to be queried: `kind = document`
+has to mean the same thing on every row or the column is worth nothing.
+
+```json
+{
+  "kind":          "photo | illustration | screenshot | document | diagram | logo | other",
+  "has_people":    true,
+  "has_text":      false,
+  "document_type": "invoice | receipt | contract | form | slide | report | other | null"
+}
+```
+
+- `document_type` is `null` unless `kind` is `document`.
+- `orientation` is **not** asked for. It is portrait, landscape or square,
+  the plugin already knows the dimensions, and paying a model to measure a
+  rectangle would be absurd.
+- Unknown values are stored as given but never matched — a new enum member
+  must ship in this document before it ships in a response.
+
+The release test the plugin runs against these: the same file, three times,
+same enums. An attribute that is not stable across runs is not an attribute,
+it is a guess, and it must not become a column people filter on.
+
+## POST /embed (designed, not built)
+
+Image or text in, one vector out. Powers visual similarity, semantic search,
+and the clustering the Librarian phase is built on.
+
+```json
+{ "license_key": "...", "site": "...", "image": "data:image/jpeg;base64,..." }
+```
+
+```json
+{ "embedding": [0.0123, -0.0044, ...], "dims": 768, "model": "...", "credits": { "remaining": 4311 } }
+```
+
+**Storage is client-side, settled.** The vector lives in the plugin's own
+table (`{prefix}vergeml_ai_index.embedding`) as packed single-precision
+floats with a `dims` count beside it. The service stores nothing per file —
+that is the same promise `/describe` already makes, and a service that held
+vectors would be holding a representation of customer media.
+
+`dims` is whatever the model returns, recorded per row rather than assumed,
+so changing embedding model does not silently mix incomparable vectors: a
+row whose `dims` or `model` differs from the current one is re-embedded
+rather than compared.
+
 ## Roadmap endpoints (design before building)
 
 - `POST /suggest-folder` — image + the site's folder names in, ranked folder
   suggestions out (auto-filing).
-- `POST /embed` — image or text in, vector out (visual similarity, semantic
-  search v2). Decide storage client-side (postmeta) vs service-side before
-  building.
 
 ## Client-side key handling
 
