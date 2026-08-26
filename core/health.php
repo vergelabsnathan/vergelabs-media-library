@@ -778,9 +778,20 @@ function vergeml_health_files( $ids ) {
      */
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
     $posts = $wpdb->get_results( $wpdb->prepare(
-        "SELECT ID, post_title, post_mime_type FROM {$wpdb->posts} WHERE ID IN ( $placeholders )",
+        "SELECT * FROM {$wpdb->posts} WHERE ID IN ( $placeholders )",
         $ids
     ) );
+
+    /*
+     *  Whole rows, and straight into the post cache.
+     *
+     *  Three columns were enough for what this function draws, but the edit
+     *  link below asks whether the user may edit each file, and that question
+     *  fetches the post -- one query per row on a cold request. It measured
+     *  four queries locally and seventy over REST, because a scan in the same
+     *  process had warmed the cache the endpoint does not get.
+     */
+    update_post_cache( $posts );
 
     $params   = $ids;
     $params[] = '_wp_attached_file';
