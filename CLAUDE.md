@@ -94,3 +94,21 @@ negotiable because they are the whole point:
 
 Validation commands are in `.claude/skills/validate/SKILL.md`. Run the whole gate, iterate until
 green, and optimise for correctness rather than time.
+
+## Lessons that cost real time (evolve, 26-08-2026)
+
+- **Patch files with Python scripts written via the Write tool, never bash
+  heredocs.** The shell layer eats backslashes even in quoted heredocs,
+  corrupting `\n` literals and silently half-applying patches. This
+  recurred five separate times in one session.
+- **Browser-suite preconditions**: `smart.mjs` needs
+  `wp option delete vergeml_smart_scan` first; suites assume the FILTERS
+  group is open (it self-opens now, but new suites must not assume);
+  sweep test-debris attachments/terms (`zz*`, probe stamps) between full
+  batteries or counts drift and drags mis-aim.
+- **Start every session from this folder** (`C:\dev\vergelabs-media-library`),
+  or `.claude/skills/` never loads and the harness silently does not exist.
+- **The AI roadmap lives in `docs/ai-roadmap.md`** — phases, decisions and
+  standing rules for everything under VergeLabs Library → AI. Do not
+  re-derive it from conversation memory.
+
