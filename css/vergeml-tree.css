@@ -48,8 +48,8 @@
 	min-width: 200px;
 	max-width: 680px;
 	background: var( --vgml-surface );
-	border: 1px solid var( --vgml-line );
-	border-radius: var( --vgml-radius );
+	border: 0;
+	border-radius: 8px;
 	color: var( --vgml-fg );
 	font-size: var( --vgml-font );
 	/*
@@ -143,6 +143,46 @@ body.vgml-has-tree .vgml-tree {
 	font-size: var( --vgml-font );
 }
 
+/*
+ *  During a native file drag WP covers the whole viewport with the fixed
+ *  .uploader-window (z-index 250000) -- including this panel, which made a
+ *  drop on a folder row physically impossible: every drop hit the overlay.
+ *  While the drag is live (body.vgml-os-drag, set from the drag events) the
+ *  grid-page tree stacks above the overlay so rows keep receiving the drag.
+ *  Only then: raised permanently, the panel also sat on top of everything
+ *  WordPress happens to place under its footprint, and swallowed clicks.
+ */
+body.upload-php.vgml-os-drag .vgml-tree:not(.vgml-in-modal) {
+	position: relative;
+	z-index: 250001;
+}
+
+.vgml-tree .vgml-upload {
+	flex: 0 0 auto;
+	margin-inline-start: 6px;
+	border: 0;
+	background: #e9eaec;
+	color: var( --vgml-fg );
+	border-radius: 6px;
+	box-shadow: none;
+}
+
+.vgml-tree .vgml-upload:hover {
+	background: #dfe0e3;
+	color: var( --vgml-fg );
+	border: 0;
+}
+
+/* a disabled quiet button is dimmer, not boxier */
+.vgml-tools .button:disabled,
+.vgml-tools .button[disabled] {
+	border-color: transparent;
+	background: transparent;
+	box-shadow: none;
+	opacity: 0.45;
+	color: var( --vgml-fg );
+}
+
 .vgml-tree .vgml-new {
 	flex: 0 0 auto;
 }
@@ -160,8 +200,8 @@ body.vgml-has-tree .vgml-tree {
 	align-items: center;
 	gap: 6px;
 	flex: 0 0 auto;
-	padding: 8px var( --vgml-pad );
-	border-bottom: 1px solid var( --vgml-line );
+	padding: 4px var( --vgml-pad ) 8px;
+	border-bottom: 0;
 }
 
 /*
@@ -225,7 +265,16 @@ body.vgml-has-tree .vgml-tree {
 	width: 100%;
 	box-sizing: border-box;
 	font-size: var( --vgml-font );
-	min-height: 30px;
+	min-height: 32px;
+	border: 0;
+	background: #fff;
+	border-radius: 8px;
+	box-shadow: none;
+}
+
+.vgml-tree .vgml-search:focus {
+	box-shadow: 0 0 0 2px var( --vgml-accent );
+	outline: 0;
 }
 
 /* --- the tree ----------------------------------------------------------- */
@@ -1312,4 +1361,78 @@ body.upload-php .media-frame .media-toolbar .delete-selected-button:focus {
 
 body.upload-php .media-frame .media-toolbar .delete-selected-button:focus {
 	box-shadow: 0 0 0 1px #fff, 0 0 0 3px #d63638;
+}
+
+/* == Flat pass ================================================================
+ *
+ *  The toolbar stops being a white band in a grey page: no box, no borders,
+ *  no shadows -- controls sit directly on the page as soft neutral pills.
+ *  The one thing allowed a colour is the button that destroys files.
+ */
+
+body.upload-php .media-frame .attachments-browser .media-toolbar,
+body.upload-php .media-frame .attachments-browser .media-toolbar.wp-filter {
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+	margin: 0;
+	padding: 6px 0 16px;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar select.attachment-filters,
+body.upload-php .media-frame .attachments-browser .media-toolbar .search,
+body.upload-php .media-frame .attachments-browser .media-toolbar .button {
+	border: 0;
+	background: #e9eaec;
+	color: #1d2327;
+	border-radius: 8px;
+	height: 34px;
+	line-height: 34px;
+	padding-top: 0;
+	padding-bottom: 0;
+	box-shadow: none;
+	font-weight: 500;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar select.attachment-filters:hover,
+body.upload-php .media-frame .attachments-browser .media-toolbar .button:hover {
+	background: #dfe0e3;
+	color: #1d2327;
+}
+
+/* the taxonomy filter carries the longest labels; give it the extra room */
+body.upload-php .media-frame .attachments-browser .media-toolbar select.eml-taxonomy-filters {
+	max-width: 230px;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar .search:focus,
+body.upload-php .media-frame .attachments-browser .media-toolbar select.attachment-filters:focus {
+	background: #fff;
+	box-shadow: 0 0 0 2px #3858e9;
+	outline: 0;
+}
+
+/* the destroyer keeps its colour; everything else stays quiet */
+body.upload-php .media-frame .attachments-browser .media-toolbar .button.delete-selected-button {
+	background: #d63638;
+	color: #fff;
+	font-weight: 500;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar .button.delete-selected-button:hover,
+body.upload-php .media-frame .attachments-browser .media-toolbar .button.delete-selected-button:focus {
+	background: #b32d2e;
+	color: #fff;
+}
+
+/* select mode: a compact row, not a band */
+body.upload-php .media-frame.mode-select .attachments-browser .media-toolbar {
+	padding: 6px 0 12px;
+}
+
+/* the grid loses its box chrome too */
+body.upload-php .media-frame .attachments-browser .attachments-wrapper,
+body.upload-php .media-frame .attachments-browser {
+	border: 0;
+	box-shadow: none;
 }

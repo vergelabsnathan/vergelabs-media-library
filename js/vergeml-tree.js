@@ -949,6 +949,10 @@
 		h1.textContent = node
 			? sprintf( l10n.dropInto, node.name )
 			: h1.getAttribute( 'data-vgml-stock' );
+
+		if ( uploadBtn ) {
+			uploadBtn.title = node ? sprintf( l10n.uploadTo, node.name ) : l10n.uploadUnfiled;
+		}
 	}
 
 	function select( id ) {
@@ -2218,6 +2222,7 @@
 	 *  hover, so the screen never told you they existed.
 	 */
 	var toolbarEls = null;
+	var uploadBtn = null;
 	var editTarget = 0;
 
 	function buildToolbar() {
@@ -2459,6 +2464,32 @@
 	 */
 	function armFileDrops( host ) {
 
+		/*
+		 *  body.vgml-os-drag marks a native file drag in progress; the
+		 *  stylesheet uses it to lift the tree above WP's full-screen drop
+		 *  overlay for exactly that long. Cleared by drop and by a short
+		 *  timer, because dragleave is unreliable when the cursor exits the
+		 *  window -- dragover fires continuously, so the timer staying ahead
+		 *  of it is the steady state.
+		 */
+		var osDragTimer = 0;
+
+		document.addEventListener( 'dragover', function ( e ) {
+			if ( ! fileDrag( e ) ) {
+				return;
+			}
+			document.body.classList.add( 'vgml-os-drag' );
+			window.clearTimeout( osDragTimer );
+			osDragTimer = window.setTimeout( function () {
+				document.body.classList.remove( 'vgml-os-drag' );
+			}, 400 );
+		} );
+
+		document.addEventListener( 'drop', function () {
+			window.clearTimeout( osDragTimer );
+			document.body.classList.remove( 'vgml-os-drag' );
+		}, true );
+
 		function fileDrag( e ) {
 			var t = e.dataTransfer && e.dataTransfer.types;
 			if ( ! t ) {
@@ -2488,7 +2519,14 @@
 			if ( ! fileDrag( e ) ) {
 				return;
 			}
+			/*
+			 *  Stopped as well as prevented: the tree lives inside the media
+			 *  frame, and the frame's own uploader listens for the same
+			 *  events. Left to bubble, its dragover fights the dropEffect --
+			 *  and its drop would upload the files a second time.
+			 */
 			e.preventDefault();
+			e.stopPropagation();
 			var node = rowFor( e );
 			clearMarks();
 			if ( node ) {
@@ -2510,7 +2548,15 @@
 				return;
 			}
 			e.preventDefault();
+			e.stopPropagation();
 			clearMarks();
+
+			// stopping propagation also stopped WP's own overlay-hide handler
+			var win = document.querySelector( '.uploader-window' );
+			if ( win ) {
+				win.style.display = 'none';
+			}
+
 			var node = rowFor( e );
 			var files = e.dataTransfer.files;
 			if ( ! node || ! files || ! files.length ) {
@@ -2572,6 +2618,44 @@
 			} );
 			head.appendChild( add );
 		}
+
+		/*
+		 *  The file-picker road into the selected folder, for everyone who
+		 *  does not drag. The button feeds a hidden input; the picked files
+		 *  go through the grid's own uploader, so the folder assignment, the
+		 *  grid refresh and the count updates are the same code the drop
+		 *  zone already runs. The tooltip names the destination the way the
+		 *  drop overlay does.
+		 */
+		var pick = el( 'input', { type: 'file', multiple: 'multiple', class: 'vgml-pick' } );
+		pick.style.display = 'none';
+		pick.addEventListener( 'change', function () {
+			if ( ! pick.files || ! pick.files.length ) {
+				return;
+			}
+			var frame = ( wp.media.frames && wp.media.frames.browse ) || wp.media.frame;
+			var pl = frame && frame.uploader && frame.uploader.uploader && frame.uploader.uploader.uploader;
+			if ( ! pl ) {
+				return;
+			}
+			dropFolder = state.selected > 0 ? state.selected : 0;
+			pl.addFile( Array.prototype.slice.call( pick.files ) );
+			pick.value = '';
+		} );
+
+		uploadBtn = el( 'button', { type: 'button', class: 'button button-small vgml-upload' }, l10n.upload );
+		uploadBtn.addEventListener( 'click', function () {
+			var frame = ( wp.media.frames && wp.media.frames.browse ) || wp.media.frame;
+			var pl = frame && frame.uploader && frame.uploader.uploader && frame.uploader.uploader.uploader;
+			if ( ! pl ) {
+				// no grid uploader on this screen -- the classic uploader page is the fallback
+				window.location.href = 'media-new.php';
+				return;
+			}
+			pick.click();
+		} );
+		head.appendChild( uploadBtn );
+		head.appendChild( pick );
 
 		root.appendChild( head );
 

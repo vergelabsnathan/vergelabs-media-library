@@ -32,7 +32,21 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.1.0' );
+if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.2.0' );
+
+/**
+ *  Cache-busting asset version: the plugin version plus the file's mtime.
+ *
+ *  A fixed version string means a browser that has visited the screen once
+ *  keeps its cached copy of every script until the next release -- which,
+ *  during development, means every fix ships to a fresh profile and never to
+ *  the person reporting the bug. The mtime suffix makes each deployed change
+ *  its own URL. Falls back to the bare version if the file cannot be stated.
+ */
+function vergeml_asset_ver( $rel ) {
+    $mtime = @filemtime( plugin_dir_path( VERGEML_FILE ) . $rel );
+    return $mtime ? VERGEML_VERSION . '.' . $mtime : VERGEML_VERSION;
+}
 // The plugin's own top-level admin menu. Named here because screens registered
 // from files that load outside the admin still have to name their parent.
 if ( ! defined('VERGEML_MENU') ) define( 'VERGEML_MENU', 'vergelabs-media' );

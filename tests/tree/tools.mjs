@@ -72,10 +72,10 @@ const png = Buffer.from(
 );
 
 await page.click( '.page-title-action' );
-await page.waitForSelector( 'input[type=file]', { state: 'attached', timeout: 30000 } );
+await page.waitForSelector( 'input[type=file]:not(.vgml-pick)', { state: 'attached', timeout: 30000 } );
 
 const stamp = 'vgml-toolprobe-' + Date.now();
-await page.setInputFiles( 'input[type=file]', {
+await page.setInputFiles( 'input[type=file]:not(.vgml-pick)', {
 	name: stamp + '.png',
 	mimeType: 'image/png',
 	buffer: png,
@@ -136,7 +136,7 @@ if ( ! uploaderOpen ) {
 	await page.waitForSelector( 'input[type=file]', { state: 'attached', timeout: 30000 } );
 }
 
-await page.setInputFiles( 'input[type=file]', {
+await page.setInputFiles( 'input[type=file]:not(.vgml-pick)', {
 	name: stamp2 + '.png',
 	mimeType: 'image/png',
 	buffer: png,

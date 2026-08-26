@@ -103,7 +103,7 @@ function vergeml_tree_assets( $hook ) {
         'vergeml-tree',
         plugins_url( 'css/vergeml-tree.css', VERGEML_FILE ),
         array(),
-        VERGEML_VERSION
+        vergeml_asset_ver( 'css/vergeml-tree.css' )
     );
 
     if ( is_rtl() ) {
@@ -111,7 +111,7 @@ function vergeml_tree_assets( $hook ) {
             'vergeml-tree-rtl',
             plugins_url( 'css/vergeml-tree-rtl.css', VERGEML_FILE ),
             array( 'vergeml-tree' ),
-            VERGEML_VERSION
+            vergeml_asset_ver( 'css/vergeml-tree-rtl.css' )
         );
     }
 
@@ -129,7 +129,7 @@ function vergeml_tree_assets( $hook ) {
          *  element we own, which is why it can show a real tile with a count.
          */
         array( 'wp-api-fetch', 'jquery', 'jquery-ui-draggable', 'jquery-ui-droppable' ),
-        VERGEML_VERSION,
+        vergeml_asset_ver( 'js/vergeml-tree.js' ),
         true
     );
 
@@ -237,6 +237,10 @@ function vergeml_tree_assets( $hook ) {
                 : __( 'All files', 'vergelabs-media-library' ),
             'unassigned'     => __( 'Unfiled', 'vergelabs-media-library' ),
             'newFolder'      => __( 'New folder', 'vergelabs-media-library' ),
+            'upload'         => __( 'Upload', 'vergelabs-media-library' ),
+            /* translators: %s: folder name. */
+            'uploadTo'       => __( 'Upload to “%s”', 'vergelabs-media-library' ),
+            'uploadUnfiled'  => __( 'Upload files (they will be unfiled)', 'vergelabs-media-library' ),
             'rename'         => __( 'Rename', 'vergelabs-media-library' ),
             'color'          => __( 'Colour', 'vergelabs-media-library' ),
             /*
