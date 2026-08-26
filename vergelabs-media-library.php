@@ -164,6 +164,17 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         vergeml_set_options();
 
 
+        /*
+         *  Schema, for the feature files that keep their own table.
+         *
+         *  An action rather than a call: in safe mode none of those files are
+         *  loaded, so nothing answers and activation does not fatal on a
+         *  function that was never defined. Runs on activation and on every
+         *  version change, which is where dbDelta belongs.
+         */
+        do_action( 'vergeml_activate' );
+
+
         if ( is_multisite() && is_network_admin() ) {
 
             // network options
@@ -1199,6 +1210,8 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // file defines, and reuses its constant rather than restating it.
         include_once( 'core/health.php' );
         include_once( 'core/instrument.php' );
+        // Before ai.php: the AI layer reads and writes through the index.
+        include_once( 'core/ai-index.php' );
         include_once( 'core/ai.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {

@@ -144,10 +144,13 @@ function vergeml_ai_describe( $attachment_id ) {
         $words = array_values( array_filter( preg_split( '/[^a-z0-9]+/i', strtolower( $name ) ) ) );
 
         return array(
-            'caption' => 'Mock caption describing ' . implode( ' ', $words ),
-            'alt'     => 'Mock alt for ' . implode( ' ', $words ),
-            'tags'    => array_slice( $words, 0, 5 ),
-            'title'   => ucwords( implode( ' ', $words ) ),
+            'caption'       => 'Mock caption describing ' . implode( ' ', $words ),
+            'alt'           => 'Mock alt for ' . implode( ' ', $words ),
+            'tags'          => array_slice( $words, 0, 5 ),
+            'title'         => ucwords( implode( ' ', $words ) ),
+            'model'         => 'mock',
+            'model_version' => VERGEML_VERSION,
+            'prompt_hash'   => substr( hash( 'sha256', 'mock:filename-words:v1' ), 0, 32 ),
         );
     }
 
@@ -211,11 +214,20 @@ function vergeml_ai_describe( $attachment_id ) {
         ), false );
     }
 
+    /*
+     *  The stamp is whatever the service says produced this, and nothing
+     *  invented when it says nothing. A description is only reproducible if
+     *  you know which model and which prompt made it, and a hash the client
+     *  made up would answer the question wrongly rather than not at all.
+     */
     return array(
-        'caption' => sanitize_text_field( $data['caption'] ),
-        'alt'     => sanitize_text_field( isset( $data['alt'] ) ? $data['alt'] : $data['caption'] ),
-        'tags'    => array_map( 'sanitize_text_field', array_slice( (array) ( isset( $data['tags'] ) ? $data['tags'] : array() ), 0, 8 ) ),
-        'title'   => sanitize_text_field( isset( $data['title'] ) ? $data['title'] : '' ),
+        'caption'       => sanitize_text_field( $data['caption'] ),
+        'alt'           => sanitize_text_field( isset( $data['alt'] ) ? $data['alt'] : $data['caption'] ),
+        'tags'          => array_map( 'sanitize_text_field', array_slice( (array) ( isset( $data['tags'] ) ? $data['tags'] : array() ), 0, 8 ) ),
+        'title'         => sanitize_text_field( isset( $data['title'] ) ? $data['title'] : '' ),
+        'model'         => isset( $data['model'] ) ? sanitize_text_field( $data['model'] ) : '',
+        'model_version' => isset( $data['model_version'] ) ? sanitize_text_field( $data['model_version'] ) : '',
+        'prompt_hash'   => isset( $data['prompt_hash'] ) ? sanitize_text_field( $data['prompt_hash'] ) : '',
     );
 }
 
@@ -288,13 +300,17 @@ function vergeml_ai_pending( $scope, $limit = 0 ) {
         // phpcs:enable
     }
 
+    // The backlog is the absence of an index row. A described file has one,
+    // including the stub written for a file that could not be described --
+    // which is what stops a permanently failing file wedging the loop.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-        "SELECT p.ID FROM {$wpdb->posts} p
-         LEFT JOIN {$wpdb->postmeta} ai ON ai.post_id = p.ID AND ai.meta_key = '_vergeml_ai'
-         WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
-           AND ai.meta_id IS NULL
-         ORDER BY p.ID ASC LIMIT %d",
+        'SELECT p.ID FROM ' . $wpdb->posts . ' p
+          LEFT JOIN ' . vergeml_index_table() . ' i ON i.attachment_id = p.ID
+         WHERE p.post_type = %s AND p.post_mime_type LIKE %s
+           AND i.attachment_id IS NULL
+         ORDER BY p.ID ASC LIMIT %d',
+        'attachment',
         $mime,
         $cap
     ) ) );
@@ -331,18 +347,38 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
 
             // A stub keeps a permanently failing file from wedging the loop;
             // reindexing later replaces it.
-            update_post_meta( $id, '_vergeml_ai', array( 'error' => $described->get_error_code(), 'time' => time() ) );
+            vergeml_index_set( $id, array(
+                'error'        => substr( $described->get_error_code(), 0, 64 ),
+                'described_at' => current_time( 'mysql', true ),
+            ) );
             continue;
         }
 
-        $described['time']  = time();
-        $described['model'] = vergeml_ai_settings()['model'];
+        /*
+         *  Inside the writing flag: everything below is the pipeline filling
+         *  fields in, and the hooks that protect a user's own words must not
+         *  mistake it for somebody typing.
+         */
+        vergeml_index_writing( true );
 
-        update_post_meta( $id, '_vergeml_ai', $described );
+        vergeml_index_set( $id, array(
+            'caption'       => $described['caption'],
+            'alt'           => $described['alt'],
+            'title'         => $described['title'],
+            'tags'          => $described['tags'],
+            'orientation'   => vergeml_index_orientation( $id ),
+            'model'         => $described['model'],
+            'model_version' => $described['model_version'],
+            'prompt_hash'   => $described['prompt_hash'],
+            'error'         => '',
+            'described_at'  => current_time( 'mysql', true ),
+        ) );
 
         if ( $apply_alt && '' === (string) get_post_meta( $id, '_wp_attachment_image_alt', true ) ) {
             update_post_meta( $id, '_wp_attachment_image_alt', $described['alt'] );
         }
+
+        vergeml_index_writing( false );
 
         $done[] = array( 'id' => $id, 'caption' => $described['caption'] );
     }
@@ -375,8 +411,8 @@ function vergeml_ai_search_join( $join, $query ) {
 
     global $wpdb;
 
-    if ( false === strpos( $join, 'vergeml_ai_meta' ) ) {
-        $join .= " LEFT JOIN {$wpdb->postmeta} vergeml_ai_meta ON vergeml_ai_meta.post_id = {$wpdb->posts}.ID AND vergeml_ai_meta.meta_key = '_vergeml_ai' ";
+    if ( false === strpos( $join, 'vergeml_ai_index' ) ) {
+        $join .= ' LEFT JOIN ' . vergeml_index_table() . " vergeml_ai_index ON vergeml_ai_index.attachment_id = {$wpdb->posts}.ID ";
     }
 
     return $join;
@@ -398,9 +434,20 @@ function vergeml_ai_search_where( $search, $query ) {
 
     $extra = array();
 
+    /*
+     *  Three columns rather than one serialised blob. The old LIKE ran across
+     *  the whole array including its PHP serialisation, so a search for "s"
+     *  matched the type markers -- this asks the fields somebody actually
+     *  meant.
+     */
     foreach ( $terms as $term ) {
         $like    = '%' . $wpdb->esc_like( $term ) . '%';
-        $extra[] = $wpdb->prepare( 'vergeml_ai_meta.meta_value LIKE %s', $like );
+        $extra[] = $wpdb->prepare(
+            '( vergeml_ai_index.caption LIKE %s OR vergeml_ai_index.tags LIKE %s OR vergeml_ai_index.title LIKE %s )',
+            $like,
+            $like,
+            $like
+        );
     }
 
     if ( ! $extra ) {
@@ -510,9 +557,9 @@ function vergeml_ai_rest_status() {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     $images  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type LIKE %s", $wpdb->esc_like( 'image/' ) . '%' ) );
-    $indexed = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta} WHERE meta_key = '_vergeml_ai'" );
+    $indexed = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . vergeml_index_table() . " WHERE error = ''" );
     // phpcs:enable
 
     $settings = vergeml_ai_settings();
