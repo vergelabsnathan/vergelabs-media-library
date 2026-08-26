@@ -2980,6 +2980,31 @@
 		armUploaders();
 
 		/*
+		 *  Bulk select, made additive. The heritage grid builds its selection
+		 *  with `multiple` off, so core's toggleSelection falls through to
+		 *  reset([model]) -- every click REPLACED the selection, and no number
+		 *  of clicks ever selected two files. In select mode a plain click
+		 *  now toggles membership; shift-ranges pass through untouched.
+		 */
+		if ( window.wp && wp.media && wp.media.view && wp.media.view.Attachment &&
+				! wp.media.view.Attachment.prototype.vgmlToggleWrapped ) {
+
+			wp.media.view.Attachment.prototype.vgmlToggleWrapped = true;
+
+			var vgmlToggle = wp.media.view.Attachment.prototype.toggleSelection;
+
+			wp.media.view.Attachment.prototype.toggleSelection = function ( options ) {
+				var inSelect = this.controller && this.controller.isModeActive &&
+					this.controller.isModeActive( 'select' );
+				if ( inSelect && ( ! options || ! options.method ) ) {
+					options = options || {};
+					options.method = 'toggle';
+				}
+				return vgmlToggle.call( this, options );
+			};
+		}
+
+		/*
 		 *  The toolbar labels are screen-reader-only now, which leaves the
 		 *  search input a naked box. Its own label already says what it is --
 		 *  move those words inside as the placeholder.

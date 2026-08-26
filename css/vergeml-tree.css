@@ -1498,3 +1498,13 @@ body.upload-php .media-frame .attachments-browser .uploader-inline {
 	position: static;
 	flex: 0 0 auto;
 }
+
+/*
+ *  In select mode a tile is a thing you SELECT. The heritage hover pencil
+ *  stayed live there, so a click landing on the corner of a tile opened the
+ *  edit modal instead of selecting -- which reads as "bulk select does
+ *  nothing". Selection mode gets tiles with exactly one behaviour.
+ */
+.media-frame.mode-select .eml-attacment-inline-toolbar {
+	display: none;
+}
