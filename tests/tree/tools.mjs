@@ -61,6 +61,11 @@ await page.locator( `.vgml-tree .vgml-node[data-id="${ folder.id }"] .vgml-row` 
 await page.waitForTimeout( 1500 );
 await page.evaluate( ( id ) => { window.__vgmlFolderId = id; }, folder.id );
 
+// the badge is descendant-inclusive, so the +1 has to be measured against
+// the badge itself, not against the folder's own-file count from REST
+const badgeBefore = await page.evaluate( () =>
+	parseInt( ( document.querySelector( `.vgml-tree .vgml-node[data-id="${ window.__vgmlFolderId }"] .vgml-count` ) || {} ).textContent || '0', 10 ) );
+
 /* --- an upload lands in it -------------------------------------------------- */
 
 console.log( '\nan upload, with the folder open' );
@@ -118,8 +123,8 @@ const visible = await page.evaluate( ( stamp ) => ( {
 } ), stamp );
 
 check( 'the new file is in the filtered grid, no reload', visible.tile );
-check( 'and the folder count moved with it', visible.badge === folder.count + 1,
-	`${ visible.badge } vs ${ folder.count } + 1` );
+check( 'and the folder count moved with it', visible.badge === badgeBefore + 1,
+	`${ visible.badge } vs ${ badgeBefore } + 1` );
 
 /* --- with nothing selected, uploads stay unfiled ---------------------------- */
 
@@ -184,10 +189,17 @@ const wobblyClick = async ( nth ) => {
 	await page.waitForTimeout( 400 );
 };
 
+// selection is additive now, so start this count from zero
+await page.evaluate( () => {
+	const f = ( window.wp.media.frames && window.wp.media.frames.browse ) || window.wp.media.frame;
+	try { f.state().get( 'selection' ).reset(); } catch ( e ) {}
+} );
+await page.waitForTimeout( 300 );
+
 await wobblyClick( 0 );
 await wobblyClick( 1 );
 
-const picked = await page.evaluate( () => document.querySelectorAll( '.attachment.selected' ).length );
+const picked = await page.evaluate( () => document.querySelectorAll( '.attachments-browser .attachments .attachment.selected' ).length );
 check( 'two wobbly clicks selected two files', picked === 2, `${ picked } selected` );
 
 /*
@@ -196,10 +208,12 @@ check( 'two wobbly clicks selected two files', picked === 2, `${ picked } select
  *  is the one place select mode still drags.
  */
 const targetRow = await page.locator( `.vgml-tree .vgml-node[data-id="${ folder.id }"] .vgml-row` ).boundingBox();
-const firstTile = await page.locator( '.attachment.selected' ).first().boundingBox();
+const firstTile = await page.locator( '.attachments-browser .attachments .attachment.selected' ).first().boundingBox();
 
+// scoped to the grid: the frame's bottom bar previews the selection with
+// clones that also carry .attachment.selected and the same data-ids
 const dragged = await page.evaluate( () =>
-	[ ...document.querySelectorAll( '.attachment.selected' ) ].map( ( a ) => parseInt( a.getAttribute( 'data-id' ), 10 ) ) );
+	[ ...document.querySelectorAll( '.attachments-browser .attachments .attachment.selected' ) ].map( ( a ) => parseInt( a.getAttribute( 'data-id' ), 10 ) ) );
 
 await page.mouse.move( firstTile.x + 40, firstTile.y + 40 );
 await page.mouse.down();

@@ -409,6 +409,7 @@ function vergeml_tree_state( $taxonomy ) {
         'open'     => isset( $mine['open'] ) && is_array( $mine['open'] ) ? array_map( 'intval', $mine['open'] ) : array(),
         'selected' => $selected,
         'width'    => isset( $mine['width'] ) ? (int) $mine['width'] : 0,
+        'collapsed' => ! empty( $mine['collapsed'] ) ? 1 : 0,
         /*
          *  'native' derives its accent from whichever admin colour scheme this
          *  user already chose, so the tree looks like part of the admin rather

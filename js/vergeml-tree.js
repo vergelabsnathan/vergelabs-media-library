@@ -2542,6 +2542,59 @@
 		return true;
 	}
 
+	function fileDrag( e ) {
+		var t = e.dataTransfer && e.dataTransfer.types;
+		if ( ! t ) {
+			return false;
+		}
+		for ( var i = 0; i < t.length; i++ ) {
+			if ( 'Files' === t[ i ] ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/*
+	 *  A whole region as a drop target: the list table takes files the way the
+	 *  grid does, into whichever folder is selected.
+	 */
+	function armAreaDrop( area ) {
+
+		area.addEventListener( 'dragover', function ( e ) {
+			if ( ! fileDrag( e ) ) {
+				return;
+			}
+			e.preventDefault();
+			e.stopPropagation();
+			e.dataTransfer.dropEffect = 'copy';
+			area.classList.add( 'vgml-drop-here' );
+		} );
+
+		area.addEventListener( 'dragleave', function ( e ) {
+			if ( ! area.contains( e.relatedTarget ) ) {
+				area.classList.remove( 'vgml-drop-here' );
+			}
+		} );
+
+		area.addEventListener( 'drop', function ( e ) {
+			if ( ! fileDrag( e ) ) {
+				return;
+			}
+			e.preventDefault();
+			e.stopPropagation();
+			area.classList.remove( 'vgml-drop-here' );
+			var files = e.dataTransfer.files;
+			if ( ! files || ! files.length ) {
+				return;
+			}
+			dropFolder = state.selected > 0 ? state.selected : 0;
+			if ( ! sendFiles( files ) ) {
+				dropFolder = 0;
+			}
+		} );
+	}
+
 	function armFileDrops( host ) {
 
 		/*
@@ -2569,19 +2622,6 @@
 			window.clearTimeout( osDragTimer );
 			document.body.classList.remove( 'vgml-os-drag' );
 		}, true );
-
-		function fileDrag( e ) {
-			var t = e.dataTransfer && e.dataTransfer.types;
-			if ( ! t ) {
-				return false;
-			}
-			for ( var i = 0; i < t.length; i++ ) {
-				if ( 'Files' === t[ i ] ) {
-					return true;
-				}
-			}
-			return false;
-		}
 
 		function rowFor( e ) {
 			var node = e.target && e.target.closest ? e.target.closest( '.vgml-node' ) : null;
@@ -2649,6 +2689,19 @@
 		} );
 	}
 
+	/*
+	 *  The whole panel folds to a slim rail and back. Collapsed is a per-user,
+	 *  per-taxonomy preference like width, and the host layout follows the
+	 *  same --vgml-panel-w variable the resizer already drives.
+	 */
+	function setCollapsed( on ) {
+		state.collapsed = !! on;
+		root.classList.toggle( 'is-collapsed', state.collapsed );
+		document.body.classList.toggle( 'vgml-panel-collapsed', state.collapsed );
+		document.body.style.setProperty( '--vgml-panel-w',
+			( state.collapsed ? 44 : state.width ) + 'px' );
+	}
+
 	function build() {
 		root = el( 'div', { class: 'vgml-tree', 'data-skin': state.skin, 'data-density': state.density } );
 		root.style.setProperty( '--vgml-accent', cfg.accent );
@@ -2666,6 +2719,14 @@
 		 *  told you what was possible.
 		 */
 		var head = el( 'div', { class: 'vgml-head' } );
+
+		var fold = el( 'button', { type: 'button', class: 'vgml-fold', 'aria-label': l10n.collapse || 'Collapse' } );
+		fold.innerHTML = chevron();
+		fold.addEventListener( 'click', function () {
+			setCollapsed( ! state.collapsed );
+			persist( { collapsed: state.collapsed ? 1 : 0 } );
+		} );
+		head.appendChild( fold );
 
 		if ( cfg.taxonomies.length > 1 ) {
 			var pick = el( 'select', { class: 'vgml-tax', 'aria-label': l10n.folders } );
@@ -3010,6 +3071,39 @@
 		 *  move those words inside as the placeholder.
 		 */
 		dropHint();
+
+		if ( cfg.state && cfg.state.collapsed ) {
+			setCollapsed( true );
+		}
+
+		if ( ! isGridScreen() ) {
+			var listForm = document.querySelector( '#posts-filter' );
+			if ( listForm ) {
+				armAreaDrop( listForm );
+			}
+		}
+
+		/*
+		 *  The details sidebar appears and disappears with the selection, and
+		 *  the toolbar has to give it room only while it is there. CSS cannot
+		 *  see computed visibility, so a tiny observer stamps the fact on the
+		 *  browser element instead.
+		 */
+		var sbTries = 0;
+		var sbTimer = window.setInterval( function () {
+			var browserEl = document.querySelector( '.attachments-browser' );
+			var sb = browserEl && browserEl.querySelector( '.media-sidebar' );
+			if ( ! sb ) {
+				if ( ++sbTries > 20 ) { window.clearInterval( sbTimer ); }
+				return;
+			}
+			window.clearInterval( sbTimer );
+			var stamp = function () {
+				browserEl.classList.toggle( 'vgml-has-sidebar', sb.offsetWidth > 0 );
+			};
+			new MutationObserver( stamp ).observe( sb, { attributes: true, attributeFilter: [ 'style', 'class' ] } );
+			stamp();
+		}, 500 );
 
 		var searchTries = 0;
 		var searchTimer = window.setInterval( function () {

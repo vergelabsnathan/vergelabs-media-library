@@ -61,6 +61,7 @@ function vergeml_register_folder_routes() {
                 'open'     => array( 'type' => 'array' ),
                 'selected' => array( 'type' => 'integer' ),
                 'width'    => array( 'type' => 'integer' ),
+                'collapsed' => array( 'type' => 'integer' ),
                 'skin'     => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
                 'density'  => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             ),
@@ -449,6 +450,10 @@ function vergeml_rest_state_set( WP_REST_Request $request ) {
     if ( null !== $request->get_param( 'selected' ) ) {
         // -1 is 'Unfiled', a real value here, so this one is not an id.
         $mine['selected'] = (int) $request->get_param( 'selected' );
+    }
+
+    if ( null !== $request->get_param( 'collapsed' ) ) {
+        $mine['collapsed'] = (int) (bool) $request->get_param( 'collapsed' );
     }
 
     if ( null !== $request->get_param( 'width' ) ) {

@@ -896,9 +896,10 @@ body.vgml-mode-grid .media-frame {
 
 body.vgml-mode-grid .vgml-tree {
 	/* Aligned with the frame, not the top of the wrap -- that is where the page
-	   heading lives, and the panel was sitting on top of it. */
+	   heading lives, and the panel was sitting on top of it. The 60px at the
+	   bottom is the frame toolbar's strip, so panel and tile area end level. */
 	top: var( --vgml-panel-top, 50px );
-	bottom: 0;
+	bottom: 60px;
 }
 
 body.vgml-mode-grid .vgml-list {
@@ -1507,4 +1508,248 @@ body.upload-php .media-frame .attachments-browser .uploader-inline {
  */
 .media-frame.mode-select .eml-attacment-inline-toolbar {
 	display: none;
+}
+
+/* == Polish pass ==============================================================
+ *
+ *  The dead band above the filters, the covered search field, the giant
+ *  bottom buttons, the fold-away panel, the sidebar checklist, and a list
+ *  screen styled like it belongs to the same plugin.
+ */
+
+/*  The heritage sheet positions the browser 93px down to make room for a
+ *  toolbar pulled up into the frame chrome; the toolbar lives in the flow
+ *  now, so the 93px is just a blank band. */
+body.upload-php .media-frame.mode-grid .attachments-browser,
+body.upload-php .media-frame.mode-eml-grid .attachments-browser {
+	/* !important: the heritage sheet wins this offset through a selector
+	   maze; this line is the layout's single source of truth until that
+	   sheet is retired. */
+	top: 0 !important;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar {
+	padding: 14px 0;
+}
+
+/*  While the details sidebar is open the toolbar gives it room; otherwise
+ *  the search field sat underneath it, half-clipped. The class is stamped
+ *  by a MutationObserver in the tree script. */
+body.upload-php .media-frame .attachments-browser.vgml-has-sidebar .media-toolbar {
+	margin-inline-end: 316px;
+}
+
+/* --- the frame's bottom toolbar: compact, flat, right-aligned ------------ */
+
+body.upload-php .media-frame-toolbar {
+	background: transparent;
+	border: 0;
+	box-shadow: none;
+}
+
+body.upload-php .media-frame-toolbar .media-toolbar {
+	background: #fff;
+	border: 0;
+	box-shadow: none;
+	padding: 12px 16px;
+	height: auto;
+}
+
+body.upload-php .media-frame-toolbar .media-toolbar-secondary,
+body.upload-php .media-frame-toolbar .media-toolbar-primary {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 10px;
+	float: none;
+	width: auto;
+	max-width: none;
+	height: auto;
+}
+
+body.upload-php .media-frame-toolbar .media-toolbar .media-button {
+	width: auto;
+	min-width: 0;
+	flex: 0 0 auto;
+	height: 36px;
+	line-height: 36px;
+	margin: 0;
+	padding: 0 18px;
+	border: 0;
+	border-radius: 8px;
+	background: #e9eaec;
+	color: #1d2327;
+	box-shadow: none;
+	font-size: 13px;
+	font-weight: 500;
+}
+
+body.upload-php .media-frame-toolbar .media-toolbar .media-button:hover {
+	background: #dfe0e3;
+	color: #1d2327;
+}
+
+body.upload-php .media-frame-toolbar .media-toolbar .media-button.button-primary {
+	background: #d63638;
+	color: #fff;
+}
+
+body.upload-php .media-frame-toolbar .media-toolbar .media-button.button-primary:hover {
+	background: #b32d2e;
+	color: #fff;
+}
+
+/* --- the fold ------------------------------------------------------------- */
+
+.vgml-fold {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 0;
+	border-radius: 6px;
+	background: none;
+	color: var( --vgml-muted );
+	cursor: pointer;
+}
+
+.vgml-fold svg {
+	transform: rotate( 180deg );
+	transition: transform 160ms ease;
+}
+
+.vgml-fold:hover {
+	background: var( --vgml-hover );
+	color: var( --vgml-fg );
+}
+
+.vgml-tree.is-collapsed {
+	width: 44px !important;
+	min-width: 44px;
+}
+
+.vgml-tree.is-collapsed .vgml-fold svg {
+	transform: rotate( 0deg );
+}
+
+.vgml-tree.is-collapsed .vgml-head {
+	justify-content: center;
+	padding-inline: 0;
+}
+
+.vgml-tree.is-collapsed .vgml-head > *:not( .vgml-fold ),
+.vgml-tree.is-collapsed .vgml-tools,
+.vgml-tree.is-collapsed .vgml-find,
+.vgml-tree.is-collapsed .vgml-list,
+.vgml-tree.is-collapsed .vgml-grip {
+	display: none;
+}
+
+/* --- the details sidebar ------------------------------------------------- */
+
+body.upload-php .media-sidebar {
+	border: 0;
+	background: #fafafa;
+	padding-top: 4px;
+}
+
+body.upload-php .media-sidebar .term-list {
+	margin: 4px 0 0;
+}
+
+body.upload-php .media-sidebar .term-list li {
+	margin: 0;
+}
+
+body.upload-php .media-sidebar .term-list .selectit {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 8px;
+	border-radius: 6px;
+	font-size: 13px;
+	line-height: 1.3;
+}
+
+body.upload-php .media-sidebar .term-list .selectit:hover {
+	background: rgba( 0, 0, 0, 0.045 );
+}
+
+body.upload-php .media-sidebar .term-list input[type="checkbox"] {
+	margin: 0;
+	accent-color: #3858e9;
+}
+
+body.upload-php .media-sidebar .term-list .children {
+	margin: 0 0 0 18px;
+	position: relative;
+}
+
+body.upload-php .media-sidebar .term-list .children::before {
+	content: "";
+	position: absolute;
+	inset-block: 4px;
+	inset-inline-start: -8px;
+	width: 1px;
+	background: #e5e5e7;
+}
+
+/* --- the list screen ------------------------------------------------------ */
+
+body.upload-php .wp-list-table,
+body.upload-php .wp-list-table.media {
+	border: 0;
+	box-shadow: none;
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+body.upload-php .wp-list-table thead th,
+body.upload-php .wp-list-table thead td {
+	border-bottom: 0;
+	background: #f0f0f1;
+	font-weight: 600;
+}
+
+body.upload-php .wp-list-table tbody th,
+body.upload-php .wp-list-table tbody td {
+	border: 0;
+}
+
+body.upload-php .wp-list-table tbody tr:hover {
+	background: #f6f7f7;
+}
+
+body.upload-php .tablenav {
+	height: auto;
+	padding: 10px 0;
+}
+
+body.upload-php .tablenav .button,
+body.upload-php .tablenav select,
+body.upload-php #post-query-submit,
+body.upload-php .search-box input[type="search"],
+body.upload-php .search-box .button {
+	border: 0;
+	background: #e9eaec;
+	color: #1d2327;
+	border-radius: 8px;
+	height: 34px;
+	box-shadow: none;
+	font-weight: 500;
+}
+
+body.upload-php .tablenav .button:hover,
+body.upload-php .search-box .button:hover {
+	background: #dfe0e3;
+}
+
+/* files can be dropped on the whole table region */
+body.upload-php #posts-filter.vgml-drop-here .wp-list-table {
+	outline: 2px dashed #3858e9;
+	outline-offset: -2px;
+	background: rgba( 56, 88, 233, 0.03 );
 }
