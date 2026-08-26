@@ -49,10 +49,22 @@ check( 'the overview offers Library health', await page.evaluate( () =>
 	!! [ ...document.querySelectorAll( '.vgml-home-card' ) ]
 		.find( ( c ) => c.href.includes( 'page=media-health' ) ) ) );
 
-check( 'and the stats opt-in card is there, unticked', await page.evaluate( () => {
+/*
+ *  That the card exists, not that it is unticked.
+ *
+ *  This asserted "unticked", which is only true on a site where nobody has
+ *  ever switched it on -- so a gate-7 check that set the option, or one click,
+ *  made it fail as though the card were broken. Whether it defaults to off is
+ *  a question about defaults, and the PHP suite asks it where the answer
+ *  cannot drift.
+ */
+const optBox = await page.evaluate( () => {
 	const box = document.getElementById( 'vgml-stats-opt' );
-	return !! box && ! box.checked;
-} ) );
+	return box ? { checked: box.checked } : null;
+} );
+
+check( 'the stats opt-in card is there, with its switch', null !== optBox,
+	optBox ? `switch is ${ optBox.checked ? 'on' : 'off' }` : 'card missing' );
 
 check( 'the card says what it collects', await page.evaluate( () => {
 	const card = document.querySelector( '.vgml-stats-card' );

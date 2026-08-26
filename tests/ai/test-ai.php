@@ -131,12 +131,28 @@ ai_check( 'the service url is pinned to https', 0 === strpos( vergeml_ai_service
 
 echo "\nguard rails\n";
 
-$doc = get_posts( array( 'post_type' => 'attachment', 'post_mime_type' => 'application/pdf', 'posts_per_page' => 1, 'fields' => 'ids' ) );
+/*
+ *  post_status matters here. Attachments are 'inherit' and get_posts defaults
+ *  to 'publish', so this asked for something that cannot exist and reported
+ *  "no pdf on box, skipped" on a box with fifteen of them -- a check that
+ *  passed by never running, which is worse than one that fails.
+ */
+$doc = get_posts( array(
+    'post_type'      => 'attachment',
+    'post_status'    => 'inherit',
+    'post_mime_type' => 'application/pdf',
+    'posts_per_page' => 1,
+    'fields'         => 'ids',
+) );
+
 if ( $doc ) {
     $r = vergeml_ai_describe( $doc[0] );
-    ai_check( 'non-images are refused politely', is_wp_error( $r ) && 'vergeml_ai_not_image' === $r->get_error_code() );
+    ai_check( 'non-images are refused politely', is_wp_error( $r ) && 'vergeml_ai_not_image' === $r->get_error_code(),
+        is_wp_error( $r ) ? $r->get_error_code() : 'described a pdf' );
 } else {
-    ai_check( 'non-images are refused politely', true, 'no pdf on box, skipped' );
+    // Not a pass. A box with no PDF cannot answer this, and saying so is the
+    // honest result.
+    ai_check( 'non-images are refused politely', false, 'NO PDF ON THE BOX -- seed one, this check did not run' );
 }
 
 $status_counts = array(

@@ -5,7 +5,7 @@
  *  the tree will call them: cookie auth plus a nonce. A test that authenticates
  *  differently from the thing it is testing proves less than it looks.
  *
- *      node tests/tree/t0-endpoints.js
+ *      node tests/tree/t0-endpoints.js [base-url]
  *
  *  Use 127.0.0.1, never localhost. WordPress builds its own URLs from siteurl,
  *  and the other name fails every nonce.
@@ -13,7 +13,10 @@
 
 const { chromium } = require('playwright');
 
-const BASE = 'http://127.0.0.1:8899';
+// Takes the base like every other suite. It used to ignore the argument and
+// always use the default, so a runner pointing it somewhere else was silently
+// testing the wrong site -- or nothing at all.
+const BASE = process.argv[2] || 'http://127.0.0.1:8899';
 const TAXONOMY = 'media_category';
 
 const results = [];
