@@ -390,6 +390,19 @@ function vergeml_health_scan_step( $cursor = 0 ) {
     $cursor = max( 0, (int) $cursor );
     $ids    = vergeml_health_backlog( $cursor, VERGEML_HEALTH_BATCH );
 
+    /*
+     *  The whole batch's posts and meta in two statements.
+     *
+     *  Without it each file costs four queries -- its post row, its meta, and
+     *  the read update_post_meta does before it writes -- so a step ran a
+     *  hundred queries to hash twenty-five files. Primed, the only statement
+     *  left per file is the write itself, which is the budget: one query per
+     *  batch item plus a constant.
+     */
+    if ( $ids ) {
+        _prime_post_caches( $ids, false, true );
+    }
+
     foreach ( $ids as $id ) {
         update_post_meta( $id, VERGEML_META_HASH, vergeml_health_hash_file( $id ) );
         $cursor = max( $cursor, (int) $id );

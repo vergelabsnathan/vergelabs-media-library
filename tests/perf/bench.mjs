@@ -113,6 +113,14 @@ async function probe(label, path) {
 console.log(`\n${BASE}`);
 await authenticate();
 await probe('ours: vergeml/v1/tree', '/wp-json/vergeml/v1/tree?taxonomy=media_category');
+/*
+ *  The duplicates report. Budget: three statements plus the one meta sweep --
+ *  the grouped md5 count, the sweep that loads every picture hash, and the two
+ *  that fetch titles and files for the ids it is about to show. Four, and flat:
+ *  the comparing happens in PHP over data already in hand, so the count does
+ *  not move with how much turns out to be wrong with the library.
+ */
+await probe('ours: vergeml/v1/health-report', '/wp-json/vergeml/v1/health-report');
 await probe('core: wp/v2/media pp=40', '/wp-json/wp/v2/media?per_page=40');
 await probe('core: wp/v2/media pp=100', '/wp-json/wp/v2/media?per_page=100');
 await probe('core: REST index', '/wp-json/');
