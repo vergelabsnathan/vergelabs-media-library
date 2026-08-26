@@ -469,6 +469,57 @@ for ( const probe of [ landed, unfiled ] ) {
 	}
 }
 
+/* --- the list screen: a drop on a folder row uploads there too ---------------- */
+
+console.log( '\nthe list screen' );
+
+await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
+await page.waitForSelector( '.vgml-tree .vgml-row', { timeout: 60000 } );
+await page.waitForTimeout( 2000 );
+
+const listTarget = await page.evaluate( () => {
+	const ids = [ ...document.querySelectorAll( '.vgml-tree .vgml-node' ) ]
+		.map( ( n ) => parseInt( n.getAttribute( 'data-id' ), 10 ) ).filter( ( id ) => id > 0 );
+	return ids[ 0 ];
+} );
+const listStamp = 'vgml-listdrop-' + Date.now();
+
+await page.evaluate( async ( args ) => {
+	const cv = document.createElement( 'canvas' ); cv.width = 48; cv.height = 48;
+	cv.getContext( '2d' ).fillRect( 0, 0, 48, 48 );
+	const blob = await new Promise( ( r ) => cv.toBlob( r, 'image/png' ) );
+	const dt = new DataTransfer();
+	dt.items.add( new File( [ blob ], args.stamp + '.png', { type: 'image/png' } ) );
+	const fire = ( el, type ) => {
+		const ev = new DragEvent( type, { bubbles: true, cancelable: true } );
+		Object.defineProperty( ev, 'dataTransfer', { value: dt } );
+		el.dispatchEvent( ev );
+	};
+	const row = document.querySelector( `.vgml-tree .vgml-node[data-id="${ args.target }"] .vgml-row` );
+	fire( row, 'dragover' );
+	fire( row, 'drop' );
+}, { stamp: listStamp, target: listTarget } );
+
+// the list screen reloads itself when the queue drains
+await page.waitForNavigation( { timeout: 20000 } ).catch( () => {} );
+await page.waitForTimeout( 2000 );
+
+const listDropped = await page.evaluate( async ( stamp ) => {
+	const found = await window.wp.apiFetch( { path: '/wp/v2/media?search=' + stamp + '&_fields=id,media_category' } );
+	return found[ 0 ] || null;
+}, listStamp );
+
+check( 'a list-screen row drop uploaded into the folder',
+	!! listDropped && ( listDropped.media_category || [] ).includes( listTarget ),
+	listDropped ? `${ listDropped.id } -> ${ ( listDropped.media_category || [] ).join( ',' ) }` : 'no upload' );
+check( 'and the list reloaded to show it', page.url().indexOf( 'mode=list' ) !== -1 );
+
+if ( listDropped ) {
+	await page.evaluate( async ( id ) => {
+		await window.wp.apiFetch( { path: '/wp/v2/media/' + id + '?force=true', method: 'DELETE' } );
+	}, listDropped.id );
+}
+
 await browser.close();
 
 const bad = results.filter( ( r ) => ! r.ok ).length;

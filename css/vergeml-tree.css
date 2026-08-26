@@ -1436,3 +1436,65 @@ body.upload-php .media-frame .attachments-browser {
 	border: 0;
 	box-shadow: none;
 }
+
+/*
+ *  The grid positions its tile area a fixed distance below the toolbar, so a
+ *  toolbar that wraps to a second row paints over the first row of tiles.
+ *  One row, always: controls shrink instead of wrapping, and the narrower
+ *  the screen gets the more the optional ones give way.
+ */
+body.upload-php .media-frame .attachments-browser .media-toolbar-secondary {
+	flex-wrap: nowrap;
+	min-width: 0;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar select.attachment-filters {
+	min-width: 0;
+	flex: 0 1 auto;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar .search {
+	flex: 0 1 130px;
+	min-width: 80px;
+}
+
+@media ( max-width: 1500px ) {
+
+	body.upload-php .media-frame .attachments-browser .media-toolbar #eml-reset-filters-button,
+	body.upload-php .media-frame .attachments-browser .media-toolbar .button.eml-reset-filters {
+		display: none;
+	}
+}
+
+/*
+ *  The heritage layout absolutely positions the browser 93px down and then
+ *  pulls the toolbar up by a hardcoded -103px into a region the frame clips.
+ *  That arithmetic only works for a toolbar of exactly one heritage height:
+ *  taller, and it paints over the first row of tiles (which is where "bulk
+ *  select is broken" clicks actually went); shorter, and its top is clipped
+ *  off. Normal flow instead: the browser is a column, the toolbar keeps its
+ *  natural height, and the tile area takes the rest. No offsets to outgrow.
+ */
+body.upload-php .media-frame .attachments-browser {
+	top: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+body.upload-php .media-frame .attachments-browser .media-toolbar {
+	position: static;
+	flex: 0 0 auto;
+	width: auto;
+}
+
+body.upload-php .media-frame .attachments-browser .attachments-wrapper {
+	position: static;
+	flex: 1 1 auto;
+	min-height: 0;
+	height: auto;
+}
+
+body.upload-php .media-frame .attachments-browser .uploader-inline {
+	position: static;
+	flex: 0 0 auto;
+}

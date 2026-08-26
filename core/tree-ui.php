@@ -106,6 +106,15 @@ function vergeml_tree_assets( $hook ) {
         vergeml_asset_ver( 'css/vergeml-tree.css' )
     );
 
+    /*
+     *  The list-mode screen ships no uploader at all, which made every road
+     *  into a folder -- the row drop, the Upload button -- dead on arrival
+     *  there. plupload plus its printed settings is all the tree needs to
+     *  build one of its own when files actually arrive.
+     */
+    wp_enqueue_script( 'wp-plupload' );
+    wp_plupload_default_settings();
+
     if ( is_rtl() ) {
         wp_enqueue_style(
             'vergeml-tree-rtl',

@@ -2462,6 +2462,86 @@
 	 *  hovering a folder row lights it, dropping queues the files through the
 	 *  grid's own uploader with that row as the one-batch destination.
 	 */
+	/*
+	 *  The uploader files travel through. The grid has one already; the list
+	 *  screen does not, so the first files to arrive there get a minimal
+	 *  wp.Uploader of our own -- same prototype, so the BeforeUpload folder
+	 *  params and the UploadComplete refresh come along for free. On the list
+	 *  screen the finished queue reloads the page, because the classic table
+	 *  is server-rendered and cannot learn about new rows any other way.
+	 */
+	var ownUploader = null;
+
+	function anyUploader() {
+
+		var frame = ( wp.media && wp.media.frames && wp.media.frames.browse ) || ( wp.media && wp.media.frame );
+		var pl = frame && frame.uploader && frame.uploader.uploader && frame.uploader.uploader.uploader;
+
+		if ( pl ) {
+			return pl;
+		}
+
+		if ( ownUploader ) {
+			return ownUploader.uploader;
+		}
+
+		if ( ! window.wp || ! wp.Uploader || ! window._wpPluploadSettings ) {
+			return null;
+		}
+
+		/*
+		 *  wp.Uploader's FilesAdded handler reads settings.post.id, which only
+		 *  wp_enqueue_media populates -- and the list screen never calls it.
+		 *  Without the stub the handler throws mid-queue and the upload never
+		 *  starts.
+		 */
+		if ( wp.media && wp.media.model ) {
+			wp.media.model.settings = wp.media.model.settings || {};
+			wp.media.model.settings.post = wp.media.model.settings.post || { id: 0 };
+		}
+
+		var browse = el( 'button', { type: 'button', class: 'vgml-hidden-browse' } );
+		browse.style.display = 'none';
+		document.body.appendChild( browse );
+
+		ownUploader = new wp.Uploader( {
+			container: document.body,
+			browser: browse,
+			dropzone: null
+		} );
+
+		if ( ownUploader.uploader && ownUploader.uploader.bind ) {
+			ownUploader.uploader.bind( 'UploadComplete', function () {
+				window.setTimeout( function () {
+					window.location.reload();
+				}, 600 );
+			} );
+		}
+
+		return ownUploader.uploader;
+	}
+
+	/*
+	 *  Files reach plupload only once its runtime exists. The grid's uploader
+	 *  has been ready for ages; one we just built is still initialising, and
+	 *  addFile before Init drops the files on the floor.
+	 */
+	function sendFiles( files ) {
+		var pl = anyUploader();
+		if ( ! pl ) {
+			return false;
+		}
+		var list = Array.prototype.slice.call( files );
+		if ( pl.runtime ) {
+			pl.addFile( list );
+		} else {
+			pl.bind( 'Init', function () {
+				pl.addFile( list );
+			} );
+		}
+		return true;
+	}
+
 	function armFileDrops( host ) {
 
 		/*
@@ -2562,13 +2642,10 @@
 			if ( ! node || ! files || ! files.length ) {
 				return;
 			}
-			var frame = ( wp.media.frames && wp.media.frames.browse ) || wp.media.frame;
-			var pl = frame && frame.uploader && frame.uploader.uploader && frame.uploader.uploader.uploader;
-			if ( ! pl ) {
-				return;
-			}
 			dropFolder = parseInt( node.getAttribute( 'data-id' ), 10 );
-			pl.addFile( Array.prototype.slice.call( files ) );
+			if ( ! sendFiles( files ) ) {
+				dropFolder = 0;
+			}
 		} );
 	}
 
@@ -2614,7 +2691,8 @@
 		if ( cfg.canManage ) {
 			var add = el( 'button', { type: 'button', class: 'button button-primary button-small vgml-new' }, l10n.newFolder );
 			add.addEventListener( 'click', function () {
-				startCreate( 0 );
+				// inside the folder being looked at; at the root when none is
+				startCreate( state.selected > 0 ? state.selected : 0 );
 			} );
 			head.appendChild( add );
 		}
@@ -2633,22 +2711,17 @@
 			if ( ! pick.files || ! pick.files.length ) {
 				return;
 			}
-			var frame = ( wp.media.frames && wp.media.frames.browse ) || wp.media.frame;
-			var pl = frame && frame.uploader && frame.uploader.uploader && frame.uploader.uploader.uploader;
-			if ( ! pl ) {
-				return;
-			}
 			dropFolder = state.selected > 0 ? state.selected : 0;
-			pl.addFile( Array.prototype.slice.call( pick.files ) );
+			if ( ! sendFiles( pick.files ) ) {
+				dropFolder = 0;
+			}
 			pick.value = '';
 		} );
 
 		uploadBtn = el( 'button', { type: 'button', class: 'button button-small vgml-upload' }, l10n.upload );
 		uploadBtn.addEventListener( 'click', function () {
-			var frame = ( wp.media.frames && wp.media.frames.browse ) || wp.media.frame;
-			var pl = frame && frame.uploader && frame.uploader.uploader && frame.uploader.uploader.uploader;
-			if ( ! pl ) {
-				// no grid uploader on this screen -- the classic uploader page is the fallback
+			if ( ! anyUploader() ) {
+				// no uploader can exist on this screen -- the classic page is the fallback
 				window.location.href = 'media-new.php';
 				return;
 			}
