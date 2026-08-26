@@ -248,6 +248,7 @@ function vergeml_tree_assets( $hook ) {
             'newFolder'      => __( 'New folder', 'vergelabs-media-library' ),
             'upload'         => __( 'Upload', 'vergelabs-media-library' ),
             'newSubfolder'   => __( 'New subfolder', 'vergelabs-media-library' ),
+            'allFiles'       => __( 'All files', 'vergelabs-media-library' ),
             'uploadHere'     => __( 'Upload to this folder', 'vergelabs-media-library' ),
             /* translators: %s: folder name. */
             'uploadTo'       => __( 'Upload to “%s”', 'vergelabs-media-library' ),

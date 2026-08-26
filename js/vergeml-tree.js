@@ -322,6 +322,8 @@
 			return;
 		}
 
+		updateCrumbs();
+
 		flat = flatten();
 		windowed = flat.length > VIRTUALISE_ABOVE;
 
@@ -953,6 +955,79 @@
 		if ( uploadBtn ) {
 			uploadBtn.title = node ? sprintf( l10n.uploadTo, node.name ) : l10n.uploadUnfiled;
 		}
+	}
+
+	/*
+	 *  Breadcrumbs above the files: where you are, and every step of the way
+	 *  back out. Rebuilt from tree state on every paint, so a rename or a
+	 *  reparent is reflected the moment it happens. Lives at the top of the
+	 *  file area on both screens; nothing renders when you are simply on
+	 *  All files, because a one-word breadcrumb is furniture.
+	 */
+	function updateCrumbs() {
+
+		var host = document.querySelector( '.attachments-browser' ) ||
+			document.querySelector( '#posts-filter' );
+
+		if ( ! host ) {
+			return;
+		}
+
+		var bar = document.querySelector( '.vgml-crumbs' );
+
+		var trail = [];
+
+		if ( state.smartSelected ) {
+			var sf = ( state.smart || [] ).filter( function ( x ) {
+				return x.key === state.smartSelected;
+			} )[ 0 ];
+			trail.push( { label: sf ? sf.label : state.smartSelected, id: null } );
+		} else if ( -1 === state.selected ) {
+			trail.push( { label: l10n.unfiled || 'Unfiled', id: null } );
+		} else if ( state.selected > 0 ) {
+			var walk = state.byId[ state.selected ];
+			var hops = 0;
+			while ( walk && hops < 20 ) {
+				trail.unshift( { label: walk.name, id: walk.id } );
+				walk = walk.parent ? state.byId[ walk.parent ] : null;
+				hops++;
+			}
+		}
+
+		if ( ! trail.length ) {
+			if ( bar ) {
+				bar.remove();
+			}
+			return;
+		}
+
+		if ( ! bar ) {
+			bar = el( 'nav', { class: 'vgml-crumbs', 'aria-label': l10n.folders || 'Folders' } );
+			host.insertBefore( bar, host.firstChild );
+		} else if ( bar.parentNode !== host ) {
+			host.insertBefore( bar, host.firstChild );
+		}
+
+		bar.textContent = '';
+
+		var rootBtn = el( 'button', { type: 'button', class: 'vgml-crumb' }, l10n.allFiles || 'All files' );
+		rootBtn.addEventListener( 'click', function () {
+			select( 0 );
+		} );
+		bar.appendChild( rootBtn );
+
+		trail.forEach( function ( step, i ) {
+			bar.appendChild( el( 'span', { class: 'vgml-crumb-sep', 'aria-hidden': 'true' }, '\u203a' ) );
+			if ( i === trail.length - 1 || ! step.id ) {
+				bar.appendChild( el( 'span', { class: 'vgml-crumb is-current', 'aria-current': 'location' }, step.label ) );
+			} else {
+				var b = el( 'button', { type: 'button', class: 'vgml-crumb' }, step.label );
+				b.addEventListener( 'click', function () {
+					select( step.id );
+				} );
+				bar.appendChild( b );
+			}
+		} );
 	}
 
 	function select( id ) {
@@ -3252,6 +3327,7 @@
 				return;
 			}
 			window.clearInterval( sbTimer );
+			updateCrumbs();
 			var stamp = function () {
 				browserEl.classList.toggle( 'vgml-has-sidebar', sb.offsetWidth > 0 );
 			};

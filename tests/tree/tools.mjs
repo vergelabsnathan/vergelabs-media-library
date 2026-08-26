@@ -483,6 +483,36 @@ for ( const probe of [ landed, unfiled ] ) {
 	}
 }
 
+/* --- breadcrumbs -------------------------------------------------------------- */
+
+console.log( '\nbreadcrumbs' );
+
+const deepNode = await page.evaluate( () => {
+	const n = [ ...document.querySelectorAll( '.vgml-tree .vgml-node[aria-level="2"]' ) ]
+		.find( ( x ) => parseInt( x.getAttribute( 'data-id' ), 10 ) > 0 );
+	return n ? { id: parseInt( n.getAttribute( 'data-id' ), 10 ), name: n.querySelector( '.vgml-name' ).textContent } : null;
+} );
+
+if ( deepNode ) {
+	await page.locator( `.vgml-tree .vgml-node[data-id="${ deepNode.id }"] .vgml-row` ).click();
+	await page.waitForTimeout( 1500 );
+	const trail = await page.evaluate( () =>
+		[ ...document.querySelectorAll( '.vgml-crumbs .vgml-crumb' ) ].map( ( x ) => x.textContent.trim() ) );
+	check( 'the breadcrumb walks the whole path', trail.length >= 3 && trail[ trail.length - 1 ] === deepNode.name,
+		trail.join( ' > ' ) );
+	await page.evaluate( () => {
+		const b = [ ...document.querySelectorAll( '.vgml-crumbs button.vgml-crumb' ) ];
+		b[ b.length - 1 ].click();
+	} );
+	await page.waitForTimeout( 1500 );
+	const upTrail = await page.evaluate( () =>
+		[ ...document.querySelectorAll( '.vgml-crumbs .vgml-crumb' ) ].map( ( x ) => x.textContent.trim() ) );
+	check( 'and a crumb click climbs it', upTrail.length === trail.length - 1, upTrail.join( ' > ' ) );
+	await page.locator( '.vgml-tree .vgml-node[data-id="0"] .vgml-row' ).click();
+	await page.waitForTimeout( 1200 );
+	check( 'crumbs stand down on All files', await page.evaluate( () => ! document.querySelector( '.vgml-crumbs' ) ) );
+}
+
 /* --- right-click on a folder ------------------------------------------------- */
 
 console.log( '\nthe context menu' );
