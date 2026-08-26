@@ -967,20 +967,37 @@
 					 */
 					this.uploader.bind( 'UploadComplete', function () {
 
-						var filed = uploadTarget > 0 || dropFolder > 0;
 						dropFolder = 0;
+						load();
 
-						if ( ! filed ) {
-							return;
+						/*
+						 *  WordPress wipes the library's filter the moment an
+						 *  upload starts (media_category -> null, so the new
+						 *  file is guaranteed visible somewhere). With a
+						 *  folder open that meant: file lands IN the folder,
+						 *  grid quietly reverts to everything, breadcrumb
+						 *  still names the folder. Re-asserting the tree's
+						 *  selection puts the view back where the person
+						 *  actually is -- and the requery it triggers also
+						 *  shows the new arrivals.
+						 */
+						if ( state.smartSelected ) {
+							smartSelect( state.smartSelected );
+						} else if ( 0 !== state.selected ) {
+							select( state.selected );
 						}
 
+						/*
+						 *  The bump comes AFTER the re-select, and always:
+						 *  re-asserting the same filter alone hands wp.media a
+						 *  query it has cached, so the fresh uploads never
+						 *  showed. The bump makes the args new, which makes
+						 *  the request real.
+						 */
 						var lib = libraryProps();
-
 						if ( lib ) {
 							lib.set( { vergeml_bump: String( Date.now() ) } );
 						}
-
-						load();
 					} );
 				}
 			};

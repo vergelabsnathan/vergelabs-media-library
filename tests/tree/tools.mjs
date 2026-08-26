@@ -123,6 +123,18 @@ const visible = await page.evaluate( ( stamp ) => ( {
 } ), stamp );
 
 check( 'the new file is in the filtered grid, no reload', visible.tile );
+
+/*
+ *  WP wipes the library filter when an upload starts; without the re-assert
+ *  the grid silently reverted to ALL files while the tree still named the
+ *  folder. The filter surviving the upload is the regression being pinned.
+ */
+const filterAfterUpload = await page.evaluate( () => {
+	const f = ( window.wp.media.frames && window.wp.media.frames.browse ) || window.wp.media.frame;
+	return f.state().get( 'library' ).props.get( 'media_category' );
+} );
+check( 'and the folder filter survived the upload', filterAfterUpload === folder.id,
+	`${ filterAfterUpload } vs ${ folder.id }` );
 check( 'and the folder count moved with it', visible.badge === badgeBefore + 1,
 	`${ visible.badge } vs ${ badgeBefore } + 1` );
 
