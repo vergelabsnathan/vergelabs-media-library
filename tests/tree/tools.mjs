@@ -531,7 +531,7 @@ const ctxMenu = await page.evaluate( () => {
 
 check( 'right-click opens the folder menu', !! ctxMenu, ctxMenu ? ctxMenu.items.join( ' | ' ) : 'no menu' );
 check( 'with the full set of actions',
-	!! ctxMenu && ctxMenu.items.length >= 6 && ctxMenu.swatches === 9,
+	!! ctxMenu && ctxMenu.items.length >= 6 && ctxMenu.swatches === 18,
 	ctxMenu ? `${ ctxMenu.items.length } items, ${ ctxMenu.swatches } swatches` : '' );
 
 await page.keyboard.press( 'Escape' );

@@ -120,7 +120,7 @@ await colourBtn.click();
 await page.waitForSelector( '.vgml-swatches', { timeout: 10000 } );
 
 const swatches = await page.locator( '.vgml-swatch' ).count();
-check( 'it offers the whole palette', swatches === 9, `${ swatches } swatches` );
+check( 'it offers the whole palette', swatches === 18, `${ swatches } swatches` );
 
 const labels = await page.evaluate( () =>
 	[ ...document.querySelectorAll( '.vgml-swatch' ) ].map( ( s ) => s.getAttribute( 'aria-label' ) ) );
