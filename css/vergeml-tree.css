@@ -748,10 +748,9 @@ body.vgml-mode-grid.vgml-os-drag .vgml-tree:not(.vgml-in-modal) {
  *  rather than two that have to be kept in step.
  */
 .vgml-swatches {
-	/* Nine colours, so three rows of three -- wrapping left seven and two, which
-	   reads as an accident rather than as a palette. */
+	/* Eighteen colours in rows of six: three even rows, nothing orphaned. */
 	display: grid;
-	grid-template-columns: repeat( 3, 20px );
+	grid-template-columns: repeat( 6, 20px );
 	gap: 7px;
 	padding: 2px 8px 8px;
 	justify-content: start;
@@ -1614,13 +1613,21 @@ body.upload-php .media-frame-toolbar .media-toolbar .media-button.button-primary
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 24px;
-	height: 24px;
+	width: 28px;
+	height: 28px;
 	padding: 0;
 	border: 0;
 	border-radius: 6px;
-	background: none;
-	color: var( --vgml-muted );
+	background: #e9eaec;
+	color: var( --vgml-fg );
+	cursor: pointer;
+}
+
+.vgml-fold:hover {
+	background: #dfe0e3;
+}
+
+.vgml-tree.is-collapsed {
 	cursor: pointer;
 }
 

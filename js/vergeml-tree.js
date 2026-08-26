@@ -2367,8 +2367,7 @@
 			return;
 		}
 
-		var names = [ l10n.colorNone, l10n.colorRed, l10n.colorAmber, l10n.colorOlive,
-			l10n.colorGreen, l10n.colorTeal, l10n.colorBlue, l10n.colorViolet, l10n.colorMagenta ];
+		var names = paletteNames();
 
 		var menuEl = el( 'div', { class: 'vgml-overflow', role: 'menu' } );
 		menuEl.appendChild( el( 'p', { class: 'vgml-overflow-head' }, l10n.color ) );
@@ -2416,6 +2415,14 @@
 	 *  one set of dismiss rules and the one bit of CSS, just positioned at
 	 *  the cursor instead of pinned under the toolbar.
 	 */
+	function paletteNames() {
+		return [ l10n.colorNone, l10n.colorRed, l10n.colorCoral, l10n.colorAmber,
+			l10n.colorYellow, l10n.colorOlive, l10n.colorLime, l10n.colorGreen,
+			l10n.colorTeal, l10n.colorCyan, l10n.colorSky, l10n.colorBlue,
+			l10n.colorIndigo, l10n.colorViolet, l10n.colorMagenta, l10n.colorPink,
+			l10n.colorBrown, l10n.colorSlate ];
+	}
+
 	function contextMenu( node, x, y ) {
 
 		var open = root.querySelector( '.vgml-overflow' );
@@ -2472,8 +2479,7 @@
 		}
 
 		// the colour strip, inline, because colour is a one-click choice
-		var names = [ l10n.colorNone, l10n.colorRed, l10n.colorAmber, l10n.colorOlive,
-			l10n.colorGreen, l10n.colorTeal, l10n.colorBlue, l10n.colorViolet, l10n.colorMagenta ];
+		var names = paletteNames();
 		var strip = el( 'div', { class: 'vgml-swatches' } );
 		( cfg.palette || [] ).forEach( function ( value, i ) {
 			var on = ( node.color || '' ) === value;
@@ -2911,6 +2917,12 @@
 		document.body.classList.toggle( 'vgml-panel-collapsed', state.collapsed );
 		document.body.style.setProperty( '--vgml-panel-w',
 			( state.collapsed ? 44 : state.width ) + 'px' );
+		var foldBtn = root.querySelector( '.vgml-fold' );
+		if ( foldBtn ) {
+			foldBtn.title = state.collapsed ? ( l10n.expand || 'Expand' ) : ( l10n.collapse || 'Collapse' );
+			foldBtn.setAttribute( 'aria-label', foldBtn.title );
+			foldBtn.setAttribute( 'aria-expanded', state.collapsed ? 'false' : 'true' );
+		}
 	}
 
 	function build() {
@@ -2944,13 +2956,23 @@
 		 */
 		var head = el( 'div', { class: 'vgml-head' } );
 
-		var fold = el( 'button', { type: 'button', class: 'vgml-fold', 'aria-label': l10n.collapse || 'Collapse' } );
+		var fold = el( 'button', { type: 'button', class: 'vgml-fold', title: l10n.collapse || 'Collapse',
+			'aria-label': l10n.collapse || 'Collapse' } );
 		fold.innerHTML = chevron();
-		fold.addEventListener( 'click', function () {
+		fold.addEventListener( 'click', function ( e ) {
+			e.stopPropagation();
 			setCollapsed( ! state.collapsed );
 			persist( { collapsed: state.collapsed ? 1 : 0 } );
 		} );
 		head.appendChild( fold );
+
+		// the whole collapsed rail is the expand button; 44px is a big target
+		root.addEventListener( 'click', function () {
+			if ( state.collapsed ) {
+				setCollapsed( false );
+				persist( { collapsed: 0 } );
+			}
+		} );
 
 		if ( cfg.taxonomies.length > 1 ) {
 			var pick = el( 'select', { class: 'vgml-tax', 'aria-label': l10n.folders } );
@@ -3310,6 +3332,77 @@
 			if ( listForm ) {
 				armAreaDrop( listForm );
 			}
+
+			/*
+			 *  Same gesture, same room. The grid opens attachment details in
+			 *  a modal; the list navigated to the classic edit screen. The
+			 *  row links now open the grid's own EditAttachments frame --
+			 *  delegated on the document because the table is swapped in
+			 *  place, and only for plain left clicks so middle-click and
+			 *  ctrl-click still open the edit page in a new tab.
+			 */
+			document.addEventListener( 'click', function ( e ) {
+				if ( e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey ) {
+					return;
+				}
+				var a = e.target && e.target.closest ? e.target.closest( '.wp-list-table .column-title strong > a, .wp-list-table a.row-title' ) : null;
+				if ( ! a ) {
+					return;
+				}
+				var m = ( a.getAttribute( 'href' ) || '' ).match( /post=(\d+)/ );
+				if ( ! m ) {
+					return;
+				}
+				if ( ! ( window.wp && wp.media && wp.media.view && wp.media.view.MediaFrame &&
+						wp.media.view.MediaFrame.EditAttachments ) ) {
+					return; // the classic page is still there
+				}
+				e.preventDefault();
+				var attachment = wp.media.attachment( parseInt( m[ 1 ], 10 ) );
+				attachment.fetch().always( function () {
+					var editFrame = new wp.media.view.MediaFrame.EditAttachments( {
+						frame: 'edit-attachments',
+						/*
+						 *  A duck-typed Manage controller: the frame's close
+						 *  path (resetRoute) reads the grid's search box via
+						 *  controller.browserView.toolbar, and without the
+						 *  stub the close handler threw and the modal could
+						 *  not be dismissed at all.
+						 */
+						controller: {
+							gridRouter: new wp.media.view.MediaFrame.Manage.Router(),
+							browserView: { toolbar: { get: function () {
+								return { $el: { val: function () { return ''; } } };
+							} } }
+						},
+						library: new wp.media.model.Attachments( [ attachment ] ),
+						model: attachment
+					} );
+					// hidden frames would otherwise pile up, one per open
+					editFrame.on( 'close', function () {
+						window.setTimeout( function () {
+							editFrame.remove();
+						}, 100 );
+					} );
+				} );
+			} );
+
+			// the standalone frame never owns focus, so Escape closes it here
+			document.addEventListener( 'keydown', function ( e ) {
+				if ( 'Escape' !== e.key ) {
+					return;
+				}
+				var frameEl = document.querySelector( '.edit-attachment-frame' );
+				if ( ! frameEl || ! frameEl.offsetWidth ) {
+					return;
+				}
+				var closeBtn = [].filter.call( document.querySelectorAll( '.media-modal-close' ), function ( b ) {
+					return b.offsetWidth > 0;
+				} )[ 0 ];
+				if ( closeBtn ) {
+					closeBtn.click();
+				}
+			} );
 		}
 
 		/*

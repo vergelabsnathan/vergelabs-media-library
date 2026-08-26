@@ -115,6 +115,16 @@ function vergeml_tree_assets( $hook ) {
     wp_enqueue_script( 'wp-plupload' );
     wp_plupload_default_settings();
 
+    /*
+     *  The grid's attachment-details modal, for the list screen. Clicking a
+     *  file in the list navigated to the classic edit page while the grid
+     *  opened a modal; same gesture, two different rooms. The modal machinery
+     *  (media views plus media-grid's EditAttachments frame) only ships on
+     *  the grid screen unless asked for.
+     */
+    wp_enqueue_media();
+    wp_enqueue_script( 'media-grid' );
+
     if ( is_rtl() ) {
         wp_enqueue_style(
             'vergeml-tree-rtl',
@@ -249,6 +259,8 @@ function vergeml_tree_assets( $hook ) {
             'upload'         => __( 'Upload', 'vergelabs-media-library' ),
             'newSubfolder'   => __( 'New subfolder', 'vergelabs-media-library' ),
             'allFiles'       => __( 'All files', 'vergelabs-media-library' ),
+            'collapse'       => __( 'Collapse panel', 'vergelabs-media-library' ),
+            'expand'         => __( 'Expand panel', 'vergelabs-media-library' ),
             'uploadHere'     => __( 'Upload to this folder', 'vergelabs-media-library' ),
             /* translators: %s: folder name. */
             'uploadTo'       => __( 'Upload to “%s”', 'vergelabs-media-library' ),
@@ -263,13 +275,22 @@ function vergeml_tree_assets( $hook ) {
              */
             'colorNone'      => __( 'No colour', 'vergelabs-media-library' ),
             'colorRed'       => __( 'Red', 'vergelabs-media-library' ),
+            'colorCoral'     => __( 'Coral', 'vergelabs-media-library' ),
             'colorAmber'     => __( 'Amber', 'vergelabs-media-library' ),
+            'colorYellow'    => __( 'Yellow', 'vergelabs-media-library' ),
             'colorOlive'     => __( 'Olive', 'vergelabs-media-library' ),
+            'colorLime'      => __( 'Lime', 'vergelabs-media-library' ),
             'colorGreen'     => __( 'Green', 'vergelabs-media-library' ),
             'colorTeal'      => __( 'Teal', 'vergelabs-media-library' ),
+            'colorCyan'      => __( 'Cyan', 'vergelabs-media-library' ),
+            'colorSky'       => __( 'Sky', 'vergelabs-media-library' ),
             'colorBlue'      => __( 'Blue', 'vergelabs-media-library' ),
+            'colorIndigo'    => __( 'Indigo', 'vergelabs-media-library' ),
             'colorViolet'    => __( 'Violet', 'vergelabs-media-library' ),
             'colorMagenta'   => __( 'Magenta', 'vergelabs-media-library' ),
+            'colorPink'      => __( 'Pink', 'vergelabs-media-library' ),
+            'colorBrown'     => __( 'Brown', 'vergelabs-media-library' ),
+            'colorSlate'     => __( 'Slate', 'vergelabs-media-library' ),
             'delete'         => __( 'Delete', 'vergelabs-media-library' ),
             'search'         => __( 'Search folders', 'vergelabs-media-library' ),
             'folders'        => __( 'Folders', 'vergelabs-media-library' ),
@@ -345,13 +366,22 @@ function vergeml_tree_palette() {
     return array(
         '',         // none -- inherits the skin's own colour
         '#d63638',  // red
+        '#e65054',  // coral
         '#e07d10',  // amber
+        '#d9a404',  // yellow
         '#997e00',  // olive
+        '#6a9a23',  // lime
         '#2f8f45',  // green
         '#0f7c8c',  // teal
+        '#0891b2',  // cyan
+        '#2271b1',  // sky
         '#3858e9',  // blue
+        '#5b4ee9',  // indigo
         '#7c3aed',  // violet
         '#a4286a',  // magenta
+        '#c2578c',  // pink
+        '#8c6a4f',  // brown
+        '#646970',  // slate
     );
 }
 

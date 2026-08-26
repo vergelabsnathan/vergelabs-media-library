@@ -48,17 +48,17 @@ function vergeml_admin_menu() {
     }
 
     add_menu_page(
-        __( 'Media Library', 'vergelabs-media-library' ),
-        __( 'Media Library', 'vergelabs-media-library' ),
+        __( 'VergeLabs Library', 'vergelabs-media-library' ),
+        __( 'VergeLabs Library', 'vergelabs-media-library' ),
         'manage_categories',
         VERGEML_MENU,
         'vergeml_admin_home',
         vergeml_menu_icon(),
         /*
-         *  Directly under Media. The plugin is about the media library, so it
-         *  belongs beside it rather than at the bottom with the tools.
+         *  Below the content cluster, above Appearance -- its own product,
+         *  not a sibling squeezed against the stock Media item.
          */
-        11
+        58
     );
 
     // The first submenu repeats the parent, so it reads as a name rather than
@@ -86,10 +86,19 @@ function vergeml_admin_menu() {
 
 function vergeml_menu_icon() {
 
+    /*
+     *  The VergeLabs shard fan, white, as a data URI. The same slat geometry
+     *  the brand uses, scaled to the 20px menu box; white because the menu is
+     *  dark and the item should read as itself, not as another grey tool.
+     */
     $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">'
-        . '<path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h4.2a1.5 1.5 0 0 1 1.06.44L10.2 4.7H16.5A1.5 1.5 0 0 1 18 6.2v1.1H2V4.5Z"/>'
-        . '<path d="M2 8.6h16a1.2 1.2 0 0 1 1.16 1.52l-1.5 5.4A1.5 1.5 0 0 1 16.2 16.6H3.1a1.2 1.2 0 0 1-1.16-1.52l1.5-5.4A1.5 1.5 0 0 1 4.9 8.6H2Z"/>'
-        . '</svg>';
+        . '<g fill="#ffffff">'
+        . '<path d="M19 3 L7.5 -2 V20 L19 20 Z" opacity=".45"/>'
+        . '<path d="M17.2 5.7 L5.5 1.2 V20 L17.2 20 Z" opacity=".6"/>'
+        . '<path d="M15.5 8.5 L3.75 4.5 V20 L15.5 20 Z" opacity=".75"/>'
+        . '<path d="M14 11.2 L2.25 7.7 V20 L14 20 Z" opacity=".9"/>'
+        . '<path d="M12.75 14 L1 11 V20 L12.75 20 Z"/>'
+        . '</g></svg>';
 
     return 'data:image/svg+xml;base64,' . base64_encode( $svg );
 }
