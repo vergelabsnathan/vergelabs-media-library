@@ -848,6 +848,13 @@
 	var uploadTarget = 0;
 
 	/*
+	 *  A drop on a folder ROW files into that folder for that one batch,
+	 *  whatever the grid is currently showing. Set at drop time, read by
+	 *  BeforeUpload, cleared when the queue drains.
+	 */
+	var dropFolder = 0;
+
+	/*
 	 *  The folder travels with the upload request itself, added to the
 	 *  multipart parameters just before each file goes -- so the server never
 	 *  guesses which screen the user was on, and uploads from anywhere else
@@ -881,8 +888,9 @@
 				if ( this.uploader && this.uploader.bind ) {
 					this.uploader.bind( 'BeforeUpload', function ( up ) {
 						var params = up.settings.multipart_params = up.settings.multipart_params || {};
-						if ( uploadTarget > 0 ) {
-							params.vergeml_folder = uploadTarget;
+						var target = dropFolder > 0 ? dropFolder : uploadTarget;
+						if ( target > 0 ) {
+							params.vergeml_folder = target;
 							params.vergeml_folder_tax = state.taxonomy;
 						} else {
 							delete params.vergeml_folder;
@@ -902,7 +910,10 @@
 					 */
 					this.uploader.bind( 'UploadComplete', function () {
 
-						if ( ! ( uploadTarget > 0 ) ) {
+						var filed = uploadTarget > 0 || dropFolder > 0;
+						dropFolder = 0;
+
+						if ( ! filed ) {
 							return;
 						}
 
@@ -2439,10 +2450,87 @@
 		anchor.setAttribute( 'aria-expanded', 'true' );
 	}
 
+	/*
+	 *  Files dragged in from the DESKTOP can land on a folder row, not just on
+	 *  the grid. jQuery UI's droppables never see OS drags -- those arrive as
+	 *  native dragover/drop events -- so the tree listens for them itself:
+	 *  hovering a folder row lights it, dropping queues the files through the
+	 *  grid's own uploader with that row as the one-batch destination.
+	 */
+	function armFileDrops( host ) {
+
+		function fileDrag( e ) {
+			var t = e.dataTransfer && e.dataTransfer.types;
+			if ( ! t ) {
+				return false;
+			}
+			for ( var i = 0; i < t.length; i++ ) {
+				if ( 'Files' === t[ i ] ) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		function rowFor( e ) {
+			var node = e.target && e.target.closest ? e.target.closest( '.vgml-node' ) : null;
+			var id = node ? parseInt( node.getAttribute( 'data-id' ), 10 ) : 0;
+			return id > 0 ? node : null;
+		}
+
+		function clearMarks() {
+			host.querySelectorAll( '.vgml-row.is-drop' ).forEach( function ( r ) {
+				r.classList.remove( 'is-drop' );
+			} );
+		}
+
+		host.addEventListener( 'dragover', function ( e ) {
+			if ( ! fileDrag( e ) ) {
+				return;
+			}
+			e.preventDefault();
+			var node = rowFor( e );
+			clearMarks();
+			if ( node ) {
+				e.dataTransfer.dropEffect = 'copy';
+				node.querySelector( '.vgml-row' ).classList.add( 'is-drop' );
+			} else {
+				e.dataTransfer.dropEffect = 'none';
+			}
+		} );
+
+		host.addEventListener( 'dragleave', function ( e ) {
+			if ( ! host.contains( e.relatedTarget ) ) {
+				clearMarks();
+			}
+		} );
+
+		host.addEventListener( 'drop', function ( e ) {
+			if ( ! fileDrag( e ) ) {
+				return;
+			}
+			e.preventDefault();
+			clearMarks();
+			var node = rowFor( e );
+			var files = e.dataTransfer.files;
+			if ( ! node || ! files || ! files.length ) {
+				return;
+			}
+			var frame = ( wp.media.frames && wp.media.frames.browse ) || wp.media.frame;
+			var pl = frame && frame.uploader && frame.uploader.uploader && frame.uploader.uploader.uploader;
+			if ( ! pl ) {
+				return;
+			}
+			dropFolder = parseInt( node.getAttribute( 'data-id' ), 10 );
+			pl.addFile( Array.prototype.slice.call( files ) );
+		} );
+	}
+
 	function build() {
 		root = el( 'div', { class: 'vgml-tree', 'data-skin': state.skin, 'data-density': state.density } );
 		root.style.setProperty( '--vgml-accent', cfg.accent );
 		root.style.width = state.width + 'px';
+		armFileDrops( root );
 
 		/*
 		 *  Header, then a toolbar, then the search, then the tree.

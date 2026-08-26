@@ -345,6 +345,59 @@ const hintOff = await page.evaluate( () => {
 } );
 check( 'and goes back to stock on All files', !! hintOff && hintOff.indexOf( leafName ) === -1, hintOff || 'no h1' );
 
+/* --- desktop files dropped on a folder row ----------------------------------- */
+
+console.log( '\na desktop drop on a folder row' );
+
+/*
+ *  OS drags arrive as native drag events, which jQuery UI droppables never
+ *  see. The tree listens for them itself: the hovered row lights up, and the
+ *  dropped files upload into THAT row's folder regardless of what the grid
+ *  is showing.
+ */
+const rowTarget = await page.evaluate( () => {
+	const ids = [ ...document.querySelectorAll( '.vgml-tree .vgml-node' ) ]
+		.map( ( n ) => parseInt( n.getAttribute( 'data-id' ), 10 ) ).filter( ( id ) => id > 0 );
+	return ids[ ids.length - 1 ];
+} );
+const dropStamp = 'vgml-rowdrop-' + Date.now();
+
+const rowLit = await page.evaluate( async ( args ) => {
+	const cv = document.createElement( 'canvas' ); cv.width = 48; cv.height = 48;
+	const g = cv.getContext( '2d' ); g.fillStyle = '#46658b'; g.fillRect( 0, 0, 48, 48 );
+	const blob = await new Promise( ( r ) => cv.toBlob( r, 'image/png' ) );
+	const dt = new DataTransfer();
+	dt.items.add( new File( [ blob ], args.stamp + '.png', { type: 'image/png' } ) );
+	const fire = ( el, type ) => {
+		const ev = new DragEvent( type, { bubbles: true, cancelable: true } );
+		Object.defineProperty( ev, 'dataTransfer', { value: dt } );
+		el.dispatchEvent( ev );
+	};
+	const row = document.querySelector( `.vgml-tree .vgml-node[data-id="${ args.target }"] .vgml-row` );
+	fire( row, 'dragover' );
+	const lit = row.classList.contains( 'is-drop' );
+	fire( row, 'drop' );
+	return lit;
+}, { stamp: dropStamp, target: rowTarget } );
+
+check( 'the hovered row lights up for a file drag', rowLit );
+
+await page.waitForTimeout( 7000 );
+const dropped = await page.evaluate( async ( stamp ) => {
+	const found = await window.wp.apiFetch( { path: '/wp/v2/media?search=' + stamp + '&_fields=id,media_category' } );
+	return found[ 0 ] || null;
+}, dropStamp );
+
+check( 'the dropped file uploaded into that row folder',
+	!! dropped && ( dropped.media_category || [] ).includes( rowTarget ),
+	dropped ? `${ dropped.id } -> ${ ( dropped.media_category || [] ).join( ',' ) } (wanted ${ rowTarget })` : 'no upload' );
+
+if ( dropped ) {
+	await page.evaluate( async ( id ) => {
+		await window.wp.apiFetch( { path: '/wp/v2/media/' + id + '?force=true', method: 'DELETE' } );
+	}, dropped.id );
+}
+
 /* --- the ZIP ----------------------------------------------------------------- */
 
 console.log( '\nthe ZIP' );
