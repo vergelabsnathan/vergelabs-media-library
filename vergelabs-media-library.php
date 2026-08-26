@@ -937,8 +937,17 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
                 $defaults = (bool) $vergeml_taxonomies[$taxonomy]['eml_media'] ? $media_taxonomy_args_defaults : $non_media_taxonomy_args_defaults;
 
+                /*
+                 *  Known keys are normalised against the defaults; keys the
+                 *  defaults do NOT know (post_types, the _full marker, and
+                 *  anything a later version adds) are carried over untouched.
+                 *  The old intersect-only merge silently deleted them on
+                 *  every activation and upgrade -- which is how "Also use
+                 *  for Posts" kept switching itself off.
+                 */
                 $taxonomy_params = array_intersect_key( $params, $defaults );
-                $vergeml_taxonomies[$taxonomy] = array_merge( $defaults, $taxonomy_params );
+                $extra_params    = array_diff_key( $params, $defaults );
+                $vergeml_taxonomies[$taxonomy] = array_merge( $defaults, $taxonomy_params, $extra_params );
 
                 if ( (bool) $vergeml_taxonomies[$taxonomy]['eml_media'] && empty( $params['rewrite']['slug'] ) ) {
                     $vergeml_taxonomies[$taxonomy]['rewrite']['slug'] = $taxonomy;
