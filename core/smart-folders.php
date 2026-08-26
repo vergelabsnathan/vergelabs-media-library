@@ -156,7 +156,7 @@ function vergeml_smart_counts() {
          SELECT 'no-alt', COUNT(*) FROM {$wpdb->posts} p
           LEFT JOIN {$wpdb->postmeta} a ON a.post_id = p.ID AND a.meta_key = '_wp_attachment_image_alt'
          WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-           AND p.post_mime_type LIKE 'image/%%'
+           AND p.post_mime_type LIKE %s
            AND ( a.meta_id IS NULL OR a.meta_value = '' )
          UNION ALL
          SELECT 'large', COUNT(*) FROM {$wpdb->posts} p
@@ -171,6 +171,7 @@ function vergeml_smart_counts() {
          WHERE post_type = 'attachment' AND post_status = 'inherit'
            AND YEAR( post_date ) = %d AND MONTH( post_date ) = %d",
         VERGEML_META_UNUSED,
+        $wpdb->esc_like( 'image/' ) . '%',
         VERGEML_META_FILESIZE,
         vergeml_large_bytes(),
         (int) current_time( 'Y' ),

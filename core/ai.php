@@ -268,29 +268,35 @@ function vergeml_ai_pending( $scope, $limit = 0 ) {
 
     global $wpdb;
 
-    $limit_sql = $limit > 0 ? $wpdb->prepare( 'LIMIT %d', $limit ) : '';
+    // The optional LIMIT cannot be a prepared placeholder mid-string without
+    // two query shapes; an int cast is the whole sanitisation a LIMIT needs.
+    $cap  = max( 0, (int) $limit );
+    $tail = $cap > 0 ? ' LIMIT ' . $cap : '';
+    $mime = $wpdb->esc_like( 'image/' ) . '%';
 
     if ( 'missing-alt' === $scope ) {
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        return array_map( 'intval', $wpdb->get_col(
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $tail is an int-cast LIMIT.
+        return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
             "SELECT p.ID FROM {$wpdb->posts} p
              LEFT JOIN {$wpdb->postmeta} alt ON alt.post_id = p.ID AND alt.meta_key = '_wp_attachment_image_alt'
-             WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE 'image/%'
+             WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
                AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
-             ORDER BY p.ID ASC {$limit_sql}"
-        ) );
+             ORDER BY p.ID ASC{$tail}",
+            $mime
+        ) ) );
         // phpcs:enable
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    return array_map( 'intval', $wpdb->get_col(
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $tail is an int-cast LIMIT.
+    return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
         "SELECT p.ID FROM {$wpdb->posts} p
          LEFT JOIN {$wpdb->postmeta} ai ON ai.post_id = p.ID AND ai.meta_key = '_vergeml_ai'
-         WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE 'image/%'
+         WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
            AND ai.meta_id IS NULL
-         ORDER BY p.ID ASC {$limit_sql}"
-    ) );
+         ORDER BY p.ID ASC{$tail}",
+        $mime
+    ) ) );
     // phpcs:enable
 }
 
@@ -504,7 +510,7 @@ function vergeml_ai_rest_status() {
     global $wpdb;
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    $images  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%'" );
+    $images  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type LIKE %s", $wpdb->esc_like( 'image/' ) . '%' ) );
     $indexed = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT post_id) FROM {$wpdb->postmeta} WHERE meta_key = '_vergeml_ai'" );
     // phpcs:enable
 
