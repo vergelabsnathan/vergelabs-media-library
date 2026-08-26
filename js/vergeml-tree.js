@@ -950,7 +950,7 @@
 		var node = uploadTarget > 0 && state.byId ? state.byId[ uploadTarget ] : null;
 		h1.textContent = node
 			? sprintf( l10n.dropInto, node.name )
-			: h1.getAttribute( 'data-vgml-stock' );
+			: ( l10n.dropHere || h1.getAttribute( 'data-vgml-stock' ) );
 
 		if ( uploadBtn ) {
 			uploadBtn.title = node ? sprintf( l10n.uploadTo, node.name ) : l10n.uploadUnfiled;

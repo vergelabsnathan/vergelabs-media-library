@@ -1755,11 +1755,23 @@ body.upload-php .search-box .button:hover {
 	background: #dfe0e3;
 }
 
-/* files can be dropped on the whole table region */
-body.upload-php #posts-filter.vgml-drop-here .wp-list-table {
-	outline: 2px dashed #3858e9;
-	outline-offset: -2px;
-	background: rgba( 56, 88, 233, 0.03 );
+/*  Files can be dropped on the whole table region. The zone is an ::after
+ *  overlay rather than an outline on the table: outlines are rectangles,
+ *  the table has rounded corners, and the mismatch showed as a clipped
+ *  corner. The overlay follows the radius exactly. */
+body.upload-php #posts-filter {
+	position: relative;
+}
+
+body.upload-php #posts-filter.vgml-drop-here::after {
+	content: "";
+	position: absolute;
+	inset: -6px;
+	border: 2px dashed #3858e9;
+	border-radius: 12px;
+	background: rgba( 56, 88, 233, 0.10 );
+	pointer-events: none;
+	z-index: 5;
 }
 
 /*
@@ -1775,7 +1787,7 @@ body.upload-php .uploader-window {
 	/* inset + border rather than a negative outline: outlines paint outside
 	   the box model and were getting clipped at the frame's edges */
 	inset: 10px;
-	background: rgba( 56, 88, 233, 0.12 );
+	background: rgba( 56, 88, 233, 0.16 );
 	border: 2px dashed #3858e9;
 	border-radius: 12px;
 	outline: none;
