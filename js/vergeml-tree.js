@@ -2374,7 +2374,7 @@
 				window.location.href = 'media-new.php';
 				return;
 			}
-			dropFolder = node.id;
+			// selecting makes the folder the upload target; no override to leak
 			select( node.id );
 			if ( pickInput ) { pickInput.click(); }
 		} );
@@ -2626,7 +2626,22 @@
 		if ( ownUploader.uploader && ownUploader.uploader.bind ) {
 			ownUploader.uploader.bind( 'UploadComplete', function () {
 				window.setTimeout( function () {
-					window.location.reload();
+					/*
+					 *  The URL is rebuilt from the tree's own state instead of
+					 *  reloading whatever href happens to be current: a row
+					 *  drop selects its folder through a table swap whose
+					 *  pushState races this timer, and losing that race
+					 *  reloaded the UNFILTERED list -- folder selected in the
+					 *  tree, every file in the table.
+					 */
+					var url = new URL( window.location.href );
+					if ( state.selected > 0 ) {
+						var n = state.byId[ state.selected ];
+						url.searchParams.set( state.taxonomy, n && n.slug ? n.slug : state.selected );
+						url.searchParams.delete( unfiledVar() );
+						url.searchParams.delete( 'vgml_smart' );
+					}
+					window.location.href = url.href;
 				}, 600 );
 			} );
 		}
@@ -2907,10 +2922,13 @@
 			if ( ! pick.files || ! pick.files.length ) {
 				return;
 			}
-			dropFolder = state.selected > 0 ? state.selected : 0;
-			if ( ! sendFiles( pick.files ) ) {
-				dropFolder = 0;
-			}
+			/*
+			 *  No dropFolder here: the selected folder is already the upload
+			 *  target, and an override set BEFORE the picker opens would leak
+			 *  into the next unrelated upload whenever the picker is
+			 *  cancelled -- change never fires on cancel.
+			 */
+			sendFiles( pick.files );
 			pick.value = '';
 		} );
 
@@ -3190,8 +3208,15 @@
 			var vgmlToggle = wp.media.view.Attachment.prototype.toggleSelection;
 
 			wp.media.view.Attachment.prototype.toggleSelection = function ( options ) {
+				/*
+				 *  Scoped to the library grid (eml-grid mode): the post
+				 *  editor's media modal also runs a 'select' mode, and its
+				 *  replace-on-click behaviour is what everyone inserting an
+				 *  image into a post expects.
+				 */
 				var inSelect = this.controller && this.controller.isModeActive &&
-					this.controller.isModeActive( 'select' );
+					this.controller.isModeActive( 'select' ) &&
+					this.controller.isModeActive( 'eml-grid' );
 				if ( inSelect && ( ! options || ! options.method ) ) {
 					options = options || {};
 					options.method = 'toggle';
@@ -3205,12 +3230,6 @@
 		 *  search input a naked box. Its own label already says what it is --
 		 *  move those words inside as the placeholder.
 		 */
-		dropHint();
-
-		if ( cfg.state && cfg.state.collapsed ) {
-			setCollapsed( true );
-		}
-
 		if ( ! isGridScreen() ) {
 			var listForm = document.querySelector( '#posts-filter' );
 			if ( listForm ) {
@@ -3669,6 +3688,16 @@
 		// The remembered selection catches uploads from the first moment, not
 		// only after the next click.
 		uploadTarget = state.selected > 0 ? state.selected : 0;
+		dropHint();
+
+		/*
+		 *  Applied here, not in start(): start() runs before the panel is
+		 *  built, and collapsing a panel that does not exist yet threw --
+		 *  which both lost the preference and killed everything after it.
+		 */
+		if ( cfg.state && cfg.state.collapsed ) {
+			setCollapsed( true );
+		}
 
 		/*
 		 *  Grid view builds itself asynchronously, so the frame may arrive after we
