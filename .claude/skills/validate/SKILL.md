@@ -47,10 +47,14 @@ All three must agree, or wordpress.org ships a different version than the plugin
 
 ```bash
 cd /c/dev/vergelabs-media-library
-grep -n "^ \* Version:" vergelabs-media-library.php
+grep -n "^Version:" vergelabs-media-library.php
 grep -n "VERGEML_VERSION'," vergelabs-media-library.php
 grep -n "^Stable tag:" readme.txt
 ```
+
+Three commands, three lines, three matching numbers. **Fewer than three lines is a failure**:
+the pattern here used to be `^ \* Version:`, which matches nothing in this file's header, so the
+gate printed two lines and read as clean while checking two of the three places.
 
 ## Gate 4 — functional tests in Playground
 
@@ -82,21 +86,43 @@ Budgets, both environments (they must agree — a difference is a bug):
 | Endpoint | Queries | Note |
 |---|---|---|
 | `vergeml/v1/tree` | **6** | must not grow with folder count; verified flat from 200 → 2000 folders. 4 + 1 (five smart-folder counts as one UNION) + 1 (per-user tree state); raised deliberately 26-08-2026 |
-| `wp/v2/media?per_page=40` | 6 | core's own baseline, for comparison |
+| `vergeml/v1/health-report` | **5** | 3 with nothing to show, plus the 2 that fetch what is shown. Flat: neither moves with the number of duplicate groups |
+| `wp/v2/media?per_page=40` | — | core's own endpoint, printed for scale only. **Not a budget**: measured 7 in Playground and 86–109 on the box, because it costs whatever the site's other plugins make it cost |
 
-A rise in query count is a regression even if wall-clock improved. If the tree's count moves with
-the number of folders or files, an N+1 has been introduced — that is a hard fail.
+A rise in **our** endpoints' query count is a regression even if wall-clock improved. If the
+tree's count moves with the number of folders or files, an N+1 has been introduced — that is a
+hard fail.
+
+Measure over REST, never from `wp eval` after other work in the same request: a scan that ran
+first leaves the caches warm, and the endpoint does not get them. That reported 4 queries for a
+`health-report` that actually ran 70.
 
 ## Gate 6 — Plugin Check
 
-The wordpress.org submission gate. Must be clean before any release:
+The wordpress.org submission gate. Must be clean before any release.
+
+Check a **clean archive**, not the working tree. `git archive` honours the export-ignore rules
+in `.gitattributes`, so it contains what users would install; checking the deployed folder
+instead reports the dev files — `.claude`, `CLAUDE.md`, `.github`, `tests/` — as warnings that
+are not real, and burying the real findings under them is how a real one gets missed.
 
 ```bash
+cd /c/dev/vergelabs-media-library
+git archive HEAD --prefix=vergelabs-media-library/ -o /tmp/vgml-clean.tar
+scp -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+  /tmp/vgml-clean.tar root@185.229.224.239:/tmp/
 ssh -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-  root@185.229.224.239 'cd /var/www/wp &&
+  root@185.229.224.239 'cd /var/www/wp/wp-content/plugins &&
+  rm -rf vgml-clean-check && mkdir vgml-clean-check &&
+  tar xf /tmp/vgml-clean.tar -C vgml-clean-check && cd /var/www/wp &&
   wp plugin install plugin-check --activate --allow-root 2>/dev/null;
-  wp plugin check vergelabs-media-library --allow-root'
+  wp plugin check wp-content/plugins/vgml-clean-check/vergelabs-media-library --allow-root;
+  rm -rf wp-content/plugins/vgml-clean-check'
 ```
+
+`Success: Checks complete. No errors found.` is the only passing output. A custom table's name
+built by a helper function reads to the sniffs as unprepared SQL — register it on `$wpdb` rather
+than suppressing the warning.
 
 ## Gate 7 — the upgrade path
 
