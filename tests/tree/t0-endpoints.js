@@ -58,6 +58,12 @@ const check = (name, ok, detail = '') => {
     );
 
   console.log('\n1. the tree endpoint');
+  // Playground's per-request floor varies wildly by machine; judge the tree
+  // RELATIVE to a no-op request so the check times the plugin, not the host.
+  const floorStart = Date.now();
+  await call('/wp-json/');
+  const floor = Date.now() - floorStart;
+
   const started = Date.now();
   const tree = await call(`/wp-json/vergeml/v1/tree?taxonomy=${TAXONOMY}`);
   const took = Date.now() - started;
@@ -67,7 +73,7 @@ const check = (name, ok, detail = '') => {
   check('says whether it is hierarchical', typeof tree.body?.hierarchical === 'boolean');
   check('counts the unassigned', typeof tree.body?.unassigned === 'number', String(tree.body?.unassigned));
   check('carries this user\'s state', tree.body?.state !== undefined);
-  check('one round trip is quick', took < 1500, `${took}ms`);
+  check('one round trip is quick', took < Math.max(1500, floor * 2), `${took}ms vs floor ${floor}ms`);
 
   const nodes = tree.body?.nodes ?? [];
   check('every node has a parent, count and colour field', nodes.every(
@@ -109,7 +115,9 @@ const check = (name, ok, detail = '') => {
     check('assign succeeds', add.status === 200, `HTTP ${add.status}`);
     check('reports what changed', (add.body?.changed?.length ?? 0) === ids.length, `${add.body?.changed?.length} of ${ids.length}`);
     check('returns a fresh count', typeof add.body?.counts?.[termId] === 'number', `${before} -> ${add.body?.counts?.[termId]}`);
-    check('hands back the inverse for undo', add.body?.undo?.remove?.includes(termId) === true);
+    // undo became batch-shaped (per-file prior state) when multi-folder
+    // membership shipped; the replay two lines down proves it actually works
+    check('hands back the inverse for undo', (add.body?.undo?.batch?.length ?? 0) > 0 || add.body?.undo?.remove?.includes(termId) === true);
 
     // The undo it gave us should put things back.
     const undo = await call('/wp-json/vergeml/v1/assign', { method: 'POST', body: add.body.undo });
