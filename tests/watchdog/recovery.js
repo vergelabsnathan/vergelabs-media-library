@@ -1,9 +1,52 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
+const path = require('path');
 const BASE = 'http://127.0.0.1:8899';
-const VICTIM = 'C:/dev/vergelabs-media-library/core/taxonomies.php';
+
+/*
+ *  This suite deliberately breaks a real plugin file, because the watchdog
+ *  only counts fatals in the plugin's own code and a crash from anywhere else
+ *  would prove nothing.
+ *
+ *  Which makes restoring it the most important thing the file does. Holding
+ *  the original in a variable and restoring in `finally` was not enough: kill
+ *  the process and the variable dies with it, leaving a fatal error committed
+ *  in core/taxonomies.php for the next deploy to ship. That happened.
+ *
+ *  So the original goes to disk before the file is touched, every exit path
+ *  restores it, and a run that finds a leftover backup puts it back before
+ *  doing anything else. The only unrecoverable case is SIGKILL, and the next
+ *  run heals that.
+ */
+const ROOT = path.resolve(__dirname, '..', '..');
+const VICTIM = path.join(ROOT, 'core', 'taxonomies.php');
+const BACKUP = path.join(__dirname, '.victim-backup');
 const CRASH = "\n\nvergeml_crash_test_undefined_function_do_not_ship();\n";
 const SETTINGS = '/wp-admin/options-general.php?page=media-library'; // registered by core/options-pages.php, which safe mode skips
+
+function restoreVictim() {
+  if (!fs.existsSync(BACKUP)) return false;
+  fs.writeFileSync(VICTIM, fs.readFileSync(BACKUP, 'utf8'));
+  fs.unlinkSync(BACKUP);
+  return true;
+}
+
+// A previous run that was killed rather than finished.
+if (restoreVictim()) {
+  console.log('  restored core/taxonomies.php from an interrupted run');
+}
+
+if (fs.readFileSync(VICTIM, 'utf8').includes('vergeml_crash_test')) {
+  console.error('\nFATAL: core/taxonomies.php still carries the crash marker and no backup exists.');
+  console.error('Restore it before running anything else:  git checkout -- core/taxonomies.php\n');
+  process.exit(2);
+}
+
+// Ctrl-C and a harness timeout both land here; exit handlers must be sync.
+process.on('exit', restoreVictim);
+process.on('SIGINT', () => process.exit(130));
+process.on('SIGTERM', () => process.exit(143));
+process.on('uncaughtException', (e) => { console.error(e); process.exit(1); });
 
 const results = [];
 const check = (n, ok, d = '') => { results.push({ n, ok }); console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${n}${d ? '  — ' + d : ''}`); };
@@ -32,7 +75,11 @@ const check = (n, ok, d = '') => { results.push({ n, ok }); console.log(`  ${ok 
     }
   }
 
+  // On disk, not just in memory: the whole point of the backup is that it
+  // outlives this process.
   const original = fs.readFileSync(VICTIM, 'utf8');
+  fs.writeFileSync(BACKUP, original);
+
   try {
     console.log('\n0. reset to a known state');
     await hit('/wp-admin/plugins.php');
@@ -77,6 +124,7 @@ const check = (n, ok, d = '') => { results.push({ n, ok }); console.log(`  ${ok 
     check('site healthy', !r.broken, `HTTP ${r.status}`);
   } finally {
     fs.writeFileSync(VICTIM, original);
+    if (fs.existsSync(BACKUP)) fs.unlinkSync(BACKUP);
     await browser.close();
   }
 

@@ -10,3 +10,10 @@ dist/
 .DS_Store
 Thumbs.db
 .release-assets/
+
+# Test debris. recovery.js parks the file it breaks here so an interrupted run
+# can be healed by the next one, and screenshots the safe-mode notice.
+tests/watchdog/.victim-backup
+tests/watchdog/watchdog-notice.png
+tests/**/shots/
+.verify.lock
