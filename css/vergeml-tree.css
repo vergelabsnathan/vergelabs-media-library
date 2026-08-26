@@ -1761,3 +1761,59 @@ body.upload-php #posts-filter.vgml-drop-here .wp-list-table {
 	outline-offset: -2px;
 	background: rgba( 56, 88, 233, 0.03 );
 }
+
+/*
+ *  The drop overlay covers the drop AREA, not the screen. Core fixes
+ *  .uploader-window to the viewport, so starting a drag turned everything
+ *  blue -- admin menu, panel, all of it. Confined to its own frame (the
+ *  frame is positioned, the overlay is its child) and restyled from a
+ *  solid blue sheet into a quiet tinted zone with a dashed edge, which is
+ *  the shape everybody reads as "drop here".
+ */
+body.upload-php .uploader-window {
+	position: absolute;
+	inset: 0;
+	background: rgba( 56, 88, 233, 0.07 );
+	border-radius: 12px;
+	outline: 2px dashed #3858e9;
+	outline-offset: -10px;
+}
+
+body.upload-php .uploader-window .uploader-window-content {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0;
+	border: 0;
+	background: none;
+}
+
+body.upload-php .uploader-window .uploader-editor-title {
+	position: static;
+	display: inline-block;
+	margin: 0;
+	padding: 10px 22px;
+	background: #fff;
+	border-radius: 999px;
+	box-shadow: 0 2px 10px rgba( 0, 0, 0, 0.08 );
+	color: #3858e9;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+/* the right-click menu is the overflow popover, at the cursor */
+.vgml-overflow.vgml-context {
+	z-index: 40;
+}
+
+.vgml-overflow-item.is-danger {
+	color: #b32d2e;
+}
+
+.vgml-overflow-item.is-danger:hover {
+	background: #fcf0f1;
+	color: #8a2424;
+}

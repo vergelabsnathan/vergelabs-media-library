@@ -483,6 +483,31 @@ for ( const probe of [ landed, unfiled ] ) {
 	}
 }
 
+/* --- right-click on a folder ------------------------------------------------- */
+
+console.log( '\nthe context menu' );
+
+const ctxRow = await page.locator( `.vgml-tree .vgml-node[data-id="${ folder.id }"] .vgml-row` ).boundingBox();
+await page.mouse.click( ctxRow.x + 80, ctxRow.y + ctxRow.height / 2, { button: 'right' } );
+await page.waitForTimeout( 500 );
+
+const ctxMenu = await page.evaluate( () => {
+	const m = document.querySelector( '.vgml-context' );
+	return m ? {
+		items: [ ...m.querySelectorAll( '.vgml-overflow-item' ) ].map( ( b ) => b.textContent.trim() ),
+		swatches: m.querySelectorAll( '.vgml-swatch' ).length,
+	} : null;
+} );
+
+check( 'right-click opens the folder menu', !! ctxMenu, ctxMenu ? ctxMenu.items.join( ' | ' ) : 'no menu' );
+check( 'with the full set of actions',
+	!! ctxMenu && ctxMenu.items.length >= 6 && ctxMenu.swatches === 9,
+	ctxMenu ? `${ ctxMenu.items.length } items, ${ ctxMenu.swatches } swatches` : '' );
+
+await page.keyboard.press( 'Escape' );
+await page.waitForTimeout( 300 );
+check( 'and Escape dismisses it', await page.evaluate( () => ! document.querySelector( '.vgml-context' ) ) );
+
 /* --- the list screen: a drop on a folder row uploads there too ---------------- */
 
 console.log( '\nthe list screen' );

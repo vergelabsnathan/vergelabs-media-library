@@ -2223,6 +2223,7 @@
 	 */
 	var toolbarEls = null;
 	var uploadBtn = null;
+	var pickInput = null;
 	var editTarget = 0;
 
 	function buildToolbar() {
@@ -2332,6 +2333,118 @@
 		}, 0 );
 
 		anchor.setAttribute( 'aria-expanded', 'true' );
+	}
+
+	/*
+	 *  Right-click on a folder: everything you can do to it, where you
+	 *  clicked. Same popover class as the overflow menu, so it inherits the
+	 *  one set of dismiss rules and the one bit of CSS, just positioned at
+	 *  the cursor instead of pinned under the toolbar.
+	 */
+	function contextMenu( node, x, y ) {
+
+		var open = root.querySelector( '.vgml-overflow' );
+		if ( open ) {
+			open.remove();
+		}
+
+		selectForEditing( node.id );
+
+		var menuEl = el( 'div', { class: 'vgml-overflow vgml-context', role: 'menu' } );
+		menuEl.appendChild( el( 'p', { class: 'vgml-overflow-head' }, node.name ) );
+
+		var item = function ( label, danger, act ) {
+			var b = el( 'button', {
+				type: 'button',
+				class: 'vgml-overflow-item' + ( danger ? ' is-danger' : '' ),
+				role: 'menuitem'
+			}, label );
+			b.addEventListener( 'click', function () {
+				menuEl.remove();
+				act();
+			} );
+			menuEl.appendChild( b );
+			return b;
+		};
+
+		item( l10n.rename, false, function () { rename( node ); } );
+		item( l10n.newSubfolder, false, function () { startCreate( node.id ); } );
+		item( l10n.uploadHere, false, function () {
+			if ( ! anyUploader() ) {
+				window.location.href = 'media-new.php';
+				return;
+			}
+			dropFolder = node.id;
+			select( node.id );
+			if ( pickInput ) { pickInput.click(); }
+		} );
+
+		if ( cfg.zipUrl ) {
+			item( l10n.downloadZip, false, function () {
+				window.location.href = cfg.zipUrl
+					+ '&folder=' + encodeURIComponent( node.id )
+					+ '&taxonomy=' + encodeURIComponent( state.taxonomy );
+			} );
+			item( l10n.copyShortcode, false, function () {
+				var code = '[vergeml_gallery folder="' + node.id + '"]';
+				var done = function () { toast( l10n.copied, null ); };
+				if ( navigator.clipboard && navigator.clipboard.writeText ) {
+					navigator.clipboard.writeText( code ).then( done, done );
+				} else {
+					done();
+				}
+			} );
+		}
+
+		// the colour strip, inline, because colour is a one-click choice
+		var names = [ l10n.colorNone, l10n.colorRed, l10n.colorAmber, l10n.colorOlive,
+			l10n.colorGreen, l10n.colorTeal, l10n.colorBlue, l10n.colorViolet, l10n.colorMagenta ];
+		var strip = el( 'div', { class: 'vgml-swatches' } );
+		( cfg.palette || [] ).forEach( function ( value, i ) {
+			var on = ( node.color || '' ) === value;
+			var dot = el( 'button', {
+				type: 'button',
+				class: 'vgml-swatch' + ( value ? '' : ' is-none' ) + ( on ? ' is-on' : '' ),
+				role: 'menuitemradio',
+				'aria-checked': on ? 'true' : 'false',
+				'aria-label': names[ i ] || value,
+				title: names[ i ] || value,
+				style: value ? 'color:' + value : ''
+			} );
+			dot.addEventListener( 'click', function () {
+				menuEl.remove();
+				folder( { action: 'color', id: node.id, color: value } );
+			} );
+			strip.appendChild( dot );
+		} );
+		menuEl.appendChild( strip );
+
+		menuEl.appendChild( el( 'hr', { class: 'vgml-overflow-sep' } ) );
+		item( l10n.delete, true, function () { confirmDelete( node ); } );
+
+		root.appendChild( menuEl );
+
+		// at the cursor, clamped inside the panel
+		var rect = menuEl.getBoundingClientRect();
+		var host = root.getBoundingClientRect();
+		var left = Math.max( 4, Math.min( x - host.left, host.width - rect.width - 4 ) );
+		var top = Math.max( 4, Math.min( y - host.top, host.height - rect.height - 4 ) );
+		menuEl.style.insetInlineEnd = 'auto';
+		menuEl.style.left = left + 'px';
+		menuEl.style.top = top + 'px';
+
+		window.setTimeout( function () {
+			var away = function () {
+				menuEl.remove();
+				document.removeEventListener( 'click', away );
+				document.removeEventListener( 'keydown', esc );
+			};
+			var esc = function ( e ) {
+				if ( 'Escape' === e.key ) { away(); }
+			};
+			document.addEventListener( 'click', away );
+			document.addEventListener( 'keydown', esc );
+		}, 0 );
 	}
 
 	// Picking a folder is also what arms the toolbar.
@@ -2716,6 +2829,19 @@
 		root.style.width = state.width + 'px';
 		armFileDrops( root );
 
+		if ( cfg.canManage ) {
+			root.addEventListener( 'contextmenu', function ( e ) {
+				var nodeEl = e.target && e.target.closest ? e.target.closest( '.vgml-node' ) : null;
+				var id = nodeEl ? parseInt( nodeEl.getAttribute( 'data-id' ), 10 ) : 0;
+				var node = id > 0 ? state.byId[ id ] : null;
+				if ( ! node ) {
+					return;
+				}
+				e.preventDefault();
+				contextMenu( node, e.clientX, e.clientY );
+			} );
+		}
+
 		/*
 		 *  Header, then a toolbar, then the search, then the tree.
 		 *
@@ -2774,7 +2900,8 @@
 		 *  zone already runs. The tooltip names the destination the way the
 		 *  drop overlay does.
 		 */
-		var pick = el( 'input', { type: 'file', multiple: 'multiple', class: 'vgml-pick' } );
+		pickInput = el( 'input', { type: 'file', multiple: 'multiple', class: 'vgml-pick' } );
+		var pick = pickInput;
 		pick.style.display = 'none';
 		pick.addEventListener( 'change', function () {
 			if ( ! pick.files || ! pick.files.length ) {
