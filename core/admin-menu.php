@@ -193,6 +193,12 @@ function vergeml_admin_home() {
             'cap'   => 'manage_options',
         ),
         array(
+            'page'  => 'media-ai',
+            'title' => __( 'AI', 'vergelabs-media-library' ),
+            'text'  => __( 'Describe your images once; search finds what pictures show, and missing alt text fills itself in.', 'vergelabs-media-library' ),
+            'cap'   => 'manage_categories',
+        ),
+        array(
             'page'  => 'mime-types',
             'title' => __( 'File types', 'vergelabs-media-library' ),
             'text'  => __( 'Which file types may be uploaded, and how they are grouped in the library filters.', 'vergelabs-media-library' ),

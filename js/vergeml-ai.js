@@ -1,0 +1,150 @@
+/*
+ *  The AI screen: settings, and the describe loop.
+ *
+ *  Indexing is a REST call in a loop, a few files per call, so it is
+ *  resumable by construction: close the tab mid-run and the next click
+ *  carries on from where the meta says things stand.
+ */
+( function () {
+	'use strict';
+
+	var apiFetch = window.wp && window.wp.apiFetch;
+
+	if ( ! apiFetch ) {
+		return;
+	}
+
+	var $ = function ( id ) {
+		return document.getElementById( id );
+	};
+
+	var running = false;
+
+	function refresh() {
+		return apiFetch( { path: '/vergeml/v1/ai-status' } ).then( function ( s ) {
+
+			$( 'vgml-ai-counts' ).textContent =
+				s.images + ' images · ' + s.indexed + ' described · ' + s.missing_alt + ' missing alt text';
+
+			if ( $( 'vgml-ai-endpoint' ) && ! $( 'vgml-ai-endpoint' ).value ) {
+				$( 'vgml-ai-endpoint' ).value = s.settings.endpoint;
+				$( 'vgml-ai-model' ).value = s.settings.model;
+				$( 'vgml-ai-enrich' ).checked = !! s.settings.enrich_search;
+				if ( s.settings.has_key ) {
+					$( 'vgml-ai-key' ).placeholder = '•••••••• (saved)';
+				}
+			}
+
+			return s;
+		} );
+	}
+
+	function log( text, bad ) {
+		var li = document.createElement( 'li' );
+		li.textContent = text;
+		if ( bad ) {
+			li.className = 'is-error';
+		}
+		var list = $( 'vgml-ai-log' );
+		list.insertBefore( li, list.firstChild );
+		while ( list.children.length > 40 ) {
+			list.removeChild( list.lastChild );
+		}
+	}
+
+	function run( scope, applyAlt ) {
+
+		if ( running ) {
+			return;
+		}
+		running = true;
+
+		var bar = $( 'vgml-ai-bar' );
+		var fill = $( 'vgml-ai-fill' );
+		var note = $( 'vgml-ai-note' );
+		var total = 0;
+
+		bar.hidden = false;
+		fill.style.width = '0';
+		note.textContent = '';
+
+		( function step() {
+			apiFetch( {
+				path: '/vergeml/v1/ai-index',
+				method: 'POST',
+				data: { scope: scope, limit: 3, apply_alt: applyAlt },
+			} ).then( function ( r ) {
+
+				r.described.forEach( function ( d ) {
+					log( '#' + d.id + ' — ' + d.caption );
+				} );
+				r.errors.forEach( function ( e ) {
+					log( '#' + e.id + ' — ' + e.error, true );
+				} );
+
+				if ( ! total ) {
+					total = r.remaining + r.described.length + r.errors.length;
+				}
+
+				var doneCount = total - r.remaining;
+				fill.style.width = total ? Math.round( ( doneCount / total ) * 100 ) + '%' : '100%';
+				note.textContent = r.remaining + ' to go';
+
+				if ( r.remaining > 0 && ( r.described.length || r.errors.length ) ) {
+					step();
+					return;
+				}
+
+				running = false;
+				note.textContent = r.remaining > 0
+					? 'Stopped — the remaining files kept failing.'
+					: 'Done.';
+				refresh();
+			} ).catch( function ( err ) {
+				running = false;
+				note.textContent = ( err && err.message ) ? err.message : 'Request failed.';
+			} );
+		} )();
+	}
+
+	function boot() {
+
+		refresh();
+
+		if ( $( 'vgml-ai-save' ) ) {
+			$( 'vgml-ai-save' ).addEventListener( 'click', function () {
+				apiFetch( {
+					path: '/vergeml/v1/ai-settings',
+					method: 'POST',
+					data: {
+						endpoint: $( 'vgml-ai-endpoint' ).value,
+						api_key: $( 'vgml-ai-key' ).value,
+						model: $( 'vgml-ai-model' ).value,
+						enrich_search: $( 'vgml-ai-enrich' ).checked ? 1 : 0,
+					},
+				} ).then( function () {
+					$( 'vgml-ai-key' ).value = '';
+					$( 'vgml-ai-save-note' ).textContent = 'Saved.';
+					window.setTimeout( function () {
+						$( 'vgml-ai-save-note' ).textContent = '';
+					}, 2500 );
+					refresh();
+				} );
+			} );
+		}
+
+		$( 'vgml-ai-run' ).addEventListener( 'click', function () {
+			run( 'unindexed', true );
+		} );
+
+		$( 'vgml-ai-alt' ).addEventListener( 'click', function () {
+			run( 'missing-alt', true );
+		} );
+	}
+
+	if ( 'loading' === document.readyState ) {
+		document.addEventListener( 'DOMContentLoaded', boot );
+	} else {
+		boot();
+	}
+} )();

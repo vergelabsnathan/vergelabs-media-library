@@ -1186,6 +1186,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/gallery-widgets.php' );
         include_once( 'core/folder-tools.php' );
         include_once( 'core/smart-folders.php' );
+        include_once( 'core/ai.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {
             include_once( 'core/medialist.php' );
