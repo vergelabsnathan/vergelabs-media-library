@@ -277,6 +277,74 @@ await page.evaluate( () => {
 } );
 await page.waitForTimeout( 400 );
 
+/* --- a move leaves the room ------------------------------------------------- */
+
+console.log( '\na move leaves the room' );
+
+/*
+ *  The bug as reported: "when i drag a document to a folder it persists
+ *  visable after the drop". The move landed server-side but nothing told the
+ *  browser's filtered collection to ask again. The target must be a folder in
+ *  a DIFFERENT branch -- a folder's view includes its descendants, so moving
+ *  a file into its own subfolder rightly keeps it on screen.
+ */
+const allTerms = await page.evaluate( async () =>
+	await window.wp.apiFetch( { path: '/wp/v2/media_category?per_page=100&_fields=id,parent' } ) );
+const parentOf = {};
+allTerms.forEach( ( t ) => { parentOf[ t.id ] = t.parent; } );
+const rootOf = ( id ) => { while ( parentOf[ id ] ) { id = parentOf[ id ]; } return id; };
+const homeRoot = rootOf( folder.id );
+const awayId = allTerms.filter( ( t ) => 0 === t.parent && t.id !== homeRoot )[ 0 ].id;
+
+await page.locator( `.vgml-tree .vgml-node[data-id="${ folder.id }"] .vgml-row` ).click();
+await page.waitForTimeout( 1500 );
+
+const roomBefore = await page.evaluate( () =>
+	[ ...document.querySelectorAll( '.attachments-browser .attachments .attachment' ) ].map( ( a ) => a.getAttribute( 'data-id' ) ) );
+const mover = roomBefore[ 0 ];
+const moverBox = await page.locator( `.attachments-browser .attachment[data-id="${ mover }"]` ).boundingBox();
+const awayRowLoc = page.locator( `.vgml-tree .vgml-node[data-id="${ awayId }"] .vgml-row` );
+await awayRowLoc.scrollIntoViewIfNeeded();
+const awayRow = await awayRowLoc.boundingBox();
+
+await page.mouse.move( moverBox.x + 40, moverBox.y + 40 );
+await page.mouse.down();
+await page.mouse.move( moverBox.x + 70, moverBox.y + 40, { steps: 5 } );
+await page.mouse.move( awayRow.x + awayRow.width / 2, awayRow.y + awayRow.height / 2, { steps: 12 } );
+await page.waitForTimeout( 300 );
+await page.mouse.up();
+await page.waitForTimeout( 3000 );
+
+const roomAfter = await page.evaluate( () =>
+	[ ...document.querySelectorAll( '.attachments-browser .attachments .attachment' ) ].map( ( a ) => a.getAttribute( 'data-id' ) ) );
+check( 'the moved file left the view without a reload', ! roomAfter.includes( mover ),
+	`${ roomBefore.length } -> ${ roomAfter.length }` );
+
+// put it back where it was
+await page.evaluate( async ( args ) => {
+	await window.wp.apiFetch( { path: '/vergeml/v1/assign', method: 'POST',
+		data: { taxonomy: 'media_category', attachments: [ parseInt( args.mover, 10 ) ],
+			add: [ args.home ], remove: [ args.away ], mode: 'add' } } );
+}, { mover, home: folder.id, away: awayId } );
+await page.waitForTimeout( 800 );
+
+/* --- the drop overlay names its destination ---------------------------------- */
+
+const leafName = await page.locator( `.vgml-tree .vgml-node[data-id="${ folder.id }"] .vgml-name` ).textContent();
+const hintOn = await page.evaluate( () => {
+	const h1 = document.querySelector( '.uploader-window .uploader-editor-title, .uploader-window h1' );
+	return h1 ? h1.textContent : null;
+} );
+check( 'the drop overlay names the selected folder', !! hintOn && hintOn.indexOf( leafName ) !== -1, hintOn || 'no h1' );
+
+await page.locator( '.vgml-tree .vgml-node[data-id="0"] .vgml-row' ).click();
+await page.waitForTimeout( 1200 );
+const hintOff = await page.evaluate( () => {
+	const h1 = document.querySelector( '.uploader-window .uploader-editor-title, .uploader-window h1' );
+	return h1 ? h1.textContent : null;
+} );
+check( 'and goes back to stock on All files', !! hintOff && hintOff.indexOf( leafName ) === -1, hintOff || 'no h1' );
+
 /* --- the ZIP ----------------------------------------------------------------- */
 
 console.log( '\nthe ZIP' );

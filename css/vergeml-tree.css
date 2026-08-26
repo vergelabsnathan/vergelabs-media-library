@@ -944,19 +944,11 @@ body.vgml-dragging-folder {
 /* --- the folder mark ---------------------------------------------------- */
 
 /*
- *  Two planes sharing one colour. The front takes the folder's colour directly;
- *  the back is the same colour darkened by a filter rather than by a second
- *  variable, so a folder only ever carries one value and the two planes cannot
- *  drift apart.
- *
- *  brightness() on a fill is cheap, works on any hue including the greys, and
- *  needs no second custom property per folder.
+ *  Flat: every plane of the mark is the folder's one colour, solid. When a
+ *  folder is open the JS draws two shapes with a real gap between them, and
+ *  that gap -- not a second tone -- is what says "open".
  */
-.vgml-icon .vgml-f-back {
-	fill: currentColor;
-	filter: brightness( 0.72 );
-}
-
+.vgml-icon .vgml-f-back,
 .vgml-icon .vgml-f-front {
 	fill: currentColor;
 }
@@ -985,14 +977,6 @@ body.vgml-dragging-folder {
    because the thing you are looking at should not be the faintest on screen. */
 .vgml-node.is-selected .vgml-icon.is-empty .vgml-f-back {
 	opacity: 0.8;
-}
-
-/*
- *  Classic wants a filing-cabinet folder rather than a two-plane one: a single
- *  warm fill, which is the look people coming from FileBird expect.
- */
-.vgml-tree[data-skin="classic"] .vgml-icon .vgml-f-back {
-	filter: brightness( 0.85 );
 }
 
 /* High contrast has no room for tonal separation -- it needs edges. */

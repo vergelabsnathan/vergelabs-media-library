@@ -919,10 +919,32 @@
 		} )();
 	}
 
+	/*
+	 *  The drag-and-drop overlay names its destination. Files dropped on the
+	 *  grid land in the selected folder (BeforeUpload adds the folder to the
+	 *  upload), and the overlay is where that promise gets made visible --
+	 *  "Drop files to add to (folder)" instead of the stock line, so nobody
+	 *  has to drop one and check where it went.
+	 */
+	function dropHint() {
+		var h1 = document.querySelector( '.uploader-window .uploader-editor-title, .uploader-window h1' );
+		if ( ! h1 ) {
+			return;
+		}
+		if ( ! h1.getAttribute( 'data-vgml-stock' ) ) {
+			h1.setAttribute( 'data-vgml-stock', h1.textContent );
+		}
+		var node = uploadTarget > 0 && state.byId ? state.byId[ uploadTarget ] : null;
+		h1.textContent = node
+			? sprintf( l10n.dropInto, node.name )
+			: h1.getAttribute( 'data-vgml-stock' );
+	}
+
 	function select( id ) {
 		state.selected = id;
 		state.smartSelected = '';
 		uploadTarget = id > 0 ? id : 0;
+		dropHint();
 		render();
 		persist( { selected: id > 0 ? id : 0 } );
 
@@ -1848,11 +1870,32 @@
 			state.lastUndo = res.undo;
 			applyCounts( res );
 			var moved = ( res.changed || [] ).length;
+			if ( moved && move ) {
+				bumpGrid();
+			}
 			toast( 1 === moved ? l10n.undoAssignedOne : sprintf( l10n.undoAssigned, moved ),
 				res.undo ? undo : null );
 		} ).catch( function () {
 			toast( l10n.failed, null );
 		} );
+	}
+
+	/*
+	 *  After a move, the grid still shows the file where it no longer is: the
+	 *  browser's filtered collection was queried before the file changed
+	 *  folders, and nothing tells it to ask again. A bumped throwaway prop
+	 *  does -- the same trick the uploader uses -- so the tile leaves the
+	 *  moment the drop lands. Only worth a round trip when the view is
+	 *  actually filtered; on All files the move changes nothing visible.
+	 */
+	function bumpGrid() {
+		if ( 0 === state.selected && ! state.smartSelected ) {
+			return;
+		}
+		var lib = libraryProps();
+		if ( lib ) {
+			lib.set( { vergeml_bump: String( Date.now() ) } );
+		}
 	}
 
 	/*
@@ -1895,6 +1938,7 @@
 			data: { taxonomy: payload.taxonomy, batch: payload.batch }
 		} ).then( function ( res ) {
 			applyCounts( res );
+			bumpGrid();
 			toast( l10n.undone, null );
 		} ).catch( function () {
 			toast( l10n.failed, null );
@@ -2129,20 +2173,23 @@
 		} );
 
 		/*
-		 *  Rounder and simpler than the first draft, which had the sharp-tabbed
-		 *  silhouette of a 2005 file manager. The back plane is the whole folder
-		 *  with a soft tab; the front is a rounded panel that sits flat when
-		 *  closed and tilts open -- the same two-plane idea, in this decade's
-		 *  radii.
+		 *  Flat. One silhouette, one colour, no simulated depth -- the faux-3D
+		 *  two-plane fill read as dated next to the rest of the panel. Closed
+		 *  is a single solid rounded folder. Open is the flat open-folder
+		 *  glyph: a thin band of the back sheet above a tilted front flap,
+		 *  separated by a real gap that lets the row background through, so
+		 *  the geometry says "open" without a second tone. Empty folders keep
+		 *  the outline treatment from the stylesheet.
 		 */
-		var back = '<path class="vgml-f-back" d="M1 4.4a2.2 2.2 0 0 1 2.2-2.2h4a2.2 2.2 0 0 1 1.68.78l.9 1.06h7A2.2 2.2 0 0 1 19 6.24v6.56A2.2 2.2 0 0 1 16.8 15H3.2A2.2 2.2 0 0 1 1 12.8V4.4Z"/>';
+		var closedShape = 'M1 4.4a2.2 2.2 0 0 1 2.2-2.2h4a2.2 2.2 0 0 1 1.68.78l.9 1.06h7A2.2 2.2 0 0 1 19 6.24v6.56A2.2 2.2 0 0 1 16.8 15H3.2A2.2 2.2 0 0 1 1 12.8V4.4Z';
 
-		var front = open
-			? '<path class="vgml-f-front" d="M4.6 7.2h13.6a1.55 1.55 0 0 1 1.5 1.95l-1.15 4.2A2.2 2.2 0 0 1 16.43 15H2.6a1.55 1.55 0 0 1-1.5-1.95l1.15-4.2A2.2 2.2 0 0 1 4.37 7.2h.23Z"/>'
-			: '<path class="vgml-f-front" d="M1 8.3a1.8 1.8 0 0 1 1.8-1.8h14.4A1.8 1.8 0 0 1 19 8.3v4.5a2.2 2.2 0 0 1-2.2 2.2H3.2A2.2 2.2 0 0 1 1 12.8V8.3Z"/>';
+		var openBack = 'M1 4.4a2.2 2.2 0 0 1 2.2-2.2h4a2.2 2.2 0 0 1 1.68.78l.9 1.06h7A2.2 2.2 0 0 1 19 6.24v0.36H1V4.4Z';
+		var openFlap = 'M4.75 8h13.5a1.45 1.45 0 0 1 1.4 1.84l-0.95 3.5A2.2 2.2 0 0 1 16.58 15H2.75a1.45 1.45 0 0 1-1.4-1.84l0.95-3.5A2.2 2.2 0 0 1 4.42 8h0.33Z';
 
+		var showOpen = open && ! empty;
 		span.innerHTML = '<svg viewBox="0 0 20 16" width="20" height="16">' +
-			back + ( empty ? '' : front ) + '</svg>';
+			'<path class="vgml-f-back" d="' + ( showOpen ? openBack : closedShape ) + '"/>' +
+			( showOpen ? '<path class="vgml-f-front" d="' + openFlap + '"/>' : '' ) + '</svg>';
 
 		if ( color ) {
 			span.style.color = color;
@@ -2692,6 +2739,8 @@
 		 *  search input a naked box. Its own label already says what it is --
 		 *  move those words inside as the placeholder.
 		 */
+		dropHint();
+
 		var searchTries = 0;
 		var searchTimer = window.setInterval( function () {
 			var searchBox = document.querySelector( '.media-toolbar .search' );
