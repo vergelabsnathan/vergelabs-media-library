@@ -432,7 +432,7 @@ function vergeml_health_reset() {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one delete beats a meta call per attachment.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- one delete beats a meta call per attachment, and the key is this plugin's own indexed meta.
     $wpdb->delete( $wpdb->postmeta, array( 'meta_key' => VERGEML_META_HASH ) );
     // phpcs:enable
 
@@ -758,7 +758,12 @@ function vergeml_health_files( $ids ) {
 
     $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+    /*
+     *  $placeholders is a string of %d markers matching count( $ids ), and
+     *  every value travels through prepare. The sniffs cannot count a dynamic
+     *  list, and the first statement's only placeholders live inside it.
+     */
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
     $posts = $wpdb->get_results( $wpdb->prepare(
         "SELECT ID, post_title, post_mime_type FROM {$wpdb->posts} WHERE ID IN ( $placeholders )",
         $ids
