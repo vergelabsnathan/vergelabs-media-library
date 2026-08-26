@@ -52,6 +52,7 @@
 		state.open[ id ] = true;
 	} );
 	state.selected = ( cfg.state && cfg.state.selected ) || 0;
+	state.filtersOpen = ! cfg.state || undefined === cfg.state.filtersOpen || !! cfg.state.filtersOpen;
 
 	var root = null;
 	var listEl = null;
@@ -248,23 +249,40 @@
 		var total = totals();
 
 		out.push( { pseudo: 'all', label: l10n.all, count: null, depth: 0, id: 0 } );
-		out.push( { pseudo: 'unassigned', label: l10n.unassigned, count: state.unassigned, depth: 0, id: -1 } );
+
+		/*
+		 *  Unfiled earns its row by having something in it. An empty Unfiled
+		 *  is a zero staring at everyone who files things properly -- hidden,
+		 *  unless it is the current view, because the selected row vanishing
+		 *  from under the selection would strand it.
+		 */
+		out.push( { pseudo: 'unassigned', label: l10n.unassigned, count: state.unassigned, depth: 0, id: -1,
+			// present in the DOM always, so it can appear as a drop target
+			// mid-drag; merely hidden when empty and not the current view
+			hide: ! ( state.unassigned > 0 || -1 === state.selected ) } );
 
 		/*
 		 *  The smart folders: rows whose contents are a question. They live in
-		 *  the same top group as All files and Unfiled because all of them are
-		 *  views of the library rather than places in it.
+		 *  the same top group because all of them are views of the library
+		 *  rather than places in it -- behind a toggle, because five extra
+		 *  rows of filters is a lot of panel for someone who never uses them.
 		 */
-		( state.smart || [] ).forEach( function ( sf, i ) {
-			out.push( {
-				pseudo: 'smart',
-				smart: sf,
-				label: sf.label,
-				count: sf.count,
-				depth: 0,
-				id: -100 - i
+		if ( ( state.smart || [] ).length ) {
+			out.push( { pseudo: 'filters', label: l10n.filters || 'Filters', depth: 0, id: -99, open: state.filtersOpen } );
+		}
+
+		if ( state.filtersOpen ) {
+			( state.smart || [] ).forEach( function ( sf, i ) {
+				out.push( {
+					pseudo: 'smart',
+					smart: sf,
+					label: sf.label,
+					count: sf.count,
+					depth: 0,
+					id: -100 - i
+				} );
 			} );
-		} );
+		}
 
 		( function walk( parentId, depth ) {
 			var siblings = ( state.children[ parentId ] || [] ).filter( visible );
@@ -616,6 +634,10 @@
 			return smartRow( entry );
 		}
 
+		if ( 'filters' === entry.pseudo ) {
+			return filtersRow( entry );
+		}
+
 		var selected = ( key === 'all' && ! state.selected && ! state.smartSelected )
 			|| ( key === 'unassigned' && state.selected === -1 );
 
@@ -627,6 +649,10 @@
 			'data-id': key === 'all' ? '0' : '-1',
 			tabindex: '-1'
 		} );
+
+		if ( entry.hide ) {
+			item.classList.add( 'vgml-hidden-unfiled' );
+		}
 
 		var row = el( 'div', { class: 'vgml-row' } );
 		row.appendChild( el( 'span', { class: 'vgml-twist is-leaf', 'aria-hidden': 'true' } ) );
@@ -649,7 +675,14 @@
 
 		// Dropping onto "Unfiled" takes a file out of every folder -- the only way
 		// to unfile something by dragging.
-		if ( key === 'unassigned' ) {
+		if ( key === 'unassigned' || key === 'all' ) {
+			/*
+			 *  All files unfiles too: with an empty Unfiled hidden (and no
+			 *  longer popping in mid-drag, which shifted every row 38px under
+			 *  the cursor), dragging out of every folder still needs a
+			 *  standing target. "Drop on All files" reads as "just a file
+			 *  again", which is what unfiling is.
+			 */
 			unfileTarget( row );
 		}
 
@@ -665,6 +698,28 @@
 	 *  would be a lie. Clicking it runs the scan in place, progress in the row,
 	 *  then filters -- one gesture from "unknown" to "here they are".
 	 */
+	function filtersRow( entry ) {
+		var li = el( 'li', { class: 'vgml-node vgml-filters-head', role: 'treeitem',
+			'aria-expanded': entry.open ? 'true' : 'false', 'data-id': entry.id } );
+		var row = el( 'div', { class: 'vgml-row' } );
+
+		var twist = el( 'span', { class: 'vgml-twist', 'aria-hidden': 'true' } );
+		twist.innerHTML = chevron();
+		if ( entry.open ) { twist.classList.add( 'is-open' ); }
+		row.appendChild( twist );
+
+		row.appendChild( el( 'span', { class: 'vgml-name vgml-filters-label' }, entry.label ) );
+
+		row.addEventListener( 'click', function () {
+			state.filtersOpen = ! state.filtersOpen;
+			render();
+			persist( { filtersOpen: state.filtersOpen ? 1 : 0 } );
+		} );
+
+		li.appendChild( row );
+		return li;
+	}
+
 	function smartRow( entry ) {
 
 		var sf = entry.smart;

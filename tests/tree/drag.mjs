@@ -195,7 +195,9 @@ seen.length = 0;
  */
 {
 	const from = await page.$( `#post-${ fileId }` );
-	const to = await page.$( '.vgml-pseudo[data-id="-1"] .vgml-row' );
+	// an empty Unfiled row is hidden now; All files unfiles too and always exists
+	const to = await page.$( '.vgml-node[data-id="-1"]:not(.vgml-hidden-unfiled) .vgml-row' ) ||
+		await page.$( '.vgml-node[data-id="0"] .vgml-row' );
 
 	if ( ! from || ! to ) {
 		check( 'the Unfiled row is a drop target', false, from ? 'no Unfiled row' : 'no file row' );

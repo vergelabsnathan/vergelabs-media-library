@@ -35,7 +35,7 @@
 	 */
 	--vgml-radius: 4px;
 	--vgml-row: 38px;
-	--vgml-pad: 14px;
+	--vgml-pad: 16px;
 	--vgml-font: 13.5px;
 	--vgml-weight: 400;
 	--vgml-icon: #8c8f94;
@@ -1888,4 +1888,169 @@ button.vgml-crumb:hover {
 .vgml-crumb-sep {
 	color: #a7aaad;
 	user-select: none;
+}
+
+/* --- the Filters group head ---------------------------------------------- */
+
+.vgml-filters-head .vgml-row {
+	cursor: pointer;
+}
+
+.vgml-filters-label {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var( --vgml-muted );
+}
+
+/* == The golden rules =========================================================
+ *
+ *  One system for every control on both screens, ending the drift of a
+ *  square button beside a rounded one beside a chip of a third height:
+ *
+ *      control height   34px          (all buttons, inputs, selects)
+ *      radius           8px           (controls)   999px (count badges,
+ *                                     the drop pill)   10px (popovers)
+ *      gaps             8px           between controls
+ *      panel padding    16px inline
+ *      type             13px, 500 for button labels
+ *
+ *  Everything below re-states earlier sizes onto this grid; it wins by
+ *  being last.
+ */
+
+/* -- the panel head: New folder, Upload, fold -- one row, one height ------- */
+
+.vgml-head {
+	gap: 8px;
+}
+
+.vgml-tree .vgml-new,
+.vgml-tree .vgml-new.button.button-small,
+.vgml-tree .vgml-new.button-primary {
+	height: 34px;
+	line-height: 32px;
+	padding: 0 14px;
+	border: 0;
+	border-radius: 8px;
+	background: var( --vgml-accent );
+	color: #fff;
+	font-size: 13px;
+	font-weight: 500;
+	box-shadow: none;
+}
+
+.vgml-tree .vgml-new:hover,
+.vgml-tree .vgml-new:focus {
+	background: color-mix( in srgb, var( --vgml-accent ) 85%, #000 );
+	color: #fff;
+	border: 0;
+	box-shadow: none;
+}
+
+.vgml-tree .vgml-upload,
+.vgml-tree .vgml-upload.button.button-small {
+	height: 34px;
+	line-height: 34px;
+	padding: 0 14px;
+	margin-inline-start: 0;
+	border: 0;
+	border-radius: 8px;
+	background: #e9eaec;
+	color: var( --vgml-fg );
+	font-size: 13px;
+	font-weight: 500;
+	box-shadow: none;
+}
+
+.vgml-fold {
+	width: 34px;
+	height: 34px;
+	border-radius: 8px;
+}
+
+/* -- the tools row: same height, same radius, quiet ------------------------ */
+
+.vgml-tools {
+	gap: 8px;
+	padding: 0 var( --vgml-pad ) 8px;
+}
+
+.vgml-tools .button,
+.vgml-tools .button.button-small {
+	height: 34px;
+	line-height: 34px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 8px;
+	font-size: 13px;
+	font-weight: 500;
+	box-shadow: none;
+}
+
+/* -- both search fields ---------------------------------------------------- */
+
+.vgml-tree .vgml-search {
+	min-height: 34px;
+	height: 34px;
+	border-radius: 8px;
+	font-size: 13px;
+}
+
+.vgml-find {
+	padding-bottom: 8px;
+}
+
+/* -- breadcrumbs join the grid --------------------------------------------- */
+
+.vgml-crumb {
+	border-radius: 8px;
+	padding: 5px 9px;
+}
+
+/* -- content toolbar (grid + list) already 34/8; pin it -------------------- */
+
+body.upload-php .media-frame .attachments-browser .media-toolbar select.attachment-filters,
+body.upload-php .media-frame .attachments-browser .media-toolbar .search,
+body.upload-php .media-frame .attachments-browser .media-toolbar .button,
+body.upload-php .tablenav .button,
+body.upload-php .tablenav select,
+body.upload-php .search-box input[type="search"],
+body.upload-php .search-box .button {
+	height: 34px;
+	line-height: 34px;
+	border-radius: 8px;
+	font-size: 13px;
+}
+
+/* -- the frame's bottom bar matches ---------------------------------------- */
+
+body.upload-php .media-frame-toolbar .media-toolbar .media-button {
+	height: 34px;
+	line-height: 34px;
+	border-radius: 8px;
+	font-size: 13px;
+}
+
+/* -- popovers: one radius above the controls' ------------------------------ */
+
+.vgml-overflow,
+.vgml-overflow.vgml-context {
+	border-radius: 10px;
+}
+
+/* -- select-mode top buttons ----------------------------------------------- */
+
+body.upload-php .media-frame.mode-select .attachments-browser .media-toolbar .button {
+	height: 34px;
+	line-height: 34px;
+	border-radius: 8px;
+}
+
+/*  An empty Unfiled is hidden, full stop -- it briefly reappeared during
+ *  drags, and the 38px reveal shifted every row under the cursor at the
+ *  exact moment aim mattered. Unfiling by drag lands on All files instead. */
+.vgml-node.vgml-hidden-unfiled {
+	display: none;
 }
