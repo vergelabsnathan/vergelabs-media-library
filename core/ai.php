@@ -305,11 +305,11 @@ function vergeml_ai_pending( $scope, $limit = 0 ) {
     // which is what stops a permanently failing file wedging the loop.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-        'SELECT p.ID FROM ' . $wpdb->posts . ' p
-          LEFT JOIN ' . vergeml_index_table() . ' i ON i.attachment_id = p.ID
+        "SELECT p.ID FROM {$wpdb->posts} p
+          LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = p.ID
          WHERE p.post_type = %s AND p.post_mime_type LIKE %s
            AND i.attachment_id IS NULL
-         ORDER BY p.ID ASC LIMIT %d',
+         ORDER BY p.ID ASC LIMIT %d",
         'attachment',
         $mime,
         $cap
@@ -412,7 +412,7 @@ function vergeml_ai_search_join( $join, $query ) {
     global $wpdb;
 
     if ( false === strpos( $join, 'vergeml_ai_index' ) ) {
-        $join .= ' LEFT JOIN ' . vergeml_index_table() . " vergeml_ai_index ON vergeml_ai_index.attachment_id = {$wpdb->posts}.ID ";
+        $join .= " LEFT JOIN {$wpdb->vergeml_ai_index} vergeml_ai_index ON vergeml_ai_index.attachment_id = {$wpdb->posts}.ID ";
     }
 
     return $join;
@@ -559,7 +559,7 @@ function vergeml_ai_rest_status() {
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     $images  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type LIKE %s", $wpdb->esc_like( 'image/' ) . '%' ) );
-    $indexed = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . vergeml_index_table() . " WHERE error = ''" );
+    $indexed = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = ''" );
     // phpcs:enable
 
     $settings = vergeml_ai_settings();

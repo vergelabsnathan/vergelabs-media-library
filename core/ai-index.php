@@ -48,9 +48,34 @@ const VERGEML_META_AI = '_vergeml_ai';
 const VERGEML_INDEX_BATCH = 100;
 
 
+/**
+ *  The table, registered on $wpdb the way core registers its own.
+ *
+ *  Not decoration. A name interpolated from a helper function is a string the
+ *  static analysis cannot follow, so every query built that way reads to
+ *  Plugin Check as an unprepared one -- and Plugin Check is the submission
+ *  gate. Registered here, `$wpdb->vergeml_ai_index` is a property like
+ *  `$wpdb->posts`, understood by the sniffs and re-prefixed for us whenever a
+ *  multisite install switches blog.
+ */
+
+vergeml_index_register_table();
+
+function vergeml_index_register_table() {
+
+    global $wpdb;
+
+    $wpdb->vergeml_ai_index = $wpdb->prefix . VERGEML_INDEX_TABLE;
+
+    if ( ! in_array( VERGEML_INDEX_TABLE, $wpdb->tables, true ) ) {
+        $wpdb->tables[] = VERGEML_INDEX_TABLE;
+    }
+}
+
+
 function vergeml_index_table() {
     global $wpdb;
-    return $wpdb->prefix . VERGEML_INDEX_TABLE;
+    return $wpdb->vergeml_ai_index;
 }
 
 
@@ -190,7 +215,7 @@ function vergeml_index_get( $attachment_id ) {
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; there is no core API for it.
     $row = $wpdb->get_row( $wpdb->prepare(
-        'SELECT * FROM ' . vergeml_index_table() . ' WHERE attachment_id = %d',
+        "SELECT * FROM {$wpdb->vergeml_ai_index} WHERE attachment_id = %d",
         (int) $attachment_id
     ), ARRAY_A );
     // phpcs:enable
@@ -530,13 +555,13 @@ function vergeml_index_pending_migration( $after = 0, $limit = 0 ) {
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-        'SELECT m.post_id FROM ' . $wpdb->postmeta . ' m
-          LEFT JOIN ' . vergeml_index_table() . ' i ON i.attachment_id = m.post_id
+        "SELECT m.post_id FROM {$wpdb->postmeta} m
+          LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = m.post_id
          WHERE m.meta_key = %s
            AND m.post_id > %d
            AND i.attachment_id IS NULL
          ORDER BY m.post_id ASC
-         LIMIT %d',
+         LIMIT %d",
         VERGEML_META_AI,
         (int) $after,
         $cap
