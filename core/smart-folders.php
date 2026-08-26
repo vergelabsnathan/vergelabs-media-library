@@ -594,7 +594,17 @@ function vergeml_used_in_field( $fields, $post ) {
         $unused = get_post_meta( $post->ID, VERGEML_META_UNUSED, true );
 
         $html = '1' === $unused
-            ? '<em>' . esc_html__( 'Nothing found. The last scan saw no page, post or setting using this file.', 'vergelabs-media-library' ) . '</em>'
+            /*
+             *  Not "nothing found", which reads as "safe to delete".
+             *
+             *  The scan covers post content, builder layouts, widgets and site
+             *  settings. It does not read theme files, stylesheets, or anything
+             *  off the site, so a file this scan cannot place may still be on
+             *  the homepage. The one-star reviews the competition collects are
+             *  all the same review -- somebody deleted what a tool called
+             *  unused -- and the wording is what invites it.
+             */
+            ? '<em>' . esc_html__( 'No references found in the locations the scan covers (post content, builder layouts, widgets and site settings). Other uses — theme files, external links — are not scanned.', 'vergelabs-media-library' ) . '</em>'
             : '<em>' . esc_html__( 'Not scanned yet.', 'vergelabs-media-library' ) . '</em>';
 
     } else {
