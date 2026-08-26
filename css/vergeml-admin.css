@@ -166,3 +166,146 @@
 .vgml-ai-log .is-error {
 	color: #b32d2e;
 }
+
+/* --- Library health -------------------------------------------------------- */
+
+.vgml-health .vgml-import-bar {
+	max-width: 480px;
+	height: 8px;
+	margin: 12px 0 4px;
+	border-radius: 999px;
+	background: #e9eaec;
+	overflow: hidden;
+}
+
+.vgml-health .vgml-import-fill {
+	width: 0;
+	height: 100%;
+	background: #3858e9;
+	transition: width 200ms ease;
+}
+
+.vgml-health-list {
+	max-width: 940px;
+}
+
+.vgml-health-summary {
+	margin: 4px 0 16px;
+	font-weight: 600;
+}
+
+.vgml-health-empty {
+	margin: 4px 0 0;
+	color: #646970;
+}
+
+/*
+ *  One group, one block. The files inside a group are shown at the same size
+ *  next to each other because the only useful thing to do with a duplicate
+ *  report is compare the copies by eye.
+ */
+.vgml-health-group {
+	padding: 12px 0;
+	border-top: 1px solid #f0f0f1;
+}
+
+.vgml-health-group-head {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin-bottom: 8px;
+	font-size: 13px;
+}
+
+.vgml-health-count {
+	font-weight: 600;
+}
+
+.vgml-health-wasted {
+	color: #646970;
+}
+
+.vgml-health-files {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px;
+	margin: 0;
+}
+
+.vgml-health-files li {
+	margin: 0;
+	width: 140px;
+}
+
+.vgml-health-files a {
+	display: block;
+	color: inherit;
+	text-decoration: none;
+}
+
+.vgml-health-files img {
+	display: block;
+	width: 140px;
+	height: 140px;
+	border-radius: 6px;
+	background: #f0f0f1;
+	object-fit: cover;
+}
+
+.vgml-health-nothumb {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 140px;
+	height: 140px;
+	border-radius: 6px;
+	background: #f0f0f1;
+	color: #646970;
+	font-size: 11px;
+	text-align: center;
+	overflow: hidden;
+}
+
+.vgml-health-name {
+	display: block;
+	margin-top: 6px;
+	font-size: 12px;
+	line-height: 1.3;
+	word-break: break-all;
+}
+
+.vgml-health-size {
+	display: block;
+	color: #646970;
+	font-size: 11.5px;
+}
+
+.vgml-health-more,
+.vgml-health-readonly {
+	max-width: 760px;
+	margin-top: 12px;
+	color: #646970;
+	font-size: 12.5px;
+}
+
+/* --- the opt-in card on the home screen ------------------------------------ */
+
+.vgml-stats-card {
+	max-width: 760px;
+	margin-top: 24px;
+	padding: 20px 24px;
+	background: #fff;
+	border-radius: 8px;
+}
+
+.vgml-stats-card h2 {
+	margin-top: 0;
+}
+
+.vgml-stats-card .description {
+	max-width: 62em;
+}
+
+#vgml-stats-note {
+	margin-left: 10px;
+}

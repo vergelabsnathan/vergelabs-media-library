@@ -199,6 +199,12 @@ function vergeml_admin_home() {
             'cap'   => 'manage_categories',
         ),
         array(
+            'page'  => 'media-health',
+            'title' => __( 'Library health', 'vergelabs-media-library' ),
+            'text'  => __( 'Which files are copies of each other — the same upload twice, or one photo exported again at another size — and how much space they take. Reads only.', 'vergelabs-media-library' ),
+            'cap'   => 'manage_categories',
+        ),
+        array(
             'page'  => 'mime-types',
             'title' => __( 'File types', 'vergelabs-media-library' ),
             'text'  => __( 'Which file types may be uploaded, and how they are grouped in the library filters.', 'vergelabs-media-library' ),
@@ -233,6 +239,16 @@ function vergeml_admin_home() {
                 </a>
             <?php endforeach; ?>
         </div>
+
+        <?php
+        /*
+         *  Anything that belongs on the home screen but is not a way in to
+         *  another screen. core/instrument.php puts its opt-in card here --
+         *  a question asked once, in the one place a plugin's own settings
+         *  are expected to live.
+         */
+        do_action( 'vergeml_admin_home_cards' );
+        ?>
 
         <p class="vgml-home-foot">
             <?php

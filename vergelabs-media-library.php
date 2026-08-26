@@ -1195,6 +1195,9 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/gallery-widgets.php' );
         include_once( 'core/folder-tools.php' );
         include_once( 'core/smart-folders.php' );
+        // After smart-folders.php: the health report reads the size index that
+        // file defines, and reuses its constant rather than restating it.
+        include_once( 'core/health.php' );
         include_once( 'core/ai.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {
