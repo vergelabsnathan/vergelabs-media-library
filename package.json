@@ -3,6 +3,7 @@
   "private": true,
   "description": "Dev harness only. Nothing here ships -- the plugin has no build step.",
   "scripts": {
+    "verify": "node tools/verify.mjs",
     "test:tree": "node tests/tree/t0-endpoints.js",
     "test:builders": "node tests/builders/compat.mjs",
     "watch": "node tools/watch-competitors.mjs",
