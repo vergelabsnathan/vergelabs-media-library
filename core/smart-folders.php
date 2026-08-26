@@ -140,69 +140,58 @@ function vergeml_smart_counts() {
     $scanned = vergeml_smart_scan_state();
     $done    = ! empty( $scanned['finished'] );
 
-    $out = array();
+    /*
+     *  All five numbers in ONE statement. They used to be five separate
+     *  counts, which read clearly but pushed the tree endpoint from four
+     *  queries to ten -- and the query budget is the budget. A UNION of the
+     *  same five indexed counts keeps the endpoint flat.
+     */
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- five counts for a panel that ships with the page; each is one indexed statement.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one indexed statement for a panel that ships with the page.
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT 'unused' AS k, COUNT(*) AS c FROM {$wpdb->posts} p
+          JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = '1'
+         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+         UNION ALL
+         SELECT 'no-alt', COUNT(*) FROM {$wpdb->posts} p
+          LEFT JOIN {$wpdb->postmeta} a ON a.post_id = p.ID AND a.meta_key = '_wp_attachment_image_alt'
+         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+           AND p.post_mime_type LIKE 'image/%%'
+           AND ( a.meta_id IS NULL OR a.meta_value = '' )
+         UNION ALL
+         SELECT 'large', COUNT(*) FROM {$wpdb->posts} p
+          JOIN {$wpdb->postmeta} f ON f.post_id = p.ID AND f.meta_key = %s
+         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+           AND CAST( f.meta_value AS UNSIGNED ) > %d
+         UNION ALL
+         SELECT 'unattached', COUNT(*) FROM {$wpdb->posts}
+         WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_parent = 0
+         UNION ALL
+         SELECT 'recent', COUNT(*) FROM {$wpdb->posts}
+         WHERE post_type = 'attachment' AND post_status = 'inherit'
+           AND YEAR( post_date ) = %d AND MONTH( post_date ) = %d",
+        VERGEML_META_UNUSED,
+        VERGEML_META_FILESIZE,
+        vergeml_large_bytes(),
+        (int) current_time( 'Y' ),
+        (int) current_time( 'n' )
+    ) );
+    // phpcs:enable
 
-    foreach ( vergeml_smart_folders() as $key => $spec ) {
-
-        if ( $spec['scan'] && ! $done ) {
-            $out[ $key ] = null;
-            continue;
-        }
-
-        switch ( $key ) {
-
-            case 'unused':
-                $out[ $key ] = (int) $wpdb->get_var( $wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$wpdb->posts} p
-                      JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = '1'
-                     WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'",
-                    VERGEML_META_UNUSED
-                ) );
-                break;
-
-            case 'no-alt':
-                $out[ $key ] = (int) $wpdb->get_var(
-                    "SELECT COUNT(*) FROM {$wpdb->posts} p
-                      LEFT JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_wp_attachment_image_alt'
-                     WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-                       AND p.post_mime_type LIKE 'image/%'
-                       AND ( m.meta_id IS NULL OR m.meta_value = '' )"
-                );
-                break;
-
-            case 'large':
-                $out[ $key ] = (int) $wpdb->get_var( $wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$wpdb->posts} p
-                      JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s
-                     WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-                       AND CAST( m.meta_value AS UNSIGNED ) > %d",
-                    VERGEML_META_FILESIZE,
-                    vergeml_large_bytes()
-                ) );
-                break;
-
-            case 'unattached':
-                $out[ $key ] = (int) $wpdb->get_var(
-                    "SELECT COUNT(*) FROM {$wpdb->posts}
-                     WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_parent = 0"
-                );
-                break;
-
-            case 'recent':
-                $out[ $key ] = (int) $wpdb->get_var( $wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$wpdb->posts}
-                     WHERE post_type = 'attachment' AND post_status = 'inherit'
-                       AND YEAR( post_date ) = %d AND MONTH( post_date ) = %d",
-                    (int) current_time( 'Y' ),
-                    (int) current_time( 'n' )
-                ) );
-                break;
-        }
+    $counts = array();
+    foreach ( (array) $rows as $row ) {
+        $counts[ $row->k ] = (int) $row->c;
     }
 
-    // phpcs:enable
+    $out = array();
+
+    foreach ( vergeml_smart_folders() as $key => $spec ) {
+        // Scan-backed folders whose scan never ran report null, not zero:
+        // "we have not looked" and "there are none" are different answers.
+        $out[ $key ] = ( $spec['scan'] && ! $done )
+            ? null
+            : ( isset( $counts[ $key ] ) ? $counts[ $key ] : 0 );
+    }
 
     return $out;
 }

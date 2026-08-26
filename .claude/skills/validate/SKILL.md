@@ -81,7 +81,7 @@ Budgets, both environments (they must agree — a difference is a bug):
 
 | Endpoint | Queries | Note |
 |---|---|---|
-| `vergeml/v1/tree` | **4** | must not grow with folder count; verified flat from 200 → 2000 folders |
+| `vergeml/v1/tree` | **6** | must not grow with folder count; verified flat from 200 → 2000 folders. 4 + 1 (five smart-folder counts as one UNION) + 1 (per-user tree state); raised deliberately 26-08-2026 |
 | `wp/v2/media?per_page=40` | 6 | core's own baseline, for comparison |
 
 A rise in query count is a regression even if wall-clock improved. If the tree's count moves with

@@ -3,7 +3,7 @@
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
 Description: Categories, tags and custom taxonomies for the media library, MIME type management, and configurable media grid filters.
-Version: 3.1.0
+Version: 3.2.0
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
