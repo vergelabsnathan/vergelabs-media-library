@@ -152,8 +152,16 @@ body.vgml-has-tree .vgml-tree {
  *  Only then: raised permanently, the panel also sat on top of everything
  *  WordPress happens to place under its footprint, and swallowed clicks.
  */
-body.upload-php.vgml-os-drag .vgml-tree:not(.vgml-in-modal) {
-	position: relative;
+body.vgml-mode-grid.vgml-os-drag .vgml-tree:not(.vgml-in-modal) {
+	/*
+	 *  z-index only -- never position. The panel is absolutely positioned on
+	 *  both screens, so z-index already applies; forcing position:relative
+	 *  here yanked the list screen's panel out of its absolute slot the
+	 *  moment a file drag began -- it jumped into the flow, the drop targets
+	 *  moved out from under the cursor, and every list-view drop died.
+	 *  Scoped to the grid screen because only the grid has the full-screen
+	 *  drop overlay this lift exists to beat.
+	 */
 	z-index: 250001;
 }
 

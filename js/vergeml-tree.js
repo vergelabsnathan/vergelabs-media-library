@@ -2685,7 +2685,15 @@
 			dropFolder = parseInt( node.getAttribute( 'data-id' ), 10 );
 			if ( ! sendFiles( files ) ) {
 				dropFolder = 0;
+				return;
 			}
+			/*
+			 *  The view follows the drop. Without this the screen kept showing
+			 *  whatever was selected before -- a different folder, a smart
+			 *  view -- and the file seemed to vanish into wherever it went.
+			 *  Selecting the target folder means you watch it arrive.
+			 */
+			select( dropFolder );
 		} );
 	}
 
