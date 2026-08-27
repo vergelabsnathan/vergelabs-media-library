@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.2.0
+Stable tag: 3.3.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -225,6 +225,20 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.3.0 ###
+*The Librarian: see the folders your library would get, and put them back*
+
+= Added =
+* **The Librarian.** It shows you the folder structure it would build from your own files, branch by branch, before anything is filed. Each folder shows how many files it would hold, a few of them as thumbnails, and a line saying why those files were grouped together. You can rename a folder before it is made, or say "not this one" and leave those files where they are.
+* **Two ways to file, and you choose.** By subject, grouped from what the pictures show; or by date, from when each file was uploaded — which needs no AI, no credits and no licence.
+* **Undo, as a first-class thing rather than an apology.** Every assignment the Librarian makes is written down, so undoing it removes exactly what it did and nothing else. A file you have moved yourself since is left where you put it and reported. A folder the Librarian created is deleted only if it is empty afterwards; if you have since put your own files in it, it is kept and you are told.
+* **It only touches files that have no folder.** A library you have already organised by hand is unchanged by pressing Apply, and the files it skipped are counted so you can see it did nothing rather than wondering.
+* **Existing folders are reused, never duplicated.** If a proposed folder already exists, your files go into the one you already have. No "Photos (2)".
+* **It says what it will do before it does it.** Counted, never estimated: how many files, how many folders would be created, how many existing folders would be added to, and how many files it would leave alone. If it cannot count something honestly it says so instead of guessing.
+* **A way in from where you notice the problem.** The folder tree on the media library screen now shows how many files have no folder, with a link to sort them. It appears only when something is unfiled.
+* **Applying is interruptible.** It works in small batches, so nothing times out on shared hosting. You can pause it, close the tab, and pick it up where it stopped.
+* **Demo mode is now a setting you can click**, on the AI screen, instead of something only reachable through the REST API. It invents descriptions locally from file names — nothing is sent anywhere and no credits are spent — so you can see what the Librarian would do to your library before paying for anything. The captions are not real, and the screen says so.
 
 ### 3.1.0 ###
 *Folders*

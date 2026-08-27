@@ -22,10 +22,15 @@ scp -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/d
   /tmp/vgml.tgz root@185.229.224.239:/tmp/
 ssh -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
   root@185.229.224.239 'cd /tmp && rm -rf lint && mkdir lint && tar xzf vgml.tgz -C lint &&
+  echo "linting $(find lint -name "*.php" | wc -l) files" &&
   find lint -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"; echo "lint done"'
 ```
 
-Empty output between the command and `lint done` means clean.
+Empty output between the file count and `lint done` means clean. **A count of zero is a
+failure**, not a pass: the tar found nothing, and a gate that lints no files prints exactly
+what a clean gate prints. This has already happened — the paths in this file went stale after
+the repo moved, so the tar packed an empty directory and the gate stayed green while checking
+nothing.
 
 ## Gate 2 â€” PHP 7.4 syntax floor
 
