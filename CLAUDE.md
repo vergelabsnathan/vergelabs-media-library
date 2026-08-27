@@ -2,7 +2,7 @@
 
 GPLv2 fork of Enhanced Media Library 2.9.4, taken over after upstream went unmaintained.
 Free plugin on wordpress.org; a paid Pro add-on (`C:\dev\media-plugin\pro`) sells
-AI image descriptions on top of it. Currently **3.0.0**, not yet submitted.
+AI image descriptions on top of it. Currently **3.2.0**, not yet submitted.
 
 Everything below is a constraint that has already drawn blood. Anything conditional lives in
 `docs/` and is read only when the task touches it.

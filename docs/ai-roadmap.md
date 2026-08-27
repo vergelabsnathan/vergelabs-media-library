@@ -84,14 +84,50 @@ one sample-Librarian grant.
   override, https enforced), licence sealed at rest (AES-256-GCM off the
   auth salt), REST exposes only booleans.
 
-## What already exists (as of 26-08-2026)
+## What already exists (as of 27-08-2026)
 
 Described Library v1 (postmeta `_vergeml_ai` — migrates to the Phase-1
 table), Fix Missing Alt Text, caption-enriched media search, the credits
 connector + `docs/ai-service.md`, mock provider driving 18 PHP + 9 browser
-checks. AI screen under VergeLabs Library → AI.
+checks. AI screen under VergeLabs Library → AI, with demo mode as a
+control on it rather than a REST-only setting.
+
+**Phases 1, 2 and 3 are built.** Phase 3 (`plans/phase-3-librarian.md`,
+executed 27-08-2026): two custom tables, six REST endpoints, the review
+screen, apply and undo, the credits gate as an open filter. Seven
+validation gates green; 68 PHP + 36 browser assertions. The Librarian is
+reachable from the folder tree on the media library screen, not only from
+its own submenu.
+
+Two things about Phase 3 that a later session should not mistake for
+oversights:
+
+- **The visual pass is deferred by decision, not outstanding.** The
+  screens work and are consistent with the admin's own colour scheme, but
+  nobody has judged them as design. Deliberately held until every feature
+  is in, so one pass covers all the screens rather than seven that never
+  quite agree. The CSS is hand-written with no build step, so deferring
+  costs nothing.
+- **Two query budgets in the plan were unreachable arithmetic.** Apply is
+  4 + 4 queries per file, not 4 + 2: `wp_set_object_terms()` costs four
+  for one fresh assignment, measured, and going lower means writing
+  `term_relationships` by hand and dropping every hook other plugins hang
+  on term assignment. The pre-flight is 11, not 6, because the organise
+  quote it wraps is 5 on its own. `tests/perf/bench.mjs` records the
+  measured figures with their derivations. What is flat — and asserted —
+  is that a step costs the same however many have run before it.
 
 ## Open questions that only real data answers
+
+**Is the proposed tree any good?** Unanswerable today and not for want of
+trying: the mock provider derives its embeddings from file names, so every
+cluster on the test box groups files by what they are called rather than by
+what they show. `tests/organize/test-organize.php` says the same thing in
+its own header. Two separate questions to keep apart when the service is
+live — whether the clustering behaves (branch sizes, depth, how much lands
+in "Needs a look", whether labels are nameable), which is testable now with
+synthetic vectors of known shape; and whether the folders are *right*,
+which is not testable until real embeddings exist.
 
 Collected via the Phase-0 telemetry + the five-user interviews: real
 library sizes and kind mix, actual folder-tree shapes, upload volumes,
