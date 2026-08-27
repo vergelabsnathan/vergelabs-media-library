@@ -1,0 +1,147 @@
+{
+    "fixture": "diff",
+    "note": "The same library at two thresholds, diffed from the stored trees rather than by re-running. This is what the screen shows when somebody changes how big a folder may be.",
+    "recorded": "2026-08-27",
+    "diff": {
+        "a": 88,
+        "b": 89,
+        "added": [
+            "Account Basket",
+            "Account Basket / Account Basket Fx",
+            "Account Basket / Body Canvas",
+            "Account Basket / Body Canvas / Body Canvas Fx"
+        ],
+        "removed": [
+            "Account Basket"
+        ],
+        "renamed": [],
+        "moved": [
+            {
+                "id": 20647,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas / Body Canvas Fx"
+            },
+            {
+                "id": 20648,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas / Body Canvas Fx"
+            },
+            {
+                "id": 20649,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas / Body Canvas Fx"
+            },
+            {
+                "id": 20650,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas / Body Canvas Fx"
+            },
+            {
+                "id": 20652,
+                "from": "Account Basket",
+                "to": "Account Basket / Account Basket Fx"
+            },
+            {
+                "id": 20653,
+                "from": "Account Basket",
+                "to": "Account Basket / Account Basket Fx"
+            },
+            {
+                "id": 20654,
+                "from": "Account Basket",
+                "to": "Account Basket / Account Basket Fx"
+            },
+            {
+                "id": 20655,
+                "from": "Account Basket",
+                "to": "Account Basket / Account Basket Fx"
+            },
+            {
+                "id": 20656,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas / Body Canvas Fx"
+            },
+            {
+                "id": 20657,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas / Body Canvas Fx"
+            },
+            {
+                "id": 20660,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas"
+            },
+            {
+                "id": 20661,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas"
+            },
+            {
+                "id": 20662,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas"
+            },
+            {
+                "id": 20664,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas"
+            },
+            {
+                "id": 20665,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas"
+            },
+            {
+                "id": 20666,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas / Body Canvas Fx"
+            },
+            {
+                "id": 20667,
+                "from": "Account Basket",
+                "to": "Account Basket / Account Basket Fx"
+            },
+            {
+                "id": 20671,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas"
+            },
+            {
+                "id": 20673,
+                "from": "Account Basket",
+                "to": "Account Basket / Account Basket Fx"
+            },
+            {
+                "id": 20677,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas / Body Canvas Fx"
+            },
+            {
+                "id": 20683,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas"
+            },
+            {
+                "id": 20698,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas / Body Canvas Fx"
+            },
+            {
+                "id": 20700,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas / Body Canvas Fx"
+            },
+            {
+                "id": 20703,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas"
+            },
+            {
+                "id": 20704,
+                "from": "Account Basket",
+                "to": "Account Basket / Body Canvas"
+            }
+        ],
+        "same": false
+    }
+}

@@ -1,0 +1,663 @@
+{
+    "fixture": "deep",
+    "note": "The same library with folders allowed to hold only eight, so the splitting recurses. Branches that stopped because they ran out of depth rather than because they were small enough are flagged \"capped\", and the screen has to show them differently.",
+    "recorded": "2026-08-27",
+    "source": "mock embeddings; the vectors are derived from filenames, so the clusters are not evidence about quality",
+    "max_branch": 8,
+    "steps": 5,
+    "run": {
+        "run_id": 89,
+        "parent_run_id": 0,
+        "status": "done",
+        "k": 10,
+        "n": 58,
+        "took": {
+            "load_ms": 1.3,
+            "cluster_ms": 9.7
+        },
+        "tree": [
+            {
+                "key": "Account Basket / Body Canvas / Body Canvas Fx",
+                "label": "Body Canvas Fx",
+                "path": [
+                    "Account Basket",
+                    "Body Canvas",
+                    "Body Canvas Fx"
+                ],
+                "depth": 2,
+                "parent": "Account Basket / Body Canvas",
+                "size": 10,
+                "total": 10,
+                "members": [
+                    {
+                        "id": 20647,
+                        "distance": 0.5231,
+                        "why": "Filed under “Body Canvas Fx” — 0.52 from the centre; shares fx, vgml, img."
+                    },
+                    {
+                        "id": 20648,
+                        "distance": 0.7552,
+                        "why": "Filed under “Body Canvas Fx” — 0.76 from the centre; shares fx, vgml, img."
+                    },
+                    {
+                        "id": 20649,
+                        "distance": 0.6709,
+                        "why": "Filed under “Body Canvas Fx” — 0.67 from the centre; shares fx, vgml, img."
+                    },
+                    {
+                        "id": 20650,
+                        "distance": 0.6,
+                        "why": "Filed under “Body Canvas Fx” — 0.60 from the centre; shares fx, vgml, img."
+                    },
+                    {
+                        "id": 20656,
+                        "distance": 0.6947,
+                        "why": "Filed under “Body Canvas Fx” — 0.69 from the centre; shares fx, vgml, img."
+                    },
+                    {
+                        "id": 20657,
+                        "distance": 0.6896,
+                        "why": "Filed under “Body Canvas Fx” — 0.69 from the centre; shares fx, vgml, img."
+                    },
+                    {
+                        "id": 20666,
+                        "distance": 0.6911,
+                        "why": "Filed under “Body Canvas Fx” — 0.69 from the centre; shares fx, vgml, img."
+                    },
+                    {
+                        "id": 20677,
+                        "distance": 0.6335,
+                        "why": "Filed under “Body Canvas Fx” — 0.63 from the centre; shares fx, vgml, img."
+                    },
+                    {
+                        "id": 20698,
+                        "distance": 0.6437,
+                        "why": "Filed under “Body Canvas Fx” — 0.64 from the centre; shares fx, vgml, img."
+                    },
+                    {
+                        "id": 20700,
+                        "distance": 0.6459,
+                        "why": "Filed under “Body Canvas Fx” — 0.65 from the centre; shares fx, vgml, img."
+                    }
+                ],
+                "capped": true,
+                "reason": "10 files whose descriptions cluster together; named for fx, vgml, img, which the rest of the library mostly does not share.",
+                "agreement": {
+                    "close": 0,
+                    "mid": 0,
+                    "far": 10
+                },
+                "samples": [
+                    {
+                        "id": 20647,
+                        "title": "Wordmark Primary",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-wordmark-primary-150x150.jpg"
+                    },
+                    {
+                        "id": 20648,
+                        "title": "Wordmark Reversed",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-wordmark-reversed-150x150.jpg"
+                    },
+                    {
+                        "id": 20649,
+                        "title": "Monogram Dark",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-monogram-dark-150x150.jpg"
+                    }
+                ]
+            },
+            {
+                "key": "Account Basket",
+                "label": "Account Basket",
+                "path": [
+                    "Account Basket"
+                ],
+                "depth": 0,
+                "parent": "",
+                "size": 9,
+                "total": 34,
+                "members": [
+                    {
+                        "id": 20684,
+                        "distance": 0.4543,
+                        "why": "Filed under “Account Basket” — its own group was too small to be a folder (0.45 from the centre)."
+                    },
+                    {
+                        "id": 20699,
+                        "distance": 0.4543,
+                        "why": "Filed under “Account Basket” — its own group was too small to be a folder (0.45 from the centre)."
+                    },
+                    {
+                        "id": 20695,
+                        "distance": 0.3082,
+                        "why": "Filed under “Account Basket” — its own group was too small to be a folder (0.31 from the centre)."
+                    },
+                    {
+                        "id": 20697,
+                        "distance": 0.3082,
+                        "why": "Filed under “Account Basket” — its own group was too small to be a folder (0.31 from the centre)."
+                    },
+                    {
+                        "id": 20651,
+                        "distance": 0.5694,
+                        "why": "Filed under “Account Basket” — its own group was too small to be a folder (0.57 from the centre)."
+                    },
+                    {
+                        "id": 20663,
+                        "distance": 0.5169,
+                        "why": "Filed under “Account Basket” — its own group was too small to be a folder (0.52 from the centre)."
+                    },
+                    {
+                        "id": 20702,
+                        "distance": 0.5266,
+                        "why": "Filed under “Account Basket” — its own group was too small to be a folder (0.53 from the centre)."
+                    },
+                    {
+                        "id": 20676,
+                        "distance": 0.5119,
+                        "why": "Filed under “Account Basket” — its own group was too small to be a folder (0.51 from the centre)."
+                    },
+                    {
+                        "id": 20693,
+                        "distance": 0.5119,
+                        "why": "Filed under “Account Basket” — its own group was too small to be a folder (0.51 from the centre)."
+                    }
+                ],
+                "capped": false,
+                "reason": "",
+                "agreement": {
+                    "close": 0,
+                    "mid": 2,
+                    "far": 7
+                },
+                "samples": [
+                    {
+                        "id": 20684,
+                        "title": "Office Meeting Room",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-office-meeting-room-150x150.jpg"
+                    },
+                    {
+                        "id": 20699,
+                        "title": "IMG_4822",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-IMG_4822-150x150.jpg"
+                    },
+                    {
+                        "id": 20695,
+                        "title": "Archive 2025 Campaign",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-archive-2025-campaign-150x150.jpg"
+                    }
+                ]
+            },
+            {
+                "key": "Account Basket / Body Canvas",
+                "label": "Body Canvas",
+                "path": [
+                    "Account Basket",
+                    "Body Canvas"
+                ],
+                "depth": 1,
+                "parent": "Account Basket",
+                "size": 9,
+                "total": 19,
+                "members": [
+                    {
+                        "id": 20703,
+                        "distance": 0.3834,
+                        "why": "Filed under “Body Canvas” — its own group was too small to be a folder (0.38 from the centre)."
+                    },
+                    {
+                        "id": 20704,
+                        "distance": 0.3834,
+                        "why": "Filed under “Body Canvas” — its own group was too small to be a folder (0.38 from the centre)."
+                    },
+                    {
+                        "id": 20660,
+                        "distance": 0.3376,
+                        "why": "Filed under “Body Canvas” — its own group was too small to be a folder (0.34 from the centre)."
+                    },
+                    {
+                        "id": 20661,
+                        "distance": 0.3376,
+                        "why": "Filed under “Body Canvas” — its own group was too small to be a folder (0.34 from the centre)."
+                    },
+                    {
+                        "id": 20664,
+                        "distance": 0.3177,
+                        "why": "Filed under “Body Canvas” — its own group was too small to be a folder (0.32 from the centre)."
+                    },
+                    {
+                        "id": 20665,
+                        "distance": 0.3177,
+                        "why": "Filed under “Body Canvas” — its own group was too small to be a folder (0.32 from the centre)."
+                    },
+                    {
+                        "id": 20683,
+                        "distance": 0,
+                        "why": "Filed under “Body Canvas” — its own group was too small to be a folder (0.00 from the centre)."
+                    },
+                    {
+                        "id": 20662,
+                        "distance": 0.4614,
+                        "why": "Filed under “Body Canvas” — its own group was too small to be a folder (0.46 from the centre)."
+                    },
+                    {
+                        "id": 20671,
+                        "distance": 0.4614,
+                        "why": "Filed under “Body Canvas” — its own group was too small to be a folder (0.46 from the centre)."
+                    }
+                ],
+                "capped": false,
+                "reason": "",
+                "agreement": {
+                    "close": 1,
+                    "mid": 0,
+                    "far": 8
+                },
+                "samples": [
+                    {
+                        "id": 20703,
+                        "title": "DSC_0071",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-DSC_0071-150x150.jpg"
+                    },
+                    {
+                        "id": 20704,
+                        "title": "DSC_0072",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-DSC_0072-150x150.jpg"
+                    },
+                    {
+                        "id": 20660,
+                        "title": "Wool Coat Charcoal",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-wool-coat-charcoal-150x150.jpg"
+                    }
+                ]
+            },
+            {
+                "key": "Anna Catalogue",
+                "label": "Anna Catalogue",
+                "path": [
+                    "Anna Catalogue"
+                ],
+                "depth": 0,
+                "parent": "",
+                "size": 8,
+                "total": 8,
+                "members": [
+                    {
+                        "id": 20670,
+                        "distance": 0.815,
+                        "why": "Filed under “Anna Catalogue” — 0.81 from the centre; shares fx, vgml, launch."
+                    },
+                    {
+                        "id": 20679,
+                        "distance": 0.7208,
+                        "why": "Filed under “Anna Catalogue” — 0.72 from the centre; shares fx, vgml, launch."
+                    },
+                    {
+                        "id": 20680,
+                        "distance": 0.693,
+                        "why": "Filed under “Anna Catalogue” — 0.69 from the centre; shares fx, vgml, launch."
+                    },
+                    {
+                        "id": 20682,
+                        "distance": 0.6553,
+                        "why": "Filed under “Anna Catalogue” — 0.66 from the centre; shares fx, vgml, launch."
+                    },
+                    {
+                        "id": 20689,
+                        "distance": 0.7042,
+                        "why": "Filed under “Anna Catalogue” — 0.70 from the centre; shares fx, vgml, launch."
+                    },
+                    {
+                        "id": 20690,
+                        "distance": 0.6355,
+                        "why": "Filed under “Anna Catalogue” — 0.64 from the centre; shares fx, vgml, launch."
+                    },
+                    {
+                        "id": 20691,
+                        "distance": 0.6273,
+                        "why": "Filed under “Anna Catalogue” — 0.63 from the centre; shares fx, vgml, launch."
+                    },
+                    {
+                        "id": 20696,
+                        "distance": 0.7732,
+                        "why": "Filed under “Anna Catalogue” — 0.77 from the centre; shares fx, vgml, launch."
+                    }
+                ],
+                "capped": false,
+                "reason": "8 files whose descriptions cluster together; named for fx, vgml, launch, which the rest of the library mostly does not share.",
+                "agreement": {
+                    "close": 0,
+                    "mid": 0,
+                    "far": 8
+                },
+                "samples": [
+                    {
+                        "id": 20670,
+                        "title": "Packshot Coat Front",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-packshot-coat-front-150x150.jpg"
+                    },
+                    {
+                        "id": 20679,
+                        "title": "Inline Pattern Cutting",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-inline-pattern-cutting-150x150.jpg"
+                    },
+                    {
+                        "id": 20680,
+                        "title": "Portrait Anna Lead Designer",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-portrait-anna-lead-designer-150x150.jpg"
+                    }
+                ]
+            },
+            {
+                "key": "Boots Cover",
+                "label": "Boots Cover",
+                "path": [
+                    "Boots Cover"
+                ],
+                "depth": 0,
+                "parent": "",
+                "size": 7,
+                "total": 7,
+                "members": [
+                    {
+                        "id": 20658,
+                        "distance": 0.6223,
+                        "why": "Filed under “Boots Cover” — 0.62 from the centre; shares fx, vgml, boots."
+                    },
+                    {
+                        "id": 20659,
+                        "distance": 0.557,
+                        "why": "Filed under “Boots Cover” — 0.56 from the centre; shares fx, vgml, boots."
+                    },
+                    {
+                        "id": 20668,
+                        "distance": 0.5853,
+                        "why": "Filed under “Boots Cover” — 0.59 from the centre; shares fx, vgml, boots."
+                    },
+                    {
+                        "id": 20669,
+                        "distance": 0.4946,
+                        "why": "Filed under “Boots Cover” — 0.49 from the centre; shares fx, vgml, boots."
+                    },
+                    {
+                        "id": 20692,
+                        "distance": 0.6434,
+                        "why": "Filed under “Boots Cover” — 0.64 from the centre; shares fx, vgml, boots."
+                    },
+                    {
+                        "id": 20694,
+                        "distance": 0.7624,
+                        "why": "Filed under “Boots Cover” — 0.76 from the centre; shares fx, vgml, boots."
+                    },
+                    {
+                        "id": 20701,
+                        "distance": 0.7629,
+                        "why": "Filed under “Boots Cover” — 0.76 from the centre; shares fx, vgml, boots."
+                    }
+                ],
+                "capped": false,
+                "reason": "7 files whose descriptions cluster together; named for fx, vgml, boots, which the rest of the library mostly does not share.",
+                "agreement": {
+                    "close": 0,
+                    "mid": 1,
+                    "far": 6
+                },
+                "samples": [
+                    {
+                        "id": 20658,
+                        "title": "Navy Leather Boots 01",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-navy-leather-boots-01-150x150.jpg"
+                    },
+                    {
+                        "id": 20659,
+                        "title": "Navy Leather Boots 02",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-navy-leather-boots-02-150x150.jpg"
+                    },
+                    {
+                        "id": 20668,
+                        "title": "Packshot Boots Side",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-packshot-boots-side-150x150.jpg"
+                    }
+                ]
+            },
+            {
+                "key": "Account Basket / Account Basket Fx",
+                "label": "Account Basket Fx",
+                "path": [
+                    "Account Basket",
+                    "Account Basket Fx"
+                ],
+                "depth": 1,
+                "parent": "Account Basket",
+                "size": 6,
+                "total": 6,
+                "members": [
+                    {
+                        "id": 20652,
+                        "distance": 0.5041,
+                        "why": "Filed under “Account Basket Fx” — 0.50 from the centre; shares fx, vgml, icon."
+                    },
+                    {
+                        "id": 20653,
+                        "distance": 0.4433,
+                        "why": "Filed under “Account Basket Fx” — 0.44 from the centre; shares fx, vgml, icon."
+                    },
+                    {
+                        "id": 20654,
+                        "distance": 0.5426,
+                        "why": "Filed under “Account Basket Fx” — 0.54 from the centre; shares fx, vgml, icon."
+                    },
+                    {
+                        "id": 20655,
+                        "distance": 0.5075,
+                        "why": "Filed under “Account Basket Fx” — 0.51 from the centre; shares fx, vgml, icon."
+                    },
+                    {
+                        "id": 20667,
+                        "distance": 0.7262,
+                        "why": "Filed under “Account Basket Fx” — 0.73 from the centre; shares fx, vgml, icon."
+                    },
+                    {
+                        "id": 20673,
+                        "distance": 0.6855,
+                        "why": "Filed under “Account Basket Fx” — 0.69 from the centre; shares fx, vgml, icon."
+                    }
+                ],
+                "capped": false,
+                "reason": "6 files whose descriptions cluster together; named for fx, vgml, icon, which the rest of the library mostly does not share.",
+                "agreement": {
+                    "close": 0,
+                    "mid": 1,
+                    "far": 5
+                },
+                "samples": [
+                    {
+                        "id": 20652,
+                        "title": "Icon Basket",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-icon-basket-150x150.jpg"
+                    },
+                    {
+                        "id": 20653,
+                        "title": "Icon Account",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-icon-account-150x150.jpg"
+                    },
+                    {
+                        "id": 20654,
+                        "title": "Icon Search",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-icon-search-150x150.jpg"
+                    }
+                ]
+            },
+            {
+                "key": "Audience Conf",
+                "label": "Audience Conf",
+                "path": [
+                    "Audience Conf"
+                ],
+                "depth": 0,
+                "parent": "",
+                "size": 4,
+                "total": 4,
+                "members": [
+                    {
+                        "id": 20685,
+                        "distance": 0.6489,
+                        "why": "Filed under “Audience Conf” — 0.65 from the centre; shares conf, fx, vgml."
+                    },
+                    {
+                        "id": 20686,
+                        "distance": 0.5488,
+                        "why": "Filed under “Audience Conf” — 0.55 from the centre; shares conf, fx, vgml."
+                    },
+                    {
+                        "id": 20687,
+                        "distance": 0.4654,
+                        "why": "Filed under “Audience Conf” — 0.47 from the centre; shares conf, fx, vgml."
+                    },
+                    {
+                        "id": 20688,
+                        "distance": 0.7014,
+                        "why": "Filed under “Audience Conf” — 0.70 from the centre; shares conf, fx, vgml."
+                    }
+                ],
+                "capped": false,
+                "reason": "4 files whose descriptions cluster together; named for conf, fx, vgml, which the rest of the library mostly does not share.",
+                "agreement": {
+                    "close": 0,
+                    "mid": 1,
+                    "far": 3
+                },
+                "samples": [
+                    {
+                        "id": 20685,
+                        "title": "Conf Keynote Stage",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-conf-keynote-stage-150x150.jpg"
+                    },
+                    {
+                        "id": 20686,
+                        "title": "Conf Audience",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-conf-audience-150x150.jpg"
+                    },
+                    {
+                        "id": 20687,
+                        "title": "Conf Stand Detail",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-conf-stand-detail-150x150.jpg"
+                    }
+                ]
+            },
+            {
+                "key": "Autumn Hanger",
+                "label": "Autumn Hanger",
+                "path": [
+                    "Autumn Hanger"
+                ],
+                "depth": 0,
+                "parent": "",
+                "size": 3,
+                "total": 3,
+                "members": [
+                    {
+                        "id": 20672,
+                        "distance": 0.6068,
+                        "why": "Filed under “Autumn Hanger” — 0.61 from the centre; shares fx, vgml, header."
+                    },
+                    {
+                        "id": 20674,
+                        "distance": 0.575,
+                        "why": "Filed under “Autumn Hanger” — 0.57 from the centre; shares fx, vgml, header."
+                    },
+                    {
+                        "id": 20675,
+                        "distance": 0.6046,
+                        "why": "Filed under “Autumn Hanger” — 0.60 from the centre; shares fx, vgml, header."
+                    }
+                ],
+                "capped": false,
+                "reason": "3 files whose descriptions cluster together; named for fx, vgml, header, which the rest of the library mostly does not share.",
+                "agreement": {
+                    "close": 0,
+                    "mid": 0,
+                    "far": 3
+                },
+                "samples": [
+                    {
+                        "id": 20672,
+                        "title": "Packshot Shirt Hanger",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-packshot-shirt-hanger-150x150.jpg"
+                    },
+                    {
+                        "id": 20674,
+                        "title": "Header Inside The Workshop",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-header-inside-the-workshop-150x150.jpg"
+                    },
+                    {
+                        "id": 20675,
+                        "title": "Header Autumn Lookbook",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-header-autumn-lookbook-150x150.jpg"
+                    }
+                ]
+            },
+            {
+                "key": "Bench Marcus",
+                "label": "Bench Marcus",
+                "path": [
+                    "Bench Marcus"
+                ],
+                "depth": 0,
+                "parent": "",
+                "size": 2,
+                "total": 2,
+                "members": [
+                    {
+                        "id": 20678,
+                        "distance": 0.5539,
+                        "why": "Filed under “Bench Marcus” — 0.55 from the centre; shares fx, vgml, workshop."
+                    },
+                    {
+                        "id": 20681,
+                        "distance": 0.5539,
+                        "why": "Filed under “Bench Marcus” — 0.55 from the centre; shares fx, vgml, workshop."
+                    }
+                ],
+                "capped": false,
+                "reason": "2 files whose descriptions cluster together; named for fx, vgml, workshop, which the rest of the library mostly does not share.",
+                "agreement": {
+                    "close": 0,
+                    "mid": 0,
+                    "far": 2
+                },
+                "samples": [
+                    {
+                        "id": 20678,
+                        "title": "Inline Workshop Bench",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-inline-workshop-bench-150x150.jpg"
+                    },
+                    {
+                        "id": 20681,
+                        "title": "Portrait Marcus Workshop",
+                        "thumb": "wp-content/uploads/2026/08/vgml-fx-portrait-marcus-workshop-150x150.jpg"
+                    }
+                ]
+            },
+            {
+                "key": "needs-a-look",
+                "label": "Needs a look",
+                "path": [
+                    "Needs a look"
+                ],
+                "depth": 0,
+                "parent": "",
+                "size": 0,
+                "total": 0,
+                "members": [],
+                "capped": false,
+                "reason": "Every library has files that fit nowhere. Forcing them into a category is how folders get confident, wrong names, so they are gathered here instead.",
+                "agreement": {
+                    "close": 0,
+                    "mid": 0,
+                    "far": 0
+                },
+                "samples": []
+            }
+        ]
+    }
+}
