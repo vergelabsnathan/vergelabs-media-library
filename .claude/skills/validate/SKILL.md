@@ -17,7 +17,7 @@ Every PHP file must parse on the 7.4 floor. Locally there is no PHP binary, so t
 test VPS:
 
 ```bash
-cd /c/dev && tar --exclude=node_modules --exclude=.git -czf /tmp/vgml.tgz vergelabs-media-library
+tar -C /c/dev/media-plugin --exclude=node_modules --exclude=.git --exclude=.verify.lock -czf /tmp/vgml.tgz plugin
 scp -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
   /tmp/vgml.tgz root@185.229.224.239:/tmp/
 ssh -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
@@ -33,7 +33,7 @@ Empty output between the command and `lint done` means clean.
 Grep for the constructs that do not exist in 7.4:
 
 ```bash
-cd /c/dev/vergelabs-media-library
+cd /c/dev/media-plugin/plugin
 grep -rnE 'match\s*\(|\?\->|readonly |enum [A-Z]|function [a-zA-Z_]+\([^)]*(public|private|protected) ' \
   --include=*.php . | grep -v '/tests/'
 ```
@@ -46,7 +46,7 @@ comment). Explain any hit you dismiss.
 All three must agree, or wordpress.org ships a different version than the plugin reports:
 
 ```bash
-cd /c/dev/vergelabs-media-library
+cd /c/dev/media-plugin/plugin
 grep -n "^Version:" vergelabs-media-library.php
 grep -n "VERGEML_VERSION'," vergelabs-media-library.php
 grep -n "^Stable tag:" readme.txt
@@ -59,7 +59,7 @@ gate printed two lines and read as clean while checking two of the three places.
 ## Gate 4 â€” functional tests in Playground
 
 ```bash
-cd /c/dev/vergelabs-media-library
+cd /c/dev/media-plugin/plugin
 MSYS_NO_PATHCONV=1 npx --yes @wp-playground/cli@latest server --port 8899 \
   --mount-dir "C:\dev\media-plugin\plugin" /wordpress/wp-content/plugins/vergelabs-media-library \
   --blueprint=tests/tree/blueprint.json &
@@ -76,7 +76,7 @@ The performance gate, and the only performance number that means anything in Pla
 Boot time is noise; **query count is the measurement**.
 
 ```bash
-cd /c/dev/vergelabs-media-library
+cd /c/dev/media-plugin/plugin
 node tests/perf/bench.mjs http://127.0.0.1:8903 admin:benchbenchbenchbench   # Playground
 node tests/perf/bench.mjs http://185.229.224.239 admin:<app-password>        # real MariaDB
 ```
@@ -107,7 +107,7 @@ instead reports the dev files â€” `.claude`, `CLAUDE.md`, `.github`, `tests
 are not real, and burying the real findings under them is how a real one gets missed.
 
 ```bash
-cd /c/dev/vergelabs-media-library
+cd /c/dev/media-plugin/plugin
 git archive HEAD --prefix=vergelabs-media-library/ -o /tmp/vgml-clean.tar
 scp -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
   /tmp/vgml-clean.tar root@185.229.224.239:/tmp/
