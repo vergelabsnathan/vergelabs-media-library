@@ -36,7 +36,37 @@ const browser = await chromium.launch();
 const page = await ( await browser.newContext( { viewport: { width: 1500, height: 1200 } } ) ).newPage();
 page.setDefaultTimeout( 240000 );
 
-await page.goto( `${ BASE }/wp-admin/tools.php?page=plugin-check`, { waitUntil: 'domcontentloaded' } );
+/*
+ *  Waits for the site rather than assuming it.
+ *
+ *  Playground takes minutes to boot -- it downloads WordPress and installs
+ *  Plugin Check -- and until it does, the port either refuses the connection
+ *  or answers 502. Both are "not ready", and a wait loop that treats anything
+ *  other than 502 as ready reads a dead port as a live one and fails with
+ *  ERR_CONNECTION_REFUSED a second later. So the waiting lives here, and it
+ *  waits for the page, not for the absence of an error.
+ */
+const deadline = Date.now() + 600000;
+let reached = false;
+
+while ( Date.now() < deadline ) {
+	try {
+		const res = await page.goto( `${ BASE }/wp-admin/tools.php?page=plugin-check`, { waitUntil: 'domcontentloaded' } );
+		if ( res && res.ok() ) {
+			reached = true;
+			break;
+		}
+	} catch ( e ) {
+		// refused, reset, still booting -- all the same answer
+	}
+	await page.waitForTimeout( 5000 );
+}
+
+if ( ! reached ) {
+	console.error( `Nothing answered on ${ BASE } within ten minutes. Is Playground booted with tools/plugin-check-blueprint.json?` );
+	await browser.close();
+	process.exit( 2 );
+}
 
 if ( ! page.url().includes( 'page=plugin-check' ) ) {
 	console.error( `Plugin Check screen not reachable -- landed on ${ page.url() }` );

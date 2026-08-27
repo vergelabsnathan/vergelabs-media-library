@@ -1,4 +1,8 @@
 <?php
+
+if ( ! defined( 'ABSPATH' ) )
+    exit;
+
 /**
  *  AI smart folders — the index, asked out loud.
  *
