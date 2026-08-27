@@ -3,7 +3,7 @@
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
 Description: Categories, tags and custom taxonomies for the media library, MIME type management, and configurable media grid filters.
-Version: 3.3.0
+Version: 3.4.0
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.3.0' );
+if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.4.0' );
 
 /**
  *  Cache-busting asset version: the plugin version plus the file's mtime.
@@ -999,7 +999,11 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
             'filters_to_show' => array(
                 'types',
                 'dates',
-                'taxonomies'
+                'taxonomies',
+                // The AI folder group in the tree panel. A member here rather
+                // than an option of its own; the list-view filter bar tests
+                // for its own names explicitly and ignores this one.
+                'ai'
             ),
             'show_count' => isset( $vergeml_tax_options['show_count'] ) ? (bool) $vergeml_tax_options['show_count'] : 1,
             'include_children' => 1,
@@ -1028,6 +1032,26 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         if ( version_compare( get_option( 'vergeml_version', '' ), '2.8.9', '<=' ) ) {
             // ensure that filenames included in the search by default
             array_push( $vergeml_lib_options['search_in'], 'filenames' );
+        }
+
+        /*
+         *  The AI folder group, switched on for sites that existed before it.
+         *
+         *  Changing the default above does nothing here: every existing
+         *  install already has its own filters_to_show written to the
+         *  database, and array_merge keeps the saved one. So the member is
+         *  added once, on the 3.4.0 boundary, and only if it is absent --
+         *  anyone who switches it off afterwards keeps it off, because this
+         *  never runs again.
+         *
+         *  Nothing else in the array is touched: a site that turned off dates
+         *  in 2019 still has dates off after this.
+         */
+        if ( version_compare( get_option( 'vergeml_version', '' ), '3.4.0', '<' ) ) {
+
+            if ( ! in_array( 'ai', (array) $vergeml_lib_options['filters_to_show'], true ) ) {
+                $vergeml_lib_options['filters_to_show'][] = 'ai';
+            }
         }
 
         update_option( 'vergeml_lib_options', $vergeml_lib_options );
@@ -1213,6 +1237,12 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // Before ai.php: the AI layer reads and writes through the index.
         include_once( 'core/ai-index.php' );
         include_once( 'core/ai.php' );
+        // After both: the AI smart folders hang off smart-folders.php's
+        // registry and join ai-index.php's table, so neither may be missing
+        // when this file registers its filters. Inside the guard like the
+        // rest -- in safe mode the panel goes back to five folders rather
+        // than to five broken ones.
+        include_once( 'core/ai-folders.php' );
         // After ai-index.php: the proposed tree is clustered from the vectors
         // that file stores, and reads them through $wpdb->vergeml_ai_index --
         // which does not exist until ai-index.php has registered it.

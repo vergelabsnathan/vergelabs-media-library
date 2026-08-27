@@ -128,6 +128,22 @@ async function probe(label, path, body) {
 
 console.log(`\n${BASE}`);
 await authenticate();
+/*
+ *  The tree. Budget: 6, and it must not move.
+ *
+ *  Since 3.4.0 it also carries the AI folder group: thirteen more rows, their
+ *  counts, and the described/total pair. All of it rides the smart-folder
+ *  UNION that was already there, so the number below is the number this
+ *  endpoint had before the group existed. If it reads 7, the counts did not
+ *  land in that statement; if it moves with the size of the library, the join
+ *  is not using the index columns' keys. Both are hard fails, not slow
+ *  queries.
+ *
+ *  One caveat this file cannot remove: a library where nothing has been
+ *  described has no AI counts to pay for, so a good number here proves less
+ *  than it looks. tests/tree/ai-folders.php measures the difference between
+ *  the group off and the group on directly, with files it seeds itself.
+ */
 await probe('ours: vergeml/v1/tree', '/wp-json/vergeml/v1/tree?taxonomy=media_category');
 /*
  *  The duplicates report. Budget: three statements plus the one meta sweep --

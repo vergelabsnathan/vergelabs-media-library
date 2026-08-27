@@ -53,6 +53,7 @@
 	} );
 	state.selected = ( cfg.state && cfg.state.selected ) || 0;
 	state.filtersOpen = ! cfg.state || undefined === cfg.state.filtersOpen || !! cfg.state.filtersOpen;
+	state.aiOpen = ! cfg.state || undefined === cfg.state.aiOpen || !! cfg.state.aiOpen;
 
 	var root = null;
 	var listEl = null;
@@ -145,6 +146,9 @@
 			state.nodes = data.nodes || [];
 			state.unassigned = data.unassigned || 0;
 			state.smart = data.smart || state.smart || [];
+			// null when the AI group is switched off, which is the difference
+			// between "no rows yet" and "not a thing on this site".
+			state.ai = data.ai || null;
 			if ( data.state ) {
 				state.skin = data.state.skin || state.skin;
 				state.density = data.state.density || state.density;
@@ -267,12 +271,22 @@
 		 *  rather than places in it -- behind a toggle, because five extra
 		 *  rows of filters is a lot of panel for someone who never uses them.
 		 */
-		if ( ( state.smart || [] ).length ) {
+		var smartAll = state.smart || [];
+
+		var smartClean = smartAll.filter( function ( sf ) {
+			return 'ai' !== sf.group;
+		} );
+
+		var smartAi = smartAll.filter( function ( sf ) {
+			return 'ai' === sf.group;
+		} );
+
+		if ( smartClean.length ) {
 			out.push( { pseudo: 'filters', label: l10n.filters || 'Filters', depth: 0, id: -99, open: state.filtersOpen } );
 		}
 
 		if ( state.filtersOpen ) {
-			( state.smart || [] ).forEach( function ( sf, i ) {
+			smartClean.forEach( function ( sf, i ) {
 				out.push( {
 					pseudo: 'smart',
 					smart: sf,
@@ -282,6 +296,45 @@
 					id: -100 - i
 				} );
 			} );
+		}
+
+		/*
+		 *  The AI folders, in a group of their own.
+		 *
+		 *  Separate from the five above because they answer a different kind
+		 *  of question -- what a file is, rather than what is wrong with it --
+		 *  and because they behave differently when nothing has been
+		 *  described: the group says so once, at the top, instead of every row
+		 *  saying it.
+		 */
+		if ( state.ai ) {
+
+			out.push( {
+				pseudo: 'ai-group',
+				label: l10n.aiFolders || 'AI folders',
+				depth: 0,
+				id: -80,
+				open: state.aiOpen,
+				ai: state.ai
+			} );
+
+			if ( state.aiOpen ) {
+
+				if ( state.ai.ladder ) {
+					out.push( { pseudo: 'ai-ladder', ai: state.ai, depth: 0, id: -81 } );
+				} else {
+					smartAi.forEach( function ( sf, i ) {
+						out.push( {
+							pseudo: 'smart',
+							smart: sf,
+							label: sf.label,
+							count: sf.count,
+							depth: 0,
+							id: -200 - i
+						} );
+					} );
+				}
+			}
 		}
 
 		( function walk( parentId, depth ) {
@@ -703,6 +756,14 @@
 			return filtersRow( entry );
 		}
 
+		if ( 'ai-group' === key ) {
+			return aiGroupRow( entry );
+		}
+
+		if ( 'ai-ladder' === key ) {
+			return aiLadderRow( entry );
+		}
+
 		var selected = ( key === 'all' && ! state.selected && ! state.smartSelected )
 			|| ( key === 'unassigned' && state.selected === -1 );
 
@@ -780,6 +841,73 @@
 			render();
 			persist( { filtersOpen: state.filtersOpen ? 1 : 0 } );
 		} );
+
+		li.appendChild( row );
+		return li;
+	}
+
+	/*
+	 *  The AI group's own heading.
+	 *
+	 *  It carries the line that keeps its counts honest. Forty screenshots on
+	 *  a library where two hundred of eight thousand files have been looked at
+	 *  is not forty screenshots, and the only way a number in a panel can say
+	 *  that is to say it out loud next to itself. When everything has been
+	 *  described there is nothing to qualify and the line is left off.
+	 */
+	function aiGroupRow( entry ) {
+
+		var li = el( 'li', { class: 'vgml-node vgml-filters-head vgml-ai-head', role: 'treeitem',
+			'aria-expanded': entry.open ? 'true' : 'false', 'data-id': entry.id } );
+		var row = el( 'div', { class: 'vgml-row' } );
+
+		var twist = el( 'span', { class: 'vgml-twist', 'aria-hidden': 'true' } );
+		twist.innerHTML = chevron();
+		if ( entry.open ) { twist.classList.add( 'is-open' ); }
+		row.appendChild( twist );
+
+		row.appendChild( el( 'span', { class: 'vgml-name vgml-filters-label' }, entry.label ) );
+
+		var ai = entry.ai || {};
+
+		if ( ! ai.ladder && null !== ai.described && null !== ai.total && ai.described < ai.total ) {
+			row.appendChild( el( 'span', { class: 'vgml-count vgml-ai-partial' },
+				String( ai.described ) + '/' + String( ai.total ) ) );
+		}
+
+		row.addEventListener( 'click', function () {
+			state.aiOpen = ! state.aiOpen;
+			render();
+			persist( { aiOpen: state.aiOpen ? 1 : 0 } );
+		} );
+
+		li.appendChild( row );
+		return li;
+	}
+
+
+	/*
+	 *  Nothing described yet.
+	 *
+	 *  A way in rather than a dead end: the row says what is missing and takes
+	 *  you to the screen that fixes it, which is the ladder the Librarian uses
+	 *  for the same situation. An empty list with no explanation is how a
+	 *  feature gets a reputation for being broken.
+	 */
+	function aiLadderRow( entry ) {
+
+		var li = el( 'li', { class: 'vgml-node vgml-pseudo vgml-ai-ladder', role: 'treeitem',
+			'aria-level': '1', 'data-id': entry.id, tabindex: '-1' } );
+
+		var row = el( 'div', { class: 'vgml-row' } );
+		row.appendChild( el( 'span', { class: 'vgml-twist is-leaf', 'aria-hidden': 'true' } ) );
+
+		var link = el( 'a', {
+			class: 'vgml-name vgml-ai-ladder-link',
+			href: ( entry.ai && entry.ai.url ) ? entry.ai.url : '#'
+		}, l10n.aiLadder || 'Nothing described yet — describe your library' );
+
+		row.appendChild( link );
 
 		li.appendChild( row );
 		return li;
@@ -3991,6 +4119,11 @@
 			state.nodes = cfg.boot.nodes;
 			state.unassigned = cfg.boot.unassigned || 0;
 			state.smart = cfg.boot.smart || [];
+			// Same payload as the endpoint, so the first paint has to read
+			// the same keys or the AI group appears only after something
+			// happens to trigger a reload -- which, on a panel that never
+			// reloads after the first paint, means never.
+			state.ai = cfg.boot.ai || null;
 			index();
 			render();
 		} else {

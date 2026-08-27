@@ -46,28 +46,49 @@ function vergeml_large_bytes() {
 
 function vergeml_smart_folders() {
 
-    return array(
+    $folders = array(
         'unused'     => array(
             'label' => __( 'Unused media', 'vergelabs-media-library' ),
             'scan'  => true,
+            'group' => 'clean',
         ),
         'no-alt'     => array(
             'label' => __( 'Missing alt text', 'vergelabs-media-library' ),
             'scan'  => false,
+            'group' => 'clean',
         ),
         'large'      => array(
             'label' => __( 'Large files', 'vergelabs-media-library' ),
             'scan'  => true,
+            'group' => 'clean',
         ),
         'unattached' => array(
             'label' => __( 'Unattached', 'vergelabs-media-library' ),
             'scan'  => false,
+            'group' => 'clean',
         ),
         'recent'     => array(
             'label' => __( 'This month', 'vergelabs-media-library' ),
             'scan'  => false,
+            'group' => 'clean',
         ),
     );
+
+    /*
+     *  The seam. core/ai-folders.php hangs the folders that read the AI index
+     *  here rather than being wired into this file, so that a site in safe
+     *  mode -- where that file never loads -- simply has five folders again
+     *  instead of five broken ones.
+     *
+     *  Everything downstream is gated on this array: both query filters check
+     *  `array_key_exists` against it before translating anything, so a folder
+     *  that is not registered cannot be selected however the request is
+     *  spelled. Adding here is therefore the only thing an extension has to
+     *  do, and the only thing it is allowed to do.
+     */
+    $folders = apply_filters( 'vergeml_smart_folders', $folders );
+
+    return is_array( $folders ) ? $folders : array();
 }
 
 
@@ -80,6 +101,22 @@ function vergeml_smart_folders() {
  */
 
 function vergeml_smart_query_args( $key ) {
+
+    /*
+     *  The folders that read the AI index cannot be expressed as WP_Query
+     *  arguments: they are a join onto a table of ours, and there is no
+     *  argument for that. So they return a marker instead, and the
+     *  posts_clauses filter in core/ai-folders.php turns it into SQL.
+     *
+     *  A marker rather than a `post__in` of matching ids, deliberately: an id
+     *  list is a second query that grows with the library and puts thousands
+     *  of integers into every request. The join does not move with either.
+     */
+    $folders = vergeml_smart_folders();
+
+    if ( isset( $folders[ $key ]['index'] ) ) {
+        return array( 'vergeml_ai_filter' => $key );
+    }
 
     switch ( $key ) {
 
@@ -133,9 +170,25 @@ function vergeml_smart_query_args( $key ) {
  *  are different answers, and the tree shows them differently.
  */
 
-function vergeml_smart_counts() {
+function vergeml_smart_counts( $fresh = false ) {
 
     global $wpdb;
+
+    /*
+     *  Once per request unless somebody asks otherwise.
+     *
+     *  The tree endpoint reads these twice -- once for the rows, once for the
+     *  line above the AI group -- and two identical statements would put the
+     *  endpoint over its budget of six for no answer it did not already have.
+     *  The scan endpoint passes true, because it runs after doing the work
+     *  that changes the numbers and a cached answer there would be the old
+     *  one.
+     */
+    static $cache = null;
+
+    if ( ! $fresh && null !== $cache ) {
+        return $cache;
+    }
 
     $scanned = vergeml_smart_scan_state();
     $done    = ! empty( $scanned['finished'] );
@@ -145,11 +198,13 @@ function vergeml_smart_counts() {
      *  counts, which read clearly but pushed the tree endpoint from four
      *  queries to ten -- and the query budget is the budget. A UNION of the
      *  same five indexed counts keeps the endpoint flat.
+     *
+     *  Anything else that wants a number in this panel joins the same
+     *  statement rather than running its own, for that reason. See
+     *  core/ai-folders.php.
      */
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one indexed statement for a panel that ships with the page.
-    $rows = $wpdb->get_results( $wpdb->prepare(
-        "SELECT 'unused' AS k, COUNT(*) AS c FROM {$wpdb->posts} p
+    $core_sql = "SELECT 'unused' AS k, COUNT(*) AS c FROM {$wpdb->posts} p
           JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = '1'
          WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
          UNION ALL
@@ -169,14 +224,62 @@ function vergeml_smart_counts() {
          UNION ALL
          SELECT 'recent', COUNT(*) FROM {$wpdb->posts}
          WHERE post_type = 'attachment' AND post_status = 'inherit'
-           AND YEAR( post_date ) = %d AND MONTH( post_date ) = %d",
+           AND YEAR( post_date ) = %d AND MONTH( post_date ) = %d";
+
+    $core_args = array(
         VERGEML_META_UNUSED,
         $wpdb->esc_like( 'image/' ) . '%',
         VERGEML_META_FILESIZE,
         vergeml_large_bytes(),
         (int) current_time( 'Y' ),
-        (int) current_time( 'n' )
+        (int) current_time( 'n' ),
+    );
+
+    /*
+     *  Extra branches, each `array( 'sql' => ..., 'args' => array() )`, and
+     *  each producing the same two columns as the five above.
+     */
+    $extra_sql  = '';
+    $extra_args = array();
+
+    foreach ( (array) apply_filters( 'vergeml_smart_count_branches', array() ) as $branch ) {
+
+        if ( empty( $branch['sql'] ) ) {
+            continue;
+        }
+
+        $extra_sql .= ' UNION ALL ' . $branch['sql'];
+
+        if ( ! empty( $branch['args'] ) ) {
+            $extra_args = array_merge( $extra_args, array_values( (array) $branch['args'] ) );
+        }
+    }
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- one indexed statement for a panel that ships with the page; every value is bound below.
+    $wpdb->last_error = '';
+
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        $core_sql . $extra_sql,
+        array_merge( $core_args, $extra_args )
     ) );
+
+    /*
+     *  If the extension's half of the statement failed -- the index table
+     *  dropped by hand is the realistic way -- the five core numbers went down
+     *  with it, and the panel would show a tree with no counts at all because
+     *  of a feature it may not even use. So the core five are asked again on
+     *  their own, and everything the extension was going to answer reports
+     *  null: not looked, rather than none.
+     *
+     *  One query on the normal path. Two only when something is already
+     *  broken, which is the right place to spend an extra one.
+     */
+    $extended = '' !== $extra_sql;
+
+    if ( $extended && '' !== (string) $wpdb->last_error ) {
+        $extended = false;
+        $rows     = $wpdb->get_results( $wpdb->prepare( $core_sql, $core_args ) );
+    }
     // phpcs:enable
 
     $counts = array();
@@ -187,12 +290,31 @@ function vergeml_smart_counts() {
     $out = array();
 
     foreach ( vergeml_smart_folders() as $key => $spec ) {
+
+        // A folder answered by the extended half of the statement, when that
+        // half did not run or did not survive.
+        if ( isset( $spec['index'] ) && ! $extended ) {
+            $out[ $key ] = null;
+            continue;
+        }
+
         // Scan-backed folders whose scan never ran report null, not zero:
         // "we have not looked" and "there are none" are different answers.
-        $out[ $key ] = ( $spec['scan'] && ! $done )
+        $out[ $key ] = ( ! empty( $spec['scan'] ) && ! $done )
             ? null
             : ( isset( $counts[ $key ] ) ? $counts[ $key ] : 0 );
     }
+
+    /*
+     *  Two numbers that are not folders: how much of the library has been
+     *  looked at. The panel needs them to keep a count honest -- forty
+     *  screenshots out of two hundred described files is not forty
+     *  screenshots -- and they ride the same statement.
+     */
+    $out['_described'] = $extended && isset( $counts['_described'] ) ? $counts['_described'] : null;
+    $out['_total']     = isset( $counts['_total'] ) ? $counts['_total'] : null;
+
+    $cache = $out;
 
     return $out;
 }
@@ -531,7 +653,8 @@ function vergeml_smart_scan_step( $resume = null ) {
             'done'     => $total,
             'total'    => $total,
             'resume'   => null,
-            'counts'   => vergeml_smart_counts(),
+            // Fresh: this runs after the step that changed the numbers.
+            'counts'   => vergeml_smart_counts( true ),
         );
     }
 

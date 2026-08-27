@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.3.0
+Stable tag: 3.4.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -47,6 +47,8 @@ A folder tree sits beside the media library. Drag files onto a folder to file th
 **Two ways to sort, and one of them needs nothing.** By date and file type, built from what WordPress already knows -- no account, no licence, nothing sent anywhere. Or by subject, grouped from what the pictures show, which is the part that uses the AI service described below.
 
 **Undo is the feature, not the apology.** Every assignment the Librarian makes is written down, so undoing it removes exactly what it did and nothing else. A file you moved yourself in the meantime is left where you put it and reported. A folder it created is deleted only if it is still empty; if you have put your own files in it, it is kept and you are told. It only ever touches files that had no folder, so a library you organised by hand is unchanged.
+
+**And once it has looked, the descriptions become folders.** The folder panel grows a group of its own — Photos, Screenshots, Documents, Logos, pictures with people in them, pictures with text in them — built from what was found rather than from anything you filed. Empty ones are not shown, and the group says how much of your library it is drawn from.
 
 **Nothing that cannot be interrupted.** Applying works in small batches, so it does not time out on shared hosting. Pause it, close the tab, pick it up where it stopped.
 
@@ -238,6 +240,21 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.4.0 ###
+*The descriptions become folders*
+
+= Added =
+* **AI folders.** Once your library has been described, the folder panel gains a group of its own: Photos, Illustrations, Screenshots, Documents, Diagrams, Logos, plus People in the picture, Text in the picture, and the document types — invoices, receipts, contracts, forms, reports. Nothing was filed to make them; they are views of what the descriptions already know.
+* **Only the ones you have.** A folder with nothing in it is not shown, so a photo library never sees five empty document types.
+* **They say what they are drawn from.** The group shows how much of your library has been described beside its heading, because forty screenshots out of two hundred described files is not forty screenshots.
+* **Drag out of them.** Show every screenshot, drag them into a folder of your own. The AI folder is where you find them; where they go is still your decision.
+* **Nothing described yet?** The group says so and links to the screen where a run starts, instead of showing an empty list.
+* Switch the whole group off under Settings → Media Library → Filters to show.
+
+= Fixed =
+* **The index schema could never be updated on an existing site.** The check that installs it compared nothing against the version it wanted, so a site that already had the table would silently never receive a new column or index. It compares properly now — the same fault, and the same fix, as the Librarian's tables in 3.3.0.
+
 
 ### 3.3.0 ###
 *The Librarian: see the folders your library would get, and put them back*

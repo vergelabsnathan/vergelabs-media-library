@@ -1,0 +1,19 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "login": true,
+  "landingPage": "/wp-admin/upload.php",
+  "preferredVersions": {
+    "php": "8.3",
+    "wp": "latest"
+  },
+  "steps": [
+    {
+      "step": "activatePlugin",
+      "pluginPath": "vergelabs-media-library/vergelabs-media-library.php"
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php\nrequire_once '/wordpress/wp-load.php';\n\nforeach ( array( 'Products', 'Campaign' ) as $name ) {\n    if ( ! term_exists( $name, 'media_category' ) ) {\n        wp_insert_term( $name, 'media_category' );\n    }\n}\n\nvergeml_index_install();\n\n$seed = array(\n    array( 'photo', 1, 0, '' ),\n    array( 'photo', 0, 0, '' ),\n    array( 'photo', 0, 1, '' ),\n    array( 'screenshot', 0, 1, '' ),\n    array( 'screenshot', 0, 1, '' ),\n    array( 'logo', 0, 1, '' ),\n    array( 'document', 0, 1, 'invoice' ),\n    array( 'document', 0, 1, 'invoice' ),\n    array( 'document', 0, 1, 'contract' ),\n);\n\nforeach ( $seed as $i => $row ) {\n    $id = wp_insert_post( array(\n        'post_title'     => 'ui seed ' . $i,\n        'post_type'      => 'attachment',\n        'post_status'    => 'inherit',\n        'post_mime_type' => 'image/png',\n    ) );\n    vergeml_index_set( (int) $id, array(\n        'caption'       => 'seeded',\n        'kind'          => $row[0],\n        'has_people'    => $row[1],\n        'has_text'      => $row[2],\n        'document_type' => $row[3],\n        'described_at'  => gmdate( 'Y-m-d H:i:s' ),\n    ) );\n}\n\nfor ( $i = 0; $i < 4; $i++ ) {\n    wp_insert_post( array(\n        'post_title'     => 'ui plain ' . $i,\n        'post_type'      => 'attachment',\n        'post_status'    => 'inherit',\n        'post_mime_type' => 'image/png',\n    ) );\n}\n"
+    }
+  ]
+}

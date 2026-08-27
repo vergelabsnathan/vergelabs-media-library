@@ -306,6 +306,13 @@ function vergeml_rest_tree( WP_REST_Request $request ) {
          */
         'smart'        => vergeml_smart_for_tree( $post_type ),
         /*
+         *  What the AI group says above its own rows, or null when the group
+         *  is switched off. Its own key rather than a row, because "nothing
+         *  has been described yet" is a statement about the group and not a
+         *  folder somebody could open.
+         */
+        'ai'           => vergeml_ai_for_tree( $post_type ),
+        /*
          *  Things with no term in this taxonomy. Counted here rather than by the
          *  browser, which would otherwise have to fetch the list to find out.
          */
@@ -332,15 +339,74 @@ function vergeml_smart_for_tree( $post_type ) {
     $out    = array();
 
     foreach ( vergeml_smart_folders() as $key => $spec ) {
+
+        $group = isset( $spec['group'] ) ? (string) $spec['group'] : 'clean';
+        $count = isset( $counts[ $key ] ) ? $counts[ $key ] : null;
+
+        /*
+         *  An AI folder with nothing in it is not shown at all -- a photo
+         *  library has no invoices and does not need five empty rows saying
+         *  so. Zero and null are different answers here and only zero is
+         *  hidden: null means the index has not been looked at, which the
+         *  group says once at the top rather than thirteen times.
+         */
+        if ( 'ai' === $group && 0 === $count ) {
+            continue;
+        }
+
+        if ( 'ai' === $group && null === $count ) {
+            continue;
+        }
+
         $out[] = array(
             'key'   => $key,
             'label' => $spec['label'],
-            'count' => $counts[ $key ],
+            'count' => $count,
             'scan'  => ! empty( $spec['scan'] ),
+            'group' => $group,
         );
     }
 
     return $out;
+}
+
+
+/**
+ *  vergeml_ai_for_tree
+ *
+ *  What the AI group says about itself, above its rows.
+ *
+ *  Three states the panel has to tell apart, and the numbers here are what it
+ *  tells them apart by: switched off entirely; on but nothing looked at yet,
+ *  which draws the ladder to the AI screen; on and partly looked at, which
+ *  draws the rows plus how much of the library they are drawn from. A count
+ *  of forty on a library where two hundred of eight thousand files have been
+ *  described is not forty, and saying so is cheaper than being wrong.
+ */
+
+function vergeml_ai_for_tree( $post_type ) {
+
+    if ( $post_type || ! function_exists( 'vergeml_ai_folders_enabled' ) ) {
+        return null;
+    }
+
+    if ( ! vergeml_ai_folders_enabled() ) {
+        return null;
+    }
+
+    $counts = vergeml_smart_counts();
+
+    $described = isset( $counts['_described'] ) ? $counts['_described'] : null;
+    $total     = isset( $counts['_total'] ) ? $counts['_total'] : null;
+
+    return array(
+        'described' => $described,
+        'total'     => $total,
+        // Nothing has been looked at: either the index has never been asked,
+        // or it holds no finished descriptions.
+        'ladder'    => ( null === $described || 0 === (int) $described ),
+        'url'       => admin_url( 'admin.php?page=media-ai' ),
+    );
 }
 
 
@@ -411,6 +477,9 @@ function vergeml_tree_state( $taxonomy ) {
         'width'    => isset( $mine['width'] ) ? (int) $mine['width'] : 0,
         'collapsed' => ! empty( $mine['collapsed'] ) ? 1 : 0,
         'filtersOpen' => isset( $mine['filtersOpen'] ) ? (int) $mine['filtersOpen'] : 1,
+        // The AI group, open by default like the filters group. It only
+        // appears at all once there is something to open.
+        'aiOpen'      => isset( $mine['aiOpen'] ) ? (int) $mine['aiOpen'] : 1,
         /*
          *  'native' derives its accent from whichever admin colour scheme this
          *  user already chose, so the tree looks like part of the admin rather

@@ -236,7 +236,12 @@ function vergeml_lib_options_validate( $input ) {
 
         }
         elseif ( 'filters_to_show' === $key ) {
-            $allowed = array( 'types', 'dates', 'authors', 'taxonomies' );
+            // 'ai' is the AI folder group in the tree panel, not a filter
+            // dropdown. It lives here because this is where "which of these
+            // do you want to see" is already answered -- and it has to be in
+            // this allowlist or saving the settings page would quietly drop
+            // it every time.
+            $allowed = array( 'types', 'dates', 'authors', 'taxonomies', 'ai' );
             $input[$key] = array_values( array_intersect( $option, $allowed ) );
         }
         elseif ( 'search_in' === $key ) {

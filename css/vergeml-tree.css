@@ -1904,6 +1904,44 @@ button.vgml-crumb:hover {
 	color: var( --vgml-muted );
 }
 
+/* --- the AI group -------------------------------------------------------- */
+
+/*
+ *  The same heading as Filters, because it is the same kind of thing. What it
+ *  adds is the pair beside it: how much of the library the numbers below are
+ *  drawn from. Quiet, and in the muted colour, because it qualifies the counts
+ *  rather than competing with them.
+ */
+
+.vgml-ai-partial {
+	font-variant-numeric: tabular-nums;
+	font-size: 11px;
+	color: var( --vgml-muted );
+	background: none;
+}
+
+/*
+ *  The way in when nothing has been described. A row rather than a notice: it
+ *  sits where the folders would be, so the thing that is missing is named in
+ *  the place it is missing from.
+ */
+
+.vgml-ai-ladder .vgml-row {
+	cursor: pointer;
+}
+
+.vgml-ai-ladder-link {
+	color: var( --vgml-muted );
+	font-style: italic;
+	text-decoration: none;
+}
+
+.vgml-ai-ladder-link:hover,
+.vgml-ai-ladder-link:focus {
+	color: var( --vgml-accent, currentColor );
+	text-decoration: underline;
+}
+
 /* == The golden rules =========================================================
  *
  *  One system for every control on both screens, ending the drift of a

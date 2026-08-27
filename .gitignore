@@ -24,3 +24,7 @@ tests/librarian/gate7-last-run.txt
 
 # Plugin Check leaves a full-page screenshot of the result it read.
 tools/.plugin-check.png
+
+# The AI folders suite writes its transcript here, for the same reason the
+# gate-7 one does: a passing Playground step prints nothing.
+tests/tree/ai-folders-last-run.txt

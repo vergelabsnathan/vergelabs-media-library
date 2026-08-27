@@ -1829,7 +1829,9 @@ function vergeml_print_media_library_options() {
                                                 <em>(<?php esc_html_e( 'Can be disabled for Grid Mode only', 'vergelabs-media-library' ); ?>)</em></label><br />
                                                 <label><input name="vergeml_lib_options[filters_to_show][]" type="checkbox" value="dates" <?php echo in_array('dates', $vergeml_lib_options['filters_to_show']) ? 'checked' : ''; ?> /> <?php esc_html_e('Dates','vergelabs-media-library'); ?></label><br />
                                                 <label><input name="vergeml_lib_options[filters_to_show][]" type="checkbox" value="authors" <?php echo in_array('authors', $vergeml_lib_options['filters_to_show']) ? 'checked' : ''; ?> /> <?php esc_html_e('Authors','vergelabs-media-library'); ?></label><br />
-                                                <label><input name="vergeml_lib_options[filters_to_show][]" type="checkbox" value="taxonomies" <?php echo in_array('taxonomies', $vergeml_lib_options['filters_to_show']) ? 'checked' : ''; ?> /> <?php esc_html_e('Media Taxonomies','vergelabs-media-library'); ?></label>
+                                                <label><input name="vergeml_lib_options[filters_to_show][]" type="checkbox" value="taxonomies" <?php echo in_array('taxonomies', $vergeml_lib_options['filters_to_show']) ? 'checked' : ''; ?> /> <?php esc_html_e('Media Taxonomies','vergelabs-media-library'); ?></label><br />
+                                                <label><input name="vergeml_lib_options[filters_to_show][]" type="checkbox" value="ai" <?php echo in_array('ai', $vergeml_lib_options['filters_to_show']) ? 'checked' : ''; ?> /> <?php esc_html_e('AI folders','vergelabs-media-library'); ?>
+                                                <em>(<?php esc_html_e( 'In the folder panel: photos, screenshots, documents and the rest, from the descriptions', 'vergelabs-media-library' ); ?>)</em></label>
                                             </fieldset>
                                         </td>
                                     </tr>

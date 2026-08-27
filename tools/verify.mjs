@@ -71,6 +71,15 @@ const only = argv.filter( ( a, i ) => ! taken.has( i ) && ! a.startsWith( '--' )
  */
 const SUITES = [
 	{ name: 'tree', file: 'tests/tree/t0-endpoints.js', env: 'playground' },
+	/*
+	 *  The AI folders, in two halves for the usual reason. The PHP one is
+	 *  about the join and the counts and wants real MySQL -- Playground's
+	 *  SQLite layer does not maintain $wpdb->num_queries, so the budget half
+	 *  of it reports itself skipped there rather than passing on a zero. The
+	 *  browser one is about whether the group can be used.
+	 */
+	{ name: 'ai-folders', file: 'tests/tree/ai-folders.php', env: 'box', php: true },
+	{ name: 'ai-folders-ui', file: 'tests/tree/ai-folders.mjs', env: 'playground' },
 	{ name: 'health', file: 'tests/tree/health.mjs', env: 'box' },
 	{
 		name: 'ai',

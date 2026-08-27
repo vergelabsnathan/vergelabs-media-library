@@ -63,6 +63,7 @@ function vergeml_register_folder_routes() {
                 'width'    => array( 'type' => 'integer' ),
                 'collapsed' => array( 'type' => 'integer' ),
                 'filtersOpen' => array( 'type' => 'integer' ),
+                'aiOpen'     => array( 'type' => 'integer' ),
                 'skin'     => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
                 'density'  => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             ),
@@ -459,6 +460,10 @@ function vergeml_rest_state_set( WP_REST_Request $request ) {
 
     if ( null !== $request->get_param( 'filtersOpen' ) ) {
         $mine['filtersOpen'] = (int) (bool) $request->get_param( 'filtersOpen' );
+    }
+
+    if ( null !== $request->get_param( 'aiOpen' ) ) {
+        $mine['aiOpen'] = (int) (bool) $request->get_param( 'aiOpen' );
     }
 
     if ( null !== $request->get_param( 'width' ) ) {

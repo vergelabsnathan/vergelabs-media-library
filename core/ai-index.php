@@ -36,7 +36,8 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 const VERGEML_INDEX_TABLE   = 'vergeml_ai_index';
-const VERGEML_INDEX_VERSION = 1;
+// 2 since 3.4.0: KEY has_text, for the "Text in the picture" smart folder.
+const VERGEML_INDEX_VERSION = 2;
 const VERGEML_INDEX_OPTION  = 'vergeml_index';
 
 // The postmeta key the index was grown from. Still written by nothing, still
@@ -136,6 +137,7 @@ function vergeml_index_install() {
         PRIMARY KEY  (attachment_id),
         KEY kind (kind),
         KEY has_people (has_people),
+        KEY has_text (has_text),
         KEY document_type (document_type),
         KEY described_at (described_at)
     ) {$collate};";
@@ -763,20 +765,58 @@ function vergeml_index_maybe_migrate() {
         return;
     }
 
+    /*
+     *  Before the early return below, deliberately. The schema check used to
+     *  sit after it, which meant that a site which had finished the legacy
+     *  migration -- every site that has run this feature for a while -- never
+     *  checked its schema again. A later version could add a column or an
+     *  index and those sites would silently never get it.
+     */
+    vergeml_index_maybe_install();
+
     $state = vergeml_index_state();
 
     if ( ! empty( $state['migrated'] ) ) {
         return;
     }
 
-    // A schema that was never laid down -- a table dropped by hand, or a
-    // version that skipped the activation -- is put back before anything
-    // tries to write to it.
-    if ( empty( $state['schema'] ) || ! vergeml_index_table_exists() ) {
+    vergeml_index_migrate_step( isset( $state['cursor'] ) ? (int) $state['cursor'] : 0 );
+}
+
+
+/**
+ *  vergeml_index_maybe_install
+ *
+ *  The schema, laid down when it is missing or out of date.
+ *
+ *  Three cases, and the middle one is the one that used to be missed:
+ *
+ *   - never installed, because the activation hook never fired on a site that
+ *     upgraded without visiting wp-admin;
+ *   - installed, but at an older VERGEML_INDEX_VERSION than this code wants --
+ *     which is how a new column or a new KEY reaches an existing install.
+ *     Comparing against the constant is the whole point; testing only for
+ *     "empty" made the constant decorative;
+ *   - installed at the right version, but the table itself is gone: dropped by
+ *     hand, by a host's migration, by a half-restored backup. The option still
+ *     says the schema is current, so the database has to be asked.
+ *
+ *  The last of those costs a query, so it is only asked once the cheap checks
+ *  have passed. core/librarian.php carries the same shape for its own tables.
+ */
+
+function vergeml_index_maybe_install() {
+
+    $state = vergeml_index_state();
+
+    if ( empty( $state['schema'] ) || VERGEML_INDEX_VERSION !== (int) $state['schema'] ) {
         vergeml_index_install();
+        return;
     }
 
-    vergeml_index_migrate_step( isset( $state['cursor'] ) ? (int) $state['cursor'] : 0 );
+    if ( ! vergeml_index_table_exists() ) {
+        vergeml_index_install();
+    }
 }
 
 

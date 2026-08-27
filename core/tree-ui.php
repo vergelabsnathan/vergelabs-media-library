@@ -276,6 +276,8 @@ function vergeml_tree_assets( $hook ) {
             'allFiles'       => __( 'All files', 'vergelabs-media-library' ),
             'collapse'       => __( 'Collapse panel', 'vergelabs-media-library' ),
             'filters'        => __( 'Filters', 'vergelabs-media-library' ),
+            'aiFolders'      => __( 'AI folders', 'vergelabs-media-library' ),
+            'aiLadder'       => __( 'Nothing described yet — describe your library', 'vergelabs-media-library' ),
             'expand'         => __( 'Expand panel', 'vergelabs-media-library' ),
             'uploadHere'     => __( 'Upload to this folder', 'vergelabs-media-library' ),
             /* translators: %s: folder name. */
