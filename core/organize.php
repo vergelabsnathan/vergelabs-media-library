@@ -229,9 +229,9 @@ add_action( 'vergeml_activate', 'vergeml_organize_install' );
  *  four and every check here would spend one of them.
  */
 
-add_action( 'admin_init', 'vergeml_organize_maybe_install' );
+add_action( 'admin_init', 'vergeml_organize_housekeeping' );
 
-function vergeml_organize_maybe_install() {
+function vergeml_organize_housekeeping() {
 
     if ( wp_doing_ajax() ) {
         return;
@@ -239,11 +239,31 @@ function vergeml_organize_maybe_install() {
 
     $state = vergeml_organize_state();
 
-    if ( ! empty( $state['schema'] ) && VERGEML_ORGANIZE_VERSION === (int) $state['schema'] ) {
+    if ( empty( $state['schema'] ) || VERGEML_ORGANIZE_VERSION !== (int) $state['schema'] ) {
+        vergeml_organize_install();
+        $state = vergeml_organize_state();
+    }
+
+    /*
+     *  Pruning lives here rather than on the step endpoint, and the reason is
+     *  the budget. A step is allowed four queries; creating a run already
+     *  spends three, and the two that find and drop the eleventh-oldest run
+     *  would put it over. Dropping old rows is housekeeping, not part of
+     *  anybody's step, so it happens on an admin screen and at most once a
+     *  day -- a tree for ten thousand files is a large blob, but it is not an
+     *  urgent one.
+     */
+    $last = isset( $state['pruned'] ) ? (int) $state['pruned'] : 0;
+
+    if ( time() - $last < DAY_IN_SECONDS ) {
         return;
     }
 
-    vergeml_organize_install();
+    vergeml_organize_prune();
+
+    $state['pruned'] = time();
+
+    update_option( VERGEML_ORGANIZE_OPTION, $state, false );
 }
 
 
@@ -366,16 +386,6 @@ function vergeml_organize_run_create( $args ) {
 
     $now = current_time( 'mysql', true );
 
-    /*
-     *  Pruning happens here rather than when a run finishes, and the reason is
-     *  the query budget: the finishing step already spends four reading the
-     *  row, priming the sample files and writing the tree back, and two more
-     *  would put the one step that has no slack over it. Creation has room,
-     *  and "make a run, drop the eleventh-oldest" is the same housekeeping in
-     *  a place that can afford it.
-     */
-    vergeml_organize_prune();
-
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $wpdb->insert(
         vergeml_organize_table(),
@@ -421,22 +431,29 @@ function vergeml_organize_run_save( $run ) {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    return false !== $wpdb->update(
-        vergeml_organize_table(),
-        array(
-            'status'      => (string) $run['status'],
-            'k'           => (int) $run['k'],
-            'n'           => (int) $run['n'],
-            'load_cursor' => (int) $run['cursor'],
-            'tree'        => wp_json_encode( $run['tree'] ),
-            'params'      => wp_json_encode( $run['params'] ),
-            'updated_at'  => current_time( 'mysql', true ),
-        ),
-        array( 'run_id' => (int) $run['run_id'] ),
-        array( '%s', '%d', '%d', '%d', '%s', '%s', '%s' ),
-        array( '%d' )
-    );
+    /*
+     *  A prepared UPDATE rather than $wpdb->update(), and the reason is the
+     *  budget rather than taste. $wpdb->update() asks the table for its column
+     *  charsets before it writes -- SHOW FULL COLUMNS, once per request, and a
+     *  query like any other. It put a step at four and the cancel endpoint at
+     *  three against a budget of two. Every value below still goes through
+     *  prepare; only the introspection is gone.
+     */
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    return false !== $wpdb->query( $wpdb->prepare(
+        "UPDATE {$wpdb->vergeml_organize_runs}
+            SET status = %s, k = %d, n = %d, load_cursor = %d,
+                tree = %s, params = %s, updated_at = %s
+          WHERE run_id = %d",
+        (string) $run['status'],
+        (int) $run['k'],
+        (int) $run['n'],
+        (int) $run['cursor'],
+        wp_json_encode( $run['tree'] ),
+        wp_json_encode( $run['params'] ),
+        current_time( 'mysql', true ),
+        (int) $run['run_id']
+    ) );
     // phpcs:enable
 }
 
@@ -996,7 +1013,7 @@ function vergeml_organize_label( $members, $global, $points ) {
  *  thing left to say is that this is the second one.
  */
 
-function vergeml_organize_distinct_labels( $clusters, $global, $points ) {
+function vergeml_organize_distinct_labels( $clusters, $global, $points, $ancestors = array() ) {
 
     $labels = array();
     $ranked = array();
@@ -1006,7 +1023,18 @@ function vergeml_organize_distinct_labels( $clusters, $global, $points ) {
         $ranked[ $c ] = vergeml_organize_shared_tags( $members, $points, 8 );
     }
 
+    /*
+     *  The names already on the way here count as taken. Splitting a branch
+     *  re-scores the same members against the same tags, so without this the
+     *  child scores its parent's name and the tree grows "Body Canvas / Body
+     *  Canvas" -- a folder inside a folder of the same name, which reads as a
+     *  bug whether or not it is one.
+     */
     $taken = array();
+
+    foreach ( (array) $ancestors as $name ) {
+        $taken[ $name ] = true;
+    }
 
     foreach ( $labels as $c => $label ) {
 
@@ -1315,8 +1343,14 @@ function vergeml_organize_step_cluster( $run, $started ) {
     ksort( $clusters );
 
     // Named together rather than one at a time, so no two branches of this
-    // split come out with the same name.
-    $labels = vergeml_organize_distinct_labels( $clusters, $global, $points );
+    // split come out with the same name -- nor the same name as a folder they
+    // sit inside.
+    $labels = vergeml_organize_distinct_labels(
+        $clusters,
+        $global,
+        $points,
+        $parent ? $params['branches'][ $parent ]['path'] : array()
+    );
 
     foreach ( $clusters as $c => $cluster_members ) {
 
@@ -1790,7 +1824,23 @@ function vergeml_organize_hydrate( $branches ) {
 
         foreach ( array_slice( $branch['members'], 0, 3 ) as $member ) {
 
-            $id   = (int) $member['id'];
+            $id = (int) $member['id'];
+
+            /*
+             *  Asked of the cache the prime just filled, not of get_post().
+             *
+             *  Priming cannot cache a post that does not exist, and get_post()
+             *  does not remember a miss -- so every id whose attachment has
+             *  gone costs its own query, every time. With three samples a
+             *  branch and a hundred branches that turned the finishing step
+             *  into three hundred and twenty queries against a budget of four.
+             *  An index row can outlive its file, so this is not hypothetical.
+             */
+            if ( ! wp_cache_get( $id, 'posts' ) ) {
+                continue;
+            }
+
+            // Cached by the prime above, so this costs nothing.
             $post = get_post( $id );
 
             if ( ! $post ) {
@@ -2536,14 +2586,12 @@ function vergeml_organize_rest_cancel( WP_REST_Request $request ) {
         return rest_ensure_response( array( 'run_id' => $run_id, 'status' => (string) $status, 'cancelled' => false ) );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    $wpdb->update(
-        vergeml_organize_table(),
-        array( 'status' => 'cancelled', 'updated_at' => current_time( 'mysql', true ) ),
-        array( 'run_id' => $run_id ),
-        array( '%s', '%s' ),
-        array( '%d' )
-    );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    $wpdb->query( $wpdb->prepare(
+        "UPDATE {$wpdb->vergeml_organize_runs} SET status = 'cancelled', updated_at = %s WHERE run_id = %d",
+        current_time( 'mysql', true ),
+        $run_id
+    ) );
     // phpcs:enable
 
     return rest_ensure_response( array( 'run_id' => $run_id, 'status' => 'cancelled', 'cancelled' => true ) );
