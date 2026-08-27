@@ -92,6 +92,11 @@ const SUITES = [
 	 *  a real database has that Playground does not.
 	 */
 	{ name: 'say', file: 'tests/tree/nl-commands.php', env: 'playground', php: true },
+	/*
+	 *  Setting aside. Mostly assertions that a file survived, so it needs
+	 *  nothing a real database has that Playground does not.
+	 */
+	{ name: 'quarantine', file: 'tests/tree/quarantine.php', env: 'playground', php: true },
 	{ name: 'health', file: 'tests/tree/health.mjs', env: 'box' },
 	{
 		name: 'ai',

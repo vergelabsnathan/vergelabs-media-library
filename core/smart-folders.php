@@ -115,19 +115,20 @@ function vergeml_smart_query_args( $key ) {
     $folders = vergeml_smart_folders();
 
     if ( isset( $folders[ $key ]['index'] ) ) {
-        return array( 'vergeml_ai_filter' => $key );
+        return apply_filters( 'vergeml_smart_query_args', array( 'vergeml_ai_filter' => $key ), $key );
     }
 
     switch ( $key ) {
 
         case 'unused':
-            return array(
+            $args = array(
                 // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- the smart folder IS a meta lookup, over the index the scan built.
                 'meta_query' => array( array( 'key' => VERGEML_META_UNUSED, 'value' => '1' ) ),
             );
+            break;
 
         case 'no-alt':
-            return array(
+            $args = array(
                 'post_mime_type' => 'image',
                 // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- "missing alt" is by definition a meta absence; core keys alt text on meta.
                 'meta_query'     => array(
@@ -136,9 +137,10 @@ function vergeml_smart_query_args( $key ) {
                     array( 'key' => '_wp_attachment_image_alt', 'value' => '' ),
                 ),
             );
+            break;
 
         case 'large':
-            return array(
+            $args = array(
                 // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- over the numeric size index the scan maintains.
                 'meta_query' => array( array(
                     'key'     => VERGEML_META_FILESIZE,
@@ -147,18 +149,30 @@ function vergeml_smart_query_args( $key ) {
                     'type'    => 'NUMERIC',
                 ) ),
             );
+            break;
 
         case 'unattached':
-            return array( 'post_parent' => 0 );
+            $args = array( 'post_parent' => 0 );
+            break;
 
         case 'recent':
-            return array( 'date_query' => array( array(
+            $args = array( 'date_query' => array( array(
                 'year'  => (int) current_time( 'Y' ),
                 'month' => (int) current_time( 'n' ),
             ) ) );
+            break;
+
+        default:
+            $args = array();
     }
 
-    return array();
+    /*
+     *  The other half of the seam. A folder registered through the filter in
+     *  vergeml_smart_folders() has to be able to say what it means as well as
+     *  that it exists, and without this it could only ever be a row with a
+     *  count and nothing behind it.
+     */
+    return apply_filters( 'vergeml_smart_query_args', $args, $key );
 }
 
 

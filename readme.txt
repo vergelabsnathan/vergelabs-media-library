@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.6.0
+Stable tag: 3.7.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -240,6 +240,17 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.7.0 ###
+*Set aside, which is not deleted*
+
+= Added =
+* **A place to put files you think you are finished with.** Set one aside and it leaves the media library — but it stays exactly where it is: same file on disk, same URL, still working in every page that uses it. If something you could not see was using it, nothing breaks and you find out.
+* **Nothing may be considered for removal for thirty days.** Not a setting you can turn down; a floor. The evidence for "unused" is that nobody found a reference, and absence is disproved by somebody noticing, which takes weeks.
+* **A list you can keep.** Download everything set aside — ids, file names, paths, sizes, and the reason each one was — and check it against a backup before you decide anything.
+* **It never deletes.** There is no delete button, no delete endpoint, and no code in this feature that removes a file. When the wait is over it tells you so and hands you the list; what happens next is yours.
+* Taking something back is instant and always available. A delay that protects you must not also trap you.
+
 
 ### 3.6.0 ###
 *Say what you want*
