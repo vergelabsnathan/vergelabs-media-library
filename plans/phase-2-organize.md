@@ -107,16 +107,43 @@ anything.
   "photos" is a poor trade.
 - **The embeddings are mock and the pipeline must not care.** Everything here
   is written against the vector in the column, whatever produced it.
-- `OPEN:` **How is k chosen?** The spike proved `sqrt(n/2)` produces a
-  catch-all. Candidates, none yet chosen: (a) target average branch size —
-  pick k so branches average ~30 files; (b) silhouette score over a few
-  candidate k values, which costs several clustering passes; (c) split any
-  branch above a size threshold and re-cluster it, recursively, which gives a
-  real tree rather than a flat list; (d) let the caller pass k and default to
-  (a). **This is the single decision that most affects whether the output is
-  any good, and it should not be guessed.** (c) is the most interesting
-  because Phase 3 renders *branches*, not a flat assignment list — but it is
-  also the most work.
+- **k is not chosen. Branches are split until they are small enough.** The
+  spike proved a single up-front k produces a catch-all: 35 of 58 files in one
+  branch, named after an arbitrary member. So: cluster the library into a
+  handful of groups (5–6, a number a person can take in), then look at each
+  and split again if it is still too big. Four reasons this beats picking a
+  number:
+  - **The stopping rule is a sentence.** "No folder holds more than about
+    fifty files" can be explained to a customer and changed by one.
+    `k = sqrt(n/2)` cannot.
+  - **Real libraries are lopsided.** 3,000 product shots beside 40 team
+    photos: one k splits both badly, leaving the products in a heap and
+    fragmenting the team. Splitting only what is too big treats each on its
+    own terms.
+  - **A bad split stays small.** Wrong three levels down is wrong about thirty
+    files. Wrong with a flat k is wrong about a third of the library.
+  - **It fixes naming.** That 35-file branch got a nonsense name because its
+    members shared no tags — there was nothing to name it after. Small
+    coherent groups do share tags, so the label falls out on its own.
+
+  Thresholds, both filterable rather than baked in: split above
+  `VERGEML_ORGANIZE_MAX_BRANCH` (50) and stop at
+  `VERGEML_ORGANIZE_MAX_DEPTH` (3). Nobody wants Products → Boots → Navy →
+  Left-facing. Do not create a branch below `VERGEML_ORGANIZE_MIN_BRANCH` (5);
+  fold those into their parent instead.
+- **Every run carries a "Needs a look" branch** for the files that fit nowhere.
+  Every real library has some, and forcing them into a category is precisely
+  how folders get confident wrong names. Phase 3 calls for this branch
+  anyway; producing it here means the screen has it from the start.
+- **Embed everything, describe a few.** Clustering needs the embedding, not
+  the caption — and an embedding is one pass through a small encoder where a
+  description is a vision model reading the picture and writing sentences.
+  That is one to two orders of magnitude apart, and it is a property of the
+  computation rather than of anyone's price list. So a first organise run
+  embeds the whole library and describes only enough files per branch to name
+  it — tens of descriptions instead of thousands. Full descriptions stay
+  available on demand and for the alt-text pass, which is a different feature
+  with a different justification for its cost.
 - **Nothing is called "big". The library is measured, on the host it is
   actually on.** A file count is a stand-in for the things that matter and a
   poor one: 3,000 files on a slow shared host is a worse experience than
@@ -268,9 +295,34 @@ so nobody reaches for a database first.
    cap, an early exit when nothing moves, and empty clusters keeping their
    centroid rather than collapsing to the origin. Ported from the spike, which
    is already correct here.
-6. **`core/organize.php`: k selection.** Blocked on the `OPEN:` above. Whatever
-   is chosen, it lives in one function with the reasoning in a comment, and
-   the caller may always override it.
+6. **`core/organize.php`: recursive splitting.**
+   `vergeml_organize_split( $members, $depth )` — cluster into 5–6, then
+   recurse into any branch still above `MAX_BRANCH`, stopping at `MAX_DEPTH`.
+   Branches below `MIN_BRANCH` fold into their parent. Members that sit far
+   from every centroid go to "Needs a look" rather than being forced. This
+   replaces choosing k: the only number anyone sets is how big a folder is
+   allowed to get.
+
+   Each split is a small clustering job on a shrinking pile, so the total work
+   is close to one full pass rather than a multiple of it — but confirm that
+   with the memory and time assertions rather than assuming it.
+
+   **Tried on the test library before writing this.** Splitting to a threshold
+   of 12 took the biggest branch from 35 files (60% of the library, the flat
+   k=5 result) down to 21 (36%), in 7.3ms, with only 3% landing in "Needs a
+   look". A real improvement, and two problems it did not solve — both of
+   which this task has to handle:
+
+   - **The depth cap leaves branches over the threshold.** That 21-file branch
+     sits at depth 3 and stopped because it ran out of depth, not because it
+     was small enough. Splitting further would give a tree nobody wants to
+     click through. So the honest move is to stop *and say so*: a branch that
+     hit the cap is flagged, and Phase 3 shows it as needing attention rather
+     than presenting it as a finished folder. A folder the plugin is not
+     confident about should look different from one it is.
+   - **"Needs a look" came out three times, once per depth.** There must be
+     exactly one, collected at the end from every level. Three folders with
+     the same name is worse than not having the idea at all.
 7. **`core/organize.php`: labelling.** Port `vgml_spike_label()`: tags common
    inside the branch and rare outside it, falling back to the `kind` mix when
    a branch shares nothing. Never a model call.
@@ -386,9 +438,14 @@ table only, and it must never be able to touch `posts` or `postmeta`.
 - **Run-table growth.** A tree for 10,000 files is a large JSON blob. Ten of
   them is tens of megabytes in one table. Task 14 exists for this; check the
   stored size at scale rather than assuming.
-- **The `OPEN:` on k is not a detail.** Building tasks 2–5 and 7–13 against a
-  k rule that turns out wrong means the persistence and diffing are fine and
-  every tree they hold is a 60% catch-all. It is worth answering first.
+- **Recursive splitting can run away.** The depth cap and the minimum branch
+  size are what stop it, and both need testing at the edges: a library where
+  every file is nearly identical (splits forever, or refuses to split at all),
+  and one where every file is unrelated (everything lands in "Needs a look").
+  Both are real shapes — a stock-photo dump and a client archive.
+- **"Needs a look" must not become the catch-all under another name.** If it
+  routinely holds a third of the library, the thresholds are wrong and the
+  suite should say so rather than the branch quietly absorbing the problem.
 
 ---
 
@@ -397,5 +454,13 @@ one would execute from a context already full of exploration — the spike, the
 scale probe, a harness pass and two earlier phases — which is exactly what the
 plan/execute split exists to prevent.
 
-The two `OPEN:` lines are real blockers, not hedging. `/execute` is written to
-stop when it finds one.
+There are no `OPEN:` lines left. Both have been answered — how the tree is
+shaped, by splitting rather than by choosing a k, and how big a library is, by
+measuring the one in front of it. Nothing here waits on the interviews or on
+the service.
+
+What it does still assume, and what would invalidate a lot of it, is that
+clustering real embeddings groups pictures the way a person would. That cannot
+be known until the service returns real vectors. The machinery is testable now;
+whether the tree is any *good* is not, and no test in this phase should claim
+otherwise.
