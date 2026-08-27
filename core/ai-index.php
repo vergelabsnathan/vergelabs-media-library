@@ -598,49 +598,50 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
 
     global $wpdb;
 
-    // OR between them, because a row is stale if *any* part of the stamp
-    // moved -- and AND would ask for a row where all three changed at once,
-    // which is a much rarer thing and not what "stale" means.
-    $stale  = array();
-    $values = array( (int) $after );
-
-    if ( '' !== (string) $model ) {
-        $stale[]  = 'model <> %s';
-        $values[] = (string) $model;
-    }
-
-    if ( '' !== (string) $version ) {
-        $stale[]  = 'model_version <> %s';
-        $values[] = (string) $version;
-    }
-
-    if ( (int) $dims > 0 ) {
-        $stale[]  = '( embedding_dims IS NULL OR embedding_dims <> %d )';
-        $values[] = (int) $dims;
-    }
+    $check_model   = '' !== (string) $model ? 1 : 0;
+    $check_version = '' !== (string) $version ? 1 : 0;
+    $check_dims    = (int) $dims > 0 ? 1 : 0;
 
     // Nothing to compare against: no row can be stale. Handing back the whole
     // table because the caller passed nothing would be the worst available
     // reading of an empty argument.
-    if ( ! $stale ) {
+    if ( ! $check_model && ! $check_version && ! $check_dims ) {
         return array();
     }
 
-    $values[] = $limit > 0 ? (int) $limit : PHP_INT_MAX;
-
-    $sql = "SELECT attachment_id FROM {$wpdb->vergeml_ai_index}
-             WHERE error = '' AND attachment_id > %d
-               AND ( " . implode( ' OR ', $stale ) . ' )
-             ORDER BY attachment_id ASC
-             LIMIT %d';
-
     /*
-     *  Every value travels through prepare; the interpolation is the WHERE
-     *  shape, which is built from this function's own literals and never from
-     *  input. The sniffs cannot follow a clause assembled in a loop.
+     *  One statement, whichever parts of the stamp the caller cares about.
+     *
+     *  Assembling the WHERE from an array read to the sniffs as unprepared
+     *  SQL -- correctly, since they cannot follow a clause built in a loop --
+     *  and Plugin Check is the submission gate. So each test carries its own
+     *  switch instead: a zero makes that half of the AND false and the term
+     *  disappears, and the string handed to prepare is a literal.
+     *
+     *  OR between the three, because a row is stale if *any* part of the stamp
+     *  moved. AND would ask for a row where all of them changed at once, which
+     *  is a rarer thing and not what "stale" means.
      */
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-    return array_map( 'intval', $wpdb->get_col( $wpdb->prepare( $sql, $values ) ) );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+        "SELECT attachment_id FROM {$wpdb->vergeml_ai_index}
+          WHERE error = '' AND attachment_id > %d
+            AND (
+                    ( %d = 1 AND model <> %s )
+                 OR ( %d = 1 AND model_version <> %s )
+                 OR ( %d = 1 AND ( embedding_dims IS NULL OR embedding_dims <> %d ) )
+                )
+          ORDER BY attachment_id ASC
+          LIMIT %d",
+        (int) $after,
+        $check_model,
+        (string) $model,
+        $check_version,
+        (string) $version,
+        $check_dims,
+        (int) $dims,
+        $limit > 0 ? (int) $limit : PHP_INT_MAX
+    ) ) );
     // phpcs:enable
 }
 
