@@ -1,9 +1,9 @@
-# Watchdog tests
+﻿# Watchdog tests
 
 These break the plugin on purpose and check that the site comes back.
 
     npx @wp-playground/cli server --port 8899 \
-      --mount-dir 'C:\dev\vergelabs-media-library' /wordpress/wp-content/plugins/vergelabs-media-library \
+      --mount-dir 'C:\dev\media-plugin\plugin' /wordpress/wp-content/plugins/vergelabs-media-library \
       --blueprint blueprint.json
 
     node recovery.js      # the whole ladder, 10 assertions
@@ -23,7 +23,7 @@ come back after resuming.
 
 `guard-proof.js` is the more direct instrument: it temporarily appends a probe to
 core/watchdog.php that prints `vergeml_safe_mode()` alongside
-`function_exists('vergeml_search_columns')` — a function defined only inside the
+`function_exists('vergeml_search_columns')` â€” a function defined only inside the
 guarded includes. Expected:
 
     healthy       safe=no  features=LOADED

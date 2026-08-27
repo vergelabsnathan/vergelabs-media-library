@@ -1,7 +1,7 @@
-# VergeLabs Media Library
+﻿# VergeLabs Media Library
 
 GPLv2 fork of Enhanced Media Library 2.9.4, taken over after upstream went unmaintained.
-Free plugin on wordpress.org; a paid Pro add-on (`C:\dev\vergelabs-media-library-pro`) sells
+Free plugin on wordpress.org; a paid Pro add-on (`C:\dev\media-plugin\pro`) sells
 AI image descriptions on top of it. Currently **3.0.0**, not yet submitted.
 
 Everything below is a constraint that has already drawn blood. Anything conditional lives in
@@ -24,29 +24,29 @@ Everything below is a constraint that has already drawn blood. Anything conditio
 
 Three places, and they must agree or the plugin ships as one version while announcing another:
 
-1. `vergelabs-media-library.php` header — `Version:`
-2. the same file — `define( 'VERGEML_VERSION', ... )`
-3. `readme.txt` — `Stable tag:` (this is the one wordpress.org reads)
+1. `vergelabs-media-library.php` header â€” `Version:`
+2. the same file â€” `define( 'VERGEML_VERSION', ... )`
+3. `readme.txt` â€” `Stable tag:` (this is the one wordpress.org reads)
 
 ## Naming
 
 - Free plugin prefixes everything `vergeml_` / `VERGEML_`; Pro uses `vgmlpro_`.
 - Text domain is `vergelabs-media-library`, and it must be the literal string in every
-  `__()` call — a constant there breaks the translation scanner.
+  `__()` call â€” a constant there breaks the translation scanner.
 - Options: `vergeml_taxonomies`, `vergeml_lib_options`, `vergeml_tax_options`, `vergeml_mimes`,
   `vergeml_version`.
 
 ## Options migrations
 
-Saved options outlive defaults. Changing a default does nothing for existing installs — every
+Saved options outlive defaults. Changing a default does nothing for existing installs â€” every
 one of them already has the old value written to the database. Migrations go in
 `vergeml_set_options()` guarded by `version_compare( get_option( 'vergeml_version', '' ), 'X.Y.Z', '<' )`,
 and they must not touch taxonomies the user owns (`eml_media` = 0 means it is the site's, not ours).
 
 ## Safe mode is load-bearing
 
-`core/watchdog.php` catches fatals via `register_shutdown_function` and escalates: log → safe
-mode → deactivate. Two things follow, both learned the hard way:
+`core/watchdog.php` catches fatals via `register_shutdown_function` and escalates: log â†’ safe
+mode â†’ deactivate. Two things follow, both learned the hard way:
 
 - **New feature files load inside the safe-mode guard** in `vergelabs-media-library.php`, so a
   crash in a new feature can actually be switched off. `core/rest-tree.php` is the example.
@@ -59,20 +59,20 @@ mode → deactivate. Two things follow, both learned the hard way:
 
 Two environments, and they answer different questions. `docs/testing.md` has the full detail.
 
-- **Playground** (`npx @wp-playground/cli`) for functional work — boots in seconds.
+- **Playground** (`npx @wp-playground/cli`) for functional work â€” boots in seconds.
   - Browse **`127.0.0.1`, never `localhost`**: WordPress builds URLs from `siteurl`, and the
     other name fails every nonce with "the link you followed has expired".
   - On Windows, prefix with `MSYS_NO_PATHCONV=1` or Git Bash rewrites `/wordpress/...` into
     `C:/Program Files/Git/wordpress/...`. Mount is two args: `--mount-dir "C:\path" /vfs/path`.
-  - A blueprint's `installPlugin` collides with `--mount-dir` ("Device or resource busy") — use
+  - A blueprint's `installPlugin` collides with `--mount-dir` ("Device or resource busy") â€” use
     `activatePlugin` against the mount instead.
 - **The VPS** (`185.229.224.239`, Kamatera, hourly) for anything about scale or numbers. See
   the `kamatera-wp-test-box` memory for the four traps that make REST look broken there.
 
 **Playground cannot measure performance.** PHP-wasm spends ~2.4s booting WordPress on every
 request, so core's endpoints time the same as ours and wall-clock says nothing. Measure with
-`tests/perf/bench.mjs`, which reports handler time separately from boot and — the figure that
-actually transfers — **query count**, which is a property of the algorithm and is identical in
+`tests/perf/bench.mjs`, which reports handler time separately from boot and â€” the figure that
+actually transfers â€” **query count**, which is a property of the algorithm and is identical in
 both environments. A disagreement there is a bug, not a hardware difference.
 
 ## Reference points
@@ -83,7 +83,7 @@ plus jQuery/jsTree. We use taxonomies like Premio and stay build-free like neith
 
 ## Working method
 
-This repo runs the R-PIV loop — research, plan, implement, validate — with the plan written in
+This repo runs the R-PIV loop â€” research, plan, implement, validate â€” with the plan written in
 one session and executed in a **fresh** one. See `.claude/skills/`. Two rules that are not
 negotiable because they are the whole point:
 
@@ -106,9 +106,9 @@ green, and optimise for correctness rather than time.
   group is open (it self-opens now, but new suites must not assume);
   sweep test-debris attachments/terms (`zz*`, probe stamps) between full
   batteries or counts drift and drags mis-aim.
-- **Start every session from this folder** (`C:\dev\vergelabs-media-library`),
+- **Start every session from this folder** (`C:\dev\media-plugin\plugin`),
   or `.claude/skills/` never loads and the harness silently does not exist.
-- **The AI roadmap lives in `docs/ai-roadmap.md`** — phases, decisions and
-  standing rules for everything under VergeLabs Library → AI. Do not
+- **The AI roadmap lives in `docs/ai-roadmap.md`** â€” phases, decisions and
+  standing rules for everything under VergeLabs Library â†’ AI. Do not
   re-derive it from conversation memory.
 

@@ -1,17 +1,17 @@
----
+﻿---
 name: validate
-description: Run the full validation gate for VergeLabs Media Library — lint, version consistency, Playground functional tests, query-count budgets, and Plugin Check. Use after any code change, and as the terminating loop for /execute.
+description: Run the full validation gate for VergeLabs Media Library â€” lint, version consistency, Playground functional tests, query-count budgets, and Plugin Check. Use after any code change, and as the terminating loop for /execute.
 ---
 
 # Validate
 
-Run **every** gate below. Do not stop at the first failure — collect them all, then fix and
+Run **every** gate below. Do not stop at the first failure â€” collect them all, then fix and
 rerun the whole thing. The loop terminates on green, not on first output.
 
 Report a table: gate, pass/fail, and the actual output for anything that failed. Never report a
 gate as passing without having run it, and never infer a result from a previous run.
 
-## Gate 1 — PHP lint (fast, always first)
+## Gate 1 â€” PHP lint (fast, always first)
 
 Every PHP file must parse on the 7.4 floor. Locally there is no PHP binary, so this runs on the
 test VPS:
@@ -27,7 +27,7 @@ ssh -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/d
 
 Empty output between the command and `lint done` means clean.
 
-## Gate 2 — PHP 7.4 syntax floor
+## Gate 2 â€” PHP 7.4 syntax floor
 
 `php -l` on the box runs PHP 8.3, so it will happily accept syntax that breaks for users on 7.4.
 Grep for the constructs that do not exist in 7.4:
@@ -41,7 +41,7 @@ grep -rnE 'match\s*\(|\?\->|readonly |enum [A-Z]|function [a-zA-Z_]+\([^)]*(publ
 Any hit is a failure unless it is provably not the PHP 8 construct (e.g. the word "match" in a
 comment). Explain any hit you dismiss.
 
-## Gate 3 — version consistency
+## Gate 3 â€” version consistency
 
 All three must agree, or wordpress.org ships a different version than the plugin reports:
 
@@ -56,12 +56,12 @@ Three commands, three lines, three matching numbers. **Fewer than three lines is
 the pattern here used to be `^ \* Version:`, which matches nothing in this file's header, so the
 gate printed two lines and read as clean while checking two of the three places.
 
-## Gate 4 — functional tests in Playground
+## Gate 4 â€” functional tests in Playground
 
 ```bash
 cd /c/dev/vergelabs-media-library
 MSYS_NO_PATHCONV=1 npx --yes @wp-playground/cli@latest server --port 8899 \
-  --mount-dir "C:\dev\vergelabs-media-library" /wordpress/wp-content/plugins/vergelabs-media-library \
+  --mount-dir "C:\dev\media-plugin\plugin" /wordpress/wp-content/plugins/vergelabs-media-library \
   --blueprint=tests/tree/blueprint.json &
 # wait for "Ready!", then:
 node tests/tree/t0-endpoints.js
@@ -70,7 +70,7 @@ node tests/watchdog/recovery.js
 
 Browse `127.0.0.1`, never `localhost`. Kill the server afterwards (`pkill -f wp-playground`).
 
-## Gate 5 — query-count budget
+## Gate 5 â€” query-count budget
 
 The performance gate, and the only performance number that means anything in Playground.
 Boot time is noise; **query count is the measurement**.
@@ -81,29 +81,29 @@ node tests/perf/bench.mjs http://127.0.0.1:8903 admin:benchbenchbenchbench   # P
 node tests/perf/bench.mjs http://185.229.224.239 admin:<app-password>        # real MariaDB
 ```
 
-Budgets, both environments (they must agree — a difference is a bug):
+Budgets, both environments (they must agree â€” a difference is a bug):
 
 | Endpoint | Queries | Note |
 |---|---|---|
-| `vergeml/v1/tree` | **6** | must not grow with folder count; verified flat from 200 → 2000 folders. 4 + 1 (five smart-folder counts as one UNION) + 1 (per-user tree state); raised deliberately 26-08-2026 |
+| `vergeml/v1/tree` | **6** | must not grow with folder count; verified flat from 200 â†’ 2000 folders. 4 + 1 (five smart-folder counts as one UNION) + 1 (per-user tree state); raised deliberately 26-08-2026 |
 | `vergeml/v1/health-report` | **5** | 3 with nothing to show, plus the 2 that fetch what is shown. Flat: neither moves with the number of duplicate groups |
-| `wp/v2/media?per_page=40` | — | core's own endpoint, printed for scale only. **Not a budget**: measured 7 in Playground and 86–109 on the box, because it costs whatever the site's other plugins make it cost |
+| `wp/v2/media?per_page=40` | â€” | core's own endpoint, printed for scale only. **Not a budget**: measured 7 in Playground and 86â€“109 on the box, because it costs whatever the site's other plugins make it cost |
 
 A rise in **our** endpoints' query count is a regression even if wall-clock improved. If the
-tree's count moves with the number of folders or files, an N+1 has been introduced — that is a
+tree's count moves with the number of folders or files, an N+1 has been introduced â€” that is a
 hard fail.
 
 Measure over REST, never from `wp eval` after other work in the same request: a scan that ran
 first leaves the caches warm, and the endpoint does not get them. That reported 4 queries for a
 `health-report` that actually ran 70.
 
-## Gate 6 — Plugin Check
+## Gate 6 â€” Plugin Check
 
 The wordpress.org submission gate. Must be clean before any release.
 
 Check a **clean archive**, not the working tree. `git archive` honours the export-ignore rules
 in `.gitattributes`, so it contains what users would install; checking the deployed folder
-instead reports the dev files — `.claude`, `CLAUDE.md`, `.github`, `tests/` — as warnings that
+instead reports the dev files â€” `.claude`, `CLAUDE.md`, `.github`, `tests/` â€” as warnings that
 are not real, and burying the real findings under them is how a real one gets missed.
 
 ```bash
@@ -121,10 +121,10 @@ ssh -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/d
 ```
 
 `Success: Checks complete. No errors found.` is the only passing output. A custom table's name
-built by a helper function reads to the sniffs as unprepared SQL — register it on `$wpdb` rather
+built by a helper function reads to the sniffs as unprepared SQL â€” register it on `$wpdb` rather
 than suppressing the warning.
 
-## Gate 7 — the upgrade path
+## Gate 7 â€” the upgrade path
 
 Existing installs carry saved options that defaults never touch. If this change added or altered
 a default, prove the migration runs:
@@ -142,4 +142,4 @@ alone.
 ## Skipping a gate
 
 Only with a stated reason, written into the report. "Not relevant to this change" is acceptable
-for gates 6 and 7 on changes that touch neither packaging nor options. Gates 1–5 always run.
+for gates 6 and 7 on changes that touch neither packaging nor options. Gates 1â€“5 always run.
