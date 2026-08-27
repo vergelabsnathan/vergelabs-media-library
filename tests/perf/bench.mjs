@@ -65,27 +65,43 @@ async function authenticate() {
   console.log('auth: login cookie + nonce\n');
 }
 
-async function probe(label, path) {
+/*
+ *  A request the way the endpoint expects it. The organise endpoints are POSTs
+ *  carrying JSON, and a budget measured only against the readable half of an
+ *  API is a budget with a hole in it -- the step endpoint is the one whose
+ *  query count is allowed to grow with the library, and therefore the one
+ *  worth watching.
+ */
+function send(path, body) {
+  if (body === undefined) return fetch(BASE + path, { headers: HEADERS });
+  return fetch(BASE + path, {
+    method: 'POST',
+    headers: { ...HEADERS, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+async function probe(label, path, body) {
   let head = null;
   const wall = [];
 
   for (let i = 0; i <= RUNS; i++) {
     const t0 = process.hrtime.bigint();
-    const res = await fetch(BASE + path, { headers: HEADERS });
-    const body = await res.text();
+    const res = await send(path, body);
+    const text = await res.text();
     const ms = Number(process.hrtime.bigint() - t0) / 1e6;
 
     if (i === 0) {
       // First run is cold: it is discarded, but it is also where a broken
       // request announces itself, so check it rather than the timings.
-      if (res.status !== 200) return console.log(`${label.padEnd(28)} HTTP ${res.status}  ${body.slice(0, 90)}`);
+      if (res.status !== 200) return console.log(`${label.padEnd(28)} HTTP ${res.status}  ${text.slice(0, 90)}`);
       if (!res.headers.get('x-vgml-queries')) return console.log(`${label.padEnd(28)} no perf probe -- is mu-perf.php installed?`);
       head = {
         queries: Number(res.headers.get('x-vgml-queries')),
         handler: Number(res.headers.get('x-vgml-handler-ms')),
         db: Number(res.headers.get('x-vgml-db-ms')),
         boot: Number(res.headers.get('x-vgml-boot-ms')),
-        bytes: body.length,
+        bytes: text.length,
       };
       continue;
     }
@@ -121,6 +137,45 @@ await probe('ours: vergeml/v1/tree', '/wp-json/vergeml/v1/tree?taxonomy=media_ca
  *  not move with how much turns out to be wrong with the library.
  */
 await probe('ours: vergeml/v1/health-report', '/wp-json/vergeml/v1/health-report');
+
+/*
+ *  The organise backend.
+ *
+ *  A step is budgeted at four and must be flat: it must not move with the
+ *  number of folders, nor with how many steps have already been taken. An N+1
+ *  here would be a query per file, and the file count is the whole point of
+ *  the feature.
+ *
+ *  The step probed is a working one -- a run is created first, and the probe
+ *  then hands back its id -- because a step that finds a finished run returns
+ *  after a single read and would flatter the number being checked.
+ */
+const created = await send('/wp-json/vergeml/v1/organize-step', {}).then((r) => r.json()).catch(() => null);
+
+if (created && created.run_id) {
+  await probe('ours: organize-step', '/wp-json/vergeml/v1/organize-step', { run_id: created.run_id });
+} else {
+  console.log('ours: organize-step'.padEnd(28) + ' could not create a run -- is the AI index populated?');
+}
+
+// The read path. Budget two: the run row, and the posts for whatever ids it
+// returns. The samples were hydrated when the run finished, so in practice it
+// costs one however large the tree is.
+await probe('ours: organize-run', '/wp-json/vergeml/v1/organize-run');
+await probe('ours: organize-quote', '/wp-json/vergeml/v1/organize-quote');
+
+/*
+ *  Cancel, budgeted at two, and probed last because it ends the run it is
+ *  given. A cancel that had to wait for the step it was cancelling would not
+ *  be a cancel, which is why it is its own endpoint rather than a flag on the
+ *  step -- and why its cost is worth stating.
+ */
+const doomed = await send('/wp-json/vergeml/v1/organize-step', {}).then((r) => r.json()).catch(() => null);
+
+if (doomed && doomed.run_id) {
+  await probe('ours: organize-cancel', '/wp-json/vergeml/v1/organize-cancel', { run_id: doomed.run_id });
+}
+
 await probe('core: wp/v2/media pp=40', '/wp-json/wp/v2/media?per_page=40');
 await probe('core: wp/v2/media pp=100', '/wp-json/wp/v2/media?per_page=100');
 await probe('core: REST index', '/wp-json/');

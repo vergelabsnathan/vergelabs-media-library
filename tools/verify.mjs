@@ -87,6 +87,13 @@ const SUITES = [
 		env: 'box',
 		before: 'wp option delete vergeml_smart_scan',
 	},
+	/*
+	 *  A PHP suite rather than a browser one, because what it tests has no
+	 *  screen yet: the tree is data, and the phase that renders it is the next
+	 *  one. It runs where the other PHP suites run -- shipped to the box and
+	 *  handed to wp eval-file -- and reports the same way, by exiting non-zero.
+	 */
+	{ name: 'organize', file: 'tests/organize/test-organize.php', env: 'box', php: true },
 	{ name: 'watchdog', file: 'tests/watchdog/recovery.js', env: 'playground' },
 ];
 
@@ -168,9 +175,55 @@ function takeLock() {
 	return false;
 }
 
-function run( suite ) {
+/*
+ *  A PHP suite runs on the box, not here: there is no PHP binary locally, and
+ *  the point of these is to exercise the plugin inside a real WordPress
+ *  against real MySQL. Shipped fresh every run rather than relying on whatever
+ *  the last deploy left in place -- a suite that silently tests an older copy
+ *  of itself is worse than one that does not run.
+ */
+function runPhp( suite ) {
 	return new Promise( ( resolve ) => {
-		console.log( `\n──────── ${ suite.name }  (${ suite.file } → ${ baseFor( suite ) })` );
+
+		const remote = `/tmp/${ path.basename( suite.file ) }`;
+		const args = SSH.split( ' ' );
+
+		const copy = spawn(
+			'scp',
+			[ ...args.slice( 1, args.length - 1 ), path.join( ROOT, suite.file ), `${ args[ args.length - 1 ] }:${ remote }` ],
+			{ stdio: 'inherit' }
+		);
+
+		copy.on( 'error', () => resolve( 1 ) );
+
+		copy.on( 'close', ( code ) => {
+
+			if ( 0 !== code ) {
+				console.log( '  could not copy the suite to the box' );
+				return resolve( code ?? 1 );
+			}
+
+			const child = spawn(
+				args[ 0 ],
+				[ ...args.slice( 1 ), `cd /var/www/wp && wp eval-file ${ remote } --allow-root` ],
+				{ stdio: 'inherit' }
+			);
+
+			child.on( 'error', () => resolve( 1 ) );
+			child.on( 'close', ( c ) => resolve( c ?? 1 ) );
+		} );
+	} );
+}
+
+function run( suite ) {
+
+	console.log( `\n──────── ${ suite.name }  (${ suite.file } → ${ baseFor( suite ) })` );
+
+	if ( suite.php ) {
+		return runPhp( suite );
+	}
+
+	return new Promise( ( resolve ) => {
 		const child = spawn( process.execPath, [ path.join( ROOT, suite.file ), baseFor( suite ) ], {
 			cwd: ROOT,
 			stdio: 'inherit',
