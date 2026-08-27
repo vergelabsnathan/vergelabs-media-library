@@ -1213,6 +1213,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // Before ai.php: the AI layer reads and writes through the index.
         include_once( 'core/ai-index.php' );
         include_once( 'core/ai.php' );
+        // After ai-index.php: the proposed tree is clustered from the vectors
+        // that file stores, and reads them through $wpdb->vergeml_ai_index --
+        // which does not exist until ai-index.php has registered it.
+        include_once( 'core/organize.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {
             include_once( 'core/medialist.php' );
