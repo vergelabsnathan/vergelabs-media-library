@@ -40,6 +40,28 @@ A folder tree sits beside the media library. Drag files onto a folder to file th
 **Already using another folder plugin?** Settings → Import Folders reads FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders, Real Media Library and Enhanced Media Library. It shows you what it will do before it does it, says which folders will merge with ones you already have, and the whole import can be undone from the same screen. Nothing is taken from the other plugin — it keeps everything exactly as it was, so you can go back at any time.
 
 
+### Sorting a library nobody ever filed ###
+
+**The Librarian shows you the folders before it makes any.** Point it at a library that was never organised and it draws the structure it would build from your own files: every folder with the number of files it would hold, a few of them as thumbnails, and a line saying why those files were grouped together. Rename a folder before it exists, or say "not this one" and those files stay where they are.
+
+**Two ways to sort, and one of them needs nothing.** By date and file type, built from what WordPress already knows -- no account, no licence, nothing sent anywhere. Or by subject, grouped from what the pictures show, which is the part that uses the AI service described below.
+
+**Undo is the feature, not the apology.** Every assignment the Librarian makes is written down, so undoing it removes exactly what it did and nothing else. A file you moved yourself in the meantime is left where you put it and reported. A folder it created is deleted only if it is still empty; if you have put your own files in it, it is kept and you are told. It only ever touches files that had no folder, so a library you organised by hand is unchanged.
+
+**Nothing that cannot be interrupted.** Applying works in small batches, so it does not time out on shared hosting. Pause it, close the tab, pick it up where it stopped.
+
+
+### External services ###
+
+This plugin can send images to an AI service run by VergeLabs, at `https://ai.vergelabs.nl/v1`. It does so only when you ask it to.
+
+**Nothing is sent until you enter a licence key and start a run.** With no key the AI screens do nothing: no request on page load, none on upload, none in the background. Demo mode invents captions locally from the file names and sends nothing anywhere, and the Librarian's date-and-type scheme needs no service at all.
+
+**What is sent, when you do start a run:** a downsized copy of the image being described (never the original file), its file name, its MIME type, your site's address and your licence key -- one request per image, only while a run is in progress. What comes back is a caption, alt text, tags and a suggested title. The service processes the image and discards it; what it keeps is a usage count.
+
+Service terms: [https://vergelabs.nl/voorwaarden](https://vergelabs.nl/voorwaarden) -- Privacy policy: [https://vergelabs.nl/privacy](https://vergelabs.nl/privacy)
+
+
 ### What this fork fixes ###
 
 * **The WordPress 7.0 toolbar layout.** WP 7.0 turned the media toolbar into a fixed two-column CSS grid and gave placement to its own two filters only. The extra filters this plugin adds had nowhere to go, so they stacked into a 300px-tall block with every label sitting above the wrong control. The toolbar is one tidy row again, whatever number of filters you enable.
@@ -104,31 +126,17 @@ We spent hours to make Enhanced Media Library operates as though it were native 
 
 ### Export / Import / Restore Plugin Settings ###
 
-If you need to move your media library to another website you should export and import WordPress content with WordPress built-in export/import. But to make the Enhanced Media Library work on the new site with the same settings you are provided with the export/import feature.
+If you need to move your media library to another website you should export and import WordPress content with WordPress built-in export/import. But to make this plugin work on the new site with the same settings you are provided with the export/import feature.
 
 
 ### Multisite compatible ###
 
-Network activate the plugin and choose which options will be available to your admins. In the PRO version, the license key should be activated once for the whole network.
-
-[More about the basic version on wpUXsolutions.com](https://www.wpuxsolutions.com/plugins/enhanced-media-library)
-
-
-### Enhanced Media Library PRO ###
-
-Additional comfort and even more convenient way to organize WordPress media library:
-
-* **Unlimited & Super-Fast** Bulk Edit
-* **User-friendly** dynamic galleries / playlists: all options set with dropdowns and checkboxes, no "coding"
-* **Advanced search:** filter media items by just typing the first letters of its name in the search field
-* **Auto-Categorize** for post media items
-
-[More about the premium version on wpUXsolutions.com](https://www.wpuxsolutions.com/plugins/enhanced-media-library-pro)
+Network activate the plugin and choose which options will be available to your admins.
 
 
 ### Support ###
 
-Support is free for both versions of the plugin. "PRO"-users do not have priority. We do our best to respond in 24 hours if not sooner.
+Questions and problems go to the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues), which is read by the person who maintains the plugin.
 
 
 ### Compatible with the Plugins: ###
@@ -160,10 +168,9 @@ Please notice that you use Enhanced Media Library with other plugins that add me
 
 ### Useful Links ###
 
-* [Basic version: more details](https://wpuxsolutions.com/plugins/enhanced-media-library)
-* [PRO version: more details](https://wpuxsolutions.com/plugins/enhanced-media-library-pro)
-* [Documentation](https://www.wpuxsolutions.com/documents/enhanced-media-library)
-* [FAQs](https://www.wpuxsolutions.com/documents/enhanced-media-library/faqs)
+* [Source and issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library)
+* [Enhanced Media Library, the plugin this one is forked from](https://wordpress.org/plugins/enhanced-media-library/)
+* [Upstream documentation](https://www.wpuxsolutions.com/documents/enhanced-media-library), still accurate for the parts this fork did not change
 
 
 ## Installation ##
@@ -194,7 +201,13 @@ Not very. It is Enhanced Media Library 2.9.4 with the WordPress 7 toolbar layout
 
 = Does it send anything to an external service? =
 
-No. The original polled its author's server twice a day for admin notices and printed whatever came back into your dashboard. That has been removed. This plugin makes no outbound requests of any kind.
+Only if you switch the AI features on and give them a licence key, and then only the images you asked to have described.
+
+The folder tree, the smart folders, the health report, the importer, the galleries, the MIME settings and the Librarian's date-and-type scheme make no outbound requests at all. Neither does demo mode, which makes its captions up locally so you can see the shape of the thing before paying for anything.
+
+With a licence key entered and a describe run started, each image is sent -- downsized, never the original -- to `https://ai.vergelabs.nl/v1`, along with its file name, its MIME type, your site's address and the key. See "External services" above for what comes back and what is kept.
+
+The original plugin polled its author's server twice a day for admin notices and printed whatever came back into your dashboard. That has been removed and nothing replaced it.
 
 = What happens if the plugin crashes my site? =
 
@@ -239,6 +252,24 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 * **A way in from where you notice the problem.** The folder tree on the media library screen now shows how many files have no folder, with a link to sort them. It appears only when something is unfiled.
 * **Applying is interruptible.** It works in small batches, so nothing times out on shared hosting. You can pause it, close the tab, and pick it up where it stopped.
 * **Demo mode is now a setting you can click**, on the AI screen, instead of something only reachable through the REST API. It invents descriptions locally from file names — nothing is sent anywhere and no credits are spent — so you can see what the Librarian would do to your library before paying for anything. The captions are not real, and the screen says so.
+
+### 3.2.0 ###
+*Dragging that behaves, a health report, and the described library*
+
+= Added =
+* **Drag and drop everywhere, and an Upload button.** Files drag onto folders in the list view as well as the grid, the drop area shows where a file will land, folders have a right-click menu, and breadcrumbs sit above the files. Uploads no longer knock the grid off the folder you had open.
+* **Eighteen folder colours** instead of eight, each one named.
+* **A Library health report.** It finds duplicate files -- exact copies by checksum and near-copies by image fingerprint -- and shows them in two lists. It cannot delete anything: there is no delete button, by design.
+* **"Used in" says what it actually checked.** One pill per place a file is used, never a link to nowhere, and wording that names the locations that were scanned instead of implying a file is unused.
+* **The described library.** Captions, alt text and tags written for your images by the VergeLabs AI service, stored in a table of the plugin's own. Off unless you set it up; see "External services" above.
+* **An opt-in, numbers-only snapshot** of what your library looks like. Counts, never file names, never content, and off until you switch it on.
+* **A VergeLabs Library menu** of its own, a Filters group in the folder panel, and an Unfiled row that appears only when something is unfiled.
+
+= Fixed =
+* **Bulk select selected one file.** It now selects as many as you pick.
+* **Upgrades deleted settings the defaults had never heard of.** Anything the plugin did not recognise was dropped on update; it is kept now.
+* **The folder panel jumped on a list-view drop**, and the toolbar fought WordPress's own layout on the media screen.
+
 
 ### 3.1.0 ###
 *Folders*
