@@ -1328,13 +1328,6 @@ function vergeml_librarian_apply_step( $batch_id ) {
         $branch = $params['branches'][ $branch_index ];
         $key    = implode( ' / ', $branch['path'] );
 
-        $term_id = vergeml_librarian_term_for( $key, $params, $taxonomy );
-
-        if ( ! $term_id ) {
-            $skip++;
-            continue;
-        }
-
         $current = get_object_term_cache( $attachment_id, $taxonomy );
 
         if ( false === $current ) {
@@ -1346,6 +1339,21 @@ function vergeml_librarian_apply_step( $batch_id ) {
         // promise the whole feature rests on -- Apply adds folders to files
         // that have none, and touches nothing else.
         if ( ! empty( $current ) ) {
+            $skip++;
+            continue;
+        }
+
+        /*
+         *  The folder is made here and not a line earlier, and the order is
+         *  the whole point: resolving the term first meant a batch whose
+         *  files all turned out to be filed already still created every
+         *  folder it had planned, and left them behind empty -- with nothing
+         *  in the moves log to let undo clean them up. A folder is created
+         *  when there is a file to put in it.
+         */
+        $term_id = vergeml_librarian_term_for( $key, $params, $taxonomy );
+
+        if ( ! $term_id ) {
             $skip++;
             continue;
         }
@@ -1584,11 +1592,15 @@ function vergeml_librarian_undo_step( $batch_id ) {
 
     if ( ! $rows ) {
 
-        $batch['status']       = 'undone';
-        $params['undo']        = $undo;
-        $batch['params']       = $params;
+        $undo = vergeml_librarian_undo_folders( $params, $taxonomy, $undo );
+
+        $batch['status'] = 'undone';
+        $params['undo']  = $undo;
+        $batch['params'] = $params;
 
         vergeml_librarian_batch_save( $batch );
+
+        wp_cache_delete( 'vergeml_unassigned_' . $taxonomy, 'vergeml' );
 
         return vergeml_librarian_undo_report( $batch, 0, $started );
     }
@@ -1601,8 +1613,7 @@ function vergeml_librarian_undo_step( $batch_id ) {
 
     update_object_term_cache( $ids, 'attachment' );
 
-    $touched_terms = array();
-    $done_ids      = array();
+    $done_ids = array();
 
     wp_defer_term_counting( true );
 
@@ -1636,10 +1647,6 @@ function vergeml_librarian_undo_step( $batch_id ) {
         wp_remove_object_terms( $attachment_id, array( $term_id ), $taxonomy );
 
         $undo['undone'] = (int) $undo['undone'] + 1;
-
-        if ( (int) $row['term_created'] ) {
-            $touched_terms[ $term_id ] = true;
-        }
     }
 
     wp_defer_term_counting( false );
@@ -1648,17 +1655,63 @@ function vergeml_librarian_undo_step( $batch_id ) {
         vergeml_librarian_moves_mark( $done_ids );
     }
 
-    /*
-     *  Folders last, and only the ones this batch made. A folder that has
-     *  picked up content since -- a manual drag, an upload filed into it --
-     *  is kept and counted, because deleting it would take somebody else's
-     *  work with it.
-     */
-    $held = vergeml_librarian_term_objects( array_keys( $touched_terms ), $taxonomy );
+    wp_cache_delete( 'vergeml_unassigned_' . $taxonomy, 'vergeml' );
 
-    foreach ( array_keys( $touched_terms ) as $term_id ) {
+    $params['undo']  = $undo;
+    $batch['params'] = $params;
 
-        $term_id = (int) $term_id;
+    vergeml_librarian_batch_save( $batch );
+
+    return vergeml_librarian_undo_report( $batch, count( $rows ), $started );
+}
+
+
+/**
+ *  The folders this batch created, removed if they are empty afterwards.
+ *
+ *  Once, on the step that finds nothing left to take back, rather than per
+ *  chunk -- and over the batch's own record of what it created rather than
+ *  over the folders the moves happen to name. Those are different sets, and
+ *  the difference is a leak: a branch two levels deep makes its parent as
+ *  well, no move ever names that parent, and a sweep driven by the moves
+ *  leaves it behind empty for ever.
+ *
+ *  Deepest first, so a parent is judged after the children that would have
+ *  kept it alive have already gone.
+ *
+ *  A folder that has picked up content since -- a manual drag, an upload
+ *  filed into it -- is kept and counted, because deleting it would take
+ *  somebody else's work with it. So is one that still has children: those are
+ *  folders too, and they are not this batch's to judge.
+ */
+
+function vergeml_librarian_undo_folders( $params, $taxonomy, $undo ) {
+
+    $terms = isset( $params['terms'] ) ? (array) $params['terms'] : array();
+
+    $mine = array();
+
+    foreach ( $terms as $key => $term ) {
+        if ( ! empty( $term['created'] ) && ! empty( $term['id'] ) ) {
+            $mine[ (string) $key ] = (int) $term['id'];
+        }
+    }
+
+    if ( ! $mine ) {
+        return $undo;
+    }
+
+    // By depth, deepest first. The key is the path, so its depth is how many
+    // separators it carries.
+    $keys = array_keys( $mine );
+
+    usort( $keys, 'vergeml_librarian_by_depth' );
+
+    $held = vergeml_librarian_term_objects( array_values( $mine ), $taxonomy );
+
+    foreach ( $keys as $key ) {
+
+        $term_id = $mine[ $key ];
 
         if ( ! get_term( $term_id, $taxonomy ) instanceof WP_Term ) {
             continue;
@@ -1679,14 +1732,20 @@ function vergeml_librarian_undo_step( $batch_id ) {
         $undo['removed'] = (int) $undo['removed'] + 1;
     }
 
-    wp_cache_delete( 'vergeml_unassigned_' . $taxonomy, 'vergeml' );
+    return $undo;
+}
 
-    $params['undo']  = $undo;
-    $batch['params'] = $params;
 
-    vergeml_librarian_batch_save( $batch );
+function vergeml_librarian_by_depth( $a, $b ) {
 
-    return vergeml_librarian_undo_report( $batch, count( $rows ), $started );
+    $depth_a = substr_count( (string) $a, ' / ' );
+    $depth_b = substr_count( (string) $b, ' / ' );
+
+    if ( $depth_a !== $depth_b ) {
+        return $depth_b - $depth_a;
+    }
+
+    return strcmp( (string) $b, (string) $a );
 }
 
 

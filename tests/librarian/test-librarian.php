@@ -699,11 +699,107 @@ l_check( 'no folders were removed by that undo',
     is_wp_error( $reuse_undone ) ? '' : $reuse_undone['folders_removed'] . ' removed' );
 
 
+/* ----------------------------------- folders only where there is something */
+
+echo "\na batch with nothing to do makes nothing\n";
+
+/*
+ *  Every member already filed. Apply must skip them all -- and must not leave
+ *  the folders it had planned behind. It used to: the term was created before
+ *  the file was checked, so a batch that filed nothing still created every
+ *  folder, and no move row named them so undo could not clean them up.
+ */
+$nothing = array( l_attachment( 'nothing-1' ), l_attachment( 'nothing-2' ) );
+
+$parked = wp_insert_term( 'zz Parked', L_TAX );
+$parked = is_array( $parked ) ? (int) $parked['term_id'] : 0;
+$GLOBALS['l_terms'][] = $parked;
+
+foreach ( $nothing as $id ) {
+    wp_set_object_terms( $id, array( $parked ), L_TAX );
+}
+
+$idle_run = l_run( array( l_branch( 'zz Never Made', $nothing ) ) );
+
+$idle = l_apply( array( 'scheme' => 'subject', 'run_id' => $idle_run, 'branches' => array() ) );
+
+l_check( 'a batch whose files are all filed already skips them all',
+    ! is_wp_error( $idle ) && 0 === (int) $idle['done'] && 2 === (int) $idle['skipped'],
+    is_wp_error( $idle ) ? $idle->get_error_message() : $idle['done'] . ' filed, ' . $idle['skipped'] . ' skipped' );
+
+l_check( 'and creates no folder it would have had nothing to put in',
+    0 === l_term_named( 'zz Never Made' ) );
+
+
+/* -------------------------------------------------- undo and the ancestors */
+
+echo "\nundo removes the folders it made on the way, too\n";
+
+/*
+ *  A branch two levels deep makes its parent as well. No move row ever names
+ *  that parent, so an undo driven by the moves left it behind empty for ever.
+ */
+$deep = array( l_attachment( 'deep-1' ), l_attachment( 'deep-2' ) );
+
+$deep_run = l_run( array( l_branch( 'zz Leaf', $deep, array(
+    'key'    => 'zz Trunk / zz Leaf',
+    'path'   => array( 'zz Trunk', 'zz Leaf' ),
+    'depth'  => 1,
+    'parent' => 'zz Trunk',
+) ) ) );
+
+$deep_applied = l_apply( array( 'scheme' => 'subject', 'run_id' => $deep_run, 'branches' => array() ) );
+
+$trunk = l_term_named( 'zz Trunk' );
+$leaf  = l_term_named( 'zz Leaf' );
+
+$GLOBALS['l_terms'][] = $trunk;
+$GLOBALS['l_terms'][] = $leaf;
+
+l_check( 'a nested branch creates its parent as well', $trunk > 0 && $leaf > 0,
+    "trunk {$trunk}, leaf {$leaf}" );
+
+l_check( 'and the files land in the leaf, not the parent',
+    array( $leaf ) === l_terms_of( $deep[0] ) );
+
+$deep_undone = l_undo( (int) $deep_applied['batch_id'] );
+
+l_check( 'undo removes the parent it created as well as the leaf',
+    0 === l_term_named( 'zz Trunk' ) && 0 === l_term_named( 'zz Leaf' ),
+    is_wp_error( $deep_undone ) ? '' : $deep_undone['folders_removed'] . ' folders removed' );
+
+
 /* ----------------------------------------------------------- the pre-flight */
 
 echo "\nthe pre-flight\n";
 
 $pf_run = l_run( array( l_branch( 'zz Preflight', array( l_attachment( 'pf1' ), l_attachment( 'pf2' ) ) ) ) );
+
+/*
+ *  The refusal, made to happen rather than waited for.
+ *
+ *  The pre-flight is built on the organise quote, which refuses to answer at
+ *  all until the duplicate scan has run -- and passing that refusal straight
+ *  through, in its own words, is the behaviour. It cannot be tested by
+ *  finding an unscanned library, because the box is scanned and un-scanning
+ *  one is deliberately not something this plugin offers; so the state is set
+ *  directly for the length of one assertion and put back.
+ */
+$saved_health = get_option( VERGEML_HEALTH_OPTION );
+
+update_option( VERGEML_HEALTH_OPTION, array(), false );
+
+$refused = vergeml_librarian_preflight( 'datetype', 0, array() );
+
+l_check( 'an unscanned library is refused rather than given a number',
+    is_wp_error( $refused ) && 'vergeml_organize_unscanned' === $refused->get_error_code(),
+    is_wp_error( $refused ) ? $refused->get_error_message() : 'answered with ' . $refused['unfiled'] );
+
+if ( false === $saved_health ) {
+    delete_option( VERGEML_HEALTH_OPTION );
+} else {
+    update_option( VERGEML_HEALTH_OPTION, $saved_health, false );
+}
 
 $preflight = vergeml_librarian_preflight( 'subject', $pf_run, array() );
 
