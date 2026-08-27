@@ -395,11 +395,25 @@ function vergeml_ai_image_payload( $attachment_id ) {
  *
  *  Ids still to do for a scope. 'unindexed' is every image without a stored
  *  description; 'missing-alt' is every image without alt text, described or
- *  not, because the point of that pass is the alt.
+ *  not, because the point of that pass is the alt; 'stale' is every image
+ *  already described by something the pipeline is no longer running.
  */
 function vergeml_ai_pending( $scope, $limit = 0 ) {
 
     global $wpdb;
+
+    /*
+     *  Re-describing. The backlog below is the absence of a row, so a
+     *  described file is never revisited however far the model that described
+     *  it has moved -- which is how a model change strands an entire library.
+     *  This is the scope that reaches those rows.
+     */
+    if ( 'stale' === $scope ) {
+
+        $stamp = vergeml_index_current_stamp();
+
+        return vergeml_index_stale( $stamp['model'], $stamp['model_version'], $stamp['dims'], 0, $limit );
+    }
 
     // The LIMIT is always a prepared placeholder; "no limit" is simply the
     // largest one MySQL accepts, which keeps the statement a single shape.
@@ -726,7 +740,7 @@ function vergeml_ai_rest_index( WP_REST_Request $request ) {
 
     $scope = $request->get_param( 'scope' );
 
-    if ( ! in_array( $scope, array( 'unindexed', 'missing-alt' ), true ) ) {
+    if ( ! in_array( $scope, array( 'unindexed', 'missing-alt', 'stale' ), true ) ) {
         return new WP_Error( 'vergeml_ai_bad_scope', __( 'Unknown scope.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
 

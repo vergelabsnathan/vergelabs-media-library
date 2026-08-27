@@ -537,6 +537,114 @@ function vergeml_index_orientation( $attachment_id ) {
 }
 
 
+/* ------------------------------------------------------------ re-describing */
+
+/**
+ *  vergeml_index_current_stamp
+ *
+ *  What the pipeline is producing now: the model, its version and the width of
+ *  the embedding, taken from the most recently described row.
+ *
+ *  Read from the data rather than declared in a constant, because the plugin
+ *  does not choose the model -- the service does, and it may change it between
+ *  one call and the next. The newest description is by definition the one made
+ *  by whatever is answering today, so it is the only honest answer to "what is
+ *  current".
+ */
+
+function vergeml_index_current_stamp() {
+
+    global $wpdb;
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    $row = $wpdb->get_row(
+        "SELECT model, model_version, embedding_dims FROM {$wpdb->vergeml_ai_index}
+          WHERE error = '' AND described_at IS NOT NULL
+          ORDER BY described_at DESC, attachment_id DESC
+          LIMIT 1",
+        ARRAY_A
+    );
+    // phpcs:enable
+
+    if ( ! $row ) {
+        return array( 'model' => '', 'model_version' => '', 'dims' => 0 );
+    }
+
+    return array(
+        'model'         => (string) $row['model'],
+        'model_version' => (string) $row['model_version'],
+        'dims'          => (int) $row['embedding_dims'],
+    );
+}
+
+
+/**
+ *  vergeml_index_stale
+ *
+ *  Ids whose stamp or embedding width no longer matches the current one.
+ *
+ *  Without this a model change strands every row already in the table: the
+ *  backlog is defined by the absence of a row, so a described file is never
+ *  looked at again however far the thing that described it has moved. Clearing
+ *  fifty-eight rows by hand to re-run a fixture is the version of that problem
+ *  that shows up first, and it showed up in Phase 1.
+ *
+ *  An empty model, an empty version or a zero width means "do not judge this
+ *  one" -- a caller that only cares about the embedding width should not have
+ *  every row with a different model handed back as well.
+ */
+
+function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0, $limit = 0 ) {
+
+    global $wpdb;
+
+    // OR between them, because a row is stale if *any* part of the stamp
+    // moved -- and AND would ask for a row where all three changed at once,
+    // which is a much rarer thing and not what "stale" means.
+    $stale  = array();
+    $values = array( (int) $after );
+
+    if ( '' !== (string) $model ) {
+        $stale[]  = 'model <> %s';
+        $values[] = (string) $model;
+    }
+
+    if ( '' !== (string) $version ) {
+        $stale[]  = 'model_version <> %s';
+        $values[] = (string) $version;
+    }
+
+    if ( (int) $dims > 0 ) {
+        $stale[]  = '( embedding_dims IS NULL OR embedding_dims <> %d )';
+        $values[] = (int) $dims;
+    }
+
+    // Nothing to compare against: no row can be stale. Handing back the whole
+    // table because the caller passed nothing would be the worst available
+    // reading of an empty argument.
+    if ( ! $stale ) {
+        return array();
+    }
+
+    $values[] = $limit > 0 ? (int) $limit : PHP_INT_MAX;
+
+    $sql = "SELECT attachment_id FROM {$wpdb->vergeml_ai_index}
+             WHERE error = '' AND attachment_id > %d
+               AND ( " . implode( ' OR ', $stale ) . ' )
+             ORDER BY attachment_id ASC
+             LIMIT %d';
+
+    /*
+     *  Every value travels through prepare; the interpolation is the WHERE
+     *  shape, which is built from this function's own literals and never from
+     *  input. The sniffs cannot follow a clause assembled in a loop.
+     */
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    return array_map( 'intval', $wpdb->get_col( $wpdb->prepare( $sql, $values ) ) );
+    // phpcs:enable
+}
+
+
 /* -------------------------------------------------------------- migration */
 
 /**
