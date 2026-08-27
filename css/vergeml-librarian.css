@@ -1,0 +1,312 @@
+/*
+ *  The Librarian screen.
+ *
+ *  Loaded after vergeml-admin.css and leaning on it: the cards, the progress
+ *  bar and the page head are already defined there, and restating them here
+ *  would be two answers to the same question. Everything below is what this
+ *  screen adds -- the two scheme cards, the branch grid, and the two states a
+ *  branch can be in that the person is meant to notice.
+ *
+ *  Hand-written, no build step, same as everything else in this folder.
+ */
+
+.vgml-librarian .vgml-lib-rung {
+	max-width: 46rem;
+}
+
+.vgml-lib-note {
+	margin: 0.6rem 0 0;
+	color: #50575e;
+	min-height: 1.4em;
+}
+
+.vgml-lib-skip {
+	margin: 0.8rem 0 1.6rem;
+}
+
+.vgml-lib-peek {
+	margin: 0.8rem 0 0;
+	padding: 0;
+	list-style: none;
+	color: #50575e;
+	font-size: 0.9em;
+}
+
+.vgml-lib-peek li {
+	margin: 0.15rem 0;
+}
+
+
+/* --------------------------------------------------------------- chooser */
+
+.vgml-lib-chooser h2 {
+	margin: 1.4rem 0 0.8rem;
+	font-size: 1.15rem;
+}
+
+.vgml-lib-schemes {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 20rem, 1fr ) );
+	gap: 1rem;
+	max-width: 60rem;
+}
+
+.vgml-lib-scheme h3 {
+	margin: 0 0 0.3rem;
+	font-size: 1.05rem;
+}
+
+.vgml-lib-scheme-total {
+	margin: 0.4rem 0;
+	font-weight: 600;
+}
+
+.vgml-lib-scheme-top {
+	margin: 0.6rem 0 1rem;
+	padding: 0;
+	list-style: none;
+	border-top: 1px solid #f0f0f1;
+}
+
+.vgml-lib-scheme-top li {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.3rem 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.vgml-lib-scheme-top li.is-flagged .vgml-lib-scheme-name {
+	font-style: italic;
+	color: #996800;
+}
+
+.vgml-lib-scheme-size {
+	color: #50575e;
+	font-variant-numeric: tabular-nums;
+}
+
+
+/* ---------------------------------------------------------------- review */
+
+.vgml-lib-review-head {
+	display: flex;
+	align-items: baseline;
+	gap: 1rem;
+	margin: 1.6rem 0 0.8rem;
+}
+
+.vgml-lib-review-head h2 {
+	margin: 0;
+	font-size: 1.15rem;
+}
+
+.vgml-lib-branches {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 19rem, 1fr ) );
+	gap: 0.9rem;
+}
+
+.vgml-lib-branch {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 0.85rem 0.9rem 0.7rem;
+}
+
+/*
+ *  The two states worth seeing at a glance.
+ *
+ *  Uncertain is the proposal saying it is not sure -- "Needs a look" and the
+ *  branches the depth cap forced together. They start unchecked, so the
+ *  styling has to say why rather than leaving an unexplained empty box.
+ */
+.vgml-lib-branch.is-uncertain {
+	border-color: #dba617;
+	background: #fcf9e8;
+}
+
+.vgml-lib-branch.is-refused {
+	opacity: 0.55;
+}
+
+.vgml-lib-branch.is-refused .vgml-lib-thumbs {
+	filter: grayscale( 1 );
+}
+
+.vgml-lib-branch-head {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.vgml-lib-branch-name {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-weight: 600;
+}
+
+.vgml-lib-branch-size {
+	color: #50575e;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.vgml-lib-branch-path,
+.vgml-lib-branch-why,
+.vgml-lib-branch-flag {
+	margin: 0.45rem 0 0;
+	font-size: 0.87em;
+	color: #50575e;
+}
+
+.vgml-lib-branch-path {
+	color: #787c82;
+}
+
+.vgml-lib-branch-flag {
+	color: #8a6100;
+}
+
+.vgml-lib-thumbs {
+	display: flex;
+	gap: 0.25rem;
+	margin: 0.7rem 0 0.5rem;
+}
+
+.vgml-lib-thumb {
+	display: block;
+	width: 2.6rem;
+	height: 2.6rem;
+	border-radius: 3px;
+	background: #f0f0f1;
+	overflow: hidden;
+	flex: 0 0 auto;
+}
+
+.vgml-lib-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+/*
+ *  Three buckets, drawn as a strip rather than a number: how far the files in
+ *  this folder sit from its centre is a shape, and a single figure would be
+ *  read as a confidence score it is not.
+ */
+.vgml-lib-agreement {
+	display: flex;
+	height: 4px;
+	border-radius: 2px;
+	overflow: hidden;
+	background: #f0f0f1;
+}
+
+.vgml-lib-agreement-close { background: #00a32a; }
+.vgml-lib-agreement-mid   { background: #dba617; }
+.vgml-lib-agreement-far   { background: #c3c4c7; }
+
+.vgml-lib-refuse {
+	margin-top: 0.4rem;
+	padding: 0;
+	color: #b32d2e;
+}
+
+
+/* ------------------------------------------------------------- pre-flight */
+
+.vgml-lib-preflight {
+	margin-top: 1.2rem;
+	max-width: 46rem;
+}
+
+.vgml-lib-count {
+	margin: 0.25rem 0;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-lib-credits {
+	margin: 0.6rem 0 0.9rem;
+	color: #50575e;
+	font-size: 0.9em;
+}
+
+/* The endpoint's own words when it refuses, not a paraphrase of them. */
+.vgml-lib-refusal {
+	margin: 0.6rem 0;
+	padding: 0.6rem 0.8rem;
+	border-left: 4px solid #dba617;
+	background: #fcf9e8;
+}
+
+.vgml-lib-progress {
+	margin: 0.8rem 0 0;
+	height: 6px;
+	border-radius: 3px;
+	background: #f0f0f1;
+	overflow: hidden;
+}
+
+.vgml-lib-progress .vgml-import-fill {
+	display: block;
+	height: 100%;
+	width: 0;
+	background: #2271b1;
+	transition: width 0.2s ease;
+}
+
+
+/* ---------------------------------------------------------------- history */
+
+.vgml-lib-batches {
+	margin: 0.6rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-lib-batch {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	padding: 0.55rem 0;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.vgml-lib-batch-when {
+	color: #787c82;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-lib-batch-scheme {
+	font-weight: 600;
+}
+
+.vgml-lib-batch-status {
+	color: #50575e;
+	font-size: 0.87em;
+	text-transform: lowercase;
+}
+
+.vgml-lib-batch-reason {
+	color: #8a6100;
+	font-size: 0.87em;
+}
+
+.vgml-lib-batch .vgml-lib-note {
+	flex: 1 0 100%;
+	margin: 0.2rem 0 0;
+}
+
+/*
+ *  What undo did not do, on its own line. Files somebody moved since and
+ *  folders that have picked up content are kept -- and a report that folded
+ *  those into the total would be hiding the two facts most worth reading.
+ */
+.vgml-lib-undo-note {
+	display: block;
+	margin-top: 0.2rem;
+	color: #8a6100;
+}

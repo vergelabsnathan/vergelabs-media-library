@@ -2295,6 +2295,9 @@ function vergeml_librarian_assets( $hook ) {
             'apply'           => __( 'Apply', 'vergelabs-media-library' ),
             'applyNothing'    => __( 'Nothing is selected.', 'vergelabs-media-library' ),
 
+            /* translators: 1: files with no folder yet, 2: how many folders exist. */
+            'counts'          => __( '%1$s files to file · %2$s folders', 'vergelabs-media-library' ),
+
             /* applying */
             'applying'        => __( 'Filing…', 'vergelabs-media-library' ),
             'pause'           => __( 'Pause', 'vergelabs-media-library' ),
@@ -2309,6 +2312,8 @@ function vergeml_librarian_assets( $hook ) {
             'history'         => __( 'What has been applied', 'vergelabs-media-library' ),
             'noHistory'       => __( 'Nothing has been applied yet.', 'vergelabs-media-library' ),
             'undo'            => __( 'Undo', 'vergelabs-media-library' ),
+            /* translators: 1: files filed by a batch, 2: files it left alone. */
+            'batchCount'      => __( '%1$s filed · %2$s left alone', 'vergelabs-media-library' ),
             'undoing'         => __( 'Putting it back…', 'vergelabs-media-library' ),
             /* translators: 1: assignments removed, 2: folders removed. */
             'undone'          => __( 'Put back. %1$s files unfiled, %2$s folders removed.', 'vergelabs-media-library' ),
