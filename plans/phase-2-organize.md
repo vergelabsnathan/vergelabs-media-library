@@ -117,10 +117,29 @@ anything.
   any good, and it should not be guessed.** (c) is the most interesting
   because Phase 3 renders *branches*, not a flat assignment list — but it is
   also the most work.
-- `OPEN:` **What library sizes must this actually handle?** The budgets below
-  are written against 10,000 files because that is FileBird's marketing
-  number, not because anyone has measured a real one. Phase 0's opt-in
-  snapshot and the five interviews answer this, and neither has reported yet.
+- **Nothing is called "big". The library is measured, on the host it is
+  actually on.** A file count is a stand-in for the things that matter and a
+  poor one: 3,000 files on a slow shared host is a worse experience than
+  15,000 on decent hardware. So no threshold is hard-coded anywhere. Instead:
+  - **Memory** is arithmetic, done before starting: files × dims × 8 bytes,
+    plus overhead, against `ini_get( 'memory_limit' )`. If it will not fit,
+    project further or shrink the chunk — do not begin and die halfway.
+  - **Time** is measured, not predicted. Run the first chunk, time it, and
+    multiply by what is left. Ten seconds of real work on *their* server beats
+    any constant I could pick here.
+  - **Cost** is a count, known exactly once the duplicate scan has run.
+  Warnings fire on the thing the user cares about — "this will take more than
+  ten minutes", "this will cost more than N credits" — never on the file
+  count. Someone with 800 images on a slow host deserves the warning; someone
+  with 12,000 on a fast one may not.
+- **The duplicate scan runs before the first describe run, and its result is
+  the quote.** Phase 0 built it and it costs nothing — no service call, no
+  credit, just hashing files on disk. Running it first means the number shown
+  to the user is counted rather than estimated: this many files, this many are
+  copies, this many are skipped, this many will be described, this is what
+  that costs. It also makes the free tier do the strongest thing a free tier
+  can: tell somebody something true and useful about their own library before
+  asking for money.
 
 ### Why no vector database
 
@@ -258,6 +277,20 @@ so nobody reaches for a database first.
 8. **`core/organize.php`: reasons.** One stored line per assignment — the
    branch it went to, its distance from that centroid, and the tags that put
    it there. Phase 3 renders these; they are not decoration.
+8b. **`core/organize.php`: the pre-flight quote.**
+   `GET /vergeml/v1/organize-quote` — counted, not estimated. Returns total
+   files, how many are duplicates (from the Phase-0 hashes, which must have
+   been scanned), how many the skip rules exclude, how many therefore need
+   describing, the credits that implies, and the memory arithmetic for this
+   host. Refuses with a clear reason if the duplicate scan has not run, rather
+   than quoting a number it cannot stand behind.
+
+8c. **`core/organize.php`: measured time estimates.**
+   `vergeml_organize_estimate( $done, $elapsed_ms, $remaining )` — extrapolate
+   from work actually performed on this host. Every step returns an updated
+   estimate, so the number shown gets better as it goes rather than being a
+   guess fixed at the start.
+
 9. **`core/organize.php`: `POST /vergeml/v1/organize-step`.** Takes
    `{run_id?, k?, parent_run_id?, refine?}`, returns
    `{run_id, status, done, remaining, cursor, partial_tree}`. Creates the run
@@ -311,15 +344,21 @@ table only, and it must never be able to touch `posts` or `postmeta`.
 - **Measure over REST, never from `wp eval` after other work in the same
   request.** That mistake reported 4 queries for an endpoint running 70. Add
   the endpoints to `tests/perf/bench.mjs` alongside `health-report`.
-- **A wall-clock budget, which is unusual in this repo and justified here**:
-  one step must stay under ~5 seconds on the test box at 10,000 files, because
-  shared hosts time out at 30 and the browser drives the loop. The step size
-  is the safety valve. Unmodified, the spike's algorithm takes 46.7s in one
-  request at that size, so this budget is the difference between the phase
-  working and not.
+- **A wall-clock budget per step, not per library**: one step stays under ~5
+  seconds whatever the library size, because shared hosts time out at 30 and
+  the browser drives the loop. The step size is the safety valve, and it is
+  adjusted from the measured rate rather than fixed. Unmodified, the spike's
+  algorithm takes 46.7s in one request at 10,000 files, so this is the
+  difference between the phase working and not.
+- **Test that the estimate is honest.** Time the first chunk, extrapolate,
+  then run the whole thing and compare. The suite asserts the projection lands
+  within ±30% of actual — not because 30% is precise, but because an estimate
+  that is wrong by more than that is worse than no estimate, and a user who is
+  told two hours and waits six will not use the feature again.
 - **Assert peak memory in the suite** at a synthetic 10,000 vectors, against a
   ceiling of 64MB — half of the 128MB a modest shared host gives, because
-  WordPress and everything else also has to fit.
+  WordPress and everything else also has to fit. Also assert the pre-flight
+  memory arithmetic refuses to start a run it has calculated will not fit.
 - **New suite** `tests/organize/test-organize.php`, run through
   `node tools/verify.mjs organize`.
 
