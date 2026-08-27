@@ -102,6 +102,14 @@ const SUITES = [
 	 *  Playground where a batch can be applied to a throwaway library.
 	 */
 	{ name: 'librarian', file: 'tests/librarian/test-librarian.php', env: 'box', php: true },
+	/*
+	 *  Gate 7's own regression guard: drop both tables and prove the lazy
+	 *  install puts them back. Separate from the suite above because it is
+	 *  destructive about the schema rather than about rows, and because it is
+	 *  the one librarian check that also runs without a box --
+	 *  tests/librarian/gate7-blueprint.json drives it through Playground.
+	 */
+	{ name: 'librarian-schema', file: 'tests/librarian/gate7-schema.php', env: 'box', php: true },
 	{ name: 'librarian-ui', file: 'tests/librarian/librarian.mjs', env: 'playground' },
 	{ name: 'watchdog', file: 'tests/watchdog/recovery.js', env: 'playground' },
 ];

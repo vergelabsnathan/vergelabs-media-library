@@ -222,11 +222,39 @@ add_action( 'vergeml_activate', 'vergeml_librarian_install' );
 
 
 /**
+ *  Both tables, asked of the database rather than of the option.
+ *
+ *  One query for the pair -- the prefix plus the shared stem matches exactly
+ *  these two -- because this is asked when a batch is created and the step
+ *  loop after it has a budget to keep.
+ */
+
+function vergeml_librarian_tables_exist() {
+
+    global $wpdb;
+
+    $like = $wpdb->esc_like( $wpdb->prefix . 'vergeml_librarian_' ) . '%';
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $found = (array) $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $like ) );
+
+    return in_array( vergeml_librarian_batches_table(), $found, true )
+        && in_array( vergeml_librarian_moves_table(), $found, true );
+}
+
+
+/**
  *  A site that upgrades without ever visiting an admin screen never fires the
  *  activation hook, and the first thing it would do here is write to a table
  *  that does not exist. So the schema is also checked from the one endpoint
  *  that creates rows -- once, when a batch is created, never on the steps
  *  that follow, because those have a query budget and this would spend it.
+ *
+ *  The option alone is not enough to decide that, for ai-index.php's reason:
+ *  a table dropped by hand, by a host's migration or by a half-restored
+ *  backup leaves the option still saying the schema is current, and trusting
+ *  it there means the next Apply writes into a table that is not there. So
+ *  the database is asked as well.
  */
 
 function vergeml_librarian_maybe_install() {
@@ -234,6 +262,11 @@ function vergeml_librarian_maybe_install() {
     $state = vergeml_librarian_state();
 
     if ( empty( $state['schema'] ) || VERGEML_LIBRARIAN_VERSION !== (int) $state['schema'] ) {
+        vergeml_librarian_install();
+        return;
+    }
+
+    if ( ! vergeml_librarian_tables_exist() ) {
         vergeml_librarian_install();
     }
 }
