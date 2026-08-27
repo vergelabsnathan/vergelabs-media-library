@@ -30,3 +30,5 @@ tools/.plugin-check.png
 tests/tree/ai-folders-last-run.txt
 
 tests/tree/auto-file-last-run.txt
+
+tests/tree/nl-commands-last-run.txt

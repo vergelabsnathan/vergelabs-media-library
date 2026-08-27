@@ -87,6 +87,11 @@ const SUITES = [
 	 *  works and the judgement half is proven here.
 	 */
 	{ name: 'auto-file', file: 'tests/tree/auto-file.php', env: 'playground', php: true },
+	/*
+	 *  Spoken commands. Mostly a suite about refusals, so it needs nothing
+	 *  a real database has that Playground does not.
+	 */
+	{ name: 'say', file: 'tests/tree/nl-commands.php', env: 'playground', php: true },
 	{ name: 'health', file: 'tests/tree/health.mjs', env: 'box' },
 	{
 		name: 'ai',

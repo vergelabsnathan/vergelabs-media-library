@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.5.0
+Stable tag: 3.6.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -240,6 +240,17 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.6.0 ###
+*Say what you want*
+
+= Added =
+* **A command box.** "move the screenshots into Products", "tag the invoices with Accounts", "rename Photos to Pictures", "create a folder called Archive". It understands your own folder names and the folders in the panel.
+* **It shows you first.** Every command produces a preview — how many files, some of them with thumbnails, and a sentence saying exactly what would change. Nothing happens until you press the button, and what runs is the preview you saw rather than the words you typed.
+* **It cannot delete anything.** There are four verbs and delete is not one of them; there is no code behind that box that removes a file, a folder or an assignment. Ask it to delete something and it says so plainly.
+* **It says when it does not understand,** instead of doing something approximate. A folder you do not have, or a word it cannot place, is an error and not an empty selection.
+* Everything it moves is written to the Librarian's log, so Undo covers it.
+
 
 ### 3.5.0 ###
 *It offers to file things, and earns the right to do it*

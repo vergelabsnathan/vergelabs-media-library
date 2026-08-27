@@ -449,7 +449,19 @@ function vergeml_autofile_batch( $how ) {
 
     vergeml_librarian_maybe_install();
 
-    $scheme = 'accepted' === $how ? 'suggested' : 'auto';
+    /*
+     *  The scheme is how the Librarian's own list explains a batch to
+     *  somebody looking at it later, so the three ways a file can arrive here
+     *  stay distinguishable: one you agreed to, one that happened by itself,
+     *  and one you asked for in words.
+     */
+    $schemes = array(
+        'accepted' => 'suggested',
+        'spoken'   => 'spoken',
+        'auto'     => 'auto',
+    );
+
+    $scheme = isset( $schemes[ $how ] ) ? $schemes[ $how ] : 'auto';
     $day    = gmdate( 'Y-m-d' );
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

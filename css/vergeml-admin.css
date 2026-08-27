@@ -372,3 +372,49 @@
 	gap: 6px;
 	flex: 0 0 auto;
 }
+
+/* --- the command box: what it would do, before it does it ---------------- */
+
+.vgml-say-preview {
+	margin-top: 12px;
+	padding: 12px;
+	border: 1px solid #dcdcde;
+	border-left: 3px solid #2271b1;
+	border-radius: 8px;
+	background: #fff;
+	max-width: 720px;
+}
+
+.vgml-say-sample {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 8px 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-say-sample li {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: #646970;
+	background: #f6f7f7;
+	border-radius: 6px;
+	padding: 4px 8px;
+	max-width: 220px;
+}
+
+.vgml-say-sample img {
+	width: 24px;
+	height: 24px;
+	object-fit: cover;
+	border-radius: 3px;
+}
+
+.vgml-say-sample span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

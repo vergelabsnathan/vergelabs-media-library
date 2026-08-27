@@ -3,7 +3,7 @@
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
 Description: Categories, tags and custom taxonomies for the media library, MIME type management, and configurable media grid filters.
-Version: 3.5.0
+Version: 3.6.0
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.5.0' );
+if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.6.0' );
 
 /**
  *  Cache-busting asset version: the plugin version plus the file's mtime.
@@ -1257,6 +1257,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // log, so its undo covers this without knowing it exists, and it uses
         // its taxonomy helper. Inside the guard, like everything that writes.
         include_once( 'core/auto-file.php' );
+        // After auto-file.php: spoken commands log their moves through the
+        // same batch helper, and refuse to exist without the taxonomy helper
+        // both of them share.
+        include_once( 'core/nl-commands.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {
             include_once( 'core/medialist.php' );
