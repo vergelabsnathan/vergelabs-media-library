@@ -910,6 +910,16 @@ function vergeml_ai_page() {
             <ul id="vgml-ai-log" class="vgml-ai-log"></ul>
         </div>
 
+        <?php
+        /*
+         *  Where anything built on top of the descriptions puts its own card.
+         *  An action rather than more markup here, so a feature that lives in
+         *  its own file -- and can therefore be switched off by safe mode --
+         *  does not have to be wired into this page to appear on it.
+         */
+        do_action( 'vergeml_ai_page_cards' );
+        ?>
+
     </div>
     <?php
 }

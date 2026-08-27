@@ -28,3 +28,5 @@ tools/.plugin-check.png
 # The AI folders suite writes its transcript here, for the same reason the
 # gate-7 one does: a passing Playground step prints nothing.
 tests/tree/ai-folders-last-run.txt
+
+tests/tree/auto-file-last-run.txt

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "login": true,
+  "preferredVersions": {
+    "php": "8.3",
+    "wp": "latest"
+  },
+  "steps": [
+    {
+      "step": "activatePlugin",
+      "pluginPath": "vergelabs-media-library/vergelabs-media-library.php"
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php\nrequire_once '/wordpress/wp-load.php';\nwp_set_current_user( 1 );\nrequire_once '/wordpress/wp-content/plugins/vergelabs-media-library/tests/tree/auto-file.php';\n"
+    }
+  ]
+}

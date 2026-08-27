@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.4.0
+Stable tag: 3.5.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -240,6 +240,16 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.5.0 ###
+*It offers to file things, and earns the right to do it*
+
+= Added =
+* **Suggestions for files that are in no folder.** On the AI screen: a thumbnail, and which of your folders it resembles. You accept or you refuse. It never says how sure it is, because that number would not mean anything.
+* **A folder earns the right to file into itself.** Five accepted suggestions and no refusals, and that folder starts taking files by itself. One refusal and it goes straight back to asking — per folder, because "Invoices is obvious and Miscellaneous is not" is true of most libraries.
+* **It only ever touches files with no folder at all**, it never creates a folder, and everything it does is written into the Librarian's log — so Undo already covers it.
+* **It says what it left alone.** "Looked at 20 and none of them clearly belongs anywhere yet" is an answer, and a file that sits between two of your folders is left where it is rather than guessed at.
+
 
 ### 3.4.0 ###
 *The descriptions become folders*

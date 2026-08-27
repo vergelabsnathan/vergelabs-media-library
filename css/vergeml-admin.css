@@ -309,3 +309,66 @@
 #vgml-stats-note {
 	margin-left: 10px;
 }
+
+/* --- suggestions: a thumbnail, a claim, two answers ----------------------- */
+
+.vgml-autofile-list {
+	margin: 12px 0 0;
+	padding: 0;
+	list-style: none;
+	max-width: 720px;
+}
+
+.vgml-autofile-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	margin-bottom: 8px;
+	background: #fff;
+}
+
+.vgml-autofile-row.is-busy {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.vgml-autofile-thumb {
+	width: 40px;
+	height: 40px;
+	object-fit: cover;
+	border-radius: 4px;
+	flex: 0 0 auto;
+	background: #f0f0f1;
+}
+
+.vgml-autofile-body {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.vgml-autofile-title {
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/*
+ *  The claim, and it stays a claim. No score sits beside it, because an
+ *  uncalibrated number reads as a promise.
+ */
+.vgml-autofile-folder {
+	color: #646970;
+	font-size: 12px;
+}
+
+.vgml-autofile-actions {
+	display: flex;
+	gap: 6px;
+	flex: 0 0 auto;
+}

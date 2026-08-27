@@ -80,6 +80,13 @@ const SUITES = [
 	 */
 	{ name: 'ai-folders', file: 'tests/tree/ai-folders.php', env: 'box', php: true },
 	{ name: 'ai-folders-ui', file: 'tests/tree/ai-folders.mjs', env: 'playground' },
+	/*
+	 *  Filing by itself. Playground, not the box, because its vectors come
+	 *  through the seam rather than the index -- SQLite refuses an INSERT
+	 *  carrying packed floats, so the storage half is proven where storage
+	 *  works and the judgement half is proven here.
+	 */
+	{ name: 'auto-file', file: 'tests/tree/auto-file.php', env: 'playground', php: true },
 	{ name: 'health', file: 'tests/tree/health.mjs', env: 'box' },
 	{
 		name: 'ai',
