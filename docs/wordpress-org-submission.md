@@ -1,12 +1,16 @@
 # Submitting to WordPress.org
 
-State of the gate as of 2.10.0. Everything here has been run, not assumed.
+State of the gate as of 3.3.0. Everything here has been run, not assumed.
+
+Updated 27-08-2026, after the Librarian shipped. The Kamatera box was unreachable
+that day (`~/.ssh/kamatera_vgml` is gone), so the runs below are Playground runs
+unless they say otherwise — see "Running Plugin Check without Docker".
 
 ## Done
 
 | Requirement | State |
 |---|---|
-| Plugin Check errors | **0** |
+| Plugin Check errors | **0** — all five categories, clean archive at 3.3.0, run in Playground |
 | Plugin Check warnings | **0** |
 | `php -l` on every file | clean |
 | Runs on current WordPress | verified on 7.1 / PHP 8.3 |
@@ -16,7 +20,7 @@ State of the gate as of 2.10.0. Everything here has been run, not assumed.
 | GPLv2 or later, attribution to wpUXsolutions | header, readme, admin footer |
 | Unique prefix on functions, classes, options, handles, AJAX actions | `vergeml_` / `vergeml-` |
 | No minified code without source | both files recovered to readable source |
-| No external service calls | the upstream notice poller is removed |
+| External service disclosed | yes — readme.txt "External services" and the FAQ name `ai.vergelabs.nl`, what is sent and when. The upstream notice poller is still gone; the AI describe call is the only outbound request and it needs a licence key |
 | No locked features or upsell | the three "/ Premium Feature" blocks are gone |
 | Dev files excluded from the zip | `.gitattributes` export-ignore, verified against the built archive |
 | Version consistency | header, `VERGEML_VERSION` and `Stable tag` asserted equal at build |
@@ -24,7 +28,7 @@ State of the gate as of 2.10.0. Everything here has been run, not assumed.
 
 ## Not done — needs you
 
-**`Contributors:` in readme.txt.** It currently reads `vergelabsnathan`, which is a
+**1. `Contributors:` in readme.txt.** It currently reads `vergelabsnathan`, which is a
 GitHub handle. It must be a real WordPress.org username, and that account needs
 two-factor enabled before it can submit anything.
 
@@ -34,7 +38,37 @@ Confirm the username, then:
 readme.txt  ->  Contributors: <your-wordpress-org-username>
 ```
 
-That is the only thing between this and a submission.
+**2. A banner and an icon.** `assets/` holds six screenshots and nothing else. The
+directory listing wants `icon-256x256.png` (and ideally `icon-128x128.png`), and the
+plugin page wants `banner-772x250.png` (and `banner-1544x500.png`). Neither blocks
+approval; both are the difference between a listing that looks maintained and one that
+looks abandoned. There is on-brand geometry to build the icon from — the shard fan in
+`vergeml_menu_icon()` in `core/admin-menu.php` — but nothing exists for the banner, so
+that one needs a concept agreed before it is drawn.
+
+**3. The AI service is not live.** `https://ai.vergelabs.nl` does not resolve. The
+readme now tells reviewers the plugin talks to it, and a reviewer who enters a key and
+presses Describe gets a connection failure. Either the service answers before
+submission, or the AI screens ship with demo mode as the only route — demo mode
+already works and sends nothing anywhere.
+
+**4. The privacy and terms pages do not mention the AI service.**
+`https://vergelabs.nl/privacy` and `https://vergelabs.nl/voorwaarden` both resolve and
+are now linked from readme.txt, but they are the general site pages. The roadmap's
+standing rule asks for more than a link: an Art. 28 DPA, a published sub-processor list
+and a stated retention position, before the first hosted call. A reviewer following the
+link should find the service described there.
+
+**5. A political statement inherited from upstream** sits in the 2.9.x changelog
+("Please do not buy into ruzzian lies and propaganda..."). It is upstream's message in a
+historical entry, not this fork's, and it was left alone rather than edited out of
+somebody else's release history without asking. Worth a decision before submission:
+wordpress.org has acted on readme content of this kind.
+
+**6. Whether to submit 3.3.0 at all, or wait.** Phase 4 (AI smart folders, auto-filing,
+natural-language commands) is planned and unbuilt. Submitting now means the review queue
+runs in parallel with Phase 4 and the first update ships to real installs; waiting means
+one submission of a bigger plugin. A call, not a defect.
 
 A new WordPress.org account can sit in manual review before the login works.
 That review is separate from the plugin review queue, which only starts once a
@@ -47,16 +81,32 @@ directory. Checking the repo reports errors for `.git`, the Playground zip and
 the test folder -- none of which ship -- and those false positives will bury a
 real finding.
 
-    git archive --format=zip --prefix=vergelabs-media-library/ -o /tmp/release.zip HEAD
-    # extract it, then mount the extracted folder:
+This is driven rather than clicked now, because it is run often enough to be worth not
+clicking. `tools/plugin-check-blueprint.json` installs Plugin Check;
+`tools/plugin-check.mjs` picks the plugin, ticks **every** category and reads the result
+back.
+
+    git archive HEAD --prefix=vergelabs-media-library/ -o /tmp/clean.tar
+    tar xf /tmp/clean.tar -C <somewhere>
+    npx @wp-playground/cli server --port 8907 --php=8.3 --wp=latest \
+      --mount-dir "<somewhere>\vergelabs-media-library" \
+        /wordpress/wp-content/plugins/vergelabs-media-library \
+      --blueprint=tools/plugin-check-blueprint.json
+    node tools/plugin-check.mjs http://127.0.0.1:8907
+
+**Not through WP-CLI.** `wp plugin check` crashes php-wasm part way through the run
+(`RuntimeError: unreachable`), so the blueprint's `wp-cli` step is not an option in
+Playground. The browser route is.
+
+The old by-hand route, still valid:
 
     npx @wp-playground/cli server --port=9403 --php=8.3 --wp=latest --login       --mount-dir "<extracted>/vergelabs-media-library" "/wordpress/wp-content/plugins/vergelabs-media-library"       --mount-dir "<plugin-check>" "/wordpress/wp-content/plugins/plugin-check"
 
 Then Tools -> Plugin Check. Tick **every** category: the form defaults to
 "Plugin Repo" alone, which skips Security, Performance and Accessibility.
 
-Last run, 2.10.0, all five categories, errors and warnings: *Checks complete. No
-errors found.*
+Last run, 3.3.0, clean archive, all five categories: *Checks complete. No errors
+found.*
 
 ## When you submit
 

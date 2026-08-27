@@ -21,3 +21,6 @@ tests/**/shots/
 # The gate-7 schema check writes its transcript here so a Playground run,
 # which only prints a step that failed, can still be read.
 tests/librarian/gate7-last-run.txt
+
+# Plugin Check leaves a full-page screenshot of the result it read.
+tools/.plugin-check.png
