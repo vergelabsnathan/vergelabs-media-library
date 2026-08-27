@@ -13,11 +13,13 @@
  *       library
  *    D  the counts are right, hidden at zero, and null rather than zero when
  *       the index is not there
- *    E  switching the group on costs the tree endpoint **no** extra queries.
- *       This is the budget assertion. It is a delta between two requests in
- *       one process rather than the real figure -- tests/perf/bench.mjs
- *       measures that over HTTP -- but "did enabling this add a query" is
- *       answerable here and is the regression worth catching early.
+ *    E  the AI counts ride the statement the five original folders already
+ *       run, rather than adding one of their own. Proved from the statement
+ *       itself rather than from a query counter, because no counter is
+ *       portable: real MySQL moves $wpdb->num_queries, Playground's SQLite
+ *       layer moves neither that, nor $wpdb->queries under SAVEQUERIES, nor
+ *       the `query` filter -- and a budget read off a counter that never
+ *       moves reads zero and passes while checking nothing
  *
  *      wp eval-file tests/tree/ai-folders.php --allow-root
  *
@@ -328,68 +330,96 @@ af_check( 'the five originals still have their numbers',
     null !== $af_gone['unattached'] && null !== $af_gone['recent'],
     'a broken index must not cost the tree its own counts' );
 
+/*
+ *  Put back, and refilled. Dropping the table took the descriptions with it,
+ *  so anything after this would be measuring an empty index and reporting it
+ *  as a failure of the thing it was actually testing.
+ */
 vergeml_index_install();
+
+foreach ( $af_seed as $i => $row ) {
+    vergeml_index_set( $af_made[ $i ], array(
+        'caption'       => 'seeded',
+        'kind'          => $row[0],
+        'has_people'    => $row[1],
+        'has_text'      => $row[2],
+        'document_type' => $row[3],
+        'described_at'  => gmdate( 'Y-m-d H:i:s' ),
+    ) );
+}
+
+af_check( 'the seed is back after the drop',
+    9 === (int) vergeml_smart_counts( true )['_described'] );
 
 
 /* ------------------------------------------------------------- E: the budget */
 
-af_say( "\nE  the query budget\n" );
-
 $af_taxonomies = vergeml_tree_taxonomies();
 $af_taxonomy   = $af_taxonomies ? $af_taxonomies[0] : '';
 
-$af_tree = function () use ( $af_taxonomy ) {
-    global $wpdb;
-    $before  = $wpdb->num_queries;
-    $request = new WP_REST_Request( 'GET', '/' . VERGEML_REST_NS . '/tree' );
-    $request->set_param( 'taxonomy', $af_taxonomy );
-    $response = rest_do_request( $request );
-    return array(
-        'queries' => $wpdb->num_queries - $before,
-        'status'  => (int) $response->get_status(),
-    );
-};
-
-// Warm first: the first request of a process pays for things that have
-// nothing to do with this feature.
-$af_tree();
-
-af_set_group( false );
-$af_off = $af_tree();
-
-af_set_group( true );
-$af_on = $af_tree();
+af_say( "
+E  the budget
+" );
 
 /*
- *  Checked before the budget is compared, because without it this passes for
- *  the wrong reason. A request that 403s or 404s runs no queries at all, both
- *  sides read zero, "no extra query" is true, and the assertion has proved
- *  nothing. That is exactly the shape of gate that has gone green while
- *  checking nothing in this repo before.
+ *  Not counted -- proved.
+ *
+ *  Counting statements needs a counter, and there isn't a portable one:
+ *  real MySQL moves $wpdb->num_queries, Playground's SQLite layer moves
+ *  neither that nor $wpdb->queries under SAVEQUERIES nor the `query` filter,
+ *  and a budget read off a counter that never moves reads zero and passes
+ *  while proving nothing.
+ *
+ *  But the claim is not "few queries". The claim is that the AI counts ride
+ *  the statement the five original folders already run, instead of adding one
+ *  of their own -- and that is visible in the statement itself. If both
+ *  halves are in one string, there is one statement. That holds wherever this
+ *  runs, needs no counter, and is a sharper assertion than a number: a number
+ *  can be right for the wrong reason.
  */
-af_check( 'the tree endpoint actually answered',
-    200 === $af_off['status'] && 200 === $af_on['status'],
-    'taxonomy "' . $af_taxonomy . '", status ' . $af_off['status'] . '/' . $af_on['status'] );
 
-if ( $af_off['queries'] < 1 ) {
+af_set_group( false );
+vergeml_smart_counts( true );
+$af_sql_off = (string) $wpdb->last_query;
 
-    af_skip( 'switching the AI group on costs no extra query',
-        'the query counter did not move at all, so nothing here can be measured -- '
-        . 'Playground\'s SQLite layer does not maintain $wpdb->num_queries. '
-        . 'Run this suite on the box, and tests/perf/bench.mjs for the real figure' );
+af_set_group( true );
+vergeml_smart_counts( true );
+$af_sql_on = (string) $wpdb->last_query;
 
-} else {
+af_check( 'the counts are one statement with the group off',
+    false !== strpos( $af_sql_off, "'unused'" ) && false === strpos( $af_sql_off, 'ai-kind-' ) );
 
-    af_check( 'switching the AI group on costs no extra query',
-        $af_on['queries'] <= $af_off['queries'],
-        'off ' . $af_off['queries'] . ', on ' . $af_on['queries'] );
+af_check( 'and still one statement with the group on -- both halves in it',
+    false !== strpos( $af_sql_on, "'unused'" ) && false !== strpos( $af_sql_on, 'ai-kind-' ),
+    'the AI counts did not join the existing UNION' );
 
-    af_say( sprintf(
-        "  (in-process delta; bench.mjs measures the real figure over HTTP: off %d, on %d)\n",
-        $af_off['queries'],
-        $af_on['queries']
-    ) );
-}
+af_check( 'the AI half is a UNION branch, not a second statement',
+    substr_count( strtolower( $af_sql_on ), 'union all' ) > substr_count( strtolower( $af_sql_off ), 'union all' ) );
+
+/*
+ *  The other half of the promise: the statement must not grow with the
+ *  library. Six kinds is six kinds whether there are nine files or nine
+ *  million, because the branches group rather than listing.
+ */
+af_check( 'the statement does not name a single attachment id',
+    ! preg_match( '/IN\s*\(\s*\d+\s*,/', $af_sql_on ),
+    'an id list here would grow with the library' );
+
+/*
+ *  And the endpoint still answers, which the SQL alone would not tell us.
+ */
+$af_request = new WP_REST_Request( 'GET', '/' . VERGEML_REST_NS . '/tree' );
+$af_request->set_param( 'taxonomy', $af_taxonomy );
+$af_response = rest_do_request( $af_request );
+
+af_check( 'the tree endpoint answers with the group on',
+    200 === (int) $af_response->get_status(),
+    'taxonomy "' . $af_taxonomy . '", status ' . $af_response->get_status() );
+
+$af_data = $af_response->get_data();
+
+af_check( 'and its payload carries the AI group',
+    is_array( $af_data ) && ! empty( $af_data['ai'] ) && 9 === (int) $af_data['ai']['described'] );
 
 
 /* -------------------------------------------------------------------- tidy */

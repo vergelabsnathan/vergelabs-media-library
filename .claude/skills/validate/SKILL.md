@@ -11,26 +11,34 @@ rerun the whole thing. The loop terminates on green, not on first output.
 Report a table: gate, pass/fail, and the actual output for anything that failed. Never report a
 gate as passing without having run it, and never infer a result from a previous run.
 
-## Gate 1 â€” PHP lint (fast, always first)
+## Gate 1 — PHP lint (fast, always first)
 
-Every PHP file must parse on the 7.4 floor. Locally there is no PHP binary, so this runs on the
-test VPS:
+Every PHP file must parse on the 7.4 floor, and this now runs here rather than on a box:
 
 ```bash
-tar -C /c/dev/media-plugin --exclude=node_modules --exclude=.git --exclude=.verify.lock -czf /tmp/vgml.tgz plugin
-scp -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-  /tmp/vgml.tgz root@185.229.224.239:/tmp/
-ssh -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-  root@185.229.224.239 'cd /tmp && rm -rf lint && mkdir lint && tar xzf vgml.tgz -C lint &&
-  echo "linting $(find lint -name "*.php" | wc -l) files" &&
-  find lint -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"; echo "lint done"'
+cd /c/dev/media-plugin/plugin
+find . -name "*.php" -not -path "./node_modules/*" | wc -l
+find . -name "*.php" -not -path "./node_modules/*" \n  -exec /c/dev/media-plugin/.tools/php74/php.exe -l {} \; 2>&1 | grep -v "No syntax errors"
 ```
 
-Empty output between the file count and `lint done` means clean. **A count of zero is a
-failure**, not a pass: the tar found nothing, and a gate that lints no files prints exactly
-what a clean gate prints. This has already happened — the paths in this file went stale after
-the repo moved, so the tar packed an empty directory and the gate stayed green while checking
-nothing.
+Empty output after the file count means clean. **A count of zero is a failure**, not a pass:
+a gate that lints no files prints exactly what a clean gate prints, and that has happened here
+before — the paths went stale after the repo moved, so the tar packed an empty directory and
+the gate stayed green while checking nothing.
+
+The binary is PHP **7.4.33**, which is the floor itself, so this catches what the test box could
+not: the box runs 8.3 and happily accepts syntax that breaks for the users this plugin is for.
+Install it once with:
+
+```powershell
+$dst = "C:\dev\media-plugin\.tools\php74"
+New-Item -ItemType Directory -Force $dst
+Invoke-WebRequest "https://windows.php.net/downloads/releases/archives/php-7.4.33-nts-Win32-vc15-x64.zip" -OutFile "$env:TEMP\php74.zip"
+Expand-Archive "$env:TEMP\php74.zip" -DestinationPath $dst -Force
+```
+
+Gate 2 still matters even so: 7.4 will reject PHP 8 syntax outright, but the grep there also
+catches constructs in files this lint might skip.
 
 ## Gate 2 â€” PHP 7.4 syntax floor
 
@@ -102,47 +110,66 @@ Measure over REST, never from `wp eval` after other work in the same request: a 
 first leaves the caches warm, and the endpoint does not get them. That reported 4 queries for a
 `health-report` that actually ran 70.
 
-## Gate 6 â€” Plugin Check
+## Gate 6 — Plugin Check
 
 The wordpress.org submission gate. Must be clean before any release.
 
 Check a **clean archive**, not the working tree. `git archive` honours the export-ignore rules
-in `.gitattributes`, so it contains what users would install; checking the deployed folder
-instead reports the dev files â€” `.claude`, `CLAUDE.md`, `.github`, `tests/` â€” as warnings that
-are not real, and burying the real findings under them is how a real one gets missed.
+in `.gitattributes`, so it contains what users would install; checking the working folder
+instead reports the dev files — `.claude`, `CLAUDE.md`, `tests/`, `tools/` — as findings that
+are not real, and burying the real ones under them is how a real one gets missed.
 
 ```bash
 cd /c/dev/media-plugin/plugin
-git archive HEAD --prefix=vergelabs-media-library/ -o /tmp/vgml-clean.tar
-scp -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-  /tmp/vgml-clean.tar root@185.229.224.239:/tmp/
-ssh -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-  root@185.229.224.239 'cd /var/www/wp/wp-content/plugins &&
-  rm -rf vgml-clean-check && mkdir vgml-clean-check &&
-  tar xf /tmp/vgml-clean.tar -C vgml-clean-check && cd /var/www/wp &&
-  wp plugin install plugin-check --activate --allow-root 2>/dev/null;
-  wp plugin check wp-content/plugins/vgml-clean-check/vergelabs-media-library --allow-root;
-  rm -rf wp-content/plugins/vgml-clean-check'
+git archive HEAD --prefix=vergelabs-media-library/ -o /tmp/clean.tar
+mkdir -p /tmp/pc && tar xf /tmp/clean.tar -C /tmp/pc
+
+MSYS_NO_PATHCONV=1 npx --yes @wp-playground/cli@latest server --port 8907 --php=8.3 --wp=latest   --mount-dir "<extracted>ergelabs-media-library" /wordpress/wp-content/plugins/vergelabs-media-library   --blueprint=tools/plugin-check-blueprint.json &
+
+node tools/plugin-check.mjs http://127.0.0.1:8907
 ```
 
-`Success: Checks complete. No errors found.` is the only passing output. A custom table's name
-built by a helper function reads to the sniffs as unprepared SQL â€” register it on `$wpdb` rather
-than suppressing the warning.
+`Checks complete. No errors found.` is the only passing output. The driver ticks **every**
+category — the form defaults to "Plugin Repo" alone, which skips Security, Performance and
+Accessibility — and waits for the site itself rather than for a port to stop refusing.
 
-## Gate 7 â€” the upgrade path
+**Not through WP-CLI.** `wp plugin check` crashes php-wasm part way through the run
+(`RuntimeError: unreachable`), so the blueprint's `wp-cli` step is not an option in Playground.
 
-Existing installs carry saved options that defaults never touch. If this change added or altered
-a default, prove the migration runs:
+A custom table's name built by a helper function reads to the sniffs as unprepared SQL —
+register it on `$wpdb` rather than suppressing the warning. A new file in `core/` needs the
+`if ( ! defined( 'ABSPATH' ) ) exit;` guard, which is the one this gate has actually caught.
+
+## Gate 7 — the upgrade path
+
+Existing installs carry saved options and schemas that defaults never touch. If this change
+added or altered either, prove the migration runs — and prove it from the state an existing
+install is actually in, not from a fresh one.
+
+Two halves, and both have drawn blood:
+
+**Options.** A changed default does nothing for a site that already has the old value written to
+the database. The migration belongs in `vergeml_set_options()` behind a
+`version_compare( get_option( 'vergeml_version', '' ), 'X.Y.Z', '<' )` guard, and it must leave
+alone anything the user owns.
+
+**Schema.** A lazy install that tests only for "never installed" will not notice a version bump,
+and a site that already has the table silently never receives the new column or index. Both
+`vergeml_librarian_maybe_install()` and `vergeml_index_maybe_install()` compare against their
+version constant *and* ask the database whether the table is still there — they were each fixed
+after failing exactly this.
+
+Run it with a blueprint rather than a box:
 
 ```bash
-ssh ... root@185.229.224.239 'cd /var/www/wp &&
-  wp option update vergeml_version 2.10.1 --allow-root &&
-  wp eval "vergeml_set_options();" --allow-root &&
-  wp eval "print_r( get_option( \"vergeml_taxonomies\" ) );" --allow-root'
+cd /c/dev/media-plugin/plugin
+MSYS_NO_PATHCONV=1 npx --yes @wp-playground/cli@latest run-blueprint --php=8.3 --wp=latest   --mount-dir "C:\dev\media-plugin\plugin" /wordpress/wp-content/plugins/vergelabs-media-library   --blueprint=tests/librarian/gate7-blueprint.json
+cat tests/librarian/gate7-last-run.txt
 ```
 
-Check the migration changed what it should and left the site's own taxonomies (`eml_media` = 0)
-alone.
+`tests/librarian/gate7-schema.php` is the shape to copy for any new table: baseline, dropped
+table with the option intact, dropped table with the option gone, and the same loss reached
+through the real endpoint.
 
 ## Skipping a gate
 

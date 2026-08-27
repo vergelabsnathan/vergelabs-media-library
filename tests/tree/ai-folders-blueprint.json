@@ -12,7 +12,7 @@
     },
     {
       "step": "runPHP",
-      "code": "<?php\nrequire_once '/wordpress/wp-load.php';\nwp_set_current_user( 1 );\nrequire_once '/wordpress/wp-content/plugins/vergelabs-media-library/tests/tree/ai-folders.php';\n"
+      "code": "<?php\ndefine( 'SAVEQUERIES', true );\nrequire_once '/wordpress/wp-load.php';\nwp_set_current_user( 1 );\nrequire_once '/wordpress/wp-content/plugins/vergelabs-media-library/tests/tree/ai-folders.php';\n"
     }
   ]
 }
