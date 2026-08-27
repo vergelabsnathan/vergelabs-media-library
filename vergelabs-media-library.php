@@ -1217,6 +1217,12 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // that file stores, and reads them through $wpdb->vergeml_ai_index --
         // which does not exist until ai-index.php has registered it.
         include_once( 'core/organize.php' );
+        // After organize.php: the Librarian reviews and applies the trees that
+        // file proposes, and reads them through its helpers. Inside the guard
+        // like everything else here, so a crash while applying can be switched
+        // off -- which for the one feature that writes to somebody's library
+        // is the whole reason the guard exists.
+        include_once( 'core/librarian.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {
             include_once( 'core/medialist.php' );

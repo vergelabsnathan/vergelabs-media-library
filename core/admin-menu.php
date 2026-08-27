@@ -199,6 +199,16 @@ function vergeml_admin_home() {
             'cap'   => 'manage_categories',
         ),
         array(
+            'page'  => 'media-librarian',
+            'title' => __( 'Librarian', 'vergelabs-media-library' ),
+            // The card says where this library actually is in the ladder, so
+            // the home screen answers "can I use this yet" without a click.
+            'text'  => function_exists( 'vergeml_librarian_card_text' )
+                ? vergeml_librarian_card_text()
+                : __( 'See the folders this library would get, change them, apply them — and put it all back with one click.', 'vergelabs-media-library' ),
+            'cap'   => 'manage_categories',
+        ),
+        array(
             'page'  => 'media-health',
             'title' => __( 'Library health', 'vergelabs-media-library' ),
             'text'  => __( 'Which files are copies of each other — the same upload twice, or one photo exported again at another size — and how much space they take. Reads only.', 'vergelabs-media-library' ),
