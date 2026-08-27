@@ -769,6 +769,62 @@ l_check( 'undo removes the parent it created as well as the leaf',
     is_wp_error( $deep_undone ) ? '' : $deep_undone['folders_removed'] . ' folders removed' );
 
 
+/* -------------------------------------------------------------- flatness */
+
+echo "\nwhat a step costs\n";
+
+/*
+ *  The property the query budget exists to protect: a step must not cost more
+ *  the later it runs.
+ *
+ *  That is the N+1 that matters. A step's total does scale with its chunk --
+ *  it processes a chunk of files, and each one costs what core charges for an
+ *  assignment -- but the cost per step must not creep as the cursor advances,
+ *  because that is what a walk over everything-done-so-far looks like from the
+ *  outside.
+ *
+ *  Folders are made in a phase of their own before any filing, so a filing
+ *  step never inserts a term. Without that this cost went from 123 to 198
+ *  queries a step for the same files in ten times as many branches.
+ */
+$flat = array();
+for ( $i = 0; $i < 60; $i++ ) {
+    $flat[] = l_attachment( 'flat-' . $i );
+}
+
+$flat_run = l_run( array( l_branch( 'zz Flat', $flat ) ) );
+
+$flat_batch = vergeml_librarian_batch_create( 'subject', $flat_run, array() );
+$GLOBALS['l_batches'][] = (int) $flat_batch['batch_id'];
+
+$costs = array();
+$guard = 0;
+
+do {
+    $before_q = (int) $wpdb->num_queries;
+    $step     = vergeml_librarian_apply_step( (int) $flat_batch['batch_id'] );
+    $spent    = (int) $wpdb->num_queries - $before_q;
+
+    // Only the filing steps: the folder phase is a different job with a
+    // different cost, and averaging the two would hide both.
+    if ( 'files' === $step['phase'] && $step['cursor'] > 0 ) {
+        $costs[] = $spent;
+    }
+} while ( 'running' === $step['status'] && $guard++ < 50 );
+
+$GLOBALS['l_terms'][] = l_term_named( 'zz Flat' );
+
+$full = array_slice( $costs, 0, max( 1, count( $costs ) - 1 ) ); // the last chunk is a short one
+
+l_check( 'a filing step costs the same however many have run before it',
+    count( $full ) < 2 || ( max( $full ) - min( $full ) ) <= max( 4, (int) round( min( $full ) * 0.1 ) ),
+    implode( ', ', $costs ) . ' queries per step' );
+
+l_check( 'and the batch still filed everything',
+    ! is_wp_error( $step ) && count( $flat ) === (int) $step['done'],
+    is_wp_error( $step ) ? '' : $step['done'] . ' of ' . count( $flat ) );
+
+
 /* ----------------------------------------------------------- the pre-flight */
 
 echo "\nthe pre-flight\n";

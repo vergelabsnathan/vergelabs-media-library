@@ -1045,6 +1045,10 @@ function vergeml_librarian_resolve_terms( $branches, $taxonomy ) {
     $existing = get_terms( array(
         'taxonomy'   => $taxonomy,
         'hide_empty' => false,
+        // Names and parents are all this needs, and priming the meta for
+        // every folder on the site is a query the pre-flight would spend for
+        // nothing.
+        'update_term_meta_cache' => false,
     ) );
 
     $by_parent = array();
@@ -1153,12 +1157,61 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
         'stage'  => 'create',
     ) );
 
+    /*
+     *  The files that already have a folder are dropped here rather than
+     *  skipped one at a time later, and it buys two things.
+     *
+     *  The first is the promise: a folder is never created for a branch whose
+     *  files all turn out to be filed already, because that branch is not in
+     *  the work list at all.
+     *
+     *  The second is the budget. Creating the folders a chunk happened to
+     *  need made a step cost more the more branches it spanned -- 20 branches
+     *  cost 198 queries against 123 for the same 80 files in 2 branches,
+     *  measured, which is the shape of an N+1 even though nothing loops over
+     *  a file. Knowing the whole work list up front means the folders can be
+     *  made in a phase of their own, and every filing step after that is
+     *  filing and nothing else.
+     */
+    $ids = array();
+
+    foreach ( $plan['work'] as $pair ) {
+        $ids[] = (int) $pair[0];
+    }
+
+    $filed = array_flip( vergeml_librarian_filed( $ids, $taxonomy ) );
+
+    $work    = array();
+    $wanted  = array();
+    $skipped = 0;
+
+    foreach ( $plan['work'] as $pair ) {
+
+        if ( isset( $filed[ (int) $pair[0] ] ) ) {
+            $skipped++;
+            continue;
+        }
+
+        $work[] = $pair;
+
+        $branch = $plan['branches'][ (int) $pair[1] ];
+
+        $wanted[ implode( ' / ', $branch['path'] ) ] = true;
+    }
+
+    // Ancestors before the folders under them, so a term is never inserted
+    // beneath a parent that does not exist yet.
+    $folders = vergeml_librarian_folder_order( array_keys( $wanted ), $plan['terms'] );
+
     $params = array(
         'taxonomy' => $taxonomy,
         'branches' => $plan['branches'],
         'terms'    => $plan['terms'],
-        'work'     => $plan['work'],
-        'n'        => count( $plan['work'] ),
+        'work'     => $work,
+        'n'        => count( $work ),
+        'folders'  => $folders,
+        'folder_n' => 0,
+        'phase'    => $folders ? 'folders' : 'files',
         'chunk'    => vergeml_librarian_chunk( 0.0 ),
         'timing'   => array( 'ms' => 0.0, 'n' => 0 ),
         'undo'     => array( 'cursor' => 0, 'undone' => 0, 'touched' => 0, 'removed' => 0, 'kept' => 0 ),
@@ -1175,7 +1228,7 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
             'status'      => $gate['allow'] ? 'running' : 'paused',
             'step_cursor' => 0,
             'done_n'      => 0,
-            'skip_n'      => 0,
+            'skip_n'      => $skipped,
             'params'      => wp_json_encode( $params ),
             'reason'      => vergeml_librarian_reason( $gate['allow'] ? '' : $gate['reason'] ),
             'created_at'  => $now,
@@ -1192,12 +1245,64 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
         'status'     => $gate['allow'] ? 'running' : 'paused',
         'cursor'     => 0,
         'done'       => 0,
-        'skipped'    => 0,
+        'skipped'    => $skipped,
         'params'     => $params,
         'reason'     => $gate['allow'] ? '' : $gate['reason'],
         'created_at' => $now,
         'updated_at' => $now,
     );
+}
+
+
+/**
+ *  Every folder the work needs, ancestors first.
+ *
+ *  A branch two levels down needs its parent, and its parent may not be a
+ *  branch anybody chose -- so the list is walked out of the resolved paths
+ *  rather than out of the branches, and sorted by depth so a parent is always
+ *  made before the folder that goes inside it.
+ */
+
+function vergeml_librarian_folder_order( $keys, $terms ) {
+
+    $needed = array();
+
+    foreach ( $keys as $key ) {
+
+        $walked = array();
+
+        foreach ( explode( ' / ', (string) $key ) as $step ) {
+            $walked[] = $step;
+            $needed[ implode( ' / ', $walked ) ] = true;
+        }
+    }
+
+    $order = array();
+
+    foreach ( array_keys( $needed ) as $key ) {
+        // A folder that is already there needs no making, and putting it in
+        // the list would only cost a lookup to discover that.
+        if ( empty( $terms[ $key ]['id'] ) ) {
+            $order[] = $key;
+        }
+    }
+
+    usort( $order, 'vergeml_librarian_by_depth_asc' );
+
+    return $order;
+}
+
+
+function vergeml_librarian_by_depth_asc( $a, $b ) {
+
+    $depth_a = substr_count( (string) $a, ' / ' );
+    $depth_b = substr_count( (string) $b, ' / ' );
+
+    if ( $depth_a !== $depth_b ) {
+        return $depth_a - $depth_b;
+    }
+
+    return strcmp( (string) $a, (string) $b );
 }
 
 
@@ -1283,7 +1388,9 @@ function vergeml_librarian_apply_step( $batch_id ) {
 
     $cursor = (int) $batch['cursor'];
 
-    if ( $cursor >= $total ) {
+    $phase = isset( $params['phase'] ) ? (string) $params['phase'] : 'files';
+
+    if ( 'folders' !== $phase && $cursor >= $total ) {
         $batch['status'] = 'done';
         vergeml_librarian_batch_save( $batch );
         return vergeml_librarian_report( $batch, $started );
@@ -1291,7 +1398,43 @@ function vergeml_librarian_apply_step( $batch_id ) {
 
     $taxonomy = isset( $params['taxonomy'] ) ? (string) $params['taxonomy'] : vergeml_librarian_taxonomy();
     $chunk    = vergeml_librarian_chunk( vergeml_librarian_rate( $params ) );
-    $slice    = array_slice( $work, $cursor, $chunk );
+
+    /*
+     *  The folders first, in a phase of their own.
+     *
+     *  Making them here rather than inside the filing loop is what keeps a
+     *  filing step's cost flat: it costs the same whether the batch has two
+     *  branches or two hundred, and the same on its fortieth step as on its
+     *  first. This phase is bounded too -- at most a chunk of folders a step
+     *  -- so no single request has to make an unbounded number of them.
+     */
+    if ( isset( $params['phase'] ) && 'folders' === $params['phase'] ) {
+
+        $made = 0;
+
+        while ( $params['folder_n'] < count( $params['folders'] ) && $made < $chunk ) {
+
+            $key = (string) $params['folders'][ $params['folder_n'] ];
+
+            vergeml_librarian_term_for( $key, $params, $taxonomy );
+
+            $params['folder_n'] = (int) $params['folder_n'] + 1;
+            $made++;
+        }
+
+        if ( $params['folder_n'] >= count( $params['folders'] ) ) {
+            $params['phase'] = 'files';
+        }
+
+        $batch['params'] = $params;
+        $batch['status'] = 'running';
+
+        vergeml_librarian_batch_save( $batch );
+
+        return vergeml_librarian_report( $batch, $started );
+    }
+
+    $slice = array_slice( $work, $cursor, $chunk );
 
     $ids = array();
 
@@ -1344,14 +1487,12 @@ function vergeml_librarian_apply_step( $batch_id ) {
         }
 
         /*
-         *  The folder is made here and not a line earlier, and the order is
-         *  the whole point: resolving the term first meant a batch whose
-         *  files all turned out to be filed already still created every
-         *  folder it had planned, and left them behind empty -- with nothing
-         *  in the moves log to let undo clean them up. A folder is created
-         *  when there is a file to put in it.
+         *  Looked up, never made. Every folder this batch needs was created
+         *  in the phase before this one, and a step that could still insert a
+         *  term is a step whose cost depends on how many branches its chunk
+         *  happened to span.
          */
-        $term_id = vergeml_librarian_term_for( $key, $params, $taxonomy );
+        $term_id = isset( $params['terms'][ $key ]['id'] ) ? (int) $params['terms'][ $key ]['id'] : 0;
 
         if ( ! $term_id ) {
             $skip++;
@@ -1857,6 +1998,11 @@ function vergeml_librarian_report( $batch, $started ) {
         'cursor'    => (int) $batch['cursor'],
         'n'         => $total,
         'remaining' => $remaining,
+        'phase'     => isset( $params['phase'] ) ? (string) $params['phase'] : 'files',
+        'folders'   => array(
+            'made'   => isset( $params['folder_n'] ) ? (int) $params['folder_n'] : 0,
+            'needed' => isset( $params['folders'] ) ? count( $params['folders'] ) : 0,
+        ),
         'chunk'     => isset( $params['chunk'] ) ? (int) $params['chunk'] : VERGEML_LIBRARIAN_CHUNK,
         'reason'    => (string) $batch['reason'],
         'step_ms'   => round( ( microtime( true ) - $started ) * 1000, 1 ),

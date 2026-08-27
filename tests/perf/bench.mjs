@@ -179,16 +179,42 @@ if (doomed && doomed.run_id) {
 /*
  *  The Librarian.
  *
- *  Three hot endpoints and two read ones. The step is the one worth watching:
- *  it is budgeted flat at 4 + 2 per file in the chunk, and it must not move
- *  with the number of branches nor with how many steps have already run. An
- *  N+1 here would be a query per file, and the file count is the feature.
+ *  Budgets, measured on the box on 27-08-2026 rather than reasoned about:
  *
- *  The step probed is a steady-state one -- a batch is created, one step is
- *  taken to get the first chunk's folders made, and the probe then measures
- *  the step after that. Creating a folder costs a handful of queries and
- *  happens at most once per folder in a whole batch; measuring the first step
- *  would report that one-off as if it were the per-step cost.
+ *    librarian-schemes     1   flat; one row, or one grouped pass for the
+ *                              date scheme
+ *    librarian-batches     1   every count the list shows is a column
+ *    librarian-preflight  11   cold. The organise quote it wraps is 5 of
+ *                              those on its own, which is why the plan's
+ *                              figure of 6 was never reachable: it budgeted
+ *                              the wrapper without the thing wrapped
+ *    librarian-apply-step      4 + 4 per file in the chunk, and up to
+ *                              4 + 13 per file when every file in the chunk
+ *                              lands in a different folder
+ *    librarian-undo-step       4 + 2 per file in the chunk
+ *
+ *  The 4 is core's own: wp_set_object_terms costs four queries for one fresh
+ *  assignment, measured, and a step cannot spend fewer without writing
+ *  term_relationships itself and dropping every hook that watches it. The 13
+ *  is WordPress's hierarchical term-count invalidation, which costs about
+ *  nine queries per DISTINCT folder a chunk touches -- bounded by the chunk
+ *  size, since a chunk of 25 files can touch at most 25 folders.
+ *
+ *  What must not change:
+ *
+ *  - a step must not cost more the later it runs. That is the N+1 that
+ *    matters here, and tests/librarian/test-librarian.php asserts it.
+ *  - nothing may grow with the size of the library. The work list is
+ *    resolved once, when the batch is created, so a step never walks a tree
+ *    and never counts a branch.
+ *  - folders are made in a phase of their own, before any filing. Making
+ *    them inside the filing loop cost 198 queries a step against 123 for the
+ *    same files in fewer branches -- the shape of an N+1 even though nothing
+ *    loops over a file.
+ *
+ *  The step probed is a steady-state one: a batch is created, one step is
+ *  taken to get through the folder phase, and the probe measures the filing
+ *  steps after it.
  */
 await probe('ours: librarian-schemes', '/wp-json/vergeml/v1/librarian-schemes');
 await probe('ours: librarian-batches', '/wp-json/vergeml/v1/librarian-batches');
@@ -198,18 +224,36 @@ const batch = await send('/wp-json/vergeml/v1/librarian-apply-step', { scheme: '
   .then((r) => r.json())
   .catch(() => null);
 
-if (batch && batch.batch_id) {
-  // One step first, so the folders this chunk needs already exist and the
-  // probe measures filing rather than folder creation.
-  await send('/wp-json/vergeml/v1/librarian-apply-step', { batch_id: batch.batch_id });
+if (!batch || !batch.batch_id) {
+  console.log('ours: librarian-apply-step'.padEnd(28) + ' could not create a batch -- is a media taxonomy on?');
+} else if (!batch.n) {
+  /*
+   *  Nothing in this library is unfiled, so the batch has no work and a step
+   *  returns after one read. Printing that as the step's cost would be a
+   *  number that looks excellent and measures nothing -- so it says what
+   *  happened instead.
+   *
+   *  To measure it here, leave some files without a folder first. The per-step
+   *  cost is asserted directly, with its own seeded files, in
+   *  tests/librarian/test-librarian.php.
+   */
+  console.log('ours: librarian-apply-step'.padEnd(28) + ' NOT MEASURED -- nothing in this library is unfiled');
+  console.log('ours: librarian-undo-step'.padEnd(28) + ' NOT MEASURED -- the batch above had no work');
+} else {
+  // Steps until the folder phase is behind us, so the probe measures filing
+  // rather than folder creation.
+  for (let i = 0; i < 40; i++) {
+    const r = await send('/wp-json/vergeml/v1/librarian-apply-step', { batch_id: batch.batch_id })
+      .then((res) => res.json())
+      .catch(() => null);
+    if (!r || r.phase !== 'folders') break;
+  }
   await probe('ours: librarian-apply-step', '/wp-json/vergeml/v1/librarian-apply-step', {
     batch_id: batch.batch_id,
   });
   await probe('ours: librarian-undo-step', '/wp-json/vergeml/v1/librarian-undo-step', {
     batch_id: batch.batch_id,
   });
-} else {
-  console.log('ours: librarian-apply-step'.padEnd(28) + ' could not create a batch -- is a media taxonomy on?');
 }
 
 await probe('core: wp/v2/media pp=40', '/wp-json/wp/v2/media?per_page=40');
