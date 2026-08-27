@@ -28,6 +28,7 @@
 
 			if ( $( 'vgml-ai-license' ) ) {
 				$( 'vgml-ai-enrich' ).checked = !! s.settings.enrich_search;
+				$( 'vgml-ai-mock' ).checked = !! s.settings.mock;
 				if ( s.settings.has_license ) {
 					$( 'vgml-ai-license' ).placeholder = '•••••••• (saved)';
 				}
@@ -121,6 +122,7 @@
 					data: {
 						license_key: $( 'vgml-ai-license' ).value,
 						enrich_search: $( 'vgml-ai-enrich' ).checked ? 1 : 0,
+						mock: $( 'vgml-ai-mock' ).checked ? 1 : 0,
 					},
 				} ).then( function () {
 					$( 'vgml-ai-license' ).value = '';

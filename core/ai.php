@@ -859,6 +859,37 @@ function vergeml_ai_page() {
                         <label><input type="checkbox" id="vgml-ai-enrich"> <?php esc_html_e( 'Let media search match AI captions and tags', 'vergelabs-media-library' ); ?></label>
                     </td>
                 </tr>
+                <?php
+                /*
+                 *  Demo mode, on the screen rather than only in the REST API.
+                 *
+                 *  It was reachable three ways -- the settings endpoint, a
+                 *  VERGEML_AI_MOCK constant, and the raw option -- and by no
+                 *  click at all. So the one switch that lets somebody try the
+                 *  Librarian on their own files without a licence was the one
+                 *  switch nobody without a terminal could find, and testing
+                 *  this plugin's own screens meant opening a console.
+                 *
+                 *  Labelled without euphemism. The captions it writes are
+                 *  invented from filenames; a screen that let anyone mistake
+                 *  them for a model's answer would be lying, and this plugin's
+                 *  whole argument is that its numbers are counted.
+                 */
+                ?>
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Testing', 'vergelabs-media-library' ); ?></th>
+                    <td>
+                        <label><input type="checkbox" id="vgml-ai-mock"> <?php esc_html_e( 'Demo mode', 'vergelabs-media-library' ); ?></label>
+                        <p class="description">
+                            <?php esc_html_e( 'Descriptions are invented on this server from file names. Nothing is sent anywhere, no credits are spent, and no licence is needed — so you can see what the folder tree and the Librarian would do to your library before paying for anything. The captions are not real: turn this off before judging what the AI is worth.', 'vergelabs-media-library' ); ?>
+                        </p>
+                        <?php if ( defined( 'VERGEML_AI_MOCK' ) ) : ?>
+                            <p class="description">
+                                <strong><?php esc_html_e( 'Forced on by the VERGEML_AI_MOCK constant in this site\'s configuration — the checkbox above cannot switch it off.', 'vergelabs-media-library' ); ?></strong>
+                            </p>
+                        <?php endif; ?>
+                    </td>
+                </tr>
             </table>
             <p>
                 <button type="button" class="button button-primary" id="vgml-ai-save"><?php esc_html_e( 'Save', 'vergelabs-media-library' ); ?></button>
