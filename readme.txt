@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.7.0
+Stable tag: 3.8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -240,6 +240,18 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.8.0 ###
+*Duplicates, alt text, and finding the one like this*
+
+= Added =
+* **Duplicates can be tidied without deleting anything.** It keeps the copy something actually points at — or the oldest, when nothing points at any of them — and sets the rest aside, where they wait thirty days and can be taken back with one click.
+* **Alt text, filled in from descriptions you already paid for.** Only where alt is empty, and never over anything you have written yourself. Everything it writes is marked, so the whole lot comes back out again if you do not like it.
+* **"More like this one."** Free, instant, and no AI call at the moment you ask: it compares against descriptions your library already holds.
+
+= Fixed =
+* **Filling in alt text marked its own writing as yours.** The protection that stops a model overwriting your words was tripped by the one writer it was meant to allow, so a filled field could never be undone and was skipped on the next run.
+
 
 ### 3.7.0 ###
 *Set aside, which is not deleted*

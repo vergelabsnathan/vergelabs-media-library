@@ -97,6 +97,7 @@ const SUITES = [
 	 *  nothing a real database has that Playground does not.
 	 */
 	{ name: 'quarantine', file: 'tests/tree/quarantine.php', env: 'playground', php: true },
+	{ name: 'utilities', file: 'tests/tree/utilities.php', env: 'playground', php: true },
 	{ name: 'health', file: 'tests/tree/health.mjs', env: 'box' },
 	{
 		name: 'ai',
