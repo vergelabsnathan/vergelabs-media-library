@@ -2054,3 +2054,75 @@ body.upload-php .media-frame.mode-select .attachments-browser .media-toolbar .bu
 .vgml-node.vgml-hidden-unfiled {
 	display: none;
 }
+
+
+/*
+ *  The one row that leads out of the tree.
+ *
+ *  It sits under the search because that is where somebody has just failed to
+ *  find something, and it is gone the moment nothing is unfiled -- a prompt
+ *  that is always there is an advertisement.
+ *
+ *  It takes --vgml-accent like everything else in this file, so it belongs to
+ *  whichever admin colour scheme the user picked rather than announcing
+ *  itself in a colour of its own. The slats lean; the row does not.
+ */
+
+.vgml-sort {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0 0.5rem 0.5rem;
+	padding: 0.5rem 0.6rem;
+	border-radius: 4px;
+	text-decoration: none;
+	color: inherit;
+	background: color-mix( in srgb, var( --vgml-accent ) 8%, transparent );
+	box-shadow: inset 2px 0 0 var( --vgml-accent );
+	font-size: 0.9em;
+	line-height: 1.3;
+}
+
+.vgml-sort[hidden] {
+	display: none;
+}
+
+.vgml-sort:hover,
+.vgml-sort:focus {
+	background: color-mix( in srgb, var( --vgml-accent ) 14%, transparent );
+	color: inherit;
+}
+
+.vgml-sort:focus-visible {
+	outline: 2px solid var( --vgml-accent );
+	outline-offset: 1px;
+}
+
+.vgml-sort-mark {
+	color: var( --vgml-accent );
+	display: flex;
+	flex: 0 0 auto;
+}
+
+.vgml-sort-text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.vgml-sort-go {
+	flex: 0 0 auto;
+	color: var( --vgml-accent );
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+/*
+ *  color-mix is recent. Where it is missing the row still has its accent bar
+ *  and its text; it simply loses the wash behind them, which is decoration.
+ */
+@supports not ( background: color-mix( in srgb, red 50%, transparent ) ) {
+	.vgml-sort {
+		background: transparent;
+		border: 1px solid var( --vgml-accent );
+	}
+}

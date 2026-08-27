@@ -238,12 +238,27 @@ function vergeml_tree_assets( $hook ) {
          */
         'accent'     => vergeml_admin_accent(),
         /*
+         *  Where the Librarian lives, handed to the tree so the one screen
+         *  that can do something about an unfiled library is reachable from
+         *  the screen where people notice it is unfiled.
+         *
+         *  It was a submenu entry under a top-level menu, which means it was
+         *  found by people who already knew it existed. The media library is
+         *  where somebody is standing when the problem occurs to them.
+         */
+        'librarianUrl' => current_user_can( 'manage_categories' )
+            ? admin_url( 'admin.php?page=media-librarian' )
+            : '',
+        /*
          *  A ready-made, nonce-carrying download link; the browser only appends
          *  which folder. Built here because a nonce cannot be minted in the
          *  browser.
          */
         'zipUrl'     => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_zip' ), 'vergeml_zip' ),
         'l10n'       => array(
+            /* translators: %s: how many files have no folder. */
+            'sortPrompt' => __( '%s files are not in a folder', 'vergelabs-media-library' ),
+            'sortGo'     => __( 'Sort them', 'vergelabs-media-library' ),
             /*
              *  "All files" is wrong above a list of pages. The post type's own
              *  plural is what that screen calls them everywhere else, so it is

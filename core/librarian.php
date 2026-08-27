@@ -2602,8 +2602,16 @@ function vergeml_librarian_page() {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
+    /*
+     *  The accent of whichever admin colour scheme this user picked, handed to
+     *  the stylesheet as a custom property. The folder tree has done this since
+     *  it shipped; this screen hardcoded WordPress's default blue instead, so
+     *  it was the one screen that did not belong to the admin it sat in.
+     */
+    $accent = function_exists( 'vergeml_admin_accent' ) ? vergeml_admin_accent() : '#3858e9';
+
     ?>
-    <div class="wrap vgml-home vgml-librarian">
+    <div class="wrap vgml-home vgml-librarian" style="--vgml-accent: <?php echo esc_attr( $accent ); ?>;">
 
         <div class="vgml-home-head">
             <h1><?php esc_html_e( 'Librarian', 'vergelabs-media-library' ); ?></h1>

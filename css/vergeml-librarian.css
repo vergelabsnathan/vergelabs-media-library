@@ -1,4 +1,27 @@
 /*
+ *  Colours come from the admin, not from here.
+ *
+ *  This file used to hardcode WordPress's default blues and greys, which meant
+ *  it looked correct on exactly one of the eight admin colour schemes and
+ *  faintly broken on the other seven. --vgml-accent is the accent of whichever
+ *  scheme the user picked, set on the page by the same helper the folder tree
+ *  uses; the amber is core's own notice-warning colour rather than a third
+ *  opinion about what "uncertain" looks like.
+ */
+
+.vgml-librarian {
+	--vgml-accent: #3858e9;
+	--vgml-warn: #dba617;
+	--vgml-warn-ink: #8a6100;
+	--vgml-warn-wash: #fcf9e8;
+	--vgml-line: #dcdcde;
+	--vgml-quiet: #50575e;
+	--vgml-quieter: #787c82;
+	--vgml-sunken: #f0f0f1;
+	--vgml-card: #fff;
+}
+
+/*
  *  The Librarian screen.
  *
  *  Loaded after vergeml-admin.css and leaning on it: the cards, the progress
@@ -16,7 +39,7 @@
 
 .vgml-lib-note {
 	margin: 0.6rem 0 0;
-	color: #50575e;
+	color: var( --vgml-quiet );
 	min-height: 1.4em;
 }
 
@@ -28,7 +51,7 @@
 	margin: 0.8rem 0 0;
 	padding: 0;
 	list-style: none;
-	color: #50575e;
+	color: var( --vgml-quiet );
 	font-size: 0.9em;
 }
 
@@ -65,7 +88,7 @@
 	margin: 0.6rem 0 1rem;
 	padding: 0;
 	list-style: none;
-	border-top: 1px solid #f0f0f1;
+	border-top: 1px solid var( --vgml-sunken );
 }
 
 .vgml-lib-scheme-top li {
@@ -73,16 +96,16 @@
 	justify-content: space-between;
 	gap: 1rem;
 	padding: 0.3rem 0;
-	border-bottom: 1px solid #f0f0f1;
+	border-bottom: 1px solid var( --vgml-sunken );
 }
 
 .vgml-lib-scheme-top li.is-flagged .vgml-lib-scheme-name {
 	font-style: italic;
-	color: #996800;
+	color: var( --vgml-warn-ink );
 }
 
 .vgml-lib-scheme-size {
-	color: #50575e;
+	color: var( --vgml-quiet );
 	font-variant-numeric: tabular-nums;
 }
 
@@ -108,8 +131,8 @@
 }
 
 .vgml-lib-branch {
-	background: #fff;
-	border: 1px solid #dcdcde;
+	background: var( --vgml-card );
+	border: 1px solid var( --vgml-line );
 	border-radius: 4px;
 	padding: 0.85rem 0.9rem 0.7rem;
 }
@@ -122,8 +145,8 @@
  *  styling has to say why rather than leaving an unexplained empty box.
  */
 .vgml-lib-branch.is-uncertain {
-	border-color: #dba617;
-	background: #fcf9e8;
+	border-color: var( --vgml-warn );
+	background: var( --vgml-warn-wash );
 }
 
 .vgml-lib-branch.is-refused {
@@ -147,7 +170,7 @@
 }
 
 .vgml-lib-branch-size {
-	color: #50575e;
+	color: var( --vgml-quiet );
 	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
 }
@@ -157,15 +180,15 @@
 .vgml-lib-branch-flag {
 	margin: 0.45rem 0 0;
 	font-size: 0.87em;
-	color: #50575e;
+	color: var( --vgml-quiet );
 }
 
 .vgml-lib-branch-path {
-	color: #787c82;
+	color: var( --vgml-quieter );
 }
 
 .vgml-lib-branch-flag {
-	color: #8a6100;
+	color: var( --vgml-warn-ink );
 }
 
 .vgml-lib-thumbs {
@@ -179,7 +202,7 @@
 	width: 2.6rem;
 	height: 2.6rem;
 	border-radius: 3px;
-	background: #f0f0f1;
+	background: var( --vgml-sunken );
 	overflow: hidden;
 	flex: 0 0 auto;
 }
@@ -201,11 +224,11 @@
 	height: 4px;
 	border-radius: 2px;
 	overflow: hidden;
-	background: #f0f0f1;
+	background: var( --vgml-sunken );
 }
 
 .vgml-lib-agreement-close { background: #00a32a; }
-.vgml-lib-agreement-mid   { background: #dba617; }
+.vgml-lib-agreement-mid   { background: var( --vgml-warn ); }
 .vgml-lib-agreement-far   { background: #c3c4c7; }
 
 .vgml-lib-refuse {
@@ -229,7 +252,7 @@
 
 .vgml-lib-credits {
 	margin: 0.6rem 0 0.9rem;
-	color: #50575e;
+	color: var( --vgml-quiet );
 	font-size: 0.9em;
 }
 
@@ -237,15 +260,15 @@
 .vgml-lib-refusal {
 	margin: 0.6rem 0;
 	padding: 0.6rem 0.8rem;
-	border-left: 4px solid #dba617;
-	background: #fcf9e8;
+	border-left: 4px solid var( --vgml-warn );
+	background: var( --vgml-warn-wash );
 }
 
 .vgml-lib-progress {
 	margin: 0.8rem 0 0;
 	height: 6px;
 	border-radius: 3px;
-	background: #f0f0f1;
+	background: var( --vgml-sunken );
 	overflow: hidden;
 }
 
@@ -253,7 +276,7 @@
 	display: block;
 	height: 100%;
 	width: 0;
-	background: #2271b1;
+	background: var( --vgml-accent );
 	transition: width 0.2s ease;
 }
 
@@ -272,11 +295,11 @@
 	flex-wrap: wrap;
 	gap: 0.75rem;
 	padding: 0.55rem 0;
-	border-bottom: 1px solid #f0f0f1;
+	border-bottom: 1px solid var( --vgml-sunken );
 }
 
 .vgml-lib-batch-when {
-	color: #787c82;
+	color: var( --vgml-quieter );
 	font-variant-numeric: tabular-nums;
 }
 
@@ -285,13 +308,13 @@
 }
 
 .vgml-lib-batch-status {
-	color: #50575e;
+	color: var( --vgml-quiet );
 	font-size: 0.87em;
 	text-transform: lowercase;
 }
 
 .vgml-lib-batch-reason {
-	color: #8a6100;
+	color: var( --vgml-warn-ink );
 	font-size: 0.87em;
 }
 
@@ -308,5 +331,5 @@
 .vgml-lib-undo-note {
 	display: block;
 	margin-top: 0.2rem;
-	color: #8a6100;
+	color: var( --vgml-warn-ink );
 }

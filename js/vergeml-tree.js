@@ -335,6 +335,70 @@
 	var flat = [];
 	var windowed = false;
 
+	/*
+	 *  The VergeLabs shard fan, the same five slats as the admin menu mark.
+	 *
+	 *  Copied path for path rather than redrawn: two drawings of one mark drift
+	 *  apart, and the one place this plugin has a shape of its own is not worth
+	 *  losing to a redraw. currentColor throughout, so it takes the accent of
+	 *  whichever admin colour scheme the user picked.
+	 */
+	var sortEl = null;
+
+	function shard() {
+		return '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false">'
+			+ '<g fill="currentColor">'
+			+ '<path d="M19 3 L7.5 -2 V20 L19 20 Z" opacity=".45"/>'
+			+ '<path d="M17.2 5.7 L5.5 1.2 V20 L17.2 20 Z" opacity=".6"/>'
+			+ '<path d="M15.5 8.5 L3.75 4.5 V20 L15.5 20 Z" opacity=".75"/>'
+			+ '<path d="M14 11.2 L2.25 7.7 V20 L14 20 Z" opacity=".9"/>'
+			+ '<path d="M12.75 14 L1 11 V20 L12.75 20 Z"/>'
+			+ '</g></svg>';
+	}
+
+
+	/*
+	 *  One row, and only when there is something to say.
+	 *
+	 *  It appears when files have no folder and disappears the moment they do,
+	 *  which is the difference between a prompt and an advertisement. Nothing
+	 *  is fetched for it -- the count is already in the tree's own payload.
+	 */
+	function buildSort() {
+
+		if ( ! cfg.librarianUrl ) {
+			return null;
+		}
+
+		sortEl = el( 'a', { class: 'vgml-sort', href: cfg.librarianUrl } );
+
+		var mark = el( 'span', { class: 'vgml-sort-mark' } );
+		mark.innerHTML = shard();
+		sortEl.appendChild( mark );
+
+		sortEl.appendChild( el( 'span', { class: 'vgml-sort-text' } ) );
+		sortEl.appendChild( el( 'span', { class: 'vgml-sort-go' }, l10n.sortGo || 'Sort them' ) );
+
+		return sortEl;
+	}
+
+
+	function paintSort() {
+
+		if ( ! sortEl ) {
+			return;
+		}
+
+		var n = state.unassigned || 0;
+
+		sortEl.hidden = n < 1;
+
+		if ( n > 0 ) {
+			sortEl.querySelector( '.vgml-sort-text' ).textContent =
+				( l10n.sortPrompt || '%s files are not in a folder' ).replace( '%s', String( n ) );
+		}
+	}
+
 	function render() {
 		if ( ! listEl ) {
 			return;
@@ -348,6 +412,7 @@
 		root.setAttribute( 'data-skin', state.skin );
 		root.setAttribute( 'data-density', state.density );
 
+		paintSort();
 		paint();
 	}
 
@@ -3127,6 +3192,12 @@
 		} );
 		find.appendChild( searchEl );
 		root.appendChild( find );
+
+		var sort = buildSort();
+
+		if ( sort ) {
+			root.appendChild( sort );
+		}
 
 		listEl = el( 'ul', { class: 'vgml-list', role: 'tree' } );
 		listEl.addEventListener( 'keydown', onKey );
