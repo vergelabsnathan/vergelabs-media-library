@@ -1647,12 +1647,24 @@ function vergeml_librarian_moves_insert( $moves ) {
         $values[] = (int) $move[3];
     }
 
-    $sql = "INSERT INTO {$wpdb->vergeml_librarian_moves}
-                ( batch_id, attachment_id, term_id, term_created, undone )
-            VALUES " . implode( ', ', $rows );
+    /*
+     *  The placeholder list is interpolated and the values still go through
+     *  prepare, which is the same shape every IN clause in this plugin uses.
+     *
+     *  Handing prepare() a query it had been given in a variable is not: the
+     *  sniffs cannot follow a string that was built elsewhere, so it reads as
+     *  an unprepared query and Plugin Check refuses it -- and Plugin Check is
+     *  the submission gate.
+     */
+    $placeholders = implode( ', ', $rows );
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-    $wpdb->query( $wpdb->prepare( $sql, $values ) );
+    $wpdb->query( $wpdb->prepare(
+        "INSERT INTO {$wpdb->vergeml_librarian_moves}
+             ( batch_id, attachment_id, term_id, term_created, undone )
+         VALUES {$placeholders}",
+        $values
+    ) );
     // phpcs:enable
 }
 
