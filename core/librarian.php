@@ -1654,23 +1654,27 @@ function vergeml_librarian_undo_step( $batch_id ) {
      *  is kept and counted, because deleting it would take somebody else's
      *  work with it.
      */
+    $held = vergeml_librarian_term_objects( array_keys( $touched_terms ), $taxonomy );
+
     foreach ( array_keys( $touched_terms ) as $term_id ) {
 
-        $term = get_term( (int) $term_id, $taxonomy );
+        $term_id = (int) $term_id;
 
-        if ( ! $term instanceof WP_Term ) {
+        if ( ! get_term( $term_id, $taxonomy ) instanceof WP_Term ) {
             continue;
         }
 
-        $children = get_term_children( (int) $term_id, $taxonomy );
+        $children = get_term_children( $term_id, $taxonomy );
         $children = is_wp_error( $children ) ? array() : $children;
 
-        if ( (int) $term->count > 0 || $children ) {
+        $in_it = isset( $held[ $term_id ] ) ? (int) $held[ $term_id ] : 0;
+
+        if ( $in_it > 0 || $children ) {
             $undo['kept'] = (int) $undo['kept'] + 1;
             continue;
         }
 
-        wp_delete_term( (int) $term_id, $taxonomy );
+        wp_delete_term( $term_id, $taxonomy );
 
         $undo['removed'] = (int) $undo['removed'] + 1;
     }
@@ -1705,6 +1709,53 @@ function vergeml_librarian_moves_pending( $batch_id, $limit ) {
         (int) $limit
     ), ARRAY_A );
     // phpcs:enable
+}
+
+
+/**
+ *  How many things are in these folders, asked of the database.
+ *
+ *  Not $term->count, and this is not fussiness: on this plugin's own test box
+ *  a term holding three attachments reported a count of zero, because the
+ *  cached figure is maintained by a callback that does not always run for
+ *  attachments and is stale whenever it does not. Undo deletes folders. A
+ *  destructive decision taken from a cached number that can be wrong is how
+ *  somebody's folder disappears with their files' assignments inside it --
+ *  which is the exact failure this whole feature exists to make impossible.
+ *
+ *  One query for the whole chunk, so asking honestly costs nothing.
+ */
+
+function vergeml_librarian_term_objects( $term_ids, $taxonomy ) {
+
+    global $wpdb;
+
+    $term_ids = array_values( array_unique( array_map( 'intval', (array) $term_ids ) ) );
+
+    if ( ! $term_ids ) {
+        return array();
+    }
+
+    $placeholders = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    $rows = (array) $wpdb->get_results( $wpdb->prepare(
+        "SELECT tt.term_id AS term_id, COUNT( tr.object_id ) AS held
+           FROM {$wpdb->term_taxonomy} tt
+           LEFT JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id
+          WHERE tt.taxonomy = %s AND tt.term_id IN ( $placeholders )
+          GROUP BY tt.term_id",
+        array_merge( array( $taxonomy ), $term_ids )
+    ), ARRAY_A );
+    // phpcs:enable
+
+    $out = array();
+
+    foreach ( $rows as $row ) {
+        $out[ (int) $row['term_id'] ] = (int) $row['held'];
+    }
+
+    return $out;
 }
 
 

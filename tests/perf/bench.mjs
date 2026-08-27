@@ -176,6 +176,42 @@ if (doomed && doomed.run_id) {
   await probe('ours: organize-cancel', '/wp-json/vergeml/v1/organize-cancel', { run_id: doomed.run_id });
 }
 
+/*
+ *  The Librarian.
+ *
+ *  Three hot endpoints and two read ones. The step is the one worth watching:
+ *  it is budgeted flat at 4 + 2 per file in the chunk, and it must not move
+ *  with the number of branches nor with how many steps have already run. An
+ *  N+1 here would be a query per file, and the file count is the feature.
+ *
+ *  The step probed is a steady-state one -- a batch is created, one step is
+ *  taken to get the first chunk's folders made, and the probe then measures
+ *  the step after that. Creating a folder costs a handful of queries and
+ *  happens at most once per folder in a whole batch; measuring the first step
+ *  would report that one-off as if it were the per-step cost.
+ */
+await probe('ours: librarian-schemes', '/wp-json/vergeml/v1/librarian-schemes');
+await probe('ours: librarian-batches', '/wp-json/vergeml/v1/librarian-batches');
+await probe('ours: librarian-preflight', '/wp-json/vergeml/v1/librarian-preflight');
+
+const batch = await send('/wp-json/vergeml/v1/librarian-apply-step', { scheme: 'datetype' })
+  .then((r) => r.json())
+  .catch(() => null);
+
+if (batch && batch.batch_id) {
+  // One step first, so the folders this chunk needs already exist and the
+  // probe measures filing rather than folder creation.
+  await send('/wp-json/vergeml/v1/librarian-apply-step', { batch_id: batch.batch_id });
+  await probe('ours: librarian-apply-step', '/wp-json/vergeml/v1/librarian-apply-step', {
+    batch_id: batch.batch_id,
+  });
+  await probe('ours: librarian-undo-step', '/wp-json/vergeml/v1/librarian-undo-step', {
+    batch_id: batch.batch_id,
+  });
+} else {
+  console.log('ours: librarian-apply-step'.padEnd(28) + ' could not create a batch -- is a media taxonomy on?');
+}
+
 await probe('core: wp/v2/media pp=40', '/wp-json/wp/v2/media?per_page=40');
 await probe('core: wp/v2/media pp=100', '/wp-json/wp/v2/media?per_page=100');
 await probe('core: REST index', '/wp-json/');

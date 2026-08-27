@@ -94,6 +94,15 @@ const SUITES = [
 	 *  handed to wp eval-file -- and reports the same way, by exiting non-zero.
 	 */
 	{ name: 'organize', file: 'tests/organize/test-organize.php', env: 'box', php: true },
+	/*
+	 *  Two suites for the Librarian, and they answer different questions. The
+	 *  PHP one is about what applying and undoing actually do to the database
+	 *  -- assignments, folders, the moves log -- and needs real MySQL. The
+	 *  browser one is about whether the screen can be used, and runs in
+	 *  Playground where a batch can be applied to a throwaway library.
+	 */
+	{ name: 'librarian', file: 'tests/librarian/test-librarian.php', env: 'box', php: true },
+	{ name: 'librarian-ui', file: 'tests/librarian/librarian.mjs', env: 'playground' },
 	{ name: 'watchdog', file: 'tests/watchdog/recovery.js', env: 'playground' },
 ];
 
