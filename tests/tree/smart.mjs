@@ -71,7 +71,19 @@ const rows = await page.evaluate( () =>
 		badge: ( r.querySelector( '.vgml-count' ) || {} ).textContent || '',
 	} ) ) );
 
-check( 'five smart folders in the tree', rows.length === 5, rows.map( ( r ) => r.key ).join( ',' ) );
+/*
+ *  The five this file is about, by name rather than by counting the rows.
+ *  Counting was right when they were the only smart folders there were; since
+ *  then quarantine and the AI group have both registered their own through the
+ *  `vergeml_smart_folders` filter, and a bare length made every one of those a
+ *  failure of this file. What matters here is that the five core rows survive
+ *  whatever else attaches itself.
+ */
+const CORE = [ 'unused', 'no-alt', 'large', 'unattached', 'recent' ];
+const missing = CORE.filter( ( k ) => ! rows.some( ( r ) => r.key === k ) );
+
+check( 'the five core smart folders are in the tree', 0 === missing.length,
+	missing.length ? 'missing: ' + missing.join( ',' ) : rows.map( ( r ) => r.key ).join( ',' ) );
 check( 'scan-backed ones say Scan, not zero',
 	rows.some( ( r ) => r.key === 'unused' && /scan/i.test( r.badge ) ),
 	JSON.stringify( rows.find( ( r ) => r.key === 'unused' ) ) );
