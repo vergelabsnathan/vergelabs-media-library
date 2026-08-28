@@ -264,23 +264,50 @@ function vergeml_quarantine_hide_list( $query ) {
         return;
     }
 
-    $meta = (array) $query->get( 'meta_query' );
-
-    $meta[] = array( 'key' => VERGEML_QUARANTINE_META, 'compare' => 'NOT EXISTS' );
-
-    $query->set( 'meta_query', $meta );
+    $query->set( 'meta_query', vergeml_quarantine_and_not( $query->get( 'meta_query' ) ) );
 }
 
 
 function vergeml_quarantine_exclude( $args ) {
 
-    $meta = isset( $args['meta_query'] ) ? (array) $args['meta_query'] : array();
-
-    $meta[] = array( 'key' => VERGEML_QUARANTINE_META, 'compare' => 'NOT EXISTS' );
-
-    $args['meta_query'] = $meta; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+    $args['meta_query'] = vergeml_quarantine_and_not( isset( $args['meta_query'] ) ? $args['meta_query'] : array() ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 
     return $args;
+}
+
+
+/**
+ *  vergeml_quarantine_and_not
+ *
+ *  The exclusion, AND-ed with whatever the view already asked for.
+ *
+ *  Appending to the caller's array is only correct while that array is a plain
+ *  list of AND-ed clauses. "Missing alt text" is not: it carries
+ *  `'relation' => 'OR'`, because missing alt means the meta is absent *or*
+ *  empty. Pushing the exclusion in beside those made it a third alternative,
+ *  and since every file that is not quarantined satisfies it, the whole
+ *  meta_query matched the entire library -- the filter returned 81 files where
+ *  it should have returned 20, on the grid and the list screen alike.
+ *
+ *  Nesting the caller's clause instead keeps its own relation to itself, so
+ *  this holds however the view spells what it wants.
+ */
+
+function vergeml_quarantine_and_not( $existing ) {
+
+    $mine = array( 'key' => VERGEML_QUARANTINE_META, 'compare' => 'NOT EXISTS' );
+
+    $existing = (array) $existing;
+
+    if ( empty( $existing ) ) {
+        return array( $mine );
+    }
+
+    return array(
+        'relation' => 'AND',
+        $existing,
+        $mine,
+    );
 }
 
 
@@ -315,6 +342,26 @@ function vergeml_quarantine_count_branch( $branches ) {
     );
 
     return $branches;
+}
+
+
+/*
+ *  And the other five must not count what this one has taken away, or the
+ *  badge above a folder disagrees with the number of files inside it. The
+ *  meta key is a class constant rather than anything a request carries, and
+ *  the fragment holds no placeholders, because the statement it joins is
+ *  prepared with a positional argument list.
+ */
+
+add_filter( 'vergeml_smart_count_exclude', 'vergeml_quarantine_count_exclude' );
+
+function vergeml_quarantine_count_exclude( $sql ) {
+
+    global $wpdb;
+
+    return $sql . " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx
+                                      WHERE qx.post_id = p.ID
+                                        AND qx.meta_key = '" . VERGEML_QUARANTINE_META . "' )";
 }
 
 
