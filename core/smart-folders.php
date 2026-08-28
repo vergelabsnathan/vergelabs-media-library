@@ -218,27 +218,43 @@ function vergeml_smart_counts( $fresh = false ) {
      *  core/ai-folders.php.
      */
 
+    /*
+     *  What none of these five may count, as a WHERE fragment over `p`.
+     *
+     *  A badge that counts what the folder will not show is a badge that lies:
+     *  quarantine hides its files from the grid and the list, so a count that
+     *  ignores it promises twenty files to a view that can only ever display
+     *  nineteen. The exclusion arrives through a filter rather than being
+     *  written in here, for the same reason the folders themselves do -- in
+     *  safe mode core/quarantine.php never loads, nothing is hidden from the
+     *  views either, and the numbers still agree with what is on screen.
+     *
+     *  Fragments carry no placeholders. They are built from constants, and
+     *  the argument list below is positional.
+     */
+    $exclude = (string) apply_filters( 'vergeml_smart_count_exclude', '' );
+
     $core_sql = "SELECT 'unused' AS k, COUNT(*) AS c FROM {$wpdb->posts} p
           JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = '1'
-         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' {$exclude}
          UNION ALL
          SELECT 'no-alt', COUNT(*) FROM {$wpdb->posts} p
           LEFT JOIN {$wpdb->postmeta} a ON a.post_id = p.ID AND a.meta_key = '_wp_attachment_image_alt'
          WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
            AND p.post_mime_type LIKE %s
-           AND ( a.meta_id IS NULL OR a.meta_value = '' )
+           AND ( a.meta_id IS NULL OR a.meta_value = '' ) {$exclude}
          UNION ALL
          SELECT 'large', COUNT(*) FROM {$wpdb->posts} p
           JOIN {$wpdb->postmeta} f ON f.post_id = p.ID AND f.meta_key = %s
          WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-           AND CAST( f.meta_value AS UNSIGNED ) > %d
+           AND CAST( f.meta_value AS UNSIGNED ) > %d {$exclude}
          UNION ALL
-         SELECT 'unattached', COUNT(*) FROM {$wpdb->posts}
-         WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_parent = 0
+         SELECT 'unattached', COUNT(*) FROM {$wpdb->posts} p
+         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_parent = 0 {$exclude}
          UNION ALL
-         SELECT 'recent', COUNT(*) FROM {$wpdb->posts}
-         WHERE post_type = 'attachment' AND post_status = 'inherit'
-           AND YEAR( post_date ) = %d AND MONTH( post_date ) = %d";
+         SELECT 'recent', COUNT(*) FROM {$wpdb->posts} p
+         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+           AND YEAR( p.post_date ) = %d AND MONTH( p.post_date ) = %d {$exclude}";
 
     $core_args = array(
         VERGEML_META_UNUSED,
