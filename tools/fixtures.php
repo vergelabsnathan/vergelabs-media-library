@@ -269,7 +269,28 @@ function vgml_fixture_wipe( $taxonomy ) {
 
 		$mine = false;
 
+		/*
+		 *  The suites seed attachments titled "zz something" -- bare post rows
+		 *  with an image mime and no file behind them -- and only some of them
+		 *  clean up after themselves. The terms were already swept below by
+		 *  this prefix; the files were not, so they accumulated at about
+		 *  nineteen per full battery.
+		 *
+		 *  They are not harmless litter. `vergeml_ai_pending( 'missing-alt' )`
+		 *  selects on the stored mime, so it hands them to a describer that
+		 *  refuses anything wp_attachment_is_image() calls false -- the backlog
+		 *  never drains, and every count drawn over the library drifts with it.
+		 */
+		if ( 0 === strpos( (string) get_post_field( 'post_title', $id ), 'zz ' ) ) {
+			$mine = true;
+		}
+
 		foreach ( $patterns as $pattern ) {
+
+			if ( $mine ) {
+				break;
+			}
+
 			if ( preg_match( $pattern, $name ) || preg_match( $pattern, $file ) ) {
 				$mine = true;
 				break;
