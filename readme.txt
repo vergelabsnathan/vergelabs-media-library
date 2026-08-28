@@ -1,5 +1,5 @@
 === VergeLabs Media Library ===
-Contributors: vergelabsnathan
+Contributors: vergelabsdev
 Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
