@@ -422,16 +422,53 @@ foreach ( $af_rows as $row ) {
     $af_shown[] = $row['key'];
 }
 
+/*
+ *  The rule, not one key that happened to be empty.
+ *
+ *  This named ai-kind-diagram as the empty one and ai-kind-photo as the full
+ *  one, which is true of a library nobody has described and false the moment
+ *  somebody has: tests/tree/ai.mjs describes everything, and a real diagram in
+ *  the fixtures makes that row legitimately non-empty. What the payload
+ *  promises is that a zero shows nothing and a number shows a row, so that is
+ *  what is asked, of whichever keys are actually zero and non-zero right now.
+ */
+$af_zero    = '';
+$af_nonzero = '';
+
+foreach ( $af_expected_ai as $af_key ) {
+
+    $af_n = isset( $af_counts[ $af_key ] ) ? (int) $af_counts[ $af_key ] : 0;
+
+    if ( 0 === $af_n && '' === $af_zero ) {
+        $af_zero = $af_key;
+    }
+
+    if ( $af_n > 0 && '' === $af_nonzero ) {
+        $af_nonzero = $af_key;
+    }
+}
+
 af_check( 'the empty AI folders are not in the payload',
-    ! in_array( 'ai-kind-diagram', $af_shown, true ) && in_array( 'ai-kind-photo', $af_shown, true ) );
+    ( '' === $af_zero || ! in_array( $af_zero, $af_shown, true ) )
+        && '' !== $af_nonzero && in_array( $af_nonzero, $af_shown, true ),
+    'zero: ' . ( '' === $af_zero ? 'none left on this library' : $af_zero ) . ', shown: ' . $af_nonzero );
 
 af_check( 'the five originals are in the payload whatever their count',
     in_array( 'unattached', $af_shown, true ) );
 
 $af_ai = vergeml_ai_for_tree( '' );
 
+/*
+ *  Nine is what this run described, not what the library holds -- the same
+ *  correction as section D. The claim is that the group stops showing its
+ *  ladder once anything is described, and reports the site's real figure.
+ */
 af_check( 'the group reports itself as partly described',
-    is_array( $af_ai ) && false === $af_ai['ladder'] && 9 === (int) $af_ai['described'] );
+    is_array( $af_ai )
+        && false === $af_ai['ladder']
+        && (int) $af_ai['described'] === (int) $af_counts['_described']
+        && 9 === af_added( '_described' ),
+    $af_ai['described'] . ' described site-wide, ' . af_added( '_described' ) . ' of them ours' );
 
 
 /* ------------------------------------------------- D2: the index taken away */
