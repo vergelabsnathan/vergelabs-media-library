@@ -98,13 +98,23 @@ Budgets, both environments (they must agree â€” a difference is a bug):
 
 | Endpoint | Queries | Note |
 |---|---|---|
-| `vergeml/v1/tree` | **6** | must not grow with folder count; verified flat from 200 â†’ 2000 folders. 4 + 1 (five smart-folder counts as one UNION) + 1 (per-user tree state); raised deliberately 26-08-2026 |
+| `vergeml/v1/tree` | **7** | must not grow with folder count; verified flat from 200 â†’ 2000 folders. 4 (two `get_terms` statements, the unassigned count, the termmeta prime) + 1 (every smart-folder count as one UNION, the AI group's thirteen included) + 2 (`vergeml_smart_scan` and `vergeml_index`, both non-autoloaded options the handler reads once). Raised 5 â†’ 6 on 26-08-2026 and 6 â†’ 7 on 28-08-2026 |
 | `vergeml/v1/health-report` | **5** | 3 with nothing to show, plus the 2 that fetch what is shown. Flat: neither moves with the number of duplicate groups |
 | `wp/v2/media?per_page=40` | â€” | core's own endpoint, printed for scale only. **Not a budget**: measured 7 in Playground and 86â€“109 on the box, because it costs whatever the site's other plugins make it cost |
 
 A rise in **our** endpoints' query count is a regression even if wall-clock improved. If the
 tree's count moves with the number of folders or files, an N+1 has been introduced â€” that is a
 hard fail.
+
+The 6 â†’ 7 raise is worth reading before repeating it. Phase 4a added the AI group and said in
+its own commit message that the tree's budget was untouched, because the thirteen new counts
+ride the UNION that was already there â€” which is true. What it could not check, because the box
+was unreachable that day, was that `vergeml_ai_folders_count_branches()` asks
+`vergeml_index_state()` whether the schema is laid down, and that option is not autoloaded. One
+constant query, measured 7 in Playground on four folders and 7 on the box on twenty thousand
+attachments. **Flatness is the invariant this budget exists to protect, and it held**; the
+number was simply never measured. A budget may only be raised with a derivation like this one
+and a measurement in both environments â€” never to make a red gate green.
 
 Measure over REST, never from `wp eval` after other work in the same request: a scan that ran
 first leaves the caches warm, and the endpoint does not get them. That reported 4 queries for a
