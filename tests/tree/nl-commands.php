@@ -26,11 +26,10 @@ global $wpdb;
 
 $GLOBALS['nl_pass'] = 0;
 $GLOBALS['nl_fail'] = 0;
-$nl_log  = '';
+$GLOBALS['nl_log']  = '';
 
 function nl_say( $line ) {
-    global $nl_log;
-    $nl_log .= $line;
+    $GLOBALS['nl_log'] .= $line;
     echo $line; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
 
@@ -53,8 +52,7 @@ function nl_check( $label, $ok, $note = '' ) {
 }
 
 function nl_report() {
-    global $nl_log;
-    @file_put_contents( __DIR__ . '/nl-commands-last-run.txt', $nl_log ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+    @file_put_contents( __DIR__ . '/nl-commands-last-run.txt', $GLOBALS['nl_log'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 }
 
 

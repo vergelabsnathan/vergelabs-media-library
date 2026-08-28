@@ -30,11 +30,10 @@ global $wpdb;
 
 $GLOBALS['uf_pass'] = 0;
 $GLOBALS['uf_fail'] = 0;
-$uf_log  = '';
+$GLOBALS['uf_log']  = '';
 
 function uf_say( $line ) {
-    global $uf_log;
-    $uf_log .= $line;
+    $GLOBALS['uf_log'] .= $line;
     echo $line; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
 
@@ -57,13 +56,54 @@ function uf_check( $label, $ok, $note = '' ) {
 }
 
 function uf_report() {
-    global $uf_log;
-    @file_put_contents( __DIR__ . '/auto-file-last-run.txt', $uf_log ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+    @file_put_contents( __DIR__ . '/auto-file-last-run.txt', $GLOBALS['uf_log'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 }
 
 
-$uf_tax   = vergeml_librarian_taxonomy();
-$uf_posts = array();
+/*
+ *  A taxonomy of this suite's own, for the length of this run.
+ *
+ *  It used to take vergeml_librarian_taxonomy() as the site found it, which on
+ *  any real library means media_category -- and then seeded zzInvoices and
+ *  zzHarbour into it beside every folder already there.
+ *
+ *  vergeml_autofile_folders() offers every term that has a centroid, so those
+ *  folders competed for each file with the thirty-three the realistic fixtures
+ *  create. A fixture folder won, had earned no autonomy, and the sweep filed
+ *  nothing -- which is not a fact about auto-filing but about what else was on
+ *  the box. tests/librarian/test-librarian.php has always done it this way,
+ *  through the same product filter, which is why that suite was trustworthy
+ *  while this one was noise.
+ */
+const UF_TAX = 'zzautofiletax';
+
+/*
+ *  With the plugin's own count callback, which is not decoration.
+ *
+ *  vergeml_autofile_folders() asks get_terms() for `hide_empty => true`, so a
+ *  folder is only offered once its stored count says it holds something. Core's
+ *  default counter counts posts with status `publish`; an attachment is
+ *  `inherit`, so it counts none of them and every seeded folder stays at zero
+ *  and invisible -- which looks exactly like auto-filing being broken.
+ *  core/taxonomies.php registers vergeml_update_attachment_term_count on the
+ *  real media taxonomies for this reason, and a suite standing in for one has
+ *  to do the same or it is testing a taxonomy the plugin would never build.
+ */
+register_taxonomy( UF_TAX, 'attachment', array(
+    'hierarchical'          => true,
+    'public'                => false,
+    'label'                 => 'zz autofile',
+    'update_count_callback' => 'vergeml_update_attachment_term_count',
+) );
+
+add_filter( 'vergeml_librarian_taxonomy', 'uf_taxonomy' );
+
+function uf_taxonomy() {
+    return UF_TAX;
+}
+
+$GLOBALS['uf_tax']   = vergeml_librarian_taxonomy();
+$GLOBALS['uf_posts'] = array();
 $uf_terms = array();
 
 /*
@@ -85,7 +125,7 @@ add_filter( 'vergeml_autofile_vector', function ( $vector, $attachment_id ) {
 
 uf_say( "\nfiling by itself\n\n" );
 
-if ( '' === $uf_tax ) {
+if ( '' === $GLOBALS['uf_tax'] ) {
     uf_say( "no media taxonomy is switched on -- nothing to file into\n" );
     uf_report();
     exit( 1 );
@@ -113,7 +153,6 @@ function uf_vector( $corner, $n ) {
 
 function uf_file( $title, $vector, $term_id = 0 ) {
 
-    global $uf_posts, $uf_tax;
 
     $id = wp_insert_post( array(
         'post_title'     => 'zz autofile ' . $title,
@@ -122,7 +161,7 @@ function uf_file( $title, $vector, $term_id = 0 ) {
         'post_mime_type' => 'image/png',
     ) );
 
-    $uf_posts[] = (int) $id;
+    $GLOBALS['uf_posts'][] = (int) $id;
 
     // The row says "described"; the vector comes through the seam.
     vergeml_index_set( (int) $id, array(
@@ -134,7 +173,7 @@ function uf_file( $title, $vector, $term_id = 0 ) {
     $GLOBALS['uf_vectors'][ (int) $id ] = $vector;
 
     if ( $term_id ) {
-        wp_set_object_terms( (int) $id, array( (int) $term_id ), $uf_tax );
+        wp_set_object_terms( (int) $id, array( (int) $term_id ), $GLOBALS['uf_tax'] );
     }
 
     return (int) $id;
@@ -146,9 +185,9 @@ function uf_file( $title, $vector, $term_id = 0 ) {
 uf_say( "the fixture\n" );
 
 foreach ( array( 'zzInvoices', 'zzHarbour' ) as $name ) {
-    $term = wp_insert_term( $name, $uf_tax );
+    $term = wp_insert_term( $name, $GLOBALS['uf_tax'] );
     if ( is_wp_error( $term ) ) {
-        $existing = get_term_by( 'name', $name, $uf_tax );
+        $existing = get_term_by( 'name', $name, $GLOBALS['uf_tax'] );
         $uf_terms[ $name ] = $existing instanceof WP_Term ? (int) $existing->term_id : 0;
     } else {
         $uf_terms[ $name ] = (int) $term['term_id'];
@@ -161,17 +200,17 @@ for ( $i = 0; $i < 4; $i++ ) {
     uf_file( 'har-' . $i, uf_vector( 4, $i ), $uf_terms['zzHarbour'] );
 }
 
-$uf_centroid = vergeml_autofile_centroid( $uf_terms['zzInvoices'], $uf_tax );
+$uf_centroid = vergeml_autofile_centroid( $uf_terms['zzInvoices'], $GLOBALS['uf_tax'] );
 
 uf_check( 'a folder with four described files has a middle',
     is_array( $uf_centroid ) && 4 === (int) $uf_centroid['n'] && $uf_centroid['spread'] > 0 );
 
-$uf_thin = wp_insert_term( 'zzThin', $uf_tax );
+$uf_thin = wp_insert_term( 'zzThin', $GLOBALS['uf_tax'] );
 $uf_terms['zzThin'] = is_wp_error( $uf_thin ) ? 0 : (int) $uf_thin['term_id'];
 uf_file( 'thin-0', uf_vector( 2, 0 ), $uf_terms['zzThin'] );
 
 uf_check( 'a folder with one described file has none',
-    null === vergeml_autofile_centroid( $uf_terms['zzThin'], $uf_tax ),
+    null === vergeml_autofile_centroid( $uf_terms['zzThin'], $GLOBALS['uf_tax'] ),
     'two points have a midpoint but no spread, and a spread of zero admits anything' );
 
 
@@ -218,7 +257,7 @@ $uf_blank = wp_insert_post( array(
     'post_status'    => 'inherit',
     'post_mime_type' => 'image/png',
 ) );
-$uf_posts[] = (int) $uf_blank;
+$GLOBALS['uf_posts'][] = (int) $uf_blank;
 
 uf_check( 'a file nobody has described is left alone',
     null === vergeml_autofile_suggest( (int) $uf_blank ) );
@@ -228,7 +267,7 @@ uf_check( 'a file nobody has described is left alone',
 
 uf_say( "\nthe restraint\n" );
 
-$uf_before_terms = wp_get_object_terms( $uf_near, $uf_tax, array( 'fields' => 'ids' ) );
+$uf_before_terms = wp_get_object_terms( $uf_near, $GLOBALS['uf_tax'], array( 'fields' => 'ids' ) );
 
 $uf_sweep = vergeml_autofile_sweep( 50 );
 
@@ -236,7 +275,7 @@ uf_check( 'a sweep files nothing while no folder has earned it',
     0 === (int) $uf_sweep['filed'], $uf_sweep['filed'] . ' filed' );
 
 uf_check( 'and the near file is still where it was',
-    wp_get_object_terms( $uf_near, $uf_tax, array( 'fields' => 'ids' ) ) === $uf_before_terms );
+    wp_get_object_terms( $uf_near, $GLOBALS['uf_tax'], array( 'fields' => 'ids' ) ) === $uf_before_terms );
 
 uf_check( 'but it is offered', count( $uf_sweep['suggested'] ) > 0, count( $uf_sweep['suggested'] ) . ' suggested' );
 
@@ -261,13 +300,13 @@ $uf_sweep2 = vergeml_autofile_sweep( 50 );
 
 uf_check( 'now a sweep files into it', $uf_sweep2['filed'] > 0, $uf_sweep2['filed'] . ' filed' );
 
-$uf_landed = wp_get_object_terms( $uf_auto, $uf_tax, array( 'fields' => 'ids' ) );
+$uf_landed = wp_get_object_terms( $uf_auto, $GLOBALS['uf_tax'], array( 'fields' => 'ids' ) );
 
 uf_check( 'and the file landed in that folder',
     in_array( $uf_terms['zzInvoices'], array_map( 'intval', (array) $uf_landed ), true ) );
 
 uf_check( 'the file that belongs nowhere was still left alone',
-    empty( wp_get_object_terms( $uf_far, $uf_tax, array( 'fields' => 'ids' ) ) ) );
+    empty( wp_get_object_terms( $uf_far, $GLOBALS['uf_tax'], array( 'fields' => 'ids' ) ) ) );
 
 
 /* ---------------------------------------------------------- and losing it */
@@ -330,7 +369,7 @@ uf_check( 'and never claims to have made the folder', 0 === $uf_created,
 
 uf_say( "\ntidying up\n" );
 
-foreach ( array_unique( $uf_posts ) as $id ) {
+foreach ( array_unique( $GLOBALS['uf_posts'] ) as $id ) {
     if ( get_post( $id ) ) {
         vergeml_index_delete( $id );
         wp_delete_post( $id, true );
@@ -338,7 +377,7 @@ foreach ( array_unique( $uf_posts ) as $id ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-foreach ( array_unique( $uf_posts ) as $id ) {
+foreach ( array_unique( $GLOBALS['uf_posts'] ) as $id ) {
     $wpdb->delete( vergeml_librarian_moves_table(), array( 'attachment_id' => (int) $id ), array( '%d' ) );
 }
 
@@ -350,12 +389,24 @@ $wpdb->query( $wpdb->prepare(
 
 foreach ( $uf_terms as $term_id ) {
     if ( $term_id ) {
-        wp_delete_term( (int) $term_id, $uf_tax );
+        wp_delete_term( (int) $term_id, $GLOBALS['uf_tax'] );
     }
 }
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$uf_left = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_title LIKE 'zz autofile%' AND post_type = 'attachment'" );
+/*
+ *  The ids this run recorded, not every attachment whose title starts
+ *  "zz autofile". Runs that died before their teardown have left files under
+ *  that prefix before, and counting it made this check a report on those rather
+ *  than on whether this run cleaned up after itself -- it failed with thirty
+ *  left behind, none of them from the run doing the counting.
+ */
+$uf_left = 0;
+
+foreach ( array_unique( $GLOBALS['uf_posts'] ) as $id ) {
+    if ( get_post( (int) $id ) ) {
+        $uf_left++;
+    }
+}
 
 uf_check( 'the seeded files are gone', 0 === $uf_left, $uf_left . ' left behind' );
 

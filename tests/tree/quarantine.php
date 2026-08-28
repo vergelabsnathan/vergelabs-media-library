@@ -25,11 +25,10 @@ global $wpdb;
 
 $GLOBALS['q_pass'] = 0;
 $GLOBALS['q_fail'] = 0;
-$q_log  = '';
+$GLOBALS['q_log']  = '';
 
 function q_say( $line ) {
-    global $q_log;
-    $q_log .= $line;
+    $GLOBALS['q_log'] .= $line;
     echo $line; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
 
@@ -52,8 +51,7 @@ function q_check( $label, $ok, $note = '' ) {
 }
 
 function q_report() {
-    global $q_log;
-    @file_put_contents( __DIR__ . '/quarantine-last-run.txt', $q_log ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+    @file_put_contents( __DIR__ . '/quarantine-last-run.txt', $GLOBALS['q_log'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 }
 
 
@@ -159,7 +157,21 @@ q_say( "\nthe manifest\n" );
 
 $q_manifest = vergeml_quarantine_manifest();
 
-q_check( 'it lists what is set aside', 1 === (int) $q_manifest['count'], $q_manifest['count'] . ' listed' );
+/*
+ *  That it lists ours, not that ours is the only one on the site.
+ *
+ *  vergeml_quarantine_manifest() reports everything set aside anywhere -- that
+ *  is its job, it is the export a site owner checks against a backup. Asserting
+ *  the site holds exactly one made this check fail whenever anything else was
+ *  also set aside, which tests/tree/utilities.php does on its way through
+ *  merging. It reported four listed and none of the three extra were this
+ *  suite's to care about.
+ */
+$q_listed = wp_list_pluck( $q_manifest['files'], 'id' );
+
+q_check( 'it lists what is set aside',
+    in_array( $q_one, array_map( 'intval', $q_listed ), true ),
+    $q_manifest['count'] . ' listed site-wide, ours among them' );
 
 q_check( 'it names the site and when it was made',
     ! empty( $q_manifest['site'] ) && ! empty( $q_manifest['generated'] ) );
@@ -266,12 +278,26 @@ q_say( "\ntidying up\n" );
 
 foreach ( $q_posts as $id ) {
     if ( get_post( $id ) ) {
+        // Released first: a file left set aside is one the next suite's
+        // manifest counts, which is the failure this suite just stopped
+        // making about somebody else.
+        vergeml_quarantine_release( (int) $id );
         wp_delete_post( $id, true );
     }
 }
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$q_left = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_title LIKE 'zz quarantine%' AND post_type = 'attachment'" );
+/*
+ *  The ids this run seeded, not the shared "zz quarantine" prefix -- for the
+ *  reason tests/librarian/test-librarian.php now states: that prefix belongs to
+ *  whatever else ran today as much as to this file.
+ */
+$q_left = 0;
+
+foreach ( $q_posts as $id ) {
+    if ( get_post( (int) $id ) ) {
+        $q_left++;
+    }
+}
 
 q_check( 'the seeded files are gone', 0 === $q_left, $q_left . ' left behind' );
 

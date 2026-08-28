@@ -21,11 +21,10 @@ global $wpdb;
 
 $GLOBALS['u_pass'] = 0;
 $GLOBALS['u_fail'] = 0;
-$u_log  = '';
+$GLOBALS['u_log']  = '';
 
 function u_say( $line ) {
-    global $u_log;
-    $u_log .= $line;
+    $GLOBALS['u_log'] .= $line;
     echo $line; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
 
@@ -48,12 +47,11 @@ function u_check( $label, $ok, $note = '' ) {
 }
 
 function u_report() {
-    global $u_log;
-    @file_put_contents( __DIR__ . '/utilities-last-run.txt', $u_log ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+    @file_put_contents( __DIR__ . '/utilities-last-run.txt', $GLOBALS['u_log'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 }
 
 
-$u_posts   = array();
+$GLOBALS['u_posts']   = array();
 $GLOBALS['u_vectors'] = array();
 
 /*
@@ -73,7 +71,6 @@ vergeml_index_install();
 
 function u_make( $title, $alt_in_index = '', $vector = null, $locked = '' ) {
 
-    global $u_posts;
 
     $id = (int) wp_insert_post( array(
         'post_title'     => 'zz util ' . $title,
@@ -82,7 +79,7 @@ function u_make( $title, $alt_in_index = '', $vector = null, $locked = '' ) {
         'post_mime_type' => 'image/png',
     ) );
 
-    $u_posts[] = $id;
+    $GLOBALS['u_posts'][] = $id;
 
     $data = array( 'caption' => 'a seeded caption', 'described_at' => gmdate( 'Y-m-d H:i:s' ) );
 
@@ -250,15 +247,27 @@ foreach ( array( 'wp_delete_attachment', 'wp_delete_post', 'unlink', 'wp_delete_
 
 u_say( "\ntidying up\n" );
 
-foreach ( $u_posts as $id ) {
+foreach ( $GLOBALS['u_posts'] as $id ) {
     if ( get_post( $id ) ) {
+        // Merging sets a copy aside, and a file left set aside is one the
+        // quarantine suite's manifest then counts as its own.
+        vergeml_quarantine_release( (int) $id );
         vergeml_index_delete( $id );
         wp_delete_post( $id, true );
     }
 }
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$u_left = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_title LIKE 'zz util%' AND post_type = 'attachment'" );
+/*
+ *  The ids this run seeded, not the shared "zz util" prefix, which a run that
+ *  died before its teardown has populated before now.
+ */
+$u_left = 0;
+
+foreach ( $GLOBALS['u_posts'] as $id ) {
+    if ( get_post( (int) $id ) ) {
+        $u_left++;
+    }
+}
 
 u_check( 'the seeded files are gone', 0 === $u_left, $u_left . ' left behind' );
 
