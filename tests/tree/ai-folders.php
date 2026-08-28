@@ -593,8 +593,19 @@ if ( is_array( $af_before ) && $af_before ) {
     update_option( 'vergeml_lib_options', $af_before );
 }
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-$af_left = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_title LIKE 'zz ai-folder%' AND post_type = 'attachment'" );
+/*
+ *  The ids this run recorded, not the shared "zz ai-folder" prefix. Green
+ *  today only because nothing has yet died between the seeding above and here;
+ *  the first run that does would leave files under that prefix and this check
+ *  would fail for every run afterwards, about files it never made.
+ */
+$af_left = 0;
+
+foreach ( array_unique( $GLOBALS['af_made'] ) as $af_id ) {
+    if ( get_post( (int) $af_id ) ) {
+        $af_left++;
+    }
+}
 
 af_check( 'the seeded attachments are gone', 0 === $af_left, $af_left . ' left behind' );
 

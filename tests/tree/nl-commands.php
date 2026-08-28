@@ -304,8 +304,19 @@ foreach ( $nl_terms as $term_id ) {
     }
 }
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$nl_left = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_title LIKE 'zz nl %' AND post_type = 'attachment'" );
+/*
+ *  The ids this run recorded, not the shared "zz nl " prefix. Green today only
+ *  because no run has yet died between the seeding and here; the first that
+ *  does would leave files under that prefix and fail every run afterwards,
+ *  about files it never made.
+ */
+$nl_left = 0;
+
+foreach ( $nl_posts as $nl_id ) {
+    if ( get_post( (int) $nl_id ) ) {
+        $nl_left++;
+    }
+}
 
 nl_check( 'the seeded files are gone', 0 === $nl_left, $nl_left . ' left behind' );
 
