@@ -984,8 +984,20 @@ foreach ( array( L_TAX, L_OTHER ) as $taxonomy ) {
     }
 }
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-$left_posts = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_title LIKE 'zz %' AND post_type = 'attachment'" );
+/*
+ *  The ids this file created, not every attachment whose title starts "zz ".
+ *  That prefix is shared -- the auto-file and utilities suites seed into it
+ *  too -- so counting it made this check a report on whatever else had run
+ *  today rather than on this suite's own cleanup, and it failed with twenty-one
+ *  files left behind, none of them ours.
+ */
+$left_posts = 0;
+
+foreach ( (array) $GLOBALS['l_posts'] as $seeded ) {
+    if ( get_post( (int) $seeded ) ) {
+        $left_posts++;
+    }
+}
 
 l_check( 'the seeded attachments are gone', 0 === $left_posts, $left_posts . ' left behind' );
 
