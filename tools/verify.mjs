@@ -321,8 +321,23 @@ for ( const suite of chosen ) {
 
 	const code = await run( suite );
 
+	/*
+	 *  Exit 2 is a suite saying "not here" rather than "broken".
+	 *
+	 *  tests/tree/ai-folders.mjs seeds through a blueprint of its own and
+	 *  checks it is talking to that site before asserting anything, because a
+	 *  Playground booted from another blueprint would otherwise give it
+	 *  thirteen confident failures about folders nobody seeded. This runner
+	 *  only ever points a suite at one Playground, so that check fires on
+	 *  every battery -- and reporting it as FAILED buried a real signal under
+	 *  a known one. Skipped is the honest word, and it is already this file's
+	 *  convention for its own exit codes.
+	 */
 	if ( 0 === code ) {
 		passed.push( suite.name );
+	} else if ( 2 === code ) {
+		console.log( `  SKIPPED — the suite says this is not the site it seeds` );
+		skipped.push( suite.name );
 	} else {
 		failed.push( `${ suite.name } (exit ${ code })` );
 	}
