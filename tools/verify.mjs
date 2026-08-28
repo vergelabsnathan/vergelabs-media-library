@@ -226,6 +226,28 @@ function takeLock() {
  *  the last deploy left in place -- a suite that silently tests an older copy
  *  of itself is worse than one that does not run.
  */
+/**
+ *  How many checks a PHP suite says it ran, from its own summary line.
+ *
+ *  Every one of them ends with "N/M passed", where M is the total. Returns that
+ *  M, or null when no such line was printed at all -- which is its own kind of
+ *  silence and treated as one. The last match wins, because a suite is free to
+ *  print progress totals on the way through.
+ */
+function countedChecks( output ) {
+
+	const found = String( output ).match( /(\d+)\s*\/\s*(\d+)\s+passed/g );
+
+	if ( ! found || ! found.length ) {
+		return null;
+	}
+
+	const last = found[ found.length - 1 ].match( /(\d+)\s*\/\s*(\d+)/ );
+
+	return last ? Number( last[ 2 ] ) : null;
+}
+
+
 function runPhp( suite ) {
 	return new Promise( ( resolve ) => {
 
@@ -247,14 +269,70 @@ function runPhp( suite ) {
 				return resolve( code ?? 1 );
 			}
 
+			/*
+			 *  Piped rather than inherited, so this runner can read what the
+			 *  suite said as well as what it exited with -- see countedChecks()
+			 *  below for why that turned out to matter. Each chunk is echoed
+			 *  the moment it arrives: buffering to the end would make a suite
+			 *  that takes a minute look like one that has hung.
+			 */
 			const child = spawn(
 				args[ 0 ],
 				[ ...args.slice( 1 ), `cd /var/www/wp && wp eval-file ${ remote } --allow-root` ],
-				{ stdio: 'inherit' }
+				{ stdio: [ 'ignore', 'pipe', 'pipe' ] }
 			);
 
+			let said = '';
+
+			child.stdout.on( 'data', ( chunk ) => {
+				said += chunk;
+				process.stdout.write( chunk );
+			} );
+
+			child.stderr.on( 'data', ( chunk ) => {
+				process.stderr.write( chunk );
+			} );
+
 			child.on( 'error', () => resolve( 1 ) );
-			child.on( 'close', ( c ) => resolve( c ?? 1 ) );
+
+			child.on( 'close', ( c ) => {
+
+				const code = c ?? 1;
+
+				if ( 0 !== code ) {
+					return resolve( code );
+				}
+
+				/*
+				 *  A suite that exits 0 having counted nothing has not passed.
+				 *
+				 *  On 28-08-2026 four suites did exactly that for as long as
+				 *  they had existed: `wp eval-file` evaluates a file inside a
+				 *  function, so their top-level counters were locals and the
+				 *  `global` in their check helper bound to an empty pair that
+				 *  nothing incremented. Every summary read "0/0 passed", the
+				 *  terminating exit(1) could never fire, and this runner --
+				 *  which then saw only an exit code -- called all four passed.
+				 *
+				 *  Same reasoning the validate skill already applies to gate 1:
+				 *  a count of zero is a failure, not a pass, because a gate
+				 *  that checks nothing prints exactly what a clean one does.
+				 */
+				const counted = countedChecks( said );
+
+				if ( null === counted ) {
+					console.log( '\n  FAILED — the suite printed no "N/M passed" line, so there is nothing to trust here' );
+					return resolve( 1 );
+				}
+
+				if ( 0 === counted ) {
+					console.log( '\n  FAILED — the suite reported 0 checks. It exited 0 without asserting anything;' );
+					console.log( '           check its counters are $GLOBALS and not `global`.' );
+					return resolve( 1 );
+				}
+
+				resolve( 0 );
+			} );
 		} );
 	} );
 }
