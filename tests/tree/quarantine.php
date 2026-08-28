@@ -23,8 +23,8 @@ if ( ! function_exists( 'vergeml_quarantine_add' ) ) {
 
 global $wpdb;
 
-$q_pass = 0;
-$q_fail = 0;
+$GLOBALS['q_pass'] = 0;
+$GLOBALS['q_fail'] = 0;
 $q_log  = '';
 
 function q_say( $line ) {
@@ -34,11 +34,19 @@ function q_say( $line ) {
 }
 
 function q_check( $label, $ok, $note = '' ) {
-    global $q_pass, $q_fail;
+    /*
+     *  $GLOBALS, not `global`. wp eval-file evaluates this file inside a
+     *  function, so the counters declared at the top of it are locals of
+     *  that function and never globals at all -- `global` here bound to a
+     *  second, empty pair. They stayed at zero however many checks ran, the
+     *  summary read "0/0 passed", and the exit(1) below could not fire: the
+     *  suite reported success no matter what failed. tests/librarian and
+     *  tests/organize already do it this way, which is why theirs count.
+     */
     if ( $ok ) {
-        $q_pass++;
+        $GLOBALS['q_pass']++;
     } else {
-        $q_fail++;
+        $GLOBALS['q_fail']++;
     }
     q_say( sprintf( "  %s  %s%s\n", $ok ? 'ok  ' : 'FAIL', $label, '' === $note ? '' : '  -- ' . $note ) );
 }
@@ -191,7 +199,18 @@ q_check( 'taking back is never delayed by the wait',
 
 q_say( "\nthere is no delete\n" );
 
-$q_source = file_get_contents( dirname( __DIR__, 2 ) . '/core/quarantine.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+/*
+ *  Through the plugin's own constant, not this file's path. tools/verify.mjs
+ *  copies the suite to /tmp on the box before running it, so dirname( __DIR__,
+ *  2 ) was '/' and this read '//core/quarantine.php', which does not exist --
+ *  leaving every check below searching an empty string and finding, of course,
+ *  nothing forbidden in it.
+ */
+$q_source = file_get_contents( dirname( VERGEML_FILE ) . '/core/quarantine.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
+q_check( 'the source of core/quarantine.php was there to read',
+    is_string( $q_source ) && strlen( $q_source ) > 1000,
+    is_string( $q_source ) ? strlen( $q_source ) . ' bytes' : 'could not read it' );
 
 /*
  *  Asserted against the source rather than by trying to delete something,
@@ -256,10 +275,10 @@ $q_left = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_
 
 q_check( 'the seeded files are gone', 0 === $q_left, $q_left . ' left behind' );
 
-q_say( sprintf( "\n%d/%d passed\n", $q_pass, $q_pass + $q_fail ) );
+q_say( sprintf( "\n%d/%d passed\n", $GLOBALS['q_pass'], $GLOBALS['q_pass'] + $GLOBALS['q_fail'] ) );
 
 q_report();
 
-if ( $q_fail > 0 ) {
+if ( $GLOBALS['q_fail'] > 0 ) {
     exit( 1 );
 }

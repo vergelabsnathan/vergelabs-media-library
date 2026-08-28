@@ -19,8 +19,8 @@ if ( ! function_exists( 'vergeml_alt_fill_step' ) ) {
 
 global $wpdb;
 
-$u_pass = 0;
-$u_fail = 0;
+$GLOBALS['u_pass'] = 0;
+$GLOBALS['u_fail'] = 0;
 $u_log  = '';
 
 function u_say( $line ) {
@@ -30,11 +30,19 @@ function u_say( $line ) {
 }
 
 function u_check( $label, $ok, $note = '' ) {
-    global $u_pass, $u_fail;
+    /*
+     *  $GLOBALS, not `global`. wp eval-file evaluates this file inside a
+     *  function, so the counters declared at the top of it are locals of
+     *  that function and never globals at all -- `global` here bound to a
+     *  second, empty pair. They stayed at zero however many checks ran, the
+     *  summary read "0/0 passed", and the exit(1) below could not fire: the
+     *  suite reported success no matter what failed. tests/librarian and
+     *  tests/organize already do it this way, which is why theirs count.
+     */
     if ( $ok ) {
-        $u_pass++;
+        $GLOBALS['u_pass']++;
     } else {
-        $u_fail++;
+        $GLOBALS['u_fail']++;
     }
     u_say( sprintf( "  %s  %s%s\n", $ok ? 'ok  ' : 'FAIL', $label, '' === $note ? '' : '  -- ' . $note ) );
 }
@@ -205,7 +213,20 @@ u_check( 'running it twice sets nothing aside a second time', 0 === $u_again );
  *  the claim is that this file cannot delete media, and a claim like that is
  *  worth checking against the code rather than the intention.
  */
-$u_source = file_get_contents( dirname( __DIR__, 2 ) . '/core/utilities.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+/*
+ *  Through the plugin's own constant, not this file's path. tools/verify.mjs
+ *  copies the suite to /tmp on the box before running it, so dirname( __DIR__,
+ *  2 ) was '/' and this read '//core/utilities.php', which does not exist.
+ *  file_get_contents() returned false, every strpos() below searched an empty
+ *  string and found nothing, and all four "never calls delete" checks reported
+ *  ok without reading a line of the file they are about.
+ */
+$u_source = file_get_contents( dirname( VERGEML_FILE ) . '/core/utilities.php' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
+u_check( 'the source of core/utilities.php was there to read',
+    is_string( $u_source ) && strlen( $u_source ) > 1000,
+    is_string( $u_source ) ? strlen( $u_source ) . ' bytes' : 'could not read it' );
+
 $u_code   = '';
 
 foreach ( token_get_all( $u_source ) as $u_token ) {
@@ -241,10 +262,10 @@ $u_left = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_
 
 u_check( 'the seeded files are gone', 0 === $u_left, $u_left . ' left behind' );
 
-u_say( sprintf( "\n%d/%d passed\n", $u_pass, $u_pass + $u_fail ) );
+u_say( sprintf( "\n%d/%d passed\n", $GLOBALS['u_pass'], $GLOBALS['u_pass'] + $GLOBALS['u_fail'] ) );
 
 u_report();
 
-if ( $u_fail > 0 ) {
+if ( $GLOBALS['u_fail'] > 0 ) {
     exit( 1 );
 }

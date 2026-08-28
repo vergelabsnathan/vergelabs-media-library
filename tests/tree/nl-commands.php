@@ -24,8 +24,8 @@ if ( ! function_exists( 'vergeml_nl_plan' ) ) {
 
 global $wpdb;
 
-$nl_pass = 0;
-$nl_fail = 0;
+$GLOBALS['nl_pass'] = 0;
+$GLOBALS['nl_fail'] = 0;
 $nl_log  = '';
 
 function nl_say( $line ) {
@@ -35,11 +35,19 @@ function nl_say( $line ) {
 }
 
 function nl_check( $label, $ok, $note = '' ) {
-    global $nl_pass, $nl_fail;
+    /*
+     *  $GLOBALS, not `global`. wp eval-file evaluates this file inside a
+     *  function, so the counters declared at the top of it are locals of
+     *  that function and never globals at all -- `global` here bound to a
+     *  second, empty pair. They stayed at zero however many checks ran, the
+     *  summary read "0/0 passed", and the exit(1) below could not fire: the
+     *  suite reported success no matter what failed. tests/librarian and
+     *  tests/organize already do it this way, which is why theirs count.
+     */
     if ( $ok ) {
-        $nl_pass++;
+        $GLOBALS['nl_pass']++;
     } else {
-        $nl_fail++;
+        $GLOBALS['nl_fail']++;
     }
     nl_say( sprintf( "  %s  %s%s\n", $ok ? 'ok  ' : 'FAIL', $label, '' === $note ? '' : '  -- ' . $note ) );
 }
@@ -303,10 +311,10 @@ $nl_left = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post
 
 nl_check( 'the seeded files are gone', 0 === $nl_left, $nl_left . ' left behind' );
 
-nl_say( sprintf( "\n%d/%d passed\n", $nl_pass, $nl_pass + $nl_fail ) );
+nl_say( sprintf( "\n%d/%d passed\n", $GLOBALS['nl_pass'], $GLOBALS['nl_pass'] + $GLOBALS['nl_fail'] ) );
 
 nl_report();
 
-if ( $nl_fail > 0 ) {
+if ( $GLOBALS['nl_fail'] > 0 ) {
     exit( 1 );
 }
