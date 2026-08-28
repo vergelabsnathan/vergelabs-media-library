@@ -40,19 +40,17 @@ if ( ! function_exists( 'vergeml_ai_folders' ) ) {
 
 global $wpdb;
 
-$af_pass = 0;
-$af_fail = 0;
-$af_log  = '';
+$GLOBALS['af_pass'] = 0;
+$GLOBALS['af_fail'] = 0;
+$GLOBALS['af_log']  = '';
 
 function af_say( $line ) {
-    global $af_log;
-    $af_log .= $line;
+    $GLOBALS['af_log'] .= $line;
     echo $line; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
 
 function af_report() {
-    global $af_log;
-    @file_put_contents( __DIR__ . '/ai-folders-last-run.txt', $af_log ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+    @file_put_contents( __DIR__ . '/ai-folders-last-run.txt', $GLOBALS['af_log'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 }
 
 /**
@@ -68,14 +66,45 @@ function af_skip( $label, $why ) {
 }
 
 function af_check( $label, $ok, $note = '' ) {
-    global $af_pass, $af_fail;
+    /*
+     *  $GLOBALS, not `global`. wp eval-file evaluates this file inside a
+     *  function, so the counters declared at the top of it are locals of
+     *  that function and never globals at all -- `global` here bound to a
+     *  second, empty pair. They stayed at zero however many checks ran, the
+     *  summary read "0/0 passed", and the exit(1) below could not fire: the
+     *  suite reported success no matter what failed. tests/librarian and
+     *  tests/organize already do it this way, which is why theirs count.
+     */
     if ( $ok ) {
-        $af_pass++;
+        $GLOBALS['af_pass']++;
     } else {
-        $af_fail++;
+        $GLOBALS['af_fail']++;
     }
     af_say( sprintf( "  %s  %s%s\n", $ok ? 'ok  ' : 'FAIL', $label, '' === $note ? '' : '  -- ' . $note ) );
 }
+
+
+/*
+ *  Somebody allowed to read the tree.
+ *
+ *  Section E calls the endpoint through rest_do_request(), whose permission
+ *  callback wants manage_categories. tests/tree/ai-folders-blueprint.json sets
+ *  a user before requiring this file, so the check passed in Playground -- but
+ *  tools/verify.mjs runs it through `wp eval-file` on the box, where there is no
+ *  current user at all and the endpoint answered 401. A suite that only works
+ *  under one of its two runners is a suite that will be believed by the wrong
+ *  one, so it sets its own user, the way tests/librarian/gate7-schema.php does.
+ */
+wp_set_current_user( 1 );
+
+if ( ! current_user_can( 'manage_categories' ) ) {
+    $af_admins = get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ids' ) );
+    if ( $af_admins ) {
+        wp_set_current_user( (int) $af_admins[0] );
+    }
+}
+
+af_check( 'running as somebody allowed to read the tree', current_user_can( 'manage_categories' ) );
 
 
 /**
@@ -170,26 +199,60 @@ af_set_group( true );
 $af_folders = vergeml_smart_folders();
 $af_keys    = array_keys( $af_folders );
 
-af_check( 'eighteen folders with the group on', 18 === count( $af_keys ), count( $af_keys ) . ' found' );
+/*
+ *  The five originals and the AI thirteen, by name rather than by counting
+ *  rows. Eighteen was right when they were all there was; core/quarantine.php
+ *  has since registered "Set aside" through the same filter, so the total is
+ *  nineteen and a bare count made that addition a failure of this file. What
+ *  matters here is that the thirteen arrive and the five survive them.
+ */
+$af_core_five = array( 'unused', 'no-alt', 'large', 'unattached', 'recent' );
+
+$af_expected_ai = array(
+    'ai-kind-photo', 'ai-kind-illustration', 'ai-kind-screenshot',
+    'ai-kind-document', 'ai-kind-diagram', 'ai-kind-logo',
+    'ai-people', 'ai-text',
+    'ai-doc-invoice', 'ai-doc-receipt', 'ai-doc-contract',
+    'ai-doc-form', 'ai-doc-report',
+);
+
+$af_want = array_merge( $af_core_five, $af_expected_ai );
+
+$af_absent = array_diff( $af_want, $af_keys );
+
+af_check( 'the five originals and the AI thirteen are all registered',
+    array() === $af_absent,
+    array() === $af_absent ? count( $af_keys ) . ' registered in total' : 'missing: ' . implode( ',', $af_absent ) );
 
 af_check( 'the five originals still come first and in order',
     array( 'unused', 'no-alt', 'large', 'unattached', 'recent' ) === array_slice( $af_keys, 0, 5 ) );
 
+/*
+ *  Their order relative to each other, not their position in the whole list:
+ *  anything else registering through the filter sits in here too, and where it
+ *  lands is not this file's business.
+ */
 af_check( 'the AI thirteen are in their fixed order',
-    array(
-        'ai-kind-photo', 'ai-kind-illustration', 'ai-kind-screenshot',
-        'ai-kind-document', 'ai-kind-diagram', 'ai-kind-logo',
-        'ai-people', 'ai-text',
-        'ai-doc-invoice', 'ai-doc-receipt', 'ai-doc-contract',
-        'ai-doc-form', 'ai-doc-report',
-    ) === array_slice( $af_keys, 5 ) );
+    $af_expected_ai === array_values( array_intersect( $af_keys, $af_expected_ai ) ),
+    implode( ',', array_values( array_intersect( $af_keys, $af_expected_ai ) ) ) );
 
 af_check( 'every AI folder is in the ai group',
     'ai' === $af_folders['ai-kind-photo']['group'] && 'clean' === $af_folders['unused']['group'] );
 
 af_set_group( false );
 
-af_check( 'five again with the group off', 5 === count( vergeml_smart_folders() ) );
+/*
+ *  Off means none of the thirteen, not a list of exactly five -- "Set aside"
+ *  is registered whatever this setting says, and rightly.
+ */
+$af_off_keys = array_keys( vergeml_smart_folders() );
+
+af_check( 'none of the thirteen with the group off',
+    array() === array_intersect( $af_off_keys, $af_expected_ai ),
+    implode( ',', $af_off_keys ) );
+
+af_check( 'and the five originals are still there with it off',
+    array() === array_diff( $af_core_five, $af_off_keys ) );
 
 af_set_group( true );
 
@@ -442,10 +505,10 @@ $af_left = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post
 
 af_check( 'the seeded attachments are gone', 0 === $af_left, $af_left . ' left behind' );
 
-af_say( sprintf( "\n%d/%d passed\n", $af_pass, $af_pass + $af_fail ) );
+af_say( sprintf( "\n%d/%d passed\n", $GLOBALS['af_pass'], $GLOBALS['af_pass'] + $GLOBALS['af_fail'] ) );
 
 af_report();
 
-if ( $af_fail > 0 ) {
+if ( $GLOBALS['af_fail'] > 0 ) {
     exit( 1 );
 }

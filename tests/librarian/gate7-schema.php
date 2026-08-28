@@ -41,8 +41,8 @@ if ( ! function_exists( 'vergeml_librarian_install' ) ) {
 
 global $wpdb;
 
-$g7_pass = 0;
-$g7_fail = 0;
+$GLOBALS['g7_pass'] = 0;
+$GLOBALS['g7_fail'] = 0;
 
 /*
  *  Playground's run-blueprint only shows a step's output when the step fails,
@@ -51,29 +51,35 @@ $g7_fail = 0;
  *  either way. An output buffer would not do: WordPress flushes its own on
  *  shutdown before anything registered later gets a look at it.
  */
-$g7_log = '';
+$GLOBALS['g7_log'] = '';
 
 function g7_say( $line ) {
-    global $g7_log;
-    $g7_log .= $line;
+    $GLOBALS['g7_log'] .= $line;
     echo $line; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
 
 
 function g7_report() {
-    global $g7_log;
-    @file_put_contents( __DIR__ . '/gate7-last-run.txt', $g7_log ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+    @file_put_contents( __DIR__ . '/gate7-last-run.txt', $GLOBALS['g7_log'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 }
 
 
 function g7_check( $label, $ok, $note = '' ) {
+    /*
+     *  $GLOBALS, not `global`. wp eval-file evaluates this file inside a
+     *  function, so the counters declared at the top of it are locals of
+     *  that function and never globals at all -- `global` here bound to a
+     *  second, empty pair. They stayed at zero however many checks ran, the
+     *  summary read "0/0 passed", and the exit(1) below could not fire: the
+     *  suite reported success no matter what failed. tests/librarian and
+     *  tests/organize already do it this way, which is why theirs count.
+     */
 
-    global $g7_pass, $g7_fail;
 
     if ( $ok ) {
-        $g7_pass++;
+        $GLOBALS['g7_pass']++;
     } else {
-        $g7_fail++;
+        $GLOBALS['g7_fail']++;
     }
 
     g7_say( sprintf(
@@ -233,10 +239,10 @@ if ( is_array( $g7_before ) && $g7_before ) {
 g7_check( 'the schema is installed again',
     g7_table_exists( $g7_batches ) && g7_table_exists( $g7_moves ) );
 
-g7_say( sprintf( "\n%d/%d passed\n", $g7_pass, $g7_pass + $g7_fail ) );
+g7_say( sprintf( "\n%d/%d passed\n", $GLOBALS['g7_pass'], $GLOBALS['g7_pass'] + $GLOBALS['g7_fail'] ) );
 
 g7_report();
 
-if ( $g7_fail > 0 ) {
+if ( $GLOBALS['g7_fail'] > 0 ) {
     exit( 1 );
 }
