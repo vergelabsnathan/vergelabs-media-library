@@ -128,9 +128,23 @@ function af_set_group( $on ) {
 
 
 $af_before  = get_option( 'vergeml_lib_options', array() );
-$af_made    = array();
+$GLOBALS['af_made']    = array();
 
 af_say( "\nAI smart folders\n\n" );
+
+
+/*
+ *  What the library already answers, before this file has seeded anything.
+ *
+ *  Section D asserts against the difference rather than the total, because the
+ *  AI index is site-wide: tests/tree/ai.mjs describes every file in the library
+ *  on its way past, and on a second battery this suite's "three photos" was
+ *  ten. The group is switched on first, or the thirteen AI branches are not in
+ *  the statement and every baseline reads zero.
+ */
+af_set_group( true );
+
+$GLOBALS['af_baseline'] = vergeml_smart_counts( true );
 
 
 /* ------------------------------------------------------------- the seeding */
@@ -165,7 +179,7 @@ foreach ( $af_seed as $i => $row ) {
         'post_mime_type' => 'image/png',
     ) );
 
-    $af_made[] = (int) $id;
+    $GLOBALS['af_made'][] = (int) $id;
 
     vergeml_index_set( (int) $id, array(
         'caption'       => 'seeded',
@@ -185,9 +199,9 @@ $af_plain = wp_insert_post( array(
     'post_mime_type' => 'image/png',
 ) );
 
-$af_made[] = (int) $af_plain;
+$GLOBALS['af_made'][] = (int) $af_plain;
 
-af_check( 'ten attachments seeded, nine of them described', 10 === count( $af_made ) );
+af_check( 'ten attachments seeded, nine of them described', 10 === count( $GLOBALS['af_made'] ) );
 
 
 /* --------------------------------------------------------- A: the registry */
@@ -285,8 +299,24 @@ $af_q = new WP_Query( array(
     'vergeml_ai_filter' => 'ai-kind-screenshot',
 ) );
 
+/*
+ *  Its own files, not every file on the site that happens to match.
+ *
+ *  These folders read the AI index, which is site-wide and which
+ *  tests/tree/ai.mjs fills for the whole library on its way past. Asserting an
+ *  absolute two made this suite pass alone and fail the moment anything else
+ *  had described anything -- eleven found on a second battery, all of them
+ *  real screenshots and none of them this file's business.
+ */
+function af_mine( WP_Query $q ) {
+    return count( array_intersect(
+        array_map( 'intval', (array) $q->posts ),
+        array_map( 'intval', (array) $GLOBALS['af_made'] )
+    ) );
+}
+
 af_check( 'the screenshot folder finds exactly its two files',
-    2 === (int) $af_q->found_posts, $af_q->found_posts . ' found' );
+    2 === af_mine( $af_q ), af_mine( $af_q ) . ' of ours, ' . $af_q->found_posts . ' site-wide' );
 
 $af_docs = new WP_Query( array(
     'post_type'        => 'attachment',
@@ -297,7 +327,7 @@ $af_docs = new WP_Query( array(
 ) );
 
 af_check( 'the invoice folder finds exactly its two files',
-    2 === (int) $af_docs->found_posts, $af_docs->found_posts . ' found' );
+    2 === af_mine( $af_docs ), af_mine( $af_docs ) . ' of ours, ' . $af_docs->found_posts . ' site-wide' );
 
 $af_people = new WP_Query( array(
     'post_type'        => 'attachment',
@@ -307,7 +337,8 @@ $af_people = new WP_Query( array(
     'vergeml_ai_filter' => 'ai-people',
 ) );
 
-af_check( 'the people folder finds its one file', 1 === (int) $af_people->found_posts );
+af_check( 'the people folder finds its one file',
+    1 === af_mine( $af_people ), af_mine( $af_people ) . ' of ours, ' . $af_people->found_posts . ' site-wide' );
 
 /*
  *  The one that matters most. A posts_clauses filter that forgets to check
@@ -341,24 +372,49 @@ af_check( 'a hand-typed key that nobody registered filters nothing',
 
 af_say( "\nD  the counts\n" );
 
+/*
+ *  What this suite added, not what the site holds.
+ *
+ *  These counts are one UNION over the whole AI index, and tests/tree/ai.mjs
+ *  describes the entire library on its way past. Asserting absolutes made every
+ *  number here a statement about whatever else had run today: three photos
+ *  became ten, nine described became sixty-nine, and a kind nothing was seeded
+ *  with counted eleven. The baseline is taken before the seeding above, so the
+ *  difference is this file's own work whatever surrounds it.
+ */
 $af_counts = vergeml_smart_counts( true );
 
-af_check( 'photos', 3 === $af_counts['ai-kind-photo'], var_export( $af_counts['ai-kind-photo'], true ) );
-af_check( 'screenshots', 2 === $af_counts['ai-kind-screenshot'] );
-af_check( 'logos', 1 === $af_counts['ai-kind-logo'] );
-af_check( 'invoices', 2 === $af_counts['ai-doc-invoice'] );
-af_check( 'contracts', 1 === $af_counts['ai-doc-contract'] );
-af_check( 'people', 1 === $af_counts['ai-people'] );
+function af_added( $key ) {
+    $before = isset( $GLOBALS['af_baseline'][ $key ] ) ? (int) $GLOBALS['af_baseline'][ $key ] : 0;
+    $after  = isset( $GLOBALS['af_counts'][ $key ] ) ? (int) $GLOBALS['af_counts'][ $key ] : 0;
+    return $after - $before;
+}
+
+$GLOBALS['af_counts'] = $af_counts;
+
+af_check( 'photos', 3 === af_added( 'ai-kind-photo' ), af_added( 'ai-kind-photo' ) . ' added' );
+af_check( 'screenshots', 2 === af_added( 'ai-kind-screenshot' ), af_added( 'ai-kind-screenshot' ) . ' added' );
+af_check( 'logos', 1 === af_added( 'ai-kind-logo' ), af_added( 'ai-kind-logo' ) . ' added' );
+af_check( 'invoices', 2 === af_added( 'ai-doc-invoice' ), af_added( 'ai-doc-invoice' ) . ' added' );
+af_check( 'contracts', 1 === af_added( 'ai-doc-contract' ), af_added( 'ai-doc-contract' ) . ' added' );
+af_check( 'people', 1 === af_added( 'ai-people' ), af_added( 'ai-people' ) . ' added' );
 // Seven of the nine described rows carry has_text: everything except the two
 // photos seeded without it.
-af_check( 'text in the picture', 7 === $af_counts['ai-text'], var_export( $af_counts['ai-text'], true ) );
+af_check( 'text in the picture', 7 === af_added( 'ai-text' ), af_added( 'ai-text' ) . ' added' );
 
+/*
+ *  Zero, not null, is the assertion -- that an enum nothing was seeded with
+ *  still answers. On a library where something else has described a diagram it
+ *  will be a real number, so what must hold is that it is an integer and this
+ *  suite added none of them.
+ */
 af_check( 'a kind nothing was seeded with counts zero, not null',
-    0 === $af_counts['ai-kind-diagram'], var_export( $af_counts['ai-kind-diagram'], true ) );
+    null !== $af_counts['ai-kind-diagram'] && 0 === af_added( 'ai-kind-diagram' ),
+    var_export( $af_counts['ai-kind-diagram'], true ) . ', ' . af_added( 'ai-kind-diagram' ) . ' added' );
 
 af_check( 'described is nine of at least ten',
-    9 === (int) $af_counts['_described'] && (int) $af_counts['_total'] >= 10,
-    $af_counts['_described'] . '/' . $af_counts['_total'] );
+    9 === af_added( '_described' ) && 10 === af_added( '_total' ),
+    af_added( '_described' ) . '/' . af_added( '_total' ) . ' added, ' . $af_counts['_described'] . '/' . $af_counts['_total'] . ' site-wide' );
 
 $af_rows = vergeml_smart_for_tree( '' );
 $af_shown = array();
@@ -401,7 +457,7 @@ af_check( 'the five originals still have their numbers',
 vergeml_index_install();
 
 foreach ( $af_seed as $i => $row ) {
-    vergeml_index_set( $af_made[ $i ], array(
+    vergeml_index_set( $GLOBALS['af_made'][ $i ], array(
         'caption'       => 'seeded',
         'kind'          => $row[0],
         'has_people'    => $row[1],
@@ -489,7 +545,7 @@ af_check( 'and its payload carries the AI group',
 
 af_say( "\ntidying up\n" );
 
-foreach ( $af_made as $id ) {
+foreach ( $GLOBALS['af_made'] as $id ) {
     if ( get_post( $id ) ) {
         vergeml_index_delete( $id );
         wp_delete_post( $id, true );
