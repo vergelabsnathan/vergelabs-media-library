@@ -1057,6 +1057,26 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         update_option( 'vergeml_lib_options', $vergeml_lib_options );
 
 
+        /*
+         *  Private folders: the option has to EXIST, not merely be autoloaded.
+         *
+         *  core/private-folders.php keeps a term-id-to-owner map and reasons
+         *  that an autoloaded option is free. That is true of an option that is
+         *  there. An option that has never been written is not in alloptions, so
+         *  get_option() runs a real query for it and caches the miss -- once per
+         *  request, on every site where nobody has ever made a private folder,
+         *  which is nearly every site.
+         *
+         *  Gate 5 caught it: Playground read 8 on the tree against the box's 7,
+         *  and core's own wp/v2/media had gained one as well -- which is what
+         *  said it was not a folder problem. Writing the empty map here puts it
+         *  in alloptions and the query goes away.
+         */
+        if ( false === get_option( 'vergeml_private_folders', false ) ) {
+            add_option( 'vergeml_private_folders', array(), '', true );
+        }
+
+
         // taxonomy options
         $eml_tax_options_defaults = array(
             'tax_archives' => 0, // since 2.6

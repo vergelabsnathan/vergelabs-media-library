@@ -121,6 +121,23 @@ Always check a **clean archive**, never the working tree: `git archive` honours
 folder reports `.claude`, `CLAUDE.md`, `tests/` and `tools/` as findings, and
 burying a real one under them is how a real one gets missed.
 
+### An autoloaded option is only free once it exists
+
+"Autoloaded, so it costs nothing" is true of an option that has been written.
+An option that has **never** been written is not in `alloptions`, so
+`get_option()` runs a real query for it and caches the miss — once per request,
+for ever, on every site where the feature has not been used yet. Which is
+nearly every site.
+
+`vergeml_private_folders` shipped that way for about an hour. Gate 5 caught it:
+Playground read 8 on the tree against the box's 7, and **core's own
+`wp/v2/media` had gained one as well**, which is the detail that said it was
+not a folder problem. Deleting the option on the box reproduced it there
+immediately.
+
+Any new autoloaded option needs a line in `vergeml_set_options()` creating it
+empty, and that line is an upgrade-path change — Gate 7, not just Gate 5.
+
 ### Query counts must be measured over REST
 
 Never from `wp eval` after other work in the same request: a scan that ran first
