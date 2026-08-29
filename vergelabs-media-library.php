@@ -1302,6 +1302,11 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // above: the health report's duplicate groups, the index's locked
         // fields, and the vectors auto-file reads.
         include_once( 'core/utilities.php' );
+        // Last of the guarded files: it wraps every screen the ones above
+        // registered, so it has to see a finished menu. Inside the guard --
+        // if the shell breaks, safe mode gives back plain WordPress screens
+        // rather than nine broken ones.
+        include_once( 'core/admin-shell.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {
             include_once( 'core/medialist.php' );

@@ -251,6 +251,7 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 * It stops by itself when the licence runs out of credits or is refused, and says which it was — rather than working through the rest of your library writing failures over it.
 * Slower than the on-screen run, and the screen says so: it works whenever the site is visited. A site with a real system cron runs it every minute regardless.
 * **Folders as a spreadsheet.** Write your whole structure out as a CSV, edit it wherever you like editing things, and read it back. Two hundred folders without two hundred clicks — and a way to take your structure with you.
+* **The plugin's screens are one place now.** A nav down the left, a single content pane, and sections separated by a rule instead of every block sitting in its own box. Eight screens that behaved like eight settings pages now behave like one tool.
 * Reading a file in is an import like any other: you see what it will do before it does it, folders you already have are merged rather than duplicated, and the whole thing can be undone afterwards.
 
 * **Folders only you see.** On a site where several people upload, a folder can belong to the person who made it and stay out of everyone else's sidebar. Ten people's filing in one panel is nobody's filing.

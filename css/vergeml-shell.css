@@ -1,0 +1,526 @@
+/*
+ *  The admin shell.
+ *
+ *  Structure copied from WP Rocket's own wpr-admin.css, which is the reference
+ *  Nathan chose, and every number here is theirs rather than invented:
+ *
+ *      .wpr-wrap    { margin: 0 0 0 -20px }        flush to the admin menu
+ *      .wpr-body    { display: flex }
+ *      .wpr-Header  { flex: 0 0 225px }            a fixed nav column
+ *      .wpr-Content { flex: 1 1 auto; background:#fff; padding: 32px 24px;
+ *                     max-width: 1230px }
+ *      .wpr-sectionHeader { border-bottom: 1px solid …; padding-bottom: 24px }
+ *      14px base on a 1.5 line, 4px radius almost everywhere.
+ *
+ *  The trick is structural, not decorative: kill WordPress's gutter, put a nav
+ *  down the left, and separate sections with a rule instead of wrapping each
+ *  one in its own box. That is what stops a screen reading as a settings page.
+ *
+ *  The colours are ours. Rocket is cool grey with an orange accent; we are the
+ *  warm set already on vergelabsmedia.com and the legal pages -- #F8F0E7
+ *  ground, #2B1A14 ink, #9B4E45 accent -- so the plugin and the site look like
+ *  one company rather than two.
+ *
+ *  Everything is scoped under .vgml-shell, so none of it reaches a WordPress
+ *  screen this plugin does not own.
+ */
+
+.vgml-shell {
+	--vgml-ground: #F8F0E7;
+	--vgml-pane: #FFFFFF;
+	--vgml-surface: #FDF9F4;
+	--vgml-ink: #2B1A14;
+	--vgml-body: #5E4A42;
+	--vgml-muted: #7E6659;
+	--vgml-accent: #9B4E45;
+	--vgml-accent-dark: #7F3F38;
+	--vgml-rule: #EEDFD1;
+	--vgml-rule-strong: #E3D2C2;
+
+	/* Flush to the admin menu, exactly as .wpr-wrap does it. Losing the
+	   gutter is most of what stops this reading as a settings page. */
+	margin: 0 0 0 -20px;
+	padding: 16px;
+	background: var(--vgml-ground);
+	min-height: calc(100vh - 32px);
+	box-sizing: border-box;
+	color: var(--vgml-body);
+	font-size: 14px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.vgml-shell *,
+.vgml-shell *::before,
+.vgml-shell *::after {
+	box-sizing: border-box;
+}
+
+.vgml-shell-body {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+}
+
+/* ------------------------------------------------------------------ the nav */
+
+.vgml-shell-nav {
+	flex: 0 0 225px;
+	position: sticky;
+	top: 46px;
+	padding-top: 8px;
+}
+
+.vgml-shell-brand {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	padding: 0 12px 18px;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-mark {
+	display: flex;
+	color: var(--vgml-accent);
+}
+
+.vgml-shell-name {
+	font-size: 14px;
+	font-weight: 600;
+	letter-spacing: -.01em;
+}
+
+.vgml-shell-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-shell-list li {
+	margin: 0;
+}
+
+.vgml-shell-item {
+	display: block;
+	position: relative;
+	padding: 9px 12px;
+	margin-bottom: 1px;
+	border-radius: 4px;
+	color: var(--vgml-body);
+	text-decoration: none;
+	font-size: 14px;
+	line-height: 1.35;
+	transition: background .12s ease, color .12s ease;
+}
+
+.vgml-shell-item:hover {
+	background: rgba(155, 78, 69, .07);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-item:focus {
+	box-shadow: none;
+	outline: none;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-item:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: -2px;
+}
+
+/*
+ *  The current screen reads as the pane it opens: the same white, joined to it
+ *  by colour rather than by a chevron. The accent bar is the only ornament in
+ *  the whole nav.
+ */
+.vgml-shell-item.is-on {
+	background: var(--vgml-pane);
+	color: var(--vgml-ink);
+	font-weight: 600;
+}
+
+.vgml-shell-item.is-on::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 6px;
+	bottom: 6px;
+	width: 3px;
+	border-radius: 0 2px 2px 0;
+	background: var(--vgml-accent);
+}
+
+.vgml-shell-version {
+	margin: 18px 0 0;
+	padding: 0 12px;
+	font-size: 11px;
+	color: var(--vgml-muted);
+}
+
+/* -------------------------------------------------------------- the content */
+
+.vgml-shell-content {
+	flex: 1 1 auto;
+	min-width: 0;
+	max-width: 1230px;
+	background: var(--vgml-pane);
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	padding: 32px 24px;
+}
+
+/* WordPress's own wrapper, now inside our pane and no longer supplying chrome. */
+.vgml-shell-content .wrap,
+.vgml-shell-content .wrap.vgml-home {
+	margin: 0;
+	padding: 0;
+	max-width: none;
+	background: none;
+}
+
+.vgml-shell-content .wrap > h1,
+.vgml-shell-content .vgml-home-head h1 {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 24px;
+	line-height: 1.25;
+	font-weight: 700;
+	letter-spacing: -.02em;
+	color: var(--vgml-ink);
+}
+
+/* The page header: a rule and 24px of air, which is Rocket's sectionHeader. */
+.vgml-shell-content .vgml-home-head,
+.vgml-shell-content .wrap > h1:first-child {
+	margin-bottom: 24px;
+	padding-bottom: 24px;
+	border-bottom: 1px solid var(--vgml-rule);
+}
+
+.vgml-shell-content .vgml-home-counts,
+.vgml-shell-content .vgml-home-version {
+	margin: 0;
+	font-size: 13px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content p,
+.vgml-shell-content li,
+.vgml-shell-content label,
+.vgml-shell-content td,
+.vgml-shell-content th {
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--vgml-body);
+}
+
+.vgml-shell-content .description,
+.vgml-shell-content p.description {
+	font-size: 13px;
+	line-height: 1.6;
+	color: var(--vgml-muted);
+	max-width: 68ch;
+}
+
+.vgml-shell-content strong {
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content a {
+	color: var(--vgml-accent);
+}
+
+/*
+ *  Sections, not boxes.
+ *
+ *  The cards are what made these screens read as a stack of widgets, and a
+ *  card inside a pane is a box inside a box. Rocket separates with a rule and
+ *  space, which is quieter and makes a long screen scannable.
+ */
+.vgml-shell-content .vgml-ai-card,
+.vgml-shell-content .vgml-import-card {
+	background: none;
+	border: 0;
+	border-top: 1px solid var(--vgml-rule);
+	box-shadow: none;
+	border-radius: 0;
+	margin: 28px 0 0;
+	padding: 28px 0 0;
+}
+
+.vgml-shell-content .vgml-ai-card:first-of-type,
+.vgml-shell-content .vgml-import-card:first-of-type {
+	border-top: 0;
+	margin-top: 0;
+	padding-top: 0;
+}
+
+.vgml-shell-content h2,
+.vgml-shell-content .vgml-ai-card > h2,
+.vgml-shell-content .vgml-import-card h2 {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.35;
+	letter-spacing: -.01em;
+	color: var(--vgml-ink);
+	border: 0;
+}
+
+.vgml-shell-content h3 {
+	margin: 20px 0 6px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+}
+
+/*
+ *  The home screen's cards stay cards -- they are navigation, and a grid of
+ *  destinations is the one place a box is the right answer. Repainted off
+ *  WordPress blue onto ours.
+ */
+.vgml-shell-content .vgml-home-card {
+	border-color: var(--vgml-rule);
+	border-radius: 4px;
+	background: var(--vgml-surface);
+}
+
+.vgml-shell-content .vgml-home-card:hover,
+.vgml-shell-content .vgml-home-card:focus {
+	border-color: var(--vgml-accent);
+	background: #fff;
+}
+
+.vgml-shell-content .vgml-home-card:focus-visible {
+	outline-color: var(--vgml-accent);
+}
+
+.vgml-shell-content .vgml-home-card h2 {
+	color: var(--vgml-ink);
+}
+
+/* ---------------------------------------------------------------- controls */
+
+.vgml-shell-content .button,
+.vgml-shell-content .button-secondary {
+	height: auto;
+	min-height: 0;
+	padding: 7px 14px;
+	border-radius: 4px;
+	border: 1px solid var(--vgml-rule-strong);
+	background: var(--vgml-surface);
+	color: var(--vgml-ink);
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.4;
+	box-shadow: none;
+	transition: background .12s ease, border-color .12s ease;
+}
+
+.vgml-shell-content .button:hover {
+	background: var(--vgml-rule);
+	border-color: var(--vgml-muted);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content .button-primary {
+	background: var(--vgml-accent);
+	border-color: var(--vgml-accent);
+	color: #fff;
+	text-shadow: none;
+}
+
+.vgml-shell-content .button-primary:hover,
+.vgml-shell-content .button-primary:focus {
+	background: var(--vgml-accent-dark);
+	border-color: var(--vgml-accent-dark);
+	color: #fff;
+}
+
+.vgml-shell-content .button:focus-visible,
+.vgml-shell-content .button-primary:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+.vgml-shell-content .button[disabled],
+.vgml-shell-content .button:disabled {
+	opacity: .5;
+	cursor: not-allowed;
+}
+
+.vgml-shell-content input[type="text"],
+.vgml-shell-content input[type="password"],
+.vgml-shell-content input[type="number"],
+.vgml-shell-content input[type="search"],
+.vgml-shell-content input[type="email"],
+.vgml-shell-content input[type="url"],
+.vgml-shell-content select,
+.vgml-shell-content textarea {
+	border: 1px solid var(--vgml-rule-strong);
+	border-radius: 4px;
+	background: #fff;
+	color: var(--vgml-ink);
+	font-size: 13px;
+	padding: 6px 9px;
+	box-shadow: none;
+	min-height: 0;
+}
+
+.vgml-shell-content input[type="text"]:focus,
+.vgml-shell-content input[type="password"]:focus,
+.vgml-shell-content input[type="number"]:focus,
+.vgml-shell-content select:focus,
+.vgml-shell-content textarea:focus {
+	border-color: var(--vgml-accent);
+	box-shadow: 0 0 0 1px var(--vgml-accent);
+	outline: none;
+}
+
+.vgml-shell-content input[type="checkbox"],
+.vgml-shell-content input[type="radio"] {
+	border-color: var(--vgml-rule-strong);
+}
+
+.vgml-shell-content input[type="checkbox"]:checked,
+.vgml-shell-content input[type="radio"]:checked {
+	background: var(--vgml-accent);
+	border-color: var(--vgml-accent);
+}
+
+.vgml-shell-content input[type="checkbox"]:checked::before {
+	filter: brightness(0) invert(1);
+}
+
+.vgml-shell-content input[type="radio"]:checked::before {
+	background: #fff;
+}
+
+/* ------------------------------------------------------------------ tables */
+
+.vgml-shell-content .form-table {
+	margin-top: 8px;
+}
+
+.vgml-shell-content .form-table th {
+	padding: 14px 20px 14px 0;
+	width: 210px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+	vertical-align: top;
+}
+
+.vgml-shell-content .form-table td {
+	padding: 12px 0;
+}
+
+.vgml-shell-content .form-table tr + tr th,
+.vgml-shell-content .form-table tr + tr td {
+	border-top: 1px solid var(--vgml-rule);
+}
+
+/* -------------------------------------------------------- progress and logs */
+
+.vgml-shell-content .vgml-import-bar {
+	background: var(--vgml-rule);
+	border-radius: 44px;
+	height: 6px;
+	overflow: hidden;
+	margin: 14px 0 10px;
+	border: 0;
+}
+
+.vgml-shell-content .vgml-import-fill {
+	background: var(--vgml-accent);
+	height: 100%;
+	border-radius: 44px;
+	transition: width .3s ease;
+}
+
+.vgml-shell-content .vgml-ai-log,
+.vgml-shell-content .vgml-autofile-list,
+.vgml-shell-content .vgml-quarantine-list {
+	margin: 12px 0 0;
+	padding: 0;
+	list-style: none;
+	font-size: 13px;
+	max-height: 320px;
+	overflow-y: auto;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+}
+
+.vgml-shell-content .vgml-ai-log:empty,
+.vgml-shell-content .vgml-autofile-list:empty {
+	display: none;
+	border: 0;
+}
+
+.vgml-shell-content .vgml-ai-log li,
+.vgml-shell-content .vgml-autofile-list li {
+	padding: 8px 12px;
+	margin: 0;
+	border-bottom: 1px solid var(--vgml-rule);
+}
+
+.vgml-shell-content .vgml-ai-log li:last-child,
+.vgml-shell-content .vgml-autofile-list li:last-child {
+	border-bottom: 0;
+}
+
+/* ----------------------------------------------------------------- notices */
+
+.vgml-shell-content .notice {
+	margin: 0 0 18px;
+	border-radius: 4px;
+	border-left-width: 3px;
+	background: var(--vgml-surface);
+	box-shadow: none;
+}
+
+/* ---------------------------------------------------------------- narrower */
+
+@media screen and (max-width: 960px) {
+	.vgml-shell-body {
+		display: block;
+	}
+
+	.vgml-shell-nav {
+		position: static;
+		padding-bottom: 12px;
+	}
+
+	.vgml-shell-brand {
+		padding-bottom: 12px;
+	}
+
+	.vgml-shell-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2px;
+	}
+
+	.vgml-shell-item.is-on::before {
+		display: none;
+	}
+
+	.vgml-shell-item.is-on {
+		box-shadow: inset 0 -2px 0 var(--vgml-accent);
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.vgml-shell {
+		margin-left: -10px;
+		padding: 10px;
+	}
+
+	.vgml-shell-content {
+		padding: 20px 16px;
+	}
+}
