@@ -61,6 +61,8 @@ This plugin can send images to an AI service run by VergeLabs, at `https://ai.ve
 
 **What is sent, when you do start a run:** a downsized copy of the image being described (never the original file), its file name, its MIME type, your site's address and your licence key -- one request per image, only while a run is in progress. What comes back is a caption, alt text, tags and a suggested title. The service processes the image and discards it; what it keeps is a usage count.
 
+**What the service does with it, in writing.** [Sub-processors](https://vergelabsmedia.com/legal/sub-processors) names every company that touches the data and where each one is. [What is kept, and for how long](https://vergelabsmedia.com/legal/retention) answers that per category — images are kept for no time at all, and it says which file in the code proves it. [Data Processing Agreement](https://vergelabsmedia.com/legal/dpa), if you need one.
+
 Service terms: [https://vergelabs.nl/voorwaarden](https://vergelabs.nl/voorwaarden) -- Privacy policy: [https://vergelabs.nl/privacy](https://vergelabs.nl/privacy)
 
 
