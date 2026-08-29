@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.8.0
+Stable tag: 3.9.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -240,6 +240,14 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.9.0 ###
+*Describing a big library without sitting and watching it*
+
+= Added =
+* **Describe in the background.** The run carries on after you close the tab, and picks up exactly where it left off. A library of twenty thousand no longer needs somebody keeping a browser open for it.
+* It stops by itself when the licence runs out of credits or is refused, and says which it was — rather than working through the rest of your library writing failures over it.
+* Slower than the on-screen run, and the screen says so: it works whenever the site is visited. A site with a real system cron runs it every minute regardless.
 
 ### 3.8.0 ###
 *Duplicates, alt text, and finding the one like this*

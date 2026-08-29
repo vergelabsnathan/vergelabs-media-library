@@ -115,6 +115,13 @@ const SUITES = [
 		before: 'wp option delete vergeml_smart_scan',
 	},
 	/*
+	 *  The background run. A PHP suite, because what it tests is what happens
+	 *  with no browser attached: it calls the cron tick directly, which is
+	 *  what WP-Cron would have called. Seeds its own files and puts the
+	 *  settings back, and runs in demo mode so it spends nothing.
+	 */
+	{ name: 'ai-background', file: 'tests/ai/background.php', env: 'box', php: true },
+	/*
 	 *  A PHP suite rather than a browser one, because what it tests has no
 	 *  screen yet: the tree is data, and the phase that renders it is the next
 	 *  one. It runs where the other PHP suites run -- shipped to the box and
