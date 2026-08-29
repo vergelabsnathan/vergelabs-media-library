@@ -109,12 +109,40 @@ $bg_unready = vergeml_ai_run_start( 'unindexed', false );
 bg_check( 'an unconfigured site cannot start a run', is_wp_error( $bg_unready ), is_wp_error( $bg_unready ) ? $bg_unready->get_error_code() : 'started anyway' );
 bg_settings( array( 'mock' => 1 ) );
 
+/*
+ *  Refusing an empty backlog, asserted only when the backlog is actually
+ *  empty.
+ *
+ *  This first read `assert it refuses`, full stop, and passed alone and failed
+ *  in the battery: tests/tree/ai-folders.php runs before it and leaves images
+ *  without index rows, so there WAS a backlog and starting was the correct
+ *  answer. The suite was asserting the state of the library rather than the
+ *  behaviour of the code -- the debris trap in docs/testing.md, from the
+ *  inside.
+ *
+ *  So it now asks the library first and holds the code to whichever answer is
+ *  right. Both branches are real checks; neither is a shrug.
+ */
+$bg_backlog = count( vergeml_ai_pending( 'unindexed' ) );
 $bg_nothing = vergeml_ai_run_start( 'unindexed', false );
-bg_check(
-    'with an empty backlog there is nothing to start',
-    is_wp_error( $bg_nothing ) && 'vergeml_ai_nothing_to_do' === $bg_nothing->get_error_code(),
-    is_wp_error( $bg_nothing ) ? $bg_nothing->get_error_code() : 'started with nothing to do'
-);
+
+if ( 0 === $bg_backlog ) {
+    bg_check(
+        'with an empty backlog there is nothing to start',
+        is_wp_error( $bg_nothing ) && 'vergeml_ai_nothing_to_do' === $bg_nothing->get_error_code(),
+        is_wp_error( $bg_nothing ) ? $bg_nothing->get_error_code() : 'started with nothing to do'
+    );
+} else {
+    bg_check(
+        'with files still to describe, it starts',
+        ! is_wp_error( $bg_nothing ) && ! empty( $bg_nothing['active'] ),
+        $bg_backlog . ' waiting -- another suite left them, which is fine'
+    );
+
+    // Put it back, or section B starts against a run that is already going.
+    vergeml_ai_run_stop( '' );
+    delete_option( 'vergeml_ai_run' );
+}
 
 
 bg_say( "\nB  a run starts, and is written down rather than held in a page\n" );
