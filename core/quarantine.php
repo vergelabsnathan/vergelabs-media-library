@@ -466,7 +466,8 @@ function vergeml_quarantine_rest_manifest( WP_REST_Request $request ) {
 
 /* ----------------------------------------------------------------- the card */
 
-add_action( 'vergeml_ai_page_cards', 'vergeml_quarantine_card' );
+// What you do about a duplicate, so it lives with the duplicates.
+add_action( 'vergeml_health_page_cards', 'vergeml_quarantine_card' );
 
 function vergeml_quarantine_card() {
 
@@ -497,7 +498,7 @@ add_action( 'admin_enqueue_scripts', 'vergeml_quarantine_assets' );
 
 function vergeml_quarantine_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-ai' ) ) {
+    if ( false === strpos( (string) $hook, 'media-health' ) ) {
         return;
     }
 

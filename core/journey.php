@@ -162,7 +162,7 @@ function vergeml_journey_stages() {
 
     $stages[] = array(
         'id'    => 'library',
-        'title' => __( 'What you have', 'vergelabs-media-library' ),
+        'title' => __( 'Your library', 'vergelabs-media-library' ),
         'done'  => true,
         'text'  => sprintf(
             /* translators: 1: files, 2: folders, 3: images with no alt text. */
@@ -195,7 +195,7 @@ function vergeml_journey_stages() {
 
         $stages[] = array(
             'id'     => 'access',
-            'title'  => __( 'Try it, or connect a licence', 'vergelabs-media-library' ),
+            'title'  => __( 'Licence', 'vergelabs-media-library' ),
             'done'   => $f['licensed'] || $f['demo'],
             'text'   => $text,
             'action' => ( $f['licensed'] || $f['demo'] )
@@ -214,7 +214,7 @@ function vergeml_journey_stages() {
 
         $stages[] = array(
             'id'     => 'duplicates',
-            'title'  => __( 'Find the copies', 'vergelabs-media-library' ),
+            'title'  => __( 'Duplicate files', 'vergelabs-media-library' ),
             'done'   => $done,
             'text'   => $done
                 ? __( 'The library has been read. Duplicates and unused files are known, and the Librarian can use them.', 'vergelabs-media-library' )
@@ -263,7 +263,7 @@ function vergeml_journey_stages() {
 
         $stages[] = array(
             'id'      => 'alt',
-            'title'   => __( 'Fill in the missing alt text', 'vergelabs-media-library' ),
+            'title'   => __( 'Missing alt text', 'vergelabs-media-library' ),
             'done'    => 0 === $f['no_alt'],
             'blocked' => ( 0 === $f['described'] && ! $f['demo'] && ! $f['licensed'] )
                 ? __( 'Nothing is described yet, and alt text is written from the description.', 'vergelabs-media-library' )
@@ -296,7 +296,7 @@ function vergeml_journey_stages() {
 
         $stages[] = array(
             'id'      => 'file',
-            'title'   => __( 'File what is still loose', 'vergelabs-media-library' ),
+            'title'   => __( 'Unfiled files', 'vergelabs-media-library' ),
             'done'    => false,
             'blocked' => $blocked,
             'text'    => function_exists( 'vergeml_librarian_card_text' )
@@ -312,7 +312,7 @@ function vergeml_journey_stages() {
     if ( function_exists( 'vergeml_import_read' ) ) {
         $stages[] = array(
             'id'     => 'import',
-            'title'  => __( 'Already have folders somewhere else?', 'vergelabs-media-library' ),
+            'title'  => __( 'Import folders', 'vergelabs-media-library' ),
             'aside'  => true,
             'done'   => false,
             'text'   => __( 'Bring them over from FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders or Real Media Library — or from a spreadsheet. You see what it will do before it does it, and it can be undone.', 'vergelabs-media-library' ),
@@ -399,50 +399,13 @@ function vergeml_journey_state_word( $state ) {
 /* ----------------------------------------------------------------- the menu */
 
 /*
- *  Priority 10, not 8.
+ *  No menu registration here any more.
  *
- *  The parent menu is created by vergeml_admin_menu() at priority 9, and
- *  add_submenu_page() against a parent that does not exist yet registers
- *  nothing -- the page then answers 403, because as far as WordPress is
- *  concerned there is no such screen. Which is exactly what happened.
- *
- *  So it registers after the parent and then moves itself to the front,
- *  because submenu order is registration order and this has to be the first
- *  thing somebody sees.
+ *  This screen is the plugin's top-level page -- core/admin-menu.php points
+ *  add_menu_page() straight at vergeml_journey_screen(). It used to be a
+ *  submenu called "Start" sitting above a second home screen called
+ *  "Overview", which was two front doors to the same house.
  */
-add_action( 'admin_menu', 'vergeml_journey_menu', 10 );
-
-function vergeml_journey_menu() {
-
-    global $submenu;
-
-    if ( ! defined( 'VERGEML_MENU' ) ) {
-        return;
-    }
-
-    add_submenu_page(
-        VERGEML_MENU,
-        __( 'Start', 'vergelabs-media-library' ),
-        __( 'Start', 'vergelabs-media-library' ),
-        'manage_categories',
-        'media-start',
-        'vergeml_journey_screen'
-    );
-
-    if ( empty( $submenu[ VERGEML_MENU ] ) ) {
-        return;
-    }
-
-    foreach ( $submenu[ VERGEML_MENU ] as $at => $item ) {
-
-        if ( isset( $item[2] ) && 'media-start' === $item[2] ) {
-            unset( $submenu[ VERGEML_MENU ][ $at ] );
-            array_unshift( $submenu[ VERGEML_MENU ], $item );
-            $submenu[ VERGEML_MENU ] = array_values( $submenu[ VERGEML_MENU ] );
-            break;
-        }
-    }
-}
 
 
 /**
@@ -492,7 +455,7 @@ function vergeml_journey_screen() {
     );
 
     if ( null !== $f['unused'] ) {
-        $figures[] = array( 'n' => $f['unused'], 'label' => __( 'unused', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-health' ), 'warn' => $f['unused'] > 0 );
+        $figures[] = array( 'n' => $f['unused'], 'label' => __( 'used nowhere', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-health' ), 'warn' => $f['unused'] > 0 );
     }
 
     if ( null !== $f['credits'] ) {
@@ -573,7 +536,7 @@ function vergeml_journey_screen() {
         <!-- the library itself, and what the model saw in it -->
         <div class="vgml-seen">
             <div class="vgml-seen-head">
-                <h2><?php esc_html_e( 'What it saw', 'vergelabs-media-library' ); ?></h2>
+                <h2><?php esc_html_e( 'Recently described', 'vergelabs-media-library' ); ?></h2>
                 <a href="<?php echo esc_url( admin_url( 'upload.php' ) ); ?>"><?php esc_html_e( 'Open the library', 'vergelabs-media-library' ); ?></a>
             </div>
             <ul class="vgml-seen-strip">
@@ -598,12 +561,28 @@ function vergeml_journey_screen() {
         </div>
         <?php endif; ?>
 
-        <!-- everything else, one line each -->
+        <?php
+        /*
+         *  Only what is still outstanding.
+         *
+         *  This listed every stage including the finished ones, so on a set-up
+         *  library it was five rows saying "Done" -- a section whose entire
+         *  content was the absence of anything to do. Finished work is already
+         *  visible in the figures and the bars above.
+         */
+        $waiting = array();
+
+        foreach ( $stages as $stage ) {
+            if ( 'now' !== $stage['state'] && 'library' !== $stage['id'] && 'done' !== $stage['state'] ) {
+                $waiting[] = $stage;
+            }
+        }
+        ?>
+        <?php if ( ! empty( $waiting ) ) : ?>
         <div class="vgml-rest">
-            <h2><?php esc_html_e( 'Everything else', 'vergelabs-media-library' ); ?></h2>
+            <h2><?php esc_html_e( 'Also worth doing', 'vergelabs-media-library' ); ?></h2>
             <ul class="vgml-rest-list">
-                <?php foreach ( $stages as $stage ) : ?>
-                    <?php if ( 'now' === $stage['state'] || 'library' === $stage['id'] ) { continue; } ?>
+                <?php foreach ( $waiting as $stage ) : ?>
                     <li class="vgml-rest-row is-<?php echo esc_attr( $stage['state'] ); ?>">
                         <a href="<?php echo esc_url( $stage['url'] ); ?>"><?php echo esc_html( $stage['title'] ); ?></a>
                         <span class="vgml-rest-state"><?php
@@ -613,6 +592,7 @@ function vergeml_journey_screen() {
                 <?php endforeach; ?>
             </ul>
         </div>
+        <?php endif; ?>
 
     </div>
     <?php
@@ -623,7 +603,7 @@ add_action( 'admin_enqueue_scripts', 'vergeml_journey_assets', 22 );
 
 function vergeml_journey_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-start' ) ) {
+    if ( ! defined( 'VERGEML_MENU' ) || 'toplevel_page_' . VERGEML_MENU !== $hook ) {
         return;
     }
 

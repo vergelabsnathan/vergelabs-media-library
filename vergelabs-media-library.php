@@ -1072,6 +1072,19 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
          *  said it was not a folder problem. Writing the empty map here puts it
          *  in alloptions and the query goes away.
          */
+        /*
+         *  The AI settings array gains site_profile. Merged rather than
+         *  written, so a site that already has a key and its choices keeps
+         *  them -- a changed default does nothing for an install that already
+         *  has the old value written down.
+         */
+        $vergeml_ai_settings = get_option( 'vergeml_ai', array() );
+
+        if ( is_array( $vergeml_ai_settings ) && ! array_key_exists( 'site_profile', $vergeml_ai_settings ) ) {
+            $vergeml_ai_settings['site_profile'] = '';
+            update_option( 'vergeml_ai', $vergeml_ai_settings, false );
+        }
+
         if ( false === get_option( 'vergeml_private_folders', false ) ) {
             add_option( 'vergeml_private_folders', array(), '', true );
         }

@@ -723,7 +723,8 @@ function vergeml_autofile_rest_act( WP_REST_Request $request ) {
 
 /* ----------------------------------------------------------------- the card */
 
-add_action( 'vergeml_ai_page_cards', 'vergeml_autofile_card' );
+// Filing, so it belongs with the Librarian rather than beside a licence key.
+add_action( 'vergeml_librarian_page_cards', 'vergeml_autofile_card' );
 
 function vergeml_autofile_card() {
 
@@ -752,7 +753,7 @@ add_action( 'admin_enqueue_scripts', 'vergeml_autofile_assets' );
 
 function vergeml_autofile_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-ai' ) ) {
+    if ( false === strpos( (string) $hook, 'media-librarian' ) ) {
         return;
     }
 

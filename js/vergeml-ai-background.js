@@ -35,16 +35,19 @@
 		var bar = $( 'vgml-ai-bg-bar' );
 		var fill = $( 'vgml-ai-bg-fill' );
 		var stop = $( 'vgml-ai-bg-stop' );
-		var start = $( 'vgml-ai-bg-start' );
-		var alt = $( 'vgml-ai-bg-alt' );
+		var start = $( 'vgml-ai-run' );
+		var alt = $( 'vgml-ai-alt' );
 
 		if ( ! note ) {
 			return;
 		}
 
 		stop.hidden = ! s.active;
-		start.disabled = !! s.active;
-		alt.disabled = !! s.active;
+
+		// The buttons belong to the describe section now; disable them while a
+		// background run is going so a second one cannot be started on top.
+		if ( start ) { start.disabled = !! s.active; }
+		if ( alt ) { alt.disabled = !! s.active; }
 
 		if ( ! s.active ) {
 			bar.hidden = true;
@@ -122,25 +125,18 @@
 		} );
 	}
 
-	function wire( id ) {
-		var el = $( id );
-
-		if ( ! el ) {
-			return;
-		}
-
-		el.addEventListener( 'click', function () {
-			begin( el.getAttribute( 'data-scope' ) );
-		} );
-	}
+	/*
+	 *  The only way in now. The two buttons this file used to own are gone --
+	 *  the describe section in core/ai.php has one pair, and a radio decides
+	 *  where the run happens. vergeml-ai.js calls this when that radio says
+	 *  background.
+	 */
+	window.vergemlStartBackground = begin;
 
 	document.addEventListener( 'DOMContentLoaded', function () {
 		if ( ! $( 'vgml-ai-bg-note' ) ) {
 			return;
 		}
-
-		wire( 'vgml-ai-bg-start' );
-		wire( 'vgml-ai-bg-alt' );
 
 		var stop = $( 'vgml-ai-bg-stop' );
 

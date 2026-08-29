@@ -36,6 +36,7 @@ function vergeml_ai_settings() {
 
     $defaults = array(
         'license_key'   => '',
+        'site_profile'  => '',
         'auto_alt'      => 1,
         'enrich_search' => 1,
         'mock'          => 0,
@@ -130,6 +131,96 @@ function vergeml_ai_ready() {
  *  intermediate that stays under a size cap, because the model needs to see
  *  the picture, not the original 8MB scan of it.
  */
+/**
+ *  vergeml_ai_context
+ *
+ *  What this site already knows about one file.
+ *
+ *  The service has taken this since it was built -- userPrompt() injects
+ *  filename, title, caption and the page it is used on -- and the free plugin
+ *  sent only the filename, so that paragraph collapsed to "Describe this
+ *  image." on every call it made. Pro has been sending the full set all along.
+ *
+ *  It is context, not instruction: the prompt says to use it for wording and
+ *  subject and not to repeat it back if the picture does not show it.
+ */
+/**
+ *  A first draft of the profile, from what WordPress already knows.
+ *
+ *  Shown as a placeholder rather than saved: a value nobody typed should not
+ *  quietly start shaping their descriptions, but a blank box with no example
+ *  is a field nobody fills in.
+ */
+function vergeml_ai_profile_hint() {
+
+    $name    = trim( (string) get_bloginfo( 'name' ) );
+    $tagline = trim( (string) get_bloginfo( 'description' ) );
+
+    $shop = class_exists( 'WooCommerce' )
+        ? __( 'An online shop.', 'vergelabs-media-library' )
+        : '';
+
+    $bits = array_filter( array( $shop, $name, $tagline ) );
+
+    if ( empty( $bits ) ) {
+        return __( 'For example: an online shop selling skateboards — decks, trucks, wheels and apparel. Brands stocked: Powell-Peralta, Element, Baker.', 'vergelabs-media-library' );
+    }
+
+    return implode( ' ', $bits ) . ' ' . __( '— and the words your trade uses.', 'vergelabs-media-library' );
+}
+
+
+function vergeml_ai_context( $attachment_id ) {
+
+    $post = get_post( $attachment_id );
+
+    $context = array(
+        'filename' => wp_basename( (string) get_attached_file( $attachment_id ) ),
+    );
+
+    if ( $post ) {
+
+        if ( '' !== (string) $post->post_title ) {
+            $context['title'] = (string) $post->post_title;
+        }
+
+        if ( '' !== (string) $post->post_excerpt ) {
+            $context['caption'] = (string) $post->post_excerpt;
+        }
+
+        if ( $post->post_parent ) {
+
+            $parent = get_post( $post->post_parent );
+
+            if ( $parent ) {
+
+                $context['post_title'] = (string) $parent->post_title;
+
+                /*
+                 *  A product knows more about itself than its title does. On a
+                 *  shop this is the difference between "a wheeled board" and
+                 *  the deck it actually is -- and the prompt forbids guessing a
+                 *  brand, so if we do not say it, nothing will.
+                 *
+                 *  Guarded on the class rather than a function: no dependency
+                 *  is added and nothing here runs on a site without it.
+                 */
+                if ( class_exists( 'WooCommerce' ) && 'product' === $parent->post_type ) {
+
+                    $terms = wp_get_object_terms( $parent->ID, 'product_cat', array( 'fields' => 'names' ) );
+
+                    if ( ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+                        $context['product_categories'] = implode( ', ', array_slice( $terms, 0, 6 ) );
+                    }
+                }
+            }
+        }
+    }
+
+    return $context;
+}
+
+
 function vergeml_ai_describe( $attachment_id ) {
 
     $settings = vergeml_ai_settings();
@@ -166,6 +257,10 @@ function vergeml_ai_describe( $attachment_id ) {
                 'filename'    => wp_basename( get_attached_file( $attachment_id ) ),
                 'mime'        => get_post_mime_type( $attachment_id ),
                 'image'       => $file,
+                // Everything this site already knows, so the model does not
+                // have to guess what it is not allowed to guess.
+                'context'     => vergeml_ai_context( $attachment_id ),
+                'profile'     => (string) $settings['site_profile'],
             ) ),
         )
     );
@@ -412,7 +507,14 @@ function vergeml_ai_pending( $scope, $limit = 0 ) {
 
         $stamp = vergeml_index_current_stamp();
 
-        return vergeml_index_stale( $stamp['model'], $stamp['model_version'], $stamp['dims'], 0, $limit );
+        return vergeml_index_stale(
+            $stamp['model'],
+            $stamp['model_version'],
+            $stamp['dims'],
+            0,
+            $limit,
+            isset( $stamp['prompt_hash'] ) ? $stamp['prompt_hash'] : ''
+        );
     }
 
     // The LIMIT is always a prepared placeholder; "no limit" is simply the
@@ -697,6 +799,7 @@ function vergeml_ai_routes() {
         },
         'args'                => array(
             'license_key'   => array( 'type' => 'string' ),
+            'site_profile'  => array( 'type' => 'string' ),
             'auto_alt'      => array( 'type' => 'integer' ),
             'enrich_search' => array( 'type' => 'integer' ),
             'mock'          => array( 'type' => 'integer' ),
@@ -728,6 +831,7 @@ function vergeml_ai_rest_status() {
             'enrich_search' => (int) $settings['enrich_search'],
             'mock'          => (int) $settings['mock'],
             'has_license'   => '' !== vergeml_ai_unseal( $settings['license_key'] ),
+            'site_profile'  => (string) $settings['site_profile'],
         ),
     ) );
 }
@@ -760,6 +864,14 @@ function vergeml_ai_rest_settings( WP_REST_Request $request ) {
     $key = $request->get_param( 'license_key' );
     if ( null !== $key && '' !== $key ) {
         $settings['license_key'] = vergeml_ai_seal( sanitize_text_field( $key ) );
+    }
+
+    $profile = $request->get_param( 'site_profile' );
+
+    if ( null !== $profile ) {
+        // 500 to match MAX_PROFILE on the service, which truncates anything
+        // longer -- better to cut it here, where somebody can see it happen.
+        $settings['site_profile'] = substr( sanitize_textarea_field( (string) $profile ), 0, 500 );
     }
 
     foreach ( array( 'auto_alt', 'enrich_search', 'mock' ) as $flag ) {
@@ -839,14 +951,14 @@ function vergeml_ai_page() {
         <?php if ( $can_configure ) : ?>
         <div class="vgml-ai-card">
             <h2><?php esc_html_e( 'Licence', 'vergelabs-media-library' ); ?></h2>
-            <p class="description"><?php esc_html_e( 'AI features run on VergeLabs credits. Your licence key connects this site; images are sent to the VergeLabs AI service only to be described, and nothing else leaves your site.', 'vergelabs-media-library' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Images are sent to the VergeLabs AI service only to be described. Nothing else leaves your site.', 'vergelabs-media-library' ); ?></p>
             <table class="form-table" role="presentation">
                 <tr>
-                    <th scope="row"><label for="vgml-ai-license"><?php esc_html_e( 'Licence key', 'vergelabs-media-library' ); ?></label></th>
+                    <th scope="row"><label for="vgml-ai-license"><?php esc_html_e( 'Licence key', 'vergelabs-media-library' ); ?></label><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'license_key' ); } ?></th>
                     <td><input type="password" id="vgml-ai-license" class="regular-text" autocomplete="off" placeholder="<?php esc_attr_e( 'unchanged', 'vergelabs-media-library' ); ?>"></td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php esc_html_e( 'Credits', 'vergelabs-media-library' ); ?></th>
+                    <th scope="row"><?php esc_html_e( 'Credits', 'vergelabs-media-library' ); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'credits' ); } ?></th>
                     <td>
                         <span id="vgml-ai-credits"><?php esc_html_e( 'Unknown until the first run', 'vergelabs-media-library' ); ?></span>
                         &nbsp;·&nbsp;
@@ -864,7 +976,17 @@ function vergeml_ai_page() {
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php esc_html_e( 'Behaviour', 'vergelabs-media-library' ); ?></th>
+                    <th scope="row">
+                        <label for="vgml-ai-profile"><?php esc_html_e( 'What this site is about', 'vergelabs-media-library' ); ?></label>
+                        <?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'site_profile' ); } ?>
+                    </th>
+                    <td>
+                        <textarea id="vgml-ai-profile" rows="3" class="large-text" maxlength="500" placeholder="<?php echo esc_attr( vergeml_ai_profile_hint() ); ?>"></textarea>
+                        <p class="description"><?php esc_html_e( 'Changing this only affects images described from now on.', 'vergelabs-media-library' ); ?></p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Search', 'vergelabs-media-library' ); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'enrich_search' ); } ?></th>
                     <td>
                         <label><input type="checkbox" id="vgml-ai-enrich"> <?php esc_html_e( 'Let media search match AI captions and tags', 'vergelabs-media-library' ); ?></label>
                     </td>
@@ -887,12 +1009,9 @@ function vergeml_ai_page() {
                  */
                 ?>
                 <tr>
-                    <th scope="row"><?php esc_html_e( 'Testing', 'vergelabs-media-library' ); ?></th>
+                    <th scope="row"><?php esc_html_e( 'Try it free', 'vergelabs-media-library' ); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'mock' ); } ?></th>
                     <td>
-                        <label><input type="checkbox" id="vgml-ai-mock"> <?php esc_html_e( 'Demo mode', 'vergelabs-media-library' ); ?></label>
-                        <p class="description">
-                            <?php esc_html_e( 'Descriptions are invented on this server from file names. Nothing is sent anywhere, no credits are spent, and no licence is needed — so you can see what the folder tree and the Librarian would do to your library before paying for anything. The captions are not real: turn this off before judging what the AI is worth.', 'vergelabs-media-library' ); ?>
-                        </p>
+                        <label><input type="checkbox" id="vgml-ai-mock"> <?php esc_html_e( 'Demo mode — invent captions here, send nothing, spend nothing', 'vergelabs-media-library' ); ?></label>
                         <?php if ( defined( 'VERGEML_AI_MOCK' ) ) : ?>
                             <p class="description">
                                 <strong><?php esc_html_e( 'Forced on by the VERGEML_AI_MOCK constant in this site\'s configuration — the checkbox above cannot switch it off.', 'vergelabs-media-library' ); ?></strong>
@@ -908,13 +1027,33 @@ function vergeml_ai_page() {
         </div>
         <?php endif; ?>
 
+        <?php
+        /*
+         *  One describe section.
+         *
+         *  There were two -- "Describe the library" and "Describe in the
+         *  background" -- offering the same two jobs with different buttons,
+         *  and nothing said why you would pick one. Watching it happen or
+         *  letting it run on its own is a choice about this run, not a
+         *  different feature, so it is a choice inside the section.
+         */
+        ?>
         <div class="vgml-ai-card">
-            <h2><?php esc_html_e( 'Describe the library', 'vergelabs-media-library' ); ?></h2>
+            <h2><?php esc_html_e( 'Describe your images', 'vergelabs-media-library' ); ?></h2>
             <p class="description"><?php esc_html_e( 'Each image is shown to the model once. The description powers search, alt text, and everything after it.', 'vergelabs-media-library' ); ?></p>
+
+            <p class="vgml-ai-choice">
+                <label><input type="radio" name="vgml-ai-where" value="here" checked> <?php esc_html_e( 'Watch it here', 'vergelabs-media-library' ); ?></label>
+                <label><input type="radio" name="vgml-ai-where" value="background"> <?php esc_html_e( 'Run in the background — you can close this tab', 'vergelabs-media-library' ); ?></label>
+            </p>
+
             <p>
                 <button type="button" class="button button-primary" id="vgml-ai-run" data-scope="unindexed"><?php esc_html_e( 'Describe new images', 'vergelabs-media-library' ); ?></button>
                 <button type="button" class="button" id="vgml-ai-alt" data-scope="missing-alt"><?php esc_html_e( 'Fix missing alt text', 'vergelabs-media-library' ); ?></button>
+                <button type="button" class="button" id="vgml-ai-bg-stop" hidden><?php esc_html_e( 'Stop', 'vergelabs-media-library' ); ?></button>
             </p>
+            <div class="vgml-import-bar" id="vgml-ai-bg-bar" hidden><div class="vgml-import-fill" id="vgml-ai-bg-fill"></div></div>
+            <p id="vgml-ai-bg-note"></p>
             <div class="vgml-import-bar" id="vgml-ai-bar" hidden><div class="vgml-import-fill" id="vgml-ai-fill"></div></div>
             <p id="vgml-ai-note"></p>
             <ul id="vgml-ai-log" class="vgml-ai-log"></ul>

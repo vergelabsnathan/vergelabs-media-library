@@ -2663,6 +2663,19 @@ function vergeml_librarian_page() {
         <div id="vgml-lib-review"></div>
         <div id="vgml-lib-history"></div>
 
+        <?php
+        /*
+         *  Where the other filing tools go.
+         *
+         *  "File what is still loose" and "Say what you want" both put files
+         *  into folders, and both were on the AI screen -- next to the licence
+         *  key and the credit balance, which they have nothing to do with. The
+         *  AI screen was six unrelated sections stacked; this is where two of
+         *  them belong.
+         */
+        do_action( 'vergeml_librarian_page_cards' );
+        ?>
+
     </div>
     <?php
 }

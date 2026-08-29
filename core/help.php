@@ -94,6 +94,8 @@ function vergeml_help_texts() {
 
         'enrich_search' => __( 'Lets the media search match what the AI saw in a picture, not only what you typed about it. A search for “beach” then finds the photo of a beach whose file name says DSC_0431.', 'vergelabs-media-library' ),
 
+        'site_profile' => __( 'What you sell or publish, in a sentence or two. The model is told never to guess a brand or product name, so this is where you give it the ones it should know — it makes descriptions more exact, not longer.', 'vergelabs-media-library' ),
+
         'mock' => __( 'Invents descriptions on this server from file names, so you can see what the folders and the Librarian would do before paying for anything. Nothing is sent anywhere and no credits are spent. The captions are not real.', 'vergelabs-media-library' ),
     );
 

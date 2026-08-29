@@ -1163,6 +1163,15 @@ function vergeml_health_page() {
 
         <div id="vgml-health-report"></div>
 
+        <?php
+        /*
+         *  Setting a file aside is what you do about a duplicate, so it lives
+         *  with the duplicates rather than on the AI screen, where it sat
+         *  under the licence key for no reason anybody could have explained.
+         */
+        do_action( 'vergeml_health_page_cards' );
+        ?>
+
     </div>
     <?php
 }

@@ -624,7 +624,8 @@ function vergeml_nl_rest_run( WP_REST_Request $request ) {
 
 /* ----------------------------------------------------------------- the card */
 
-add_action( 'vergeml_ai_page_cards', 'vergeml_nl_card' );
+// Moving and tagging files, so it belongs with the Librarian.
+add_action( 'vergeml_librarian_page_cards', 'vergeml_nl_card' );
 
 function vergeml_nl_card() {
 
@@ -654,7 +655,7 @@ add_action( 'admin_enqueue_scripts', 'vergeml_nl_assets' );
 
 function vergeml_nl_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-ai' ) ) {
+    if ( false === strpos( (string) $hook, 'media-librarian' ) ) {
         return;
     }
 

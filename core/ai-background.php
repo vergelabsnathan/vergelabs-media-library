@@ -336,26 +336,15 @@ function vergeml_ai_run_rest_write( WP_REST_Request $request ) {
 
 /* ---------------------------------------------------------------- the card */
 
-add_action( 'vergeml_ai_page_cards', 'vergeml_ai_run_card' );
-
-function vergeml_ai_run_card() {
-
-    ?>
-    <div class="vgml-ai-card">
-        <h2><?php esc_html_e( 'Describe in the background', 'vergelabs-media-library' ); ?></h2>
-        <p class="description">
-            <?php esc_html_e( 'The same descriptions, without keeping this page open. The run continues on its own and picks up where it left off, so a library of twenty thousand does not need somebody watching it. It is slower than the button above, because it works whenever the site is visited rather than as fast as your browser can ask.', 'vergelabs-media-library' ); ?>
-        </p>
-        <p>
-            <button type="button" class="button button-primary" id="vgml-ai-bg-start" data-scope="unindexed"><?php esc_html_e( 'Start in the background', 'vergelabs-media-library' ); ?></button>
-            <button type="button" class="button" id="vgml-ai-bg-alt" data-scope="missing-alt"><?php esc_html_e( 'Alt text in the background', 'vergelabs-media-library' ); ?></button>
-            <button type="button" class="button" id="vgml-ai-bg-stop" hidden><?php esc_html_e( 'Stop', 'vergelabs-media-library' ); ?></button>
-        </p>
-        <div class="vgml-import-bar" id="vgml-ai-bg-bar" hidden><div class="vgml-import-fill" id="vgml-ai-bg-fill"></div></div>
-        <p id="vgml-ai-bg-note"></p>
-    </div>
-    <?php
-}
+/*
+ *  No card of its own.
+ *
+ *  This used to render "Describe in the background" directly under "Describe
+ *  the library", with two buttons doing the same two jobs. One feature, shown
+ *  twice, with nothing saying which to pick. The choice now lives inside the
+ *  one describe section in core/ai.php, and the progress line and stop button
+ *  there are these -- same ids, so the JS below is unchanged.
+ */
 
 
 add_action( 'admin_enqueue_scripts', 'vergeml_ai_run_assets' );

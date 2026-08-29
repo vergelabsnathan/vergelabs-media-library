@@ -28,6 +28,9 @@
 
 			if ( $( 'vgml-ai-license' ) ) {
 				$( 'vgml-ai-enrich' ).checked = !! s.settings.enrich_search;
+				if ( $( 'vgml-ai-profile' ) ) {
+					$( 'vgml-ai-profile' ).value = s.settings.site_profile || '';
+				}
 				$( 'vgml-ai-mock' ).checked = !! s.settings.mock;
 				if ( s.settings.has_license ) {
 					$( 'vgml-ai-license' ).placeholder = '•••••••• (saved)';
@@ -135,12 +138,33 @@
 			} );
 		}
 
+		/*
+		 *  Where the run happens is a choice about this run, not a different
+		 *  feature -- so it is a radio beside the buttons rather than a second
+		 *  section with a second pair of buttons, which is what it was.
+		 */
+		function inBackground() {
+			var picked = document.querySelector( 'input[name="vgml-ai-where"]:checked' );
+			return !! picked && 'background' === picked.value;
+		}
+
+		function start( scope ) {
+			if ( ! inBackground() ) {
+				run( scope, true );
+				return;
+			}
+
+			if ( window.vergemlStartBackground ) {
+				window.vergemlStartBackground( scope );
+			}
+		}
+
 		$( 'vgml-ai-run' ).addEventListener( 'click', function () {
-			run( 'unindexed', true );
+			start( 'unindexed' );
 		} );
 
 		$( 'vgml-ai-alt' ).addEventListener( 'click', function () {
-			run( 'missing-alt', true );
+			start( 'missing-alt' );
 		} );
 	}
 

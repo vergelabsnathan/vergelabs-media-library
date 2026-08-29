@@ -989,7 +989,7 @@ function vergeml_print_network_settings() {
                                     <table class="form-table">
 
                                         <tr>
-                                            <th scope="row"><?php esc_html_e('Media Settings per site','vergelabs-media-library'); ?></th>
+                                            <th scope="row"><?php esc_html_e('Media Settings per site','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'media_settings' ); } ?></th>
                                             <td>
                                                 <fieldset>
                                                     <legend class="screen-reader-text"><span><?php esc_html_e('Enable Media Settings','vergelabs-media-library'); ?></span></legend>
@@ -1000,7 +1000,7 @@ function vergeml_print_network_settings() {
                                         </tr>
 
                                         <tr>
-                                            <th scope="row"><?php esc_html_e('Plugin Utilities per site','vergelabs-media-library'); ?></th>
+                                            <th scope="row"><?php esc_html_e('Plugin Utilities per site','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'utilities' ); } ?></th>
                                             <td>
                                                 <fieldset>
                                                     <legend class="screen-reader-text"><span><?php esc_html_e('Enable plugin Utilities','vergelabs-media-library'); ?></span></legend>
@@ -1810,7 +1810,7 @@ function vergeml_print_media_library_options() {
                                 <table class="form-table">
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Force filters','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Force filters','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'force_filters' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Force filters','vergelabs-media-library'); ?></span></legend>
@@ -1821,7 +1821,7 @@ function vergeml_print_media_library_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Filters to show', 'vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Filters to show', 'vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'filters_to_show' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Filters to show', 'vergelabs-media-library'); ?></span></legend>
@@ -1837,7 +1837,7 @@ function vergeml_print_media_library_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Show count','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Show count','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'show_count' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Show count','vergelabs-media-library'); ?></span></legend>
@@ -1848,7 +1848,7 @@ function vergeml_print_media_library_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Include children','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Include children','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'include_children' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Include children','vergelabs-media-library'); ?></span></legend>
@@ -1858,7 +1858,7 @@ function vergeml_print_media_library_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Uploaded to this post by default','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Uploaded to this post by default','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'filter_uploaded' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Uploaded to this post by default','vergelabs-media-library'); ?></span></legend>
@@ -1885,7 +1885,7 @@ function vergeml_print_media_library_options() {
                                 <table class="form-table">
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Infinite scrolling','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Infinite scrolling','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'infinite_scrolling' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Infinite scrolling','vergelabs-media-library'); ?></span></legend>
@@ -1896,7 +1896,7 @@ function vergeml_print_media_library_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Number per page','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Number per page','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'loads_per_page' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Number per page','vergelabs-media-library'); ?></span></legend>
@@ -1935,7 +1935,7 @@ function vergeml_print_media_library_options() {
                                 <table class="form-table">
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e( 'Search in', 'vergelabs-media-library' ); ?></th>
+                                        <th scope="row"><?php esc_html_e( 'Search in', 'vergelabs-media-library' ); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'search_in' ); } ?></th>
                                         <td>
                                             <fieldset id="vergeml_lib_options_search_in">
                                                 <legend class="screen-reader-text"><span><?php esc_html_e( 'Search in', 'vergelabs-media-library' ); ?></span></legend>
@@ -1963,7 +1963,7 @@ function vergeml_print_media_library_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Search on enter','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Search on enter','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'search_on_enter' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Search on enter','vergelabs-media-library'); ?></span></legend>
@@ -1975,7 +1975,7 @@ function vergeml_print_media_library_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Auto search','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Auto search','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'search_auto' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Auto search','vergelabs-media-library'); ?></span></legend>
@@ -2018,7 +2018,7 @@ function vergeml_print_media_library_options() {
                                 <table class="form-table">
 
                                     <tr>
-                                        <th scope="row"><label for="vergeml_lib_options[media_orderby]"><?php esc_html_e('Order media items by','vergelabs-media-library'); ?></label></th>
+                                        <th scope="row"><label for="vergeml_lib_options[media_orderby]"><?php esc_html_e('Order media items by','vergelabs-media-library'); ?></label><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'media_orderby' ); } ?></th>
                                         <td>
                                             <select name="vergeml_lib_options[media_orderby]" id="vergeml_lib_options_media_orderby">
                                                 <option value="date" <?php selected( $vergeml_lib_options['media_orderby'], 'date' ); ?>><?php esc_html_e('Date','vergelabs-media-library'); ?></option>
@@ -2031,7 +2031,7 @@ function vergeml_print_media_library_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><label for="vergeml_lib_options[media_order]"><?php esc_html_e('Sort order','vergelabs-media-library'); ?></label></th>
+                                        <th scope="row"><label for="vergeml_lib_options[media_order]"><?php esc_html_e('Sort order','vergelabs-media-library'); ?></label><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'media_order' ); } ?></th>
                                         <td>
                                             <select name="vergeml_lib_options[media_order]" id="vergeml_lib_options_media_order">
                                                 <option value="ASC" <?php selected( $vergeml_lib_options['media_order'], 'ASC' ); ?>><?php esc_html_e('Ascending','vergelabs-media-library'); ?></option>
@@ -2069,7 +2069,7 @@ function vergeml_print_media_library_options() {
                                 <table class="form-table">
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Right sidebar width','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Right sidebar width','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'grid_sidebar_width' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Right sidebar width','vergelabs-media-library'); ?></span></legend>
@@ -2079,7 +2079,7 @@ function vergeml_print_media_library_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Ideal column width','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Ideal column width','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'ideal_column_width' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Ideal column width','vergelabs-media-library'); ?></span></legend>
@@ -2089,7 +2089,7 @@ function vergeml_print_media_library_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Show caption','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Show caption','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'grid_show_caption' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Show caption','vergelabs-media-library'); ?></span></legend>
@@ -2127,7 +2127,7 @@ function vergeml_print_media_library_options() {
                                 <table class="form-table">
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Enhanced media shortcodes','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Enhanced media shortcodes','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'enhance_media_shortcodes' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Enhanced media shortcodes','vergelabs-media-library'); ?></span></legend>
@@ -2519,7 +2519,7 @@ function vergeml_print_taxonomies_options() {
 
                                 <table class="form-table">
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Taxonomy archive pages','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Taxonomy archive pages','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'tax_archives' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Taxonomy archive pages','vergelabs-media-library'); ?></span></legend>
@@ -2530,7 +2530,7 @@ function vergeml_print_taxonomies_options() {
                                     </tr>
 
                                     <tr>
-                                        <th scope="row"><?php esc_html_e('Assign all like hierarchical','vergelabs-media-library'); ?></th>
+                                        <th scope="row"><?php esc_html_e('Assign all like hierarchical','vergelabs-media-library'); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'edit_all_as_hierarchical' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Assign all like hierarchical','vergelabs-media-library'); ?></span></legend>
@@ -2557,7 +2557,7 @@ function vergeml_print_taxonomies_options() {
                                          */
                                     ?>
                                     <tr>
-                                        <th scope="row"><?php esc_html_e( 'One folder per file', 'vergelabs-media-library' ); ?></th>
+                                        <th scope="row"><?php esc_html_e( 'One folder per file', 'vergelabs-media-library' ); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'one_folder_per_file' ); } ?></th>
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e( 'One folder per file', 'vergelabs-media-library' ); ?></span></legend>

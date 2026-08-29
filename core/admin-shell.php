@@ -44,53 +44,78 @@ const VERGEML_SHELL_NAV = 225;
  */
 function vergeml_shell_pages() {
 
-    global $submenu;
+    /*
+     *  An explicit list, not $submenu.
+     *
+     *  It was read from $submenu so a page added later would appear by itself.
+     *  Then the sidebar copy of that same menu was removed -- WordPress was
+     *  drawing an identical nine-item list right beside this one -- and
+     *  $submenu is now empty, so the nav has to say what it contains.
+     *
+     *  Grouped, because eight flat items is a list and eight grouped items is
+     *  a menu. The three settings screens are the ones nobody opens twice.
+     */
+    $pages = array(
+        array(
+            'slug'  => VERGEML_MENU,
+            'label' => __( 'Dashboard', 'vergelabs-media-library' ),
+            'cap'   => 'manage_categories',
+        ),
+        array(
+            'slug'  => 'media-librarian',
+            'label' => __( 'Librarian', 'vergelabs-media-library' ),
+            'cap'   => 'manage_categories',
+        ),
+        array(
+            'slug'  => 'media-ai',
+            'label' => __( 'AI', 'vergelabs-media-library' ),
+            'cap'   => 'manage_categories',
+        ),
+        array(
+            'slug'  => 'media-health',
+            'label' => __( 'Duplicates', 'vergelabs-media-library' ),
+            'cap'   => 'manage_categories',
+        ),
+        array(
+            'slug'  => 'media-import-folders',
+            'label' => __( 'Import folders', 'vergelabs-media-library' ),
+            'cap'   => 'manage_categories',
+        ),
+        array(
+            'slug'  => 'media-taxonomies',
+            'label' => __( 'Folders and taxonomies', 'vergelabs-media-library' ),
+            'cap'   => 'manage_options',
+            'group' => 'settings',
+        ),
+        array(
+            'slug'  => 'media-library',
+            'label' => __( 'Library behaviour', 'vergelabs-media-library' ),
+            'cap'   => 'manage_options',
+            'group' => 'settings',
+        ),
+        array(
+            'slug'  => 'mime-types',
+            'label' => __( 'File types', 'vergelabs-media-library' ),
+            'cap'   => 'manage_options',
+            'group' => 'settings',
+        ),
+    );
 
-    if ( ! isset( $submenu[ VERGEML_MENU ] ) || ! is_array( $submenu[ VERGEML_MENU ] ) ) {
-        return array();
-    }
+    $out = array();
 
-    $pages = array();
+    foreach ( $pages as $page ) {
 
-    foreach ( $submenu[ VERGEML_MENU ] as $item ) {
-
-        if ( empty( $item[2] ) || empty( $item[0] ) ) {
+        if ( ! current_user_can( $page['cap'] ) ) {
             continue;
         }
 
-        $slug = (string) $item[2];
+        $page['url']   = admin_url( 'admin.php?page=' . $page['slug'] );
+        $page['group'] = isset( $page['group'] ) ? $page['group'] : '';
 
-        $pages[] = array(
-            // The label carries markup on some core menus (update counts and
-            // the like); the nav wants the words.
-            'label' => wp_strip_all_tags( (string) $item[0] ),
-            'slug'  => $slug,
-            'url'   => vergeml_shell_url( $slug ),
-        );
+        $out[] = $page;
     }
 
-    return $pages;
-}
-
-
-/**
- *  Where a submenu entry actually lives.
- *
- *  Asked of WordPress rather than assembled here. These screens hang off a
- *  top-level plugin page, so they are `admin.php?page=<slug>` -- the first
- *  version of this guessed `upload.php?page=<slug>`, which is where they used
- *  to live, and every nav link but one answered 403. menu_page_url() knows,
- *  because it is the function that registered them.
- */
-function vergeml_shell_url( $slug ) {
-
-    if ( false !== strpos( $slug, '.php' ) ) {
-        return admin_url( $slug );
-    }
-
-    $url = menu_page_url( $slug, false );
-
-    return $url ? $url : admin_url( 'admin.php?page=' . $slug );
+    return $out;
 }
 
 
@@ -160,7 +185,12 @@ function vergeml_shell_open() {
                 </div>
 
                 <ul class="vgml-shell-list">
+                    <?php $group = ''; ?>
                     <?php foreach ( $pages as $page ) : ?>
+                        <?php if ( 'settings' === $page['group'] && 'settings' !== $group ) : ?>
+                            <li class="vgml-shell-group"><?php esc_html_e( 'Settings', 'vergelabs-media-library' ); ?></li>
+                        <?php endif; ?>
+                        <?php $group = $page['group']; ?>
                         <li>
                             <a
                                 href="<?php echo esc_url( $page['url'] ); ?>"

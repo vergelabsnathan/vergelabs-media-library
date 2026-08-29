@@ -560,7 +560,7 @@ function vergeml_index_current_stamp() {
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     $row = $wpdb->get_row(
-        "SELECT model, model_version, embedding_dims FROM {$wpdb->vergeml_ai_index}
+        "SELECT model, model_version, embedding_dims, prompt_hash FROM {$wpdb->vergeml_ai_index}
           WHERE error = '' AND described_at IS NOT NULL
           ORDER BY described_at DESC, attachment_id DESC
           LIMIT 1",
@@ -569,13 +569,24 @@ function vergeml_index_current_stamp() {
     // phpcs:enable
 
     if ( ! $row ) {
-        return array( 'model' => '', 'model_version' => '', 'dims' => 0 );
+        return array( 'model' => '', 'model_version' => '', 'dims' => 0, 'prompt_hash' => '' );
     }
 
     return array(
         'model'         => (string) $row['model'],
         'model_version' => (string) $row['model_version'],
         'dims'          => (int) $row['embedding_dims'],
+        /*
+         *  The prompt that produced the newest answer.
+         *
+         *  This column has been written since the index existed, and its
+         *  docblock on the service says it is there so that "nothing can
+         *  decide whether a stored row is worth re-running after the prompt is
+         *  improved". Nothing read it. Improving the prompt -- or, now, typing
+         *  a site profile -- left every existing description in place with no
+         *  way to find them.
+         */
+        'prompt_hash'   => (string) $row['prompt_hash'],
     );
 }
 
@@ -596,18 +607,19 @@ function vergeml_index_current_stamp() {
  *  every row with a different model handed back as well.
  */
 
-function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0, $limit = 0 ) {
+function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0, $limit = 0, $prompt_hash = '' ) {
 
     global $wpdb;
 
     $check_model   = '' !== (string) $model ? 1 : 0;
     $check_version = '' !== (string) $version ? 1 : 0;
     $check_dims    = (int) $dims > 0 ? 1 : 0;
+    $check_prompt  = '' !== (string) $prompt_hash ? 1 : 0;
 
     // Nothing to compare against: no row can be stale. Handing back the whole
     // table because the caller passed nothing would be the worst available
     // reading of an empty argument.
-    if ( ! $check_model && ! $check_version && ! $check_dims ) {
+    if ( ! $check_model && ! $check_version && ! $check_dims && ! $check_prompt ) {
         return array();
     }
 
@@ -632,6 +644,7 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
                     ( %d = 1 AND model <> %s )
                  OR ( %d = 1 AND model_version <> %s )
                  OR ( %d = 1 AND ( embedding_dims IS NULL OR embedding_dims <> %d ) )
+                 OR ( %d = 1 AND ( prompt_hash IS NULL OR prompt_hash <> %s ) )
                 )
           ORDER BY attachment_id ASC
           LIMIT %d",
@@ -642,6 +655,8 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
         (string) $version,
         $check_dims,
         (int) $dims,
+        $check_prompt,
+        (string) $prompt_hash,
         $limit > 0 ? (int) $limit : PHP_INT_MAX
     ) ) );
     // phpcs:enable

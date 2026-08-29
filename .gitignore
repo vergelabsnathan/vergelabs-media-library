@@ -36,3 +36,4 @@ tests/tree/nl-commands-last-run.txt
 tests/tree/quarantine-last-run.txt
 
 tests/tree/utilities-last-run.txt
+tools/shots/

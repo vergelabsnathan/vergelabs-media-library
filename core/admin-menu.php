@@ -52,7 +52,10 @@ function vergeml_admin_menu() {
         __( 'VergeLabs Library', 'vergelabs-media-library' ),
         'manage_categories',
         VERGEML_MENU,
-        'vergeml_admin_home',
+        // The dashboard IS the plugin's home. It used to be a card menu called
+        // Overview, with a second home screen called Start above it -- two
+        // front doors to the same house.
+        'vergeml_journey_screen',
         vergeml_menu_icon(),
         /*
          *  Below the content cluster, above Appearance -- its own product,
@@ -61,15 +64,28 @@ function vergeml_admin_menu() {
         58
     );
 
-    // The first submenu repeats the parent, so it reads as a name rather than
-    // as whichever screen happens to be first.
-    add_submenu_page(
-        VERGEML_MENU,
-        __( 'Media Library', 'vergelabs-media-library' ),
-        __( 'Overview', 'vergelabs-media-library' ),
-        'manage_categories',
-        VERGEML_MENU,
-        'vergeml_admin_home'
+    /*
+     *  The sidebar submenu is hidden, not removed.
+     *
+     *  The plugin draws its own nav inside the page (core/admin-shell.php) and
+     *  WordPress was drawing an identical nine-item list in the black sidebar
+     *  beside it. Two menus, same screens, side by side.
+     *
+     *  The first attempt at this called remove_submenu_page() on each entry,
+     *  which broke every one of them: user_can_access_admin_page() looks the
+     *  page up in $submenu to decide whether you may open it, so removing the
+     *  entry answers 403. The entries stay; the sidebar simply does not draw
+     *  them.
+     */
+    add_action( 'admin_head', 'vergeml_hide_submenu' );
+}
+
+
+function vergeml_hide_submenu() {
+
+    printf(
+        '<style>#adminmenu .toplevel_page_%s .wp-submenu{display:none}</style>',
+        esc_attr( VERGEML_MENU )
     );
 }
 
