@@ -1306,6 +1306,12 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // registered, so it has to see a finished menu. Inside the guard --
         // if the shell breaks, safe mode gives back plain WordPress screens
         // rather than nine broken ones.
+        // Reads the state helpers of librarian, health, organize, ai and
+        // import, so it loads after all of them. Every read is guarded --
+        // in safe mode those files are absent and the stage is simply not
+        // in the list.
+        include_once( 'core/journey.php' );
+        include_once( 'core/help.php' );
         include_once( 'core/admin-shell.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {

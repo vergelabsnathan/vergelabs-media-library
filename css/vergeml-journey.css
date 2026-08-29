@@ -1,0 +1,341 @@
+/*
+ *  The dashboard.
+ *
+ *  Leads with figures, shows coverage as a shape, puts one action in one
+ *  place, and then shows the library itself. The first version of this screen
+ *  was seven paragraphs with buttons under them, which is a settings page
+ *  wearing a different hat.
+ *
+ *  Deliberately absent: ring gauges, numbered circles joined by a line, cards
+ *  with a coloured top border and an icon in a rounded square. The bar is
+ *  .vgml-import-bar, which this plugin already draws during an import, so
+ *  progress is one shape everywhere in the product.
+ *
+ *  All tokens come from .vgml-shell. Nothing is redefined.
+ */
+
+/* ----------------------------------------------------------- the figures */
+
+/*
+ *  Numbers first, big enough to read without leaning in, and each one a link
+ *  to the screen that does something about it. A figure you cannot act on is
+ *  decoration.
+ */
+.vgml-figures {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0;
+	margin: 0 0 32px;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	overflow: hidden;
+	background: var(--vgml-surface);
+}
+
+.vgml-figure {
+	flex: 1 1 130px;
+	padding: 18px 20px;
+	text-decoration: none;
+	border-right: 1px solid var(--vgml-rule);
+	transition: background .12s ease;
+}
+
+.vgml-figure:last-child {
+	border-right: 0;
+}
+
+.vgml-figure:hover {
+	background: #fff;
+}
+
+.vgml-figure:focus {
+	box-shadow: none;
+	outline: none;
+}
+
+.vgml-figure:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: -2px;
+}
+
+.vgml-figure-n {
+	display: block;
+	font-size: 30px;
+	line-height: 1.1;
+	font-weight: 700;
+	letter-spacing: -.03em;
+	color: var(--vgml-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-figure-l {
+	display: block;
+	margin-top: 3px;
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+/* A number that wants attention says so in the accent, not in red. Nothing
+   here is an error -- unfiled files are a job, not a fault. */
+.vgml-figure.is-warn .vgml-figure-n {
+	color: var(--vgml-accent);
+}
+
+/* ------------------------------------------------------------ the meters */
+
+.vgml-meters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 28px;
+	margin: 0 0 32px;
+}
+
+.vgml-meter {
+	flex: 1 1 260px;
+}
+
+.vgml-meter-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin-bottom: 7px;
+}
+
+.vgml-meter-label {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+}
+
+.vgml-meter-note {
+	font-size: 12px;
+	color: var(--vgml-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-dash .vgml-import-bar {
+	margin: 0;
+	height: 8px;
+	background: var(--vgml-rule);
+	border-radius: 44px;
+	overflow: hidden;
+}
+
+.vgml-dash .vgml-import-fill {
+	height: 100%;
+	background: var(--vgml-accent);
+	border-radius: 44px;
+}
+
+/* -------------------------------------------------------- the one action */
+
+/*
+ *  The same two devices the nav uses for the current screen -- an accent bar
+ *  and a warmer ground -- so "this is where you are" looks the same
+ *  everywhere in the plugin.
+ */
+.vgml-next {
+	position: relative;
+	background: var(--vgml-surface);
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	padding: 22px 24px 24px;
+	margin: 0 0 32px;
+	overflow: hidden;
+}
+
+.vgml-next::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 3px;
+	background: var(--vgml-accent);
+}
+
+.vgml-next-eyebrow {
+	margin: 0 0 4px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: .05em;
+	text-transform: uppercase;
+	color: var(--vgml-accent);
+}
+
+.vgml-dash .vgml-next h2 {
+	margin: 0 0 6px;
+	font-size: 19px;
+	font-weight: 700;
+	letter-spacing: -.02em;
+	color: var(--vgml-ink);
+}
+
+.vgml-next-text {
+	margin: 0 0 16px;
+	max-width: 64ch;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--vgml-body);
+}
+
+/* ---------------------------------------------------------- what it saw */
+
+.vgml-seen {
+	margin: 0 0 32px;
+	padding-top: 26px;
+	border-top: 1px solid var(--vgml-rule);
+}
+
+.vgml-seen-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin-bottom: 14px;
+}
+
+.vgml-dash .vgml-seen-head h2 {
+	margin: 0;
+	font-size: 16px;
+}
+
+.vgml-seen-head a {
+	font-size: 13px;
+}
+
+/*
+ *  A scrolling strip rather than a grid. A grid of eight would be a three-up
+ *  feature grid by another name, and it would also lie about there being
+ *  exactly eight -- the strip says "here is some of it".
+ */
+.vgml-seen-strip {
+	display: flex;
+	gap: 12px;
+	margin: 0;
+	padding: 0 0 6px;
+	list-style: none;
+	overflow-x: auto;
+}
+
+.vgml-seen-item {
+	flex: 0 0 148px;
+	margin: 0;
+}
+
+.vgml-seen-item a {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+}
+
+.vgml-seen-item img {
+	display: block;
+	width: 148px;
+	height: 148px;
+	object-fit: cover;
+	border-radius: 4px;
+	border: 1px solid var(--vgml-rule);
+	background: var(--vgml-surface);
+}
+
+.vgml-seen-item a:hover img {
+	border-color: var(--vgml-accent);
+}
+
+.vgml-seen-kind {
+	display: block;
+	margin-top: 7px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: .05em;
+	text-transform: uppercase;
+	color: var(--vgml-muted);
+}
+
+.vgml-seen-caption {
+	display: block;
+	margin-top: 2px;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var(--vgml-body);
+	/* Two lines, then stop. A caption is a sample, not the record. */
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* ------------------------------------------------------ everything else */
+
+.vgml-rest {
+	padding-top: 26px;
+	border-top: 1px solid var(--vgml-rule);
+}
+
+.vgml-dash .vgml-rest h2 {
+	margin: 0 0 10px;
+	font-size: 16px;
+}
+
+.vgml-rest-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-rest-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 16px;
+	padding: 11px 0;
+	border-bottom: 1px solid var(--vgml-rule);
+	margin: 0;
+}
+
+.vgml-rest-row:last-child {
+	border-bottom: 0;
+}
+
+.vgml-rest-row a {
+	font-size: 14px;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.vgml-rest-row a:hover {
+	text-decoration: underline;
+}
+
+.vgml-rest-state {
+	font-size: 12px;
+	color: var(--vgml-muted);
+	text-align: right;
+	max-width: 46ch;
+}
+
+.vgml-rest-row.is-done .vgml-rest-state {
+	color: #5C7C5C;
+}
+
+@media screen and (max-width: 782px) {
+	.vgml-figure {
+		flex: 1 1 45%;
+		border-bottom: 1px solid var(--vgml-rule);
+	}
+
+	.vgml-figure-n {
+		font-size: 24px;
+	}
+
+	.vgml-rest-row {
+		display: block;
+	}
+
+	.vgml-rest-state {
+		display: block;
+		text-align: left;
+		margin-top: 2px;
+		max-width: none;
+	}
+}
