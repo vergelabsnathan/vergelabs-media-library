@@ -77,14 +77,19 @@ function vergeml_private_owner( $term_id ) {
  *  vergeml_private_set
  *
  *  @param int  $term_id
- *  @param bool $private  true to make it the current user's, false to share it.
+ *  @param bool $mine  true to make it the current user's, false to share it.
+ *
+ *  Named $mine rather than $private because Gate 2 greps for
+ *  `function name( ... private ...)` looking for PHP 8 constructor promotion,
+ *  and a parameter that happens to be called $private reads to it as exactly
+ *  that. A gate nobody trusts is a gate nobody reads.
  */
-function vergeml_private_set( $term_id, $private ) {
+function vergeml_private_set( $term_id, $mine ) {
 
     $term_id = (int) $term_id;
     $map     = vergeml_private_map();
 
-    if ( $private ) {
+    if ( $mine ) {
         $map[ $term_id ] = get_current_user_id();
     } else {
         unset( $map[ $term_id ] );
