@@ -8,6 +8,13 @@ Same box, same data, same probe: 20,000 attachments, 200 folders (20 roots × 9 
 16,000 assignments. FileBird 6.5.8 seeded into its own `wp_fbv` tables with the identical
 structure, so both trees answer the same question. Ubuntu 24.04, 2 vCPU, MariaDB, PHP 8.3-FPM.
 
+> **Provenance, 29-08-2026.** These figures were taken on the Kamatera box, and that
+> 20,000-attachment dataset no longer exists: the library was swept and reseeded to a few
+> dozen files while chasing test debris. The numbers stand as recorded, but they cannot be
+> re-run today without rebuilding the seed. Nothing here has been re-measured to replace
+> them, deliberately — a smaller library gives different wall-clock, and quietly swapping
+> one in would turn a real comparison into an incomparable one.
+
 |  | media page (list) | media page (grid) | `wp/v2/media?per_page=40` |
 |---|---|---|---|
 | core only | 5 q · 14 ms | 5 q · 13 ms | 82 ms |
@@ -63,3 +70,34 @@ than serving it, which is why the comparison above is page-level.
 identical in Playground and on real MariaDB — verified. Wall-clock in Playground is meaningless:
 PHP-wasm spends ~2.4s booting WordPress on every request, so core's own endpoints time the same
 as ours there.
+
+## The boxes, and why the counts agreeing matters
+
+| | Kamatera | Hetzner CX33 |
+|---|---|---|
+| OS | Ubuntu 24.04 | Ubuntu 26.04 |
+| PHP | 8.3-FPM | **8.5.4**-FPM |
+| Database | MariaDB | MariaDB 11.8.6 |
+| WordPress | — | 7.1 |
+| Cores / RAM | 2 vCPU | 4 vCPU / 8 GB |
+
+Measured on both, 29-08-2026, on libraries of different sizes and on two PHP versions two
+releases apart:
+
+| Endpoint | Kamatera | Hetzner |
+|---|---|---|
+| `vergeml/v1/tree` | 7 | 7 |
+| `organize-step` | 3 | 3 |
+| `organize-run` | 1 | 1 |
+| `organize-cancel` | 2 | 2 |
+| `librarian-schemes` | 1 | 1 |
+| `librarian-batches` | 1 | 1 |
+
+That agreement is the whole claim. Different hardware, different OS, different PHP, different
+row counts, same integers — which is what "a property of the algorithm" means, and why a
+disagreement between environments is read here as a bug rather than a hardware difference.
+
+The Hetzner box also runs a PHP the plugin had never been executed on, and that immediately
+earned its keep: a single duplicate scan wrote 545 `imagedestroy()` deprecation lines into
+`debug.log`, because 8.5 deprecates a call that 7.4 still needs. Fixed in 6c2f9f4. A test box
+that only ever runs the version you already support cannot tell you that.
