@@ -121,6 +121,42 @@ screens, Yoast's React `defaultProps` deprecation warning, and ShortPixel's
 - **Divi as a theme.** The Divi Builder *plugin* was tested. The Divi theme
   extracted only partially here and is untested.
 
+## Two languages: Polylang, and what it implies for WPML
+
+Run on the Hetzner box, 29-08-2026, Polylang 3.8.7 with English and Dutch
+configured and **`media_category` switched on as a translated taxonomy** —
+which is the state that matters, and the state the first attempt at this was
+not in. `tests/compat/polylang.php`, twelve checks, all green.
+
+What it found, and it answers the whole question:
+
+- **The folder tree shows every folder, in both languages.** Polylang's
+  language filter on `get_terms()` does not apply on the admin side, so a Dutch
+  editor still sees the English folders. That is the outcome worth having: the
+  alternative — half the tree silently missing, files apparently vanished into
+  folders nobody can see — would have looked exactly like working software.
+- **A file can sit in folders of different languages at once**, and both count
+  it correctly. Nothing about a folder being a translated term changes what
+  filing means.
+- **The CSV export writes both languages out**, and the round trip is
+  unaffected.
+- **No shim was needed.** This is the taxonomy decision paying for itself:
+  FileBird keeps folders in its own tables and needs a `Support/WPML.php` to
+  hold them in step. Folders here are terms, and both plugins already translate
+  terms.
+
+One thing to know before writing a suite of your own here: Polylang decides
+which taxonomies are translated during `init`, so switching the setting on and
+using it in the same request does nothing. The suite writes the option, reports
+itself SKIPPED, and asks to be run again. The version that did not notice
+reported all-green while Polylang was inert.
+
+**WPML is not proven by this.** The base Sitepress plugin passed the stack test
+above, and both plugins translate taxonomies through the same core machinery,
+so the structural argument carries — but it is an argument and not a
+measurement, and WPML is paid, so it cannot go on the box without a licence.
+Treat WPML as *expected to work, untested at this depth*.
+
 ## Divi Builder and `WP_DEBUG_DISPLAY`
 
 Divi Builder fails every check on a site with `WP_DEBUG_DISPLAY` on, including

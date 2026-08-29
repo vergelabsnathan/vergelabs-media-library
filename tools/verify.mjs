@@ -129,6 +129,13 @@ const SUITES = [
 	 */
 	{ name: 'csv', file: 'tests/import/csv.php', env: 'box', php: true },
 	/*
+	 *  Two languages. Reports itself SKIPPED when Polylang is not installed,
+	 *  and again on the run that switches folder translation on -- Polylang
+	 *  decides which taxonomies are translated during init, so the setting
+	 *  only bites on the next request. Run it twice on a fresh box.
+	 */
+	{ name: 'polylang', file: 'tests/compat/polylang.php', env: 'box', php: true },
+	/*
 	 *  A PHP suite rather than a browser one, because what it tests has no
 	 *  screen yet: the tree is data, and the phase that renders it is the next
 	 *  one. It runs where the other PHP suites run -- shipped to the box and
