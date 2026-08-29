@@ -204,6 +204,30 @@ function vergeml_health_dhash_source( $attachment_id, $original ) {
  *  bytes.
  */
 
+/**
+ *  vergeml_health_free
+ *
+ *  Free a GD image, on the versions where that means anything.
+ *
+ *  Up to PHP 7.4 an image is a resource and imagedestroy() is how its memory
+ *  comes back — on a shared host hashing a large library, skipping it is the
+ *  difference between finishing and hitting the memory limit. From PHP 8.0 it
+ *  is a GdImage object freed by the garbage collector, imagedestroy() has done
+ *  nothing at all, and **8.5 deprecates it**: a scan of sixty files wrote 545
+ *  deprecation lines into debug.log, which is a wordpress.org submission item.
+ *
+ *  is_resource() tells the two apart without asking the version number: true on
+ *  7.4 where the call still matters, false on 8+ where it is noise.
+ */
+
+function vergeml_health_free( $image ) {
+
+    if ( is_resource( $image ) ) {
+        imagedestroy( $image );
+    }
+}
+
+
 function vergeml_health_dhash( $path ) {
 
     if ( '' === $path || ! function_exists( 'imagecreatetruecolor' ) ) {
@@ -220,19 +244,19 @@ function vergeml_health_dhash( $path ) {
     $height = imagesy( $source );
 
     if ( $width < 2 || $height < 1 ) {
-        imagedestroy( $source );
+        vergeml_health_free( $source );
         return '';
     }
 
     $small = imagecreatetruecolor( 9, 8 );
 
     if ( ! $small ) {
-        imagedestroy( $source );
+        vergeml_health_free( $source );
         return '';
     }
 
     imagecopyresampled( $small, $source, 0, 0, 0, 0, 9, 8, $width, $height );
-    imagedestroy( $source );
+    vergeml_health_free( $source );
 
     $bits = array();
 
@@ -258,7 +282,7 @@ function vergeml_health_dhash( $path ) {
         }
     }
 
-    imagedestroy( $small );
+    vergeml_health_free( $small );
 
     if ( 64 !== count( $bits ) ) {
         return '';
