@@ -1,7 +1,7 @@
 /*
  *  The import screen, clicked rather than called.
  *
- *      node tests/tree/import-ui.mjs http://185.229.224.239 admin VgmlTest7pass
+ *      node tests/tree/import-ui.mjs http://46.225.66.194 admin VgmlTest7pass
  *
  *  tests/tree/import.php proves the engine. This proves the thing somebody
  *  actually uses: that the screen finds the other plugin, says what it will do
@@ -14,7 +14,7 @@
 
 import { chromium } from 'playwright';
 
-const BASE = process.argv[ 2 ] ?? 'http://185.229.224.239';
+const BASE = process.argv[ 2 ] ?? 'http://46.225.66.194';
 const USER = process.argv[ 3 ] ?? 'admin';
 const PASS = process.argv[ 4 ] ?? 'VgmlTest7pass';
 

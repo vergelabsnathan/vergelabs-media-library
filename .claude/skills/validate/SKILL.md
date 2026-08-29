@@ -91,7 +91,7 @@ Boot time is noise; **query count is the measurement**.
 ```bash
 cd /c/dev/media-plugin/plugin
 node tests/perf/bench.mjs http://127.0.0.1:8903 admin:benchbenchbenchbench   # Playground
-node tests/perf/bench.mjs http://185.229.224.239 admin:<app-password>        # real MariaDB
+node tests/perf/bench.mjs http://46.225.66.194 admin:<app-password>          # real MariaDB
 ```
 
 Budgets, both environments (they must agree â€” a difference is a bug):

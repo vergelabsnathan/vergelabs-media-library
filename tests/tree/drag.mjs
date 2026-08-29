@@ -1,7 +1,7 @@
 /*
  *  Dragging files onto folders, with a real mouse.
  *
- *      node tests/tree/drag.mjs http://185.229.224.239 admin VgmlTest7pass
+ *      node tests/tree/drag.mjs http://46.225.66.194 admin VgmlTest7pass
  *
  *  Rewritten when the drag layer moved from the HTML5 API to jQuery UI. The old
  *  version dispatched DragEvents, which jQuery UI does not listen for -- so it
@@ -15,7 +15,7 @@
 
 import { chromium } from 'playwright';
 
-const BASE = process.argv[ 2 ] ?? 'http://185.229.224.239';
+const BASE = process.argv[ 2 ] ?? 'http://46.225.66.194';
 const USER = process.argv[ 3 ] ?? 'admin';
 const PASS = process.argv[ 4 ] ?? 'VgmlTest7pass';
 

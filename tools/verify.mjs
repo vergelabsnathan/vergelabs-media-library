@@ -37,7 +37,7 @@ function flag( name, fallback ) {
 	return at >= 0 ? argv[ at + 1 ] : fallback;
 }
 
-const BASE = flag( '--base', 'http://185.229.224.239' );
+const BASE = flag( '--base', 'http://46.225.66.194' );
 const PLAYGROUND = flag( '--playground', 'http://127.0.0.1:8899' );
 
 /*
@@ -141,7 +141,42 @@ const SUITES = [
 	{ name: 'watchdog', file: 'tests/watchdog/recovery.js', env: 'playground' },
 ];
 
-const SSH = 'ssh -i ~/.ssh/kamatera_vgml -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@185.229.224.239';
+/*
+ *  Which box, and how to reach it -- derived from --base rather than fixed.
+ *
+ *  This used to be one hardcoded string pointing at Kamatera. --base moved the
+ *  HTTP suites and nothing else, so pointing the runner at a second box ran the
+ *  browser suites against the new one while every PHP suite was shipped over
+ *  SSH to the old one and reported under the new one's name. Two boxes, one
+ *  set of results, no way to tell which had answered.
+ *
+ *  It also silently broke the preconditions: `wp option delete
+ *  vergeml_smart_scan` ran on Kamatera while tests/tree/smart.mjs tested
+ *  Hetzner, so the suite failed on a badge the precondition had cleared
+ *  somewhere else entirely.
+ *
+ *  A box therefore has to be listed here to be usable, key included. Adding
+ *  one is three lines; guessing a key path from a hostname is how the next
+ *  quiet mismatch would arrive.
+ */
+const BOXES = {
+	//  Hetzner CX33, Nuremberg. Ubuntu 26.04 / PHP 8.5 / MariaDB 11.8 -- ahead of
+	//  what most users run, deliberately: that is where the next forward-compat
+	//  bug shows up first, and it found one within a minute of existing.
+	//  Kamatera was retired 29-08-2026.
+	'46.225.66.194': { key: '~/.ssh/hetzner_vgml', wp: '/var/www/wp' },
+};
+
+const BOX_HOST = BASE.replace( /^https?:\/\//, '' ).replace( /\/.*$/, '' );
+const BOX = BOXES[ BOX_HOST ];
+
+if ( ! BOX ) {
+	console.error( `\n  --base points at ${ BOX_HOST }, which is not a box this runner knows how to reach.` );
+	console.error( '  PHP suites are shipped over SSH, so it needs the key. Add it to BOXES in this file.\n' );
+	process.exit( 1 );
+}
+
+const SSH = `ssh -i ${ BOX.key } -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${ BOX_HOST }`;
 
 function precondition( suite ) {
 	return new Promise( ( resolve ) => {
@@ -154,7 +189,7 @@ function precondition( suite ) {
 
 		const child = spawn(
 			SSH.split( ' ' )[ 0 ],
-			[ ...SSH.split( ' ' ).slice( 1 ), `cd /var/www/wp && ${ suite.before } --allow-root` ],
+			[ ...SSH.split( ' ' ).slice( 1 ), `cd ${ BOX.wp } && ${ suite.before } --allow-root` ],
 			{ stdio: 'ignore' }
 		);
 
@@ -278,7 +313,7 @@ function runPhp( suite ) {
 			 */
 			const child = spawn(
 				args[ 0 ],
-				[ ...args.slice( 1 ), `cd /var/www/wp && wp eval-file ${ remote } --allow-root` ],
+				[ ...args.slice( 1 ), `cd ${ BOX.wp } && wp eval-file ${ remote } --allow-root` ],
 				{ stdio: [ 'ignore', 'pipe', 'pipe' ] }
 			);
 

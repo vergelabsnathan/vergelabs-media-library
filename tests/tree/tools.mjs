@@ -2,7 +2,7 @@
  *  The folder's tools: catching uploads, leaving as a ZIP, copying its
  *  shortcode.
  *
- *      node tests/tree/tools.mjs http://185.229.224.239 admin VgmlTest7pass
+ *      node tests/tree/tools.mjs http://46.225.66.194 admin VgmlTest7pass
  *
  *  The upload check is the one that must be a real upload: a real file pushed
  *  through the grid's own uploader while a folder is open in the tree. The
@@ -13,7 +13,7 @@
 
 import { chromium } from 'playwright';
 
-const BASE = process.argv[ 2 ] ?? 'http://185.229.224.239';
+const BASE = process.argv[ 2 ] ?? 'http://46.225.66.194';
 const USER = process.argv[ 3 ] ?? 'admin';
 const PASS = process.argv[ 4 ] ?? 'VgmlTest7pass';
 

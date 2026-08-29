@@ -1,7 +1,7 @@
 /*
  *  Smart folders, on screen.
  *
- *      node tests/tree/smart.mjs http://185.229.224.239 admin VgmlTest7pass
+ *      node tests/tree/smart.mjs http://46.225.66.194 admin VgmlTest7pass
  *
  *  The one flow that matters end to end: a never-scanned row says "Scan" rather
  *  than pretending to a number, one click runs the scan with its progress in
@@ -12,7 +12,7 @@
 
 import { chromium } from 'playwright';
 
-const BASE = process.argv[ 2 ] ?? 'http://185.229.224.239';
+const BASE = process.argv[ 2 ] ?? 'http://46.225.66.194';
 const USER = process.argv[ 3 ] ?? 'admin';
 const PASS = process.argv[ 4 ] ?? 'VgmlTest7pass';
 

@@ -1,7 +1,7 @@
 /*
  *  The Library health screen, end to end on the box.
  *
- *      node tests/tree/health.mjs http://185.229.224.239 admin VgmlTest7pass
+ *      node tests/tree/health.mjs http://46.225.66.194 admin VgmlTest7pass
  *
  *  The load-bearing assertion is the negative one: this screen has no control
  *  that changes a file. A duplicate report that grows a delete button is a
@@ -11,7 +11,7 @@
  */
 import { chromium } from 'playwright';
 
-const BASE = process.argv[ 2 ] ?? 'http://185.229.224.239';
+const BASE = process.argv[ 2 ] ?? 'http://46.225.66.194';
 const USER = process.argv[ 3 ] ?? 'admin';
 const PASS = process.argv[ 4 ] ?? 'VgmlTest7pass';
 

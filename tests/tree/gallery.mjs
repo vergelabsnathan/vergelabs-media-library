@@ -1,7 +1,7 @@
 /*
  *  A folder, shown as a gallery.
  *
- *      node tests/tree/gallery.mjs http://185.229.224.239 admin VgmlTest7pass
+ *      node tests/tree/gallery.mjs http://46.225.66.194 admin VgmlTest7pass
  *
  *  The query behind this is old -- Enhanced Media Library's `[gallery
  *  media_category="press"]` has worked for years. What it never had was a way to
@@ -18,7 +18,7 @@
 
 import { chromium } from 'playwright';
 
-const BASE = process.argv[ 2 ] ?? 'http://185.229.224.239';
+const BASE = process.argv[ 2 ] ?? 'http://46.225.66.194';
 const USER = process.argv[ 3 ] ?? 'admin';
 const PASS = process.argv[ 4 ] ?? 'VgmlTest7pass';
 

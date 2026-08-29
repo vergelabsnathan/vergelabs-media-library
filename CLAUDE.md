@@ -66,8 +66,15 @@ Two environments, and they answer different questions. `docs/testing.md` has the
     `C:/Program Files/Git/wordpress/...`. Mount is two args: `--mount-dir "C:\path" /vfs/path`.
   - A blueprint's `installPlugin` collides with `--mount-dir` ("Device or resource busy") â€” use
     `activatePlugin` against the mount instead.
-- **The VPS** (`185.229.224.239`, Kamatera, hourly) for anything about scale or numbers. See
-  the `kamatera-wp-test-box` memory for the four traps that make REST look broken there.
+- **The VPS** (`46.225.66.194`, Hetzner CX33, Nuremberg) for anything about scale or numbers.
+  Root over SSH with `~/.ssh/hetzner_vgml`; password login is off. WordPress lives in
+  `/var/www/wp`. Ubuntu 26.04, **PHP 8.5**, MariaDB 11.8 — deliberately ahead of what most
+  users run, because that is where forward-compatibility bugs surface first. It found the
+  `imagedestroy()` deprecation within a minute of existing.
+  - `tools/verify.mjs` ships PHP suites to whichever box `--base` names, and a box has to be
+    listed in its `BOXES` map to be reachable at all. A box it does not know is refused
+    loudly rather than silently tested somewhere else.
+  - Kamatera is retired. Anything still naming `185.229.224.239` is stale.
 
 **Playground cannot measure performance.** PHP-wasm spends ~2.4s booting WordPress on every
 request, so core's endpoints time the same as ours and wall-clock says nothing. Measure with

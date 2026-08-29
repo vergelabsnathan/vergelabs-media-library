@@ -2,9 +2,21 @@
 
 State of the gate as of 3.3.0. Everything here has been run, not assumed.
 
-Updated 27-08-2026, after the Librarian shipped. The Kamatera box was unreachable
-that day (`~/.ssh/kamatera_vgml` is gone), so the runs below are Playground runs
-unless they say otherwise — see "Running Plugin Check without Docker".
+Updated 27-08-2026, after the Librarian shipped. The box was unreachable that day,
+so the runs below are Playground runs unless they say otherwise — see "Running
+Plugin Check without Docker".
+
+> **Two corrections, 29-08-2026.**
+>
+> The test box is now Hetzner (`46.225.66.194`, key `~/.ssh/hetzner_vgml`); Kamatera
+> is retired, and the claim above that its key "is gone" was wrong even then.
+>
+> More importantly, **"debug.log clean after exercising every screen" was closed on
+> PHP 8.3 and did not hold on 8.5**: a single duplicate scan wrote 545
+> `imagedestroy()` deprecations. Fixed in 6c2f9f4 and re-verified at zero from our
+> own code. Any other item on this page verified only on 8.3 deserves the same
+> suspicion — the plugin's floor is 7.4 and its ceiling is whatever a host ships
+> next, and this page did not previously distinguish them.
 
 ## Done
 
