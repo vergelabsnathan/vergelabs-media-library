@@ -1222,6 +1222,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/rest-folders.php' );
         include_once( 'core/tree-ui.php' );
         include_once( 'core/import-sources.php' );
+        // After import-sources.php, whose reader dispatch it adds a case to,
+        // and whose source registry it filters. Before import-ui.php, which
+        // routes the upload at it.
+        include_once( 'core/import-csv.php' );
         include_once( 'core/import.php' );
         include_once( 'core/import-ui.php' );
         include_once( 'core/post-folders.php' );

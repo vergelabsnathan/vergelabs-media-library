@@ -44,6 +44,10 @@ function vergeml_import_routes() {
             'taxonomy' => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             'id'       => array( 'type' => 'string' ),
             'resume'   => array( 'type' => 'object' ),
+            // The whole file, read in the browser and posted as text. No
+            // upload handling, nothing written to disk, and nothing left in
+            // wp-content if the person changes their mind.
+            'text'     => array( 'type' => 'string' ),
         ),
     ) );
 }
@@ -69,6 +73,34 @@ function vergeml_rest_import( WP_REST_Request $request ) {
 
     if ( 'history' === $action ) {
         return rest_ensure_response( array( 'history' => vergeml_import_history() ) );
+    }
+
+    if ( 'csv' === $action ) {
+
+        $parsed = vergeml_csv_parse( (string) $request->get_param( 'text' ) );
+
+        if ( is_wp_error( $parsed ) ) {
+            return $parsed;
+        }
+
+        vergeml_csv_stash( $parsed );
+
+        $files = 0;
+        foreach ( $parsed['files'] as $ids ) {
+            $files += count( $ids );
+        }
+
+        return rest_ensure_response( array(
+            'folders'  => count( $parsed['folders'] ),
+            'files'    => $files,
+            'problems' => $parsed['problems'],
+            'skipped'  => $parsed['problem_count'],
+        ) );
+    }
+
+    if ( 'csv-clear' === $action ) {
+        vergeml_csv_clear();
+        return rest_ensure_response( array( 'cleared' => true ) );
     }
 
     if ( 'undo' === $action ) {
@@ -251,6 +283,21 @@ function vergeml_import_assets( $hook ) {
             /* translators: 1: folders, 2: files, 3: how long ago. */
             'historyLine' => __( '%1$s folders and %2$s files, %3$s ago', 'vergelabs-media-library' ),
             'stillThere'  => __( 'Your folders in the other plugin are untouched.', 'vergelabs-media-library' ),
+
+            'fileTitle'   => __( 'A file, instead of another plugin', 'vergelabs-media-library' ),
+            'fileWhat'    => __( 'Folders can be written out as a spreadsheet and read back in. One row per file: the folder path, the attachment id, and the file name. Slashes make the levels, so Clients/Acme/2024 is three folders deep, and a row with no id is an empty folder.', 'vergelabs-media-library' ),
+            'exportWhat'  => __( 'Write out', 'vergelabs-media-library' ),
+            'exportGo'    => __( 'Download CSV', 'vergelabs-media-library' ),
+            'importWhat'  => __( 'Read in', 'vergelabs-media-library' ),
+            'pickFile'    => __( 'Choose a CSV file', 'vergelabs-media-library' ),
+            'reading'     => __( 'Reading the file…', 'vergelabs-media-library' ),
+            /* translators: 1: number of folders, 2: number of files. */
+            'staged'      => __( 'Read %1$s folders and %2$s files. Nothing has changed yet — preview it below, and it can be undone afterwards like any other import.', 'vergelabs-media-library' ),
+            /* translators: %s: number of rows skipped. */
+            'stagedSkips' => __( '%s rows were skipped:', 'vergelabs-media-library' ),
+            'discard'     => __( 'Discard this file', 'vergelabs-media-library' ),
+            'unreadable'  => __( 'That file could not be read.', 'vergelabs-media-library' ),
         ),
+        'exportUrl' => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_export_csv' ), 'vergeml_export_csv' ),
     ) );
 }

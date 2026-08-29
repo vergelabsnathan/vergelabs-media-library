@@ -119,6 +119,10 @@ function vergeml_import_read( $key ) {
             return vergeml_import_read_filebird();
         case 'rml':
             return vergeml_import_read_rml();
+        // A staged CSV upload rather than another plugin's tables, but it
+        // answers the same two questions, so everything downstream is the same.
+        case 'csv':
+            return vergeml_import_read_csv();
     }
 
     return new WP_Error( 'vergeml_unknown_source', __( 'That is not a folder plugin this can read.', 'vergelabs-media-library' ) );

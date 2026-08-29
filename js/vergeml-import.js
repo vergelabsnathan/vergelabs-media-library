@@ -20,7 +20,8 @@
 		return;
 	}
 
-	var l10n = window.vergemlImport.l10n;
+	var base = window.vergemlImport;
+	var l10n = base.l10n;
 	var taxonomies = [];
 
 	try {
@@ -109,6 +110,8 @@
 			flash = null;
 		}
 
+		app.appendChild( fileCard() );
+
 		if ( ! sources.length ) {
 			app.appendChild( el( 'p', {}, l10n.none ) );
 		}
@@ -121,6 +124,104 @@
 			app.appendChild( historyBox( history ) );
 		}
 	}
+
+	/*
+	 *  Folders as a file, above the plugin cards.
+	 *
+	 *  Always shown, unlike a source card: the other cards answer "what is
+	 *  there to import from", and this one is the offer to make something to
+	 *  import from. A card that only appeared once a file had been chosen
+	 *  would be a feature nobody could discover.
+	 */
+	function fileCard() {
+
+		var box = el( 'div', { class: 'vgml-import-card' } );
+
+		var head = el( 'div', { class: 'vgml-import-head' } );
+		head.appendChild( el( 'h2', {}, l10n.fileTitle ) );
+		box.appendChild( head );
+
+		box.appendChild( el( 'p', { class: 'description' }, l10n.fileWhat ) );
+
+		// ------------------------------------------------------------ out
+		var out = el( 'p', {} );
+		out.appendChild( el( 'strong', {}, l10n.exportWhat ) );
+		out.appendChild( document.createTextNode( ' ' ) );
+
+		var pick = el( 'select', { class: 'vgml-import-tax' } );
+
+		taxonomies.forEach( function ( t ) {
+			var opt = el( 'option', { value: t.name }, t.label );
+			pick.appendChild( opt );
+		} );
+
+		out.appendChild( pick );
+		out.appendChild( document.createTextNode( ' ' ) );
+
+		var down = el( 'a', { class: 'button', href: '#' }, l10n.exportGo );
+		down.addEventListener( 'click', function ( e ) {
+			e.preventDefault();
+			// The nonce is already on the base URL; only the taxonomy varies.
+			window.location.href = base.exportUrl + '&taxonomy=' + encodeURIComponent( pick.value );
+		} );
+		out.appendChild( down );
+		box.appendChild( out );
+
+		// ------------------------------------------------------------- in
+		var into = el( 'p', {} );
+		into.appendChild( el( 'strong', {}, l10n.importWhat ) );
+		into.appendChild( document.createTextNode( ' ' ) );
+
+		var file = el( 'input', { type: 'file', accept: '.csv,text/csv', 'aria-label': l10n.pickFile } );
+		var note = el( 'span', { class: 'description' } );
+
+		file.addEventListener( 'change', function () {
+
+			var chosen = file.files && file.files[ 0 ];
+
+			if ( ! chosen ) {
+				return;
+			}
+
+			note.textContent = l10n.reading;
+
+			var reader = new FileReader();
+
+			reader.onerror = function () {
+				note.textContent = l10n.unreadable;
+			};
+
+			reader.onload = function () {
+				call( { action: 'csv', text: String( reader.result || '' ) } )
+					.then( function ( r ) {
+						flash = {
+							bad: false,
+							text: sprintf( l10n.staged, n( r.folders ), n( r.files ) ),
+							detail: r.skipped
+								? sprintf( l10n.stagedSkips, n( r.skipped ) ) + ' ' + ( r.problems || [] ).join( ' ' )
+								: ''
+						};
+						refresh();
+					} )
+					.catch( function ( err ) {
+						flash = { bad: true, text: ( err && err.message ) || l10n.unreadable, detail: '' };
+						refresh();
+					} );
+			};
+
+			// Read as text, not as a data URL: the file never leaves the
+			// browser as bytes and nothing is written to wp-content.
+			reader.readAsText( chosen );
+		} );
+
+		into.appendChild( file );
+		into.appendChild( document.createTextNode( ' ' ) );
+		into.appendChild( note );
+		box.appendChild( into );
+
+		return box;
+	}
+
 
 	function sourceCard( source ) {
 

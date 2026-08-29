@@ -354,6 +354,12 @@ function vergeml_tree_assets( $hook ) {
             'downloadZip'    => __( 'Download as ZIP', 'vergelabs-media-library' ),
             'copyShortcode'  => __( 'Copy gallery shortcode', 'vergelabs-media-library' ),
             'copied'         => __( 'Shortcode copied', 'vergelabs-media-library' ),
+            /*
+             *  Shown when the copy did not work, which happens on plain http in
+             *  older browsers. The toast shows the shortcode itself rather than
+             *  an apology, because the shortcode is the thing the person still
+             *  needs and can select by hand.
+             */
             'skin'           => __( 'Appearance', 'vergelabs-media-library' ),
             'skinNative'     => __( 'Native', 'vergelabs-media-library' ),
             'skinClassic'    => __( 'Classic', 'vergelabs-media-library' ),

@@ -122,6 +122,13 @@ const SUITES = [
 	 */
 	{ name: 'ai-background', file: 'tests/ai/background.php', env: 'box', php: true },
 	/*
+	 *  Folders as a file. The assertion that matters is the round trip -- export
+	 *  a tree, delete it, import the file, compare -- so it needs a real library
+	 *  with folders already in it to prove the import merges into them rather
+	 *  than duplicating them. That is the box.
+	 */
+	{ name: 'csv', file: 'tests/import/csv.php', env: 'box', php: true },
+	/*
 	 *  A PHP suite rather than a browser one, because what it tests has no
 	 *  screen yet: the tree is data, and the phase that renders it is the next
 	 *  one. It runs where the other PHP suites run -- shipped to the box and

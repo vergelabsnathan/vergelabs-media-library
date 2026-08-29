@@ -2688,6 +2688,60 @@
 			l10n.colorBrown, l10n.colorSlate ];
 	}
 
+	/*
+	 *  Copy a folder's gallery shortcode.
+	 *
+	 *  Two menus offered this and each had its own copy of it, and both said
+	 *  "Shortcode copied" whatever happened -- the clipboard promise's reject
+	 *  handler was the same function as its resolve handler, and the
+	 *  execCommand fallback ignored its own return value. So on any browser or
+	 *  context where the copy failed, the toast said it had worked and the
+	 *  user pasted whatever was on the clipboard before.
+	 *
+	 *  Now there is one of it, and it only claims success when something was
+	 *  actually copied. When nothing was, it shows the shortcode instead, which
+	 *  is the one thing the person can still act on.
+	 */
+	function copyShortcode( folderId ) {
+
+		var code = '[vergeml_gallery folder="' + folderId + '"]';
+
+		var ok = function () { toast( l10n.copied, null ); };
+		var manual = function () { toast( code, null ); };
+
+		var legacy = function () {
+			// The route for an admin served over plain http, where the
+			// clipboard API is not available at all.
+			var scratch = el( 'textarea', { style: 'position:fixed;top:0;left:0;opacity:0' } );
+			scratch.value = code;
+			document.body.appendChild( scratch );
+			scratch.select();
+
+			var copied = false;
+			try {
+				copied = document.execCommand( 'copy' );
+			} catch ( e ) {
+				copied = false;
+			}
+
+			scratch.remove();
+
+			if ( copied ) {
+				ok();
+			} else {
+				manual();
+			}
+		};
+
+		if ( navigator.clipboard && navigator.clipboard.writeText ) {
+			navigator.clipboard.writeText( code ).then( ok, legacy );
+			return;
+		}
+
+		legacy();
+	}
+
+
 	function contextMenu( node, x, y ) {
 
 		var open = root.querySelector( '.vgml-overflow' );
@@ -2732,16 +2786,15 @@
 					+ '&folder=' + encodeURIComponent( node.id )
 					+ '&taxonomy=' + encodeURIComponent( state.taxonomy );
 			} );
-			item( l10n.copyShortcode, false, function () {
-				var code = '[vergeml_gallery folder="' + node.id + '"]';
-				var done = function () { toast( l10n.copied, null ); };
-				if ( navigator.clipboard && navigator.clipboard.writeText ) {
-					navigator.clipboard.writeText( code ).then( done, done );
-				} else {
-					done();
-				}
-			} );
 		}
+
+		/*
+		 *  Outside the zip guard, on purpose. This used to sit inside it, so a
+		 *  host without ZipArchive lost the shortcode action too -- and the two
+		 *  have nothing to do with each other. Copying a string needs no
+		 *  extension.
+		 */
+		item( l10n.copyShortcode, false, function () { copyShortcode( node.id ); } );
 
 		// the colour strip, inline, because colour is a one-click choice
 		var names = paletteNames();
@@ -2821,36 +2874,25 @@
 		 */
 		var target = editTarget > 0 ? state.byId[ editTarget ] : null;
 
-		if ( target && cfg.zipUrl ) {
+		if ( target ) {
 
 			menuEl.appendChild( el( 'p', { class: 'vgml-overflow-head' }, target.name ) );
 
-			var zip = el( 'button', { type: 'button', class: 'vgml-overflow-item', role: 'menuitem' }, l10n.downloadZip );
-			zip.addEventListener( 'click', function () {
-				menuEl.remove();
-				window.location.href = cfg.zipUrl
-					+ '&folder=' + encodeURIComponent( target.id )
-					+ '&taxonomy=' + encodeURIComponent( state.taxonomy );
-			} );
-			menuEl.appendChild( zip );
+			if ( cfg.zipUrl ) {
+				var zip = el( 'button', { type: 'button', class: 'vgml-overflow-item', role: 'menuitem' }, l10n.downloadZip );
+				zip.addEventListener( 'click', function () {
+					menuEl.remove();
+					window.location.href = cfg.zipUrl
+						+ '&folder=' + encodeURIComponent( target.id )
+						+ '&taxonomy=' + encodeURIComponent( state.taxonomy );
+				} );
+				menuEl.appendChild( zip );
+			}
 
 			var copy = el( 'button', { type: 'button', class: 'vgml-overflow-item', role: 'menuitem' }, l10n.copyShortcode );
 			copy.addEventListener( 'click', function () {
 				menuEl.remove();
-				var code = '[vergeml_gallery folder="' + target.id + '"]';
-				var done = function () { toast( l10n.copied, null ); };
-				if ( navigator.clipboard && navigator.clipboard.writeText ) {
-					navigator.clipboard.writeText( code ).then( done, done );
-				} else {
-					// The old route, for admins served over plain http.
-					var scratch = el( 'textarea', { style: 'position:fixed;opacity:0' } );
-					scratch.value = code;
-					document.body.appendChild( scratch );
-					scratch.select();
-					try { document.execCommand( 'copy' ); } catch ( e ) { /* the toast still says copied; the string is selected */ }
-					scratch.remove();
-					done();
-				}
+				copyShortcode( target.id );
 			} );
 			menuEl.appendChild( copy );
 

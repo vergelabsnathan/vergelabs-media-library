@@ -242,12 +242,18 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 ## Changelog ##
 
 ### 3.9.0 ###
-*Describing a big library without sitting and watching it*
+*Work that carries on without you, and folders you can take with you*
 
 = Added =
 * **Describe in the background.** The run carries on after you close the tab, and picks up exactly where it left off. A library of twenty thousand no longer needs somebody keeping a browser open for it.
 * It stops by itself when the licence runs out of credits or is refused, and says which it was — rather than working through the rest of your library writing failures over it.
 * Slower than the on-screen run, and the screen says so: it works whenever the site is visited. A site with a real system cron runs it every minute regardless.
+* **Folders as a spreadsheet.** Write your whole structure out as a CSV, edit it wherever you like editing things, and read it back. Two hundred folders without two hundred clicks — and a way to take your structure with you.
+* Reading a file in is an import like any other: you see what it will do before it does it, folders you already have are merged rather than duplicated, and the whole thing can be undone afterwards.
+
+= Fixed =
+* **“Copy gallery shortcode” said it had copied when it had not.** On sites served over plain http, and any time the browser refused, the message appeared anyway while the clipboard still held whatever was there before. It now says so only when it worked, and shows you the shortcode when it did not.
+* The same action disappeared entirely on hosts without the ZIP extension, because it had been tucked inside the download-as-ZIP branch. Copying a line of text needs no extension.
 
 ### 3.8.0 ###
 *Duplicates, alt text, and finding the one like this*
