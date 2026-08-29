@@ -850,7 +850,17 @@ function vergeml_ai_page() {
                     <td>
                         <span id="vgml-ai-credits"><?php esc_html_e( 'Unknown until the first run', 'vergelabs-media-library' ); ?></span>
                         &nbsp;·&nbsp;
-                        <a href="https://vergelabs.nl/ai-credits" target="_blank" rel="noopener"><?php esc_html_e( 'Get credits', 'vergelabs-media-library' ); ?></a>
+                        <?php
+                        /*
+                         *  vergelabsmedia.com, not vergelabs.nl. Credits are
+                         *  sold with the product, and this link pointed at
+                         *  /ai-credits on the company site, which is a 404 --
+                         *  so the one link a paying customer follows when they
+                         *  run out went nowhere. Same destination as Pro's
+                         *  "Top up", so both halves send people to one place.
+                         */
+                        ?>
+                        <a href="https://vergelabsmedia.com/#pricing" target="_blank" rel="noopener"><?php esc_html_e( 'Get credits', 'vergelabs-media-library' ); ?></a>
                     </td>
                 </tr>
                 <tr>
