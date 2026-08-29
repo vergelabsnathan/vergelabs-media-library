@@ -290,6 +290,13 @@ function vergeml_rest_tree( WP_REST_Request $request ) {
                 : ( isset( $counts[ (int) $term->term_id ] ) ? (int) $counts[ (int) $term->term_id ] : 0 ),
             'color'  => (string) get_term_meta( $term->term_id, VERGEML_TERM_COLOR, true ),
             'order'  => $order === '' ? 0 : (int) $order,
+            /*
+             *  Null unless the folder belongs to somebody. Read from an
+             *  autoloaded option rather than term meta, so this adds no query
+             *  and the budget of seven above is untouched -- see
+             *  core/private-folders.php for why that decided the storage.
+             */
+            'private' => function_exists( 'vergeml_private_node' ) ? vergeml_private_node( $term->term_id ) : null,
         );
     }
 

@@ -1220,6 +1220,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/system-report.php' );
         include_once( 'core/rest-tree.php' );
         include_once( 'core/rest-folders.php' );
+        // After rest-tree.php, whose taxonomy list it filters and whose nodes
+        // it adds a field to. Inside the guard: it hides folders from people,
+        // and anything that hides things has to be switchable off.
+        include_once( 'core/private-folders.php' );
         include_once( 'core/tree-ui.php' );
         include_once( 'core/import-sources.php' );
         // After import-sources.php, whose reader dispatch it adds a case to,

@@ -145,6 +145,14 @@ What it found, and it answers the whole question:
   hold them in step. Folders here are terms, and both plugins already translate
   terms.
 
+**Polylang costs one query on every request.** Measured on the box, both ways:
+`vergeml/v1/tree` reads 7 with Polylang off and 8 with it on, and
+`vergeml/v1/health-report` reads 5 and 6 — the same +1 on an endpoint that
+never touches folders, which is how it was identified as Polylang's rather
+than ours. Nothing to fix; worth knowing, because it is otherwise a Gate 5
+failure with no cause in this repository. Polylang is left deactivated on the
+box between compatibility runs for exactly that reason.
+
 One thing to know before writing a suite of your own here: Polylang decides
 which taxonomies are translated during `init`, so switching the setting on and
 using it in the same request does nothing. The suite writes the option, reports

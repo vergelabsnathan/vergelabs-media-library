@@ -2164,3 +2164,26 @@ body.upload-php .media-frame.mode-select .attachments-browser .media-toolbar .bu
 		border: 1px solid var( --vgml-accent );
 	}
 }
+
+
+/*
+ *  Whose folder it is.
+ *
+ *  Quiet on purpose. It sits between the name and the count as a small piece
+ *  of text, not as a badge and not as a padlock -- a lock icon would read as
+ *  "these files are protected", and the files inside a private folder are as
+ *  visible to everybody as they ever were.
+ */
+.vgml-owned {
+	margin-left: 6px;
+	font-size: 11px;
+	line-height: 1;
+	opacity: .55;
+	white-space: nowrap;
+	font-style: italic;
+}
+
+.vgml-row:hover .vgml-owned,
+.vgml-node.is-selected .vgml-owned {
+	opacity: .8;
+}

@@ -353,6 +353,19 @@ function vergeml_tree_assets( $hook ) {
             'dropHere'       => __( 'Drop your files here', 'vergelabs-media-library' ),
             'downloadZip'    => __( 'Download as ZIP', 'vergelabs-media-library' ),
             'copyShortcode'  => __( 'Copy gallery shortcode', 'vergelabs-media-library' ),
+            'makePrivate'    => __( 'Only I see this folder', 'vergelabs-media-library' ),
+            'makeShared'     => __( 'Let everyone see this folder', 'vergelabs-media-library' ),
+            /*
+             *  Deliberate wording. It hides the FOLDER, never the files: the
+             *  pictures inside stay in the library for everyone, and a label
+             *  promising otherwise would be the one thing this feature must
+             *  not do -- somebody would trust it with something sensitive.
+             */
+            'privateNote'    => __( 'Only you see this folder. The files inside stay in the library for everyone.', 'vergelabs-media-library' ),
+            'sharedNote'     => __( 'Everyone can see this folder again.', 'vergelabs-media-library' ),
+            /* translators: %s: the name of the person whose folder it is. */
+            'privateOwned'   => __( '%s only', 'vergelabs-media-library' ),
+            'privateMine'    => __( 'only you', 'vergelabs-media-library' ),
             'copied'         => __( 'Shortcode copied', 'vergelabs-media-library' ),
             /*
              *  Shown when the copy did not work, which happens on plain http in

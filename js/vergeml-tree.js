@@ -682,6 +682,11 @@
 
 		row.appendChild( el( 'span', { class: 'vgml-name' }, node.name ) );
 
+		var owned = privacyTag( node );
+		if ( owned ) {
+			row.appendChild( owned );
+		}
+
 		// A pill, not a bare number: it reads as a badge belonging to the row
 		// rather than as a second column of text competing with the name.
 		if ( entry.total ) {
@@ -2742,6 +2747,58 @@
 	}
 
 
+	/*
+	 *  Whose folder it is.
+	 *
+	 *  `node.private` is null for an ordinary folder, { mine: true } for one
+	 *  of yours, and { mine: false, who: 'Name' } for somebody else's -- which
+	 *  only an administrator ever receives, because everybody else had that
+	 *  folder removed from the query before the tree was built.
+	 */
+	function ownedByMe( node ) {
+		return !! ( node && node.private && node.private.mine );
+	}
+
+	function ownedByOther( node ) {
+		return !! ( node && node.private && ! node.private.mine );
+	}
+
+	/*
+	 *  The marker on a row. A word rather than an icon: a padlock is the one
+	 *  shape that would say "these files are protected", which is exactly what
+	 *  this is not.
+	 */
+	function privacyTag( node ) {
+
+		if ( ! node || ! node.private ) {
+			return null;
+		}
+
+		var text = node.private.mine
+			? l10n.privateMine
+			: sprintfOne( l10n.privateOwned, node.private.who );
+
+		return el( 'span', { class: 'vgml-owned', title: l10n.privateNote }, text );
+	}
+
+	function sprintfOne( template, value ) {
+		return String( template ).replace( /%s/, String( value ) );
+	}
+
+	function setPrivacy( node, makePrivate ) {
+		return apiFetch( {
+			path: '/vergeml/v1/folder-privacy',
+			method: 'POST',
+			data: { id: node.id, 'private': !! makePrivate }
+		} ).then( function () {
+			toast( makePrivate ? l10n.privateNote : l10n.sharedNote, null );
+			return load();
+		} ).catch( function ( err ) {
+			toast( ( err && err.message ) || l10n.failed || '', null );
+		} );
+	}
+
+
 	function contextMenu( node, x, y ) {
 
 		var open = root.querySelector( '.vgml-overflow' );
@@ -2795,6 +2852,19 @@
 		 *  extension.
 		 */
 		item( l10n.copyShortcode, false, function () { copyShortcode( node.id ); } );
+
+		/*
+		 *  Not offered on somebody else's folder. An administrator can see one --
+		 *  otherwise a folder belonging to a deleted user would be invisible and
+		 *  impossible to tidy up -- but taking it over is how a colleague's
+		 *  filing quietly disappears, and the endpoint refuses it too.
+		 */
+		if ( ! ownedByOther( node ) ) {
+			var isMine = ownedByMe( node );
+			item( isMine ? l10n.makeShared : l10n.makePrivate, false, function () {
+				setPrivacy( node, ! isMine );
+			} );
+		}
 
 		// the colour strip, inline, because colour is a one-click choice
 		var names = paletteNames();

@@ -129,10 +129,25 @@ const SUITES = [
 	 */
 	{ name: 'csv', file: 'tests/import/csv.php', env: 'box', php: true },
 	/*
-	 *  Two languages. Reports itself SKIPPED when Polylang is not installed,
-	 *  and again on the run that switches folder translation on -- Polylang
-	 *  decides which taxonomies are translated during init, so the setting
-	 *  only bites on the next request. Run it twice on a fresh box.
+	 *  Folders only one person sees. On the box because it needs real users
+	 *  and a real term query -- the whole feature is what get_terms returns
+	 *  for somebody who is not the owner.
+	 */
+	{ name: 'private-folders', file: 'tests/tree/private-folders.php', env: 'box', php: true },
+	/*
+	 *  Two languages. Reports itself SKIPPED when Polylang is not active, and
+	 *  again on the run that switches folder translation on -- Polylang decides
+	 *  which taxonomies are translated during init, so the setting only bites
+	 *  on the next request.
+	 *
+	 *  Polylang is left DEACTIVATED on the box between runs, deliberately. It
+	 *  costs one query on every request, which pushes the tree to 8 and
+	 *  health-report to 6 and makes Gate 5 read as a regression that is not
+	 *  ours. To run this suite:
+	 *
+	 *      wp plugin activate polylang
+	 *      wp eval-file .../tests/compat/polylang.php   # twice, see above
+	 *      wp plugin deactivate polylang
 	 */
 	{ name: 'polylang', file: 'tests/compat/polylang.php', env: 'box', php: true },
 	/*

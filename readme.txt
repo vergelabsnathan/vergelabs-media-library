@@ -251,6 +251,10 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 * **Folders as a spreadsheet.** Write your whole structure out as a CSV, edit it wherever you like editing things, and read it back. Two hundred folders without two hundred clicks — and a way to take your structure with you.
 * Reading a file in is an import like any other: you see what it will do before it does it, folders you already have are merged rather than duplicated, and the whole thing can be undone afterwards.
 
+* **Folders only you see.** On a site where several people upload, a folder can belong to the person who made it and stay out of everyone else's sidebar. Ten people's filing in one panel is nobody's filing.
+* It hides the **folder**, never the files. Anything inside stays in the library for everyone, exactly as before, and the screen says so — because a folder that looked like a locked drawer would eventually be trusted with something that needed one.
+* Administrators can see whose a folder is, so nothing is stranded when somebody leaves. Nobody, administrators included, can quietly share out a folder that is not theirs.
+
 = Fixed =
 * **“Copy gallery shortcode” said it had copied when it had not.** On sites served over plain http, and any time the browser refused, the message appeared anyway while the clipboard still held whatever was there before. It now says so only when it worked, and shows you the shortcode when it did not.
 * The same action disappeared entirely on hosts without the ZIP extension, because it had been tucked inside the download-as-ZIP branch. Copying a line of text needs no extension.
