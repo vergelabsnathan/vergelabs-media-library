@@ -83,6 +83,21 @@ const VERGEML_ORGANIZE_OUTLIER = 3.0;
  */
 const VERGEML_ORGANIZE_NAME_SHARE = 0.5;
 
+/*
+ *  How much of the LIBRARY a tag can be on and still be a folder name.
+ *
+ *  Two fifths. Above that it is not describing this folder, it is describing
+ *  the library -- and a folder called what everything is called tells the
+ *  reader nothing.
+ *
+ *  On five hundred photographs "photo" was on nearly all of them, and it won
+ *  six folders: "Photo and workspace", "Photo and plant", "Photo and food",
+ *  and three called simply "Photo". Each was a perfectly good cluster --
+ *  desks, cacti, fruit -- wearing the one word they had in common with
+ *  everything else in the library.
+ */
+const VERGEML_ORGANIZE_NAME_CEILING = 0.4;
+
 const VERGEML_ORGANIZE_ITERATIONS = 25;
 
 // Runs kept per site. Task 14, and the only destructive act in this phase --
@@ -979,7 +994,7 @@ function vergeml_organize_kmeans( $members, $k, $vectors ) {
  *  "Skincare and cosmetics" is a name and "Skincare Cosmetics" is not.
  */
 
-function vergeml_organize_label( $members, $global, $points ) {
+function vergeml_organize_label( $members, $global, $points, $library = 0 ) {
 
     $counts = array();
 
@@ -1007,6 +1022,17 @@ function vergeml_organize_label( $members, $global, $points ) {
         }
 
         $spread = max( 1, isset( $global[ $tag ] ) ? (int) $global[ $tag ] : 1 );
+
+        /*
+         *  A word most of the library carries names nothing. Checked against
+         *  the library rather than against this branch, because the two
+         *  questions are different: "do these files share it" is what makes a
+         *  name true, "does everything else share it too" is what makes a name
+         *  useless.
+         */
+        if ( $library > 0 && ( $spread / $library ) > VERGEML_ORGANIZE_NAME_CEILING ) {
+            continue;
+        }
 
         // Share decides; being rare elsewhere breaks the ties, and can at most
         // double a tag's score rather than multiplying it by the library size.
@@ -1100,13 +1126,13 @@ function vergeml_organize_substr( $text, $start, $length = null ) {
  *  thing left to say is that this is the second one.
  */
 
-function vergeml_organize_distinct_labels( $clusters, $global, $points, $ancestors = array() ) {
+function vergeml_organize_distinct_labels( $clusters, $global, $points, $ancestors = array(), &$registry = null, $library = 0 ) {
 
     $labels = array();
     $ranked = array();
 
     foreach ( $clusters as $c => $members ) {
-        $labels[ $c ] = vergeml_organize_label( $members, $global, $points );
+        $labels[ $c ] = vergeml_organize_label( $members, $global, $points, $library );
         $ranked[ $c ] = vergeml_organize_shared_tags( $members, $points, 8 );
     }
 
@@ -1117,16 +1143,47 @@ function vergeml_organize_distinct_labels( $clusters, $global, $points, $ancesto
      *  Canvas" -- a folder inside a folder of the same name, which reads as a
      *  bug whether or not it is one.
      */
-    $taken = array();
+    /*
+     *  Taken, across the whole tree rather than across this split.
+     *
+     *  Scoping this to one split produced a tree with "Landscape and nature /
+     *  Nature" beside "Landscape / Nature" -- two folders called the same
+     *  thing, neither of them a sibling of the other, so neither pass ever
+     *  saw the collision. The registry is passed down the recursion so a name
+     *  used anywhere is used everywhere.
+     */
+    if ( ! is_array( $registry ) ) {
+        $registry = array();
+    }
+
+    $taken = &$registry;
 
     foreach ( (array) $ancestors as $name ) {
-        $taken[ $name ] = true;
+        $taken[ vergeml_organize_name_key( $name ) ] = true;
+    }
+
+    /*
+     *  What the folders above are already called, word by word.
+     *
+     *  "Landscape and nature / Nature" says nothing the parent did not
+     *  already say. A child has to add a word, or it is not a subdivision of
+     *  anything -- it is the same folder one level down.
+     */
+    $inherited = array();
+
+    foreach ( (array) $ancestors as $name ) {
+        foreach ( vergeml_organize_name_words( $name ) as $word ) {
+            $inherited[ $word ] = true;
+        }
     }
 
     foreach ( $labels as $c => $label ) {
 
-        if ( ! isset( $taken[ $label ] ) ) {
-            $taken[ $label ] = true;
+        $key = vergeml_organize_name_key( $label );
+
+        // Free, and it says something the parent did not.
+        if ( ! isset( $taken[ $key ] ) && ! vergeml_organize_name_echoes( $label, $inherited ) ) {
+            $taken[ $key ] = true;
             continue;
         }
 
@@ -1134,9 +1191,22 @@ function vergeml_organize_distinct_labels( $clusters, $global, $points, $ancesto
 
         foreach ( $ranked[ $c ] as $tag ) {
 
-            $candidate = $label . ' and ' . $tag;
+            /*
+             *  A word from neither the name nor any folder above it. Without
+             *  the second half, a branch under "Landscape" resolved to
+             *  "Nature and landscape" -- which is the parent's word again, in
+             *  a different order, and read as a third opinion about the same
+             *  pile of photographs.
+             */
+            if ( false !== stripos( $label, $tag ) || vergeml_organize_name_echoes( $tag, $inherited ) ) {
+                continue;
+            }
 
-            if ( ! isset( $taken[ $candidate ] ) && false === stripos( $label, $tag ) ) {
+            $candidate = isset( $taken[ vergeml_organize_name_key( $label ) ] )
+                ? $label . ' and ' . $tag
+                : vergeml_organize_name_case( $tag );
+
+            if ( ! isset( $taken[ vergeml_organize_name_key( $candidate ) ] ) ) {
                 $resolved = $candidate;
                 break;
             }
@@ -1144,17 +1214,87 @@ function vergeml_organize_distinct_labels( $clusters, $global, $points, $ancesto
 
         if ( '' === $resolved ) {
             $n = 2;
-            while ( isset( $taken[ $label . ' ' . $n ] ) ) {
+            while ( isset( $taken[ vergeml_organize_name_key( $label . ' ' . $n ) ] ) ) {
                 $n++;
             }
             $resolved = $label . ' ' . $n;
         }
 
-        $taken[ $resolved ] = true;
-        $labels[ $c ]       = $resolved;
+        $taken[ vergeml_organize_name_key( $resolved ) ] = true;
+        $labels[ $c ]                                    = $resolved;
     }
 
     return $labels;
+}
+
+
+/**
+ *  Two names that are the same name.
+ *
+ *  "Landscape and nature" and "Nature and landscape" are one folder written
+ *  two ways, and the tree shipped both. Comparing the sorted set of words
+ *  rather than the string is what makes them collide -- along with case, and
+ *  the joining word, which carries no meaning of its own.
+ */
+
+function vergeml_organize_name_key( $name ) {
+
+    $words = vergeml_organize_name_words( $name );
+
+    sort( $words );
+
+    return implode( ' ', $words );
+}
+
+
+/** The meaningful words in a name, lowercased, without the joiners. */
+function vergeml_organize_name_words( $name ) {
+
+    $words = preg_split( '/[^\p{L}\p{N}]+/u', vergeml_organize_lower( (string) $name ), -1, PREG_SPLIT_NO_EMPTY );
+
+    if ( ! $words ) {
+        return array();
+    }
+
+    $out = array();
+
+    foreach ( $words as $word ) {
+
+        // Joiners are punctuation with letters in. Dropping them is what makes
+        // "landscape and nature" and "nature landscape" the same key.
+        if ( in_array( $word, array( 'and', 'or', 'the', 'a', 'of', 'in', 'with' ), true ) ) {
+            continue;
+        }
+
+        $out[ $word ] = true;
+    }
+
+    return array_keys( $out );
+}
+
+
+/** Whether a name says only what the folders above it already said. */
+function vergeml_organize_name_echoes( $name, $inherited ) {
+
+    $words = vergeml_organize_name_words( $name );
+
+    if ( ! $words ) {
+        return false;
+    }
+
+    foreach ( $words as $word ) {
+        if ( ! isset( $inherited[ $word ] ) ) {
+            return false; // it adds something
+        }
+    }
+
+    return true;
+}
+
+
+/** @see vergeml_organize_upper */
+function vergeml_organize_lower( $text ) {
+    return function_exists( 'mb_strtolower' ) ? mb_strtolower( $text, 'UTF-8' ) : strtolower( $text );
 }
 
 
@@ -1432,11 +1572,17 @@ function vergeml_organize_step_cluster( $run, $started ) {
     // Named together rather than one at a time, so no two branches of this
     // split come out with the same name -- nor the same name as a folder they
     // sit inside.
+    if ( ! isset( $params['names'] ) || ! is_array( $params['names'] ) ) {
+        $params['names'] = array();
+    }
+
     $labels = vergeml_organize_distinct_labels(
         $clusters,
         $global,
         $points,
-        $parent ? $params['branches'][ $parent ]['path'] : array()
+        $parent ? $params['branches'][ $parent ]['path'] : array(),
+        $params['names'],
+        count( $points )
     );
 
     foreach ( $clusters as $c => $cluster_members ) {

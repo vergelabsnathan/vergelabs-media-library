@@ -148,4 +148,31 @@
 			say( '' );
 		} );
 	}
+
+	/*
+	 *  Clicking an example fills the box rather than running it.
+	 *
+	 *  Running it would be one click from changing somebody's library, off a
+	 *  sentence they did not write, about folders they may not have. Filling the
+	 *  box puts a real sentence in front of them to edit, which is the thing
+	 *  that was missing when this was one empty field and a placeholder that
+	 *  vanished the moment you typed.
+	 */
+	Array.prototype.forEach.call(
+		document.querySelectorAll( '.vgml-say-example' ),
+		function ( example ) {
+			example.addEventListener( 'click', function () {
+
+				var box = document.getElementById( 'vgml-say-text' );
+
+				if ( ! box ) {
+					return;
+				}
+
+				box.value = example.textContent;
+				box.focus();
+			} );
+		}
+	);
+
 }() );

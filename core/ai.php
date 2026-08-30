@@ -221,16 +221,21 @@ function vergeml_ai_context( $attachment_id ) {
 }
 
 
-function vergeml_ai_describe( $attachment_id ) {
+/**
+ *  The request for one description, built but not sent.
+ *
+ *  Separate from sending it because describing a backlog sends eight at a
+ *  time, and eight requests have to exist before any of them goes out. One
+ *  place builds the body, so the parallel path and the single path can never
+ *  drift into asking the service two different questions.
+ */
+
+function vergeml_ai_describe_request( $attachment_id ) {
 
     $settings = vergeml_ai_settings();
 
     if ( ! wp_attachment_is_image( $attachment_id ) ) {
         return new WP_Error( 'vergeml_ai_not_image', __( 'Only images are described for now.', 'vergelabs-media-library' ) );
-    }
-
-    if ( ! empty( $settings['mock'] ) || defined( 'VERGEML_AI_MOCK' ) ) {
-        return vergeml_ai_mock_describe( $attachment_id );
     }
 
     $license = vergeml_ai_unseal( $settings['license_key'] );
@@ -245,23 +250,49 @@ function vergeml_ai_describe( $attachment_id ) {
         return $file;
     }
 
+    return array(
+        'url'     => vergeml_ai_service_url() . '/describe',
+        'headers' => array( 'Content-Type' => 'application/json' ),
+        'body'    => wp_json_encode( array(
+            'license_key' => $license,
+            'site'        => home_url(),
+            'filename'    => wp_basename( get_attached_file( $attachment_id ) ),
+            'mime'        => get_post_mime_type( $attachment_id ),
+            'image'       => $file,
+            // Everything this site already knows, so the model does not
+            // have to guess what it is not allowed to guess.
+            'context'     => vergeml_ai_context( $attachment_id ),
+            'profile'     => (string) $settings['site_profile'],
+        ) ),
+    );
+}
+
+
+function vergeml_ai_describe( $attachment_id ) {
+
+    $settings = vergeml_ai_settings();
+
+    if ( ! wp_attachment_is_image( $attachment_id ) ) {
+        return new WP_Error( 'vergeml_ai_not_image', __( 'Only images are described for now.', 'vergelabs-media-library' ) );
+    }
+
+    if ( ! empty( $settings['mock'] ) || defined( 'VERGEML_AI_MOCK' ) ) {
+        return vergeml_ai_mock_describe( $attachment_id );
+    }
+
+    $request = vergeml_ai_describe_request( $attachment_id );
+
+    if ( is_wp_error( $request ) ) {
+        return $request;
+    }
+
     $response = wp_remote_post(
-        vergeml_ai_service_url() . '/describe',
+        $request['url'],
         array(
-            'timeout' => 60,
-            'headers' => array( 'Content-Type' => 'application/json' ),
+            'timeout'   => 60,
+            'headers'   => $request['headers'],
             'sslverify' => true,
-            'body'    => wp_json_encode( array(
-                'license_key' => $license,
-                'site'        => home_url(),
-                'filename'    => wp_basename( get_attached_file( $attachment_id ) ),
-                'mime'        => get_post_mime_type( $attachment_id ),
-                'image'       => $file,
-                // Everything this site already knows, so the model does not
-                // have to guess what it is not allowed to guess.
-                'context'     => vergeml_ai_context( $attachment_id ),
-                'profile'     => (string) $settings['site_profile'],
-            ) ),
+            'body'      => $request['body'],
         )
     );
 
@@ -269,8 +300,25 @@ function vergeml_ai_describe( $attachment_id ) {
         return $response;
     }
 
-    $code = wp_remote_retrieve_response_code( $response );
-    $data = json_decode( wp_remote_retrieve_body( $response ), true );
+    return vergeml_ai_describe_result(
+        wp_remote_retrieve_response_code( $response ),
+        wp_remote_retrieve_body( $response )
+    );
+}
+
+
+/**
+ *  One answer from the service, turned into what the index stores.
+ *
+ *  Every field is taken deliberately and nothing is passed through: the
+ *  columns exist so that `kind = document` means the same thing on every row,
+ *  and one unexpected string in the set makes every filter over it a guess.
+ */
+
+function vergeml_ai_describe_result( $code, $body ) {
+
+    $code = (int) $code;
+    $data = json_decode( (string) $body, true );
 
     if ( 402 === $code ) {
         return new WP_Error( 'vergeml_ai_out_of_credits', __( 'This licence is out of credits.', 'vergelabs-media-library' ) );
@@ -320,6 +368,218 @@ function vergeml_ai_describe( $attachment_id ) {
         'prompt_hash'   => isset( $data['prompt_hash'] ) ? sanitize_text_field( $data['prompt_hash'] ) : '',
     );
 }
+
+/**
+ *  How many descriptions are in flight at once.
+ *
+ *  The loop that fills a backlog was strictly sequential: one request, wait
+ *  for the model, next. Almost all of that time is waiting, so five hundred
+ *  pictures took half an hour of a browser tab doing nothing. Eight at a time
+ *  turns that into about four minutes.
+ *
+ *  Eight rather than sixteen because the ceiling is not this end. It is the
+ *  service and the model provider behind it, and a number chosen here is
+ *  multiplied by every site running a backlog at the same time. Filterable so
+ *  a big single-tenant install can raise it, capped so nobody can set 200.
+ */
+const VERGEML_AI_PARALLEL = 8;
+
+function vergeml_ai_parallel() {
+
+    $n = (int) apply_filters( 'vergeml_ai_parallel', VERGEML_AI_PARALLEL );
+
+    return max( 1, min( 16, $n ) );
+}
+
+
+/**
+ *  Describe several, in flight together.
+ *
+ *  Returns attachment id => the same thing vergeml_ai_describe() returns for
+ *  it, so the caller's error handling does not change at all.
+ *
+ *  WpOrg\Requests is WordPress's own bundled HTTP library -- core uses it for
+ *  update checks -- and request_multiple() is curl_multi underneath. No queue,
+ *  no worker, no second service.
+ *
+ *  It does bypass the WP_Http layer, which means the pre_http_request filter
+ *  and WP_PROXY_HOST do not apply to it. A site behind a proxy is therefore
+ *  sent down the sequential path instead: slower, and it works, which is the
+ *  right way round.
+ */
+
+function vergeml_ai_describe_many( $ids ) {
+
+    $ids = array_values( array_unique( array_map( 'intval', (array) $ids ) ) );
+    $out = array();
+
+    if ( ! $ids ) {
+        return $out;
+    }
+
+    $settings = vergeml_ai_settings();
+    $mock     = ! empty( $settings['mock'] ) || defined( 'VERGEML_AI_MOCK' );
+
+    $sequential = $mock
+        || defined( 'WP_PROXY_HOST' )
+        || ! class_exists( '\WpOrg\Requests\Requests' )
+        || 1 === vergeml_ai_parallel();
+
+    if ( $sequential ) {
+
+        foreach ( $ids as $id ) {
+            $out[ $id ] = vergeml_ai_describe( $id );
+        }
+
+        return $out;
+    }
+
+    foreach ( array_chunk( $ids, vergeml_ai_parallel() ) as $group ) {
+
+        $requests = array();
+
+        foreach ( $group as $id ) {
+
+            $request = vergeml_ai_describe_request( $id );
+
+            // A file that cannot even be read never becomes a request, and
+            // its error is the one the caller would have got anyway.
+            if ( is_wp_error( $request ) ) {
+                $out[ $id ] = $request;
+                continue;
+            }
+
+            $requests[ $id ] = array(
+                'url'     => $request['url'],
+                'headers' => $request['headers'],
+                'data'    => $request['body'],
+                'type'    => \WpOrg\Requests\Requests::POST,
+            );
+        }
+
+        if ( ! $requests ) {
+            continue;
+        }
+
+        try {
+            $answers = \WpOrg\Requests\Requests::request_multiple( $requests, array(
+                'timeout'          => 60,
+                'connect_timeout'  => 15,
+                'verify'           => true,
+            ) );
+        } catch ( \Exception $e ) {
+
+            // The whole group failed to go out. Every file in it is reported
+            // as failed rather than silently skipped -- a file that quietly
+            // never gets described is worse than one that says why.
+            foreach ( array_keys( $requests ) as $id ) {
+                $out[ $id ] = new WP_Error( 'vergeml_ai_transport', $e->getMessage() );
+            }
+
+            continue;
+        }
+
+        foreach ( $answers as $id => $answer ) {
+
+            if ( $answer instanceof \WpOrg\Requests\Exception || $answer instanceof \Exception ) {
+                $out[ (int) $id ] = new WP_Error( 'vergeml_ai_transport', $answer->getMessage() );
+                continue;
+            }
+
+            $out[ (int) $id ] = vergeml_ai_describe_result( $answer->status_code, $answer->body );
+        }
+    }
+
+    return $out;
+}
+
+
+/**
+ *  Another file that is byte-for-byte the same picture, already described.
+ *
+ *  Step one of the sort flow says on screen that checking for copies "stops
+ *  the same photo being described twice, and paid for twice". Until this
+ *  existed, nothing in the describing path had ever looked at the hashes that
+ *  scan computes -- the claim was true of the scan and false of the product.
+ *
+ *  Exact matches only. Near-duplicates within the health report's tolerance
+ *  are a crop or a recolour of each other, and a crop can be a different
+ *  picture in every way that matters to a caption. Distance zero is the same
+ *  image, and copying its description is a fact rather than a judgement.
+ */
+
+function vergeml_ai_twin( $attachment_id ) {
+
+    global $wpdb;
+
+    if ( ! defined( 'VERGEML_META_HASH' ) ) {
+        return 0; // health is not loaded, so there are no hashes to match on
+    }
+
+    $hash = (string) get_post_meta( (int) $attachment_id, VERGEML_META_HASH, true );
+
+    if ( '' === $hash ) {
+        return 0;
+    }
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; there is no core API for it.
+    $twin = $wpdb->get_var( $wpdb->prepare(
+        "SELECT m.post_id
+           FROM {$wpdb->postmeta} m
+     INNER JOIN {$wpdb->vergeml_ai_index} i
+             ON i.attachment_id = m.post_id AND i.error = '' AND i.described_at IS NOT NULL
+          WHERE m.meta_key = %s AND m.meta_value = %s AND m.post_id <> %d
+       ORDER BY m.post_id ASC
+          LIMIT 1",
+        VERGEML_META_HASH,
+        $hash,
+        (int) $attachment_id
+    ) );
+    // phpcs:enable
+
+    return (int) $twin;
+}
+
+
+/**
+ *  Give one file the description its identical twin already has.
+ *
+ *  Everything the model produced is copied, prompt_hash included, so a file
+ *  filled this way goes stale at the same moment as the one it came from
+ *  rather than looking fresh for ever.
+ */
+
+function vergeml_ai_fill_from_twin( $attachment_id, $twin_id, $apply_alt = false ) {
+
+    $row = vergeml_index_get( $twin_id );
+
+    if ( ! $row || '' !== (string) $row['error'] ) {
+        return false;
+    }
+
+    $copy = array();
+
+    foreach ( array( 'caption', 'alt', 'tags', 'title', 'kind', 'has_people', 'has_text', 'document_type', 'model', 'model_version', 'prompt_hash', 'embedding' ) as $field ) {
+        if ( array_key_exists( $field, $row ) ) {
+            $copy[ $field ] = $row[ $field ];
+        }
+    }
+
+    $copy['error']        = '';
+    $copy['described_at'] = current_time( 'mysql', true );
+
+    vergeml_index_writing( true );
+    vergeml_index_set( $attachment_id, $copy );
+
+    if ( $apply_alt && '' === (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) && ! empty( $copy['alt'] ) ) {
+        update_post_meta( $attachment_id, '_wp_attachment_image_alt', $copy['alt'] );
+    }
+
+    vergeml_index_writing( false );
+
+    return true;
+}
+
 
 /**
  *  The enums, in one place, and the answer to anything not in them.
@@ -555,20 +815,74 @@ function vergeml_ai_pending( $scope, $limit = 0 ) {
 }
 
 /**
+ *  The most files one call will take on.
+ *
+ *  Was ten, when they went one at a time. Eight in flight makes a group take
+ *  about as long as one file used to, so the ceiling that matters now is the
+ *  execution time a shared host allows -- three groups of eight is roughly
+ *  twelve seconds, comfortably inside the thirty second cap those hosts still
+ *  ship, with the slowest plausible group still leaving room.
+ */
+const VERGEML_AI_STEP_MAX = 24;
+
+/**
  *  vergeml_ai_index_step
  *
  *  Describe the next few files. Returns what happened, plus how much is
  *  left, so the caller can loop until the answer is zero.
+ *
+ *  Two things happen before the service is asked anything. Files that are
+ *  byte-for-byte copies of something already described are filled in from
+ *  their twin -- free, instant, and the thing step one of the sort flow
+ *  promises on screen. What is left goes out in groups of eight rather than
+ *  one at a time.
  */
 function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
 
-    $ids    = vergeml_ai_pending( $scope, max( 1, min( 10, $limit ) ) );
+    $ids    = vergeml_ai_pending( $scope, max( 1, min( VERGEML_AI_STEP_MAX, $limit ) ) );
     $done   = array();
     $errors = array();
 
+    /*
+     *  The copies first.
+     *
+     *  A library of product shots has the same packshot in three places more
+     *  often than not, and describing it three times is three credits for one
+     *  answer. The scan in step one already worked out which those are; until
+     *  this, nothing ever read it.
+     */
+    $ask = array();
+
     foreach ( $ids as $id ) {
 
-        $described = vergeml_ai_describe( $id );
+        $twin = vergeml_ai_twin( $id );
+
+        if ( $twin && vergeml_ai_fill_from_twin( $id, $twin, $apply_alt ) ) {
+
+            $row = vergeml_index_get( $id );
+
+            $done[] = array(
+                'id'      => $id,
+                'caption' => $row ? $row['caption'] : '',
+                // The caller shows this: a file that cost nothing is worth
+                // saying so about, and it explains a count moving faster than
+                // the credits do.
+                'twin'    => $twin,
+            );
+
+            continue;
+        }
+
+        $ask[] = $id;
+    }
+
+    $answers = vergeml_ai_describe_many( $ask );
+
+    foreach ( $ask as $id ) {
+
+        $described = isset( $answers[ $id ] )
+            ? $answers[ $id ]
+            : new WP_Error( 'vergeml_ai_no_answer', __( 'The service did not answer for this file.', 'vergelabs-media-library' ) );
 
         if ( is_wp_error( $described ) ) {
 
@@ -577,8 +891,13 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
             $errors[] = array( 'id' => $id, 'error' => $described->get_error_message(), 'fatal' => $fatal );
 
             if ( $fatal ) {
-                // No stub and no next file: every further call would fail the
-                // same way, and burning the batch on it helps nobody.
+                /*
+                 *  Out of credits, or a bad key. Every other answer in this
+                 *  group failed for the same reason or is about to, so
+                 *  nothing further is written and nothing is stubbed -- a
+                 *  stub here would mark a perfectly good file as permanently
+                 *  broken because the licence lapsed for a minute.
+                 */
                 break;
             }
 
@@ -786,7 +1105,7 @@ function vergeml_ai_routes() {
         },
         'args'                => array(
             'scope'     => array( 'type' => 'string', 'default' => 'unindexed' ),
-            'limit'     => array( 'type' => 'integer', 'default' => 3 ),
+            'limit'     => array( 'type' => 'integer', 'default' => 8 ),
             'apply_alt' => array( 'type' => 'boolean', 'default' => false ),
         ),
     ) );

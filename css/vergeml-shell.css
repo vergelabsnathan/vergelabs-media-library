@@ -781,3 +781,58 @@
 	background: none;
 	box-shadow: none;
 }
+
+
+/* ----------------------------------------------- what is left in the account */
+
+/*
+ *  Above the version, at the bottom of the nav: present on every screen,
+ *  never in the way of one. A number somebody checks rather than one that
+ *  interrupts them.
+ */
+.vgml-shell-credits {
+	display: block;
+	margin: 18px 14px 0;
+	padding: 10px 12px;
+	border: 1px solid var( --vgml-rule );
+	border-radius: 4px;
+	text-decoration: none;
+	background: var( --vgml-surface );
+}
+
+.vgml-shell-credits:hover {
+	border-color: var( --vgml-accent );
+}
+
+.vgml-shell-credits:focus {
+	box-shadow: none;
+	outline: 2px solid var( --vgml-accent );
+	outline-offset: 1px;
+}
+
+.vgml-shell-credits-n {
+	display: block;
+	font-size: 20px;
+	font-weight: 600;
+	line-height: 1.1;
+	color: var( --vgml-ink );
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell-credits-l {
+	display: block;
+	margin-top: 1px;
+	font-size: 12px;
+	color: var( --vgml-ink );
+}
+
+.vgml-shell-credits-w {
+	display: block;
+	margin-top: 3px;
+	font-size: 11px;
+	color: var( --vgml-muted );
+}
+
+.vgml-shell-credits.is-low .vgml-shell-credits-n {
+	color: var( --vgml-accent );
+}

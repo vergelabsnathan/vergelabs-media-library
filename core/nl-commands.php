@@ -629,13 +629,39 @@ add_action( 'vergeml_librarian_page_cards', 'vergeml_nl_card' );
 
 function vergeml_nl_card() {
 
+    /*
+     *  What it can actually be asked.
+     *
+     *  This was one text box with one placeholder, which is the worst possible
+     *  brief: a blank field implies it understands anything, the placeholder
+     *  vanishes the moment you type, and the four things it genuinely does
+     *  were written in a paragraph above rather than shown. Somebody typed one
+     *  sentence, got "nothing matched", and never came back.
+     *
+     *  Four examples, one per verb, and clicking one fills the box. The point
+     *  is not the examples -- it is that the shape of a sentence it can act on
+     *  is now visible without reading anything.
+     */
+    $examples = array(
+        __( 'move the screenshots into Products', 'vergelabs-media-library' ),
+        __( 'tag everything in Autumn 2026 as seasonal', 'vergelabs-media-library' ),
+        __( 'rename Blog to Journal', 'vergelabs-media-library' ),
+        __( 'make a folder called Press', 'vergelabs-media-library' ),
+    );
+
     ?>
     <div class="vgml-ai-card">
-        <h2><?php esc_html_e( 'Type what you want done', 'vergelabs-media-library' ); ?></h2>
-        <p class="description"><?php esc_html_e( 'Type what you want in plain English and we will show you exactly what it would do, and to which files, before anything happens. It can move files, tag them, rename a folder or make a new one — and it has no way to delete anything.', 'vergelabs-media-library' ); ?></p>
+        <h2><?php esc_html_e( 'Move files by typing a sentence', 'vergelabs-media-library' ); ?></h2>
+        <p class="description"><?php esc_html_e( 'For when you already know what you want and it is faster to say it than to click it. We show you exactly which files would move before anything happens, and it cannot delete anything.', 'vergelabs-media-library' ); ?></p>
         <p>
             <input type="text" id="vgml-say-text" class="regular-text" placeholder="<?php esc_attr_e( 'move the screenshots into Products', 'vergelabs-media-library' ); ?>">
             <button type="button" class="button" id="vgml-say-plan"><?php esc_html_e( 'Show me what it would do', 'vergelabs-media-library' ); ?></button>
+        </p>
+        <p class="vgml-say-examples">
+            <span class="vgml-say-examples-l"><?php esc_html_e( 'Things it understands:', 'vergelabs-media-library' ); ?></span>
+            <?php foreach ( $examples as $example ) : ?>
+                <button type="button" class="button-link vgml-say-example"><?php echo esc_html( $example ); ?></button>
+            <?php endforeach; ?>
         </p>
         <div id="vgml-say-preview" class="vgml-say-preview" hidden>
             <p id="vgml-say-summary"></p>

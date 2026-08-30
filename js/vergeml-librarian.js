@@ -214,6 +214,20 @@
 
 		track.appendChild( fill );
 		head.appendChild( track );
+
+		/*
+		 *  One thing on the screen at a time.
+		 *
+		 *  Everything below the flow -- the history, the two other filing
+		 *  tools -- is a follow-up, not an alternative. Offered beside step
+		 *  two it competes with the step; offered at the end it answers the
+		 *  question somebody actually has by then.
+		 */
+		var after = $( 'vgml-lib-after' );
+
+		if ( after ) {
+			after.hidden = 'review' !== state.step;
+		}
 	}
 
 	/* -------------------------------------------------------- the ladder */
@@ -577,7 +591,10 @@
 			apiFetch( {
 				path: '/vergeml/v1/ai-index',
 				method: 'POST',
-				data: { scope: 'unindexed', limit: 5, apply_alt: true },
+				// Three groups of eight. The server caps this, so a client asking
+				// for more gets what the host can safely finish rather than a
+				// timeout halfway through somebody's library.
+				data: { scope: 'unindexed', limit: 24, apply_alt: true },
 			} ).then( function ( r ) {
 
 				var left = r.remaining || 0;

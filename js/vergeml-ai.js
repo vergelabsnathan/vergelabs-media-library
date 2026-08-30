@@ -78,7 +78,7 @@
 			apiFetch( {
 				path: '/vergeml/v1/ai-index',
 				method: 'POST',
-				data: { scope: scope, limit: 3, apply_alt: applyAlt },
+				data: { scope: scope, limit: 24, apply_alt: applyAlt },
 			} ).then( function ( r ) {
 
 				r.described.forEach( function ( d ) {

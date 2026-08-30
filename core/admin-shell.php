@@ -229,6 +229,23 @@ function vergeml_shell_open() {
                     <?php endforeach; ?>
                 </ul>
 
+                <?php
+                /*
+                 *  What is left in the account.
+                 *
+                 *  This is a product somebody pays per picture for and the
+                 *  balance appeared nowhere at all -- not on the dashboard,
+                 *  not in the nav, nowhere. The only way to find out was to
+                 *  start a run and read the sentence above the button.
+                 *
+                 *  Costs nothing to show: the service returns the balance with
+                 *  every description and it has been stored in an option ever
+                 *  since, precisely so that "how many credits are left" never
+                 *  needs a request of its own.
+                 */
+                echo vergeml_shell_credits(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped below.
+                ?>
+
                 <p class="vgml-shell-version">
                     <?php
                     printf(
@@ -242,6 +259,93 @@ function vergeml_shell_open() {
 
             <main class="vgml-shell-content">
     <?php
+}
+
+
+/**
+ *  The credit balance for the nav, or nothing at all.
+ *
+ *  Nothing when there is no licence: a free install has no balance, and a
+ *  row reading "0 credits" would be an invitation to worry about a number
+ *  that does not apply.
+ *
+ *  The figure is whatever the service last said, and it says when that was.
+ *  A balance with no date on it is a balance somebody trusts for longer than
+ *  they should -- it is exact at the end of a run and a week stale otherwise.
+ */
+
+function vergeml_shell_credits() {
+
+    if ( ! function_exists( 'vergeml_ai_settings' ) ) {
+        return '';
+    }
+
+    $settings = vergeml_ai_settings();
+
+    if ( '' === (string) vergeml_ai_unseal( $settings['license_key'] ) ) {
+        return '';
+    }
+
+    $stored = get_option( 'vergeml_ai_credits', array() );
+
+    if ( ! is_array( $stored ) || ! isset( $stored['remaining'] ) || null === $stored['remaining'] ) {
+        return '';
+    }
+
+    $left = (int) $stored['remaining'];
+    $when = isset( $stored['time'] ) ? (int) $stored['time'] : 0;
+
+    $url = function_exists( 'vergeml_shell_url' ) ? vergeml_shell_url( 'media-ai' ) : admin_url( 'admin.php?page=media-ai' );
+
+    $note = $when > 0
+        ? sprintf(
+            /* translators: %s: how long ago the balance was checked, e.g. "5 mins". */
+            __( 'as of %s ago', 'vergelabs-media-library' ),
+            human_time_diff( $when, time() )
+        )
+        : __( 'not checked yet', 'vergelabs-media-library' );
+
+    /*
+     *  Under a hundred is the point at which a run will not finish, so it is
+     *  worth a colour. Not an alarm -- nothing is broken, and a red badge for
+     *  a thing that is merely finite is how people learn to ignore badges.
+     */
+    $low = $left < 100 ? ' is-low' : '';
+
+    return sprintf(
+        '<a class="vgml-shell-credits%1$s" href="%2$s"><span class="vgml-shell-credits-n">%3$s</span><span class="vgml-shell-credits-l">%4$s</span><span class="vgml-shell-credits-w">%5$s</span></a>',
+        esc_attr( $low ),
+        esc_url( $url ),
+        esc_html( number_format_i18n( $left ) ),
+        esc_html( _n( 'credit left', 'credits left', $left, 'vergelabs-media-library' ) ),
+        esc_html( $note )
+    );
+}
+
+
+/**
+ *  Other people's notices, off our screens.
+ *
+ *  The sort flow is a five step process, and the first thing above step one
+ *  was another plugin's banner telling somebody to go and create their first
+ *  folder somewhere else. A screen that walks a person through a decision
+ *  cannot also be a noticeboard.
+ *
+ *  WordPress's own notices stay: an update, a failed cron, a permissions
+ *  problem are all things somebody has to see wherever they are standing.
+ *  What goes is everything registered by another plugin.
+ */
+
+add_action( 'in_admin_header', 'vergeml_shell_quiet', 1 );
+
+function vergeml_shell_quiet() {
+
+    if ( '' === vergeml_shell_current() ) {
+        return;
+    }
+
+    remove_all_actions( 'admin_notices' );
+    remove_all_actions( 'all_admin_notices' );
 }
 
 

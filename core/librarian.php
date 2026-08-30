@@ -2507,6 +2507,36 @@ function vergeml_librarian_stage() {
  *  they were nearly done or halfway.
  */
 
+/**
+ *  Whether the tools below the flow have anything to work with.
+ *
+ *  Both of them move files into folders by comparing descriptions, so both
+ *  need at least one folder to move into and at least one described file to
+ *  compare. Either missing and every answer they can give is "nothing to do",
+ *  which is not worth a heading, a paragraph and a button.
+ */
+
+function vergeml_librarian_tools_ready() {
+
+    $taxonomy = function_exists( 'vergeml_tree_taxonomies' ) ? reset( vergeml_tree_taxonomies() ) : '';
+
+    if ( ! $taxonomy ) {
+        return false;
+    }
+
+    $folders = wp_count_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) );
+
+    if ( is_wp_error( $folders ) || (int) $folders < 1 ) {
+        return false;
+    }
+
+    global $wpdb;
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = ''" ) > 0;
+}
+
+
 function vergeml_librarian_steps() {
 
     return array(
@@ -2826,26 +2856,46 @@ function vergeml_librarian_page() {
          *  currently doing, and a rule and a heading are what say so.
          */
         ?>
-        <div class="vgml-after-flow">
+        <?php
+        /*
+         *  Hidden until the flow has nothing in front of it.
+         *
+         *  A step is meant to be the only thing on the screen. What was
+         *  underneath it -- a list of what had been sorted before, two other
+         *  filing tools, each with a heading, a paragraph and a button -- was
+         *  four more things to read past while deciding one. The script
+         *  unhides this when the last step is reached, which is the point at
+         *  which "what else can I do" is a question somebody has.
+         */
+        ?>
+        <div class="vgml-after-flow" id="vgml-lib-after" hidden>
 
             <div id="vgml-lib-history"></div>
 
+            <?php
+            /*
+             *  The other filing tools, when there are any files for them.
+             *
+             *  Both need two things this library may not have yet: folders to
+             *  put something in, and descriptions to decide by. Shown on a
+             *  library with neither, "Suggest a folder for each file" is a
+             *  button that can only ever answer "no folders", sitting under a
+             *  screen that is in the middle of explaining that the pictures
+             *  have not been looked at yet.
+             *
+             *  So they appear when they can work. Not greyed out with a
+             *  tooltip -- a disabled control is still something to read past
+             *  on the way down a page, and the whole point of the step layout
+             *  above is that there is one thing to do at a time.
+             */
+            if ( vergeml_librarian_tools_ready() ) :
+            ?>
             <div class="vgml-other-ways">
                 <h2><?php esc_html_e( 'Other ways to put files into folders', 'vergelabs-media-library' ); ?></h2>
 
-        <?php
-        /*
-         *  Where the other filing tools go.
-         *
-         *  "File what is still loose" and "Say what you want" both put files
-         *  into folders, and both were on the AI screen -- next to the licence
-         *  key and the credit balance, which they have nothing to do with. The
-         *  AI screen was six unrelated sections stacked; this is where two of
-         *  them belong.
-         */
-        do_action( 'vergeml_librarian_page_cards' );
-        ?>
+                <?php do_action( 'vergeml_librarian_page_cards' ); ?>
             </div>
+            <?php endif; ?>
 
         </div>
 

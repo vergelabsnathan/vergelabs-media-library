@@ -43,8 +43,11 @@ const VERGEML_AI_RUN_BUDGET = 20;
 const VERGEML_AI_RUN_GAP = 30;
 
 /** How many files one step describes before the budget is checked again.
- *  Small, because the budget can only be honoured between steps. */
-const VERGEML_AI_RUN_CHUNK = 3;
+ *
+ *  Eight, which is one group in flight together -- so a chunk now costs about
+ *  what a single file used to, and the budget is still only checked between
+ *  chunks. Three was chosen when they went one at a time. */
+const VERGEML_AI_RUN_CHUNK = 8;
 
 
 /**
