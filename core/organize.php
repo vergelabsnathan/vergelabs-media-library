@@ -77,11 +77,20 @@ const VERGEML_ORGANIZE_OUTLIER = 3.0;
 /*
  *  How much of a branch has to carry a tag before it can be the branch's name.
  *
- *  Half. A name is a claim about the whole folder, so a word a minority of the
- *  files carry is not one -- see vergeml_organize_label for what happened
- *  without this.
+ *  A name is a claim about the folder, so a word almost none of the files
+ *  carry is not one -- see vergeml_organize_label for what happened with no
+ *  floor at all.
+ *
+ *  Thirty percent, and that is measured. At half, three of six top-level
+ *  branches of a real library could not be named by any tag: their best were
+ *  landscape at 47%, portrait at 35% and workspace at 16%. All three fell
+ *  through to the file kind and came out called "Photo", which is how one
+ *  library produced six folders named some variation of it. Real vocabulary
+ *  is wider than half -- a model describing thirty desks will say desk,
+ *  workspace, office and laptop -- so half was asking for an agreement the
+ *  language does not have.
  */
-const VERGEML_ORGANIZE_NAME_SHARE = 0.5;
+const VERGEML_ORGANIZE_NAME_SHARE = 0.30;
 
 /*
  *  How much of the LIBRARY a tag can be on and still be a folder name.
@@ -98,7 +107,46 @@ const VERGEML_ORGANIZE_NAME_SHARE = 0.5;
  */
 const VERGEML_ORGANIZE_NAME_CEILING = 0.4;
 
+/*
+ *  The least a tag can be shared by and still be reached for when nothing
+ *  clears the floor above.
+ *
+ *  A folder whose best word is on a seventh of it has a weak name; a folder
+ *  whose best word is on one file has no name, and reaching for it anyway
+ *  produced "Aardvark" for four files that shared nothing whatsoever. Below
+ *  this, and below two files, the honest answer is what the files are.
+ */
+const VERGEML_ORGANIZE_NAME_WEAK = 0.15;
+
 const VERGEML_ORGANIZE_ITERATIONS = 25;
+
+/*
+ *  How much more alike a split has to make things before it is worth doing.
+ *
+ *  Twelve percent. Below that the split has not found a division in the
+ *  library, it has drawn a line through the middle of one thing.
+ *
+ *  Five hundred landscape photographs came back as twenty-nine folders --
+ *  Water, Ocean, Nature, Clouds, Mountains, Valley, Desert, Iceland, Moss --
+ *  which is nine names for one pile of countryside. Nothing anywhere asked
+ *  whether a split had separated anything; the tree simply cut to six
+ *  branches and recursed three deep because those were the numbers. On a
+ *  library that genuinely holds six subjects that is right, and on a library
+ *  that holds one it manufactures structure and then names it.
+ *
+ *  Measured as the drop in average distance from a file to the middle of the
+ *  folder it is in. If putting them in six folders leaves each file nearly as
+ *  far from its folder's centre as it was from the whole group's centre, the
+ *  six folders are six arbitrary slices.
+ *
+ *  Twenty percent is measured, not argued. tools/organize-why.php prints this
+ *  figure for every split of a real library; on five hundred photographs the
+ *  splits ran from 17.8% to 47.7%, and the two lowest were exactly the two
+ *  that should not have happened -- the 168-file landscape blob at 17.8% and
+ *  the 115-file mixed bag at 17.9%. k-means always tightens something, which
+ *  is why the first guess of 12% stopped nothing at all.
+ */
+const VERGEML_ORGANIZE_SPLIT_GAIN = 0.20;
 
 // Runs kept per site. Task 14, and the only destructive act in this phase --
 // its own rows, never media.
@@ -959,6 +1007,97 @@ function vergeml_organize_kmeans( $members, $k, $vectors ) {
 }
 
 
+/**
+ *  vergeml_organize_split_gain
+ *
+ *  How much tighter a split made things, from 0 to 1.
+ *
+ *  The average distance from a file to the centre of its own branch, against
+ *  the same average when they were all one branch. Zero means the split
+ *  achieved nothing; one would mean every branch collapsed to a point.
+ *
+ *  This is the cheap half of a silhouette score and deliberately so: it runs
+ *  on every split of every run, and the expensive half -- each file against
+ *  every other branch -- answers a question this does not need to ask. What is
+ *  being decided is only "is there a division here at all".
+ */
+
+function vergeml_organize_centroid( $members, $vectors ) {
+
+    $members = array_values( $members );
+    $n       = count( $members );
+
+    if ( 0 === $n ) {
+        return array();
+    }
+
+    $middle = array_fill( 0, count( $vectors[ $members[0] ] ), 0.0 );
+
+    foreach ( $members as $index ) {
+        foreach ( $vectors[ $index ] as $d => $value ) {
+            $middle[ $d ] += $value;
+        }
+    }
+
+    foreach ( $middle as $d => $sum ) {
+        $middle[ $d ] = $sum / $n;
+    }
+
+    return $middle;
+}
+
+
+function vergeml_organize_split_gain( $members, $clusters, $centroids, $vectors ) {
+
+    $members = array_values( $members );
+    $n       = count( $members );
+
+    if ( $n < 2 || count( $clusters ) < 2 ) {
+        return 0.0;
+    }
+
+    /* ---- where they all were, as one group */
+
+    $whole  = vergeml_organize_centroid( $members, $vectors );
+    $before = 0.0;
+
+    foreach ( $members as $index ) {
+        $before += vergeml_organize_distance( $vectors[ $index ], $whole );
+    }
+
+    $before = $before / $n;
+
+    if ( $before <= 0.0 ) {
+        return 0.0; // every file identical; nothing to divide
+    }
+
+    /* ---- where they are now */
+
+    $after = 0.0;
+    $count = 0;
+
+    foreach ( $clusters as $c => $cluster_members ) {
+
+        if ( ! isset( $centroids[ $c ] ) ) {
+            continue;
+        }
+
+        foreach ( $cluster_members as $index ) {
+            $after += vergeml_organize_distance( $vectors[ $index ], $centroids[ $c ] );
+            $count++;
+        }
+    }
+
+    if ( 0 === $count ) {
+        return 0.0;
+    }
+
+    $after = $after / $count;
+
+    return max( 0.0, ( $before - $after ) / $before );
+}
+
+
 /* ----------------------------------------------------------------- labelling */
 
 /**
@@ -1040,6 +1179,47 @@ function vergeml_organize_label( $members, $global, $points, $library = 0 ) {
     }
 
     $words = array_slice( vergeml_organize_rank( $score ), 0, 1 );
+
+    /*
+     *  Nothing cleared the floor, but there are still tags.
+     *
+     *  Falling through to the file kind here is what produced "Photo", six
+     *  times, on a library where every file is a photo. The most common thing
+     *  in the folder is a weak name; the word "photo" is not a name at all.
+     *  The branch is separately marked as loose, so the screen says the
+     *  pictures in it are less alike than the rest -- which is the honest
+     *  version of what a 16% name means.
+     */
+    if ( ! $words && $counts ) {
+
+        $loose = array();
+
+        foreach ( $counts as $tag => $count ) {
+
+            /*
+             *  Weak is not the same as absent.
+             *
+             *  A word thirteen of eighty-three files share is a weak name and
+             *  still a true one. A word ONE file has is not a name for the
+             *  other eighty-two, and without this floor four unrelated files
+             *  came back as a folder called "Aardvark" -- the first file's
+             *  first tag, winning because nothing else scored either.
+             */
+            if ( $count < 2 || ( $count / $total ) < VERGEML_ORGANIZE_NAME_WEAK ) {
+                continue;
+            }
+
+            $spread = max( 1, isset( $global[ $tag ] ) ? (int) $global[ $tag ] : 1 );
+
+            if ( $library > 0 && ( $spread / $library ) > VERGEML_ORGANIZE_NAME_CEILING ) {
+                continue;
+            }
+
+            $loose[ $tag ] = ( $count / $total ) * ( 1 + 1 / $spread );
+        }
+
+        $words = array_slice( vergeml_organize_rank( $loose ), 0, 1 );
+    }
 
     if ( ! $words ) {
 
@@ -1568,6 +1748,86 @@ function vergeml_organize_step_cluster( $run, $started ) {
     }
 
     ksort( $clusters );
+
+    /*
+     *  Was this a division, or a line through the middle of one thing?
+     *
+     *  Only asked below the top level. At the top there is no branch to fall
+     *  back into -- refusing to split there means the whole library is one
+     *  folder, which is not a proposal, it is a shrug.
+     */
+    $gain = vergeml_organize_split_gain( $members, $clusters, $result['centroids'], $vectors );
+
+    if ( '' !== $parent && $gain < VERGEML_ORGANIZE_SPLIT_GAIN ) {
+
+        /*
+         *  The branch keeps its files and grows nothing underneath it.
+         *
+         *  It has to be filled in here. A branch that is going to be split is
+         *  created empty and its members are written by whichever pass finds
+         *  a leaf -- so refusing the split and returning left the folder
+         *  holding nothing at all. The first run of this dropped 283 of 510
+         *  files out of the proposal and reported the two biggest folders as
+         *  empty.
+         *
+         *  Same shape the leaf path writes, outliers included: this IS a leaf
+         *  now, which is exactly the point at which a member's distance from
+         *  the middle stops changing and is worth judging.
+         */
+        $whole     = $params['branches'][ $parent ];
+        $centre    = vergeml_organize_centroid( $members, $vectors );
+        $shared    = vergeml_organize_shared_tags( $members, $points );
+        $distances = array();
+
+        foreach ( $members as $index ) {
+            $distances[ $index ] = sqrt( vergeml_organize_distance( $vectors[ $index ], $centre ) );
+        }
+
+        $cutoff = vergeml_organize_cutoff( $distances, $limits['outlier'] );
+
+        foreach ( $members as $index ) {
+
+            if ( $cutoff > 0 && $distances[ $index ] > $cutoff ) {
+                $params['outliers'][] = $index;
+                continue;
+            }
+
+            $params['branches'][ $parent ]['members'][] = vergeml_organize_member( $index, $centre, $vectors, $whole['label'], $shared, false );
+        }
+
+        $params['branches'][ $parent ]['size']  = count( $params['branches'][ $parent ]['members'] );
+        $params['branches'][ $parent ]['total'] = $params['branches'][ $parent ]['size'];
+
+        /*
+         *  Says why it was left whole, because "this folder was not split" is
+         *  a decision somebody is entitled to see a reason for -- and because
+         *  the alternative is a tree that silently varies in depth for reasons
+         *  nobody can name.
+         */
+        $params['branches'][ $parent ]['whole']  = round( $gain, 4 );
+        $params['branches'][ $parent ]['reason'] = sprintf(
+            /* translators: 1: number of files, 2: comma-separated list of tags. */
+            _n(
+                '%1$d file, kept together: splitting it further would not have made these any more alike. They share %2$s.',
+                '%1$d files, kept together: splitting them further would not have made them any more alike. They share %2$s.',
+                count( $params['branches'][ $parent ]['members'] ),
+                'vergelabs-media-library'
+            ),
+            count( $params['branches'][ $parent ]['members'] ),
+            $shared ? implode( ', ', $shared ) : __( 'what the files are', 'vergelabs-media-library' )
+        );
+
+        if ( ! $params['jobs'] ) {
+            $params['phase'] = 'finish';
+        }
+
+        $params['timing']['cluster_ms'] += ( microtime( true ) - $started ) * 1000;
+        $params['timing']['cluster_n']  += count( $members );
+
+        $run['params'] = $params;
+
+        return $run;
+    }
 
     // Named together rather than one at a time, so no two branches of this
     // split come out with the same name -- nor the same name as a folder they

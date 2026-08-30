@@ -206,6 +206,32 @@ nm_check(
     $nm_got
 );
 
+/*
+ *  And the case on the other side of that line, which is why the floor is not
+ *  simply "the top tag wins".
+ *
+ *  Thirteen of eighty-three photographs tagged "workspace" is a weak name and
+ *  a true one. Refusing it sent the folder to the file kind, and on a library
+ *  of photographs that produced six folders called some variation of "Photo".
+ */
+$nm_weak = array();
+
+foreach ( range( 1, 13 ) as $nm_i ) {
+    $nm_weak[] = array( 'workspace', 'desk' );
+}
+
+foreach ( range( 1, 70 ) as $nm_i ) {
+    $nm_weak[] = array( 'thing' . $nm_i );
+}
+
+$nm_got = nm_name( $nm_weak );
+
+nm_check(
+    'a weak but real shared word beats falling back to the file kind',
+    'Photo' !== $nm_got && '' !== $nm_got,
+    $nm_got . '  (13 of 83 share it)'
+);
+
 
 /* ----------------------------------------------------------- the siblings */
 
