@@ -184,6 +184,18 @@ function vergeml_journey_score() {
 
     $f = vergeml_journey_facts();
 
+    /*
+     *  Nothing to score.
+     *
+     *  Every share was "1 when the total is 0", which is defensible per part
+     *  and absurd in the sum: an empty library scored 85 out of 100 -- full
+     *  marks for alt text on no pictures. A number nobody can act on is worse
+     *  than no number, so an empty library gets none.
+     */
+    if ( 0 === $f['files'] ) {
+        return array( 'score' => null, 'parts' => array() );
+    }
+
     $share = function ( $good, $all ) {
         return $all > 0 ? min( 1, max( 0, $good / $all ) ) : 1;
     };
@@ -245,6 +257,36 @@ function vergeml_journey_stages() {
     $stages = array();
 
     /* ------------------------------------------------------ what you have */
+
+    /*
+     *  Nothing uploaded yet.
+     *
+     *  Everything below this reports on files, so on an empty library the whole
+     *  page was a list of things that had already been achieved by not having
+     *  any. One stage, one job.
+     */
+    if ( 0 === $f['files'] ) {
+
+        /*
+         *  Through the filter, like every other return from this function.
+         *
+         *  The first version returned the array directly and skipped
+         *  apply_filters() -- which killed the extension point on any empty
+         *  library, and with it every test that injects its own stages. The
+         *  suite went from 23/23 to 12/23 the moment the library was emptied,
+         *  which is the whole reason it injects rather than reading reality.
+         */
+        return apply_filters( 'vergeml_journey_stages', array(
+            array(
+                'id'     => 'upload',
+                'title'  => __( 'Add some files', 'vergelabs-media-library' ),
+                'done'   => false,
+                'text'   => __( 'There is nothing in your media library yet. Upload some pictures and this page will tell you what is worth doing with them — describing them, sorting them into folders, finding the copies.', 'vergelabs-media-library' ),
+                'action' => __( 'Upload files', 'vergelabs-media-library' ),
+                'url'    => admin_url( 'media-new.php' ),
+            ),
+        ) );
+    }
 
     $stages[] = array(
         'id'    => 'library',
@@ -584,7 +626,7 @@ function vergeml_journey_screen() {
     $alt_pct       = $pct( $f['images'] - $f['no_alt'], $f['images'] );
 
     $figures = array(
-        array( 'n' => $f['files'],   'label' => __( 'files', 'vergelabs-media-library' ),   'url' => admin_url( 'upload.php' ) ),
+        array( 'n' => $f['files'],   'label' => __( 'files', 'vergelabs-media-library' ),   'url' => 0 === $f['files'] ? admin_url( 'media-new.php' ) : admin_url( 'upload.php' ) ),
         array( 'n' => $f['folders'], 'label' => __( 'folders', 'vergelabs-media-library' ), 'url' => admin_url( 'upload.php' ) ),
         array( 'n' => $f['unfiled'], 'label' => __( 'unfiled', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-librarian' ), 'warn' => $f['unfiled'] > 0 ),
         array( 'n' => $f['no_alt'],  'label' => __( 'no alt text', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-ai' ), 'warn' => $f['no_alt'] > 0 ),
@@ -751,7 +793,11 @@ function vergeml_journey_screen() {
             <div class="vgml-rail-card vgml-scorecard">
                 <h2><?php esc_html_e( 'Library score', 'vergelabs-media-library' ); ?></h2>
 
-                <p class="vgml-score-n"><?php echo esc_html( number_format_i18n( $scored['score'] ) ); ?><span>/100</span></p>
+                <?php if ( null === $scored['score'] ) : ?>
+                    <p class="vgml-score-none"><?php esc_html_e( 'Nothing to score until there are files in the library.', 'vergelabs-media-library' ); ?></p>
+                <?php else : ?>
+                    <p class="vgml-score-n"><?php echo esc_html( number_format_i18n( $scored['score'] ) ); ?><span>/100</span></p>
+                <?php endif; ?>
 
                 <ul class="vgml-score-parts">
                     <?php foreach ( $scored['parts'] as $part ) : ?>
@@ -832,13 +878,25 @@ function vergeml_journey_screen() {
                     );
                 }
 
-                $actions[] = array(
-                    'id'    => 'export',
-                    'icon'  => 'download',
-                    'label' => __( 'Export folders as CSV', 'vergelabs-media-library' ),
-                    'note'  => __( 'Your whole structure, in a spreadsheet.', 'vergelabs-media-library' ),
-                    'href'  => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_export_csv&taxonomy=media_category' ), 'vergeml_export_csv' ),
-                );
+                if ( $f['folders'] > 0 ) {
+                    $actions[] = array(
+                        'id'    => 'export',
+                        'icon'  => 'download',
+                        'label' => __( 'Export folders as CSV', 'vergelabs-media-library' ),
+                        'note'  => __( 'Your whole structure, in a spreadsheet.', 'vergelabs-media-library' ),
+                        'href'  => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_export_csv&taxonomy=media_category' ), 'vergeml_export_csv' ),
+                    );
+                }
+
+                if ( empty( $actions ) ) {
+                    $actions[] = array(
+                        'id'    => 'upload',
+                        'icon'  => 'play',
+                        'label' => __( 'Upload some files', 'vergelabs-media-library' ),
+                        'note'  => __( 'Nothing to do here until there are files.', 'vergelabs-media-library' ),
+                        'href'  => admin_url( 'media-new.php' ),
+                    );
+                }
                 ?>
 
                 <ul class="vgml-quick">

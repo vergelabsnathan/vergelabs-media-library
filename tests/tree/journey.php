@@ -217,7 +217,19 @@ foreach ( $jn_real as $jn_s ) {
     }
 }
 
-if ( null === $jn_describe ) {
+if ( 0 === $jn_facts['files'] ) {
+
+    /*
+     *  An empty library has one stage and no cost to state. Asserted rather
+     *  than skipped, because "nothing here" is a state somebody sees on their
+     *  first day and it was wrong until 30-08-2026 -- an empty library scored
+     *  85 out of 100.
+     */
+    jn_check( 'an empty library offers exactly one thing to do', 1 === count( $jn_real ), count( $jn_real ) . ' stages' );
+    jn_check( 'and that thing is uploading files', 'upload' === $jn_real[0]['id'], $jn_real[0]['id'] );
+    jn_check( 'and it is not scored', null === vergeml_journey_score()['score'], 'a library with no files cannot be 85/100' );
+
+} elseif ( null === $jn_describe ) {
     jn_check( 'the describing stage exists', false, 'core/ai.php not loaded?' );
 } elseif ( $jn_facts['undescribed'] > 0 ) {
     jn_check(
