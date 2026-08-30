@@ -2642,6 +2642,12 @@ function vergeml_librarian_assets( $hook ) {
         'stage'   => vergeml_librarian_stage(),
         'samples' => VERGEML_LIBRARIAN_SAMPLES,
         'steps'   => vergeml_librarian_steps(),
+        /*
+         *  Whether the descriptions on this site were invented locally. The
+         *  screen has to say which, because "no credits were spent" is true in
+         *  both cases and means completely different things.
+         */
+        'mock'    => function_exists( 'vergeml_ai_settings' ) && ! empty( vergeml_ai_settings()['mock'] ),
         'l10n'    => array(
             /* the steps */
             /* translators: 1: which step, 2: how many steps in total. */
@@ -2726,7 +2732,20 @@ function vergeml_librarian_assets( $hook ) {
             /* translators: %s: a duration, e.g. "about 2 minutes". */
             'preflightTime'   => __( 'About %s', 'vergelabs-media-library' ),
             'preflightNoTime' => __( 'We will know how long this takes once the first few have gone through.', 'vergelabs-media-library' ),
-            'credits'         => __( 'Costs 0 (mock) — the service is not live, so nothing is spent and nothing is guessed at.', 'vergelabs-media-library' ),
+            /*
+             *  What filing costs, which is nothing -- and it says why rather
+             *  than saying "0".
+             *
+             *  This read "Costs 0". Filing genuinely spends no credits, but
+             *  the number zero next to the word costs, on a screen for a
+             *  product somebody pays per picture for, reads as "this is free"
+             *  rather than "this particular step does not describe anything".
+             *  Describing already happened and was already paid for, and no
+             *  screen should imply otherwise because the balance was topped up
+             *  in advance.
+             */
+            'creditsNone'     => __( 'No credits are used by filing. The pictures were described earlier, and that is the only step that ever costs anything.', 'vergelabs-media-library' ),
+            'creditsMock'     => __( 'Demo mode: the descriptions were invented on your own server, so nothing was sent anywhere and no credits were spent. The captions are not real.', 'vergelabs-media-library' ),
             'apply'           => __( 'Apply', 'vergelabs-media-library' ),
             'applyNothing'    => __( 'Nothing is selected.', 'vergelabs-media-library' ),
 

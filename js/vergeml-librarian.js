@@ -1333,10 +1333,17 @@
 				? sprintf( text( 'preflightTime', 'About %s' ), [ duration( r.estimate.remaining_ms ) ] )
 				: text( 'preflightNoTime', '' ) ) );
 
-		// Zero, and said to be mock. The service is not live and a figure
-		// invented for the sake of having one would undo the point of a panel
-		// whose whole argument is that it counts rather than estimates.
-		host.appendChild( el( 'p', 'vgml-lib-credits', text( 'credits', '' ) ) );
+		/*
+		 *  Filing spends nothing, and this says so in words rather than as the
+		 *  digit 0.
+		 *
+		 *  "Costs 0" on a metered product reads as "this is free" -- which is
+		 *  untrue of the product and unhelpful about the step. The describing
+		 *  was paid for, separately, before any of this; what is about to
+		 *  happen is only moving files between folders.
+		 */
+		host.appendChild( el( 'p', 'vgml-lib-credits',
+			conf.mock ? text( 'creditsMock', '' ) : text( 'creditsNone', '' ) ) );
 
 		if ( r.credits && ! r.credits.allow && r.credits.reason ) {
 			host.appendChild( el( 'p', 'vgml-lib-refusal', r.credits.reason ) );
