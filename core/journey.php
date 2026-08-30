@@ -59,9 +59,33 @@ function vergeml_journey_facts() {
 
     $described = 0;
     $undescribed = $images;
+    $stale = 0;
 
     if ( isset( $wpdb->vergeml_ai_index ) ) {
-        $described = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = ''" );
+
+        /*
+         *  Two numbers, one query.
+         *
+         *  The budget for this screen is twelve and it is already at twelve,
+         *  so "how many were written under an older prompt" had to come out of
+         *  the query that was already counting descriptions rather than on top
+         *  of it. The subselect is the newest row's fingerprint -- the same
+         *  thing vergeml_index_current_stamp() reads.
+         */
+        $counts = $wpdb->get_row(
+            "SELECT COUNT(*) AS described,
+                    SUM( CASE WHEN prompt_hash IS NULL OR prompt_hash <> (
+                             SELECT prompt_hash FROM {$wpdb->vergeml_ai_index}
+                              WHERE error = '' AND described_at IS NOT NULL
+                              ORDER BY described_at DESC, attachment_id DESC LIMIT 1
+                         ) THEN 1 ELSE 0 END ) AS stale
+               FROM {$wpdb->vergeml_ai_index}
+              WHERE error = ''",
+            ARRAY_A
+        );
+
+        $described   = isset( $counts['described'] ) ? (int) $counts['described'] : 0;
+        $stale       = isset( $counts['stale'] ) ? (int) $counts['stale'] : 0;
         $undescribed = max( 0, $images - $described );
     }
 
@@ -132,12 +156,74 @@ function vergeml_journey_facts() {
             && '' !== vergeml_ai_unseal( $settings['license_key'] ),
         'credits'     => isset( $credits['remaining'] ) ? (int) $credits['remaining'] : null,
         'unfiled'     => $unfiled,
+        'stale'       => $stale,
         'unused'      => isset( $smart['unused'] ) ? (int) $smart['unused'] : null,
         'large'       => isset( $smart['large'] ) ? (int) $smart['large'] : null,
         'recent'      => $recent,
     );
 
     return $facts;
+}
+
+
+/**
+ *  vergeml_journey_score
+ *
+ *  One number for "how is this library doing", out of a hundred.
+ *
+ *  Four things, weighted by how much they actually cost somebody. Alt text
+ *  weighs most because its absence is the only one with a legal and an
+ *  accessibility consequence; duplicates weigh least because they cost disk
+ *  and nothing else.
+ *
+ *  Every part is computed from figures already on the screen, so nobody has to
+ *  wonder where the number came from -- the parts are shown under it. A score
+ *  whose derivation is hidden is a score nobody trusts and nobody acts on.
+ */
+function vergeml_journey_score() {
+
+    $f = vergeml_journey_facts();
+
+    $share = function ( $good, $all ) {
+        return $all > 0 ? min( 1, max( 0, $good / $all ) ) : 1;
+    };
+
+    $parts = array(
+        array(
+            'label'  => __( 'Alt text', 'vergelabs-media-library' ),
+            'weight' => 35,
+            'share'  => $share( $f['images'] - $f['no_alt'], $f['images'] ),
+            'url'    => vergeml_journey_url( 'media-ai' ),
+        ),
+        array(
+            'label'  => __( 'Described', 'vergelabs-media-library' ),
+            'weight' => 25,
+            'share'  => $share( $f['described'], $f['images'] ),
+            'url'    => vergeml_journey_url( 'media-ai' ),
+        ),
+        array(
+            'label'  => __( 'Filed', 'vergelabs-media-library' ),
+            'weight' => 25,
+            'share'  => $share( $f['files'] - $f['unfiled'], $f['files'] ),
+            'url'    => vergeml_journey_url( 'media-librarian' ),
+        ),
+        array(
+            'label'  => __( 'Checked for copies', 'vergelabs-media-library' ),
+            'weight' => 15,
+            // Binary: the scan has run, or it has not.
+            'share'  => ( function_exists( 'vergeml_health_state' ) && ! empty( vergeml_health_state()['finished'] ) ) ? 1 : 0,
+            'url'    => vergeml_journey_url( 'media-health' ),
+        ),
+    );
+
+    $score = 0;
+
+    foreach ( $parts as $at => $part ) {
+        $parts[ $at ]['points'] = (int) round( $part['share'] * $part['weight'] );
+        $score += $parts[ $at ]['points'];
+    }
+
+    return array( 'score' => (int) round( $score ), 'parts' => $parts );
 }
 
 
@@ -520,6 +606,9 @@ function vergeml_journey_screen() {
         </div>
         <?php endif; ?>
 
+        <div class="vgml-dash-cols">
+        <div class="vgml-dash-main">
+
         <?php if ( $next ) : ?>
         <!-- the one thing to do -->
         <div class="vgml-next">
@@ -594,6 +683,146 @@ function vergeml_journey_screen() {
         </div>
         <?php endif; ?>
 
+        </div><!-- /main -->
+
+        <?php
+        /*
+         *  The rail.
+         *
+         *  Two things the dashboard was missing: a number saying how the
+         *  library is doing rather than only how big it is, and buttons that
+         *  DO something. Every button on the old screen navigated somewhere
+         *  else, which makes a dashboard a table of contents.
+         */
+        $scored = vergeml_journey_score();
+        ?>
+        <aside class="vgml-dash-rail">
+
+            <div class="vgml-rail-card vgml-scorecard">
+                <h2><?php esc_html_e( 'Library score', 'vergelabs-media-library' ); ?></h2>
+
+                <p class="vgml-score-n"><?php echo esc_html( number_format_i18n( $scored['score'] ) ); ?><span>/100</span></p>
+
+                <ul class="vgml-score-parts">
+                    <?php foreach ( $scored['parts'] as $part ) : ?>
+                        <li>
+                            <a href="<?php echo esc_url( $part['url'] ); ?>">
+                                <span class="vgml-score-label"><?php echo esc_html( $part['label'] ); ?></span>
+                                <span class="vgml-score-pts"><?php
+                                    printf( '%d/%d', (int) $part['points'], (int) $part['weight'] );
+                                ?></span>
+                            </a>
+                            <span class="vgml-score-bar"><span style="width:<?php echo esc_attr( (int) round( $part['share'] * 100 ) ); ?>%"></span></span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+
+            <div class="vgml-rail-card">
+                <h2><?php esc_html_e( 'Quick actions', 'vergelabs-media-library' ); ?></h2>
+
+                <?php
+                $actions = array();
+
+                if ( $f['undescribed'] > 0 ) {
+                    $actions[] = array(
+                        'id'   => 'describe',
+                        'icon' => 'play',
+                        'label' => sprintf(
+                            /* translators: %s: number of images. */
+                            __( 'Describe %s images', 'vergelabs-media-library' ),
+                            number_format_i18n( $f['undescribed'] )
+                        ),
+                        'note' => __( 'Runs in the background — you can leave this page.', 'vergelabs-media-library' ),
+                    );
+                }
+
+                if ( $f['no_alt'] > 0 ) {
+                    $actions[] = array(
+                        'id'   => 'alt',
+                        'icon' => 'alt',
+                        'label' => sprintf(
+                            /* translators: %s: number of images with no alt text. */
+                            __( 'Write %s missing alt texts', 'vergelabs-media-library' ),
+                            number_format_i18n( $f['no_alt'] )
+                        ),
+                        'note' => __( 'Only where alt is empty. Never over your own words.', 'vergelabs-media-library' ),
+                    );
+                }
+
+                /*
+                 *  Descriptions written before the site profile or the prompt
+                 *  changed. Worth offering, and worth saying what it costs --
+                 *  this is the one quick action that spends money.
+                 */
+                if ( ! empty( $f['stale'] ) && $f['stale'] > 0 && $f['undescribed'] < 1 ) {
+                    $actions[] = array(
+                        'id'    => 'stale',
+                        'icon'  => 'ai',
+                        'label' => sprintf(
+                            /* translators: %s: number of images. */
+                            __( 'Re-describe %s images', 'vergelabs-media-library' ),
+                            number_format_i18n( $f['stale'] )
+                        ),
+                        'note'  => sprintf(
+                            /* translators: %s: number of credits. */
+                            __( 'Written before your settings changed. Costs %s credits.', 'vergelabs-media-library' ),
+                            number_format_i18n( $f['stale'] )
+                        ),
+                    );
+                }
+
+                if ( function_exists( 'vergeml_health_state' ) && empty( vergeml_health_state()['finished'] ) ) {
+                    $actions[] = array(
+                        'id'    => 'scan',
+                        'icon'  => 'search',
+                        'label' => __( 'Scan for duplicate files', 'vergelabs-media-library' ),
+                        'note'  => __( 'Free, sends nothing anywhere, changes nothing.', 'vergelabs-media-library' ),
+                        'href'  => vergeml_journey_url( 'media-health' ),
+                    );
+                }
+
+                $actions[] = array(
+                    'id'    => 'export',
+                    'icon'  => 'download',
+                    'label' => __( 'Export folders as CSV', 'vergelabs-media-library' ),
+                    'note'  => __( 'Your whole structure, in a spreadsheet.', 'vergelabs-media-library' ),
+                    'href'  => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_export_csv&taxonomy=media_category' ), 'vergeml_export_csv' ),
+                );
+                ?>
+
+                <ul class="vgml-quick">
+                    <?php foreach ( $actions as $act ) : ?>
+                        <li>
+                            <?php if ( ! empty( $act['href'] ) ) : ?>
+                                <a class="vgml-quick-do" href="<?php echo esc_url( $act['href'] ); ?>">
+                            <?php else : ?>
+                                <button type="button" class="vgml-quick-do" data-do="<?php echo esc_attr( $act['id'] ); ?>">
+                            <?php endif; ?>
+
+                                <span class="vgml-quick-ico"><?php
+                                    echo function_exists( 'vergeml_icon' ) ? vergeml_icon( $act['icon'], 18 ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal SVG.
+                                ?></span>
+                                <span class="vgml-quick-text">
+                                    <span class="vgml-quick-label"><?php echo esc_html( $act['label'] ); ?></span>
+                                    <span class="vgml-quick-note"><?php echo esc_html( $act['note'] ); ?></span>
+                                </span>
+
+                            <?php if ( ! empty( $act['href'] ) ) : ?>
+                                </a>
+                            <?php else : ?>
+                                </button>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+
+                <p class="vgml-quick-said" id="vgml-quick-said" role="status"></p>
+            </div>
+
+        </aside>
+        </div><!-- /cols -->
+
     </div>
     <?php
 }
@@ -613,4 +842,22 @@ function vergeml_journey_assets( $hook ) {
         array(),
         vergeml_asset_ver( 'css/vergeml-journey.css' )
     );
+
+    wp_enqueue_script(
+        'vergeml-journey',
+        plugins_url( 'js/vergeml-journey.js', VERGEML_FILE ),
+        array( 'wp-api-fetch' ),
+        vergeml_asset_ver( 'js/vergeml-journey.js' ),
+        true
+    );
+
+    wp_localize_script( 'vergeml-journey', 'vergemlJourney', array(
+        'starting' => __( 'Starting…', 'vergelabs-media-library' ),
+        /* translators: 1: images done, 2: images in the run. */
+        'running'  => __( 'Running — %1$d of %2$d done. You can leave this page.', 'vergelabs-media-library' ),
+        'finished' => __( 'Finished. Refreshing the numbers…', 'vergelabs-media-library' ),
+        'stopped'  => __( 'Stopped:', 'vergelabs-media-library' ),
+        'failed'   => __( 'That did not start. Check the licence on the AI screen.', 'vergelabs-media-library' ),
+        'confirmStale' => __( 'Re-describing spends one credit per image. Continue?', 'vergelabs-media-library' ),
+    ) );
 }

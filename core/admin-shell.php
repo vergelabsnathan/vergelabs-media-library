@@ -58,43 +58,59 @@ function vergeml_shell_pages() {
     $pages = array(
         array(
             'slug'  => VERGEML_MENU,
+            'icon'  => 'dashboard',
+            'sub'   => __( 'Where things stand', 'vergelabs-media-library' ),
             'label' => __( 'Dashboard', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
             'slug'  => 'media-librarian',
+            'icon'  => 'librarian',
+            'sub'   => __( 'Sort a library nobody filed', 'vergelabs-media-library' ),
             'label' => __( 'Librarian', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
             'slug'  => 'media-ai',
+            'icon'  => 'ai',
+            'sub'   => __( 'Describe, alt text, credits', 'vergelabs-media-library' ),
             'label' => __( 'AI', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
             'slug'  => 'media-health',
+            'icon'  => 'duplicates',
+            'sub'   => __( 'Copies, and space they take', 'vergelabs-media-library' ),
             'label' => __( 'Duplicates', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
             'slug'  => 'media-import-folders',
+            'icon'  => 'import',
+            'sub'   => __( 'From another plugin, or a CSV', 'vergelabs-media-library' ),
             'label' => __( 'Import folders', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
             'slug'  => 'media-taxonomies',
+            'icon'  => 'folders',
+            'sub'   => __( 'What acts as a folder', 'vergelabs-media-library' ),
             'label' => __( 'Folders and taxonomies', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
             'group' => 'settings',
         ),
         array(
             'slug'  => 'media-library',
+            'icon'  => 'sliders',
+            'sub'   => __( 'Ordering, filters, uploads', 'vergelabs-media-library' ),
             'label' => __( 'Library behaviour', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
             'group' => 'settings',
         ),
         array(
             'slug'  => 'mime-types',
+            'icon'  => 'file',
+            'sub'   => __( 'What may be uploaded', 'vergelabs-media-library' ),
             'label' => __( 'File types', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
             'group' => 'settings',
@@ -111,6 +127,8 @@ function vergeml_shell_pages() {
 
         $page['url']   = admin_url( 'admin.php?page=' . $page['slug'] );
         $page['group'] = isset( $page['group'] ) ? $page['group'] : '';
+        $page['icon']  = isset( $page['icon'] ) ? $page['icon'] : '';
+        $page['sub']   = isset( $page['sub'] ) ? $page['sub'] : '';
 
         $out[] = $page;
     }
@@ -196,7 +214,17 @@ function vergeml_shell_open() {
                                 href="<?php echo esc_url( $page['url'] ); ?>"
                                 class="vgml-shell-item<?php echo $page['slug'] === $current ? ' is-on' : ''; ?>"
                                 <?php echo $page['slug'] === $current ? ' aria-current="page"' : ''; ?>
-                            ><?php echo esc_html( $page['label'] ); ?></a>
+                            >
+                                <span class="vgml-shell-ico"><?php
+                                    echo function_exists( 'vergeml_icon' ) ? vergeml_icon( $page['icon'] ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal SVG, see core/icons.php.
+                                ?></span>
+                                <span class="vgml-shell-text">
+                                    <span class="vgml-shell-label"><?php echo esc_html( $page['label'] ); ?></span>
+                                    <?php if ( '' !== $page['sub'] ) : ?>
+                                        <span class="vgml-shell-sub"><?php echo esc_html( $page['sub'] ); ?></span>
+                                    <?php endif; ?>
+                                </span>
+                            </a>
                         </li>
                     <?php endforeach; ?>
                 </ul>

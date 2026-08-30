@@ -1323,6 +1323,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // import, so it loads after all of them. Every read is guarded --
         // in safe mode those files are absent and the stage is simply not
         // in the list.
+        include_once( 'core/icons.php' );
         include_once( 'core/journey.php' );
         include_once( 'core/help.php' );
         include_once( 'core/admin-shell.php' );

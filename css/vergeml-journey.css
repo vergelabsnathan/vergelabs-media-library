@@ -339,3 +339,231 @@
 		max-width: none;
 	}
 }
+
+
+/* ------------------------------------------------------------ two columns */
+
+/*
+ *  A main column and a rail, which is what WP Rocket does and what our single
+ *  column was missing -- the right third of a 1230px pane was empty while the
+ *  things somebody wants at hand were scattered down the page.
+ */
+.vgml-dash-cols {
+	display: flex;
+	gap: 28px;
+	align-items: flex-start;
+	margin-top: 8px;
+}
+
+.vgml-dash-main {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.vgml-dash-rail {
+	flex: 0 0 268px;
+}
+
+.vgml-rail-card {
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	padding: 16px 16px 18px;
+	margin-bottom: 16px;
+	background: var(--vgml-surface);
+}
+
+.vgml-dash .vgml-rail-card h2 {
+	margin: 0 0 10px;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: .01em;
+	color: var(--vgml-ink);
+}
+
+/* ----------------------------------------------------------- the score */
+
+/*
+ *  A numeral and its parts, not a ring.
+ *
+ *  A donut gauge shows one number and hides the four that produced it, so
+ *  nobody knows what to do about it. Each part here is a link to the screen
+ *  that raises it.
+ */
+.vgml-scorecard {
+	background: #fff;
+}
+
+.vgml-score-n {
+	margin: 0 0 14px;
+	font-size: 40px;
+	line-height: 1;
+	font-weight: 700;
+	letter-spacing: -.03em;
+	color: var(--vgml-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-score-n span {
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--vgml-muted);
+	letter-spacing: 0;
+	margin-left: 2px;
+}
+
+.vgml-score-parts {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-score-parts li {
+	margin: 0 0 10px;
+}
+
+.vgml-score-parts a {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 8px;
+	text-decoration: none;
+	font-size: 12px;
+	margin-bottom: 4px;
+}
+
+.vgml-score-label {
+	color: var(--vgml-body);
+}
+
+.vgml-score-parts a:hover .vgml-score-label {
+	color: var(--vgml-accent);
+}
+
+.vgml-score-pts {
+	color: var(--vgml-muted);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.vgml-score-bar {
+	display: block;
+	height: 4px;
+	border-radius: 44px;
+	background: var(--vgml-rule);
+	overflow: hidden;
+}
+
+.vgml-score-bar span {
+	display: block;
+	height: 100%;
+	background: var(--vgml-accent);
+	border-radius: 44px;
+}
+
+/* --------------------------------------------------------- quick actions */
+
+.vgml-quick {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-quick li {
+	margin: 0 0 6px;
+}
+
+.vgml-quick-do {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	width: 100%;
+	text-align: left;
+	padding: 10px;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	background: #fff;
+	color: var(--vgml-body);
+	text-decoration: none;
+	cursor: pointer;
+	font: inherit;
+	transition: border-color .12s ease, background .12s ease;
+}
+
+.vgml-quick-do:hover {
+	border-color: var(--vgml-accent);
+	background: var(--vgml-surface);
+}
+
+.vgml-quick-do:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 1px;
+}
+
+.vgml-quick-do[disabled] {
+	opacity: .55;
+	cursor: default;
+}
+
+.vgml-quick-ico {
+	display: flex;
+	flex: 0 0 auto;
+	margin-top: 1px;
+	color: var(--vgml-accent);
+}
+
+.vgml-quick-label {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--vgml-ink);
+}
+
+.vgml-quick-note {
+	display: block;
+	margin-top: 2px;
+	font-size: 11px;
+	line-height: 1.4;
+	color: var(--vgml-muted);
+}
+
+.vgml-quick-said {
+	margin: 10px 0 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var(--vgml-accent);
+	min-height: 1em;
+}
+
+.vgml-quick-said:empty {
+	margin: 0;
+	min-height: 0;
+}
+
+@media screen and (max-width: 1100px) {
+	.vgml-dash-cols {
+		display: block;
+	}
+
+	.vgml-dash-rail {
+		margin-top: 28px;
+		display: flex;
+		gap: 16px;
+		align-items: flex-start;
+	}
+
+	.vgml-rail-card {
+		flex: 1 1 0;
+		margin-bottom: 0;
+	}
+}
+
+@media screen and (max-width: 700px) {
+	.vgml-dash-rail {
+		display: block;
+	}
+
+	.vgml-rail-card {
+		margin-bottom: 16px;
+	}
+}
