@@ -2537,35 +2537,57 @@ function vergeml_librarian_tools_ready() {
 }
 
 
+/**
+ *  The steps, and there are two of them.
+ *
+ *  Five was a wizard, and a wizard is the wrong shape for this. A wizard suits
+ *  a linear job with one outcome at the end -- an install, a checkout. What
+ *  happens here is one expensive thing that must come first, and then three
+ *  independent things somebody might do in any order, or never: alt text,
+ *  names, folders. Threading those onto a line walked somebody who wanted
+ *  folders through describing as though it were a stage of filing, and left
+ *  somebody who wanted alt text with no route to it at all.
+ *
+ *  So: look at the pictures, then choose. The looking is genuinely a
+ *  prerequisite -- there is nothing to name or file by until it has happened
+ *  -- and it is genuinely the only part that costs anything.
+ */
+
 function vergeml_librarian_steps() {
 
     return array(
         array(
-            'id'    => 'scan',
-            'title' => __( 'Check for copies', 'vergelabs-media-library' ),
-            'note'  => __( 'We open every file once to see which ones are the same picture. Nothing is changed, nothing is deleted — this only stops the same photo being described twice, and paid for twice.', 'vergelabs-media-library' ),
-        ),
-        array(
-            'id'    => 'describe',
-            'title' => __( 'Describe the pictures', 'vergelabs-media-library' ),
-            'note'  => __( 'Folders are built from what the pictures show, so we have to look at them first. Each picture gets a sentence and a few tags. This is the step that costs credits, and the only one that does.', 'vergelabs-media-library' ),
-        ),
-        array(
-            'id'    => 'propose',
-            'title' => __( 'Work out the folders', 'vergelabs-media-library' ),
-            'note'  => __( 'We group the described pictures by what they have in common. Nothing moves yet — this just produces a list of folders for you to read.', 'vergelabs-media-library' ),
+            'id'    => 'ready',
+            'title' => __( 'Look at your pictures', 'vergelabs-media-library' ),
+            'note'  => __( 'We compare your files to find copies of the same picture, then look at each one and write down what it shows. This is the only step that costs credits. Everything after it is free, and none of it happens unless you ask.', 'vergelabs-media-library' ),
         ),
         array(
             'id'    => 'choose',
-            'title' => __( 'Pick a way to sort', 'vergelabs-media-library' ),
-            'note'  => __( 'Two ways to organise the same library: by what the pictures show, or by when they were uploaded. You see how many files each one would move before you pick.', 'vergelabs-media-library' ),
-        ),
-        array(
-            'id'    => 'review',
-            'title' => __( 'Read it, then apply', 'vergelabs-media-library' ),
-            'note'  => __( 'Every folder we would make, with a few of the pictures that would go in it. Rename any of them, untick any you do not want, then move the rest in one go — and put everything back with one click if you change your mind.', 'vergelabs-media-library' ),
+            'title' => __( 'What you can do now', 'vergelabs-media-library' ),
+            'note'  => __( 'Four things, all of them optional. Do one, do all of them, or come back another day.', 'vergelabs-media-library' ),
         ),
     );
+}
+
+
+/**
+ *  Whether the looking is done.
+ *
+ *  One question, one answer, asked the same way by the screen and by the card
+ *  on the dashboard. The scan and the describing are one step now, so this
+ *  means both: a half-scanned library is not ready, and neither is one with
+ *  four hundred pictures nobody has looked at.
+ */
+
+function vergeml_librarian_ready() {
+
+    $health = function_exists( 'vergeml_health_state' ) ? vergeml_health_state() : array();
+
+    if ( empty( $health['finished'] ) ) {
+        return false;
+    }
+
+    return function_exists( 'vergeml_ai_pending' ) && 0 === count( vergeml_ai_pending( 'unindexed' ) );
 }
 
 
@@ -2642,6 +2664,9 @@ function vergeml_librarian_assets( $hook ) {
         'stage'   => vergeml_librarian_stage(),
         'samples' => VERGEML_LIBRARIAN_SAMPLES,
         'steps'   => vergeml_librarian_steps(),
+        // Where "look at the copies" goes. Built here because the shell knows
+        // the real menu URL and a hand-built one 403s -- that has bitten twice.
+        'healthUrl' => function_exists( 'vergeml_shell_url' ) ? vergeml_shell_url( 'media-health' ) : admin_url( 'admin.php?page=media-health' ),
         /*
          *  Whether the descriptions on this site were invented locally. The
          *  screen has to say which, because "no credits were spent" is true in
@@ -2671,6 +2696,43 @@ function vergeml_librarian_assets( $hook ) {
             'goAnyway'        => __( 'Or carry on with the %s already described', 'vergelabs-media-library' ),
             'goAnywayNote'    => __( 'The folders will only cover those. The rest stay where they are, and you can describe them and sort again later.', 'vergelabs-media-library' ),
             'otherWays'       => __( 'Other ways to put files into folders', 'vergelabs-media-library' ),
+
+            /* ------------------------- what you can do once the looking is done */
+            'doAlt'           => __( 'Alt text', 'vergelabs-media-library' ),
+            'doAltNote'       => __( 'The line a screen reader reads out instead of showing the picture, and the line Google reads. It was written when we looked at your pictures, so putting it on the files costs nothing.', 'vergelabs-media-library' ),
+            /* translators: %s: how many pictures have no alt text. */
+            'doAltCount'      => __( '%s pictures have none', 'vergelabs-media-library' ),
+            'doAltGo'         => __( 'Write the alt text', 'vergelabs-media-library' ),
+            'doAltDone'       => __( 'Every picture has alt text.', 'vergelabs-media-library' ),
+
+            'doNames'         => __( 'File names', 'vergelabs-media-library' ),
+            'doNamesNote'     => __( '“Photo 498” tells nobody anything. We can name each file after what is in it — “Red Synthesizer with Controls” — from the same look. Anything you named yourself is left alone, and one click puts the old names back.', 'vergelabs-media-library' ),
+            /* translators: %s: how many files could be renamed. */
+            'doNamesCount'    => __( '%s could be named after what they show', 'vergelabs-media-library' ),
+            'doNamesGo'       => __( 'Rename them', 'vergelabs-media-library' ),
+            'doNamesDone'     => __( 'Every file is named after what it shows.', 'vergelabs-media-library' ),
+
+            'doFolders'       => __( 'Folders', 'vergelabs-media-library' ),
+            'doFoldersNote'   => __( 'Group the pictures into folders by what they have in common, or by when they were uploaded. You read the whole list and approve it before a single file moves.', 'vergelabs-media-library' ),
+            /* translators: %s: how many files are in no folder. */
+            'doFoldersCount'  => __( '%s are in no folder', 'vergelabs-media-library' ),
+            'doFoldersGo'     => __( 'Work out the folders', 'vergelabs-media-library' ),
+            'doFoldersReady'  => __( 'Read the folders', 'vergelabs-media-library' ),
+            'doFoldersDone'   => __( 'Everything is in a folder.', 'vergelabs-media-library' ),
+
+            'doCopies'        => __( 'Copies', 'vergelabs-media-library' ),
+            'doCopiesNote'    => __( 'The same picture uploaded twice, or saved again at a different size. Nothing is deleted without you.', 'vergelabs-media-library' ),
+            /* translators: %s: how many files look like copies. */
+            'doCopiesCount'   => __( '%s look like copies of something else', 'vergelabs-media-library' ),
+            'doCopiesGo'      => __( 'Look at the copies', 'vergelabs-media-library' ),
+            'doCopiesDone'    => __( 'No copies found.', 'vergelabs-media-library' ),
+
+            'nothingLeft'     => __( 'Nothing needs doing. Your library is described, named, filed and free of copies.', 'vergelabs-media-library' ),
+            /* translators: 1: pictures to look at, 2: credits it costs. */
+            'readyCost'       => __( '%1$s pictures to look at, which costs %2$s credits.', 'vergelabs-media-library' ),
+            'readyGo'         => __( 'Start', 'vergelabs-media-library' ),
+            'readyScan'       => __( 'Comparing your files for copies…', 'vergelabs-media-library' ),
+            'readyLook'       => __( 'Looking at each picture…', 'vergelabs-media-library' ),
 
             /*
              *  What a step will cost, before it is started.

@@ -126,19 +126,11 @@
 	 */
 	function stepOfStage() {
 
-		if ( 'unscanned' === state.stage ) {
-			return 'scan';
-		}
-
-		if ( 'unindexed' === state.stage ) {
-			return 'describe';
-		}
-
-		if ( 'unproposed' === state.stage ) {
-			return 'propose';
-		}
-
-		return state.tree.length ? 'review' : 'choose';
+		// Two steps now. The scan and the describing are one job, and
+		// everything after them is a choice rather than a stage.
+		return ( 'unscanned' === state.stage || 'unindexed' === state.stage )
+			? 'ready'
+			: 'choose';
 	}
 
 	function stepAt( id ) {
@@ -426,24 +418,359 @@
 		state.halt = false;
 		drawSteps();
 
-		if ( 'unscanned' === state.stage ) {
-			host.appendChild( rungScan() );
-			return;
-		}
-
-		if ( 'unindexed' === state.stage ) {
-			host.appendChild( rungIndex() );
+		if ( 'ready' === state.step ) {
+			host.appendChild( rungReady() );
 			host.appendChild( datePathNote() );
 			return;
 		}
 
+		drawHub( host );
+	}
+
+
+	/*
+	 *  One run: compare for copies, then look at every picture.
+	 *
+	 *  They were two steps because they are two loops against two endpoints.
+	 *  That is a fact about this codebase and not about anybody's afternoon --
+	 *  nobody wants to check for copies, they want their library looked at,
+	 *  and the copies check is how that is done without paying twice for the
+	 *  same photograph. So it is one button, one bar, and a sentence saying
+	 *  which half is running.
+	 */
+	function rungReady() {
+
+		var wrap = stepCard();
+		var go = button( text( 'readyGo', 'Start' ), 'button button-primary' );
+		var note = el( 'p', 'vgml-lib-note' );
+		var meter = progress();
+		var cost = figures();
+		var mode = el( 'p', 'vgml-flow-keep' );
+
+		var total = 0;
+		var done = 0;
+
+		function readStatus( r ) {
+
+			total = ( Number( r.indexed ) || 0 ) + ( Number( r.unindexed ) || 0 );
+			done = Number( r.indexed ) || 0;
+
+			var left = Number( r.unindexed ) || 0;
+			var purse = null === r.credits || undefined === r.credits ? null : Number( r.credits );
+
+			cost.say( sprintf( text( 'readyCost', '' ), [ String( left ), String( left ) ] ) +
+				( null === purse ? '' : ' ' + sprintf( text( 'costCredits', '' ), [ String( left ), String( purse ) ] ) ),
+				null !== purse && purse < left );
+		}
+
+		/* ---- the second half */
+
+		function look() {
+
+			mode.textContent = text( 'readyLook', '' );
+
+			apiFetch( {
+				path: '/vergeml/v1/ai-index',
+				method: 'POST',
+				// Alt text is its own thing now, asked for separately, so this
+				// writes descriptions and touches nobody's alt attribute.
+				data: { scope: 'unindexed', limit: 24, apply_alt: false },
+			} ).then( function ( r ) {
+
+				var left = r.remaining || 0;
+				var moved = ( r.described || [] ).length + ( r.errors || [] ).length;
+
+				if ( total ) {
+					meter.set( total - left, total );
+				}
+
+				if ( ! left || ! moved ) {
+					boot();
+					return;
+				}
+
+				if ( state.halt ) {
+					note.textContent = text( 'paused', 'Paused.' );
+					return;
+				}
+
+				look();
+
+			} ).catch( fail( note, go ) );
+		}
+
+		/* ---- the first half */
+
+		function compare( cursor, reset ) {
+
+			mode.textContent = text( 'readyScan', '' );
+
+			apiFetch( {
+				path: '/vergeml/v1/health-scan',
+				method: 'POST',
+				data: { cursor: cursor, reset: reset },
+			} ).then( function ( r ) {
+
+				// The scan has its own total; the bar belongs to the looking,
+				// which is the long half. This half only says it is happening.
+				if ( r.done ) {
+					look();
+					return;
+				}
+
+				if ( state.halt ) {
+					note.textContent = text( 'paused', 'Paused.' );
+					return;
+				}
+
+				compare( r.cursor, false );
+
+			} ).catch( fail( note, go ) );
+		}
+
+		var stop = pauser( function () {
+			note.textContent = '';
+			look();
+		} );
+
+		go.addEventListener( 'click', function () {
+
+			go.disabled = true;
+			stop.hidden = false;
+			note.textContent = '';
+			cost.say( '' );
+
+			meter.start( done );
+			meter.set( done, total );
+
+			if ( 'unscanned' === state.stage ) {
+				compare( 0, true );
+				return;
+			}
+
+			look();
+		} );
+
+		apiFetch( { path: '/vergeml/v1/ai-status' } ).then( function ( r ) {
+			readStatus( r );
+			if ( done > 0 ) {
+				meter.node.hidden = false;
+			}
+			meter.set( done, total );
+		} ).catch( function () {} );
+
+		var actions = el( 'p', 'vgml-flow-actions' );
+
+		actions.appendChild( go );
+		actions.appendChild( stop );
+
+		wrap.appendChild( cost.node );
+		wrap.appendChild( actions );
+		wrap.appendChild( meter.node );
+		wrap.appendChild( mode );
+		wrap.appendChild( note );
+
+		return wrap;
+	}
+
+
+	/*
+	 *  What can be done with what we found.
+	 *
+	 *  Four rows, each with a count and one button, and none of them a stage
+	 *  of anything. A row that has nothing to do says so rather than
+	 *  disappearing: "every picture has alt text" is a thing somebody wants to
+	 *  read, and a row that vanishes when it succeeds makes the screen change
+	 *  shape for reasons nobody can see.
+	 */
+	function drawHub( host ) {
+
+		host.innerHTML = '';
+
+		var item = stepNow();
+
+		host.appendChild( el( 'h2', 'vgml-flow-head', item.title ) );
+		host.appendChild( el( 'p', 'vgml-flow-note', item.note ) );
+
+		var list = el( 'div', 'vgml-do-list' );
+		host.appendChild( list );
+
+		function row( id, title, note, count, label, run, doneWord ) {
+
+			var wrap = el( 'div', 'vgml-do' );
+
+			wrap.appendChild( el( 'h3', 'vgml-do-title', title ) );
+			wrap.appendChild( el( 'p', 'vgml-do-note', note ) );
+
+			var line = el( 'p', 'vgml-do-line' );
+
+			if ( count > 0 ) {
+
+				line.appendChild( el( 'strong', 'vgml-do-count', label ) );
+				wrap.appendChild( line );
+
+				var go = button( run.label, 'button button-primary' );
+				var said = el( 'span', 'vgml-do-said' );
+
+				go.addEventListener( 'click', function () {
+					go.disabled = true;
+					said.textContent = text( 'applying', 'Working…' );
+					run.go( go, said );
+				} );
+
+				var actions = el( 'p', 'vgml-flow-actions' );
+				actions.appendChild( go );
+				actions.appendChild( said );
+				wrap.appendChild( actions );
+
+			} else {
+				line.className += ' is-done';
+				line.textContent = doneWord;
+				wrap.appendChild( line );
+			}
+
+			list.appendChild( wrap );
+		}
+
+		/*
+		 *  How many files are in no folder comes from the tree, which is where
+		 *  the count in the page heading comes from too.
+		 *
+		 *  The first cut fell back to the scheme's total when the field was
+		 *  missing, which is every described file rather than every unfiled
+		 *  one -- so the heading read "0 pictures not in a folder" and the row
+		 *  under it read "510 are in no folder", on the same screen.
+		 */
+		var unfiled = apiFetch( { path: '/vergeml/v1/librarian-schemes' } )
+			.then( function ( r ) {
+				if ( ! r.taxonomy ) {
+					return { schemes: r.schemes || [], unassigned: 0 };
+				}
+				return apiFetch( { path: '/vergeml/v1/tree?taxonomy=' + encodeURIComponent( r.taxonomy ) } )
+					.then( function ( tree ) {
+						return { schemes: r.schemes || [], unassigned: Number( tree.unassigned ) || 0 };
+					} );
+			} )
+			.catch( function () { return { schemes: [], unassigned: 0 }; } );
+
+		Promise.all( [
+			apiFetch( { path: '/vergeml/v1/ai-alt' } ).catch( function () { return { remaining: 0 }; } ),
+			apiFetch( { path: '/vergeml/v1/health-report' } ).catch( function () { return {}; } ),
+			unfiled,
+			apiFetch( { path: '/vergeml/v1/rename' } ).catch( function () { return { remaining: 0 }; } ),
+		] ).then( function ( answers ) {
+
+			var alt = Number( answers[0].remaining ) || 0;
+			var health = answers[1];
+			var schemes = answers[2];
+			var names = Number( answers[3].remaining ) || 0;
+
+			var subject = ( schemes.schemes || [] ).filter( function ( s ) {
+				return 'subject' === s.id;
+			} )[ 0 ];
+
+			var loose = Number( schemes.unassigned ) || 0;
+			var copies = Number( health.duplicates ) || 0;
+
+			/* ---- alt text */
+
+			row( 'alt', text( 'doAlt', '' ), text( 'doAltNote', '' ), alt,
+				sprintf( text( 'doAltCount', '' ), [ String( alt ) ] ),
+				{
+					label: text( 'doAltGo', '' ),
+					go: function ( go, said ) {
+						( function step() {
+							apiFetch( { path: '/vergeml/v1/ai-alt', method: 'POST', data: { limit: 100 } } )
+								.then( function ( r ) {
+									if ( r.remaining > 0 && r.wrote > 0 ) {
+										said.textContent = sprintf( text( 'remaining', '%s to go' ), [ String( r.remaining ) ] );
+										step();
+										return;
+									}
+									drawHub( host );
+								} )
+								.catch( fail( said, go ) );
+						} )();
+					},
+				},
+				text( 'doAltDone', '' ) );
+
+			/* ---- names */
+
+			row( 'names', text( 'doNames', '' ), text( 'doNamesNote', '' ), names,
+				sprintf( text( 'doNamesCount', '' ), [ String( names ) ] ),
+				{
+					label: text( 'doNamesGo', '' ),
+					go: function ( go, said ) {
+						apiFetch( { path: '/vergeml/v1/rename', method: 'POST', data: { limit: 500 } } )
+							.then( function () { drawHub( host ); } )
+							.catch( fail( said, go ) );
+					},
+				},
+				text( 'doNamesDone', '' ) );
+
+			/* ---- folders */
+
+			row( 'folders', text( 'doFolders', '' ), text( 'doFoldersNote', '' ), loose,
+				sprintf( text( 'doFoldersCount', '' ), [ String( loose ) ] ),
+				{
+					label: subject && subject.ready ? text( 'doFoldersReady', '' ) : text( 'doFoldersGo', '' ),
+					go: function () {
+						state.stage = subject && subject.ready ? 'ready' : 'unproposed';
+						drawFolders( host );
+					},
+				},
+				text( 'doFoldersDone', '' ) );
+
+			/* ---- copies */
+
+			row( 'copies', text( 'doCopies', '' ), text( 'doCopiesNote', '' ), copies,
+				sprintf( text( 'doCopiesCount', '' ), [ String( copies ) ] ),
+				{
+					label: text( 'doCopiesGo', '' ),
+					go: function () {
+						window.location.href = conf.healthUrl || 'admin.php?page=media-health';
+					},
+				},
+				text( 'doCopiesDone', '' ) );
+
+			if ( ! alt && ! names && ! loose && ! copies ) {
+				list.appendChild( el( 'p', 'vgml-do-none', text( 'nothingLeft', '' ) ) );
+			}
+		} );
+	}
+
+
+	/*
+	 *  Folders, reached from the hub rather than walked into.
+	 *
+	 *  Working out the folders and reading them are still two things, because
+	 *  the first is a run and the second is a document. They are just no
+	 *  longer numbered steps on the way to something else.
+	 */
+	function drawFolders( host ) {
+
+		host.innerHTML = '';
+
+		var back = button( text( 'stepBack', 'Back' ), 'button-link' );
+
+		back.addEventListener( 'click', function () {
+			state.tree = [];
+			$( 'vgml-lib-review' ).innerHTML = '';
+			drawHub( host );
+		} );
+
 		if ( 'unproposed' === state.stage ) {
+			host.appendChild( back );
 			host.appendChild( rungPropose() );
 			host.appendChild( datePathNote() );
 			return;
 		}
 
+		// drawChooser clears the host, so the way back goes in after it rather
+		// than before -- the first cut put it in and then wiped it.
 		drawChooser( host );
+		host.insertBefore( back, host.firstChild );
 	}
 
 	// The date scheme needs nothing from the two rungs above it, so it is

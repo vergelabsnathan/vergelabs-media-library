@@ -964,6 +964,111 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
 
 
 /** ------------------------------------------------------------------------
+ *  Alt text, from a description already paid for.
+ */
+
+/**
+ *  Images whose alt text is empty but whose description is already stored.
+ *
+ *  Not the same question as 'missing-alt', which is every image without alt
+ *  text whether or not anything has ever looked at it -- that scope describes,
+ *  and describing costs. These have been described. Their alt text was written
+ *  at the same time as the caption, by the same call, and is sitting in the
+ *  index. Putting it on the file is a copy between two rows of a database.
+ *
+ *  It is its own scope because it is its own price: free.
+ */
+
+function vergeml_ai_alt_pending( $limit = 0 ) {
+
+    global $wpdb;
+
+    $cap = $limit > 0 ? (int) $limit : PHP_INT_MAX;
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+        "SELECT i.attachment_id
+           FROM {$wpdb->vergeml_ai_index} i
+      LEFT JOIN {$wpdb->postmeta} alt
+             ON alt.post_id = i.attachment_id AND alt.meta_key = '_wp_attachment_image_alt'
+          WHERE i.error = '' AND i.alt <> ''
+            AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
+       ORDER BY i.attachment_id ASC
+          LIMIT %d",
+        $cap
+    ) ) );
+    // phpcs:enable
+}
+
+
+/**
+ *  Put the stored alt text on the files.
+ *
+ *  Inside the writing flag, like every other pipeline write: core/ai-index.php
+ *  watches this exact meta key and treats a change as a person typing, so
+ *  without it every file would be locked against ever being written again --
+ *  by the very act of writing it.
+ */
+
+function vergeml_ai_apply_alt( $limit = 0 ) {
+
+    $done = 0;
+
+    foreach ( vergeml_ai_alt_pending( $limit ) as $id ) {
+
+        $row = vergeml_index_get( $id );
+
+        if ( ! $row || '' === trim( (string) $row['alt'] ) ) {
+            continue;
+        }
+
+        vergeml_index_writing( true );
+        update_post_meta( $id, '_wp_attachment_image_alt', $row['alt'] );
+        vergeml_index_writing( false );
+
+        $done++;
+    }
+
+    return $done;
+}
+
+
+add_action( 'rest_api_init', 'vergeml_ai_alt_route' );
+
+function vergeml_ai_alt_route() {
+
+    register_rest_route( VERGEML_REST_NS, '/ai-alt', array(
+        array(
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => function () {
+                return rest_ensure_response( array( 'remaining' => count( vergeml_ai_alt_pending() ) ) );
+            },
+            'permission_callback' => function () {
+                return current_user_can( 'upload_files' );
+            },
+        ),
+        array(
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => function ( WP_REST_Request $request ) {
+                $wrote = vergeml_ai_apply_alt( max( 1, min( 200, (int) $request->get_param( 'limit' ) ) ) );
+                return rest_ensure_response( array(
+                    'wrote'     => $wrote,
+                    'remaining' => count( vergeml_ai_alt_pending() ),
+                ) );
+            },
+            // Writes post meta on attachments, so the same bar as editing one.
+            'permission_callback' => function () {
+                return current_user_can( 'upload_files' );
+            },
+            'args'                => array(
+                'limit' => array( 'type' => 'integer', 'default' => 100 ),
+            ),
+        ),
+    ) );
+}
+
+
+/** ------------------------------------------------------------------------
  *  Search knows what the pictures show.
  */
 

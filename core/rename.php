@@ -408,3 +408,63 @@ function vergeml_rename_undo_notice() {
         )
     );
 }
+
+
+/* --------------------------------------------------------------- the API */
+
+/**
+ *  How many, and do it.
+ *
+ *  The screen that offers this has to show a count before somebody presses
+ *  anything, and the count has to be the same number the button acts on --
+ *  both come from vergeml_rename_pending(), so they cannot disagree.
+ */
+
+add_action( 'rest_api_init', 'vergeml_rename_routes' );
+
+function vergeml_rename_routes() {
+
+    register_rest_route( VERGEML_REST_NS, '/rename', array(
+        array(
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => function () {
+                return rest_ensure_response( array( 'remaining' => count( vergeml_rename_pending() ) ) );
+            },
+            'permission_callback' => function () {
+                return current_user_can( 'upload_files' );
+            },
+        ),
+        array(
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => function ( WP_REST_Request $request ) {
+
+                if ( 'undo' === $request->get_param( 'action' ) ) {
+                    return rest_ensure_response( array(
+                        'back'      => count( vergeml_rename_undo() ),
+                        'remaining' => count( vergeml_rename_pending() ),
+                    ) );
+                }
+
+                $ids = $request->get_param( 'ids' );
+
+                $ids = is_array( $ids ) && $ids
+                    ? array_map( 'intval', $ids )
+                    : vergeml_rename_pending( max( 1, min( 1000, (int) $request->get_param( 'limit' ) ) ) );
+
+                return rest_ensure_response( array(
+                    'renamed'   => count( vergeml_rename_apply( $ids ) ),
+                    'remaining' => count( vergeml_rename_pending() ),
+                ) );
+            },
+            // Writes post titles, so the same bar as editing a file.
+            'permission_callback' => function () {
+                return current_user_can( 'upload_files' );
+            },
+            'args'                => array(
+                'action' => array( 'type' => 'string', 'default' => 'apply' ),
+                'limit'  => array( 'type' => 'integer', 'default' => 500 ),
+                'ids'    => array( 'type' => 'array' ),
+            ),
+        ),
+    ) );
+}

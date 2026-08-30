@@ -769,3 +769,75 @@
 	max-width: 60ch;
 	line-height: 1.6;
 }
+
+
+/* ------------------------------------------- what you can do, once we looked */
+
+/*
+ *  Four things, not four steps.
+ *
+ *  Same row geometry as the dashboard's list -- a hairline between each, the
+ *  count on its own line, one button. Nothing new is invented here; a card
+ *  with a coloured edge and an icon in a rounded square would be a fifth
+ *  opinion about what a thing-you-can-do looks like.
+ */
+
+.vgml-do-list {
+	margin-top: 4px;
+	max-width: 46rem;
+}
+
+.vgml-do {
+	padding: 22px 0;
+	border-top: 1px solid var( --vgml-rule, #e4e4e7 );
+}
+
+.vgml-do:last-child {
+	border-bottom: 1px solid var( --vgml-rule, #e4e4e7 );
+}
+
+.vgml-librarian .vgml-do-title {
+	margin: 0 0 4px;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.vgml-do-note {
+	margin: 0 0 12px;
+	max-width: 58ch;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var( --vgml-quiet );
+}
+
+.vgml-do-line {
+	margin: 0 0 12px;
+	font-size: 14px;
+	color: var( --vgml-ink, #1d2327 );
+}
+
+.vgml-do-count {
+	font-variant-numeric: tabular-nums;
+}
+
+/*
+ *  A row with nothing to do stays on the screen and says so. One that vanished
+ *  when it succeeded would make the page change shape for reasons nobody can
+ *  see, and "every picture has alt text" is a sentence somebody wants to read.
+ */
+.vgml-do-line.is-done {
+	margin: 0;
+	color: #5C7C5C;
+}
+
+.vgml-do-said {
+	font-size: 13px;
+	color: var( --vgml-quiet );
+}
+
+.vgml-do-none {
+	margin: 22px 0 0;
+	font-size: 14px;
+	color: #5C7C5C;
+}
