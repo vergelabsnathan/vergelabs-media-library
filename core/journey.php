@@ -361,7 +361,13 @@ function vergeml_journey_stages() {
         } else {
             $text = sprintf(
                 /* translators: 1: images, 2: credits it will cost. */
-                __( 'We have not looked at %1$s of your pictures yet. When we do, we write down what is in each one — so you can find a photo by typing “red bicycle” instead of scrolling, and so the rest of this page has something to work with. It costs %2$s credits, one a picture, and you can close this tab while it runs.', 'vergelabs-media-library' ),
+                /* translators: 1: how many pictures, 2: the same number as credits. */
+                _n(
+                    'We have not looked at %1$s of your pictures yet. When we do, we write down what is in it — so you can find a photo by typing “red bicycle” instead of scrolling, and so the rest of this page has something to work with. It costs %2$s credit, and you can close this tab while it runs.',
+                    'We have not looked at %1$s of your pictures yet. When we do, we write down what is in each one — so you can find a photo by typing “red bicycle” instead of scrolling, and so the rest of this page has something to work with. It costs %2$s credits, one a picture, and you can close this tab while it runs.',
+                    (int) $f['undescribed'],
+                    'vergelabs-media-library'
+                ),
                 number_format_i18n( $f['undescribed'] ),
                 number_format_i18n( $f['undescribed'] )
             );
@@ -922,10 +928,23 @@ function vergeml_journey_screen() {
          *  looked at. That is the one genuinely sequential thing here and it
          *  keeps the shape it had -- one card, one button.
          */
-        $ready = ! function_exists( 'vergeml_librarian_ready' ) || vergeml_librarian_ready();
+        /*
+         *  Two independent questions, and they were one.
+         *
+         *  "Is there anything left to look at" gated the whole list of things
+         *  you can do -- so a library of five hundred and twelve pictures with
+         *  one straggler showed nothing but "Start here", and the alt text,
+         *  the names and the folders all vanished behind a single file. One
+         *  upload was enough to do it.
+         *
+         *  The card is about the remainder. The list is about what has been
+         *  found. A library can be both at once, and usually is.
+         */
+        $remaining = (int) $f['undescribed'] > 0;
+        $anything  = (int) $f['described'] > 0;
         ?>
 
-        <?php if ( $next && ! $ready ) : ?>
+        <?php if ( $next && $remaining ) : ?>
         <div class="vgml-next">
             <p class="vgml-next-eyebrow"><?php esc_html_e( 'Start here', 'vergelabs-media-library' ); ?></p>
             <h2><?php echo esc_html( $next['title'] ); ?></h2>
@@ -936,7 +955,7 @@ function vergeml_journey_screen() {
         </div>
         <?php endif; ?>
 
-        <?php if ( $ready && $f['images'] > 0 ) : ?>
+        <?php if ( $anything ) : ?>
         <div class="vgml-do-list">
             <h2 class="vgml-do-head"><?php esc_html_e( 'What you can do now', 'vergelabs-media-library' ); ?></h2>
             <?php foreach ( vergeml_journey_todo() as $item ) : ?>

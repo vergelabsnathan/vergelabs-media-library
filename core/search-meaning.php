@@ -250,21 +250,30 @@ function vergeml_meaning_rest( WP_REST_Request $request ) {
 /* --------------------------------------------------------------- the screen */
 
 /**
- *  The offer, under a thin set of results.
+ *  The offer, in the row of view links, and nowhere near a notice.
  *
- *  Only on a search, only in the admin, and only when the keyword pass found
- *  little -- which is the moment a synonym is the likely explanation. Offering
- *  it beside forty good results would be noise.
+ *  It was an admin notice. Core hoists those to the top of the screen and
+ *  pushes everything below them down, so an offer about a search sat above the
+ *  search box, shoved the table down, and on a narrow window clipped. A banner
+ *  is for something that has happened; this is a link to another way of
+ *  looking.
+ *
+ *  So it goes in the filter bar above the table, beside the file-type and
+ *  date dropdowns -- a row that is already about changing what you are
+ *  looking at, an inch from the box the words were typed into. It takes no
+ *  vertical space of its own and cannot overlap anything.
+ *
+ *  Not the "All | Images | Unattached" row, which was the first idea: core
+ *  does not render that row at all during a search, which is the only time
+ *  this has anything to say.
  */
 
-add_action( 'admin_notices', 'vergeml_meaning_offer' );
+add_action( 'restrict_manage_posts', 'vergeml_meaning_offer', 20, 2 );
 
-function vergeml_meaning_offer() {
+function vergeml_meaning_offer( $post_type, $which = '' ) {
 
-    $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-
-    if ( ! $screen || 'upload' !== $screen->id ) {
-        return;
+    if ( 'attachment' !== $post_type || 'bottom' === $which ) {
+        return; // once, in the bar above the table
     }
 
     $term = isset( $_GET['s'] ) ? trim( sanitize_text_field( wp_unslash( $_GET['s'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading the search WordPress is already running.
@@ -273,39 +282,21 @@ function vergeml_meaning_offer() {
         return;
     }
 
-    // Already looking at a meaning search; nothing more to offer.
+    // Already looking at one, so there is nowhere for a link to lead.
     if ( isset( $_GET['vgml_meaning'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+        printf(
+            '<span class="vgml-meaning-on">%s</span>',
+            esc_html__( 'Sorted by meaning', 'vergelabs-media-library' )
+        );
+
         return;
     }
-
-    global $wp_query;
-
-    $found = isset( $wp_query->found_posts ) ? (int) $wp_query->found_posts : 0;
-
-    if ( $found > 5 ) {
-        return;
-    }
-
-    $url = add_query_arg( array( 's' => $term, 'vgml_meaning' => 1 ), admin_url( 'upload.php' ) );
 
     printf(
-        '<div class="notice notice-info"><p>%s <a href="%s">%s</a></p></div>',
-        esc_html(
-            0 === $found
-                ? sprintf(
-                    /* translators: %s: what was searched for. */
-                    __( 'Nothing matched the word “%s”.', 'vergelabs-media-library' ),
-                    $term
-                )
-                : sprintf(
-                    /* translators: 1: number of results, 2: what was searched for. */
-                    _n( '%1$s file has the word “%2$s” in it.', '%1$s files have the word “%2$s” in them.', $found, 'vergelabs-media-library' ),
-                    number_format_i18n( $found ),
-                    $term
-                )
-        ),
-        esc_url( $url ),
-        esc_html__( 'Search by meaning instead — finds pictures of it, whatever the words say.', 'vergelabs-media-library' )
+        '<a class="vgml-meaning-go" href="%s">%s</a>',
+        esc_url( add_query_arg( array( 's' => $term, 'vgml_meaning' => 1 ), admin_url( 'upload.php' ) ) ),
+        esc_html__( 'Search by meaning', 'vergelabs-media-library' )
     );
 }
 

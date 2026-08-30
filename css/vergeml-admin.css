@@ -464,3 +464,17 @@
 	font-size: 13px;
 	color: #646970;
 }
+
+/* The offer of a second search, in the filter bar rather than as a banner. */
+.vgml-meaning-go,
+.vgml-meaning-on {
+	display: inline-block;
+	margin: 1px 8px 0 4px;
+	font-size: 13px;
+	line-height: 30px;
+	vertical-align: top;
+}
+
+.vgml-meaning-on {
+	color: #646970;
+}
