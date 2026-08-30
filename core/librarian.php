@@ -792,7 +792,7 @@ function vergeml_librarian_preflight( $scheme, $run_id, $branches ) {
     if ( '' === $taxonomy ) {
         return new WP_Error(
             'vergeml_librarian_no_taxonomy',
-            __( 'No media taxonomy is switched on, so there is nowhere to file anything.', 'vergelabs-media-library' ),
+            __( 'You have no folders switched on yet, so there is nowhere to put anything.', 'vergelabs-media-library' ),
             array( 'status' => 409 )
         );
     }

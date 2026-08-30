@@ -216,7 +216,7 @@ function vergeml_import_screen() {
         <h1><?php esc_html_e( 'Import Folders', 'vergelabs-media-library' ); ?></h1>
 
         <p class="description" style="max-width:46em">
-            <?php esc_html_e( 'Folders from another media plugin become folders here. Nothing is taken from the other plugin — it keeps everything exactly as it is, so you can go back at any time, and an import can be undone from this page.', 'vergelabs-media-library' ); ?>
+            <?php esc_html_e( 'Already sorted your media with another plugin? We can copy those folders over so you do not have to start again. The other plugin keeps everything exactly as it is, so you can go back whenever you like, and anything you bring over can be undone from this page.', 'vergelabs-media-library' ); ?>
         </p>
 
         <div id="vgml-import-app" data-taxonomies="<?php echo esc_attr( wp_json_encode( $taxonomies ) ); ?>">
@@ -258,7 +258,7 @@ function vergeml_import_assets( $hook ) {
 
     wp_localize_script( 'vergeml-import', 'vergemlImport', array(
         'l10n' => array(
-            'none'        => __( 'No other folder plugin has anything to import. If you have just installed one, add your folders there first.', 'vergelabs-media-library' ),
+            'none'        => __( 'We could not find folders in any other plugin to copy. If you have only just installed one, make your folders there first and come back.', 'vergelabs-media-library' ),
             'found'       => __( 'Found', 'vergelabs-media-library' ),
             /* translators: 1: number of folders, 2: number of files. */
             'summary'     => __( '%1$s folders, %2$s files', 'vergelabs-media-library' ),
@@ -270,7 +270,7 @@ function vergeml_import_assets( $hook ) {
             'plan'        => __( '%1$s new folders, %2$s merged into folders you already have, and %3$s files filed.', 'vergelabs-media-library' ),
             /* translators: 1: folders created, 2: files filed. Used when nothing merges. */
             'planPlain'   => __( '%1$s new folders and %2$s files filed.', 'vergelabs-media-library' ),
-            'mergeNote'   => __( 'A folder with the same name in the same place is treated as the same folder, so nothing is duplicated.', 'vergelabs-media-library' ),
+            'mergeNote'   => __( 'If you already have a folder with the same name in the same place, we put the files into it rather than making a second one.', 'vergelabs-media-library' ),
             'working'     => __( 'Importing…', 'vergelabs-media-library' ),
             /* translators: 1: files done, 2: files total. */
             'progress'    => __( '%1$s of %2$s files', 'vergelabs-media-library' ),
@@ -279,20 +279,20 @@ function vergeml_import_assets( $hook ) {
             'history'     => __( 'Recent imports', 'vergelabs-media-library' ),
             'undo'        => __( 'Undo this import', 'vergelabs-media-library' ),
             'undoing'     => __( 'Undoing…', 'vergelabs-media-library' ),
-            'undone'      => __( 'Undone. The folders it made are gone; anything you filed yourself is untouched.', 'vergelabs-media-library' ),
+            'undone'      => __( 'Undone. The folders we made are gone, and anything you sorted yourself is exactly where you left it.', 'vergelabs-media-library' ),
             /* translators: 1: folders, 2: files, 3: how long ago. */
             'historyLine' => __( '%1$s folders and %2$s files, %3$s ago', 'vergelabs-media-library' ),
-            'stillThere'  => __( 'Your folders in the other plugin are untouched.', 'vergelabs-media-library' ),
+            'stillThere'  => __( 'Your folders in the other plugin have not been touched.', 'vergelabs-media-library' ),
 
             'fileTitle'   => __( 'A file, instead of another plugin', 'vergelabs-media-library' ),
-            'fileWhat'    => __( 'Folders can be written out as a spreadsheet and read back in. One row per file: the folder path, the attachment id, and the file name. Slashes make the levels, so Clients/Acme/2024 is three folders deep, and a row with no id is an empty folder.', 'vergelabs-media-library' ),
+            'fileWhat'    => __( 'Save your whole folder structure as a spreadsheet, change it there, and read it back. One row per file: which folder it goes in, the file’s ID number, and its name. Slashes make the levels, so Clients/Acme/2024 is three folders deep. A row with no ID number is an empty folder.', 'vergelabs-media-library' ),
             'exportWhat'  => __( 'Write out', 'vergelabs-media-library' ),
             'exportGo'    => __( 'Download CSV', 'vergelabs-media-library' ),
             'importWhat'  => __( 'Read in', 'vergelabs-media-library' ),
             'pickFile'    => __( 'Choose a CSV file', 'vergelabs-media-library' ),
             'reading'     => __( 'Reading the file…', 'vergelabs-media-library' ),
             /* translators: 1: number of folders, 2: number of files. */
-            'staged'      => __( 'Read %1$s folders and %2$s files. Nothing has changed yet — preview it below, and it can be undone afterwards like any other import.', 'vergelabs-media-library' ),
+            'staged'      => __( 'We read %1$s folders and %2$s files from that file. Nothing has changed yet — look at what it would do below, and it can be undone afterwards like anything else here.', 'vergelabs-media-library' ),
             /* translators: %s: number of rows skipped. */
             'stagedSkips' => __( '%s rows were skipped:', 'vergelabs-media-library' ),
             'discard'     => __( 'Discard this file', 'vergelabs-media-library' ),

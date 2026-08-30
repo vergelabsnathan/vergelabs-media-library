@@ -251,11 +251,10 @@ function vergeml_journey_stages() {
         'title' => __( 'Your library', 'vergelabs-media-library' ),
         'done'  => true,
         'text'  => sprintf(
-            /* translators: 1: files, 2: folders, 3: images with no alt text. */
-            __( '%1$s files in %2$s folders. %3$s images have no alt text.', 'vergelabs-media-library' ),
+            /* translators: 1: files, 2: folders. */
+            __( 'You have %1$s files, sorted into %2$s folders.', 'vergelabs-media-library' ),
             number_format_i18n( $f['files'] ),
-            number_format_i18n( $f['folders'] ),
-            number_format_i18n( $f['no_alt'] )
+            number_format_i18n( $f['folders'] )
         ),
         'action' => __( 'Open the library', 'vergelabs-media-library' ),
         'url'    => admin_url( 'upload.php' ),
@@ -267,16 +266,16 @@ function vergeml_journey_stages() {
 
         if ( $f['licensed'] ) {
             $text = null === $f['credits']
-                ? __( 'A licence is connected. Your credit balance shows after the first run.', 'vergelabs-media-library' )
+                ? __( 'You are set up. Looking at one picture costs one credit, and your balance appears here after the first batch.', 'vergelabs-media-library' )
                 : sprintf(
                     /* translators: %s: credits remaining. */
-                    __( 'A licence is connected, with %s credits left.', 'vergelabs-media-library' ),
+                    __( 'You are set up, with %s credits left. Looking at one picture costs one credit.', 'vergelabs-media-library' ),
                     number_format_i18n( $f['credits'] )
                 );
         } elseif ( $f['demo'] ) {
-            $text = __( 'Demo mode is on, so you can try everything free. Descriptions are invented on this server from file names — nothing is sent anywhere and nothing is charged. The captions are not real.', 'vergelabs-media-library' );
+            $text = __( 'You are in demo mode. Nothing is sent anywhere and nothing is charged — but the descriptions you see are invented from file names rather than from the pictures, so do not judge the quality by them. Add a licence key when you want it to really look.', 'vergelabs-media-library' );
         } else {
-            $text = __( 'Turn on demo mode to try the whole thing for nothing — no account, no key, and nothing leaves your site. Or enter a licence key to describe your images for real.', 'vergelabs-media-library' );
+            $text = __( 'This plugin can look at each of your pictures and write down what is in them, which is what makes everything else here work. Try it free in demo mode first, or add a licence key to start for real.', 'vergelabs-media-library' );
         }
 
         $stages[] = array(
@@ -303,8 +302,16 @@ function vergeml_journey_stages() {
             'title'  => __( 'Duplicate files', 'vergelabs-media-library' ),
             'done'   => $done,
             'text'   => $done
-                ? __( 'The library has been read. Duplicates and unused files are known, and the Librarian can use them.', 'vergelabs-media-library' )
-                : __( 'Reads every file once to find which are copies of each other. Free, nothing is sent anywhere, and it changes nothing — but the Librarian needs it before it can propose anything.', 'vergelabs-media-library' ),
+                ? sprintf(
+                    /* translators: %s: number of files used on no page. */
+                    __( 'We compared all your files. %s of them are not used on any page or post — you are storing pictures nobody sees. Open this to see which, and how much space they take.', 'vergelabs-media-library' ),
+                    number_format_i18n( null === $f['unused'] ? 0 : $f['unused'] )
+                )
+                : sprintf(
+                    /* translators: %s: number of files in the library. */
+                    __( 'Most libraries have the same photo in them two or three times — uploaded twice, or saved again at a different size. We compare all %s of your files and show you the copies. It is free, nothing leaves your site, and nothing is deleted or changed.', 'vergelabs-media-library' ),
+                    number_format_i18n( $f['files'] )
+                ),
             'action' => $done ? __( 'See the report', 'vergelabs-media-library' ) : __( 'Scan the library', 'vergelabs-media-library' ),
             'url'    => vergeml_journey_url( 'media-health' ),
         );
@@ -315,21 +322,21 @@ function vergeml_journey_stages() {
     if ( function_exists( 'vergeml_ai_pending' ) ) {
 
         $blocked = ( ! $f['licensed'] && ! $f['demo'] )
-            ? __( 'Turn on demo mode or enter a licence key first — the stage above.', 'vergelabs-media-library' )
+            ? __( 'Sort out the step above first — we cannot look at anything until you turn on demo mode or add a key.', 'vergelabs-media-library' )
             : '';
 
         if ( 0 === $f['images'] ) {
-            $text = __( 'There are no images in this library yet.', 'vergelabs-media-library' );
+            $text = __( 'There are no pictures here yet. Upload some and this page will have something to say.', 'vergelabs-media-library' );
         } elseif ( 0 === $f['undescribed'] ) {
             $text = sprintf(
                 /* translators: %s: number of images described. */
-                __( 'All %s images are described. Search finds what your pictures show, and the folder tree has grown a group built from them.', 'vergelabs-media-library' ),
+                __( 'We have looked at all %s of your pictures and written down what is in them. Searching your media now finds a photo by what it shows, not just by its file name.', 'vergelabs-media-library' ),
                 number_format_i18n( $f['described'] )
             );
         } else {
             $text = sprintf(
-                /* translators: 1: images still to describe, 2: credits it will cost. */
-                __( '%1$s images still to describe. That would use %2$s credits — one per image. You can watch it here or let it run in the background with the tab closed.', 'vergelabs-media-library' ),
+                /* translators: 1: images, 2: credits it will cost. */
+                __( 'We have not looked at %1$s of your pictures yet. When we do, we write down what is in each one — so you can find a photo by typing “red bicycle” instead of scrolling, and so the rest of this page has something to work with. It costs %2$s credits, one a picture, and you can close this tab while it runs.', 'vergelabs-media-library' ),
                 number_format_i18n( $f['undescribed'] ),
                 number_format_i18n( $f['undescribed'] )
             );
@@ -352,13 +359,13 @@ function vergeml_journey_stages() {
             'title'   => __( 'Missing alt text', 'vergelabs-media-library' ),
             'done'    => 0 === $f['no_alt'],
             'blocked' => ( 0 === $f['described'] && ! $f['demo'] && ! $f['licensed'] )
-                ? __( 'Nothing is described yet, and alt text is written from the description.', 'vergelabs-media-library' )
+                ? __( 'We write this from what we saw in the picture, and we have not looked at any of them yet. Do the step above first.', 'vergelabs-media-library' )
                 : '',
             'text'    => 0 === $f['no_alt']
-                ? __( 'Every image has alt text. Screen readers and search engines can both read this library.', 'vergelabs-media-library' )
+                ? __( 'Every picture has alt text — the line a blind visitor’s screen reader reads out, and the one Google reads too. Nothing to do here.', 'vergelabs-media-library' )
                 : sprintf(
                     /* translators: %s: images with no alt text. */
-                    __( '%s images have none. It is written from the description, only where alt is empty, and never over anything you wrote yourself — and everything it writes can be taken back out again.', 'vergelabs-media-library' ),
+                    __( '%s of your pictures have no alt text. That is the line a blind visitor’s screen reader reads out loud instead of showing the picture, and Google reads it as well. We can write it from what we already saw in each one — only where the box is empty, and never over anything you wrote yourself.', 'vergelabs-media-library' ),
                     number_format_i18n( $f['no_alt'] )
                 ),
             'action'  => __( 'Fill them in', 'vergelabs-media-library' ),
@@ -373,22 +380,65 @@ function vergeml_journey_stages() {
         $stage = vergeml_librarian_stage();
 
         $blocked = '';
+        $loose   = number_format_i18n( $f['unfiled'] );
 
+        /*
+         *  Said in full, every time.
+         *
+         *  This used to borrow vergeml_librarian_card_text(), which reads "a
+         *  proposal is waiting, look it over branch by branch, apply it in one
+         *  go" -- every word of which assumes you already know what the
+         *  Librarian is, what a branch is and what was proposed. It also never
+         *  mentioned how many files it was about.
+         */
         if ( 'unscanned' === $stage ) {
-            $blocked = __( 'The duplicate scan has to run first — the stage above.', 'vergelabs-media-library' );
+
+            $blocked = __( 'Do the step above first. We check for copies before sorting, so the same photo does not end up in two folders.', 'vergelabs-media-library' );
+
+            $text = sprintf(
+                /* translators: %s: number of files in no folder. */
+                __( '%s of your files are in no folder at all.', 'vergelabs-media-library' ),
+                $loose
+            );
+
         } elseif ( 'unindexed' === $stage ) {
-            $blocked = __( 'Your images need describing before it can group them by subject. Filing by date and file type needs nothing and is available now.', 'vergelabs-media-library' );
+
+            $blocked = __( 'To sort them by what is in the pictures, we have to look at them first — the step above. Sorting them by date and file type instead needs nothing and works right now.', 'vergelabs-media-library' );
+
+            $text = sprintf(
+                /* translators: %s: number of files in no folder. */
+                __( '%s of your files are in no folder at all.', 'vergelabs-media-library' ),
+                $loose
+            );
+
+        } elseif ( 'ready' === $stage ) {
+
+            $text = sprintf(
+                /* translators: %s: number of files in no folder. */
+                __( '%s of your files are sitting in one big pile with no folder. We have already worked out a set of folders for them. You will see every folder we want to make and exactly which pictures go in each one — nothing moves until you say so, and one click puts it all back if you change your mind.', 'vergelabs-media-library' ),
+                $loose
+            );
+
+        } else {
+
+            $text = sprintf(
+                /* translators: %s: number of files in no folder. */
+                __( '%s of your files are sitting in one big pile with no folder. We can work out folders for them — grouped by what is in the pictures, or just by date and file type, which costs nothing. You see the whole plan and approve it before anything moves.', 'vergelabs-media-library' ),
+                $loose
+            );
         }
 
         $stages[] = array(
             'id'      => 'file',
             'title'   => __( 'Unfiled files', 'vergelabs-media-library' ),
-            'done'    => false,
+            'done'    => 0 === $f['unfiled'],
             'blocked' => $blocked,
-            'text'    => function_exists( 'vergeml_librarian_card_text' )
-                ? vergeml_librarian_card_text()
-                : __( 'See the folders this library would get, change them, apply them — and put it all back with one click.', 'vergelabs-media-library' ),
-            'action'  => __( 'Open the Librarian', 'vergelabs-media-library' ),
+            'text'    => 0 === $f['unfiled']
+                ? __( 'Every file is in a folder. Nothing is loose.', 'vergelabs-media-library' )
+                : $text,
+            'action'  => 'ready' === $stage
+                ? __( 'See where they would go', 'vergelabs-media-library' )
+                : __( 'Sort them into folders', 'vergelabs-media-library' ),
             'url'     => vergeml_journey_url( 'media-librarian' ),
         );
     }
@@ -401,7 +451,7 @@ function vergeml_journey_stages() {
             'title'  => __( 'Import folders', 'vergelabs-media-library' ),
             'aside'  => true,
             'done'   => false,
-            'text'   => __( 'Bring them over from FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders or Real Media Library — or from a spreadsheet. You see what it will do before it does it, and it can be undone.', 'vergelabs-media-library' ),
+            'text'   => __( 'Already sorted your media with FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders or Real Media Library? We can copy those folders over so you do not start again. The other plugin keeps everything exactly as it is, you see what will happen before it happens, and it can all be undone.', 'vergelabs-media-library' ),
             'action' => __( 'Import folders', 'vergelabs-media-library' ),
             'url'    => vergeml_journey_url( 'media-import-folders' ),
         );

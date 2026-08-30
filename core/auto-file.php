@@ -731,7 +731,7 @@ function vergeml_autofile_card() {
     ?>
     <div class="vgml-ai-card">
         <h2><?php esc_html_e( 'File what is still loose', 'vergelabs-media-library' ); ?></h2>
-        <p class="description"><?php esc_html_e( 'Looks at described files that are in no folder, and works out which of your folders each one resembles. It suggests; you decide. A folder that has had five suggestions accepted, and none refused, starts filing into itself — and stops the moment you refuse one.', 'vergelabs-media-library' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Takes the files that are in no folder, looks at what is in each picture, and points at the folder it most resembles. We suggest, you decide. Once you have accepted five suggestions for a folder and refused none, that folder starts taking new files by itself — and stops the moment you refuse one.', 'vergelabs-media-library' ); ?></p>
         <p>
             <button type="button" class="button button-primary" id="vgml-autofile-run"><?php esc_html_e( 'Look for a home for them', 'vergelabs-media-library' ); ?></button>
             <span id="vgml-autofile-note"></span>
@@ -777,7 +777,7 @@ function vergeml_autofile_assets( $hook ) {
         /* translators: %d: number of files. */
         'waiting'      => __( '%d waiting for you.', 'vergelabs-media-library' ),
         /* translators: %d: number of files looked at. */
-        'noneNear'     => __( 'Looked at %d and none of them clearly belongs anywhere yet.', 'vergelabs-media-library' ),
+        'noneNear'     => __( 'We looked at %d of them and none clearly belongs in a folder you already have.', 'vergelabs-media-library' ),
         'nothingLoose' => __( 'Nothing described is without a folder.', 'vergelabs-media-library' ),
     ) );
 }

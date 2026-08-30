@@ -1118,20 +1118,20 @@ function vergeml_health_assets( $hook ) {
             'remaining'    => __( '%s to go', 'vergelabs-media-library' ),
             'building'     => __( 'Comparing…', 'vergelabs-media-library' ),
             'failed'       => __( 'That did not work, and nothing was changed.', 'vergelabs-media-library' ),
-            'never'        => __( 'This library has not been read yet. Nothing is changed by reading it — the scan only looks at your files.', 'vergelabs-media-library' ),
+            'never'        => __( 'We have not compared your files yet. Comparing them changes nothing — we only look.', 'vergelabs-media-library' ),
             'duplicates'   => __( 'Duplicates', 'vergelabs-media-library' ),
             'related'      => __( 'Possibly related', 'vergelabs-media-library' ),
             'noDuplicates' => __( 'No duplicates found.', 'vergelabs-media-library' ),
             'noRelated'    => __( 'Nothing else looked similar.', 'vergelabs-media-library' ),
             'dupeNote'     => __( 'Identical files, or the same picture saved at a different size or quality.', 'vergelabs-media-library' ),
-            'relatedNote'  => __( 'These look alike but are not the same picture as far as the scan can tell. Worth a look; not a finding.', 'vergelabs-media-library' ),
+            'relatedNote'  => __( 'These look similar, but we are not confident they are the same picture. Worth your own eye before you do anything.', 'vergelabs-media-library' ),
             /* translators: %s: a formatted file size, e.g. "4.2 MB". */
             'groupWasted'  => __( '%s potentially recoverable', 'vergelabs-media-library' ),
             /* translators: 1: number of groups, 2: a formatted file size. */
             'summary'      => __( '%1$s groups · %2$s potentially recoverable', 'vergelabs-media-library' ),
             /* translators: %s: number of further groups not shown. */
             'more'         => __( 'and %s more', 'vergelabs-media-library' ),
-            'readOnly'     => __( 'This page only reads. Nothing here deletes, moves or changes a file — use the media library itself to act on anything you find.', 'vergelabs-media-library' ),
+            'readOnly'     => __( 'Nothing on this page deletes, moves or changes anything. It shows you what we found; what to do about it is yours, in the media library.', 'vergelabs-media-library' ),
         ),
     ) );
 }
@@ -1153,7 +1153,7 @@ function vergeml_health_page() {
 
         <div class="vgml-ai-card">
             <h2><?php esc_html_e( 'Duplicate files', 'vergelabs-media-library' ); ?></h2>
-            <p class="description"><?php esc_html_e( 'Reading every file once tells you which ones are copies of each other — the same upload twice, or the same photo exported again at another size. Reading changes nothing.', 'vergelabs-media-library' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Most libraries have the same photo in them two or three times — uploaded twice, or saved again at a different size. We open each file once and compare them. Nothing is changed and nothing is deleted.', 'vergelabs-media-library' ); ?></p>
             <p>
                 <button type="button" class="button button-primary" id="vgml-health-scan"><?php esc_html_e( 'Scan the library', 'vergelabs-media-library' ); ?></button>
             </p>

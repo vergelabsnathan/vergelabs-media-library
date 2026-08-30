@@ -478,7 +478,7 @@ function vergeml_quarantine_card() {
             <?php
             printf(
                 /* translators: %d: the number of days a file waits. */
-                esc_html__( 'Files you set aside leave the media library but stay exactly where they are — same file, same URL, still working anywhere that uses them. Nothing may be considered for removal for %d days, and this plugin never removes anything itself: when the wait is over it hands you a list.', 'vergelabs-media-library' ),
+                esc_html__( 'Setting a file aside takes it out of your media library without touching the file itself — same file on the server, same web address, still working on every page that uses it. If something you had forgotten about was using it, nothing breaks and you find out. Nothing can even be considered for deleting until %d days have passed, and this plugin never deletes anything: when the wait is over it hands you a list and the rest is up to you.', 'vergelabs-media-library' ),
                 (int) VERGEML_QUARANTINE_DAYS
             );
             ?>
