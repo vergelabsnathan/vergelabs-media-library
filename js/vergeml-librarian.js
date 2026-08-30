@@ -82,6 +82,28 @@
 
 	// A duration a person reads, not a figure. The estimate is honest about
 	// being an estimate, so a rounded one is the truthful presentation.
+	/*
+	 *  A list, whatever the server sent.
+	 *
+	 *  PHP arrays arrive over REST as a JSON array when their keys happen to
+	 *  be 0..n and as an object when they do not, and nothing on this side can
+	 *  tell which it will be. The hub rendered nothing at all the first time,
+	 *  because .forEach on an object is not a function and the whole handler
+	 *  died on the first row it drew.
+	 */
+	function listOf( thing ) {
+
+		if ( Array.isArray( thing ) ) {
+			return thing;
+		}
+
+		if ( thing && 'object' === typeof thing ) {
+			return Object.keys( thing ).map( function ( k ) { return thing[ k ]; } );
+		}
+
+		return [];
+	}
+
 	// Bytes a person reads. The figure that makes somebody care about copies is
 	// not how many there are, it is what they are costing.
 	function bytes( n ) {
@@ -690,16 +712,16 @@
 			 *  sets of byte-identical photographs in it was told "No copies
 			 *  found", by the row whose only job is to say otherwise.
 			 */
-			var groups = ( health.duplicates || [] ).length;
+			var dupes = listOf( health.duplicates );
 			var copies = 0;
 
-			( health.duplicates || [] ).forEach( function ( group ) {
+			dupes.forEach( function ( group ) {
 				// A group of three copies is two files too many, not three.
-				copies += Math.max( 0, ( ( group.files || group.ids || group ) || [] ).length - 1 );
+				copies += Math.max( 0, listOf( group.files || group.ids || group ).length - 1 );
 			} );
 
-			if ( groups > 0 && 0 === copies ) {
-				copies = groups; // shape we did not expect; still say something true
+			if ( dupes.length > 0 && 0 === copies ) {
+				copies = dupes.length; // a shape we did not expect; still true
 			}
 
 			/* ---- alt text */
@@ -752,6 +774,24 @@
 				},
 				text( 'doFoldersDone', '' ) );
 
+			/*
+			 *  And a way to the folders whether or not there is anything left
+			 *  to file. "Everything is in a folder" was true and a dead end:
+			 *  the moment somebody most wants to look at the tree they just
+			 *  made is the moment they have finished making it.
+			 */
+			if ( conf.foldersUrl ) {
+
+				var see = el( 'p', 'vgml-do-see' );
+				var link = document.createElement( 'a' );
+
+				link.href = conf.foldersUrl;
+				link.textContent = text( 'doFoldersSee', '' );
+
+				see.appendChild( link );
+				list.lastChild.appendChild( see );
+			}
+
 			/* ---- copies */
 
 			row( 'copies', text( 'doCopies', '' ), text( 'doCopiesNote', '' ), copies,
@@ -768,6 +808,16 @@
 			if ( ! alt && ! names && ! loose && ! copies ) {
 				list.appendChild( el( 'p', 'vgml-do-none', text( 'nothingLeft', '' ) ) );
 			}
+
+		} ).catch( function ( err ) {
+			/*
+			 *  A blank page is the worst possible failure here, and it is what
+			 *  happened: one wrong assumption about a response shape threw, the
+			 *  promise had no catch, and the screen rendered a heading and
+			 *  nothing else. Whatever goes wrong, say so.
+			 */
+			list.appendChild( el( 'p', 'vgml-lib-note',
+				( err && err.message ) ? err.message : text( 'failed', '' ) ) );
 		} );
 	}
 

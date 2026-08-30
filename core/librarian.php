@@ -2667,6 +2667,8 @@ function vergeml_librarian_assets( $hook ) {
         // Where "look at the copies" goes. Built here because the shell knows
         // the real menu URL and a hand-built one 403s -- that has bitten twice.
         'healthUrl' => function_exists( 'vergeml_shell_url' ) ? vergeml_shell_url( 'media-health' ) : admin_url( 'admin.php?page=media-health' ),
+        // The tree lives beside the media library, which is where it is used.
+        'foldersUrl' => admin_url( 'upload.php' ),
         /*
          *  Whether the descriptions on this site were invented locally. The
          *  screen has to say which, because "no credits were spent" is true in
@@ -2719,6 +2721,7 @@ function vergeml_librarian_assets( $hook ) {
             'doFoldersGo'     => __( 'Work out the folders', 'vergelabs-media-library' ),
             'doFoldersReady'  => __( 'Read the folders', 'vergelabs-media-library' ),
             'doFoldersDone'   => __( 'Everything is in a folder.', 'vergelabs-media-library' ),
+            'doFoldersSee'    => __( 'See your folders, rename them, move them around', 'vergelabs-media-library' ),
 
             'doCopies'        => __( 'Copies', 'vergelabs-media-library' ),
             'doCopiesNote'    => __( 'The same picture uploaded twice, or saved again at a different size. Nothing is deleted without you.', 'vergelabs-media-library' ),

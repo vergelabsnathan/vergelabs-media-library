@@ -63,6 +63,25 @@ function vergeml_shell_pages() {
             'label' => __( 'Dashboard', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
+        /*
+         *  The folders themselves, which is upload.php rather than a screen of
+         *  ours -- the tree is rendered beside the media library because that
+         *  is where somebody uses it, and a second editor here would be two
+         *  places to rename the same folder.
+         *
+         *  It is in the nav because nothing pointed at it. Somebody who had
+         *  just sorted five hundred files had no route back to the thing they
+         *  had made except by remembering that folders live on the Media
+         *  screen. Findable is the whole feature.
+         */
+        array(
+            'slug'  => 'vergeml-folders',
+            'icon'  => 'folders',
+            'url'   => admin_url( 'upload.php' ),
+            'sub'   => __( 'See them, rename them, move them', 'vergelabs-media-library' ),
+            'label' => __( 'Your folders', 'vergelabs-media-library' ),
+            'cap'   => 'upload_files',
+        ),
         array(
             'slug'  => 'media-librarian',
             'icon'  => 'librarian',
@@ -125,7 +144,11 @@ function vergeml_shell_pages() {
             continue;
         }
 
-        $page['url']   = admin_url( 'admin.php?page=' . $page['slug'] );
+        // A page may name its own destination -- "Your folders" is upload.php,
+        // not a screen of ours -- and everything else is one of our pages.
+        if ( ! isset( $page['url'] ) ) {
+            $page['url'] = admin_url( 'admin.php?page=' . $page['slug'] );
+        }
         $page['group'] = isset( $page['group'] ) ? $page['group'] : '';
         $page['icon']  = isset( $page['icon'] ) ? $page['icon'] : '';
         $page['sub']   = isset( $page['sub'] ) ? $page['sub'] : '';
