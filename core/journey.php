@@ -332,33 +332,6 @@ function vergeml_journey_stages() {
         );
     }
 
-    /* ------------------------------------------------------- the copies */
-
-    if ( function_exists( 'vergeml_health_state' ) ) {
-
-        $health = vergeml_health_state();
-        $done   = ! empty( $health['finished'] );
-
-        $stages[] = array(
-            'id'     => 'duplicates',
-            'title'  => __( 'Duplicate files', 'vergelabs-media-library' ),
-            'done'   => $done,
-            'text'   => $done
-                ? sprintf(
-                    /* translators: %s: number of files used on no page. */
-                    __( 'We compared all your files. %s of them are not used on any page or post — you are storing pictures nobody sees. Open this to see which, and how much space they take.', 'vergelabs-media-library' ),
-                    number_format_i18n( null === $f['unused'] ? 0 : $f['unused'] )
-                )
-                : sprintf(
-                    /* translators: %s: number of files in the library. */
-                    __( 'Most libraries have the same photo in them two or three times — uploaded twice, or saved again at a different size. We compare all %s of your files and show you the copies. It is free, nothing leaves your site, and nothing is deleted or changed.', 'vergelabs-media-library' ),
-                    number_format_i18n( $f['files'] )
-                ),
-            'action' => $done ? __( 'See the report', 'vergelabs-media-library' ) : __( 'Scan the library', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-health' ),
-        );
-    }
-
     /* ----------------------------------------------------- the describing */
 
     if ( function_exists( 'vergeml_ai_pending' ) ) {
@@ -415,6 +388,48 @@ function vergeml_journey_stages() {
         );
     }
 
+    /* ------------------------------------------------------- the copies */
+
+    /*
+     *  After describing, and never the next thing.
+     *
+     *  This sat third, so somebody who had just uploaded ten photographs was
+     *  told the first thing to do was scan them for duplicates -- which is
+     *  nobody's reason for uploading, and on files that arrived a minute ago
+     *  finds nothing.
+     *
+     *  It was placed there because sorting needs it. But sorting starts the
+     *  scan itself (see vergeml_librarian_card_text), so it was never a step
+     *  somebody had to take first -- only one they could take early. It is
+     *  worth doing on a library with years in it, and it is an aside.
+     */
+
+    if ( function_exists( 'vergeml_health_state' ) ) {
+
+        $health = vergeml_health_state();
+        $done   = ! empty( $health['finished'] );
+
+        $stages[] = array(
+            'id'     => 'duplicates',
+            'aside'  => true,
+            'title'  => __( 'Duplicate files', 'vergelabs-media-library' ),
+            'done'   => $done,
+            'text'   => $done
+                ? sprintf(
+                    /* translators: %s: number of files used on no page. */
+                    __( 'We compared all your files. %s of them are not used on any page or post — you are storing pictures nobody sees. Open this to see which, and how much space they take.', 'vergelabs-media-library' ),
+                    number_format_i18n( null === $f['unused'] ? 0 : $f['unused'] )
+                )
+                : sprintf(
+                    /* translators: %s: number of files in the library. */
+                    __( 'Most libraries have the same photo in them two or three times — uploaded twice, or saved again at a different size. We compare all %s of your files and show you the copies. It is free, nothing leaves your site, and nothing is deleted or changed.', 'vergelabs-media-library' ),
+                    number_format_i18n( $f['files'] )
+                ),
+            'action' => $done ? __( 'See the report', 'vergelabs-media-library' ) : __( 'Scan the library', 'vergelabs-media-library' ),
+            'url'    => vergeml_journey_url( 'media-health' ),
+        );
+    }
+
     /* -------------------------------------------------------- the filing */
 
     if ( function_exists( 'vergeml_librarian_stage' ) ) {
@@ -435,11 +450,14 @@ function vergeml_journey_stages() {
          */
         if ( 'unscanned' === $stage ) {
 
-            $blocked = __( 'Do the step above first. We check for copies before sorting, so the same photo does not end up in two folders.', 'vergelabs-media-library' );
-
+            /*
+             *  Not blocked. This screen starts the duplicate check itself, so
+             *  telling somebody to go and do it first was inventing a step
+             *  that the software takes for them.
+             */
             $text = sprintf(
                 /* translators: %s: number of files in no folder. */
-                __( '%s of your files are in no folder at all.', 'vergelabs-media-library' ),
+                __( '%s of your files are in no folder. We will compare them for copies first, so the same photo does not end up in two folders, and then work out where each one goes.', 'vergelabs-media-library' ),
                 $loose
             );
 
