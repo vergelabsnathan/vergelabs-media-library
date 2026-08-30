@@ -1315,6 +1315,9 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // title it applies and whose locked list it obeys; inside the guard,
         // because it writes to posts.
         include_once( 'core/rename.php' );
+        // Editing a file from the list it is in. After the index, whose lock
+        // on a hand-written field is the whole reason this is safe.
+        include_once( 'core/quick-edit.php' );
         // Searching by what a picture means. After organize.php, whose
         // projection and distance it borrows so that "alike" means one thing
         // in this plugin, and after ai.php for the service URL.

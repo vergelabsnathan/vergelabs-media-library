@@ -904,3 +904,148 @@ function vergeml_smart_list_query( $query ) {
         $query->set( $arg, $value );
     }
 }
+
+
+/* ------------------------------------------------- "Uploaded to", replaced */
+
+/**
+ *  Where a file is actually used, in the column core spends on its parent.
+ *
+ *  Core's "Uploaded to" shows post_parent: the single post that happened to be
+ *  open in an editor when the file arrived. It is not where the file is used,
+ *  and it is read as though it were.
+ *
+ *  Three ways it misleads, and all three are common. A file uploaded straight
+ *  to the media library is blank for ever however many pages use it -- on a
+ *  library filled that way it is blank on every row. A file uploaded while
+ *  editing a page keeps that page for ever, including after somebody removes
+ *  the image from it. And a file used on twenty pages shows one.
+ *
+ *  The scan behind smart folders already answers the question people are
+ *  actually asking, per file, and stores it. This puts that answer where they
+ *  were already looking.
+ *
+ *  Filterable, because core's column is core's and somebody may have built a
+ *  habit on it: `add_filter( 'vergeml_replace_parent_column', '__return_false' )`.
+ */
+
+add_filter( 'manage_media_columns', 'vergeml_used_column', 20 );
+
+function vergeml_used_column( $columns ) {
+
+    if ( ! apply_filters( 'vergeml_replace_parent_column', true ) ) {
+        return $columns;
+    }
+
+    $out = array();
+
+    foreach ( $columns as $key => $label ) {
+
+        if ( 'parent' === $key ) {
+            $out['vergeml_used'] = __( 'Used on', 'vergelabs-media-library' );
+            continue;
+        }
+
+        $out[ $key ] = $label;
+    }
+
+    // No parent column to stand in for -- a theme or another plugin has
+    // already taken it out. The answer is still worth having.
+    if ( ! isset( $out['vergeml_used'] ) ) {
+        $out['vergeml_used'] = __( 'Used on', 'vergelabs-media-library' );
+    }
+
+    return $out;
+}
+
+
+add_action( 'manage_media_custom_column', 'vergeml_used_cell', 10, 2 );
+
+function vergeml_used_cell( $column, $attachment_id ) {
+
+    if ( 'vergeml_used' !== $column ) {
+        return;
+    }
+
+    if ( empty( vergeml_smart_scan_state()['finished'] ) ) {
+        printf(
+            '<span class="vgml-used-quiet">%s</span>',
+            esc_html__( 'Not scanned yet', 'vergelabs-media-library' )
+        );
+        return;
+    }
+
+    $raw = (string) get_post_meta( (int) $attachment_id, VERGEML_META_USED_IN, true );
+
+    if ( '' === $raw ) {
+
+        /*
+         *  Never "unused", and never anything that reads as "safe to delete".
+         *  The scan covers post content, builder layouts, widgets and site
+         *  settings -- not theme files, not stylesheets, not anything off the
+         *  site. The one-star reviews the competition collects are all the
+         *  same review: somebody deleted what a tool called unused. The full
+         *  caveat is on the file's own screen; here it is the title.
+         */
+        printf(
+            '<span class="vgml-used-quiet" title="%s">%s</span>',
+            esc_attr__( 'The scan covers post content, builder layouts, widgets and site settings. Other uses — theme files, external links — are not scanned.', 'vergelabs-media-library' ),
+            esc_html__( 'No references found', 'vergelabs-media-library' )
+        );
+        return;
+    }
+
+    $sources = array_filter( array_map( 'intval', explode( ',', $raw ) ), function ( $id ) {
+        return $id >= 0;
+    } );
+
+    $shown = 0;
+    $lines = array();
+
+    foreach ( $sources as $source ) {
+
+        if ( $shown >= 2 ) {
+            break;
+        }
+
+        if ( 0 === $source ) {
+            $lines[] = '<span class="vgml-used-quiet">' . esc_html__( 'Site settings', 'vergelabs-media-library' ) . '</span>';
+            $shown++;
+            continue;
+        }
+
+        $title = get_the_title( $source );
+
+        if ( '' === $title ) {
+            continue; // the referencing post has gone since the scan
+        }
+
+        $lines[] = sprintf(
+            '<a href="%s">%s</a>',
+            esc_url( (string) get_edit_post_link( $source ) ),
+            esc_html( $title )
+        );
+
+        $shown++;
+    }
+
+    if ( ! $lines ) {
+        printf( '<span class="vgml-used-quiet">%s</span>', esc_html__( 'No references found', 'vergelabs-media-library' ) );
+        return;
+    }
+
+    $more = count( $sources ) - $shown;
+
+    echo implode( '<br>', $lines ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each line escaped above.
+
+    if ( $more > 0 ) {
+        printf(
+            '<br><span class="vgml-used-quiet">%s</span>',
+            esc_html( sprintf(
+                /* translators: %s: how many more places the file is used. */
+                _n( 'and %s more', 'and %s more', $more, 'vergelabs-media-library' ),
+                number_format_i18n( $more )
+            ) )
+        );
+    }
+}

@@ -418,3 +418,49 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+
+/* ------------------------------------------- quick edit, on the media list */
+
+.vgml-quick {
+	padding: 14px 10px 16px;
+	background: #f6f7f7;
+	border-left: 3px solid var( --vgml-accent, #9B4E45 );
+}
+
+.vgml-quick-field {
+	margin: 0 0 12px;
+	max-width: 46rem;
+}
+
+.vgml-quick-field label {
+	display: block;
+	margin-bottom: 4px;
+	font-weight: 600;
+	font-size: 13px;
+}
+
+.vgml-quick-field input[type="text"],
+.vgml-quick-field textarea {
+	width: 100%;
+	max-width: 46rem;
+}
+
+.vgml-quick-help {
+	display: block;
+	margin-top: 4px;
+	font-size: 12px;
+	line-height: 1.5;
+	color: #646970;
+}
+
+.vgml-quick-actions {
+	margin: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.vgml-quick-note {
+	font-size: 13px;
+	color: #646970;
+}
