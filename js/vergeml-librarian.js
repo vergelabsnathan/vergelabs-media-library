@@ -459,7 +459,18 @@
 			return;
 		}
 
-		drawHub( host );
+		/*
+		 *  Straight to the folders.
+		 *
+		 *  The four-row list this used to draw now lives on the dashboard,
+		 *  which is where somebody decides what to do. Two screens listing the
+		 *  same four things in different words is what made the whole product
+		 *  feel like being handed between two answers to one question.
+		 *
+		 *  What is left here is what genuinely belongs to folders: working
+		 *  them out, and reading them.
+		 */
+		drawFolders( host );
 	}
 
 
@@ -838,7 +849,7 @@
 		back.addEventListener( 'click', function () {
 			state.tree = [];
 			$( 'vgml-lib-review' ).innerHTML = '';
-			drawHub( host );
+			drawFolders( host );
 		} );
 
 		if ( 'unproposed' === state.stage ) {

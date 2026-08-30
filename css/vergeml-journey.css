@@ -576,3 +576,65 @@
 	line-height: 1.5;
 	color: var(--vgml-muted);
 }
+
+
+/* --------------------------------------------- what you can do, on the front */
+
+/*
+ *  Moved here from the sort screen, which had grown a second copy of this
+ *  list under different words. Same geometry as it had there -- hairlines,
+ *  count on its own line, one button -- because it is the same list, not a
+ *  new one.
+ */
+
+.vgml-dash .vgml-do-head {
+	margin: 0 0 4px;
+	font-size: 16px;
+}
+
+.vgml-dash .vgml-do-list {
+	margin-top: 4px;
+}
+
+.vgml-dash .vgml-do {
+	padding: 22px 0;
+	border-top: 1px solid var( --vgml-rule );
+}
+
+.vgml-dash .vgml-do:last-child {
+	border-bottom: 1px solid var( --vgml-rule );
+}
+
+.vgml-dash .vgml-do-title {
+	margin: 0 0 4px;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.vgml-dash .vgml-do-note {
+	margin: 0 0 12px;
+	max-width: 58ch;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var( --vgml-muted );
+}
+
+.vgml-dash .vgml-do-line {
+	margin: 0 0 12px;
+	font-size: 14px;
+	color: var( --vgml-ink );
+}
+
+.vgml-dash .vgml-do-count {
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-dash .vgml-do-line.is-done {
+	margin: 0;
+	color: #5C7C5C;
+}
+
+.vgml-dash .vgml-flow-actions {
+	margin: 0;
+}

@@ -2563,8 +2563,8 @@ function vergeml_librarian_steps() {
         ),
         array(
             'id'    => 'choose',
-            'title' => __( 'What you can do now', 'vergelabs-media-library' ),
-            'note'  => __( 'Four things, all of them optional. Do one, do all of them, or come back another day.', 'vergelabs-media-library' ),
+            'title' => __( 'Put them into folders', 'vergelabs-media-library' ),
+            'note'  => __( 'Group the pictures by what they have in common, or by when they were uploaded. You read the whole list and approve it before a single file moves.', 'vergelabs-media-library' ),
         ),
     );
 }

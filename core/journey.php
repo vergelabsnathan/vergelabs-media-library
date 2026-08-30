@@ -239,8 +239,18 @@ function vergeml_journey_score() {
 }
 
 
+/*
+ *  A screen of ours, by slug.
+ *
+ *  Through menu_page_url() where the shell can give it, because a URL built by
+ *  hand has 403'd twice in this plugin's history -- WordPress checks the page
+ *  against the registered submenu, and a string that merely looks right is not
+ *  the same as one the menu knows about.
+ */
 function vergeml_journey_url( $page ) {
-    return admin_url( 'admin.php?page=' . $page );
+    return function_exists( 'vergeml_shell_url' )
+        ? vergeml_shell_url( $page )
+        : admin_url( 'admin.php?page=' . $page );
 }
 
 
@@ -592,6 +602,193 @@ function vergeml_journey_state_word( $state ) {
 }
 
 
+/**
+ *  What can be done with this library, right now.
+ *
+ *  This screen and the sort screen had grown into two answers to the same
+ *  question. The dashboard listed stages -- "Do this next", "Also worth doing"
+ *  -- and the sort screen listed four things you could do, with different
+ *  words for the same work, and neither knew the other existed. Somebody
+ *  wanting alt text found the button behind a screen named after folders,
+ *  having first been told something different by the front page.
+ *
+ *  So there is one list, and it is here, because this is the screen the plugin
+ *  opens on. Two of the four act in place -- alt text and names are free and
+ *  instant, and sending somebody to another screen to press a second button
+ *  would be the handoff this is removing. The other two lead somewhere because
+ *  they genuinely are somewhere: a folder proposal is a document to read, and
+ *  the duplicate report is a screen of its own.
+ *
+ *  Built from vergeml_journey_facts(), which the page has already read, so the
+ *  whole list costs no queries beyond the two counts below.
+ */
+
+function vergeml_journey_todo() {
+
+    $f    = vergeml_journey_facts();
+    $todo = array();
+
+    /* ---------------------------------------------------------- alt text */
+
+    $alt_ready = function_exists( 'vergeml_ai_alt_pending' ) ? count( vergeml_ai_alt_pending() ) : 0;
+
+    $todo[] = array(
+        'id'    => 'alt',
+        'title' => __( 'Alt text', 'vergelabs-media-library' ),
+        'note'  => __( 'The line a screen reader reads out instead of showing the picture, and the line Google reads. It was written when we looked at your pictures, so putting it on the files costs nothing.', 'vergelabs-media-library' ),
+        'n'     => $alt_ready,
+        'count' => sprintf(
+            /* translators: %s: how many pictures are waiting for their alt text. */
+            _n( '%s picture is waiting for it', '%s pictures are waiting for it', $alt_ready, 'vergelabs-media-library' ),
+            number_format_i18n( $alt_ready )
+        ),
+        'go'    => __( 'Write the alt text', 'vergelabs-media-library' ),
+        'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_alt' ), 'vergeml_do_alt' ),
+        'done'  => 0 === (int) $f['no_alt']
+            ? __( 'Every picture has alt text.', 'vergelabs-media-library' )
+            : __( 'Nothing waiting — the rest have not been looked at yet.', 'vergelabs-media-library' ),
+    );
+
+    /* ------------------------------------------------------------- names */
+
+    $names = function_exists( 'vergeml_rename_pending' ) ? count( vergeml_rename_pending() ) : 0;
+
+    $todo[] = array(
+        'id'    => 'names',
+        'title' => __( 'File names', 'vergelabs-media-library' ),
+        'note'  => __( '“Photo 498” tells nobody anything. We can name each file after what is in it — “Red Synthesizer with Controls” — from the same look. Anything you named yourself is left alone, and one click puts the old names back.', 'vergelabs-media-library' ),
+        'n'     => $names,
+        'count' => sprintf(
+            /* translators: %s: how many files could be renamed. */
+            _n( '%s file could be named after what it shows', '%s files could be named after what they show', $names, 'vergelabs-media-library' ),
+            number_format_i18n( $names )
+        ),
+        'go'    => __( 'Rename them', 'vergelabs-media-library' ),
+        'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_rename' ), 'vergeml_do_rename' ),
+        'done'  => __( 'Every file is named after what it shows.', 'vergelabs-media-library' ),
+    );
+
+    /* ----------------------------------------------------------- folders */
+
+    $todo[] = array(
+        'id'    => 'folders',
+        'title' => __( 'Folders', 'vergelabs-media-library' ),
+        'note'  => __( 'Group the pictures into folders by what they have in common, or by when they were uploaded. You read the whole list and approve it before a single file moves.', 'vergelabs-media-library' ),
+        'n'     => (int) $f['unfiled'],
+        'count' => sprintf(
+            /* translators: %s: how many files are in no folder. */
+            _n( '%s file is in no folder', '%s files are in no folder', (int) $f['unfiled'], 'vergelabs-media-library' ),
+            number_format_i18n( $f['unfiled'] )
+        ),
+        'go'    => __( 'Work out the folders', 'vergelabs-media-library' ),
+        'url'   => vergeml_journey_url( 'media-librarian' ),
+        'done'  => __( 'Everything is in a folder.', 'vergelabs-media-library' ),
+    );
+
+    /* ------------------------------------------------------------ copies */
+
+    $copies = 0;
+    $wasted = 0;
+
+    if ( function_exists( 'vergeml_health_report' ) ) {
+
+        $report = vergeml_health_report();
+        $wasted = isset( $report['wasted'] ) ? (int) $report['wasted'] : 0;
+
+        foreach ( (array) ( isset( $report['duplicates'] ) ? $report['duplicates'] : array() ) as $group ) {
+            // A group of three copies is two files too many, not three.
+            $files   = isset( $group['files'] ) ? $group['files'] : $group;
+            $copies += max( 0, count( (array) $files ) - 1 );
+        }
+    }
+
+    $todo[] = array(
+        'id'    => 'copies',
+        'title' => __( 'Copies', 'vergelabs-media-library' ),
+        'note'  => __( 'The same picture uploaded twice, or saved again at a different size. Nothing is deleted without you.', 'vergelabs-media-library' ),
+        'n'     => $copies,
+        'count' => sprintf(
+            /* translators: 1: how many files are copies, 2: the disk they take, e.g. "9 MB". */
+            _n( '%1$s file is a copy of another · %2$s of disk', '%1$s files are copies of others · %2$s of disk', $copies, 'vergelabs-media-library' ),
+            number_format_i18n( $copies ),
+            size_format( $wasted )
+        ),
+        'go'    => __( 'Look at the copies', 'vergelabs-media-library' ),
+        'url'   => vergeml_journey_url( 'media-health' ),
+        'done'  => __( 'No copies found.', 'vergelabs-media-library' ),
+    );
+
+    return apply_filters( 'vergeml_journey_todo', $todo );
+}
+
+
+/* -------------------------------------------- doing the two free ones here */
+
+/*
+ *  Both are instant and free, so they happen where they are offered. Sending
+ *  somebody to a second screen to press a second button for work that takes a
+ *  database write is the handoff this whole change is about.
+ */
+
+add_action( 'admin_post_vergeml_do_alt', 'vergeml_journey_do_alt' );
+
+function vergeml_journey_do_alt() {
+
+    if ( ! current_user_can( 'upload_files' ) ) {
+        wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
+    }
+
+    check_admin_referer( 'vergeml_do_alt' );
+
+    $wrote = function_exists( 'vergeml_ai_apply_alt' ) ? vergeml_ai_apply_alt( 0 ) : 0;
+
+    wp_safe_redirect( add_query_arg( 'vgml_alt_written', (int) $wrote, vergeml_journey_url( VERGEML_MENU ) ) );
+    exit;
+}
+
+
+add_action( 'admin_post_vergeml_do_rename', 'vergeml_journey_do_rename' );
+
+function vergeml_journey_do_rename() {
+
+    if ( ! current_user_can( 'upload_files' ) ) {
+        wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
+    }
+
+    check_admin_referer( 'vergeml_do_rename' );
+
+    $done = function_exists( 'vergeml_rename_apply' ) && function_exists( 'vergeml_rename_pending' )
+        ? count( vergeml_rename_apply( vergeml_rename_pending() ) )
+        : 0;
+
+    wp_safe_redirect( add_query_arg( 'vgml_renamed', $done, vergeml_journey_url( VERGEML_MENU ) ) );
+    exit;
+}
+
+
+add_action( 'admin_notices', 'vergeml_journey_alt_notice' );
+
+function vergeml_journey_alt_notice() {
+
+    if ( ! isset( $_GET['vgml_alt_written'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        return;
+    }
+
+    $n = (int) $_GET['vgml_alt_written']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+    printf(
+        '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+        esc_html(
+            sprintf(
+                /* translators: %s: how many pictures got alt text. */
+                _n( '%s picture now has alt text.', '%s pictures now have alt text.', $n, 'vergelabs-media-library' ),
+                number_format_i18n( $n )
+            )
+        )
+    );
+}
+
+
 /* ----------------------------------------------------------------- the menu */
 
 /*
@@ -719,15 +916,43 @@ function vergeml_journey_screen() {
         <div class="vgml-dash-cols">
         <div class="vgml-dash-main">
 
-        <?php if ( $next ) : ?>
-        <!-- the one thing to do -->
+        <?php
+        /*
+         *  Before anything else can be offered, the pictures have to have been
+         *  looked at. That is the one genuinely sequential thing here and it
+         *  keeps the shape it had -- one card, one button.
+         */
+        $ready = ! function_exists( 'vergeml_librarian_ready' ) || vergeml_librarian_ready();
+        ?>
+
+        <?php if ( $next && ! $ready ) : ?>
         <div class="vgml-next">
-            <p class="vgml-next-eyebrow"><?php esc_html_e( 'Do this next', 'vergelabs-media-library' ); ?></p>
+            <p class="vgml-next-eyebrow"><?php esc_html_e( 'Start here', 'vergelabs-media-library' ); ?></p>
             <h2><?php echo esc_html( $next['title'] ); ?></h2>
             <p class="vgml-next-text"><?php echo esc_html( $next['text'] ); ?></p>
             <?php if ( $next['action'] && $next['url'] ) : ?>
                 <a class="button button-primary" href="<?php echo esc_url( $next['url'] ); ?>"><?php echo esc_html( $next['action'] ); ?></a>
             <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if ( $ready && $f['images'] > 0 ) : ?>
+        <div class="vgml-do-list">
+            <h2 class="vgml-do-head"><?php esc_html_e( 'What you can do now', 'vergelabs-media-library' ); ?></h2>
+            <?php foreach ( vergeml_journey_todo() as $item ) : ?>
+                <div class="vgml-do">
+                    <h3 class="vgml-do-title"><?php echo esc_html( $item['title'] ); ?></h3>
+                    <p class="vgml-do-note"><?php echo esc_html( $item['note'] ); ?></p>
+                    <?php if ( $item['n'] > 0 ) : ?>
+                        <p class="vgml-do-line"><strong class="vgml-do-count"><?php echo esc_html( $item['count'] ); ?></strong></p>
+                        <p class="vgml-flow-actions">
+                            <a class="button button-primary" href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['go'] ); ?></a>
+                        </p>
+                    <?php else : ?>
+                        <p class="vgml-do-line is-done"><?php echo esc_html( $item['done'] ); ?></p>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
         </div>
         <?php endif; ?>
 
@@ -762,19 +987,27 @@ function vergeml_journey_screen() {
 
         <?php
         /*
-         *  Only what is still outstanding.
+         *  What is left that the list above does not cover.
          *
-         *  This listed every stage including the finished ones, so on a set-up
-         *  library it was five rows saying "Done" -- a section whose entire
-         *  content was the absence of anything to do. Finished work is already
-         *  visible in the figures and the bars above.
+         *  It used to be every unfinished stage, which is now the same four
+         *  things said twice in two vocabularies -- so anything the four
+         *  already speak for is dropped, and what remains is the odd job:
+         *  importing folders from another plugin, files nothing links to.
          */
+        $covered = array( 'library', 'alt', 'describe', 'duplicates', 'filing', 'folders' );
         $waiting = array();
 
         foreach ( $stages as $stage ) {
-            if ( 'now' !== $stage['state'] && 'library' !== $stage['id'] && 'done' !== $stage['state'] ) {
-                $waiting[] = $stage;
+
+            if ( 'now' === $stage['state'] || 'done' === $stage['state'] ) {
+                continue;
             }
+
+            if ( in_array( $stage['id'], $covered, true ) ) {
+                continue;
+            }
+
+            $waiting[] = $stage;
         }
         ?>
         <?php if ( ! empty( $waiting ) ) : ?>
