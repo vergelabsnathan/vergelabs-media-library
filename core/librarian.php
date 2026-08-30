@@ -2277,7 +2277,7 @@ function vergeml_librarian_rest_schemes( WP_REST_Request $request ) {
             array(
                 'id'      => 'subject',
                 'label'   => __( 'By subject', 'vergelabs-media-library' ),
-                'note'    => __( 'What the pictures are of, grouped by how they look and named from what they share. Needs a finished proposal.', 'vergelabs-media-library' ),
+                'note'    => __( 'Pictures of the same thing end up together, and each folder is named after whatever most of the pictures in it show. Needs the describing step finished first.', 'vergelabs-media-library' ),
                 'run_id'  => $run ? (int) $run['run_id'] : null,
                 'ready'   => (bool) $subject,
                 'total'   => vergeml_librarian_scheme_total( $subject ),
@@ -2286,7 +2286,7 @@ function vergeml_librarian_rest_schemes( WP_REST_Request $request ) {
             array(
                 'id'      => 'datetype',
                 'label'   => __( 'By date', 'vergelabs-media-library' ),
-                'note'    => __( 'Year and month, from when each file was uploaded, with what kind of file it is on every line. No model call, no credit.', 'vergelabs-media-library' ),
+                'note'    => __( 'A folder per year, and a folder per month inside it, based on when each file was uploaded. Works on everything including videos and documents, and costs nothing.', 'vergelabs-media-library' ),
                 'run_id'  => null,
                 'ready'   => true,
                 'total'   => null === $datetype ? null : vergeml_librarian_scheme_total( $datetype ),
@@ -2470,9 +2470,72 @@ function vergeml_librarian_stage() {
         return 'ready';
     }
 
+    /*
+     *  Described enough to move on, or not.
+     *
+     *  This used to be "has anything been described at all", which is true of
+     *  a library where one picture in fifty has been looked at. On a library
+     *  of ten that reads as a rounding error; on a library of five hundred it
+     *  put "Describe the pictures — Done" on the screen with four hundred and
+     *  ninety still undescribed, and then offered to build folders out of the
+     *  ten. The step is finished when there is nothing left to describe.
+     *
+     *  Somebody who wants to go on with a part-described library still can --
+     *  the step itself offers it -- but that is their decision to make and not
+     *  something to decide for them by calling it done.
+     */
+    if ( function_exists( 'vergeml_ai_pending' ) && count( vergeml_ai_pending( 'unindexed' ) ) > 0 ) {
+        return 'unindexed';
+    }
+
     return function_exists( 'vergeml_organize_count' ) && vergeml_organize_count() > 0
         ? 'unproposed'
         : 'unindexed';
+}
+
+
+/**
+ *  The steps, in order, with what each one is for.
+ *
+ *  Named here rather than in the script because they are sentences somebody
+ *  reads, and sentences are translated. The script decides which one you are
+ *  on; this decides what they are called and what they say.
+ *
+ *  Five, not three. The old ladder had three rungs and then silently became
+ *  two more screens -- choosing a scheme, then reviewing it -- which is why
+ *  somebody who had just watched a progress bar finish had no idea whether
+ *  they were nearly done or halfway.
+ */
+
+function vergeml_librarian_steps() {
+
+    return array(
+        array(
+            'id'    => 'scan',
+            'title' => __( 'Check for copies', 'vergelabs-media-library' ),
+            'note'  => __( 'We open every file once to see which ones are the same picture. Nothing is changed, nothing is deleted — this only stops the same photo being described twice, and paid for twice.', 'vergelabs-media-library' ),
+        ),
+        array(
+            'id'    => 'describe',
+            'title' => __( 'Describe the pictures', 'vergelabs-media-library' ),
+            'note'  => __( 'Folders are built from what the pictures show, so we have to look at them first. Each picture gets a sentence and a few tags. This is the step that costs credits, and the only one that does.', 'vergelabs-media-library' ),
+        ),
+        array(
+            'id'    => 'propose',
+            'title' => __( 'Work out the folders', 'vergelabs-media-library' ),
+            'note'  => __( 'We group the described pictures by what they have in common. Nothing moves yet — this just produces a list of folders for you to read.', 'vergelabs-media-library' ),
+        ),
+        array(
+            'id'    => 'choose',
+            'title' => __( 'Pick a way to sort', 'vergelabs-media-library' ),
+            'note'  => __( 'Two ways to organise the same library: by what the pictures show, or by when they were uploaded. You see how many files each one would move before you pick.', 'vergelabs-media-library' ),
+        ),
+        array(
+            'id'    => 'review',
+            'title' => __( 'Read it, then apply', 'vergelabs-media-library' ),
+            'note'  => __( 'Every folder we would make, with a few of the pictures that would go in it. Rename any of them, untick any you do not want, then move the rest in one go — and put everything back with one click if you change your mind.', 'vergelabs-media-library' ),
+        ),
+    );
 }
 
 
@@ -2489,10 +2552,10 @@ function vergeml_librarian_card_text() {
     }
 
     if ( 'unproposed' === $stage ) {
-        return __( 'Your files are described. Propose a folder tree, look it over, and apply it — or file by date instead, which costs nothing.', 'vergelabs-media-library' );
+        return __( 'Your pictures are described. Next we work out what folders they should go in, show you the list, and file them once you say so — or file them by date instead, which costs nothing.', 'vergelabs-media-library' );
     }
 
-    return __( 'A proposal is waiting. Look it over branch by branch, apply it in one go, and put it all back with one click if you regret it.', 'vergelabs-media-library' );
+    return __( 'A list of folders is waiting for you. Read it, drop any you do not want, file the rest in one go — and put everything back with one click if you change your mind.', 'vergelabs-media-library' );
 }
 
 
@@ -2548,71 +2611,110 @@ function vergeml_librarian_assets( $hook ) {
     wp_localize_script( 'vergeml-librarian', 'vergemlLibrarian', array(
         'stage'   => vergeml_librarian_stage(),
         'samples' => VERGEML_LIBRARIAN_SAMPLES,
+        'steps'   => vergeml_librarian_steps(),
         'l10n'    => array(
+            /* the steps */
+            /* translators: 1: which step, 2: how many steps in total. */
+            'stepOf'          => __( 'Step %1$s of %2$s', 'vergelabs-media-library' ),
+            'stepsHead'       => __( 'What happens', 'vergelabs-media-library' ),
+            'stateDone'       => __( 'Done', 'vergelabs-media-library' ),
+            'stateNow'        => __( 'Now', 'vergelabs-media-library' ),
+            'stateLater'      => __( 'Later', 'vergelabs-media-library' ),
+            /* translators: 1: files finished, 2: files in total. */
+            'ofTotal'         => __( '%1$s of %2$s', 'vergelabs-media-library' ),
+            /* translators: %s: a duration, e.g. "about 4 minutes". */
+            'timeLeft'        => __( 'about %s left', 'vergelabs-media-library' ),
+            'timeUnknown'     => __( 'working out how long this will take…', 'vergelabs-media-library' ),
+            'keepOpen'        => __( 'Keep this tab open while it runs. Stopping is safe — everything finished so far is kept, and starting again picks up where it left off.', 'vergelabs-media-library' ),
+            'bgGo'            => __( 'Or run it in the background', 'vergelabs-media-library' ),
+            'bgRunning'       => __( 'Running in the background. You can close this tab and come back later — it carries on without you.', 'vergelabs-media-library' ),
+            /* translators: %s: a duration, e.g. "30s". */
+            'bgNext'          => __( 'Next batch due in about %s.', 'vergelabs-media-library' ),
+            'bgStop'          => __( 'Stop the background run', 'vergelabs-media-library' ),
+            /* translators: %s: how many pictures have been described so far. */
+            'goAnyway'        => __( 'Or carry on with the %s already described', 'vergelabs-media-library' ),
+            'goAnywayNote'    => __( 'The folders will only cover those. The rest stay where they are, and you can describe them and sort again later.', 'vergelabs-media-library' ),
+            'otherWays'       => __( 'Other ways to put files into folders', 'vergelabs-media-library' ),
+
+            /*
+             *  What a step will cost, before it is started.
+             *
+             *  On a library of ten nobody needs this. On a library of five
+             *  hundred, pressing a button that spends five hundred credits
+             *  without being told the figure first is the kind of thing people
+             *  do not forgive.
+             */
+            /* translators: %s: how many files will be read. */
+            'costScan'        => __( '%s files to read through. This is free, and nothing about them is changed.', 'vergelabs-media-library' ),
+            /* translators: 1: pictures still to describe, 2: pictures in the library. */
+            'costDescribe'    => __( '%1$s of your %2$s pictures still need describing.', 'vergelabs-media-library' ),
+            /* translators: 1: credits this will cost, 2: credits available. */
+            'costCredits'     => __( 'That costs %1$s credits, and you have %2$s.', 'vergelabs-media-library' ),
+            /* translators: 1: credits this would cost, 2: credits available. */
+            'costShort'       => __( 'That would cost %1$s credits and you have %2$s, so it will stop when they run out. Everything described up to that point is kept, and you can carry on after topping up.', 'vergelabs-media-library' ),
+            /* translators: %s: how many described pictures will be grouped. */
+            'costPropose'     => __( '%s described pictures to group. This is free, and nothing moves.', 'vergelabs-media-library' ),
+            'bgCronOff'       => __( 'This site has WordPress\'s scheduler turned off, so a background run would never start. Describe them here instead, with this tab open.', 'vergelabs-media-library' ),
+            'stepBack'        => __( 'Back', 'vergelabs-media-library' ),
+            'stepDone'        => __( 'This step is finished.', 'vergelabs-media-library' ),
+            'continue'        => __( 'Continue', 'vergelabs-media-library' ),
+
             /* the ladder */
-            'ladderScan'      => __( 'Read the library first', 'vergelabs-media-library' ),
-            'ladderScanNote'  => __( 'Opening every file once tells us which are copies of each other, so the same picture is not counted — or paid for — twice. It changes nothing.', 'vergelabs-media-library' ),
-            'ladderScanGo'    => __( 'Scan the library', 'vergelabs-media-library' ),
-            'ladderIndex'     => __( 'Describe the pictures', 'vergelabs-media-library' ),
-            'ladderIndexNote' => __( 'The subject tree is built from what the pictures show, so they have to be described before there is anything to group. Filing by date needs none of this.', 'vergelabs-media-library' ),
-            'ladderIndexGo'   => __( 'Describe them', 'vergelabs-media-library' ),
-            'ladderRun'       => __( 'Propose a tree', 'vergelabs-media-library' ),
-            'ladderRunNote'   => __( 'Group the described files into folders. Nothing is filed by proposing — the proposal is a document you look at.', 'vergelabs-media-library' ),
-            'ladderRunGo'     => __( 'Propose a tree', 'vergelabs-media-library' ),
+            'ladderScanGo'    => __( 'Start checking', 'vergelabs-media-library' ),
+            'ladderIndexGo'   => __( 'Start describing', 'vergelabs-media-library' ),
+            'ladderRunGo'     => __( 'Work out the folders', 'vergelabs-media-library' ),
             'ladderCancel'    => __( 'Stop', 'vergelabs-media-library' ),
-            'skipToDate'      => __( 'Or file by date instead — no describing, no credits.', 'vergelabs-media-library' ),
+            'skipToDate'      => __( 'Or sort by date instead — no describing, no credits.', 'vergelabs-media-library' ),
 
             /* the chooser */
-            'chooser'         => __( 'How should we sort them?', 'vergelabs-media-library' ),
-            'choose'          => __( 'See the plan', 'vergelabs-media-library' ),
+            'choose'          => __( 'Use this one', 'vergelabs-media-library' ),
             'notReady'        => __( 'Not available yet', 'vergelabs-media-library' ),
-            /* translators: %s: how many files a scheme would file. */
+            /* translators: %s: how many files this way of sorting would file. */
             'schemeTotal'     => __( '%s files', 'vergelabs-media-library' ),
 
             /* the review */
-            'review'          => __( 'The proposed folders', 'vergelabs-media-library' ),
-            'back'            => __( 'Choose a different scheme', 'vergelabs-media-library' ),
+            'back'            => __( 'Sort a different way instead', 'vergelabs-media-library' ),
             /* translators: %s: number of files in a folder. */
             'branchSize'      => __( '%s files', 'vergelabs-media-library' ),
             'rename'          => __( 'Folder name', 'vergelabs-media-library' ),
             'refuse'          => __( 'Not this one', 'vergelabs-media-library' ),
-            'flagged'         => __( 'Worth a look before you agree to this one.', 'vergelabs-media-library' ),
-            'capped'          => __( 'This one hit the depth limit, so it holds more than it otherwise would.', 'vergelabs-media-library' ),
-            'agreement'       => __( 'How closely the files in this folder resemble each other', 'vergelabs-media-library' ),
+            'flagged'         => __( 'The pictures in this one are less alike than the rest. Worth opening before you agree to it.', 'vergelabs-media-library' ),
+            'capped'          => __( 'We stopped splitting at three levels deep, so this folder holds more than it otherwise would.', 'vergelabs-media-library' ),
+            'agreement'       => __( 'How alike the pictures in this folder are', 'vergelabs-media-library' ),
             'close'           => __( 'close', 'vergelabs-media-library' ),
             'mid'             => __( 'middling', 'vergelabs-media-library' ),
             'far'             => __( 'loose', 'vergelabs-media-library' ),
 
             /* the pre-flight */
-            'preflight'       => __( 'What Apply would do', 'vergelabs-media-library' ),
+            'preflight'       => __( 'What happens when you press Apply', 'vergelabs-media-library' ),
             /* translators: 1: files to be filed, 2: files left alone. */
-            'preflightFiles'  => __( '%1$s files filed · %2$s left alone because they are already in a folder', 'vergelabs-media-library' ),
+            'preflightFiles'  => __( '%1$s pictures go into folders · %2$s stay where they are, because they are already in one', 'vergelabs-media-library' ),
             /* translators: 1: folders created, 2: existing folders added to. */
-            'preflightFolders' => __( '%1$s folders created · %2$s existing folders added to', 'vergelabs-media-library' ),
+            'preflightFolders' => __( '%1$s new folders · %2$s folders you already have, added to', 'vergelabs-media-library' ),
             /* translators: %s: a duration, e.g. "about 2 minutes". */
             'preflightTime'   => __( 'About %s', 'vergelabs-media-library' ),
-            'preflightNoTime' => __( 'How long this takes is not known until the first files have gone through.', 'vergelabs-media-library' ),
+            'preflightNoTime' => __( 'We will know how long this takes once the first few have gone through.', 'vergelabs-media-library' ),
             'credits'         => __( 'Costs 0 (mock) — the service is not live, so nothing is spent and nothing is guessed at.', 'vergelabs-media-library' ),
             'apply'           => __( 'Apply', 'vergelabs-media-library' ),
             'applyNothing'    => __( 'Nothing is selected.', 'vergelabs-media-library' ),
 
             /* translators: 1: files with no folder yet, 2: how many folders exist. */
-            'counts'          => __( '%1$s files to file · %2$s folders', 'vergelabs-media-library' ),
+            'counts'          => __( '%1$s pictures not in a folder · %2$s folders', 'vergelabs-media-library' ),
 
             /* applying */
-            'applying'        => __( 'Filing…', 'vergelabs-media-library' ),
+            'applying'        => __( 'Moving them…', 'vergelabs-media-library' ),
             'pause'           => __( 'Pause', 'vergelabs-media-library' ),
             'resume'          => __( 'Resume', 'vergelabs-media-library' ),
             'paused'          => __( 'Paused.', 'vergelabs-media-library' ),
             /* translators: 1: files filed, 2: files skipped. */
-            'applied'         => __( 'Done. %1$s files filed, %2$s left alone.', 'vergelabs-media-library' ),
+            'applied'         => __( 'Done. %1$s pictures went into folders, %2$s stayed where they were.', 'vergelabs-media-library' ),
             /* translators: %s: number of files still to go. */
             'remaining'       => __( '%s to go', 'vergelabs-media-library' ),
 
             /* undo */
-            'history'         => __( 'What you have already sorted', 'vergelabs-media-library' ),
+            'history'         => __( 'What you have sorted before', 'vergelabs-media-library' ),
             /* translators: 1: files sorted, 2: the scheme, 3: files left alone. */
-            'batchLine'       => __( 'Sorted %1$s files %2$s. %3$s were left where they were.', 'vergelabs-media-library' ),
+            'batchLine'       => __( 'Sorted %1$s pictures %2$s. %3$s stayed where they were.', 'vergelabs-media-library' ),
             'schemeDate'      => __( 'by date and file type', 'vergelabs-media-library' ),
             'schemeSubject'   => __( 'by what is in the pictures', 'vergelabs-media-library' ),
             'wasUndone'       => __( 'Undone', 'vergelabs-media-library' ),
@@ -2677,15 +2779,57 @@ function vergeml_librarian_page() {
 
         <?php
         /*
-         *  One container, four states, drawn by the script from endpoints that
-         *  already exist. Nothing is rendered here, because a server-rendered
-         *  first state and a script-rendered second one is two answers to the
-         *  same question that can disagree.
+         *  A process, laid out as one.
+         *
+         *  This was three cards that appeared one at a time in a single
+         *  column, which on a 500-file library reads as a settings page that
+         *  keeps changing its mind: no sense of how many steps there are, no
+         *  idea which one you are on, and a button that starts something
+         *  minutes long with a line of text for company.
+         *
+         *  So: a rail listing the steps with the same done / now / later
+         *  words the dashboard uses, and one step at a time beside it. The
+         *  rail collapses to a single line ("Step 2 of 5") when there is not
+         *  room for it, because on a laptop the list costs more width than
+         *  the step it is describing.
+         *
+         *  Still one container per region, and still drawn by the script from
+         *  the endpoints -- a server-rendered first state and a
+         *  script-rendered second one are two answers to the same question
+         *  that can disagree.
          */
         ?>
-        <div id="vgml-lib-stage"></div>
-        <div id="vgml-lib-review"></div>
-        <div id="vgml-lib-history"></div>
+        <div class="vgml-flow">
+
+            <div class="vgml-flow-rail">
+                <div id="vgml-lib-steps"></div>
+            </div>
+
+            <div class="vgml-flow-main">
+                <div id="vgml-lib-headline"></div>
+                <div id="vgml-lib-stage"></div>
+                <div id="vgml-lib-review"></div>
+            </div>
+
+        </div>
+
+        <?php
+        /*
+         *  Below the flow, and visibly below it.
+         *
+         *  These used to follow the flow in plain document order, which put
+         *  the history heading directly under the step rail and hard against
+         *  its left edge -- so it read as a sixth step. It is not a step. It
+         *  is everything this screen offers that is not the thing you are
+         *  currently doing, and a rule and a heading are what say so.
+         */
+        ?>
+        <div class="vgml-after-flow">
+
+            <div id="vgml-lib-history"></div>
+
+            <div class="vgml-other-ways">
+                <h2><?php esc_html_e( 'Other ways to put files into folders', 'vergelabs-media-library' ); ?></h2>
 
         <?php
         /*
@@ -2699,6 +2843,9 @@ function vergeml_librarian_page() {
          */
         do_action( 'vergeml_librarian_page_cards' );
         ?>
+            </div>
+
+        </div>
 
     </div>
     <?php

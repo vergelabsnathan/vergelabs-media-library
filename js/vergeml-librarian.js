@@ -82,6 +82,8 @@
 
 	/* ------------------------------------------------------------- state */
 
+	var STEPS = conf.steps || [];
+
 	var state = {
 		stage: conf.stage || 'unscanned',
 		scheme: '',
@@ -91,7 +93,113 @@
 		batchId: 0,
 		running: false,
 		paused: false,
+		step: '',       // which of STEPS is on screen
+		halt: false,    // the pause button, read by the stepping loops
 	};
+
+	/* ------------------------------------------------------------- the steps */
+
+	/*
+	 *  Which step a stage is.
+	 *
+	 *  The stages are what the server knows -- has it been scanned, is
+	 *  anything described. The steps are what a person is walked through, and
+	 *  the last two of them are not stages at all: choosing a scheme and
+	 *  reading the proposal both happen once the library is 'ready'. Keeping
+	 *  the two vocabularies apart is what lets the rail say "4 of 5" on a
+	 *  screen the server thinks of as one state.
+	 */
+	function stepOfStage() {
+
+		if ( 'unscanned' === state.stage ) {
+			return 'scan';
+		}
+
+		if ( 'unindexed' === state.stage ) {
+			return 'describe';
+		}
+
+		if ( 'unproposed' === state.stage ) {
+			return 'propose';
+		}
+
+		return state.tree.length ? 'review' : 'choose';
+	}
+
+	function stepAt( id ) {
+		for ( var i = 0; i < STEPS.length; i++ ) {
+			if ( STEPS[ i ].id === id ) {
+				return i;
+			}
+		}
+		return 0;
+	}
+
+	function stepNow() {
+		return STEPS[ stepAt( state.step ) ] || { title: '', note: '' };
+	}
+
+	/*
+	 *  The rail, and the line that replaces it when there is no room.
+	 *
+	 *  Both are drawn every time, and the stylesheet shows one of them --
+	 *  deciding in JavaScript would mean listening to resize and getting it
+	 *  wrong on a rotated tablet.
+	 */
+	function drawSteps() {
+
+		state.step = stepOfStage();
+
+		var at = stepAt( state.step );
+
+		/* ---- the rail */
+
+		var rail = $( 'vgml-lib-steps' );
+		rail.innerHTML = '';
+
+		rail.appendChild( el( 'h2', 'vgml-flow-rail-head', text( 'stepsHead', 'What happens' ) ) );
+
+		var list = el( 'ol', 'vgml-flow-steps' );
+
+		STEPS.forEach( function ( item, i ) {
+
+			var row = el( 'li', 'vgml-flow-step-row' );
+			var word = i < at ? 'stateDone' : ( i === at ? 'stateNow' : 'stateLater' );
+
+			row.className += i < at ? ' is-done' : ( i === at ? ' is-now' : ' is-later' );
+
+			row.appendChild( el( 'span', 'vgml-flow-step-name', item.title ) );
+			row.appendChild( el( 'span', 'vgml-flow-step-state', text( word, '' ) ) );
+
+			list.appendChild( row );
+		} );
+
+		rail.appendChild( list );
+
+		/* ---- the line, for when the rail is not shown */
+
+		var head = $( 'vgml-lib-headline' );
+		head.innerHTML = '';
+
+		var line = el( 'p', 'vgml-flow-line' );
+
+		line.appendChild( el( 'span', 'vgml-flow-line-n', sprintf(
+			text( 'stepOf', 'Step %1$s of %2$s' ),
+			[ String( at + 1 ), String( STEPS.length ) ]
+		) ) );
+
+		line.appendChild( el( 'span', 'vgml-flow-line-name', stepNow().title ) );
+
+		head.appendChild( line );
+
+		var track = el( 'div', 'vgml-flow-line-bar' );
+		var fill = el( 'div', 'vgml-flow-line-fill' );
+
+		fill.style.width = Math.round( ( at / STEPS.length ) * 100 ) + '%';
+
+		track.appendChild( fill );
+		head.appendChild( track );
+	}
 
 	/* -------------------------------------------------------- the ladder */
 
@@ -112,6 +220,170 @@
 	}
 
 	/*
+	 *  What a long step shows while it runs.
+	 *
+	 *  Describing five hundred pictures takes minutes, and what this screen
+	 *  used to offer for those minutes was the sentence "495 to go" -- no
+	 *  total, so no sense of whether that was nearly done or barely started;
+	 *  no estimate, so no way to decide whether to wait; and no way to stop
+	 *  that did not mean closing the tab and hoping.
+	 *
+	 *  So: a bar, "213 of 500", a measured estimate, and a pause. The
+	 *  estimate is measured rather than assumed -- the first few files on
+	 *  their server are worth more than any constant that could be written
+	 *  here -- so it says it does not know yet until it does.
+	 */
+	function progress() {
+
+		var node = el( 'div', 'vgml-flow-progress' );
+		var track = el( 'div', 'vgml-import-bar' );
+		var fill = el( 'div', 'vgml-import-fill' );
+
+		track.appendChild( fill );
+
+		var figure = el( 'p', 'vgml-flow-figure' );
+		var count = el( 'strong', 'vgml-flow-count' );
+		var eta = el( 'span', 'vgml-flow-eta' );
+
+		figure.appendChild( count );
+		figure.appendChild( eta );
+
+		node.appendChild( track );
+		node.appendChild( figure );
+		node.hidden = true;
+
+		var started = 0;
+		var base = 0;   // how many were already finished when this run began
+
+		return {
+			node: node,
+
+			start: function ( done ) {
+				node.hidden = false;
+				started = Date.now();
+				base = Number( done ) || 0;
+			},
+
+			/*
+			 *  Every call re-states both numbers, so the bar and the words can
+			 *  never disagree -- they are the same two figures rendered twice.
+			 */
+			set: function ( done, total ) {
+
+				done = Math.max( 0, Number( done ) || 0 );
+				total = Math.max( done, Number( total ) || 0 );
+
+				fill.style.width = total ? Math.round( ( done / total ) * 100 ) + '%' : '100%';
+
+				count.textContent = sprintf( text( 'ofTotal', '%1$s of %2$s' ), [
+					String( done ),
+					String( total ),
+				] );
+
+				var moved = done - base;
+				var left = total - done;
+
+				if ( ! left ) {
+					eta.textContent = '';
+					return;
+				}
+
+				// Measured, not guessed. Under two finished files there is
+				// nothing to extrapolate from and saying so is the honest
+				// answer -- a number invented at that point is a number
+				// somebody plans their afternoon around.
+				if ( moved < 2 ) {
+					eta.textContent = ' · ' + text( 'timeUnknown', '' );
+					return;
+				}
+
+				eta.textContent = ' · ' + sprintf(
+					text( 'timeLeft', 'about %s left' ),
+					[ duration( ( ( Date.now() - started ) / moved ) * left ) ]
+				);
+			},
+
+			// An estimate the server worked out, for the steps that measure
+			// themselves rather than counting files.
+			told: function ( fraction, ms ) {
+
+				fill.style.width = Math.round( Math.min( 1, Math.max( 0, fraction ) ) * 100 ) + '%';
+				count.textContent = '';
+				eta.textContent = ms ? sprintf( text( 'timeLeft', 'about %s left' ), [ duration( ms ) ] )
+					: text( 'timeUnknown', '' );
+			},
+
+			stop: function () {
+				node.hidden = true;
+			},
+		};
+	}
+
+	/*
+	 *  Stop, and mean it.
+	 *
+	 *  Every long step is a loop of small requests, so pausing is a flag the
+	 *  loop reads rather than anything cancelled in flight: the request
+	 *  already sent finishes and is kept. That is why the copy can promise
+	 *  nothing is lost -- it is true by construction.
+	 */
+	function pauser( onResume ) {
+
+		var node = button( text( 'pause', 'Pause' ) );
+
+		node.hidden = true;
+
+		node.addEventListener( 'click', function () {
+
+			state.halt = ! state.halt;
+			node.textContent = state.halt ? text( 'resume', 'Resume' ) : text( 'pause', 'Pause' );
+
+			if ( ! state.halt ) {
+				onResume();
+			}
+		} );
+
+		return node;
+	}
+
+	/*
+	 *  The frame every step is drawn into: its name, what it is for, and
+	 *  wherever it applies a way back to the one before it.
+	 */
+	/*
+	 *  What this step is about to do, in numbers, before it is started.
+	 *
+	 *  Sits between the sentence explaining the step and the button that runs
+	 *  it, which is the only place somebody reads it in time for it to matter.
+	 */
+	function figures() {
+
+		var node = el( 'p', 'vgml-flow-cost' );
+
+		node.hidden = true;
+
+		return {
+			node: node,
+			say: function ( line, warn ) {
+				node.textContent = line;
+				node.hidden = '' === line;
+				node.className = warn ? 'vgml-flow-cost is-short' : 'vgml-flow-cost';
+			},
+		};
+	}
+
+	function stepCard() {
+
+		var item = stepNow();
+		var wrap = el( 'div', 'vgml-flow-card vgml-lib-rung' );
+
+		wrap.appendChild( el( 'h2', null, item.title ) );
+		wrap.appendChild( el( 'p', 'vgml-flow-note', item.note ) );
+
+		return wrap;
+	}
+
+	/*
 	 *  Each rung drives the loop that already exists for its step, rather
 	 *  than a second implementation of it living here: the duplicate scan is
 	 *  /health-scan, describing is /ai-index, proposing is /organize-step.
@@ -121,6 +393,9 @@
 
 		var host = $( 'vgml-lib-stage' );
 		host.innerHTML = '';
+
+		state.halt = false;
+		drawSteps();
 
 		if ( 'unscanned' === state.stage ) {
 			host.appendChild( rungScan() );
@@ -161,42 +436,68 @@
 
 	function rungScan() {
 
-		var wrap = card( text( 'ladderScan', 'Read the library first' ), text( 'ladderScanNote', '' ) );
+		var wrap = stepCard();
 		var go = button( text( 'ladderScanGo', 'Scan the library' ), 'button button-primary' );
 		var note = el( 'p', 'vgml-lib-note' );
-		var progress = bar( 'vgml-lib-rung-fill' );
+		var meter = progress();
+		var at = 0;
 
-		go.addEventListener( 'click', function () {
+		function run( cursor, reset ) {
 
-			go.disabled = true;
-			progress.hidden = false;
-			note.textContent = text( 'applying', 'Working…' );
+			apiFetch( {
+				path: '/vergeml/v1/health-scan',
+				method: 'POST',
+				data: { cursor: cursor, reset: reset },
+			} ).then( function ( r ) {
 
-			( function step( cursor, reset ) {
-				apiFetch( {
-					path: '/vergeml/v1/health-scan',
-					method: 'POST',
-					data: { cursor: cursor, reset: reset },
-				} ).then( function ( r ) {
+				var total = r.total || ( r.remaining + r.hashed );
 
-					note.textContent = sprintf( text( 'remaining', '%s to go' ), [ String( r.remaining ) ] );
+				at = r.cursor;
+				meter.set( total - r.remaining, total );
 
-					var total = r.total || ( r.remaining + r.hashed );
-					$( 'vgml-lib-rung-fill' ).style.width =
-						total ? Math.round( ( ( total - r.remaining ) / total ) * 100 ) + '%' : '100%';
-
-					if ( ! r.done ) {
-						step( r.cursor, false );
-						return;
-					}
-
+				if ( r.done ) {
 					boot();
-				} ).catch( fail( note, go ) );
-			} )( 0, true );
+					return;
+				}
+
+				if ( state.halt ) {
+					note.textContent = text( 'paused', 'Paused.' );
+					return;
+				}
+
+				run( r.cursor, false );
+
+			} ).catch( fail( note, go ) );
+		}
+
+		var stop = pauser( function () {
+			note.textContent = '';
+			run( at, false );
 		} );
 
-		wrap.appendChild( go );
-		wrap.appendChild( progress );
+		go.addEventListener( 'click', function () {
+			go.disabled = true;
+			stop.hidden = false;
+			note.textContent = '';
+			cost.say( '' );
+			meter.start( 0 );
+			run( 0, true );
+		} );
+
+		var cost = figures();
+
+		apiFetch( { path: '/vergeml/v1/ai-status' } ).then( function ( r ) {
+			cost.say( sprintf( text( 'costScan', '' ), [ String( r.images || 0 ) ] ) );
+		} ).catch( function () {} );
+
+		var actions = el( 'p', 'vgml-flow-actions' );
+
+		actions.appendChild( go );
+		actions.appendChild( stop );
+
+		wrap.appendChild( cost.node );
+		wrap.appendChild( actions );
+		wrap.appendChild( meter.node );
 		wrap.appendChild( note );
 
 		return wrap;
@@ -204,55 +505,259 @@
 
 	function rungIndex() {
 
-		var wrap = card( text( 'ladderIndex', 'Describe the pictures' ), text( 'ladderIndexNote', '' ) );
-		var go = button( text( 'ladderIndexGo', 'Describe them' ), 'button button-primary' );
+		var wrap = stepCard();
+		var go = button( text( 'ladderIndexGo', 'Start describing' ), 'button button-primary' );
+		var away = button( text( 'bgGo', 'Or run it in the background' ) );
 		var note = el( 'p', 'vgml-lib-note' );
+		var meter = progress();
+		var mode = el( 'p', 'vgml-flow-keep' );
 
-		go.addEventListener( 'click', function () {
+		/*
+		 *  The total is the whole library, not what is left when the button is
+		 *  pressed.
+		 *
+		 *  Those differ the moment somebody stops halfway and comes back, and
+		 *  the second reading is the one that survives a reload: 213 of 500
+		 *  means the same thing on a fresh page as it did before, where "287
+		 *  to go" silently restarted its own arithmetic.
+		 */
+		var total = 0;
+		var done = 0;
+		var polling = 0;
 
-			go.disabled = true;
-			note.textContent = text( 'applying', 'Working…' );
+		var cost = figures();
 
-			( function step() {
-				apiFetch( {
-					path: '/vergeml/v1/ai-index',
-					method: 'POST',
-					data: { scope: 'unindexed', limit: 5, apply_alt: true },
-				} ).then( function ( r ) {
+		/*
+		 *  Two figures and what they cost. The credit balance is part of it:
+		 *  five hundred pictures and three hundred credits is a thing to be
+		 *  told before pressing, not discovered two hundred pictures in.
+		 */
+		function readStatus( r ) {
 
-					var left = r.remaining || 0;
-					var moved = ( r.described || [] ).length + ( r.errors || [] ).length;
+			total = ( Number( r.indexed ) || 0 ) + ( Number( r.unindexed ) || 0 );
+			done = Number( r.indexed ) || 0;
 
-					note.textContent = sprintf( text( 'remaining', '%s to go' ), [ String( left ) ] );
+			var left = Number( r.unindexed ) || 0;
+			var purse = null === r.credits || undefined === r.credits ? null : Number( r.credits );
 
-					// The same terminating condition vergeml-ai.js uses: stop
-					// when there is nothing left, and stop when a pass moved
-					// nothing -- otherwise a file that keeps failing is an
-					// infinite loop rather than a report.
-					if ( left > 0 && moved ) {
-						step();
-						return;
-					}
+			var line = sprintf( text( 'costDescribe', '' ), [ String( left ), String( total ) ] );
 
+			if ( null === purse ) {
+				cost.say( line );
+				return;
+			}
+
+			if ( purse < left ) {
+				cost.say( line + ' ' + sprintf( text( 'costShort', '' ), [ String( left ), String( purse ) ] ), true );
+				return;
+			}
+
+			cost.say( line + ' ' + sprintf( text( 'costCredits', '' ), [ String( left ), String( purse ) ] ) );
+		}
+
+		/* ------------------------------------------------------- in this tab */
+
+		function run() {
+
+			apiFetch( {
+				path: '/vergeml/v1/ai-index',
+				method: 'POST',
+				data: { scope: 'unindexed', limit: 5, apply_alt: true },
+			} ).then( function ( r ) {
+
+				var left = r.remaining || 0;
+				var moved = ( r.described || [] ).length + ( r.errors || [] ).length;
+
+				if ( total ) {
+					meter.set( total - left, total );
+				}
+
+				// The same terminating condition vergeml-ai.js uses: stop when
+				// there is nothing left, and stop when a pass moved nothing --
+				// otherwise a file that keeps failing is an infinite loop
+				// rather than a report.
+				if ( ! left || ! moved ) {
 					boot();
-				} ).catch( fail( note, go ) );
-			} )();
+					return;
+				}
+
+				if ( state.halt ) {
+					note.textContent = text( 'paused', 'Paused.' );
+					return;
+				}
+
+				run();
+
+			} ).catch( fail( note, go ) );
+		}
+
+		var stop = pauser( function () {
+			note.textContent = '';
+			run();
 		} );
 
-		wrap.appendChild( go );
+		go.addEventListener( 'click', function () {
+			go.disabled = true;
+			away.hidden = true;
+			stop.hidden = false;
+			note.textContent = '';
+			mode.textContent = text( 'keepOpen', '' );
+			meter.start( done );
+			meter.set( done, total );
+			run();
+		} );
+
+		/* ------------------------------------------------ without this tab */
+
+		/*
+		 *  Five hundred pictures is minutes of describing, and "keep this tab
+		 *  open" is a poor thing to ask of somebody for minutes. The same step
+		 *  function runs on WP-Cron -- core/ai-background.php -- so this hands
+		 *  it over and then only watches.
+		 *
+		 *  It is offered rather than defaulted to, because cron fires when
+		 *  somebody visits the site: on a quiet site the foreground run is
+		 *  genuinely faster, and which is better is a fact about their traffic
+		 *  that this screen does not know.
+		 */
+		function watch() {
+
+			apiFetch( { path: '/vergeml/v1/ai-run' } ).then( function ( r ) {
+
+				if ( r.cron_off ) {
+					mode.textContent = text( 'bgCronOff', '' );
+					away.hidden = true;
+					return;
+				}
+
+				if ( ! r.active ) {
+
+					if ( polling ) {
+						// It finished while we were watching.
+						window.clearInterval( polling );
+						polling = 0;
+						boot();
+					}
+
+					return;
+				}
+
+				go.disabled = true;
+				away.hidden = true;
+				stop.hidden = true;
+
+				meter.node.hidden = false;
+				meter.set( total - r.remaining, total );
+
+				mode.textContent = text( 'bgRunning', '' ) + (
+					null === r.next ? '' : ' ' + sprintf( text( 'bgNext', '' ), [ duration( r.next * 1000 ) ] )
+				);
+
+				quit.hidden = false;
+
+				if ( ! polling ) {
+					polling = window.setInterval( watch, 5000 );
+				}
+
+			} ).catch( function () {} );
+		}
+
+		var quit = button( text( 'bgStop', 'Stop the background run' ) );
+
+		quit.hidden = true;
+
+		quit.addEventListener( 'click', function () {
+			apiFetch( {
+				path: '/vergeml/v1/ai-run',
+				method: 'POST',
+				data: { action: 'stop' },
+			} ).then( function () {
+				if ( polling ) {
+					window.clearInterval( polling );
+					polling = 0;
+				}
+				boot();
+			} );
+		} );
+
+		away.addEventListener( 'click', function () {
+			away.disabled = true;
+			apiFetch( {
+				path: '/vergeml/v1/ai-run',
+				method: 'POST',
+				data: { action: 'start', scope: 'unindexed', apply_alt: true },
+			} ).then( function () {
+				meter.start( done );
+				watch();
+			} ).catch( fail( note, away ) );
+		} );
+
+		/*
+		 *  A way past this step without finishing it.
+		 *
+		 *  Only once something has been described, because "carry on with the
+		 *  0 already described" is not an offer. The folders then cover only
+		 *  those, which the sentence under it says -- an escape hatch that
+		 *  does not explain what you are giving up is a trap.
+		 */
+		var anyway = el( 'p', 'vgml-lib-skip' );
+
+		anyway.hidden = true;
+
+		function offerAnyway() {
+
+			if ( ! done || anyway.dataset.drawn ) {
+				return;
+			}
+
+			anyway.dataset.drawn = '1';
+			anyway.hidden = false;
+
+			var link = button( sprintf( text( 'goAnyway', '' ), [ String( done ) ] ), 'button-link' );
+
+			link.addEventListener( 'click', function () {
+				state.stage = 'unproposed';
+				drawLadder();
+			} );
+
+			anyway.appendChild( link );
+			anyway.appendChild( el( 'span', 'vgml-lib-skip-note', ' ' + text( 'goAnywayNote', '' ) ) );
+		}
+
+		apiFetch( { path: '/vergeml/v1/ai-status' } ).then( function ( r ) {
+			readStatus( r );
+			meter.set( done, total );
+			offerAnyway();
+			watch();
+		} ).catch( function () {} );
+
+		var actions = el( 'p', 'vgml-flow-actions' );
+
+		actions.appendChild( go );
+		actions.appendChild( away );
+		actions.appendChild( stop );
+		actions.appendChild( quit );
+
+		wrap.appendChild( cost.node );
+		wrap.appendChild( actions );
+		wrap.appendChild( meter.node );
+		wrap.appendChild( mode );
 		wrap.appendChild( note );
+		wrap.appendChild( anyway );
 
 		return wrap;
 	}
 
 	function rungPropose() {
 
-		var wrap = card( text( 'ladderRun', 'Propose a tree' ), text( 'ladderRunNote', '' ) );
-		var go = button( text( 'ladderRunGo', 'Propose a tree' ), 'button button-primary' );
+		var wrap = stepCard();
+		var go = button( text( 'ladderRunGo', 'Work out the folders' ), 'button button-primary' );
 		var stop = button( text( 'ladderCancel', 'Stop' ) );
 		var note = el( 'p', 'vgml-lib-note' );
 		var peek = el( 'ul', 'vgml-lib-peek' );
+		var meter = progress();
 		var runId = 0;
+		var opened = 0;
 
 		stop.hidden = true;
 
@@ -260,7 +765,9 @@
 
 			go.disabled = true;
 			stop.hidden = false;
-			note.textContent = text( 'applying', 'Working…' );
+			note.textContent = '';
+			opened = Date.now();
+			meter.start( 0 );
 
 			( function step( id ) {
 				apiFetch( {
@@ -271,10 +778,18 @@
 
 					runId = r.run_id;
 
-					note.textContent = r.estimate && r.estimate.known
-						? sprintf( text( 'remaining', '%s to go' ), [ String( r.remaining ) ] ) +
-							' · ' + duration( r.estimate.remaining_ms )
-						: sprintf( text( 'remaining', '%s to go' ), [ String( r.remaining ) ] );
+					/*
+					 *  This step counts phases rather than files, so there is
+					 *  no "213 of 500" to show. What it does have is an
+					 *  estimate the server measured on this host -- so the bar
+					 *  is driven by elapsed against elapsed-plus-remaining,
+					 *  which is the same claim the estimate makes and no
+					 *  stronger.
+					 */
+					var left = r.estimate && r.estimate.known ? r.estimate.remaining_ms : 0;
+					var spent = Date.now() - opened;
+
+					meter.told( left ? spent / ( spent + left ) : 0, left );
 
 					// The partial tree, so stopping early still leaves
 					// something to have looked at.
@@ -304,8 +819,20 @@
 			} ).then( boot );
 		} );
 
-		wrap.appendChild( go );
-		wrap.appendChild( stop );
+		var cost = figures();
+
+		apiFetch( { path: '/vergeml/v1/ai-status' } ).then( function ( r ) {
+			cost.say( sprintf( text( 'costPropose', '' ), [ String( r.indexed || 0 ) ] ) );
+		} ).catch( function () {} );
+
+		var actions = el( 'p', 'vgml-flow-actions' );
+
+		actions.appendChild( go );
+		actions.appendChild( stop );
+
+		wrap.appendChild( cost.node );
+		wrap.appendChild( actions );
+		wrap.appendChild( meter.node );
 		wrap.appendChild( note );
 		wrap.appendChild( peek );
 
@@ -327,8 +854,14 @@
 
 		host.innerHTML = '';
 
+		var item = stepNow();
 		var wrap = el( 'div', 'vgml-lib-chooser' );
-		wrap.appendChild( el( 'h2', null, text( 'chooser', 'How should this library be filed?' ) ) );
+
+		// The step's own title and sentence, so this screen is named the same
+		// way the rail names it. It had a second heading of its own, which is
+		// two answers to "where am I".
+		wrap.appendChild( el( 'h2', 'vgml-flow-head', item.title ) );
+		wrap.appendChild( el( 'p', 'vgml-flow-note', item.note ) );
 
 		var cards = el( 'div', 'vgml-lib-schemes' );
 		wrap.appendChild( cards );
@@ -446,10 +979,14 @@
 		var host = $( 'vgml-lib-review' );
 		host.innerHTML = '';
 
-		var head = el( 'div', 'vgml-lib-review-head' );
-		head.appendChild( el( 'h2', null, text( 'review', 'The proposed folders' ) ) );
+		drawSteps();
 
-		var back = button( text( 'back', 'Choose a different scheme' ), 'button-link' );
+		var item = stepNow();
+		var head = el( 'div', 'vgml-lib-review-head' );
+
+		head.appendChild( el( 'h2', null, item.title ) );
+
+		var back = button( text( 'back', 'Sort a different way instead' ), 'button-link' );
 		back.addEventListener( 'click', function () {
 			state.tree = [];
 			drawLadder();
@@ -458,6 +995,7 @@
 		} );
 		head.appendChild( back );
 		host.appendChild( head );
+		host.appendChild( el( 'p', 'vgml-flow-note', item.note ) );
 
 		var grid = el( 'div', 'vgml-lib-branches' );
 
@@ -1086,11 +1624,21 @@
 				return 'subject' === s.id;
 			} )[ 0 ];
 
+			/*
+			 *  The same order vergeml_librarian_stage() uses, and it has to
+			 *  stay the same order: the server decides what the home card
+			 *  says, this decides what the screen shows, and the two
+			 *  disagreeing is somebody being told to do a step that is not
+			 *  the one in front of them.
+			 *
+			 *  'unindexed' is anything still to describe, not "nothing has
+			 *  been described" -- see the note on the PHP.
+			 */
 			if ( ! health.scanned ) {
 				state.stage = 'unscanned';
 			} else if ( subject && subject.ready ) {
 				state.stage = 'ready';
-			} else if ( ! ai.indexed ) {
+			} else if ( Number( ai.unindexed ) > 0 ) {
 				state.stage = 'unindexed';
 			} else {
 				state.stage = 'unproposed';

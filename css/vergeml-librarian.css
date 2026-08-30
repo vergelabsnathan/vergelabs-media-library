@@ -486,3 +486,286 @@
 	font-size: 12px;
 	color: var(--vgml-muted);
 }
+
+
+/* --------------------------------------------------------------- the flow */
+
+/*
+ *  A process laid out as one, rather than cards that take turns.
+ *
+ *  Geometry is not invented here. The two columns are the dashboard's
+ *  .vgml-dash-cols numbers, the step rows are its .vgml-rest-row, and the bar
+ *  is the one css/vergeml-admin.css already draws for imports and scans --
+ *  copied literally, because a fourth opinion about what a progress bar looks
+ *  like is how an application stops looking like one application.
+ *
+ *  Two presentations of the same position, and the stylesheet picks: the rail
+ *  where there is width for it, a single line where there is not. Deciding
+ *  that in JavaScript would mean listening to resize and being wrong on a
+ *  tablet somebody just rotated.
+ */
+
+.vgml-flow {
+	display: flex;
+	gap: 28px;
+	align-items: flex-start;
+	margin-top: 8px;
+}
+
+.vgml-flow-rail {
+	flex: 0 0 240px;
+}
+
+.vgml-flow-main {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.vgml-flow-rail-head {
+	margin: 0 0 6px;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: .01em;
+	color: var( --vgml-ink, #1d2327 );
+}
+
+.vgml-flow-steps {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: none;
+}
+
+.vgml-flow-step-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 12px;
+	padding: 11px 0;
+	border-bottom: 1px solid var( --vgml-rule, #e4e4e7 );
+	margin: 0;
+}
+
+.vgml-flow-step-row:last-child {
+	border-bottom: 0;
+}
+
+.vgml-flow-step-name {
+	font-size: 14px;
+	font-weight: 500;
+	color: var( --vgml-quieter );
+}
+
+.vgml-flow-step-row.is-done .vgml-flow-step-name,
+.vgml-flow-step-row.is-now .vgml-flow-step-name {
+	color: var( --vgml-ink, #1d2327 );
+}
+
+.vgml-flow-step-row.is-now .vgml-flow-step-name {
+	font-weight: 600;
+}
+
+.vgml-flow-step-state {
+	font-size: 12px;
+	color: var( --vgml-quieter );
+	text-align: right;
+	white-space: nowrap;
+}
+
+.vgml-flow-step-row.is-done .vgml-flow-step-state {
+	color: #5C7C5C;
+}
+
+.vgml-flow-step-row.is-now .vgml-flow-step-state {
+	color: var( --vgml-accent, #9B4E45 );
+	font-weight: 600;
+}
+
+/* ---- the line that stands in for the rail */
+
+.vgml-flow-line {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin: 0 0 6px;
+}
+
+.vgml-flow-line-n {
+	font-size: 12px;
+	font-weight: 600;
+	color: var( --vgml-accent, #9B4E45 );
+	white-space: nowrap;
+}
+
+.vgml-flow-line-name {
+	font-size: 13px;
+	color: var( --vgml-quiet );
+}
+
+.vgml-flow-line-bar {
+	height: 3px;
+	margin: 0 0 18px;
+	border-radius: 999px;
+	background: #e9eaec;
+	overflow: hidden;
+}
+
+.vgml-flow-line-fill {
+	height: 100%;
+	background: var( --vgml-accent, #9B4E45 );
+	transition: width 200ms ease;
+}
+
+/*
+ *  The rail needs its own width plus a column worth reading beside it. Below
+ *  that the line says the same thing in one row, which is the trade: you lose
+ *  what is coming, you keep the width to read what is in front of you.
+ */
+@media screen and (max-width: 1100px) {
+	.vgml-flow {
+		display: block;
+	}
+
+	.vgml-flow-rail {
+		display: none;
+	}
+}
+
+@media screen and (min-width: 1101px) {
+	#vgml-lib-headline {
+		display: none;
+	}
+}
+
+/* ---- a step */
+
+.vgml-librarian .vgml-flow-card {
+	max-width: 46rem;
+	margin: 0;
+}
+
+.vgml-librarian .vgml-flow-card h2,
+.vgml-librarian .vgml-flow-head {
+	margin: 0 0 6px;
+	font-size: 18px;
+	line-height: 1.3;
+}
+
+.vgml-flow-note {
+	margin: 0 0 18px;
+	max-width: 60ch;
+	color: var( --vgml-quiet );
+	font-size: 14px;
+	line-height: 1.6;
+}
+
+.vgml-flow-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+}
+
+/* ---- what a long step shows while it runs */
+
+.vgml-flow-progress {
+	margin: 18px 0 0;
+}
+
+.vgml-librarian .vgml-flow-progress .vgml-import-bar {
+	max-width: 480px;
+	height: 8px;
+	margin: 0 0 8px;
+	border-radius: 999px;
+	background: #e9eaec;
+	overflow: hidden;
+}
+
+.vgml-librarian .vgml-flow-progress .vgml-import-fill {
+	width: 0;
+	height: 100%;
+	background: var( --vgml-accent, #9B4E45 );
+	transition: width 200ms ease;
+}
+
+.vgml-flow-figure {
+	margin: 0;
+	font-size: 14px;
+	color: var( --vgml-ink, #1d2327 );
+	min-height: 1.4em;
+}
+
+.vgml-flow-count {
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-flow-eta {
+	color: var( --vgml-quiet );
+	font-weight: 400;
+}
+
+.vgml-flow-keep {
+	margin: 8px 0 0;
+	max-width: 52ch;
+	font-size: 12px;
+	line-height: 1.6;
+	color: var( --vgml-quieter );
+}
+
+
+/* ------------------------------------------------- below the flow, not in it */
+
+/*
+ *  The history and the other filing tools followed the flow in plain document
+ *  order, which put a heading immediately under the step rail and flush with
+ *  its left edge -- so on a wide screen it read as a sixth step. A rule and
+ *  some air say what the markup already meant.
+ */
+.vgml-after-flow {
+	margin-top: 40px;
+	padding-top: 4px;
+	border-top: 1px solid var( --vgml-rule, #e4e4e7 );
+}
+
+.vgml-other-ways {
+	margin-top: 28px;
+}
+
+.vgml-librarian .vgml-other-ways > h2 {
+	margin: 0 0 4px;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: .01em;
+	color: var( --vgml-quiet );
+}
+
+.vgml-lib-skip-note {
+	color: var( --vgml-quiet );
+}
+
+
+/* --------------------------------------- what a step costs, before it starts */
+
+.vgml-flow-cost {
+	margin: 0 0 16px;
+	max-width: 60ch;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var( --vgml-ink, #1d2327 );
+}
+
+/*
+ *  Not enough credits for the whole run. A left border rather than a coloured
+ *  panel: it is a fact worth reading, not an error, and the run still works.
+ */
+.vgml-flow-cost.is-short {
+	padding: 10px 0 10px 14px;
+	border-left: 3px solid var( --vgml-warn );
+	color: var( --vgml-warn-ink );
+}
+
+.vgml-lib-skip {
+	margin: 0.8rem 0 1.6rem;
+	max-width: 60ch;
+	line-height: 1.6;
+}
