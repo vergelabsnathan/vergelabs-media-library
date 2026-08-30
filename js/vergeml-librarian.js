@@ -82,6 +82,19 @@
 
 	// A duration a person reads, not a figure. The estimate is honest about
 	// being an estimate, so a rounded one is the truthful presentation.
+	// Bytes a person reads. The figure that makes somebody care about copies is
+	// not how many there are, it is what they are costing.
+	function bytes( n ) {
+
+		n = Number( n ) || 0;
+
+		if ( n > 1073741824 ) {
+			return ( n / 1073741824 ).toFixed( 1 ) + ' GB';
+		}
+
+		return Math.round( n / 1048576 ) + ' MB';
+	}
+
 	function duration( ms ) {
 
 		var seconds = Math.round( Number( ms ) / 1000 );
@@ -670,7 +683,24 @@
 			} )[ 0 ];
 
 			var loose = Number( schemes.unassigned ) || 0;
-			var copies = Number( health.duplicates ) || 0;
+
+			/*
+			 *  duplicates is a list of GROUPS, not a count. Number() of an
+			 *  array is NaN, which fell through to 0 -- so a library with five
+			 *  sets of byte-identical photographs in it was told "No copies
+			 *  found", by the row whose only job is to say otherwise.
+			 */
+			var groups = ( health.duplicates || [] ).length;
+			var copies = 0;
+
+			( health.duplicates || [] ).forEach( function ( group ) {
+				// A group of three copies is two files too many, not three.
+				copies += Math.max( 0, ( ( group.files || group.ids || group ) || [] ).length - 1 );
+			} );
+
+			if ( groups > 0 && 0 === copies ) {
+				copies = groups; // shape we did not expect; still say something true
+			}
 
 			/* ---- alt text */
 
@@ -725,7 +755,8 @@
 			/* ---- copies */
 
 			row( 'copies', text( 'doCopies', '' ), text( 'doCopiesNote', '' ), copies,
-				sprintf( text( 'doCopiesCount', '' ), [ String( copies ) ] ),
+				sprintf( text( 'doCopiesCount', '' ), [ String( copies ) ] ) +
+					( health.wasted > 0 ? ' · ' + sprintf( text( 'doCopiesSpace', '' ), [ bytes( health.wasted ) ] ) : '' ),
 				{
 					label: text( 'doCopiesGo', '' ),
 					go: function () {

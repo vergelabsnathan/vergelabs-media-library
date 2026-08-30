@@ -2724,6 +2724,8 @@ function vergeml_librarian_assets( $hook ) {
             'doCopiesNote'    => __( 'The same picture uploaded twice, or saved again at a different size. Nothing is deleted without you.', 'vergelabs-media-library' ),
             /* translators: %s: how many files look like copies. */
             'doCopiesCount'   => __( '%s look like copies of something else', 'vergelabs-media-library' ),
+            /* translators: %s: disk space the copies take, e.g. "9 MB". */
+            'doCopiesSpace'   => __( '%s of disk taken twice', 'vergelabs-media-library' ),
             'doCopiesGo'      => __( 'Look at the copies', 'vergelabs-media-library' ),
             'doCopiesDone'    => __( 'No copies found.', 'vergelabs-media-library' ),
 

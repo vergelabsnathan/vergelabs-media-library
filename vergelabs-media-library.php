@@ -1315,6 +1315,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // title it applies and whose locked list it obeys; inside the guard,
         // because it writes to posts.
         include_once( 'core/rename.php' );
+        // Searching by what a picture means. After organize.php, whose
+        // projection and distance it borrows so that "alike" means one thing
+        // in this plugin, and after ai.php for the service URL.
+        include_once( 'core/search-meaning.php' );
         // Last, because each of the three things in it stands on something
         // above: the health report's duplicate groups, the index's locked
         // fields, and the vectors auto-file reads.
