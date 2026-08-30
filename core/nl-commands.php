@@ -673,6 +673,6 @@ function vergeml_nl_assets( $hook ) {
         /* translators: %d: number of files changed. */
         'done'     => __( 'Done — %d files moved. If that was not what you meant, undo it on the Librarian screen.', 'vergelabs-media-library' ),
         'madeIt'   => __( 'Done.', 'vergelabs-media-library' ),
-        'nothing'  => __( 'Nothing matched, so nothing happened.', 'vergelabs-media-library' ),
+        'nothing'  => __( 'Nothing matched what you asked, so nothing was changed. Try naming a folder you have, or describing the files differently.', 'vergelabs-media-library' ),
     ) );
 }

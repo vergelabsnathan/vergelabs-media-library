@@ -26,6 +26,44 @@
 		return;
 	}
 
+	var next = null;
+
+	/*
+	 *  The next step, as a button under the sentence. A sentence saying what
+	 *  to do next, with no way to do it, is half an answer.
+	 */
+	function offerNext() {
+
+		var host = document.getElementById( 'vgml-autofile-next' );
+
+		if ( ! host ) {
+			return;
+		}
+
+		host.innerHTML = '';
+
+		if ( ! next || ! next.label ) {
+			return;
+		}
+
+		var go = el( 'button', { type: 'button', class: 'button button-primary' }, next.label );
+
+		go.addEventListener( 'click', function () {
+			if ( next.href ) {
+				window.location.href = next.href;
+				return;
+			}
+
+			var target = next.scroll ? document.querySelector( next.scroll ) : null;
+
+			if ( target ) {
+				target.scrollIntoView( { behavior: 'smooth', block: 'start' } );
+			}
+		} );
+
+		host.appendChild( go );
+	}
+
 	function say( text ) {
 		if ( note ) {
 			note.textContent = text || '';
@@ -145,9 +183,24 @@
 			}
 
 			if ( ! parts.length ) {
-				parts.push( res.looked
-					? ( l10n.noneNear || 'Looked at %d and none of them clearly belongs anywhere yet.' ).replace( '%d', res.looked )
-					: ( l10n.nothingLoose || 'Nothing described is without a folder.' ) );
+				/*
+				 *  A dead end is a bug.
+				 *
+				 *  This used to end on "looked at 20 and none of them clearly
+				 *  belongs anywhere yet" and stop -- true, and no help at all
+				 *  to somebody who now has twenty loose files and no idea what
+				 *  to do with them. There are two different reasons nothing
+				 *  was suggested and they have two different answers.
+				 */
+				if ( res.unlooked > 0 ) {
+					parts.push( ( l10n.nextDescribe || '' ).replace( '%d', res.unlooked ) );
+					next = { label: l10n.goDescribe, href: l10n.aiUrl };
+				} else if ( res.loose > 0 ) {
+					parts.push( l10n.nextPropose || '' );
+					next = { label: l10n.goPropose, scroll: '#vgml-lib-stage' };
+				} else {
+					parts.push( l10n.nextNothing || '' );
+				}
 			}
 
 			say( parts.join( ' ' ) );

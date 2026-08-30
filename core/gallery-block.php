@@ -102,7 +102,7 @@ function vergeml_register_gallery_block() {
             'orderManual' => __( 'The order set in the library', 'vergelabs-media-library' ),
             'subfolders'  => __( 'Include sub-folders', 'vergelabs-media-library' ),
             'pick'        => __( 'Pick a folder to show its images.', 'vergelabs-media-library' ),
-            'empty'       => __( 'That folder has no images in it yet.', 'vergelabs-media-library' ),
+            'empty'       => __( 'That folder has no images in it yet. Put some in it and they appear here on their own — you will not have to edit this page again.', 'vergelabs-media-library' ),
             'noFolders'   => __( 'There are no folders yet. Make one in the media library.', 'vergelabs-media-library' ),
         ),
     ) );

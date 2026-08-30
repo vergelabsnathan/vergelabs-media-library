@@ -511,7 +511,7 @@ function vergeml_quarantine_assets( $hook ) {
     );
 
     wp_localize_script( 'vergeml-quarantine', 'vergemlQuarantine', array(
-        'empty'    => __( 'Nothing is set aside.', 'vergelabs-media-library' ),
+        'empty'    => __( 'You have not set anything aside. Files you set aside land here — they leave your media library but stay on the server, working, for thirty days before anything can even be considered.', 'vergelabs-media-library' ),
         'takeBack' => __( 'Take it back', 'vergelabs-media-library' ),
         /* translators: %d: number of days. */
         'waiting'  => __( 'Set aside %d days ago', 'vergelabs-media-library' ),

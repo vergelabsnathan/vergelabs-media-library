@@ -671,11 +671,65 @@ function vergeml_autofile_rest_step( WP_REST_Request $request ) {
         );
     }
 
+    /*
+     *  What is left, and why.
+     *
+     *  Without these two numbers the screen could only end on "none of them
+     *  clearly belongs anywhere yet" and stop -- true, useless, and a dead end
+     *  in the middle of somebody's afternoon. The difference between "we have
+     *  not looked at these" and "we looked and your folders do not fit" is the
+     *  difference between two completely different next steps, and only the
+     *  server can tell them apart.
+     */
     return rest_ensure_response( array(
-        'filed'     => (int) $result['filed'],
-        'looked'    => (int) $result['looked'],
-        'suggested' => $out,
+        'filed'      => (int) $result['filed'],
+        'looked'     => (int) $result['looked'],
+        'suggested'  => $out,
+        'loose'      => vergeml_autofile_loose_count( false ),
+        'unlooked'   => vergeml_autofile_loose_count( true ),
     ) );
+}
+
+
+/**
+ *  vergeml_autofile_loose_count
+ *
+ *  Files in no folder. With $unlooked, only the ones we have never described --
+ *  those cannot be suggested a folder because there is nothing to compare.
+ */
+function vergeml_autofile_loose_count( $unlooked = false ) {
+
+    global $wpdb;
+
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+
+    if ( '' === $taxonomy ) {
+        return 0;
+    }
+
+    $tt = vergeml_autofile_tt_ids( $taxonomy );
+
+    if ( '' === $tt ) {
+        return 0;
+    }
+
+    $table = vergeml_index_table();
+
+    $described = $unlooked
+        ? "AND NOT EXISTS ( SELECT 1 FROM {$table} x WHERE x.attachment_id = p.ID )"
+        : '';
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    return (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->posts} p
+          WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+            {$described}
+            AND NOT EXISTS (
+                SELECT 1 FROM {$wpdb->term_relationships} tr
+                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( {$tt} )
+            )"
+    );
+    // phpcs:enable
 }
 
 
@@ -737,6 +791,7 @@ function vergeml_autofile_card() {
             <span id="vgml-autofile-note"></span>
         </p>
         <ul id="vgml-autofile-list" class="vgml-autofile-list"></ul>
+        <p id="vgml-autofile-next" class="vgml-autofile-next"></p>
     </div>
     <?php
 }
@@ -771,13 +826,22 @@ function vergeml_autofile_assets( $hook ) {
         'accept'       => __( 'File it there', 'vergelabs-media-library' ),
         'dismiss'      => __( 'Not that one', 'vergelabs-media-library' ),
         'working'      => __( 'Looking…', 'vergelabs-media-library' ),
-        'allDone'      => __( 'Nothing else to look at.', 'vergelabs-media-library' ),
+        'allDone'      => __( 'We have been through everything that had no folder.', 'vergelabs-media-library' ),
         /* translators: %d: number of files. */
         'filed'        => __( 'Filed %d into folders that had earned it.', 'vergelabs-media-library' ),
         /* translators: %d: number of files. */
         'waiting'      => __( '%d waiting for you.', 'vergelabs-media-library' ),
         /* translators: %d: number of files looked at. */
+        // Built here rather than derived from ajaxurl in the browser: a
+        // string-replace on a global that WordPress happens to print is not a
+        // way to know where a screen lives.
+        'aiUrl'         => admin_url( 'admin.php?page=media-ai' ),
+        'nextPropose'   => __( 'None of the folders you already have is a close enough match. The Librarian below can work out new folders for these instead — it looks at what is in the pictures rather than trying to fit them into what exists.', 'vergelabs-media-library' ),
+        'nextDescribe'  => __( 'We have not looked at %d of your loose files yet, so there is nothing to compare them against. Describe them on the AI screen and come back.', 'vergelabs-media-library' ),
+        'nextNothing'   => __( 'Every file is in a folder. Nothing to do here.', 'vergelabs-media-library' ),
+        'goPropose'     => __( 'Work out new folders', 'vergelabs-media-library' ),
+        'goDescribe'    => __( 'Go and describe them', 'vergelabs-media-library' ),
         'noneNear'     => __( 'We looked at %d of them and none clearly belongs in a folder you already have.', 'vergelabs-media-library' ),
-        'nothingLoose' => __( 'Nothing described is without a folder.', 'vergelabs-media-library' ),
+        'nothingLoose' => __( 'Every file we have looked at is already in a folder.', 'vergelabs-media-library' ),
     ) );
 }
