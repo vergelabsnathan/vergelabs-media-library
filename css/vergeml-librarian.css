@@ -10,7 +10,14 @@
  */
 
 .vgml-librarian {
-	--vgml-accent: #3858e9;
+	/*
+	 *  No accent of its own any more.
+	 *
+	 *  This set WordPress's default blue and the screen took it, so the
+	 *  Librarian had blue buttons inside an application painted rust. The
+	 *  palette lives in one place -- .vgml-shell in css/vergeml-shell.css --
+	 *  and every screen inherits it.
+	 */
 	--vgml-warn: #dba617;
 	--vgml-warn-ink: #8a6100;
 	--vgml-warn-wash: #fcf9e8;
@@ -332,4 +339,150 @@
 	display: block;
 	margin-top: 0.2rem;
 	color: var( --vgml-warn-ink );
+}
+
+
+/* ------------------------------------------------------- the chooser */
+
+/*
+ *  Written into the dashboard's stylesheet first, which the Librarian does not
+ *  load -- so none of it applied and the two schemes stayed unaligned. A
+ *  screen's styles belong in the stylesheet that screen enqueues.
+ */
+
+/*
+ *  Two schemes, side by side, as a real choice.
+ *
+ *  These selectors carry .vgml-shell as well, and they have to: the shell
+ *  stylesheet turns .vgml-ai-card into a rule-separated section, it loads
+ *  AFTER this file, and these cards carry both classes. At equal specificity
+ *  the later file wins, so the cards stayed un-boxed and the two schemes sat
+ *  unaligned with a stray rule between them.
+ *
+ *  The shell turns .vgml-ai-card into a rule-separated section, which is right
+ *  for a stack of unrelated tools and wrong here: these two are alternatives,
+ *  and un-boxing them left one floating beside the other with a stray rule
+ *  between. A card is the correct shape when the reader has to compare two
+ *  things and pick one.
+ */
+.vgml-lib-schemes {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 16px;
+	align-items: stretch;
+	margin-top: 14px;
+}
+
+.vgml-shell .vgml-shell-content .vgml-lib-scheme {
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--vgml-rule);
+	border-top: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	background: var(--vgml-surface);
+	padding: 18px 18px 20px;
+	margin: 0;
+	transition: border-color .12s ease, background .12s ease;
+}
+
+.vgml-shell .vgml-shell-content .vgml-lib-scheme:hover {
+	border-color: var(--vgml-accent);
+	background: #fff;
+}
+
+.vgml-shell .vgml-shell-content .vgml-lib-scheme h3 {
+	margin: 0 0 4px;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-shell-content .vgml-lib-scheme .description {
+	margin: 0 0 12px;
+	min-height: 2.8em;
+}
+
+.vgml-lib-scheme-total {
+	margin: 0 0 8px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+}
+
+.vgml-lib-scheme-top {
+	margin: 0 0 16px;
+	padding: 0;
+	list-style: none;
+	/* The list is a sample of what you would get, so it grows to fill and
+	   keeps both buttons on the same line. */
+	flex: 1 1 auto;
+}
+
+.vgml-lib-scheme-top li {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 6px 0;
+	margin: 0;
+	border-bottom: 1px solid var(--vgml-rule);
+	font-size: 13px;
+}
+
+.vgml-lib-scheme-top li:last-child {
+	border-bottom: 0;
+}
+
+.vgml-lib-scheme-size {
+	color: var(--vgml-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-shell-content .vgml-lib-scheme .button {
+	align-self: flex-start;
+}
+
+/* ---------------------------------------------------------- the history */
+
+.vgml-lib-batches {
+	margin: 12px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-lib-batch {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 10px;
+	padding: 12px 0;
+	margin: 0;
+	border-bottom: 1px solid var(--vgml-rule);
+}
+
+.vgml-lib-batch:last-child {
+	border-bottom: 0;
+}
+
+.vgml-lib-batch-line {
+	font-size: 14px;
+	color: var(--vgml-body);
+}
+
+.vgml-lib-batch-when {
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+.vgml-lib-batch-status {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+	color: var(--vgml-muted);
+}
+
+.vgml-lib-batch-reason {
+	flex: 1 0 100%;
+	font-size: 12px;
+	color: var(--vgml-muted);
 }

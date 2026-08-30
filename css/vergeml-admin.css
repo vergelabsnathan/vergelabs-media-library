@@ -13,7 +13,7 @@
 .vgml-home {
 	--vgml-home-line: #dcdcde;
 	--vgml-home-muted: #646970;
-	--vgml-home-accent: #3858e9;
+	--vgml-home-accent: #9B4E45;
 	max-width: 1100px;
 }
 
@@ -146,7 +146,7 @@
 .vgml-ai .vgml-import-fill {
 	width: 0;
 	height: 100%;
-	background: #3858e9;
+	background: #9B4E45;
 	transition: width 200ms ease;
 }
 
@@ -181,7 +181,7 @@
 .vgml-health .vgml-import-fill {
 	width: 0;
 	height: 100%;
-	background: #3858e9;
+	background: #9B4E45;
 	transition: width 200ms ease;
 }
 

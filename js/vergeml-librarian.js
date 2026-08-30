@@ -903,17 +903,61 @@
 		} );
 	}
 
+	/*
+	 *  The scheme's own name, not its slug. The server calls them "datetype"
+	 *  and "subject" because those are keys; nobody reading a history wants a
+	 *  key.
+	 */
+	var SCHEME_NAMES = {
+		datetype: text( 'schemeDate', 'by date and file type' ),
+		subject: text( 'schemeSubject', 'by what is in the pictures' )
+	};
+
+	/** "3 days ago" beats a timestamp to the second for something you are
+	 *  only trying to place in your own week. */
+	function ago( stamp ) {
+
+		var then = Date.parse( String( stamp ).replace( ' ', 'T' ) + 'Z' );
+
+		if ( isNaN( then ) ) {
+			return String( stamp );
+		}
+
+		var mins = Math.max( 0, Math.round( ( Date.now() - then ) / 60000 ) );
+
+		if ( mins < 2 ) { return text( 'justNow', 'just now' ); }
+		if ( mins < 60 ) { return sprintf( text( 'minsAgo', '%s minutes ago' ), [ String( mins ) ] ); }
+
+		var hours = Math.round( mins / 60 );
+		if ( hours < 24 ) { return sprintf( text( 'hoursAgo', '%s hours ago' ), [ String( hours ) ] ); }
+
+		return sprintf( text( 'daysAgo', '%s days ago' ), [ String( Math.round( hours / 24 ) ) ] );
+	}
+
 	function drawBatch( batch ) {
 
 		var li = el( 'li', 'vgml-lib-batch' );
 		li.setAttribute( 'data-batch', String( batch.batch_id ) );
 
-		li.appendChild( el( 'span', 'vgml-lib-batch-when', batch.created_at ) );
-		li.appendChild( el( 'span', 'vgml-lib-batch-scheme', batch.scheme ) );
-		li.appendChild( el( 'span', 'vgml-lib-batch-count',
-			sprintf( text( 'batchCount', '%1$s filed · %2$s left alone' ),
-				[ String( batch.done ), String( batch.skipped ) ] ) ) );
-		li.appendChild( el( 'span', 'vgml-lib-batch-status', batch.status ) );
+		/*
+		 *  A sentence, not a database row.
+		 *
+		 *  This printed five fields side by side --
+		 *  "2026-08-29 14:16:56  datetype  5 filed · 56 left alone  done" --
+		 *  which is the batches table with spaces between the columns.
+		 *  "datetype" is not a word anybody types.
+		 */
+		var scheme = ( SCHEME_NAMES[ batch.scheme ] || batch.scheme );
+
+		li.appendChild( el( 'span', 'vgml-lib-batch-line',
+			sprintf( text( 'batchLine', 'Sorted %1$s files %2$s. %3$s were left where they were.' ),
+				[ String( batch.done ), scheme, String( batch.skipped ) ] ) ) );
+
+		li.appendChild( el( 'span', 'vgml-lib-batch-when', ago( batch.created_at ) ) );
+
+		if ( 'undone' === batch.status ) {
+			li.appendChild( el( 'span', 'vgml-lib-batch-status', text( 'wasUndone', 'Undone' ) ) );
+		}
 
 		if ( batch.reason ) {
 			li.appendChild( el( 'span', 'vgml-lib-batch-reason', batch.reason ) );

@@ -2563,8 +2563,8 @@ function vergeml_librarian_assets( $hook ) {
             'skipToDate'      => __( 'Or file by date instead — no describing, no credits.', 'vergelabs-media-library' ),
 
             /* the chooser */
-            'chooser'         => __( 'How should this library be filed?', 'vergelabs-media-library' ),
-            'choose'          => __( 'Look this over', 'vergelabs-media-library' ),
+            'chooser'         => __( 'How should we sort them?', 'vergelabs-media-library' ),
+            'choose'          => __( 'See the plan', 'vergelabs-media-library' ),
             'notReady'        => __( 'Not available yet', 'vergelabs-media-library' ),
             /* translators: %s: how many files a scheme would file. */
             'schemeTotal'     => __( '%s files', 'vergelabs-media-library' ),
@@ -2610,7 +2610,19 @@ function vergeml_librarian_assets( $hook ) {
             'remaining'       => __( '%s to go', 'vergelabs-media-library' ),
 
             /* undo */
-            'history'         => __( 'What has been applied', 'vergelabs-media-library' ),
+            'history'         => __( 'What you have already sorted', 'vergelabs-media-library' ),
+            /* translators: 1: files sorted, 2: the scheme, 3: files left alone. */
+            'batchLine'       => __( 'Sorted %1$s files %2$s. %3$s were left where they were.', 'vergelabs-media-library' ),
+            'schemeDate'      => __( 'by date and file type', 'vergelabs-media-library' ),
+            'schemeSubject'   => __( 'by what is in the pictures', 'vergelabs-media-library' ),
+            'wasUndone'       => __( 'Undone', 'vergelabs-media-library' ),
+            'justNow'         => __( 'just now', 'vergelabs-media-library' ),
+            /* translators: %s: a number of minutes. */
+            'minsAgo'         => __( '%s minutes ago', 'vergelabs-media-library' ),
+            /* translators: %s: a number of hours. */
+            'hoursAgo'        => __( '%s hours ago', 'vergelabs-media-library' ),
+            /* translators: %s: a number of days. */
+            'daysAgo'         => __( '%s days ago', 'vergelabs-media-library' ),
             'noHistory'       => __( 'Nothing has been applied yet.', 'vergelabs-media-library' ),
             'undo'            => __( 'Undo', 'vergelabs-media-library' ),
             /* translators: 1: files filed by a batch, 2: files it left alone. */
@@ -2641,10 +2653,22 @@ function vergeml_librarian_page() {
      *  it shipped; this screen hardcoded WordPress's default blue instead, so
      *  it was the one screen that did not belong to the admin it sat in.
      */
-    $accent = function_exists( 'vergeml_admin_accent' ) ? vergeml_admin_accent() : '#3858e9';
+    /*
+     *  Our accent, not WordPress's.
+     *
+     *  This used to take the colour from the admin's own scheme, on the
+     *  reasoning that a screen should belong to the admin it sits in. That was
+     *  right when this was one page among WordPress's. It is wrong now the
+     *  plugin has its own shell in its own palette: the result was a Librarian
+     *  with blue buttons sitting inside a rust-coloured application.
+     *
+     *  Empty means "use whatever .vgml-shell already defines", which is the
+     *  one place the palette lives.
+     */
+    $accent = '';
 
     ?>
-    <div class="wrap vgml-home vgml-librarian" style="--vgml-accent: <?php echo esc_attr( $accent ); ?>;">
+    <div class="wrap vgml-home vgml-librarian"<?php echo '' !== $accent ? ' style="--vgml-accent: ' . esc_attr( $accent ) . '"' : ''; ?>>
 
         <div class="vgml-home-head">
             <h1><?php esc_html_e( 'Librarian', 'vergelabs-media-library' ); ?></h1>

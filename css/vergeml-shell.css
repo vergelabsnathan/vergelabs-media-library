@@ -655,3 +655,129 @@
 .vgml-icon-svg {
 	display: block;
 }
+
+
+/* ---------------------------------------------------------- settings pages */
+
+/*
+ *  The settings screens were the last thing still reading as WordPress: a
+ *  white card per section sitting on a white pane, and a Save button under
+ *  every one of them.
+ *
+ *  Sections are rules now, like everywhere else in the shell, and the save is
+ *  one bar pinned to the bottom of the window -- a 3,500px page should not
+ *  make somebody scroll to the end to keep a change they made at the top.
+ */
+.vgml-shell-content .vgml-settings-section,
+.vgml-shell-content .vgml-box,
+.vgml-shell-content .eml-section {
+	background: none;
+	border: 0;
+	border-top: 1px solid var(--vgml-rule);
+	border-radius: 0;
+	box-shadow: none;
+	padding: 26px 0 0;
+	margin: 26px 0 0;
+}
+
+.vgml-shell-content h2 + .vgml-settings-section,
+.vgml-shell-content .vgml-settings-section:first-of-type {
+	border-top: 0;
+	margin-top: 0;
+	padding-top: 0;
+}
+
+.vgml-savebar {
+	position: sticky;
+	bottom: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 28px -24px -32px;
+	padding: 14px 24px;
+	background: rgba(255, 255, 255, .92);
+	backdrop-filter: blur(6px);
+	border-top: 1px solid var(--vgml-rule);
+	border-radius: 0 0 4px 4px;
+}
+
+.vgml-savebar .button-primary {
+	margin: 0;
+}
+
+.vgml-savebar-note {
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+/* The form-table rows carry the whole rhythm on these screens, so they get
+   the air the sections have everywhere else. */
+.vgml-shell-content .form-table tr:first-child th,
+.vgml-shell-content .form-table tr:first-child td {
+	padding-top: 4px;
+}
+
+/*
+ *  WordPress's postbox, unboxed.
+ *
+ *  The settings screens wrap each section in .postbox > .inside, which paints
+ *  a white card with a border. Inside our white pane that is a box in a box,
+ *  and it is the single thing that kept these screens reading as WordPress
+ *  settings rather than as part of an application.
+ */
+.vgml-shell-content .postbox {
+	background: none;
+	border: 0;
+	box-shadow: none;
+	border-radius: 0;
+	margin: 0 0 30px;
+	min-width: 0;
+}
+
+.vgml-shell-content .postbox > .inside {
+	margin: 0;
+	padding: 0;
+}
+
+.vgml-shell-content .postbox .form-table {
+	margin-top: 0;
+}
+
+/* The heading above each postbox becomes the section rule. */
+.vgml-shell-content > .wrap > h2,
+.vgml-shell-content .wrap > h2 {
+	margin: 34px 0 12px;
+	padding-top: 26px;
+	border-top: 1px solid var(--vgml-rule);
+	font-size: 15px;
+	letter-spacing: .01em;
+}
+
+.vgml-shell-content .wrap > h2:first-of-type {
+	border-top: 0;
+	padding-top: 0;
+	margin-top: 0;
+}
+
+/* Room to scroll the last field clear of the pinned save bar. 8px was not
+   room; the bar sat on top of the final row. */
+.vgml-shell-content form {
+	padding-bottom: 72px;
+}
+
+/*
+ *  The border needed more specificity than the background did.
+ *
+ *  `.vgml-shell-content .postbox` was enough to win the background and the
+ *  shadow, and not the border -- something in core's bundle sets that one from
+ *  a longer selector. Measured in the browser rather than guessed: computed
+ *  border stayed 1px solid #dcdcde while background went transparent.
+ */
+.vgml-shell .vgml-shell-content .postbox,
+.vgml-shell .vgml-shell-content .postbox-container .postbox,
+.vgml-shell .vgml-shell-content .metabox-holder .postbox {
+	border: 0;
+	background: none;
+	box-shadow: none;
+}

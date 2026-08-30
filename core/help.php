@@ -60,6 +60,8 @@ function vergeml_help_texts() {
 
         'search_auto' => __( 'Search while you type, which is what WordPress does by default. Turn it off if results appear before you have finished the word.', 'vergelabs-media-library' ),
 
+        'search_min_letters' => __( 'How many letters you must type before we start searching. Higher means fewer searches while you type, which is faster on a big library.', 'vergelabs-media-library' ),
+
         'media_orderby' => __( 'What decides the order files appear in. Pick Custom Order if you want to arrange them yourself by dragging.', 'vergelabs-media-library' ),
 
         'media_order' => __( 'Which end of that order comes first. Newest first is Descending.', 'vergelabs-media-library' ),
