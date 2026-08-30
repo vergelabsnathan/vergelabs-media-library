@@ -473,7 +473,7 @@ function vergeml_quarantine_card() {
 
     ?>
     <div class="vgml-ai-card">
-        <h2><?php esc_html_e( 'Set aside', 'vergelabs-media-library' ); ?></h2>
+        <h2><?php esc_html_e( 'Files you have taken out of the library', 'vergelabs-media-library' ); ?></h2>
         <p class="description">
             <?php
             printf(
@@ -484,8 +484,8 @@ function vergeml_quarantine_card() {
             ?>
         </p>
         <p>
-            <button type="button" class="button" id="vgml-quarantine-refresh"><?php esc_html_e( 'Show what is set aside', 'vergelabs-media-library' ); ?></button>
-            <button type="button" class="button" id="vgml-quarantine-manifest"><?php esc_html_e( 'Download the list', 'vergelabs-media-library' ); ?></button>
+            <button type="button" class="button" id="vgml-quarantine-refresh"><?php esc_html_e( 'Show them', 'vergelabs-media-library' ); ?></button>
+            <button type="button" class="button" id="vgml-quarantine-manifest"><?php esc_html_e( 'Download the list as CSV', 'vergelabs-media-library' ); ?></button>
             <span id="vgml-quarantine-note"></span>
         </p>
         <ul id="vgml-quarantine-list" class="vgml-autofile-list"></ul>

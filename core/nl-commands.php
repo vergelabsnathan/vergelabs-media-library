@@ -631,11 +631,11 @@ function vergeml_nl_card() {
 
     ?>
     <div class="vgml-ai-card">
-        <h2><?php esc_html_e( 'Say what you want', 'vergelabs-media-library' ); ?></h2>
+        <h2><?php esc_html_e( 'Type what you want done', 'vergelabs-media-library' ); ?></h2>
         <p class="description"><?php esc_html_e( 'Type what you want in plain English and we will show you exactly what it would do, and to which files, before anything happens. It can move files, tag them, rename a folder or make a new one — and it has no way to delete anything.', 'vergelabs-media-library' ); ?></p>
         <p>
             <input type="text" id="vgml-say-text" class="regular-text" placeholder="<?php esc_attr_e( 'move the screenshots into Products', 'vergelabs-media-library' ); ?>">
-            <button type="button" class="button" id="vgml-say-plan"><?php esc_html_e( 'Show me', 'vergelabs-media-library' ); ?></button>
+            <button type="button" class="button" id="vgml-say-plan"><?php esc_html_e( 'Show me what it would do', 'vergelabs-media-library' ); ?></button>
         </p>
         <div id="vgml-say-preview" class="vgml-say-preview" hidden>
             <p id="vgml-say-summary"></p>
@@ -671,7 +671,7 @@ function vergeml_nl_assets( $hook ) {
         'thinking' => __( 'Working out what that means…', 'vergelabs-media-library' ),
         'doing'    => __( 'Doing it…', 'vergelabs-media-library' ),
         /* translators: %d: number of files changed. */
-        'done'     => __( 'Done — %d files moved. If that was not what you meant, undo it on the Librarian screen.', 'vergelabs-media-library' ),
+        'done'     => __( 'Done — %d files moved. If that was not what you meant, undo it on the Sort into folders screen.', 'vergelabs-media-library' ),
         'madeIt'   => __( 'Done.', 'vergelabs-media-library' ),
         'nothing'  => __( 'Nothing matched what you asked, so nothing was changed. Try naming a folder you have, or describing the files differently.', 'vergelabs-media-library' ),
     ) );

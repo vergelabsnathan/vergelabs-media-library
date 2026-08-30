@@ -192,7 +192,7 @@ function vergeml_admin_home() {
     $cards = array(
         array(
             'page'  => 'media-taxonomies',
-            'title' => __( 'Folders and taxonomies', 'vergelabs-media-library' ),
+            'title' => __( 'Folders and categories', 'vergelabs-media-library' ),
             'text'  => __( 'Which taxonomies act as folders, what they are called, and which post types they apply to.', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
         ),
@@ -204,7 +204,7 @@ function vergeml_admin_home() {
         ),
         array(
             'page'  => 'media-library',
-            'title' => __( 'Library behaviour', 'vergelabs-media-library' ),
+            'title' => __( 'Library settings', 'vergelabs-media-library' ),
             'text'  => __( 'Ordering, filters, what the grid and the list show, and how uploads are filed.', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
         ),
@@ -216,7 +216,7 @@ function vergeml_admin_home() {
         ),
         array(
             'page'  => 'media-librarian',
-            'title' => __( 'Librarian', 'vergelabs-media-library' ),
+            'title' => __( 'Sort into folders', 'vergelabs-media-library' ),
             // The card says where this library actually is in the ladder, so
             // the home screen answers "can I use this yet" without a click.
             'text'  => function_exists( 'vergeml_librarian_card_text' )

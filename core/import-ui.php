@@ -258,7 +258,7 @@ function vergeml_import_assets( $hook ) {
 
     wp_localize_script( 'vergeml-import', 'vergemlImport', array(
         'l10n' => array(
-            'none'        => __( 'We could not find folders in any other plugin on this site. If you have your structure in a spreadsheet, read it in above. If you have nothing to bring over, the Librarian can work out folders for you from your own pictures.', 'vergelabs-media-library' ),
+            'none'        => __( 'We could not find folders in any other plugin on this site. If you have your structure in a spreadsheet, read it in above. If you have nothing to bring over, we can work out folders for you from your own pictures.', 'vergelabs-media-library' ),
             'found'       => __( 'Found', 'vergelabs-media-library' ),
             /* translators: 1: number of folders, 2: number of files. */
             'summary'     => __( '%1$s folders, %2$s files', 'vergelabs-media-library' ),

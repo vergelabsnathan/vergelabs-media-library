@@ -2481,11 +2481,11 @@ function vergeml_librarian_card_text() {
     $stage = vergeml_librarian_stage();
 
     if ( 'unscanned' === $stage ) {
-        return __( 'See the folders this library would get. The duplicate scan has to run first — the Librarian starts it for you.', 'vergelabs-media-library' );
+        return __( 'See the folders this library would get. We check for duplicates first, and start that for you.', 'vergelabs-media-library' );
     }
 
     if ( 'unindexed' === $stage ) {
-        return __( 'See the folders this library would get. Your files need describing first — the Librarian starts that for you.', 'vergelabs-media-library' );
+        return __( 'See the folders this library would get. We look at your pictures first, and start that for you.', 'vergelabs-media-library' );
     }
 
     if ( 'unproposed' === $stage ) {
@@ -2506,8 +2506,8 @@ function vergeml_librarian_menu() {
 
     add_submenu_page(
         VERGEML_MENU,
-        __( 'Librarian', 'vergelabs-media-library' ),
-        __( 'Librarian', 'vergelabs-media-library' ),
+        __( 'Sort into folders', 'vergelabs-media-library' ),
+        __( 'Sort into folders', 'vergelabs-media-library' ),
         'manage_categories',
         'media-librarian',
         'vergeml_librarian_page'
@@ -2551,7 +2551,7 @@ function vergeml_librarian_assets( $hook ) {
         'l10n'    => array(
             /* the ladder */
             'ladderScan'      => __( 'Read the library first', 'vergelabs-media-library' ),
-            'ladderScanNote'  => __( 'Reading every file once tells the Librarian which files are copies of each other, so nothing is described — or counted — twice. It changes nothing.', 'vergelabs-media-library' ),
+            'ladderScanNote'  => __( 'Opening every file once tells us which are copies of each other, so the same picture is not counted — or paid for — twice. It changes nothing.', 'vergelabs-media-library' ),
             'ladderScanGo'    => __( 'Scan the library', 'vergelabs-media-library' ),
             'ladderIndex'     => __( 'Describe the pictures', 'vergelabs-media-library' ),
             'ladderIndexNote' => __( 'The subject tree is built from what the pictures show, so they have to be described before there is anything to group. Filing by date needs none of this.', 'vergelabs-media-library' ),
@@ -2671,7 +2671,7 @@ function vergeml_librarian_page() {
     <div class="wrap vgml-home vgml-librarian"<?php echo '' !== $accent ? ' style="--vgml-accent: ' . esc_attr( $accent ) . '"' : ''; ?>>
 
         <div class="vgml-home-head">
-            <h1><?php esc_html_e( 'Librarian', 'vergelabs-media-library' ); ?></h1>
+            <h1><?php esc_html_e( 'Sort into folders', 'vergelabs-media-library' ); ?></h1>
             <p class="vgml-home-counts" id="vgml-lib-counts"><?php esc_html_e( 'Loading…', 'vergelabs-media-library' ); ?></p>
         </div>
 

@@ -756,7 +756,7 @@ function vergeml_autofile_rest_act( WP_REST_Request $request ) {
     }
 
     if ( 'accept' !== $action ) {
-        return new WP_Error( 'vergeml_autofile_unknown_action', __( 'That is not something to do with a suggestion.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+        return new WP_Error( 'vergeml_autofile_unknown_action', __( 'That is not something you can do with a suggestion.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
 
     $done = vergeml_autofile_file( $attachment_id, $term_id, 'accepted' );
@@ -784,10 +784,10 @@ function vergeml_autofile_card() {
 
     ?>
     <div class="vgml-ai-card">
-        <h2><?php esc_html_e( 'File what is still loose', 'vergelabs-media-library' ); ?></h2>
+        <h2><?php esc_html_e( 'Suggest a folder for each file', 'vergelabs-media-library' ); ?></h2>
         <p class="description"><?php esc_html_e( 'Takes the files that are in no folder, looks at what is in each picture, and points at the folder it most resembles. We suggest, you decide. Once you have accepted five suggestions for a folder and refused none, that folder starts taking new files by itself — and stops the moment you refuse one.', 'vergelabs-media-library' ); ?></p>
         <p>
-            <button type="button" class="button button-primary" id="vgml-autofile-run"><?php esc_html_e( 'Look for a home for them', 'vergelabs-media-library' ); ?></button>
+            <button type="button" class="button button-primary" id="vgml-autofile-run"><?php esc_html_e( 'Suggest folders', 'vergelabs-media-library' ); ?></button>
             <span id="vgml-autofile-note"></span>
         </p>
         <ul id="vgml-autofile-list" class="vgml-autofile-list"></ul>
@@ -836,7 +836,7 @@ function vergeml_autofile_assets( $hook ) {
         // string-replace on a global that WordPress happens to print is not a
         // way to know where a screen lives.
         'aiUrl'         => admin_url( 'admin.php?page=media-ai' ),
-        'nextPropose'   => __( 'None of the folders you already have is a close enough match. The Librarian below can work out new folders for these instead — it looks at what is in the pictures rather than trying to fit them into what exists.', 'vergelabs-media-library' ),
+        'nextPropose'   => __( 'None of the folders you already have is a close enough match. Sorting into folders, below, can work out new folders for these instead — it looks at what is in the pictures rather than trying to fit them into what exists.', 'vergelabs-media-library' ),
         'nextDescribe'  => __( 'We have not looked at %d of your loose files yet, so there is nothing to compare them against. Describe them on the AI screen and come back.', 'vergelabs-media-library' ),
         'nextNothing'   => __( 'Every file is in a folder. Nothing to do here.', 'vergelabs-media-library' ),
         'goPropose'     => __( 'Work out new folders', 'vergelabs-media-library' ),

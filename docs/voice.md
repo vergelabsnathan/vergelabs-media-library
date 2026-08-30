@@ -56,6 +56,30 @@ the first has an actor and a consequence, the second is a database state.
 The internal words are fine in code and in comments — the whole repo runs on
 them. They are not fine on a screen.
 
+## No invented names
+
+A feature is called what it does. "The Librarian" was a name we made up, so
+every sentence about it had to explain it first, and the nav item told you
+nothing. It is **Sort into folders**.
+
+| Was | Is |
+|---|---|
+| Librarian | Sort into folders |
+| File what is still loose | Suggest a folder for each file |
+| Say what you want | Type what you want done |
+| Set aside | Files you have taken out of the library |
+| Folders and taxonomies | Folders and categories |
+| Library behaviour | Library settings |
+| Look for a home for them | Suggest folders |
+
+The test is whether somebody who has never opened the plugin can tell what a
+menu item does from its label alone. "Librarian" fails it; "Sort into folders"
+passes. Straight and plain beats clever every time — clever costs a sentence of
+explanation on every screen it appears on.
+
+The function names, hooks and file names keep the old words. Those are code,
+and renaming them is churn with no reader.
+
 ## Say why, once, where it matters
 
 Alt text is the case that proves it. "12 images have no alt text" means

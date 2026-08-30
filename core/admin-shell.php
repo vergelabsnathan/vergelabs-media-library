@@ -66,8 +66,8 @@ function vergeml_shell_pages() {
         array(
             'slug'  => 'media-librarian',
             'icon'  => 'librarian',
-            'sub'   => __( 'Sort a library nobody filed', 'vergelabs-media-library' ),
-            'label' => __( 'Librarian', 'vergelabs-media-library' ),
+            'sub'   => __( 'Put unfiled files into folders', 'vergelabs-media-library' ),
+            'label' => __( 'Sort into folders', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
@@ -94,16 +94,16 @@ function vergeml_shell_pages() {
         array(
             'slug'  => 'media-taxonomies',
             'icon'  => 'folders',
-            'sub'   => __( 'What acts as a folder', 'vergelabs-media-library' ),
-            'label' => __( 'Folders and taxonomies', 'vergelabs-media-library' ),
+            'sub'   => __( 'Which categories act as folders', 'vergelabs-media-library' ),
+            'label' => __( 'Folders and categories', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
             'group' => 'settings',
         ),
         array(
             'slug'  => 'media-library',
             'icon'  => 'sliders',
-            'sub'   => __( 'Ordering, filters, uploads', 'vergelabs-media-library' ),
-            'label' => __( 'Library behaviour', 'vergelabs-media-library' ),
+            'sub'   => __( 'Ordering, filters and uploads', 'vergelabs-media-library' ),
+            'label' => __( 'Library settings', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
             'group' => 'settings',
         ),
