@@ -1311,6 +1311,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // adds a row to; inside the guard, because it hides things from the
         // media library and that has to be switchable off.
         include_once( 'core/quarantine.php' );
+        // Naming files after what is in them. After the index, whose stored
+        // title it applies and whose locked list it obeys; inside the guard,
+        // because it writes to posts.
+        include_once( 'core/rename.php' );
         // Last, because each of the three things in it stands on something
         // above: the health report's duplicate groups, the index's locked
         // fields, and the vectors auto-file reads.

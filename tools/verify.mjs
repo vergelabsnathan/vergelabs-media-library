@@ -171,6 +171,12 @@ const SUITES = [
 	 */
 	{ name: 'voice', file: 'tests/copy/voice.php', env: 'box', php: true },
 	/*
+	 *  Naming files after what is in them. Two of its three claims are about
+	 *  restraint -- never over a name somebody wrote, and never locking the
+	 *  file against being renamed again on the way past.
+	 */
+	{ name: 'rename', file: 'tests/rename/rename.php', env: 'box', php: true },
+	/*
 	 *  Two suites for the Librarian, and they answer different questions. The
 	 *  PHP one is about what applying and undoing actually do to the database
 	 *  -- assignments, folders, the moves log -- and needs real MySQL. The
