@@ -143,12 +143,18 @@ if ( use ) {
 
 console.log( `\n${ await where() }` );
 
-const names = await page.$$eval( '.vgml-lib-branch h3, .vgml-lib-branch .vgml-lib-branch-name', ( ns ) =>
-	ns.map( ( n ) => n.textContent.replace( /\s+/g, ' ' ).trim() )
+// The name is an <input> so it can be edited where it is read, which means
+// its value, not its text content -- reading textContent gave forty blanks.
+const names = await page.$$eval( '.vgml-lib-branch-name', ( ns ) =>
+	ns.map( ( n ) => `${ n.value }` )
+).catch( () => [] );
+
+const sizes = await page.$$eval( '.vgml-lib-branch-size', ( ns ) =>
+	ns.map( ( n ) => n.textContent.trim() )
 ).catch( () => [] );
 
 console.log( `  ${ names.length } folders proposed` );
-names.slice( 0, 25 ).forEach( ( n ) => console.log( `    ${ n }` ) );
+names.slice( 0, 40 ).forEach( ( n, i ) => console.log( `    ${ n }  (${ sizes[ i ] ?? '?' })` ) );
 
 await shot( '6-review' );
 

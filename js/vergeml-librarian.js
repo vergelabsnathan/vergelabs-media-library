@@ -37,6 +37,21 @@
 		return l10n[ key ] || fallback || '';
 	}
 
+	/*
+	 *  One file, not "1 files".
+	 *
+	 *  A folder holding one picture is common at the tail of any real library
+	 *  -- the review screen at five hundred files had six of them -- so this
+	 *  is not an edge case somebody sees once. wp.i18n's _n is not loaded on
+	 *  this screen, and loading it to choose between two strings that PHP has
+	 *  already translated would be the long way round.
+	 */
+	function count( n, key ) {
+		return 1 === Number( n )
+			? text( key + 'One', '1 file' )
+			: sprintf( text( key, '%s files' ), [ String( n ) ] );
+	}
+
 	function sprintf( template, values ) {
 		var i = 0;
 		return String( template )
@@ -602,6 +617,16 @@
 			stop.hidden = false;
 			note.textContent = '';
 			mode.textContent = text( 'keepOpen', '' );
+
+			/*
+			 *  Both of these are figures taken before the run started, and a
+			 *  figure that stopped being true while somebody watches it is
+			 *  worse than no figure. The bar says the same things, correctly,
+			 *  from here on.
+			 */
+			cost.say( '' );
+			anyway.hidden = true;
+
 			meter.start( done );
 			meter.set( done, total );
 			run();
@@ -645,6 +670,8 @@
 				go.disabled = true;
 				away.hidden = true;
 				stop.hidden = true;
+				cost.say( '' );
+				anyway.hidden = true;
 
 				meter.node.hidden = false;
 				meter.set( total - r.remaining, total );
@@ -725,10 +752,23 @@
 		}
 
 		apiFetch( { path: '/vergeml/v1/ai-status' } ).then( function ( r ) {
+
 			readStatus( r );
+
+			/*
+			 *  Somebody who described two hundred yesterday and came back
+			 *  today should see two hundred, not an empty bar. The figure
+			 *  survives the reload because it is the library's own count
+			 *  rather than anything this page was holding.
+			 */
+			if ( done > 0 ) {
+				meter.node.hidden = false;
+			}
+
 			meter.set( done, total );
 			offerAnyway();
 			watch();
+
 		} ).catch( function () {} );
 
 		var actions = el( 'p', 'vgml-flow-actions' );
@@ -888,7 +928,7 @@
 
 		if ( null !== scheme.total && undefined !== scheme.total ) {
 			wrap.appendChild( el( 'p', 'vgml-lib-scheme-total',
-				sprintf( text( 'schemeTotal', '%s files' ), [ String( scheme.total ) ] ) ) );
+				count( scheme.total, 'schemeTotal' ) ) );
 		}
 
 		var list = el( 'ul', 'vgml-lib-scheme-top' );
@@ -1063,7 +1103,7 @@
 		head.appendChild( name );
 
 		head.appendChild( el( 'span', 'vgml-lib-branch-size',
-			sprintf( text( 'branchSize', '%s files' ), [ String( branch.size ) ] ) ) );
+			count( branch.size, 'branchSize' ) ) );
 
 		wrap.appendChild( head );
 

@@ -2671,11 +2671,13 @@ function vergeml_librarian_assets( $hook ) {
             'notReady'        => __( 'Not available yet', 'vergelabs-media-library' ),
             /* translators: %s: how many files this way of sorting would file. */
             'schemeTotal'     => __( '%s files', 'vergelabs-media-library' ),
+            'schemeTotalOne'  => __( '1 file', 'vergelabs-media-library' ),
 
             /* the review */
             'back'            => __( 'Sort a different way instead', 'vergelabs-media-library' ),
             /* translators: %s: number of files in a folder. */
             'branchSize'      => __( '%s files', 'vergelabs-media-library' ),
+            'branchSizeOne'   => __( '1 file', 'vergelabs-media-library' ),
             'rename'          => __( 'Folder name', 'vergelabs-media-library' ),
             'refuse'          => __( 'Not this one', 'vergelabs-media-library' ),
             'flagged'         => __( 'The pictures in this one are less alike than the rest. Worth opening before you agree to it.', 'vergelabs-media-library' ),
