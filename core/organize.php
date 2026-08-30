@@ -74,6 +74,15 @@ const VERGEML_ORGANIZE_WIDTH = 6;
 // really in the branch. It goes to "Needs a look" rather than being forced.
 const VERGEML_ORGANIZE_OUTLIER = 3.0;
 
+/*
+ *  How much of a branch has to carry a tag before it can be the branch's name.
+ *
+ *  Half. A name is a claim about the whole folder, so a word a minority of the
+ *  files carry is not one -- see vergeml_organize_label for what happened
+ *  without this.
+ */
+const VERGEML_ORGANIZE_NAME_SHARE = 0.5;
+
 const VERGEML_ORGANIZE_ITERATIONS = 25;
 
 // Runs kept per site. Task 14, and the only destructive act in this phase --
@@ -942,10 +951,32 @@ function vergeml_organize_kmeans( $members, $k, $vectors ) {
  *
  *  What to call a branch.
  *
- *  The tags its members share, in order of how many share them, with the ones
- *  everything has thrown away -- a word that appears in every branch
- *  distinguishes nothing. No model call: a name is a summary of data already
- *  held, and paying per folder to be told "photos" is a poor trade.
+ *  One word: the thing most of the files in it actually are. No model call --
+ *  a name is a summary of data already held, and paying per folder to be told
+ *  "photos" is a poor trade.
+ *
+ *  This used to staple the top two tags together and title-case the result,
+ *  which produced "Account Basket", "Anna Catalogue" and "Boots Cover" on a
+ *  real library. Two faults, and the second is the one that hurt:
+ *
+ *  1.  Two tags with a space between them is not a name. English does not
+ *      work that way, and Title Case made every folder read as somebody's
+ *      surname.
+ *
+ *  2.  The score was share x (1/spread), so a tag ONE file carried could win
+ *      the whole folder as long as no other file in the library had it --
+ *      rarity was rewarded without any floor on how much of the branch the
+ *      word described. A word on 1 file in 34 beat a word on all 34.
+ *
+ *  So: only tags that at least half the branch carries are candidates at all,
+ *  and among those, share decides, with rarity elsewhere as a nudge rather
+ *  than a multiplier that spans orders of magnitude. Rarity still matters --
+ *  it is what stops every folder being called "photo" -- but it can no longer
+ *  overrule what the folder is.
+ *
+ *  A second word is added only when a sibling took the first (see
+ *  vergeml_organize_distinct_labels), and it is joined with "and", because
+ *  "Skincare and cosmetics" is a name and "Skincare Cosmetics" is not.
  */
 
 function vergeml_organize_label( $members, $global, $points ) {
@@ -967,12 +998,22 @@ function vergeml_organize_label( $members, $global, $points ) {
     $score = array();
 
     foreach ( $counts as $tag => $count ) {
-        $share         = $count / $total;
-        $spread        = isset( $global[ $tag ] ) ? $global[ $tag ] : 1;
-        $score[ $tag ] = $share * ( 1 / $spread );
+
+        $share = $count / $total;
+
+        // Not most of the branch, so not the branch's name.
+        if ( $share < VERGEML_ORGANIZE_NAME_SHARE ) {
+            continue;
+        }
+
+        $spread = max( 1, isset( $global[ $tag ] ) ? (int) $global[ $tag ] : 1 );
+
+        // Share decides; being rare elsewhere breaks the ties, and can at most
+        // double a tag's score rather than multiplying it by the library size.
+        $score[ $tag ] = $share * ( 1 + 1 / $spread );
     }
 
-    $words = array_slice( vergeml_organize_rank( $score ), 0, 2 );
+    $words = array_slice( vergeml_organize_rank( $score ), 0, 1 );
 
     if ( ! $words ) {
 
@@ -991,7 +1032,51 @@ function vergeml_organize_label( $members, $global, $points ) {
         return $kinds ? ucfirst( implode( ' and ', $kinds ) ) : __( 'Unsorted', 'vergelabs-media-library' );
     }
 
-    return ucwords( implode( ' ', $words ) );
+    return vergeml_organize_name_case( $words[0] );
+}
+
+
+/**
+ *  A tag as a folder name.
+ *
+ *  Sentence case, not Title Case. The tags are lowercase phrases -- "beauty
+ *  products", "circuit board" -- and capitalising every word turns them into
+ *  proper nouns: "Beauty Products" reads as a company, "Beauty products" reads
+ *  as a shelf. Acronyms the model returns in capitals are left alone.
+ */
+
+function vergeml_organize_name_case( $tag ) {
+
+    $tag = trim( (string) $tag );
+
+    if ( '' === $tag ) {
+        return '';
+    }
+
+    $first = vergeml_organize_substr( $tag, 0, 1 );
+
+    // Already capitalised, or an acronym: leave it as the model wrote it.
+    if ( $first === vergeml_organize_upper( $first ) ) {
+        return $tag;
+    }
+
+    return vergeml_organize_upper( $first ) . vergeml_organize_substr( $tag, 1 );
+}
+
+
+/** mb_* where the host has it, so an accented first letter is not cut in half. */
+function vergeml_organize_upper( $text ) {
+    return function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $text, 'UTF-8' ) : strtoupper( $text );
+}
+
+/** @see vergeml_organize_upper */
+function vergeml_organize_substr( $text, $start, $length = null ) {
+
+    if ( function_exists( 'mb_substr' ) ) {
+        return null === $length ? mb_substr( $text, $start, null, 'UTF-8' ) : mb_substr( $text, $start, $length, 'UTF-8' );
+    }
+
+    return null === $length ? substr( $text, $start ) : substr( $text, $start, $length );
 }
 
 
@@ -1007,7 +1092,9 @@ function vergeml_organize_label( $members, $global, $points ) {
  *  tells the reader nothing.
  *
  *  So a collision is resolved by looking further down each cluster's own
- *  ranked tags for something its rivals do not have. Where there is nothing --
+ *  ranked tags for something its rivals do not have, and joining it with
+ *  "and" -- "Skincare and cosmetics", which is a name, rather than "Skincare
+ *  Cosmetics", which is two words in a trenchcoat. Where there is nothing --
  *  which is the honest outcome when the members really are indistinguishable
  *  by tag -- it falls back to a numeral, because at that point the only true
  *  thing left to say is that this is the second one.
@@ -1047,7 +1134,7 @@ function vergeml_organize_distinct_labels( $clusters, $global, $points, $ancesto
 
         foreach ( $ranked[ $c ] as $tag ) {
 
-            $candidate = $label . ' ' . ucwords( $tag );
+            $candidate = $label . ' and ' . $tag;
 
             if ( ! isset( $taken[ $candidate ] ) && false === stripos( $label, $tag ) ) {
                 $resolved = $candidate;

@@ -158,6 +158,13 @@ const SUITES = [
 	 */
 	{ name: 'organize', file: 'tests/organize/test-organize.php', env: 'box', php: true },
 	/*
+	 *  What the folders end up called. Separate from the suite above because it
+	 *  is about one function and the answer is readable prose -- a run whose
+	 *  folders are "Account Basket" and "Anna Catalogue" passes every structural
+	 *  assertion the clusterer makes and is still unusable.
+	 */
+	{ name: 'naming', file: 'tests/organize/naming.php', env: 'box', php: true },
+	/*
 	 *  Two suites for the Librarian, and they answer different questions. The
 	 *  PHP one is about what applying and undoing actually do to the database
 	 *  -- assignments, folders, the moves log -- and needs real MySQL. The
