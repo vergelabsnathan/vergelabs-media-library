@@ -48,6 +48,45 @@ const VERGEML_HEALTH_MIN_SIDE = 64;
 // Hamming distance over the 64-bit dHash. At or under the first number two
 // files are the same picture; between the two they are worth a second look.
 const VERGEML_HEALTH_NEAR  = 5;
+
+/*
+ *  How much variation a perceptual hash needs before it may match anything.
+ *
+ *  A dhash records whether each pixel is brighter than the one beside it. On a
+ *  photograph of sky, fog, a blurred background or a smooth gradient there is
+ *  barely any horizontal change at the scale sampled, and the hash comes out
+ *  as one byte repeated: f0f0f0f0f0f0f0f0. Every such picture is then within a
+ *  few bits of every other such picture, whatever they are of.
+ *
+ *  Measured on a real library of 512: only 21 files had three or fewer
+ *  distinct bytes, and those 21 produced 93 groups between them -- a handful
+ *  of near-empty hashes matching each other combinatorially and dragging
+ *  unrelated photographs into a list headed "Duplicates", beside a delete
+ *  button. One group held five files of which two were genuinely identical
+ *  and three were a sky, a forest and a wall.
+ *
+ *  Four of eight distinct bytes is the floor. Below it the hash carries no
+ *  usable information and the honest thing is to say nothing rather than
+ *  something confident and wrong. Byte-identical matching is untouched by
+ *  this -- an md5 is an md5 however smooth the picture.
+ */
+const VERGEML_HEALTH_MIN_BYTES = 4;
+
+
+/**
+ *  Whether a perceptual hash has enough variation to be compared at all.
+ */
+
+function vergeml_health_hash_usable( $dhash ) {
+
+    $dhash = (string) $dhash;
+
+    if ( 16 !== strlen( $dhash ) ) {
+        return false;
+    }
+
+    return count( array_unique( str_split( $dhash, 2 ) ) ) >= VERGEML_HEALTH_MIN_BYTES;
+}
 const VERGEML_HEALTH_LOOSE = 10;
 
 // Groups returned per list. A library with more than this many duplicate groups
@@ -592,6 +631,20 @@ function vergeml_health_near_pairs( $pairs, $exclude ) {
     $bands = array();
 
     foreach ( $pairs as $id => $dhash ) {
+
+        /*
+         *  A hash with almost no variation in it is not compared to anything.
+         *
+         *  Sky, fog, blur and smooth gradients all hash to one byte repeated,
+         *  so every one of them is within a few bits of every other -- and the
+         *  banding below then puts them all in the same bucket, where each
+         *  gets compared to each. Twenty-one such files on a real library made
+         *  ninety-three groups between them.
+         */
+        if ( ! vergeml_health_hash_usable( $dhash ) ) {
+            continue;
+        }
+
         for ( $band = 0; $band < 4; $band++ ) {
             $bands[ $band . ':' . substr( $dhash, $band * 4, 4 ) ][] = $id;
         }
@@ -919,7 +972,17 @@ function vergeml_health_report() {
 
     $split = vergeml_health_near_pairs( vergeml_health_dhash_pairs(), $seen );
 
-    $duplicates = vergeml_health_cluster( array_merge( $exact_pairs, $split['near'] ) );
+    /*
+     *  Duplicates are byte-identical. Nothing else.
+     *
+     *  Near matches used to be merged in here, so a list headed "Duplicates"
+     *  contained files that merely looked alike to a 64-bit hash -- and a
+     *  person reading that heading, beside a delete button, is entitled to
+     *  take it literally. Two files with the same md5 ARE the same file; two
+     *  files five bits apart are a guess, and a guess belongs under "Possibly
+     *  related", which already exists and already says so.
+     */
+    $duplicates = vergeml_health_cluster( $exact_pairs );
 
     /*
      *  The two lists are disjoint, and that is what keeps the total honest.
@@ -939,7 +1002,9 @@ function vergeml_health_report() {
 
     $loose = array();
 
-    foreach ( $split['loose'] as $pair ) {
+    // Everything the hash merely thinks is alike, near and loose together,
+    // minus anything already named as byte-identical above.
+    foreach ( array_merge( $split['near'], $split['loose'] ) as $pair ) {
         if ( ! isset( $placed[ $pair[0] ] ) && ! isset( $placed[ $pair[1] ] ) ) {
             $loose[] = $pair;
         }
@@ -1126,9 +1191,11 @@ function vergeml_health_assets( $hook ) {
             'dupeNote'     => __( 'Identical files, or the same picture saved at a different size or quality.', 'vergelabs-media-library' ),
             'relatedNote'  => __( 'These look similar, but we are not confident they are the same picture. Worth your own eye before you do anything.', 'vergelabs-media-library' ),
             /* translators: %s: a formatted file size, e.g. "4.2 MB". */
-            'groupWasted'  => __( '%s potentially recoverable', 'vergelabs-media-library' ),
+            /* translators: %s: disk space, e.g. "182.7 KB". */
+            'groupWasted'  => __( 'Keep one, delete the rest, and you get %s back', 'vergelabs-media-library' ),
             /* translators: 1: number of groups, 2: a formatted file size. */
-            'summary'      => __( '%1$s groups · %2$s potentially recoverable', 'vergelabs-media-library' ),
+            /* translators: 1: how many sets, 2: disk space, e.g. "9 MB". */
+            'summary'      => __( '%1$s sets of the same picture · keeping one of each frees %2$s', 'vergelabs-media-library' ),
             /* translators: %s: number of further groups not shown. */
             'more'         => __( 'and %s more', 'vergelabs-media-library' ),
             'readOnly'     => __( 'Nothing on this page deletes, moves or changes anything. It shows you what we found; what to do about it is yours, in the media library.', 'vergelabs-media-library' ),
