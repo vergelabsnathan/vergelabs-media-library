@@ -185,7 +185,7 @@ function vergeml_taxonomies_validate( $input ) {
     add_settings_error(
         'media-taxonomies',
         'eml_taxonomy_settings_saved',
-        __('Media Taxonomies settings saved.', 'vergelabs-media-library'),
+        __('Folders and categories settings saved.', 'vergelabs-media-library'),
         'updated'
     );
 

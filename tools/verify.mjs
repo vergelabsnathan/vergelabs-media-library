@@ -165,6 +165,12 @@ const SUITES = [
 	 */
 	{ name: 'naming', file: 'tests/organize/naming.php', env: 'box', php: true },
 	/*
+	 *  The words, against the list of words docs/voice.md forbids. A rule that
+	 *  lived only in a markdown table for months while the plugin shipped a
+	 *  button reading "Propose a tree".
+	 */
+	{ name: 'voice', file: 'tests/copy/voice.php', env: 'box', php: true },
+	/*
 	 *  Two suites for the Librarian, and they answer different questions. The
 	 *  PHP one is about what applying and undoing actually do to the database
 	 *  -- assignments, folders, the moves log -- and needs real MySQL. The

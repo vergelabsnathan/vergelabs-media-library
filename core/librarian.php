@@ -924,7 +924,7 @@ function vergeml_librarian_plan( $scheme, $run_id, $branches, $taxonomy ) {
         return new WP_Error(
             'vergeml_librarian_no_tree',
             'subject' === $scheme
-                ? __( 'There is no finished proposal to apply. Run the organiser first.', 'vergelabs-media-library' )
+                ? __( 'There are no folders worked out yet. Do the “Work out the folders” step first.', 'vergelabs-media-library' )
                 : __( 'This library has no files to file.', 'vergelabs-media-library' ),
             array( 'status' => 409 )
         );
@@ -1173,7 +1173,7 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
     if ( '' === $taxonomy ) {
         return new WP_Error(
             'vergeml_librarian_no_taxonomy',
-            __( 'No media taxonomy is switched on, so there is nowhere to file anything.', 'vergelabs-media-library' ),
+            __( 'No category is set up to act as a folder yet, so there is nowhere to put anything.', 'vergelabs-media-library' ),
             array( 'status' => 409 )
         );
     }

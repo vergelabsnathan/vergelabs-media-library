@@ -94,7 +94,7 @@ function vergeml_register_gallery_block() {
             'layoutGrid'  => __( 'Grid', 'vergelabs-media-library' ),
             'layoutCarousel' => __( 'Carousel', 'vergelabs-media-library' ),
             'linkFile'    => __( 'The image file', 'vergelabs-media-library' ),
-            'linkPage'    => __( 'The attachment page', 'vergelabs-media-library' ),
+            'linkPage'    => __( 'The file’s own page', 'vergelabs-media-library' ),
             'order'       => __( 'Order', 'vergelabs-media-library' ),
             'orderName'   => __( 'By name', 'vergelabs-media-library' ),
             'orderDate'   => __( 'Newest first', 'vergelabs-media-library' ),

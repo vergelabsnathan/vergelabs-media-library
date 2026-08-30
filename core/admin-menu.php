@@ -193,7 +193,7 @@ function vergeml_admin_home() {
         array(
             'page'  => 'media-taxonomies',
             'title' => __( 'Folders and categories', 'vergelabs-media-library' ),
-            'text'  => __( 'Which taxonomies act as folders, what they are called, and which post types they apply to.', 'vergelabs-media-library' ),
+            'text'  => __( 'Which of your categories act as folders, what they are called, and which kinds of content they apply to.', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
         ),
         array(
@@ -280,7 +280,7 @@ function vergeml_admin_home() {
             <?php
             printf(
                 /* translators: %s: link to the media library. */
-                esc_html__( 'The folder tree itself lives on the %s.', 'vergelabs-media-library' ),
+                esc_html__( 'Your folders themselves live on the %s.', 'vergelabs-media-library' ),
                 '<a href="' . esc_url( admin_url( 'upload.php' ) ) . '">' . esc_html__( 'media library screen', 'vergelabs-media-library' ) . '</a>'
             );
             ?>

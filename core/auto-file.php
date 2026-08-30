@@ -399,7 +399,7 @@ function vergeml_autofile_file( $attachment_id, $term_id, $how ) {
     $taxonomy = vergeml_librarian_taxonomy();
 
     if ( '' === $taxonomy ) {
-        return new WP_Error( 'vergeml_autofile_no_taxonomy', __( 'No media taxonomy is switched on.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
+        return new WP_Error( 'vergeml_autofile_no_taxonomy', __( 'No category is set up to act as a folder yet.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
     }
 
     $attachment_id = (int) $attachment_id;

@@ -2585,7 +2585,7 @@ function vergeml_organize_refine_plan( $parent_run_id, $refine ) {
     if ( ! $wanted ) {
         return new WP_Error(
             'vergeml_organize_no_refine',
-            __( 'Name at least one branch to split or merge.', 'vergelabs-media-library' ),
+            __( 'Name at least one folder to split or merge.', 'vergelabs-media-library' ),
             array( 'status' => 400 )
         );
     }
@@ -2624,7 +2624,7 @@ function vergeml_organize_refine_plan( $parent_run_id, $refine ) {
     if ( ! $ids ) {
         return new WP_Error(
             'vergeml_organize_empty_refine',
-            __( 'Those branches hold no files.', 'vergelabs-media-library' ),
+            __( 'Those folders hold no files.', 'vergelabs-media-library' ),
             array( 'status' => 400 )
         );
     }

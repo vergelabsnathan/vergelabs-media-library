@@ -78,9 +78,9 @@ function vergeml_help_texts() {
 
         'tax_archives' => __( 'Gives every media category its own public page on your site, the way category pages work for posts. Most sites do not want this. Re-save your permalinks after changing it.', 'vergelabs-media-library' ),
 
-        'edit_all_as_hierarchical' => __( 'Show tag-style taxonomies with tick boxes instead of a text field when you edit a file. Easier to pick from a known list, worse for inventing new tags as you go.', 'vergelabs-media-library' ),
+        'edit_all_as_hierarchical' => __( 'Show tag-style categories with tick boxes instead of a text field when you edit a file. Easier to pick from a known list, worse for inventing new tags as you go.', 'vergelabs-media-library' ),
 
-        'one_folder_per_file' => __( 'On, a file lives in exactly one folder and dragging moves it — the way a folder tree normally behaves. Off, a file can be in several at once and dragging adds it to another. Nothing already filed changes either way.', 'vergelabs-media-library' ),
+        'one_folder_per_file' => __( 'On, a file lives in exactly one folder and dragging moves it — the way folders normally behave. Off, a file can be in several at once and dragging adds it to another. Nothing already filed changes either way.', 'vergelabs-media-library' ),
 
         /* ----------------------------------------------------- the network */
 

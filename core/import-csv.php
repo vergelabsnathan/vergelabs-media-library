@@ -166,7 +166,7 @@ function vergeml_csv_download() {
     $taxonomy = isset( $_GET['taxonomy'] ) ? sanitize_key( wp_unslash( $_GET['taxonomy'] ) ) : '';
 
     if ( ! in_array( $taxonomy, vergeml_tree_taxonomies(), true ) ) {
-        wp_die( esc_html__( 'That is not a folder taxonomy.', 'vergelabs-media-library' ) );
+        wp_die( esc_html__( 'That is not a category that acts as a folder.', 'vergelabs-media-library' ) );
     }
 
     $rows = vergeml_csv_export_rows( $taxonomy );
@@ -304,7 +304,7 @@ function vergeml_csv_parse( $text ) {
         if ( ! ctype_digit( $raw ) ) {
             $problems[] = sprintf(
                 /* translators: 1: line number, 2: the value found. */
-                __( 'Line %1$d: “%2$s” is not an attachment id.', 'vergelabs-media-library' ),
+                __( 'Line %1$d: “%2$s” is not a file id.', 'vergelabs-media-library' ),
                 $line,
                 $raw
             );
@@ -341,7 +341,7 @@ function vergeml_csv_parse( $text ) {
         $problems[] = sprintf(
             /* translators: %s: how many ids were not attachments on this site. */
             _n(
-                '%s row named an id that is not an attachment on this site, and was skipped.',
+                '%s row named an id that is not a file on this site, and was skipped.',
                 '%s rows named an id that is not an attachment on this site, and were skipped.',
                 $unknown,
                 'vergelabs-media-library'
