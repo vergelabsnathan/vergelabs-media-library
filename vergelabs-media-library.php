@@ -1315,6 +1315,9 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // title it applies and whose locked list it obeys; inside the guard,
         // because it writes to posts.
         include_once( 'core/rename.php' );
+        // Renaming the file on disk, which needs both the index (for the name)
+        // and smart-folders (for what points at it) already loaded.
+        include_once( 'core/rename-file.php' );
         // Editing a file from the list it is in. After the index, whose lock
         // on a hand-written field is the whole reason this is safe.
         include_once( 'core/quick-edit.php' );

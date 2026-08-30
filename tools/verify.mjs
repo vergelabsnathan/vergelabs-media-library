@@ -177,6 +177,12 @@ const SUITES = [
 	 */
 	{ name: 'rename', file: 'tests/rename/rename.php', env: 'box', php: true },
 	/*
+	 *  Renaming the file on disk. The box, because it moves real files beside
+	 *  their generated sizes and rewrites real post content -- and because a
+	 *  rename that half-works is a broken image on somebody's page.
+	 */
+	{ name: 'rename-files', file: 'tests/rename/files.php', env: 'box', php: true },
+	/*
 	 *  Two suites for the Librarian, and they answer different questions. The
 	 *  PHP one is about what applying and undoing actually do to the database
 	 *  -- assignments, folders, the moves log -- and needs real MySQL. The
