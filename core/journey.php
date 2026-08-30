@@ -239,6 +239,140 @@ function vergeml_journey_score() {
 }
 
 
+/**
+ *  The second, sterner half of renaming: the file on disk.
+ *
+ *  Kept apart from the title rename rather than folded into it, because they
+ *  are not the same risk wearing two labels. A title is a field in a database
+ *  and changing it breaks nothing. A filename is a URL, and every <img src>
+ *  already written into a page points at the old one.
+ *
+ *  So it is offered second, worded plainly about what it will and will not
+ *  reach, and it says nothing at all until the scan that makes it safe has
+ *  finished -- without that scan we do not know what points at the file, and
+ *  the offer would be a guess dressed as a feature.
+ */
+
+function vergeml_journey_file_rename() {
+
+    if ( ! function_exists( 'vergeml_file_pending' ) || ! current_user_can( 'manage_options' ) ) {
+        return null;
+    }
+
+    $scanned = function_exists( 'vergeml_smart_scan_state' )
+        && ! empty( vergeml_smart_scan_state()['finished'] );
+
+    if ( ! $scanned ) {
+        return array(
+            'blocked' => __( 'Renaming the files themselves needs the usage scan finished first — that is how we know which pages point at each file, so we can update them in the same go.', 'vergelabs-media-library' ),
+        );
+    }
+
+    $n = count( vergeml_file_pending() );
+
+    if ( 0 === $n ) {
+        return null;
+    }
+
+    return array(
+        'count' => sprintf(
+            /* translators: %s: how many files could be renamed on disk. */
+            _n(
+                '%s file could also be renamed on disk — “vgml-fx-real-498.jpg” to “red-synthesizer-with-controls.jpg”.',
+                '%s files could also be renamed on disk — “vgml-fx-real-498.jpg” to “red-synthesizer-with-controls.jpg”.',
+                $n,
+                'vergelabs-media-library'
+            ),
+            number_format_i18n( $n )
+        ),
+        'note'  => __( 'We move the file and every size of it, and update every page we can see pointing at it. What we cannot reach is a link written into a theme file or a stylesheet, or a page somebody has cached. One click puts it all back.', 'vergelabs-media-library' ),
+        'go'    => __( 'Rename the files too', 'vergelabs-media-library' ),
+        'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_file_rename' ), 'vergeml_do_file_rename' ),
+    );
+}
+
+
+add_action( 'admin_post_vergeml_do_file_rename', 'vergeml_journey_do_file_rename' );
+
+function vergeml_journey_do_file_rename() {
+
+    // Moves files and edits other posts to match. Closer to a migration than
+    // to editing a caption, and the capability says so.
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
+    }
+
+    check_admin_referer( 'vergeml_do_file_rename' );
+
+    $done = function_exists( 'vergeml_file_rename_many' )
+        ? count( vergeml_file_rename_many( vergeml_file_pending( 200 ) ) )
+        : 0;
+
+    wp_safe_redirect( add_query_arg( 'vgml_files_renamed', $done, vergeml_journey_url( VERGEML_MENU ) ) );
+    exit;
+}
+
+
+add_action( 'admin_post_vergeml_undo_file_rename', 'vergeml_journey_undo_file_rename' );
+
+function vergeml_journey_undo_file_rename() {
+
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
+    }
+
+    check_admin_referer( 'vergeml_undo_file_rename' );
+
+    $back = function_exists( 'vergeml_file_undo' ) ? count( vergeml_file_undo() ) : 0;
+
+    wp_safe_redirect( add_query_arg( 'vgml_files_back', $back, vergeml_journey_url( VERGEML_MENU ) ) );
+    exit;
+}
+
+
+add_action( 'admin_notices', 'vergeml_journey_file_notice' );
+
+function vergeml_journey_file_notice() {
+
+    if ( isset( $_GET['vgml_files_renamed'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+        $n = (int) $_GET['vgml_files_renamed']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+        printf(
+            '<div class="notice notice-success is-dismissible"><p>%s <a href="%s">%s</a></p></div>',
+            esc_html(
+                sprintf(
+                    /* translators: %s: how many files were renamed on disk. */
+                    _n( '%s file renamed, and the pages pointing at it updated.', '%s files renamed, and the pages pointing at them updated.', $n, 'vergelabs-media-library' ),
+                    number_format_i18n( $n )
+                )
+            ),
+            esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_undo_file_rename' ), 'vergeml_undo_file_rename' ) ),
+            esc_html__( 'Put the old filenames back', 'vergelabs-media-library' )
+        );
+
+        return;
+    }
+
+    if ( ! isset( $_GET['vgml_files_back'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        return;
+    }
+
+    $n = (int) $_GET['vgml_files_back']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+    printf(
+        '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+        esc_html(
+            sprintf(
+                /* translators: %s: how many files got their old filename back. */
+                _n( '%s file has its old filename back.', '%s files have their old filenames back.', $n, 'vergelabs-media-library' ),
+                number_format_i18n( $n )
+            )
+        )
+    );
+}
+
+
 /*
  *  A screen of ours, by slug.
  *
@@ -672,6 +806,7 @@ function vergeml_journey_todo() {
         'go'    => __( 'Rename them', 'vergelabs-media-library' ),
         'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_rename' ), 'vergeml_do_rename' ),
         'done'  => __( 'Every file is named after what it shows.', 'vergelabs-media-library' ),
+        'more'  => vergeml_journey_file_rename(),
     );
 
     /* ----------------------------------------------------------- folders */
@@ -969,6 +1104,20 @@ function vergeml_journey_screen() {
                         </p>
                     <?php else : ?>
                         <p class="vgml-do-line is-done"><?php echo esc_html( $item['done'] ); ?></p>
+                    <?php endif; ?>
+
+                    <?php if ( ! empty( $item['more'] ) ) : ?>
+                        <div class="vgml-do-more">
+                            <?php if ( ! empty( $item['more']['blocked'] ) ) : ?>
+                                <p class="vgml-do-blocked"><?php echo esc_html( $item['more']['blocked'] ); ?></p>
+                            <?php else : ?>
+                                <p class="vgml-do-more-count"><?php echo esc_html( $item['more']['count'] ); ?></p>
+                                <p class="vgml-do-note"><?php echo esc_html( $item['more']['note'] ); ?></p>
+                                <p class="vgml-flow-actions">
+                                    <a class="button" href="<?php echo esc_url( $item['more']['url'] ); ?>"><?php echo esc_html( $item['more']['go'] ); ?></a>
+                                </p>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
