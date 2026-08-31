@@ -1039,11 +1039,26 @@ function vergeml_health_report() {
 
             $items = array();
             $sizes = array();
+            $live  = array();
 
             foreach ( $group as $id ) {
                 if ( isset( $files[ $id ] ) ) {
-                    $items[] = $files[ $id ];
-                    $sizes[] = (int) $files[ $id ]['bytes'];
+
+                    $item = $files[ $id ];
+
+                    /*
+                     *  How many places use this copy. The screen needs it to
+                     *  explain which one it proposes keeping, and -1 means the
+                     *  usage scan has not run -- which is not the same as zero
+                     *  and must not be drawn as though it were.
+                     */
+                    $item['uses'] = function_exists( 'vergeml_health_used_count' )
+                        ? vergeml_health_used_count( $id )
+                        : -1;
+
+                    $items[] = $item;
+                    $sizes[] = (int) $item['bytes'];
+                    $live[]  = (int) $id;
                 }
             }
 
@@ -1057,6 +1072,15 @@ function vergeml_health_report() {
             $out[] = array(
                 'items'  => $items,
                 'wasted' => $group_wasted,
+
+                /*
+                 *  Which copy we would keep. From the same function the delete
+                 *  route uses, so the screen cannot propose one thing while
+                 *  the button does another.
+                 */
+                'keep'   => function_exists( 'vergeml_health_pick_keep' )
+                    ? vergeml_health_pick_keep( $live )
+                    : ( $live ? $live[0] : 0 ),
             );
         }
 
@@ -1198,7 +1222,52 @@ function vergeml_health_assets( $hook ) {
             'summary'      => __( '%1$s sets of the same picture · keeping one of each frees %2$s', 'vergelabs-media-library' ),
             /* translators: %s: number of further groups not shown. */
             'more'         => __( 'and %s more', 'vergelabs-media-library' ),
-            'readOnly'     => __( 'Nothing on this page deletes, moves or changes anything. It shows you what we found; what to do about it is yours, in the media library.', 'vergelabs-media-library' ),
+            'careful'      => __( 'Only byte-identical files can be deleted here, because only those can be deleted without losing anything. Files that merely look similar are listed separately and have no delete button — decide those yourself, in the media library.', 'vergelabs-media-library' ),
+            'keepThis'     => __( 'Keep this one', 'vergelabs-media-library' ),
+            /* translators: %s: how many files are in this set. */
+            'countOne'     => __( '%s file', 'vergelabs-media-library' ),
+            /* translators: %s: how many files are in this set. */
+            'countMany'    => __( '%s files', 'vergelabs-media-library' ),
+            'usesNone'     => __( 'Used nowhere', 'vergelabs-media-library' ),
+            'usesUnknown'  => __( 'Usage not scanned', 'vergelabs-media-library' ),
+            /* translators: %s: number of places the file is used. */
+            'usesOne'      => __( 'Used in %s place', 'vergelabs-media-library' ),
+            /* translators: %s: number of places the file is used. */
+            'usesMany'     => __( 'Used in %s places', 'vergelabs-media-library' ),
+            'deleteOne'    => __( 'Delete the other copy', 'vergelabs-media-library' ),
+            /* translators: %s: how many copies would be deleted. */
+            'deleteMany'   => __( 'Delete the other %s copies', 'vergelabs-media-library' ),
+            /* translators: %s: how many files will be deleted. */
+            'confirmOne'   => __( 'Yes, delete %s file permanently', 'vergelabs-media-library' ),
+            /* translators: %s: how many files will be deleted. */
+            'confirmMany'  => __( 'Yes, delete %s files permanently', 'vergelabs-media-library' ),
+            'pickOne'      => __( 'Choose which copy to keep first.', 'vergelabs-media-library' ),
+            'noUndo'       => __( 'The files are removed from disk. Anything pointing at them is repointed at the copy you keep first. There is no undo.', 'vergelabs-media-library' ),
+            'deleting'     => __( 'Deleting…', 'vergelabs-media-library' ),
+            /* translators: 1: posts updated, 2: featured images updated. */
+            'repointed'    => __( '%1\$s posts and %2\$s featured images now point at the copy you kept.', 'vergelabs-media-library' ),
+
+            /*
+             *  Doing the whole list at once. A library with two hundred
+             *  duplicate sets is the normal case, and two hundred separate
+             *  confirmations is a reason to leave the duplicates there.
+             */
+            'selectSet'    => __( 'Select this set', 'vergelabs-media-library' ),
+            'selectAll'    => __( 'Select every set', 'vergelabs-media-library' ),
+            /* translators: %s: how many sets of copies are ticked. */
+            'chosenOne'    => __( '%s set selected', 'vergelabs-media-library' ),
+            /* translators: %s: how many sets of copies are ticked. */
+            'chosenMany'   => __( '%s sets selected', 'vergelabs-media-library' ),
+            /* translators: %s: how many sets of copies are ticked. */
+            'bulkDelete'   => __( 'Delete the extra copies in %s sets', 'vergelabs-media-library' ),
+            /* translators: %s: how many files will go across every ticked set. */
+            'bulkConfirm'  => __( 'Yes, delete %s files permanently', 'vergelabs-media-library' ),
+            /* translators: 1: the set being worked on, 2: how many sets in all. */
+            'bulkProgress' => __( 'Set %1\$s of %2\$s…', 'vergelabs-media-library' ),
+            /* translators: 1: how many files went, 2: how many sets they came from. */
+            'bulkDone'     => __( 'Deleted %1\$s files across %2\$s sets.', 'vergelabs-media-library' ),
+            'stop'         => __( 'Stop', 'vergelabs-media-library' ),
+            'stopping'     => __( 'Stopping after this one…', 'vergelabs-media-library' ),
         ),
     ) );
 }
