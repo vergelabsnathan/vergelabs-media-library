@@ -9,6 +9,7 @@
     "deploy:zip": "node tools/deploy.mjs --zip",
     "deploy:box": "node tools/deploy.mjs --box",
     "smoke": "node tools/deploy.mjs --box && node tools/smoke.mjs",
+    "flow:health": "node tools/flow-health.mjs",
     "verify": "node tools/verify.mjs",
     "test:tree": "node tests/tree/t0-endpoints.js",
     "test:builders": "node tests/builders/compat.mjs",
