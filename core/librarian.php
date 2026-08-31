@@ -2890,10 +2890,13 @@ function vergeml_librarian_page() {
     ?>
     <div class="wrap vgml-home vgml-librarian"<?php echo '' !== $accent ? ' style="--vgml-accent: ' . esc_attr( $accent ) . '"' : ''; ?>>
 
-        <div class="vgml-home-head">
-            <h1><?php esc_html_e( 'Sort into folders', 'vergelabs-media-library' ); ?></h1>
-            <p class="vgml-home-counts" id="vgml-lib-counts"><?php esc_html_e( 'Loading…', 'vergelabs-media-library' ); ?></p>
-        </div>
+        <?php
+        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Sort into folders', 'vergelabs-media-library' ),
+            __( 'A folder structure proposed from your pictures, and shown to you before anything moves.', 'vergelabs-media-library' ),
+            '<span class="vgml-home-counts" id="vgml-lib-counts">' . esc_html__( 'Loading…', 'vergelabs-media-library' ) . '</span>'
+        );
+        ?>
 
         <?php
         /*
@@ -2930,6 +2933,20 @@ function vergeml_librarian_page() {
             </div>
 
         </div>
+
+        <?php
+        /*
+         *  Always visible, unlike everything below.
+         *
+         *  What is under vgml-after-flow is a follow-up to finishing the run,
+         *  and stays hidden until it finishes. Saying what you want the
+         *  folders to be is not a follow-up: it is most useful on a library
+         *  that already has folders somebody is unhappy with, which is
+         *  precisely the library that never reaches the last step. Hiding it
+         *  there would hide it from everyone who needs it.
+         */
+        do_action( 'vergeml_librarian_page_top' );
+        ?>
 
         <?php
         /*

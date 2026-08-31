@@ -1282,20 +1282,28 @@ function vergeml_health_page() {
     ?>
     <div class="wrap vgml-home vgml-health">
 
-        <div class="vgml-home-head">
-            <h1><?php esc_html_e( 'Library health', 'vergelabs-media-library' ); ?></h1>
-            <p class="vgml-home-counts" id="vgml-health-counts"><?php esc_html_e( 'Loading…', 'vergelabs-media-library' ); ?></p>
-        </div>
+        <?php
+        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Duplicates', 'vergelabs-media-library' ),
+            __( 'The same picture uploaded twice, or saved again at another size. Scanning changes nothing.', 'vergelabs-media-library' ),
+            '<span class="vgml-home-counts" id="vgml-health-counts">' . esc_html__( 'Loading…', 'vergelabs-media-library' ) . '</span>'
+        );
 
-        <div class="vgml-ai-card">
-            <h2><?php esc_html_e( 'Duplicate files', 'vergelabs-media-library' ); ?></h2>
-            <p class="description"><?php esc_html_e( 'Most libraries have the same photo in them two or three times — uploaded twice, or saved again at a different size. We open each file once and compare them. Nothing is changed and nothing is deleted.', 'vergelabs-media-library' ); ?></p>
-            <p>
-                <button type="button" class="button button-primary" id="vgml-health-scan"><?php esc_html_e( 'Scan the library', 'vergelabs-media-library' ); ?></button>
-            </p>
+        echo vergeml_pg_card_open( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Compare the library', 'vergelabs-media-library' ),
+            array( 'note' => __( 'Every file is opened once and compared. Nothing is deleted by scanning.', 'vergelabs-media-library' ) )
+        );
+        ?>
             <div class="vgml-import-bar" id="vgml-health-bar" hidden><div class="vgml-import-fill" id="vgml-health-fill"></div></div>
-            <p id="vgml-health-note"></p>
-        </div>
+            <p id="vgml-health-note" class="vgml-pg-row-help" style="margin:0"></p>
+        <?php
+        echo '</div>'; // the body, before the foot.
+        echo vergeml_pg_actions( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            '<button type="button" class="button button-primary" id="vgml-health-scan">'
+                . esc_html__( 'Scan the library', 'vergelabs-media-library' ) . '</button>'
+        );
+        echo '</section>';
+        ?>
 
         <div id="vgml-health-report"></div>
 

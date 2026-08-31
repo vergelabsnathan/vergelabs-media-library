@@ -213,11 +213,12 @@ function vergeml_import_screen() {
     ?>
     <div class="wrap vgml-import">
 
-        <h1><?php esc_html_e( 'Import Folders', 'vergelabs-media-library' ); ?></h1>
-
-        <p class="description" style="max-width:46em">
-            <?php esc_html_e( 'Already sorted your media with another plugin? We can copy those folders over so you do not have to start again. The other plugin keeps everything exactly as it is, so you can go back whenever you like, and anything you bring over can be undone from this page.', 'vergelabs-media-library' ); ?>
-        </p>
+        <?php
+        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Import folders', 'vergelabs-media-library' ),
+            __( 'Bring folders over from another plugin or a CSV. The other plugin is left exactly as it is, and every import can be undone from here.', 'vergelabs-media-library' )
+        );
+        ?>
 
         <div id="vgml-import-app" data-taxonomies="<?php echo esc_attr( wp_json_encode( $taxonomies ) ); ?>">
             <p><span class="spinner is-active" style="float:none;margin:0 6px 0 0"></span><?php esc_html_e( 'Looking for folders to import…', 'vergelabs-media-library' ); ?></p>

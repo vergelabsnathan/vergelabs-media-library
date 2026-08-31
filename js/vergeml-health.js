@@ -541,19 +541,39 @@
 
 	function drawList( heading, note, empty, section, deletable ) {
 
-		var card = el( 'div', 'vgml-ai-card vgml-health-list' );
+		/*
+		 *  The same card the rest of the plugin draws in PHP -- a head with
+		 *  the title and its one-line note, then the body -- so a screen whose
+		 *  cards come from a script is not the one screen shaped differently.
+		 */
+		var card = el( 'section', 'vgml-pg-card vgml-health-list' );
+		var head = el( 'div', 'vgml-pg-card-head' );
+		var title = el( 'h2', 'vgml-pg-card-title', heading );
 
-		card.appendChild( el( 'h2', null, heading ) );
-		card.appendChild( el( 'p', 'description', note ) );
+		if ( note ) {
+			title.appendChild( el( 'span', 'vgml-pg-card-note', note ) );
+		}
+
+		head.appendChild( title );
+
+		if ( section.groups.length ) {
+			head.appendChild( el( 'span', 'vgml-health-summary',
+				sprintf( text( 'summary', '%1$s groups · %2$s potentially recoverable' ),
+					[ String( section.groups.length ), bytes( section.wasted ) ] ) ) );
+		}
+
+		card.appendChild( head );
 
 		if ( ! section.groups.length ) {
-			card.appendChild( el( 'p', 'vgml-health-empty', empty ) );
+			var none = el( 'div', 'vgml-pg-empty' );
+			none.appendChild( el( 'span', 'vgml-pg-empty-title', empty ) );
+			card.appendChild( none );
 			return card;
 		}
 
-		card.appendChild( el( 'p', 'vgml-health-summary',
-			sprintf( text( 'summary', '%1$s groups · %2$s potentially recoverable' ),
-				[ String( section.groups.length ), bytes( section.wasted ) ] ) ) );
+		var body = el( 'div', 'vgml-pg-card-body' );
+		card.appendChild( body );
+		card = body;
 
 		var entries = [];
 		var groups  = el( 'div', 'vgml-health-groups' );

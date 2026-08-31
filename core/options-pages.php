@@ -1780,12 +1780,17 @@ function vergeml_print_media_library_options() {
     // Named for the screen, not for the group it used to sit in: the menu entry
     // beside it says "Media Library", and a heading that disagrees with the thing
     // you just clicked is a small lie about where you are.
-    $title = __( 'Media Library', 'vergelabs-media-library' ); ?>
+    ?>
 
 
     <div id="vergeml-media-library-options-wrap" class="wrap eml-options">
 
-        <h1><?php echo esc_html( $title ); ?></h1>
+        <?php
+        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Library settings', 'vergelabs-media-library' ),
+            __( 'Ordering, filters, search and uploads on the media screen.', 'vergelabs-media-library' )
+        );
+        ?>
 
 
         <div id="poststuff">
@@ -2190,13 +2195,17 @@ function vergeml_print_taxonomies_options() {
     }
 
 
-    $vergeml_taxonomies = get_option( 'vergeml_taxonomies', array() );
-    $title = __( 'Media Taxonomies', 'vergelabs-media-library' ); ?>
+    $vergeml_taxonomies = get_option( 'vergeml_taxonomies', array() ); ?>
 
 
     <div id="vergeml-global-options-wrap" class="wrap eml-options">
 
-        <h1><?php echo esc_html( $title ); ?></h1>
+        <?php
+        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Folders and categories', 'vergelabs-media-library' ),
+            __( 'Which categories act as folders, and which other taxonomies apply to media.', 'vergelabs-media-library' )
+        );
+        ?>
 
 
         <div id="poststuff">
@@ -2616,16 +2625,17 @@ function vergeml_print_mimetypes_options() {
     }
 
 
-    $vergeml_mimes = get_option('vergeml_mimes');
-
-    $title = __( 'MIME Types', 'vergelabs-media-library' ); ?>
+    $vergeml_mimes = get_option('vergeml_mimes'); ?>
 
     <div id="vergeml-global-options-wrap" class="wrap eml-options">
 
-        <h1>
-            <?php echo esc_html( $title ); ?>
-            <a class="add-new-h2 vergeml-button-create-mime" href="javascript:;">+ <?php esc_html_e('Add New MIME Type','vergelabs-media-library'); ?></a>
-        </h1>
+        <?php
+        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'File types', 'vergelabs-media-library' ),
+            __( 'What may be uploaded, and how each type is labelled and filtered.', 'vergelabs-media-library' ),
+            '<a class="button vergeml-button-create-mime" href="javascript:;">' . esc_html__( 'Add a file type', 'vergelabs-media-library' ) . '</a>'
+        );
+        ?>
 
         <?php
         $warning = sprintf( 

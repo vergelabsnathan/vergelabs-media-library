@@ -409,26 +409,55 @@
 
 /* ------------------------------------------------------------------ tables */
 
+/*
+ *  WordPress's form-table, read as the row grammar.
+ *
+ *  A form-table is already label-left, control-right, one setting per row --
+ *  it is the vgml-pg-row shape in a table. The three settings screens are
+ *  950 lines of Settings API markup in it, and none of that needs touching
+ *  for them to look like the rest of the plugin: the label gets the label's
+ *  weight, the rows get the hairline, and the whole thing sits inside a card.
+ */
 .vgml-shell-content .form-table {
-	margin-top: 8px;
+	margin: 0;
+	border-collapse: collapse;
 }
 
 .vgml-shell-content .form-table th {
-	padding: 14px 20px 14px 0;
-	width: 210px;
+	padding: 14px 20px 14px 16px;
+	width: 220px;
 	font-size: 13px;
 	font-weight: 600;
+	line-height: 1.4;
 	color: var(--vgml-ink);
 	vertical-align: top;
 }
 
 .vgml-shell-content .form-table td {
-	padding: 12px 0;
+	padding: 13px 16px 13px 0;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--vgml-body);
+	vertical-align: top;
 }
 
 .vgml-shell-content .form-table tr + tr th,
 .vgml-shell-content .form-table tr + tr td {
 	border-top: 1px solid var(--vgml-rule);
+}
+
+/* The aside in a row -- "(Can be disabled for Grid Mode only)" -- is help,
+   and reads as help. */
+.vgml-shell-content .form-table td em,
+.vgml-shell-content .form-table td .description,
+.vgml-shell-content .form-table td p.description {
+	font-size: 12px;
+	font-style: normal;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .form-table td label {
+	line-height: 1.7;
 }
 
 /* -------------------------------------------------------- progress and logs */
@@ -716,28 +745,31 @@
 	color: var(--vgml-muted);
 }
 
-/* The form-table rows carry the whole rhythm on these screens, so they get
-   the air the sections have everywhere else. */
-.vgml-shell-content .form-table tr:first-child th,
-.vgml-shell-content .form-table tr:first-child td {
-	padding-top: 4px;
-}
-
 /*
- *  WordPress's postbox, unboxed.
+ *  WordPress's postbox, re-boxed -- as one of our cards.
  *
- *  The settings screens wrap each section in .postbox > .inside, which paints
- *  a white card with a border. Inside our white pane that is a box in a box,
- *  and it is the single thing that kept these screens reading as WordPress
- *  settings rather than as part of an application.
+ *  An earlier pass stripped these to nothing and turned the heading above each
+ *  into a rule across the page, on the reasoning that a white box inside a
+ *  white pane is a box in a box. The result was six settings sections that
+ *  read as one long document with lines drawn through it, and nobody could
+ *  tell where Filters stopped and Scrolling began.
+ *
+ *  A hairline and 6px is not a box in a box. It is the same card the
+ *  dashboard and the AI screen use, and it is how Rocket bounds a section:
+ *  quietly, but bounded. The heading stays above the card as a section label
+ *  -- it is the postbox's sibling in the markup, not its child, and moving it
+ *  inside would mean rewriting three screens for no other reason.
  */
-.vgml-shell-content .postbox {
-	background: none;
-	border: 0;
-	box-shadow: none;
-	border-radius: 0;
-	margin: 0 0 30px;
+.vgml-shell .vgml-shell-content .postbox,
+.vgml-shell .vgml-shell-content .postbox-container .postbox,
+.vgml-shell .vgml-shell-content .metabox-holder .postbox {
+	margin: 0 0 20px;
 	min-width: 0;
+	background: var(--vgml-pane);
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+	box-shadow: none;
+	overflow: hidden;
 }
 
 .vgml-shell-content .postbox > .inside {
@@ -745,24 +777,55 @@
 	padding: 0;
 }
 
-.vgml-shell-content .postbox .form-table {
-	margin-top: 0;
+/* Prose inside a postbox that is not a form-table -- the taxonomy lists. */
+.vgml-shell-content .postbox > .inside > p,
+.vgml-shell-content .postbox > .inside > ul,
+.vgml-shell-content .postbox > .inside > div:not(.form-table) {
+	padding-left: 16px;
+	padding-right: 16px;
 }
 
-/* The heading above each postbox becomes the section rule. */
+.vgml-shell-content .postbox > .inside > p:first-child {
+	padding-top: 14px;
+}
+
+/* A postbox that carries its own heading (h3.hndle) gets the card head. */
+.vgml-shell-content .postbox > h3.hndle,
+.vgml-shell-content .postbox > .hndle {
+	margin: 0;
+	padding: 13px 16px;
+	border-bottom: 1px solid var(--vgml-rule);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--vgml-ink);
+	cursor: default;
+}
+
+/* The heading above each postbox: a section label, tight to its card. */
 .vgml-shell-content > .wrap > h2,
 .vgml-shell-content .wrap > h2 {
-	margin: 34px 0 12px;
-	padding-top: 26px;
-	border-top: 1px solid var(--vgml-rule);
-	font-size: 15px;
-	letter-spacing: .01em;
+	margin: 28px 0 8px;
+	padding: 0;
+	border: 0;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	color: var(--vgml-muted);
 }
 
-.vgml-shell-content .wrap > h2:first-of-type {
-	border-top: 0;
-	padding-top: 0;
+.vgml-shell-content .wrap > h2:first-of-type,
+.vgml-shell-content .wrap form > h2:first-of-type {
 	margin-top: 0;
+}
+
+/* The Save button under a card, in the card's own foot. */
+.vgml-shell-content .postbox p.submit {
+	margin: 0;
+	padding: 13px 16px;
+	border-top: 1px solid var(--vgml-rule);
+	background: var(--vgml-surface);
 }
 
 /* Room to scroll the last field clear of the pinned save bar. 8px was not
@@ -771,20 +834,98 @@
 	padding-bottom: 72px;
 }
 
+/* The WordPress notice inside our pane, bounded like everything else. */
+.vgml-shell-content .notice,
+.vgml-shell-content .eml-admin-notice {
+	margin: 0 0 20px;
+	border-radius: 6px;
+}
+
+/* --------------------------------------------- the legacy cards, mapped */
+
 /*
- *  The border needed more specificity than the background did.
- *
- *  `.vgml-shell-content .postbox` was enough to win the background and the
- *  shadow, and not the border -- something in core's bundle sets that one from
- *  a longer selector. Measured in the browser rather than guessed: computed
- *  border stayed 1px solid #dcdcde while background went transparent.
+ *  Two older card classes still drawn by scripts -- vgml-ai-card on the
+ *  Duplicates report and vgml-import-card on Import -- take the same
+ *  geometry, so a screen whose cards are drawn in JavaScript is not the odd
+ *  one out.
  */
-.vgml-shell .vgml-shell-content .postbox,
-.vgml-shell .vgml-shell-content .postbox-container .postbox,
-.vgml-shell .vgml-shell-content .metabox-holder .postbox {
-	border: 0;
-	background: none;
+.vgml-shell-content .vgml-ai-card,
+.vgml-shell-content .vgml-import-card {
+	max-width: none;
+	margin: 0 0 16px;
+	padding: 16px;
+	background: var(--vgml-pane);
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+}
+
+.vgml-shell-content .vgml-ai-card > h2,
+.vgml-shell-content .vgml-import-card > h2,
+.vgml-shell-content .vgml-import-head > h2 {
+	margin: -16px -16px 14px;
+	padding: 13px 16px;
+	border-bottom: 1px solid var(--vgml-rule);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content .vgml-import-head {
+	display: block;
+}
+
+.vgml-shell-content .vgml-import-head > h2 {
+	margin-bottom: 0;
+}
+
+.vgml-shell-content .vgml-import-head > * + * {
+	display: block;
+	margin-top: 12px;
+}
+
+.vgml-shell-content .vgml-ai-card > p.description,
+.vgml-shell-content .vgml-import-card > p {
+	margin: 0 0 12px;
+	max-width: 64ch;
+	font-size: 13px;
+	line-height: 1.55;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .vgml-import-actions {
+	margin: 14px -16px -16px;
+	padding: 13px 16px;
+	border-top: 1px solid var(--vgml-rule);
+	background: var(--vgml-surface);
+	border-radius: 0 0 6px 6px;
+}
+
+.vgml-shell-content .vgml-import-plan {
+	border-inline-start-color: var(--vgml-accent);
+	background: var(--vgml-surface);
+}
+
+/* The MIME list table, bounded and rounded like a card. */
+.vgml-shell-content .wp-list-table.widefat {
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
 	box-shadow: none;
+	overflow: hidden;
+}
+
+.vgml-shell-content .wp-list-table.widefat thead th,
+.vgml-shell-content .wp-list-table.widefat tfoot th {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+	background: var(--vgml-surface);
+	border-color: var(--vgml-rule);
+}
+
+.vgml-shell-content .wp-list-table.widefat td {
+	border-color: var(--vgml-rule);
+	vertical-align: middle;
 }
 
 
