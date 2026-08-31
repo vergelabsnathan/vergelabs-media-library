@@ -57,6 +57,24 @@ function vergeml_builder_load_tree() {
 }
 
 
+/* -------------------------------------------------------------- WPBakery */
+
+/*
+ *  WPBakery opens WordPress's own media modal too, so nothing new is drawn --
+ *  the tree just has to be on the page. Its backend editor is an admin screen
+ *  and usually catches the modal check in tree-ui; its frontend editor runs on
+ *  the front end where admin_enqueue_scripts never fires, exactly like Divi.
+ *  Both hooks are WPBakery's own, fired when it enqueues its editors, so this
+ *  costs nothing on sites without it and cannot fire too early.
+ *
+ *  The market leader's longest-running builder complaint is precisely this
+ *  screen: the tree present in the library and gone -- or intermittent --
+ *  inside the WPBakery modal.
+ */
+add_action( 'vc_backend_editor_enqueue_js_css', 'vergeml_builder_load_tree' );
+add_action( 'vc_frontend_editor_enqueue_js_css', 'vergeml_builder_load_tree' );
+
+
 /* ------------------------------------------------------------- Elementor */
 
 /*
