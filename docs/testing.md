@@ -34,15 +34,83 @@ duplicate scan — and the `fgetcsv()` one on the CSV importer's first run. The
 Root over SSH, password login off, WordPress in `/var/www/wp`. Both plugins are
 installed: `vergelabs-media-library` and `vergelabs-media-library-pro`.
 
-Deploying is a tarball, not a checkout:
-
-    cd /c/dev/media-plugin/plugin
-    tar --exclude=.git --exclude=node_modules --exclude=dist -czf /tmp/vgml.tgz .
-    scp -i ~/.ssh/hetzner_vgml /tmp/vgml.tgz root@46.225.66.194:/tmp/vgml.tgz
-    ssh -i ~/.ssh/hetzner_vgml root@46.225.66.194 \
-      "P=/var/www/wp/wp-content/plugins/vergelabs-media-library; tar xzf /tmp/vgml.tgz -C \$P; chown -R www-data:www-data \$P"
-
 **Kamatera is retired.** Anything still naming `185.229.224.239` is stale.
+
+## Three copies, and the only thing that keeps them honest
+
+This plugin exists in three places at once, and they do not agree unless made to.
+
+| Copy | Where | Updated by |
+|---|---|---|
+| the source | `C:\dev\media-plugin\plugin` | editing it |
+| the Playground zip | `playground/vergelabs-media-library.zip`, served to the world over the repo's raw URL | `pnpm deploy` |
+| the box | `46.225.66.194:/var/www/wp/wp-content/plugins/…` | `pnpm deploy` |
+
+There used to be a tarball recipe here. It had no verification step and nothing
+that cleared opcache, and on 31-08-2026 all three copies disagreed with nothing
+to say so. The source had the change; the zip was ten days old and did not
+contain `core/admin-shell.php` at all; the box was running the previous day's
+files. Every screenshot came off one of the two stale copies, so a nav item
+that was already correct got rebuilt twice on the strength of it — and the
+marketing domain turned out to be pinned to an eleven-hour-old Vercel
+deployment the same afternoon, which is the same failure in a second place.
+
+    pnpm deploy          # rebuild the zip, ship to the box, verify both
+    pnpm deploy:check    # say what is stale; change nothing
+    pnpm deploy:zip      # zip only
+    pnpm deploy:box      # box only
+
+**Run `pnpm deploy:check` before believing a screenshot.** It takes seconds and
+it is the difference between debugging the code and debugging a copy of it from
+last week.
+
+### What "verified" means here
+
+`tools/deploy.mjs` never reports success from an exit code. Every shipped file
+is hashed locally, the digests travel with the payload as `.deploy-manifest`,
+and the far end re-hashes all of them and is asked whether they match:
+
+- the **zip** is checked entry by entry against the CRCs in its own central
+  directory, so a rebuild that silently dropped a file fails rather than passes;
+- the **box** runs `sha256sum -c` over the manifest and reports how many files
+  it actually verified.
+
+It clears opcache and reloads PHP-FPM afterwards. PHP holds compiled files in
+memory, so new bytes on disk are not necessarily the code being run, and a
+deploy that skips this looks exactly like a deploy that did not happen.
+
+Two things it does deliberately: it keeps a dated copy of the plugin directory
+under `/root/vgml-backup-*` before writing, and it refuses any host not listed
+in its `BOXES` map — a typo here overwrites a plugin directory on a live
+WordPress.
+
+### The zip is a published artifact
+
+`playground/blueprint.json` installs it from
+`raw.githubusercontent.com/…/main/playground/vergelabs-media-library.zip`, so
+whatever is committed is what every person opening the Playground link runs.
+Rebuilding it is not enough: **it has to be committed**, or the link stays on
+the previous one.
+
+It is written by a small ZIP writer inside `deploy.mjs` rather than by
+PowerShell. `Compress-Archive` on Windows PowerShell 5.1 writes entry names
+with backslashes (`vergelabs-media-library\core\ai.php`); Windows opens that
+happily, Linux `unzip` and PHP's `ZipArchive` do not — they produce a single
+file with a backslash in its name instead of a directory tree, and the plugin
+unpacks into an unusable blob. The writer also fixes the timestamps, so
+rebuilding over unchanged files gives a byte-identical archive and an empty
+diff rather than noise.
+
+### Playground against the working tree
+
+    pnpm play            # mounts this checkout, then open 127.0.0.1:8899
+
+`tools/play.mjs` reads the same `blueprint.json` and swaps its `installPlugin`
+step for `activatePlugin` against the mount, so the demo data stays identical to
+the shared link while the code under test is the file just edited. Two reasons
+it cannot simply reuse the blueprint as-is: `installPlugin` and `--mount-dir`
+collide with "Device or resource busy", and installing the zip locally means
+testing the zip rather than the edit.
 
 ## The runner
 
