@@ -2187,3 +2187,37 @@ body.upload-php .media-frame.mode-select .attachments-browser .media-toolbar .bu
 .vgml-node.is-selected .vgml-owned {
 	opacity: .8;
 }
+
+/*
+ *  The line that separates "empty" from "could not load".
+ *
+ *  Drawn above the tree and never instead of it. Muted when the fallback
+ *  road is quietly in use; louder when a load failed and there is a button.
+ */
+.vgml-transport {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+	align-items: center;
+	margin: 0 0 8px;
+	padding: 8px 10px;
+	border-radius: 4px;
+	font-size: 12px;
+	line-height: 1.45;
+	background: #F1F5FC;
+	border: 1px solid #DDE5F2;
+	color: #3C4964;
+}
+
+.vgml-transport.is-failed {
+	background: #FBEEEC;
+	border-color: #E9C7C2;
+	color: #8A2620;
+}
+
+.vgml-transport .button-link {
+	font-size: 12px;
+	font-weight: 600;
+	color: inherit;
+	text-decoration: underline;
+}

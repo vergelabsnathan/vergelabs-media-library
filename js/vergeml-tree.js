@@ -139,11 +139,23 @@
 	 *  term, a smart folder is a question, and only one of the two filters the
 	 *  library at a time.
 	 */
+	/*
+	 *  A failed load is never an empty tree.
+	 *
+	 *  Both market leaders answer a blocked or mangled API call by drawing "no
+	 *  folders", and their forums are full of people who read that as their
+	 *  library being gone. Here a response that is not the shape the endpoint
+	 *  returns -- an HTML page from a cache, an error from a security plugin --
+	 *  leaves whatever was on screen exactly as it was, and says so above it.
+	 */
 	function load() {
 		return apiFetch( {
 			path: '/vergeml/v1/tree?taxonomy=' + encodeURIComponent( state.taxonomy ) + postTypeQuery()
 		} ).then( function ( data ) {
-			state.nodes = data.nodes || [];
+			if ( ! data || Object.prototype.toString.call( data.nodes ) !== '[object Array]' ) {
+				throw { code: 'invalid_json', message: 'not a tree', data: { status: 0 } };
+			}
+			state.nodes = data.nodes;
 			state.unassigned = data.unassigned || 0;
 			state.smart = data.smart || state.smart || [];
 			// null when the AI group is switched off, which is the difference
@@ -155,8 +167,82 @@
 			}
 			index();
 			render();
+			transportStrip( null );
+		} ).catch( function ( err ) {
+			transportStrip( err || {} );
+			throw err;
 		} );
 	}
+
+	/*
+	 *  The one line that separates "empty" from "could not load".
+	 *
+	 *  Drawn above the tree, never in place of it. Two states: the API is
+	 *  blocked and the slower road is in use (a persistent note), or the load
+	 *  failed outright (the reason, and a button to try again).
+	 */
+	function transportStrip( err ) {
+		var boxes = document.querySelectorAll( '.vgml-tree' );
+		var text = window.vergemlTransport && window.vergemlTransport.text;
+
+		Array.prototype.forEach.call( boxes, function ( box ) {
+			// Beside the tree, not inside it: render() rebuilds the box's
+			// contents, and a strip inside would be wiped by the next paint.
+			var strip = box.previousElementSibling && box.previousElementSibling.classList.contains( 'vgml-transport' )
+				? box.previousElementSibling
+				: null;
+
+			var bridged = window.vergemlTransport && window.vergemlTransport.bridged;
+			if ( ! err && ! bridged ) {
+				if ( strip ) { strip.parentNode.removeChild( strip ); }
+				return;
+			}
+
+			if ( ! strip ) {
+				strip = el( 'div', { class: 'vgml-transport', role: 'status' } );
+				box.parentNode.insertBefore( strip, box );
+			}
+			strip.innerHTML = '';
+
+			if ( err ) {
+				var why = ( err.data && err.data.status ) ? 'HTTP ' + err.data.status : ( err.message || err.code || 'no response' );
+				strip.className = 'vgml-transport is-failed';
+				strip.appendChild( el( 'span', {}, ( text && text.failed ? text.failed : 'The folders could not be refreshed (%s). Your folders and files are safe.' ).replace( '%s', why ) ) );
+				var again = el( 'button', { type: 'button', class: 'button-link' }, text && text.retry ? text.retry : 'Try again' );
+				again.addEventListener( 'click', function () { load().catch( function () {} ); } );
+				strip.appendChild( again );
+			} else {
+				strip.className = 'vgml-transport is-bridged';
+				strip.appendChild( el( 'span', {}, text && text.blocked ? text.blocked : 'REST API blocked; using a slower route.' ) );
+			}
+		} );
+	}
+
+	document.addEventListener( 'vergeml:transport', function ( e ) {
+		var d = e.detail || {};
+		if ( d.state === 'bridged' ) {
+			transportStrip( null );
+		} else if ( d.state === 'failed' ) {
+			// Both roads closed. Whatever request it was, the tree is where the
+			// person is looking, so the tree is where it is said.
+			transportStrip( { data: { status: d.status || 0 } } );
+		}
+	} );
+
+	/*
+	 *  The library screen paints from the boot payload and may make no request
+	 *  of its own for a while; another script's request can have taken the
+	 *  fallback road before this listener existed, and the announcement is made
+	 *  once. So the flag is read as well as the event, after the tree has had
+	 *  time to be on the page.
+	 */
+	[ 1500, 4000 ].forEach( function ( ms ) {
+		window.setTimeout( function () {
+			if ( window.vergemlTransport && window.vergemlTransport.bridged ) {
+				transportStrip( null );
+			}
+		}, ms );
+	} );
 
 	function persist( patch ) {
 		// Fire and forget: a preference failing to save is not worth interrupting

@@ -147,8 +147,19 @@ function vergeml_tree_assets( $hook ) {
          *  work on touch at all. jQuery UI is plain pointer events with a helper
          *  element we own, which is why it can show a real tile with a count.
          */
-        array( 'wp-api-fetch', 'jquery', 'jquery-ui-draggable', 'jquery-ui-droppable' ),
+        // vergeml-transport first, so the fallback road is installed before the
+        // tree makes its first request rather than after its first failure.
+        array( 'wp-api-fetch', 'vergeml-transport', 'jquery', 'jquery-ui-draggable', 'jquery-ui-droppable' ),
         vergeml_asset_ver( 'js/vergeml-tree.js' ),
+        true
+    );
+
+    // One finger as the mouse jQuery UI listens for. See the file's header.
+    wp_enqueue_script(
+        'vergeml-touch',
+        plugins_url( 'js/vergeml-touch.js', VERGEML_FILE ),
+        array( 'vergeml-tree' ),
+        vergeml_asset_ver( 'js/vergeml-touch.js' ),
         true
     );
 
