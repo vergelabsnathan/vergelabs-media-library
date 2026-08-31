@@ -181,10 +181,20 @@
 
 /* ---------------------------------------------------------- what it saw */
 
+/*
+ *  Bounded like the cards above it rather than divided off by a hairline.
+ *
+ *  A screen made of top-bordered bands reads as one long document with rules
+ *  drawn across it; the same content in bounded sections reads as parts, which
+ *  is the whole of what "scannable" means here. Same 6px and the same hairline
+ *  as the do-cards, so the page has one radius rather than three.
+ */
 .vgml-seen {
-	margin: 0 0 32px;
-	padding-top: 26px;
-	border-top: 1px solid var(--vgml-rule);
+	margin: 0 0 16px;
+	padding: 20px;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+	background: var(--vgml-pane);
 }
 
 .vgml-seen-head {
@@ -268,8 +278,10 @@
 /* ------------------------------------------------------ everything else */
 
 .vgml-rest {
-	padding-top: 26px;
-	border-top: 1px solid var(--vgml-rule);
+	padding: 20px;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+	background: var(--vgml-pane);
 }
 
 .vgml-dash .vgml-rest h2 {
@@ -587,8 +599,26 @@
  *  new one.
  */
 
+/*
+ *  What you can do now: cards, not a list of paragraphs.
+ *
+ *  These were rows on hairlines, every one the same weight -- a title, a
+ *  four-line note, the number set as body text and the button under it. Six of
+ *  them stacked reads as an essay, and the thing somebody came to find (how
+ *  many, and the button) was the least prominent part of each.
+ *
+ *  Rocket separates its settings into bounded cards and puts the control on the
+ *  right of the row; this does the same and takes the number out of the
+ *  sentence -- it is the one thing on the card worth reading first, so it is
+ *  set as a figure and everything else is quieter.
+ *
+ *  Deliberately restrained: a hairline border and a 6px radius, no shadow, no
+ *  fill. The pane is already white, and a card that announces itself on a
+ *  screen holding six of them is worse than the rows were.
+ */
+
 .vgml-dash .vgml-do-head {
-	margin: 0 0 4px;
+	margin: 0 0 12px;
 	font-size: 16px;
 }
 
@@ -597,44 +627,128 @@
 }
 
 .vgml-dash .vgml-do {
-	padding: 22px 0;
-	border-top: 1px solid var( --vgml-rule );
+	display: grid;
+	grid-template-columns: minmax( 0, 1fr ) auto;
+	gap: 6px 24px;
+	align-items: start;
+	margin-bottom: 10px;
+	padding: 18px 20px;
+	border: 1px solid var( --vgml-rule );
+	border-radius: 6px;
+	background: var( --vgml-pane );
+	transition: border-color .12s ease;
+}
+
+.vgml-dash .vgml-do:hover {
+	border-color: var( --vgml-rule-strong );
 }
 
 .vgml-dash .vgml-do:last-child {
-	border-bottom: 1px solid var( --vgml-rule );
+	margin-bottom: 0;
+}
+
+.vgml-dash .vgml-do-text {
+	min-width: 0;
 }
 
 .vgml-dash .vgml-do-title {
-	margin: 0 0 4px;
+	margin: 0;
 	font-size: 15px;
 	font-weight: 600;
 	line-height: 1.3;
-}
-
-.vgml-dash .vgml-do-note {
-	margin: 0 0 12px;
-	max-width: 58ch;
-	font-size: 14px;
-	line-height: 1.6;
-	color: var( --vgml-muted );
-}
-
-.vgml-dash .vgml-do-line {
-	margin: 0 0 12px;
-	font-size: 14px;
 	color: var( --vgml-ink );
 }
 
+/*
+ *  The number, read before the explanation rather than after it. It was set as
+ *  body text inside a sentence, which is the surest way to make a figure
+ *  invisible.
+ */
+.vgml-dash .vgml-do-line {
+	margin: 8px 0 0;
+	font-size: 14px;
+	color: var( --vgml-body );
+}
+
 .vgml-dash .vgml-do-count {
+	display: block;
+	font-size: 19px;
+	font-weight: 600;
+	line-height: 1.25;
+	color: var( --vgml-ink );
 	font-variant-numeric: tabular-nums;
 }
 
 .vgml-dash .vgml-do-line.is-done {
-	margin: 0;
+	font-size: 13px;
 	color: #5C7C5C;
 }
 
+/* The quietest thing on the card, and capped so it stays one thought. */
+.vgml-dash .vgml-do-note {
+	margin: 8px 0 0;
+	max-width: 64ch;
+	font-size: 13px;
+	line-height: 1.55;
+	color: var( --vgml-muted );
+}
+
+/* The action, right of the row, level with the title. */
 .vgml-dash .vgml-flow-actions {
 	margin: 0;
+	white-space: nowrap;
+}
+
+/*
+ *  The second job some cards carry -- renaming the files on disk, importing
+ *  from another plugin. Inset and tinted so it reads as a follow-on rather
+ *  than a seventh card.
+ */
+.vgml-dash .vgml-do-more {
+	grid-column: 1 / -1;
+	display: grid;
+	grid-template-columns: minmax( 0, 1fr ) auto;
+	gap: 6px 24px;
+	align-items: center;
+	margin-top: 16px;
+	padding: 14px 16px;
+	border-radius: 5px;
+	background: var( --vgml-surface );
+}
+
+.vgml-dash .vgml-do-more-count {
+	margin: 0;
+	font-size: 13.5px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var( --vgml-ink );
+}
+
+.vgml-dash .vgml-do-more .vgml-do-note {
+	margin: 3px 0 0;
+	font-size: 12.5px;
+}
+
+.vgml-dash .vgml-do-blocked {
+	grid-column: 1 / -1;
+	margin: 0;
+	font-size: 12.5px;
+	line-height: 1.55;
+	color: var( --vgml-muted );
+}
+
+/*
+ *  Under 782px WordPress is already in its touch layout, and a button pinned
+ *  to the right of a narrow card is a button half off the screen.
+ */
+@media screen and ( max-width: 782px ) {
+
+	.vgml-dash .vgml-do,
+	.vgml-dash .vgml-do-more {
+		display: block;
+	}
+
+	.vgml-dash .vgml-flow-actions {
+		margin-top: 14px;
+	}
 }

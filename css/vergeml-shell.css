@@ -172,7 +172,9 @@
 	max-width: 1230px;
 	background: var(--vgml-pane);
 	border: 1px solid var(--vgml-rule);
-	border-radius: 4px;
+	/* One radius across the whole admin: the pane, the cards inside it, and
+	 * the sections on the dashboard are all 6px. Slight, and the same. */
+	border-radius: 6px;
 	padding: 32px 24px;
 }
 

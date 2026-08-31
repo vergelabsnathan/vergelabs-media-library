@@ -800,21 +800,49 @@ function vergeml_journey_todo() {
 
     /* ------------------------------------------------------------- names */
 
+    /*
+     *  Two different jobs, and the card used to headline the wrong one.
+     *
+     *  The title in WordPress and the file name on disk are renamed by separate
+     *  actions, and on a library that has been described once the first is
+     *  nearly always finished while the second has not started. So the card
+     *  counted 13 titles, said "13 files could be named after what they show",
+     *  and put the 492 files still called pexels-ealfro-13849192-scaled.jpg in
+     *  a line underneath -- with copy about "Photo 498" that was describing the
+     *  number it was not showing.
+     *
+     *  Worse was the done state: those last 13 titles would have turned the
+     *  card into "Every file is named after what it shows" over five hundred
+     *  files whose names are still the photographer's upload.
+     *
+     *  So the count leads with whatever is actually outstanding, and each
+     *  number says which of the two it is.
+     */
     $names = function_exists( 'vergeml_rename_pending' ) ? count( vergeml_rename_pending() ) : 0;
+    $files = function_exists( 'vergeml_file_pending' ) ? count( vergeml_file_pending() ) : 0;
 
     $todo[] = array(
         'id'    => 'names',
         'title' => __( 'File names', 'vergelabs-media-library' ),
-        'note'  => __( '“Photo 498” tells nobody anything. We can name each file after what is in it — “Red Synthesizer with Controls” — from the same look. Anything you named yourself is left alone, and one click puts the old names back.', 'vergelabs-media-library' ),
+        'note'  => __( '“Photo 498” tells nobody anything. We can name each file after what is in it — “Red Synthesizer with Controls” — from the same look. The title in WordPress and the file on disk are two separate changes. Anything you named yourself is left alone, and one click puts the old names back.', 'vergelabs-media-library' ),
         'n'     => $names,
         'count' => sprintf(
-            /* translators: %s: how many files could be renamed. */
-            _n( '%s file could be named after what it shows', '%s files could be named after what they show', $names, 'vergelabs-media-library' ),
+            /* translators: %s: how many titles could be rewritten. */
+            _n( '%s title could be written from what the picture shows', '%s titles could be written from what the pictures show', $names, 'vergelabs-media-library' ),
             number_format_i18n( $names )
         ),
-        'go'    => __( 'Rename them', 'vergelabs-media-library' ),
+        'go'    => __( 'Rewrite the titles', 'vergelabs-media-library' ),
         'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_rename' ), 'vergeml_do_rename' ),
-        'done'  => __( 'Every file is named after what it shows.', 'vergelabs-media-library' ),
+
+        /*
+         *  Only true when the files on disk are done too, which is the whole
+         *  point of the fix -- "every file is named" while 492 are not is the
+         *  one sentence this screen must never say.
+         */
+        'done'  => 0 === $files
+            ? __( 'Every title and every file name says what the picture shows.', 'vergelabs-media-library' )
+            : __( 'Every title is written. The files on disk are still named as they were uploaded.', 'vergelabs-media-library' ),
+
         'more'  => vergeml_journey_file_rename(),
     );
 
@@ -1103,16 +1131,30 @@ function vergeml_journey_screen() {
         <div class="vgml-do-list">
             <h2 class="vgml-do-head"><?php esc_html_e( 'What you can do now', 'vergelabs-media-library' ); ?></h2>
             <?php foreach ( vergeml_journey_todo() as $item ) : ?>
+                <?php
+                /*
+                 *  Title, number and note are one block, and the action is the
+                 *  other. They used to be five siblings, which meant the card
+                 *  could only be laid out by stacking them in one grid cell and
+                 *  pushing each down by a fixed margin -- an arrangement that
+                 *  came apart the moment a title wrapped to two lines.
+                 */
+                ?>
                 <div class="vgml-do">
-                    <h3 class="vgml-do-title"><?php echo esc_html( $item['title'] ); ?></h3>
-                    <p class="vgml-do-note"><?php echo esc_html( $item['note'] ); ?></p>
+                    <div class="vgml-do-text">
+                        <h3 class="vgml-do-title"><?php echo esc_html( $item['title'] ); ?></h3>
+                        <?php if ( $item['n'] > 0 ) : ?>
+                            <p class="vgml-do-line"><strong class="vgml-do-count"><?php echo esc_html( $item['count'] ); ?></strong></p>
+                        <?php else : ?>
+                            <p class="vgml-do-line is-done"><?php echo esc_html( $item['done'] ); ?></p>
+                        <?php endif; ?>
+                        <p class="vgml-do-note"><?php echo esc_html( $item['note'] ); ?></p>
+                    </div>
+
                     <?php if ( $item['n'] > 0 ) : ?>
-                        <p class="vgml-do-line"><strong class="vgml-do-count"><?php echo esc_html( $item['count'] ); ?></strong></p>
                         <p class="vgml-flow-actions">
                             <a class="button button-primary" href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['go'] ); ?></a>
                         </p>
-                    <?php else : ?>
-                        <p class="vgml-do-line is-done"><?php echo esc_html( $item['done'] ); ?></p>
                     <?php endif; ?>
 
                     <?php if ( ! empty( $item['more'] ) ) : ?>
@@ -1120,8 +1162,10 @@ function vergeml_journey_screen() {
                             <?php if ( ! empty( $item['more']['blocked'] ) ) : ?>
                                 <p class="vgml-do-blocked"><?php echo esc_html( $item['more']['blocked'] ); ?></p>
                             <?php else : ?>
-                                <p class="vgml-do-more-count"><?php echo esc_html( $item['more']['count'] ); ?></p>
-                                <p class="vgml-do-note"><?php echo esc_html( $item['more']['note'] ); ?></p>
+                                <div class="vgml-do-text">
+                                    <p class="vgml-do-more-count"><?php echo esc_html( $item['more']['count'] ); ?></p>
+                                    <p class="vgml-do-note"><?php echo esc_html( $item['more']['note'] ); ?></p>
+                                </div>
                                 <p class="vgml-flow-actions">
                                     <a class="button" href="<?php echo esc_url( $item['more']['url'] ); ?>"><?php echo esc_html( $item['more']['go'] ); ?></a>
                                 </p>
