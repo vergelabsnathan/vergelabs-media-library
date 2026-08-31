@@ -40,6 +40,21 @@ const VERGEML_INDEX_TABLE   = 'vergeml_ai_index';
 const VERGEML_INDEX_VERSION = 2;
 const VERGEML_INDEX_OPTION  = 'vergeml_index';
 
+
+/**
+ *  vergeml_index_table_drop
+ *
+ *  The Complete Cleanup path. Descriptions already written into attachments
+ *  stay written; this removes only the plugin's own working table.
+ */
+
+function vergeml_index_table_drop() {
+
+    global $wpdb;
+
+    $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}vergeml_ai_index" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- deliberate removal of this plugin's own table during cleanup.
+}
+
 // The postmeta key the index was grown from. Still written by nothing, still
 // read by the migration, and deliberately still present on disk.
 const VERGEML_META_AI = '_vergeml_ai';

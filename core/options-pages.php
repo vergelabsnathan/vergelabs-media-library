@@ -912,6 +912,23 @@ function vergeml_print_settings() {
                                     <?php submit_button( __( 'Delete All Data & Deactivate', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-cleanup', true ); ?>
                                 </form>
 
+                                <hr />
+
+                                <p><strong><?php esc_html_e( 'When the plugin is deleted from the Plugins screen', 'vergelabs-media-library' ); ?></strong></p>
+
+                                <p><?php esc_html_e( 'By default, deleting the plugin keeps your folders and AI descriptions: the folders live in WordPress\'s own tables, and a reinstall -- or another folder plugin reading the same taxonomy -- picks them up exactly as you left them. Only caches and scheduled tasks are removed.', 'vergelabs-media-library' ); ?></p>
+
+                                <form method="post">
+                                    <p>
+                                        <label>
+                                            <input type="checkbox" name="vergeml_uninstall_wipe" value="1" <?php checked( (bool) get_option( 'vergeml_uninstall_wipe' ) ); ?> />
+                                            <?php esc_html_e( 'Also remove all folders, settings and the AI index when the plugin is deleted', 'vergelabs-media-library' ); ?>
+                                        </label>
+                                    </p>
+                                    <?php wp_nonce_field( 'vergeml_uninstall_wipe_nonce', 'vergeml-uninstall-wipe-nonce' ); ?>
+                                    <?php submit_button( __( 'Save', 'vergelabs-media-library' ), 'secondary', 'vergeml-submit-uninstall-wipe', true ); ?>
+                                </form>
+
                             </div>
 
                         </div>
@@ -1463,6 +1480,30 @@ function vergeml_settings_restoring() {
  *  @created  23/02/16
  */
 
+add_action( 'admin_init', 'vergeml_uninstall_wipe_save' );
+
+function vergeml_uninstall_wipe_save() {
+
+    if ( ! isset( $_POST['vergeml-submit-uninstall-wipe'] ) )
+        return;
+
+    if ( ! isset( $_POST['vergeml-uninstall-wipe-nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['vergeml-uninstall-wipe-nonce'] ) ), 'vergeml_uninstall_wipe_nonce' ) )
+        return;
+
+    if ( ! current_user_can( 'manage_options' ) )
+        return;
+
+    update_option( 'vergeml_uninstall_wipe', isset( $_POST['vergeml_uninstall_wipe'] ) ? '1' : '0' );
+
+    add_settings_error(
+        'eml-settings',
+        'vergeml_uninstall_wipe_saved',
+        __( 'Saved.', 'vergelabs-media-library' ),
+        'updated'
+    );
+}
+
+
 add_action( 'admin_init', 'vergeml_settings_cleanup' );
 
 function vergeml_settings_cleanup() {
@@ -1509,6 +1550,11 @@ function vergeml_settings_cleanup() {
 
     vergeml_site_options_cleanup();
     vergeml_transients_cleanup();
+
+    if ( function_exists( 'vergeml_index_table_drop' ) ) {
+        vergeml_index_table_drop();
+    }
+    wp_clear_scheduled_hook( 'vergeml_meaning_convert' );
     deactivate_plugins( vergeml_get_basename(), false, is_multisite() );
 
 
@@ -1668,7 +1714,12 @@ function vergeml_options_cleanup() {
         'vergeml_mimes',
         'vergeml_backup',
         'vergeml_version',
-        'vergeml_notices'
+        'vergeml_notices',
+        'vergeml_ai',
+        'vergeml_ai_credits',
+        'vergeml_private_folders',
+        'vergeml_watchdog',
+        'vergeml_uninstall_wipe'
     );
 
     $options = apply_filters( 'vergeml_pro_add_options', $options );
@@ -1676,6 +1727,16 @@ function vergeml_options_cleanup() {
     foreach ( $options as $option ) {
         delete_option( $option );
     }
+
+    /*
+     *  And then the sweep, because the list above has never once been
+     *  complete: every feature that stores an option would have to remember
+     *  to add itself here, and the ones that forgot lingered after a
+     *  "complete" cleanup. The list stays for the filter -- Pro options are
+     *  not all vergeml_-prefixed.
+     */
+    global $wpdb;
+    $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'vergeml\_%' AND option_name NOT LIKE '\_transient%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own options.
 }
 
 
@@ -1717,9 +1778,21 @@ function vergeml_site_options_cleanup() {
 
 function vergeml_transients_cleanup() {
 
-    $transients = array();
+    global $wpdb;
 
-    $transients = apply_filters( 'vergeml_pro_add_transients', $transients );
+    /*
+     *  A sweep, not a list: every feature that caches -- the journey facts,
+     *  the pending counts, the AI hold -- would otherwise have to remember to
+     *  register itself here, and the one that forgot would linger forever.
+     *  Underscores escaped so the wildcard is the only wildcard.
+     */
+    $wpdb->query(
+        "DELETE FROM {$wpdb->options}
+         WHERE option_name LIKE '\_transient\_vergeml\_%'
+            OR option_name LIKE '\_transient\_timeout\_vergeml\_%'"
+    ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own transients.
+
+    $transients = apply_filters( 'vergeml_pro_add_transients', array() );
 
     foreach ( $transients as $transient ) {
         delete_site_transient( $transient );

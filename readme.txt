@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.9.1
+Stable tag: 3.10.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -219,6 +219,12 @@ It tries to get out of your way. After two fatal errors in its own code within a
 
 It only counts errors in its own files, so it will never deactivate itself because a different plugin crashed.
 
+= What happens to my folders if I uninstall it? =
+
+They stay. The folders are terms in WordPress's own tables, not the plugin's, so deleting the plugin leaves them exactly where they are -- a reinstall picks them up as you left them, and so does any other folder plugin that reads the same `media_category` taxonomy. AI descriptions already written into your images stay written. Only caches and scheduled tasks are removed.
+
+If you genuinely want everything gone, that exists too, in two forms on the Utilities page: a Complete Cleanup button that wipes immediately, and a switch that makes deleting the plugin from the Plugins screen take all its data with it. Neither is ever the default, and neither touches a media file.
+
 = Where do I report a problem? =
 
 On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues).
@@ -242,6 +248,21 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.10.0 ###
+*Leaving is safe*
+
+= Added =
+* **Uninstalling keeps your folders.** Deleting the plugin now removes only its caches and scheduled tasks; the folders and AI descriptions stay in WordPress's own tables, ready for a reinstall or for any other plugin that reads the same taxonomy. In writing, in the FAQ.
+* A switch on the Utilities page for the opposite: have deleting the plugin take every folder, setting and the AI index with it. Off unless you turn it on.
+
+= Fixed =
+* Complete Cleanup now also removes the AI index table, the newer settings, every cached count and the scheduled background task. It said complete; now it is.
+
+### 3.9.1 ###
+
+= Fixed =
+* Search by meaning reads a compact projection instead of unpacking full embeddings: the same search over a 20,000-image library went from over five seconds to under half a second, and it converts old rows in the background within a time budget a small shared server can afford.
 
 ### 3.9.0 ###
 *Work that carries on without you, and folders you can take with you*
