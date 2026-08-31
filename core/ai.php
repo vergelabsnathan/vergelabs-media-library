@@ -984,8 +984,22 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
              *  file is neither stubbed as broken nor offered again this pass.
              */
             if ( 'vergeml_ai_duplicate' === $described->get_error_code() ) {
-                $errors[] = array( 'id' => $id, 'error' => $described->get_error_message(), 'fatal' => false );
-                vergeml_ai_recently_described( array( $id ), true );
+
+                /*
+                 *  The service has this exact picture already -- almost always
+                 *  because its identical twin was charged a moment ago in the
+                 *  same batch. That twin is now current, so copy it, which is
+                 *  what would have happened had the twin gone first.
+                 */
+                $twin = vergeml_ai_twin( $id );
+                $row  = $twin ? vergeml_index_get( $twin ) : null;
+
+                if ( $row && 'mock' !== (string) $row['model'] && vergeml_ai_fill_from_twin( $id, $twin, $apply_alt ) ) {
+                    $done[] = array( 'id' => $id, 'caption' => $row['caption'], 'twin' => $twin );
+                } else {
+                    $errors[] = array( 'id' => $id, 'error' => $described->get_error_message(), 'fatal' => false );
+                    vergeml_ai_recently_described( array( $id ), true );
+                }
                 continue;
             }
 
