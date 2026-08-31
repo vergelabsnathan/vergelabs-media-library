@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.10.0
+Stable tag: 3.10.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -248,6 +248,11 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.10.1 ###
+
+= Fixed =
+* The REST media listing no longer re-sanitizes every configured MIME type on every call — 38,000 sanitizations per hundred images, a third of the response time, now done once per request. A hundred-image listing dropped from roughly 630ms to 390ms.
 
 ### 3.10.0 ###
 *Leaving is safe*
