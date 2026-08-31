@@ -577,7 +577,7 @@
 }
 
 .vgml-flow-step-row.is-now .vgml-flow-step-state {
-	color: var( --vgml-accent, #9B4E45 );
+	color: var( --vgml-accent, #2E5AA8 );
 	font-weight: 600;
 }
 
@@ -593,7 +593,7 @@
 .vgml-flow-line-n {
 	font-size: 12px;
 	font-weight: 600;
-	color: var( --vgml-accent, #9B4E45 );
+	color: var( --vgml-accent, #2E5AA8 );
 	white-space: nowrap;
 }
 
@@ -612,7 +612,7 @@
 
 .vgml-flow-line-fill {
 	height: 100%;
-	background: var( --vgml-accent, #9B4E45 );
+	background: var( --vgml-accent, #2E5AA8 );
 	transition: width 200ms ease;
 }
 
@@ -684,7 +684,7 @@
 .vgml-librarian .vgml-flow-progress .vgml-import-fill {
 	width: 0;
 	height: 100%;
-	background: var( --vgml-accent, #9B4E45 );
+	background: var( --vgml-accent, #2E5AA8 );
 	transition: width 200ms ease;
 }
 
@@ -845,4 +845,154 @@
 .vgml-do-see {
 	margin: 10px 0 0;
 	font-size: 13.5px;
+}
+
+/* --------------------------------------- saying what you want the folders to be */
+
+.vgml-talk-say {
+	width: 100%;
+	margin-top: 4px;
+	padding: 10px 12px;
+	font-size: 14px;
+	line-height: 1.55;
+	border: 1px solid var( --vgml-rule-strong, #C9D6EA );
+	border-radius: 4px;
+	resize: vertical;
+}
+
+.vgml-talk-say:focus {
+	border-color: var( --vgml-accent, #2E5AA8 );
+	outline: 2px solid rgba( 46, 90, 168, .2 );
+}
+
+.vgml-talk-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin: 12px 0 0;
+}
+
+.vgml-talk-note {
+	font-size: 12.5px;
+	line-height: 1.5;
+	color: var( --vgml-muted, #5B6884 );
+}
+
+.vgml-talk-proposal,
+.vgml-talk-done {
+	margin-top: 18px;
+	padding-top: 16px;
+	border-top: 1px solid var( --vgml-rule, #DDE5F2 );
+}
+
+.vgml-talk-said {
+	margin: 0 0 14px;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var( --vgml-ink, #16233D );
+}
+
+/* The three lists, side by side: new, going, staying. */
+.vgml-talk-sets {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 190px, 1fr ) );
+	gap: 14px;
+}
+
+.vgml-talk-set {
+	padding: 12px 14px;
+	border: 1px solid var( --vgml-rule, #DDE5F2 );
+	border-radius: 4px;
+	background: var( --vgml-surface, #F1F5FC );
+}
+
+.vgml-talk-set h4 {
+	margin: 0 0 8px;
+	font-size: 11px;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var( --vgml-muted, #5B6884 );
+}
+
+.vgml-talk-set ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-talk-set li {
+	margin: 0 0 5px;
+	font-size: 13px;
+	line-height: 1.45;
+	color: var( --vgml-ink, #16233D );
+}
+
+/* Going away is the one that deserves a second look, so it is the one marked. */
+.vgml-talk-set.is-gone {
+	background: #FBEEEC;
+	border-color: #E9C7C2;
+}
+
+.vgml-talk-set.is-new {
+	background: #ECF4EC;
+	border-color: #C3DCC6;
+}
+
+.vgml-talk-held {
+	display: block;
+	font-size: 11.5px;
+	color: var( --vgml-muted, #5B6884 );
+}
+
+.vgml-talk-head {
+	margin: 20px 0 8px;
+	font-size: 11px;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var( --vgml-muted, #5B6884 );
+}
+
+.vgml-talk-tree ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	border: 1px solid var( --vgml-rule, #DDE5F2 );
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.vgml-talk-tree li {
+	margin: 0;
+	padding: 9px 14px;
+	border-top: 1px solid var( --vgml-rule, #DDE5F2 );
+	background: #FFFFFF;
+}
+
+.vgml-talk-tree li:first-child {
+	border-top: 0;
+}
+
+.vgml-talk-child {
+	padding-left: 34px !important;
+}
+
+.vgml-talk-name {
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var( --vgml-ink, #16233D );
+}
+
+.vgml-talk-matches {
+	display: block;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var( --vgml-muted, #5B6884 );
+}
+
+.vgml-talk-doneline {
+	margin: 0 0 6px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #2A5730;
 }
