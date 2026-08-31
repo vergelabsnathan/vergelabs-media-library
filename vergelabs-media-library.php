@@ -3,7 +3,7 @@
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
 Description: Categories, tags and custom taxonomies for the media library, MIME type management, and configurable media grid filters.
-Version: 3.9.0
+Version: 3.9.1
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.9.0' );
+if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.9.1' );
 
 /**
  *  Cache-busting asset version: the plugin version plus the file's mtime.
@@ -1055,6 +1055,16 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         }
 
         update_option( 'vergeml_lib_options', $vergeml_lib_options );
+
+        /*
+         *  3.9.1: the index gains a projection column, so search by meaning
+         *  can read 256 bytes a row instead of unpacking 3KB. dbDelta adds
+         *  the column and touches nothing else; existing rows are converted
+         *  a batch at a time by the searches themselves.
+         */
+        if ( version_compare( get_option( 'vergeml_version', '' ), '3.9.1', '<' ) && function_exists( 'vergeml_index_install' ) ) {
+            vergeml_index_install();
+        }
 
 
         /*

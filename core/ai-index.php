@@ -127,6 +127,7 @@ function vergeml_index_install() {
         orientation varchar(16) NOT NULL DEFAULT '',
         embedding longblob NULL,
         embedding_dims smallint(5) unsigned NULL,
+        projection blob NULL,
         model varchar(96) NOT NULL DEFAULT '',
         model_version varchar(64) NOT NULL DEFAULT '',
         prompt_hash varchar(64) NOT NULL DEFAULT '',
@@ -194,6 +195,7 @@ function vergeml_index_fields() {
         'orientation'    => '%s',
         'embedding'      => '%s',
         'embedding_dims' => '%d',
+        'projection'     => '%s',
         'model'          => '%s',
         'model_version'  => '%s',
         'prompt_hash'    => '%s',
@@ -337,6 +339,21 @@ function vergeml_index_set( $attachment_id, $data, $overwrite_locked = false ) {
         } elseif ( 'embedding' === $key ) {
             $row['embedding_dims'] = is_array( $value ) ? count( $value ) : null;
             $formats['embedding_dims'] = '%d';
+
+            /*
+             *  The projection travels with the embedding it came from.
+             *
+             *  Search by meaning scores the 64-dim projection, and computing
+             *  it at search time meant unpacking 768 floats per row per
+             *  search -- which is why the scan was capped at 5,000 rows and a
+             *  big library was silently half-searched. Stored here, a search
+             *  reads 256 bytes a row and the cap can go.
+             */
+            if ( is_array( $value ) && function_exists( 'vergeml_organize_project' ) ) {
+                $row['projection']     = vergeml_index_vector_in( vergeml_organize_project( $value, VERGEML_ORGANIZE_DIMS ) );
+                $formats['projection'] = '%s';
+            }
+
             $value = vergeml_index_vector_in( $value );
         } elseif ( 'locked' === $key ) {
             $value = implode( ',', vergeml_index_locked_list( $value ) );

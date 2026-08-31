@@ -29,7 +29,17 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  */
 
 /** How many files to rank at once. Beyond this the shortlist comes first. */
-const VERGEML_MEANING_SCAN = 5000;
+/*
+ *  Budgets, sized for the smallest server this will run on.
+ *
+ *  A shared host gives thirty seconds and 128MB, and a search is something a
+ *  person is waiting on. So: conversion of old rows happens in small slices,
+ *  the scan reads 256-byte projections in modest chunks, and everything stops
+ *  at the deadline and says it was partial rather than timing the page out.
+ */
+const VERGEML_MEANING_CHUNK   = 5000;  // projection rows read per query
+const VERGEML_MEANING_CONVERT = 250;   // old rows converted per slice
+const VERGEML_MEANING_BUDGET  = 2000;  // ms a search may spend, filterable
 
 /** Below this the vectors are not talking about the same thing at all. */
 const VERGEML_MEANING_FLOOR = 0.22;
@@ -128,40 +138,88 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
         return null;
     }
 
+    /*
+     *  The whole library, not the newest five thousand of it.
+     *
+     *  This used to unpack every 768-float embedding at search time, which is
+     *  why it was capped at 5,000 rows -- and why, on a 20,000-file library,
+     *  three quarters of the pictures silently could not be found. Rows now
+     *  carry a 64-dim projection written when they are described; a search
+     *  reads 256 bytes a row, in chunks, until it has seen everything or the
+     *  budget says stop.
+     *
+     *  Rows from before the projection column are converted here, a slice at
+     *  a time inside the same budget -- and scored while their embedding is
+     *  in hand, so even an unconverted file can be found by the search that
+     *  converts it. A cron tick picks the remainder up in the background.
+     */
+    $deadline = microtime( true ) + max( 500, (int) apply_filters( 'vergeml_meaning_budget_ms', VERGEML_MEANING_BUDGET ) ) / 1000;
+    $scored   = array();
+    $scanned  = 0;
+
+    $keep = function ( $id, $vector ) use ( &$scored, $query ) {
+        $score = vergeml_meaning_similarity( $query, $vector );
+        if ( $score >= VERGEML_MEANING_FLOOR ) {
+            $scored[ (int) $id ] = $score;
+        }
+    };
+
+    // Old rows first: convert a few slices, scoring each on the way through.
+    $converted = vergeml_meaning_convert_batch( $deadline, 4, $keep );
+    $scanned  += $converted;
+
+    // Then the projections, smallest-id first so a partial pass is a stable
+    // prefix rather than a different sample on every reload.
+    $after = 0;
+
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    $rows = $wpdb->get_results(
-        $wpdb->prepare(
-            "SELECT attachment_id, embedding
+    do {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT attachment_id, projection
                FROM {$wpdb->vergeml_ai_index}
-              WHERE error = '' AND embedding IS NOT NULL
-           ORDER BY described_at DESC
+              WHERE error = '' AND projection IS NOT NULL AND attachment_id > %d
+           ORDER BY attachment_id ASC
               LIMIT %d",
-            VERGEML_MEANING_SCAN
-        ),
-        ARRAY_A
+            $after,
+            VERGEML_MEANING_CHUNK
+        ), ARRAY_A );
+
+        foreach ( (array) $rows as $row ) {
+            $after = (int) $row['attachment_id'];
+            $keep( $after, vergeml_index_vector_out( $row['projection'] ) );
+            $scanned++;
+        }
+
+        /*
+         *  A library where everything clears the floor must not grow without
+         *  bound: keep a generous multiple of anything a caller can ask for,
+         *  trimmed rarely so the sort is not paid per row.
+         */
+        if ( count( $scored ) > 4000 ) {
+            arsort( $scored );
+            $scored = array_slice( $scored, 0, 1500, true );
+        }
+    } while ( count( $rows ) === VERGEML_MEANING_CHUNK && microtime( true ) < $deadline );
+
+    $pending = (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
+          WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL"
     );
     // phpcs:enable
 
-    if ( ! $rows ) {
-        return array();
+    // Unconverted rows left means the background tick has work to do.
+    if ( $pending > 0 ) {
+        vergeml_meaning_convert_schedule();
     }
 
-    $scored = array();
+    $GLOBALS['vergeml_meaning_meta'] = array(
+        'scanned' => $scanned,
+        'pending' => $pending,
+        'partial' => ( $pending > 0 ) || ( microtime( true ) >= $deadline && count( $rows ) === VERGEML_MEANING_CHUNK ),
+    );
 
-    foreach ( $rows as $row ) {
-
-        $vector = vergeml_organize_project(
-            vergeml_index_vector_out( $row['embedding'] ),
-            VERGEML_ORGANIZE_DIMS
-        );
-
-        $score = vergeml_meaning_similarity( $query, $vector );
-
-        if ( $score < VERGEML_MEANING_FLOOR ) {
-            continue;
-        }
-
-        $scored[ (int) $row['attachment_id'] ] = $score;
+    if ( ! $scored ) {
+        return array();
     }
 
     /*
@@ -180,6 +238,113 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
     } );
 
     return array_slice( $ids, 0, max( 1, (int) $limit ) );
+}
+
+
+/**
+ *  Convert rows from before the projection column, a bounded slice at a time.
+ *
+ *  Each slice unpacks at most VERGEML_MEANING_CONVERT embeddings, writes their
+ *  projections back, and hands each vector to $keep so the caller can score it
+ *  in the same breath. Stops at the deadline whatever remains -- on the
+ *  smallest shared server this is a fraction of a second per slice, never a
+ *  timeout. Returns how many rows it converted.
+ */
+function vergeml_meaning_convert_batch( $deadline, $max_slices = 4, $keep = null ) {
+
+    global $wpdb;
+
+    $done = 0;
+
+    for ( $slice = 0; $slice < $max_slices && microtime( true ) < $deadline; $slice++ ) {
+
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT attachment_id, embedding
+               FROM {$wpdb->vergeml_ai_index}
+              WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL
+           ORDER BY described_at DESC
+              LIMIT %d",
+            VERGEML_MEANING_CONVERT
+        ), ARRAY_A );
+
+        if ( ! $rows ) {
+            break;
+        }
+
+        foreach ( $rows as $row ) {
+
+            $vector = vergeml_organize_project(
+                vergeml_index_vector_out( $row['embedding'] ),
+                VERGEML_ORGANIZE_DIMS
+            );
+
+            $wpdb->update(
+                $wpdb->vergeml_ai_index,
+                array( 'projection' => vergeml_index_vector_in( $vector ) ),
+                array( 'attachment_id' => (int) $row['attachment_id'] ),
+                array( '%s' ),
+                array( '%d' )
+            );
+
+            if ( is_callable( $keep ) ) {
+                $keep( (int) $row['attachment_id'], $vector );
+            }
+
+            $done++;
+
+            if ( microtime( true ) >= $deadline ) {
+                break 2;
+            }
+        }
+        // phpcs:enable
+    }
+
+    return $done;
+}
+
+
+/**
+ *  The background half of the conversion: a cron tick that works for a few
+ *  seconds and books itself again until nothing is left. Started by the first
+ *  search that finds unconverted rows, so a library upgraded today is fully
+ *  searchable within minutes without anybody's page waiting on it.
+ */
+function vergeml_meaning_convert_schedule() {
+
+    if ( ! wp_next_scheduled( 'vergeml_meaning_convert' ) ) {
+        wp_schedule_single_event( time() + 15, 'vergeml_meaning_convert' );
+    }
+}
+
+
+add_action( 'vergeml_meaning_convert', 'vergeml_meaning_convert_tick' );
+
+function vergeml_meaning_convert_tick() {
+
+    global $wpdb;
+
+    if ( get_transient( 'vergeml_meaning_convert_lock' ) ) {
+        return;
+    }
+
+    set_transient( 'vergeml_meaning_convert_lock', 1, MINUTE_IN_SECONDS );
+
+    // Five seconds a tick: real progress, and no strain a shared host notices.
+    vergeml_meaning_convert_batch( microtime( true ) + 5, 40 );
+
+    delete_transient( 'vergeml_meaning_convert_lock' );
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    $pending = (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
+          WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL"
+    );
+    // phpcs:enable
+
+    if ( $pending > 0 ) {
+        vergeml_meaning_convert_schedule();
+    }
 }
 
 
@@ -243,7 +408,18 @@ function vergeml_meaning_rest( WP_REST_Request $request ) {
         return rest_ensure_response( array( 'available' => false, 'ids' => array() ) );
     }
 
-    return rest_ensure_response( array( 'available' => true, 'ids' => $ids ) );
+    $meta = isset( $GLOBALS['vergeml_meaning_meta'] ) ? $GLOBALS['vergeml_meaning_meta'] : array();
+
+    return rest_ensure_response( array(
+        'available' => true,
+        'ids'       => $ids,
+        // How much of the library this answer is based on. 'partial' true
+        // means older files are still being indexed in the background and a
+        // repeat of the same search in a minute may find more.
+        'scanned'   => isset( $meta['scanned'] ) ? (int) $meta['scanned'] : null,
+        'pending'   => isset( $meta['pending'] ) ? (int) $meta['pending'] : null,
+        'partial'   => ! empty( $meta['partial'] ),
+    ) );
 }
 
 

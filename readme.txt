@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.9.0
+Stable tag: 3.9.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
