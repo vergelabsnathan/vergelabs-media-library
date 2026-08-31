@@ -211,20 +211,71 @@ function vergeml_index_fields() {
  *  embedding as floats, so callers never handle the storage format.
  */
 
+/**
+ *  Rows this request is about to ask for one at a time, fetched together.
+ *
+ *  A loop over a thousand candidates called vergeml_index_get() a thousand
+ *  times -- a thousand statements to answer one count on the dashboard.
+ *  Primed, the same loop is one statement and a thousand array lookups. The
+ *  cache lives for the request and is dropped for any row the setter writes,
+ *  so nothing here can serve a stale answer to the code that just changed it.
+ */
+function vergeml_index_prime( $ids ) {
+
+    global $wpdb;
+
+    $ids = array_values( array_unique( array_filter( array_map( 'intval', (array) $ids ) ) ) );
+
+    if ( ! $ids ) {
+        return;
+    }
+
+    if ( ! isset( $GLOBALS['vergeml_index_primed'] ) ) {
+        $GLOBALS['vergeml_index_primed'] = array();
+    }
+
+    foreach ( array_chunk( $ids, 1000 ) as $chunk ) {
+        $in = implode( ',', $chunk );
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids are cast to int above.
+        $rows = $wpdb->get_results( "SELECT * FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN ($in)", ARRAY_A );
+        // phpcs:enable
+        foreach ( $chunk as $id ) {
+            $GLOBALS['vergeml_index_primed'][ $id ] = null; // known absent unless a row says otherwise
+        }
+        foreach ( (array) $rows as $row ) {
+            $GLOBALS['vergeml_index_primed'][ (int) $row['attachment_id'] ] = $row;
+        }
+    }
+}
+
+
+function vergeml_index_forget( $attachment_id ) {
+    unset( $GLOBALS['vergeml_index_primed'][ (int) $attachment_id ] );
+}
+
+
 function vergeml_index_get( $attachment_id ) {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; there is no core API for it.
-    $row = $wpdb->get_row( $wpdb->prepare(
-        "SELECT * FROM {$wpdb->vergeml_ai_index} WHERE attachment_id = %d",
-        (int) $attachment_id
-    ), ARRAY_A );
-    // phpcs:enable
+    $attachment_id = (int) $attachment_id;
+
+    if ( isset( $GLOBALS['vergeml_index_primed'] ) && array_key_exists( $attachment_id, $GLOBALS['vergeml_index_primed'] ) ) {
+        $row = $GLOBALS['vergeml_index_primed'][ $attachment_id ];
+    } else {
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; there is no core API for it.
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "SELECT * FROM {$wpdb->vergeml_ai_index} WHERE attachment_id = %d",
+            $attachment_id
+        ), ARRAY_A );
+        // phpcs:enable
+    }
 
     if ( ! $row ) {
         return null;
     }
+
+    $row = $row + array(); // a copy: the primed row is shared, the decoded one is the caller's
 
     $row['tags']       = vergeml_index_tags_out( $row['tags'] );
     $row['embedding']  = vergeml_index_vector_out( $row['embedding'] );
@@ -254,6 +305,14 @@ function vergeml_index_set( $attachment_id, $data, $overwrite_locked = false ) {
 
     if ( $attachment_id <= 0 ) {
         return false;
+    }
+
+    // A row about to change is not one to answer from the primed copy, and
+    // the dashboard's minute-long numbers are about to be wrong.
+    vergeml_index_forget( $attachment_id );
+
+    if ( function_exists( 'vergeml_journey_touch' ) ) {
+        vergeml_journey_touch();
     }
 
     $fields  = vergeml_index_fields();

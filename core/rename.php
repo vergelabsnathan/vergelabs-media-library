@@ -122,6 +122,43 @@ function vergeml_rename_pending( $limit = 0 ) {
 
 
 /**
+ *  How many titles a run would rewrite, counted by the database.
+ *
+ *  vergeml_rename_pending() reads every candidate id and then asks two more
+ *  queries per id to apply the eligibility test. On a dashboard, on a library
+ *  where nearly every title is already done, that was 100,000 queries to print
+ *  "13". The same three conditions -- a real title, not locked by a person,
+ *  different from the post's -- expressed once, in SQL.
+ */
+function vergeml_rename_pending_count() {
+
+    global $wpdb;
+
+    // Half a second on 20,000 index rows; remembered for a minute and
+    // forgotten by vergeml_journey_touch() the moment a title is written.
+    $cached = get_transient( 'vergeml_rename_pending_count' );
+
+    if ( false !== $cached ) {
+        return (int) $cached;
+    }
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    $n = (int) $wpdb->get_var(
+        "SELECT COUNT(*)
+           FROM {$wpdb->vergeml_ai_index} i
+     INNER JOIN {$wpdb->posts} p ON p.ID = i.attachment_id
+          WHERE i.error = '' AND TRIM(i.title) <> '' AND p.post_title <> TRIM(i.title)
+            AND NOT FIND_IN_SET( 'title', i.locked )"
+    );
+    // phpcs:enable
+
+    set_transient( 'vergeml_rename_pending_count', $n, MINUTE_IN_SECONDS );
+
+    return $n;
+}
+
+
+/**
  *  Rename some files, and remember what they were called.
  *
  *  The writing flag is set around the update for the same reason every other
@@ -159,6 +196,11 @@ function vergeml_rename_apply( $ids ) {
 
         if ( function_exists( 'vergeml_index_writing' ) ) {
             vergeml_index_writing( false );
+        }
+
+        // The dashboard's "titles left" just moved by one.
+        if ( function_exists( 'vergeml_journey_touch' ) ) {
+            vergeml_journey_touch();
         }
 
         $done[] = $id;
@@ -220,6 +262,10 @@ function vergeml_rename_undo() {
 
         if ( function_exists( 'vergeml_index_writing' ) ) {
             vergeml_index_writing( false );
+        }
+
+        if ( function_exists( 'vergeml_journey_touch' ) ) {
+            vergeml_journey_touch();
         }
 
         $back[] = $id;

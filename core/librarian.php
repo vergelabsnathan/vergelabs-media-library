@@ -2484,7 +2484,7 @@ function vergeml_librarian_stage() {
      *  the step itself offers it -- but that is their decision to make and not
      *  something to decide for them by calling it done.
      */
-    if ( function_exists( 'vergeml_ai_pending' ) && count( vergeml_ai_pending( 'unindexed' ) ) > 0 ) {
+    if ( function_exists( 'vergeml_ai_pending_count' ) && vergeml_ai_pending_count( 'unindexed' ) > 0 ) {
         return 'unindexed';
     }
 
@@ -2587,7 +2587,7 @@ function vergeml_librarian_ready() {
         return false;
     }
 
-    return function_exists( 'vergeml_ai_pending' ) && 0 === count( vergeml_ai_pending( 'unindexed' ) );
+    return function_exists( 'vergeml_ai_pending_count' ) && 0 === vergeml_ai_pending_count( 'unindexed' );
 }
 
 

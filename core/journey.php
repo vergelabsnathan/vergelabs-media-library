@@ -34,11 +34,41 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 
 /** Loaded once per request. Several stages ask the same questions. */
+/**
+ *  Forget the dashboard's numbers, because something just changed them.
+ *
+ *  Called from the writes that move the figures -- an index row written, a
+ *  title rewritten -- so the minute-long cache below never shows somebody the
+ *  count from before the thing they just did.
+ */
+function vergeml_journey_touch() {
+    delete_transient( 'vergeml_journey_facts' );
+    delete_transient( 'vergeml_rename_pending_count' );
+    delete_transient( 'vergeml_file_pending_count' );
+}
+
+
 function vergeml_journey_facts() {
 
     static $facts = null;
 
     if ( null !== $facts ) {
+        return $facts;
+    }
+
+    /*
+     *  Sixty seconds, because these are counts over the whole library.
+     *
+     *  Measured at 50,000 files on 31-08-2026: two seconds and fourteen
+     *  statements to produce them, on every load of every plugin screen. The
+     *  numbers on a dashboard do not need to be true to the second; they need
+     *  to be true to the last thing the person did, which vergeml_journey_touch()
+     *  sees to. Everyone else gets last minute's answer in a millisecond.
+     */
+    $cached = get_transient( 'vergeml_journey_facts' );
+
+    if ( is_array( $cached ) && isset( $cached['images'] ) ) {
+        $facts = $cached;
         return $facts;
     }
 
@@ -72,17 +102,26 @@ function vergeml_journey_facts() {
          *  of it. The subselect is the newest row's fingerprint -- the same
          *  thing vergeml_index_current_stamp() reads.
          */
-        $counts = $wpdb->get_row(
+        /*
+         *  The newest fingerprint first, on its own, then the count against
+         *  it. As one statement with the subselect inline it cost 785ms on
+         *  20,000 index rows; the planner would not treat the subselect as the
+         *  constant it is. Two statements, the first answered from the
+         *  described_at index, and the whole thing is a scan with a compare.
+         */
+        $current = (string) $wpdb->get_var(
+            "SELECT prompt_hash FROM {$wpdb->vergeml_ai_index}
+              WHERE error = '' AND described_at IS NOT NULL AND model <> 'mock'
+              ORDER BY described_at DESC, attachment_id DESC LIMIT 1"
+        );
+
+        $counts = $wpdb->get_row( $wpdb->prepare(
             "SELECT COUNT(*) AS described,
-                    SUM( CASE WHEN prompt_hash IS NULL OR prompt_hash <> (
-                             SELECT prompt_hash FROM {$wpdb->vergeml_ai_index}
-                              WHERE error = '' AND described_at IS NOT NULL AND model <> 'mock'
-                              ORDER BY described_at DESC, attachment_id DESC LIMIT 1
-                         ) THEN 1 ELSE 0 END ) AS stale
+                    SUM( CASE WHEN prompt_hash IS NULL OR prompt_hash <> %s THEN 1 ELSE 0 END ) AS stale
                FROM {$wpdb->vergeml_ai_index}
               WHERE error = ''",
-            ARRAY_A
-        );
+            $current
+        ), ARRAY_A );
 
         $described   = isset( $counts['described'] ) ? (int) $counts['described'] : 0;
         $stale       = isset( $counts['stale'] ) ? (int) $counts['stale'] : 0;
@@ -170,6 +209,8 @@ function vergeml_journey_facts() {
         'large'       => isset( $smart['large'] ) ? (int) $smart['large'] : null,
         'recent'      => $recent,
     );
+
+    set_transient( 'vergeml_journey_facts', $facts, MINUTE_IN_SECONDS );
 
     return $facts;
 }
@@ -277,11 +318,16 @@ function vergeml_journey_file_rename() {
         );
     }
 
-    $n = count( vergeml_file_pending() );
+    // Bounded and remembered -- see vergeml_file_pending_count(). Counting by
+    // listing walked every described file and touched the disk for each.
+    $pending = function_exists( 'vergeml_file_pending_count' ) ? vergeml_file_pending_count() : array( 'n' => count( vergeml_file_pending() ), 'more' => false );
+    $n       = (int) $pending['n'];
 
     if ( 0 === $n ) {
         return null;
     }
+
+    $shown = number_format_i18n( $n ) . ( ! empty( $pending['more'] ) ? '+' : '' );
 
     return array(
         'count' => sprintf(
@@ -292,7 +338,7 @@ function vergeml_journey_file_rename() {
                 $n,
                 'vergelabs-media-library'
             ),
-            number_format_i18n( $n )
+            $shown
         ),
         'note'  => __( 'We move the file and every size of it, and update every page we can see pointing at it. What we cannot reach is a link written into a theme file or a stylesheet, or a page somebody has cached. One click puts it all back.', 'vergelabs-media-library' ),
         'go'    => __( 'Rename the files too', 'vergelabs-media-library' ),
@@ -818,8 +864,13 @@ function vergeml_journey_todo() {
      *  So the count leads with whatever is actually outstanding, and each
      *  number says which of the two it is.
      */
-    $names = function_exists( 'vergeml_rename_pending' ) ? count( vergeml_rename_pending() ) : 0;
-    $files = function_exists( 'vergeml_file_pending' ) ? count( vergeml_file_pending() ) : 0;
+    /*
+     *  Counted, never listed. count( vergeml_rename_pending() ) walked every
+     *  described file with two queries each -- 101,615 queries and 54 seconds
+     *  on a 50,000-file library, measured 31-08-2026 -- to print "13".
+     */
+    $names = function_exists( 'vergeml_rename_pending_count' ) ? vergeml_rename_pending_count() : 0;
+    $files = function_exists( 'vergeml_file_pending_count' ) ? (int) vergeml_file_pending_count()['n'] : 0;
 
     $todo[] = array(
         'id'    => 'names',

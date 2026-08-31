@@ -117,7 +117,7 @@ function vergeml_ai_run_start( $scope, $apply_alt ) {
         return new WP_Error( 'vergeml_ai_unconfigured', __( 'Add a licence key, or switch on demo mode, before starting a background run.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
 
-    $pending = count( vergeml_ai_pending( $scope ) );
+    $pending = vergeml_ai_pending_count( $scope );
 
     if ( 0 === $pending ) {
         return new WP_Error( 'vergeml_ai_nothing_to_do', __( 'There is nothing left to describe in that scope.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
@@ -155,7 +155,7 @@ function vergeml_ai_run_stop( $reason = '' ) {
 
     $state['active']    = false;
     $state['stopped']   = (string) $reason;
-    $state['remaining'] = count( vergeml_ai_pending( $state['scope'] ) );
+    $state['remaining'] = vergeml_ai_pending_count( $state['scope'] );
 
     return vergeml_ai_run_save( $state );
 }

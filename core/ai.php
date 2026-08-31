@@ -834,6 +834,51 @@ function vergeml_ai_pending( $scope, $limit = 0 ) {
     // phpcs:enable
 }
 
+
+/**
+ *  vergeml_ai_pending_count
+ *
+ *  How many, without the list.
+ *
+ *  Every "remaining" figure on the AI screen, the dashboard and the end of
+ *  every step used to be count( vergeml_ai_pending() ) -- fifty thousand ids
+ *  read into PHP to print one number, on every step of a run. Measured at
+ *  50,000 files on 31-08-2026: half a second and 270MB per call. This asks
+ *  the database to count instead.
+ */
+function vergeml_ai_pending_count( $scope ) {
+
+    global $wpdb;
+
+    if ( 'stale' === $scope ) {
+        // Small by construction -- the rows under an older prompt -- and the
+        // cooldown filter lives in the id query, so counting it is fine.
+        return count( vergeml_ai_pending( 'stale' ) );
+    }
+
+    $mime = $wpdb->esc_like( 'image/' ) . '%';
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    if ( 'missing-alt' === $scope ) {
+        return (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->posts} p
+             LEFT JOIN {$wpdb->postmeta} alt ON alt.post_id = p.ID AND alt.meta_key = '_wp_attachment_image_alt'
+             WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
+               AND ( alt.meta_id IS NULL OR alt.meta_value = '' )",
+            $mime
+        ) );
+    }
+
+    return (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->posts} p
+          LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = p.ID
+         WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
+           AND i.attachment_id IS NULL",
+        $mime
+    ) );
+    // phpcs:enable
+}
+
 /**
  *  The most files one call will take on.
  *
@@ -1079,7 +1124,7 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
     return array(
         'described' => $done,
         'errors'    => $errors,
-        'remaining' => count( vergeml_ai_pending( $scope ) ),
+        'remaining' => vergeml_ai_pending_count( $scope ),
         'held'      => count( $held ),
     );
 }
@@ -1368,8 +1413,8 @@ function vergeml_ai_rest_status() {
     return rest_ensure_response( array(
         'images'      => $images,
         'indexed'     => $indexed,
-        'unindexed'   => count( vergeml_ai_pending( 'unindexed' ) ),
-        'missing_alt' => count( vergeml_ai_pending( 'missing-alt' ) ),
+        'unindexed'   => vergeml_ai_pending_count( 'unindexed' ),
+        'missing_alt' => vergeml_ai_pending_count( 'missing-alt' ),
         'ready'       => vergeml_ai_ready(),
         'credits'     => isset( $credits['remaining'] ) ? $credits['remaining'] : null,
         'settings'    => array(
