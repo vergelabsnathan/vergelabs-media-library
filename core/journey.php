@@ -1036,9 +1036,12 @@ function vergeml_journey_screen() {
     ?>
     <div class="wrap vgml-dash">
 
-        <div class="vgml-home-head">
-            <h1><?php esc_html_e( 'Your media library', 'vergelabs-media-library' ); ?></h1>
-        </div>
+        <?php
+        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Your media library', 'vergelabs-media-library' ),
+            __( 'Where things stand, and what to do next.', 'vergelabs-media-library' )
+        );
+        ?>
 
         <!-- the numbers -->
         <div class="vgml-figures">

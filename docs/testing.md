@@ -64,6 +64,25 @@ deployment the same afternoon, which is the same failure in a second place.
 it is the difference between debugging the code and debugging a copy of it from
 last week.
 
+### Every screen, rendered once
+
+    pnpm smoke           # deploy to the box, then render all eight admin screens there
+
+`tools/smoke-screens.php` draws each screen under an administrator with the
+admin includes loaded — what runs is what runs when somebody opens the page —
+and reports the size and a few shape checks (one `vgml-pg-head`, no stray
+`<h1>`). A screen can lint clean and still fatal the moment it is drawn: an
+undefined helper, a variable removed from a heading that something further down
+still read. This catches that before a person does.
+
+Two harness traps it already accounts for, so nobody rediscovers them:
+`set_current_screen()` fatals without `wp-admin/includes/screen.php` and its
+class loaded first, and the three settings screens live in a file the plugin
+only includes when `is_admin()` is true — which under WP-CLI it is not, so the
+smoke loads `core/admin-menu.php` and `core/options-pages.php` itself, in the
+plugin's own order. Do not write the loop as a shell one-liner over `wp eval`;
+the quoting fails in ways that look exactly like eight broken screens.
+
 ### What "verified" means here
 
 `tools/deploy.mjs` never reports success from an exit code. Every shipped file
