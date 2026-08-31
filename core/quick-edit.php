@@ -85,6 +85,8 @@ function vergeml_quick_edit_template() {
             <td colspan="20">
                 <div class="vgml-quick">
 
+                    <div class="vgml-quick-fields">
+
                     <p class="vgml-quick-field">
                         <label for="vgml-quick-title"><?php esc_html_e( 'Title', 'vergelabs-media-library' ); ?></label>
                         <input type="text" id="vgml-quick-title" class="vgml-quick-title" value="">
@@ -95,6 +97,8 @@ function vergeml_quick_edit_template() {
                         <textarea id="vgml-quick-alt" class="vgml-quick-alt" rows="2"></textarea>
                         <span class="vgml-quick-help"><?php esc_html_e( 'What a screen reader reads out instead of showing the picture. Saving here marks it as yours, and nothing this plugin writes will replace it.', 'vergelabs-media-library' ); ?></span>
                     </p>
+
+                    </div>
 
                     <p class="vgml-quick-actions">
                         <button type="button" class="button button-primary vgml-quick-save"><?php esc_html_e( 'Save', 'vergelabs-media-library' ); ?></button>
@@ -117,6 +121,19 @@ function vergeml_quick_edit_assets( $hook ) {
     if ( 'upload.php' !== $hook ) {
         return;
     }
+
+    /*
+     *  The stylesheet this screen needs. It was in vergeml-admin.css, which is
+     *  enqueued on the plugin's own pages only, so quick edit had no styling
+     *  at all on the one screen it appears on. It also carries the
+     *  search-by-meaning rules, which sat in the same file for the same reason.
+     */
+    wp_enqueue_style(
+        'vergeml-media-list',
+        plugins_url( 'css/vergeml-media-list.css', VERGEML_FILE ),
+        array(),
+        vergeml_asset_ver( 'css/vergeml-media-list.css' )
+    );
 
     wp_enqueue_script(
         'vergeml-quick-edit',

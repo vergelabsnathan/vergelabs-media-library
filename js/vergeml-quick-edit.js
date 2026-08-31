@@ -143,6 +143,7 @@
 			var row2 = open.row;
 
 			button.disabled = true;
+			note.removeAttribute( 'data-state' );
 			note.textContent = text( 'saving', 'Saving…' );
 
 			apiFetch( {
@@ -157,6 +158,7 @@
 				close();
 			} ).catch( function () {
 				button.disabled = false;
+				note.setAttribute( 'data-state', 'failed' );
 				note.textContent = text( 'failed', '' );
 			} );
 		}

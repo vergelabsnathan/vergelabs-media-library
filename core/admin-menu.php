@@ -303,6 +303,8 @@ function vergeml_admin_home_styles( $hook ) {
         'vergeml-admin',
         plugins_url( 'css/vergeml-admin.css', VERGEML_FILE ),
         array(),
-        VERGEML_VERSION
+        // filemtime, not the plugin version: a colour change inside a release
+        // otherwise stays cached in every browser that has already been here.
+        vergeml_asset_ver( 'css/vergeml-admin.css' )
     );
 }
