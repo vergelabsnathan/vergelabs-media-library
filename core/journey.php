@@ -76,7 +76,7 @@ function vergeml_journey_facts() {
             "SELECT COUNT(*) AS described,
                     SUM( CASE WHEN prompt_hash IS NULL OR prompt_hash <> (
                              SELECT prompt_hash FROM {$wpdb->vergeml_ai_index}
-                              WHERE error = '' AND described_at IS NOT NULL
+                              WHERE error = '' AND described_at IS NOT NULL AND model <> 'mock'
                               ORDER BY described_at DESC, attachment_id DESC LIMIT 1
                          ) THEN 1 ELSE 0 END ) AS stale
                FROM {$wpdb->vergeml_ai_index}

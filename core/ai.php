@@ -328,6 +328,13 @@ function vergeml_ai_describe_result( $code, $body ) {
         return new WP_Error( 'vergeml_ai_bad_license', __( 'The licence key was not accepted.', 'vergelabs-media-library' ) );
     }
 
+    // The service saw this exact picture from this site, under this prompt,
+    // minutes ago, and declined to charge for it again. Not an error with the
+    // file; a loop somewhere sending it twice.
+    if ( 409 === $code ) {
+        return new WP_Error( 'vergeml_ai_duplicate', __( 'This picture was described a moment ago and was not sent again.', 'vergelabs-media-library' ) );
+    }
+
     if ( 200 !== $code || ! is_array( $data ) || empty( $data['caption'] ) ) {
         return new WP_Error(
             'vergeml_ai_service_error',
@@ -767,13 +774,26 @@ function vergeml_ai_pending( $scope, $limit = 0 ) {
 
         $stamp = vergeml_index_current_stamp();
 
+        /*
+         *  The prompt hash alone, not the model.
+         *
+         *  The service escalates a hard picture to a stronger model and says
+         *  so in `model`; judged on model, one escalated answer made every
+         *  ordinary one stale, and the run set off to re-describe the whole
+         *  library. The service owns the prompt hash and can fold a model
+         *  generation into it on the day it wants a library re-run; until
+         *  then a different model for one picture is a better answer, not a
+         *  stale library. Ten minutes of cooldown so a set that will not
+         *  converge is a slow leak somebody sees, not a flood.
+         */
         return vergeml_index_stale(
-            $stamp['model'],
-            $stamp['model_version'],
-            $stamp['dims'],
+            '',
+            '',
+            0,
             0,
             $limit,
-            isset( $stamp['prompt_hash'] ) ? $stamp['prompt_hash'] : ''
+            isset( $stamp['prompt_hash'] ) ? $stamp['prompt_hash'] : '',
+            VERGEML_AI_HOLD_SECONDS
         );
     }
 
@@ -837,11 +857,75 @@ const VERGEML_AI_STEP_MAX = 24;
  *  promises on screen. What is left goes out in groups of eight rather than
  *  one at a time.
  */
+/**
+ *  Ids the loop described in the last ten minutes, whatever the scope.
+ *
+ *  The one rule that makes every loop above this safe: the automatic runner
+ *  does not describe the same file twice in ten minutes. A scope whose
+ *  membership does not shrink when its members are described -- alt text
+ *  refused because the field is locked, a stamp that flips between two
+ *  answers -- would otherwise spend a credit per file per pass until the
+ *  balance was gone, and on 31-08-2026 it did.
+ */
+const VERGEML_AI_HOLD_SECONDS = 10 * MINUTE_IN_SECONDS;
+
+function vergeml_ai_recently_described( $ids = null, $record = false ) {
+
+    $seen = get_transient( 'vergeml_ai_recent' );
+    $seen = is_array( $seen ) ? $seen : array();
+    $now  = time();
+
+    // Forget anything older than the hold, so the transient stays small.
+    foreach ( $seen as $id => $at ) {
+        if ( $now - (int) $at > VERGEML_AI_HOLD_SECONDS ) {
+            unset( $seen[ $id ] );
+        }
+    }
+
+    if ( $record && is_array( $ids ) ) {
+        foreach ( $ids as $id ) {
+            $seen[ (int) $id ] = $now;
+        }
+        set_transient( 'vergeml_ai_recent', $seen, VERGEML_AI_HOLD_SECONDS );
+        return array();
+    }
+
+    if ( ! is_array( $ids ) ) {
+        return array_keys( $seen );
+    }
+
+    return array_values( array_filter( $ids, function ( $id ) use ( $seen ) {
+        return isset( $seen[ (int) $id ] );
+    } ) );
+}
+
+
 function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
 
     $ids    = vergeml_ai_pending( $scope, max( 1, min( VERGEML_AI_STEP_MAX, $limit ) ) );
     $done   = array();
     $errors = array();
+
+    /*
+     *  Anything described in the last ten minutes is held back, and if that
+     *  is everything the step was offered, the run is told it is finished
+     *  rather than handed the same eight files again. See
+     *  vergeml_ai_recently_described() for the day this earned its place.
+     */
+    $held = vergeml_ai_recently_described( $ids );
+    $ids  = array_values( array_diff( $ids, $held ) );
+
+    if ( ! $ids && $held ) {
+        return array(
+            'described' => array(),
+            'errors'    => array(),
+            'remaining' => 0,
+            'held'      => count( $held ),
+            'notice'    => __( 'These files were described in the last few minutes and are not being sent again. If they still look out of date, the definition of "out of date" is the problem, not the files — please report it.', 'vergelabs-media-library' ),
+        );
+    }
+
+    $stamp = vergeml_index_current_stamp();
 
     /*
      *  The copies first.
@@ -850,14 +934,22 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
      *  often than not, and describing it three times is three credits for one
      *  answer. The scan in step one already worked out which those are; until
      *  this, nothing ever read it.
+     *
+     *  Only from a twin that is itself current. A copy of a demo row, or of a
+     *  row under an older prompt, is a copy of something this run exists to
+     *  replace -- and copying it back in was one half of the loop.
      */
     $ask = array();
 
     foreach ( $ids as $id ) {
 
-        $twin = vergeml_ai_twin( $id );
+        $twin     = vergeml_ai_twin( $id );
+        $twin_row = $twin ? vergeml_index_get( $twin ) : null;
+        $current  = $twin_row
+            && 'mock' !== (string) $twin_row['model']
+            && ( '' === (string) $stamp['prompt_hash'] || (string) $twin_row['prompt_hash'] === (string) $stamp['prompt_hash'] );
 
-        if ( $twin && vergeml_ai_fill_from_twin( $id, $twin, $apply_alt ) ) {
+        if ( $twin && $current && vergeml_ai_fill_from_twin( $id, $twin, $apply_alt ) ) {
 
             $row = vergeml_index_get( $id );
 
@@ -885,6 +977,17 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
             : new WP_Error( 'vergeml_ai_no_answer', __( 'The service did not answer for this file.', 'vergelabs-media-library' ) );
 
         if ( is_wp_error( $described ) ) {
+
+            /*
+             *  A duplicate is the service's own version of the ten-minute
+             *  hold above. It is reported so the screen can say so, and the
+             *  file is neither stubbed as broken nor offered again this pass.
+             */
+            if ( 'vergeml_ai_duplicate' === $described->get_error_code() ) {
+                $errors[] = array( 'id' => $id, 'error' => $described->get_error_message(), 'fatal' => false );
+                vergeml_ai_recently_described( array( $id ), true );
+                continue;
+            }
 
             $fatal = in_array( $described->get_error_code(), array( 'vergeml_ai_out_of_credits', 'vergeml_ai_bad_license', 'vergeml_ai_no_license' ), true );
 
@@ -955,10 +1058,15 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
         $done[] = array( 'id' => $id, 'caption' => $described['caption'] );
     }
 
+    // Everything this step touched, twins included, is off the table for ten
+    // minutes -- the held list above is only as good as what gets written here.
+    vergeml_ai_recently_described( array_map( function ( $d ) { return (int) $d['id']; }, $done ), true );
+
     return array(
         'described' => $done,
         'errors'    => $errors,
         'remaining' => count( vergeml_ai_pending( $scope ) ),
+        'held'      => count( $held ),
     );
 }
 

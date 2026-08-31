@@ -558,10 +558,21 @@ function vergeml_index_current_stamp() {
 
     global $wpdb;
 
+    /*
+     *  Never a demo row.
+     *
+     *  On 31-08-2026 the newest row in a library was a mock -- a byte-identical
+     *  twin of a file described in demo mode, refilled from its twin on every
+     *  pass -- so the stamp read "mock", every real row was stale, the first
+     *  eight were re-described, the stamp read "haiku", the four mock rows were
+     *  stale, they were refilled from their mock twins, and the stamp read
+     *  "mock". Eight credits a cycle, a cycle a minute, 2,391 credits before
+     *  lunch. The pipeline that answers today is never the demo.
+     */
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     $row = $wpdb->get_row(
         "SELECT model, model_version, embedding_dims, prompt_hash FROM {$wpdb->vergeml_ai_index}
-          WHERE error = '' AND described_at IS NOT NULL
+          WHERE error = '' AND described_at IS NOT NULL AND model <> 'mock'
           ORDER BY described_at DESC, attachment_id DESC
           LIMIT 1",
         ARRAY_A
@@ -607,7 +618,7 @@ function vergeml_index_current_stamp() {
  *  every row with a different model handed back as well.
  */
 
-function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0, $limit = 0, $prompt_hash = '' ) {
+function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0, $limit = 0, $prompt_hash = '', $cooldown = 0 ) {
 
     global $wpdb;
 
@@ -615,6 +626,16 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
     $check_version = '' !== (string) $version ? 1 : 0;
     $check_dims    = (int) $dims > 0 ? 1 : 0;
     $check_prompt  = '' !== (string) $prompt_hash ? 1 : 0;
+
+    /*
+     *  A row described in the last $cooldown seconds is not offered again,
+     *  whatever its stamp says. Staleness is judged against the newest row,
+     *  and a set judged that way can chase its own tail; this is the floor
+     *  under it -- a file is re-described at most once per cooldown, so a
+     *  loop that would have cost a credit a second costs one a cooldown and
+     *  is visible long before it matters.
+     */
+    $cooldown = max( 0, (int) $cooldown );
 
     // Nothing to compare against: no row can be stale. Handing back the whole
     // table because the caller passed nothing would be the worst available
@@ -640,6 +661,7 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
         "SELECT attachment_id FROM {$wpdb->vergeml_ai_index}
           WHERE error = '' AND attachment_id > %d
+            AND ( %d = 0 OR described_at IS NULL OR described_at < UTC_TIMESTAMP() - INTERVAL %d SECOND )
             AND (
                     ( %d = 1 AND model <> %s )
                  OR ( %d = 1 AND model_version <> %s )
@@ -649,6 +671,8 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
           ORDER BY attachment_id ASC
           LIMIT %d",
         (int) $after,
+        $cooldown > 0 ? 1 : 0,
+        $cooldown,
         $check_model,
         (string) $model,
         $check_version,
