@@ -292,11 +292,18 @@
 	 *  kept. The bytes do not come back, so the sentence has to be true rather
 	 *  than reassuring: there is no undo and it says so.
 	 */
-	function deleteControls( wrap, group, name ) {
+	function deleteControls( entry ) {
 
+		/*
+		 *  Takes the set's record, the same one the bulk bar holds. The call
+		 *  was changed to pass it and the signature was not, so `group` was
+		 *  undefined and the first library with an actual duplicate crashed
+		 *  the report at group.items -- the scan finished and the screen said
+		 *  "Comparing…" for ever.
+		 */
+		var group = entry.group;
 		var foot = el( 'div', 'vgml-health-act' );
 		var note = el( 'span', 'vgml-health-act-note' );
-		var entry = { wrap: wrap, group: group, name: name, done: false };
 
 		var go = document.createElement( 'button' );
 		go.type = 'button';
@@ -571,6 +578,7 @@
 			return card;
 		}
 
+		var shell = card;
 		var body = el( 'div', 'vgml-pg-card-body' );
 		card.appendChild( body );
 		card = body;
@@ -595,7 +603,8 @@
 				sprintf( text( 'more', 'and %s more' ), [ String( section.more ) ] ) ) );
 		}
 
-		return card;
+		// The card, not its body: everything above was appended into the body.
+		return shell;
 	}
 
 	function report() {
