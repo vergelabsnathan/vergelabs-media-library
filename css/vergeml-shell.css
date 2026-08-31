@@ -16,26 +16,29 @@
  *  down the left, and separate sections with a rule instead of wrapping each
  *  one in its own box. That is what stops a screen reading as a settings page.
  *
- *  The colours are ours. Rocket is cool grey with an orange accent; we are the
- *  warm set already on vergelabsmedia.com and the legal pages -- #F8F0E7
- *  ground, #2B1A14 ink, #9B4E45 accent -- so the plugin and the site look like
- *  one company rather than two.
+ *  The colours are ours, and they are the site's: the same #F6F8FC ground,
+ *  #16233D ink and #2E5AA8 accent that vergelabsmedia.com and the account
+ *  page use, so somebody who buys on the site and then opens the plugin is
+ *  looking at one product rather than three.
+ *
+ *  These ten values are the whole palette. Change them here and the admin
+ *  changes with them -- that is the point of having them in one place.
  *
  *  Everything is scoped under .vgml-shell, so none of it reaches a WordPress
  *  screen this plugin does not own.
  */
 
 .vgml-shell {
-	--vgml-ground: #F8F0E7;
+	--vgml-ground: #F6F8FC;
 	--vgml-pane: #FFFFFF;
-	--vgml-surface: #FDF9F4;
-	--vgml-ink: #2B1A14;
-	--vgml-body: #5E4A42;
-	--vgml-muted: #7E6659;
-	--vgml-accent: #9B4E45;
-	--vgml-accent-dark: #7F3F38;
-	--vgml-rule: #EEDFD1;
-	--vgml-rule-strong: #E3D2C2;
+	--vgml-surface: #F1F5FC;
+	--vgml-ink: #16233D;
+	--vgml-body: #3C4964;
+	--vgml-muted: #5B6884;
+	--vgml-accent: #2E5AA8;
+	--vgml-accent-dark: #24365C;
+	--vgml-rule: #DDE5F2;
+	--vgml-rule-strong: #C9D6EA;
 
 	/* Flush to the admin menu, exactly as .wpr-wrap does it. Losing the
 	   gutter is most of what stops this reading as a settings page. */
@@ -587,8 +590,8 @@
 	max-width: 320px;
 	padding: 10px 12px;
 	border-radius: 4px;
-	background: #2B1A14;
-	color: #F8F0E7;
+	background: #16233D;
+	color: #F6F8FC;
 	font-size: 13px;
 	line-height: 1.5;
 	box-shadow: 0 4px 16px rgba(43, 26, 20, .22);
@@ -783,6 +786,96 @@
 }
 
 
+/* ------------------------------------------------------------ the way out */
+
+/*
+ *  Not a menu item. A button.
+ *
+ *  The folders live on upload.php, so this is the one control in the column
+ *  that leaves the plugin, and it has to look like it. Three things do that
+ *  and all three are load-bearing:
+ *
+ *  - a rule and real space above it, so it is not the end of the list;
+ *  - button chrome -- filled, centred, one line -- where every nav row is
+ *    flush text on two lines;
+ *  - the north-east arrow, which is the web's own mark for "this opens
+ *    somewhere else", and a caption under it saying where.
+ *
+ *  It was first built sharing the credits card's geometry and a sub-label,
+ *  which made it the tenth row of a nine-row menu.
+ */
+.vgml-shell-out {
+	margin: 20px 14px 0;
+	padding-top: 18px;
+	border-top: 1px solid var( --vgml-rule-strong );
+}
+
+.vgml-shell-leave {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	justify-content: center;
+	padding: 9px 12px;
+	border: 1px solid var( --vgml-accent );
+	border-radius: 4px;
+	background: var( --vgml-accent );
+	color: #fff;
+	text-decoration: none;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.2;
+	transition: background .12s ease, border-color .12s ease;
+}
+
+.vgml-shell-leave:hover,
+.vgml-shell-leave:active {
+	background: var( --vgml-accent-dark );
+	border-color: var( --vgml-accent-dark );
+	color: #fff;
+}
+
+.vgml-shell-leave:focus {
+	box-shadow: none;
+	outline: none;
+	color: #fff;
+}
+
+.vgml-shell-leave:focus-visible {
+	outline: 2px solid var( --vgml-ink );
+	outline-offset: 2px;
+}
+
+.vgml-shell-leave-ico {
+	flex: 0 0 auto;
+	display: flex;
+	color: currentColor;
+}
+
+/* The nav's own icons are muted; this one is on a filled button. */
+.vgml-shell-leave-ico svg {
+	width: 16px;
+	height: 16px;
+}
+
+.vgml-shell-leave-label {
+	flex: 0 1 auto;
+}
+
+/* North-east, not right: "opens elsewhere" rather than "next". */
+.vgml-shell-leave-arrow {
+	flex: 0 0 auto;
+	font-size: 13px;
+	opacity: .85;
+}
+
+.vgml-shell-out-note {
+	margin: 6px 0 0;
+	text-align: center;
+	font-size: 11px;
+	color: var( --vgml-muted );
+}
+
+
 /* ----------------------------------------------- what is left in the account */
 
 /*
@@ -835,4 +928,313 @@
 
 .vgml-shell-credits.is-low .vgml-shell-credits-n {
 	color: var( --vgml-accent );
+}
+
+
+/* ========================================================== the page bodies */
+
+/*
+ *  Nine screens, one grammar.
+ *
+ *  Every screen used to write its own markup, so every screen was a different
+ *  shape: paragraphs where the next one had a list, a heading level chosen per
+ *  page, the button wherever the sentence ended. Read one after another they
+ *  are not a product, they are nine documents.
+ *
+ *  This is the same arrangement the nav is already borrowed from -- WP Rocket's
+ *  settings body. A page is a head and then a stack of cards; a card is a
+ *  titled box; inside a card the unit is a row whose text sits left and whose
+ *  control sits right, so the eye goes down one column of labels and one column
+ *  of controls rather than through prose. Nothing here is invented: the point
+ *  is that a WordPress user has met it before.
+ *
+ *  Namespaced vgml-pg- because vgml-card, vgml-row and vgml-stat are all
+ *  already taken by the librarian, the tree and the instrument panel.
+ */
+
+/* ---------------------------------------------------------- the page head */
+
+.vgml-pg-head {
+	display: flex;
+	gap: 20px;
+	align-items: flex-start;
+	margin: 0 0 20px;
+}
+
+.vgml-pg-head-text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.vgml-shell-content .vgml-pg-title {
+	margin: 0;
+	padding: 0;
+	font-size: 21px;
+	font-weight: 600;
+	line-height: 1.25;
+	letter-spacing: -.01em;
+	color: var( --vgml-ink );
+}
+
+/*
+ *  One sentence, and the width is the cap that keeps it one sentence. A lede
+ *  that runs the full pane is a paragraph wearing a lede's clothes.
+ */
+.vgml-pg-lede {
+	margin: 6px 0 0;
+	max-width: 62ch;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var( --vgml-muted );
+}
+
+.vgml-pg-head-action {
+	flex: 0 0 auto;
+	padding-top: 2px;
+}
+
+/* -------------------------------------------------------------- the cards */
+
+.vgml-pg-card {
+	margin: 0 0 16px;
+	border: 1px solid var( --vgml-rule );
+	border-radius: 6px;
+	background: var( --vgml-pane );
+}
+
+.vgml-pg-card:last-child {
+	margin-bottom: 0;
+}
+
+/*
+ *  The head is the scan line. Title left, the card's own action right, and a
+ *  rule under it so the box has a lid -- a card without one is a rectangle
+ *  with text in it.
+ */
+.vgml-pg-card-head {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	padding: 13px 16px;
+	border-bottom: 1px solid var( --vgml-rule );
+}
+
+.vgml-shell-content .vgml-pg-card-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var( --vgml-ink );
+}
+
+.vgml-pg-card-note {
+	display: block;
+	margin-top: 2px;
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 1.45;
+	color: var( --vgml-muted );
+}
+
+.vgml-pg-card-action {
+	flex: 0 0 auto;
+}
+
+.vgml-pg-card-body {
+	padding: 16px;
+}
+
+/* A card whose body is nothing but rows gets no padding of its own. */
+.vgml-pg-card-body.is-rows {
+	padding: 0;
+}
+
+/* --------------------------------------------------------------- the rows */
+
+/*
+ *  Label and description left, the control right, one per line. This is the
+ *  whole reason the screens become scannable: every control lands on the same
+ *  vertical, so "what can I change here" is a column rather than a read.
+ */
+.vgml-pg-row {
+	display: flex;
+	gap: 24px;
+	align-items: flex-start;
+	padding: 14px 16px;
+	border-bottom: 1px solid var( --vgml-rule );
+}
+
+.vgml-pg-row:last-child {
+	border-bottom: 0;
+}
+
+.vgml-pg-row-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	max-width: 68ch;
+}
+
+.vgml-pg-row-label {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.35;
+	color: var( --vgml-ink );
+}
+
+.vgml-pg-row-help {
+	display: block;
+	margin-top: 3px;
+	font-size: 12px;
+	line-height: 1.5;
+	color: var( --vgml-muted );
+}
+
+.vgml-pg-row-control {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	padding-top: 1px;
+}
+
+/*
+ *  A row whose control is wide -- a textarea, a long select -- stacks instead
+ *  of squeezing. Below 782px WordPress is already in its touch layout and
+ *  everything stacks anyway.
+ */
+.vgml-pg-row.is-stacked {
+	display: block;
+}
+
+.vgml-pg-row.is-stacked .vgml-pg-row-control {
+	margin-top: 10px;
+	display: block;
+}
+
+@media screen and ( max-width: 782px ) {
+
+	.vgml-pg-row {
+		display: block;
+	}
+
+	.vgml-pg-row-control {
+		margin-top: 10px;
+		display: block;
+	}
+
+	.vgml-pg-head {
+		display: block;
+	}
+
+	.vgml-pg-head-action {
+		margin-top: 12px;
+	}
+}
+
+/* ------------------------------------------------------------ the numbers */
+
+/*
+ *  Figures a screen is answering a question with, across the top of a card.
+ *  A number set as a number is read; the same number inside a sentence is not.
+ */
+.vgml-pg-figures {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1px;
+	background: var( --vgml-rule );
+	border-bottom: 1px solid var( --vgml-rule );
+}
+
+.vgml-pg-figure {
+	flex: 1 1 140px;
+	padding: 14px 16px;
+	background: var( --vgml-pane );
+}
+
+.vgml-pg-figure-n {
+	display: block;
+	font-size: 24px;
+	font-weight: 600;
+	line-height: 1.05;
+	color: var( --vgml-ink );
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-pg-figure-l {
+	display: block;
+	margin-top: 3px;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var( --vgml-muted );
+}
+
+/* The figure that is the reason the screen exists. */
+.vgml-pg-figure.is-lead .vgml-pg-figure-n {
+	color: var( --vgml-accent );
+}
+
+/* ------------------------------------------------------------ the actions */
+
+/*
+ *  The foot of a card. One primary, and the rest plain -- two primaries is a
+ *  screen that has not decided what it wants somebody to do.
+ */
+.vgml-pg-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	padding: 14px 16px;
+	border-top: 1px solid var( --vgml-rule );
+	background: var( --vgml-surface );
+	border-radius: 0 0 6px 6px;
+}
+
+.vgml-pg-actions-note {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var( --vgml-muted );
+}
+
+/*
+ *  WordPress's own buttons, given the height the rest of this sizing assumes.
+ *  Restyling them outright would make the plugin the odd one out in an admin
+ *  somebody has ten other plugins in.
+ */
+.vgml-shell-content .vgml-pg-actions .button,
+.vgml-shell-content .vgml-pg-card-action .button,
+.vgml-shell-content .vgml-pg-head-action .button {
+	min-height: 32px;
+	padding: 0 14px;
+	line-height: 30px;
+	font-size: 13px;
+}
+
+/* --------------------------------------------------------------- emptiness */
+
+/*
+ *  What a card says when there is nothing in it. An empty card that renders
+ *  as an empty box reads as a bug; one that says what would go here reads as
+ *  a state.
+ */
+.vgml-pg-empty {
+	padding: 28px 16px;
+	text-align: center;
+	color: var( --vgml-muted );
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.vgml-pg-empty-title {
+	display: block;
+	margin-bottom: 3px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var( --vgml-ink );
 }

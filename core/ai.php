@@ -1367,88 +1367,101 @@ function vergeml_ai_page() {
     ?>
     <div class="wrap vgml-home vgml-ai">
 
-        <div class="vgml-home-head">
-            <h1><?php esc_html_e( 'AI', 'vergelabs-media-library' ); ?></h1>
-            <p class="vgml-home-counts" id="vgml-ai-counts"><?php esc_html_e( 'Loading…', 'vergelabs-media-library' ); ?></p>
-        </div>
+        <?php
+        /*
+         *  Head, cards, rows -- the grammar in core/admin-shell.php, not this
+         *  screen's own. What was here was an h1, a paragraph, and a
+         *  form-table of prose: nothing to scan, and the one button somebody
+         *  came to press was the last thing on the page inside a <p>.
+         *
+         *  The counts line keeps its id. The JS on this screen writes into it
+         *  and into every field id below, so the markup changed and the
+         *  contract did not.
+         */
+        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'AI', 'vergelabs-media-library' ),
+            __( 'Descriptions, alt text and search, written from your images.', 'vergelabs-media-library' ),
+            '<span class="vgml-home-counts" id="vgml-ai-counts">' . esc_html__( 'Loading…', 'vergelabs-media-library' ) . '</span>'
+        );
+        ?>
 
         <?php if ( $can_configure ) : ?>
-        <div class="vgml-ai-card">
-            <h2><?php esc_html_e( 'Licence', 'vergelabs-media-library' ); ?></h2>
-            <p class="description"><?php esc_html_e( 'Images are sent to the VergeLabs AI service only to be described. Nothing else leaves your site.', 'vergelabs-media-library' ); ?></p>
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th scope="row"><label for="vgml-ai-license"><?php esc_html_e( 'Licence key', 'vergelabs-media-library' ); ?></label><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'license_key' ); } ?></th>
-                    <td><input type="password" id="vgml-ai-license" class="regular-text" autocomplete="off" placeholder="<?php esc_attr_e( 'unchanged', 'vergelabs-media-library' ); ?>"></td>
-                </tr>
-                <tr>
-                    <th scope="row"><?php esc_html_e( 'Credits', 'vergelabs-media-library' ); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'credits' ); } ?></th>
-                    <td>
-                        <span id="vgml-ai-credits"><?php esc_html_e( 'Unknown until the first run', 'vergelabs-media-library' ); ?></span>
-                        &nbsp;·&nbsp;
-                        <?php
-                        /*
-                         *  vergelabsmedia.com, not vergelabs.nl. Credits are
-                         *  sold with the product, and this link pointed at
-                         *  /ai-credits on the company site, which is a 404 --
-                         *  so the one link a paying customer follows when they
-                         *  run out went nowhere. Same destination as Pro's
-                         *  "Top up", so both halves send people to one place.
-                         */
-                        ?>
-                        <a href="https://vergelabsmedia.com/#pricing" target="_blank" rel="noopener"><?php esc_html_e( 'Get credits', 'vergelabs-media-library' ); ?></a>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="vgml-ai-profile"><?php esc_html_e( 'What this site is about', 'vergelabs-media-library' ); ?></label>
-                        <?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'site_profile' ); } ?>
-                    </th>
-                    <td>
-                        <textarea id="vgml-ai-profile" rows="3" class="large-text" maxlength="500" placeholder="<?php echo esc_attr( vergeml_ai_profile_hint() ); ?>"></textarea>
-                        <p class="description"><?php esc_html_e( 'Changing this only affects images described from now on.', 'vergelabs-media-library' ); ?></p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><?php esc_html_e( 'Search', 'vergelabs-media-library' ); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'enrich_search' ); } ?></th>
-                    <td>
-                        <label><input type="checkbox" id="vgml-ai-enrich"> <?php esc_html_e( 'Let media search match AI captions and tags', 'vergelabs-media-library' ); ?></label>
-                    </td>
-                </tr>
-                <?php
-                /*
-                 *  Demo mode, on the screen rather than only in the REST API.
-                 *
-                 *  It was reachable three ways -- the settings endpoint, a
-                 *  VERGEML_AI_MOCK constant, and the raw option -- and by no
-                 *  click at all. So the one switch that lets somebody try the
-                 *  Librarian on their own files without a licence was the one
-                 *  switch nobody without a terminal could find, and testing
-                 *  this plugin's own screens meant opening a console.
-                 *
-                 *  Labelled without euphemism. The captions it writes are
-                 *  invented from filenames; a screen that let anyone mistake
-                 *  them for a model's answer would be lying, and this plugin's
-                 *  whole argument is that its numbers are counted.
-                 */
-                ?>
-                <tr>
-                    <th scope="row"><?php esc_html_e( 'Try it free', 'vergelabs-media-library' ); ?><?php if ( function_exists( 'vergeml_help' ) ) { vergeml_help( 'mock' ); } ?></th>
-                    <td>
-                        <label><input type="checkbox" id="vgml-ai-mock"> <?php esc_html_e( 'Demo mode — invent captions here, send nothing, spend nothing', 'vergelabs-media-library' ); ?></label>
-                        <?php if ( defined( 'VERGEML_AI_MOCK' ) ) : ?>
-                            <p class="description">
-                                <strong><?php esc_html_e( 'Forced on by the VERGEML_AI_MOCK constant in this site\'s configuration — the checkbox above cannot switch it off.', 'vergelabs-media-library' ); ?></strong>
-                            </p>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            </table>
-            <p>
-                <button type="button" class="button button-primary" id="vgml-ai-save"><?php esc_html_e( 'Save', 'vergelabs-media-library' ); ?></button>
-                <span id="vgml-ai-save-note"></span>
-            </p>
-        </div>
+        <?php
+        $help = function ( $key ) {
+            if ( ! function_exists( 'vergeml_help' ) ) {
+                return '';
+            }
+            ob_start();
+            vergeml_help( $key );
+            return ob_get_clean();
+        };
+
+        echo vergeml_pg_card_open( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Licence and credits', 'vergelabs-media-library' ),
+            array(
+                'note'        => __( 'Images go to the VergeLabs AI service only to be described. Nothing else leaves your site.', 'vergelabs-media-library' ),
+                'action_html' => '<a class="button" href="https://vergelabsmedia.com/#pricing" target="_blank" rel="noopener">'
+                    . esc_html__( 'Get credits', 'vergelabs-media-library' ) . '</a>',
+                'rows'        => true,
+            )
+        );
+
+        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Licence key', 'vergelabs-media-library' ),
+            __( 'From your account at vergelabsmedia.com.', 'vergelabs-media-library' ),
+            '<input type="text" id="vgml-ai-license" class="regular-text" autocomplete="off" spellcheck="false" placeholder="'
+                . esc_attr__( 'unchanged', 'vergelabs-media-library' ) . '">' . $help( 'license_key' )
+        );
+
+        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Credits', 'vergelabs-media-library' ),
+            __( 'One credit describes one image.', 'vergelabs-media-library' ),
+            '<span id="vgml-ai-credits">' . esc_html__( 'Unknown until the first run', 'vergelabs-media-library' )
+                . '</span>' . $help( 'credits' )
+        );
+
+        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'What this site is about', 'vergelabs-media-library' ),
+            __( 'Your trade\'s words, so descriptions name what you actually sell. Applies to images described from now on.', 'vergelabs-media-library' ),
+            '<textarea id="vgml-ai-profile" rows="3" class="large-text" maxlength="500" placeholder="'
+                . esc_attr( vergeml_ai_profile_hint() ) . '"></textarea>' . $help( 'site_profile' ),
+            true
+        );
+
+        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Search', 'vergelabs-media-library' ),
+            __( 'Media search also matches AI captions and tags.', 'vergelabs-media-library' ),
+            '<label><input type="checkbox" id="vgml-ai-enrich"> ' . esc_html__( 'On', 'vergelabs-media-library' )
+                . '</label>' . $help( 'enrich_search' )
+        );
+
+        /*
+         *  Demo mode, labelled without euphemism. The captions it writes are
+         *  invented from filenames; a screen that let anyone mistake them for
+         *  a model's answer would be lying, and this plugin's whole argument
+         *  is that its numbers are counted.
+         */
+        $mock_help = defined( 'VERGEML_AI_MOCK' )
+            ? __( 'Forced on by the VERGEML_AI_MOCK constant in this site\'s configuration — the switch cannot turn it off.', 'vergelabs-media-library' )
+            : __( 'Invent captions here, send nothing, spend nothing.', 'vergelabs-media-library' );
+
+        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Try it free', 'vergelabs-media-library' ),
+            $mock_help,
+            '<label><input type="checkbox" id="vgml-ai-mock"> ' . esc_html__( 'Demo mode', 'vergelabs-media-library' )
+                . '</label>' . $help( 'mock' )
+        );
+
+        echo '</div>'; // close the rows body before the actions foot.
+
+        echo vergeml_pg_actions( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            '<button type="button" class="button button-primary" id="vgml-ai-save">'
+                . esc_html__( 'Save changes', 'vergelabs-media-library' )
+                . '</button><span id="vgml-ai-save-note"></span>'
+        );
+
+        echo '</section>';
+        ?>
         <?php endif; ?>
 
         <?php

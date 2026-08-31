@@ -63,25 +63,6 @@ function vergeml_shell_pages() {
             'label' => __( 'Dashboard', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
-        /*
-         *  The folders themselves, which is upload.php rather than a screen of
-         *  ours -- the tree is rendered beside the media library because that
-         *  is where somebody uses it, and a second editor here would be two
-         *  places to rename the same folder.
-         *
-         *  It is in the nav because nothing pointed at it. Somebody who had
-         *  just sorted five hundred files had no route back to the thing they
-         *  had made except by remembering that folders live on the Media
-         *  screen. Findable is the whole feature.
-         */
-        array(
-            'slug'  => 'vergeml-folders',
-            'icon'  => 'folders',
-            'url'   => admin_url( 'upload.php' ),
-            'sub'   => __( 'See them, rename them, move them', 'vergelabs-media-library' ),
-            'label' => __( 'Your folders', 'vergelabs-media-library' ),
-            'cap'   => 'upload_files',
-        ),
         array(
             'slug'  => 'media-librarian',
             'icon'  => 'librarian',
@@ -144,11 +125,10 @@ function vergeml_shell_pages() {
             continue;
         }
 
-        // A page may name its own destination -- "Your folders" is upload.php,
-        // not a screen of ours -- and everything else is one of our pages.
-        if ( ! isset( $page['url'] ) ) {
-            $page['url'] = admin_url( 'admin.php?page=' . $page['slug'] );
-        }
+        // Every entry here is one of our own screens. The one link that leaves
+        // the plugin -- the folders on upload.php -- is deliberately not in
+        // this list; it is the button below the nav, see vergeml_shell_leave().
+        $page['url'] = admin_url( 'admin.php?page=' . $page['slug'] );
         $page['group'] = isset( $page['group'] ) ? $page['group'] : '';
         $page['icon']  = isset( $page['icon'] ) ? $page['icon'] : '';
         $page['sub']   = isset( $page['sub'] ) ? $page['sub'] : '';
@@ -254,6 +234,19 @@ function vergeml_shell_open() {
 
                 <?php
                 /*
+                 *  The way out, below the nav rather than inside it.
+                 *
+                 *  The folders live on upload.php, so this link leaves the
+                 *  plugin. Sat in the nav it read as a tenth screen of ours
+                 *  and the jump to a WordPress page was a surprise every
+                 *  time. A button under the list is still findable -- which
+                 *  is why it was added -- without claiming to be a tab.
+                 */
+                echo vergeml_shell_leave(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped below.
+                ?>
+
+                <?php
+                /*
                  *  What is left in the account.
                  *
                  *  This is a product somebody pays per picture for and the
@@ -282,6 +275,51 @@ function vergeml_shell_open() {
 
             <main class="vgml-shell-content">
     <?php
+}
+
+
+/**
+ *  vergeml_shell_leave
+ *
+ *  The button under the nav that opens the folders on the Media screen.
+ *
+ *  It is marked as leaving: the arrow and the "on the Media screen" line both
+ *  say so before the click rather than after it. Somebody who has just filed
+ *  five hundred files still needs a route back to what they made -- that was
+ *  always the point -- but a route out of a plugin should not be dressed as a
+ *  page of it.
+ */
+
+function vergeml_shell_leave() {
+
+    if ( ! current_user_can( 'upload_files' ) ) {
+        return '';
+    }
+
+    $icon = function_exists( 'vergeml_icon' ) ? vergeml_icon( 'folders' ) : '';
+
+    /*
+     *  One line, not two.
+     *
+     *  This was first built with a label and a sub-label, which is the exact
+     *  shape of every row in the nav above it -- so it went on reading as a
+     *  tenth menu item no matter where it sat. A button is one line of text
+     *  with button chrome around it, and the difference is the whole point.
+     */
+    return '<div class="vgml-shell-out">'
+        . sprintf(
+            '<a class="vgml-shell-leave" href="%1$s">'
+                . '<span class="vgml-shell-leave-ico" aria-hidden="true">%2$s</span>'
+                . '<span class="vgml-shell-leave-label">%3$s</span>'
+                . '<span class="vgml-shell-leave-arrow" aria-hidden="true">&#8599;</span>'
+            . '</a>',
+            esc_url( admin_url( 'upload.php' ) ),
+            $icon, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal SVG, see core/icons.php.
+            esc_html__( 'Open your folders', 'vergelabs-media-library' )
+        )
+        . '<p class="vgml-shell-out-note">'
+        . esc_html__( 'Opens the Media screen', 'vergelabs-media-library' )
+        . '</p></div>';
 }
 
 
@@ -418,4 +456,167 @@ function vergeml_shell_assets() {
         array(),
         vergeml_asset_ver( 'css/vergeml-shell.css' )
     );
+}
+
+
+/* ============================================== the grammar of a page body */
+
+/*
+ *  Every screen wrote its own markup and so every screen was a different
+ *  shape. These are the pieces all nine are rebuilt from -- head, card, row,
+ *  figures, actions -- so that a heading is the same heading everywhere and a
+ *  control lands in the same place on every screen.
+ *
+ *  Each returns a string rather than echoing, because half the callers are
+ *  building output to hand somewhere else and a function that only echoes
+ *  forces them into output buffering.
+ *
+ *  Callers pass plain text; escaping happens here. Anything genuinely markup
+ *  -- a control, a button -- is named $html and is the caller's to have
+ *  escaped already.
+ */
+
+/**
+ *  The title, the one-line explanation, and at most one action.
+ *
+ *  The lede is capped at a sentence by the stylesheet rather than by trust:
+ *  the reason these screens did not scan is that every one of them opened
+ *  with a paragraph.
+ */
+function vergeml_pg_head( $title, $lede = '', $action_html = '' ) {
+
+    $out = '<div class="vgml-pg-head"><div class="vgml-pg-head-text">'
+        . '<h1 class="vgml-pg-title">' . esc_html( $title ) . '</h1>';
+
+    if ( '' !== (string) $lede ) {
+        $out .= '<p class="vgml-pg-lede">' . esc_html( $lede ) . '</p>';
+    }
+
+    $out .= '</div>';
+
+    if ( '' !== (string) $action_html ) {
+        $out .= '<div class="vgml-pg-head-action">' . $action_html . '</div>';
+    }
+
+    return $out . '</div>';
+}
+
+
+/**
+ *  Open a card. $args takes 'note' (a line under the title), 'action_html'
+ *  (one button, top right) and 'rows' (true when the body is nothing but
+ *  vergeml_pg_row() calls, which supply their own padding).
+ */
+function vergeml_pg_card_open( $title, $args = array() ) {
+
+    $args = array_merge(
+        array( 'note' => '', 'action_html' => '', 'rows' => false ),
+        (array) $args
+    );
+
+    $out = '<section class="vgml-pg-card">';
+
+    if ( '' !== (string) $title ) {
+
+        $out .= '<div class="vgml-pg-card-head"><h2 class="vgml-pg-card-title">'
+            . esc_html( $title );
+
+        if ( '' !== (string) $args['note'] ) {
+            $out .= '<span class="vgml-pg-card-note">' . esc_html( $args['note'] ) . '</span>';
+        }
+
+        $out .= '</h2>';
+
+        if ( '' !== (string) $args['action_html'] ) {
+            $out .= '<div class="vgml-pg-card-action">' . $args['action_html'] . '</div>';
+        }
+
+        $out .= '</div>';
+    }
+
+    return $out . '<div class="vgml-pg-card-body' . ( $args['rows'] ? ' is-rows' : '' ) . '">';
+}
+
+
+function vergeml_pg_card_close() {
+    return '</div></section>';
+}
+
+
+/**
+ *  One setting: what it is on the left, the thing that changes it on the
+ *  right. $stacked for a control too wide to sit in a column -- a textarea,
+ *  a table -- which drops it under the label instead of squeezing it.
+ */
+function vergeml_pg_row( $label, $help, $control_html, $stacked = false ) {
+
+    $out = '<div class="vgml-pg-row' . ( $stacked ? ' is-stacked' : '' ) . '">'
+        . '<div class="vgml-pg-row-text">'
+        . '<span class="vgml-pg-row-label">' . esc_html( $label ) . '</span>';
+
+    if ( '' !== (string) $help ) {
+        $out .= '<span class="vgml-pg-row-help">' . esc_html( $help ) . '</span>';
+    }
+
+    $out .= '</div><div class="vgml-pg-row-control">' . $control_html . '</div></div>';
+
+    return $out;
+}
+
+
+/**
+ *  The figures a screen is answering with, in a strip across the top of a
+ *  card. Each is array( 'n' => 412, 'l' => 'not in a folder', 'lead' => true ),
+ *  and 'lead' marks the one the screen is actually about.
+ */
+function vergeml_pg_figures( $figures ) {
+
+    if ( empty( $figures ) ) {
+        return '';
+    }
+
+    $out = '<div class="vgml-pg-figures">';
+
+    foreach ( (array) $figures as $figure ) {
+
+        $lead = ! empty( $figure['lead'] ) ? ' is-lead' : '';
+
+        $out .= '<div class="vgml-pg-figure' . $lead . '">'
+            . '<span class="vgml-pg-figure-n">' . esc_html( $figure['n'] ) . '</span>'
+            . '<span class="vgml-pg-figure-l">' . esc_html( $figure['l'] ) . '</span>'
+            . '</div>';
+    }
+
+    return $out . '</div>';
+}
+
+
+/**
+ *  The foot of a card. One primary button and whatever else is plain; the
+ *  note is the caveat that belongs next to the button rather than three
+ *  paragraphs above it.
+ */
+function vergeml_pg_actions( $buttons_html, $note = '' ) {
+
+    $out = '<div class="vgml-pg-actions">';
+
+    if ( '' !== (string) $note ) {
+        $out .= '<span class="vgml-pg-actions-note">' . esc_html( $note ) . '</span>';
+    }
+
+    return $out . $buttons_html . '</div>';
+}
+
+
+/** What a card says when it has nothing to show, instead of being blank. */
+function vergeml_pg_empty( $title, $text = '' ) {
+
+    $out = '<div class="vgml-pg-empty"><span class="vgml-pg-empty-title">'
+        . esc_html( $title ) . '</span>';
+
+    if ( '' !== (string) $text ) {
+        $out .= esc_html( $text );
+    }
+
+    return $out . '</div>';
 }
