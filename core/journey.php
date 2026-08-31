@@ -129,6 +129,15 @@ function vergeml_journey_facts() {
      *  Eight real pictures with what the model said about them. A dashboard
      *  that shows the library beats one that only counts it -- this is the row
      *  that proves the thing works rather than asserting it.
+     *
+     *  attachment_id is the tiebreaker, and it is not decoration.
+     *  described_at is stamped with current_time( 'mysql' ), which resolves to
+     *  the second, so a bulk run lands hundreds of rows on the same value.
+     *  Ordering on described_at alone leaves those ties to the index, which
+     *  hands back the lowest ids of that second -- the oldest uploads in the
+     *  batch, the same eight every time, never the file just described.
+     *  vergeml_index_current_stamp() has always broken the tie this way; this
+     *  query was the one place that did not.
      */
     $recent = array();
 
@@ -136,8 +145,8 @@ function vergeml_journey_facts() {
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $recent = $wpdb->get_results(
             "SELECT attachment_id, caption, kind FROM {$wpdb->vergeml_ai_index}
-              WHERE error = '' AND caption <> ''
-              ORDER BY described_at DESC LIMIT 8",
+              WHERE error = '' AND caption <> '' AND described_at IS NOT NULL
+              ORDER BY described_at DESC, attachment_id DESC LIMIT 8",
             ARRAY_A
         );
         // phpcs:enable
