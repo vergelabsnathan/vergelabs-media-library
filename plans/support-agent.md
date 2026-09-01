@@ -130,6 +130,18 @@ support goes on decisions, not on discovery.
 - https://www.braintrust.dev/docs/guides/logging
 - https://wordpress.org/support/guidelines/
 
+## Status
+
+- **Increment 1 shipped 2026-09-01** (plugin `a440d03`, service): `core/get-help.php`
+  (loads outside the safe-mode guard), `/v1/support/ticket` → `support_tickets`
+  (migration 008) → mail to SUPPORT_EMAIL. `tests/tree/get-help.mjs` 10/10 on the
+  box; ticket #1 is the wiring test. Decision taken in execution: the known-issues
+  feed is read straight from the public repo's raw
+  `tools/watch/known-issues.json` (cached 12h in a transient), so no service route
+  and no table for it — the watch commits the file, every install sees it within a
+  day. Task 3's "synced table" is therefore not needed.
+- Increments 2 and 3 not started; the OPEN lines still stand.
+
 ## Tasks
 
 Increment 1 — Get help (plugin + one route)
