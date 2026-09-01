@@ -194,7 +194,7 @@ function vergeml_ai_run_tick() {
     // Cron requests inherit the site's limit, which on shared hosting is
     // often 30 seconds. Ask for more; carry on without it if refused.
     if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+        @set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a long cron job on shared hosting; refused silently where disallowed.
     }
 
     $started = time();

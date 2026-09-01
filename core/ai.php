@@ -1259,9 +1259,14 @@ function vergeml_ai_alt_route() {
                     'remaining' => count( vergeml_ai_alt_pending() ),
                 ) );
             },
-            // Writes post meta on attachments, so the same bar as editing one.
+            /*
+             *  Writes alt text across the whole library, every author's files
+             *  included -- an administrator's action. It was gated on
+             *  upload_files, which let any Author push alt text onto files
+             *  they could not otherwise edit, in one request.
+             */
             'permission_callback' => function () {
-                return current_user_can( 'upload_files' );
+                return current_user_can( 'manage_options' );
             },
             'args'                => array(
                 'limit' => array( 'type' => 'integer', 'default' => 100 ),

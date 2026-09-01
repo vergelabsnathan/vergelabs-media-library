@@ -277,6 +277,9 @@ function vergeml_seo_gap_sql( $select ) {
         $pages .= " UNION SELECT post_id, 0 AS pri FROM {$wpdb->prefix}aioseo_posts WHERE keyphrases LIKE '%\"keyphrase\":\"_%'";
     }
 
+    // $select, $keys and $stars are literals from this file, never input; the
+    // one value from outside is the MIME pattern, and it is placeheld.
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     return $wpdb->prepare(
         "SELECT $select FROM {$wpdb->posts} p
            LEFT JOIN {$wpdb->postmeta} alt  ON alt.post_id  = p.ID AND alt.meta_key  = '_wp_attachment_image_alt'
@@ -298,11 +301,13 @@ function vergeml_seo_gap_ids( $limit = 0 ) {
     $cap = $limit > 0 ? (int) $limit : PHP_INT_MAX;
 
     // Cornerstone and pillar pages first, then by id so a run walks in order.
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- prepared in vergeml_seo_gap_sql; the LIMIT is placeheld here.
+    // The statement is prepared in vergeml_seo_gap_sql; the LIMIT is placeheld here.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
         vergeml_seo_gap_sql( 'p.ID, MAX( kw.pri ) AS pri' ) . ' GROUP BY p.ID ORDER BY pri DESC, p.ID ASC LIMIT %d',
         $cap
     ) ) );
+    // phpcs:enable
 }
 
 
@@ -323,7 +328,7 @@ function vergeml_seo_gap_count() {
 
     global $wpdb;
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- prepared in vergeml_seo_gap_sql.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- prepared in vergeml_seo_gap_sql.
     $n = (int) $wpdb->get_var( vergeml_seo_gap_sql( 'COUNT(DISTINCT p.ID)' ) );
 
     set_transient( 'vergeml_seo_gap_count', $n, MINUTE_IN_SECONDS );

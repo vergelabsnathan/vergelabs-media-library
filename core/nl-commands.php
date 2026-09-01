@@ -394,8 +394,8 @@ function vergeml_nl_plan( $text ) {
     if ( ! isset( $vocab['folders'][ $folder_key ] ) ) {
         return new WP_Error(
             'vergeml_nl_unknown_folder',
-            /* translators: %s: the folder name the user typed. */
-            sprintf( __( 'You have no folder called "%s". Create it first, or say "create a folder called %s".', 'vergelabs-media-library' ), $intent['folder'], $intent['folder'] ),
+            /* translators: 1: the folder name the user typed, 2: the same name again. */
+            sprintf( __( 'You have no folder called "%1$s". Create it first, or say "create a folder called %2$s".', 'vergelabs-media-library' ), $intent['folder'], $intent['folder'] ),
             array( 'status' => 404 )
         );
     }

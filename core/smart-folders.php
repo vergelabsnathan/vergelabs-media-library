@@ -28,6 +28,8 @@ const VERGEML_META_UNUSED   = '_vergeml_unused';
 const VERGEML_META_USED_IN  = '_vergeml_used_in';
 const VERGEML_META_FILESIZE = '_vergeml_filesize';
 const VERGEML_SCAN_OPTION   = 'vergeml_smart_scan';
+// Where a scan in progress keeps its findings between steps. Never autoloaded.
+const VERGEML_SCAN_PROGRESS = 'vergeml_smart_scan_progress';
 
 // Over this many bytes counts as a large file. One megabyte, unless a site
 // that deals in RAW files says otherwise.
@@ -461,11 +463,34 @@ function vergeml_smart_scan_step( $resume = null ) {
      *  same walk. Capped per attachment, because "used in 400 places" and
      *  "used in 20 places, and more" call for the same caution.
      */
-    $state = is_array( $resume ) ? $resume : array(
-        'phase' => 1,
-        'at'    => 0,
-        'refs'  => array(),
-    );
+    /*
+     *  The state lives on the server between steps, not in the browser.
+     *
+     *  It used to round-trip whole: every step sent the entire refs map to
+     *  the browser and took it back, which on a real library is megabytes
+     *  per request and dies at post_max_size with a truncated body and no
+     *  useful error -- and nothing was written until the very last step, so
+     *  a closed tab restarted from zero. Now each step saves where it got to;
+     *  the browser carries only a small token, and an old browser still
+     *  sending the full state is ignored in favour of the server's copy.
+     *  No resume at all means "start again", which is what the button says.
+     */
+    $stored = get_option( VERGEML_SCAN_PROGRESS, null );
+
+    if ( is_array( $resume ) && is_array( $stored ) ) {
+        $state = $stored;
+    }
+    elseif ( is_array( $resume ) && isset( $resume['refs'] ) ) {
+        $state = $resume; // a browser from before this change, carrying it all
+    }
+    else {
+        delete_option( VERGEML_SCAN_PROGRESS );
+        $state = array(
+            'phase' => 1,
+            'at'    => 0,
+            'refs'  => array(),
+        );
+    }
 
     $cap = 20;
 
@@ -578,12 +603,14 @@ function vergeml_smart_scan_step( $resume = null ) {
             $state['at']    = 0;
         }
 
+        update_option( VERGEML_SCAN_PROGRESS, $state, false );
+
         return array(
             'complete' => false,
             'phase'    => 1,
             'done'     => min( $state['at'], $total_posts ),
             'total'    => $total_posts,
-            'resume'   => $state,
+            'resume'   => vergeml_smart_scan_token( $state ),
         );
     }
 
@@ -619,12 +646,14 @@ function vergeml_smart_scan_step( $resume = null ) {
             $state['at']    = 0;
         }
 
+        update_option( VERGEML_SCAN_PROGRESS, $state, false );
+
         return array(
             'complete' => false,
             'phase'    => 2,
             'done'     => 0,
             'total'    => 0,
-            'resume'   => $state,
+            'resume'   => vergeml_smart_scan_token( $state ),
         );
     }
 
@@ -676,6 +705,7 @@ function vergeml_smart_scan_step( $resume = null ) {
     if ( count( (array) $attachments ) < $chunk ) {
 
         update_option( VERGEML_SCAN_OPTION, array( 'finished' => time() ), false );
+        delete_option( VERGEML_SCAN_PROGRESS );
 
         return array(
             'complete' => true,
@@ -688,12 +718,28 @@ function vergeml_smart_scan_step( $resume = null ) {
         );
     }
 
+    update_option( VERGEML_SCAN_PROGRESS, $state, false );
+
     return array(
         'complete' => false,
         'phase'    => 3,
         'done'     => (int) $state['at'],
         'total'    => $total,
-        'resume'   => $state,
+        'resume'   => vergeml_smart_scan_token( $state ),
+    );
+}
+
+
+/**
+ *  What the browser carries between steps: where the scan is, not what it
+ *  has found. Enough for a progress bar and to say "continue" rather than
+ *  "start again"; the findings stay in the option the step just wrote.
+ */
+function vergeml_smart_scan_token( $state ) {
+    return array(
+        'phase'  => (int) $state['phase'],
+        'at'     => (int) $state['at'],
+        'server' => true,
     );
 }
 

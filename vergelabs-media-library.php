@@ -3,7 +3,7 @@
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
 Description: Categories, tags and custom taxonomies for the media library, MIME type management, and configurable media grid filters.
-Version: 3.13.1
+Version: 3.13.2
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.13.1' );
+if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.13.2' );
 
 /**
  *  Cache-busting asset version: the plugin version plus the file's mtime.
@@ -256,11 +256,36 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         $vergeml_basename = $vergeml_slug . '/' . $vergeml_filename;
 
 
-        // on update
-        if ( VERGEML_VERSION !== get_option( 'vergeml_version', '' ) ) {
-            vergeml_on_activation();
-            update_option( 'vergeml_version', VERGEML_VERSION );
-            delete_site_transient( 'eml_transient' );
+        /*
+         *  On update.
+         *
+         *  Runs the activation routine -- option defaults, three dbDelta
+         *  calls -- when the stored version is behind. It used to do that on
+         *  whichever request came first after an upgrade, front-end visitors
+         *  included, with nothing stopping several requests doing it at once:
+         *  a cache expiring after a deploy is exactly N concurrent requests,
+         *  and dbDelta run N times over the same table is not a thing MySQL
+         *  enjoys. Now: admin, cron or CLI only, and one at a time. add_option
+         *  is atomic, so the first request to plant the lock wins and the
+         *  rest carry on with the previous version's tables, which still
+         *  work -- every migration here is additive. A lock older than two
+         *  minutes belongs to a request that died and is taken over.
+         */
+        if ( VERGEML_VERSION !== get_option( 'vergeml_version', '' )
+             && ( is_admin() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) ) ) {
+
+            $stale = (int) get_option( 'vergeml_upgrading', 0 );
+
+            if ( $stale && $stale < time() - 120 ) {
+                delete_option( 'vergeml_upgrading' );
+            }
+
+            if ( add_option( 'vergeml_upgrading', time(), '', 'no' ) ) {
+                vergeml_on_activation();
+                update_option( 'vergeml_version', VERGEML_VERSION );
+                delete_site_transient( 'eml_transient' );
+                delete_option( 'vergeml_upgrading' );
+            }
         }
 
 

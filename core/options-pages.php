@@ -1114,7 +1114,7 @@ function vergeml_print_network_settings() {
                             <?php
                             $vergeml_taxonomies = array();
 
-                            foreach( get_sites( array( 'fields' => 'ids' ) ) as $site_id ) :
+                            foreach( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $site_id ) :
 
                                 switch_to_blog( $site_id );
 
@@ -1220,7 +1220,7 @@ function vergeml_apply_settings_to_network() {
         $vergeml_mimes = get_option( 'vergeml_mimes', array() );
 
 
-        foreach( get_sites( array( 'fields' => 'ids' ) ) as $site_id ) {
+        foreach( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $site_id ) {
 
             switch_to_blog( $site_id );
 
@@ -1528,7 +1528,7 @@ function vergeml_settings_cleanup() {
 
     if ( is_multisite()  ) {
 
-        foreach( get_sites( array( 'fields' => 'ids' ) ) as $site_id ) {
+        foreach( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $site_id ) {
 
             switch_to_blog( $site_id );
 

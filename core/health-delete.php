@@ -275,6 +275,21 @@ function vergeml_health_delete_copies( $keep, $drop ) {
 	}
 
 	/*
+	 *  Not without the usage scan. Which copy to keep, and which posts to
+	 *  repoint, both come from it; without it every candidate reads as "used
+	 *  nowhere", the keeper falls back to the lowest id -- the obvious rule
+	 *  and the wrong one -- and references to the deleted copies are left
+	 *  pointing at files that no longer exist. The renamer already refuses
+	 *  on the same grounds; deleting is the more permanent of the two.
+	 */
+	if ( function_exists( 'vergeml_smart_scan_state' ) && empty( vergeml_smart_scan_state()['finished'] ) ) {
+		return new WP_Error(
+			'unscanned',
+			__( 'Run the usage scan first, so the copy that is actually in use is the one kept and the pages using the others are repointed. Nothing was deleted.', 'vergelabs-media-library' )
+		);
+	}
+
+	/*
 	 *  The group, recomputed. This is the guard that matters: whatever the
 	 *  request asked for, only files byte-identical to the one being kept can
 	 *  be deleted by this route.

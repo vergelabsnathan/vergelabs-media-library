@@ -180,6 +180,18 @@ function vergeml_rename_apply( $ids ) {
             continue;
         }
 
+        /*
+         *  The same bar as editing the file, per file. The route is open to
+         *  anyone who can upload, and on a shared library that includes people
+         *  who may not touch each other's uploads: an Author renaming an
+         *  administrator's files through this endpoint was a one-request
+         *  exploit until this check. A request with no user at all (cron)
+         *  has no business here either.
+         */
+        if ( ! current_user_can( 'edit_post', $id ) ) {
+            continue;
+        }
+
         $before = (string) get_post( $id )->post_title;
 
         if ( function_exists( 'vergeml_index_writing' ) ) {
@@ -484,14 +496,26 @@ function vergeml_rename_routes() {
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => function ( WP_REST_Request $request ) {
 
+                $ids = $request->get_param( 'ids' );
+
+                /*
+                 *  Naming specific files needs edit_post on each, checked
+                 *  inside vergeml_rename_apply. The library-wide run -- no
+                 *  ids -- and the undo of the last run touch files across
+                 *  every author, which is an administrator's action.
+                 */
+                $library_wide = 'undo' === $request->get_param( 'action' ) || ! ( is_array( $ids ) && $ids );
+
+                if ( $library_wide && ! current_user_can( 'manage_options' ) ) {
+                    return new WP_Error( 'vergeml_rename_forbidden', __( 'Renaming the whole library is an administrator\'s job.', 'vergelabs-media-library' ), array( 'status' => 403 ) );
+                }
+
                 if ( 'undo' === $request->get_param( 'action' ) ) {
                     return rest_ensure_response( array(
                         'back'      => count( vergeml_rename_undo() ),
                         'remaining' => count( vergeml_rename_pending() ),
                     ) );
                 }
-
-                $ids = $request->get_param( 'ids' );
 
                 $ids = is_array( $ids ) && $ids
                     ? array_map( 'intval', $ids )

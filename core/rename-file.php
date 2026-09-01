@@ -542,7 +542,23 @@ function vergeml_file_undo() {
 
 /* ------------------------------------------------------------------ the API */
 
-add_action( 'rest_api_init', 'vergeml_file_rename_routes' );
+/*
+ *  Not registered in a release build.
+ *
+ *  The renamer moves files on disk and rewrites what points at them, and the
+ *  second half is not finished: it rewrites post_content by bare stem (a file
+ *  called team.jpg on a page that says "our team" rewrites the prose), never
+ *  touches builder layouts and field meta the usage scan knows about, leaves
+ *  -scaled originals behind, and on multisite wp_update_post() strips markup
+ *  the acting user may not post. Nothing in the interface calls this route
+ *  yet, so until the rewrite is whole the route stays off. A constant in
+ *  wp-config turns it on for the people finishing it:
+ *
+ *      define( 'VERGEML_FILE_RENAME', true );
+ */
+if ( defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME ) {
+    add_action( 'rest_api_init', 'vergeml_file_rename_routes' );
+}
 
 function vergeml_file_rename_routes() {
 

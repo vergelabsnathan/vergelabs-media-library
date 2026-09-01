@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.13.1
+Stable tag: 3.13.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -248,6 +248,21 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.13.2 ###
+*Audited before anyone else's site*
+
+= Security =
+* Renaming titles through the REST API now checks, per file, that the caller may edit that file; the whole-library run and its undo are administrator actions. Before this an Author could rename every title in the library in one request.
+* Applying stored alt text across the library is an administrator action. Before this an Author could push alt text onto files they could not otherwise edit.
+
+= Fixed =
+* The on-disk file renamer is switched off until it rewrites everything it moves. It was reachable through the REST API with no screen calling it, and it did not yet update builder layouts, field data or scaled originals.
+* Upgrades run their migration from the admin, cron or the command line only, one process at a time, instead of on whichever visitor's request came first after an update.
+* The usage scan keeps its progress on the server between steps instead of sending it through the browser; large libraries no longer fail at the upload-size limit, and a closed tab continues where it stopped.
+* Deleting duplicates refuses until the usage scan has run, so the copy that is actually in use is the one kept.
+* Multisite: network-wide cleanup, settings and uninstall reach every site, not only the first hundred.
+* The shipped plugin no longer carries screenshots, debug images or repository files.
 
 ### 3.13.1 ###
 *Checked against the SEO plugins' own source*

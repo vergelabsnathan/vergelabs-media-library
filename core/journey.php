@@ -309,6 +309,11 @@ function vergeml_journey_file_rename() {
         return null;
     }
 
+    // Off until the renamer rewrites everything it moves -- see core/rename-file.php.
+    if ( ! ( defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME ) ) {
+        return null;
+    }
+
     $scanned = function_exists( 'vergeml_smart_scan_state' )
         && ! empty( vergeml_smart_scan_state()['finished'] );
 
@@ -870,7 +875,11 @@ function vergeml_journey_todo() {
      *  on a 50,000-file library, measured 31-08-2026 -- to print "13".
      */
     $names = function_exists( 'vergeml_rename_pending_count' ) ? vergeml_rename_pending_count() : 0;
-    $files = function_exists( 'vergeml_file_pending_count' ) ? (int) vergeml_file_pending_count()['n'] : 0;
+
+    // The on-disk renamer is switched off until it is whole; while it is,
+    // the screen speaks only about titles and promises nothing about files.
+    $file_feature = defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME;
+    $files        = $file_feature && function_exists( 'vergeml_file_pending_count' ) ? (int) vergeml_file_pending_count()['n'] : 0;
 
     $todo[] = array(
         'id'    => 'names',
@@ -890,9 +899,11 @@ function vergeml_journey_todo() {
          *  point of the fix -- "every file is named" while 492 are not is the
          *  one sentence this screen must never say.
          */
-        'done'  => 0 === $files
-            ? __( 'Every title and every file name says what the picture shows.', 'vergelabs-media-library' )
-            : __( 'Every title is written. The files on disk are still named as they were uploaded.', 'vergelabs-media-library' ),
+        'done'  => ! $file_feature
+            ? __( 'Every title says what the picture shows.', 'vergelabs-media-library' )
+            : ( 0 === $files
+                ? __( 'Every title and every file name says what the picture shows.', 'vergelabs-media-library' )
+                : __( 'Every title is written. The files on disk are still named as they were uploaded.', 'vergelabs-media-library' ) ),
 
         'more'  => vergeml_journey_file_rename(),
     );

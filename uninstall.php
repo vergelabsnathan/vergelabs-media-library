@@ -75,22 +75,29 @@ function vergeml_uninstall_wipe_site() {
 
             $term_in = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
 
+            // $tt_in / $term_in are strings of %d placeholders sized to the id
+            // lists, which are absint()ed above; every value is placeheld.
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
             $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->term_relationships} WHERE term_taxonomy_id IN ($tt_in)", $tt_ids ) );
             $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->termmeta} WHERE term_id IN ($term_in)", $term_ids ) );
             $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s", $taxonomy ) );
             $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->terms} WHERE term_id IN ($term_in)", $term_ids ) );
+            // phpcs:enable
 
             delete_option( $taxonomy . '_children' );
         }
         else {
 
             // Attachments only; the taxonomy keeps living its own life.
+            // $tt_in is %d placeholders sized to the list; every value is placeheld.
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
             $wpdb->query( $wpdb->prepare(
                 "DELETE tr FROM {$wpdb->term_relationships} tr
                  INNER JOIN {$wpdb->posts} p ON tr.object_id = p.ID
                  WHERE p.post_type = 'attachment' AND tr.term_taxonomy_id IN ($tt_in)",
                 $tt_ids
             ) );
+            // phpcs:enable
         }
     }
 
@@ -116,7 +123,9 @@ if ( get_option( 'vergeml_uninstall_wipe' ) ) {
 
     if ( is_multisite() ) {
 
-        foreach ( get_sites( array( 'fields' => 'ids' ) ) as $vergeml_site_id ) {
+        // number 0: every site. The default is the first hundred, and a
+        // network with more than that would have been silently half-cleaned.
+        foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $vergeml_site_id ) {
             switch_to_blog( $vergeml_site_id );
             vergeml_uninstall_housekeeping();
             vergeml_uninstall_wipe_site();

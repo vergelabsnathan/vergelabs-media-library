@@ -837,10 +837,12 @@ function vergeml_autofile_assets( $hook ) {
         // way to know where a screen lives.
         'aiUrl'         => admin_url( 'admin.php?page=media-ai' ),
         'nextPropose'   => __( 'None of the folders you already have is a close enough match. Sorting into folders, below, can work out new folders for these instead — it looks at what is in the pictures rather than trying to fit them into what exists.', 'vergelabs-media-library' ),
+        /* translators: %d: number of files not yet described. */
         'nextDescribe'  => __( 'We have not looked at %d of your loose files yet, so there is nothing to compare them against. Describe them on the AI screen and come back.', 'vergelabs-media-library' ),
         'nextNothing'   => __( 'Every file is in a folder. Nothing to do here.', 'vergelabs-media-library' ),
         'goPropose'     => __( 'Work out new folders', 'vergelabs-media-library' ),
         'goDescribe'    => __( 'Go and describe them', 'vergelabs-media-library' ),
+        /* translators: %d: number of files looked at. */
         'noneNear'     => __( 'We looked at %d of them and none clearly belongs in a folder you already have.', 'vergelabs-media-library' ),
         'nothingLoose' => __( 'Every file we have looked at is already in a folder.', 'vergelabs-media-library' ),
     ) );

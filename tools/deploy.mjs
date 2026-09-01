@@ -75,10 +75,17 @@ const BOX_HOST = flagValue( '--box', '46.225.66.194' );
 const SKIP = new Set( [
 	'.git', '.github', '.claude', 'node_modules', 'playground',
 	'tests', 'plans', 'tickets', 'docs', 'tools', 'research', 'dist',
+	// wordpress.org screenshots live in the SVN assets/ directory, not in
+	// the plugin; shipping them puts 315KB of PNG on every install.
+	'.release-assets', 'assets',
 ] );
 
+// Dotfiles and repo furniture. Plugin Check flags every hidden file it finds
+// in a zip, and none of these does anything on a site. The manifest is added
+// to the payload separately, by name, so it is not walked here.
 const SKIP_FILE = new Set( [
 	'.verify.lock', 'package-lock.json', 'package.json', 'CLAUDE.md',
+	'.wp-env.json', '.gitignore', '.gitattributes', '.deploy-manifest',
 ] );
 
 
