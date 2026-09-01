@@ -2339,9 +2339,9 @@
 
 	function moveDialog( ids, returnTo ) {
 
-		var open = root.querySelector( '.vgml-move' );
-		if ( open ) {
-			open.remove();
+		// One at a time: the previous dialog's key trap goes with it.
+		if ( root.vgmlMoveClose ) {
+			root.vgmlMoveClose();
 		}
 
 		var all = folderOptions();
@@ -2355,11 +2355,19 @@
 		var input = el( 'input', { type: 'search', placeholder: l10n.typeToFilter || '', 'aria-label': l10n.typeToFilter || '', 'aria-controls': 'vgml-move-list' } );
 		var list = el( 'ul', { class: 'vgml-move-list', role: 'listbox', id: 'vgml-move-list' } );
 
+		var foot = el( 'div', { class: 'vgml-move-foot' } );
+		foot.appendChild( el( 'span', {}, l10n.moveHint || '' ) );
+		var cancel = el( 'button', { type: 'button', class: 'button button-small' }, l10n.cancel || 'Cancel' );
+		foot.appendChild( cancel );
+
 		function paintList() {
 			list.innerHTML = '';
 			shown.forEach( function ( o, i ) {
 				var li = el( 'li', { role: 'option', 'aria-selected': i === active ? 'true' : 'false', 'data-id': String( o.id ) },
-					( o.depth ? new Array( o.depth + 1 ).join( ' ' ) : '' ) + o.name );
+					o.name );
+				// Depth as indent, so two folders called "Team" under different
+				// parents can be told apart. Spaces collapse; padding does not.
+				li.style.paddingLeft = ( 8 + o.depth * 14 ) + 'px';
 				li.addEventListener( 'click', function () { choose( o.id ); } );
 				list.appendChild( li );
 			} );
@@ -2371,22 +2379,33 @@
 
 		function close() {
 			box.remove();
+			root.vgmlMoveClose = null;
 			document.removeEventListener( 'keydown', trap, true );
 			if ( returnTo && returnTo.focus ) {
 				returnTo.focus();
 			}
 		}
+		root.vgmlMoveClose = close;
 
 		function choose( termId ) {
 			close();
 			assign( ids, termId, true );
 		}
 
+		// Escape leaves; Tab stays inside -- a dialog that lets focus wander
+		// off behind it is not modal, whatever its attribute says.
 		function trap( e ) {
 			if ( 'Escape' === e.key ) {
 				e.preventDefault();
 				e.stopPropagation();
 				close();
+				return;
+			}
+			if ( 'Tab' === e.key ) {
+				var focusable = [ input, cancel ];
+				var at = focusable.indexOf( document.activeElement );
+				e.preventDefault();
+				focusable[ e.shiftKey ? ( at <= 0 ? focusable.length - 1 : at - 1 ) : ( at >= focusable.length - 1 ? 0 : at + 1 ) ].focus();
 			}
 		}
 
@@ -2409,12 +2428,6 @@
 				if ( shown[ active ] ) { choose( shown[ active ].id ); }
 			}
 		} );
-
-		var foot = el( 'div', { class: 'vgml-move-foot' } );
-		foot.appendChild( el( 'span', {}, l10n.moveHint || '' ) );
-		var cancel = el( 'button', { type: 'button', class: 'button button-small' }, l10n.cancel || 'Cancel' );
-		cancel.addEventListener( 'click', close );
-		foot.appendChild( cancel );
 
 		box.appendChild( input );
 		box.appendChild( list );

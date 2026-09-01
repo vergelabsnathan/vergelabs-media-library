@@ -1389,7 +1389,8 @@ function vergeml_update_network_licence() {
  */
 function vergeml_print_network_overview() {
 
-    $refresh = isset( $_GET['vergeml_refresh'] ) && check_admin_referer( 'vergeml_refresh' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- verified in the same expression.
+    // A stale bookmarked refresh link should show the page, not a nonce error.
+    $refresh = isset( $_GET['vergeml_refresh'], $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'vergeml_refresh' );
     $rows    = $refresh ? false : get_site_transient( 'vergeml_network_overview' );
 
     if ( ! is_array( $rows ) ) {
@@ -2014,6 +2015,10 @@ function vergeml_site_options_cleanup() {
 
     if ( is_multisite() ) {
         $options[] = 'vergeml_network_options';
+        $options[] = 'vergeml_ai_network';
+        $options[] = 'vergeml_uninstall_wipe_network';
+        $options[] = 'vergeml_watchdog_network';
+        delete_site_transient( 'vergeml_network_overview' );
     }
 
     $options = apply_filters( 'vergeml_pro_add_options', $options );

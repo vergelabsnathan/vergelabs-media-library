@@ -1502,6 +1502,11 @@ function vergeml_ai_rest_status() {
         'missing_alt' => vergeml_ai_pending_count( 'missing-alt' ),
         'page_gap'    => vergeml_ai_pending_count( 'page-gap' ),
         'ready'       => vergeml_ai_ready(),
+        // Said up front, so a staging copy reads "nothing will be sent from
+        // here" on the screen rather than failing on the first image.
+        'environment' => function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : 'production',
+        'nonprod_blocked' => function_exists( 'wp_get_environment_type' ) && 'production' !== wp_get_environment_type()
+            && ! ( defined( 'VERGEML_AI_ALLOW_NONPROD' ) && VERGEML_AI_ALLOW_NONPROD ),
         'credits'     => isset( $credits['remaining'] ) ? $credits['remaining'] : null,
         'settings'    => array(
             'auto_alt'      => (int) $settings['auto_alt'],

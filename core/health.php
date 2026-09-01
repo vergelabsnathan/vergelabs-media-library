@@ -520,7 +520,10 @@ function vergeml_health_reset() {
     // returns false and keeps serving the old metas. Then the whole cache goes.
     if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
         wp_cache_flush_group( 'post_meta' );
-    } else {
+    } elseif ( ! is_multisite() ) {
+        // On a network one shared cache serves every site; emptying it for
+        // one site's health reset is not this site's call. The last-changed
+        // stamp above already retires the post caches that matter most.
         wp_cache_flush();
     }
 

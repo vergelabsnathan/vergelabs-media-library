@@ -169,7 +169,6 @@ function vergeml_neighbour_rocket_exclude( $excluded ) {
 add_filter( 'rocket_exclude_js', 'vergeml_neighbour_rocket_exclude' );
 add_filter( 'rocket_exclude_defer_js', 'vergeml_neighbour_rocket_exclude' );
 add_filter( 'rocket_delay_js_exclusions', 'vergeml_neighbour_rocket_exclude' );
-add_filter( 'rocket_minify_excluded_external_js', 'vergeml_neighbour_rocket_exclude' );
 
 
 /*

@@ -214,7 +214,7 @@ function vergeml_journey_facts() {
         'recent'      => $recent,
     );
 
-    set_transient( 'vergeml_journey_facts', $facts, MINUTE_IN_SECONDS );
+    set_transient( 'vergeml_journey_facts', $facts[ $blog ], MINUTE_IN_SECONDS );
 
     return $facts[ $blog ];
 }
@@ -1243,6 +1243,19 @@ function vergeml_journey_screen() {
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php
+        /*
+         *  The seam the old home screen had, kept: the usage-statistics
+         *  opt-in card hangs off it (core/instrument.php), and when the
+         *  dashboard became this list the card quietly stopped rendering
+         *  anywhere. A consent switch that cannot be reached is not consent.
+         */
+        if ( has_action( 'vergeml_admin_home_cards' ) ) : ?>
+        <div class="vgml-home-cards">
+            <?php do_action( 'vergeml_admin_home_cards' ); ?>
         </div>
         <?php endif; ?>
 

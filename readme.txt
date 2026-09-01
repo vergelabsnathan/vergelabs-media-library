@@ -261,8 +261,8 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 * Uninstall walks every site; the network administrator's "remove all data" switch decides for the network, and a site's own switch for itself.
 * A network-wide AI licence: enter it once, every site inherits it; lock it and sites cannot enter their own.
 * A network overview: per site, version, tables, safe mode, where its AI key comes from, credits last seen.
-* Request caches are forgotten on switch_to_blog, and a person's remembered tree state is kept per site.
-* `pnpm test:multisite` runs the whole lifecycle on a throwaway Playground network.
+* Request caches are forgotten on switch_to_blog, and a person’s remembered tree state is kept per site. The usage scan keeps its progress on the server between steps.
+* `pnpm test:multisite` runs the whole lifecycle on a real network on the test box.
 
 = Added =
 * **Filing without a mouse.** A Move selected button beside the folder search, the M key anywhere in the library with files selected, and a folder list you can type into and arrow through. Shift+F10 opens a folder's menu from the keyboard.
@@ -285,7 +285,7 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 = Fixed =
 * The on-disk file renamer is switched off until it rewrites everything it moves. It was reachable through the REST API with no screen calling it, and it did not yet update builder layouts, field data or scaled originals.
 * Upgrades run their migration from the admin, cron or the command line only, one process at a time, instead of on whichever visitor's request came first after an update.
-* The usage scan keeps its progress on the server between steps instead of sending it through the browser; large libraries no longer fail at the upload-size limit, and a closed tab continues where it stopped.
+* The usage scan keeps its progress on the server between steps instead of sending it through the browser; large libraries no longer fail at the upload-size limit.
 * Deleting duplicates refuses until the usage scan has run, so the copy that is actually in use is the one kept.
 * Multisite: network-wide cleanup, settings and uninstall reach every site, not only the first hundred.
 * The shipped plugin no longer carries screenshots, debug images or repository files.

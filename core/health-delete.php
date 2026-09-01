@@ -174,6 +174,25 @@ function vergeml_health_pick_keep( $ids ) {
  * @param int $to   The attachment being kept.
  * @return array{content:int,thumbs:int} What was changed.
  */
+/**
+ *  The attachment id where a block or a builder wrote it, moved from one
+ *  copy to the other. Whole ids only: 12 is not the front of 123.
+ */
+function vergeml_health_repoint_ids( $text, $from, $to ) {
+
+	$from = (int) $from;
+	$to   = (int) $to;
+
+	$text = str_replace(
+		array( '"id":' . $from . ',', '"id":' . $from . '}' ),
+		array( '"id":' . $to . ',', '"id":' . $to . '}' ),
+		$text
+	);
+
+	return preg_replace( '/wp-image-' . $from . '(?!\d)/', 'wp-image-' . $to, $text );
+}
+
+
 function vergeml_health_repoint( $from, $to ) {
 
 	global $wpdb;
@@ -209,12 +228,10 @@ function vergeml_health_repoint( $from, $to ) {
 			$content = str_replace( $old_stem, $new_stem, $post->post_content );
 
 			// The id, where a block wrote it as an attribute -- with a comma
-			// after it or as the last attribute, and in the image class.
-			$content = str_replace(
-				array( '"id":' . $from . ',', '"id":' . $from . '}', 'wp-image-' . $from ),
-				array( '"id":' . $to . ',', '"id":' . $to . '}', 'wp-image-' . $to ),
-				$content
-			);
+			// after it or as the last attribute -- and in the image class,
+			// where a bare replace would also turn wp-image-12 into part of
+			// wp-image-123.
+			$content = vergeml_health_repoint_ids( $content, $from, $to );
 
 			if ( $content === $post->post_content ) {
 				continue;
@@ -280,11 +297,7 @@ function vergeml_health_repoint( $from, $to ) {
 		foreach ( (array) $rows as $row ) {
 
 			$value = str_replace( $old_stem, $new_stem, (string) $row->meta_value );
-			$value = str_replace(
-				array( '"id":' . $from . ',', '"id":' . $from . '}', 'wp-image-' . $from ),
-				array( '"id":' . $to . ',', '"id":' . $to . '}', 'wp-image-' . $to ),
-				$value
-			);
+			$value = vergeml_health_repoint_ids( $value, $from, $to );
 
 			if ( $value === (string) $row->meta_value ) {
 				continue;

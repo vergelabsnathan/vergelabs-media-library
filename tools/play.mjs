@@ -26,13 +26,13 @@
  *  Browse 127.0.0.1, never localhost: WordPress builds URLs from siteurl, and
  *  the other name fails every nonce with "the link you followed has expired".
  */
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
+let ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const SLUG = 'vergelabs-media-library';
 const MOUNT = `/wordpress/wp-content/plugins/${ SLUG }`;
 
@@ -44,6 +44,21 @@ function flag( name, fallback ) {
 }
 
 const PORT = flag( '--port', '8899' );
+
+/*
+ *  On Windows the checkout lives under a path with spaces and an emoji, and
+ *  cmd.exe splits the one and mangles the other on the way to Playground
+ *  ("Host path does not exist"). The volume's 8.3 short name for the same
+ *  directory is plain ASCII with no spaces, and points at the same files.
+ */
+if ( process.platform === 'win32' ) {
+	try {
+		const short = execSync( `for %I in ("${ ROOT }") do @echo %~sI`, { shell: 'cmd.exe', encoding: 'utf8' } ).trim().split( /\r?\n/ ).pop();
+		if ( short && ! /\s/.test( short ) ) {
+			ROOT = short;
+		}
+	} catch ( e ) { /* keep the long path */ }
+}
 
 const blueprint = JSON.parse(
 	fs.readFileSync( path.join( ROOT, 'playground', 'blueprint.json' ), 'utf8' )

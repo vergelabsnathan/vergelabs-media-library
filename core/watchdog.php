@@ -189,8 +189,9 @@ function vergeml_watchdog_strike( $error ) {
         update_option( 'vergeml_watchdog', $state, true );
 
         // Silently: the deactivation hooks are more code, and more code is the
-        // thing currently failing.
-        deactivate_plugins( plugin_basename( VERGEML_FILE ), false );
+        // thing currently failing. And this site only -- the network case
+        // returned above; the third argument says so explicitly.
+        deactivate_plugins( plugin_basename( VERGEML_FILE ), true, false );
 
         return;
     }

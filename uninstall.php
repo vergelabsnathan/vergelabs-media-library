@@ -150,16 +150,16 @@ if ( is_multisite() ) {
     }
 
     if ( $vergeml_network_wipe ) {
-        delete_site_option( 'vergeml_network_options' );
-        delete_site_option( 'vergeml_uninstall_wipe_network' );
-        delete_site_option( 'vergeml_watchdog_network' );
-        delete_site_option( 'vergeml_notices' );
-        delete_site_option( 'vergeml_mimes_backup' );
+        foreach ( array( 'vergeml_network_options', 'vergeml_uninstall_wipe_network', 'vergeml_watchdog_network', 'vergeml_ai_network', 'vergeml_notices', 'vergeml_mimes_backup' ) as $vergeml_site_option ) {
+            delete_site_option( $vergeml_site_option );
+        }
+        delete_site_transient( 'vergeml_network_overview' );
     }
 
     if ( $vergeml_any_wipe ) {
         // Per-user leftovers on every site: plain keys and blog-prefixed ones.
-        $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'vergeml\_%' OR meta_key LIKE '{$wpdb->base_prefix}%\_vergeml\_%'" );
+        $vergeml_base = str_replace( '_', '\_', $wpdb->base_prefix );
+        $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'vergeml\_%' OR meta_key LIKE '{$vergeml_base}%\_vergeml\_%'" );
     }
 }
 else {

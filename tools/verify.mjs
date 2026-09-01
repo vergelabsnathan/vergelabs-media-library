@@ -99,6 +99,13 @@ const SUITES = [
 	{ name: 'quarantine', file: 'tests/tree/quarantine.php', env: 'playground', php: true },
 	{ name: 'utilities', file: 'tests/tree/utilities.php', env: 'playground', php: true },
 	{ name: 'health', file: 'tests/tree/health.mjs', env: 'box' },
+	/*
+	 *  The background run, before the on-screen one: the describe hold keeps
+	 *  a file just described from being described again for ten minutes, so
+	 *  the three files the `ai` suite resets and re-describes would otherwise
+	 *  sit in this suite's backlog as "left pending" for the wrong reason.
+	 */
+	{ name: 'ai-background', file: 'tests/ai/background.php', env: 'box', php: true },
 	{
 		name: 'ai',
 		file: 'tests/tree/ai.mjs',
@@ -114,13 +121,6 @@ const SUITES = [
 		env: 'box',
 		before: 'wp option delete vergeml_smart_scan',
 	},
-	/*
-	 *  The background run. A PHP suite, because what it tests is what happens
-	 *  with no browser attached: it calls the cron tick directly, which is
-	 *  what WP-Cron would have called. Seeds its own files and puts the
-	 *  settings back, and runs in demo mode so it spends nothing.
-	 */
-	{ name: 'ai-background', file: 'tests/ai/background.php', env: 'box', php: true },
 	/*
 	 *  Folders as a file. The assertion that matters is the round trip -- export
 	 *  a tree, delete it, import the file, compare -- so it needs a real library
@@ -442,7 +442,14 @@ function run( suite ) {
 	}
 
 	return new Promise( ( resolve ) => {
-		const child = spawn( process.execPath, [ path.join( ROOT, suite.file ), baseFor( suite ) ], {
+		/*
+		 *  Browser suites take base, user, password as positional arguments and
+		 *  default to the original box admin. That account's password is not
+		 *  what it was, so the gate passes VGML_USER / VGML_PASS through when
+		 *  they are set -- the same pair every flow:* script reads.
+		 */
+		const creds = process.env.VGML_USER && process.env.VGML_PASS ? [ process.env.VGML_USER, process.env.VGML_PASS ] : [];
+		const child = spawn( process.execPath, [ path.join( ROOT, suite.file ), baseFor( suite ), ...creds ], {
 			cwd: ROOT,
 			stdio: 'inherit',
 		} );

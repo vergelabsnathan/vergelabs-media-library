@@ -330,7 +330,7 @@ function vergeml_talk_apply( $folders ) {
 	$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
 
 	if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
-		return new WP_Error( 'no_taxonomy', __( 'No folder taxonomy on this site.', 'vergelabs-media-library' ) );
+		return new WP_Error( 'no_taxonomy', __( 'No folders are set up on this site.', 'vergelabs-media-library' ) );
 	}
 
 	if ( ! is_array( $folders ) || ! $folders ) {
@@ -533,7 +533,7 @@ function vergeml_talk_undo() {
 	$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
 
 	if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
-		return new WP_Error( 'no_taxonomy', __( 'No folder taxonomy on this site.', 'vergelabs-media-library' ) );
+		return new WP_Error( 'no_taxonomy', __( 'No folders are set up on this site.', 'vergelabs-media-library' ) );
 	}
 
 	// The folders that existed, back first, so files have somewhere to go.
@@ -645,14 +645,21 @@ function vergeml_talk_plan_hash( $folders ) {
 
 	$flat = array();
 
+	// mbstring is optional in PHP; without it the hash still has to agree
+	// with itself on both sides of the round trip.
+	$lower = function ( $s ) {
+		$s = trim( (string) $s );
+		return function_exists( 'mb_strtolower' ) ? mb_strtolower( $s ) : strtolower( $s );
+	};
+
 	foreach ( (array) $folders as $f ) {
 		if ( ! is_array( $f ) || empty( $f['name'] ) ) {
 			continue;
 		}
 		$flat[] = array(
-			mb_strtolower( trim( (string) $f['name'] ) ),
-			mb_strtolower( trim( isset( $f['parent'] ) ? (string) $f['parent'] : '' ) ),
-			mb_strtolower( trim( isset( $f['matches'] ) ? (string) $f['matches'] : '' ) ),
+			$lower( $f['name'] ),
+			$lower( isset( $f['parent'] ) ? $f['parent'] : '' ),
+			$lower( isset( $f['matches'] ) ? $f['matches'] : '' ),
 		);
 	}
 
@@ -707,7 +714,7 @@ function vergeml_talk_rest_apply( WP_REST_Request $request ) {
 	     || ! hash_equals( (string) $plan['hash'], vergeml_talk_plan_hash( $clean ) ) ) {
 		return new WP_Error(
 			'vergeml_talk_plan_stale',
-			__( 'That proposal has expired or is not the one that was shown. Ask again, read what would change, and then apply.', 'vergelabs-media-library' ),
+			__( 'Those folders have expired or are not the ones that were shown. Ask again, read what would change, and then apply.', 'vergelabs-media-library' ),
 			array( 'status' => 409 )
 		);
 	}

@@ -2893,7 +2893,7 @@ function vergeml_librarian_page() {
         <?php
         echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
             __( 'Sort into folders', 'vergelabs-media-library' ),
-            __( 'A folder structure proposed from your pictures, and shown to you before anything moves.', 'vergelabs-media-library' ),
+            __( 'Folders worked out from your pictures, and shown to you before anything moves.', 'vergelabs-media-library' ),
             '<span class="vgml-home-counts" id="vgml-lib-counts">' . esc_html__( 'Loading…', 'vergelabs-media-library' ) . '</span>'
         );
         ?>

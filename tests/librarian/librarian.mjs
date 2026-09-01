@@ -282,9 +282,13 @@ check( 'the panel offers Apply once it has something to count',
 		return !! go && ! go.disabled;
 	} ) );
 
+// Filing spends nothing; in demo mode the line says so in demo-mode words.
+// "mock" was the old word for demo, and the copy no longer uses it.
 check( 'and says what applying would cost, honestly',
-	await page.evaluate( () =>
-		document.querySelector( '#vgml-lib-preflight .vgml-lib-credits' ).textContent.indexOf( 'mock' ) >= 0 ) );
+	await page.evaluate( () => {
+		const line = document.querySelector( '#vgml-lib-preflight .vgml-lib-credits' );
+		return !! line && /demo|mock|nothing|spends no/i.test( line.textContent );
+	} ) );
 
 const counted = await call( '/vergeml/v1/librarian-preflight', {
 	method: 'POST',

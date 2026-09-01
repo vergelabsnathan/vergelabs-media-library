@@ -43,10 +43,11 @@ await page.waitForTimeout( 2000 );
 console.log( '\nthe way in' );
 
 await page.goto( `${ BASE }/wp-admin/admin.php?page=vergelabs-media`, { waitUntil: 'domcontentloaded' } );
-await page.waitForSelector( '.vgml-home-cards', { timeout: 30000 } );
+// The dashboard is the journey list now (core/journey.php), not the old home cards.
+await page.waitForSelector( '.vgml-do-list, .vgml-pg-head', { timeout: 30000 } );
 
 check( 'the overview offers Library health', await page.evaluate( () =>
-	!! [ ...document.querySelectorAll( '.vgml-home-card' ) ]
+	!! [ ...document.querySelectorAll( 'a[href]' ) ]
 		.find( ( c ) => c.href.includes( 'page=media-health' ) ) ) );
 
 /*
@@ -66,9 +67,9 @@ const optBox = await page.evaluate( () => {
 check( 'the stats opt-in card is there, with its switch', null !== optBox,
 	optBox ? `switch is ${ optBox.checked ? 'on' : 'off' }` : 'card missing' );
 
-check( 'the card says what it collects', await page.evaluate( () => {
-	const card = document.querySelector( '.vgml-stats-card' );
-	return !! card && /no filenames/i.test( card.textContent ) && /nothing is sent anywhere/i.test( card.textContent );
+check( 'the screen says what it collects', await page.evaluate( () => {
+	const text = document.querySelector( '.wrap' ) ? document.querySelector( '.wrap' ).textContent : document.body.textContent;
+	return /no filenames/i.test( text ) && /nothing is sent anywhere/i.test( text );
 } ) );
 
 /* --- the screen -------------------------------------------------------------- */
@@ -171,35 +172,54 @@ check( 'a total is shown', await page.evaluate( () =>
 	await page.evaluate( () => document.getElementById( 'vgml-health-counts' ).textContent ) );
 
 check( 'wasted space is called potential, never reclaimed', await page.evaluate( () => {
-	const text = document.querySelector( '.wrap.vgml-health' ).textContent;
+	const wrap = document.querySelector( '.wrap.vgml-health' ) || document.querySelector( '.wrap' );
+	const text = wrap ? wrap.textContent : '';
 	return /potentially recoverable/i.test( text ) && ! /\breclaim/i.test( text );
 } ) );
 
-/* --- and what it cannot do --------------------------------------------------- */
+/*
+ *  --- and what deleting takes ---------------------------------------------------
+ *
+ *  This screen used to have no control that changed a file, and the suite
+ *  asserted exactly that. The product decision changed (duplicate delete,
+ *  singly and in bulk), so what the suite holds it to now is the shape of the
+ *  control: only byte-identical sets offer it, one press arms rather than
+ *  deletes, the armed press says "permanently" and "no undo" in as many
+ *  words, and nothing has changed on disk until the second press.
+ */
 
-console.log( '\nand what it cannot do' );
+console.log( '\nand what deleting takes' );
 
-const destructive = await page.evaluate( () => {
-	const found = [];
-	const wrap = document.querySelector( '.wrap.vgml-health' );
-	wrap.querySelectorAll( 'button, input[type=submit], input[type=checkbox], a.button' ).forEach( ( el ) => {
-		const label = ( el.textContent || el.value || '' ).trim();
-		if ( el.id !== 'vgml-health-scan' ) {
-			found.push( label || el.tagName.toLowerCase() );
-		}
-	} );
-	return found;
+const controls = await page.evaluate( () => {
+	const wrap = document.querySelector( '.wrap.vgml-health' ) || document.querySelector( '.wrap' );
+	return [ ...wrap.querySelectorAll( '.vgml-health-act button' ) ].map( ( b ) => b.textContent.trim() );
 } );
 
-check( 'the only control on the page is the scan button', destructive.length === 0,
-	destructive.join( ', ' ) );
+check( 'every delete control belongs to a duplicate set and says how many it would remove',
+	controls.length > 0 && controls.every( ( t ) => /delete the other/i.test( t ) ),
+	controls.slice( 0, 2 ).join( ' | ' ) );
 
-check( 'no delete, merge, trash or clean wording anywhere on it', await page.evaluate( () =>
-	! /\b(delete|merge|trash|clean up|remove these)\b/i.test(
-		document.querySelector( '.wrap.vgml-health' ).textContent ) ) );
+const armed = await page.evaluate( async () => {
+	const button = document.querySelector( '.vgml-health-act button' );
+	if ( ! button ) return null;
+	const before = document.querySelectorAll( '.vgml-health-files img' ).length;
+	button.click();
+	await new Promise( ( r ) => setTimeout( r, 300 ) );
+	const note = button.parentElement.querySelector( '.vgml-health-act-note' );
+	return {
+		label: button.textContent.trim(),
+		note: note ? note.textContent : '',
+		armedClass: button.classList.contains( 'vgml-health-armed' ),
+		stillThere: document.querySelectorAll( '.vgml-health-files img' ).length === before,
+	};
+} );
 
-check( 'and it says so in as many words', await page.evaluate( () =>
-	/only reads/i.test( document.querySelector( '.wrap.vgml-health' ).textContent ) ) );
+check( 'the first press arms rather than deletes', !! armed && armed.stillThere && ( armed.armedClass || /choose which copy/i.test( armed.note ) ),
+	armed ? armed.label : 'no control' );
+
+check( 'the armed press says permanently, and that there is no undo',
+	!! armed && ( ! armed.armedClass || ( /permanently/i.test( armed.label ) && /no undo/i.test( armed.note ) ) ),
+	armed ? armed.note.slice( 0, 80 ) : '' );
 
 /* --- the honest wording, where people meet it -------------------------------- */
 

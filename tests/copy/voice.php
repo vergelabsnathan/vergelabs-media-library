@@ -105,7 +105,12 @@ $vc_backlog = array(
     'core/options-pages.php',
 );
 
-$vc_root  = dirname( dirname( __DIR__ ) );
+// Run from the checkout the root is two levels up; shipped to /tmp on the box
+// by tools/verify.mjs it is not, and the plugin's own directory is the source.
+$vc_root = dirname( dirname( __DIR__ ) );
+if ( ! is_dir( $vc_root . '/core' ) ) {
+    $vc_root = WP_PLUGIN_DIR . '/vergelabs-media-library';
+}
 $vc_files = array();
 
 foreach ( array( 'core', 'pro/includes' ) as $vc_dir ) {
