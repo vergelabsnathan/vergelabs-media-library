@@ -1,7 +1,7 @@
 ﻿# VergeLabs Media Library
 
 GPLv2 fork of Enhanced Media Library 2.9.4, taken over after upstream went unmaintained.
-Free plugin on wordpress.org; a paid Pro add-on (`C:\dev\media-plugin\pro`) sells
+Free plugin on wordpress.org; a paid Pro add-on (`C:\Users\viete\Desktop\🟢 Claude Projects\Media Plugin\pro`) sells
 AI image descriptions on top of it. Currently **3.2.0**, not yet submitted.
 
 Everything below is a constraint that has already drawn blood. Anything conditional lives in
@@ -113,7 +113,7 @@ green, and optimise for correctness rather than time.
   group is open (it self-opens now, but new suites must not assume);
   sweep test-debris attachments/terms (`zz*`, probe stamps) between full
   batteries or counts drift and drags mis-aim.
-- **Start every session from this folder** (`C:\dev\media-plugin\plugin`),
+- **Start every session from this folder** (`C:\Users\viete\Desktop\🟢 Claude Projects\Media Plugin\plugin`),
   or `.claude/skills/` never loads and the harness silently does not exist.
 - **The AI roadmap lives in `docs/ai-roadmap.md`** â€” phases, decisions and
   standing rules for everything under VergeLabs Library â†’ AI. Do not

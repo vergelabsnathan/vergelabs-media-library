@@ -2,8 +2,8 @@
 // inferring it from an admin screen.
 const { chromium } = require('playwright');
 const fs = require('fs');
-const W = 'C:/dev/media-plugin/plugin/core/watchdog.php';
-const V = 'C:/dev/media-plugin/plugin/core/taxonomies.php';
+const W = require('path').join(__dirname, '..', '..', 'core', 'watchdog.php');
+const V = require('path').join(__dirname, '..', '..', 'core', 'taxonomies.php');
 const wOrig = fs.readFileSync(W, 'utf8');
 const vOrig = fs.readFileSync(V, 'utf8');
 const PROBE = `

@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.10.1
+Stable tag: 3.11.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -248,6 +248,15 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.11.0 ###
+*The tree, wherever you build*
+
+= Added =
+* **Twenty page builders.** The folder tree now appears in the media modal of Elementor, WPBakery, Divi 4 and 5, Beaver Builder, Brizy, Bricks, Oxygen, Breakdance, Avada / Fusion Builder, Thrive Architect, Cornerstone, Zion, YooTheme, BeTheme, Themify, Tailor, Oshine, LearnPress's front-end editor and Dokan's vendor dashboard. Elementor, WPBakery, Beaver, Brizy and Zion were verified in a browser against their current releases; the rest use each builder's own documented hook and are best effort until we can run them.
+
+= Fixed =
+* On front-end builders the tree's fallback transport was never registered, so the tree script silently failed to print. It registers itself now wherever the tree loads.
 
 ### 3.10.1 ###
 

@@ -16,9 +16,9 @@ gate as passing without having run it, and never infer a result from a previous 
 Every PHP file must parse on the 7.4 floor, and this now runs here rather than on a box:
 
 ```bash
-cd /c/dev/media-plugin/plugin
+cd "/c/Users/viete/Desktop/🟢 Claude Projects/Media Plugin/plugin"
 find . -name "*.php" -not -path "./node_modules/*" | wc -l
-find . -name "*.php" -not -path "./node_modules/*" \n  -exec /c/dev/media-plugin/.tools/php74/php.exe -l {} \; 2>&1 | grep -v "No syntax errors"
+find . -name "*.php" -not -path "./node_modules/*" \n  -exec "/c/Users/viete/Desktop/🟢 Claude Projects/Media Plugin/.tools/php74/php.exe" -l {} \; 2>&1 | grep -v "No syntax errors"
 ```
 
 Empty output after the file count means clean. **A count of zero is a failure**, not a pass:
@@ -31,7 +31,7 @@ not: the box runs 8.3 and happily accepts syntax that breaks for the users this 
 Install it once with:
 
 ```powershell
-$dst = "C:\dev\media-plugin\.tools\php74"
+$dst = "C:\Users\viete\Desktop\🟢 Claude Projects\Media Plugin\.tools\php74"
 New-Item -ItemType Directory -Force $dst
 Invoke-WebRequest "https://windows.php.net/downloads/releases/archives/php-7.4.33-nts-Win32-vc15-x64.zip" -OutFile "$env:TEMP\php74.zip"
 Expand-Archive "$env:TEMP\php74.zip" -DestinationPath $dst -Force
@@ -46,7 +46,7 @@ catches constructs in files this lint might skip.
 Grep for the constructs that do not exist in 7.4:
 
 ```bash
-cd /c/dev/media-plugin/plugin
+cd "/c/Users/viete/Desktop/🟢 Claude Projects/Media Plugin/plugin"
 grep -rnE 'match\s*\(|\?\->|readonly |enum [A-Z]|function [a-zA-Z_]+\([^)]*(public|private|protected) ' \
   --include=*.php . | grep -v '/tests/'
 ```
@@ -59,7 +59,7 @@ comment). Explain any hit you dismiss.
 All three must agree, or wordpress.org ships a different version than the plugin reports:
 
 ```bash
-cd /c/dev/media-plugin/plugin
+cd "/c/Users/viete/Desktop/🟢 Claude Projects/Media Plugin/plugin"
 grep -n "^Version:" vergelabs-media-library.php
 grep -n "VERGEML_VERSION'," vergelabs-media-library.php
 grep -n "^Stable tag:" readme.txt
@@ -72,9 +72,9 @@ gate printed two lines and read as clean while checking two of the three places.
 ## Gate 4 â€” functional tests in Playground
 
 ```bash
-cd /c/dev/media-plugin/plugin
+cd "/c/Users/viete/Desktop/🟢 Claude Projects/Media Plugin/plugin"
 MSYS_NO_PATHCONV=1 npx --yes @wp-playground/cli@latest server --port 8899 \
-  --mount-dir "C:\dev\media-plugin\plugin" /wordpress/wp-content/plugins/vergelabs-media-library \
+  --mount-dir "C:\Users\viete\Desktop\🟢 Claude Projects\Media Plugin\plugin" /wordpress/wp-content/plugins/vergelabs-media-library \
   --blueprint=tests/tree/blueprint.json &
 # wait for "Ready!", then:
 node tests/tree/t0-endpoints.js
@@ -89,7 +89,7 @@ The performance gate, and the only performance number that means anything in Pla
 Boot time is noise; **query count is the measurement**.
 
 ```bash
-cd /c/dev/media-plugin/plugin
+cd "/c/Users/viete/Desktop/🟢 Claude Projects/Media Plugin/plugin"
 node tests/perf/bench.mjs http://127.0.0.1:8903 admin:benchbenchbenchbench   # Playground
 node tests/perf/bench.mjs http://46.225.66.194 admin:<app-password>          # real MariaDB
 ```
@@ -130,7 +130,7 @@ instead reports the dev files — `.claude`, `CLAUDE.md`, `tests/`, `tools/` —
 are not real, and burying the real ones under them is how a real one gets missed.
 
 ```bash
-cd /c/dev/media-plugin/plugin
+cd "/c/Users/viete/Desktop/🟢 Claude Projects/Media Plugin/plugin"
 git archive HEAD --prefix=vergelabs-media-library/ -o /tmp/clean.tar
 mkdir -p /tmp/pc && tar xf /tmp/clean.tar -C /tmp/pc
 
@@ -172,8 +172,8 @@ after failing exactly this.
 Run it with a blueprint rather than a box:
 
 ```bash
-cd /c/dev/media-plugin/plugin
-MSYS_NO_PATHCONV=1 npx --yes @wp-playground/cli@latest run-blueprint --php=8.3 --wp=latest   --mount-dir "C:\dev\media-plugin\plugin" /wordpress/wp-content/plugins/vergelabs-media-library   --blueprint=tests/librarian/gate7-blueprint.json
+cd "/c/Users/viete/Desktop/🟢 Claude Projects/Media Plugin/plugin"
+MSYS_NO_PATHCONV=1 npx --yes @wp-playground/cli@latest run-blueprint --php=8.3 --wp=latest   --mount-dir "C:\Users\viete\Desktop\🟢 Claude Projects\Media Plugin\plugin" /wordpress/wp-content/plugins/vergelabs-media-library   --blueprint=tests/librarian/gate7-blueprint.json
 cat tests/librarian/gate7-last-run.txt
 ```
 

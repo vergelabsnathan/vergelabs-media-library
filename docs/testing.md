@@ -42,7 +42,7 @@ This plugin exists in three places at once, and they do not agree unless made to
 
 | Copy | Where | Updated by |
 |---|---|---|
-| the source | `C:\dev\media-plugin\plugin` | editing it |
+| the source | `C:\Users\viete\Desktop\🟢 Claude Projects\Media Plugin\plugin` | editing it |
 | the Playground zip | `playground/vergelabs-media-library.zip`, served to the world over the repo's raw URL | `pnpm deploy` |
 | the box | `46.225.66.194:/var/www/wp/wp-content/plugins/…` | `pnpm deploy` |
 
@@ -185,7 +185,7 @@ Without it Git Bash rewrites `/wordpress/...` into
 `C:/Program Files/Git/wordpress/...`. The mount is two arguments:
 
     MSYS_NO_PATHCONV=1 npx --yes @wp-playground/cli@latest server --port 8899 \
-      --mount-dir "C:\dev\media-plugin\plugin" /wordpress/wp-content/plugins/vergelabs-media-library \
+      --mount-dir "C:\Users\viete\Desktop\🟢 Claude Projects\Media Plugin\plugin" /wordpress/wp-content/plugins/vergelabs-media-library \
       --blueprint=tests/tree/blueprint.json
 
 A blueprint's `installPlugin` collides with `--mount-dir` ("Device or resource

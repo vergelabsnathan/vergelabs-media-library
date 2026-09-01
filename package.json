@@ -12,6 +12,7 @@
     "flow:health": "node tools/flow-health.mjs",
     "flow:rest": "node tools/flow-rest-blocked.mjs",
     "flow:wpbakery": "node tools/flow-wpbakery.mjs",
+    "flow:builders": "node tools/flow-builders.mjs",
     "verify": "node tools/verify.mjs",
     "test:tree": "node tests/tree/t0-endpoints.js",
     "test:builders": "node tests/builders/compat.mjs",
