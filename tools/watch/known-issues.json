@@ -1,0 +1,18 @@
+{
+  "_": "Written by tools/watch/triage.mjs. Read by the plugin's Get help screen and the support agent.",
+  "issues": [
+    {
+      "dependency": "elementor",
+      "name": "Elementor",
+      "slug": "elementor",
+      "version": "3.99.0",
+      "severity": "red",
+      "summary": "stage: 2 step(s) failed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/1",
+      "found": "2026-09-01"
+    }
+  ]
+}
