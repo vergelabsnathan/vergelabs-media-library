@@ -150,7 +150,14 @@ support goes on decisions, not on discovery.
   tool call (OpenRouter did not honour the structured-output format); one Braintrust
   project with span name `support`, not a second project; escalation is email only
   (no private GitHub repo) until Nathan asks otherwise.
-- **Needs Nathan before email-in works**: a receiving domain on Resend (do NOT put an MX
+- **Email-in live 2026-09-01**: `in.vergelabs.nl` verified on Resend (EU), webhook →
+  `/api/support/inbound`, secret in Vercel. Ticket #3 = Svix-signed synthetic event, ticket
+  #4 = a real mail to support@in.vergelabs.nl, both drafted and briefed. First real mail
+  exposed a language slip (English question, Dutch draft, swayed by the .nl sender): the
+  agent now gets a language hint from the question's own words and a mismatch is a
+  reason to brief. Still Nathan's: the Google Workspace forward
+  support@vergelabs.nl → support@in.vergelabs.nl (a Group with one external member).
+- ~~**Needs Nathan before email-in works**~~ (done, see above): a receiving domain on Resend (do NOT put an MX
   on vergelabs.nl itself — that would take over his mailbox; use a subdomain such as
   `inbound.vergelabsmedia.com` and forward support@ to it, or the Resend-managed
   `<id>.resend.app` address), a webhook for `email.received` pointing at
