@@ -74,6 +74,19 @@ case "$KIND" in
         ;;
 esac
 
+# A version the site cannot install (not on wordpress.org, or a paid update WP
+# has not been offered) is not a break of ours: say so and stop, restored.
+if [ "$FAILED" -gt 0 ]; then
+    case "$KIND" in
+        plugin) $W plugin deactivate "$SLUG" >/dev/null 2>&1; rm -rf "$SITE/wp-content/plugins/$SLUG"; tar -C "$SITE/wp-content/plugins" -xzf "$KEEP/$SLUG-$BEFORE.tgz"; chown -R www-data:www-data "$SITE/wp-content/plugins/$SLUG" ;;
+        theme)  rm -rf "$SITE/wp-content/themes/$SLUG"; tar -C "$SITE/wp-content/themes" -xzf "$KEEP/$SLUG-$BEFORE.tgz"; chown -R www-data:www-data "$SITE/wp-content/themes/$SLUG" ;;
+    esac
+    echo "could not stage $VERSION; restored to $BEFORE"
+    printf '{"kind":"%s","slug":"%s","version":"%s","before":"%s","staged":false,"passed":0,"failed":0,"steps":[%s]}\n' \
+        "$KIND" "$SLUG" "$VERSION" "$BEFORE" "$(IFS=,; echo "${STEPS[*]}")"
+    exit 0
+fi
+
 # --- prove the plugin against it ----------------------------------------------
 echo "--- php -l"
 LINT=$(find "$PLUGIN" -name '*.php' -not -path '*/node_modules/*' -exec php -l {} \; 2>&1 | grep -v "No syntax errors" | head -5)
@@ -93,7 +106,7 @@ $W eval '$u = get_users( array( "role" => "administrator", "number" => 1, "field
 step "REST tree 200 as an administrator" ${PIPESTATUS[0]}
 
 echo "--- watchdog"
-SAFE=$($W eval 'echo function_exists( "vergeml_safe_mode" ) && vergeml_safe_mode() ? "safe" : "normal";' 2>/dev/null | tail -1)
+SAFE=$($W eval 'echo "\nvgml-mode:" . ( function_exists( "vergeml_safe_mode" ) && vergeml_safe_mode() ? "safe" : "normal" ) . "\n";' 2>/dev/null | grep -oE '^vgml-mode:(safe|normal)$' | cut -d: -f2)
 step "not in safe mode ($SAFE)" $([ "$SAFE" = "normal" ] && echo 0 || echo 1)
 
 # The live integration check for this dependency, when one exists.
@@ -132,6 +145,6 @@ case "$KIND" in
 esac
 echo "restored to $BEFORE"
 
-printf '{"kind":"%s","slug":"%s","version":"%s","before":"%s","passed":%d,"failed":%d,"steps":[%s]}\n' \
+printf '{"kind":"%s","slug":"%s","version":"%s","before":"%s","staged":true,"passed":%d,"failed":%d,"steps":[%s]}\n' \
     "$KIND" "$SLUG" "$VERSION" "$BEFORE" "$PASSED" "$FAILED" "$(IFS=,; echo "${STEPS[*]}")"
 [ "$FAILED" -eq 0 ]

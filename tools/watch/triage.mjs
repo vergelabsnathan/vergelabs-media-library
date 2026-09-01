@@ -104,7 +104,7 @@ function issueBody( d, dep, plan, stageResult ) {
 		lines.push( '' );
 	}
 	if ( stageResult ) {
-		lines.push( `### Stage (upd.46.225.66.194.nip.io)`, `${ stageResult.passed } passed, ${ stageResult.failed } failed`, '', '```', ( stageResult.output ?? '' ).slice( -4000 ), '```', '' );
+		lines.push( `### Stage (upd.46.225.66.194.nip.io)`, stageResult.staged === false ? 'Could not install this version on the stage, so nothing was proven there.' : `${ stageResult.passed } passed, ${ stageResult.failed } failed`, '', '```', ( stageResult.output ?? '' ).slice( -4000 ), '```', '' );
 	}
 	if ( d.changelog ) lines.push( '### Changelog', '', '```', d.changelog.slice( 0, 2500 ), '```', '' );
 	lines.push( '### Plan', '', plan ?? '_No OPENROUTER_API_KEY in this run, so no plan was written. The facts above are the input; run `node tools/watch/triage.mjs` locally with the key to generate one._', '' );
@@ -169,8 +169,11 @@ for ( const d of report.dependencies ) {
 	if ( ! [ 'green', 'yellow', 'red' ].includes( d.verdict ) ) continue;
 	const dep = CONTRACT.dependencies[ d.key ];
 	const stageResult = stageFor( d.key );
-	// A failed stage run turns any verdict red: the proof beats the grep.
-	if ( stageResult && stageResult.failed > 0 && d.verdict !== 'red' ) { d.verdict = 'red'; d.reason = `stage: ${ stageResult.failed } step(s) failed`; }
+	// A failed stage run turns any verdict red: the proof beats the grep. A
+	// stage that could not install the version proves nothing either way and
+	// leaves the verdict where the contract and changelog put it.
+	if ( stageResult && stageResult.staged === false ) { d.reason += ' (stage could not install this version; not proven either way)'; }
+	else if ( stageResult && stageResult.failed > 0 && d.verdict !== 'red' ) { d.verdict = 'red'; d.reason = `stage: ${ stageResult.failed } step(s) failed`; }
 
 	if ( d.verdict === 'green' ) {
 		const edited = greenEdit( d, dep );
