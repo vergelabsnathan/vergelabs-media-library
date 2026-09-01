@@ -47,6 +47,16 @@ function vergeml_asset_ver( $rel ) {
     $mtime = @filemtime( plugin_dir_path( VERGEML_FILE ) . $rel );
     return $mtime ? VERGEML_VERSION . '.' . $mtime : VERGEML_VERSION;
 }
+
+/*
+ *  Translations from the plugin's own languages/ folder, which the header's
+ *  Domain Path advertises. WordPress's just-in-time loading covers files
+ *  dropped into wp-content/languages/plugins/; a .mo placed here, where the
+ *  header says it goes, was silently ignored on WordPress before 6.7.
+ */
+add_action( 'init', function () {
+    load_plugin_textdomain( 'vergelabs-media-library', false, dirname( plugin_basename( VERGEML_FILE ) ) . '/languages' );
+}, 1 );
 // The plugin's own top-level admin menu. Named here because screens registered
 // from files that load outside the admin still have to name their parent.
 if ( ! defined('VERGEML_MENU') ) define( 'VERGEML_MENU', 'vergelabs-media' );
@@ -1286,6 +1296,8 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/taxonomies.php' );
         include_once( 'core/media-templates.php' );
         include_once( 'core/compatibility.php' );
+        // Other folder plugins and optimisers: a notice, and exclusions.
+        include_once( 'core/neighbours.php' );
         include_once( 'core/search.php' );
         include_once( 'core/auto-assign.php' );
         include_once( 'core/bulk-terms.php' );

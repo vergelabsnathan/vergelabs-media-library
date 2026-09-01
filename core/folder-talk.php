@@ -609,6 +609,7 @@ function vergeml_talk_routes() {
 		'permission_callback' => $may,
 		'args'                => array(
 			'folders' => array( 'type' => 'array', 'required' => true ),
+			'plan_id' => array( 'type' => 'string', 'required' => true ),
 		),
 	) );
 
@@ -626,11 +627,57 @@ function vergeml_talk_fail( $error ) {
 }
 
 
+/*
+ *  Two presses, and the second has to be about what the first showed.
+ *
+ *  Apply deletes every folder that is not in the list it is given. The
+ *  proposal screen shows exactly what that means before the button -- but a
+ *  request is not a screen, and an apply call assembled by hand, or replayed
+ *  with a different list, would delete without anyone having read anything.
+ *  So propose hands out a plan id bound to the folders it showed and to the
+ *  person it showed them to, for a quarter of an hour, once. Apply must
+ *  present the id and the same folders, or it is refused as stale.
+ */
+
+/** The shape of a plan that matters for "is this what was shown": names,
+ *  parents, matches -- in order. */
+function vergeml_talk_plan_hash( $folders ) {
+
+	$flat = array();
+
+	foreach ( (array) $folders as $f ) {
+		if ( ! is_array( $f ) || empty( $f['name'] ) ) {
+			continue;
+		}
+		$flat[] = array(
+			mb_strtolower( trim( (string) $f['name'] ) ),
+			mb_strtolower( trim( isset( $f['parent'] ) ? (string) $f['parent'] : '' ) ),
+			mb_strtolower( trim( isset( $f['matches'] ) ? (string) $f['matches'] : '' ) ),
+		);
+	}
+
+	return hash( 'sha256', wp_json_encode( $flat ) );
+}
+
+
 function vergeml_talk_rest_propose( WP_REST_Request $request ) {
 
 	$result = vergeml_talk_propose( (string) $request->get_param( 'instruction' ) );
 
-	return is_wp_error( $result ) ? vergeml_talk_fail( $result ) : rest_ensure_response( $result );
+	if ( is_wp_error( $result ) ) {
+		return vergeml_talk_fail( $result );
+	}
+
+	$plan_id = wp_generate_password( 24, false, false );
+
+	set_transient( 'vergeml_talk_plan_' . $plan_id, array(
+		'hash' => vergeml_talk_plan_hash( isset( $result['folders'] ) ? $result['folders'] : array() ),
+		'user' => get_current_user_id(),
+	), 15 * MINUTE_IN_SECONDS );
+
+	$result['plan_id'] = $plan_id;
+
+	return rest_ensure_response( $result );
 }
 
 
@@ -651,6 +698,22 @@ function vergeml_talk_rest_apply( WP_REST_Request $request ) {
 			'matches' => isset( $f['matches'] ) ? sanitize_text_field( (string) $f['matches'] ) : '',
 		);
 	}
+
+	$plan_id = preg_replace( '/[^A-Za-z0-9]/', '', (string) $request->get_param( 'plan_id' ) );
+	$plan    = '' !== $plan_id ? get_transient( 'vergeml_talk_plan_' . $plan_id ) : false;
+
+	if ( ! is_array( $plan )
+	     || (int) $plan['user'] !== get_current_user_id()
+	     || ! hash_equals( (string) $plan['hash'], vergeml_talk_plan_hash( $clean ) ) ) {
+		return new WP_Error(
+			'vergeml_talk_plan_stale',
+			__( 'That proposal has expired or is not the one that was shown. Ask again, read what would change, and then apply.', 'vergelabs-media-library' ),
+			array( 'status' => 409 )
+		);
+	}
+
+	// One press per plan.
+	delete_transient( 'vergeml_talk_plan_' . $plan_id );
 
 	$result = vergeml_talk_apply( $clean );
 

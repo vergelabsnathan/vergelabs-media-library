@@ -208,7 +208,8 @@
 			apiFetch( {
 				path: '/vergeml/v1/folders-apply',
 				method: 'POST',
-				data: { folders: plan.folders },
+				// The plan id binds this press to the proposal that was shown.
+				data: { folders: plan.folders, plan_id: plan.plan_id },
 			} ).then( function ( r ) {
 
 				out.innerHTML = '';

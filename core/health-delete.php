@@ -208,10 +208,11 @@ function vergeml_health_repoint( $from, $to ) {
 			// Stem-based, so "-300x200.jpg" and srcset entries move too.
 			$content = str_replace( $old_stem, $new_stem, $post->post_content );
 
-			// The id, where a block wrote it as an attribute.
+			// The id, where a block wrote it as an attribute -- with a comma
+			// after it or as the last attribute, and in the image class.
 			$content = str_replace(
-				array( '"id":' . $from . ',', 'wp-image-' . $from ),
-				array( '"id":' . $to . ',', 'wp-image-' . $to ),
+				array( '"id":' . $from . ',', '"id":' . $from . '}', 'wp-image-' . $from ),
+				array( '"id":' . $to . ',', '"id":' . $to . '}', 'wp-image-' . $to ),
 				$content
 			);
 
@@ -245,6 +246,91 @@ function vergeml_health_repoint( $from, $to ) {
 	foreach ( (array) $thumbs as $post_id ) {
 		update_post_meta( (int) $post_id, '_thumbnail_id', $to );
 		$changed['thumbs']++;
+	}
+
+	/*
+	 *  Meta that carries the file by URL or by id. The usage scan already
+	 *  reads these to decide which copy is "used", so a delete that did not
+	 *  repoint them would be trusting the scan's answer and then breaking the
+	 *  very references it counted. Three shapes:
+	 *
+	 *    - a URL of the file, in any text meta: builder layouts (_elementor_data,
+	 *      _fl_builder_data) and image-URL fields. The stem replace, same as
+	 *      post content;
+	 *    - the id in a builder's JSON ("id":N), same as a block attribute;
+	 *    - WooCommerce's product gallery, a comma list of ids.
+	 *
+	 *  Fields that store a bare id alone (an ACF image field holds "123") are
+	 *  left: a meta value that happens to equal a number is not evidence it
+	 *  is this attachment, and rewriting it on a guess is worse than a gallery
+	 *  entry that no longer resolves.
+	 */
+	$changed['meta'] = 0;
+
+	if ( isset( $old_stem, $new_stem ) ) {
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT meta_id, post_id, meta_key, meta_value FROM {$wpdb->postmeta}
+			  WHERE meta_key <> '_thumbnail_id' AND meta_value LIKE %s",
+			'%' . $wpdb->esc_like( $old_stem ) . '%'
+		) );
+		// phpcs:enable
+
+		foreach ( (array) $rows as $row ) {
+
+			$value = str_replace( $old_stem, $new_stem, (string) $row->meta_value );
+			$value = str_replace(
+				array( '"id":' . $from . ',', '"id":' . $from . '}', 'wp-image-' . $from ),
+				array( '"id":' . $to . ',', '"id":' . $to . '}', 'wp-image-' . $to ),
+				$value
+			);
+
+			if ( $value === (string) $row->meta_value ) {
+				continue;
+			}
+
+			// Serialized data holds string lengths; a URL that changed length
+			// would corrupt it. Those rows keep the old URL rather than break.
+			if ( is_serialized( (string) $row->meta_value ) && strlen( $value ) !== strlen( (string) $row->meta_value ) ) {
+				continue;
+			}
+
+			$wpdb->update( $wpdb->postmeta, array( 'meta_value' => $value ), array( 'meta_id' => (int) $row->meta_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			wp_cache_delete( (int) $row->post_id, 'post_meta' );
+			$changed['meta']++;
+		}
+	}
+
+	// WooCommerce: the product gallery is a comma-separated list of ids.
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+	$galleries = $wpdb->get_results( $wpdb->prepare(
+		"SELECT meta_id, post_id, meta_value FROM {$wpdb->postmeta}
+		  WHERE meta_key = '_product_image_gallery' AND FIND_IN_SET( %s, meta_value )",
+		(string) $from
+	) );
+	// phpcs:enable
+
+	foreach ( (array) $galleries as $row ) {
+
+		$ids = array_map( 'intval', explode( ',', (string) $row->meta_value ) );
+		$ids = array_values( array_unique( array_map( function ( $id ) use ( $from, $to ) { return $id === $from ? $to : $id; }, $ids ) ) );
+
+		update_post_meta( (int) $row->post_id, '_product_image_gallery', implode( ',', $ids ) );
+		$changed['meta']++;
+	}
+
+	/*
+	 *  The parent post. An attachment "attached" to a post shows in that
+	 *  post's attached-media gallery. If the kept copy floats free and the
+	 *  one going had a home, the kept one moves in; nothing is lost either way.
+	 */
+	$from_parent = (int) get_post_field( 'post_parent', $from );
+	$to_parent   = (int) get_post_field( 'post_parent', $to );
+
+	if ( $from_parent > 0 && 0 === $to_parent ) {
+		$wpdb->update( $wpdb->posts, array( 'post_parent' => $from_parent ), array( 'ID' => $to ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		clean_post_cache( $to );
 	}
 
 	return $changed;

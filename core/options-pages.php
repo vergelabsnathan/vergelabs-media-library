@@ -2713,7 +2713,7 @@ function vergeml_print_mimetypes_options() {
         <?php
         $warning = sprintf( 
             /* translators: %s: html <strong> and <br> tags to emphaseize some points. */
-            esc_html__( 'WordPress %1$scommon role restrictions%2$s apply to the allowed MIME Types %1$sto avoid security issues%2$s. Advanced role management is coming.%3$s If you experience an issue with uploading file types report it, please.', 'vergelabs-media-library' ),
+            esc_html__( 'WordPress %1$scommon role restrictions%2$s apply to the allowed MIME Types %1$sto avoid security issues%2$s. Advanced role management is coming.%3$s%1$sSVG%2$s is a special case: an SVG file can carry scripts, and this plugin does not clean them. If you allow SVG uploads, install a dedicated SVG sanitiser plugin as well, and only for people you would trust with HTML.%3$s If you experience an issue with uploading file types report it, please.', 'vergelabs-media-library' ),
             '<strong>',
             '</strong>',
             '<br />'
