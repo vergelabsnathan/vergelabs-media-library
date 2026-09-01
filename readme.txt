@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.11.0
+Stable tag: 3.12.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -209,7 +209,7 @@ Only if you switch the AI features on and give them a licence key, and then only
 
 The folder tree, the smart folders, the health report, the importer, the galleries, the MIME settings and the Librarian's date-and-type scheme make no outbound requests at all. Neither does demo mode, which makes its captions up locally so you can see the shape of the thing before paying for anything.
 
-With a licence key entered and a describe run started, each image is sent -- downsized, never the original -- to `https://ai.vergelabs.nl/v1`, along with its file name, its MIME type, your site's address and the key. See "External services" above for what comes back and what is kept.
+With a licence key entered and a describe run started, each image is sent -- downsized, never the original -- to `https://ai.vergelabs.nl/v1`, along with its file name, its MIME type, your site's address and the key. With "Page context" on (it is on by default, and one switch turns it off), the title of the page the image is used on goes too, and if Yoast, Rank Math, SEOPress or All in One SEO gave that page a focus keyphrase and description, those as well -- as wording for the model, never as instructions. See "External services" above for what comes back and what is kept.
 
 The original plugin polled its author's server twice a day for admin notices and printed whatever came back into your dashboard. That has been removed and nothing replaced it.
 
@@ -248,6 +248,15 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.12.0 ###
+*Descriptions that know what the page is for*
+
+= Added =
+* **Page context.** When an image was uploaded to a page, or the "Used in" scan found it on one, the description is written knowing that page's title — and, with Yoast, Rank Math, SEOPress or All in One SEO, its focus keyphrase and meta description. Advisory by design: the model names what it sees the way the page names it, and is told never to add the keyphrase to a picture that does not show it. One switch on the AI screen; off, nothing about your pages leaves the site.
+
+= Fixed =
+* Product categories were gathered for shop images and then never sent. They travel now.
 
 ### 3.11.0 ###
 *The tree, wherever you build*

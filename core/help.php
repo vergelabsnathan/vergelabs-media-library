@@ -96,6 +96,8 @@ function vergeml_help_texts() {
 
         'enrich_search' => __( 'Lets the media search match what the AI saw in a picture, not only what you typed about it. A search for “beach” then finds the photo of a beach whose file name says DSC_0431.', 'vergelabs-media-library' ),
 
+        'page_context' => __( 'When an image was uploaded to a page, or the “Used in” scan found it on one, that page’s title goes along as context — and if Yoast, Rank Math, SEOPress or All in One SEO gave the page a focus keyphrase and description, those too. The model is told it is wording only: it names what it sees the way the page names it, and never adds the keyphrase to a picture that does not show it. Off, nothing about your pages leaves the site.', 'vergelabs-media-library' ),
+
         'site_profile' => __( 'What you sell or publish, in a sentence or two. The model is told never to guess a brand or product name, so this is where you give it the ones it should know — it makes descriptions more exact, not longer.', 'vergelabs-media-library' ),
 
         'mock' => __( 'Invents descriptions on this server from file names, so you can see what the folders and the sorting would do before paying for anything. Nothing is sent anywhere and no credits are spent. The captions are not real.', 'vergelabs-media-library' ),

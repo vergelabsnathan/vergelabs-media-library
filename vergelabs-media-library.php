@@ -3,7 +3,7 @@
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
 Description: Categories, tags and custom taxonomies for the media library, MIME type management, and configurable media grid filters.
-Version: 3.11.0
+Version: 3.12.0
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.11.0' );
+if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.12.0' );
 
 /**
  *  Cache-busting asset version: the plugin version plus the file's mtime.
@@ -1292,6 +1292,8 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // Before ai.php: the AI layer reads and writes through the index.
         include_once( 'core/ai-index.php' );
         include_once( 'core/ai.php' );
+        // What the page an image sits on is trying to be; advisory context for describe.
+        include_once( 'core/seo-context.php' );
         // After ai.php: the background run is that file's own step function on
         // a schedule, so it is meaningless without it. Inside the guard like
         // everything else -- a run that crashes has to be switchable off, and

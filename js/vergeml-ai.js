@@ -28,6 +28,9 @@
 
 			if ( $( 'vgml-ai-license' ) ) {
 				$( 'vgml-ai-enrich' ).checked = !! s.settings.enrich_search;
+				if ( $( 'vgml-ai-page-context' ) ) {
+					$( 'vgml-ai-page-context' ).checked = !! s.settings.page_context;
+				}
 				if ( $( 'vgml-ai-profile' ) ) {
 					$( 'vgml-ai-profile' ).value = s.settings.site_profile || '';
 				}
@@ -125,6 +128,7 @@
 					data: {
 						license_key: $( 'vgml-ai-license' ).value,
 						enrich_search: $( 'vgml-ai-enrich' ).checked ? 1 : 0,
+						page_context: $( 'vgml-ai-page-context' ) && $( 'vgml-ai-page-context' ).checked ? 1 : 0,
 						mock: $( 'vgml-ai-mock' ).checked ? 1 : 0,
 					},
 				} ).then( function () {

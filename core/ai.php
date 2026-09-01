@@ -39,6 +39,7 @@ function vergeml_ai_settings() {
         'site_profile'  => '',
         'auto_alt'      => 1,
         'enrich_search' => 1,
+        'page_context'  => 1,
         'mock'          => 0,
     );
 
@@ -213,6 +214,32 @@ function vergeml_ai_context( $attachment_id ) {
                         $context['product_categories'] = implode( ', ', array_slice( $terms, 0, 6 ) );
                     }
                 }
+            }
+        }
+    }
+
+    /*
+     *  What the page is trying to be, if the site owner wants that used.
+     *
+     *  Advisory, and theirs to switch off: the page's title, its focus
+     *  keyphrase and its meta description travel as context, and the prompt
+     *  holds them to wording and subject. An image with no parent post can
+     *  still have a page: the one the "Used in" scan found it on.
+     */
+    $settings = vergeml_ai_settings();
+
+    if ( ! empty( $settings['page_context'] ) && function_exists( 'vergeml_seo_page_for' ) ) {
+
+        $page_id = vergeml_seo_page_for( $attachment_id );
+
+        if ( $page_id ) {
+
+            if ( empty( $context['post_title'] ) ) {
+                $context['post_title'] = (string) get_the_title( $page_id );
+            }
+
+            foreach ( vergeml_seo_page_context( $page_id ) as $key => $value ) {
+                $context[ 'page_' . $key ] = $value;
             }
         }
     }
@@ -1393,6 +1420,7 @@ function vergeml_ai_routes() {
             'site_profile'  => array( 'type' => 'string' ),
             'auto_alt'      => array( 'type' => 'integer' ),
             'enrich_search' => array( 'type' => 'integer' ),
+            'page_context'  => array( 'type' => 'integer' ),
             'mock'          => array( 'type' => 'integer' ),
         ),
     ) );
@@ -1465,7 +1493,7 @@ function vergeml_ai_rest_settings( WP_REST_Request $request ) {
         $settings['site_profile'] = substr( sanitize_textarea_field( (string) $profile ), 0, 500 );
     }
 
-    foreach ( array( 'auto_alt', 'enrich_search', 'mock' ) as $flag ) {
+    foreach ( array( 'auto_alt', 'enrich_search', 'page_context', 'mock' ) as $flag ) {
         if ( null !== $request->get_param( $flag ) ) {
             $settings[ $flag ] = (int) (bool) $request->get_param( $flag );
         }
@@ -1600,6 +1628,13 @@ function vergeml_ai_page() {
             __( 'Media search also matches AI captions and tags.', 'vergelabs-media-library' ),
             '<label><input type="checkbox" id="vgml-ai-enrich"> ' . esc_html__( 'On', 'vergelabs-media-library' )
                 . '</label>' . $help( 'enrich_search' )
+        );
+
+        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Page context', 'vergelabs-media-library' ),
+            __( 'Descriptions know which page an image is on — its title, and with Yoast, Rank Math, SEOPress or AIOSEO its focus keyphrase and description. Advisory: the model still describes only what it sees.', 'vergelabs-media-library' ),
+            '<label><input type="checkbox" id="vgml-ai-page-context"> ' . esc_html__( 'On', 'vergelabs-media-library' )
+                . '</label>' . $help( 'page_context' )
         );
 
         /*
