@@ -287,7 +287,7 @@ check( 'the panel offers Apply once it has something to count',
 check( 'and says what applying would cost, honestly',
 	await page.evaluate( () => {
 		const line = document.querySelector( '#vgml-lib-preflight .vgml-lib-credits' );
-		return !! line && /demo|mock|nothing|spends no/i.test( line.textContent );
+		return !! line && /demo|mock|nothing|no credits|spends no/i.test( line.textContent );
 	} ) );
 
 const counted = await call( '/vergeml/v1/librarian-preflight', {

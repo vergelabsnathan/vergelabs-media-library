@@ -105,15 +105,26 @@ const SUITES = [
 	 *  the three files the `ai` suite resets and re-describes would otherwise
 	 *  sit in this suite's backlog as "left pending" for the wrong reason.
 	 */
-	{ name: 'ai-background', file: 'tests/ai/background.php', env: 'box', php: true },
+	{
+		name: 'ai-background',
+		file: 'tests/ai/background.php',
+		env: 'box',
+		php: true,
+		// A file described in the last ten minutes is held from being described
+		// again (the credit-loop guard). Suites that reset files and expect them
+		// re-described inside that window would count the held ones as a backlog
+		// that never clears, so the hold is lifted first.
+		before: `wp eval 'global $wpdb; $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE \\"%transient%vergeml_ai_recent%\\"" );'`,
+	},
 	{
 		name: 'ai',
 		file: 'tests/tree/ai.mjs',
 		env: 'box',
 		// "Describe new images" needs images that are new. Once the library is
 		// fully described the suite has nothing to do and fails saying so --
-		// which is true, and useless. Three files go back to undescribed.
-		before: `wp eval 'foreach ( get_posts( array( "post_type" => "attachment", "post_status" => "inherit", "post_mime_type" => "image", "posts_per_page" => 3, "fields" => "ids" ) ) as $i ) { vergeml_index_delete( $i ); delete_post_meta( $i, "_wp_attachment_image_alt" ); }'`,
+		// which is true, and useless. Three files go back to undescribed, and
+		// the ten-minute hold on them is lifted (see ai-background).
+		before: `wp eval 'global $wpdb; $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE \\"%transient%vergeml_ai_recent%\\"" ); foreach ( get_posts( array( "post_type" => "attachment", "post_status" => "inherit", "post_mime_type" => "image", "posts_per_page" => 3, "fields" => "ids" ) ) as $i ) { vergeml_index_delete( $i ); delete_post_meta( $i, "_wp_attachment_image_alt" ); }'`,
 	},
 	{
 		name: 'smart',

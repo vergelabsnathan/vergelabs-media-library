@@ -171,10 +171,13 @@ check( 'a total is shown', await page.evaluate( () =>
 	/\d/.test( document.getElementById( 'vgml-health-counts' ).textContent ) ),
 	await page.evaluate( () => document.getElementById( 'vgml-health-counts' ).textContent ) );
 
-check( 'wasted space is called potential, never reclaimed', await page.evaluate( () => {
+// The space is described as what keeping one copy frees or gives back --
+// plain words for a real action -- and never as "reclaimed", which is the
+// cleaner-plugin word the voice rules keep out.
+check( 'wasted space is what keeping one copy frees, never reclaimed', await page.evaluate( () => {
 	const wrap = document.querySelector( '.wrap.vgml-health' ) || document.querySelector( '.wrap' );
 	const text = wrap ? wrap.textContent : '';
-	return /potentially recoverable/i.test( text ) && ! /\breclaim/i.test( text );
+	return /\bfrees\b|get .{0,30}\bback\b|potentially recoverable/i.test( text ) && ! /\breclaim/i.test( text );
 } ) );
 
 /*
