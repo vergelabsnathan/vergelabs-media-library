@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.13.0
+Stable tag: 3.13.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -248,6 +248,16 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.13.1 ###
+*Checked against the SEO plugins' own source*
+
+= Added =
+* Cornerstone (Yoast) and pillar (Rank Math) pages come first in "Fix alt text on your SEO pages" — the pages the site cares most about get their images described before the rest.
+* Related keyphrases: Yoast Premium's related keyphrases and the extra keywords Rank Math and SEOPress keep after the focus one travel as wording too, up to three, under the same never-add-what-you-do-not-see rule.
+
+= Verified =
+* Every meta key this plugin reads — Yoast, Rank Math Pro, SEOPress Pro — was checked against the current source of those plugins rather than remembered.
 
 ### 3.13.0 ###
 *The page's keyphrase, where the picture earned it*

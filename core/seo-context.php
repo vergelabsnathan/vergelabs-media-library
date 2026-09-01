@@ -104,7 +104,61 @@ function vergeml_seo_page_context( $post_id ) {
         }
     }
 
+    /*
+     *  Yoast Premium's related keyphrases: a JSON list of {keyword, score}
+     *  under _yoast_wpseo_focuskeywords (read from its source, 28.3). Rank
+     *  Math and SEOPress put their extra keywords after the first comma of
+     *  the same field, which the focus read above skipped past. Three at
+     *  most -- wording, not a list to satisfy.
+     */
+    $related = array();
+
+    $yoast_more = get_post_meta( $post_id, '_yoast_wpseo_focuskeywords', true );
+
+    if ( is_string( $yoast_more ) && '' !== $yoast_more ) {
+        foreach ( (array) json_decode( $yoast_more, true ) as $entry ) {
+            if ( is_array( $entry ) && ! empty( $entry['keyword'] ) ) {
+                $related[] = vergeml_seo_clean( (string) $entry['keyword'], 80 );
+            }
+        }
+    }
+
+    if ( ! $related ) {
+        foreach ( array( 'rank_math_focus_keyword', '_seopress_analysis_target_kw' ) as $key ) {
+            $value = get_post_meta( $post_id, $key, true );
+            if ( is_string( $value ) && false !== strpos( $value, ',' ) ) {
+                $parts = array_map( 'trim', explode( ',', $value ) );
+                array_shift( $parts ); // the focus keyphrase, already taken
+                foreach ( $parts as $part ) {
+                    if ( '' !== $part ) {
+                        $related[] = vergeml_seo_clean( $part, 80 );
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    $related = array_values( array_unique( array_filter( $related ) ) );
+
+    if ( $related ) {
+        $out['related'] = implode( ', ', array_slice( $related, 0, 3 ) );
+    }
+
     return $out;
+}
+
+
+/**
+ *  vergeml_seo_cornerstone_keys
+ *
+ *  Where the SEO plugins mark a page as the one that matters most: Yoast
+ *  calls it cornerstone, Rank Math pillar content. Read from their source.
+ *  The gap report puts these pages' images first.
+ */
+
+function vergeml_seo_cornerstone_keys() {
+    return array( '_yoast_wpseo_is_cornerstone', 'rank_math_pillar_content' );
 }
 
 
@@ -200,15 +254,27 @@ function vergeml_seo_gap_sql( $select ) {
 
     global $wpdb;
 
-    $keys = "'" . implode( "','", array_map( 'esc_sql', vergeml_seo_keyphrase_keys() ) ) . "'";
-    $mime = $wpdb->esc_like( 'image/' ) . '%';
+    $keys  = "'" . implode( "','", array_map( 'esc_sql', vergeml_seo_keyphrase_keys() ) ) . "'";
+    $stars = "'" . implode( "','", array_map( 'esc_sql', vergeml_seo_cornerstone_keys() ) ) . "'";
+    $mime  = $wpdb->esc_like( 'image/' ) . '%';
 
-    // Pages with a keyphrase: the SEO plugins' post meta, plus All in One
-    // SEO's own table when it is running.
-    $pages = "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key IN ($keys) AND meta_value <> ''";
+    /*
+     *  Pages with a keyphrase, each with a flag for cornerstone / pillar so
+     *  the pages the site cares most about come first. One pass over the
+     *  meta table: a row counts as a keyphrase when it is one of those keys
+     *  with a value, and as a star when it is one of the cornerstone keys
+     *  switched on. All in One SEO keeps its own table and joins in flat.
+     */
+    $pages = "SELECT post_id,
+                     MAX( CASE WHEN meta_key IN ($stars) AND meta_value IN ('1','on') THEN 1 ELSE 0 END ) AS pri
+                FROM {$wpdb->postmeta}
+               WHERE ( meta_key IN ($keys) AND meta_value <> '' )
+                  OR ( meta_key IN ($stars) AND meta_value IN ('1','on') )
+            GROUP BY post_id
+              HAVING SUM( CASE WHEN meta_key IN ($keys) AND meta_value <> '' THEN 1 ELSE 0 END ) > 0";
 
     if ( defined( 'AIOSEO_VERSION' ) ) {
-        $pages .= " UNION SELECT post_id FROM {$wpdb->prefix}aioseo_posts WHERE keyphrases LIKE '%\"keyphrase\":\"_%'";
+        $pages .= " UNION SELECT post_id, 0 AS pri FROM {$wpdb->prefix}aioseo_posts WHERE keyphrases LIKE '%\"keyphrase\":\"_%'";
     }
 
     return $wpdb->prepare(
@@ -231,8 +297,12 @@ function vergeml_seo_gap_ids( $limit = 0 ) {
 
     $cap = $limit > 0 ? (int) $limit : PHP_INT_MAX;
 
+    // Cornerstone and pillar pages first, then by id so a run walks in order.
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- prepared in vergeml_seo_gap_sql; the LIMIT is placeheld here.
-    return array_map( 'intval', $wpdb->get_col( $wpdb->prepare( vergeml_seo_gap_sql( 'DISTINCT p.ID' ) . ' ORDER BY p.ID ASC LIMIT %d', $cap ) ) );
+    return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+        vergeml_seo_gap_sql( 'p.ID, MAX( kw.pri ) AS pri' ) . ' GROUP BY p.ID ORDER BY pri DESC, p.ID ASC LIMIT %d',
+        $cap
+    ) ) );
 }
 
 
