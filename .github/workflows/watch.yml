@@ -34,6 +34,11 @@ permissions:
 jobs:
   watch:
     runs-on: ubuntu-latest
+    # Secrets cannot be read in a step's `if:`; they can as job env.
+    env:
+      BOX_SSH_KEY: ${{ secrets.BOX_SSH_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,11 +50,11 @@ jobs:
 
       - name: Box key
         id: box
-        if: ${{ secrets.BOX_SSH_KEY != '' }}
+        if: ${{ env.BOX_SSH_KEY != '' }}
         run: |
           set +x
           install -m 700 -d ~/.ssh
-          printf '%s\n' "${{ secrets.BOX_SSH_KEY }}" > ~/.ssh/hetzner_vgml
+          printf '%s\n' "$BOX_SSH_KEY" > ~/.ssh/hetzner_vgml
           chmod 600 ~/.ssh/hetzner_vgml
           echo "enabled=1" >> "$GITHUB_OUTPUT"
 
