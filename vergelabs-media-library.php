@@ -1055,8 +1055,12 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
         // check previous version
         if ( version_compare( get_option( 'vergeml_version', '' ), '2.8.9', '<=' ) ) {
-            // ensure that filenames included in the search by default
-            array_push( $vergeml_lib_options['search_in'], 'filenames' );
+            // ensure that filenames included in the search by default -- once:
+            // a fresh install has no stored version, compares as older, and
+            // was getting the entry twice.
+            if ( ! in_array( 'filenames', (array) $vergeml_lib_options['search_in'], true ) ) {
+                array_push( $vergeml_lib_options['search_in'], 'filenames' );
+            }
         }
 
         /*

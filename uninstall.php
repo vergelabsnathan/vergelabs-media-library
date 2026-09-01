@@ -39,6 +39,7 @@ function vergeml_uninstall_housekeeping() {
     );
 
     wp_clear_scheduled_hook( 'vergeml_meaning_convert' );
+    wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
 }
 
 
@@ -142,6 +143,8 @@ if ( get_option( 'vergeml_uninstall_wipe' ) ) {
     delete_site_option( 'vergeml_mimes_backup' );
     delete_site_option( 'vergeml_notices' );
 
-    // Per-user leftovers: dismissed notices, remembered tree state.
-    $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'vergeml\_%'" );
+    // Per-user leftovers: dismissed notices, remembered tree state. On a
+    // network the per-site copies carry the blog prefix (wp_2_vergeml_...),
+    // which the plain pattern never matched.
+    $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'vergeml\_%' OR meta_key LIKE '{$wpdb->base_prefix}%\_vergeml\_%'" );
 }

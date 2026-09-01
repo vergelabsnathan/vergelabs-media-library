@@ -515,7 +515,14 @@ function vergeml_health_reset() {
     // The metas went out from under the object cache, so anything holding a
     // copy of them has to be told.
     wp_cache_set_posts_last_changed();
-    wp_cache_flush_group( 'post_meta' );
+
+    // Not every object-cache drop-in can flush a group; one that cannot
+    // returns false and keeps serving the old metas. Then the whole cache goes.
+    if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
+        wp_cache_flush_group( 'post_meta' );
+    } else {
+        wp_cache_flush();
+    }
 
     delete_option( VERGEML_HEALTH_OPTION );
 }
