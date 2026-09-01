@@ -140,7 +140,25 @@ support goes on decisions, not on discovery.
   `tools/watch/known-issues.json` (cached 12h in a transient), so no service route
   and no table for it — the watch commits the file, every install sees it within a
   day. Task 3's "synced table" is therefore not needed.
-- Increments 2 and 3 not started; the OPEN lines still stand.
+- **Increment 2 shipped 2026-09-01 in draft mode** (service `0b2bc95`): `support/agent.ts`
+  + `support/tools.ts` + `support/policy.{md,ts}`; knowledge in `support_knowledge`
+  (pgvector, 151 chunks via `pnpm support:index`); `/api/support/inbound` for Resend
+  `email.received`; `evals/support.eval.ts` — escalated_when_required 100%,
+  invented_no_number 100%, answered_when_clean 85.7% (the safe-mode case asks for the
+  fatal log at 0.55 confidence, which is the right call). Ticket #2 is the live proof:
+  drafted, briefed, escalated. Decisions taken in execution: the draft is a forced
+  tool call (OpenRouter did not honour the structured-output format); one Braintrust
+  project with span name `support`, not a second project; escalation is email only
+  (no private GitHub repo) until Nathan asks otherwise.
+- **Needs Nathan before email-in works**: a receiving domain on Resend (do NOT put an MX
+  on vergelabs.nl itself — that would take over his mailbox; use a subdomain such as
+  `inbound.vergelabsmedia.com` and forward support@ to it, or the Resend-managed
+  `<id>.resend.app` address), a webhook for `email.received` pointing at
+  `https://ai.vergelabs.nl/api/support/inbound`, and its secret in Vercel as
+  `RESEND_WEBHOOK_SECRET`.
+- `SUPPORT_AUTOSEND` stays unset. The two must-be-100% scorers are, but there are no
+  real tickets yet; switch it on after the first twenty real briefs read well.
+- Increment 3 not started; the refund-cap OPEN line still stands.
 
 ## Tasks
 
