@@ -1423,6 +1423,12 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
      *  the site comes back, the plugin stays active, and the notice in
      *  core/watchdog.php explains why.
      */
+    // Outside the guard on purpose: a site in safe mode is the one that most
+    // needs to ask for help, and the report is what support needs first.
+    // Both files are functions and one menu item; neither touches the database.
+    include_once( 'core/system-report.php' );
+    include_once( 'core/get-help.php' );
+
     if ( ! vergeml_safe_mode() ) {
 
         include_once( 'core/mime-types.php' );
@@ -1436,7 +1442,6 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // Polylang and WPML: a translated copy of a filed image keeps its folders.
         include_once( 'core/multilingual.php' );
         include_once( 'core/bulk-terms.php' );
-        include_once( 'core/system-report.php' );
         include_once( 'core/rest-tree.php' );
         include_once( 'core/rest-folders.php' );
         // The second road to every endpoint above and below: the same handlers
