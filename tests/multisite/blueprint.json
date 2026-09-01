@@ -1,0 +1,13 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "login": true,
+  "preferredVersions": { "php": "8.3", "wp": "latest" },
+  "steps": [
+    { "step": "enableMultisite" },
+    {
+      "step": "writeFile",
+      "path": "/wordpress/wp-content/mu-plugins/vgml-multisite-suite.php",
+      "data": "<?php\n// The multisite suite, reachable through WordPress's own front controller.\n// Written by tests/multisite/blueprint.json into a throwaway network only.\nadd_action( 'init', function () {\n    if ( empty( $_GET['vgml_multisite_suite'] ) ) { return; }\n    header( 'Content-Type: text/plain; charset=utf-8' );\n    register_shutdown_function( function () {\n        $e = error_get_last();\n        if ( $e && in_array( $e['type'], array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR ), true ) ) {\n            echo 'FAIL  fatal: ' . $e['message'] . ' @ ' . basename( $e['file'] ) . ':' . $e['line'] . \"\\n1 FAILED\\n\";\n        }\n    } );\n    require WP_PLUGIN_DIR . '/vergelabs-media-library/tests/multisite/network.php';\n    exit;\n}, 0 );\n"
+    }
+  ]
+}

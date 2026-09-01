@@ -3,7 +3,7 @@
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
 Description: Categories, tags and custom taxonomies for the media library, MIME type management, and configurable media grid filters.
-Version: 3.13.2
+Version: 3.14.0
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.13.2' );
+if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.14.0' );
 
 /**
  *  Cache-busting asset version: the plugin version plus the file's mtime.
@@ -57,6 +57,24 @@ function vergeml_asset_ver( $rel ) {
 add_action( 'init', function () {
     load_plugin_textdomain( 'vergelabs-media-library', false, dirname( plugin_basename( VERGEML_FILE ) ) . '/languages' );
 }, 1 );
+
+/*
+ *  Right-to-left. WordPress swaps <name>.css for <name>-rtl.css on an RTL
+ *  locale for any style marked this way; the -rtl files are generated from
+ *  the sources by tools/rtl.mjs and committed. Late in the enqueue order so
+ *  every sheet is registered by the time it is marked -- marking is cheap and
+ *  only read at print time.
+ */
+function vergeml_rtl_styles() {
+    foreach ( array( 'vergeml-admin', 'vergeml-admin-shell', 'vergeml-journey', 'vergeml-librarian', 'vergeml-media-list', 'vergeml-gallery' ) as $handle ) {
+        if ( wp_style_is( $handle, 'registered' ) ) {
+            wp_style_add_data( $handle, 'rtl', 'replace' );
+        }
+    }
+}
+add_action( 'admin_enqueue_scripts', 'vergeml_rtl_styles', 999 );
+add_action( 'wp_enqueue_scripts', 'vergeml_rtl_styles', 999 );
+add_action( 'enqueue_block_editor_assets', 'vergeml_rtl_styles', 999 );
 // The plugin's own top-level admin menu. Named here because screens registered
 // from files that load outside the admin still have to name their parent.
 if ( ! defined('VERGEML_MENU') ) define( 'VERGEML_MENU', 'vergelabs-media' );
@@ -164,13 +182,59 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
     register_activation_hook( __FILE__, 'vergeml_on_activation' );
 
-    function vergeml_on_activation() {
+    /**
+     *  vergeml_on_activation
+     *
+     *  @param bool $network_wide  WordPress passes true for "Network Activate".
+     *
+     *  Network activation used to provision only the site the network admin
+     *  happened to be on; every other subsite had no options and no tables
+     *  until somebody opened its admin. Now it walks the network. Networks
+     *  above a hundred sites provision the current site immediately and the
+     *  rest on their first admin request, so activation cannot time out --
+     *  every site self-provisions anyway, this just makes the small case whole.
+     */
+    function vergeml_on_activation( $network_wide = false ) {
+
+        if ( is_multisite() && $network_wide ) {
+
+            vergeml_set_network_options();
+            do_action( 'vergeml_set_site_options' );
+
+            $sites = get_sites( array( 'fields' => 'ids', 'number' => 101 ) );
+
+            if ( count( $sites ) <= 100 ) {
+                foreach ( $sites as $site_id ) {
+                    switch_to_blog( $site_id );
+                    vergeml_provision_site();
+                    restore_current_blog();
+                }
+                return;
+            }
+        }
+
+        vergeml_provision_site();
+
+        if ( is_multisite() && is_network_admin() ) {
+            vergeml_set_network_options();
+            do_action( 'vergeml_set_site_options' );
+        }
+    }
+
+
+    /**
+     *  vergeml_provision_site
+     *
+     *  Everything one site needs: options, and the tables of every feature
+     *  that keeps one. Called for the current blog -- inside switch_to_blog()
+     *  when walking a network -- and stamps the version so the lazy check on
+     *  the next request has nothing left to do.
+     */
+    function vergeml_provision_site() {
 
         // carry settings over from Enhanced Media Library, if it left any
         vergeml_migrate_legacy_options();
 
-        // per site
-        // main site if multisite
         vergeml_set_options();
 
 
@@ -184,14 +248,66 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
          */
         do_action( 'vergeml_activate' );
 
+        update_option( 'vergeml_version', VERGEML_VERSION );
+    }
 
-        if ( is_multisite() && is_network_admin() ) {
 
-            // network options
-            vergeml_set_network_options();
+    /*
+     *  The rest of a site's life on a network.
+     *
+     *  A subsite created after network activation gets its options and tables
+     *  the moment core has finished creating it -- not on its first admin
+     *  visit, which on the front end left it with no media_category at all.
+     *  A subsite being deleted takes its four tables with it whether or not
+     *  this plugin is loaded in that request (safe mode, deactivated): the
+     *  wpmu_drop_tables filter is the belt to the $wpdb->tables braces.
+     */
+    add_action( 'wp_initialize_site', 'vergeml_on_new_site', 100 );
 
-            // common (site) options
-            do_action( 'vergeml_set_site_options' );
+    function vergeml_on_new_site( $site ) {
+
+        if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        if ( ! is_plugin_active_for_network( plugin_basename( __FILE__ ) ) ) {
+            return;
+        }
+
+        switch_to_blog( (int) $site->id );
+        vergeml_provision_site();
+        restore_current_blog();
+    }
+
+
+    add_filter( 'wpmu_drop_tables', 'vergeml_site_tables_to_drop', 10, 2 );
+
+    function vergeml_site_tables_to_drop( $tables, $site_id ) {
+
+        global $wpdb;
+
+        $prefix = $wpdb->get_blog_prefix( (int) $site_id );
+
+        foreach ( array( 'vergeml_ai_index', 'vergeml_librarian_batches', 'vergeml_librarian_moves', 'vergeml_organize_runs' ) as $table ) {
+            $tables[] = $prefix . $table;
+        }
+
+        return $tables;
+    }
+
+
+    /*
+     *  Request caches that must not outlive a switch_to_blog(). Each is keyed
+     *  by an id that means something else on the next site -- attachment ids
+     *  collide across a network constantly -- so a network job that walks
+     *  sites would read one site's captions for another's files.
+     */
+    add_action( 'switch_blog', 'vergeml_forget_request_caches' );
+
+    function vergeml_forget_request_caches() {
+        unset( $GLOBALS['vergeml_index_primed'], $GLOBALS['vergeml_organize_points'] );
+        if ( function_exists( 'vergeml_mimes_prepared' ) ) {
+            vergeml_mimes_prepared( true );
         }
     }
 
@@ -281,7 +397,9 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
          *  work -- every migration here is additive. A lock older than two
          *  minutes belongs to a request that died and is taken over.
          */
-        if ( VERGEML_VERSION !== get_option( 'vergeml_version', '' )
+        $vergeml_stored_version = get_option( 'vergeml_version', '' );
+
+        if ( VERGEML_VERSION !== $vergeml_stored_version
              && ( is_admin() || wp_doing_cron() || ( defined( 'WP_CLI' ) && WP_CLI ) ) ) {
 
             $stale = (int) get_option( 'vergeml_upgrading', 0 );
@@ -291,12 +409,27 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
             }
 
             if ( add_option( 'vergeml_upgrading', time(), '', 'no' ) ) {
-                vergeml_on_activation();
-                update_option( 'vergeml_version', VERGEML_VERSION );
+                vergeml_provision_site();
                 delete_site_transient( 'eml_transient' );
                 delete_option( 'vergeml_upgrading' );
             }
         }
+        elseif ( '' === $vergeml_stored_version && ! get_option( 'vergeml_taxonomies' ) ) {
+            /*
+             *  A site that has never been provisioned -- a subsite created
+             *  while the plugin was not yet network-active, say -- serving a
+             *  front-end request. The options are three cheap writes and
+             *  without them no media_category exists on this site; the
+             *  schema can wait for the first admin visit or the cron tick
+             *  scheduled here.
+             */
+            vergeml_set_options();
+            if ( ! wp_next_scheduled( 'vergeml_provision_site' ) ) {
+                wp_schedule_single_event( time() + 60, 'vergeml_provision_site' );
+            }
+        }
+
+        add_action( 'vergeml_provision_site', 'vergeml_provision_site' );
 
 
         // plugin action links

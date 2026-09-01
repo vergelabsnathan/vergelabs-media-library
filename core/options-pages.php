@@ -116,7 +116,7 @@ function vergeml_admin_media_menu() {
 
         $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
 
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['media_settings'] )
+        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'media_settings' ) )
             return;
     }
 
@@ -183,7 +183,7 @@ function vergeml_admin_utility_menu() {
 
         $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
 
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['utilities'] )
+        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'utilities' ) )
             return;
     }
 
@@ -216,7 +216,7 @@ function vergeml_network_admin_menu() {
         'settings.php',
         __('VergeLabs Media Library Utilities','vergelabs-media-library'),
         __('Media Utilities','vergelabs-media-library'),
-        'manage_options',
+        'manage_network_options',
         'eml-settings',
         'vergeml_print_network_settings'
     );
@@ -391,7 +391,7 @@ function vergeml_print_media_settings() {
 
         $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
 
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['media_settings'] )
+        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'media_settings' ) )
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
@@ -766,7 +766,7 @@ function vergeml_print_settings() {
 
         $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
 
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['utilities'] )
+        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'utilities' ) )
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     } ?>
 
@@ -1010,7 +1010,7 @@ function vergeml_print_network_settings() {
                                             <td>
                                                 <fieldset>
                                                     <legend class="screen-reader-text"><span><?php esc_html_e('Enable Media Settings','vergelabs-media-library'); ?></span></legend>
-                                                    <label><input name="vergeml_network_options[media_settings]" type="hidden" value="0" /><input name="vergeml_network_options[media_settings]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_network_options['media_settings'], true ); ?> /> <?php esc_html_e('Allow an individual site admin to edit enhanced Media Settings','vergelabs-media-library'); ?></label>
+                                                    <label><input name="vergeml_network_options[media_settings]" type="hidden" value="0" /><input name="vergeml_network_options[media_settings]" type="checkbox" value="1" <?php checked( true, vergeml_network_flag( 'media_settings' ), true ); ?> /> <?php esc_html_e('Allow an individual site admin to edit enhanced Media Settings','vergelabs-media-library'); ?></label>
 </fieldset>
                                             </td>
                                         </tr>
@@ -1020,7 +1020,17 @@ function vergeml_print_network_settings() {
                                             <td>
                                                 <fieldset>
                                                     <legend class="screen-reader-text"><span><?php esc_html_e('Enable plugin Utilities','vergelabs-media-library'); ?></span></legend>
-                                                    <label><input name="vergeml_network_options[utilities]" type="hidden" value="0" /><input name="vergeml_network_options[utilities]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_network_options['utilities'], true ); ?> /> <?php esc_html_e('Allow an individual site admin to import / export / restore plugin settings and perform the complete cleanup for a specific site','vergelabs-media-library'); ?></label>
+                                                    <label><input name="vergeml_network_options[utilities]" type="hidden" value="0" /><input name="vergeml_network_options[utilities]" type="checkbox" value="1" <?php checked( true, vergeml_network_flag( 'utilities' ), true ); ?> /> <?php esc_html_e('Allow an individual site admin to import / export / restore plugin settings for their site','vergelabs-media-library'); ?></label>
+</fieldset>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th scope="row"><?php esc_html_e('When the plugin is deleted','vergelabs-media-library'); ?></th>
+                                            <td>
+                                                <fieldset>
+                                                    <legend class="screen-reader-text"><span><?php esc_html_e('Remove all data on uninstall','vergelabs-media-library'); ?></span></legend>
+                                                    <label><input name="vergeml_network_options[uninstall_wipe]" type="hidden" value="0" /><input name="vergeml_network_options[uninstall_wipe]" type="checkbox" value="1" <?php checked( true, (bool) get_site_option( 'vergeml_uninstall_wipe_network' ), true ); ?> /> <?php esc_html_e('Remove every site\'s folders, settings and AI index when the plugin is deleted from the network. Off, deleting the plugin keeps them all — a reinstall picks them up.','vergelabs-media-library'); ?></label>
 </fieldset>
                                             </td>
                                         </tr>
@@ -1034,6 +1044,10 @@ function vergeml_print_network_settings() {
                             <?php endif; ?>
                         </div>
                     </div>
+
+                    <?php vergeml_print_network_licence_box(); ?>
+
+                    <?php vergeml_print_network_overview(); ?>
 
                     <div class="postbox">
 
@@ -1255,6 +1269,213 @@ function vergeml_apply_settings_to_network() {
  *  @created  28/04/18
  */
 
+/**
+ *  vergeml_network_flag
+ *
+ *  One of the two network flags, with its default, whether or not the option
+ *  exists. Eleven places read the option raw and indexed it without isset():
+ *  on a network where the plugin was activated per site (so the option was
+ *  never written) or after the save bug above had emptied it, that was an
+ *  "undefined index" and a false -- and false meant "this site admin may not
+ *  see the settings screen". Super admins short-circuit past the flag, which
+ *  is exactly why nobody testing as one ever saw it.
+ */
+function vergeml_network_flag( $name ) {
+
+    $defaults = array( 'media_settings' => 1, 'utilities' => 1 );
+    $stored   = get_site_option( 'vergeml_network_options', array() );
+
+    if ( is_array( $stored ) && array_key_exists( $name, $stored ) ) {
+        return (bool) $stored[ $name ];
+    }
+
+    return isset( $defaults[ $name ] ) ? (bool) $defaults[ $name ] : false;
+}
+
+
+/* ------------------------------------------------ the network licence box */
+
+/**
+ *  vergeml_print_network_licence_box
+ *
+ *  One AI licence for the whole network. Sites inherit it unless they enter
+ *  their own; locked, they cannot enter their own. Sealed the same way a
+ *  site's key is (core/ai.php), so the network option holds no plaintext.
+ */
+function vergeml_print_network_licence_box() {
+
+    if ( ! function_exists( 'vergeml_ai_seal' ) ) {
+        return; // safe mode: the AI files are not loaded
+    }
+
+    $network = get_site_option( 'vergeml_ai_network', array() );
+    $network = is_array( $network ) ? $network : array();
+    $has_key = ! empty( $network['license_key'] ) && '' !== vergeml_ai_unseal( $network['license_key'] );
+    ?>
+    <div class="postbox">
+        <h3 class="hndle"><?php esc_html_e( 'AI licence for the network', 'vergelabs-media-library' ); ?></h3>
+        <div class="inside">
+            <p class="description"><?php esc_html_e( 'Enter the licence once here and every site uses it. A site can still enter its own key unless you lock this one. Each site counts as one connected site on the licence.', 'vergelabs-media-library' ); ?></p>
+            <form method="post">
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><label for="vgml-network-key"><?php esc_html_e( 'Licence key', 'vergelabs-media-library' ); ?></label></th>
+                        <td>
+                            <input type="text" id="vgml-network-key" name="vergeml_network_licence[key]" class="regular-text" value="" autocomplete="off"
+                                placeholder="<?php echo esc_attr( $has_key ? '•••••••• (saved)' : 'VGML-…' ); ?>" />
+                            <?php if ( $has_key ) : ?>
+                                <p class="description"><label><input type="checkbox" name="vergeml_network_licence[clear]" value="1" /> <?php esc_html_e( 'Remove the network key. Sites fall back to their own, or to none.', 'vergelabs-media-library' ); ?></label></p>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php esc_html_e( 'Lock', 'vergelabs-media-library' ); ?></th>
+                        <td>
+                            <label><input type="hidden" name="vergeml_network_licence[lock]" value="0" /><input type="checkbox" name="vergeml_network_licence[lock]" value="1" <?php checked( ! empty( $network['lock'] ) ); ?> /> <?php esc_html_e( 'Sites use this key and cannot enter their own.', 'vergelabs-media-library' ); ?></label>
+                        </td>
+                    </tr>
+                </table>
+                <?php wp_nonce_field( 'vergeml_network_licence', 'vergeml-network-licence-nonce' ); ?>
+                <?php submit_button( __( 'Save licence', 'vergelabs-media-library' ), 'primary', 'vergeml-submit-network-licence', true ); ?>
+            </form>
+        </div>
+    </div>
+    <?php
+}
+
+
+add_action( 'network_admin_menu', 'vergeml_update_network_licence' );
+
+function vergeml_update_network_licence() {
+
+    if ( ! isset( $_POST['vergeml-submit-network-licence'] ) )
+        return;
+
+    if ( ! isset( $_POST['vergeml-network-licence-nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['vergeml-network-licence-nonce'] ) ), 'vergeml_network_licence' ) )
+        return;
+
+    if ( ! current_user_can( 'manage_network_options' ) || ! function_exists( 'vergeml_ai_seal' ) )
+        return;
+
+    $posted  = isset( $_POST['vergeml_network_licence'] ) ? map_deep( wp_unslash( (array) $_POST['vergeml_network_licence'] ), 'sanitize_text_field' ) : array();
+    $network = get_site_option( 'vergeml_ai_network', array() );
+    $network = is_array( $network ) ? $network : array();
+
+    if ( ! empty( $posted['clear'] ) ) {
+        $network['license_key'] = '';
+    }
+    elseif ( ! empty( $posted['key'] ) ) {
+        $network['license_key'] = vergeml_ai_seal( (string) $posted['key'] );
+    }
+
+    $network['lock'] = empty( $posted['lock'] ) ? 0 : 1;
+
+    update_site_option( 'vergeml_ai_network', $network );
+
+    add_settings_error( 'eml-network-settings', 'vergeml_network_licence_saved', __( 'Network licence saved.', 'vergelabs-media-library' ), 'updated' );
+}
+
+
+/* --------------------------------------------------- the network overview */
+
+/**
+ *  vergeml_print_network_overview
+ *
+ *  What a network administrator could not see before: per site, which
+ *  version it runs, whether its tables exist, whether it is in safe mode,
+ *  where its AI key comes from, and its last credit snapshot. One walk of the
+ *  network, held for five minutes; the first two hundred sites, and it says
+ *  when there are more.
+ */
+function vergeml_print_network_overview() {
+
+    $refresh = isset( $_GET['vergeml_refresh'] ) && check_admin_referer( 'vergeml_refresh' ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- verified in the same expression.
+    $rows    = $refresh ? false : get_site_transient( 'vergeml_network_overview' );
+
+    if ( ! is_array( $rows ) ) {
+
+        global $wpdb;
+
+        $rows  = array();
+        $sites = get_sites( array( 'fields' => 'ids', 'number' => 201 ) );
+
+        foreach ( array_slice( $sites, 0, 200 ) as $site_id ) {
+
+            switch_to_blog( (int) $site_id );
+
+            $ai       = get_option( 'vergeml_ai', array() );
+            $credits  = get_option( 'vergeml_ai_credits', array() );
+            $watchdog = get_option( 'vergeml_watchdog', array() );
+            $network  = get_site_option( 'vergeml_ai_network', array() );
+
+            $own_key = is_array( $ai ) && ! empty( $ai['license_key'] );
+            $net_key = is_array( $network ) && ! empty( $network['license_key'] );
+
+            $rows[] = array(
+                'id'      => (int) $site_id,
+                'name'    => get_option( 'blogname' ),
+                'url'     => get_admin_url( (int) $site_id, 'admin.php?page=vergelabs-media' ),
+                'version' => (string) get_option( 'vergeml_version', '' ),
+                'tables'  => (bool) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'vergeml_ai_index' ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                'safe'    => is_array( $watchdog ) && ! empty( $watchdog['safe'] ),
+                'key'     => $own_key && ! ( $net_key && ! empty( $network['lock'] ) ) ? 'own' : ( $net_key ? 'network' : 'none' ),
+                'credits' => is_array( $credits ) && isset( $credits['remaining'] ) ? (int) $credits['remaining'] : null,
+            );
+
+            restore_current_blog();
+        }
+
+        $rows = array( 'sites' => $rows, 'more' => count( $sites ) > 200, 'at' => time() );
+
+        set_site_transient( 'vergeml_network_overview', $rows, 5 * MINUTE_IN_SECONDS );
+    }
+
+    $refresh_url = wp_nonce_url( add_query_arg( 'vergeml_refresh', '1' ), 'vergeml_refresh' );
+    ?>
+    <div class="postbox">
+        <h3 class="hndle"><?php esc_html_e( 'Sites on this network', 'vergelabs-media-library' ); ?></h3>
+        <div class="inside">
+            <p class="description">
+                <?php
+                printf(
+                    /* translators: %s: how long ago the list was gathered. */
+                    esc_html__( 'Gathered %s ago.', 'vergelabs-media-library' ),
+                    esc_html( human_time_diff( (int) $rows['at'] ) )
+                );
+                ?>
+                <a href="<?php echo esc_url( $refresh_url ); ?>"><?php esc_html_e( 'Refresh', 'vergelabs-media-library' ); ?></a>
+                <?php if ( ! empty( $rows['more'] ) ) : ?>
+                    &mdash; <?php esc_html_e( 'the first two hundred sites are shown.', 'vergelabs-media-library' ); ?>
+                <?php endif; ?>
+            </p>
+            <table class="widefat striped">
+                <thead><tr>
+                    <th><?php esc_html_e( 'Site', 'vergelabs-media-library' ); ?></th>
+                    <th><?php esc_html_e( 'Version', 'vergelabs-media-library' ); ?></th>
+                    <th><?php esc_html_e( 'Tables', 'vergelabs-media-library' ); ?></th>
+                    <th><?php esc_html_e( 'Status', 'vergelabs-media-library' ); ?></th>
+                    <th><?php esc_html_e( 'AI key', 'vergelabs-media-library' ); ?></th>
+                    <th><?php esc_html_e( 'Credits seen', 'vergelabs-media-library' ); ?></th>
+                </tr></thead>
+                <tbody>
+                <?php foreach ( $rows['sites'] as $r ) : ?>
+                    <tr>
+                        <td><a href="<?php echo esc_url( $r['url'] ); ?>"><?php echo esc_html( $r['name'] ); ?></a> <span class="description">#<?php echo (int) $r['id']; ?></span></td>
+                        <td><?php echo '' !== $r['version'] ? esc_html( $r['version'] ) : '<em>' . esc_html__( 'not yet set up', 'vergelabs-media-library' ) . '</em>'; ?></td>
+                        <td><?php echo $r['tables'] ? esc_html__( 'present', 'vergelabs-media-library' ) : '<strong>' . esc_html__( 'missing', 'vergelabs-media-library' ) . '</strong>'; ?></td>
+                        <td><?php echo $r['safe'] ? '<strong>' . esc_html__( 'safe mode', 'vergelabs-media-library' ) . '</strong>' : esc_html__( 'running', 'vergelabs-media-library' ); ?></td>
+                        <td><?php echo esc_html( 'own' === $r['key'] ? __( 'its own', 'vergelabs-media-library' ) : ( 'network' === $r['key'] ? __( 'network', 'vergelabs-media-library' ) : __( 'none', 'vergelabs-media-library' ) ) ); ?></td>
+                        <td><?php echo null === $r['credits'] ? '&mdash;' : esc_html( number_format_i18n( $r['credits'] ) ); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <?php
+}
+
+
 add_action( 'network_admin_menu', 'vergeml_update_network_settings' );
 
 function vergeml_update_network_settings() {
@@ -1268,13 +1489,28 @@ function vergeml_update_network_settings() {
         return;
 
 
-    $vergeml_network_options = isset( $_POST['vergeml_network_options'] )
+    $posted = isset( $_POST['vergeml_network_options'] )
         ? map_deep( wp_unslash( (array) $_POST['vergeml_network_options'] ), 'sanitize_text_field' )
         : array();
 
-    $vergeml_network_options = vergeml_tax_options_validate( $vergeml_network_options );
+    /*
+     *  Two flags, each 0 or 1, and nothing else. This used to run the posted
+     *  array through vergeml_tax_options_validate(), which -- seeing no
+     *  vergeml_tax_options in the POST -- returned the main site's taxonomy
+     *  options instead. Every save of this screen overwrote the network option
+     *  with the wrong array, both flags vanished, and every site administrator
+     *  on the network lost Settings > Media and Utilities until a super admin
+     *  happened to notice.
+     */
+    $vergeml_network_options = array(
+        'media_settings' => empty( $posted['media_settings'] ) ? 0 : 1,
+        'utilities'      => empty( $posted['utilities'] ) ? 0 : 1,
+    );
 
     update_site_option( 'vergeml_network_options', $vergeml_network_options );
+
+    // Its own option, read by uninstall.php, which runs without this file.
+    update_site_option( 'vergeml_uninstall_wipe_network', empty( $posted['uninstall_wipe'] ) ? 0 : 1 );
 
     add_settings_error(
         'eml-network-settings',
@@ -1310,7 +1546,7 @@ function vergeml_settings_export() {
 
         $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
 
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['utilities'] )
+        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'utilities' ) )
             return;
     }
 
@@ -1355,7 +1591,7 @@ function vergeml_settings_import() {
 
         $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
 
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['utilities'] )
+        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'utilities' ) )
             return;
     }
 
@@ -1447,7 +1683,7 @@ function vergeml_settings_restoring() {
 
         $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
 
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['utilities'] )
+        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'utilities' ) )
             return;
     }
 
@@ -1517,44 +1753,43 @@ function vergeml_settings_cleanup() {
     if ( ! current_user_can( 'manage_options' ) )
         return;
 
+    /*
+     *  On a network this wipes every site, so it is a network administrator's
+     *  action -- not a site administrator's, whatever the utilities flag says.
+     *  The box was already hidden on subsites; the handler was not gated, and
+     *  a hidden button is not a permission.
+     */
+    if ( is_multisite() && ! current_user_can( 'manage_network_options' ) )
+        return;
+
+
+    $one_site = function () {
+        vergeml_term_relationship_cleanup();
+        vergeml_options_cleanup();
+        vergeml_transients_cleanup();
+        vergeml_cleanup_drop_tables();
+        wp_clear_scheduled_hook( 'vergeml_meaning_convert' );
+        wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+    };
+
     if ( is_multisite() ) {
 
-        $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
-
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['utilities'] )
-            return;
-    }
-
-
-    if ( is_multisite()  ) {
-
+        // Everything per site runs inside the switch: the tables, the
+        // transients and the cron are all prefixed by the site they belong to.
         foreach( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $site_id ) {
-
             switch_to_blog( $site_id );
-
-            vergeml_term_relationship_cleanup();
-            vergeml_options_cleanup();
-            deactivate_plugins( vergeml_get_basename() );
-
+            $one_site();
             restore_current_blog();
         }
     }
     else {
-
-        vergeml_term_relationship_cleanup();
-        vergeml_options_cleanup();
+        $one_site();
     }
 
     // we need this one because of = vs LIKE in the DB query
     vergeml_user_meta_cleanup();
 
     vergeml_site_options_cleanup();
-    vergeml_transients_cleanup();
-
-    if ( function_exists( 'vergeml_index_table_drop' ) ) {
-        vergeml_index_table_drop();
-    }
-    wp_clear_scheduled_hook( 'vergeml_meaning_convert' );
     deactivate_plugins( vergeml_get_basename(), false, is_multisite() );
 
 
@@ -1658,6 +1893,23 @@ function vergeml_term_relationship_cleanup() {
  *  @created  2024/04
  */
 
+/**
+ *  vergeml_cleanup_drop_tables
+ *
+ *  This plugin's four tables for the current site. Prefixed by $wpdb, so
+ *  inside switch_to_blog() it drops the right site's. Complete Cleanup used
+ *  to drop one of the four, on one site.
+ */
+function vergeml_cleanup_drop_tables() {
+
+    global $wpdb;
+
+    foreach ( array( 'vergeml_ai_index', 'vergeml_librarian_batches', 'vergeml_librarian_moves', 'vergeml_organize_runs' ) as $table ) {
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- deliberate removal of this plugin's own tables.
+    }
+}
+
+
 function vergeml_user_meta_cleanup() {
 
     global $wpdb;
@@ -1674,9 +1926,13 @@ function vergeml_user_meta_cleanup() {
      *  cleanup action, over rows this plugin owns.
      */
 
+    // Both shapes: the plain key, and on a network the per-site copy that
+    // carries the blog prefix (wp_2_vergeml_...).
     $meta_ids = $wpdb->get_col(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identifiers are internal, value is placeheld below.
-        $wpdb->prepare( "SELECT $id_column FROM $table WHERE meta_key LIKE %s", $wpdb->esc_like( $meta_key ) . '%' )
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identifiers are internal, values are placeheld below.
+        $wpdb->prepare( "SELECT $id_column FROM $table WHERE meta_key LIKE %s OR meta_key LIKE %s",
+            $wpdb->esc_like( $meta_key ) . '%',
+            $wpdb->esc_like( $wpdb->base_prefix ) . '%' . $wpdb->esc_like( '_' . $meta_key ) . '%' )
     ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own user meta.
 
 
@@ -1844,7 +2100,7 @@ function vergeml_print_media_library_options() {
 
         $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
 
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['media_settings'] )
+        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'media_settings' ) )
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
@@ -2263,7 +2519,7 @@ function vergeml_print_taxonomies_options() {
 
         $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
 
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['media_settings'] )
+        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'media_settings' ) )
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
@@ -2693,7 +2949,7 @@ function vergeml_print_mimetypes_options() {
 
         $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
 
-        if ( ! current_user_can( 'manage_network_options' ) && ! (bool) $vergeml_network_options['media_settings'] )
+        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'media_settings' ) )
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 

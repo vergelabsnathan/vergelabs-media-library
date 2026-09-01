@@ -456,7 +456,7 @@ function vergeml_count_unassigned( $taxonomy ) {
 
 function vergeml_tree_state( $taxonomy ) {
 
-    $all = get_user_meta( get_current_user_id(), VERGEML_USER_TREE_STATE, true );
+    $all = get_user_option( VERGEML_USER_TREE_STATE );
     $all = is_array( $all ) ? $all : array();
 
     $mine = isset( $all[ $taxonomy ] ) && is_array( $all[ $taxonomy ] ) ? $all[ $taxonomy ] : array();

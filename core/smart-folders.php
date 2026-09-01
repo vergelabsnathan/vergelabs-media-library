@@ -200,10 +200,14 @@ function vergeml_smart_counts( $fresh = false ) {
      *  that changes the numbers and a cached answer there would be the old
      *  one.
      */
-    static $cache = null;
+    // Per site: a network job that switches blogs must not be handed the
+    // previous site's five numbers.
+    static $cache = array();
 
-    if ( ! $fresh && null !== $cache ) {
-        return $cache;
+    $blog = get_current_blog_id();
+
+    if ( ! $fresh && isset( $cache[ $blog ] ) ) {
+        return $cache[ $blog ];
     }
 
     $scanned = vergeml_smart_scan_state();
@@ -346,7 +350,7 @@ function vergeml_smart_counts( $fresh = false ) {
     $out['_described'] = $extended && isset( $counts['_described'] ) ? $counts['_described'] : null;
     $out['_total']     = isset( $counts['_total'] ) ? $counts['_total'] : null;
 
-    $cache = $out;
+    $cache[ $blog ] = $out;
 
     return $out;
 }

@@ -38,6 +38,14 @@
 				if ( s.settings.has_license ) {
 					$( 'vgml-ai-license' ).placeholder = '•••••••• (saved)';
 				}
+				// A key set for the whole network: shown as such, and not
+				// editable here when the network administrator locked it.
+				if ( s.settings.from_network ) {
+					$( 'vgml-ai-license' ).placeholder = s.settings.network_locked
+						? '•••••••• (set for the network)'
+						: '•••••••• (from the network — enter one to use your own)';
+				}
+				$( 'vgml-ai-license' ).disabled = !! s.settings.network_locked;
 			}
 
 			// The SEO-pages button carries its own count and stays out of the

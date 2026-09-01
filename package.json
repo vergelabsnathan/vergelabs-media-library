@@ -13,6 +13,9 @@
     "flow:rest": "node tools/flow-rest-blocked.mjs",
     "flow:wpbakery": "node tools/flow-wpbakery.mjs",
     "flow:builders": "node tools/flow-builders.mjs",
+    "test:multisite": "node tools/multisite.mjs",
+    "rtl": "node tools/rtl.mjs",
+    "rtl:check": "node tools/rtl.mjs --check",
     "verify": "node tools/verify.mjs",
     "test:tree": "node tests/tree/t0-endpoints.js",
     "test:builders": "node tests/builders/compat.mjs",
@@ -20,6 +23,7 @@
     "bench": "node tests/perf/bench.mjs"
   },
   "devDependencies": {
-    "playwright": "^1.49.0"
+    "playwright": "^1.49.0",
+    "rtlcss": "^4.3.0"
   }
 }

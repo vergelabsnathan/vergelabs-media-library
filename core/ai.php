@@ -43,9 +43,30 @@ function vergeml_ai_settings() {
         'mock'          => 0,
     );
 
-    $saved = get_option( 'vergeml_ai', array() );
+    $saved    = get_option( 'vergeml_ai', array() );
+    $settings = array_merge( $defaults, is_array( $saved ) ? $saved : array() );
 
-    return array_merge( $defaults, is_array( $saved ) ? $saved : array() );
+    /*
+     *  On a network, one key for everyone if the network administrator set
+     *  one. A site's own key still wins unless the network locked it -- an
+     *  agency runs one licence across its clients' sites and does not want
+     *  fifty people pasting it, or one of them pasting something else.
+     */
+    if ( is_multisite() ) {
+
+        $network = get_site_option( 'vergeml_ai_network', array() );
+
+        if ( is_array( $network ) && ! empty( $network['license_key'] ) ) {
+            if ( ! empty( $network['lock'] ) || '' === (string) $settings['license_key'] ) {
+                $settings['license_key']  = $network['license_key'];
+                $settings['from_network'] = true;
+            }
+        }
+
+        $settings['network_locked'] = is_array( $network ) && ! empty( $network['lock'] ) && ! empty( $network['license_key'] );
+    }
+
+    return $settings;
 }
 
 /**
@@ -271,6 +292,27 @@ function vergeml_ai_describe_request( $attachment_id ) {
         return new WP_Error( 'vergeml_ai_no_license', __( 'No licence key configured.', 'vergelabs-media-library' ) );
     }
 
+    /*
+     *  Not from a staging copy, unless told so. A site cloned to staging
+     *  arrives with the sealed key intact -- the seal is per install salts,
+     *  which travel with the clone -- and on a cloned network that is every
+     *  subsite spending the live balance at once. The environment type is
+     *  what the host or wp-config says it is; the constant is the way to say
+     *  "yes, spend here anyway".
+     */
+    $environment = function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : 'production';
+
+    if ( 'production' !== $environment && ! ( defined( 'VERGEML_AI_ALLOW_NONPROD' ) && VERGEML_AI_ALLOW_NONPROD ) ) {
+        return new WP_Error(
+            'vergeml_ai_nonprod',
+            sprintf(
+                /* translators: %s: the environment type, for example "staging". */
+                __( 'This site says it is a %s environment, so nothing is sent and no credits are spent here. Use demo mode to see the shape of things, or define VERGEML_AI_ALLOW_NONPROD in wp-config.php to describe from this copy.', 'vergelabs-media-library' ),
+                $environment
+            )
+        );
+    }
+
     $file = vergeml_ai_image_payload( $attachment_id );
 
     if ( is_wp_error( $file ) ) {
@@ -283,6 +325,7 @@ function vergeml_ai_describe_request( $attachment_id ) {
         'body'    => wp_json_encode( array(
             'license_key' => $license,
             'site'        => home_url(),
+            'environment' => $environment,
             'filename'    => wp_basename( get_attached_file( $attachment_id ) ),
             'mime'        => get_post_mime_type( $attachment_id ),
             'image'       => $file,
@@ -1466,6 +1509,8 @@ function vergeml_ai_rest_status() {
             'page_context'  => (int) $settings['page_context'],
             'mock'          => (int) $settings['mock'],
             'has_license'   => '' !== vergeml_ai_unseal( $settings['license_key'] ),
+            'from_network'  => ! empty( $settings['from_network'] ),
+            'network_locked' => ! empty( $settings['network_locked'] ),
             'site_profile'  => (string) $settings['site_profile'],
         ),
     ) );
@@ -1494,10 +1539,22 @@ function vergeml_ai_rest_settings( WP_REST_Request $request ) {
 
     $settings = vergeml_ai_settings();
 
+    /*
+     *  What is saved is this site's own settings, never the network's. The
+     *  merged view above may carry the network key; writing that back would
+     *  turn an inherited key into a site's own copy and defeat the lock.
+     */
+    $own = get_option( 'vergeml_ai', array() );
+    $settings['license_key'] = is_array( $own ) && isset( $own['license_key'] ) ? (string) $own['license_key'] : '';
+    unset( $settings['from_network'], $settings['network_locked'] );
+
     // An empty string leaves the stored key alone, so the form can render a
-    // masked field without wiping the licence on every save.
-    $key = $request->get_param( 'license_key' );
-    if ( null !== $key && '' !== $key ) {
+    // masked field without wiping the licence on every save. A network lock
+    // means a site administrator does not get to set one at all.
+    $key    = $request->get_param( 'license_key' );
+    $locked = is_multisite() && ! empty( vergeml_ai_settings()['network_locked'] ) && ! current_user_can( 'manage_network_options' );
+
+    if ( null !== $key && '' !== $key && ! $locked ) {
         $settings['license_key'] = vergeml_ai_seal( sanitize_text_field( $key ) );
     }
 

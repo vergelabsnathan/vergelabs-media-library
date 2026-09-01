@@ -155,15 +155,42 @@ function vergeml_watchdog_strike( $error ) {
      */
     if ( $was_safe && $safe_since > 0 && ( $now - $safe_since ) >= MINUTE_IN_SECONDS ) {
 
-        $state['deactivated_at'] = $now;
-        update_option( 'vergeml_watchdog', $state, true );
-
         if ( ! function_exists( 'deactivate_plugins' ) )
             require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
+        /*
+         *  On a network, never. deactivate_plugins() on a network-activated
+         *  plugin deactivates it for every site -- one subsite with a broken
+         *  upload would have switched the folders off for the whole agency.
+         *  That site stays in safe mode (its own option, its own notice), and
+         *  the network admin gets a notice naming it, so the person who can
+         *  actually judge whether this is the plugin or that site's data is
+         *  the one who decides.
+         */
+        if ( is_multisite() && is_plugin_active_for_network( plugin_basename( VERGEML_FILE ) ) ) {
+
+            $network = get_site_option( 'vergeml_watchdog_network', array() );
+            $network = is_array( $network ) ? $network : array();
+
+            $network[ get_current_blog_id() ] = array(
+                'at'      => $now,
+                'message' => $state['message'],
+                'file'    => $state['file'],
+                'line'    => $state['line'],
+            );
+
+            update_site_option( 'vergeml_watchdog_network', $network );
+            update_option( 'vergeml_watchdog', $state, true );
+
+            return;
+        }
+
+        $state['deactivated_at'] = $now;
+        update_option( 'vergeml_watchdog', $state, true );
+
         // Silently: the deactivation hooks are more code, and more code is the
         // thing currently failing.
-        deactivate_plugins( plugin_basename( VERGEML_FILE ), true );
+        deactivate_plugins( plugin_basename( VERGEML_FILE ), false );
 
         return;
     }
@@ -201,15 +228,19 @@ function vergeml_safe_mode() {
      *  it was not applying. Found by looking at a real site rather than at the
      *  code. One cached read per request is the right price for being right.
      */
-    static $safe = null;
+    // Per site: a network job that switches blogs must not carry one site's
+    // answer to the next.
+    static $safe = array();
 
-    if ( null !== $safe )
-        return $safe;
+    $blog = function_exists( 'get_current_blog_id' ) ? get_current_blog_id() : 0;
 
-    $state = get_option( 'vergeml_watchdog', array() );
-    $safe  = is_array( $state ) && ! empty( $state['safe'] );
+    if ( isset( $safe[ $blog ] ) )
+        return $safe[ $blog ];
 
-    return $safe;
+    $state         = get_option( 'vergeml_watchdog', array() );
+    $safe[ $blog ] = is_array( $state ) && ! empty( $state['safe'] );
+
+    return $safe[ $blog ];
 }
 
 
@@ -252,6 +283,61 @@ function vergeml_watchdog_notice() {
         '</a> <a href="' . esc_url( admin_url( 'options-general.php?page=vergeml-settings&tab=report' ) ) . '" class="button">' .
         esc_html__( 'System report', 'vergelabs-media-library' ) .
         '</a></p></div>';
+}
+
+
+/*
+ *  The network administrator's view: which sites are in safe mode, with the
+ *  error each one hit and a link into that site's dashboard where the resume
+ *  button lives. Without this a super admin who never visits site 47 never
+ *  learns that site 47 has had no folders for a week.
+ */
+add_action( 'network_admin_notices', 'vergeml_watchdog_network_notice' );
+
+function vergeml_watchdog_network_notice() {
+
+    if ( ! current_user_can( 'manage_network_options' ) )
+        return;
+
+    $network = get_site_option( 'vergeml_watchdog_network', array() );
+
+    if ( ! is_array( $network ) || ! $network )
+        return;
+
+    // Only sites still in safe mode; a resumed site drops out of the list.
+    $still = array();
+
+    foreach ( $network as $blog_id => $entry ) {
+        switch_to_blog( (int) $blog_id );
+        $state = get_option( 'vergeml_watchdog', array() );
+        if ( is_array( $state ) && ! empty( $state['safe'] ) ) {
+            $still[ (int) $blog_id ] = $entry;
+        }
+        restore_current_blog();
+    }
+
+    if ( count( $still ) !== count( $network ) ) {
+        update_site_option( 'vergeml_watchdog_network', $still );
+    }
+
+    if ( ! $still )
+        return;
+
+    echo '<div class="notice notice-warning"><p><strong>' .
+        esc_html__( 'VergeLabs Media Library is in safe mode on these sites:', 'vergelabs-media-library' ) .
+        '</strong></p><ul>';
+
+    foreach ( $still as $blog_id => $entry ) {
+        $name = get_blog_option( $blog_id, 'blogname', '#' . $blog_id );
+        printf(
+            '<li><a href="%s">%s</a> &mdash; <code>%s</code></li>',
+            esc_url( get_admin_url( $blog_id ) ),
+            esc_html( $name ),
+            esc_html( isset( $entry['message'] ) ? substr( (string) $entry['message'], 0, 160 ) : '' )
+        );
+    }
+
+    echo '</ul><p>' . esc_html__( 'Each site keeps working without the plugin\'s features; open it to switch them back on. The plugin was not deactivated for the network.', 'vergelabs-media-library' ) . '</p></div>';
 }
 
 

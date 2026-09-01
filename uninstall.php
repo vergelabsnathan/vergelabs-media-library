@@ -102,9 +102,12 @@ function vergeml_uninstall_wipe_site() {
         }
     }
 
-    // The AI index. Descriptions already written into attachments stay there;
-    // this is the plugin's own working table.
-    $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}vergeml_ai_index" );
+    // The plugin's own tables: the AI index, the librarian's batches and
+    // moves, the organize runs. Descriptions already written into
+    // attachments stay there; these are working tables.
+    foreach ( array( 'vergeml_ai_index', 'vergeml_librarian_batches', 'vergeml_librarian_moves', 'vergeml_organize_runs' ) as $table ) {
+        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}" );
+    }
 
     /*
      *  A sweep, not a list. The plugin has grown options faster than any list
@@ -116,35 +119,63 @@ function vergeml_uninstall_wipe_site() {
 }
 
 
-vergeml_uninstall_housekeeping();
-
-if ( get_option( 'vergeml_uninstall_wipe' ) ) {
+/*
+ *  On a network, WordPress runs this file once, in the main site's context.
+ *  The housekeeping runs on every site regardless. The wipe runs on a site
+ *  when the network asked for it (a network administrator's switch) or that
+ *  site asked for itself -- the main site's checkbox does not decide for the
+ *  other hundred and ninety-nine.
+ */
+if ( is_multisite() ) {
 
     global $wpdb;
 
-    if ( is_multisite() ) {
+    $vergeml_network_wipe = (bool) get_site_option( 'vergeml_uninstall_wipe_network' );
+    $vergeml_any_wipe     = false;
 
-        // number 0: every site. The default is the first hundred, and a
-        // network with more than that would have been silently half-cleaned.
-        foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $vergeml_site_id ) {
-            switch_to_blog( $vergeml_site_id );
-            vergeml_uninstall_housekeeping();
+    // number 0: every site. The default is the first hundred, and a network
+    // with more than that would have been silently half-cleaned.
+    foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $vergeml_site_id ) {
+
+        switch_to_blog( $vergeml_site_id );
+
+        vergeml_uninstall_housekeeping();
+
+        if ( $vergeml_network_wipe || get_option( 'vergeml_uninstall_wipe' ) ) {
             vergeml_uninstall_wipe_site();
-            restore_current_blog();
+            $vergeml_any_wipe = true;
         }
 
+        restore_current_blog();
+    }
+
+    if ( $vergeml_network_wipe ) {
         delete_site_option( 'vergeml_network_options' );
+        delete_site_option( 'vergeml_uninstall_wipe_network' );
+        delete_site_option( 'vergeml_watchdog_network' );
+        delete_site_option( 'vergeml_notices' );
+        delete_site_option( 'vergeml_mimes_backup' );
     }
-    else {
+
+    if ( $vergeml_any_wipe ) {
+        // Per-user leftovers on every site: plain keys and blog-prefixed ones.
+        $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'vergeml\_%' OR meta_key LIKE '{$wpdb->base_prefix}%\_vergeml\_%'" );
+    }
+}
+else {
+
+    vergeml_uninstall_housekeeping();
+
+    if ( get_option( 'vergeml_uninstall_wipe' ) ) {
+
+        global $wpdb;
+
         vergeml_uninstall_wipe_site();
+
+        delete_site_option( 'vergeml_mimes_backup' );
+        delete_site_option( 'vergeml_notices' );
+
+        // Per-user leftovers: dismissed notices, remembered tree state.
+        $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'vergeml\_%'" );
     }
-
-    delete_site_option( 'vergeml_version' );
-    delete_site_option( 'vergeml_mimes_backup' );
-    delete_site_option( 'vergeml_notices' );
-
-    // Per-user leftovers: dismissed notices, remembered tree state. On a
-    // network the per-site copies carry the blog prefix (wp_2_vergeml_...),
-    // which the plain pattern never matched.
-    $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'vergeml\_%' OR meta_key LIKE '{$wpdb->base_prefix}%\_vergeml\_%'" );
 }

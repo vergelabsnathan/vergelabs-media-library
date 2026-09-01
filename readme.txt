@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.13.2
+Stable tag: 3.14.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -248,6 +248,32 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.14.0 ###
+*A network, from A to Z*
+
+= Multisite =
+* Network activation provisions every site, and a site created later is provisioned the moment it exists — no more subsite without folders until somebody opens its admin.
+* Deleting a site drops the plugin's tables for it, whether or not the plugin is loaded in that request.
+* The network settings screen no longer destroys its own option on save (a wrong validator was writing the main site's taxonomy settings over the two network flags), and a missing option no longer locks site administrators out of Settings > Media.
+* One subsite's fatal errors can no longer deactivate the plugin for the whole network: that site goes into safe mode, and the network administrator gets a notice naming it.
+* Complete Cleanup is a network administrator's action on a network, and cleans every site fully — all four tables, transients and scheduled tasks per site.
+* Uninstall walks every site; the network administrator's "remove all data" switch decides for the network, and a site's own switch for itself.
+* A network-wide AI licence: enter it once, every site inherits it; lock it and sites cannot enter their own.
+* A network overview: per site, version, tables, safe mode, where its AI key comes from, credits last seen.
+* Request caches are forgotten on switch_to_blog, and a person's remembered tree state is kept per site.
+* `pnpm test:multisite` runs the whole lifecycle on a throwaway Playground network.
+
+= Added =
+* **Filing without a mouse.** A Move selected button beside the folder search, the M key anywhere in the library with files selected, and a folder list you can type into and arrow through. Shift+F10 opens a folder's menu from the keyboard.
+* Right-to-left stylesheets for every screen, generated from the sources (`pnpm rtl`), and registered so WordPress swaps them in on RTL locales.
+* Folder talk: applying a proposal needs the plan id the proposal came with — bound to what was shown and to whom, fifteen minutes, once.
+* A notice when another folder plugin is active alongside, and exclusions so optimisers leave our scripts and the transport fallback alone.
+* Describing is refused on a staging or development copy unless `VERGEML_AI_ALLOW_NONPROD` says otherwise, and the environment travels with each request.
+
+= Fixed =
+* The translation template now covers every string (316 → 1,060), and the plugin loads translations from its own languages folder.
+* Duplicate delete repoints URL-bearing post meta, builder layouts and WooCommerce galleries as well as post content and featured images.
 
 ### 3.13.2 ###
 *Audited before anyone else's site*

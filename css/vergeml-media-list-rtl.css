@@ -1,0 +1,154 @@
+/* Generated from vergeml-media-list.css by tools/rtl.mjs -- do not edit; edit the source and rerun. */
+/*
+ *  What this plugin adds to the media list.
+ *
+ *  These rules used to live in vergeml-admin.css, which is enqueued on the
+ *  plugin's own screens and nowhere else -- so on upload.php, the one screen
+ *  they exist for, none of them loaded. Quick edit rendered as bare inputs in
+ *  an unpadded table cell and the search-by-meaning offer as loose text in the
+ *  filter bar. Both looked broken because both genuinely had no styling.
+ *
+ *  Own file, enqueued on upload.php, so the screen it dresses is the screen
+ *  it loads on.
+ *
+ *  Palette is declared locally. upload.php is a WordPress screen, not one of
+ *  ours, so there is no .vgml-shell wrapper here to inherit the tokens from.
+ *
+ *  Note: vergeml-journey.css also defines a .vgml-quick, for the dashboard's
+ *  list of quick actions. Different component, same name. They never load on
+ *  the same screen -- this one is upload.php, that one is the dashboard -- so
+ *  keep it that way rather than merging the two files.
+ */
+
+.vgml-quick {
+	--vgml-ink: #16233D;
+	--vgml-body: #3C4964;
+	--vgml-muted: #5B6884;
+	--vgml-accent: #2E5AA8;
+	--vgml-rule: #DDE5F2;
+
+	margin: 0;
+	padding: 18px 20px 20px;
+	background: #F6F8FC;
+	border-right: 3px solid var( --vgml-accent );
+	color: var( --vgml-body );
+}
+
+/*
+ *  Two fields, side by side where there is room. Stacked, they push the Save
+ *  button below the fold on a laptop, and an inline editor you have to scroll
+ *  to submit is not much of an inline editor.
+ */
+.vgml-quick-fields {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+	gap: 18px 24px;
+	align-items: start;
+	max-width: 72rem;
+}
+
+@media screen and ( max-width: 1100px ) {
+	.vgml-quick-fields {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.vgml-quick-field {
+	margin: 0;
+	min-width: 0;
+}
+
+.vgml-quick-field label {
+	display: block;
+	margin: 0 0 5px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.3;
+	letter-spacing: .07em;
+	text-transform: uppercase;
+	color: var( --vgml-muted );
+}
+
+.vgml-quick-field input[type="text"],
+.vgml-quick-field textarea {
+	display: block;
+	width: 100%;
+	margin: 0;
+	padding: 8px 11px;
+	font-size: 14px;
+	line-height: 1.5;
+	color: var( --vgml-ink );
+	background: #FFFFFF;
+	border: 1px solid #C9D6EA;
+	border-radius: 4px;
+	box-shadow: none;
+}
+
+.vgml-quick-field textarea {
+	min-height: 68px;
+	resize: vertical;
+}
+
+.vgml-quick-field input[type="text"]:focus,
+.vgml-quick-field textarea:focus {
+	border-color: var( --vgml-accent );
+	outline: 2px solid rgba( 46, 90, 168, .22 );
+	outline-offset: 0;
+	box-shadow: none;
+}
+
+.vgml-quick-help {
+	display: block;
+	margin-top: 6px;
+	font-size: 12px;
+	line-height: 1.5;
+	color: var( --vgml-muted );
+}
+
+.vgml-quick-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 18px 0 0;
+	padding-top: 15px;
+	border-top: 1px solid var( --vgml-rule );
+}
+
+/*
+ *  The line that says saving, saved, or that it did not. It holds its height
+ *  whether or not it has anything to say, so the buttons beside it do not
+ *  shift sideways the moment somebody presses Save.
+ */
+.vgml-quick-note {
+	flex: 1 1 auto;
+	min-height: 1em;
+	font-size: 13px;
+	line-height: 1.4;
+	color: var( --vgml-muted );
+}
+
+.vgml-quick-note[data-state="failed"] {
+	color: #B32D2E;
+	font-weight: 600;
+}
+
+.vgml-quick-row td {
+	padding: 0;
+}
+
+
+/* ----------------------------------------------------------------------- */
+/*  The offer of a second search, in the filter bar rather than as a banner. */
+
+.vgml-meaning-go,
+.vgml-meaning-on {
+	display: inline-block;
+	margin: 1px 4px 0 8px;
+	font-size: 13px;
+	line-height: 30px;
+	vertical-align: top;
+}
+
+.vgml-meaning-on {
+	color: #5B6884;
+}

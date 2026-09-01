@@ -2221,3 +2221,81 @@ body.upload-php .media-frame.mode-select .attachments-browser .media-toolbar .bu
 	color: inherit;
 	text-decoration: underline;
 }
+
+/* ----------------------------------------------------------- move dialog
+ * Filing without a mouse. Opened by the Move selected button, or by M with
+ * files selected; a list of folders you can type into and arrow through.
+ */
+.vgml-move {
+	position: fixed;
+	top: 90px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: min(440px, 92vw);
+	z-index: 40;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 6px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+	padding: 10px;
+	max-height: 70vh;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+.vgml-move-head {
+	margin: 0;
+	font-weight: 600;
+	font-size: 13px;
+}
+.vgml-move input[type="search"] {
+	width: 100%;
+	box-sizing: border-box;
+}
+.vgml-move-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	overflow: auto;
+	max-height: 50vh;
+	border-top: 1px solid #f0f0f1;
+}
+.vgml-move-list li {
+	padding: 6px 8px;
+	margin: 0;
+	cursor: pointer;
+	border-radius: 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.vgml-move-list li[aria-selected="true"],
+.vgml-move-list li:hover {
+	background: var(--vgml-accent, #2271b1);
+	color: #fff;
+}
+.vgml-move-foot {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 12px;
+	color: #646970;
+}
+.vgml-move-foot .button {
+	margin: 0;
+}
+
+/* The search row carries the Move button too; the search keeps the room. */
+.vgml-find {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.vgml-find .vgml-search {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+.vgml-find .vgml-move-btn {
+	flex: 0 0 auto;
+	white-space: nowrap;
+}

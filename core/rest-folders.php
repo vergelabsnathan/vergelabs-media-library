@@ -437,7 +437,7 @@ function vergeml_rest_state_set( WP_REST_Request $request ) {
         return new WP_Error( 'vergeml_unknown_taxonomy', __( 'That is not a media taxonomy.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
     }
 
-    $all = get_user_meta( get_current_user_id(), VERGEML_USER_TREE_STATE, true );
+    $all = get_user_option( VERGEML_USER_TREE_STATE );
     $all = is_array( $all ) ? $all : array();
 
     $mine = isset( $all[ $taxonomy ] ) && is_array( $all[ $taxonomy ] ) ? $all[ $taxonomy ] : array();
@@ -490,7 +490,7 @@ function vergeml_rest_state_set( WP_REST_Request $request ) {
 
     $all[ $taxonomy ] = $mine;
 
-    update_user_meta( get_current_user_id(), VERGEML_USER_TREE_STATE, $all );
+    update_user_option( get_current_user_id(), VERGEML_USER_TREE_STATE, $all );
 
     return rest_ensure_response( vergeml_tree_state( $taxonomy ) );
 }

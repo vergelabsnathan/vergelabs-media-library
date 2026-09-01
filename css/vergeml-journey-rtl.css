@@ -1,0 +1,755 @@
+/* Generated from vergeml-journey.css by tools/rtl.mjs -- do not edit; edit the source and rerun. */
+/*
+ *  The dashboard.
+ *
+ *  Leads with figures, shows coverage as a shape, puts one action in one
+ *  place, and then shows the library itself. The first version of this screen
+ *  was seven paragraphs with buttons under them, which is a settings page
+ *  wearing a different hat.
+ *
+ *  Deliberately absent: ring gauges, numbered circles joined by a line, cards
+ *  with a coloured top border and an icon in a rounded square. The bar is
+ *  .vgml-import-bar, which this plugin already draws during an import, so
+ *  progress is one shape everywhere in the product.
+ *
+ *  All tokens come from .vgml-shell. Nothing is redefined.
+ */
+
+/* ----------------------------------------------------------- the figures */
+
+/*
+ *  Numbers first, big enough to read without leaning in, and each one a link
+ *  to the screen that does something about it. A figure you cannot act on is
+ *  decoration.
+ */
+.vgml-figures {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0;
+	margin: 0 0 32px;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	overflow: hidden;
+	background: var(--vgml-surface);
+}
+
+.vgml-figure {
+	flex: 1 1 130px;
+	padding: 18px 20px;
+	text-decoration: none;
+	border-left: 1px solid var(--vgml-rule);
+	transition: background .12s ease;
+}
+
+.vgml-figure:last-child {
+	border-left: 0;
+}
+
+.vgml-figure:hover {
+	background: #fff;
+}
+
+.vgml-figure:focus {
+	box-shadow: none;
+	outline: none;
+}
+
+.vgml-figure:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: -2px;
+}
+
+.vgml-figure-n {
+	display: block;
+	font-size: 30px;
+	line-height: 1.1;
+	font-weight: 700;
+	letter-spacing: -.03em;
+	color: var(--vgml-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-figure-l {
+	display: block;
+	margin-top: 3px;
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+/* A number that wants attention says so in the accent, not in red. Nothing
+   here is an error -- unfiled files are a job, not a fault. */
+.vgml-figure.is-warn .vgml-figure-n {
+	color: var(--vgml-accent);
+}
+
+/* ------------------------------------------------------------ the meters */
+
+.vgml-meters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 28px;
+	margin: 0 0 32px;
+}
+
+.vgml-meter {
+	flex: 1 1 260px;
+}
+
+.vgml-meter-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin-bottom: 7px;
+}
+
+.vgml-meter-label {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+}
+
+.vgml-meter-note {
+	font-size: 12px;
+	color: var(--vgml-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-dash .vgml-import-bar {
+	margin: 0;
+	height: 8px;
+	background: var(--vgml-rule);
+	border-radius: 44px;
+	overflow: hidden;
+}
+
+.vgml-dash .vgml-import-fill {
+	height: 100%;
+	background: var(--vgml-accent);
+	border-radius: 44px;
+}
+
+/* -------------------------------------------------------- the one action */
+
+/*
+ *  The same two devices the nav uses for the current screen -- an accent bar
+ *  and a warmer ground -- so "this is where you are" looks the same
+ *  everywhere in the plugin.
+ */
+.vgml-next {
+	position: relative;
+	background: var(--vgml-surface);
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	padding: 22px 24px 24px;
+	margin: 0 0 32px;
+	overflow: hidden;
+}
+
+.vgml-next::before {
+	content: "";
+	position: absolute;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	width: 3px;
+	background: var(--vgml-accent);
+}
+
+.vgml-next-eyebrow {
+	margin: 0 0 4px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: .05em;
+	text-transform: uppercase;
+	color: var(--vgml-accent);
+}
+
+.vgml-dash .vgml-next h2 {
+	margin: 0 0 6px;
+	font-size: 19px;
+	font-weight: 700;
+	letter-spacing: -.02em;
+	color: var(--vgml-ink);
+}
+
+.vgml-next-text {
+	margin: 0 0 16px;
+	max-width: 64ch;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--vgml-body);
+}
+
+/* ---------------------------------------------------------- what it saw */
+
+/*
+ *  Bounded like the cards above it rather than divided off by a hairline.
+ *
+ *  A screen made of top-bordered bands reads as one long document with rules
+ *  drawn across it; the same content in bounded sections reads as parts, which
+ *  is the whole of what "scannable" means here. Same 6px and the same hairline
+ *  as the do-cards, so the page has one radius rather than three.
+ */
+.vgml-seen {
+	margin: 0 0 16px;
+	padding: 20px;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+	background: var(--vgml-pane);
+}
+
+.vgml-seen-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	margin-bottom: 14px;
+}
+
+.vgml-dash .vgml-seen-head h2 {
+	margin: 0;
+	font-size: 16px;
+}
+
+.vgml-seen-head a {
+	font-size: 13px;
+}
+
+/*
+ *  A scrolling strip rather than a grid. A grid of eight would be a three-up
+ *  feature grid by another name, and it would also lie about there being
+ *  exactly eight -- the strip says "here is some of it".
+ */
+.vgml-seen-strip {
+	display: flex;
+	gap: 12px;
+	margin: 0;
+	padding: 0 0 6px;
+	list-style: none;
+	overflow-x: auto;
+}
+
+.vgml-seen-item {
+	flex: 0 0 148px;
+	margin: 0;
+}
+
+.vgml-seen-item a {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+}
+
+.vgml-seen-item img {
+	display: block;
+	width: 148px;
+	height: 148px;
+	object-fit: cover;
+	border-radius: 4px;
+	border: 1px solid var(--vgml-rule);
+	background: var(--vgml-surface);
+}
+
+.vgml-seen-item a:hover img {
+	border-color: var(--vgml-accent);
+}
+
+.vgml-seen-kind {
+	display: block;
+	margin-top: 7px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: .05em;
+	text-transform: uppercase;
+	color: var(--vgml-muted);
+}
+
+.vgml-seen-caption {
+	display: block;
+	margin-top: 2px;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var(--vgml-body);
+	/* Two lines, then stop. A caption is a sample, not the record. */
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* ------------------------------------------------------ everything else */
+
+.vgml-rest {
+	padding: 20px;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+	background: var(--vgml-pane);
+}
+
+.vgml-dash .vgml-rest h2 {
+	margin: 0 0 10px;
+	font-size: 16px;
+}
+
+.vgml-rest-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-rest-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 16px;
+	padding: 11px 0;
+	border-bottom: 1px solid var(--vgml-rule);
+	margin: 0;
+}
+
+.vgml-rest-row:last-child {
+	border-bottom: 0;
+}
+
+.vgml-rest-row a {
+	font-size: 14px;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.vgml-rest-row a:hover {
+	text-decoration: underline;
+}
+
+.vgml-rest-state {
+	font-size: 12px;
+	color: var(--vgml-muted);
+	text-align: left;
+	max-width: 46ch;
+}
+
+.vgml-rest-row.is-done .vgml-rest-state {
+	color: #5C7C5C;
+}
+
+@media screen and (max-width: 782px) {
+	.vgml-figure {
+		flex: 1 1 45%;
+		border-bottom: 1px solid var(--vgml-rule);
+	}
+
+	.vgml-figure-n {
+		font-size: 24px;
+	}
+
+	.vgml-rest-row {
+		display: block;
+	}
+
+	.vgml-rest-state {
+		display: block;
+		text-align: right;
+		margin-top: 2px;
+		max-width: none;
+	}
+}
+
+
+/* ------------------------------------------------------------ two columns */
+
+/*
+ *  A main column and a rail, which is what WP Rocket does and what our single
+ *  column was missing -- the right third of a 1230px pane was empty while the
+ *  things somebody wants at hand were scattered down the page.
+ */
+.vgml-dash-cols {
+	display: flex;
+	gap: 28px;
+	align-items: flex-start;
+	margin-top: 8px;
+}
+
+.vgml-dash-main {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.vgml-dash-rail {
+	flex: 0 0 268px;
+}
+
+.vgml-rail-card {
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	padding: 16px 16px 18px;
+	margin-bottom: 16px;
+	background: var(--vgml-surface);
+}
+
+.vgml-dash .vgml-rail-card h2 {
+	margin: 0 0 10px;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: .01em;
+	color: var(--vgml-ink);
+}
+
+/* ----------------------------------------------------------- the score */
+
+/*
+ *  A numeral and its parts, not a ring.
+ *
+ *  A donut gauge shows one number and hides the four that produced it, so
+ *  nobody knows what to do about it. Each part here is a link to the screen
+ *  that raises it.
+ */
+.vgml-scorecard {
+	background: #fff;
+}
+
+.vgml-score-n {
+	margin: 0 0 14px;
+	font-size: 40px;
+	line-height: 1;
+	font-weight: 700;
+	letter-spacing: -.03em;
+	color: var(--vgml-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-score-n span {
+	font-size: 15px;
+	font-weight: 500;
+	color: var(--vgml-muted);
+	letter-spacing: 0;
+	margin-right: 2px;
+}
+
+.vgml-score-parts {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-score-parts li {
+	margin: 0 0 10px;
+}
+
+.vgml-score-parts a {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 8px;
+	text-decoration: none;
+	font-size: 12px;
+	margin-bottom: 4px;
+}
+
+.vgml-score-label {
+	color: var(--vgml-body);
+}
+
+.vgml-score-parts a:hover .vgml-score-label {
+	color: var(--vgml-accent);
+}
+
+.vgml-score-pts {
+	color: var(--vgml-muted);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.vgml-score-bar {
+	display: block;
+	height: 4px;
+	border-radius: 44px;
+	background: var(--vgml-rule);
+	overflow: hidden;
+}
+
+.vgml-score-bar span {
+	display: block;
+	height: 100%;
+	background: var(--vgml-accent);
+	border-radius: 44px;
+}
+
+/* --------------------------------------------------------- quick actions */
+
+.vgml-quick {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-quick li {
+	margin: 0 0 6px;
+}
+
+.vgml-quick-do {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	width: 100%;
+	text-align: right;
+	padding: 10px;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	background: #fff;
+	color: var(--vgml-body);
+	text-decoration: none;
+	cursor: pointer;
+	font: inherit;
+	transition: border-color .12s ease, background .12s ease;
+}
+
+.vgml-quick-do:hover {
+	border-color: var(--vgml-accent);
+	background: var(--vgml-surface);
+}
+
+.vgml-quick-do:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 1px;
+}
+
+.vgml-quick-do[disabled] {
+	opacity: .55;
+	cursor: default;
+}
+
+.vgml-quick-ico {
+	display: flex;
+	flex: 0 0 auto;
+	margin-top: 1px;
+	color: var(--vgml-accent);
+}
+
+.vgml-quick-label {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--vgml-ink);
+}
+
+.vgml-quick-note {
+	display: block;
+	margin-top: 2px;
+	font-size: 11px;
+	line-height: 1.4;
+	color: var(--vgml-muted);
+}
+
+.vgml-quick-said {
+	margin: 10px 0 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var(--vgml-accent);
+	min-height: 1em;
+}
+
+.vgml-quick-said:empty {
+	margin: 0;
+	min-height: 0;
+}
+
+@media screen and (max-width: 1100px) {
+	.vgml-dash-cols {
+		display: block;
+	}
+
+	.vgml-dash-rail {
+		margin-top: 28px;
+		display: flex;
+		gap: 16px;
+		align-items: flex-start;
+	}
+
+	.vgml-rail-card {
+		flex: 1 1 0;
+		margin-bottom: 0;
+	}
+}
+
+@media screen and (max-width: 700px) {
+	.vgml-dash-rail {
+		display: block;
+	}
+
+	.vgml-rail-card {
+		margin-bottom: 16px;
+	}
+}
+
+
+
+.vgml-score-none {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--vgml-muted);
+}
+
+
+/* --------------------------------------------- what you can do, on the front */
+
+/*
+ *  Moved here from the sort screen, which had grown a second copy of this
+ *  list under different words. Same geometry as it had there -- hairlines,
+ *  count on its own line, one button -- because it is the same list, not a
+ *  new one.
+ */
+
+/*
+ *  What you can do now: cards, not a list of paragraphs.
+ *
+ *  These were rows on hairlines, every one the same weight -- a title, a
+ *  four-line note, the number set as body text and the button under it. Six of
+ *  them stacked reads as an essay, and the thing somebody came to find (how
+ *  many, and the button) was the least prominent part of each.
+ *
+ *  Rocket separates its settings into bounded cards and puts the control on the
+ *  right of the row; this does the same and takes the number out of the
+ *  sentence -- it is the one thing on the card worth reading first, so it is
+ *  set as a figure and everything else is quieter.
+ *
+ *  Deliberately restrained: a hairline border and a 6px radius, no shadow, no
+ *  fill. The pane is already white, and a card that announces itself on a
+ *  screen holding six of them is worse than the rows were.
+ */
+
+.vgml-dash .vgml-do-head {
+	margin: 0 0 12px;
+	font-size: 16px;
+}
+
+.vgml-dash .vgml-do-list {
+	margin-top: 4px;
+}
+
+.vgml-dash .vgml-do {
+	display: grid;
+	grid-template-columns: minmax( 0, 1fr ) auto;
+	gap: 6px 24px;
+	align-items: start;
+	margin-bottom: 10px;
+	padding: 18px 20px;
+	border: 1px solid var( --vgml-rule );
+	border-radius: 6px;
+	background: var( --vgml-pane );
+	transition: border-color .12s ease;
+}
+
+.vgml-dash .vgml-do:hover {
+	border-color: var( --vgml-rule-strong );
+}
+
+.vgml-dash .vgml-do:last-child {
+	margin-bottom: 0;
+}
+
+.vgml-dash .vgml-do-text {
+	min-width: 0;
+}
+
+.vgml-dash .vgml-do-title {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var( --vgml-ink );
+}
+
+/*
+ *  The number, read before the explanation rather than after it. It was set as
+ *  body text inside a sentence, which is the surest way to make a figure
+ *  invisible.
+ */
+.vgml-dash .vgml-do-line {
+	margin: 8px 0 0;
+	font-size: 14px;
+	color: var( --vgml-body );
+}
+
+.vgml-dash .vgml-do-count {
+	display: block;
+	font-size: 19px;
+	font-weight: 600;
+	line-height: 1.25;
+	color: var( --vgml-ink );
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-dash .vgml-do-line.is-done {
+	font-size: 13px;
+	color: #5C7C5C;
+}
+
+/* The quietest thing on the card, and capped so it stays one thought. */
+.vgml-dash .vgml-do-note {
+	margin: 8px 0 0;
+	max-width: 64ch;
+	font-size: 13px;
+	line-height: 1.55;
+	color: var( --vgml-muted );
+}
+
+/* The action, right of the row, level with the title. */
+.vgml-dash .vgml-flow-actions {
+	margin: 0;
+	white-space: nowrap;
+}
+
+/*
+ *  The second job some cards carry -- renaming the files on disk, importing
+ *  from another plugin. Inset and tinted so it reads as a follow-on rather
+ *  than a seventh card.
+ */
+.vgml-dash .vgml-do-more {
+	grid-column: 1 / -1;
+	display: grid;
+	grid-template-columns: minmax( 0, 1fr ) auto;
+	gap: 6px 24px;
+	align-items: center;
+	margin-top: 16px;
+	padding: 14px 16px;
+	border-radius: 5px;
+	background: var( --vgml-surface );
+}
+
+.vgml-dash .vgml-do-more-count {
+	margin: 0;
+	font-size: 13.5px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var( --vgml-ink );
+}
+
+.vgml-dash .vgml-do-more .vgml-do-note {
+	margin: 3px 0 0;
+	font-size: 12.5px;
+}
+
+.vgml-dash .vgml-do-blocked {
+	grid-column: 1 / -1;
+	margin: 0;
+	font-size: 12.5px;
+	line-height: 1.55;
+	color: var( --vgml-muted );
+}
+
+/*
+ *  Under 782px WordPress is already in its touch layout, and a button pinned
+ *  to the right of a narrow card is a button half off the screen.
+ */
+@media screen and ( max-width: 782px ) {
+
+	.vgml-dash .vgml-do,
+	.vgml-dash .vgml-do-more {
+		display: block;
+	}
+
+	.vgml-dash .vgml-flow-actions {
+		margin-top: 14px;
+	}
+}

@@ -50,10 +50,14 @@ function vergeml_journey_touch() {
 
 function vergeml_journey_facts() {
 
-    static $facts = null;
+    // Per site, for the same reason as every request cache in this plugin:
+    // a network job that switches blogs must not see the last site's figures.
+    static $facts = array();
 
-    if ( null !== $facts ) {
-        return $facts;
+    $blog = get_current_blog_id();
+
+    if ( isset( $facts[ $blog ] ) ) {
+        return $facts[ $blog ];
     }
 
     /*
@@ -68,8 +72,8 @@ function vergeml_journey_facts() {
     $cached = get_transient( 'vergeml_journey_facts' );
 
     if ( is_array( $cached ) && isset( $cached['images'] ) ) {
-        $facts = $cached;
-        return $facts;
+        $facts[ $blog ] = $cached;
+        return $facts[ $blog ];
     }
 
     global $wpdb;
@@ -192,7 +196,7 @@ function vergeml_journey_facts() {
         $recent = is_array( $recent ) ? $recent : array();
     }
 
-    $facts = array(
+    $facts[ $blog ] = array(
         'images'      => $images,
         'described'   => $described,
         'undescribed' => $undescribed,
@@ -212,7 +216,7 @@ function vergeml_journey_facts() {
 
     set_transient( 'vergeml_journey_facts', $facts, MINUTE_IN_SECONDS );
 
-    return $facts;
+    return $facts[ $blog ];
 }
 
 

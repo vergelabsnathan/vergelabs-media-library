@@ -1,0 +1,1384 @@
+/* Generated from vergeml-shell.css by tools/rtl.mjs -- do not edit; edit the source and rerun. */
+/*
+ *  The admin shell.
+ *
+ *  Structure copied from WP Rocket's own wpr-admin.css, which is the reference
+ *  Nathan chose, and every number here is theirs rather than invented:
+ *
+ *      .wpr-wrap    { margin: 0 0 0 -20px }        flush to the admin menu
+ *      .wpr-body    { display: flex }
+ *      .wpr-Header  { flex: 0 0 225px }            a fixed nav column
+ *      .wpr-Content { flex: 1 1 auto; background:#fff; padding: 32px 24px;
+ *                     max-width: 1230px }
+ *      .wpr-sectionHeader { border-bottom: 1px solid …; padding-bottom: 24px }
+ *      14px base on a 1.5 line, 4px radius almost everywhere.
+ *
+ *  The trick is structural, not decorative: kill WordPress's gutter, put a nav
+ *  down the left, and separate sections with a rule instead of wrapping each
+ *  one in its own box. That is what stops a screen reading as a settings page.
+ *
+ *  The colours are ours, and they are the site's: the same #F6F8FC ground,
+ *  #16233D ink and #2E5AA8 accent that vergelabsmedia.com and the account
+ *  page use, so somebody who buys on the site and then opens the plugin is
+ *  looking at one product rather than three.
+ *
+ *  These ten values are the whole palette. Change them here and the admin
+ *  changes with them -- that is the point of having them in one place.
+ *
+ *  Everything is scoped under .vgml-shell, so none of it reaches a WordPress
+ *  screen this plugin does not own.
+ */
+
+.vgml-shell {
+	--vgml-ground: #F6F8FC;
+	--vgml-pane: #FFFFFF;
+	--vgml-surface: #F1F5FC;
+	--vgml-ink: #16233D;
+	--vgml-body: #3C4964;
+	--vgml-muted: #5B6884;
+	--vgml-accent: #2E5AA8;
+	--vgml-accent-dark: #24365C;
+	--vgml-rule: #DDE5F2;
+	--vgml-rule-strong: #C9D6EA;
+
+	/* Flush to the admin menu, exactly as .wpr-wrap does it. Losing the
+	   gutter is most of what stops this reading as a settings page. */
+	margin: 0 -20px 0 0;
+	padding: 16px;
+	background: var(--vgml-ground);
+	min-height: calc(100vh - 32px);
+	box-sizing: border-box;
+	color: var(--vgml-body);
+	font-size: 14px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.vgml-shell *,
+.vgml-shell *::before,
+.vgml-shell *::after {
+	box-sizing: border-box;
+}
+
+.vgml-shell-body {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+}
+
+/* ------------------------------------------------------------------ the nav */
+
+.vgml-shell-nav {
+	flex: 0 0 225px;
+	position: sticky;
+	top: 46px;
+	padding-top: 8px;
+}
+
+.vgml-shell-brand {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	padding: 0 12px 18px;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-mark {
+	display: flex;
+	color: var(--vgml-accent);
+}
+
+.vgml-shell-name {
+	font-size: 14px;
+	font-weight: 600;
+	letter-spacing: -.01em;
+}
+
+.vgml-shell-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-shell-list li {
+	margin: 0;
+}
+
+.vgml-shell-item {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	position: relative;
+	padding: 9px 12px;
+	margin-bottom: 1px;
+	border-radius: 4px;
+	color: var(--vgml-body);
+	text-decoration: none;
+	font-size: 14px;
+	line-height: 1.35;
+	transition: background .12s ease, color .12s ease;
+}
+
+.vgml-shell-item:hover {
+	background: rgba(155, 78, 69, .07);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-item:focus {
+	box-shadow: none;
+	outline: none;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-item:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: -2px;
+}
+
+/*
+ *  The current screen reads as the pane it opens: the same white, joined to it
+ *  by colour rather than by a chevron. The accent bar is the only ornament in
+ *  the whole nav.
+ */
+.vgml-shell-item.is-on {
+	background: var(--vgml-pane);
+	color: var(--vgml-ink);
+	font-weight: 600;
+}
+
+.vgml-shell-item.is-on::before {
+	content: "";
+	position: absolute;
+	right: 0;
+	top: 6px;
+	bottom: 6px;
+	width: 3px;
+	border-radius: 2px 0 0 2px;
+	background: var(--vgml-accent);
+}
+
+.vgml-shell-version {
+	margin: 18px 0 0;
+	padding: 0 12px;
+	font-size: 11px;
+	color: var(--vgml-muted);
+}
+
+/* -------------------------------------------------------------- the content */
+
+.vgml-shell-content {
+	flex: 1 1 auto;
+	min-width: 0;
+	max-width: 1230px;
+	background: var(--vgml-pane);
+	border: 1px solid var(--vgml-rule);
+	/* One radius across the whole admin: the pane, the cards inside it, and
+	 * the sections on the dashboard are all 6px. Slight, and the same. */
+	border-radius: 6px;
+	padding: 32px 24px;
+}
+
+/* WordPress's own wrapper, now inside our pane and no longer supplying chrome. */
+.vgml-shell-content .wrap,
+.vgml-shell-content .wrap.vgml-home {
+	margin: 0;
+	padding: 0;
+	max-width: none;
+	background: none;
+}
+
+.vgml-shell-content .wrap > h1,
+.vgml-shell-content .vgml-home-head h1 {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 24px;
+	line-height: 1.25;
+	font-weight: 700;
+	letter-spacing: -.02em;
+	color: var(--vgml-ink);
+}
+
+/* The page header: a rule and 24px of air, which is Rocket's sectionHeader. */
+.vgml-shell-content .vgml-home-head,
+.vgml-shell-content .wrap > h1:first-child {
+	margin-bottom: 24px;
+	padding-bottom: 24px;
+	border-bottom: 1px solid var(--vgml-rule);
+}
+
+.vgml-shell-content .vgml-home-counts,
+.vgml-shell-content .vgml-home-version {
+	margin: 0;
+	font-size: 13px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content p,
+.vgml-shell-content li,
+.vgml-shell-content label,
+.vgml-shell-content td,
+.vgml-shell-content th {
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--vgml-body);
+}
+
+.vgml-shell-content .description,
+.vgml-shell-content p.description {
+	font-size: 13px;
+	line-height: 1.6;
+	color: var(--vgml-muted);
+	max-width: 68ch;
+}
+
+.vgml-shell-content strong {
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content a {
+	color: var(--vgml-accent);
+}
+
+/*
+ *  Sections, not boxes.
+ *
+ *  The cards are what made these screens read as a stack of widgets, and a
+ *  card inside a pane is a box inside a box. Rocket separates with a rule and
+ *  space, which is quieter and makes a long screen scannable.
+ */
+.vgml-shell-content .vgml-ai-card,
+.vgml-shell-content .vgml-import-card {
+	background: none;
+	border: 0;
+	border-top: 1px solid var(--vgml-rule);
+	box-shadow: none;
+	border-radius: 0;
+	margin: 28px 0 0;
+	padding: 28px 0 0;
+}
+
+.vgml-shell-content .vgml-ai-card:first-of-type,
+.vgml-shell-content .vgml-import-card:first-of-type {
+	border-top: 0;
+	margin-top: 0;
+	padding-top: 0;
+}
+
+.vgml-shell-content h2,
+.vgml-shell-content .vgml-ai-card > h2,
+.vgml-shell-content .vgml-import-card h2 {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.35;
+	letter-spacing: -.01em;
+	color: var(--vgml-ink);
+	border: 0;
+}
+
+.vgml-shell-content h3 {
+	margin: 20px 0 6px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+}
+
+/*
+ *  The home screen's cards stay cards -- they are navigation, and a grid of
+ *  destinations is the one place a box is the right answer. Repainted off
+ *  WordPress blue onto ours.
+ */
+.vgml-shell-content .vgml-home-card {
+	border-color: var(--vgml-rule);
+	border-radius: 4px;
+	background: var(--vgml-surface);
+}
+
+.vgml-shell-content .vgml-home-card:hover,
+.vgml-shell-content .vgml-home-card:focus {
+	border-color: var(--vgml-accent);
+	background: #fff;
+}
+
+.vgml-shell-content .vgml-home-card:focus-visible {
+	outline-color: var(--vgml-accent);
+}
+
+.vgml-shell-content .vgml-home-card h2 {
+	color: var(--vgml-ink);
+}
+
+/* ---------------------------------------------------------------- controls */
+
+.vgml-shell-content .button,
+.vgml-shell-content .button-secondary {
+	height: auto;
+	min-height: 0;
+	padding: 7px 14px;
+	border-radius: 4px;
+	border: 1px solid var(--vgml-rule-strong);
+	background: var(--vgml-surface);
+	color: var(--vgml-ink);
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1.4;
+	box-shadow: none;
+	transition: background .12s ease, border-color .12s ease;
+}
+
+.vgml-shell-content .button:hover {
+	background: var(--vgml-rule);
+	border-color: var(--vgml-muted);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content .button-primary {
+	background: var(--vgml-accent);
+	border-color: var(--vgml-accent);
+	color: #fff;
+	text-shadow: none;
+}
+
+.vgml-shell-content .button-primary:hover,
+.vgml-shell-content .button-primary:focus {
+	background: var(--vgml-accent-dark);
+	border-color: var(--vgml-accent-dark);
+	color: #fff;
+}
+
+.vgml-shell-content .button:focus-visible,
+.vgml-shell-content .button-primary:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+.vgml-shell-content .button[disabled],
+.vgml-shell-content .button:disabled {
+	opacity: .5;
+	cursor: not-allowed;
+}
+
+.vgml-shell-content input[type="text"],
+.vgml-shell-content input[type="password"],
+.vgml-shell-content input[type="number"],
+.vgml-shell-content input[type="search"],
+.vgml-shell-content input[type="email"],
+.vgml-shell-content input[type="url"],
+.vgml-shell-content select,
+.vgml-shell-content textarea {
+	border: 1px solid var(--vgml-rule-strong);
+	border-radius: 4px;
+	background: #fff;
+	color: var(--vgml-ink);
+	font-size: 13px;
+	padding: 6px 9px;
+	box-shadow: none;
+	min-height: 0;
+}
+
+.vgml-shell-content input[type="text"]:focus,
+.vgml-shell-content input[type="password"]:focus,
+.vgml-shell-content input[type="number"]:focus,
+.vgml-shell-content select:focus,
+.vgml-shell-content textarea:focus {
+	border-color: var(--vgml-accent);
+	box-shadow: 0 0 0 1px var(--vgml-accent);
+	outline: none;
+}
+
+.vgml-shell-content input[type="checkbox"],
+.vgml-shell-content input[type="radio"] {
+	border-color: var(--vgml-rule-strong);
+}
+
+.vgml-shell-content input[type="checkbox"]:checked,
+.vgml-shell-content input[type="radio"]:checked {
+	background: var(--vgml-accent);
+	border-color: var(--vgml-accent);
+}
+
+.vgml-shell-content input[type="checkbox"]:checked::before {
+	filter: brightness(0) invert(1);
+}
+
+.vgml-shell-content input[type="radio"]:checked::before {
+	background: #fff;
+}
+
+/* ------------------------------------------------------------------ tables */
+
+/*
+ *  WordPress's form-table, read as the row grammar.
+ *
+ *  A form-table is already label-left, control-right, one setting per row --
+ *  it is the vgml-pg-row shape in a table. The three settings screens are
+ *  950 lines of Settings API markup in it, and none of that needs touching
+ *  for them to look like the rest of the plugin: the label gets the label's
+ *  weight, the rows get the hairline, and the whole thing sits inside a card.
+ */
+.vgml-shell-content .form-table {
+	margin: 0;
+	border-collapse: collapse;
+}
+
+.vgml-shell-content .form-table th {
+	padding: 14px 16px 14px 20px;
+	width: 220px;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--vgml-ink);
+	vertical-align: top;
+}
+
+.vgml-shell-content .form-table td {
+	padding: 13px 0 13px 16px;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--vgml-body);
+	vertical-align: top;
+}
+
+.vgml-shell-content .form-table tr + tr th,
+.vgml-shell-content .form-table tr + tr td {
+	border-top: 1px solid var(--vgml-rule);
+}
+
+/* The aside in a row -- "(Can be disabled for Grid Mode only)" -- is help,
+   and reads as help. */
+.vgml-shell-content .form-table td em,
+.vgml-shell-content .form-table td .description,
+.vgml-shell-content .form-table td p.description {
+	font-size: 12px;
+	font-style: normal;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .form-table td label {
+	line-height: 1.7;
+}
+
+/* -------------------------------------------------------- progress and logs */
+
+.vgml-shell-content .vgml-import-bar {
+	background: var(--vgml-rule);
+	border-radius: 44px;
+	height: 6px;
+	overflow: hidden;
+	margin: 14px 0 10px;
+	border: 0;
+}
+
+.vgml-shell-content .vgml-import-fill {
+	background: var(--vgml-accent);
+	height: 100%;
+	border-radius: 44px;
+	transition: width .3s ease;
+}
+
+.vgml-shell-content .vgml-ai-log,
+.vgml-shell-content .vgml-autofile-list,
+.vgml-shell-content .vgml-quarantine-list {
+	margin: 12px 0 0;
+	padding: 0;
+	list-style: none;
+	font-size: 13px;
+	max-height: 320px;
+	overflow-y: auto;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+}
+
+.vgml-shell-content .vgml-ai-log:empty,
+.vgml-shell-content .vgml-autofile-list:empty {
+	display: none;
+	border: 0;
+}
+
+.vgml-shell-content .vgml-ai-log li,
+.vgml-shell-content .vgml-autofile-list li {
+	padding: 8px 12px;
+	margin: 0;
+	border-bottom: 1px solid var(--vgml-rule);
+}
+
+.vgml-shell-content .vgml-ai-log li:last-child,
+.vgml-shell-content .vgml-autofile-list li:last-child {
+	border-bottom: 0;
+}
+
+/* ----------------------------------------------------------------- notices */
+
+.vgml-shell-content .notice {
+	margin: 0 0 18px;
+	border-radius: 4px;
+	border-right-width: 3px;
+	background: var(--vgml-surface);
+	box-shadow: none;
+}
+
+/* ---------------------------------------------------------------- narrower */
+
+@media screen and (max-width: 960px) {
+	.vgml-shell-body {
+		display: block;
+	}
+
+	.vgml-shell-nav {
+		position: static;
+		padding-bottom: 12px;
+	}
+
+	.vgml-shell-brand {
+		padding-bottom: 12px;
+	}
+
+	.vgml-shell-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2px;
+	}
+
+	.vgml-shell-item.is-on::before {
+		display: none;
+	}
+
+	.vgml-shell-item.is-on {
+		box-shadow: inset 0 -2px 0 var(--vgml-accent);
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.vgml-shell {
+		margin-right: -10px;
+		padding: 10px;
+	}
+
+	.vgml-shell-content {
+		padding: 20px 16px;
+	}
+}
+
+
+/*
+ *  The settings group.
+ *
+ *  Three of the eight screens are things you set once and never open again.
+ *  Under a quiet heading they stop competing with the five you actually use.
+ */
+.vgml-shell-group {
+	margin: 16px 0 4px;
+	padding: 0 12px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: .07em;
+	text-transform: uppercase;
+	color: var(--vgml-muted);
+	list-style: none;
+}
+
+/* ------------------------------------------------------------------- help */
+
+/*
+ *  The question mark beside an option. Click, not hover: a hover tooltip
+ *  cannot be reached by keyboard or read on a touch screen, and this exists
+ *  for the person who is not sure what they are looking at.
+ */
+.vgml-help {
+	appearance: none;
+	border: 1px solid var(--vgml-rule-strong);
+	background: var(--vgml-surface);
+	color: var(--vgml-muted);
+	width: 17px;
+	height: 17px;
+	line-height: 1;
+	padding: 0;
+	border-radius: 50%;
+	font-size: 11px;
+	font-weight: 700;
+	cursor: help;
+	vertical-align: middle;
+	margin-right: 4px;
+}
+
+.vgml-help:hover,
+.vgml-help[aria-expanded="true"] {
+	border-color: var(--vgml-accent);
+	background: var(--vgml-accent);
+	color: #fff;
+}
+
+.vgml-help:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+}
+
+.vgml-help-bubble {
+	position: absolute;
+	z-index: 100000;
+	max-width: 320px;
+	padding: 10px 12px;
+	border-radius: 4px;
+	background: #16233D;
+	color: #F6F8FC;
+	font-size: 13px;
+	line-height: 1.5;
+	box-shadow: 0 4px 16px rgba(43, 26, 20, .22);
+}
+
+
+/*
+ *  hidden means hidden.
+ *
+ *  WordPress's .button sets display:inline-block, which beats the browser's
+ *  default [hidden]{display:none} on specificity -- so the Stop button sat
+ *  there on a screen with nothing running, inviting a click that did nothing.
+ */
+.vgml-shell [hidden] {
+	display: none !important;
+}
+
+
+/* ------------------------------------------------------- nav, second line */
+
+/*
+ *  A label and a line saying what the screen is for, which is what WP Rocket
+ *  does and what made its nav readable at a glance where ours was eight bare
+ *  words. The icon is a landmark for somebody scanning a menu they have seen
+ *  fifty times -- it is not decoration, which is why it is a line drawing in
+ *  currentColor and not a picture.
+ */
+.vgml-shell-ico {
+	display: flex;
+	flex: 0 0 auto;
+	margin-top: 1px;
+	color: var(--vgml-muted);
+	transition: color .12s ease;
+}
+
+.vgml-shell-item:hover .vgml-shell-ico,
+.vgml-shell-item.is-on .vgml-shell-ico {
+	color: var(--vgml-accent);
+}
+
+.vgml-shell-text {
+	display: block;
+	min-width: 0;
+}
+
+.vgml-shell-label {
+	display: block;
+	line-height: 1.3;
+}
+
+.vgml-shell-sub {
+	display: block;
+	margin-top: 1px;
+	font-size: 11px;
+	line-height: 1.35;
+	font-weight: 400;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-item.is-on .vgml-shell-sub {
+	color: var(--vgml-body);
+}
+
+.vgml-icon-svg {
+	display: block;
+}
+
+
+/* ---------------------------------------------------------- settings pages */
+
+/*
+ *  The settings screens were the last thing still reading as WordPress: a
+ *  white card per section sitting on a white pane, and a Save button under
+ *  every one of them.
+ *
+ *  Sections are rules now, like everywhere else in the shell, and the save is
+ *  one bar pinned to the bottom of the window -- a 3,500px page should not
+ *  make somebody scroll to the end to keep a change they made at the top.
+ */
+.vgml-shell-content .vgml-settings-section,
+.vgml-shell-content .vgml-box,
+.vgml-shell-content .eml-section {
+	background: none;
+	border: 0;
+	border-top: 1px solid var(--vgml-rule);
+	border-radius: 0;
+	box-shadow: none;
+	padding: 26px 0 0;
+	margin: 26px 0 0;
+}
+
+.vgml-shell-content h2 + .vgml-settings-section,
+.vgml-shell-content .vgml-settings-section:first-of-type {
+	border-top: 0;
+	margin-top: 0;
+	padding-top: 0;
+}
+
+.vgml-savebar {
+	position: sticky;
+	bottom: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 28px -24px -32px;
+	padding: 14px 24px;
+	background: rgba(255, 255, 255, .92);
+	backdrop-filter: blur(6px);
+	border-top: 1px solid var(--vgml-rule);
+	border-radius: 0 0 4px 4px;
+}
+
+.vgml-savebar .button-primary {
+	margin: 0;
+}
+
+.vgml-savebar-note {
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+/*
+ *  WordPress's postbox, re-boxed -- as one of our cards.
+ *
+ *  An earlier pass stripped these to nothing and turned the heading above each
+ *  into a rule across the page, on the reasoning that a white box inside a
+ *  white pane is a box in a box. The result was six settings sections that
+ *  read as one long document with lines drawn through it, and nobody could
+ *  tell where Filters stopped and Scrolling began.
+ *
+ *  A hairline and 6px is not a box in a box. It is the same card the
+ *  dashboard and the AI screen use, and it is how Rocket bounds a section:
+ *  quietly, but bounded. The heading stays above the card as a section label
+ *  -- it is the postbox's sibling in the markup, not its child, and moving it
+ *  inside would mean rewriting three screens for no other reason.
+ */
+.vgml-shell .vgml-shell-content .postbox,
+.vgml-shell .vgml-shell-content .postbox-container .postbox,
+.vgml-shell .vgml-shell-content .metabox-holder .postbox {
+	margin: 0 0 20px;
+	min-width: 0;
+	background: var(--vgml-pane);
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+	box-shadow: none;
+	overflow: hidden;
+}
+
+.vgml-shell-content .postbox > .inside {
+	margin: 0;
+	padding: 0;
+}
+
+/* Prose inside a postbox that is not a form-table -- the taxonomy lists. */
+.vgml-shell-content .postbox > .inside > p,
+.vgml-shell-content .postbox > .inside > ul,
+.vgml-shell-content .postbox > .inside > div:not(.form-table) {
+	padding-right: 16px;
+	padding-left: 16px;
+}
+
+.vgml-shell-content .postbox > .inside > p:first-child {
+	padding-top: 14px;
+}
+
+/* A postbox that carries its own heading (h3.hndle) gets the card head. */
+.vgml-shell-content .postbox > h3.hndle,
+.vgml-shell-content .postbox > .hndle {
+	margin: 0;
+	padding: 13px 16px;
+	border-bottom: 1px solid var(--vgml-rule);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--vgml-ink);
+	cursor: default;
+}
+
+/* The heading above each postbox: a section label, tight to its card. */
+.vgml-shell-content > .wrap > h2,
+.vgml-shell-content .wrap > h2 {
+	margin: 28px 0 8px;
+	padding: 0;
+	border: 0;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .wrap > h2:first-of-type,
+.vgml-shell-content .wrap form > h2:first-of-type {
+	margin-top: 0;
+}
+
+/* The Save button under a card, in the card's own foot. */
+.vgml-shell-content .postbox p.submit {
+	margin: 0;
+	padding: 13px 16px;
+	border-top: 1px solid var(--vgml-rule);
+	background: var(--vgml-surface);
+}
+
+/* Room to scroll the last field clear of the pinned save bar. 8px was not
+   room; the bar sat on top of the final row. */
+.vgml-shell-content form {
+	padding-bottom: 72px;
+}
+
+/* The WordPress notice inside our pane, bounded like everything else. */
+.vgml-shell-content .notice,
+.vgml-shell-content .eml-admin-notice {
+	margin: 0 0 20px;
+	border-radius: 6px;
+}
+
+/* --------------------------------------------- the legacy cards, mapped */
+
+/*
+ *  Two older card classes still drawn by scripts -- vgml-ai-card on the
+ *  Duplicates report and vgml-import-card on Import -- take the same
+ *  geometry, so a screen whose cards are drawn in JavaScript is not the odd
+ *  one out.
+ */
+.vgml-shell-content .vgml-ai-card,
+.vgml-shell-content .vgml-import-card {
+	max-width: none;
+	margin: 0 0 16px;
+	padding: 16px;
+	background: var(--vgml-pane);
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+}
+
+.vgml-shell-content .vgml-ai-card > h2,
+.vgml-shell-content .vgml-import-card > h2,
+.vgml-shell-content .vgml-import-head > h2 {
+	margin: -16px -16px 14px;
+	padding: 13px 16px;
+	border-bottom: 1px solid var(--vgml-rule);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content .vgml-import-head {
+	display: block;
+}
+
+.vgml-shell-content .vgml-import-head > h2 {
+	margin-bottom: 0;
+}
+
+.vgml-shell-content .vgml-import-head > * + * {
+	display: block;
+	margin-top: 12px;
+}
+
+.vgml-shell-content .vgml-ai-card > p.description,
+.vgml-shell-content .vgml-import-card > p {
+	margin: 0 0 12px;
+	max-width: 64ch;
+	font-size: 13px;
+	line-height: 1.55;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .vgml-import-actions {
+	margin: 14px -16px -16px;
+	padding: 13px 16px;
+	border-top: 1px solid var(--vgml-rule);
+	background: var(--vgml-surface);
+	border-radius: 0 0 6px 6px;
+}
+
+.vgml-shell-content .vgml-import-plan {
+	border-inline-start-color: var(--vgml-accent);
+	background: var(--vgml-surface);
+}
+
+/* The MIME list table, bounded and rounded like a card. */
+.vgml-shell-content .wp-list-table.widefat {
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+	box-shadow: none;
+	overflow: hidden;
+}
+
+.vgml-shell-content .wp-list-table.widefat thead th,
+.vgml-shell-content .wp-list-table.widefat tfoot th {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+	background: var(--vgml-surface);
+	border-color: var(--vgml-rule);
+}
+
+.vgml-shell-content .wp-list-table.widefat td {
+	border-color: var(--vgml-rule);
+	vertical-align: middle;
+}
+
+
+/* ------------------------------------------------------------ the way out */
+
+/*
+ *  Not a menu item. A button.
+ *
+ *  The folders live on upload.php, so this is the one control in the column
+ *  that leaves the plugin, and it has to look like it. Three things do that
+ *  and all three are load-bearing:
+ *
+ *  - a rule and real space above it, so it is not the end of the list;
+ *  - button chrome -- filled, centred, one line -- where every nav row is
+ *    flush text on two lines;
+ *  - the north-east arrow, which is the web's own mark for "this opens
+ *    somewhere else", and a caption under it saying where.
+ *
+ *  It was first built sharing the credits card's geometry and a sub-label,
+ *  which made it the tenth row of a nine-row menu.
+ */
+.vgml-shell-out {
+	margin: 20px 14px 0;
+	padding-top: 18px;
+	border-top: 1px solid var( --vgml-rule-strong );
+}
+
+.vgml-shell-leave {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	justify-content: center;
+	padding: 9px 12px;
+	border: 1px solid var( --vgml-accent );
+	border-radius: 4px;
+	background: var( --vgml-accent );
+	color: #fff;
+	text-decoration: none;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.2;
+	transition: background .12s ease, border-color .12s ease;
+}
+
+.vgml-shell-leave:hover,
+.vgml-shell-leave:active {
+	background: var( --vgml-accent-dark );
+	border-color: var( --vgml-accent-dark );
+	color: #fff;
+}
+
+.vgml-shell-leave:focus {
+	box-shadow: none;
+	outline: none;
+	color: #fff;
+}
+
+.vgml-shell-leave:focus-visible {
+	outline: 2px solid var( --vgml-ink );
+	outline-offset: 2px;
+}
+
+.vgml-shell-leave-ico {
+	flex: 0 0 auto;
+	display: flex;
+	color: currentColor;
+}
+
+/* The nav's own icons are muted; this one is on a filled button. */
+.vgml-shell-leave-ico svg {
+	width: 16px;
+	height: 16px;
+}
+
+.vgml-shell-leave-label {
+	flex: 0 1 auto;
+}
+
+/* North-east, not right: "opens elsewhere" rather than "next". */
+.vgml-shell-leave-arrow {
+	flex: 0 0 auto;
+	font-size: 13px;
+	opacity: .85;
+}
+
+.vgml-shell-out-note {
+	margin: 6px 0 0;
+	text-align: center;
+	font-size: 11px;
+	color: var( --vgml-muted );
+}
+
+
+/* ----------------------------------------------- what is left in the account */
+
+/*
+ *  Above the version, at the bottom of the nav: present on every screen,
+ *  never in the way of one. A number somebody checks rather than one that
+ *  interrupts them.
+ */
+.vgml-shell-credits {
+	display: block;
+	margin: 18px 14px 0;
+	padding: 10px 12px;
+	border: 1px solid var( --vgml-rule );
+	border-radius: 4px;
+	text-decoration: none;
+	background: var( --vgml-surface );
+}
+
+.vgml-shell-credits:hover {
+	border-color: var( --vgml-accent );
+}
+
+.vgml-shell-credits:focus {
+	box-shadow: none;
+	outline: 2px solid var( --vgml-accent );
+	outline-offset: 1px;
+}
+
+.vgml-shell-credits-n {
+	display: block;
+	font-size: 20px;
+	font-weight: 600;
+	line-height: 1.1;
+	color: var( --vgml-ink );
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell-credits-l {
+	display: block;
+	margin-top: 1px;
+	font-size: 12px;
+	color: var( --vgml-ink );
+}
+
+.vgml-shell-credits-w {
+	display: block;
+	margin-top: 3px;
+	font-size: 11px;
+	color: var( --vgml-muted );
+}
+
+.vgml-shell-credits.is-low .vgml-shell-credits-n {
+	color: var( --vgml-accent );
+}
+
+
+/* ========================================================== the page bodies */
+
+/*
+ *  Nine screens, one grammar.
+ *
+ *  Every screen used to write its own markup, so every screen was a different
+ *  shape: paragraphs where the next one had a list, a heading level chosen per
+ *  page, the button wherever the sentence ended. Read one after another they
+ *  are not a product, they are nine documents.
+ *
+ *  This is the same arrangement the nav is already borrowed from -- WP Rocket's
+ *  settings body. A page is a head and then a stack of cards; a card is a
+ *  titled box; inside a card the unit is a row whose text sits left and whose
+ *  control sits right, so the eye goes down one column of labels and one column
+ *  of controls rather than through prose. Nothing here is invented: the point
+ *  is that a WordPress user has met it before.
+ *
+ *  Namespaced vgml-pg- because vgml-card, vgml-row and vgml-stat are all
+ *  already taken by the librarian, the tree and the instrument panel.
+ */
+
+/* ---------------------------------------------------------- the page head */
+
+.vgml-pg-head {
+	display: flex;
+	gap: 20px;
+	align-items: flex-start;
+	margin: 0 0 20px;
+}
+
+.vgml-pg-head-text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.vgml-shell-content .vgml-pg-title {
+	margin: 0;
+	padding: 0;
+	font-size: 21px;
+	font-weight: 600;
+	line-height: 1.25;
+	letter-spacing: -.01em;
+	color: var( --vgml-ink );
+}
+
+/*
+ *  One sentence, and the width is the cap that keeps it one sentence. A lede
+ *  that runs the full pane is a paragraph wearing a lede's clothes.
+ */
+.vgml-pg-lede {
+	margin: 6px 0 0;
+	max-width: 62ch;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var( --vgml-muted );
+}
+
+.vgml-pg-head-action {
+	flex: 0 0 auto;
+	padding-top: 2px;
+}
+
+/* -------------------------------------------------------------- the cards */
+
+.vgml-pg-card {
+	margin: 0 0 16px;
+	border: 1px solid var( --vgml-rule );
+	border-radius: 6px;
+	background: var( --vgml-pane );
+}
+
+.vgml-pg-card:last-child {
+	margin-bottom: 0;
+}
+
+/*
+ *  The head is the scan line. Title left, the card's own action right, and a
+ *  rule under it so the box has a lid -- a card without one is a rectangle
+ *  with text in it.
+ */
+.vgml-pg-card-head {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	padding: 13px 16px;
+	border-bottom: 1px solid var( --vgml-rule );
+}
+
+.vgml-shell-content .vgml-pg-card-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var( --vgml-ink );
+}
+
+.vgml-pg-card-note {
+	display: block;
+	margin-top: 2px;
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 1.45;
+	color: var( --vgml-muted );
+}
+
+.vgml-pg-card-action {
+	flex: 0 0 auto;
+}
+
+.vgml-pg-card-body {
+	padding: 16px;
+}
+
+/* A card whose body is nothing but rows gets no padding of its own. */
+.vgml-pg-card-body.is-rows {
+	padding: 0;
+}
+
+/* --------------------------------------------------------------- the rows */
+
+/*
+ *  Label and description left, the control right, one per line. This is the
+ *  whole reason the screens become scannable: every control lands on the same
+ *  vertical, so "what can I change here" is a column rather than a read.
+ */
+.vgml-pg-row {
+	display: flex;
+	gap: 24px;
+	align-items: flex-start;
+	padding: 14px 16px;
+	border-bottom: 1px solid var( --vgml-rule );
+}
+
+.vgml-pg-row:last-child {
+	border-bottom: 0;
+}
+
+.vgml-pg-row-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	max-width: 68ch;
+}
+
+.vgml-pg-row-label {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.35;
+	color: var( --vgml-ink );
+}
+
+.vgml-pg-row-help {
+	display: block;
+	margin-top: 3px;
+	font-size: 12px;
+	line-height: 1.5;
+	color: var( --vgml-muted );
+}
+
+.vgml-pg-row-control {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	padding-top: 1px;
+}
+
+/*
+ *  A row whose control is wide -- a textarea, a long select -- stacks instead
+ *  of squeezing. Below 782px WordPress is already in its touch layout and
+ *  everything stacks anyway.
+ */
+.vgml-pg-row.is-stacked {
+	display: block;
+}
+
+.vgml-pg-row.is-stacked .vgml-pg-row-control {
+	margin-top: 10px;
+	display: block;
+}
+
+@media screen and ( max-width: 782px ) {
+
+	.vgml-pg-row {
+		display: block;
+	}
+
+	.vgml-pg-row-control {
+		margin-top: 10px;
+		display: block;
+	}
+
+	.vgml-pg-head {
+		display: block;
+	}
+
+	.vgml-pg-head-action {
+		margin-top: 12px;
+	}
+}
+
+/* ------------------------------------------------------------ the numbers */
+
+/*
+ *  Figures a screen is answering a question with, across the top of a card.
+ *  A number set as a number is read; the same number inside a sentence is not.
+ */
+.vgml-pg-figures {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1px;
+	background: var( --vgml-rule );
+	border-bottom: 1px solid var( --vgml-rule );
+}
+
+.vgml-pg-figure {
+	flex: 1 1 140px;
+	padding: 14px 16px;
+	background: var( --vgml-pane );
+}
+
+.vgml-pg-figure-n {
+	display: block;
+	font-size: 24px;
+	font-weight: 600;
+	line-height: 1.05;
+	color: var( --vgml-ink );
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-pg-figure-l {
+	display: block;
+	margin-top: 3px;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var( --vgml-muted );
+}
+
+/* The figure that is the reason the screen exists. */
+.vgml-pg-figure.is-lead .vgml-pg-figure-n {
+	color: var( --vgml-accent );
+}
+
+/* ------------------------------------------------------------ the actions */
+
+/*
+ *  The foot of a card. One primary, and the rest plain -- two primaries is a
+ *  screen that has not decided what it wants somebody to do.
+ */
+.vgml-pg-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	padding: 14px 16px;
+	border-top: 1px solid var( --vgml-rule );
+	background: var( --vgml-surface );
+	border-radius: 0 0 6px 6px;
+}
+
+.vgml-pg-actions-note {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var( --vgml-muted );
+}
+
+/*
+ *  WordPress's own buttons, given the height the rest of this sizing assumes.
+ *  Restyling them outright would make the plugin the odd one out in an admin
+ *  somebody has ten other plugins in.
+ */
+.vgml-shell-content .vgml-pg-actions .button,
+.vgml-shell-content .vgml-pg-card-action .button,
+.vgml-shell-content .vgml-pg-head-action .button {
+	min-height: 32px;
+	padding: 0 14px;
+	line-height: 30px;
+	font-size: 13px;
+}
+
+/* --------------------------------------------------------------- emptiness */
+
+/*
+ *  What a card says when there is nothing in it. An empty card that renders
+ *  as an empty box reads as a bug; one that says what would go here reads as
+ *  a state.
+ */
+.vgml-pg-empty {
+	padding: 28px 16px;
+	text-align: center;
+	color: var( --vgml-muted );
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.vgml-pg-empty-title {
+	display: block;
+	margin-bottom: 3px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var( --vgml-ink );
+}

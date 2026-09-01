@@ -1,0 +1,551 @@
+/* Generated from vergeml-admin.css by tools/rtl.mjs -- do not edit; edit the source and rerun. */
+/*
+ *  The plugin's home screen.
+ *
+ *  Four cards and two numbers. It exists to answer "where is the thing I came
+ *  for", which is the only question anybody opens a plugin's own menu to ask --
+ *  so it is a signpost, not a dashboard, and there is nothing on it that has to
+ *  be kept true by hand.
+ *
+ *  Built from the admin's own colours rather than a palette of ours: this screen
+ *  should look like part of WordPress, not like a landing page that wandered in.
+ */
+
+.vgml-home {
+	--vgml-home-line: #dcdcde;
+	--vgml-home-muted: #646970;
+	--vgml-home-accent: #2E5AA8;
+	max-width: 1100px;
+}
+
+.vgml-home-head {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 0 0 4px;
+	padding: 0 0 14px;
+	border-block-end: 1px solid var( --vgml-home-line );
+}
+
+.vgml-home-head h1 {
+	margin: 0;
+	padding: 0;
+	font-size: 23px;
+	font-weight: 400;
+	line-height: 1.3;
+}
+
+/* Small, beside the name: a version is a fact you check, not a headline. */
+.vgml-home-version {
+	padding: 2px 8px;
+	border-radius: 10px;
+	background: rgba( 0, 0, 0, 0.06 );
+	color: var( --vgml-home-muted );
+	font-size: 12px;
+	line-height: 18px;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-home-counts {
+	margin: 0;
+	margin-inline-start: auto;
+	color: var( --vgml-home-muted );
+	font-size: 13px;
+}
+
+/*
+ *  Cards that are links, not cards with links in them. The whole rectangle is
+ *  the target, which is what everybody tries to click.
+ */
+.vgml-home-cards {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 280px, 1fr ) );
+	gap: 16px;
+	margin: 20px 0 0;
+}
+
+.vgml-home-card {
+	display: block;
+	padding: 18px 20px 20px;
+	border: 1px solid var( --vgml-home-line );
+	border-radius: 6px;
+	background: #fff;
+	color: inherit;
+	text-decoration: none;
+	transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+
+.vgml-home-card:hover,
+.vgml-home-card:focus {
+	border-color: var( --vgml-home-accent );
+	box-shadow: 0 2px 8px rgba( 0, 0, 0, 0.07 );
+	color: inherit;
+}
+
+.vgml-home-card:focus-visible {
+	outline: 2px solid var( --vgml-home-accent );
+	outline-offset: 2px;
+}
+
+.vgml-home-card h2 {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.vgml-home-card p {
+	margin: 0;
+	color: var( --vgml-home-muted );
+	font-size: 13px;
+	line-height: 1.6;
+}
+
+.vgml-home-foot {
+	margin: 24px 0 0;
+	color: var( --vgml-home-muted );
+	font-size: 13px;
+}
+
+/*
+ *  The admin can be dark, and a white card on a dark page is a torch. Only the
+ *  surfaces move; the text colours come from the admin itself.
+ */
+@media ( prefers-color-scheme: dark ) {
+
+	body.admin-color-modern .vgml-home,
+	body[class*="admin-color-"] .vgml-home {
+		--vgml-home-line: rgba( 255, 255, 255, 0.14 );
+	}
+}
+
+/* --- the AI screen -------------------------------------------------------- */
+
+.vgml-ai-card {
+	max-width: 760px;
+	margin-top: 16px;
+	padding: 20px 24px;
+	background: #fff;
+	border-radius: 8px;
+}
+
+.vgml-ai-card h2 {
+	margin-top: 0;
+}
+
+.vgml-ai .vgml-import-bar {
+	max-width: 480px;
+	height: 8px;
+	margin: 12px 0 4px;
+	border-radius: 999px;
+	background: #e9eaec;
+	overflow: hidden;
+}
+
+.vgml-ai .vgml-import-fill {
+	width: 0;
+	height: 100%;
+	background: #2E5AA8;
+	transition: width 200ms ease;
+}
+
+.vgml-ai-log {
+	max-width: 720px;
+	max-height: 260px;
+	overflow: auto;
+	margin: 8px 0 0;
+	font-size: 12.5px;
+	color: #50575e;
+}
+
+.vgml-ai-log li {
+	margin: 2px 0;
+}
+
+.vgml-ai-log .is-error {
+	color: #b32d2e;
+}
+
+/* --- Library health -------------------------------------------------------- */
+
+.vgml-health .vgml-import-bar {
+	max-width: 480px;
+	height: 8px;
+	margin: 12px 0 4px;
+	border-radius: 999px;
+	background: #e9eaec;
+	overflow: hidden;
+}
+
+.vgml-health .vgml-import-fill {
+	width: 0;
+	height: 100%;
+	background: #2E5AA8;
+	transition: width 200ms ease;
+}
+
+.vgml-health-list {
+	max-width: 940px;
+}
+
+.vgml-health-summary {
+	margin: 4px 0 16px;
+	font-weight: 600;
+}
+
+.vgml-health-empty {
+	margin: 4px 0 0;
+	color: #646970;
+}
+
+/*
+ *  The bulk bar, above the sets it acts on.
+ *
+ *  It sticks, because the thing it does applies to a list two hundred sets
+ *  long and a control that scrolls away from what it controls is a control
+ *  nobody uses twice.
+ */
+.vgml-health-bulk {
+	position: sticky;
+	top: 32px;
+	z-index: 2;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+	margin: 0 0 4px;
+	padding: 10px 12px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.vgml-health-alllabel {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.vgml-health-bulk-count {
+	color: #646970;
+	white-space: nowrap;
+}
+
+/* The running commentary, and the sentence naming what cannot be undone. */
+.vgml-health-bulk-note {
+	flex: 1 1 100%;
+	order: 9;
+	margin: 0;
+	color: #646970;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.vgml-health-stop {
+	color: #b32d2e;
+}
+
+/* The tick that puts one set in a bulk run, first in the head as in a list table. */
+.vgml-health-picklabel {
+	display: flex;
+	align-items: center;
+}
+
+@media screen and ( max-width: 782px ) {
+
+	.vgml-health-bulk {
+		top: 46px;
+	}
+}
+
+/*
+ *  One group, one block. The files inside a group are shown at the same size
+ *  next to each other because the only useful thing to do with a duplicate
+ *  report is compare the copies by eye.
+ */
+.vgml-health-group {
+	padding: 12px 0;
+	border-top: 1px solid #f0f0f1;
+}
+
+.vgml-health-group-head {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin-bottom: 8px;
+	font-size: 13px;
+}
+
+.vgml-health-count {
+	font-weight: 600;
+}
+
+.vgml-health-wasted {
+	color: #646970;
+}
+
+.vgml-health-files {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 14px;
+	margin: 0;
+}
+
+.vgml-health-files li {
+	margin: 0;
+	width: 140px;
+}
+
+.vgml-health-files a {
+	display: block;
+	color: inherit;
+	text-decoration: none;
+}
+
+.vgml-health-files img {
+	display: block;
+	width: 140px;
+	height: 140px;
+	border-radius: 6px;
+	background: #f0f0f1;
+	object-fit: cover;
+}
+
+.vgml-health-nothumb {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 140px;
+	height: 140px;
+	border-radius: 6px;
+	background: #f0f0f1;
+	color: #646970;
+	font-size: 11px;
+	text-align: center;
+	overflow: hidden;
+}
+
+.vgml-health-name {
+	display: block;
+	margin-top: 6px;
+	font-size: 12px;
+	line-height: 1.3;
+	word-break: break-all;
+}
+
+.vgml-health-size {
+	display: block;
+	color: #646970;
+	font-size: 11.5px;
+}
+
+.vgml-health-more,
+.vgml-health-readonly {
+	max-width: 760px;
+	margin-top: 12px;
+	color: #646970;
+	font-size: 12.5px;
+}
+
+/* --- the opt-in card on the home screen ------------------------------------ */
+
+.vgml-stats-card {
+	max-width: 760px;
+	margin-top: 24px;
+	padding: 20px 24px;
+	background: #fff;
+	border-radius: 8px;
+}
+
+.vgml-stats-card h2 {
+	margin-top: 0;
+}
+
+.vgml-stats-card .description {
+	max-width: 62em;
+}
+
+#vgml-stats-note {
+	margin-right: 10px;
+}
+
+/* --- suggestions: a thumbnail, a claim, two answers ----------------------- */
+
+.vgml-autofile-list {
+	margin: 12px 0 0;
+	padding: 0;
+	list-style: none;
+	max-width: 720px;
+}
+
+.vgml-autofile-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	margin-bottom: 8px;
+	background: #fff;
+}
+
+.vgml-autofile-row.is-busy {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.vgml-autofile-thumb {
+	width: 40px;
+	height: 40px;
+	object-fit: cover;
+	border-radius: 4px;
+	flex: 0 0 auto;
+	background: #f0f0f1;
+}
+
+.vgml-autofile-body {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.vgml-autofile-title {
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/*
+ *  The claim, and it stays a claim. No score sits beside it, because an
+ *  uncalibrated number reads as a promise.
+ */
+.vgml-autofile-folder {
+	color: #646970;
+	font-size: 12px;
+}
+
+.vgml-autofile-actions {
+	display: flex;
+	gap: 6px;
+	flex: 0 0 auto;
+}
+
+/* --- the command box: what it would do, before it does it ---------------- */
+
+.vgml-say-preview {
+	margin-top: 12px;
+	padding: 12px;
+	border: 1px solid #dcdcde;
+	border-right: 3px solid #2271b1;
+	border-radius: 8px;
+	background: #fff;
+	max-width: 720px;
+}
+
+.vgml-say-sample {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 8px 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-say-sample li {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: #646970;
+	background: #f6f7f7;
+	border-radius: 6px;
+	padding: 4px 8px;
+	max-width: 220px;
+}
+
+.vgml-say-sample img {
+	width: 24px;
+	height: 24px;
+	object-fit: cover;
+	border-radius: 3px;
+}
+
+.vgml-say-sample span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/*
+ *  Quick edit and the search-by-meaning offer used to be here. They style
+ *  upload.php, and this file does not load on upload.php -- see
+ *  css/vergeml-media-list.css, which does.
+ */
+
+/* ----------------------------------------- deleting a set of exact copies */
+/*
+ *  Only the Duplicates list gets these. "Possibly related" has no controls,
+ *  and the visual difference between the two lists is part of saying so.
+ */
+
+.vgml-health-choose {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 0 0 12px;
+	font-size: 12px;
+	color: var( --vgml-muted, #5B6884 );
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.vgml-health-choose input {
+	margin: 0;
+}
+
+.vgml-health-uses {
+	font-size: 11.5px;
+	color: var( --vgml-muted, #5B6884 );
+}
+
+.vgml-health-act {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid var( --vgml-rule, #DDE5F2 );
+}
+
+/* Armed: the second press is the one that deletes, so it stops looking like
+   an ordinary button and starts looking like a consequence. */
+.vgml-health-armed {
+	background: #B32D2E !important;
+	border-color: #8A2424 !important;
+	color: #FFFFFF !important;
+}
+
+.vgml-health-act-note {
+	font-size: 12.5px;
+	line-height: 1.5;
+	color: var( --vgml-muted, #5B6884 );
+}
+
+.vgml-health-done {
+	background: #ECF4EC;
+	border-color: #C3DCC6 !important;
+}
+
+.vgml-health-doneline {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.5;
+	color: #2A5730;
+}

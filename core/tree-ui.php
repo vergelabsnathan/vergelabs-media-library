@@ -345,6 +345,16 @@ function vergeml_tree_assets( $hook ) {
             'undoAssignedOne' => __( '1 file filed', 'vergelabs-media-library' ),
             /* translators: %d: number of files. */
             'undoAssigned'   => __( '%d files filed', 'vergelabs-media-library' ),
+            // Filing without a mouse: the Move button, the M key, the picker.
+            'moveSelected'   => __( 'Move selected…', 'vergelabs-media-library' ),
+            'moveTo'         => __( 'Move to folder', 'vergelabs-media-library' ),
+            /* translators: %d: number of selected files. */
+            'moveCount'      => __( '%d selected — choose a folder', 'vergelabs-media-library' ),
+            'moveOne'        => __( '1 selected — choose a folder', 'vergelabs-media-library' ),
+            'typeToFilter'   => __( 'Type to find a folder', 'vergelabs-media-library' ),
+            'noFolder'       => __( 'No folder', 'vergelabs-media-library' ),
+            'nothingSelected' => __( 'Select files first — tick them in the list or click them in the grid, then press M or use Move selected.', 'vergelabs-media-library' ),
+            'moveHint'       => __( 'Press M with files selected to move them without dragging.', 'vergelabs-media-library' ),
             'density'        => __( 'Density', 'vergelabs-media-library' ),
             'cancel'         => __( 'Cancel', 'vergelabs-media-library' ),
             'oneFile'        => __( '1 file', 'vergelabs-media-library' ),

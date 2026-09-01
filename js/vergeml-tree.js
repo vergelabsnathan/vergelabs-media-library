@@ -1671,6 +1671,20 @@
 				e.preventDefault();
 				if ( cfg.canManage && state.byId[ id ] ) { menu( state.byId[ id ] ); }
 				break;
+			case 'F10':
+				// Shift+F10 is the other spelling of the menu key.
+				if ( e.shiftKey ) {
+					e.preventDefault();
+					if ( cfg.canManage && state.byId[ id ] ) { menu( state.byId[ id ] ); }
+				}
+				break;
+			case 'm':
+			case 'M':
+				if ( ! e.ctrlKey && ! e.metaKey && ! e.altKey ) {
+					e.preventDefault();
+					moveSelected( current );
+				}
+				break;
 			case 'F2':
 				e.preventDefault();
 				if ( cfg.canManage && state.byId[ id ] ) { rename( state.byId[ id ] ); }
@@ -2299,6 +2313,129 @@
 				dragEnded();
 			}
 		} );
+	}
+
+	/*
+	 *  Filing without a mouse.
+	 *
+	 *  Dragging was the only way to put a file in a folder, which is the one
+	 *  thing this plugin is for and a hard failure for anyone on a keyboard or
+	 *  a screen reader (WCAG 2.1.1). So: a Move selected button in the panel
+	 *  head, the M key anywhere in the library with files selected, and this
+	 *  dialog -- the folders as a list you can type into and arrow through,
+	 *  Enter to file, Escape to leave. It ends in the same assign() the drop
+	 *  does, so the undo toast and the grid refresh are the same too.
+	 */
+	function folderOptions() {
+		var out = [ { id: 0, name: l10n.noFolder || 'No folder', depth: 0 } ];
+		( function walk( parentId, depth ) {
+			( state.children[ parentId ] || [] ).forEach( function ( n ) {
+				out.push( { id: n.id, name: n.name, depth: depth } );
+				walk( n.id, depth + 1 );
+			} );
+		} )( 0, 0 );
+		return out;
+	}
+
+	function moveDialog( ids, returnTo ) {
+
+		var open = root.querySelector( '.vgml-move' );
+		if ( open ) {
+			open.remove();
+		}
+
+		var all = folderOptions();
+		var shown = all;
+		var active = 0;
+
+		var box = el( 'div', { class: 'vgml-move', role: 'dialog', 'aria-modal': 'true', 'aria-label': l10n.moveTo || 'Move to folder' } );
+		box.appendChild( el( 'p', { class: 'vgml-move-head' },
+			1 === ids.length ? ( l10n.moveOne || '1 selected' ) : sprintf( l10n.moveCount || '%d selected', ids.length ) ) );
+
+		var input = el( 'input', { type: 'search', placeholder: l10n.typeToFilter || '', 'aria-label': l10n.typeToFilter || '', 'aria-controls': 'vgml-move-list' } );
+		var list = el( 'ul', { class: 'vgml-move-list', role: 'listbox', id: 'vgml-move-list' } );
+
+		function paintList() {
+			list.innerHTML = '';
+			shown.forEach( function ( o, i ) {
+				var li = el( 'li', { role: 'option', 'aria-selected': i === active ? 'true' : 'false', 'data-id': String( o.id ) },
+					( o.depth ? new Array( o.depth + 1 ).join( ' ' ) : '' ) + o.name );
+				li.addEventListener( 'click', function () { choose( o.id ); } );
+				list.appendChild( li );
+			} );
+			var sel = list.children[ active ];
+			if ( sel && sel.scrollIntoView ) {
+				sel.scrollIntoView( { block: 'nearest' } );
+			}
+		}
+
+		function close() {
+			box.remove();
+			document.removeEventListener( 'keydown', trap, true );
+			if ( returnTo && returnTo.focus ) {
+				returnTo.focus();
+			}
+		}
+
+		function choose( termId ) {
+			close();
+			assign( ids, termId, true );
+		}
+
+		function trap( e ) {
+			if ( 'Escape' === e.key ) {
+				e.preventDefault();
+				e.stopPropagation();
+				close();
+			}
+		}
+
+		input.addEventListener( 'input', function () {
+			var q = input.value.toLowerCase();
+			shown = q ? all.filter( function ( o ) { return -1 !== o.name.toLowerCase().indexOf( q ); } ) : all;
+			active = 0;
+			paintList();
+		} );
+
+		input.addEventListener( 'keydown', function ( e ) {
+			if ( 'ArrowDown' === e.key ) {
+				e.preventDefault();
+				if ( active < shown.length - 1 ) { active++; paintList(); }
+			} else if ( 'ArrowUp' === e.key ) {
+				e.preventDefault();
+				if ( active > 0 ) { active--; paintList(); }
+			} else if ( 'Enter' === e.key ) {
+				e.preventDefault();
+				if ( shown[ active ] ) { choose( shown[ active ].id ); }
+			}
+		} );
+
+		var foot = el( 'div', { class: 'vgml-move-foot' } );
+		foot.appendChild( el( 'span', {}, l10n.moveHint || '' ) );
+		var cancel = el( 'button', { type: 'button', class: 'button button-small' }, l10n.cancel || 'Cancel' );
+		cancel.addEventListener( 'click', close );
+		foot.appendChild( cancel );
+
+		box.appendChild( input );
+		box.appendChild( list );
+		box.appendChild( foot );
+		root.appendChild( box );
+
+		document.addEventListener( 'keydown', trap, true );
+		paintList();
+		input.focus();
+	}
+
+	function moveSelected( returnTo ) {
+		var ids = selectionIds();
+		if ( ! ids.length ) {
+			toast( l10n.nothingSelected || '', null );
+			return;
+		}
+		if ( state.collapsed ) {
+			setCollapsed( false );
+		}
+		moveDialog( ids, returnTo );
 	}
 
 	function assign( ids, termId, move ) {
@@ -3517,6 +3654,15 @@
 			render();
 		} );
 		find.appendChild( searchEl );
+
+		// Filing for everyone who does not drag. See moveDialog(). Beside the
+		// search rather than in the head, which is already full at 300px.
+		var moveBtn = el( 'button', { type: 'button', class: 'button button-small vgml-move-btn', title: l10n.moveHint || '' }, l10n.moveSelected || 'Move selected…' );
+		moveBtn.addEventListener( 'click', function () {
+			moveSelected( moveBtn );
+		} );
+		find.appendChild( moveBtn );
+
 		root.appendChild( find );
 
 		var sort = buildSort();
@@ -3527,6 +3673,35 @@
 
 		listEl = el( 'ul', { class: 'vgml-list', role: 'tree' } );
 		listEl.addEventListener( 'keydown', onKey );
+
+		/*
+		 *  M, anywhere in the library, with files selected: move them. Not
+		 *  inside a field, not with a modifier, not while the dialog is open.
+		 */
+		document.addEventListener( 'keydown', function ( e ) {
+			if ( ( 'm' !== e.key && 'M' !== e.key ) || e.ctrlKey || e.metaKey || e.altKey ) {
+				return;
+			}
+			var t = e.target;
+			if ( ! t || ( t.tagName && /^(INPUT|TEXTAREA|SELECT)$/.test( t.tagName ) ) || t.isContentEditable ) {
+				return;
+			}
+			// Clicking a grid tile does not move focus, so the key usually
+			// lands on <body>. The screen having a grid or a list is the
+			// condition, not where focus happens to be. The tree's own rows
+			// handle M in onKey.
+			if ( t.closest && t.closest( '.vgml-tree' ) ) {
+				return;
+			}
+			if ( ! document.querySelector( '.attachments-browser, #the-list' ) ) {
+				return;
+			}
+			if ( root.querySelector( '.vgml-move' ) || document.querySelector( '.media-modal' ) ) {
+				return;
+			}
+			e.preventDefault();
+			moveSelected( t && t.focus ? t : null );
+		} );
 
 		/*
 		 *  Repaint the window as it scrolls, on the next frame rather than on every
