@@ -109,7 +109,7 @@ function vergeml_ai_run_unschedule() {
  */
 function vergeml_ai_run_start( $scope, $apply_alt ) {
 
-    if ( ! in_array( $scope, array( 'unindexed', 'missing-alt', 'stale' ), true ) ) {
+    if ( ! in_array( $scope, array( 'unindexed', 'missing-alt', 'page-gap', 'stale' ), true ) ) {
         return new WP_Error( 'vergeml_ai_bad_scope', __( 'Unknown scope.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
 

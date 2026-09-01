@@ -40,6 +40,16 @@
 				}
 			}
 
+			// The SEO-pages button carries its own count and stays out of the
+			// way when the count is zero.
+			if ( $( 'vgml-ai-page-gap' ) ) {
+				var gap = parseInt( s.page_gap, 10 ) || 0;
+				$( 'vgml-ai-page-gap' ).hidden = ! gap;
+				if ( gap ) {
+					$( 'vgml-ai-page-gap' ).textContent = 'Fix alt text on your SEO pages (' + gap + ')';
+				}
+			}
+
 			if ( $( 'vgml-ai-credits' ) && null !== s.credits && undefined !== s.credits ) {
 				$( 'vgml-ai-credits' ).textContent = s.credits + ' remaining';
 			}
@@ -170,6 +180,12 @@
 		$( 'vgml-ai-alt' ).addEventListener( 'click', function () {
 			start( 'missing-alt' );
 		} );
+
+		if ( $( 'vgml-ai-page-gap' ) ) {
+			$( 'vgml-ai-page-gap' ).addEventListener( 'click', function () {
+				start( 'page-gap' );
+			} );
+		}
 	}
 
 	if ( 'loading' === document.readyState ) {

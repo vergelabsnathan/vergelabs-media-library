@@ -829,6 +829,11 @@ function vergeml_ai_pending( $scope, $limit = 0 ) {
     $cap  = $limit > 0 ? (int) $limit : PHP_INT_MAX;
     $mime = $wpdb->esc_like( 'image/' ) . '%';
 
+    // Images without alt text on the pages an SEO plugin is scoring.
+    if ( 'page-gap' === $scope ) {
+        return function_exists( 'vergeml_seo_gap_ids' ) ? vergeml_seo_gap_ids( $limit ) : array();
+    }
+
     if ( 'missing-alt' === $scope ) {
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -886,6 +891,10 @@ function vergeml_ai_pending_count( $scope ) {
     $mime = $wpdb->esc_like( 'image/' ) . '%';
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    if ( 'page-gap' === $scope ) {
+        return function_exists( 'vergeml_seo_gap_count' ) ? vergeml_seo_gap_count() : 0;
+    }
+
     if ( 'missing-alt' === $scope ) {
         return (int) $wpdb->get_var( $wpdb->prepare(
             "SELECT COUNT(*) FROM {$wpdb->posts} p
@@ -1443,11 +1452,13 @@ function vergeml_ai_rest_status() {
         'indexed'     => $indexed,
         'unindexed'   => vergeml_ai_pending_count( 'unindexed' ),
         'missing_alt' => vergeml_ai_pending_count( 'missing-alt' ),
+        'page_gap'    => vergeml_ai_pending_count( 'page-gap' ),
         'ready'       => vergeml_ai_ready(),
         'credits'     => isset( $credits['remaining'] ) ? $credits['remaining'] : null,
         'settings'    => array(
             'auto_alt'      => (int) $settings['auto_alt'],
             'enrich_search' => (int) $settings['enrich_search'],
+            'page_context'  => (int) $settings['page_context'],
             'mock'          => (int) $settings['mock'],
             'has_license'   => '' !== vergeml_ai_unseal( $settings['license_key'] ),
             'site_profile'  => (string) $settings['site_profile'],
@@ -1463,7 +1474,7 @@ function vergeml_ai_rest_index( WP_REST_Request $request ) {
 
     $scope = $request->get_param( 'scope' );
 
-    if ( ! in_array( $scope, array( 'unindexed', 'missing-alt', 'stale' ), true ) ) {
+    if ( ! in_array( $scope, array( 'unindexed', 'missing-alt', 'page-gap', 'stale' ), true ) ) {
         return new WP_Error( 'vergeml_ai_bad_scope', __( 'Unknown scope.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
 
@@ -1689,6 +1700,16 @@ function vergeml_ai_page() {
             <p>
                 <button type="button" class="button button-primary" id="vgml-ai-run" data-scope="unindexed"><?php esc_html_e( 'Describe new images', 'vergelabs-media-library' ); ?></button>
                 <button type="button" class="button" id="vgml-ai-alt" data-scope="missing-alt"><?php esc_html_e( 'Fix missing alt text', 'vergelabs-media-library' ); ?></button>
+                <?php
+                /*
+                 *  The pages an SEO plugin is scoring, first. Shown only when
+                 *  there is something to fix there: on a site without an SEO
+                 *  plugin, or with every such page already covered, the button
+                 *  would be a question nobody asked.
+                 */
+                ?>
+                <button type="button" class="button" id="vgml-ai-page-gap" data-scope="page-gap" hidden
+                    title="<?php esc_attr_e( 'Images without alt text on pages that have a focus keyphrase in Yoast, Rank Math, SEOPress or All in One SEO — the ones those plugins are already marking the page down for.', 'vergelabs-media-library' ); ?>"><?php esc_html_e( 'Fix alt text on your SEO pages', 'vergelabs-media-library' ); ?></button>
                 <button type="button" class="button" id="vgml-ai-bg-stop" hidden><?php esc_html_e( 'Stop', 'vergelabs-media-library' ); ?></button>
             </p>
             <div class="vgml-import-bar" id="vgml-ai-bg-bar" hidden><div class="vgml-import-fill" id="vgml-ai-bg-fill"></div></div>

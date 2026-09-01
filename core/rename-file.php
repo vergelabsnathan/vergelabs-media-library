@@ -90,6 +90,12 @@ function vergeml_file_name_for( $attachment_id ) {
         return '';
     }
 
+    // Led by the page's keyphrase when the description shows the picture
+    // earned it -- see vergeml_seo_lead_slug for exactly what that means.
+    if ( function_exists( 'vergeml_seo_lead_slug' ) ) {
+        $slug = vergeml_seo_lead_slug( $attachment_id, $slug, $row );
+    }
+
     // Long filenames get truncated by some hosts and some backup tools, and a
     // name nobody can read whole is no better than the one it replaced.
     if ( strlen( $slug ) > 60 ) {

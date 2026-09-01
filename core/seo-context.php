@@ -165,3 +165,172 @@ function vergeml_seo_page_for( $attachment_id ) {
 
     return 0;
 }
+
+
+/* ------------------------------------------------------ the alt gap report */
+
+/**
+ *  vergeml_seo_keyphrase_keys
+ *
+ *  The post meta keys under which the SEO plugins keep a page's focus
+ *  keyphrase. One list, read by the context and by the gap report, so the two
+ *  can never disagree about what "a page with a keyphrase" means.
+ */
+
+function vergeml_seo_keyphrase_keys() {
+    return array( '_yoast_wpseo_focuskw', 'rank_math_focus_keyword', '_seopress_analysis_target_kw' );
+}
+
+
+/**
+ *  vergeml_seo_gap_sql
+ *
+ *  Images sitting on a page that has a focus keyphrase, with no alt text.
+ *
+ *  These are the images an SEO plugin is already scoring the page down for,
+ *  and the ones a screen reader skips on the page the site most wants read.
+ *  A page speaks for an image the same two ways as the context does: it was
+ *  uploaded there, or the "Used in" scan found it there.
+ *
+ *  @param  string $select  What to select: 'p.ID' or 'COUNT(DISTINCT p.ID)'.
+ *  @return string          A prepared statement, minus the trailing LIMIT.
+ */
+
+function vergeml_seo_gap_sql( $select ) {
+
+    global $wpdb;
+
+    $keys = "'" . implode( "','", array_map( 'esc_sql', vergeml_seo_keyphrase_keys() ) ) . "'";
+    $mime = $wpdb->esc_like( 'image/' ) . '%';
+
+    // Pages with a keyphrase: the SEO plugins' post meta, plus All in One
+    // SEO's own table when it is running.
+    $pages = "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key IN ($keys) AND meta_value <> ''";
+
+    if ( defined( 'AIOSEO_VERSION' ) ) {
+        $pages .= " UNION SELECT post_id FROM {$wpdb->prefix}aioseo_posts WHERE keyphrases LIKE '%\"keyphrase\":\"_%'";
+    }
+
+    return $wpdb->prepare(
+        "SELECT $select FROM {$wpdb->posts} p
+           LEFT JOIN {$wpdb->postmeta} alt  ON alt.post_id  = p.ID AND alt.meta_key  = '_wp_attachment_image_alt'
+           LEFT JOIN {$wpdb->postmeta} used ON used.post_id = p.ID AND used.meta_key = '_vergeml_used_in'
+          INNER JOIN ( $pages ) kw
+                  ON kw.post_id = p.post_parent
+                  OR ( used.meta_value IS NOT NULL AND FIND_IN_SET( kw.post_id, used.meta_value ) )
+          WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
+            AND ( alt.meta_id IS NULL OR alt.meta_value = '' )",
+        $mime
+    );
+}
+
+
+function vergeml_seo_gap_ids( $limit = 0 ) {
+
+    global $wpdb;
+
+    $cap = $limit > 0 ? (int) $limit : PHP_INT_MAX;
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- prepared in vergeml_seo_gap_sql; the LIMIT is placeheld here.
+    return array_map( 'intval', $wpdb->get_col( $wpdb->prepare( vergeml_seo_gap_sql( 'DISTINCT p.ID' ) . ' ORDER BY p.ID ASC LIMIT %d', $cap ) ) );
+}
+
+
+/**
+ *  vergeml_seo_gap_count
+ *
+ *  Counted in the database, held for a minute: the number sits on a button
+ *  that is redrawn on every status poll, and the join is not free at scale.
+ */
+
+function vergeml_seo_gap_count() {
+
+    $cached = get_transient( 'vergeml_seo_gap_count' );
+
+    if ( false !== $cached ) {
+        return (int) $cached;
+    }
+
+    global $wpdb;
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- prepared in vergeml_seo_gap_sql.
+    $n = (int) $wpdb->get_var( vergeml_seo_gap_sql( 'COUNT(DISTINCT p.ID)' ) );
+
+    set_transient( 'vergeml_seo_gap_count', $n, MINUTE_IN_SECONDS );
+
+    return $n;
+}
+
+
+/* ------------------------------------------------------------- file names */
+
+/**
+ *  vergeml_seo_lead_slug
+ *
+ *  Lead a file name with the page's keyphrase -- only when the picture
+ *  earned it.
+ *
+ *  "Earned" is decided by the description, not by the page: every word of
+ *  the keyphrase has to appear in what the model wrote about the image (alt,
+ *  caption, title or tags). That is the model having looked and said "yes,
+ *  this is that thing". A page about oak tables with a photo of the workshop
+ *  door keeps its door; the photo of the table becomes
+ *  handmade-oak-table-<what-it-is>.jpg.
+ *
+ *  Subject to the same switch as the rest of the page context, and never
+ *  applied twice: a slug that already carries the keyphrase is left alone.
+ *
+ *  @param  int    $attachment_id
+ *  @param  string $slug   The slug the title produced.
+ *  @param  array  $row    The index row: alt, caption, title, tags.
+ *  @return string         The slug, led by the keyphrase or unchanged.
+ */
+
+function vergeml_seo_lead_slug( $attachment_id, $slug, $row ) {
+
+    if ( ! function_exists( 'vergeml_ai_settings' ) ) {
+        return $slug;
+    }
+
+    $settings = vergeml_ai_settings();
+
+    if ( empty( $settings['page_context'] ) ) {
+        return $slug;
+    }
+
+    $page_id = vergeml_seo_page_for( $attachment_id );
+
+    if ( ! $page_id ) {
+        return $slug;
+    }
+
+    $context = vergeml_seo_page_context( $page_id );
+
+    if ( empty( $context['keyphrase'] ) ) {
+        return $slug;
+    }
+
+    $lead = sanitize_title( $context['keyphrase'] );
+
+    if ( '' === $lead || false !== strpos( '-' . $slug . '-', '-' . $lead . '-' ) ) {
+        return $slug;
+    }
+
+    $said = strtolower( implode( ' ', array(
+        isset( $row['alt'] )     ? (string) $row['alt']     : '',
+        isset( $row['caption'] ) ? (string) $row['caption'] : '',
+        isset( $row['title'] )   ? (string) $row['title']   : '',
+        isset( $row['tags'] )    ? ( is_array( $row['tags'] ) ? implode( ' ', $row['tags'] ) : (string) $row['tags'] ) : '',
+    ) ) );
+
+    $said = ' ' . sanitize_title_with_dashes( remove_accents( $said ), '', 'save' ) . ' ';
+    $said = str_replace( '-', ' ', $said );
+
+    foreach ( explode( '-', $lead ) as $word ) {
+        if ( false === strpos( $said, ' ' . $word . ' ' ) ) {
+            return $slug; // the model did not see it; the page does not get to say it did
+        }
+    }
+
+    return $lead . '-' . $slug;
+}

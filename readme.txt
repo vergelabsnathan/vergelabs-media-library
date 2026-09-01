@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.12.0
+Stable tag: 3.13.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -248,6 +248,13 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.13.0 ###
+*The page's keyphrase, where the picture earned it*
+
+= Added =
+* **Fix alt text on your SEO pages.** A new button on the AI screen finds images without alt text on the pages your SEO plugin gives a focus keyphrase — the images Yoast, Rank Math, SEOPress or All in One SEO are already marking those pages down for — and describes them first. It carries its count and stays hidden when there is nothing to fix.
+* **File names led by the keyphrase — only when earned.** When the file renamer runs and the page has a focus keyphrase, the new name starts with it if, and only if, every word of the keyphrase appears in what the model wrote about the picture. The photo of the table on the oak-tables page becomes `handmade-oak-table-workshop-bench.jpg`; the photo of the workshop door stays `workshop-door.jpg`. Same switch as the rest of the page context.
 
 ### 3.12.0 ###
 *Descriptions that know what the page is for*
