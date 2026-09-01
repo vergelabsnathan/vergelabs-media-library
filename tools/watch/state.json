@@ -206,7 +206,7 @@
         "filebird/views/particle/activation_fail.php": "c691d0a0ee4b",
         "filebird/views/settings/header.php": "458ed02c5c0d"
       },
-      "seen": "2026-08-23T14:41:25.978Z"
+      "seen": "2026-09-01T14:42:58.239Z"
     },
     "folders": {
       "version": "3.1.9",
@@ -350,7 +350,7 @@
         "folders/templates/admin/upgrade-table.php": "9bc80b4ebd26",
         "folders/templates/admin/upgrade-to-pro.php": "41e2554b62fe"
       },
-      "seen": "2026-08-23T14:41:26.180Z"
+      "seen": "2026-09-01T14:42:58.446Z"
     },
     "enhanced-media-library": {
       "version": "2.9.4",
@@ -393,7 +393,7 @@
         "enhanced-media-library/languages/enhanced-media-library.pot": "85e1b35b2743",
         "enhanced-media-library/readme.txt": "f14860ab10be"
       },
-      "seen": "2026-08-23T14:41:26.363Z"
+      "seen": "2026-09-01T14:42:58.635Z"
     },
     "elementor": {
       "version": "4.2.3",
@@ -6829,14 +6829,14 @@
       "seen": "2026-08-23T14:41:57.734Z"
     },
     "real-media-library-lite": {
-      "version": "4.23.0",
-      "updated": "2026-08-18 1:09pm GMT",
+      "version": "4.23.4",
+      "updated": "2026-09-01 1:59pm GMT",
       "installs": 100000,
       "rating": 96,
       "tested": "7.1",
       "requires_php": "7.4.0",
       "manifest": {
-        "real-media-library-lite/CHANGELOG.md": "f6da33d0b45b",
+        "real-media-library-lite/CHANGELOG.md": "e25d0361ded7",
         "real-media-library-lite/inc/Activator.php": "f8e08f4269ef",
         "real-media-library-lite/inc/AdInitiator.php": "fff2b38054b8",
         "real-media-library-lite/inc/api/attachment.php": "e61e940399a8",
@@ -6860,8 +6860,8 @@
         "real-media-library-lite/inc/attachment/Upload.php": "d8f5e9668aa3",
         "real-media-library-lite/inc/base/Core.php": "918cd191a240",
         "real-media-library-lite/inc/base/index.php": "7f793206bbc3",
-        "real-media-library-lite/inc/base/others/cachebuster-lib.php": "e9a58c5bf7e5",
-        "real-media-library-lite/inc/base/others/cachebuster.php": "df3d6f92445f",
+        "real-media-library-lite/inc/base/others/cachebuster-lib.php": "858d20b76d42",
+        "real-media-library-lite/inc/base/others/cachebuster.php": "044232dd1474",
         "real-media-library-lite/inc/base/others/class-alias.php": "d8cdbaa517cf",
         "real-media-library-lite/inc/base/others/fallback-already.php": "d5519d8f219a",
         "real-media-library-lite/inc/base/others/fallback-php-version.php": "476f64e5d884",
@@ -6876,7 +6876,7 @@
         "real-media-library-lite/inc/comp/ExImport.php": "bc3fa87bc020",
         "real-media-library-lite/inc/comp/ExportMediaLibrary.php": "190d7cfb963d",
         "real-media-library-lite/inc/comp/index.php": "7f793206bbc3",
-        "real-media-library-lite/inc/comp/PageBuilders.php": "fbb0580847a6",
+        "real-media-library-lite/inc/comp/PageBuilders.php": "756e8bfb0428",
         "real-media-library-lite/inc/comp/PolyLang.php": "4bd35eec50bb",
         "real-media-library-lite/inc/comp/WPML.php": "7d06626c12d4",
         "real-media-library-lite/inc/Core.php": "afabd4bd9eb2",
@@ -6947,25 +6947,25 @@
         "real-media-library-lite/inc/view/index.php": "7f793206bbc3",
         "real-media-library-lite/inc/view/Options.php": "6f10f905f13a",
         "real-media-library-lite/inc/view/View.php": "90f8e875fe2a",
-        "real-media-library-lite/index.php": "3e7238368856",
+        "real-media-library-lite/index.php": "d1c15d687b2c",
         "real-media-library-lite/languages/freemium.pot": "21b392a9cc7e",
-        "real-media-library-lite/languages/meta.json": "9d9a90df1e48",
-        "real-media-library-lite/languages/real-media-library.pot": "fbbdd16a5093",
-        "real-media-library-lite/languages/real-product-manager-wp-client.pot": "94d74825f0ff",
+        "real-media-library-lite/languages/meta.json": "b56c0efd5487",
+        "real-media-library-lite/languages/real-media-library.pot": "17123a85cb28",
+        "real-media-library-lite/languages/real-product-manager-wp-client.pot": "3b3d51a78f67",
         "real-media-library-lite/languages/real-utils.pot": "582a415c8d99",
         "real-media-library-lite/languages/utils.pot": "05ef9a02160d",
         "real-media-library-lite/LICENSE": "53f92b4cc761",
         "real-media-library-lite/LICENSE_3RD_PARTY_JS.md": "8f64e7f1d242",
-        "real-media-library-lite/LICENSE_3RD_PARTY_PHP.md": "b415f2fadaa0",
+        "real-media-library-lite/LICENSE_3RD_PARTY_PHP.md": "b166951dea09",
         "real-media-library-lite/public/dist/i18n-dependency-map-default-lite.json": "bf21a9e8fbc5",
         "real-media-library-lite/public/dist/i18n-dependency-map-default-pro.json": "bf21a9e8fbc5",
-        "real-media-library-lite/public/dist/options.css": "c15b456f9670",
-        "real-media-library-lite/public/dist/options.lite.js": "e37fb5f05604",
+        "real-media-library-lite/public/dist/options.css": "fb26764947a9",
+        "real-media-library-lite/public/dist/options.lite.js": "533a3d5bcc44",
         "real-media-library-lite/public/dist/options.lite.js.LICENSE.txt": "5343bc525acf",
-        "real-media-library-lite/public/dist/rml.css": "824a45829fe0",
-        "real-media-library-lite/public/dist/rml.lite.js": "1ea3ecf311c5",
+        "real-media-library-lite/public/dist/rml.css": "796741177e2e",
+        "real-media-library-lite/public/dist/rml.lite.js": "89765042516a",
         "real-media-library-lite/public/dist/rml.lite.js.LICENSE.txt": "5343bc525acf",
-        "real-media-library-lite/public/dist/rml_gutenberg.lite.js": "574ef69072cd",
+        "real-media-library-lite/public/dist/rml_gutenberg.lite.js": "67235a5a4856",
         "real-media-library-lite/public/images/logos/real-media-library.svg": "86a0eee35cbe",
         "real-media-library-lite/public/lib/mobx/dist/mobx.umd.production.min.js": "3bb5d7b88424",
         "real-media-library-lite/public/lib/mobx/LICENSE": "9ff21985610f",
@@ -6987,7 +6987,7 @@
         "real-media-library-lite/public/others/icons/font/rml.woff2": "677ad6c11295",
         "real-media-library-lite/public/others/icons/LICENSE.txt": "7736fc41813e",
         "real-media-library-lite/public/others/icons/README.txt": "e9507aed2fb8",
-        "real-media-library-lite/README.txt": "3004a90d4c21",
+        "real-media-library-lite/README.txt": "de555b213d00",
         "real-media-library-lite/uninstall.php": "d6f5ec0b3b64",
         "real-media-library-lite/vendor/autoload.php": "679d8dcd85a8",
         "real-media-library-lite/vendor/colinodell/json5/.phpstorm.meta.php": "08a16806f8b9",
@@ -7002,15 +7002,15 @@
         "real-media-library-lite/vendor/composer/autoload_real.php": "57a54a6abca5",
         "real-media-library-lite/vendor/composer/autoload_static.php": "1d8b80729571",
         "real-media-library-lite/vendor/composer/ClassLoader.php": "7f146de662b0",
-        "real-media-library-lite/vendor/composer/installed.php": "87550444f776",
+        "real-media-library-lite/vendor/composer/installed.php": "c24ff3b4d6eb",
         "real-media-library-lite/vendor/composer/InstalledVersions.php": "940878bea39e",
         "real-media-library-lite/vendor/composer/LICENSE": "38e062192cc2",
         "real-media-library-lite/vendor/devowl-wp/freemium/.lintstagedrc.mjs": "287489795fd8",
-        "real-media-library-lite/vendor/devowl-wp/freemium/dist/index.js": "cd0b611bba96",
+        "real-media-library-lite/vendor/devowl-wp/freemium/dist/index.js": "001091feeb5c",
         "real-media-library-lite/vendor/devowl-wp/freemium/LICENSE": "98aa472b20f9",
         "real-media-library-lite/vendor/devowl-wp/freemium/LICENSE_3RD_PARTY_JS.md": "af48d149c1bf",
         "real-media-library-lite/vendor/devowl-wp/freemium/LICENSE_3RD_PARTY_PHP.md": "6c1b105d5ae1",
-        "real-media-library-lite/vendor/devowl-wp/freemium/package.json": "7b62b3e5d65e",
+        "real-media-library-lite/vendor/devowl-wp/freemium/package.json": "faad77e0ca28",
         "real-media-library-lite/vendor/devowl-wp/freemium/src/Assets.php": "0668395c92a8",
         "real-media-library-lite/vendor/devowl-wp/freemium/src/Autoloader.php": "f3d5ae47c73c",
         "real-media-library-lite/vendor/devowl-wp/freemium/src/Constants.php": "f366cb7f7344",
@@ -7018,42 +7018,16 @@
         "real-media-library-lite/vendor/devowl-wp/freemium/src/CorePro.php": "06380eafa32d",
         "real-media-library-lite/vendor/devowl-wp/freemium/src/FreemiumProvider.php": "89d7747822af",
         "real-media-library-lite/vendor/devowl-wp/freemium/src/ICore.php": "9467b870922b",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/adrs/0001-remove-silent-license-hostname-sync-on-siteurl-update.md": "d9ce6ed6c80c",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/adrs/0002-subscription-scoped-activation-reclaim-proof.md": "9c13c1000739",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/adrs/0003-rc-same-subscription-internal-rpm-only.md": "f3230d81bca8",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/domain-requirements/cu-869edzz7b.md": "35e031f7c23f",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/domain-requirements/session-design-decisions-2026-08-07.md": "8b1cec2d08b2",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/plans/00-glue.md": "b5abc53052c2",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/plans/01-rc-same-subscription.md": "d792b5a13a58",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/plans/02-rpm-activation-reclaim.md": "35a0d09a2ae8",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/plans/03-wp-client-sever-and-reclaim.md": "3c9afde1e378",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/plans/04-wp-client-sever-workflow-hardening.md": "6501dcbf7d9a",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/README.md": "a5e63ee56c3d",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/references/01-rc-same-subscription-smoke.md": "6d3ee64b5bf9",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/references/02-rpm-activation-reclaim-smoke.md": "7760d12c2074",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/references/03-metashare-prerelease-clone-incident-2026-08-09.md": "7da9d3102c21",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/references/04-ci-runner-clone-sever-test-plan.md": "899ca54c8821",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/references/04-ci-runner-clone-sever-test-results-1.md": "afcfa9fb3ea4",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/references/04-ci-runner-clone-sever-test-results-2.md": "63aa04f5fa1f",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/spec/boundaries.md": "cd68032f5057",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/spec/interfaces.md": "5bde00634a71",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/spec/safe-clone-sever-and-activation-reclaim.md": "f8c6c1cc4089",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/synthesis-summary/api-real-commerce--contract-first-http.md": "20b5550c5807",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/synthesis-summary/api-real-product-manager--license-activation.md": "68149038e0dc",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/synthesis-summary/backend-packages-kv-cache--map-field-ttl.md": "bc06ad102282",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/synthesis-summary/backends-real-commerce--license-subscription.md": "7c9dacbd41fc",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/synthesis-summary/backends-real-product-manager--license-activation.md": "671ce5c18463",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.ai/concepts/2026-08-07 CU-869edzz7b Safe clone sever and activation reclaim/synthesis-summary/wordpress-packages-real-product-manager-wp-client--license.md": "ddcd50c7bbea",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/.lintstagedrc.mjs": "287489795fd8",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/i18n-dependency-map-undefined.json": "bf21a9e8fbc5",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/index.css": "01e94cda4fb5",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/index.js": "fa083d8d9c1e",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/vendor-index.js": "83ee1388c348",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/vendor-index.js.LICENSE.txt": "d00bc44fb462",
+        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/index.css": "93a0d47abe9e",
+        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/index.js": "82ab7ff4aad9",
+        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/vendor-index.js": "a133f442cb4a",
+        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/vendor-index.js.LICENSE.txt": "3f3e8b3c4300",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/LICENSE": "62276c388e56",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/LICENSE_3RD_PARTY_JS.md": "b86559d90fed",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/LICENSE_3RD_PARTY_PHP.md": "4fe648b8a10a",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/package.json": "209db9b85bf8",
+        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/package.json": "eececcb18182",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/AbstractInitiator.php": "03ff649ac679",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/announcement/Announcement.php": "856aecf6c440",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/announcement/AnnouncementPool.php": "d83f40dc8bc1",
@@ -7068,8 +7042,8 @@
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/client/TelemetryData.php": "8a20d6a37d7e",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/Core.php": "7aea0539d7a7",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/license/index.php": "7f793206bbc3",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/license/License.php": "ab0bfece4865",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/license/LicenseActivation.php": "8113185c32dc",
+        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/license/License.php": "e177f7f46884",
+        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/license/LicenseActivation.php": "97029c26706c",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/license/PluginUpdateLicensePool.php": "a08d67845ae8",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/license/TelemetryData.php": "8e07ab4c84d3",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/Localization.php": "0baf4a54c593",
@@ -7084,18 +7058,18 @@
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/view/index.php": "7f793206bbc3",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/view/PluginUpdateView.php": "3bd6a688e85c",
         "real-media-library-lite/vendor/devowl-wp/real-utils/.lintstagedrc.mjs": "287489795fd8",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/feedback.css": "9482a8ad5200",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/feedback.js": "7b5f3c78718c",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/helper.css": "145b657faf90",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/helper.js": "9aaaa3353216",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/feedback.css": "5bd214c96de4",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/feedback.js": "4cf654755cd5",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/helper.css": "7f180b7c4fa5",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/helper.js": "5a6fc23fa32e",
         "real-media-library-lite/vendor/devowl-wp/real-utils/dist/i18n-dependency-map-others.json": "bf21a9e8fbc5",
         "real-media-library-lite/vendor/devowl-wp/real-utils/dist/i18n-dependency-map-undefined.json": "bf21a9e8fbc5",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/welcome.css": "36c849e43075",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/welcome.css": "30d4014128ab",
         "real-media-library-lite/vendor/devowl-wp/real-utils/dist/welcome.js": "da39a3ee5e6b",
         "real-media-library-lite/vendor/devowl-wp/real-utils/LICENSE": "6c6fb2d2f041",
         "real-media-library-lite/vendor/devowl-wp/real-utils/LICENSE_3RD_PARTY_JS.md": "af48d149c1bf",
         "real-media-library-lite/vendor/devowl-wp/real-utils/LICENSE_3RD_PARTY_PHP.md": "6c1b105d5ae1",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/package.json": "ece50f649202",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/package.json": "6ed9dfef3def",
         "real-media-library-lite/vendor/devowl-wp/real-utils/src/AbstractInitiator.php": "3a0aa5f17fa7",
         "real-media-library-lite/vendor/devowl-wp/real-utils/src/Assets.php": "0e65a990f43c",
         "real-media-library-lite/vendor/devowl-wp/real-utils/src/autoload.php": "b2be7daca463",
@@ -7108,14 +7082,14 @@
         "real-media-library-lite/vendor/devowl-wp/real-utils/src/view/index.php": "7f793206bbc3",
         "real-media-library-lite/vendor/devowl-wp/real-utils/src/WelcomePage.php": "6a6457fac593",
         "real-media-library-lite/vendor/devowl-wp/utils/.lintstagedrc.mjs": "287489795fd8",
-        "real-media-library-lite/vendor/devowl-wp/utils/dist/index.js": "365e4dada631",
+        "real-media-library-lite/vendor/devowl-wp/utils/dist/index.js": "55ea5047305a",
         "real-media-library-lite/vendor/devowl-wp/utils/dist/noop.js": "a168a36fe6a7",
         "real-media-library-lite/vendor/devowl-wp/utils/dist/vendor-index.js": "3a518c6f4ed0",
         "real-media-library-lite/vendor/devowl-wp/utils/dist/vendor-index.js.LICENSE.txt": "d4009a9f9de7",
         "real-media-library-lite/vendor/devowl-wp/utils/LICENSE": "99094e3fb3fa",
         "real-media-library-lite/vendor/devowl-wp/utils/LICENSE_3RD_PARTY_JS.md": "616146f1bf9e",
         "real-media-library-lite/vendor/devowl-wp/utils/LICENSE_3RD_PARTY_PHP.md": "eb08e256dacf",
-        "real-media-library-lite/vendor/devowl-wp/utils/package.json": "af186b0d321b",
+        "real-media-library-lite/vendor/devowl-wp/utils/package.json": "353776062188",
         "real-media-library-lite/vendor/devowl-wp/utils/src/Activator.php": "f895c9febc4c",
         "real-media-library-lite/vendor/devowl-wp/utils/src/Assets.php": "abce5f367da2",
         "real-media-library-lite/vendor/devowl-wp/utils/src/Base.php": "ee81e5d819e7",
@@ -7131,9 +7105,9 @@
         "real-media-library-lite/vendor/devowl-wp/utils/src/Service.php": "521111ccb26f",
         "real-media-library-lite/vendor/devowl-wp/utils/src/ServiceNoStore.php": "63cde8af41ec",
         "real-media-library-lite/vendor/devowl-wp/utils/src/Utils.php": "d292b175b432",
-        "real-media-library-lite/vendor/scoper-autoload.php": "2c03349c3c7a"
+        "real-media-library-lite/vendor/scoper-autoload.php": "1154b70fbdc6"
       },
-      "seen": "2026-08-23T14:41:37.216Z"
+      "seen": "2026-09-01T14:42:58.827Z"
     },
     "media-library-organizer": {
       "version": "2.1.2",
@@ -7707,7 +7681,7 @@
         "media-library-organizer/_modules/dashboard/views/notification.php": "536731329c39",
         "media-library-organizer/_modules/dashboard/views/sidebar-upgrade.php": "e4681517a2b9"
       },
-      "seen": "2026-08-23T14:41:51.775Z"
+      "seen": "2026-09-01T14:42:59.023Z"
     },
     "enable-media-replace": {
       "version": "4.2.2",
@@ -7832,8 +7806,196 @@
         "enable-media-replace/views/success.php": "6960838a0f6d",
         "enable-media-replace/views/upsell.php": "ac34421f70c2"
       },
-      "seen": "2026-08-23T14:41:57.173Z"
+      "seen": "2026-09-01T14:42:59.230Z"
     }
   },
-  "checked": null
+  "checked": null,
+  "dependencies": {
+    "core": {
+      "version": "7.1",
+      "prerelease": null,
+      "onBox": "7.1",
+      "seen": "2026-09-01T14:43:08.878Z"
+    },
+    "php": {
+      "version": "8.5.9",
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:09.069Z"
+    },
+    "elementor": {
+      "version": "4.2.4",
+      "prerelease": null,
+      "onBox": "4.2.4",
+      "seen": "2026-09-01T14:43:09.286Z"
+    },
+    "beaver-builder-lite-version": {
+      "version": "2.10.3.2",
+      "prerelease": null,
+      "onBox": "2.10.3.2",
+      "seen": "2026-09-01T14:43:09.476Z"
+    },
+    "brizy": {
+      "version": "2.8.22",
+      "prerelease": null,
+      "onBox": "2.8.22",
+      "seen": "2026-09-01T14:43:09.691Z"
+    },
+    "js_composer": {
+      "version": "9.0.1",
+      "prerelease": null,
+      "onBox": "9.0.1",
+      "seen": "2026-09-01T14:43:09.906Z"
+    },
+    "divi": {
+      "version": "5.11.0",
+      "prerelease": null,
+      "onBox": "5.11.0",
+      "seen": "2026-09-01T14:43:09.906Z"
+    },
+    "bricks": {
+      "version": "1.15",
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.326Z"
+    },
+    "oxygen": {
+      "version": null,
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.326Z"
+    },
+    "avada": {
+      "version": null,
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.326Z"
+    },
+    "thrive-architect": {
+      "version": null,
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.326Z"
+    },
+    "cornerstone": {
+      "version": null,
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.326Z"
+    },
+    "yootheme": {
+      "version": null,
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.326Z"
+    },
+    "betheme": {
+      "version": null,
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.326Z"
+    },
+    "themify-builder": {
+      "version": null,
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.326Z"
+    },
+    "tailor": {
+      "version": "1.8.2",
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.524Z"
+    },
+    "oshine": {
+      "version": null,
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.524Z"
+    },
+    "learnpress-frontend-editor": {
+      "version": null,
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.524Z"
+    },
+    "dokan-lite": {
+      "version": "5.0.18",
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:10.734Z"
+    },
+    "wordpress-seo": {
+      "version": "28.4",
+      "prerelease": null,
+      "onBox": "28.4",
+      "seen": "2026-09-01T14:43:10.935Z"
+    },
+    "seo-by-rank-math": {
+      "version": "1.0.277.2",
+      "prerelease": null,
+      "onBox": "1.0.277.2",
+      "seen": "2026-09-01T14:43:11.133Z"
+    },
+    "wp-seopress": {
+      "version": "10.1",
+      "prerelease": null,
+      "onBox": "10.1",
+      "seen": "2026-09-01T14:43:11.330Z"
+    },
+    "all-in-one-seo-pack": {
+      "version": "5.0.1.1",
+      "prerelease": null,
+      "onBox": "5.0.1.1",
+      "seen": "2026-09-01T14:43:11.530Z"
+    },
+    "woocommerce": {
+      "version": "11.0.1",
+      "prerelease": null,
+      "onBox": "11.0.1",
+      "seen": "2026-09-01T14:43:11.740Z"
+    },
+    "advanced-custom-fields": {
+      "version": "6.8.9",
+      "prerelease": null,
+      "onBox": "6.8.9",
+      "seen": "2026-09-01T14:43:11.948Z"
+    },
+    "polylang": {
+      "version": "3.8.7",
+      "prerelease": null,
+      "onBox": "3.8.6",
+      "seen": "2026-09-01T14:43:12.126Z"
+    },
+    "wpml": {
+      "version": null,
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:12.126Z"
+    },
+    "wp-rocket": {
+      "version": "3.23.2.2",
+      "prerelease": null,
+      "onBox": "3.23.2.2",
+      "seen": "2026-09-01T14:43:12.126Z"
+    },
+    "filebird": {
+      "version": "6.5.8",
+      "prerelease": null,
+      "onBox": "6.5.8",
+      "seen": "2026-09-01T14:43:12.319Z"
+    },
+    "real-media-library-lite": {
+      "version": "4.23.4",
+      "prerelease": null,
+      "onBox": null,
+      "seen": "2026-09-01T14:43:12.499Z"
+    },
+    "zionbuilder": {
+      "version": "3.6.17",
+      "prerelease": null,
+      "onBox": "3.6.17",
+      "seen": "2026-09-01T14:43:09.906Z"
+    }
+  }
 }

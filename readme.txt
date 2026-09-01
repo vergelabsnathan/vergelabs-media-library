@@ -233,6 +233,16 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 
+### Which versions of WordPress and other plugins has it been checked against? ###
+
+Every night an automated watch looks for new releases of WordPress, PHP and the plugins and themes this plugin integrates with, greps each new release for every hook and field we rely on, upgrades a staging site and runs the checks there. What passed is recorded here, newest first:
+
+<!-- watch:verified -->
+* Divi 5.11.0 — Folder gallery module renders from a built page (2026-09-01)
+* Polylang Pro 3.8.6 — a translated image keeps its folders (2026-09-01)
+* Yoast SEO 28.4, Rank Math 1.0.277.2, SEOPress 10.1, All in One SEO 5.0.1.1 — page context reaches the describe request (2026-09-01)
+* WooCommerce, Advanced Custom Fields — product context and duplicate repoint (2026-09-01)
+
 ## Screenshots ##
 
 1. The media library grid, with filters for type, date, author and any taxonomy you have assigned, plus Reset All Filters and Bulk select.

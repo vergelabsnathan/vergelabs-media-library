@@ -1,40 +1,34 @@
-node_modules/
-vendor/
-.wp-env.override.json
-build/
-dist/
-*.zip
-*.log
-.phpcs-cache
-.phpunit.result.cache
-.DS_Store
-Thumbs.db
-.release-assets/
-
-# Test debris. recovery.js parks the file it breaks here so an interrupted run
-# can be healed by the next one, and screenshots the safe-mode notice.
-tests/watchdog/.victim-backup
-tests/watchdog/watchdog-notice.png
-tests/**/shots/
-.verify.lock
-
-# The gate-7 schema check writes its transcript here so a Playground run,
-# which only prints a step that failed, can still be read.
-tests/librarian/gate7-last-run.txt
 
 # Plugin Check leaves a full-page screenshot of the result it read.
-tools/.plugin-check.png
-
+# Test debris. recovery.js parks the file it breaks here so an interrupted run
 # The AI folders suite writes its transcript here, for the same reason the
+# The gate-7 schema check writes its transcript here so a Playground run,
+# can be healed by the next one, and screenshots the safe-mode notice.
 # gate-7 one does: a passing Playground step prints nothing.
-tests/tree/ai-folders-last-run.txt
-
-tests/tree/auto-file-last-run.txt
-
-tests/tree/nl-commands-last-run.txt
-
-tests/tree/quarantine-last-run.txt
-
-tests/tree/utilities-last-run.txt
-tools/shots/
+# which only prints a step that failed, can still be read.
+*.log
+*.zip
+.DS_Store
+.phpcs-cache
+.phpunit.result.cache
+.release-assets/
+.verify.lock
+.wp-env.override.json
+Thumbs.db
+build/
+dist/
+node_modules/
+tests/**/shots/
+tests/librarian/gate7-last-run.txt
 tests/multisite/results.txt
+tests/tree/ai-folders-last-run.txt
+tests/tree/auto-file-last-run.txt
+tests/tree/nl-commands-last-run.txt
+tests/tree/quarantine-last-run.txt
+tests/tree/utilities-last-run.txt
+tests/watchdog/.victim-backup
+tests/watchdog/watchdog-notice.png
+tools/.plugin-check.png
+tools/shots/
+tools/watch/.cache/
+vendor/

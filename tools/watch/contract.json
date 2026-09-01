@@ -1,0 +1,879 @@
+{
+  "_": [
+    "The dependency contract: every third-party symbol this plugin relies on, with the",
+    "file that relies on it. tools/watch/contract-check.mjs greps a new release for each",
+    "symbol; a missing one is a proven break before any suite runs. Keep usedIn honest --",
+    "it is what the plan writer reads first. Kinds: hook, class, function, constant, meta,",
+    "table, js. dynamic:true marks a hook built at runtime (cannot be verified by grep).",
+    "source.type: wporg (zip available) | changelog (version only) | core | php.",
+    "source.installed: the slug on the box's stage site -- WordPress's own updater reports a new version for anything installed there, licence or not, so that is the primary signal for paid plugins; changelog pages are the fallback when nothing is installed."
+  ],
+  "version": 1,
+  "dependencies": {
+    "core": {
+      "name": "WordPress",
+      "kind": "core",
+      "source": {
+        "type": "core"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "ajax_query_attachments_args",
+          "usedIn": "core/compatibility.php:66"
+        },
+        {
+          "kind": "hook",
+          "value": "wp_prepare_attachment_for_js",
+          "usedIn": "core/mime-types.php:434"
+        },
+        {
+          "kind": "hook",
+          "value": "attachment_fields_to_edit",
+          "usedIn": "core/compatibility.php:50"
+        },
+        {
+          "kind": "hook",
+          "value": "attachment_fields_to_save",
+          "usedIn": "core/taxonomies.php:1159"
+        },
+        {
+          "kind": "hook",
+          "value": "wp_enqueue_media",
+          "usedIn": "core/page-builders.php:59"
+        },
+        {
+          "kind": "hook",
+          "value": "print_media_templates",
+          "usedIn": "core/media-templates.php:15"
+        },
+        {
+          "kind": "hook",
+          "value": "manage_media_columns",
+          "usedIn": "core/smart-folders.php:982"
+        },
+        {
+          "kind": "hook",
+          "value": "restrict_manage_posts",
+          "usedIn": "core/bulk-terms.php:92"
+        },
+        {
+          "kind": "hook",
+          "value": "add_attachment",
+          "usedIn": "core/auto-assign.php:68"
+        },
+        {
+          "kind": "hook",
+          "value": "delete_attachment",
+          "usedIn": "core/ai-index.php:424"
+        },
+        {
+          "kind": "hook",
+          "value": "wp_generate_attachment_metadata",
+          "usedIn": "core/mime-types.php:410"
+        },
+        {
+          "kind": "hook",
+          "value": "wpmu_drop_tables",
+          "usedIn": "vergelabs-media-library.php:283"
+        },
+        {
+          "kind": "hook",
+          "value": "wp_initialize_site",
+          "usedIn": "vergelabs-media-library.php:265"
+        },
+        {
+          "kind": "hook",
+          "value": "switch_blog",
+          "usedIn": "vergelabs-media-library.php:305"
+        },
+        {
+          "kind": "hook",
+          "value": "wp_ajax_save-attachment-compat",
+          "usedIn": "core/taxonomies.php:1112",
+          "dynamic": true
+        },
+        {
+          "kind": "hook",
+          "value": "enqueue_block_editor_assets",
+          "usedIn": "vergelabs-media-library.php:77"
+        },
+        {
+          "kind": "js",
+          "value": "media.view.Attachment",
+          "usedIn": "js/vergeml-media-views.js",
+          "file": "wp-includes/js/media-views.js"
+        },
+        {
+          "kind": "js",
+          "value": "media.view.Attachment.EditLibrary",
+          "usedIn": "js/vergeml-media-views.js",
+          "file": "wp-includes/js/media-views.js"
+        },
+        {
+          "kind": "js",
+          "value": "media.view.Modal",
+          "usedIn": "js/vergeml-media-views.js",
+          "file": "wp-includes/js/media-views.js"
+        },
+        {
+          "kind": "js",
+          "value": "media.view.MediaFrame.Post",
+          "usedIn": "js/vergeml-media-views.js",
+          "file": "wp-includes/js/media-views.js"
+        },
+        {
+          "kind": "js",
+          "value": "media.view.MediaFrame.EditAttachments",
+          "usedIn": "js/vergeml-media-views.js",
+          "file": "wp-includes/js/media-views.js"
+        },
+        {
+          "kind": "js",
+          "value": "media.view.MediaFrame.Manage.Router",
+          "usedIn": "js/eml-media-grid.js",
+          "file": "wp-includes/js/media-views.js"
+        },
+        {
+          "kind": "js",
+          "value": "media.view.Settings.Gallery",
+          "usedIn": "js/vergeml-media-views.js",
+          "file": "wp-includes/js/media-views.js"
+        },
+        {
+          "kind": "js",
+          "value": "media.view.Settings.Playlist",
+          "usedIn": "js/vergeml-media-views.js",
+          "file": "wp-includes/js/media-views.js"
+        },
+        {
+          "kind": "js",
+          "value": "media.controller.GalleryEdit",
+          "usedIn": "js/vergeml-media-views.js",
+          "file": "wp-includes/js/media-views.js"
+        },
+        {
+          "kind": "js",
+          "value": "media.controller.CollectionEdit",
+          "usedIn": "js/vergeml-media-views.js",
+          "file": "wp-includes/js/media-views.js"
+        },
+        {
+          "kind": "js",
+          "value": "media.model.Attachments",
+          "usedIn": "js/vergeml-media-views.js",
+          "file": "wp-includes/js/media-models.js"
+        }
+      ]
+    },
+    "php": {
+      "name": "PHP",
+      "kind": "php",
+      "source": {
+        "type": "php",
+        "floor": "7.4"
+      },
+      "symbols": []
+    },
+    "elementor": {
+      "name": "Elementor",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "elementor",
+        "installed": "elementor"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "elementor/editor/before_enqueue_scripts",
+          "usedIn": "core/page-builders.php:128"
+        },
+        {
+          "kind": "hook",
+          "value": "elementor/editor/after_enqueue_scripts",
+          "usedIn": "core/compatibility.php:19"
+        },
+        {
+          "kind": "hook",
+          "value": "elementor/widgets/register",
+          "usedIn": "core/gallery-widgets.php:249"
+        },
+        {
+          "kind": "class",
+          "value": "Elementor\\Widget_Base",
+          "usedIn": "core/gallery-widgets.php"
+        }
+      ]
+    },
+    "beaver-builder-lite-version": {
+      "name": "Beaver Builder",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "beaver-builder-lite-version",
+        "installed": "beaver-builder-lite-version"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "fl_builder_ui_enqueue_scripts",
+          "usedIn": "core/page-builders.php:192"
+        },
+        {
+          "kind": "hook",
+          "value": "fl_before_sortable_enqueue",
+          "usedIn": "core/page-builders.php:193"
+        },
+        {
+          "kind": "class",
+          "value": "FLBuilder",
+          "usedIn": "core/page-builders.php:191"
+        },
+        {
+          "kind": "class",
+          "value": "FLBuilderLoader",
+          "usedIn": "core/page-builders.php:191"
+        }
+      ]
+    },
+    "brizy": {
+      "name": "Brizy",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "brizy",
+        "installed": "brizy"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "brizy_editor_enqueue_scripts",
+          "usedIn": "core/page-builders.php:197"
+        },
+        {
+          "kind": "class",
+          "value": "Brizy_Editor",
+          "usedIn": "core/page-builders.php:196"
+        }
+      ]
+    },
+    "zionbuilder": {
+      "name": "Zion Builder",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "zionbuilder",
+        "installed": "zionbuilder"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "zionbuilder/editor/before_scripts",
+          "usedIn": "core/page-builders.php:240"
+        },
+        {
+          "kind": "class",
+          "value": "ZionBuilder\\Plugin",
+          "usedIn": "core/page-builders.php"
+        },
+        {
+          "kind": "class",
+          "value": "ZionBuilder\\Utils",
+          "usedIn": "core/page-builders.php"
+        }
+      ]
+    },
+    "js_composer": {
+      "name": "WPBakery Page Builder",
+      "kind": "plugin",
+      "source": {
+        "type": "changelog",
+        "url": "https://kb.wpbakery.com/docs/preface/release-notes/",
+        "regex": "WPBakery Page Builder (\\d+\\.\\d+(?:\\.\\d+)?)",
+        "installed": "js_composer"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "vc_backend_editor_enqueue_js_css",
+          "usedIn": "core/page-builders.php:116"
+        },
+        {
+          "kind": "hook",
+          "value": "vc_frontend_editor_enqueue_js_css",
+          "usedIn": "core/page-builders.php:117"
+        },
+        {
+          "kind": "hook",
+          "value": "vc_before_init",
+          "usedIn": "core/gallery-widgets.php:138"
+        },
+        {
+          "kind": "function",
+          "value": "vc_map",
+          "usedIn": "core/gallery-widgets.php:142"
+        }
+      ]
+    },
+    "divi": {
+      "name": "Divi",
+      "kind": "theme",
+      "source": {
+        "type": "changelog",
+        "url": "https://www.elegantthemes.com/changelog/divi/",
+        "regex": "(?:Version|Divi)\\s*(\\d+\\.\\d+(?:\\.\\d+)*)",
+        "installed": "Divi",
+        "installedKind": "theme"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "et_builder_ready",
+          "usedIn": "core/gallery-widgets.php:406"
+        },
+        {
+          "kind": "hook",
+          "value": "et_fb_enqueue_assets",
+          "usedIn": "core/page-builders.php:185",
+          "optional": true,
+          "note": "Divi 4 only. Divi 5 fires et_fb_framework_loaded and divi_visual_builder_assets_before_enqueue_scripts; wp_enqueue_scripts is the belt to these braces."
+        },
+        {
+          "kind": "hook",
+          "value": "et_fb_framework_loaded",
+          "usedIn": "core/page-builders.php:186"
+        },
+        {
+          "kind": "class",
+          "value": "ET_Builder_Module",
+          "usedIn": "core/gallery-widgets.php:410"
+        },
+        {
+          "kind": "class",
+          "value": "ET_Builder_Element",
+          "usedIn": "core/page-builders.php:184"
+        },
+        {
+          "kind": "function",
+          "value": "et_core_is_fb_enabled",
+          "usedIn": "core/page-builders.php:145"
+        },
+        {
+          "kind": "function",
+          "value": "et_fb_is_enabled",
+          "usedIn": "core/page-builders.php:149"
+        },
+        {
+          "kind": "hook",
+          "value": "divi_visual_builder_assets_before_enqueue_scripts",
+          "usedIn": "core/page-builders.php:187"
+        }
+      ]
+    },
+    "bricks": {
+      "name": "Bricks",
+      "kind": "theme",
+      "source": {
+        "type": "changelog",
+        "url": "https://bricksbuilder.io/changelog/",
+        "regex": "(\\d+\\.\\d+(?:\\.\\d+)*)"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "bricks_after_footer",
+          "usedIn": "core/page-builders.php:226"
+        },
+        {
+          "kind": "constant",
+          "value": "BRICKS_VERSION",
+          "usedIn": "core/page-builders.php:225"
+        },
+        {
+          "kind": "function",
+          "value": "bricks_is_builder",
+          "usedIn": "core/page-builders.php:288"
+        }
+      ]
+    },
+    "oxygen": {
+      "name": "Oxygen",
+      "kind": "plugin",
+      "source": {
+        "type": "none"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "oxygen_enqueue_ui_scripts",
+          "usedIn": "core/page-builders.php:222"
+        },
+        {
+          "kind": "constant",
+          "value": "CT_VERSION",
+          "usedIn": "core/page-builders.php:221"
+        }
+      ]
+    },
+    "avada": {
+      "name": "Avada / Fusion Builder",
+      "kind": "theme",
+      "source": {
+        "type": "none"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "fusion_builder_enqueue_live_scripts",
+          "usedIn": "core/page-builders.php:215"
+        },
+        {
+          "kind": "hook",
+          "value": "fusion_enqueue_live_scripts",
+          "usedIn": "core/page-builders.php:218"
+        },
+        {
+          "kind": "class",
+          "value": "Fusion_Builder_Front",
+          "usedIn": "core/page-builders.php:214"
+        },
+        {
+          "kind": "constant",
+          "value": "AVADA_VERSION",
+          "usedIn": "core/page-builders.php:217"
+        }
+      ]
+    },
+    "thrive-architect": {
+      "name": "Thrive Architect",
+      "kind": "plugin",
+      "source": {
+        "type": "none"
+      },
+      "symbols": [
+        {
+          "kind": "constant",
+          "value": "TVE_IN_ARCHITECT",
+          "usedIn": "core/page-builders.php:207"
+        }
+      ]
+    },
+    "cornerstone": {
+      "name": "Cornerstone",
+      "kind": "plugin",
+      "source": {
+        "type": "none"
+      },
+      "symbols": [
+        {
+          "kind": "class",
+          "value": "Cornerstone_Plugin",
+          "usedIn": "core/page-builders.php:201"
+        },
+        {
+          "kind": "class",
+          "value": "Cornerstone_Preview_Frame_Loader",
+          "usedIn": "core/page-builders.php:201"
+        }
+      ]
+    },
+    "yootheme": {
+      "name": "YOOtheme Pro",
+      "kind": "theme",
+      "source": {
+        "type": "none"
+      },
+      "symbols": [
+        {
+          "kind": "class",
+          "value": "YOOtheme\\Builder",
+          "usedIn": "core/page-builders.php"
+        }
+      ]
+    },
+    "betheme": {
+      "name": "BeTheme (Muffin)",
+      "kind": "theme",
+      "source": {
+        "type": "none"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "mfn_header_enqueue",
+          "usedIn": "core/page-builders.php:255"
+        },
+        {
+          "kind": "hook",
+          "value": "mfn_footer_enqueue",
+          "usedIn": "core/page-builders.php:256"
+        },
+        {
+          "kind": "constant",
+          "value": "MFN_THEME_VERSION",
+          "usedIn": "core/page-builders.php:254"
+        }
+      ]
+    },
+    "themify-builder": {
+      "name": "Themify Builder",
+      "kind": "plugin",
+      "source": {
+        "type": "none"
+      },
+      "symbols": [
+        {
+          "kind": "class",
+          "value": "Themify_Builder_Model",
+          "usedIn": "core/page-builders.php:259"
+        },
+        {
+          "kind": "constant",
+          "value": "THEMIFY_VERSION",
+          "usedIn": "core/page-builders.php:259"
+        }
+      ]
+    },
+    "tailor": {
+      "name": "Tailor",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "tailor"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "tailor_enqueue_sidebar_scripts",
+          "usedIn": "core/page-builders.php:266"
+        },
+        {
+          "kind": "class",
+          "value": "Tailor",
+          "usedIn": "core/page-builders.php:265"
+        }
+      ]
+    },
+    "oshine": {
+      "name": "Oshine (Tatsu)",
+      "kind": "theme",
+      "source": {
+        "type": "none"
+      },
+      "symbols": [
+        {
+          "kind": "constant",
+          "value": "TATSU_VERSION",
+          "usedIn": "core/page-builders.php:250"
+        }
+      ]
+    },
+    "learnpress-frontend-editor": {
+      "name": "LearnPress Frontend Editor",
+      "kind": "plugin",
+      "source": {
+        "type": "none"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "learnpress/addons/frontend_editor/enqueue_scripts",
+          "usedIn": "core/page-builders.php:270"
+        },
+        {
+          "kind": "class",
+          "value": "LP_Addon_Frontend_Editor_Preload",
+          "usedIn": "core/page-builders.php:269"
+        }
+      ]
+    },
+    "dokan-lite": {
+      "name": "Dokan",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "dokan-lite"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "dokan_enqueue_scripts",
+          "usedIn": "core/page-builders.php:274"
+        },
+        {
+          "kind": "hook",
+          "value": "dokan_forced_load_scripts",
+          "usedIn": "core/page-builders.php:309"
+        },
+        {
+          "kind": "function",
+          "value": "dokan_is_seller_dashboard",
+          "usedIn": "core/page-builders.php:303"
+        },
+        {
+          "kind": "constant",
+          "value": "DOKAN_PLUGIN_VERSION",
+          "usedIn": "core/page-builders.php:273"
+        }
+      ]
+    },
+    "wordpress-seo": {
+      "name": "Yoast SEO (Premium follows the same numbering)",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "wordpress-seo",
+        "installed": "wordpress-seo"
+      },
+      "symbols": [
+        {
+          "kind": "meta",
+          "value": "_yoast_wpseo_focuskw",
+          "usedIn": "core/seo-context.php:49"
+        },
+        {
+          "kind": "meta",
+          "value": "_yoast_wpseo_metadesc",
+          "usedIn": "core/seo-context.php:50"
+        },
+        {
+          "kind": "meta",
+          "value": "_yoast_wpseo_is_cornerstone",
+          "usedIn": "core/seo-context.php:161"
+        },
+        {
+          "kind": "meta",
+          "value": "_yoast_wpseo_focuskeywords",
+          "usedIn": "core/seo-context.php:116",
+          "note": "written by Premium; the free zip may not carry the literal",
+          "optional": true
+        }
+      ]
+    },
+    "seo-by-rank-math": {
+      "name": "Rank Math SEO",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "seo-by-rank-math",
+        "installed": "seo-by-rank-math"
+      },
+      "symbols": [
+        {
+          "kind": "meta",
+          "value": "rank_math_focus_keyword",
+          "usedIn": "core/seo-context.php:49"
+        },
+        {
+          "kind": "meta",
+          "value": "rank_math_description",
+          "usedIn": "core/seo-context.php:50"
+        },
+        {
+          "kind": "meta",
+          "value": "rank_math_pillar_content",
+          "usedIn": "core/seo-context.php:161"
+        }
+      ]
+    },
+    "wp-seopress": {
+      "name": "SEOPress (Pro follows the same numbering)",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "wp-seopress",
+        "installed": "wp-seopress"
+      },
+      "symbols": [
+        {
+          "kind": "meta",
+          "value": "_seopress_analysis_target_kw",
+          "usedIn": "core/seo-context.php:49"
+        },
+        {
+          "kind": "meta",
+          "value": "_seopress_titles_desc",
+          "usedIn": "core/seo-context.php:50"
+        }
+      ]
+    },
+    "all-in-one-seo-pack": {
+      "name": "All in One SEO",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "all-in-one-seo-pack",
+        "installed": "all-in-one-seo-pack"
+      },
+      "symbols": [
+        {
+          "kind": "constant",
+          "value": "AIOSEO_VERSION",
+          "usedIn": "core/seo-context.php:76"
+        },
+        {
+          "kind": "table",
+          "value": "aioseo_posts",
+          "usedIn": "core/seo-context.php:79"
+        },
+        {
+          "kind": "meta",
+          "value": "keyphrases",
+          "usedIn": "core/seo-context.php:84",
+          "note": "a column of aioseo_posts, JSON with focus.keyphrase"
+        }
+      ]
+    },
+    "woocommerce": {
+      "name": "WooCommerce",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "woocommerce",
+        "installed": "woocommerce"
+      },
+      "symbols": [
+        {
+          "kind": "class",
+          "value": "WooCommerce",
+          "usedIn": "core/ai.php:181"
+        },
+        {
+          "kind": "meta",
+          "value": "_product_image_gallery",
+          "usedIn": "core/health-delete.php:322"
+        },
+        {
+          "kind": "meta",
+          "value": "product_cat",
+          "usedIn": "core/ai.php:231"
+        }
+      ]
+    },
+    "advanced-custom-fields": {
+      "name": "Advanced Custom Fields",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "advanced-custom-fields",
+        "installed": "advanced-custom-fields"
+      },
+      "symbols": []
+    },
+    "polylang": {
+      "name": "Polylang (Pro follows the same numbering)",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "polylang",
+        "installed": "polylang-pro"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "pll_translate_media",
+          "usedIn": "core/multilingual.php:94"
+        },
+        {
+          "kind": "hook",
+          "value": "pll_get_taxonomies",
+          "usedIn": "core/multilingual.php:108"
+        },
+        {
+          "kind": "meta",
+          "value": "language",
+          "usedIn": "core/rest-tree.php:143",
+          "note": "the taxonomy name the tree excludes"
+        },
+        {
+          "kind": "meta",
+          "value": "post_translations",
+          "usedIn": "core/rest-tree.php:143"
+        }
+      ]
+    },
+    "wpml": {
+      "name": "WPML Media Translation",
+      "kind": "plugin",
+      "source": {
+        "type": "none"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "wpml_media_create_duplicate_attachment",
+          "usedIn": "core/multilingual.php:128"
+        }
+      ]
+    },
+    "wp-rocket": {
+      "name": "WP Rocket",
+      "kind": "plugin",
+      "source": {
+        "type": "changelog",
+        "url": "https://wp-rocket.me/changelog/",
+        "regex": "(\\d+\\.\\d+(?:\\.\\d+)+)",
+        "installed": "wp-rocket"
+      },
+      "symbols": [
+        {
+          "kind": "hook",
+          "value": "rocket_exclude_js",
+          "usedIn": "core/neighbours.php:169"
+        },
+        {
+          "kind": "hook",
+          "value": "rocket_exclude_defer_js",
+          "usedIn": "core/neighbours.php:170"
+        },
+        {
+          "kind": "hook",
+          "value": "rocket_delay_js_exclusions",
+          "usedIn": "core/neighbours.php:171"
+        }
+      ]
+    },
+    "filebird": {
+      "name": "FileBird (migration source)",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "filebird",
+        "installed": "filebird"
+      },
+      "symbols": [
+        {
+          "kind": "table",
+          "value": "fbv",
+          "usedIn": "core/import-sources.php"
+        },
+        {
+          "kind": "table",
+          "value": "fbv_attachment_folder",
+          "usedIn": "core/import-sources.php"
+        }
+      ]
+    },
+    "real-media-library-lite": {
+      "name": "Real Media Library (migration source)",
+      "kind": "plugin",
+      "source": {
+        "type": "wporg",
+        "slug": "real-media-library-lite"
+      },
+      "symbols": [
+        {
+          "kind": "table",
+          "value": "realmedialibrary",
+          "usedIn": "core/import-sources.php"
+        },
+        {
+          "kind": "table",
+          "value": "realmedialibrary_posts",
+          "usedIn": "core/import-sources.php"
+        }
+      ]
+    }
+  }
+}

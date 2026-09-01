@@ -1,0 +1,144 @@
+# The watch: nightly, finds what moved (WordPress core, PHP, every plugin and
+# theme we integrate with, the rivals), proves the contract against a new
+# release, stages the upgrade on the box, and triages: green edits the readme
+# and commits; yellow opens an issue with a plan; red opens the issue and a fix
+# branch. See plans/the-watch.md and tools/watch/.
+#
+# Secrets (gh secret set ...):
+#   BOX_SSH_KEY              private key for root@46.225.66.194 -- enables the box signal and the stage leg
+#   OPENROUTER_API_KEY       plans for yellow/red issues
+#   CLAUDE_CODE_OAUTH_TOKEN  the red fix step (claude setup-token; only Nathan can mint it)
+# Without a secret the step that needs it is skipped and the issue says so.
+
+name: watch
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+    inputs:
+      pretend:
+        description: 'Force a move to exercise the wiring, e.g. elementor=3.99.0'
+        required: false
+        default: ''
+
+concurrency:
+  group: watch
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Box key
+        id: box
+        if: ${{ secrets.BOX_SSH_KEY != '' }}
+        run: |
+          set +x
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.BOX_SSH_KEY }}" > ~/.ssh/hetzner_vgml
+          chmod 600 ~/.ssh/hetzner_vgml
+          echo "enabled=1" >> "$GITHUB_OUTPUT"
+
+      - name: The watch
+        id: watch
+        env:
+          PRETEND: ${{ github.event.inputs.pretend }}
+        run: |
+          ARGS="--json"
+          [ -z "${{ steps.box.outputs.enabled }}" ] && ARGS="$ARGS --no-box"
+          [ -n "$PRETEND" ] && ARGS="$ARGS --pretend $PRETEND"
+          node tools/watch/watch.mjs $ARGS > /tmp/report.json || echo "probe errors (see report)"
+          node -e "
+            const r = require('/tmp/report.json');
+            const moved = r.dependencies.filter(d => ['green','yellow','red'].includes(d.verdict));
+            console.log(JSON.stringify(moved.map(d => [d.key, d.version, d.verdict, d.reason]), null, 1));
+            require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'moved=' + moved.map(d => d.key + '=' + d.version + '=' + d.kind).join(' ') + '\n');
+            require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'errors=' + r.errors.length + '\n');
+          "
+          node tools/watch/watch.mjs --no-box || true
+
+      - name: Contract self-test
+        run: node tests/watch/contract.test.mjs
+
+      - name: PHP compatibility (7.4 floor to the newest 8.x)
+        run: |
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer global require --quiet phpcompatibility/phpcompatibility-wp:"*" dealerdirect/phpcodesniffer-composer-installer:"*"
+          ~/.composer/vendor/bin/phpcs -p -q --standard=PHPCompatibilityWP --runtime-set testVersion 7.4- \
+            --extensions=php --ignore='*/tests/*,*/tools/*,*/node_modules/*,*/plans/*' --report=summary . \
+            || (echo "::warning::PHPCompatibilityWP reported findings"; ~/.composer/vendor/bin/phpcs -p -q --standard=PHPCompatibilityWP --runtime-set testVersion 7.4- --extensions=php --ignore='*/tests/*,*/tools/*,*/node_modules/*' --report=full . | head -80; exit 1)
+
+      - name: Stage the moved dependencies on the box
+        id: stage
+        if: ${{ steps.box.outputs.enabled == '1' && steps.watch.outputs.moved != '' }}
+        run: |
+          echo '[]' > /tmp/stage.json
+          scp -q -o StrictHostKeyChecking=no -i ~/.ssh/hetzner_vgml tools/watch/stage.sh tests/integrations/live.php tests/integrations/divi.php tests/integrations/polylang.php root@46.225.66.194:/tmp/
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/hetzner_vgml root@46.225.66.194 'mv /tmp/live.php /tmp/vgml-live.php; mv /tmp/divi.php /tmp/vgml-divi.php; mv /tmp/polylang.php /tmp/vgml-pll.php' || true
+          for item in ${{ steps.watch.outputs.moved }}; do
+            key=${item%%=*}; rest=${item#*=}; version=${rest%%=*}; kind=${rest#*=}
+            slug=$(node -e "const c=require('./tools/watch/contract.json').dependencies['$key']; console.log(c.source.installed||c.source.slug||'')")
+            case "$kind" in core) skind=core; slug=$version;; theme) skind=theme;; php) continue;; *) skind=plugin;; esac
+            [ -z "$slug" ] && continue
+            echo "== stage $skind $slug $version"
+            out=$(ssh -o StrictHostKeyChecking=no -i ~/.ssh/hetzner_vgml root@46.225.66.194 "bash /tmp/stage.sh $skind $slug $version" 2>&1 || true)
+            echo "$out" | tail -40
+            last=$(echo "$out" | tail -1)
+            node -e "
+              const fs=require('fs'); const s=JSON.parse(fs.readFileSync('/tmp/stage.json','utf8'));
+              let j={}; try{ j=JSON.parse(process.argv[1]); }catch{ j={passed:0,failed:1,parseError:true}; }
+              s.push({ key:'$key', ...j, output: process.argv[2].slice(-8000) }); fs.writeFileSync('/tmp/stage.json', JSON.stringify(s));
+            " "$last" "$out"
+          done
+
+      - name: Triage
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: node tools/watch/triage.mjs /tmp/report.json /tmp/stage.json
+
+      - name: Commit state, green edits and known issues
+        run: |
+          git config user.name  'the-watch'
+          git config user.email 'noreply@vergelabs.nl'
+          git add tools/watch/state.json tools/watch/known-issues.json readme.txt 2>/dev/null || true
+          git diff --staged --quiet && exit 0
+          git commit -m "chore(watch): $(date -u +%F) -- what moved, and what it means"
+          git pull --rebase -q origin main
+          git push
+
+      - name: Fix step for red verdicts
+        if: ${{ env.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          for n in $(node -e "const a=require('./tools/watch/.cache/triage.json'); for (const x of a) if (x.verdict==='red' && x.issue && x.issue!=='dry-run') console.log(x.issue.split('/').pop())"); do
+            bash tools/watch/fix.sh "$n" || echo "::warning::fix step failed for #$n"
+          done
+
+      - name: Forget the box key
+        if: always()
+        run: rm -f ~/.ssh/hetzner_vgml
+
+      - name: Fail the run on probe errors
+        if: ${{ steps.watch.outputs.errors != '0' && steps.watch.outputs.errors != '' }}
+        run: |
+          echo "::error::${{ steps.watch.outputs.errors }} probe(s) failed -- a source changed shape. See the report above."
+          exit 1
