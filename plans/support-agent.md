@@ -165,6 +165,13 @@ support goes on decisions, not on discovery.
   `RESEND_WEBHOOK_SECRET`.
 - `SUPPORT_AUTOSEND` stays unset. The two must-be-100% scorers are, but there are no
   real tickets yet; switch it on after the first twenty real briefs read well.
+- **Increment 2b, the ticket desk, shipped 2026-09-01**: `/admin/tickets` (queue by status,
+  thread, facts, the agent's draft in an editor: send / edit and send / private note / close /
+  ask again), replies from `support@vergelabs.nl` tagged `[#id]` so the customer's answer
+  threads back (`/api/support/inbound` continues the ticket and the agent drafts against the
+  whole thread), `ticket_messages` (migration 012) keeps drafts beside sent replies for the
+  eval set. Proven with ticket #5 (two messages, two drafts, `continued: true`).
+  Not yet: the morning digest, grouping by known issue, and admin pages for customers/licences.
 - Increment 3 not started; the refund-cap OPEN line still stands.
 
 ## Tasks
