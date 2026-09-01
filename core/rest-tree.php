@@ -140,8 +140,13 @@ function vergeml_tree_taxonomies() {
     $mine  = array();
 
     foreach ( $found as $taxonomy ) {
-        // Core's own attachment taxonomies are not ours to redraw.
-        if ( in_array( $taxonomy->name, array( 'post_tag', 'category' ), true ) )
+        // Core's own attachment taxonomies are not ours to redraw, and neither
+        // is anything registered without a UI: Polylang's language and
+        // post_translations sit on attachments once media translation is on,
+        // and drawn as folders they would file every picture under "English".
+        if ( in_array( $taxonomy->name, array( 'post_tag', 'category', 'language', 'post_translations' ), true ) )
+            continue;
+        if ( empty( $taxonomy->show_ui ) )
             continue;
 
         $mine[] = $taxonomy->name;

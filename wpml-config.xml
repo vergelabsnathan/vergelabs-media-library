@@ -1,0 +1,9 @@
+<wpml-config>
+    <!--
+        Folders are where a file is kept, not what it says: the same folder
+        serves every language. See core/multilingual.php for the reasoning.
+    -->
+    <taxonomies>
+        <taxonomy name="media_category" translate="0" />
+    </taxonomies>
+</wpml-config>

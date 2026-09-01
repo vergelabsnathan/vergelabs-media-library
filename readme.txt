@@ -4,7 +4,7 @@ Tags: media library, media folders, media tags, media categories, mime types
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.14.0
+Stable tag: 3.15.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -30,6 +30,8 @@ A folder tree sits beside the media library. Drag files onto a folder to file th
 **A file can be in more than one folder.** Dragging a file moves it, exactly as it does on your desktop. Hold Ctrl while dropping and it is added to that folder as well -- the same photo in Products and in Autumn Campaign without a second copy of it existing, which is the thing single-folder plugins cannot do. If you want the one-folder promise kept absolutely, there is a setting that makes every drop a move.
 
 **A folder can be a gallery.** Add the Folder gallery block in the block editor -- or the Folder gallery element in Elementor, Divi or WPBakery, or drop `[vergeml_gallery folder="12"]` anywhere shortcodes work -- pick a folder, and it shows every image in it. Grid or carousel, with a built-in lightbox if you want one. It stays a folder rather than becoming a list of files: put a new image in the folder and every page using that gallery has it, with nothing re-edited. WordPress's own gallery block freezes a list of images at the moment you insert it.
+
+**One set of folders in every language.** With Polylang or WPML, a translated copy of an image goes into the same folders as the original, and the tree shows the same folders whichever language you are working in.
 
 **Smart folders answer questions.** Above your folders sit five that nothing was ever filed into: Unused media, Missing alt text, Large files, Unattached, and This month. Each is a live view of the library. Unused and Large need one scan -- a click, a progress count, done -- which reads every post once to learn which files are genuinely referenced: embedded images, pasted URLs, featured images, galleries. "1,400 images have no alt text" and "2 GB of this library is unused" are the two numbers most worth knowing about a media library, and no folder plugin can tell you either.
 
@@ -248,6 +250,17 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 
 
 ## Changelog ##
+
+### 3.15.0 ###
+*In every language, the same drawer*
+
+= Multilingual =
+* **Polylang and WPML.** A translated copy of a filed image goes into the same folders as the original, whether it is made with the media screen's "+", Polylang Pro's duplicate-at-upload, or WPML Media Translation. Folders are where a file is kept, not what it says, so they are shared across languages: the plugin tells Polylang and WPML (`wpml-config.xml`) that its folder taxonomies are not to be translated, and the tree shows one set of folders whichever language is selected. A site that wants folders per language can say so with the `vergeml_multilingual_shared_folders` filter.
+* The tree no longer offers Polylang's own `language` taxonomy as a set of folders once media translation is on.
+
+= Verified against the real plugins =
+* The SEO context (3.13) now has a live check against Yoast 28.4, Rank Math 1.0.277, SEOPress 10.1 and AIOSEO 5.0.1 on the test box: keyphrase, description and related keyphrases reach the describe request, lead the filename only when the model saw them, and drive the page-gap scope. WooCommerce product categories reach the context and the product gallery follows a surviving duplicate; an ACF URL field follows it too.
+* Divi 5.11 renders the Folder gallery module from a built page. Polylang Pro 3.8.6 makes a Dutch copy that lands in the original's folder. `tests/integrations/` holds the checks.
 
 ### 3.14.0 ###
 *A network, from A to Z*
