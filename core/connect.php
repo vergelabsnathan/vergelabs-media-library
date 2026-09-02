@@ -41,7 +41,9 @@ function vergeml_connect_start_url() {
 function vergeml_connect_has_key() {
     $settings = function_exists( 'vergeml_ai_settings' ) ? vergeml_ai_settings() : array();
 
-    return ! empty( $settings['license_key'] );
+    return function_exists( 'vergeml_ai_unseal' )
+        ? '' !== vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' )
+        : ! empty( $settings['license_key'] );
 }
 
 /**
@@ -138,7 +140,9 @@ function vergeml_connect_finish() {
 
     $settings                = get_option( 'vergeml_ai', array() );
     $settings                = is_array( $settings ) ? $settings : array();
-    $settings['license_key'] = sanitize_text_field( (string) $body['key'] );
+    // Sealed at rest, the same way the settings form stores it: the plugin
+    // unseals on use, and a raw key here reads back as no licence at all.
+    $settings['license_key'] = vergeml_ai_seal( sanitize_text_field( (string) $body['key'] ) );
     update_option( 'vergeml_ai', $settings, false );
 
     // The screen this returns to shows the balance; fetch it now so the number
@@ -156,20 +160,18 @@ function vergeml_connect_redirect_with( $result ) {
     exit;
 }
 
-add_action( 'admin_notices', 'vergeml_connect_notices' );
-
 /**
  *  The invitation, and the result.
  *
- *  Shown on the AI screen only. A site with no key cannot describe anything,
- *  so the button belongs where somebody has just discovered that.
+ *  Printed by the AI screen itself rather than hooked to admin_notices: the
+ *  shell clears every notice action on a VergeLabs screen, deliberately, so
+ *  anything that belongs on one is drawn by it.
+ *
+ *  A site with no key cannot describe anything, so the button belongs exactly
+ *  where somebody has just found that out.
  */
-function vergeml_connect_notices() {
+function vergeml_connect_banner() {
 
-    $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-    if ( null === $screen || false === strpos( (string) $screen->id, 'media-ai' ) ) {
-        return;
-    }
     if ( ! current_user_can( 'manage_options' ) ) {
         return;
     }

@@ -104,7 +104,7 @@ if ( ! defined( 'VERGEML_CREDITS_TTL' ) ) {
 function vergeml_ai_refresh_credits( $force = false ) {
 
     $settings = vergeml_ai_settings();
-    $key      = isset( $settings['license_key'] ) ? (string) $settings['license_key'] : '';
+    $key      = vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
     $cached   = get_option( 'vergeml_ai_credits', array() );
     $known    = isset( $cached['remaining'] ) ? (int) $cached['remaining'] : null;
 
@@ -1707,6 +1707,13 @@ function vergeml_ai_page() {
 
     ?>
     <div class="wrap vgml-home vgml-ai">
+
+        <?php
+        // One button instead of a copied key. Nothing to show once connected.
+        if ( function_exists( 'vergeml_connect_banner' ) ) {
+            vergeml_connect_banner();
+        }
+        ?>
 
         <?php
         /*
