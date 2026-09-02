@@ -28,5 +28,9 @@ jobs:
 
       - name: whether the short vector finds what the long one would
         run: |
+          # tools/ is deliberately not part of a deploy, so the measurement is
+          # carried over on its own and removed again when it has answered.
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no \
+            tools/box-projection-recall.php root@46.225.66.194:/tmp/vgml-recall.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
             'bash -s' < tools/box-projection-recall.sh
