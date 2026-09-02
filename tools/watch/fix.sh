@@ -62,9 +62,7 @@ $FLOOR
 git add -A
 git -c user.name=watch-fix -c user.email=noreply@vergelabs.nl commit -q -m "fix: $TITLE
 
-Drafted by the watch's fix step for #$ISSUE.
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
+Drafted by the watch's fix step for #$ISSUE."
 git push -q -u origin "$BRANCH"
 
 gh pr create $DRAFT --title "fix: $TITLE" --base main --head "$BRANCH" --body "Closes #$ISSUE
