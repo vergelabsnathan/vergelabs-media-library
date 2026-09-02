@@ -28,7 +28,19 @@ if ( $total < 20 ) {
     return;
 }
 
-printf( "%d described pictures, slices of %d, %d per pass\n\n", $total, VERGEML_TALK_SLICE, VERGEML_TALK_PASS );
+/*
+ *  Forced small, so this library needs several passes.
+ *
+ *  The first version of this ran with the shipping sizes against 205
+ *  pictures, finished in the opening pass, and printed PASS -- proving that
+ *  re-filing works when it never has to resume, which is the one case that
+ *  was never broken. Resumption is the whole change; a check that cannot
+ *  reach it is a check that cannot fail.
+ */
+add_filter( 'vergeml_talk_slice', function () { return 25; } );
+add_filter( 'vergeml_talk_pass',  function () { return 50; } );
+
+printf( "%d described pictures, slices of 25, 50 per pass -- so this must resume\n\n", $total );
 
 $folders = array(
     array( 'name' => 'Apparel',   'parent' => '', 'matches' => 'clothing, shoes, bags worn or displayed' ),
@@ -83,7 +95,12 @@ printf( "\nafter %d more pass(es): seen %d of %d, moved %d, skipped %d\n",
 $seen    = (int) $final['seen'];
 $covered = $seen >= $total;
 
-printf( "\n%s every described picture was looked at (%d of %d)\n",
+printf( "\n%s the job actually had to resume (%d further pass(es), more than one needed)\n",
+    $turns > 0 ? 'PASS:' : 'FAIL:',
+    $turns
+);
+
+printf( "%s every described picture was looked at (%d of %d)\n",
     $covered ? 'PASS:' : 'FAIL:',
     $seen,
     $total

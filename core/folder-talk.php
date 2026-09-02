@@ -544,6 +544,18 @@ function vergeml_talk_refile_run( $deadline ) {
 	$undo = array();
 	$pass = 0;
 
+	/*
+	 *  Filterable, and not only for the test that drives them.
+	 *
+	 *  A host with a short execution limit wants smaller slices, and a box with
+	 *  room wants larger ones. They are also the only way to make a library of
+	 *  two hundred take more than one pass, and a resumption that is never
+	 *  exercised is a resumption nobody has established works -- which is how
+	 *  this stopped at five thousand for as long as it did.
+	 */
+	$slice  = max( 1, (int) apply_filters( 'vergeml_talk_slice', VERGEML_TALK_SLICE ) );
+	$budget = max( 1, (int) apply_filters( 'vergeml_talk_pass', VERGEML_TALK_PASS ) );
+
 	do {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
 		$rows = $wpdb->get_results( $wpdb->prepare(
@@ -553,7 +565,7 @@ function vergeml_talk_refile_run( $deadline ) {
 		   ORDER BY attachment_id ASC
 			  LIMIT %d",
 			(int) $state['after'],
-			VERGEML_TALK_SLICE
+			$slice
 		), ARRAY_A );
 		// phpcs:enable
 
@@ -610,11 +622,11 @@ function vergeml_talk_refile_run( $deadline ) {
 
 		$pass += count( (array) $rows );
 
-		if ( count( (array) $rows ) < VERGEML_TALK_SLICE ) {
+		if ( count( (array) $rows ) < $slice ) {
 			vergeml_talk_refile_finish( $state );
 			break;
 		}
-	} while ( $pass < VERGEML_TALK_PASS && microtime( true ) < $deadline );
+	} while ( $pass < $budget && microtime( true ) < $deadline );
 
 	if ( $undo ) {
 
