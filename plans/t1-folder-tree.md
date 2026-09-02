@@ -84,7 +84,7 @@ From the interview. Each one is a constraint, not a preference:
 ## Context
 
 **Read first:**
-- `CLAUDE.md` — the constraints, especially PHP 7.4, no build step, and safe-mode load order
+- the constraints notes — the constraints, especially PHP 7.4, no build step, and safe-mode load order
 - `js/vergeml-media-views.js:1-35` — the doctrine comment. Three patching styles, only two safe.
   `_.extend(prototype)` replaces core and is what broke the toolbar in WordPress 7.0.
 - `js/vergeml-media-views.js:254-325` — `AttachmentFilters.Taxonomy`. **This is the filter
@@ -178,7 +178,7 @@ What we deliberately do not take:
 
 ## Validation strategy
 
-Gates 1–5 of `.claude/skills/validate` all apply. Gate 7 (upgrade path) applies because task 16
+Gates 1–5 of the internal validation gates all apply. Gate 7 (upgrade path) applies because task 16
 adds a setting. Specifically:
 
 - **Query-count budget is the regression gate.** `vergeml/v1/tree` stays at **4 queries**. The

@@ -229,7 +229,7 @@ so nobody reaches for a database first.
 - `docs/ai-roadmap.md` — Phase 2 and Phase 3. Phase 3 constrains this: it
   renders branches with counts, sample thumbs, a reason and an agreement
   distribution, so the data this phase stores has to include all of that.
-- `.claude/skills/validate/SKILL.md` — the seven gates and the corrected
+- the internal validation gates — the seven gates and the corrected
   Plugin Check command.
 - `tools/verify.mjs` — how suites are run now, and where a new one is
   registered.

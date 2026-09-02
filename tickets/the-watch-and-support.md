@@ -16,7 +16,7 @@ drafted on a branch when the break is proven. Three outcomes:
 - yellow: passes, but the changelog or deprecations touch our surface → plan as
   a GitHub issue, no code
 - red: a symbol we depend on is gone, or a suite fails → issue with the plan
-  AND a fix branch + PR from a non-interactive Claude Code run; a human merges
+  AND a fix branch + PR from a non-interactive agent-CLI run; a human merges
 
 **System 2 — support that answers.** First-line support with the facts in
 hand: the customer's plan/credits/sites/recent failures (service DB, Braintrust,

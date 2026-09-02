@@ -112,9 +112,9 @@ Every line below was answered explicitly in the prime interview (27-08-2026).
 - `core/admin-menu.php` — how submenu pages and the home cards register.
 - `vergelabs-media-library.php` around the safe-mode guard — where
   `core/librarian.php` loads (inside the guard, after `core/organize.php`).
-- `CLAUDE.md` — PHP 7.4 floor, no build step, attach-never-replace, version
+- the constraints notes — PHP 7.4 floor, no build step, attach-never-replace, version
   triple, options migrations.
-- `.claude/skills/validate/SKILL.md` — the seven gates and the Plugin Check
+- the internal validation gates — the seven gates and the Plugin Check
   invocation.
 - `tools/verify.mjs` — suite registration and the lock; `tests/perf/bench.mjs`
   — where the new endpoints' budgets are asserted.

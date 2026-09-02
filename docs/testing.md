@@ -1,8 +1,7 @@
 # Testing
 
 Two environments, one runner, and a set of traps that have each cost a session
-at least once. `CLAUDE.md` points here for the detail; the gates themselves are
-in `.claude/skills/validate/SKILL.md` and are not repeated.
+at least once. The gates themselves live in the internal validation notes and are not repeated.
 
 ## The two environments, and what each one can answer
 
@@ -42,7 +41,7 @@ This plugin exists in three places at once, and they do not agree unless made to
 
 | Copy | Where | Updated by |
 |---|---|---|
-| the source | `C:\Users\viete\Desktop\🟢 Claude Projects\Media Plugin\plugin` | editing it |
+| the source | `<your local checkout>` | editing it |
 | the Playground zip | `playground/vergelabs-media-library.zip`, served to the world over the repo's raw URL | `pnpm deploy` |
 | the box | `46.225.66.194:/var/www/wp/wp-content/plugins/…` | `pnpm deploy` |
 
@@ -185,7 +184,7 @@ Without it Git Bash rewrites `/wordpress/...` into
 `C:/Program Files/Git/wordpress/...`. The mount is two arguments:
 
     MSYS_NO_PATHCONV=1 npx --yes @wp-playground/cli@latest server --port 8899 \
-      --mount-dir "C:\Users\viete\Desktop\🟢 Claude Projects\Media Plugin\plugin" /wordpress/wp-content/plugins/vergelabs-media-library \
+      --mount-dir "<your local checkout>" /wordpress/wp-content/plugins/vergelabs-media-library \
       --blueprint=tests/tree/blueprint.json
 
 A blueprint's `installPlugin` collides with `--mount-dir` ("Device or resource
@@ -205,7 +204,7 @@ Performance and Accessibility.
 
 Always check a **clean archive**, never the working tree: `git archive` honours
 `.gitattributes`, so it contains what users install. Checking the working
-folder reports `.claude`, `CLAUDE.md`, `tests/` and `tools/` as findings, and
+folder reports the internal dev folders, `tests/` and `tools/` as findings, and
 burying a real one under them is how a real one gets missed.
 
 ### An autoloaded option is only free once it exists

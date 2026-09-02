@@ -76,7 +76,7 @@ library.
     "query the backlog, process a capped batch" shape.
   - `vergelabs-media-library.php` line ~1176 — the safe-mode guard all
     feature files load inside.
-  - `.claude/skills/validate/SKILL.md` — the gates this must pass.
+  - the internal validation gates — the gates this must pass.
 - Files that change:
   - `vergelabs-media-library.php` — one include line for `core/health.php`,
     one for `core/instrument.php`.

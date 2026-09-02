@@ -3,7 +3,7 @@
 These break the plugin on purpose and check that the site comes back.
 
     npx @wp-playground/cli server --port 8899 \
-      --mount-dir 'C:\Users\viete\Desktop\🟢 Claude Projects\Media Plugin\plugin' /wordpress/wp-content/plugins/vergelabs-media-library \
+      --mount-dir '<your local checkout>' /wordpress/wp-content/plugins/vergelabs-media-library \
       --blueprint blueprint.json
 
     node recovery.js      # the whole ladder, 10 assertions

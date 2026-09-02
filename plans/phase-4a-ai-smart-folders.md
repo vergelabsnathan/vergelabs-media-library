@@ -144,9 +144,9 @@ Every line below was answered explicitly in the prime interview (27-08-2026).
   `filters_to_show` checkboxes, which is where the fifth goes.
 - `docs/ai-roadmap.md` — Phase 4, and the standing rules. Read the vocabulary
   law before naming anything.
-- `CLAUDE.md` — PHP 7.4 floor, no build step, attach-never-replace, the version
+- the constraints notes — PHP 7.4 floor, no build step, attach-never-replace, the version
   triple, and the options-migration rule.
-- `.claude/skills/validate/SKILL.md` — the seven gates.
+- the internal validation gates — the seven gates.
 
 **Files that change**
 
@@ -333,7 +333,7 @@ additive and reversible.
 
 ## Validation strategy
 
-All seven gates in `.claude/skills/validate/SKILL.md`.
+All seven gates in the internal validation gates.
 
 - **Gate 1 and 2** as always — one new PHP file, PHP 7.4 floor, no `match`, no
   nullsafe, no arrow-only syntax.

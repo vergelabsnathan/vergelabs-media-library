@@ -65,7 +65,7 @@ support goes on decisions, not on discovery.
   default: one month of the plan's credits. Anything with the words refund,
   chargeback, GDPR, delete my data, lawyer, or an angry tone score above the
   threshold: escalate, do not answer.
-- **Models through OpenRouter.** Answer drafting: Claude Sonnet; brief
+- **Models through OpenRouter.** Answer drafting: Sonnet (through OpenRouter); brief
   writing: same; classification: Haiku.
 - **Privacy**: the report contains site URL and plugin list; the consent line
   says so; reports are deleted 90 days after a ticket closes; the DPA names

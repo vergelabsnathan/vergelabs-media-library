@@ -7,7 +7,7 @@
 # Secrets (gh secret set ...):
 #   BOX_SSH_KEY              private key for root@46.225.66.194 -- enables the box signal and the stage leg
 #   OPENROUTER_API_KEY       plans for yellow/red issues
-#   CLAUDE_CODE_OAUTH_TOKEN  the red fix step (claude setup-token; only Nathan can mint it)
+#   CLAUDE_CODE_OAUTH_TOKEN  the red fix step (a token only Nathan can mint)
 # Without a secret the step that needs it is skipped and the issue says so.
 
 name: watch

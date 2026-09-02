@@ -49,7 +49,7 @@ before I do.
   - yellow — passes, but the changelog or a deprecation notice names our
     surface → plan as a GitHub issue. No code.
   - red — contract broken or a stage suite failed → issue with the plan, plus
-    a fix branch and PR from a non-interactive `claude -p` run. A human merges.
+    a fix branch and PR from a non-interactive agent-CLI run. A human merges.
 - **Nothing red or yellow ever commits to main. No verdict ever deploys to
   wordpress.org.**
 - **The stage is a third site on the box**, `/var/www/upd`
@@ -75,8 +75,8 @@ before I do.
 - **Plans are written by a model through OpenRouter**, given the contract diff,
   the changelog excerpt, the failing suite output and the files named in the
   contract. The plan goes in the issue body in the `plans/` format. Model:
-  Claude via OpenRouter, never a direct Anthropic key.
-- **The autonomous fix is `claude -p`** in the Action on a branch
+  Sonnet via OpenRouter, never a direct provider key.
+- **The autonomous fix is a non-interactive agent-CLI run** in the Action on a branch
   `watch/<slug>-<version>`, prompt = the plan, permission mode restricted to
   the repo, followed by the PHP lint and the contract check; it opens a PR with
   the gate output. If the run cannot make the gate green, the PR is opened as
@@ -122,7 +122,7 @@ before I do.
   `core/seo-context.php`, `core/multilingual.php`, `core/health-delete.php`,
   `core/compatibility.php` — where the contract symbols live. The contract
   file is derived from these, with `file:line` for each symbol.
-- `.claude/skills/validate/SKILL.md` — gates 1–3 are what the Action can run
+- the internal validation gates — gates 1–3 are what the Action can run
   without a box; the contract check becomes gate 8.
 
 **Files that change**
@@ -145,7 +145,7 @@ before I do.
 - `tools/watch/triage.mjs` — turns watch + contract + stage results into a
   verdict, writes the issue body (calls OpenRouter for yellow/red plans),
   appends `known-issues.json`, performs the green edit.
-- `tools/watch/fix.sh` — the `claude -p` branch/PR step for red.
+- `tools/watch/fix.sh` — the agent-CLI branch/PR step for red.
 - `tools/watch/known-issues.json` — the feed.
 - `tests/watch/contract.test.mjs` — the contract check against a fixture zip
   with one symbol deliberately removed; the watcher's "cannot fail" guard.
@@ -163,7 +163,7 @@ before I do.
 - https://www.php.net/releases/index.php?json&version=8
 - https://core.trac.wordpress.org/query?milestone=6.9&component=Media&format=csv
 - https://github.com/PHPCompatibility/PHPCompatibilityWP
-- https://docs.anthropic.com/en/docs/claude-code/cli-reference (`claude -p`,
+- the agent CLI reference (non-interactive mode,
   `--allowedTools`, `--permission-mode`)
 - https://openrouter.ai/docs/api-reference/chat-completion
 - https://cli.github.com/manual/gh_secret_set
@@ -217,12 +217,12 @@ before I do.
    "verified against" changelog note (plugin) and stage the change; yellow /
    red → build the plan prompt (contract diff, changelog excerpt ≤ 4k chars,
    stage output ≤ 8k chars, the `usedIn` files' relevant functions), call
-   OpenRouter `anthropic/claude-sonnet-4.5` (cheap enough nightly; the fix
+   OpenRouter `the Sonnet model id set in triage.mjs` (cheap enough nightly; the fix
    step uses the stronger model), write the issue body in the `plans/`
    format, `gh issue create --label watch,watch:<verdict>`; append
    `known-issues.json`.
 8. **Fix step.** `tools/watch/fix.sh <issue>`: `git switch -c
-   watch/<slug>-<version>`, `claude -p "$(plan)" --permission-mode
+   watch/<slug>-<version>`, the agent CLI with the plan as prompt (`--permission-mode
    acceptEdits --allowedTools Edit,Write,Read,Grep,Glob,Bash(php -l *)
    --max-turns 40`, then `node tools/watch/contract-check.mjs` against the
    new release and gate 1; `gh pr create --draft` when either fails, a normal
@@ -236,7 +236,7 @@ before I do.
    `secrets.BOX_SSH_KEY` is set (`ssh -i` with the key written to a temp
    file, `stage.sh` per moved item), triage, commit state + green edits +
    known-issues with `git push`, fix step when red and
-   `secrets.OPENROUTER_API_KEY` and the Claude Code OAuth token are set.
+   `secrets.OPENROUTER_API_KEY` and the agent-CLI OAuth token are set.
    Concurrency group so two runs cannot both push.
 10. **Secrets.** `gh secret set BOX_SSH_KEY < ~/.ssh/hetzner_vgml`,
     `gh secret set OPENROUTER_API_KEY`, `gh secret set
@@ -285,7 +285,7 @@ secrets). Both are reversible: `rm -rf /var/www/upd`, `DROP DATABASE wpupd`,
 - **A model-written plan that is wrong.** It is a plan in an issue, read by a
   person; red's PR is a draft when the gate is not green. Neither reaches
   main on its own.
-- **`claude -p` in CI needs an OAuth token that only Nathan can mint**, and
+- **the agent CLI in CI needs an OAuth token that only Nathan can mint**, and
   it consumes his subscription. Task 10 states this; the red path degrades
   to issue-only without it.
 - **Concurrent pushes**: the Action commits state; a human pushing at the

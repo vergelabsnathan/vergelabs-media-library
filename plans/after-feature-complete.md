@@ -230,10 +230,10 @@ toast. An afternoon.
 
 ## 10. Debt
 
-- **`docs/testing.md` does not exist** but `CLAUDE.md` sends every session to it
+- **`docs/testing.md` does not exist** but the working notes send every session to it
   "for the full detail". Either write it — Playground invocations, the box, the
   suites, the traps — or remove the reference. Writing it is better; those
-  details are currently spread across CLAUDE.md, the validate skill and folklore.
+  details are currently spread across the working notes, the validate gates and folklore.
 - **The 20,000-attachment benchmark dataset is gone.** The FileBird head-to-head
   in `docs/benchmarks.md` cannot be reproduced. Rebuild the seed on Hetzner with
   `tools/fixtures.php` at scale so the comparison is re-runnable, then re-measure

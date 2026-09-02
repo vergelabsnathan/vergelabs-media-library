@@ -136,7 +136,7 @@ that the harness was quiet.
     `vergeml_autofile_suggest()` (~241), `vergeml_autofile_sweep()` (~516).
     Read to understand, **not** to change.
   - `core/quarantine.php` — `vergeml_quarantine_manifest()` (~197). Same.
-  - `.claude/skills/validate/SKILL.md` — the gates this must pass.
+  - the internal validation gates — the gates this must pass.
 - **Files that change:**
   - `tests/tree/auto-file.php` — own taxonomy, id-scoped teardown.
   - `tests/tree/quarantine.php` — manifest assertion scoped to its own seeds,
@@ -199,7 +199,7 @@ must be reverted in the same task.
 ## Validation strategy
 
 - **Gates 1–5 always.** No new REST endpoint, so there is no new query-count
-  budget; the existing budgets in `.claude/skills/validate/SKILL.md` must not
+  budget; the existing budgets in the internal validation gates must not
   move — `vergeml/v1/tree` is **7** in both environments as of `f716620`, and
   `health-report` is 3 with nothing to show and 5 with groups shown.
 - **Gates 6 and 7 are formally skippable** — `tests/` and `tools/` are
