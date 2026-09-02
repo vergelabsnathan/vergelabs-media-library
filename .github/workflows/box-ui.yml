@@ -1,0 +1,85 @@
+name: box-ui
+
+# The admin screens, driven the way a person drives them.
+#
+# Runs after the box has the change, because a suite testing yesterday's code
+# is worse than no suite. The administrator it signs in as exists only for the
+# length of the run.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.php'
+      - 'js/**'
+      - 'css/**'
+      - 'tests/ui/**'
+      - '.github/workflows/box-ui.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: box-ui
+  cancel-in-progress: true
+
+jobs:
+  drive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: the key
+        env:
+          BOX_SSH_KEY: ${{ secrets.BOX_SSH_KEY }}
+        run: |
+          if [ -z "$BOX_SSH_KEY" ]; then echo "BOX_SSH_KEY is not set." >&2; exit 1; fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$BOX_SSH_KEY" > ~/.ssh/hetzner_vgml
+          chmod 600 ~/.ssh/hetzner_vgml
+          ssh-keyscan -H 46.225.66.194 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: wait for the box to have this commit
+        run: sleep 25
+
+      - name: an administrator, for this run only
+        id: who
+        run: |
+          PW="$(openssl rand -base64 24 | tr -d '/+=' | head -c 28)"
+          echo "::add-mask::$PW"
+          echo "pw=$PW" >> "$GITHUB_OUTPUT"
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
+            "ACTION=create UI_USER=vgml-ui UI_PASS='$PW' bash -s" < tools/box-ui-user.sh
+
+      - name: drive the screens
+        env:
+          UI_BASE: http://46.225.66.194
+          UI_USER: vgml-ui
+          UI_PASS: ${{ steps.who.outputs.pw }}
+        run: pnpm test:ui
+
+      - name: take the administrator away again
+        if: always()
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
+            "ACTION=delete UI_USER=vgml-ui bash -s" < tools/box-ui-user.sh
+
+      - name: keep the trace of anything that failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-report
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

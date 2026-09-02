@@ -1,29 +1,31 @@
 {
-  "name": "vergelabs-media-library-dev",
-  "private": true,
-  "description": "Dev harness only. Nothing here ships -- the plugin has no build step.",
-  "scripts": {
-    "play": "node tools/play.mjs",
-    "deploy": "node tools/deploy.mjs",
-    "deploy:check": "node tools/deploy.mjs --check",
-    "deploy:zip": "node tools/deploy.mjs --zip",
-    "deploy:box": "node tools/deploy.mjs --box",
-    "smoke": "node tools/deploy.mjs --box && node tools/smoke.mjs",
-    "flow:health": "node tools/flow-health.mjs",
-    "flow:rest": "node tools/flow-rest-blocked.mjs",
-    "flow:wpbakery": "node tools/flow-wpbakery.mjs",
-    "flow:builders": "node tools/flow-builders.mjs",
-    "test:multisite": "node tools/multisite.mjs",
-    "rtl": "node tools/rtl.mjs",
-    "rtl:check": "node tools/rtl.mjs --check",
-    "verify": "node tools/verify.mjs",
-    "test:tree": "node tests/tree/t0-endpoints.js",
-    "test:builders": "node tests/builders/compat.mjs",
-    "watch": "node tools/watch/watch.mjs",
-    "bench": "node tests/perf/bench.mjs"
-  },
-  "devDependencies": {
-    "playwright": "^1.49.0",
-    "rtlcss": "^4.3.0"
-  }
+	"name": "vergelabs-media-library-dev",
+	"private": true,
+	"description": "Dev harness only. Nothing here ships -- the plugin has no build step.",
+	"scripts": {
+		"play": "node tools/play.mjs",
+		"deploy": "node tools/deploy.mjs",
+		"deploy:check": "node tools/deploy.mjs --check",
+		"deploy:zip": "node tools/deploy.mjs --zip",
+		"deploy:box": "node tools/deploy.mjs --box",
+		"smoke": "node tools/deploy.mjs --box && node tools/smoke.mjs",
+		"flow:health": "node tools/flow-health.mjs",
+		"flow:rest": "node tools/flow-rest-blocked.mjs",
+		"flow:wpbakery": "node tools/flow-wpbakery.mjs",
+		"flow:builders": "node tools/flow-builders.mjs",
+		"test:multisite": "node tools/multisite.mjs",
+		"rtl": "node tools/rtl.mjs",
+		"rtl:check": "node tools/rtl.mjs --check",
+		"verify": "node tools/verify.mjs",
+		"test:tree": "node tests/tree/t0-endpoints.js",
+		"test:builders": "node tests/builders/compat.mjs",
+		"watch": "node tools/watch/watch.mjs",
+		"bench": "node tests/perf/bench.mjs",
+		"test:ui": "playwright test --config tests/ui/playwright.config.mjs"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.62.1",
+		"playwright": "^1.49.0",
+		"rtlcss": "^4.3.0"
+	}
 }

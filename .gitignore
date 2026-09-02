@@ -36,3 +36,7 @@ vendor/
 # local dev tooling, never published
 /.claude/
 /CLAUDE.md
+
+# playwright
+/test-results/
+/playwright-report/
