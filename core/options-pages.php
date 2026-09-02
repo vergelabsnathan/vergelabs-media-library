@@ -2587,7 +2587,7 @@ function vergeml_print_taxonomies_options() {
 
                             <div class="inside">
 
-                                <p><?php esc_html_e('Assign following taxonomies to Media Library:','vergelabs-media-library'); ?></p>
+                                <p><?php esc_html_e( 'Tick a taxonomy to show it on media, in the filter bar and in the edit panel:', 'vergelabs-media-library' ); ?></p>
 
                                 <?php $html = '';
 
@@ -2776,7 +2776,7 @@ function vergeml_print_taxonomies_options() {
 
                             <div class="inside">
 
-                                <p><?php esc_html_e('Assign following taxonomies to Media Library:','vergelabs-media-library'); ?></p>
+                                <p><?php esc_html_e( 'Tick a taxonomy to show it on media, in the filter bar and in the edit panel:', 'vergelabs-media-library' ); ?></p>
 
                                 <?php $unuse = array('revision','nav_menu_item','attachment');
 
