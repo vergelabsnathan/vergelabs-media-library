@@ -41,3 +41,11 @@ jobs:
             tools/box-folder-quality.php root@46.225.66.194:/tmp/vgml-folders.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
             'bash -s' < tools/box-folder-quality.sh
+
+      # Costs one planning call. Not on the push path for that reason.
+      - name: whether a folder plan comes back, and follows the instruction
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no \
+            tools/box-plan-check.php root@46.225.66.194:/tmp/vgml-plan.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
+            'bash -s' < tools/box-plan-check.sh
