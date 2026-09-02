@@ -18,7 +18,20 @@ $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_
 
 printf( "taxonomy: %s\n", $taxonomy );
 
-$terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => true, 'number' => 5 ) );
+/*
+ *  The biggest folder, not the first one alphabetically.
+ *
+ *  The first version took whichever folder came back first and landed on one
+ *  holding sixteen files, which answers a question nobody asked: of course
+ *  sixteen files are quick. The complaint is about a real folder.
+ */
+$terms = get_terms( array(
+    'taxonomy'   => $taxonomy,
+    'hide_empty' => true,
+    'orderby'    => 'count',
+    'order'      => 'DESC',
+    'number'     => 5,
+) );
 
 if ( is_wp_error( $terms ) || ! $terms ) {
     echo "no folders with anything in them\n";
@@ -26,7 +39,44 @@ if ( is_wp_error( $terms ) || ! $terms ) {
 }
 
 $term = $terms[0];
-printf( "picking folder \"%s\" (%d files)\n\n", $term->name, (int) $term->count );
+printf( "picking the largest folder, \"%s\" (%d files)\n\n", $term->name, (int) $term->count );
+
+// ------------------------------------------------- the library as a whole
+
+$library = (int) $wpdb->get_var(
+    "SELECT COUNT(*) FROM {$wpdb->posts}
+      WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%'"
+);
+
+$no_thumb = 0;
+$heavy    = 0;
+$lib_bytes = 0;
+
+$ids = $wpdb->get_col(
+    "SELECT ID FROM {$wpdb->posts}
+      WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%'
+      LIMIT 800"
+);
+
+foreach ( (array) $ids as $one ) {
+    $m = wp_get_attachment_metadata( (int) $one );
+    if ( ! is_array( $m ) || empty( $m['sizes']['thumbnail'] ) ) {
+        $no_thumb++;
+    }
+    $f = get_attached_file( (int) $one );
+    if ( $f && file_exists( $f ) ) {
+        $b = (int) filesize( $f );
+        $lib_bytes += $b;
+        if ( $b > 1048576 ) {
+            $heavy++;
+        }
+    }
+}
+
+$looked = max( 1, count( (array) $ids ) );
+
+printf( "library: %d images; of %d looked at, %d have no thumbnail (%d%%), %d are over 1 MB, average %.2f MB\n\n",
+    $library, $looked, $no_thumb, (int) round( 100 * $no_thumb / $looked ), $heavy, $lib_bytes / $looked / 1048576 );
 
 // ---------------------------------------------------------------- the query
 
