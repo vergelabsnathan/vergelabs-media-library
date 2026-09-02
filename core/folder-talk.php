@@ -188,7 +188,7 @@ function vergeml_talk_propose( $instruction, $history = array() ) {
 		array(
 			// Longer than a search: this is a person waiting on one answer,
 			// having pressed a button, with a spinner in front of them.
-			'timeout'   => 45,
+			'timeout'   => 90,
 			'headers'   => array( 'Content-Type' => 'application/json' ),
 			'sslverify' => true,
 			'body'      => wp_json_encode( array(
