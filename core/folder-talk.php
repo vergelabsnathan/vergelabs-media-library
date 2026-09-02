@@ -19,11 +19,16 @@
  *              described picture is re-filed into whichever new folder its
  *              meaning is closest to.
  *
- *  Re-filing costs nothing. Every described picture already carries the vector
- *  the search box compares against; a new folder needs one vector for its own
- *  name, and then it is arithmetic. So reorganising ten thousand pictures
- *  costs the same as reorganising ten: nothing, and no picture is looked at
- *  twice.
+ *  Re-filing costs no credits. Every described picture already carries the
+ *  vector the search box compares against; a new folder needs one vector for
+ *  its own name, and then it is arithmetic. Nothing is described again and
+ *  nothing is charged for twice.
+ *
+ *  It does cost time, which this used to deny. Comparing every picture against
+ *  every folder is a few seconds for five thousand and half a minute for a
+ *  hundred thousand, so a job larger than one pass finishes in the background
+ *  and remembers where it got to. It used to stop at five thousand and say it
+ *  was done.
  *
  *  Nothing here deletes a picture. A folder that goes away is a term that goes
  *  away; the files in it are re-filed, not removed.
@@ -35,8 +40,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** How many described files to re-file in one pass. */
+/** How many described files to sample when showing the model the library. */
 const VERGEML_TALK_SCAN = 5000;
+
+/** How many described files one slice of a re-filing job reads. */
+const VERGEML_TALK_SLICE = 500;
+
+/** How many a single pass gets through before leaving the rest to the next. */
+const VERGEML_TALK_PASS = 5000;
+
+/** Seconds a background pass may spend before handing back to cron. */
+const VERGEML_TALK_BUDGET = 15.0;
+
+/** Where a re-filing job remembers what it has done. */
+const VERGEML_TALK_STATE = 'vergeml_talk_refile';
+
+/** The cron hook that carries an unfinished re-filing job on. */
+const VERGEML_TALK_HOOK = 'vergeml_talk_refile_event';
 
 /** Below this, a picture matches nothing well enough and stays where it is. */
 const VERGEML_TALK_FLOOR = 0.16;
@@ -420,112 +440,329 @@ function vergeml_talk_apply( $folders ) {
 
 	// ------------------------------------------------------- the re-filing
 
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-	$rows = $wpdb->get_results( $wpdb->prepare(
-		"SELECT attachment_id, embedding
-		   FROM {$wpdb->vergeml_ai_index}
-		  WHERE error = '' AND embedding IS NOT NULL
-		  LIMIT %d",
-		VERGEML_TALK_SCAN
-	), ARRAY_A );
-	// phpcs:enable
+	/*
+	 *  Started here, finished in the background.
+	 *
+	 *  This re-filed in one pass under a LIMIT of five thousand, with no ORDER BY
+	 *  and nothing to carry on with. On a library of twenty thousand that filed
+	 *  five thousand pictures, said it was done, and left the other fifteen
+	 *  thousand exactly where they were -- and because nothing recorded where the
+	 *  pass had reached, running it again re-examined whichever arbitrary five
+	 *  thousand MySQL happened to hand back. The file header promised that
+	 *  reorganising ten thousand pictures cost the same as reorganising ten. It
+	 *  did not: it silently did a fraction of the work and reported success.
+	 *
+	 *  So the folders are created here and the re-filing becomes a job that
+	 *  remembers where it got to. One pass runs now, so a library smaller than a
+	 *  pass is simply finished when the button comes back; anything larger
+	 *  continues on cron, in slices, from the last picture it filed.
+	 */
 
-	$moved   = 0;
-	$skipped = 0;
-	$counts  = array();
-
-	foreach ( (array) $rows as $row ) {
-
-		$attachment = (int) $row['attachment_id'];
-
-		/*
-		 *  The whole embedding, because it is already here.
-		 *
-		 *  This projected 1536 dimensions down to 64 by averaging each run of
-		 *  twenty-four adjacent components -- and adjacent components of an
-		 *  embedding are arbitrary independent directions, not neighbours that
-		 *  mean similar things, so averaging them is closer to discarding the
-		 *  vector than compressing it. That is how a Footwear folder came to
-		 *  hold a bicycle, a couch and some flowers.
-		 *
-		 *  The projection exists so search does not unpack every row on every
-		 *  query. Re-filing already has the row unpacked in front of it, so it
-		 *  pays nothing to be right.
-		 */
-		$vector = vergeml_index_vector_out( $row['embedding'] );
-
-		$best  = '';
-		$score = VERGEML_TALK_FLOOR;
-
-		foreach ( $vectors as $key => $folder_vector ) {
-
-			$here = vergeml_meaning_similarity( $folder_vector, $vector );
-
-			if ( $here > $score ) {
-				$score = $here;
-				$best  = $key;
-			}
-		}
-
-		if ( '' === $best ) {
-			$skipped++;
-			continue; // Nothing fits well enough. Leave it where it is.
-		}
-
-		// What it was in, so this can be undone.
-		$was = wp_get_object_terms( $attachment, $taxonomy, array( 'fields' => 'ids' ) );
-		$before['files'][ $attachment ] = is_wp_error( $was ) ? array() : array_map( 'intval', $was );
-
-		wp_set_object_terms( $attachment, array( $ids[ $best ] ), $taxonomy, false );
-
-		$counts[ $best ] = isset( $counts[ $best ] ) ? $counts[ $best ] + 1 : 1;
-		$moved++;
-	}
-
-	// ------------------------------------------------- the folders that went
-
-	$want    = array();
-	$removed = 0;
+	$remove = array();
+	$want   = array();
 
 	foreach ( $folders as $f ) {
 		$want[ mb_strtolower( $f['name'] ) ] = true;
 	}
 
 	foreach ( $before['terms'] as $term ) {
-
-		if ( isset( $want[ mb_strtolower( $term['name'] ) ] ) ) {
-			continue;
+		if ( ! isset( $want[ mb_strtolower( $term['name'] ) ] ) ) {
+			$remove[] = (int) $term['term_id'];
 		}
-
-		/*
-		 *  The term goes; the files do not. Anything that was in it has
-		 *  already been re-filed above, and wp_delete_term only unhooks the
-		 *  relationship -- there is no path from here to deleting a picture.
-		 */
-		wp_delete_term( (int) $term['term_id'], $taxonomy );
-		$removed++;
 	}
 
 	update_option( VERGEML_TALK_UNDO, $before, false );
 
-	return array(
-		'moved'   => $moved,
-		'skipped' => $skipped,
-		'folders' => count( $ids ),
-		'removed' => $removed,
-		'counts'  => $counts,
-		'message' => sprintf(
-			/* translators: 1: files moved, 2: how many folders they went into. */
-			_n(
-				'%1$s picture re-filed into %2$s folders.',
-				'%1$s pictures re-filed into %2$s folders.',
-				$moved,
-				'vergelabs-media-library'
-			),
-			number_format_i18n( $moved ),
-			number_format_i18n( count( $counts ) )
-		),
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+	$total = (int) $wpdb->get_var(
+		"SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
+		  WHERE error = '' AND embedding IS NOT NULL"
 	);
+	// phpcs:enable
+
+	update_option( VERGEML_TALK_STATE, array(
+		'active'   => true,
+		'taxonomy' => $taxonomy,
+		'ids'      => $ids,
+		'vectors'  => $vectors,
+		'after'    => 0,
+		'moved'    => 0,
+		'skipped'  => 0,
+		'seen'     => 0,
+		'total'    => $total,
+		'counts'   => array(),
+		/*
+		 *  Held until the end. Deleting a folder while pictures that belong in
+		 *  it have not been looked at yet would drop them out of every folder --
+		 *  the one way this screen could lose somebody's filing rather than
+		 *  change it.
+		 */
+		'remove'   => $remove,
+		'started'  => time(),
+	), false );
+
+	$state = vergeml_talk_refile_run( microtime( true ) + 5.0 );
+
+	if ( ! empty( $state['active'] ) ) {
+		vergeml_talk_refile_schedule();
+	}
+
+	return vergeml_talk_report( $state );
+}
+
+
+/**
+ *  Work through as much of the re-filing as the time allows.
+ *
+ * @param float $deadline When to stop and leave the rest to the next pass.
+ * @return array The state as it now stands.
+ */
+function vergeml_talk_refile_run( $deadline ) {
+
+	global $wpdb;
+
+	$state = get_option( VERGEML_TALK_STATE );
+
+	if ( ! is_array( $state ) || empty( $state['active'] ) ) {
+		return is_array( $state ) ? $state : array( 'active' => false );
+	}
+
+	$taxonomy = (string) $state['taxonomy'];
+
+	if ( ! taxonomy_exists( $taxonomy ) ) {
+		$state['active'] = false;
+		update_option( VERGEML_TALK_STATE, $state, false );
+		return $state;
+	}
+
+	/*
+	 *  What each picture was in, collected in memory and written once when the
+	 *  pass ends. Appending to the undo record slice by slice would rewrite an
+	 *  option megabytes long a few hundred times over a large library, which
+	 *  costs more than the re-filing it is recording.
+	 */
+	$undo = array();
+	$pass = 0;
+
+	do {
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT attachment_id, embedding
+			   FROM {$wpdb->vergeml_ai_index}
+			  WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d
+		   ORDER BY attachment_id ASC
+			  LIMIT %d",
+			(int) $state['after'],
+			VERGEML_TALK_SLICE
+		), ARRAY_A );
+		// phpcs:enable
+
+		foreach ( (array) $rows as $row ) {
+
+			$attachment = (int) $row['attachment_id'];
+
+			// Ordered by id and remembered, so a pass that stops halfway leaves a
+			// place to carry on from rather than a sample to take again.
+			$state['after'] = $attachment;
+			$state['seen']  = (int) $state['seen'] + 1;
+
+			/*
+			 *  The whole embedding, because it is already here.
+			 *
+			 *  This projected it down to 64 dimensions by averaging runs of
+			 *  adjacent components first -- and adjacent components of an
+			 *  embedding are arbitrary independent directions, not neighbours
+			 *  that mean similar things, so averaging them is closer to
+			 *  discarding the vector than compressing it. That is how a Footwear
+			 *  folder came to hold a bicycle, a couch and some flowers.
+			 */
+			$vector = vergeml_index_vector_out( $row['embedding'] );
+
+			$best  = '';
+			$score = VERGEML_TALK_FLOOR;
+
+			foreach ( (array) $state['vectors'] as $key => $folder_vector ) {
+
+				$here = vergeml_meaning_similarity( $folder_vector, $vector );
+
+				if ( $here > $score ) {
+					$score = $here;
+					$best  = $key;
+				}
+			}
+
+			if ( '' === $best || ! isset( $state['ids'][ $best ] ) ) {
+				$state['skipped'] = (int) $state['skipped'] + 1;
+				continue; // Nothing fits well enough. Leave it where it is.
+			}
+
+			$was = wp_get_object_terms( $attachment, $taxonomy, array( 'fields' => 'ids' ) );
+			$undo[ $attachment ] = is_wp_error( $was ) ? array() : array_map( 'intval', $was );
+
+			wp_set_object_terms( $attachment, array( (int) $state['ids'][ $best ] ), $taxonomy, false );
+
+			$state['counts'][ $best ] = isset( $state['counts'][ $best ] )
+				? (int) $state['counts'][ $best ] + 1
+				: 1;
+
+			$state['moved'] = (int) $state['moved'] + 1;
+		}
+
+		$pass += count( (array) $rows );
+
+		if ( count( (array) $rows ) < VERGEML_TALK_SLICE ) {
+			vergeml_talk_refile_finish( $state );
+			break;
+		}
+	} while ( $pass < VERGEML_TALK_PASS && microtime( true ) < $deadline );
+
+	if ( $undo ) {
+
+		$before = get_option( VERGEML_TALK_UNDO );
+
+		if ( is_array( $before ) ) {
+			/*
+			 *  The earliest record of a file wins. The union keeps what is
+			 *  already stored, which is where the file sat before any of this
+			 *  began -- and that, not where the last pass found it, is what undo
+			 *  has to put it back to.
+			 */
+			$before['files'] = ( isset( $before['files'] ) ? (array) $before['files'] : array() ) + $undo;
+			update_option( VERGEML_TALK_UNDO, $before, false );
+		}
+	}
+
+	update_option( VERGEML_TALK_STATE, $state, false );
+
+	return $state;
+}
+
+
+/**
+ *  The folders that go, once every picture has been looked at.
+ *
+ * @param array $state Taken by reference so the caller writes it once.
+ */
+function vergeml_talk_refile_finish( &$state ) {
+
+	$taxonomy = (string) $state['taxonomy'];
+
+	foreach ( (array) $state['remove'] as $term_id ) {
+
+		/*
+		 *  The term goes; the files do not. Anything that was in it has been
+		 *  re-filed by now, which is the reason this waited, and wp_delete_term
+		 *  only unhooks the relationship. There is no path from here to
+		 *  deleting a picture.
+		 */
+		wp_delete_term( (int) $term_id, $taxonomy );
+	}
+
+	$state['removed'] = count( (array) $state['remove'] );
+	$state['remove']  = array();
+	$state['active']  = false;
+}
+
+
+/** Ask WordPress to carry on, and do not wait for a visitor to make it. */
+function vergeml_talk_refile_schedule() {
+
+	if ( ! wp_next_scheduled( VERGEML_TALK_HOOK ) ) {
+		wp_schedule_single_event( time(), VERGEML_TALK_HOOK );
+	}
+
+	/*
+	 *  WP-Cron fires on page loads, so on a site nobody is browsing a job that
+	 *  says it is still going simply stops. The describe run learned that the
+	 *  hard way; re-filing makes the same promise and needs the same nudge.
+	 */
+	$url = add_query_arg( 'doing_wp_cron', sprintf( '%.22F', microtime( true ) ), site_url( 'wp-cron.php' ) );
+
+	wp_remote_post( $url, array(
+		'timeout'   => 0.01,
+		'blocking'  => false,
+		'sslverify' => false,
+	) );
+}
+
+
+add_action( VERGEML_TALK_HOOK, 'vergeml_talk_refile_event' );
+
+function vergeml_talk_refile_event() {
+
+	$state = vergeml_talk_refile_run( microtime( true ) + VERGEML_TALK_BUDGET );
+
+	if ( ! empty( $state['active'] ) ) {
+		vergeml_talk_refile_schedule();
+	}
+}
+
+
+/**
+ *  Where the re-filing has got to, in the words the screen uses.
+ *
+ * @param array $state
+ * @return array
+ */
+function vergeml_talk_report( $state ) {
+
+	$moved   = isset( $state['moved'] ) ? (int) $state['moved'] : 0;
+	$counts  = isset( $state['counts'] ) ? (array) $state['counts'] : array();
+	$total   = isset( $state['total'] ) ? (int) $state['total'] : 0;
+	$seen    = isset( $state['seen'] ) ? (int) $state['seen'] : 0;
+	$running = ! empty( $state['active'] );
+
+	return array(
+		'moved'     => $moved,
+		'skipped'   => isset( $state['skipped'] ) ? (int) $state['skipped'] : 0,
+		'folders'   => count( $counts ),
+		'removed'   => isset( $state['removed'] ) ? (int) $state['removed'] : 0,
+		'counts'    => $counts,
+		'running'   => $running,
+		'seen'      => $seen,
+		'total'     => $total,
+		'remaining' => max( 0, $total - $seen ),
+		'message'   => $running
+			? sprintf(
+				/* translators: 1: pictures looked at so far, 2: pictures in total. */
+				__( 'Re-filing — %1$s of %2$s pictures so far. You can leave this page; it carries on.', 'vergelabs-media-library' ),
+				number_format_i18n( $seen ),
+				number_format_i18n( $total )
+			)
+			: sprintf(
+				/* translators: 1: files moved, 2: how many folders they went into. */
+				_n(
+					'%1$s picture re-filed into %2$s folders.',
+					'%1$s pictures re-filed into %2$s folders.',
+					$moved,
+					'vergelabs-media-library'
+				),
+				number_format_i18n( $moved ),
+				number_format_i18n( count( $counts ) )
+			),
+	);
+}
+
+
+/** What the screen polls while a re-filing job is still going. */
+function vergeml_talk_progress() {
+
+	$state = get_option( VERGEML_TALK_STATE );
+
+	if ( ! is_array( $state ) ) {
+		return array( 'running' => false, 'seen' => 0, 'total' => 0, 'remaining' => 0, 'moved' => 0 );
+	}
+
+	/*
+	 *  A job whose cron never ran is not a job in progress, whatever the option
+	 *  says. Rather than report movement that is not happening -- the exact lie
+	 *  the describe run used to tell -- the poll gives it a push.
+	 */
+	if ( ! empty( $state['active'] ) && ! wp_next_scheduled( VERGEML_TALK_HOOK ) ) {
+		vergeml_talk_refile_schedule();
+	}
+
+	return vergeml_talk_report( $state );
 }
 
 
@@ -535,6 +772,24 @@ function vergeml_talk_apply( $folders ) {
  * @return array|WP_Error
  */
 function vergeml_talk_undo() {
+
+	/*
+	 *  Stop the job before putting anything back.
+	 *
+	 *  A large re-filing run continues on cron, so undoing one while it is
+	 *  still going would have two passes fighting over the same pictures --
+	 *  this one restoring a folder and the next slice moving it out again --
+	 *  and the result would depend on which finished last. Whatever has been
+	 *  filed so far is recorded and gets undone; the rest is simply never
+	 *  filed.
+	 */
+	$state = get_option( VERGEML_TALK_STATE );
+
+	if ( is_array( $state ) && ! empty( $state['active'] ) ) {
+		$state['active'] = false;
+		update_option( VERGEML_TALK_STATE, $state, false );
+		wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+	}
 
 	$before = get_option( VERGEML_TALK_UNDO );
 
@@ -631,6 +886,20 @@ function vergeml_talk_routes() {
 	register_rest_route( VERGEML_REST_NS, '/folders-undo', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_talk_rest_undo',
+		'permission_callback' => $may,
+	) );
+
+	/*
+	 *  Where a re-filing job has got to.
+	 *
+	 *  Read-only and cheap, because the screen asks every couple of seconds
+	 *  while a large library is being worked through.
+	 */
+	register_rest_route( VERGEML_REST_NS, '/folders-progress', array(
+		'methods'             => WP_REST_Server::READABLE,
+		'callback'            => function () {
+			return rest_ensure_response( vergeml_talk_progress() );
+		},
 		'permission_callback' => $may,
 	) );
 }

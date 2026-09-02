@@ -49,3 +49,11 @@ jobs:
             tools/box-plan-check.php root@46.225.66.194:/tmp/vgml-plan.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
             'bash -s' < tools/box-plan-check.sh
+
+      # Re-files for real and undoes it again, so it is not on the push path.
+      - name: whether a re-filing job gets through the whole library
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no \
+            tools/box-refile-check.php root@46.225.66.194:/tmp/vgml-refile.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
+            'bash -s' < tools/box-refile-check.sh

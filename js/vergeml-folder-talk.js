@@ -178,6 +178,37 @@
 		return wrap;
 	}
 
+	/*
+	 *  Keep one line honest while the re-filing finishes behind it.
+	 *
+	 *  Re-filing a large library does not fit in the request that starts it, so
+	 *  it carries on afterwards. Without this the screen said a number that
+	 *  stopped being true a second later -- the same shape of lie the describe
+	 *  run told when it claimed to be working and had quietly stopped.
+	 *
+	 *  Stops on its own when the job says it is finished, and stops on a failed
+	 *  poll as well: a progress line that cannot reach the site is worse than
+	 *  no progress line at all.
+	 */
+	function watch( line ) {
+
+		var timer = window.setInterval( function () {
+
+			apiFetch( { path: '/vergeml/v1/folders-progress' } ).then( function ( at ) {
+
+				if ( ! at || ! at.running ) {
+					window.clearInterval( timer );
+				}
+
+				if ( at && at.message ) {
+					line.textContent = at.message;
+				}
+			} ).catch( function () {
+				window.clearInterval( timer );
+			} );
+		}, 2500 );
+	}
+
 	/** Draw what it proposed, and offer to apply that one. */
 	function drawProposal( plan ) {
 
@@ -219,10 +250,22 @@
 				data: { folders: folders, plan_id: plan.plan_id }
 			} ).then( function ( done ) {
 				actions.textContent = '';
-				actions.appendChild( el( 'span', 'vgml-talk-done', ( done && done.message )
-					|| text( 'applied', 'Done. The folders are as you asked.' ) ) );
+
+				var said = el( 'span', 'vgml-talk-done', ( done && done.message )
+					|| text( 'applied', 'Done. The folders are as you asked.' ) );
+				actions.appendChild( said );
+
 				history.push( { role: 'user', text: '(applied that)' } );
 				scrollToEnd();
+
+				/*
+				 *  A library larger than one pass is still being filed when this
+				 *  returns, so the line has to keep up rather than announcing it
+				 *  is done and leaving somebody to guess.
+				 */
+				if ( done && done.running ) {
+					watch( said );
+				}
 			} ).catch( function ( err ) {
 				apply.disabled = false;
 				apply.textContent = text( 'apply', 'Do it' );
