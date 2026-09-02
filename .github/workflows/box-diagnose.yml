@@ -1,0 +1,27 @@
+name: box-diagnose
+
+# Read-only questions about the box's own data, answered where the key lives.
+on:
+  workflow_dispatch:
+
+jobs:
+  ask:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: the key
+        env:
+          BOX_SSH_KEY: ${{ secrets.BOX_SSH_KEY }}
+        run: |
+          if [ -z "$BOX_SSH_KEY" ]; then echo "BOX_SSH_KEY is not set." >&2; exit 1; fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$BOX_SSH_KEY" > ~/.ssh/hetzner_vgml
+          chmod 600 ~/.ssh/hetzner_vgml
+          ssh-keyscan -H 46.225.66.194 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: what the index actually holds
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
+            'bash -s' < tools/box-diagnose-search.sh
