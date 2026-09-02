@@ -34,3 +34,10 @@ jobs:
             tools/box-projection-recall.php root@46.225.66.194:/tmp/vgml-recall.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
             'bash -s' < tools/box-projection-recall.sh
+
+      - name: what a folder would actually collect
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no \
+            tools/box-folder-quality.php root@46.225.66.194:/tmp/vgml-folders.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
+            'bash -s' < tools/box-folder-quality.sh
