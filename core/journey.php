@@ -284,8 +284,19 @@ function vergeml_journey_score() {
 
     $score = 0;
 
+    /*
+     *  Full marks mean finished, and nothing else.
+     *
+     *  Rounding gave 25 out of 25 for 379 files filed out of 380 -- a perfect
+     *  score printed directly under a card reading "1 file is in no folder".
+     *  Both were true and together they read as a broken screen. Anything
+     *  short of done now loses at least a point, so the number agrees with
+     *  the sentence above it.
+     */
     foreach ( $parts as $at => $part ) {
-        $parts[ $at ]['points'] = (int) round( $part['share'] * $part['weight'] );
+        $parts[ $at ]['points'] = $part['share'] >= 1
+            ? (int) $part['weight']
+            : (int) min( $part['weight'] - 1, floor( $part['share'] * $part['weight'] ) );
         $score += $parts[ $at ]['points'];
     }
 
