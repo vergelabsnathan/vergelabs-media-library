@@ -69,6 +69,55 @@ $ids = array_keys( $full );
 echo count( $ids ) . " described pictures, " . count( reset( $full ) ) . " dimensions each\n\n";
 
 $probes = array_slice( $ids, 0, 60 );
+
+/*
+ *  The question the fix actually rests on.
+ *
+ *  Search no longer answers with the projection: it uses it to choose a
+ *  shortlist and then re-scores that shortlist on the whole embeddings. So
+ *  the projection does not have to rank well -- it only has to not lose the
+ *  right pictures before the pass that can rank them properly.
+ *
+ *  Recall at ten says how good its own ordering is. Recall at the shortlist
+ *  depth says whether re-ranking can recover what its ordering got wrong.
+ */
+$depths = array( 10, 25, 50, 100 );
+$found  = array_fill_keys( $depths, 0 );
+$total  = 0;
+
+foreach ( $probes as $p ) {
+
+    $rank = function ( $space, $k ) use ( $p, $ids ) {
+        $s = array();
+        foreach ( $ids as $q ) {
+            if ( $q === $p ) { continue; }
+            $s[ $q ] = vgml_t_dot( $space[ $p ], $space[ $q ] );
+        }
+        arsort( $s );
+        return array_slice( array_keys( $s ), 0, $k );
+    };
+
+    $truth = $rank( $full, 10 );
+    $total += count( $truth );
+
+    foreach ( $depths as $k ) {
+        $found[ $k ] += count( array_intersect( $truth, $rank( $band, $k ) ) );
+    }
+}
+
+printf( "Do the 10 genuinely closest survive into the shortlist that gets re-scored?
+
+" );
+foreach ( $depths as $k ) {
+    printf( "  projection top %-3d   keeps %5.1f%% of them
+", $k, 100 * $found[ $k ] / $total );
+}
+printf( "
+(the library here is %d pictures, so a 400-deep shortlist is all of it)
+
+", count( $ids ) );
+
+$probes = array_slice( $ids, 0, 60 );
 $hitB = 0; $hitH = 0; $n = 0;
 
 foreach ( $probes as $p ) {

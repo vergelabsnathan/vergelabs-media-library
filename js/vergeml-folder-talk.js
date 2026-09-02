@@ -22,11 +22,18 @@
 	var say = document.getElementById( 'vgml-talk-say' );
 	var go = document.getElementById( 'vgml-talk-go' );
 	var note = document.getElementById( 'vgml-talk-note' );
+	var empty = document.getElementById( 'vgml-talk-empty' );
+	var flow = document.getElementById( 'vgml-lib-flow' );
+	var fold = document.getElementById( 'vgml-lib-fold' );
+	var unfold = document.getElementById( 'vgml-lib-unfold' );
 	var strings = window.vergemlTalk || {};
 
 	if ( ! apiFetch || ! log || ! say || ! go ) {
 		return;
 	}
+
+	/** Whether anything has been said yet. Only the first turn rearranges the page. */
+	var started = false;
 
 	/** Everything said so far, oldest first, as the service wants it. */
 	var history = [];
@@ -49,9 +56,83 @@
 		return node;
 	}
 
-	function scrollToEnd() {
-		log.scrollTop = log.scrollHeight;
+	/*
+	 *  Follow the conversation, but not over the reader's shoulder.
+	 *
+	 *  This set scrollTop to scrollHeight on every turn, which yanked the
+	 *  transcript to the bottom mid-sentence whenever a reply landed while
+	 *  somebody was reading back through an earlier proposal. Scrolling away
+	 *  from the end is a decision; it is not something to undo for them.
+	 */
+	function scrollToEnd( force ) {
+
+		var near = log.scrollHeight - log.scrollTop - log.clientHeight < 120;
+
+		if ( ! force && ! near ) {
+			return;
+		}
+
+		if ( typeof log.scrollTo === 'function' ) {
+			log.scrollTo( { top: log.scrollHeight, behavior: 'smooth' } );
+		} else {
+			log.scrollTop = log.scrollHeight;
+		}
 	}
+
+	/*
+	 *  The page belongs to the conversation now.
+	 *
+	 *  The step-by-step suggestions and a chat proposing different folders
+	 *  were both on screen at once, each showing a set of folders, with no way
+	 *  to tell which one Do it referred to. The wizard folds away on the first
+	 *  thing said, and says where it went.
+	 */
+	function beginConversation() {
+
+		if ( started ) {
+			return;
+		}
+
+		started = true;
+
+		if ( empty ) {
+			empty.hidden = true;
+		}
+		if ( flow ) {
+			flow.hidden = true;
+		}
+		if ( fold ) {
+			fold.hidden = false;
+		}
+	}
+
+	if ( unfold && flow && fold ) {
+		unfold.addEventListener( 'click', function () {
+			flow.hidden = false;
+			fold.hidden = true;
+		} );
+	}
+
+	/** The openers in the empty state: pressing one is the same as typing it. */
+	if ( empty ) {
+		Array.prototype.forEach.call(
+			empty.querySelectorAll( '.vgml-talk-chip' ),
+			function ( chip ) {
+				chip.addEventListener( 'click', function () {
+					say.value = chip.textContent;
+					send();
+				} );
+			}
+		);
+	}
+
+	/** A textarea that grows with what is in it, up to the height the CSS allows. */
+	function fitBox() {
+		say.style.height = 'auto';
+		say.style.height = Math.min( say.scrollHeight, 176 ) + 'px';
+	}
+
+	say.addEventListener( 'input', fitBox );
 
 	/** One turn in the transcript. Returns the body, for callers that fill it. */
 	function turn( who, className ) {
@@ -111,7 +192,13 @@
 		var folders = plan.folders || [];
 
 		if ( folders.length === 0 ) {
-			body.appendChild( el( 'p', 'vgml-talk-said', text( 'empty', 'That would leave you with no folders at all, so nothing has been changed.' ) ) );
+			/*
+			 *  'empty' means the box was empty, which is a different sentence
+			 *  said in a different place. While every lookup was silently
+			 *  missing, both fell back to the right words and the collision
+			 *  could not be seen; now that they resolve, it can.
+			 */
+			body.appendChild( el( 'p', 'vgml-talk-said', text( 'noFolders', 'That would leave you with no folders at all, so nothing has been changed.' ) ) );
 			return;
 		}
 
@@ -159,12 +246,41 @@
 			return;
 		}
 
+		beginConversation();
+
 		turn( 'you' ).appendChild( el( 'p', null, instruction ) );
 		history.push( { role: 'user', text: instruction } );
 
 		say.value = '';
+		fitBox();
 		go.disabled = true;
+
+		/*
+		 *  Three dots in a bubble where the reply will be, rather than a
+		 *  sentence somewhere else on the page. It appears in the place the
+		 *  answer is coming, so the wait reads as part of the conversation --
+		 *  and it is removed by the same code that replaces it, whichever way
+		 *  the request ends.
+		 */
+		var waiting = turn( 'them' );
+		var dots = el( 'span', 'vgml-talk-thinking' );
+		dots.appendChild( el( 'i' ) );
+		dots.appendChild( el( 'i' ) );
+		dots.appendChild( el( 'i' ) );
+		waiting.appendChild( dots );
+		waiting.parentNode.setAttribute( 'data-waiting', '1' );
+
 		note.textContent = text( 'thinking', 'Working out what that would look like…' );
+		scrollToEnd( true );
+
+		var done = function () {
+			var row = log.querySelector( '[data-waiting]' );
+			if ( row !== null ) {
+				row.parentNode.removeChild( row );
+			}
+			note.textContent = '';
+			go.disabled = false;
+		};
 
 		apiFetch( {
 			path: '/vergeml/v1/folders-propose',
@@ -176,8 +292,7 @@
 				history: history.slice( -12 )
 			}
 		} ).then( function ( plan ) {
-			note.textContent = '';
-			go.disabled = false;
+			done();
 			drawProposal( plan );
 			history.push( {
 				role: 'assistant',
@@ -188,8 +303,7 @@
 			} );
 			say.focus();
 		} ).catch( function ( err ) {
-			note.textContent = '';
-			go.disabled = false;
+			done();
 			turn( 'them' ).appendChild( el( 'p', 'vgml-talk-error',
 				( err && err.message ) || text( 'failed', 'That did not go through. Try again.' ) ) );
 			say.focus();

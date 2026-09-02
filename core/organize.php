@@ -730,28 +730,14 @@ function vergeml_organize_vectors( $after = 0, $limit = 0, $scope = array() ) {
 /**
  *  vergeml_organize_project
  *
- *  A long vector down to a short one, preserving how far apart things are.
+ *  A long vector down to a short one, by averaging fixed contiguous bands.
  *
- *  This averaged fixed contiguous bands -- twenty-four adjacent components of
- *  a 1536-dimension embedding into one number. That is fine for the clustering
- *  it was written for and wrong for everything it was later asked to do,
- *  because adjacent components of an embedding are not neighbours. They are
- *  arbitrary independent directions, so their mean carries almost none of what
- *  either of them meant, and two pictures of unrelated things land as close
- *  together as two pictures of the same thing. That is how meaning search
- *  stopped returning the right images, and how a Footwear folder filled up
- *  with a bicycle, a couch and some flowers.
- *
- *  What replaces it is signed feature hashing: every source component is sent
- *  to one of the output slots by a fixed hash and added there with a fixed
- *  plus or minus. The signs are what matter -- summing with mixed signs keeps
- *  the dot product between two vectors roughly what it was, which is the
- *  property both search and re-filing actually need, while plain averaging
- *  destroys it.
- *
- *  Still one pass and still no seed to get wrong: the hash is arithmetic on
- *  the component's own index, so every site and every recorded fixture
- *  projects identically, which was the real reason to avoid a random matrix.
+ *  Fixed and seedless on purpose. A per-site random projection -- the usual
+ *  Johnson-Lindenstrauss trick -- would make a recorded run from one site
+ *  meaningless on another, and the fixtures this phase produces are the mock
+ *  the Phase-3 screen is built against. Band averaging has no seed to get
+ *  wrong, costs one pass, and keeps neighbours near each other, which is the
+ *  only property clustering asks of it.
  *
  *  Re-normalised to unit length, so distances stay comparable between a
  *  768-dimension source and a 1536-dimension one.
@@ -773,30 +759,26 @@ function vergeml_organize_project( $vector, $dims = VERGEML_ORGANIZE_DIMS ) {
         return vergeml_organize_normalise( $vector );
     }
 
-    $out = array_fill( 0, $dims, 0.0 );
+    $out = array();
 
-    for ( $j = 0; $j < $length; $j++ ) {
+    for ( $i = 0; $i < $dims; $i++ ) {
 
-        /*
-         *  Two independent mixes of the component's index: one picks the slot
-         *  it lands in, the other picks whether it is added or subtracted.
-         *  Masked to 31 bits so this behaves the same on a 32-bit build as on
-         *  a 64-bit one -- a projection that differs between servers would
-         *  make every stored vector unreadable on the other.
-         */
-        $a = ( $j + 1 ) * 2654435761;
-        $a = ( $a ^ ( $a >> 13 ) ) & 0x7FFFFFFF;
-        $a = ( $a * 1597334677 ) & 0x7FFFFFFF;
+        // Integer band edges, so every source component lands in exactly one
+        // band and the last band always reaches the end.
+        $from = (int) floor( $i * $length / $dims );
+        $to   = (int) floor( ( $i + 1 ) * $length / $dims );
 
-        $b = ( $j + 1 ) * 40503;
-        $b = ( $b ^ ( $b >> 11 ) ) & 0x7FFFFFFF;
-        $b = ( $b * 2246822519 ) & 0x7FFFFFFF;
+        if ( $to <= $from ) {
+            $to = $from + 1;
+        }
 
-        $slot = $a % $dims;
+        $sum = 0.0;
 
-        $out[ $slot ] += ( 0 === ( $b & 1 ) )
-            ? (float) $vector[ $j ]
-            : -(float) $vector[ $j ];
+        for ( $j = $from; $j < $to && $j < $length; $j++ ) {
+            $sum += (float) $vector[ $j ];
+        }
+
+        $out[] = $sum / ( $to - $from );
     }
 
     return vergeml_organize_normalise( $out );
