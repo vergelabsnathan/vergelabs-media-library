@@ -654,3 +654,17 @@
 .vgml-talk-say {
 	width: 100%;
 }
+
+
+/* The line between what you do here and how it behaves. */
+.vgml-ai-settings-head {
+	margin: 2.2rem 0 .2rem;
+	padding-top: 1.6rem;
+	border-top: 1px solid #e1e8f5;
+	font-size: 1.05rem;
+}
+
+.vgml-ai-settings-note {
+	margin: 0 0 1rem;
+	color: #5b6884;
+}

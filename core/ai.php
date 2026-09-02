@@ -1733,7 +1733,63 @@ function vergeml_ai_page() {
         );
         ?>
 
+        <?php
+        /*
+         *  The work first, the settings after it.
+         *
+         *  This screen opened on seven rows of configuration -- key, credits,
+         *  what the site is about, three switches -- and the one thing
+         *  somebody came here to press was underneath all of it. A page of
+         *  settings with an action hidden at the bottom is a WordPress options
+         *  screen wearing a product's name.
+         */
+        ?>
+        <?php
+        /*
+         *  One describe section.
+         *
+         *  There were two -- "Describe the library" and "Describe in the
+         *  background" -- offering the same two jobs with different buttons,
+         *  and nothing said why you would pick one. Watching it happen or
+         *  letting it run on its own is a choice about this run, not a
+         *  different feature, so it is a choice inside the section.
+         */
+        ?>
+        <div class="vgml-ai-card">
+            <h2><?php esc_html_e( 'Describe your images', 'vergelabs-media-library' ); ?></h2>
+            <p class="description"><?php esc_html_e( 'Each image is shown to the model once. The description powers search, alt text, and everything after it.', 'vergelabs-media-library' ); ?></p>
+
+            <p class="vgml-ai-choice">
+                <label><input type="radio" name="vgml-ai-where" value="here" checked> <?php esc_html_e( 'Watch it here', 'vergelabs-media-library' ); ?></label>
+                <label><input type="radio" name="vgml-ai-where" value="background"> <?php esc_html_e( 'Run in the background — you can close this tab', 'vergelabs-media-library' ); ?></label>
+            </p>
+
+            <p>
+                <button type="button" class="button button-primary" id="vgml-ai-run" data-scope="unindexed"><?php esc_html_e( 'Describe new images', 'vergelabs-media-library' ); ?></button>
+                <button type="button" class="button" id="vgml-ai-alt" data-scope="missing-alt"><?php esc_html_e( 'Fix missing alt text', 'vergelabs-media-library' ); ?></button>
+                <?php
+                /*
+                 *  The pages an SEO plugin is scoring, first. Shown only when
+                 *  there is something to fix there: on a site without an SEO
+                 *  plugin, or with every such page already covered, the button
+                 *  would be a question nobody asked.
+                 */
+                ?>
+                <button type="button" class="button" id="vgml-ai-page-gap" data-scope="page-gap" hidden
+                    title="<?php esc_attr_e( 'Images without alt text on pages that have a focus keyphrase in Yoast, Rank Math, SEOPress or All in One SEO — the ones those plugins are already marking the page down for.', 'vergelabs-media-library' ); ?>"><?php esc_html_e( 'Fix alt text on your SEO pages', 'vergelabs-media-library' ); ?></button>
+                <button type="button" class="button" id="vgml-ai-bg-stop" hidden><?php esc_html_e( 'Stop', 'vergelabs-media-library' ); ?></button>
+            </p>
+            <div class="vgml-import-bar" id="vgml-ai-bg-bar" hidden><div class="vgml-import-fill" id="vgml-ai-bg-fill"></div></div>
+            <p id="vgml-ai-bg-note"></p>
+            <div class="vgml-import-bar" id="vgml-ai-bar" hidden><div class="vgml-import-fill" id="vgml-ai-fill"></div></div>
+            <p id="vgml-ai-note"></p>
+            <ul id="vgml-ai-log" class="vgml-ai-log"></ul>
+        </div>
+
         <?php if ( $can_configure ) : ?>
+        <h2 class="vgml-ai-settings-head"><?php esc_html_e( 'How it behaves', 'vergelabs-media-library' ); ?></h2>
+        <p class="description vgml-ai-settings-note"><?php esc_html_e( 'Set once, and it applies to every run above.', 'vergelabs-media-library' ); ?></p>
+
         <?php
         $help = function ( $key ) {
             if ( ! function_exists( 'vergeml_help' ) ) {
@@ -1819,47 +1875,6 @@ function vergeml_ai_page() {
         ?>
         <?php endif; ?>
 
-        <?php
-        /*
-         *  One describe section.
-         *
-         *  There were two -- "Describe the library" and "Describe in the
-         *  background" -- offering the same two jobs with different buttons,
-         *  and nothing said why you would pick one. Watching it happen or
-         *  letting it run on its own is a choice about this run, not a
-         *  different feature, so it is a choice inside the section.
-         */
-        ?>
-        <div class="vgml-ai-card">
-            <h2><?php esc_html_e( 'Describe your images', 'vergelabs-media-library' ); ?></h2>
-            <p class="description"><?php esc_html_e( 'Each image is shown to the model once. The description powers search, alt text, and everything after it.', 'vergelabs-media-library' ); ?></p>
-
-            <p class="vgml-ai-choice">
-                <label><input type="radio" name="vgml-ai-where" value="here" checked> <?php esc_html_e( 'Watch it here', 'vergelabs-media-library' ); ?></label>
-                <label><input type="radio" name="vgml-ai-where" value="background"> <?php esc_html_e( 'Run in the background — you can close this tab', 'vergelabs-media-library' ); ?></label>
-            </p>
-
-            <p>
-                <button type="button" class="button button-primary" id="vgml-ai-run" data-scope="unindexed"><?php esc_html_e( 'Describe new images', 'vergelabs-media-library' ); ?></button>
-                <button type="button" class="button" id="vgml-ai-alt" data-scope="missing-alt"><?php esc_html_e( 'Fix missing alt text', 'vergelabs-media-library' ); ?></button>
-                <?php
-                /*
-                 *  The pages an SEO plugin is scoring, first. Shown only when
-                 *  there is something to fix there: on a site without an SEO
-                 *  plugin, or with every such page already covered, the button
-                 *  would be a question nobody asked.
-                 */
-                ?>
-                <button type="button" class="button" id="vgml-ai-page-gap" data-scope="page-gap" hidden
-                    title="<?php esc_attr_e( 'Images without alt text on pages that have a focus keyphrase in Yoast, Rank Math, SEOPress or All in One SEO — the ones those plugins are already marking the page down for.', 'vergelabs-media-library' ); ?>"><?php esc_html_e( 'Fix alt text on your SEO pages', 'vergelabs-media-library' ); ?></button>
-                <button type="button" class="button" id="vgml-ai-bg-stop" hidden><?php esc_html_e( 'Stop', 'vergelabs-media-library' ); ?></button>
-            </p>
-            <div class="vgml-import-bar" id="vgml-ai-bg-bar" hidden><div class="vgml-import-fill" id="vgml-ai-bg-fill"></div></div>
-            <p id="vgml-ai-bg-note"></p>
-            <div class="vgml-import-bar" id="vgml-ai-bar" hidden><div class="vgml-import-fill" id="vgml-ai-fill"></div></div>
-            <p id="vgml-ai-note"></p>
-            <ul id="vgml-ai-log" class="vgml-ai-log"></ul>
-        </div>
 
         <?php
         /*
