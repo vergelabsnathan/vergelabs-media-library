@@ -155,7 +155,7 @@ function vergeml_talk_samples( $limit = 40 ) {
  * @param string $instruction What the user typed.
  * @return array|WP_Error { folders: array, note: string }
  */
-function vergeml_talk_propose( $instruction ) {
+function vergeml_talk_propose( $instruction, $history = array() ) {
 
 	$instruction = trim( (string) $instruction );
 
@@ -195,6 +195,7 @@ function vergeml_talk_propose( $instruction ) {
 				'license_key' => $licence,
 				'site'        => home_url(),
 				'instruction' => $instruction,
+				'history'     => $history,
 				'current'     => $current,
 				'samples'     => vergeml_talk_samples(),
 			) ),
@@ -600,6 +601,9 @@ function vergeml_talk_routes() {
 		'permission_callback' => $may,
 		'args'                => array(
 			'instruction' => array( 'type' => 'string', 'required' => true ),
+			// What has already been said, so a refinement refines rather than
+			// planning the library again from nothing.
+			'history'     => array( 'type' => 'array', 'required' => false ),
 		),
 	) );
 
@@ -669,7 +673,21 @@ function vergeml_talk_plan_hash( $folders ) {
 
 function vergeml_talk_rest_propose( WP_REST_Request $request ) {
 
-	$result = vergeml_talk_propose( (string) $request->get_param( 'instruction' ) );
+	$history = $request->get_param( 'history' );
+	$history = is_array( $history ) ? $history : array();
+
+	$said = array();
+	foreach ( array_slice( $history, -12 ) as $turn ) {
+		if ( ! is_array( $turn ) || ! isset( $turn['text'] ) ) {
+			continue;
+		}
+		$said[] = array(
+			'role' => ( isset( $turn['role'] ) && 'assistant' === $turn['role'] ) ? 'assistant' : 'user',
+			'text' => (string) substr( (string) $turn['text'], 0, 400 ),
+		);
+	}
+
+	$result = vergeml_talk_propose( (string) $request->get_param( 'instruction' ), $said );
 
 	if ( is_wp_error( $result ) ) {
 		return vergeml_talk_fail( $result );
@@ -762,6 +780,8 @@ function vergeml_talk_card() {
 			<?php esc_html_e( 'Say it the way you would say it to a person. You will see exactly what would change before anything moves, and it costs no credits — the pictures have already been looked at.', 'vergelabs-media-library' ); ?>
 		</p>
 
+		<div id="vgml-talk-log" class="vgml-talk-log" aria-live="polite" aria-label="<?php esc_attr_e( 'What you have asked for, and what was proposed', 'vergelabs-media-library' ); ?>"></div>
+
 		<label class="screen-reader-text" for="vgml-talk-say">
 			<?php esc_html_e( 'What you want the folders to be', 'vergelabs-media-library' ); ?>
 		</label>
@@ -769,17 +789,15 @@ function vergeml_talk_card() {
 		<textarea
 			id="vgml-talk-say"
 			class="vgml-talk-say"
-			rows="3"
+			rows="2"
 			placeholder="<?php esc_attr_e( 'I don’t want Nature. I want Buildings, split into Modern and Classic, and Residential and Office.', 'vergelabs-media-library' ); ?>"></textarea>
 
 		<p class="vgml-talk-actions">
 			<button type="button" class="button button-primary" id="vgml-talk-go">
-				<?php esc_html_e( 'Show me what that would do', 'vergelabs-media-library' ); ?>
+				<?php esc_html_e( 'Send', 'vergelabs-media-library' ); ?>
 			</button>
 			<span class="vgml-talk-note" id="vgml-talk-note"></span>
 		</p>
-
-		<div id="vgml-talk-plan" class="vgml-talk-plan"></div>
 
 	</div>
 	<?php

@@ -1,31 +1,41 @@
 /*
- *  Telling the plugin what folders you want.
+ *  Sorting into folders, as a conversation.
  *
- *  Two presses, never one. The first shows what would change; the second does
- *  it. Nothing here moves a file until somebody has read the difference,
- *  because "reorganise my whole library" is not a thing to do on a typo.
+ *  What was here asked one question and drew one answer with Do it and Cancel
+ *  underneath. Every refinement started from nothing, and saying "no, split
+ *  that one further" meant retyping the whole sentence -- which is not a
+ *  conversation, it is a slot machine with a text box.
  *
- *  ES5, no build step, same as everything else in this folder.
+ *  So this is a transcript. What you said and what it proposed stay on screen
+ *  in order, each proposal drawn as the tree it would leave you with, and the
+ *  box at the bottom stays where it is. The turns travel with the next
+ *  request, so "drop nature as well" refines the thing in front of you rather
+ *  than planning the library again from scratch.
+ *
+ *  Nothing here applies anything. Do it is one deliberate action at the end,
+ *  on the proposal you are looking at.
  */
 ( function () {
-	'use strict';
 
 	var apiFetch = window.wp && window.wp.apiFetch;
-	var l10n = ( window.vergemlTalk && window.vergemlTalk.l10n ) || {};
+	var log = document.getElementById( 'vgml-talk-log' );
+	var say = document.getElementById( 'vgml-talk-say' );
+	var go = document.getElementById( 'vgml-talk-go' );
+	var note = document.getElementById( 'vgml-talk-note' );
+	var strings = window.vergemlTalk || {};
 
-	if ( ! apiFetch ) {
+	if ( ! apiFetch || ! log || ! say || ! go ) {
 		return;
 	}
 
-	function text( key, fallback ) {
-		return l10n[ key ] || fallback || '';
-	}
+	/** Everything said so far, oldest first, as the service wants it. */
+	var history = [];
 
-	function sprintf( template, values ) {
-		var i = 0;
-		return String( template ).replace( /%s/g, function () {
-			return values[ i++ ];
-		} );
+	/** The proposal the Do it button would apply, and the plan id it came with. */
+	var live = null;
+
+	function text( key, fallback ) {
+		return typeof strings[ key ] === 'string' && strings[ key ] !== '' ? strings[ key ] : fallback;
 	}
 
 	function el( tag, className, textContent ) {
@@ -33,246 +43,167 @@
 		if ( className ) {
 			node.className = className;
 		}
-		if ( undefined !== textContent && null !== textContent ) {
+		if ( textContent !== undefined && textContent !== null ) {
 			node.textContent = textContent;
 		}
 		return node;
 	}
 
-	var say = document.getElementById( 'vgml-talk-say' );
-	var go = document.getElementById( 'vgml-talk-go' );
-	var note = document.getElementById( 'vgml-talk-note' );
-	var out = document.getElementById( 'vgml-talk-plan' );
-
-	if ( ! say || ! go || ! out ) {
-		return;
+	function scrollToEnd() {
+		log.scrollTop = log.scrollHeight;
 	}
 
-	/**
-	 *  One list in the difference: what is kept, what is new, what goes.
-	 */
-	function drawList( heading, className, items ) {
-
-		if ( ! items.length ) {
-			return null;
-		}
-
-		var box = el( 'div', 'vgml-talk-set ' + className );
-
-		box.appendChild( el( 'h4', null, heading + ' · ' + items.length ) );
-
-		var list = el( 'ul' );
-
-		items.forEach( function ( item ) {
-
-			var li = el( 'li' );
-
-			if ( 'string' === typeof item ) {
-				li.appendChild( el( 'span', 'vgml-talk-name', item ) );
-			} else {
-				li.appendChild( el( 'span', 'vgml-talk-name', item.name ) );
-				li.appendChild( el( 'span', 'vgml-talk-held',
-					sprintf( text( 'held', '%s files' ), [ String( item.count ) ] ) ) );
-			}
-
-			list.appendChild( li );
-		} );
-
-		box.appendChild( list );
-
-		return box;
+	/** One turn in the transcript. Returns the body, for callers that fill it. */
+	function turn( who, className ) {
+		var row = el( 'div', 'vgml-talk-turn vgml-talk-' + who );
+		var body = el( 'div', 'vgml-talk-bubble ' + ( className || '' ) );
+		row.appendChild( body );
+		log.appendChild( row );
+		scrollToEnd();
+		return body;
 	}
 
-	/**
-	 *  The tree we would end up with, as a tree.
-	 */
+	/** The folders a proposal would leave, parents before their children. */
 	function drawTree( folders ) {
 
-		var box = el( 'div', 'vgml-talk-tree' );
-		var list = el( 'ul' );
+		var wrap = el( 'ul', 'vgml-talk-tree' );
+		var byParent = {};
 
 		folders.forEach( function ( f ) {
-
-			var li = el( 'li', f.parent ? 'vgml-talk-child' : null );
-
-			li.appendChild( el( 'span', 'vgml-talk-name', f.name ) );
-
-			if ( f.matches ) {
-				li.appendChild( el( 'span', 'vgml-talk-matches', f.matches ) );
+			var key = f.parent || '';
+			if ( ! byParent[ key ] ) {
+				byParent[ key ] = [];
 			}
-
-			list.appendChild( li );
+			byParent[ key ].push( f );
 		} );
 
-		box.appendChild( list );
+		function branch( parent, into ) {
+			( byParent[ parent ] || [] ).forEach( function ( f ) {
+				var li = el( 'li' );
+				li.appendChild( el( 'span', 'vgml-talk-folder', f.name ) );
+				if ( typeof f.matches === 'number' ) {
+					li.appendChild( el( 'span', 'vgml-talk-count', String( f.matches ) ) );
+				}
+				if ( byParent[ f.name ] ) {
+					var kids = el( 'ul' );
+					branch( f.name, kids );
+					li.appendChild( kids );
+				}
+				into.appendChild( li );
+			} );
+		}
 
-		return box;
-	}
-
-	function drawUndo() {
-
-		var wrap = el( 'p', 'vgml-talk-actions' );
-
-		var undo = document.createElement( 'button' );
-		undo.type = 'button';
-		undo.className = 'button';
-		undo.textContent = text( 'undo', 'Undo this' );
-
-		var said = el( 'span', 'vgml-talk-note' );
-
-		undo.addEventListener( 'click', function () {
-
-			undo.disabled = true;
-			said.textContent = text( 'undoing', '' );
-
-			apiFetch( { path: '/vergeml/v1/folders-undo', method: 'POST' } )
-				.then( function ( r ) {
-					said.textContent = r.message || '';
-					undo.parentNode.removeChild( undo );
-				} )
-				.catch( function ( err ) {
-					undo.disabled = false;
-					said.textContent = ( err && err.message ) || text( 'failed', '' );
-				} );
-		} );
-
-		wrap.appendChild( undo );
-		wrap.appendChild( said );
-
+		branch( '', wrap );
 		return wrap;
 	}
 
-	/**
-	 *  The proposal, and the button that makes it real.
-	 */
-	function drawPlan( plan ) {
+	/** Draw what it proposed, and offer to apply that one. */
+	function drawProposal( plan ) {
 
-		out.innerHTML = '';
+		live = plan;
 
-		var card = el( 'div', 'vgml-talk-proposal' );
+		var body = turn( 'them' );
 
 		if ( plan.note ) {
-			card.appendChild( el( 'p', 'vgml-talk-said', plan.note ) );
+			body.appendChild( el( 'p', 'vgml-talk-said', plan.note ) );
 		}
 
-		var diff = plan.diff || { kept: [], added: [], removed: [] };
+		var folders = plan.folders || [];
 
-		if ( ! diff.added.length && ! diff.removed.length ) {
-			card.appendChild( el( 'p', 'description', text( 'nothing', '' ) ) );
-			out.appendChild( card );
+		if ( folders.length === 0 ) {
+			body.appendChild( el( 'p', 'vgml-talk-said', text( 'empty', 'That would leave you with no folders at all, so nothing has been changed.' ) ) );
 			return;
 		}
 
-		var sets = el( 'div', 'vgml-talk-sets' );
+		body.appendChild( drawTree( folders ) );
 
-		[
-			[ text( 'adding', 'New' ), 'is-new', diff.added ],
-			[ text( 'removing', 'Going away' ), 'is-gone', diff.removed ],
-			[ text( 'keeping', 'Keeping' ), 'is-kept', diff.kept ]
-		].forEach( function ( row ) {
-			var box = drawList( row[ 0 ], row[ 1 ], row[ 2 ] );
-			if ( box ) {
-				sets.appendChild( box );
-			}
-		} );
-
-		card.appendChild( sets );
-
-		card.appendChild( el( 'h4', 'vgml-talk-head', text( 'proposed', '' ) ) );
-		card.appendChild( drawTree( plan.folders ) );
-
-		var actions = el( 'p', 'vgml-talk-actions' );
-
-		var apply = document.createElement( 'button' );
+		var actions = el( 'p', 'vgml-talk-apply' );
+		var apply = el( 'button', 'button button-primary', text( 'apply', 'Do it' ) );
 		apply.type = 'button';
-		apply.className = 'button button-primary';
-		apply.textContent = text( 'apply', 'Do it' );
-
-		var cancel = document.createElement( 'button' );
-		cancel.type = 'button';
-		cancel.className = 'button';
-		cancel.textContent = text( 'cancel', 'No, leave it' );
-
-		var said = el( 'span', 'vgml-talk-note' );
-
-		cancel.addEventListener( 'click', function () {
-			out.innerHTML = '';
-		} );
 
 		apply.addEventListener( 'click', function () {
 
 			apply.disabled = true;
-			cancel.disabled = true;
-			said.textContent = text( 'applying', '' );
+			apply.textContent = text( 'applying', 'Moving the files…' );
 
 			apiFetch( {
 				path: '/vergeml/v1/folders-apply',
 				method: 'POST',
-				// The plan id binds this press to the proposal that was shown.
-				data: { folders: plan.folders, plan_id: plan.plan_id },
-			} ).then( function ( r ) {
-
-				out.innerHTML = '';
-
-				var done = el( 'div', 'vgml-talk-done' );
-				done.appendChild( el( 'p', 'vgml-talk-doneline', r.message || '' ) );
-
-				if ( r.skipped > 0 ) {
-					done.appendChild( el( 'p', 'description',
-						sprintf( text( 'skipped', '' ), [ String( r.skipped ) ] ) ) );
-				}
-
-				done.appendChild( drawUndo() );
-				out.appendChild( done );
-
+				data: { folders: folders, plan_id: plan.plan_id }
+			} ).then( function ( done ) {
+				actions.textContent = '';
+				actions.appendChild( el( 'span', 'vgml-talk-done', ( done && done.message )
+					|| text( 'applied', 'Done. The folders are as you asked.' ) ) );
+				history.push( { role: 'user', text: '(applied that)' } );
+				scrollToEnd();
 			} ).catch( function ( err ) {
 				apply.disabled = false;
-				cancel.disabled = false;
-				said.textContent = ( err && err.message ) || text( 'failed', '' );
+				apply.textContent = text( 'apply', 'Do it' );
+				actions.appendChild( el( 'span', 'vgml-talk-error',
+					( err && err.message ) || text( 'failed', 'That did not go through. Try again.' ) ) );
 			} );
 		} );
 
 		actions.appendChild( apply );
-		actions.appendChild( cancel );
-		actions.appendChild( said );
-
-		card.appendChild( actions );
-		out.appendChild( card );
+		actions.appendChild( el( 'span', 'vgml-talk-hint', text( 'refine', 'Or just say what to change.' ) ) );
+		body.appendChild( actions );
+		scrollToEnd();
 	}
 
-	go.addEventListener( 'click', function () {
+	function send() {
 
 		var instruction = String( say.value || '' ).trim();
 
-		if ( '' === instruction ) {
-			note.textContent = text( 'empty', '' );
+		if ( instruction === '' ) {
 			say.focus();
 			return;
 		}
 
+		turn( 'you' ).appendChild( el( 'p', null, instruction ) );
+		history.push( { role: 'user', text: instruction } );
+
+		say.value = '';
 		go.disabled = true;
-		note.textContent = text( 'thinking', '' );
-		out.innerHTML = '';
+		note.textContent = text( 'thinking', 'Working out what that would look like…' );
 
 		apiFetch( {
 			path: '/vergeml/v1/folders-propose',
 			method: 'POST',
-			data: { instruction: instruction },
+			data: {
+				instruction: instruction,
+				// Only what was said, and only the last few turns: the service
+				// caps this as well, and a transcript is not a memory.
+				history: history.slice( -12 )
+			}
 		} ).then( function ( plan ) {
 			note.textContent = '';
 			go.disabled = false;
-			drawPlan( plan );
+			drawProposal( plan );
+			history.push( {
+				role: 'assistant',
+				text: ( plan.note ? plan.note + ' ' : '' )
+					+ 'Folders: ' + ( plan.folders || [] ).map( function ( f ) {
+						return f.parent ? f.parent + ' / ' + f.name : f.name;
+					} ).join( ', ' )
+			} );
+			say.focus();
 		} ).catch( function ( err ) {
+			note.textContent = '';
 			go.disabled = false;
-			note.textContent = ( err && err.message ) || text( 'failed', '' );
+			turn( 'them' ).appendChild( el( 'p', 'vgml-talk-error',
+				( err && err.message ) || text( 'failed', 'That did not go through. Try again.' ) ) );
+			say.focus();
 		} );
-	} );
+	}
 
-	// Ctrl/Cmd+Enter submits, because this is a textarea somebody is typing a
-	// sentence into and Enter has to stay a newline.
+	go.addEventListener( 'click', send );
+
+	// Enter sends, Shift+Enter is a newline: this is a chat box, and every
+	// other chat box on earth behaves this way.
 	say.addEventListener( 'keydown', function ( event ) {
-		if ( 'Enter' === event.key && ( event.metaKey || event.ctrlKey ) ) {
-			go.click();
+		if ( event.key === 'Enter' && ! event.shiftKey ) {
+			event.preventDefault();
+			send();
 		}
 	} );
 }() );

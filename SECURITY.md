@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Email **security@vergelabs.nl**. Please do not open a public issue, and please
+Email **security@in.vergelabs.nl**. Please do not open a public issue, and please
 do not post it in the WordPress.org support forum — both are readable by the
 people the bug would be used against.
 

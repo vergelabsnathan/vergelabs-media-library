@@ -549,3 +549,108 @@
 	line-height: 1.5;
 	color: #2A5730;
 }
+
+
+/* ---------------------------------------------------- sort into folders, as a talk */
+
+.vgml-talk-log {
+	max-height: 26rem;
+	overflow-y: auto;
+	margin: 0 0 1rem;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: .55rem;
+}
+
+.vgml-talk-log:empty {
+	display: none;
+}
+
+.vgml-talk-turn {
+	display: flex;
+}
+
+.vgml-talk-you {
+	justify-content: flex-end;
+}
+
+.vgml-talk-bubble {
+	max-width: 44rem;
+	padding: .65rem .85rem;
+	border-radius: 10px;
+	background: #f4f7fc;
+	border: 1px solid #e1e8f5;
+	font-size: 13.5px;
+	line-height: 1.55;
+}
+
+.vgml-talk-you .vgml-talk-bubble {
+	background: #16233d;
+	border-color: #16233d;
+	color: #f2f6fd;
+}
+
+.vgml-talk-bubble p {
+	margin: 0 0 .4rem;
+}
+
+.vgml-talk-bubble p:last-child {
+	margin-bottom: 0;
+}
+
+.vgml-talk-tree {
+	margin: .5rem 0 .2rem;
+	padding-right: 1rem;
+	list-style: none;
+}
+
+.vgml-talk-tree ul {
+	margin: .2rem .9rem .2rem 0;
+	padding: 0;
+	list-style: none;
+	border-right: 1px solid #c6d5ec;
+	padding-right: .75rem;
+}
+
+.vgml-talk-tree li {
+	margin: .15rem 0;
+}
+
+.vgml-talk-folder {
+	font-weight: 600;
+}
+
+.vgml-talk-count {
+	margin-right: .45rem;
+	color: #5b6884;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-talk-apply {
+	margin: .7rem 0 0;
+	display: flex;
+	align-items: center;
+	gap: .6rem;
+	flex-wrap: wrap;
+}
+
+.vgml-talk-hint,
+.vgml-talk-done,
+.vgml-talk-error {
+	font-size: 12.5px;
+	color: #5b6884;
+}
+
+.vgml-talk-error {
+	color: #b4231f;
+}
+
+.vgml-talk-done {
+	color: #1f7a4d;
+	font-weight: 600;
+}
+
+.vgml-talk-say {
+	width: 100%;
+}
