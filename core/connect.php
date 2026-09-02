@@ -141,6 +141,12 @@ function vergeml_connect_finish() {
     $settings['license_key'] = sanitize_text_field( (string) $body['key'] );
     update_option( 'vergeml_ai', $settings, false );
 
+    // The screen this returns to shows the balance; fetch it now so the number
+    // is right the moment the site is connected.
+    if ( function_exists( 'vergeml_ai_refresh_credits' ) ) {
+        vergeml_ai_refresh_credits( true );
+    }
+
     vergeml_connect_redirect_with( 'connected' );
 }
 

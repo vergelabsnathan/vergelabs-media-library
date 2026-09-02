@@ -81,6 +81,74 @@ function vergeml_ai_settings() {
  *  the person who can edit wp-config already owns the site -- and anything
  *  that is not https is refused outright.
  */
+/** How long a remembered balance is trusted before asking again. */
+if ( ! defined( 'VERGEML_CREDITS_TTL' ) ) {
+    define( 'VERGEML_CREDITS_TTL', 300 );
+}
+
+/**
+ *  What is left, asked for rather than overheard.
+ *
+ *  The balance used to arrive only as a side effect of describing an image:
+ *  the service reports it with every answer and the plugin remembered that.
+ *  A site that bought credits and had not run anything since kept showing the
+ *  number from its last run -- which reads exactly like a payment that never
+ *  landed. This asks outright, at most once every few minutes.
+ *
+ *  Failure is quiet on purpose. A screen that cannot reach the service should
+ *  show the last number it knew, not an error where a figure belongs.
+ *
+ *  @param bool $force Skip the cache -- used straight after connecting.
+ *  @return int|null The balance, or null when there is no licence.
+ */
+function vergeml_ai_refresh_credits( $force = false ) {
+
+    $settings = vergeml_ai_settings();
+    $key      = isset( $settings['license_key'] ) ? (string) $settings['license_key'] : '';
+    $cached   = get_option( 'vergeml_ai_credits', array() );
+    $known    = isset( $cached['remaining'] ) ? (int) $cached['remaining'] : null;
+
+    if ( '' === $key ) {
+        return null;
+    }
+
+    $age = isset( $cached['time'] ) ? ( time() - (int) $cached['time'] ) : PHP_INT_MAX;
+    if ( ! $force && $age < VERGEML_CREDITS_TTL ) {
+        return $known;
+    }
+
+    $response = wp_remote_post(
+        vergeml_ai_service_url() . '/licence',
+        array(
+            'timeout'   => 8,
+            'sslverify' => true,
+            'headers'   => array( 'Content-Type' => 'application/json' ),
+            'body'      => wp_json_encode( array(
+                'key'         => $key,
+                'site'        => home_url(),
+                'action'      => 'check',
+                'environment' => function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : 'production',
+            ) ),
+        )
+    );
+
+    if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+        return $known;
+    }
+
+    $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+    if ( ! is_array( $data ) || ! isset( $data['credits_remaining'] ) ) {
+        return $known;
+    }
+
+    update_option( 'vergeml_ai_credits', array(
+        'remaining' => (int) $data['credits_remaining'],
+        'time'      => time(),
+    ), false );
+
+    return (int) $data['credits_remaining'];
+}
+
 function vergeml_ai_service_url() {
 
     $url = defined( 'VERGEML_AI_SERVICE' ) ? VERGEML_AI_SERVICE : 'https://ai.vergelabs.nl/v1';
@@ -1493,7 +1561,7 @@ function vergeml_ai_rest_status() {
     // phpcs:enable
 
     $settings = vergeml_ai_settings();
-    $credits  = get_option( 'vergeml_ai_credits', array() );
+    $credits  = vergeml_ai_refresh_credits();
 
     return rest_ensure_response( array(
         'images'      => $images,
@@ -1507,7 +1575,7 @@ function vergeml_ai_rest_status() {
         'environment' => function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : 'production',
         'nonprod_blocked' => function_exists( 'wp_get_environment_type' ) && 'production' !== wp_get_environment_type()
             && ! ( defined( 'VERGEML_AI_ALLOW_NONPROD' ) && VERGEML_AI_ALLOW_NONPROD ),
-        'credits'     => isset( $credits['remaining'] ) ? $credits['remaining'] : null,
+        'credits'     => $credits,
         'settings'    => array(
             'auto_alt'      => (int) $settings['auto_alt'],
             'enrich_search' => (int) $settings['enrich_search'],
