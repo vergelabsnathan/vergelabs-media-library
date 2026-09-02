@@ -394,7 +394,6 @@ function vergeml_journey_undo_file_rename() {
 }
 
 
-add_action( 'admin_notices', 'vergeml_journey_file_notice' );
 
 function vergeml_journey_file_notice() {
 
@@ -880,6 +879,10 @@ function vergeml_journey_todo() {
      */
     $names = function_exists( 'vergeml_rename_pending_count' ) ? vergeml_rename_pending_count() : 0;
 
+    // How many pictures have never been looked at. A title cannot be written
+    // from one of those, which is why the count above is not the library.
+    $undescribed = function_exists( 'vergeml_ai_pending_count' ) ? (int) vergeml_ai_pending_count( 'unindexed' ) : 0;
+
     // The on-disk renamer is switched off until it is whole; while it is,
     // the screen speaks only about titles and promises nothing about files.
     $file_feature = defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME;
@@ -890,11 +893,30 @@ function vergeml_journey_todo() {
         'title' => __( 'File names', 'vergelabs-media-library' ),
         'note'  => __( '“Photo 498” tells nobody anything. We can name each file after what is in it — “Red Synthesizer with Controls” — from the same look. The title in WordPress and the file on disk are two separate changes. Anything you named yourself is left alone, and one click puts the old names back.', 'vergelabs-media-library' ),
         'n'     => $names,
-        'count' => sprintf(
-            /* translators: %s: how many titles could be rewritten. */
-            _n( '%s title could be written from what the picture shows', '%s titles could be written from what the pictures show', $names, 'vergelabs-media-library' ),
-            number_format_i18n( $names )
-        ),
+        /*
+         *  Bounded by what has been described, and it has to say so. A title
+         *  is written from a picture the model has looked at, so on a library
+         *  that is mostly undescribed this number is small for a reason --
+         *  and reading it as "only 27 of my files are badly named" is exactly
+         *  the wrong conclusion.
+         */
+        'count' => $undescribed > 0
+            ? sprintf(
+                /* translators: 1: how many titles could be rewritten, 2: how many pictures have not been described. */
+                _n(
+                    '%1$s title could be written from the pictures we have looked at (%2$s still to describe)',
+                    '%1$s titles could be written from the pictures we have looked at (%2$s still to describe)',
+                    $names,
+                    'vergelabs-media-library'
+                ),
+                number_format_i18n( $names ),
+                number_format_i18n( $undescribed )
+            )
+            : sprintf(
+                /* translators: %s: how many titles could be rewritten. */
+                _n( '%s title could be written from what the picture shows', '%s titles could be written from what the pictures show', $names, 'vergelabs-media-library' ),
+                number_format_i18n( $names )
+            ),
         'go'    => __( 'Rewrite the titles', 'vergelabs-media-library' ),
         'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_rename' ), 'vergeml_do_rename' ),
 
@@ -991,6 +1013,68 @@ function vergeml_journey_do_alt() {
 }
 
 
+/**
+ *  What just happened, said on the screen it happened on.
+ *
+ *  Every action here redirects back with a count in the query string, and the
+ *  counts were read by admin_notices handlers -- which the shell removes on
+ *  its own screens, deliberately. So pressing a button did the work and then
+ *  said nothing at all, which is indistinguishable from a button that does
+ *  not work. One of them, the title rewrite, had no handler reading it in the
+ *  first place.
+ */
+function vergeml_journey_results() {
+
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- reading a result the redirect wrote, not acting.
+    $said = array();
+
+    if ( isset( $_GET['vgml_renamed'] ) ) {
+        $n      = max( 0, (int) $_GET['vgml_renamed'] );
+        $said[] = 0 === $n
+            ? __( 'No titles needed rewriting. A title is only written from a picture we have already looked at.', 'vergelabs-media-library' )
+            : sprintf(
+                /* translators: %s: how many titles were rewritten. */
+                _n( '%s title rewritten from what the picture shows.', '%s titles rewritten from what the pictures show.', $n, 'vergelabs-media-library' ),
+                number_format_i18n( $n )
+            );
+    }
+
+    if ( isset( $_GET['vgml_alt_written'] ) ) {
+        $n      = max( 0, (int) $_GET['vgml_alt_written'] );
+        $said[] = sprintf(
+            /* translators: %s: how many pictures got alt text. */
+            _n( '%s picture now has alt text.', '%s pictures now have alt text.', $n, 'vergelabs-media-library' ),
+            number_format_i18n( $n )
+        );
+    }
+
+    if ( isset( $_GET['vgml_files_renamed'] ) ) {
+        $n      = max( 0, (int) $_GET['vgml_files_renamed'] );
+        $said[] = sprintf(
+            /* translators: %s: how many files were renamed on disk. */
+            _n( '%s file renamed, and the pages pointing at it updated.', '%s files renamed, and the pages pointing at them updated.', $n, 'vergelabs-media-library' ),
+            number_format_i18n( $n )
+        );
+    }
+
+    if ( isset( $_GET['vgml_files_back'] ) ) {
+        $n      = max( 0, (int) $_GET['vgml_files_back'] );
+        $said[] = sprintf(
+            /* translators: %s: how many file names were put back. */
+            _n( '%s file name put back.', '%s file names put back.', $n, 'vergelabs-media-library' ),
+            number_format_i18n( $n )
+        );
+    }
+    // phpcs:enable
+
+    foreach ( $said as $line ) {
+        printf(
+            '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+            esc_html( $line )
+        );
+    }
+}
+
 add_action( 'admin_post_vergeml_do_rename', 'vergeml_journey_do_rename' );
 
 function vergeml_journey_do_rename() {
@@ -1010,7 +1094,6 @@ function vergeml_journey_do_rename() {
 }
 
 
-add_action( 'admin_notices', 'vergeml_journey_alt_notice' );
 
 function vergeml_journey_alt_notice() {
 
@@ -1101,6 +1184,9 @@ function vergeml_journey_screen() {
 
     ?>
     <div class="wrap vgml-dash">
+
+        <?php vergeml_journey_results(); ?>
+
 
         <?php
         echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
