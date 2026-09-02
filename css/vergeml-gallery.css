@@ -10,6 +10,105 @@
  *  has no idea about -- a carousel, and a lightbox.
  */
 
+/* --- grid ----------------------------------------------------------------- */
+
+/*
+ *  A floor, not a design.
+ *
+ *  This said the grid needed no rules of ours because the theme styles
+ *  wp-block-gallery. That holds in a block theme and is simply untrue inside a
+ *  page builder, where core's gallery stylesheet is often never enqueued at
+ *  all -- so the same widget that looks right in Gutenberg came out as bare
+ *  figures stacked down the page.
+ *
+ *  So: enough to be presentable anywhere, and nothing that fights a theme that
+ *  does style it. Every value defers to core's own custom properties first, so
+ *  a theme setting gallery gap or image radius still wins. Nothing here sets a
+ *  colour.
+ */
+.vgml-folder-gallery:not( .is-carousel ) {
+	display: grid;
+	grid-template-columns: repeat( var( --vgml-columns, 3 ), minmax( 0, 1fr ) );
+	gap: var( --wp--style--gallery-gap-default, 16px );
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-folder-gallery:not( .is-carousel ) > .wp-block-image {
+	margin: 0;
+	min-width: 0;
+}
+
+/*
+ *  Equal tiles. Ragged rows of mixed portrait and landscape is the single
+ *  thing that makes a folder gallery look unfinished, and a folder is exactly
+ *  where mixed shapes turn up.
+ */
+.vgml-folder-gallery:not( .is-carousel ) > .wp-block-image img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	aspect-ratio: var( --vgml-ratio, 1 / 1 );
+	object-fit: cover;
+	border-radius: var( --wp--custom--image--border-radius, 6px );
+}
+
+.vgml-folder-gallery > .wp-block-image a {
+	display: block;
+	overflow: hidden;
+	border-radius: var( --wp--custom--image--border-radius, 6px );
+}
+
+/* Enough motion to say it can be opened, and no more. */
+.vgml-folder-gallery > .wp-block-image img {
+	transition: transform 240ms ease, opacity 240ms ease;
+}
+
+.vgml-folder-gallery > .wp-block-image a:hover img,
+.vgml-folder-gallery > .wp-block-image a:focus-visible img {
+	transform: scale( 1.03 );
+	opacity: 0.94;
+}
+
+.vgml-folder-gallery > .wp-block-image a:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+}
+
+.vgml-folder-gallery figcaption {
+	margin-top: 0.4em;
+	font-size: 0.85em;
+	line-height: 1.45;
+	opacity: 0.8;
+}
+
+/*
+ *  Columns are a desktop instruction. Three across a phone is a contact sheet,
+ *  not a gallery.
+ */
+@media ( max-width: 900px ) {
+	.vgml-folder-gallery:not( .is-carousel ) {
+		grid-template-columns: repeat( min( var( --vgml-columns, 3 ), 3 ), minmax( 0, 1fr ) );
+	}
+}
+
+@media ( max-width: 600px ) {
+	.vgml-folder-gallery:not( .is-carousel ) {
+		grid-template-columns: repeat( min( var( --vgml-columns, 2 ), 2 ), minmax( 0, 1fr ) );
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.vgml-folder-gallery > .wp-block-image img {
+		transition: none;
+	}
+
+	.vgml-folder-gallery > .wp-block-image a:hover img {
+		transform: none;
+	}
+}
+
 /* --- carousel ------------------------------------------------------------ */
 
 /*

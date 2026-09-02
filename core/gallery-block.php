@@ -301,10 +301,16 @@ function vergeml_render_gallery_block( $attributes ) {
         . ( $carousel ? ' is-carousel' : ' is-layout-flex' )
         . ' vgml-folder-gallery';
 
-    // How wide one slide is, from the same columns control the grid uses.
+    /*
+     *  The columns control, handed to CSS.
+     *
+     *  A carousel needs a slide width; a grid needs the column count. The grid
+     *  had neither, so the stylesheet could only guess at three -- and a
+     *  gallery set to five came out as three however the control was set.
+     */
     $style = $carousel
         ? '--vgml-slide:calc((100% - ' . ( ( $columns - 1 ) * 16 ) . 'px)/' . $columns . ');'
-        : '';
+        : '--vgml-columns:' . (int) $columns . ';';
 
     $wrapper = function_exists( 'get_block_wrapper_attributes' )
         ? get_block_wrapper_attributes( array_filter( array( 'class' => $classes, 'style' => $style ) ) )
