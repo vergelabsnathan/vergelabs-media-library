@@ -20,31 +20,47 @@ test.describe( 'the dashboard', () => {
 	test( 'a score never claims finished while a card says work remains', async ( { page } ) => {
 		await open( page, SCREEN.dashboard );
 
-		const text = await page.evaluate( () => document.body.innerText );
-
 		/*
-		 *  Each part prints as "Label" then "points/weight". Full marks with
-		 *  outstanding work is the contradiction: it tells somebody they are
-		 *  done on the same screen that tells them they are not.
+		 *  Read from the elements that hold the numbers, not by pattern
+		 *  matching the prose around them. The first version of this regexed
+		 *  innerText, matched nothing, and skipped itself green -- which is
+		 *  exactly how a suite lies about what it covers.
 		 */
-		const parts = Array.from( text.matchAll( /(Alt text|Described|Filed|Checked for copies)\s*\n?\s*(\d+)\s*\/\s*(\d+)/g ) )
-			.map( ( m ) => ( { label: m[ 1 ], points: Number( m[ 2 ] ), weight: Number( m[ 3 ] ) } ) );
+		const parts = await page.$$eval( '.vgml-score-parts li', ( items ) =>
+			items.map( ( li ) => {
+				const label = li.querySelector( '.vgml-score-label' );
+				const pts = li.querySelector( '.vgml-score-pts' );
+				const raw = pts === null ? '' : pts.textContent.trim();
+				const halves = raw.split( '/' );
+				return {
+					label: label === null ? '' : label.textContent.trim(),
+					points: Number( halves[ 0 ] ),
+					weight: Number( halves[ 1 ] ),
+				};
+			} )
+		);
 
-		test.skip( parts.length === 0, 'no score on this library yet' );
+		expect(
+			parts.length,
+			'the score panel must be on the dashboard; if it is not, this test checks nothing'
+		).toBeGreaterThan( 0 );
+
+		const text = await page.evaluate( () => document.body.innerText );
+		const part = ( name ) => parts.find( ( p ) => p.label === name );
 
 		const unfiled = /(\d[\d,]*)\s+files?\s+(?:is|are)\s+in\s+no\s+folder/i.exec( text );
 		if ( unfiled !== null && Number( unfiled[ 1 ].replace( /,/g, '' ) ) > 0 ) {
-			const filed = parts.find( ( p ) => p.label === 'Filed' );
+			const filed = part( 'Filed' );
 			expect( filed, 'a Filed score should be shown' ).toBeTruthy();
 			expect(
 				filed.points,
-				`"${ unfiled[ 0 ] }" is on the page, so Filed must not read full marks`
+				`"${ unfiled[ 0 ] }" is on this page, so Filed must not read full marks`
 			).toBeLessThan( filed.weight );
 		}
 
 		const undescribed = /have not looked at\s+(\d[\d,]*)/i.exec( text );
 		if ( undescribed !== null && Number( undescribed[ 1 ].replace( /,/g, '' ) ) > 0 ) {
-			const described = parts.find( ( p ) => p.label === 'Described' );
+			const described = part( 'Described' );
 			expect( described, 'a Described score should be shown' ).toBeTruthy();
 			expect(
 				described.points,
@@ -52,9 +68,10 @@ test.describe( 'the dashboard', () => {
 			).toBeLessThan( described.weight );
 		}
 
-		// And no part may exceed its own weight, ever.
 		for ( const p of parts ) {
-			expect( p.points, `${ p.label } cannot score above its weight` ).toBeLessThanOrEqual( p.weight );
+			expect( p.points, `${ p.label } cannot score above its own weight` )
+				.toBeLessThanOrEqual( p.weight );
+			expect( Number.isFinite( p.points ), `${ p.label } must print a number` ).toBe( true );
 		}
 	} );
 
@@ -62,7 +79,19 @@ test.describe( 'the dashboard', () => {
 		await open( page, SCREEN.dashboard );
 
 		const button = page.getByRole( 'link', { name: /Rewrite the titles/i } );
-		test.skip( ( await button.count() ) === 0, 'nothing to rewrite on this library' );
+
+		/*
+		 *  One of two things must be true: work is offered, or the card says
+		 *  there is none. Neither appearing means the card did not render, and
+		 *  skipping on that would hide the failure rather than report it.
+		 */
+		if ( ( await button.count() ) === 0 ) {
+			await expect(
+				page.locator( 'text=/Every title/i' ).first(),
+				'with no rewrite offered, the card must say the titles are done'
+			).toBeVisible();
+			return;
+		}
 
 		await button.first().click();
 		await page.waitForLoadState( 'domcontentloaded' );
@@ -75,7 +104,7 @@ test.describe( 'the dashboard', () => {
 		expect( page.url(), 'the result should come back in the URL' ).toMatch( /vgml_renamed=/ );
 		await expect(
 			page.locator( '.notice' ).filter( { hasText: /title|rewritten|needed rewriting/i } ).first(),
-			'the screen must say what happened'
+			'and the screen must say what happened'
 		).toBeVisible();
 	} );
 
