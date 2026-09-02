@@ -25,3 +25,8 @@ jobs:
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
             'bash -s' < tools/box-diagnose-search.sh
+
+      - name: whether the short vector finds what the long one would
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
+            'bash -s' < tools/box-projection-recall.sh
