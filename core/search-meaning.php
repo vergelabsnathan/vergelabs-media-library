@@ -252,8 +252,27 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
      *  number the customer sees, and the floor they are held to, comes from
      *  the whole embedding rather than a summary of it.
      */
+    /*
+     *  How deep the shortlist goes, measured rather than guessed.
+     *
+     *  On the test library -- 214 described pictures -- the projection's own
+     *  top ten holds only 54% of the ten genuinely closest, which is what
+     *  search used to answer with and why so little of what people looked for
+     *  came back. Its top hundred holds 99.3%. So the projection is a fine
+     *  filter and a poor judge, and the depth is what decides whether the
+     *  right picture survives to be judged properly.
+     *
+     *  That measurement was taken where a hundred rows is half the library,
+     *  and it does not carry over to a library of twenty thousand unchanged.
+     *  So the depth follows the library rather than sitting at a number that
+     *  happened to work once: a share of what was scanned, never less than a
+     *  few hundred, and capped where the cost of re-reading embeddings starts
+     *  to be felt.
+     */
+    $depth = (int) min( 2000, max( 400, ceil( $scanned * 0.05 ) ) );
+
     arsort( $scored );
-    $shortlist = array_slice( $scored, 0, 400, true );
+    $shortlist = array_slice( $scored, 0, $depth, true );
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
     $ready = $wpdb->get_results(
