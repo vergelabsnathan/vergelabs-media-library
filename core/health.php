@@ -87,7 +87,22 @@ function vergeml_health_hash_usable( $dhash ) {
 
     return count( array_unique( str_split( $dhash, 2 ) ) ) >= VERGEML_HEALTH_MIN_BYTES;
 }
-const VERGEML_HEALTH_LOOSE = 10;
+/*
+ *  Ten bits out of sixty-four was far too generous.
+ *
+ *  A dhash records whether each pixel is brighter than the one beside it, so
+ *  what it really measures is the shape of the light. Every photograph with a
+ *  bright sky over a darker foreground has close to the same shape: a bridge
+ *  in fog, a star trail, a sunset over rooftops and a beach at noon were all
+ *  being offered to each other as possibly the same picture. They have nothing
+ *  in common except a horizon.
+ *
+ *  Seven keeps the band narrow enough to mean something -- a crop, a re-save,
+ *  a slightly different export of one picture -- and wide enough to still be
+ *  worth a second look. A suggestion nobody agrees with teaches people to
+ *  ignore the whole panel, which costs more than the matches it finds.
+ */
+const VERGEML_HEALTH_LOOSE = 7;
 
 // Groups returned per list. A library with more than this many duplicate groups
 // has a bigger problem than a longer page would solve.
