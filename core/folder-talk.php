@@ -169,13 +169,193 @@ function vergeml_talk_samples( $limit = 40 ) {
 }
 
 
+/** How many described pictures the grouping looks at, and how many groups. */
+const VERGEML_TALK_GROUP_SAMPLE = 600;
+const VERGEML_TALK_GROUPS = 10;
+
+/**
+ *  The groups this library actually falls into.
+ *
+ *  The service was being asked what folders a library needs while seeing forty
+ *  captions, which is not enough to answer from and so gets answered from what
+ *  photo libraries generally contain -- that is where a Screenshots folder
+ *  comes from on a library with no screenshots in it. Nothing in the picture
+ *  data suggested it; the model filled a gap.
+ *
+ *  So the gap gets filled here instead, with something only this site knows:
+ *  the pictures clustered by their own embeddings, each group's size, and a
+ *  few captions from the middle of it. "About 212 of these look like each
+ *  other, and three of them are boots" is a fact about this library. Forty
+ *  captions are a sample of one.
+ *
+ *  Sampled and rough on purpose. This runs while somebody waits, so it reads a
+ *  few hundred rows rather than the whole table and stops after a handful of
+ *  passes -- it is deciding what to tell a model about, not filing anything.
+ *
+ * @return array<int,array{size:int,captions:string[]}>
+ */
+function vergeml_talk_groups() {
+
+	global $wpdb;
+
+	if ( ! isset( $wpdb->vergeml_ai_index ) || ! function_exists( 'vergeml_meaning_similarity' ) ) {
+		return array();
+	}
+
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+	$total = (int) $wpdb->get_var(
+		"SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
+		  WHERE error = '' AND embedding IS NOT NULL AND caption != ''"
+	);
+
+	if ( $total < 12 ) {
+		return array(); // Too few to have a shape worth reporting.
+	}
+
+	$rows = $wpdb->get_results( $wpdb->prepare(
+		"SELECT embedding, caption
+		   FROM {$wpdb->vergeml_ai_index}
+		  WHERE error = '' AND embedding IS NOT NULL AND caption != ''
+	   ORDER BY attachment_id ASC
+		  LIMIT %d",
+		VERGEML_TALK_GROUP_SAMPLE
+	), ARRAY_A );
+	// phpcs:enable
+
+	$vectors  = array();
+	$captions = array();
+
+	foreach ( (array) $rows as $row ) {
+		$v = vergeml_index_vector_out( $row['embedding'] );
+		if ( is_array( $v ) && $v ) {
+			$vectors[]  = $v;
+			$captions[] = (string) $row['caption'];
+		}
+	}
+
+	$n = count( $vectors );
+
+	if ( $n < 12 ) {
+		return array();
+	}
+
+	$k = (int) min( VERGEML_TALK_GROUPS, max( 2, floor( $n / 8 ) ) );
+
+	/*
+	 *  Seeds spread evenly through the sample rather than picked at random.
+	 *  Random seeds make the same library answer differently on two consecutive
+	 *  turns of one conversation, and a person who says "no, not like that"
+	 *  should not have the ground move under them for an unrelated reason.
+	 */
+	$centroids = array();
+
+	for ( $i = 0; $i < $k; $i++ ) {
+		$centroids[] = $vectors[ (int) floor( $i * $n / $k ) ];
+	}
+
+	$members = array_fill( 0, $n, 0 );
+
+	for ( $pass = 0; $pass < 6; $pass++ ) {
+
+		$moved = false;
+
+		foreach ( $vectors as $i => $vector ) {
+
+			$best  = 0;
+			$score = -2.0;
+
+			foreach ( $centroids as $c => $centroid ) {
+				$here = vergeml_meaning_similarity( $centroid, $vector );
+				if ( $here > $score ) {
+					$score = $here;
+					$best  = $c;
+				}
+			}
+
+			if ( $members[ $i ] !== $best ) {
+				$members[ $i ] = $best;
+				$moved = true;
+			}
+		}
+
+		if ( ! $moved ) {
+			break; // Settled; more passes would change nothing.
+		}
+
+		for ( $c = 0; $c < $k; $c++ ) {
+
+			$sum   = array();
+			$count = 0;
+
+			foreach ( $members as $i => $m ) {
+				if ( $m !== $c ) {
+					continue;
+				}
+				foreach ( $vectors[ $i ] as $d => $value ) {
+					$sum[ $d ] = isset( $sum[ $d ] ) ? $sum[ $d ] + $value : $value;
+				}
+				$count++;
+			}
+
+			if ( $count > 0 ) {
+				foreach ( $sum as $d => $value ) {
+					$sum[ $d ] = $value / $count;
+				}
+				$centroids[ $c ] = vergeml_organize_normalise( $sum );
+			}
+		}
+	}
+
+	$out = array();
+
+	for ( $c = 0; $c < $k; $c++ ) {
+
+		$mine = array();
+
+		foreach ( $members as $i => $m ) {
+			if ( $m === $c ) {
+				$mine[ $i ] = vergeml_meaning_similarity( $centroids[ $c ], $vectors[ $i ] );
+			}
+		}
+
+		if ( count( $mine ) < 3 ) {
+			continue; // Three pictures is not a group, it is a coincidence.
+		}
+
+		// The most typical of the group, not the first three found: a caption
+		// from the edge of a cluster describes the edge, not the cluster.
+		arsort( $mine );
+
+		$picked = array();
+
+		foreach ( array_slice( array_keys( $mine ), 0, 5 ) as $i ) {
+			$picked[] = mb_substr( $captions[ $i ], 0, 160 );
+		}
+
+		$out[] = array(
+			// Scaled back up to the library, because the sample is a sample and
+			// "about 212" is the number that decides whether a folder is worth
+			// making. Saying 60 of a 600-file sample would understate it.
+			'size'     => (int) round( count( $mine ) * $total / $n ),
+			'captions' => $picked,
+		);
+	}
+
+	usort( $out, function ( $a, $b ) {
+		return $b['size'] - $a['size'];
+	} );
+
+	return $out;
+}
+
+
 /**
  *  Ask the service what folders this sentence means.
  *
  * @param string $instruction What the user typed.
  * @return array|WP_Error { folders: array, note: string }
  */
-function vergeml_talk_propose( $instruction, $history = array() ) {
+function vergeml_talk_propose( $instruction, $history = array(), $mode = 'literal' ) {
 
 	$instruction = trim( (string) $instruction );
 
@@ -218,6 +398,8 @@ function vergeml_talk_propose( $instruction, $history = array() ) {
 				'history'     => $history,
 				'current'     => $current,
 				'samples'     => vergeml_talk_samples(),
+				'groups'      => vergeml_talk_groups(),
+				'mode'        => 'suggested' === $mode ? 'suggested' : 'literal',
 			) ),
 		)
 	);
@@ -882,6 +1064,12 @@ function vergeml_talk_routes() {
 			// What has already been said, so a refinement refines rather than
 			// planning the library again from nothing.
 			'history'     => array( 'type' => 'array', 'required' => false ),
+			/*
+			 *  Which tree. The screen asks for the literal one, draws it, then
+			 *  asks again for the suggestion, so the slower answer does not
+			 *  hold up the one that was actually requested.
+			 */
+			'mode'        => array( 'type' => 'string', 'required' => false ),
 		),
 	) );
 
@@ -979,7 +1167,11 @@ function vergeml_talk_rest_propose( WP_REST_Request $request ) {
 		);
 	}
 
-	$result = vergeml_talk_propose( (string) $request->get_param( 'instruction' ), $said );
+	$result = vergeml_talk_propose(
+		(string) $request->get_param( 'instruction' ),
+		$said,
+		(string) $request->get_param( 'mode' )
+	);
 
 	if ( is_wp_error( $result ) ) {
 		return vergeml_talk_fail( $result );
@@ -1176,5 +1368,7 @@ function vergeml_talk_assets( $hook ) {
 			'refine'    => __( 'Or say what to change about it.', 'vergelabs-media-library' ),
 			'applied'   => __( 'Done — the folders are as you asked.', 'vergelabs-media-library' ),
 			'noFolders' => __( 'That would leave you with no folders at all, so nothing has been changed.', 'vergelabs-media-library' ),
+			'thinking2' => __( 'Looking at what is actually in your library…', 'vergelabs-media-library' ),
+			'suggestion' => __( 'Or, going by what is actually in your library:', 'vergelabs-media-library' ),
 	) );
 }

@@ -693,6 +693,21 @@
 }
 
 /* Something is happening, said without a sentence that has to be read. */
+/*
+ *  Which of the two trees this is.
+ *
+ *  Two proposals sit in the transcript at once -- what was asked for, and what
+ *  the library suggests -- and without a line saying so they read as the model
+ *  changing its mind between messages.
+ */
+.vgml-talk-heading {
+	margin: 0 0 .45rem;
+	font-weight: 600;
+	font-size: 12.5px;
+	letter-spacing: .01em;
+	color: var( --vgml-home-muted, #646970 );
+}
+
 .vgml-talk-thinking {
 	display: inline-flex;
 	gap: .28rem;

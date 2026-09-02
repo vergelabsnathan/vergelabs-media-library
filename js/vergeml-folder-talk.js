@@ -210,11 +210,16 @@
 	}
 
 	/** Draw what it proposed, and offer to apply that one. */
-	function drawProposal( plan ) {
+	function drawProposal( plan, heading ) {
 
 		live = plan;
 
 		var body = turn( 'them' );
+
+		// Says which of the two trees this is, when there are two on screen.
+		if ( heading ) {
+			body.appendChild( el( 'p', 'vgml-talk-heading', heading ) );
+		}
 
 		if ( plan.note ) {
 			body.appendChild( el( 'p', 'vgml-talk-said', plan.note ) );
@@ -280,6 +285,58 @@
 		scrollToEnd();
 	}
 
+	/*
+	 *  The second opinion, fetched after the first is already on screen.
+	 *
+	 *  Taking somebody's words literally is right when they are specifying and
+	 *  wrong when they are gesturing -- "jeans shirts skirts etc etc" read
+	 *  literally makes a folder called "etc etc" and a Skirts holding three
+	 *  pictures. There is no reliable way to tell the two apart from the
+	 *  wording, so both are offered and the person picks.
+	 *
+	 *  It is a separate request because working it out takes about twice as
+	 *  long as the literal tree: it reads the sizes of the groups the library
+	 *  actually falls into and explains itself. Waiting for it before showing
+	 *  anything would double the wait for the answer that was asked for.
+	 *
+	 *  A failure here is silent on purpose. The person has a usable tree in
+	 *  front of them; an error about a second opinion they did not ask for is
+	 *  noise.
+	 */
+	function askForSuggestion( instruction ) {
+
+		var waiting = turn( 'them' );
+		waiting.appendChild( el( 'p', 'vgml-talk-hint',
+			text( 'thinking2', 'Looking at what is actually in your library…' ) ) );
+		waiting.parentNode.setAttribute( 'data-suggesting', '1' );
+
+		var drop = function () {
+			var row = log.querySelector( '[data-suggesting]' );
+			if ( row !== null ) {
+				row.parentNode.removeChild( row );
+			}
+		};
+
+		apiFetch( {
+			path: '/vergeml/v1/folders-propose',
+			method: 'POST',
+			data: {
+				instruction: instruction,
+				history: history.slice( -12 ),
+				mode: 'suggested',
+			}
+		} ).then( function ( plan ) {
+
+			drop();
+
+			if ( ! plan || ! plan.folders || plan.folders.length === 0 ) {
+				return;
+			}
+
+			drawProposal( plan, text( 'suggestion', 'Or, going by what is actually in your library:' ) );
+		} ).catch( drop );
+	}
+
 	function send() {
 
 		var instruction = String( say.value || '' ).trim();
@@ -337,6 +394,7 @@
 		} ).then( function ( plan ) {
 			done();
 			drawProposal( plan );
+			askForSuggestion( instruction );
 			history.push( {
 				role: 'assistant',
 				text: ( plan.note ? plan.note + ' ' : '' )
