@@ -1,4 +1,31 @@
 {
   "_": "Written by tools/watch/triage.mjs. Read by the plugin's Get help screen and the support agent.",
-  "issues": []
+  "issues": [
+    {
+      "dependency": "wp-rocket",
+      "name": "WP Rocket",
+      "slug": "wp-rocket",
+      "version": "3.23.2.2",
+      "severity": "yellow",
+      "summary": "no zip without a licence; the stage leg is the proof (stage could not install this version; not proven either way)",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/3",
+      "found": "2026-09-02"
+    },
+    {
+      "dependency": "wp-seopress",
+      "name": "SEOPress (Pro follows the same numbering)",
+      "slug": "wp-seopress",
+      "version": "10.2",
+      "severity": "yellow",
+      "summary": "changelog mentions removed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/2",
+      "found": "2026-09-02"
+    }
+  ]
 }
