@@ -36,5 +36,8 @@ jobs:
       - name: regenerate the missing thumbnails
         if: ${{ inputs.job == 'thumbnails' }}
         run: |
-          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no \
+            tools/box-thumbs-count.php root@46.225.66.194:/tmp/vgml-thumbs-count.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=40 root@46.225.66.194 \
             'bash -s' < tools/box-thumbnails.sh
