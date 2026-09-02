@@ -1,3 +1,4 @@
 set -e
 cd /var/www/wp
-wp eval-file wp-content/plugins/vergelabs-media-library/tools/box-projection-recall.php --allow-root --skip-themes
+wp eval-file /tmp/vgml-recall.php --allow-root --skip-themes
+rm -f /tmp/vgml-recall.php

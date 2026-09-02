@@ -2923,7 +2923,32 @@ function vergeml_librarian_page() {
          *  that can disagree.
          */
         ?>
-        <div class="vgml-flow">
+        <?php
+        /*
+         *  First on the page, because it is the thing people came to use.
+         *
+         *  This fired between the step flow and the history, which put a chat
+         *  window underneath a five-step wizard that had already proposed a
+         *  set of folders. Both then sat on screen at once, disagreeing: you
+         *  could ask for Apparel with Women and Men under it, watch the
+         *  conversation propose exactly that, and still be looking at the
+         *  wizard's original suggestions directly above it. Two answers to
+         *  one question, and no way to tell which the Do it button meant.
+         *
+         *  So the conversation goes first and the wizard follows it, and the
+         *  script folds the wizard away the moment a conversation starts.
+         */
+        do_action( 'vergeml_librarian_page_top' );
+        ?>
+
+        <div class="vgml-flow-fold" id="vgml-lib-fold" hidden>
+            <span><?php esc_html_e( 'The step-by-step suggestions are folded away while you are talking.', 'vergelabs-media-library' ); ?></span>
+            <button type="button" class="button-link" id="vgml-lib-unfold">
+                <?php esc_html_e( 'Show them again', 'vergelabs-media-library' ); ?>
+            </button>
+        </div>
+
+        <div class="vgml-flow" id="vgml-lib-flow">
 
             <div class="vgml-flow-rail">
                 <div id="vgml-lib-steps"></div>
@@ -2936,20 +2961,6 @@ function vergeml_librarian_page() {
             </div>
 
         </div>
-
-        <?php
-        /*
-         *  Always visible, unlike everything below.
-         *
-         *  What is under vgml-after-flow is a follow-up to finishing the run,
-         *  and stays hidden until it finishes. Saying what you want the
-         *  folders to be is not a follow-up: it is most useful on a library
-         *  that already has folders somebody is unhappy with, which is
-         *  precisely the library that never reaches the last step. Hiding it
-         *  there would hide it from everyone who needs it.
-         */
-        do_action( 'vergeml_librarian_page_top' );
-        ?>
 
         <?php
         /*

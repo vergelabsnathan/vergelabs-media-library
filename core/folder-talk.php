@@ -782,33 +782,67 @@ function vergeml_talk_card() {
 		return;
 	}
 
+	/*
+	 *  Openers, offered once.
+	 *
+	 *  An empty chat window is the hardest thing in this plugin to start
+	 *  using: nothing on screen says what it will understand, so people type
+	 *  one cautious word and get something disappointing back. These say what
+	 *  a good first sentence looks like -- and they are part of the empty
+	 *  state, so they leave with it the moment the conversation starts rather
+	 *  than sitting under a transcript still suggesting how to begin.
+	 */
+	$openers = array(
+		__( 'Sort these into Apparel, with Women and Men under it', 'vergelabs-media-library' ),
+		__( 'Group them by what room they belong in', 'vergelabs-media-library' ),
+		__( 'I don’t want Nature — split Buildings into Modern and Classic instead', 'vergelabs-media-library' ),
+	);
+
 	?>
-	<div class="vgml-ai-card vgml-talk">
+	<div class="vgml-talk" id="vgml-talk">
 
-		<h2><?php esc_html_e( 'Tell it what you want instead', 'vergelabs-media-library' ); ?></h2>
+		<div class="vgml-talk-head">
+			<h2><?php esc_html_e( 'Tell it what you want the folders to be', 'vergelabs-media-library' ); ?></h2>
+			<p><?php esc_html_e( 'Say it the way you would say it to a person. Nothing moves until you press Do it, and talking costs no credits — the pictures have already been looked at.', 'vergelabs-media-library' ); ?></p>
+		</div>
 
-		<p class="description">
-			<?php esc_html_e( 'Say it the way you would say it to a person. You will see exactly what would change before anything moves, and it costs no credits — the pictures have already been looked at.', 'vergelabs-media-library' ); ?>
-		</p>
+		<div class="vgml-talk-panel">
 
-		<div id="vgml-talk-log" class="vgml-talk-log" aria-live="polite" aria-label="<?php esc_attr_e( 'What you have asked for, and what was proposed', 'vergelabs-media-library' ); ?>"></div>
+			<div class="vgml-talk-empty" id="vgml-talk-empty">
+				<p class="vgml-talk-empty-lead"><?php esc_html_e( 'Try starting with one of these:', 'vergelabs-media-library' ); ?></p>
+				<?php foreach ( $openers as $opener ) : ?>
+					<button type="button" class="vgml-talk-chip"><?php echo esc_html( $opener ); ?></button>
+				<?php endforeach; ?>
+			</div>
 
-		<label class="screen-reader-text" for="vgml-talk-say">
-			<?php esc_html_e( 'What you want the folders to be', 'vergelabs-media-library' ); ?>
-		</label>
+			<div
+				id="vgml-talk-log"
+				class="vgml-talk-log"
+				role="log"
+				aria-live="polite"
+				aria-label="<?php esc_attr_e( 'What you have asked for, and what was proposed', 'vergelabs-media-library' ); ?>"></div>
 
-		<textarea
-			id="vgml-talk-say"
-			class="vgml-talk-say"
-			rows="2"
-			placeholder="<?php esc_attr_e( 'I don’t want Nature. I want Buildings, split into Modern and Classic, and Residential and Office.', 'vergelabs-media-library' ); ?>"></textarea>
+			<div class="vgml-talk-compose">
 
-		<p class="vgml-talk-actions">
-			<button type="button" class="button button-primary" id="vgml-talk-go">
-				<?php esc_html_e( 'Send', 'vergelabs-media-library' ); ?>
-			</button>
-			<span class="vgml-talk-note" id="vgml-talk-note"></span>
-		</p>
+				<label class="screen-reader-text" for="vgml-talk-say">
+					<?php esc_html_e( 'What you want the folders to be', 'vergelabs-media-library' ); ?>
+				</label>
+
+				<textarea
+					id="vgml-talk-say"
+					class="vgml-talk-say"
+					rows="1"
+					placeholder="<?php esc_attr_e( 'Say what you want the folders to be…', 'vergelabs-media-library' ); ?>"></textarea>
+
+				<button type="button" class="button button-primary vgml-talk-send" id="vgml-talk-go">
+					<?php esc_html_e( 'Send', 'vergelabs-media-library' ); ?>
+				</button>
+
+			</div>
+
+			<p class="vgml-talk-note" id="vgml-talk-note" aria-live="polite"></p>
+
+		</div>
 
 	</div>
 	<?php
@@ -831,8 +865,16 @@ function vergeml_talk_assets( $hook ) {
 		true
 	);
 
+	/*
+	 *  Flat, because that is how the script reads it.
+	 *
+	 *  These sat under an 'l10n' key while vergeml-folder-talk.js looked them
+	 *  up directly on the object, so every single one missed and every string
+	 *  on this screen came from the English fallback baked into the script --
+	 *  including on a translated site, where nothing here was translatable at
+	 *  all and no error was raised to say so.
+	 */
 	wp_localize_script( 'vergeml-folder-talk', 'vergemlTalk', array(
-		'l10n' => array(
 			'thinking'  => __( 'Working out what you mean…', 'vergelabs-media-library' ),
 			'empty'     => __( 'Say what you want the folders to be.', 'vergelabs-media-library' ),
 			'failed'    => __( 'That did not work, and nothing was changed.', 'vergelabs-media-library' ),
@@ -850,6 +892,8 @@ function vergeml_talk_assets( $hook ) {
 			/* translators: %s: how many pictures matched nothing. */
 			'skipped'   => __( '%s pictures matched none of these well enough and were left where they were.', 'vergelabs-media-library' ),
 			'nothing'   => __( 'Nothing would change.', 'vergelabs-media-library' ),
-		),
+			'refine'    => __( 'Or say what to change about it.', 'vergelabs-media-library' ),
+			'applied'   => __( 'Done — the folders are as you asked.', 'vergelabs-media-library' ),
+			'noFolders' => __( 'That would leave you with no folders at all, so nothing has been changed.', 'vergelabs-media-library' ),
 	) );
 }
