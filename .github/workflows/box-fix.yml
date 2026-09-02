@@ -1,0 +1,40 @@
+name: box-fix
+
+# Maintenance the box occasionally needs, run deliberately and never on a push.
+on:
+  workflow_dispatch:
+    inputs:
+      job:
+        description: what to fix
+        required: true
+        default: thumbnails
+        type: choice
+        options:
+          - thumbnails
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: the key
+        env:
+          BOX_SSH_KEY: ${{ secrets.BOX_SSH_KEY }}
+        run: |
+          if [ -z "$BOX_SSH_KEY" ]; then echo "BOX_SSH_KEY is not set." >&2; exit 1; fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$BOX_SSH_KEY" > ~/.ssh/hetzner_vgml
+          chmod 600 ~/.ssh/hetzner_vgml
+          ssh-keyscan -H 46.225.66.194 >> ~/.ssh/known_hosts 2>/dev/null
+
+      # Two thirds of the library had no thumbnail, so the media grid was
+      # serving full-size originals and rescaling them in the browser. This
+      # only fills in sizes that are missing; it never rewrites one that
+      # already exists, so nothing that currently works can be made worse.
+      - name: regenerate the missing thumbnails
+        if: ${{ inputs.job == 'thumbnails' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
+            'bash -s' < tools/box-thumbnails.sh
