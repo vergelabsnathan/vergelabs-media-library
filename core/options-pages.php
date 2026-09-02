@@ -2541,6 +2541,35 @@ function vergeml_print_taxonomies_options() {
         );
         ?>
 
+        <?php
+        /*
+         *  What this screen is, before what it asks.
+         *
+         *  It opened on "Assign following taxonomies to Media Library" -- the
+         *  original plugin's words -- next to a list of checkboxes. Somebody
+         *  who does not already know what a taxonomy is learns nothing, and
+         *  somebody who does still cannot tell which of them is the folder
+         *  tree they have been dragging files into.
+         */
+        ?>
+        <div class="vgml-tax-intro">
+            <p>
+                <?php
+                printf(
+                    /* translators: %s: the name of the folder taxonomy, in code formatting. */
+                    esc_html__( 'The folder tree beside your media library is a category list. It is stored as %s, an ordinary WordPress taxonomy, which is why the folders survive if this plugin is ever removed and why another plugin reading the same list sees the same folders.', 'vergelabs-media-library' ),
+                    '<code>media_category</code>'
+                );
+                ?>
+            </p>
+            <p>
+                <?php esc_html_e( 'Anything else you tick below is not a second folder tree. It becomes another way to label and filter media — tags, a client name, a licence — shown on the media screen and in the filter bar, alongside the folders rather than instead of them.', 'vergelabs-media-library' ); ?>
+            </p>
+            <p class="description">
+                <?php esc_html_e( 'Unticking one hides it from the media screens. It does not delete the taxonomy, and it does not remove anything already filed under it: tick it again and everything is where it was.', 'vergelabs-media-library' ); ?>
+            </p>
+        </div>
+
 
         <div id="poststuff">
 

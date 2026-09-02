@@ -668,3 +668,31 @@
 	margin: 0 0 1rem;
 	color: #5b6884;
 }
+
+
+/* Context before checkboxes, on the taxonomies screen. */
+.vgml-tax-intro {
+	max-width: 68ch;
+	margin: 0 0 1.4rem;
+	padding: 1rem 1.15rem;
+	background: #f4f7fc;
+	border: 1px solid #e1e8f5;
+	border-radius: 10px;
+}
+
+.vgml-tax-intro p {
+	margin: 0 0 .6rem;
+	font-size: 13.5px;
+	line-height: 1.6;
+}
+
+.vgml-tax-intro p:last-child {
+	margin-bottom: 0;
+}
+
+.vgml-tax-intro code {
+	background: #fff;
+	border: 1px solid #dce5f3;
+	padding: .05rem .3rem;
+	border-radius: 4px;
+}
