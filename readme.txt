@@ -4,7 +4,7 @@ Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.15.0
+Stable tag: 3.16.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -260,6 +260,15 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 
 
 ## Changelog ##
+
+### 3.16.0 ###
+*One button instead of a copied key*
+
+= Added =
+* **Connect a site without copying anything.** The AI screen has a Connect button: it sends you to vergelabsmedia.com, you pick which licence this site should use, and you are sent straight back with the key already in place. The key is fetched between the two servers and never travels through the browser, the request carries a nonce that must come back unchanged, and the code it returns is single use, expires in ten minutes, and only works for the site it was minted for. Pasting a key by hand still works, for a site that cannot reach out and for a network licence.
+
+= Fixed =
+* **The credit balance was only ever overheard.** The service reports what is left with every description, and the plugin remembered that — so a site that had bought credits and not described anything since kept showing the number from its last run, which reads exactly like a payment that never arrived. It now asks outright, at most once every few minutes, and immediately after connecting. A site that cannot reach the service shows the last number it knew rather than an error.
 
 ### 3.15.0 ###
 *In every language, the same drawer*
