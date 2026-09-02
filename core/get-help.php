@@ -282,7 +282,7 @@ function vergeml_help_page() {
         <?php elseif ( 'failed' === $state ) : ?>
             <div class="notice notice-error"><p><?php
                 /* translators: %s: the reason */
-                echo esc_html( sprintf( __( 'That did not send (%s). Copy the report below and mail it to support@vergelabs.nl with your question.', 'vergelabs-media-library' ), $why ) );
+                echo esc_html( sprintf( __( 'That did not send (%s). Copy the report below and mail it to support@vergelabsmedia.com with your question.', 'vergelabs-media-library' ), $why ) );
             ?></p></div>
         <?php elseif ( 'consent' === $state ) : ?>
             <div class="notice notice-warning"><p><?php esc_html_e( 'Tick the box to send the report with your question — without it we can only guess.', 'vergelabs-media-library' ); ?></p></div>
