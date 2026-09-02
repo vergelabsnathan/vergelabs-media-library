@@ -1,23 +1,20 @@
 name: box-tune
 
-# Give the test box limits a real WordPress site needs.
+# Give the test box the limits a real WordPress site needs.
 #
-# Stock PHP ships with 128M of memory, 30 seconds of execution and 2M uploads.
-# WooCommerce demo importers refuse to start on that, large media libraries
-# time out halfway, and the whole box reads as "underpowered" when what is
-# actually underpowered is the configuration. Hetzner is not the bottleneck.
-#
-# Everything here is additive and reversible: a drop-in file per service,
-# nothing edited in place, and the job prints the values it ends up with so
-# the log says what is true rather than what was intended.
+# The script it runs lives in tools/box-tune.sh, so it can be read and changed
+# like anything else rather than hiding inside a YAML string. Everything it
+# does is additive and reversible.
 on:
   workflow_dispatch:
     inputs:
       memory:
         description: 'PHP memory_limit'
+        required: false
         default: '512M'
       uploads:
-        description: 'upload_max_filesize / post_max_size'
+        description: 'upload_max_filesize and post_max_size'
+        required: false
         default: '128M'
 
 jobs:
@@ -25,11 +22,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: the key
+      - uses: actions/checkout@v4
+
+      - name: the key, from where it actually lives
         env:
           BOX_SSH_KEY: ${{ secrets.BOX_SSH_KEY }}
         run: |
-          if [ -z "$BOX_SSH_KEY" ]; then echo "BOX_SSH_KEY is not set." >&2; exit 1; fi
+          if [ -z "$BOX_SSH_KEY" ]; then
+            echo "BOX_SSH_KEY is not set; nothing can be changed." >&2
+            exit 1
+          fi
           mkdir -p ~/.ssh
           printf '%s\n' "$BOX_SSH_KEY" > ~/.ssh/hetzner_vgml
           chmod 600 ~/.ssh/hetzner_vgml
@@ -37,50 +39,8 @@ jobs:
 
       - name: raise the limits
         env:
-          MEM: ${{ inputs.memory }}
-          UP: ${{ inputs.uploads }}
+          MEM: ${{ github.event.inputs.memory }}
+          UP: ${{ github.event.inputs.uploads }}
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
-            "MEM='${MEM}' UP='${UP}' bash -s" <<'REMOTE'
-          set -e
-
-          # Whichever PHP is actually serving, rather than a version guessed here.
-          PHPV="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || true)"
-          echo "php on this box: ${PHPV:-unknown}"
-
-          wrote=0
-          for d in /etc/php/${PHPV}/fpm/conf.d /etc/php/${PHPV}/cli/conf.d /etc/php.d /usr/local/etc/php/conf.d; do
-            [ -d "$d" ] || continue
-            cat > "$d/99-vergelabs.ini" <<INI
-; Raised for real WordPress work: demo imports, large media libraries, bulk
-; operations. Written by the box-tune workflow; delete this file to revert.
-memory_limit = ${MEM}
-max_execution_time = 300
-max_input_time = 300
-max_input_vars = 5000
-upload_max_filesize = ${UP}
-post_max_size = ${UP}
-INI
-            echo "wrote $d/99-vergelabs.ini"
-            wrote=1
-          done
-          [ "$wrote" = "1" ] || { echo "no php conf.d directory found" >&2; exit 1; }
-
-          # nginx refuses a large upload before PHP ever sees it, and the error
-          # it gives says nothing about the limit that caused it.
-          if [ -d /etc/nginx/conf.d ]; then
-            printf 'client_max_body_size %s;\n' "$UP" > /etc/nginx/conf.d/99-vergelabs.conf
-            echo "wrote /etc/nginx/conf.d/99-vergelabs.conf"
-          fi
-
-          systemctl reload "php${PHPV}-fpm" 2>/dev/null || systemctl reload php-fpm 2>/dev/null || true
-          nginx -t >/dev/null 2>&1 && systemctl reload nginx 2>/dev/null || true
-
-          echo "--- what the box reports now"
-          php -r 'foreach (["memory_limit","max_execution_time","max_input_vars","upload_max_filesize","post_max_size"] as $k) printf("%-22s %s\n", $k, ini_get($k));'
-          REMOTE
-
-      - name: and what the site itself reports
-        run: |
-          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
-            "cd /var/www/wp 2>/dev/null && sudo -u www-data wp eval 'foreach ([\"memory_limit\",\"max_execution_time\",\"upload_max_filesize\"] as \$k) printf(\"%s=%s \", \$k, ini_get(\$k)); echo PHP_EOL;' --allow-root 2>/dev/null || echo '(wp-cli not available; the php -r output above is the answer)'"
+            "MEM='${MEM}' UP='${UP}' bash -s" < tools/box-tune.sh
