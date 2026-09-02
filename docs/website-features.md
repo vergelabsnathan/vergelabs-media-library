@@ -159,6 +159,12 @@ reads that description — nothing asks the model twice.
   no "image of" preamble, nothing invented that is not visible. In your site's language.
 * **Backfill from descriptions you already paid for.** Only where alt is empty, never over
   your own words. Everything it writes is marked, so the whole lot comes back out again.
+* **Titles too, not just alt text.** `DSC_4822.jpg` becomes "Red Synthesizer with Controls" in
+  the media list — two to five words, title case, written by the same pass that wrote the alt
+  text and shaped by the same page context. Applied per file, to a selection, or to the whole
+  library; never over a title a person wrote; reversible in one click. This is the *attachment*
+  title, not the file on disk — renaming the file changes the URL, and that is a different
+  feature with a different risk (see note 1).
 * **Page context.** An image inherits the intent of the page it sits on: that page's title,
   and — with Yoast, Rank Math, SEOPress or All in One SEO — its focus keyphrase, meta
   description and up to three related keyphrases. Strictly advisory: the model is told to

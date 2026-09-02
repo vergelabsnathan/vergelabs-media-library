@@ -237,3 +237,12 @@ Increment 3 — actions under policy
   tickets.
 - **wordpress.org forum**: never automated; the draft lives in the inbox
   for Nathan to paste.
+
+**2026-09-01 — the investigator (increment: analysis before answers).** `support/investigate.ts`
+runs a tool loop (licence_state, describe_telemetry via Braintrust BTQL, credit_ledger,
+site_report, known_issues, search_docs → forced `diagnose`) before drafting; `support/telemetry.ts`
+reads per-licence describe spans and the ledger. runAgent uses it with single-shot draftAnswer as
+fallback; the diagnosis (checked/findings/cause/could-not-verify) is stored on the ticket, shown
+in Nathan's brief. Shared shapes moved to `support/draft.ts` (circular-import TDZ broke next build).
+Proven live on ticket #7: zero activations + zero telemetry + untouched balance → "key never
+activated on the site", confidence 0.55, escalated with the one missing fact named.
