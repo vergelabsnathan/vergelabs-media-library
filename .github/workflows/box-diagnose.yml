@@ -50,6 +50,11 @@ jobs:
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
             'bash -s' < tools/box-plan-check.sh
 
+      - name: why the grid is slow when a folder is picked
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no             tools/box-grid-speed.php root@46.225.66.194:/tmp/vgml-grid.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194             'bash -s' < tools/box-grid-speed.sh
+
       # Re-files for real and undoes it again, so it is not on the push path.
       - name: whether a re-filing job gets through the whole library
         run: |
