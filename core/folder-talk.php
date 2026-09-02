@@ -66,6 +66,27 @@ const VERGEML_TALK_UNDO = 'vergeml_talk_undo';
 
 
 /**
+ *  Where a folder sits, as a key.
+ *
+ *  Two folders may share a name when they hang from different parents -- Jeans
+ *  under Men and Jeans under Women are different folders -- so anything that
+ *  maps a proposed folder to a term has to say which one it means.
+ *
+ * @param string $parent The parent's name, or '' for a top-level folder.
+ * @param string $name   The folder's own name.
+ * @return string
+ */
+function vergeml_talk_key( $parent, $name ) {
+
+	$lower = function ( $s ) {
+		return function_exists( 'mb_strtolower' ) ? mb_strtolower( (string) $s ) : strtolower( (string) $s );
+	};
+
+	return $lower( $parent ) . '>' . $lower( $name );
+}
+
+
+/**
  *  The folders as they are, with counts.
  *
  * @return array<int,array{name:string,parent:string,count:int,term_id:int}>
@@ -563,30 +584,79 @@ function vergeml_talk_apply( $folders ) {
 		}
 	}
 
+	/*
+	 *  Folders are keyed by where they sit, not by what they are called.
+	 *
+	 *  Keying on the name alone silently deleted half of any tree that repeated
+	 *  one: asked for Apparel with Men and Women under it, and Jeans, Shirts
+	 *  and Shoes under each, Men kept its three and Women got none -- the
+	 *  second Jeans overwrote the first in this map, so both branches pointed
+	 *  at one term and only one parent could own it. Two folders may share a
+	 *  name when they hang from different parents. That is what a tree is, and
+	 *  WordPress allows it.
+	 *
+	 *  $by_name stays for resolving a parent, because the service names a
+	 *  parent by name and nothing deeper is available to disambiguate with.
+	 */
+	$by_name = array();
+
 	foreach ( $order as $f ) {
 
-		$parent_id = 0;
+		$parent_id  = 0;
+		$parent_key = mb_strtolower( $f['parent'] );
 
-		if ( '' !== $f['parent'] && isset( $ids[ mb_strtolower( $f['parent'] ) ] ) ) {
-			$parent_id = $ids[ mb_strtolower( $f['parent'] ) ];
+		if ( '' !== $f['parent'] && isset( $by_name[ $parent_key ] ) ) {
+			$parent_id = $by_name[ $parent_key ];
 		}
 
-		$existing = get_term_by( 'name', $f['name'], $taxonomy );
+		$key = vergeml_talk_key( $f['parent'], $f['name'] );
 
-		if ( $existing && ! is_wp_error( $existing ) ) {
+		/*
+		 *  Matched on the name AND the parent. get_term_by( 'name', ... )
+		 *  returns whichever term happens to carry that name anywhere in the
+		 *  tree, so re-filing into Women / Jeans would have found Men / Jeans
+		 *  and moved it, rather than making the folder that was asked for.
+		 */
+		$found = get_terms( array(
+			'taxonomy'   => $taxonomy,
+			'name'       => $f['name'],
+			'parent'     => $parent_id,
+			'hide_empty' => false,
+			'number'     => 1,
+		) );
 
-			if ( (int) $existing->parent !== $parent_id ) {
-				wp_update_term( (int) $existing->term_id, $taxonomy, array( 'parent' => $parent_id ) );
+		$existing = ( ! is_wp_error( $found ) && $found ) ? $found[0] : null;
+
+		if ( null !== $existing ) {
+			$ids[ $key ] = (int) $existing->term_id;
+			if ( ! isset( $by_name[ mb_strtolower( $f['name'] ) ] ) ) {
+				$by_name[ mb_strtolower( $f['name'] ) ] = (int) $existing->term_id;
 			}
-
-			$ids[ mb_strtolower( $f['name'] ) ] = (int) $existing->term_id;
 			continue;
 		}
 
 		$made = wp_insert_term( $f['name'], $taxonomy, array( 'parent' => $parent_id ) );
 
+		/*
+		 *  A name that already exists under a different parent comes back as
+		 *  term_exists rather than an insert, and WordPress hands the clashing
+		 *  id back in the error. Reusing it would be the same collision from
+		 *  the other direction, so it is made unique by its parent instead --
+		 *  which is what somebody asking for Jeans under both Men and Women
+		 *  meant, and what they will see on the tree.
+		 */
+		if ( is_wp_error( $made ) && 'term_exists' === $made->get_error_code() && $parent_id > 0 ) {
+			$made = wp_insert_term( $f['name'], $taxonomy, array(
+				'parent' => $parent_id,
+				'slug'   => sanitize_title( $f['parent'] . '-' . $f['name'] ),
+			) );
+		}
+
 		if ( ! is_wp_error( $made ) && isset( $made['term_id'] ) ) {
-			$ids[ mb_strtolower( $f['name'] ) ] = (int) $made['term_id'];
+			$ids[ $key ] = (int) $made['term_id'];
+			if ( ! isset( $by_name[ mb_strtolower( $f['name'] ) ] ) ) {
+				$by_name[ mb_strtolower( $f['name'] ) ] = (int) $made['term_id'];
+			}
 		}
 	}
 
@@ -600,7 +670,7 @@ function vergeml_talk_apply( $folders ) {
 
 	foreach ( $folders as $f ) {
 
-		$key = mb_strtolower( $f['name'] );
+		$key = vergeml_talk_key( $f['parent'], $f['name'] );
 
 		if ( ! isset( $ids[ $key ] ) ) {
 			continue;
