@@ -93,6 +93,43 @@ function vergeml_ai_run_schedule() {
 }
 
 
+/**
+ *  Keep going without waiting for a visitor.
+ *
+ *  WP-Cron is not a clock. It fires when somebody loads a page, so on a site
+ *  nobody is browsing -- a staging copy, a shop at four in the morning, a box
+ *  a developer left open on another tab -- a run that says "you can close this
+ *  tab" simply stops, and the screen goes on claiming it is working. That is
+ *  the whole complaint: it does not finish, and it does not continue when you
+ *  move to another page.
+ *
+ *  So the tick asks the site to run its own due events, in a request it does
+ *  not wait for. The overlap lock in the tick is what makes this safe: a
+ *  second one arriving early finds the lock and returns. Cron stays as the
+ *  fallback for whenever a visitor does turn up.
+ */
+function vergeml_ai_run_nudge() {
+
+    // Nothing to chase if the work is done or somebody stopped it.
+    $state = vergeml_ai_run_state();
+    if ( empty( $state['active'] ) ) {
+        return;
+    }
+
+    $url = add_query_arg( 'doing_wp_cron', sprintf( '%.22F', microtime( true ) ), site_url( 'wp-cron.php' ) );
+
+    wp_remote_post(
+        $url,
+        array(
+            'timeout'   => 0.01,
+            'blocking'  => false,
+            'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
+            'headers'   => array( 'Cache-Control' => 'no-cache' ),
+        )
+    );
+}
+
+
 function vergeml_ai_run_unschedule() {
     $next = wp_next_scheduled( VERGEML_AI_RUN_HOOK );
     while ( false !== $next ) {
@@ -248,7 +285,18 @@ function vergeml_ai_run_tick() {
     }
 
     vergeml_ai_run_save( $state );
-    vergeml_ai_run_schedule();
+
+    /*
+     *  Due now rather than in thirty seconds, and chased immediately: the gap
+     *  was only ever politeness to shared hosting, and the batch size is what
+     *  actually bounds the work per tick. A run that pauses for half a minute
+     *  between batches and then waits indefinitely for a page load is not a
+     *  background run, it is a stalled one.
+     */
+    if ( ! wp_next_scheduled( VERGEML_AI_RUN_HOOK ) ) {
+        wp_schedule_single_event( time(), VERGEML_AI_RUN_HOOK );
+    }
+    vergeml_ai_run_nudge();
 }
 
 
