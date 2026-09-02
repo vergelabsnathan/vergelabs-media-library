@@ -1,6 +1,6 @@
-=== VergeLabs Media Library ===
-Contributors: vergelabsdev
-Tags: media library, media folders, media tags, media categories, mime types
+=== VergeLabs Media Library – Media folders, categories and AI alt text ===
+Contributors: vergelabsnathan
+Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
@@ -8,11 +8,11 @@ Stable tag: 3.15.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Folders for the media library, plus categories, tags and custom taxonomies. A maintained fork of Enhanced Media Library, repaired for WordPress 7.
+Media library folders, categories and tags, plus AI alt text and captions. The maintained successor to Enhanced Media Library, fixed for WordPress 7.
 
 ## Description ##
 
-**Handy for those who need to manage a lot of media files.**
+**Folders for your media library, categories that stay in WordPress, and alt text written for you.**
 
 VergeLabs Media Library is a maintained fork of [Enhanced Media Library](https://wordpress.org/plugins/enhanced-media-library/) by wpUXsolutions, which has had no release since July 2024. It repairs the media toolbar on WordPress 7.0 and clears the PHP 8 warnings. Everything else is the plugin you already know.
 
