@@ -2518,7 +2518,10 @@ function vergeml_librarian_stage() {
 
 function vergeml_librarian_tools_ready() {
 
-    $taxonomy = function_exists( 'vergeml_tree_taxonomies' ) ? reset( vergeml_tree_taxonomies() ) : '';
+    // reset() takes its argument by reference, so it cannot be handed a
+    // function's return value directly -- PHP notices that on every load.
+    $taxonomies = function_exists( 'vergeml_tree_taxonomies' ) ? vergeml_tree_taxonomies() : array();
+    $taxonomy   = $taxonomies ? reset( $taxonomies ) : '';
 
     if ( ! $taxonomy ) {
         return false;

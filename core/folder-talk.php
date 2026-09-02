@@ -438,10 +438,21 @@ function vergeml_talk_apply( $folders ) {
 
 		$attachment = (int) $row['attachment_id'];
 
-		$vector = vergeml_organize_project(
-			vergeml_index_vector_out( $row['embedding'] ),
-			VERGEML_ORGANIZE_DIMS
-		);
+		/*
+		 *  The whole embedding, because it is already here.
+		 *
+		 *  This projected 1536 dimensions down to 64 by averaging each run of
+		 *  twenty-four adjacent components -- and adjacent components of an
+		 *  embedding are arbitrary independent directions, not neighbours that
+		 *  mean similar things, so averaging them is closer to discarding the
+		 *  vector than compressing it. That is how a Footwear folder came to
+		 *  hold a bicycle, a couch and some flowers.
+		 *
+		 *  The projection exists so search does not unpack every row on every
+		 *  query. Re-filing already has the row unpacked in front of it, so it
+		 *  pays nothing to be right.
+		 */
+		$vector = vergeml_index_vector_out( $row['embedding'] );
 
 		$best  = '';
 		$score = VERGEML_TALK_FLOOR;

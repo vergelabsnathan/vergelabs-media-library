@@ -3,7 +3,7 @@
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
 Description: Categories, tags and custom taxonomies for the media library, MIME type management, and configurable media grid filters.
-Version: 3.16.0
+Version: 3.16.1
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.16.0' );
+if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.16.1' );
 
 /**
  *  Cache-busting asset version: the plugin version plus the file's mtime.
@@ -1236,6 +1236,45 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
          */
         if ( version_compare( get_option( 'vergeml_version', '' ), '3.9.1', '<' ) && function_exists( 'vergeml_index_install' ) ) {
             vergeml_index_install();
+        }
+
+
+        /*
+         *  Every stored projection is thrown away in 3.16.1.
+         *
+         *  They were written by a projection that averaged neighbouring
+         *  components, which does not preserve how close two pictures are;
+         *  search ranked on it and the folder manager filed on it, and both
+         *  produced results nobody could make sense of. The replacement hashes
+         *  instead of averaging, and a vector projected the old way cannot be
+         *  compared with one projected the new way at all.
+         *
+         *  Clearing the column is all that is needed: a row with no projection
+         *  is rebuilt from the embedding it still has -- by the next search
+         *  that passes it, and by the background tick behind that -- so no
+         *  picture has to be described again and nothing is charged for twice.
+         */
+        if ( version_compare( get_option( 'vergeml_version', '' ), '3.16.1', '<' ) ) {
+
+            global $wpdb;
+
+            $table = $wpdb->prefix . 'vergeml_ai_index';
+
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table, once, on upgrade.
+            if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table ) {
+                $wpdb->query( "UPDATE {$table} SET projection = NULL WHERE projection IS NOT NULL" );
+            }
+            // phpcs:enable
+
+            // And the hour of cached phrase vectors, which are the old shape.
+            $wpdb->query(
+                "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_vergeml_q\_%'
+                    OR option_name LIKE '_transient_timeout_vergeml_q\_%'"
+            );
+
+            if ( function_exists( 'vergeml_meaning_convert_schedule' ) ) {
+                vergeml_meaning_convert_schedule();
+            }
         }
 
 

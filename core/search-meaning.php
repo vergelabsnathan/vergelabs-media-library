@@ -61,7 +61,7 @@ function vergeml_meaning_vector( $text ) {
         return null;
     }
 
-    $slot = 'vergeml_q_' . md5( strtolower( $text ) );
+    $slot = 'vergeml_qv2_' . md5( strtolower( $text ) );
     $seen = get_transient( $slot );
 
     if ( is_array( $seen ) ) {
@@ -104,10 +104,14 @@ function vergeml_meaning_vector( $text ) {
         return null;
     }
 
-    $vector = vergeml_organize_project(
-        array_map( 'floatval', $data['embedding'] ),
-        VERGEML_ORGANIZE_DIMS
-    );
+    /*
+     *  Kept whole. This used to hand back the 64-dimension projection, which
+     *  meant nothing downstream could ever be more accurate than the
+     *  projection was -- including the folder manager, which had the full
+     *  picture embeddings in hand and threw them away to meet it. Callers
+     *  that want the short form now ask for it.
+     */
+    $vector = array_map( 'floatval', $data['embedding'] );
 
     set_transient( $slot, $vector, HOUR_IN_SECONDS );
 
@@ -157,9 +161,27 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
     $scored   = array();
     $scanned  = 0;
 
-    $keep = function ( $id, $vector ) use ( &$scored, $query ) {
-        $score = vergeml_meaning_similarity( $query, $vector );
-        if ( $score >= VERGEML_MEANING_FLOOR ) {
+    /*
+     *  Two passes, because the two jobs want different things.
+     *
+     *  Reading a 64-dimension projection per row is what lets a search cross a
+     *  twenty-thousand file library inside its budget, and that is worth
+     *  keeping. What is not worth keeping is answering the customer with it:
+     *  the projection decides who gets looked at, and the whole embedding
+     *  decides who wins. Ranking on the short form is why "none of the terms
+     *  actually come up with the correct images".
+     *
+     *  The gate is deliberately lower than the floor the answer is held to, so
+     *  a picture whose projection undersells it still reaches the pass that
+     *  can tell.
+     */
+    $gate = VERGEML_MEANING_FLOOR * 0.6;
+
+    $short = vergeml_organize_project( $query, VERGEML_ORGANIZE_DIMS );
+
+    $keep = function ( $id, $vector ) use ( &$scored, $short ) {
+        $score = vergeml_meaning_similarity( $short, $vector );
+        if ( $score >= VERGEML_MEANING_FLOOR * 0.6 ) {
             $scored[ (int) $id ] = $score;
         }
     };
@@ -217,6 +239,45 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
         'pending' => $pending,
         'partial' => ( $pending > 0 ) || ( microtime( true ) >= $deadline && count( $rows ) === VERGEML_MEANING_CHUNK ),
     );
+
+    if ( ! $scored ) {
+        return array();
+    }
+
+    /*
+     *  Now score the shortlist properly.
+     *
+     *  Only the best few hundred projections are re-read in full, so this
+     *  costs one bounded query however large the library is -- and every
+     *  number the customer sees, and the floor they are held to, comes from
+     *  the whole embedding rather than a summary of it.
+     */
+    arsort( $scored );
+    $shortlist = array_slice( $scored, 0, 400, true );
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    $ready = $wpdb->get_results(
+        "SELECT attachment_id, embedding
+           FROM {$wpdb->vergeml_ai_index}
+          WHERE error = '' AND embedding IS NOT NULL
+            AND attachment_id IN (" . implode( ',', array_map( 'intval', array_keys( $shortlist ) ) ) . ')',
+        ARRAY_A
+    );
+    // phpcs:enable
+
+    $scored = array();
+
+    foreach ( (array) $ready as $row ) {
+
+        $score = vergeml_meaning_similarity(
+            $query,
+            vergeml_index_vector_out( $row['embedding'] )
+        );
+
+        if ( $score >= VERGEML_MEANING_FLOOR ) {
+            $scored[ (int) $row['attachment_id'] ] = $score;
+        }
+    }
 
     if ( ! $scored ) {
         return array();
