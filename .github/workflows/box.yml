@@ -1,0 +1,60 @@
+name: box
+
+# Keep the test box on the code that is actually in main.
+#
+# The box is the only place the plugin can be looked at without reading the
+# source, so when it lags, bugs get reported against code that has already
+# changed and time goes into re-diagnosing things that were fixed days ago.
+# Nobody's laptop needs the SSH key for this: the key is a repository secret,
+# and the deploy runs where the secret lives.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.php'
+      - 'js/**'
+      - 'css/**'
+      - 'languages/**'
+      - 'images/**'
+      - 'readme.txt'
+      - 'tools/deploy.mjs'
+      - '.github/workflows/box.yml'
+  workflow_dispatch:
+
+concurrency:
+  # A second push while one deploy is in flight should replace it, not race it.
+  group: box-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: the key, where the deploy script looks for it
+        env:
+          BOX_SSH_KEY: ${{ secrets.BOX_SSH_KEY }}
+        run: |
+          if [ -z "$BOX_SSH_KEY" ]; then
+            echo "BOX_SSH_KEY is not set; nothing can be shipped." >&2
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$BOX_SSH_KEY" > ~/.ssh/hetzner_vgml
+          chmod 600 ~/.ssh/hetzner_vgml
+          ssh-keyscan -H 46.225.66.194 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: ship it
+        run: node tools/deploy.mjs --box
+
+      - name: and say what is on there now
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
+            "grep -m1 'Version:' /var/www/wp/wp-content/plugins/vergelabs-media-library/vergelabs-media-library.php" \
+            || echo "could not read the version back"
