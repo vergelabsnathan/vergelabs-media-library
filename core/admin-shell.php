@@ -347,7 +347,11 @@ function vergeml_shell_credits() {
         return '';
     }
 
-    $stored = get_option( 'vergeml_ai_credits', array() );
+    // Same reasoning as the dashboard: a number in the chrome that disagrees
+    // with the account is worse than no number in the chrome.
+    $stored = function_exists( 'vergeml_ai_refresh_credits' )
+        ? array( 'remaining' => vergeml_ai_refresh_credits() )
+        : get_option( 'vergeml_ai_credits', array() );
 
     if ( ! is_array( $stored ) || ! isset( $stored['remaining'] ) || null === $stored['remaining'] ) {
         return '';

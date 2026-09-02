@@ -123,3 +123,41 @@ test.describe( 'the counts a customer acts on', () => {
 		).toBeLessThanOrEqual( Number( fromApi.images ) );
 	} );
 } );
+
+test.describe( 'the credit balance', () => {
+
+	test( 'is the same number wherever it is shown', async ( { page } ) => {
+		await open( page, SCREEN.ai );
+
+		const fromService = await page.evaluate( async () => {
+			if ( ! window.wp || ! window.wp.apiFetch ) return null;
+			try {
+				const s = await window.wp.apiFetch( { path: '/vergeml/v1/ai-status' } );
+				return s.credits === null || s.credits === undefined ? null : Number( s.credits );
+			} catch {
+				return null;
+			}
+		} );
+
+		test.skip( fromService === null, 'this site has no licence, so there is no balance to agree on' );
+
+		await open( page, SCREEN.dashboard );
+		const text = await page.evaluate( () => document.body.innerText );
+		const shown = /([\d.,]+)\s*credits? left/i.exec( text );
+
+		test.skip( shown === null, 'the dashboard is not showing a balance' );
+
+		const onDashboard = Number( shown[ 1 ].replace( /[.,]/g, '' ) );
+
+		/*
+		 *  The dashboard read the cached option straight and the AI screen
+		 *  asked the service, so the two drifted apart by a whole purchase --
+		 *  the plugin said 20,467 while the account said 26,000. A balance is
+		 *  one number or it is not a balance.
+		 */
+		expect(
+			Math.abs( onDashboard - fromService ),
+			`the dashboard says ${ onDashboard } and the service says ${ fromService }`
+		).toBeLessThanOrEqual( 50 );
+	} );
+} );

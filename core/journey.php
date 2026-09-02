@@ -151,7 +151,18 @@ function vergeml_journey_facts() {
     }
 
     $settings = function_exists( 'vergeml_ai_settings' ) ? vergeml_ai_settings() : array();
-    $credits  = get_option( 'vergeml_ai_credits', array() );
+    /*
+     *  Asked for, not remembered.
+     *
+     *  This read the cached option straight, so it showed whatever the last
+     *  describe run happened to leave behind -- which is how the plugin came
+     *  to say 20,467 while the account said 26,000: it had never seen the
+     *  purchase. The refresh is cached for a few minutes of its own, so this
+     *  costs nothing on a page load.
+     */
+    $credits  = function_exists( 'vergeml_ai_refresh_credits' )
+        ? array( 'remaining' => vergeml_ai_refresh_credits() )
+        : get_option( 'vergeml_ai_credits', array() );
 
     /*
      *  The smart-folder counts come back as one UNION, so unused, large and

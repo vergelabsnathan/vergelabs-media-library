@@ -1405,7 +1405,9 @@ function vergeml_print_network_overview() {
             switch_to_blog( (int) $site_id );
 
             $ai       = get_option( 'vergeml_ai', array() );
-            $credits  = get_option( 'vergeml_ai_credits', array() );
+            $credits  = function_exists( 'vergeml_ai_refresh_credits' )
+                ? array( 'remaining' => vergeml_ai_refresh_credits() )
+                : get_option( 'vergeml_ai_credits', array() );
             $watchdog = get_option( 'vergeml_watchdog', array() );
             $network  = get_site_option( 'vergeml_ai_network', array() );
 
