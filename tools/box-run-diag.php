@@ -33,3 +33,30 @@ foreach ( $wpdb->get_results( "SELECT attachment_id, error, LEFT(prompt_hash,12)
 
 echo "\n=== credits\n";
 printf( "  %s\n", var_export( vergeml_ai_refresh_credits( true ), true ) );
+
+echo "\n=== the rows still on the old prompt\n";
+$stamp = vergeml_index_current_stamp();
+$old = $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, LEFT(prompt_hash,12) ph, described_at, error FROM {$t} WHERE model <> 'mock' AND prompt_hash <> %s AND prompt_hash <> '' ORDER BY attachment_id LIMIT 8", $stamp['prompt_hash'] ), ARRAY_A );
+printf( "  count: %d   pending('stale') now: %d   on hold (recent): %d\n", (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE model <> 'mock' AND prompt_hash <> %s AND prompt_hash <> ''", $stamp['prompt_hash'] ) ), vergeml_ai_pending_count( 'stale' ), count( vergeml_ai_recently_described() ) );
+foreach ( $old as $r ) { printf( "  #%-6d %s… described=%s err=%s\n", (int) $r['attachment_id'], $r['ph'], $r['described_at'], '' === $r['error'] ? '-' : $r['error'] ); }
+
+echo "\n=== the two search misses, in their own words\n";
+foreach ( array( 'sofa' => "post_title LIKE '%Sofa%'", 'boots' => "post_title LIKE '%Boot%'" ) as $label => $where ) {
+    foreach ( $wpdb->get_results( "SELECT p.ID, p.post_title, i.caption, i.filing FROM {$wpdb->posts} p JOIN {$t} i ON i.attachment_id = p.ID WHERE {$where} AND i.error = '' LIMIT 2", ARRAY_A ) as $r ) {
+        $f = json_decode( (string) $r['filing'], true ) ?: array();
+        printf( "  [%s] #%d %s\n     caption: %s\n     object=%s | material=%s | colour=%s | setting=%s\n", $label, (int) $r['ID'], $r['post_title'], mb_substr( (string) $r['caption'], 0, 150 ), $f['object'] ?? '', $f['material'] ?? '', $f['colour'] ?? '', $f['setting'] ?? '' );
+    }
+}
+$top = $wpdb->get_row( "SELECT p.ID, p.post_title, i.caption FROM {$wpdb->posts} p JOIN {$t} i ON i.attachment_id = p.ID WHERE p.post_title LIKE '%madrids-photographer%' LIMIT 1", ARRAY_A );
+if ( $top ) { printf( "  [top hit for 'leather boots'] #%d %s\n     caption: %s\n", (int) $top['ID'], $top['post_title'], mb_substr( (string) $top['caption'], 0, 150 ) ); }
+
+echo "\n=== folders, like-for-like: titled pictures only (proxy for the original 205)\n";
+$rows = $wpdb->get_results( "SELECT i.attachment_id, i.embedding FROM {$t} i JOIN {$wpdb->posts} p ON p.ID = i.attachment_id WHERE i.error = '' AND i.embedding IS NOT NULL AND i.model <> 'mock' AND p.post_title NOT REGEXP '^(gallery|slide|[0-9]+$|Vgml Fx|p-|b-)'", ARRAY_A );
+$full = array(); foreach ( $rows as $r ) { $v = vergeml_index_vector_out( $r['embedding'] ); if ( $v ) { $full[ (int) $r['attachment_id'] ] = $v; } }
+printf( "  (%d titled pictures)\n", count( $full ) );
+foreach ( array( 'Footwear', 'Furniture', 'Bicycles', "Women's apparel", 'Leather', 'Studio shots', 'Winter', 'Interiors' ) as $folder ) {
+    $q = vergeml_meaning_vector( $folder ); if ( ! $q ) { continue; }
+    $s = array(); foreach ( $full as $id => $v ) { $s[ $id ] = vergeml_meaning_similarity( $q, $v ); } arsort( $s );
+    $top = array(); foreach ( array_slice( $s, 0, 5, true ) as $id => $sc ) { $top[] = mb_substr( get_the_title( $id ), 0, 26 ); }
+    printf( "  %-16s %s\n", $folder . ':', implode( ' | ', $top ) );
+}
