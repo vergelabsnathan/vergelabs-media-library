@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 const VERGEML_FILING_META    = '_vergeml_profile';
-const VERGEML_FILING_VERSION = 2; // 2: slash-named folders read as paths.
+const VERGEML_FILING_VERSION = 3; // 2: slash-named folders read as paths. 3: a rebuild keeps nothing from an old profile.
 
 /*
  *  Calibrated on the box, 3 September 2026: with class matching the right
@@ -155,7 +155,11 @@ function vergeml_filing_profile( $term_id, $taxonomy ) {
         return null;
     }
 
-    $seed = is_array( $meta ) ? $meta : array();
+    // Only what a plan said is worth carrying into a rebuild. An outdated
+    // profile's own derivations are exactly what the rebuild is for.
+    $seed = is_array( $meta ) && isset( $meta['source'] ) && 'plan' === $meta['source']
+        ? array_intersect_key( $meta, array_flip( array( 'classes', 'kinds', 'audience', 'matches' ) ) )
+        : array();
 
     return vergeml_filing_profile_build( $term, $taxonomy, $seed );
 }
