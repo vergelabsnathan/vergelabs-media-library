@@ -6,4 +6,4 @@ if ! grep -q "VERGEML_AI_SERVICE" wp-config.php; then
 fi
 grep -n "VERGEML_AI_SERVICE" wp-config.php
 echo "service: /api/pricing -> HTTP $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/api/pricing)"
-wp eval 'echo "plugin sees: ", VERGEML_AI_SERVICE, "\n"; delete_transient("vergeml_ai_credits_check"); $r = vergeml_ai_refresh_credits(); echo "handshake: ", is_wp_error($r) ? $r->get_error_message() : wp_json_encode(get_option("vergeml_ai_credits")), "\n";' --allow-root --skip-themes 2>&1 | grep -v "^Deprecated:" || true
+wp eval 'echo "plugin sees: ", vergeml_ai_service_url(), "\n"; delete_transient("vergeml_ai_credits_check"); $r = vergeml_ai_refresh_credits(); echo "handshake: ", is_wp_error($r) ? $r->get_error_message() : wp_json_encode(get_option("vergeml_ai_credits")), "\n";' --allow-root --skip-themes 2>&1 | grep -v "^Deprecated:" || true
