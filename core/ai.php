@@ -1405,7 +1405,23 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
             $transient = in_array( $status, array( 0, 408, 425, 429, 500, 502, 503, 504 ), true )
                 && 0 === strpos( (string) $described->get_error_code(), 'vergeml_ai_service_' );
 
-            if ( $transient ) {
+            /*
+             *  Transient three times running is not transient.
+             *
+             *  With no cap, five pictures that time out on every attempt kept
+             *  a run 'active' indefinitely: held ten minutes, tried, held
+             *  again -- the screen said working, and it was, at nothing. A
+             *  picture that fails the same way three times in a row gets the
+             *  stub it has earned, with the real status on it, and the run
+             *  moves on. The counter lives in a transient keyed by id and
+             *  forgets itself after an hour.
+             */
+            $strikes = get_transient( 'vergeml_ai_strikes' );
+            $strikes = is_array( $strikes ) ? $strikes : array();
+
+            if ( $transient && ( $strikes[ $id ] ?? 0 ) < 2 ) {
+                $strikes[ $id ] = ( $strikes[ $id ] ?? 0 ) + 1;
+                set_transient( 'vergeml_ai_strikes', $strikes, HOUR_IN_SECONDS );
                 // Reported as non-fatal, so a refusal storm reads as what it
                 // is on the screen rather than as "working, nothing failed".
                 $errors[] = array( 'id' => $id, 'error' => $described->get_error_message(), 'fatal' => false );
@@ -1417,6 +1433,8 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
                 continue;
             }
             $streak = 0;
+            unset( $strikes[ $id ] );
+            set_transient( 'vergeml_ai_strikes', $strikes, HOUR_IN_SECONDS );
 
             // A stub keeps a permanently failing file from wedging the loop;
             // reindexing later replaces it.

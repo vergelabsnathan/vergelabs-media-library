@@ -18,6 +18,7 @@ on:
           - restore
           - repro
           - nudge
+          - repro-pending
 
 jobs:
   fix:
@@ -76,6 +77,12 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-nudge.php root@46.225.66.194:/tmp/vgml-nudge.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=80 root@46.225.66.194 'bash -s' < tools/box-nudge.sh
+
+      - name: describe the rows a run cannot get past, and say why
+        if: ${{ inputs.job == 'repro-pending' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-repro-pending.php root@46.225.66.194:/tmp/vgml-rp.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 'bash -s' < tools/box-repro-pending.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
