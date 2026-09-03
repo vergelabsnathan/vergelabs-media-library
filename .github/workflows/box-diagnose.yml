@@ -42,6 +42,11 @@ jobs:
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
             'bash -s' < tools/box-folder-quality.sh
 
+      - name: whether the credit balance agrees with itself
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-credits.php root@46.225.66.194:/tmp/vgml-credits.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-credits.sh
+
       # Costs one planning call. Not on the push path for that reason.
       - name: whether a folder plan comes back, and follows the instruction
         run: |
