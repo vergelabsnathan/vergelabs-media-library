@@ -117,10 +117,31 @@ function vergeml_ai_run_nudge() {
         return;
     }
 
-    $url = add_query_arg( 'doing_wp_cron', sprintf( '%.22F', microtime( true ) ), site_url( 'wp-cron.php' ) );
+    /*
+     *  wp-cron.php only works when the key in the request matches the
+     *  'doing_cron' lock. Posting a fresh key without taking the lock, which
+     *  is what this did until 3 September 2026, is refused on line one of
+     *  the lock check: every nudge on the box came back in zero seconds and
+     *  the run waited for whatever else happened to spawn cron. Outside a
+     *  cron run, core's spawn_cron() takes the lock and posts; it declines
+     *  while a run holds the lock, and that run drops it as it ends.
+     */
+    if ( ! defined( 'DOING_CRON' ) ) {
+        spawn_cron();
+        return;
+    }
+
+    /*
+     *  Inside a tick spawn_cron() refuses outright, so the next request is
+     *  chained the way core's own does it: take the lock with a new key and
+     *  post that key. The finishing run only clears the lock when it still
+     *  holds it, so the handover is clean.
+     */
+    $key = sprintf( '%.22F', microtime( true ) );
+    set_transient( 'doing_cron', $key );
 
     wp_remote_post(
-        $url,
+        add_query_arg( 'doing_wp_cron', $key, site_url( 'wp-cron.php' ) ),
         array(
             'timeout'   => 0.01,
             'blocking'  => false,

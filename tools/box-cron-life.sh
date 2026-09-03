@@ -24,3 +24,12 @@ print("  --- lived longer than 2s:")
 for s, e, d, meth in long_ones: print(f"  {meth} started {s:%H:%M:%S} ended {e:%H:%M:%S}  {d:.0f}s")
 if not long_ones: print("  (none)")
 PY
+echo "=== who else runs cron on this box"
+for u in root www-data; do echo "  crontab $u:"; crontab -u $u -l 2>/dev/null | grep -v "^#" | sed 's/^/    /' || echo "    (none)"; done
+ls /etc/cron.d 2>/dev/null | sed 's/^/  cron.d: /'; grep -RhE "wp|cron\.php" /etc/cron.d 2>/dev/null | sed 's/^/    /'
+systemctl list-timers --no-pager 2>/dev/null | grep -iE "wp|cron" | sed 's/^/  timer: /'
+echo "=== bare wp-cron.php hits (no key) in the last 40 minutes"
+grep -E "wp-cron\.php(\?| )" /var/log/nginx/access.log | grep -v "doing_wp_cron=" | tail -5 | awk '{print "  "$4, $6, $7, $9}'
+echo "  count: $(grep -E 'wp-cron\.php(\?| )' /var/log/nginx/access.log | grep -vc 'doing_wp_cron=')"
+echo "=== doing_cron lock now"
+cd /var/www/wp && wp option get _transient_doing_cron --allow-root 2>/dev/null | sed 's/^/  /' || echo "  (none)"
