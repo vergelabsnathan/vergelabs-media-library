@@ -25,6 +25,8 @@ on:
           - burst
           - vps-check
           - vps-setup
+          - vps-point
+          - vps-unpoint
 
 jobs:
   fix:
