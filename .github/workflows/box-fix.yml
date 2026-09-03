@@ -31,6 +31,7 @@ on:
           - vps-logs
           - writes
           - cron-life
+          - gallery-page
       parallel:
         description: for job=parallel, the describe concurrency to force (0 removes the override)
         required: false
@@ -164,6 +165,11 @@ jobs:
         if: ${{ inputs.job == 'cron-life' }}
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-cron-life.sh
+
+      - name: a reference page with three folder galleries inside Elementor
+        if: ${{ inputs.job == 'gallery-page' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-gallery-page.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are

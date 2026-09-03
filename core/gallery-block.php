@@ -317,12 +317,16 @@ function vergeml_render_gallery_block( $attributes ) {
         : 'class="' . esc_attr( $classes ) . '"' . ( $style ? ' style="' . esc_attr( $style ) . '"' : '' );
 
     /*
-     *  Assets ride along only when this render needs them, and the style comes
-     *  too for the carousel alone -- the grid is core's markup and the theme's
-     *  business.
+     *  The stylesheet rides along with every render. It used to come only for
+     *  the carousel, on the reasoning that the grid is core's markup and the
+     *  theme's business -- true in a block theme, untrue inside a page builder,
+     *  where core's gallery styles are often never enqueued and the widget came
+     *  out as bare figures stacked down the page. The stylesheet's grid rules
+     *  are a floor that defers to the theme; the script is still only for what
+     *  needs it.
      */
+    wp_enqueue_style( 'vergeml-gallery' );
     if ( $carousel || 'lightbox' === $link_to ) {
-        wp_enqueue_style( 'vergeml-gallery' );
         wp_enqueue_script( 'vergeml-gallery' );
     }
 
