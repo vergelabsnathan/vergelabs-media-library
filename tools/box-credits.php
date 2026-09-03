@@ -30,7 +30,7 @@ if ( function_exists( 'vergeml_ai_refresh_credits' ) ) {
 }
 
 // 3. what the service says, asked directly
-$response = wp_remote_post( vergeml_ai_service_url() . '/verify', array(
+$response = wp_remote_post( vergeml_ai_service_url() . '/licence', array(
     'timeout'   => 20,
     'headers'   => array( 'Content-Type' => 'application/json' ),
     'body'      => wp_json_encode( array(
