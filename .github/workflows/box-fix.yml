@@ -36,6 +36,11 @@ on:
           - folder-audit
           - tree
           - refile-all
+      profile:
+        description: for job=refile-all, '1' asks the planner what each folder takes before filing
+        required: false
+        default: '0'
+        type: string
       apply:
         description: for job=refile-all, '1' applies the moves; anything else is a dry run
         required: false
@@ -201,7 +206,7 @@ jobs:
         if: ${{ inputs.job == 'refile-all' }}
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-refile-all.php root@46.225.66.194:/tmp/vgml-refile-all.php
-          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 "VGML_APPLY='${{ inputs.apply }}' bash -s" < tools/box-refile-all.sh
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 "VGML_APPLY='${{ inputs.apply }}' VGML_PROFILE='${{ inputs.profile }}' bash -s" < tools/box-refile-all.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are

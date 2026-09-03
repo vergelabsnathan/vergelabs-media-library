@@ -30,6 +30,13 @@ if ( ! is_array( $probe ) ) {
     printf( "  raw /embed: %s %s\n", is_wp_error( $raw ) ? $raw->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code( $raw ), is_wp_error( $raw ) ? '' : mb_substr( (string) wp_remote_retrieve_body( $raw ), 0, 200 ) );
 }
 
+// VGML_PROFILE=1: ask the planner what each folder takes, and file against that.
+if ( '1' === (string) getenv( 'VGML_PROFILE' ) ) {
+    $t0 = microtime( true );
+    $n  = vergeml_filing_profile_existing( $tax, true );
+    printf( "planner profiled %s folders in %.1fs\n", is_wp_error( $n ) ? 'ERROR ' . $n->get_error_message() : $n, microtime( true ) - $t0 );
+}
+
 $t0 = microtime( true );
 $profiles = vergeml_filing_profiles( $ids, $tax );
 printf( "%d folders, %d profiled in %.1fs (%s)\n", count( $ids ), count( $profiles ), microtime( true ) - $t0, $apply ? 'APPLYING' : 'dry run' );
@@ -62,12 +69,15 @@ foreach ( $rows as $r ) {
     } else {
         $why[ $pick['why'] ] = ( $why[ $pick['why'] ] ?? 0 ) + 1;
         // Gated out of the folder it is in: that is evidence it does not belong there, so out it comes.
-        $evicted = $cur && isset( $pick['gated'][ $cur[0] ] );
-        if ( $evicted ) {
+        $reason = '';
+        if ( $cur && isset( $pick['gated'][ $cur[0] ] ) ) { $reason = 'gated: ' . $pick['gated'][ $cur[0] ]; }
+        // Or it plainly does not match where it sits: a misfit, not an unknown.
+        elseif ( $cur && isset( $pick['scores'][ $cur[0] ] ) && $pick['scores'][ $cur[0] ] < VERGEML_FILING_MISFIT ) { $reason = sprintf( 'misfit @%.2f', $pick['scores'][ $cur[0] ] ); }
+        if ( '' !== $reason ) {
             $why['evicted'] = ( $why['evicted'] ?? 0 ) + 1;
             if ( $apply ) { wp_set_object_terms( $id, array(), $tax, false ); }
         }
-        $stay[] = sprintf( "  %-34s [%s|%s] %s %s, %s: nearest %s @%.2f", $title, $facts['kind'], mb_substr( $obj, 0, 28 ), $from, $evicted ? 'OUT (gated: ' . $pick['gated'][ $cur[0] ] . ')' : 'stays', $pick['why'], isset( $pick['nearest'] ) ? $name( $pick['nearest'] ) : '-', $pick['score'] );
+        $stay[] = sprintf( "  %-34s [%s|%s] %s %s, %s: nearest %s @%.2f", $title, $facts['kind'], mb_substr( $obj, 0, 28 ), $from, '' !== $reason ? 'OUT (' . $reason . ')' : 'stays', $pick['why'], isset( $pick['nearest'] ) ? $name( $pick['nearest'] ) : '-', $pick['score'] );
     }
     if ( preg_match( $pat, $title . ' ' . $obj ) ) {
         $named[] = sprintf( "  %-34s [%s|%s] -> %s  (%s @%.2f)", $title, $facts['kind'], mb_substr( $obj, 0, 28 ), $pick['term_id'] ? $name( $pick['term_id'] ) : 'UNFILED', $pick['why'], $pick['score'] );

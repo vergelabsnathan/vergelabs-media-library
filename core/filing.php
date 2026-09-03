@@ -50,6 +50,14 @@ const VERGEML_FILING_MARGIN = 0.08;
 /** How much the class match weighs against the vector. */
 const VERGEML_FILING_CLASS_WEIGHT = 0.75;
 
+/*
+ *  Below this, a picture plainly does not match the folder it is sitting in,
+ *  and "nothing else fits either" is no reason to leave it there. Out it comes,
+ *  to unfiled, which is the truthful place. Between this and the floor the
+ *  old placement stands: the matcher has no evidence either way.
+ */
+const VERGEML_FILING_MISFIT = 0.40;
+
 
 /* ------------------------------------------------------------ vocabulary */
 
@@ -431,4 +439,112 @@ function vergeml_filing_is_descendant( $child, $ancestor, $profiles ) {
         return false;
     }
     return array_slice( $c, 0, count( $a ) ) === $a;
+}
+
+
+/* ------------------------------------------- profiles from the planner */
+
+/**
+ *  Ask the planner what each existing folder takes.
+ *
+ *  A folder somebody made by hand knows only its leaf name as a class, and
+ *  "blazer; outerwear" never reaches a folder called Apparel on that alone
+ *  (0.47 against a floor of 0.55, measured on the box). The planner can say
+ *  what belongs in "Apparel" -- clothing, outerwear, footwear, apparel -- in
+ *  one cheap call for the whole tree. Its answer is kept as the folder's plan
+ *  and the profile rebuilt from it; folders the planner does not name are
+ *  left as they were.
+ *
+ *  @param string $taxonomy
+ *  @param bool   $force   Re-ask for folders that already have a plan.
+ *  @return int|WP_Error  How many folders were profiled.
+ */
+function vergeml_filing_profile_existing( $taxonomy, $force = false ) {
+
+    if ( ! function_exists( 'vergeml_ai_settings' ) ) {
+        return new WP_Error( 'no_ai', 'AI not loaded.' );
+    }
+    $settings = vergeml_ai_settings();
+    $licence  = vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
+    if ( '' === $licence ) {
+        return new WP_Error( 'no_licence', __( 'No licence key.', 'vergelabs-media-library' ) );
+    }
+
+    $terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) );
+    if ( is_wp_error( $terms ) ) {
+        return $terms;
+    }
+
+    // The tree as name + parent path, and which terms still want a plan.
+    $by_id   = array();
+    $current = array();
+    $want    = array();
+    foreach ( $terms as $t ) {
+        $by_id[ (int) $t->term_id ] = $t;
+    }
+    foreach ( $terms as $t ) {
+        $p = vergeml_filing_profile( (int) $t->term_id, $taxonomy );
+        if ( ! is_array( $p ) ) {
+            continue;
+        }
+        $path      = (array) $p['path'];
+        $leaf      = (string) end( $path );
+        $parent    = implode( ' / ', array_slice( $path, 0, -1 ) );
+        $current[] = array( 'name' => $leaf, 'parent' => $parent, 'count' => (int) $t->count );
+        if ( $force || 'plan' !== $p['source'] ) {
+            $want[ mb_strtolower( $parent . ' / ' . $leaf ) ] = (int) $t->term_id;
+        }
+    }
+    if ( ! $want ) {
+        return 0;
+    }
+
+    $response = wp_remote_post(
+        vergeml_ai_service_url() . '/folders',
+        array(
+            'timeout'   => 60,
+            'headers'   => array( 'Content-Type' => 'application/json' ),
+            'sslverify' => true,
+            'body'      => wp_json_encode( array(
+                'license_key' => $licence,
+                'site'        => home_url(),
+                'mode'        => 'profile',
+                'instruction' => 'profile',
+                'current'     => $current,
+                'samples'     => function_exists( 'vergeml_talk_samples' ) ? vergeml_talk_samples() : array(),
+            ) ),
+        )
+    );
+    if ( is_wp_error( $response ) ) {
+        return $response;
+    }
+    $code = (int) wp_remote_retrieve_response_code( $response );
+    $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+    if ( 200 !== $code || ! is_array( $data ) || empty( $data['folders'] ) ) {
+        return new WP_Error( 'vergeml_ai_service_' . $code, is_array( $data ) && isset( $data['error'] ) ? (string) $data['error'] : 'HTTP ' . $code );
+    }
+
+    $done = 0;
+    foreach ( (array) $data['folders'] as $f ) {
+        if ( ! is_array( $f ) || empty( $f['name'] ) ) {
+            continue;
+        }
+        $key = mb_strtolower( ( isset( $f['parent'] ) ? (string) $f['parent'] : '' ) . ' / ' . (string) $f['name'] );
+        if ( ! isset( $want[ $key ], $by_id[ $want[ $key ] ] ) ) {
+            continue;
+        }
+        $seed = array(
+            'classes'  => isset( $f['classes'] ) && is_array( $f['classes'] ) ? array_values( array_filter( array_map( 'sanitize_text_field', $f['classes'] ) ) ) : array(),
+            'kinds'    => isset( $f['kinds'] ) && is_array( $f['kinds'] ) ? array_values( array_filter( array_map( 'sanitize_key', $f['kinds'] ) ) ) : array(),
+            'audience' => isset( $f['audience'] ) ? sanitize_text_field( (string) $f['audience'] ) : '',
+            'matches'  => isset( $f['matches'] ) ? sanitize_text_field( (string) $f['matches'] ) : '',
+        );
+        if ( ! $seed['classes'] ) {
+            continue; // Nothing worth keeping over the name.
+        }
+        if ( is_array( vergeml_filing_profile_build( $by_id[ $want[ $key ] ], $taxonomy, $seed ) ) ) {
+            $done++;
+        }
+    }
+    return $done;
 }

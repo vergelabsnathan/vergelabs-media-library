@@ -886,7 +886,8 @@ function vergeml_talk_refile_run( $deadline ) {
 				$was = is_wp_error( $was ) ? array() : array_map( 'intval', $was );
 				$out = array();
 				foreach ( $was as $tid ) {
-					if ( isset( $pick['gated'][ $tid ] ) ) {
+					// Gated out of it, or plainly not matching it (a misfit, not an unknown).
+					if ( isset( $pick['gated'][ $tid ] ) || ( isset( $pick['scores'][ $tid ] ) && $pick['scores'][ $tid ] < VERGEML_FILING_MISFIT ) ) {
 						$out[] = $tid;
 					}
 				}
