@@ -556,18 +556,35 @@ function vergeml_ai_filing( $raw ) {
  *  pictures took half an hour of a browser tab doing nothing. Eight at a time
  *  turns that into about four minutes.
  *
- *  Eight rather than sixteen because the ceiling is not this end. It is the
- *  service and the model provider behind it, and a number chosen here is
- *  multiplied by every site running a backlog at the same time. Filterable so
- *  a big single-tenant install can raise it, capped so nobody can set 200.
+ *  Sixteen, and the ceiling was measured rather than guessed.
+ *
+ *  This said eight "because the ceiling is not this end", which was the right
+ *  instinct and the wrong number: nobody had asked the provider what it would
+ *  take. Sustained against the live provider with retention routing on, 3
+ *  September 2026:
+ *
+ *      16 in flight -> 245/min   p50 3.6s   0 failed
+ *      32 in flight -> 502/min   p50 3.5s   0 failed
+ *      64 in flight -> 948/min   p50 3.6s   0 failed
+ *
+ *  Throughput doubles with concurrency and latency does not move, which is
+ *  what "nowhere near the ceiling" looks like from the outside. A provider
+ *  under strain slows down first and refuses second; this did neither.
+ *
+ *  The default is sixteen rather than sixty-four because the modest number is
+ *  still the right default for a shared host: this opens that many connections
+ *  from the customer's own server, and a cheap plan will run out of PHP
+ *  workers long before the model runs out of capacity. The cap is sixty-four
+ *  so an agency install can be turned up to what was measured, and no higher
+ *  without measuring again.
  */
-const VERGEML_AI_PARALLEL = 8;
+const VERGEML_AI_PARALLEL = 16;
 
 function vergeml_ai_parallel() {
 
     $n = (int) apply_filters( 'vergeml_ai_parallel', VERGEML_AI_PARALLEL );
 
-    return max( 1, min( 16, $n ) );
+    return max( 1, min( 64, $n ) );
 }
 
 
