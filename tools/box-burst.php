@@ -1,5 +1,7 @@
 <?php
 /* Sixteen at once THROUGH THE PLUGIN, printing what each one came back as. */
+// Forced to sixteen regardless of plan, so the failure the run saw is reproduced on purpose.
+add_filter( 'vergeml_ai_parallel', function () { return 16; } );
 global $wpdb; $t = $wpdb->prefix . 'vergeml_ai_index';
 $ids = array_map( 'intval', $wpdb->get_col( "SELECT attachment_id FROM {$t} WHERE model <> 'mock' AND error = '' AND described_at < UTC_TIMESTAMP() - INTERVAL 20 MINUTE ORDER BY described_at ASC LIMIT 16" ) );
 printf( "parallel setting: %d   ids: %d\n", vergeml_ai_parallel(), count( $ids ) );
