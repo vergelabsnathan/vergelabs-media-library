@@ -1543,6 +1543,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/journey.php' );
         include_once( 'core/help.php' );
         include_once( 'core/admin-shell.php' );
+        include_once( 'core/filing.php' );
         include_once( 'core/connect.php' );
         include_once( 'core/licence-page.php' );
 

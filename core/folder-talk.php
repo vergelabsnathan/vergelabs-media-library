@@ -195,6 +195,26 @@ const VERGEML_TALK_GROUP_SAMPLE = 600;
 const VERGEML_TALK_GROUPS = 10;
 
 /**
+ *  What share of described pictures say who they are for.
+ *
+ *  Product photography almost never does -- a boot on a white background is
+ *  nobody's -- and the planner proposing Men / Women branches over such a
+ *  library makes folders that can only be filled by guessing. It is told the
+ *  number and asked not to.
+ */
+function vergeml_talk_audience_share() {
+	global $wpdb;
+	if ( ! isset( $wpdb->vergeml_ai_index ) ) {
+		return 0.0;
+	}
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+	$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND filing IS NOT NULL AND filing <> ''" );
+	$with  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND filing IS NOT NULL AND filing LIKE '%\"audience\":\"_%'" );
+	// phpcs:enable
+	return $total > 0 ? round( $with / $total, 3 ) : 0.0;
+}
+
+/**
  *  The groups this library actually falls into.
  *
  *  The service was being asked what folders a library needs while seeing forty
@@ -420,6 +440,7 @@ function vergeml_talk_propose( $instruction, $history = array(), $mode = 'litera
 				'current'     => $current,
 				'samples'     => vergeml_talk_samples(),
 				'groups'      => vergeml_talk_groups(),
+				'audience_share' => vergeml_talk_audience_share(),
 				'mode'        => 'suggested' === $mode ? 'suggested' : 'literal',
 			) ),
 		)
@@ -455,6 +476,10 @@ function vergeml_talk_propose( $instruction, $history = array(), $mode = 'litera
 			'name'    => sanitize_text_field( (string) $f['name'] ),
 			'parent'  => isset( $f['parent'] ) ? sanitize_text_field( (string) $f['parent'] ) : '',
 			'matches' => isset( $f['matches'] ) ? sanitize_text_field( (string) $f['matches'] ) : '',
+			// What the matcher files by (see core/filing.php); absent from older plans.
+			'classes'  => isset( $f['classes'] ) && is_array( $f['classes'] ) ? array_values( array_filter( array_map( 'sanitize_text_field', $f['classes'] ) ) ) : array(),
+			'kinds'    => isset( $f['kinds'] ) && is_array( $f['kinds'] ) ? array_values( array_filter( array_map( 'sanitize_key', $f['kinds'] ) ) ) : array(),
+			'audience' => isset( $f['audience'] ) ? sanitize_text_field( (string) $f['audience'] ) : '',
 		);
 	}
 
@@ -654,6 +679,13 @@ function vergeml_talk_apply( $folders ) {
 
 		if ( ! is_wp_error( $made ) && isset( $made['term_id'] ) ) {
 			$ids[ $key ] = (int) $made['term_id'];
+			// The profile the matcher files against, from what the plan said.
+			if ( function_exists( 'vergeml_filing_profile_build' ) ) {
+				$term_obj = get_term( (int) $made['term_id'], $taxonomy );
+				if ( $term_obj && ! is_wp_error( $term_obj ) ) {
+					vergeml_filing_profile_build( $term_obj, $taxonomy, $f );
+				}
+			}
 			if ( ! isset( $by_name[ mb_strtolower( $f['name'] ) ] ) ) {
 				$by_name[ mb_strtolower( $f['name'] ) ] = (int) $made['term_id'];
 			}
@@ -811,7 +843,7 @@ function vergeml_talk_refile_run( $deadline ) {
 	do {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
 		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT attachment_id, embedding
+			"SELECT attachment_id, embedding, kind, filing
 			   FROM {$wpdb->vergeml_ai_index}
 			  WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d
 		   ORDER BY attachment_id ASC
@@ -831,39 +863,29 @@ function vergeml_talk_refile_run( $deadline ) {
 			$state['seen']  = (int) $state['seen'] + 1;
 
 			/*
-			 *  The whole embedding, because it is already here.
-			 *
-			 *  This projected it down to 64 dimensions by averaging runs of
-			 *  adjacent components first -- and adjacent components of an
-			 *  embedding are arbitrary independent directions, not neighbours
-			 *  that mean similar things, so averaging them is closer to
-			 *  discarding the vector than compressing it. That is how a Footwear
-			 *  folder came to hold a bicycle, a couch and some flowers.
+			 *  Filed by evidence (core/filing.php): the picture's kind and
+			 *  audience gate the folders, its object class is matched against
+			 *  theirs, and the vector only breaks ties. What clears neither the
+			 *  floor nor the margin stays where it is and is counted as such.
 			 */
-			$vector = vergeml_index_vector_out( $row['embedding'] );
-
-			$best  = '';
-			$score = VERGEML_TALK_FLOOR;
-
-			foreach ( (array) $state['vectors'] as $key => $folder_vector ) {
-
-				$here = vergeml_meaning_similarity( $folder_vector, $vector );
-
-				if ( $here > $score ) {
-					$score = $here;
-					$best  = $key;
-				}
+			if ( ! isset( $profiles ) ) {
+				$profiles = vergeml_filing_profiles( array_values( (array) $state['ids'] ), $taxonomy );
 			}
+			$pick = vergeml_filing_pick( vergeml_filing_facts( $row ), $profiles );
 
-			if ( '' === $best || ! isset( $state['ids'][ $best ] ) ) {
+			if ( ! $pick['term_id'] ) {
 				$state['skipped'] = (int) $state['skipped'] + 1;
+				$why              = isset( $pick['why'] ) ? $pick['why'] : 'floor';
+				$state['unfiled'][ $why ] = isset( $state['unfiled'][ $why ] ) ? (int) $state['unfiled'][ $why ] + 1 : 1;
 				continue; // Nothing fits well enough. Leave it where it is.
 			}
+
+			$best = array_search( (int) $pick['term_id'], array_map( 'intval', (array) $state['ids'] ), true );
 
 			$was = wp_get_object_terms( $attachment, $taxonomy, array( 'fields' => 'ids' ) );
 			$undo[ $attachment ] = is_wp_error( $was ) ? array() : array_map( 'intval', $was );
 
-			wp_set_object_terms( $attachment, array( (int) $state['ids'][ $best ] ), $taxonomy, false );
+			wp_set_object_terms( $attachment, array( (int) $pick['term_id'] ), $taxonomy, false );
 
 			$state['counts'][ $best ] = isset( $state['counts'][ $best ] )
 				? (int) $state['counts'][ $best ] + 1
@@ -1275,6 +1297,10 @@ function vergeml_talk_rest_apply( WP_REST_Request $request ) {
 			'name'    => sanitize_text_field( (string) $f['name'] ),
 			'parent'  => isset( $f['parent'] ) ? sanitize_text_field( (string) $f['parent'] ) : '',
 			'matches' => isset( $f['matches'] ) ? sanitize_text_field( (string) $f['matches'] ) : '',
+			// What the matcher files by (see core/filing.php); absent from older plans.
+			'classes'  => isset( $f['classes'] ) && is_array( $f['classes'] ) ? array_values( array_filter( array_map( 'sanitize_text_field', $f['classes'] ) ) ) : array(),
+			'kinds'    => isset( $f['kinds'] ) && is_array( $f['kinds'] ) ? array_values( array_filter( array_map( 'sanitize_key', $f['kinds'] ) ) ) : array(),
+			'audience' => isset( $f['audience'] ) ? sanitize_text_field( (string) $f['audience'] ) : '',
 		);
 	}
 
