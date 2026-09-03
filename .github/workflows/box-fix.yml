@@ -20,6 +20,7 @@ on:
           - nudge
           - repro-pending
           - cadence-test
+          - errorlog
 
 jobs:
   fix:
@@ -90,6 +91,11 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-cadence-test.php root@46.225.66.194:/tmp/vgml-cad.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=40 root@46.225.66.194 'bash -s' < tools/box-cadence-test.sh
+
+      - name: read the PHP error log (read-only)
+        if: ${{ inputs.job == 'errorlog' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-errorlog-read.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
