@@ -32,6 +32,7 @@ on:
           - writes
           - cron-life
           - gallery-page
+          - connect-check
       parallel:
         description: for job=parallel, the describe concurrency to force (0 removes the override)
         required: false
@@ -170,6 +171,11 @@ jobs:
         if: ${{ inputs.job == 'gallery-page' }}
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-gallery-page.sh
+
+      - name: what the connect banner renders for an admin (read-only)
+        if: ${{ inputs.job == 'connect-check' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-connect-check.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
