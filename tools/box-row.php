@@ -9,4 +9,6 @@ foreach ( $wpdb->get_results( "SELECT attachment_id, error, prompt_hash FROM {$t
     printf( "   payload: %s, %d KB\n", substr( $p, 0, strpos( $p, ';' ) ), (int) ( ( strlen( $p ) - strpos( $p, ',' ) ) * 0.75 / 1024 ) );
     $d = vergeml_ai_describe( $id );
     printf( "   service: %s\n", is_wp_error( $d ) ? $d->get_error_code() . ' -- ' . $d->get_error_message() : 'ok: ' . mb_substr( $d['caption'], 0, 80 ) );
+    if ( ! is_wp_error( $d ) ) { $wpdb->delete( $t, array( 'attachment_id' => $id ) ); echo "   stub cleared; the next run will write it
+"; }
 }
