@@ -72,7 +72,7 @@ foreach ( $rows as $r ) {
         $reason = '';
         if ( $cur && isset( $pick['gated'][ $cur[0] ] ) ) { $reason = 'gated: ' . $pick['gated'][ $cur[0] ]; }
         // Or it plainly does not match where it sits: a misfit, not an unknown.
-        elseif ( $cur && isset( $pick['scores'][ $cur[0] ] ) && $pick['scores'][ $cur[0] ] < VERGEML_FILING_MISFIT ) { $reason = sprintf( 'misfit @%.2f', $pick['scores'][ $cur[0] ] ); }
+        elseif ( $cur && isset( $pick['scores'][ $cur[0] ], $profiles[ $cur[0] ] ) && 'plan' === $profiles[ $cur[0] ]['source'] && $pick['scores'][ $cur[0] ] < VERGEML_FILING_MISFIT ) { $reason = sprintf( 'misfit @%.2f', $pick['scores'][ $cur[0] ] ); }
         if ( '' !== $reason ) {
             $why['evicted'] = ( $why['evicted'] ?? 0 ) + 1;
             if ( $apply ) { wp_set_object_terms( $id, array(), $tax, false ); }

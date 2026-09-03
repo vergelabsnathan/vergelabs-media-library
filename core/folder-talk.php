@@ -887,7 +887,8 @@ function vergeml_talk_refile_run( $deadline ) {
 				$out = array();
 				foreach ( $was as $tid ) {
 					// Gated out of it, or plainly not matching it (a misfit, not an unknown).
-					if ( isset( $pick['gated'][ $tid ] ) || ( isset( $pick['scores'][ $tid ] ) && $pick['scores'][ $tid ] < VERGEML_FILING_MISFIT ) ) {
+					// A misfit is only called on a folder the planner has described; a name alone is too thin to evict on.
+					if ( isset( $pick['gated'][ $tid ] ) || ( isset( $pick['scores'][ $tid ], $profiles[ $tid ] ) && 'plan' === $profiles[ $tid ]['source'] && $pick['scores'][ $tid ] < VERGEML_FILING_MISFIT ) ) {
 						$out[] = $tid;
 					}
 				}
