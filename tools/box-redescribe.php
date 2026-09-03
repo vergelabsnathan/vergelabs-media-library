@@ -85,8 +85,15 @@ printf(
 $after = vergeml_index_current_stamp();
 printf( "stamp after:   %s\n", $short( $after['prompt_hash'] ) );
 
-if ( $after['prompt_hash'] === $before['prompt_hash'] ) {
-    echo "STOP: the prompt hash did not change, so the service is still describing under the old prompt. Nothing else will be re-described.\n";
+/*
+ *  An unchanged stamp is only a problem on a FIRST run. On a sweep the stamp
+ *  is already the current prompt, and what matters is whether anything is
+ *  still behind it. The first version stopped here on a sweep and left the
+ *  96 held pictures exactly where they were.
+ */
+if ( $after['prompt_hash'] === $before['prompt_hash'] && 0 === vergeml_ai_pending_count( 'stale' ) && 0 === vergeml_ai_pending_count( 'unindexed' ) ) {
+    echo "STOP: the prompt hash did not change and nothing is pending -- either the service is still on the old prompt, or there is nothing left to do.
+";
     return;
 }
 
