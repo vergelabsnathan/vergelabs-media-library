@@ -20,7 +20,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 const VERGEML_CONNECT_NONCE  = 'vergeml_connect';
-const VERGEML_CONNECT_TTL    = 900; // fifteen minutes to finish the round trip.
+// A day, not fifteen minutes: a new customer creates an account, confirms an
+// email and buys a licence before coming back, and the link must still work.
+// The state is single-use and bound to this administrator either way.
+const VERGEML_CONNECT_TTL    = DAY_IN_SECONDS;
 
 /** Where the handshake happens. Filterable so a staging service can be used. */
 function vergeml_connect_base() {
@@ -87,7 +90,8 @@ function vergeml_connect_start() {
 
     if ( ! isset( $_GET['_wpnonce'] )
         || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), VERGEML_CONNECT_NONCE ) ) {
-        wp_die( esc_html__( 'That link has expired. Please try connecting again.', 'vergelabs-media-library' ) );
+        // Back to the screen with its notice, not a dead white page.
+        vergeml_connect_redirect_with( 'state' );
     }
 
     $state = wp_generate_password( 32, false, false );
