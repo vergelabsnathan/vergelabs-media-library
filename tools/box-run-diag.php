@@ -60,3 +60,10 @@ foreach ( array( 'Footwear', 'Furniture', 'Bicycles', "Women's apparel", 'Leathe
     $top = array(); foreach ( array_slice( $s, 0, 5, true ) as $id => $sc ) { $top[] = mb_substr( get_the_title( $id ), 0, 26 ); }
     printf( "  %-16s %s\n", $folder . ':', implode( ' | ', $top ) );
 }
+
+echo "
+=== parallelism
+";
+$c = get_option( 'vergeml_ai_credits', array() );
+printf( "  plan: %s   vergeml_ai_parallel(): %d
+", isset( $c['plan'] ) ? $c['plan'] : '(not cached yet)', vergeml_ai_parallel() );

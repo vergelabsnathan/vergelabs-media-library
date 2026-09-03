@@ -174,6 +174,8 @@ function vergeml_ai_refresh_credits( $force = false ) {
         'time'      => time(),
         'state'     => 'ok',
         'checked'   => time(),
+        // The plan decides how hard this site may push the service.
+        'plan'      => isset( $data['plan'] ) ? sanitize_key( (string) $data['plan'] ) : '',
     ), false );
 
     return (int) $data['credits_remaining'];
@@ -709,9 +711,23 @@ function vergeml_ai_filing( $raw ) {
  */
 const VERGEML_AI_PARALLEL = 8;
 
+/** What an agency licence sends at once. Sixteen halves the time of a
+ *  sixteen-picture step, and an agency is on hosting that can hold it. */
+const VERGEML_AI_PARALLEL_AGENCY = 16;
+
 function vergeml_ai_parallel() {
 
-    $n = (int) apply_filters( 'vergeml_ai_parallel', VERGEML_AI_PARALLEL );
+    /*
+     *  The default follows the plan, so nobody on shared hosting is hurt and
+     *  an agency gets the speed without a filter. Measured 3 September 2026:
+     *  a step of sixteen went out as two batches of eight, ~18s; as one batch
+     *  of sixteen it is ~9s, and the provider held 64 without slowing.
+     */
+    $cached  = get_option( 'vergeml_ai_credits', array() );
+    $plan    = is_array( $cached ) && isset( $cached['plan'] ) ? (string) $cached['plan'] : '';
+    $default = 'agency' === $plan ? VERGEML_AI_PARALLEL_AGENCY : VERGEML_AI_PARALLEL;
+
+    $n = (int) apply_filters( 'vergeml_ai_parallel', $default );
 
     return max( 1, min( 64, $n ) );
 }
