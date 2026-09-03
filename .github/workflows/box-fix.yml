@@ -22,6 +22,7 @@ on:
           - cadence-test
           - errorlog
           - errored-rows
+          - burst
 
 jobs:
   fix:
@@ -103,6 +104,12 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-row.php root@46.225.66.194:/tmp/vgml-row.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-row.sh
+
+      - name: sixteen at once through the plugin, with status codes
+        if: ${{ inputs.job == 'burst' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-burst.php root@46.225.66.194:/tmp/vgml-burst.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-burst.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
