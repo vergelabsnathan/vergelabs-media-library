@@ -1406,6 +1406,9 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
                 && 0 === strpos( (string) $described->get_error_code(), 'vergeml_ai_service_' );
 
             if ( $transient ) {
+                // Reported as non-fatal, so a refusal storm reads as what it
+                // is on the screen rather than as "working, nothing failed".
+                $errors[] = array( 'id' => $id, 'error' => $described->get_error_message(), 'fatal' => false );
                 vergeml_ai_recently_described( array( $id ), true );
                 $streak = isset( $streak ) ? $streak + 1 : 1;
                 if ( $streak >= 4 ) {

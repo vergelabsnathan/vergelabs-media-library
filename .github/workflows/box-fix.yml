@@ -17,6 +17,7 @@ on:
           - diag
           - restore
           - repro
+          - nudge
 
 jobs:
   fix:
@@ -69,6 +70,12 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-repro.php root@46.225.66.194:/tmp/vgml-repro.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-repro.sh
+
+      - name: keep the background run moving (nudges cron every 10s)
+        if: ${{ inputs.job == 'nudge' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-nudge.php root@46.225.66.194:/tmp/vgml-nudge.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=80 root@46.225.66.194 'bash -s' < tools/box-nudge.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
