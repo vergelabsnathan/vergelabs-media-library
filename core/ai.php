@@ -585,8 +585,16 @@ function vergeml_ai_describe_result( $code, $body ) {
     }
 
     if ( 200 !== $code || ! is_array( $data ) || empty( $data['caption'] ) ) {
+        /*
+         *  The status is the code, not just the message. 183 pictures were
+         *  stubbed 'vergeml_ai_service_error' in ninety-six seconds and nothing
+         *  on the plugin side could say whether that was a 429, a 502 or a 200
+         *  with no caption -- and those want opposite treatment: back off and
+         *  try again, or give up. Nothing reads the old string (one producer,
+         *  no consumers), so it is safe to make it say something.
+         */
         return new WP_Error(
-            'vergeml_ai_service_error',
+            'vergeml_ai_service_' . ( $code > 0 ? (int) $code : 'error' ),
             /* translators: %d: HTTP status code from the AI service. */
             sprintf( __( 'The AI service answered with HTTP %d.', 'vergelabs-media-library' ), $code )
         );
@@ -1375,6 +1383,37 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
                  */
                 break;
             }
+
+            /*
+             *  A refusal that will pass is not a broken file.
+             *
+             *  183 pictures were stubbed as errors in ninety-six seconds because
+             *  a 429 or a 5xx was treated exactly like a corrupt image: written
+             *  down as permanent, never offered again -- the 'unindexed' scope
+             *  skips stubs by design. Half an hour later the same pictures
+             *  described first time, 12 of 12. A customer's library would have
+             *  looked broken after any provider hiccup and stayed that way.
+             *
+             *  So a transient status goes on the same ten-minute hold a
+             *  duplicate does, writes nothing, and comes round again. And if
+             *  four in a row are transient, this pass stops: the provider is
+             *  saying no to everyone right now, and marching through the rest
+             *  of the library to collect the same answer is how ninety-six
+             *  seconds of hiccup became a day of damage.
+             */
+            $status    = (int) substr( (string) $described->get_error_code(), strlen( 'vergeml_ai_service_' ) );
+            $transient = in_array( $status, array( 0, 408, 425, 429, 500, 502, 503, 504 ), true )
+                && 0 === strpos( (string) $described->get_error_code(), 'vergeml_ai_service_' );
+
+            if ( $transient ) {
+                vergeml_ai_recently_described( array( $id ), true );
+                $streak = isset( $streak ) ? $streak + 1 : 1;
+                if ( $streak >= 4 ) {
+                    break;
+                }
+                continue;
+            }
+            $streak = 0;
 
             // A stub keeps a permanently failing file from wedging the loop;
             // reindexing later replaces it.
