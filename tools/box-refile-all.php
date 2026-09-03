@@ -13,6 +13,15 @@ $terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) );
 if ( is_wp_error( $terms ) ) { echo $terms->get_error_message(), "\n"; return; }
 $ids = array_map( function ( $t ) { return (int) $t->term_id; }, $terms );
 
+// Can this site make a vector at all? The same call the profiles rely on.
+$probe = vergeml_meaning_vector( 'shoes' );
+printf( "meaning vector for 'shoes': %s\n", is_array( $probe ) ? count( $probe ) . ' dims' : var_export( $probe, true ) );
+if ( ! is_array( $probe ) ) {
+    $s   = vergeml_ai_settings();
+    $raw = wp_remote_post( vergeml_ai_service_url() . '/embed', array( 'timeout' => 20, 'headers' => array( 'Content-Type' => 'application/json' ), 'body' => wp_json_encode( array( 'license_key' => vergeml_ai_unseal( $s['license_key'] ), 'site' => home_url(), 'text' => 'shoes' ) ) ) );
+    printf( "  raw /embed: %s %s\n", is_wp_error( $raw ) ? $raw->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code( $raw ), is_wp_error( $raw ) ? '' : mb_substr( (string) wp_remote_retrieve_body( $raw ), 0, 200 ) );
+}
+
 $t0 = microtime( true );
 $profiles = vergeml_filing_profiles( $ids, $tax );
 printf( "%d folders, %d profiled in %.1fs (%s)\n", count( $ids ), count( $profiles ), microtime( true ) - $t0, $apply ? 'APPLYING' : 'dry run' );

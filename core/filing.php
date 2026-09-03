@@ -195,8 +195,8 @@ function vergeml_filing_profile_build( $term, $taxonomy, $seed = array() ) {
      *  of the space. The old text was "Shoes. footwear on feet".
      */
     $text = trim( implode( ' / ', $path ) . ( '' !== $matches ? '. ' . $matches : '' ) )
-        . "\nobject: " . implode( '; ', $classes )
-        . ( '' !== $audience ? "\naudience: " . $audience : '' );
+        . ' | object: ' . implode( '; ', $classes )
+        . ( '' !== $audience ? ' | audience: ' . $audience : '' );
 
     $vector = function_exists( 'vergeml_meaning_vector' ) ? vergeml_meaning_vector( $text ) : null;
     if ( ! is_array( $vector ) || ! $vector ) {
