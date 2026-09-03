@@ -29,6 +29,7 @@ on:
           - vps-unpoint
           - parallel
           - vps-logs
+          - writes
       parallel:
         description: for job=parallel, the describe concurrency to force (0 removes the override)
         required: false
@@ -151,6 +152,12 @@ jobs:
         if: ${{ inputs.job == 'vps-logs' }}
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-vps-logs.sh
+
+      - name: when the last run actually wrote (read-only)
+        if: ${{ inputs.job == 'writes' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-writes.php root@46.225.66.194:/tmp/vgml-writes.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-writes.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
