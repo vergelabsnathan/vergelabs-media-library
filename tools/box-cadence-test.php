@@ -10,7 +10,7 @@ global $wpdb;
 $t = $wpdb->prefix . 'vergeml_ai_index';
 
 $ids = array_map( 'intval', $wpdb->get_col(
-    "SELECT attachment_id FROM {$t} WHERE model <> 'mock' AND error = '' ORDER BY attachment_id DESC LIMIT 48"
+    "SELECT attachment_id FROM {$t} WHERE model <> 'mock' AND error = '' AND described_at < UTC_TIMESTAMP() - INTERVAL 15 MINUTE ORDER BY described_at ASC LIMIT 48"
 ) );
 
 printf( "credits before: %s\n", var_export( vergeml_ai_refresh_credits( true ), true ) );

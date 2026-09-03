@@ -506,7 +506,13 @@ function vergeml_ai_describe_request( $attachment_id ) {
             'site'        => home_url(),
             'environment' => $environment,
             'filename'    => wp_basename( get_attached_file( $attachment_id ) ),
-            'mime'        => get_post_mime_type( $attachment_id ),
+            /*
+             *  The type of the bytes being sent, not of the file on disk. The
+             *  payload may have been re-encoded as JPEG on the way out; the
+             *  service sniffs the bytes and refuses a declaration that
+             *  disagrees with them, and a 707 KB PNG became a 400 that way.
+             */
+            'mime'        => vergeml_ai_payload_mime( $file, get_post_mime_type( $attachment_id ) ),
             'image'       => $file,
             // Everything this site already knows, so the model does not
             // have to guess what it is not allowed to guess.
@@ -1040,6 +1046,14 @@ const VERGEML_AI_SEND_EDGE = 1024;
  *  4 MB PNG at 1000px is a lot of base64 for no better description. */
 const VERGEML_AI_SEND_BYTES = 600000;
 
+/** The mime a data URI declares, or the fallback when it is not one. */
+function vergeml_ai_payload_mime( $data_uri, $fallback ) {
+    if ( is_string( $data_uri ) && preg_match( '#^data:([a-z]+/[a-z0-9.+-]+);base64,#i', $data_uri, $m ) ) {
+        return strtolower( $m[1] );
+    }
+    return (string) $fallback;
+}
+
 function vergeml_ai_image_payload( $attachment_id ) {
 
     /*
@@ -1417,8 +1431,22 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
                 if ( $row && 'mock' !== (string) $row['model'] && vergeml_ai_fill_from_twin( $id, $twin, $apply_alt ) ) {
                     $done[] = array( 'id' => $id, 'caption' => $row['caption'], 'twin' => $twin );
                 } else {
+                    /*
+                     *  Same three strikes as a transient. The service's window
+                     *  is ten minutes, so an honest duplicate clears itself;
+                     *  a picture the service will never charge for again would
+                     *  otherwise keep a run open forever.
+                     */
+                    $dupes = get_transient( 'vergeml_ai_dupes' );
+                    $dupes = is_array( $dupes ) ? $dupes : array();
+                    $dupes[ $id ] = ( $dupes[ $id ] ?? 0 ) + 1;
+                    set_transient( 'vergeml_ai_dupes', $dupes, HOUR_IN_SECONDS );
                     $errors[] = array( 'id' => $id, 'error' => $described->get_error_message(), 'fatal' => false );
-                    vergeml_ai_recently_described( array( $id ), true );
+                    if ( $dupes[ $id ] >= 3 ) {
+                        vergeml_index_set( $id, array( 'error' => 'vergeml_ai_duplicate', 'described_at' => current_time( 'mysql', true ) ) );
+                    } else {
+                        vergeml_ai_recently_described( array( $id ), true );
+                    }
                 }
                 continue;
             }
