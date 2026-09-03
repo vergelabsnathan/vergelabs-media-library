@@ -15,6 +15,8 @@ on:
           - snapshot
           - redescribe
           - diag
+          - restore
+          - repro
 
 jobs:
   fix:
@@ -55,6 +57,18 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-run-diag.php root@46.225.66.194:/tmp/vgml-diag.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-run-diag.sh
+
+      - name: restore the index after the failed run
+        if: ${{ inputs.job == 'restore' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-restore.php root@46.225.66.194:/tmp/vgml-restore.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-restore.sh
+
+      - name: reproduce the refusal through the plugin (up to 12 credits)
+        if: ${{ inputs.job == 'repro' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-repro.php root@46.225.66.194:/tmp/vgml-repro.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-repro.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
