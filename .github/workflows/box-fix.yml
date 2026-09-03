@@ -12,6 +12,8 @@ on:
         options:
           - thumbnails
           - describe-sample
+          - snapshot
+          - redescribe
 
 jobs:
   fix:
@@ -29,6 +31,23 @@ jobs:
           printf '%s\n' "$BOX_SSH_KEY" > ~/.ssh/hetzner_vgml
           chmod 600 ~/.ssh/hetzner_vgml
           ssh-keyscan -H 46.225.66.194 >> ~/.ssh/known_hosts 2>/dev/null
+
+      # A quality snapshot: folder top-5s, search top-5s, field fill rates,
+      # counts by prompt. Run before and after a re-describe so the analysis
+      # is a diff of two files rather than an impression.
+      - name: quality snapshot
+        if: ${{ inputs.job == 'snapshot' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-quality-snapshot.php root@46.225.66.194:/tmp/vgml-snapshot.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=40 root@46.225.66.194 'bash -s' < tools/box-quality-snapshot.sh
+
+      # Re-describes every picture under the current prompt, for real, and
+      # waits for the background run to finish. Spends one credit per picture.
+      - name: re-describe the library
+        if: ${{ inputs.job == 'redescribe' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-redescribe.php root@46.225.66.194:/tmp/vgml-redescribe.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=80 root@46.225.66.194 'bash -s' < tools/box-redescribe.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are

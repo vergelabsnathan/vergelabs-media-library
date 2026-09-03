@@ -1399,6 +1399,12 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
             'tags'          => $described['tags'],
             'kind'          => isset( $described['kind'] ) ? $described['kind'] : '',
             'document_type' => isset( $described['document_type'] ) ? $described['document_type'] : '',
+            /*
+             *  The catalogue record, stored as it arrived. Until now it reached
+             *  the customer only folded into the embedding, which folders and
+             *  search read but nobody can see -- so a field nobody can check.
+             */
+            'filing'        => wp_json_encode( isset( $described['filing'] ) ? $described['filing'] : array() ),
             'orientation'   => vergeml_index_orientation( $id ),
             'model'         => $described['model'],
             'model_version' => $described['model_version'],

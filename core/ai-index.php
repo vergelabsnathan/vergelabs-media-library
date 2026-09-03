@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 const VERGEML_INDEX_TABLE   = 'vergeml_ai_index';
 // 2 since 3.4.0: KEY has_text, for the "Text in the picture" smart folder.
-const VERGEML_INDEX_VERSION = 2;
+const VERGEML_INDEX_VERSION = 3;
 const VERGEML_INDEX_OPTION  = 'vergeml_index';
 
 
@@ -139,6 +139,7 @@ function vergeml_index_install() {
         has_people tinyint(1) NULL,
         has_text tinyint(1) NULL,
         document_type varchar(32) NOT NULL DEFAULT '',
+        filing text NULL,
         orientation varchar(16) NOT NULL DEFAULT '',
         embedding longblob NULL,
         embedding_dims smallint(5) unsigned NULL,
@@ -207,6 +208,7 @@ function vergeml_index_fields() {
         'has_people'     => '%d',
         'has_text'       => '%d',
         'document_type'  => '%s',
+        'filing'         => '%s',
         'orientation'    => '%s',
         'embedding'      => '%s',
         'embedding_dims' => '%d',
