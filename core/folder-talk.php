@@ -764,6 +764,16 @@ function vergeml_talk_apply( $folders ) {
 	);
 	// phpcs:enable
 
+	/*
+	 *  Folders that were already here know only their names. One planner call
+	 *  tells the matcher what each of them takes (core/filing.php), so a coat
+	 *  reaches Apparel and a logo stays out of Men. Best effort: without it the
+	 *  name-derived profiles still file, only more cautiously.
+	 */
+	if ( function_exists( 'vergeml_filing_profile_existing' ) ) {
+		vergeml_filing_profile_existing( $taxonomy );
+	}
+
 	update_option( VERGEML_TALK_STATE, array(
 		'active'   => true,
 		'taxonomy' => $taxonomy,
