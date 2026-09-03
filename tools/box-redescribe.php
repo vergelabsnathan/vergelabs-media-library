@@ -45,11 +45,30 @@ if ( $seed < 1 ) {
     return;
 }
 
-$wpdb->update(
-    $table,
-    array( 'described_at' => null, 'embedding' => null, 'projection' => null, 'prompt_hash' => '' ),
-    array( 'attachment_id' => $seed )
-);
+/*
+ *  Deleted, not blanked. 'unindexed' is defined as the ABSENCE of an index row
+ *  (i.attachment_id IS NULL), so a row with its columns nulled is still a row
+ *  and is never selected -- which is exactly what happened on the first
+ *  attempt: described 0 in 0.0s, and honestly so.
+ */
+$wpdb->delete( $table, array( 'attachment_id' => $seed ) );
+
+/*
+ *  The 59 pictures that errored last time carry stub rows, so neither scope
+ *  would ever look at them again. Their stubs go too: one more attempt under
+ *  the new prompt, and a fresh stub if they fail again.
+ */
+$retry = (int) $wpdb->query( "DELETE FROM {$table} WHERE error <> '' AND model <> 'mock'" );
+printf( "errored stubs cleared for retry: %d
+", $retry );
+
+$has_col = (bool) $wpdb->get_var( $wpdb->prepare(
+    "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = %s AND column_name = 'filing'",
+    $table
+) );
+printf( "filing column present: %s
+", $has_col ? 'yes' : 'NO -- writes will fail' );
+if ( ! $has_col ) { return; }
 
 $t    = microtime( true );
 $step = vergeml_ai_index_step( 'unindexed', 1, false );
