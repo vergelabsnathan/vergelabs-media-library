@@ -43,8 +43,9 @@ update_post_meta( $id, '_elementor_template_type', 'wp-page' );
 update_post_meta( $id, '_elementor_version', defined( 'ELEMENTOR_VERSION' ) ? ELEMENTOR_VERSION : '3.0.0' );
 update_post_meta( $id, '_elementor_data', wp_slash( wp_json_encode( $data ) ) );
 update_post_meta( $id, '_wp_page_template', 'elementor_canvas' );
+// Elementor regenerates its CSS on the next view; its clear_cache() wants
+// WP_Filesystem, which resolves to FTP under wp-cli here and fatals.
 delete_post_meta( $id, '_elementor_css' );
-if ( class_exists( '\Elementor\Plugin' ) ) { \Elementor\Plugin::$instance->files_manager->clear_cache(); }
 
 printf( "page: #%d %s\n", $id, get_permalink( $id ) );
 PHP

@@ -140,6 +140,21 @@ function vergeml_connect_finish() {
 
     $settings                = get_option( 'vergeml_ai', array() );
     $settings                = is_array( $settings ) ? $settings : array();
+
+    // Switching licence: give the old one its seat back on the service, so the
+    // site is not counted against two licences at once. Best effort.
+    $old = vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
+    if ( '' !== $old && $old !== (string) $body['key'] ) {
+        wp_remote_post(
+            vergeml_ai_service_url() . '/licence',
+            array(
+                'timeout' => 8,
+                'headers' => array( 'Content-Type' => 'application/json' ),
+                'body'    => wp_json_encode( array( 'key' => $old, 'site' => home_url(), 'action' => 'deactivate' ) ),
+            )
+        );
+    }
+
     // Sealed at rest, the same way the settings form stores it: the plugin
     // unseals on use, and a raw key here reads back as no licence at all.
     $settings['license_key'] = vergeml_ai_seal( sanitize_text_field( (string) $body['key'] ) );
@@ -195,6 +210,25 @@ function vergeml_connect_banner() {
     }
 
     if ( vergeml_connect_has_key() ) {
+        /*
+         *  A connected site could not change licence without pasting a key by
+         *  hand, which is the thing the button exists to avoid. The same
+         *  handshake switches; the old key's seat is released on the way
+         *  (see vergeml_connect_finish). The last four characters are what
+         *  the account page shows for a licence, so the two can be matched.
+         */
+        $settings = get_option( 'vergeml_ai', array() );
+        $key      = vergeml_ai_unseal( is_array( $settings ) && isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
+        printf(
+            '<p class="description vgml-connect-current">%s <a href="%s">%s</a></p>',
+            esc_html( sprintf(
+                /* translators: %s: the last four characters of the licence key */
+                __( 'This site is connected to licence …%s.', 'vergelabs-media-library' ),
+                substr( $key, -4 )
+            ) ),
+            esc_url( vergeml_connect_start_url() ),
+            esc_html__( 'Connect a different licence', 'vergelabs-media-library' )
+        );
         return;
     }
 
