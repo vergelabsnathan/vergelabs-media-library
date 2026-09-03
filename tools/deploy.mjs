@@ -461,6 +461,26 @@ function deployBox( box, files, mf ) {
 	scp( box, bundle, '/tmp/vgml-payload.zip' );
 
 	/*
+	 *  The gate. Every PHP file is parsed on the box's own PHP before a byte
+	 *  of it is written over the live plugin. A stray comma once took every
+	 *  page on the box down for seven minutes; php -l would have said so in
+	 *  one second. Output is printed, never hidden -- that was the other half
+	 *  of that mistake.
+	 */
+	ssh( box, `
+		set -e
+		rm -rf /tmp/vgml-stage && mkdir -p /tmp/vgml-stage && cd /tmp/vgml-stage
+		unzip -o -q /tmp/vgml-payload.zip
+		bad=0
+		while IFS= read -r f; do
+			out=$( php -l "$f" 2>&1 ) || { echo "$out"; bad=1; }
+		done < <( find . -name '*.php' )
+		cd / && rm -rf /tmp/vgml-stage
+		if [ "$bad" != "0" ]; then echo "php -l failed; nothing deployed"; rm -f /tmp/vgml-payload.zip; exit 1; fi
+		echo "php -l: every file parses"
+	` );
+
+	/*
 	 *  A copy of what is there before anything is written over it. The box
 	 *  holds a WordPress somebody is looking at; a bad deploy should cost a
 	 *  restore, not an afternoon.

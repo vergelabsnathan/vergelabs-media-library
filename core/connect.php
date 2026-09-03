@@ -209,26 +209,13 @@ function vergeml_connect_banner() {
         printf( '<div class="notice notice-error is-dismissible"><p>%s</p></div>', esc_html( $why ) );
     }
 
+    /*
+     *  Connected sites get their button in the licence row of the AI screen
+     *  (see vergeml_ai_page), where somebody looks for it. A line up here in
+     *  small grey type was not found by the one person who needed it. Only
+     *  the no-key invitation and the result notices belong at the top.
+     */
     if ( vergeml_connect_has_key() ) {
-        /*
-         *  A connected site could not change licence without pasting a key by
-         *  hand, which is the thing the button exists to avoid. The same
-         *  handshake switches; the old key's seat is released on the way
-         *  (see vergeml_connect_finish). The last four characters are what
-         *  the account page shows for a licence, so the two can be matched.
-         */
-        $settings = get_option( 'vergeml_ai', array() );
-        $key      = vergeml_ai_unseal( is_array( $settings ) && isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
-        printf(
-            '<p class="description vgml-connect-current">%s <a href="%s">%s</a></p>',
-            esc_html( sprintf(
-                /* translators: %s: the last four characters of the licence key */
-                __( 'This site is connected to licence …%s.', 'vergelabs-media-library' ),
-                substr( $key, -4 )
-            ) ),
-            esc_url( vergeml_connect_start_url() ),
-            esc_html__( 'Connect a different licence', 'vergelabs-media-library' )
-        );
         return;
     }
 
