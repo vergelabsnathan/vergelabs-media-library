@@ -88,8 +88,13 @@ function vergeml_ai_run_save( $state ) {
 
 
 function vergeml_ai_run_schedule() {
+    /*
+     *  Due now, not in five seconds: spawn_cron() only spawns for an event
+     *  that is already due, so a run whose first tick sat five seconds in the
+     *  future was nudged too early and then waited for a visitor.
+     */
     if ( ! wp_next_scheduled( VERGEML_AI_RUN_HOOK ) ) {
-        wp_schedule_single_event( time() + VERGEML_AI_RUN_GAP, VERGEML_AI_RUN_HOOK );
+        wp_schedule_single_event( time(), VERGEML_AI_RUN_HOOK );
     }
 }
 
@@ -197,6 +202,7 @@ function vergeml_ai_run_start( $scope, $apply_alt, $reason = '' ) {
     ) );
 
     vergeml_ai_run_schedule();
+    vergeml_ai_run_nudge();
 
     return $state;
 }
