@@ -136,12 +136,40 @@
 	flex: 0 0 var( --vgml-slide, calc( ( 100% - 32px ) / 3 ) );
 	scroll-snap-align: start;
 	margin: 0;
+	min-width: 0;
 }
 
+/*
+ *  Every slide the same shape. Without this the row takes the height of the
+ *  tallest picture at slide width, and every landscape photo beside a portrait
+ *  one is cropped to a tall strip -- measured on the box: 363x544 slides with
+ *  the faces cut off. 4:3 is the shape most photographs survive a crop into;
+ *  --vgml-ratio overrides it, as it does for the grid.
+ */
 .vgml-folder-gallery.is-carousel > .wp-block-image img {
+	display: block;
 	width: 100%;
 	height: 100%;
+	aspect-ratio: var( --vgml-ratio, 4 / 3 );
 	object-fit: cover;
+	border-radius: var( --wp--custom--image--border-radius, 6px );
+}
+
+/*
+ *  Slides per view are a desktop instruction too. Three across a phone were
+ *  113px wide on the box; two fit a tablet, one and a hint of the next fits
+ *  a phone, so it reads as something to swipe.
+ */
+@media ( max-width: 900px ) {
+	.vgml-folder-gallery.is-carousel > .wp-block-image {
+		flex-basis: calc( ( 100% - 16px ) / 2 );
+	}
+}
+
+@media ( max-width: 600px ) {
+	.vgml-folder-gallery.is-carousel > .wp-block-image {
+		flex-basis: 86%;
+	}
 }
 
 /* The arrows the script adds. Absent without it, and nothing is lost. */
