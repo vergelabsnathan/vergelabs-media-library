@@ -362,13 +362,28 @@ function vergeml_shell_credits() {
 
     $url = function_exists( 'vergeml_shell_url' ) ? vergeml_shell_url( 'media-ai' ) : admin_url( 'admin.php?page=media-ai' );
 
-    $note = $when > 0
-        ? sprintf(
+    /*
+     *  "as of five minutes ago" was said whether or not anybody had managed to
+     *  ask in the last five minutes. Every failure to reach the service left
+     *  the figure untouched and the sentence unchanged, so a site whose
+     *  licence had been replaced showed a confident, current-looking balance
+     *  that had not been confirmed in weeks.
+     */
+    $at = function_exists( 'vergeml_ai_credits_state' )
+        ? vergeml_ai_credits_state()
+        : array( 'state' => 'ok', 'stale' => false );
+
+    if ( 'rejected' === $at['state'] ) {
+        $note = __( 'not connected', 'vergelabs-media-library' );
+    } elseif ( $when > 0 ) {
+        $note = sprintf(
             /* translators: %s: how long ago the balance was checked, e.g. "5 mins". */
             __( 'as of %s ago', 'vergelabs-media-library' ),
             human_time_diff( $when, time() )
-        )
-        : __( 'not checked yet', 'vergelabs-media-library' );
+        );
+    } else {
+        $note = __( 'not checked yet', 'vergelabs-media-library' );
+    }
 
     /*
      *  Under a hundred is the point at which a run will not finish, so it is
@@ -376,6 +391,12 @@ function vergeml_shell_credits() {
      *  a thing that is merely finite is how people learn to ignore badges.
      */
     $low = $left < 100 ? ' is-low' : '';
+
+    // A balance nobody could confirm is dimmed rather than coloured: it is not
+    // an alarm, it is a number to trust less.
+    if ( 'rejected' === $at['state'] || ! empty( $at['stale'] ) ) {
+        $low .= ' is-unconfirmed';
+    }
 
     return sprintf(
         '<a class="vgml-shell-credits%1$s" href="%2$s"><span class="vgml-shell-credits-n">%3$s</span><span class="vgml-shell-credits-l">%4$s</span><span class="vgml-shell-credits-w">%5$s</span></a>',

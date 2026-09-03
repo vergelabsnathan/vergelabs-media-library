@@ -132,21 +132,132 @@ function vergeml_ai_refresh_credits( $force = false ) {
         )
     );
 
-    if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+    /*
+     *  Why the outcome is written down and not just the number.
+     *
+     *  Every failure here used to `return $known` -- the cached figure -- and
+     *  say nothing. A site whose licence had been revoked, replaced, or simply
+     *  never existed on the service it was pointed at went on displaying a
+     *  plausible balance for as long as anybody cared to look at it, and the
+     *  only symptom was that the number disagreed with the account page. It
+     *  was not wrong arithmetic. It was a number nobody had checked since some
+     *  unrecorded moment in the past, presented exactly like one that had.
+     *
+     *  So the state travels with the figure: whether the last check succeeded,
+     *  could not reach the service, or was told this key is not a licence.
+     *  Those three want different sentences on screen, and the third wants the
+     *  Connect button rather than a number.
+     */
+    $code = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
+
+    if ( is_wp_error( $response ) || 200 !== $code ) {
+
+        /*
+         *  401, 403 and 404 are the service saying it does not know this key.
+         *  Anything else -- a timeout, a 500, a proxy in a bad mood -- is our
+         *  side failing to ask, which is not the customer's problem and must
+         *  not tell them to reconnect a licence that is perfectly fine.
+         */
+        vergeml_ai_credits_note( in_array( $code, array( 401, 403, 404 ), true ) ? 'rejected' : 'unreachable' );
+
         return $known;
     }
 
     $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
     if ( ! is_array( $data ) || ! isset( $data['credits_remaining'] ) ) {
+        vergeml_ai_credits_note( 'unreachable' );
         return $known;
     }
 
     update_option( 'vergeml_ai_credits', array(
         'remaining' => (int) $data['credits_remaining'],
         'time'      => time(),
+        'state'     => 'ok',
+        'checked'   => time(),
     ), false );
 
     return (int) $data['credits_remaining'];
+}
+
+
+/**
+ *  Record that a check happened and how it went, without touching the figure.
+ *
+ *  The number stays: a stale balance is still the best guess available and
+ *  blanking it would replace a slightly wrong answer with none at all. What
+ *  changes is that the screen can now say when it was last confirmed.
+ *
+ * @param string $state 'unreachable' or 'rejected'.
+ */
+function vergeml_ai_credits_note( $state ) {
+
+    $cached = get_option( 'vergeml_ai_credits', array() );
+
+    if ( ! is_array( $cached ) ) {
+        $cached = array();
+    }
+
+    $cached['state']   = $state;
+    $cached['checked'] = time();
+
+    /*
+     *  'time' is deliberately left alone. It is when the figure was last
+     *  *confirmed*, and the TTL is measured from it -- moving it here would
+     *  make a failing site wait the full interval before trying again, which
+     *  is the opposite of what a failure calls for.
+     */
+    update_option( 'vergeml_ai_credits', $cached, false );
+}
+
+
+/**
+ *  What the screens need to know about the balance they are about to show.
+ *
+ * @return array{remaining:int|null,state:string,age:int,stale:bool}
+ */
+function vergeml_ai_credits_state() {
+
+    $cached = get_option( 'vergeml_ai_credits', array() );
+    $cached = is_array( $cached ) ? $cached : array();
+
+    $confirmed = isset( $cached['time'] ) ? (int) $cached['time'] : 0;
+    $age       = $confirmed > 0 ? ( time() - $confirmed ) : PHP_INT_MAX;
+
+    return array(
+        'remaining' => isset( $cached['remaining'] ) ? (int) $cached['remaining'] : null,
+        'state'     => isset( $cached['state'] ) ? (string) $cached['state'] : 'ok',
+        'age'       => $age,
+        // An hour is generous for a number that refreshes on a short TTL: past
+        // that, something has been failing quietly for a while.
+        'stale'     => $age > HOUR_IN_SECONDS,
+    );
+}
+
+
+/**
+ *  One sentence about the balance, or '' when there is nothing worth saying.
+ *
+ *  Deliberately plain about which of the two things went wrong, because they
+ *  need different actions from the reader: one is ours to fix and one is a
+ *  button they have to press.
+ */
+function vergeml_ai_credits_warning() {
+
+    $at = vergeml_ai_credits_state();
+
+    if ( 'rejected' === $at['state'] ) {
+        return __( 'This site is not connected to a licence any more, so the balance below is the last one we saw. Connect it again to bring it up to date.', 'vergelabs-media-library' );
+    }
+
+    if ( 'unreachable' === $at['state'] && $at['stale'] ) {
+        return sprintf(
+            /* translators: %s: how long ago, e.g. "3 hours". */
+            __( 'We could not reach the service to check your balance, so this is what it was %s ago.', 'vergelabs-media-library' ),
+            human_time_diff( time() - $at['age'], time() )
+        );
+    }
+
+    return '';
 }
 
 function vergeml_ai_service_url() {
@@ -1631,6 +1742,18 @@ function vergeml_ai_rest_status() {
         'nonprod_blocked' => function_exists( 'wp_get_environment_type' ) && 'production' !== wp_get_environment_type()
             && ! ( defined( 'VERGEML_AI_ALLOW_NONPROD' ) && VERGEML_AI_ALLOW_NONPROD ),
         'credits'     => $credits,
+        /*
+         *  Whether that figure was actually confirmed, so the screen can say
+         *  so. A balance the service declined to vouch for looks identical to
+         *  one it did, which is how a site displayed a number from a licence
+         *  it no longer had.
+         */
+        'credits_state' => function_exists( 'vergeml_ai_credits_state' )
+            ? vergeml_ai_credits_state()
+            : array( 'state' => 'ok', 'stale' => false ),
+        'credits_warning' => function_exists( 'vergeml_ai_credits_warning' )
+            ? vergeml_ai_credits_warning()
+            : '',
         'settings'    => array(
             'auto_alt'      => (int) $settings['auto_alt'],
             'enrich_search' => (int) $settings['enrich_search'],

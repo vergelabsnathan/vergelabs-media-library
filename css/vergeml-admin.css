@@ -885,3 +885,18 @@
 	padding: .05rem .3rem;
 	border-radius: 4px;
 }
+
+
+/*
+ *  A balance nobody could confirm.
+ *
+ *  Dimmed rather than coloured. It is not an alarm -- the number may well be
+ *  right -- it is a number to trust less, and the sentence beside it says why.
+ */
+.vgml-shell-credits.is-unconfirmed {
+	opacity: .62;
+}
+
+.vgml-shell-credits.is-unconfirmed .vgml-shell-credits-w {
+	font-style: italic;
+}
