@@ -123,7 +123,7 @@ foreach ( array( 'stale', 'unindexed' ) as $scope ) {
 
         sleep( 30 );
 
-        $s    = vergeml_ai_run_state();
+        wp_cache_delete( VERGEML_AI_RUN_OPTION, 'options' ); $s    = vergeml_ai_run_state();
         $done = (int) $s['described'] + (int) $s['failed'];
 
         if ( $done !== $last ) {
@@ -143,7 +143,7 @@ foreach ( array( 'stale', 'unindexed' ) as $scope ) {
         }
     }
 
-    $s = vergeml_ai_run_state();
+    wp_cache_delete( VERGEML_AI_RUN_OPTION, 'options' ); $s = vergeml_ai_run_state();
 
     printf(
         "%s finished after %ds: described %d, failed %d, remaining %d, active=%s\n\n",

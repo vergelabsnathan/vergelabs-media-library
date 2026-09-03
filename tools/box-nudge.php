@@ -10,7 +10,7 @@
  */
 $t0 = time(); $last = -1;
 while ( time() - $t0 < 25 * 60 ) {
-    $s = vergeml_ai_run_state();
+    wp_cache_delete( VERGEML_AI_RUN_OPTION, 'options' ); $s = vergeml_ai_run_state();
     if ( empty( $s['active'] ) ) {
         $next = vergeml_ai_pending_count( 'unindexed' );
         if ( $next > 0 ) { $r = vergeml_ai_run_start( 'unindexed', false ); printf( "stale done; unindexed run started: total %d\n", is_wp_error( $r ) ? -1 : (int) $r['total'] ); continue; }
@@ -21,5 +21,5 @@ while ( time() - $t0 < 25 * 60 ) {
     if ( $done !== $last ) { printf( "  %5ds  %-9s described %4d  failed %3d  remaining %4d\n", time() - $t0, $s['scope'], (int) $s['described'], (int) $s['failed'], (int) $s['remaining'] ); $last = $done; }
     sleep( 10 );
 }
-$s = vergeml_ai_run_state();
+wp_cache_delete( VERGEML_AI_RUN_OPTION, 'options' ); $s = vergeml_ai_run_state();
 printf( "end: active=%s scope=%s described=%d failed=%d remaining=%d  credits=%s\n", empty( $s['active'] ) ? 'no' : 'yes', $s['scope'], (int) $s['described'], (int) $s['failed'], (int) $s['remaining'], var_export( vergeml_ai_refresh_credits( true ), true ) );

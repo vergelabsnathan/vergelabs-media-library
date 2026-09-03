@@ -42,10 +42,10 @@ if ( is_wp_error( $r ) ) { echo 'could not start: ' . $r->get_error_message() . 
 
 $t0 = time(); $last = -1;
 
-while ( time() - $t0 < 12 * 60 ) {
+while ( time() - $t0 < 8 * 60 ) {
     vergeml_ai_run_nudge();
     sleep( 5 );
-    $s = vergeml_ai_run_state();
+    wp_cache_delete( VERGEML_AI_RUN_OPTION, 'options' ); $s = vergeml_ai_run_state();
     $d = (int) $s['described'];
     if ( $d !== $last ) {
         printf( "  %4ds  described %3d  failed %2d  remaining %3d\n", time() - $t0, $d, (int) $s['failed'], (int) $s['remaining'] );
@@ -55,7 +55,8 @@ while ( time() - $t0 < 12 * 60 ) {
 }
 
 $el = max( 1, time() - $t0 );
-$s  = vergeml_ai_run_state();
-
-printf( "done: %d described in %ds = %.1f per minute (was 12-14)  failed %d  credits after: %s\n",
-    (int) $s['described'], $el, 60 * (int) $s['described'] / $el, (int) $s['failed'], var_export( vergeml_ai_refresh_credits( true ), true ) );
+// Counted in the database, which every process sees the same way, rather than
+// in a run-state option that a long-lived process reads once and keeps.
+$written = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND described_at >= %s", gmdate( 'Y-m-d H:i:s', $t0 ) ) );
+printf( "done: %d written in %ds = %.1f per minute (was 12-14)  credits after: %s
+", $written, $el, 60 * $written / $el, var_export( vergeml_ai_refresh_credits( true ), true ) );
