@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 const VERGEML_FILING_META    = '_vergeml_profile';
-const VERGEML_FILING_VERSION = 3; // 2: slash-named folders read as paths. 3: a rebuild keeps nothing from an old profile.
+const VERGEML_FILING_VERSION = 4; // 2: slash-named folders as paths. 3-4: a rebuild reuses only what a plan said.
 
 /*
  *  Calibrated on the box, 3 September 2026: with class matching the right
@@ -155,11 +155,13 @@ function vergeml_filing_profile( $term_id, $taxonomy ) {
         return null;
     }
 
-    // Only what a plan said is worth carrying into a rebuild. An outdated
-    // profile's own derivations are exactly what the rebuild is for.
-    $seed = is_array( $meta ) && isset( $meta['source'] ) && 'plan' === $meta['source']
-        ? array_intersect_key( $meta, array_flip( array( 'classes', 'kinds', 'audience', 'matches' ) ) )
-        : array();
+    /*
+     *  Only what a plan said is worth carrying into a rebuild, and it is kept
+     *  as the plan said it, apart from everything derived. Version 2 seeded a
+     *  rebuild from the whole old profile and then stamped the result "plan",
+     *  so version 3 trusted it and the leaf's own path came back as a class.
+     */
+    $seed = is_array( $meta ) && isset( $meta['plan'] ) && is_array( $meta['plan'] ) ? $meta['plan'] : array();
 
     return vergeml_filing_profile_build( $term, $taxonomy, $seed );
 }
@@ -218,9 +220,13 @@ function vergeml_filing_profile_build( $term, $taxonomy, $seed = array() ) {
         return null;
     }
 
+    // What the plan said, kept verbatim for the next rebuild; nothing derived.
+    $plan = array_filter( array_intersect_key( (array) $seed, array_flip( array( 'classes', 'kinds', 'audience', 'matches' ) ) ) );
+
     $profile = array(
         'version'  => VERGEML_FILING_VERSION,
-        'source'   => isset( $seed['classes'] ) ? 'plan' : 'name',
+        'source'   => $plan ? 'plan' : 'name',
+        'plan'     => $plan,
         'path'     => $path,
         'classes'  => $classes,
         'kinds'    => $kinds,
