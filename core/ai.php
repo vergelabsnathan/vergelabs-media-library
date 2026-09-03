@@ -87,6 +87,47 @@ if ( ! defined( 'VERGEML_CREDITS_TTL' ) ) {
 }
 
 /**
+ *  Take this site's seat on its licence.
+ *
+ *  Holding the key is not being connected: the service checks that the site
+ *  is activated on the licence before it describes or embeds anything, and a
+ *  site that only ever received the key answered 403 site_not_activated on
+ *  its first picture. Called when a key arrives -- by handshake or by hand.
+ *
+ *  @return true|WP_Error
+ */
+function vergeml_ai_activate_site() {
+    $settings = vergeml_ai_settings();
+    $key      = vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
+    if ( '' === $key ) {
+        return new WP_Error( 'vergeml_no_key', __( 'No licence key.', 'vergelabs-media-library' ) );
+    }
+    $response = wp_remote_post(
+        vergeml_ai_service_url() . '/licence',
+        array(
+            'timeout'   => 10,
+            'sslverify' => true,
+            'headers'   => array( 'Content-Type' => 'application/json' ),
+            'body'      => wp_json_encode( array(
+                'key'         => $key,
+                'site'        => home_url(),
+                'action'      => 'activate',
+                'environment' => function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : 'production',
+            ) ),
+        )
+    );
+    if ( is_wp_error( $response ) ) {
+        return $response;
+    }
+    $code = (int) wp_remote_retrieve_response_code( $response );
+    if ( 200 !== $code ) {
+        $body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+        return new WP_Error( 'vergeml_ai_service_' . $code, is_array( $body ) && isset( $body['error'] ) ? (string) $body['error'] : 'HTTP ' . $code );
+    }
+    return true;
+}
+
+/**
  *  What is left, asked for rather than overheard.
  *
  *  The balance used to arrive only as a side effect of describing an image:

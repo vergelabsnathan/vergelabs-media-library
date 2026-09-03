@@ -16,6 +16,14 @@ $ids = array_map( function ( $t ) { return (int) $t->term_id; }, $terms );
 // Can this site make a vector at all? The same call the profiles rely on.
 $probe = vergeml_meaning_vector( 'shoes' );
 printf( "meaning vector for 'shoes': %s\n", is_array( $probe ) ? count( $probe ) . ' dims' : var_export( $probe, true ) );
+if ( ! is_array( $probe ) && function_exists( 'vergeml_ai_activate_site' ) ) {
+    // A site that holds the key but never took its seat: take it, then try again.
+    $act = vergeml_ai_activate_site();
+    printf( "  activate: %s\n", is_wp_error( $act ) ? $act->get_error_message() : 'ok' );
+    delete_transient( 'vergeml_qv2_' . md5( 'shoes' ) );
+    $probe = vergeml_meaning_vector( 'shoes' );
+    printf( "  meaning vector after activating: %s\n", is_array( $probe ) ? count( $probe ) . ' dims' : var_export( $probe, true ) );
+}
 if ( ! is_array( $probe ) ) {
     $s   = vergeml_ai_settings();
     $raw = wp_remote_post( vergeml_ai_service_url() . '/embed', array( 'timeout' => 20, 'headers' => array( 'Content-Type' => 'application/json' ), 'body' => wp_json_encode( array( 'license_key' => vergeml_ai_unseal( $s['license_key'] ), 'site' => home_url(), 'text' => 'shoes' ) ) ) );

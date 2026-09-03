@@ -65,6 +65,10 @@ function vergeml_licence_save() {
         if ( '' !== $key ) {
             $settings['license_key'] = vergeml_ai_seal( $key );
             update_option( 'vergeml_ai', $settings, false );
+            // The seat on the licence, then the balance.
+            if ( function_exists( 'vergeml_ai_activate_site' ) ) {
+                vergeml_ai_activate_site();
+            }
             $check  = vergeml_ai_refresh_credits( true );
             $state  = function_exists( 'vergeml_ai_credits_state' ) ? vergeml_ai_credits_state() : 'ok';
             $result = ( null === $check && 'rejected' === $state ) ? 'rejected' : 'saved';

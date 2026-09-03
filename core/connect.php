@@ -164,6 +164,11 @@ function vergeml_connect_finish() {
     $settings['license_key'] = vergeml_ai_seal( sanitize_text_field( (string) $body['key'] ) );
     update_option( 'vergeml_ai', $settings, false );
 
+    // The seat, then the balance. The exchange takes the seat server-side as
+    // well; this covers an older service, and costs one request.
+    if ( function_exists( 'vergeml_ai_activate_site' ) ) {
+        vergeml_ai_activate_site();
+    }
     // The screen this returns to shows the balance; fetch it now so the number
     // is right the moment the site is connected.
     if ( function_exists( 'vergeml_ai_refresh_credits' ) ) {
