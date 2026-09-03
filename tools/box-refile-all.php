@@ -61,7 +61,13 @@ foreach ( $rows as $r ) {
         }
     } else {
         $why[ $pick['why'] ] = ( $why[ $pick['why'] ] ?? 0 ) + 1;
-        $stay[] = sprintf( "  %-34s [%s|%s] %s stays, %s: nearest %s @%.2f", $title, $facts['kind'], mb_substr( $obj, 0, 28 ), $from, $pick['why'], isset( $pick['nearest'] ) ? $name( $pick['nearest'] ) : '-', $pick['score'] );
+        // Gated out of the folder it is in: that is evidence it does not belong there, so out it comes.
+        $evicted = $cur && isset( $pick['gated'][ $cur[0] ] );
+        if ( $evicted ) {
+            $why['evicted'] = ( $why['evicted'] ?? 0 ) + 1;
+            if ( $apply ) { wp_set_object_terms( $id, array(), $tax, false ); }
+        }
+        $stay[] = sprintf( "  %-34s [%s|%s] %s %s, %s: nearest %s @%.2f", $title, $facts['kind'], mb_substr( $obj, 0, 28 ), $from, $evicted ? 'OUT (gated: ' . $pick['gated'][ $cur[0] ] . ')' : 'stays', $pick['why'], isset( $pick['nearest'] ) ? $name( $pick['nearest'] ) : '-', $pick['score'] );
     }
     if ( preg_match( $pat, $title . ' ' . $obj ) ) {
         $named[] = sprintf( "  %-34s [%s|%s] -> %s  (%s @%.2f)", $title, $facts['kind'], mb_substr( $obj, 0, 28 ), $pick['term_id'] ? $name( $pick['term_id'] ) : 'UNFILED', $pick['why'], $pick['score'] );

@@ -877,7 +877,25 @@ function vergeml_talk_refile_run( $deadline ) {
 				$state['skipped'] = (int) $state['skipped'] + 1;
 				$why              = isset( $pick['why'] ) ? $pick['why'] : 'floor';
 				$state['unfiled'][ $why ] = isset( $state['unfiled'][ $why ] ) ? (int) $state['unfiled'][ $why ] + 1 : 1;
-				continue; // Nothing fits well enough. Leave it where it is.
+				/*
+				 *  Nothing fits well enough, so it is left where it is -- unless
+				 *  where it is fails a gate. A logo sitting in Men is not "no
+				 *  evidence", it is evidence against, and out it comes.
+				 */
+				$was = wp_get_object_terms( $attachment, $taxonomy, array( 'fields' => 'ids' ) );
+				$was = is_wp_error( $was ) ? array() : array_map( 'intval', $was );
+				$out = array();
+				foreach ( $was as $tid ) {
+					if ( isset( $pick['gated'][ $tid ] ) ) {
+						$out[] = $tid;
+					}
+				}
+				if ( $out ) {
+					$undo[ $attachment ] = $was;
+					wp_set_object_terms( $attachment, array_values( array_diff( $was, $out ) ), $taxonomy, false );
+					$state['unfiled']['evicted'] = isset( $state['unfiled']['evicted'] ) ? (int) $state['unfiled']['evicted'] + 1 : 1;
+				}
+				continue;
 			}
 
 			$best = array_search( (int) $pick['term_id'], array_map( 'intval', (array) $state['ids'] ), true );
