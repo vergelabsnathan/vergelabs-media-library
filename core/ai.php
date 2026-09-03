@@ -611,13 +611,19 @@ function vergeml_ai_describe_result( $code, $body ) {
     // The service reports the balance with every answer; remembered for the
     // screen, so "how many credits are left" never needs its own request.
     if ( isset( $data['credits'] ) && is_array( $data['credits'] ) ) {
-        // Merged, not replaced: this write used to wipe the plan and the staleness
-        // state the licence check had stored beside the balance.
+        /*
+         *  Merged, not replaced: this write used to wipe the plan and the
+         *  staleness state the licence check had stored beside the balance.
+         */
         $kept = get_option( 'vergeml_ai_credits', array() );
-        update_option( 'vergeml_ai_credits', array_merge( is_array( $kept ) ? $kept : array(), array(
-            'remaining' => isset( $data['credits']['remaining'] ) ? (int) $data['credits']['remaining'] : null,
-            'time'      => time(),
-        , 'state' => 'ok', 'checked' => time() ) ), false );
+        $kept = is_array( $kept ) ? $kept : array();
+
+        $kept['remaining'] = (int) $data['credits_remaining'];
+        $kept['time']      = time();
+        $kept['state']     = 'ok';
+        $kept['checked']   = time();
+
+        update_option( 'vergeml_ai_credits', $kept, false );
     }
 
     /*
