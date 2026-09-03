@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 const VERGEML_FILING_META    = '_vergeml_profile';
-const VERGEML_FILING_VERSION = 1;
+const VERGEML_FILING_VERSION = 2; // 2: slash-named folders read as paths.
 
 /*
  *  Calibrated on the box, 3 September 2026: with class matching the right
@@ -166,20 +166,31 @@ function vergeml_filing_profile( $term_id, $taxonomy ) {
  */
 function vergeml_filing_profile_build( $term, $taxonomy, $seed = array() ) {
 
+    /*
+     *  The path, from the real parents -- and from the name itself when the
+     *  name is a path. An older planner answered "Apparel / Men / Shoes" as a
+     *  folder name, and the plugin made exactly that: one flat folder with
+     *  slashes in it. Those exist on real sites now. Read as a path, the leaf
+     *  is the class, the segments carry the audience, and siblings under one
+     *  parent are family rather than rivals.
+     */
     $path  = array();
     $walk  = $term;
     $guard = 0;
     while ( $walk && ! is_wp_error( $walk ) && $guard++ < 10 ) {
-        array_unshift( $path, $walk->name );
-        $walk = $walk->parent ? get_term( $walk->parent, $taxonomy ) : null;
+        $segments = preg_split( '/\s*\/\s*/u', (string) $walk->name );
+        $segments = array_values( array_filter( array_map( 'trim', (array) $segments ), 'strlen' ) );
+        $path     = array_merge( $segments ? $segments : array( (string) $walk->name ), $path );
+        $walk     = $walk->parent ? get_term( $walk->parent, $taxonomy ) : null;
     }
+    $leaf = $path ? (string) end( $path ) : (string) $term->name;
 
     $classes = isset( $seed['classes'] ) && is_array( $seed['classes'] ) ? array_values( array_filter( array_map( 'vergeml_filing_name_class', $seed['classes'] ) ) ) : array();
-    if ( ! in_array( vergeml_filing_name_class( $term->name ), $classes, true ) ) {
-        array_unshift( $classes, vergeml_filing_name_class( $term->name ) );
+    if ( ! in_array( vergeml_filing_name_class( $leaf ), $classes, true ) ) {
+        array_unshift( $classes, vergeml_filing_name_class( $leaf ) );
     }
 
-    $kinds = isset( $seed['kinds'] ) && is_array( $seed['kinds'] ) && $seed['kinds'] ? array_values( array_map( 'sanitize_key', $seed['kinds'] ) ) : vergeml_filing_kinds_of( $term->name );
+    $kinds = isset( $seed['kinds'] ) && is_array( $seed['kinds'] ) && $seed['kinds'] ? array_values( array_map( 'sanitize_key', $seed['kinds'] ) ) : vergeml_filing_kinds_of( $leaf );
 
     // Audience comes from the folder or any ancestor: Shoes under Women is for women.
     $audience = isset( $seed['audience'] ) ? vergeml_filing_audience_of( $seed['audience'] ) : '';
@@ -395,15 +406,19 @@ function vergeml_filing_pick( $facts, $profiles ) {
     return array( 'term_id' => $best, 'score' => $score, 'runner_up' => $runner, 'runner_score' => $rscore, 'why' => 'ok', 'scores' => $scores, 'gated' => $gated );
 }
 
-/** Is $child below $ancestor, going by the parent ids the profiles carry? */
+/**
+ *  Is $child below $ancestor? Decided on the paths the profiles carry, which
+ *  come from real parents and from slash-named folders alike, so
+ *  "Apparel / Men / Shoes" counts as below "Apparel" whichever way it was made.
+ */
 function vergeml_filing_is_descendant( $child, $ancestor, $profiles ) {
-    $guard = 0;
-    $walk  = isset( $profiles[ $child ] ) ? (int) $profiles[ $child ]['parent_id'] : 0;
-    while ( $walk && $guard++ < 10 ) {
-        if ( $walk === (int) $ancestor ) {
-            return true;
-        }
-        $walk = isset( $profiles[ $walk ] ) ? (int) $profiles[ $walk ]['parent_id'] : 0;
+    if ( ! isset( $profiles[ $child ]['path'], $profiles[ $ancestor ]['path'] ) ) {
+        return false;
     }
-    return false;
+    $c = array_map( 'mb_strtolower', (array) $profiles[ $child ]['path'] );
+    $a = array_map( 'mb_strtolower', (array) $profiles[ $ancestor ]['path'] );
+    if ( count( $a ) >= count( $c ) ) {
+        return false;
+    }
+    return array_slice( $c, 0, count( $a ) ) === $a;
 }
