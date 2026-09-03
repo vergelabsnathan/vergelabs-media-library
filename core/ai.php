@@ -511,7 +511,41 @@ function vergeml_ai_describe_result( $code, $body ) {
         'model'         => isset( $data['model'] ) ? sanitize_text_field( $data['model'] ) : '',
         'model_version' => isset( $data['model_version'] ) ? sanitize_text_field( $data['model_version'] ) : '',
         'prompt_hash'   => isset( $data['prompt_hash'] ) ? sanitize_text_field( $data['prompt_hash'] ) : '',
+        /*
+         *  The catalogue record: what the picture is, for filing it, as
+         *  opposed to alt text, which is for hearing it. Every field is a
+         *  plain string and every one may legitimately be empty -- a product
+         *  photographed alone shows neither its audience nor its season, and
+         *  the service is asked to leave those blank rather than guess.
+         */
+        'filing'        => vergeml_ai_filing( isset( $data['filing'] ) ? $data['filing'] : null ),
     );
+}
+
+
+/**
+ *  The filing fields, taken as strings and nothing else.
+ *
+ *  A fixed list rather than whatever arrives: this comes back over the wire and
+ *  is written into a customer's database, so an unexpected key is not stored
+ *  and a nested structure is not walked.
+ *
+ * @param mixed $raw
+ * @return array<string,string>
+ */
+function vergeml_ai_filing( $raw ) {
+
+    $fields = array( 'object', 'material', 'colour', 'setting', 'style', 'audience', 'season', 'details' );
+    $out    = array();
+
+    foreach ( $fields as $field ) {
+        $value = ( is_array( $raw ) && isset( $raw[ $field ] ) && is_scalar( $raw[ $field ] ) )
+            ? (string) $raw[ $field ]
+            : '';
+        $out[ $field ] = sanitize_text_field( $value );
+    }
+
+    return $out;
 }
 
 /**

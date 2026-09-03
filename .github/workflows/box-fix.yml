@@ -11,6 +11,7 @@ on:
         type: choice
         options:
           - thumbnails
+          - describe-sample
 
 jobs:
   fix:
@@ -28,6 +29,15 @@ jobs:
           printf '%s\n' "$BOX_SSH_KEY" > ~/.ssh/hetzner_vgml
           chmod 600 ~/.ssh/hetzner_vgml
           ssh-keyscan -H 46.225.66.194 >> ~/.ssh/known_hosts 2>/dev/null
+
+      # Thirty pictures re-described so the new prompt can be judged on real
+      # ones before six hundred are paid for. Writes nothing; the credits are
+      # spent either way, because the service charges for the call.
+      - name: describe thirty pictures again and show both
+        if: ${{ inputs.job == 'describe-sample' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-describe-sample.php root@46.225.66.194:/tmp/vgml-sample.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=40 root@46.225.66.194 'bash -s' < tools/box-describe-sample.sh
 
       # Two thirds of the library had no thumbnail, so the media grid was
       # serving full-size originals and rescaling them in the browser. This
