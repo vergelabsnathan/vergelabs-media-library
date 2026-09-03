@@ -14,6 +14,7 @@ on:
           - describe-sample
           - snapshot
           - redescribe
+          - diag
 
 jobs:
   fix:
@@ -48,6 +49,12 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-redescribe.php root@46.225.66.194:/tmp/vgml-redescribe.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=80 root@46.225.66.194 'bash -s' < tools/box-redescribe.sh
+
+      - name: what happened to the run (read-only)
+        if: ${{ inputs.job == 'diag' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-run-diag.php root@46.225.66.194:/tmp/vgml-diag.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-run-diag.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
