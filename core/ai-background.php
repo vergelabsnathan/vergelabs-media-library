@@ -36,18 +36,18 @@ const VERGEML_AI_RUN_HOOK = 'vergeml_ai_run_tick';
 
 /** Seconds of describing per tick. Under the 30s max_execution_time that
  *  shared hosting still ships, with room for the last call to finish. */
-const VERGEML_AI_RUN_BUDGET = 20;
+const VERGEML_AI_RUN_BUDGET = 50;
 
 /** Seconds before the next tick is due. Cron cannot fire more often than the
  *  site is visited, so this is a floor rather than a promise. */
-const VERGEML_AI_RUN_GAP = 30;
+const VERGEML_AI_RUN_GAP = 5;
 
 /** How many files one step describes before the budget is checked again.
  *
  *  Eight, which is one group in flight together -- so a chunk now costs about
  *  what a single file used to, and the budget is still only checked between
  *  chunks. Three was chosen when they went one at a time. */
-const VERGEML_AI_RUN_CHUNK = 8;
+const VERGEML_AI_RUN_CHUNK = 16;
 
 
 /**
@@ -67,6 +67,7 @@ function vergeml_ai_run_state() {
     return wp_parse_args( $state, array(
         'active'     => false,
         'scope'      => 'unindexed',
+        'reason'     => '',
         'apply_alt'  => false,
         'total'      => 0,
         'described'  => 0,
@@ -144,7 +145,7 @@ function vergeml_ai_run_unschedule() {
  *
  *  @return array|WP_Error  the new state, or why it will not start.
  */
-function vergeml_ai_run_start( $scope, $apply_alt ) {
+function vergeml_ai_run_start( $scope, $apply_alt, $reason = '' ) {
 
     if ( ! in_array( $scope, array( 'unindexed', 'missing-alt', 'page-gap', 'stale' ), true ) ) {
         return new WP_Error( 'vergeml_ai_bad_scope', __( 'Unknown scope.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
@@ -170,6 +171,8 @@ function vergeml_ai_run_start( $scope, $apply_alt ) {
         'remaining'  => $pending,
         'started_at' => current_time( 'mysql', true ),
         'stopped'    => '',
+        // Why it started, when it started itself, so the screen can say so.
+        'reason'     => (string) $reason,
     ) );
 
     vergeml_ai_run_schedule();

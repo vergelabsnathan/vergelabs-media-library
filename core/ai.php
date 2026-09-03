@@ -1031,14 +1031,38 @@ function vergeml_ai_mock_vector( $name, $dims = 64 ) {
  *  intermediate and walks down until something fits under ~1.5MB on disk;
  *  models do not caption better for extra megapixels.
  */
+/** Longest edge sent to the model. 1024 is what the 'large' size gave when it
+ *  existed; anything above it is tokens spent on pixels the model does not
+ *  need to describe a picture. */
+const VERGEML_AI_SEND_EDGE = 1024;
+
+/** Above this many bytes the file is re-encoded even if its edge is fine: a
+ *  4 MB PNG at 1000px is a lot of base64 for no better description. */
+const VERGEML_AI_SEND_BYTES = 600000;
+
 function vergeml_ai_image_payload( $attachment_id ) {
 
-    $candidates = array( 'large', 'medium_large', 'medium', 'thumbnail' );
-    $base       = get_attached_file( $attachment_id );
-    $dir        = dirname( $base );
-    $path       = '';
+    /*
+     *  Always a bounded picture, never a refusal and never an original.
+     *
+     *  This picked the 'large' intermediate if WordPress had made one and
+     *  otherwise sent the original -- up to 1.5 MB, above which it refused
+     *  with "no usable image file". Two things were wrong with that. On the
+     *  test box two thirds of the library had no intermediates at all, so
+     *  the original went every time, at whatever size it was: more tokens
+     *  per describe for no better description. And a photographer's 8 MB
+     *  JPEG was not described at all -- the one library where the catalogue
+     *  matters most was the one it turned away.
+     *
+     *  Now the best available source is resized on the way out when it is
+     *  larger than the model needs, and a file that would have been refused
+     *  is simply resized like any other. Small files still go untouched.
+     */
+    $base = get_attached_file( $attachment_id );
+    $dir  = dirname( (string) $base );
+    $path = '';
 
-    foreach ( $candidates as $size ) {
+    foreach ( array( 'large', 'medium_large' ) as $size ) {
         $meta = image_get_intermediate_size( $attachment_id, $size );
         if ( $meta && ! empty( $meta['file'] ) && file_exists( $dir . '/' . wp_basename( $meta['file'] ) ) ) {
             $path = $dir . '/' . wp_basename( $meta['file'] );
@@ -1046,15 +1070,44 @@ function vergeml_ai_image_payload( $attachment_id ) {
         }
     }
 
-    if ( ! $path && file_exists( $base ) && filesize( $base ) < 1500000 ) {
+    if ( '' === $path && $base && file_exists( $base ) ) {
         $path = $base;
     }
 
-    if ( ! $path ) {
+    if ( '' === $path ) {
         return new WP_Error( 'vergeml_ai_no_file', __( 'No usable image file found.', 'vergelabs-media-library' ) );
     }
 
-    $mime = get_post_mime_type( $attachment_id );
+    $mime  = (string) get_post_mime_type( $attachment_id );
+    $bytes = (int) filesize( $path );
+    $dims  = @getimagesize( $path ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- a corrupt file returns false, which is the answer wanted.
+    $edge  = is_array( $dims ) ? max( (int) $dims[0], (int) $dims[1] ) : 0;
+
+    $too_big = $edge > VERGEML_AI_SEND_EDGE || $bytes > VERGEML_AI_SEND_BYTES;
+
+    if ( $too_big && in_array( $mime, array( 'image/jpeg', 'image/png', 'image/webp', 'image/gif' ), true ) ) {
+
+        $editor = wp_get_image_editor( $path );
+
+        if ( ! is_wp_error( $editor ) ) {
+            $editor->resize( VERGEML_AI_SEND_EDGE, VERGEML_AI_SEND_EDGE, false );
+            $editor->set_quality( 82 );
+
+            $tmp = wp_tempnam( 'vgml-send' );
+            // JPEG for everything: the model reads pixels, not transparency,
+            // and a photograph re-encoded as PNG is the largest possible file.
+            $saved = $editor->save( $tmp, 'image/jpeg' );
+
+            if ( ! is_wp_error( $saved ) && ! empty( $saved['path'] ) && file_exists( $saved['path'] ) ) {
+                $data = base64_encode( file_get_contents( $saved['path'] ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+                @unlink( $saved['path'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+                if ( $saved['path'] !== $tmp ) { @unlink( $tmp ); } // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+                return 'data:image/jpeg;base64,' . $data;
+            }
+            @unlink( $tmp ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+        }
+        // No editor on this host: fall through and send what there is.
+    }
 
     return 'data:' . $mime . ';base64,' . base64_encode( file_get_contents( $path ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 }
@@ -1269,6 +1322,7 @@ function vergeml_ai_recently_described( $ids = null, $record = false ) {
 function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
 
     $ids    = vergeml_ai_pending( $scope, max( 1, min( VERGEML_AI_STEP_MAX, $limit ) ) );
+    $stamp_before = vergeml_index_current_stamp();
     $done   = array();
     $errors = array();
 
@@ -1499,6 +1553,30 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
     // Everything this step touched, twins included, is off the table for ten
     // minutes -- the held list above is only as good as what gets written here.
     vergeml_ai_recently_described( array_map( function ( $d ) { return (int) $d['id']; }, $done ), true );
+
+    /*
+     *  A library half on one prompt and half on another looks broken.
+     *
+     *  Search ranked the wrong pictures first for exactly as long as the
+     *  library was partly re-described: pictures still on the old prompt
+     *  carried thin embeddings and lost to everything already done. It
+     *  righted itself only when the last of them went through. Left to a
+     *  person to notice, that state lasts as long as nobody notices.
+     *
+     *  So the moment a description lands under a prompt the stamp has not
+     *  seen, and nothing else is running, a 'stale' run starts on its own and
+     *  says why. The screen shows it like any other run.
+     */
+    if ( $done && 'stale' !== $scope && function_exists( 'vergeml_ai_run_start' ) ) {
+        $stamp_after = vergeml_index_current_stamp();
+        $run         = function_exists( 'vergeml_ai_run_state' ) ? vergeml_ai_run_state() : array();
+        if ( '' !== (string) $stamp_before['prompt_hash']
+            && $stamp_after['prompt_hash'] !== $stamp_before['prompt_hash']
+            && empty( $run['active'] )
+            && vergeml_ai_pending_count( 'stale' ) > 0 ) {
+            vergeml_ai_run_start( 'stale', $apply_alt, 'prompt_changed' );
+        }
+    }
 
     return array(
         'described' => $done,
