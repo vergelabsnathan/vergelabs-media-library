@@ -467,7 +467,7 @@ function deployBox( box, files, mf ) {
 	 *  one second. Output is printed, never hidden -- that was the other half
 	 *  of that mistake.
 	 */
-	ssh( box, `
+	console.log( ssh( box, `
 		set -e
 		rm -rf /tmp/vgml-stage && mkdir -p /tmp/vgml-stage && cd /tmp/vgml-stage
 		unzip -o -q /tmp/vgml-payload.zip
@@ -478,7 +478,7 @@ function deployBox( box, files, mf ) {
 		cd / && rm -rf /tmp/vgml-stage
 		if [ "$bad" != "0" ]; then echo "php -l failed; nothing deployed"; rm -f /tmp/vgml-payload.zip; exit 1; fi
 		echo "php -l: every file parses"
-	` );
+	` ).trim() );
 
 	/*
 	 *  A copy of what is there before anything is written over it. The box
