@@ -40,7 +40,7 @@ $wpdb->query( "DELETE FROM {$t} WHERE attachment_id IN (" . implode( ',', $ids )
 $r = vergeml_ai_run_start( 'unindexed', false );
 if ( is_wp_error( $r ) ) { echo 'could not start: ' . $r->get_error_message() . "\n"; return; }
 
-$t0 = time(); $last = -1;
+$t0 = time(); $last = -1; $t_last = $t0;
 
 while ( time() - $t0 < 8 * 60 ) {
     vergeml_ai_run_nudge();
@@ -49,12 +49,14 @@ while ( time() - $t0 < 8 * 60 ) {
     $d = (int) $s['described'];
     if ( $d !== $last ) {
         printf( "  %4ds  described %3d  failed %2d  remaining %3d\n", time() - $t0, $d, (int) $s['failed'], (int) $s['remaining'] );
-        $last = $d;
+        $last = $d; $t_last = time();
     }
     if ( empty( $s['active'] ) ) { break; }
 }
 
-$el = max( 1, time() - $t0 );
+// Elapsed to the LAST write, not to the cap: the tail is holds waiting out
+// their window, and dividing by it turns a 25/min run into a 5/min one.
+$el = max( 1, $t_last - $t0 );
 // Counted in the database, which every process sees the same way, rather than
 // in a run-state option that a long-lived process reads once and keeps.
 $written = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND described_at >= %s", gmdate( 'Y-m-d H:i:s', $t0 ) ) );
