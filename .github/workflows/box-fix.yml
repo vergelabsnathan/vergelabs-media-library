@@ -33,6 +33,7 @@ on:
           - cron-life
           - gallery-page
           - connect-check
+          - folder-audit
       parallel:
         description: for job=parallel, the describe concurrency to force (0 removes the override)
         required: false
@@ -176,6 +177,12 @@ jobs:
         if: ${{ inputs.job == 'connect-check' }}
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-connect-check.sh
+
+      - name: how well pictures fit the folders they are in (read-only)
+        if: ${{ inputs.job == 'folder-audit' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-folder-audit.php root@46.225.66.194:/tmp/vgml-folder-audit.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-folder-audit.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
