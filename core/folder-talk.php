@@ -871,7 +871,8 @@ function vergeml_talk_refile_run( $deadline ) {
 			if ( ! isset( $profiles ) ) {
 				$profiles = vergeml_filing_profiles( array_values( (array) $state['ids'] ), $taxonomy );
 			}
-			$pick = vergeml_filing_pick( vergeml_filing_facts( $row ), $profiles );
+			$facts = vergeml_filing_facts( $row );
+			$pick  = vergeml_filing_pick( $facts, $profiles );
 
 			if ( ! $pick['term_id'] ) {
 				$state['skipped'] = (int) $state['skipped'] + 1;
@@ -888,7 +889,7 @@ function vergeml_talk_refile_run( $deadline ) {
 				foreach ( $was as $tid ) {
 					// Gated out of it, or plainly not matching it (a misfit, not an unknown).
 					// A misfit is only called on a folder the planner has described; a name alone is too thin to evict on.
-					if ( isset( $pick['gated'][ $tid ] ) || ( isset( $pick['scores'][ $tid ], $profiles[ $tid ] ) && 'plan' === $profiles[ $tid ]['source'] && $pick['scores'][ $tid ] < VERGEML_FILING_MISFIT ) ) {
+					if ( isset( $pick['gated'][ $tid ] ) || ( $facts['classes'] && isset( $pick['scores'][ $tid ], $profiles[ $tid ] ) && 'plan' === $profiles[ $tid ]['source'] && $pick['scores'][ $tid ] < VERGEML_FILING_MISFIT ) ) {
 						$out[] = $tid;
 					}
 				}
