@@ -571,14 +571,18 @@ function vergeml_ai_filing( $raw ) {
  *  what "nowhere near the ceiling" looks like from the outside. A provider
  *  under strain slows down first and refuses second; this did neither.
  *
- *  The default is sixteen rather than sixty-four because the modest number is
- *  still the right default for a shared host: this opens that many connections
- *  from the customer's own server, and a cheap plan will run out of PHP
- *  workers long before the model runs out of capacity. The cap is sixty-four
- *  so an agency install can be turned up to what was measured, and no higher
- *  without measuring again.
+ *  The default stays at eight. Headroom belongs in the ceiling, not in what
+ *  every site does by default: this opens connections from the customer's own
+ *  server, and a cheap shared plan runs out of PHP workers long before the
+ *  model runs out of capacity. No customer today has a library big enough to
+ *  need more, so raising the default would be spending somebody else's hosting
+ *  to solve a problem nobody has.
+ *
+ *  The cap is sixty-four so an install that does need it -- an agency, a
+ *  single enormous library -- can be turned up to what was actually measured
+ *  with one filter, and no higher without measuring again.
  */
-const VERGEML_AI_PARALLEL = 16;
+const VERGEML_AI_PARALLEL = 8;
 
 function vergeml_ai_parallel() {
 
