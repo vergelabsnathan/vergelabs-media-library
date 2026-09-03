@@ -180,7 +180,9 @@ function vergeml_licence_page() {
             );
             echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
                 __( 'Credits', 'vergelabs-media-library' ),
-                function_exists( 'vergeml_ai_credits_note' ) ? (string) vergeml_ai_credits_note() : __( 'One credit describes one image.', 'vergelabs-media-library' ),
+                ( 'ok' !== $state && function_exists( 'vergeml_ai_credits_warning' ) && '' !== (string) vergeml_ai_credits_warning() )
+                    ? (string) vergeml_ai_credits_warning()
+                    : __( 'One credit describes one image.', 'vergelabs-media-library' ),
                 '<strong>' . esc_html( null === $left ? '—' : number_format_i18n( $left ) ) . '</strong>'
             );
         }
