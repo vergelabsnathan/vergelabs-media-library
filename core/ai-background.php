@@ -278,6 +278,18 @@ function vergeml_ai_run_tick() {
         return;
     }
 
+    /*
+     *  Recounted before deciding the run is over.
+     *
+     *  'remaining' came from the step, and the step has already dropped every
+     *  id on the ten-minute hold -- a transient refusal, a duplicate. So the
+     *  count reached zero with 96 pictures still on the old prompt, and the
+     *  run declared itself finished. pending_count() does not apply the hold,
+     *  so a run with held pictures stays active, reschedules, and collects
+     *  them once the hold lapses -- which is what the hold was for.
+     */
+    $state['remaining'] = (int) vergeml_ai_pending_count( $state['scope'] );
+
     if ( $state['remaining'] < 1 ) {
         vergeml_ai_run_save( $state );
         vergeml_ai_run_stop( '' );
