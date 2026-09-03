@@ -611,10 +611,13 @@ function vergeml_ai_describe_result( $code, $body ) {
     // The service reports the balance with every answer; remembered for the
     // screen, so "how many credits are left" never needs its own request.
     if ( isset( $data['credits'] ) && is_array( $data['credits'] ) ) {
-        update_option( 'vergeml_ai_credits', array(
+        // Merged, not replaced: this write used to wipe the plan and the staleness
+        // state the licence check had stored beside the balance.
+        $kept = get_option( 'vergeml_ai_credits', array() );
+        update_option( 'vergeml_ai_credits', array_merge( is_array( $kept ) ? $kept : array(), array(
             'remaining' => isset( $data['credits']['remaining'] ) ? (int) $data['credits']['remaining'] : null,
             'time'      => time(),
-        ), false );
+        , 'state' => 'ok', 'checked' => time() ) ), false );
     }
 
     /*
@@ -711,9 +714,20 @@ function vergeml_ai_filing( $raw ) {
  */
 const VERGEML_AI_PARALLEL = 8;
 
-/** What an agency licence sends at once. Sixteen halves the time of a
- *  sixteen-picture step, and an agency is on hosting that can hold it. */
-const VERGEML_AI_PARALLEL_AGENCY = 16;
+/*
+ *  What an agency licence sends at once. Eight, the same as everyone, and
+ *  the constant is kept so the day it is safe to raise it is one edit.
+ *
+ *  Sixteen was measured on 3 September 2026 and was worse: 31 refusals in
+ *  26 seconds, three of them HTTP 500 from the service, before the held
+ *  pictures retried and went through. The provider took sixteen simultaneous
+ *  vision requests without slowing, the database pooler held thirty-two
+ *  concurrent transactions, and the debit serialises on a row lock -- so the
+ *  500s came from inside the serverless function under a burst and could not
+ *  be reproduced from outside it. Until they can, sixteen at once is a slower
+ *  run, not a faster one.
+ */
+const VERGEML_AI_PARALLEL_AGENCY = 8;
 
 function vergeml_ai_parallel() {
 
