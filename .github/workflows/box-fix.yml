@@ -125,6 +125,16 @@ jobs:
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-vps-setup.sh
 
+      - name: point the plugin at the service on the box (127.0.0.1:3100)
+        if: ${{ inputs.job == 'vps-point' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-vps-point.sh
+
+      - name: point the plugin back at Vercel
+        if: ${{ inputs.job == 'vps-unpoint' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-vps-unpoint.sh
+
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
       # spent either way, because the service charges for the call.
