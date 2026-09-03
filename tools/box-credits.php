@@ -25,7 +25,8 @@ printf( "  1. cached option (vergeml_ai_credits)   %s\n",
 
 // 2. what the plugin's own refresh helper returns
 if ( function_exists( 'vergeml_ai_refresh_credits' ) ) {
-    $fresh = vergeml_ai_refresh_credits();
+    // Forced, or the TTL returns the cache without ever calling out.
+    $fresh = vergeml_ai_refresh_credits( true );
     printf( "  2. vergeml_ai_refresh_credits()         %s\n", var_export( $fresh, true ) );
 }
 
