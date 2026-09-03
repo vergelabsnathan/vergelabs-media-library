@@ -58,3 +58,14 @@ printf( "  4. cached option, after refresh         %s\n",
     var_export( get_option( 'vergeml_ai_credits', null ), true ) );
 
 printf( "\nsite url as this install reports it: %s\n", home_url() );
+
+/*
+ *  Which service this install talks to.
+ *
+ *  The plugin reported a balance the production ledger has no record of, and
+ *  the account page and the plugin read the same function over the same table
+ *  -- so they cannot disagree unless they are looking at different databases.
+ */
+printf( "\nservice this install talks to:  %s\n", vergeml_ai_service_url() );
+printf( "VERGEML_AI_SERVICE defined:     %s\n",
+    defined( 'VERGEML_AI_SERVICE' ) ? VERGEML_AI_SERVICE : '(not defined -- using the built-in default)' );
