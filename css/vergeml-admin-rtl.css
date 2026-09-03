@@ -553,14 +553,88 @@
 
 /* ---------------------------------------------------- sort into folders, as a talk */
 
-.vgml-talk-log {
-	max-height: 26rem;
-	overflow-y: auto;
-	margin: 0 0 1rem;
-	padding: 0;
+/*
+ *  One panel, not a stack of loose parts.
+ *
+ *  The transcript, the box you type in and the line that says what is
+ *  happening were three separate elements sitting on the page, so the box
+ *  drifted further from the conversation with every reply and the whole thing
+ *  read as a form somebody had bolted a log onto. They belong in one frame
+ *  with one border: the transcript scrolls inside it and the composer stays
+ *  against the bottom edge where it can be found.
+ */
+
+.vgml-talk {
+	max-width: 860px;
+	margin: 0 0 28px;
+}
+
+.vgml-talk-head h2 {
+	margin: 0 0 .25rem;
+	font-size: 1.15rem;
+}
+
+.vgml-talk-head p {
+	margin: 0 0 .9rem;
+	max-width: 68ch;
+	color: var( --vgml-home-muted, #646970 );
+	font-size: 13.5px;
+	line-height: 1.6;
+}
+
+.vgml-talk-panel {
 	display: flex;
 	flex-direction: column;
-	gap: .55rem;
+	border: 1px solid var( --vgml-home-line, #dcdcde );
+	border-radius: 12px;
+	background: #fff;
+	overflow: hidden;
+}
+
+/* The openers, and only until there is a conversation to read instead. */
+.vgml-talk-empty {
+	padding: 1.1rem 1.15rem;
+	display: flex;
+	flex-wrap: wrap;
+	gap: .5rem;
+	align-items: center;
+}
+
+.vgml-talk-empty-lead {
+	flex: 0 0 100%;
+	margin: 0 0 .2rem;
+	font-size: 12.5px;
+	color: var( --vgml-home-muted, #646970 );
+}
+
+.vgml-talk-chip {
+	border: 1px solid var( --vgml-home-line, #dcdcde );
+	background: #f6f7f9;
+	border-radius: 999px;
+	padding: .38rem .8rem;
+	font-size: 12.5px;
+	line-height: 1.35;
+	color: inherit;
+	cursor: pointer;
+	text-align: start;
+	transition: background .12s ease, border-color .12s ease;
+}
+
+.vgml-talk-chip:hover,
+.vgml-talk-chip:focus-visible {
+	background: #eef2f8;
+	border-color: var( --vgml-home-accent, #2E5AA8 );
+}
+
+.vgml-talk-log {
+	max-height: 30rem;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	margin: 0;
+	padding: 1.1rem 1.15rem;
+	display: flex;
+	flex-direction: column;
+	gap: .7rem;
 }
 
 .vgml-talk-log:empty {
@@ -569,6 +643,21 @@
 
 .vgml-talk-turn {
 	display: flex;
+	/*
+	 *  Each turn arrives rather than appearing. The transcript used to jump by
+	 *  the height of a whole proposal, which is what made it feel like it was
+	 *  snatching the page away mid-read.
+	 */
+	animation: vgml-talk-in .16s ease-out;
+}
+
+@keyframes vgml-talk-in {
+	from { opacity: 0; transform: translateY( 4px ); }
+	to   { opacity: 1; transform: none; }
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.vgml-talk-turn { animation: none; }
 }
 
 .vgml-talk-you {
@@ -576,9 +665,9 @@
 }
 
 .vgml-talk-bubble {
-	max-width: 44rem;
-	padding: .65rem .85rem;
-	border-radius: 10px;
+	max-width: 46rem;
+	padding: .7rem .9rem;
+	border-radius: 12px;
 	background: #f4f7fc;
 	border: 1px solid #e1e8f5;
 	font-size: 13.5px;
@@ -589,6 +678,11 @@
 	background: #16233d;
 	border-color: #16233d;
 	color: #f2f6fd;
+	border-bottom-left-radius: 4px;
+}
+
+.vgml-talk-them .vgml-talk-bubble {
+	border-bottom-right-radius: 4px;
 }
 
 .vgml-talk-bubble p {
@@ -597,6 +691,71 @@
 
 .vgml-talk-bubble p:last-child {
 	margin-bottom: 0;
+}
+
+/* Something is happening, said without a sentence that has to be read. */
+/*
+ *  Which of the two trees this is.
+ *
+ *  Two proposals sit in the transcript at once -- what was asked for, and what
+ *  the library suggests -- and without a line saying so they read as the model
+ *  changing its mind between messages.
+ */
+.vgml-talk-heading {
+	margin: 0 0 .45rem;
+	font-weight: 600;
+	font-size: 12.5px;
+	letter-spacing: .01em;
+	color: var( --vgml-home-muted, #646970 );
+}
+
+.vgml-talk-thinking {
+	display: inline-flex;
+	gap: .28rem;
+	align-items: center;
+	padding: .2rem 0;
+}
+
+.vgml-talk-thinking i {
+	width: .4rem;
+	height: .4rem;
+	border-radius: 50%;
+	background: #8a97ad;
+	animation: vgml-talk-pulse 1.1s ease-in-out infinite;
+}
+
+.vgml-talk-thinking i:nth-child( 2 ) { animation-delay: .16s; }
+.vgml-talk-thinking i:nth-child( 3 ) { animation-delay: .32s; }
+
+@keyframes vgml-talk-pulse {
+	0%, 80%, 100% { opacity: .28; }
+	40%           { opacity: 1; }
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.vgml-talk-thinking i { animation: none; opacity: .6; }
+}
+
+.vgml-talk-compose {
+	display: flex;
+	align-items: flex-end;
+	gap: .6rem;
+	padding: .8rem .9rem;
+	border-top: 1px solid var( --vgml-home-line, #dcdcde );
+	background: #fbfcfd;
+}
+
+.vgml-talk-compose .vgml-talk-say {
+	flex: 1 1 auto;
+	resize: none;
+	min-height: 2.4rem;
+	max-height: 11rem;
+	line-height: 1.5;
+	border-radius: 8px;
+}
+
+.vgml-talk-send {
+	flex: 0 0 auto;
 }
 
 .vgml-talk-tree {
@@ -655,6 +814,37 @@
 	width: 100%;
 }
 
+.vgml-talk-note {
+	margin: 0;
+	padding: 0 1.15rem;
+	font-size: 12.5px;
+	color: var( --vgml-home-muted, #646970 );
+}
+
+.vgml-talk-note:empty {
+	display: none;
+}
+
+/*
+ *  What is left of the step-by-step suggestions once a conversation starts.
+ *
+ *  They are folded rather than removed: somebody who came for the wizard and
+ *  then asked a question should be able to get back to it, but two sets of
+ *  proposed folders on one screen is what made this page impossible to read.
+ */
+.vgml-flow-fold {
+	display: flex;
+	align-items: center;
+	gap: .6rem;
+	flex-wrap: wrap;
+	margin: 0 0 22px;
+	padding: .7rem .95rem;
+	border: 1px dashed var( --vgml-home-line, #dcdcde );
+	border-radius: 10px;
+	font-size: 12.5px;
+	color: var( --vgml-home-muted, #646970 );
+}
+
 
 /* The line between what you do here and how it behaves. */
 .vgml-ai-settings-head {
@@ -695,4 +885,19 @@
 	border: 1px solid #dce5f3;
 	padding: .05rem .3rem;
 	border-radius: 4px;
+}
+
+
+/*
+ *  A balance nobody could confirm.
+ *
+ *  Dimmed rather than coloured. It is not an alarm -- the number may well be
+ *  right -- it is a number to trust less, and the sentence beside it says why.
+ */
+.vgml-shell-credits.is-unconfirmed {
+	opacity: .62;
+}
+
+.vgml-shell-credits.is-unconfirmed .vgml-shell-credits-w {
+	font-style: italic;
 }
