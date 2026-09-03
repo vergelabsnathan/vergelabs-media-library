@@ -747,6 +747,12 @@ function vergeml_ai_parallel() {
     $plan    = is_array( $cached ) && isset( $cached['plan'] ) ? (string) $cached['plan'] : '';
     $default = 'agency' === $plan ? VERGEML_AI_PARALLEL_AGENCY : VERGEML_AI_PARALLEL;
 
+    // A wp-config knob for a site that has measured its own service and
+    // wants more, or less: define( 'VERGEML_AI_PARALLEL_FORCE', 16 );
+    if ( defined( 'VERGEML_AI_PARALLEL_FORCE' ) && (int) VERGEML_AI_PARALLEL_FORCE > 0 ) {
+        $default = (int) VERGEML_AI_PARALLEL_FORCE;
+    }
+
     $n = (int) apply_filters( 'vergeml_ai_parallel', $default );
 
     return max( 1, min( 64, $n ) );

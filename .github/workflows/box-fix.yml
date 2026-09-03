@@ -27,6 +27,12 @@ on:
           - vps-setup
           - vps-point
           - vps-unpoint
+          - parallel
+      parallel:
+        description: for job=parallel, the describe concurrency to force (0 removes the override)
+        required: false
+        default: '0'
+        type: string
 
 jobs:
   fix:
@@ -134,6 +140,11 @@ jobs:
         if: ${{ inputs.job == 'vps-unpoint' }}
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-vps-unpoint.sh
+
+      - name: force the describe concurrency on the box
+        if: ${{ inputs.job == 'parallel' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 "VGML_PARALLEL='${{ inputs.parallel }}' bash -s" < tools/box-parallel.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
