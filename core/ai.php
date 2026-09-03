@@ -2099,9 +2099,14 @@ function vergeml_ai_page() {
     <div class="wrap vgml-home vgml-ai">
 
         <?php
-        // One button instead of a copied key. Nothing to show once connected.
-        if ( function_exists( 'vergeml_connect_banner' ) ) {
-            vergeml_connect_banner();
+        // The licence lives on its own tab. Only the absence of one is said here.
+        if ( function_exists( 'vergeml_connect_has_key' ) && ! vergeml_connect_has_key() && current_user_can( 'manage_options' ) ) {
+            printf(
+                '<div class="notice notice-info"><p>%s <a href="%s">%s</a></p></div>',
+                esc_html__( 'No licence is connected, so nothing can be described yet.', 'vergelabs-media-library' ),
+                esc_url( admin_url( 'admin.php?page=media-licence' ) ),
+                esc_html__( 'Connect one on the Licence tab', 'vergelabs-media-library' )
+            );
         }
         ?>
 
@@ -2191,48 +2196,13 @@ function vergeml_ai_page() {
         };
 
         echo vergeml_pg_card_open( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'Licence and credits', 'vergelabs-media-library' ),
+            __( 'Settings', 'vergelabs-media-library' ),
             array(
-                'note'        => __( 'Images go to the VergeLabs AI service only to be described. Nothing else leaves your site.', 'vergelabs-media-library' ),
-                'action_html' => '<a class="button" href="https://vergelabsmedia.com/#pricing" target="_blank" rel="noopener">'
-                    . esc_html__( 'Get credits', 'vergelabs-media-library' ) . '</a>',
+                'note'        => __( 'Applies to every image described from now on. The licence and credits are on their own tab.', 'vergelabs-media-library' ),
+                'action_html' => '<a class="button" href="' . esc_url( admin_url( 'admin.php?page=media-licence' ) ) . '">'
+                    . esc_html__( 'Licence', 'vergelabs-media-library' ) . '</a>',
                 'rows'        => true,
             )
-        );
-
-        /*
-         *  The handshake lives in the licence row, because that is where
-         *  somebody looks for it. A link at the top of the page, in small grey
-         *  type, was not found by the one person who needed it. Connected:
-         *  which licence, and a button to switch. Not connected: the button
-         *  that does the whole thing, and the key field for anyone who prefers
-         *  to paste.
-         */
-        $licence   = vergeml_ai_unseal( ( $ai_settings = vergeml_ai_settings() ) && isset( $ai_settings['license_key'] ) ? $ai_settings['license_key'] : '' );
-        $connected = '' !== $licence;
-        $connect   = function_exists( 'vergeml_connect_start_url' ) ? vergeml_connect_start_url() : '';
-        $tail      = $connected ? substr( $licence, -4 ) : '';
-
-        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'Licence', 'vergelabs-media-library' ),
-            $connected
-                /* translators: %s: the last four characters of the licence key, as the account page shows it */
-                ? sprintf( __( 'This site uses licence …%s. Switching sends you to vergelabsmedia.com to pick another and brings you straight back.', 'vergelabs-media-library' ), $tail )
-                : __( 'One button: sign in at vergelabsmedia.com, pick a licence, and you are sent straight back with it in place.', 'vergelabs-media-library' ),
-            ( '' !== $connect
-                ? '<a class="button' . ( $connected ? '' : ' button-primary' ) . '" id="vgml-ai-connect" href="' . esc_url( $connect ) . '">'
-                    . esc_html( $connected ? __( 'Connect a different licence', 'vergelabs-media-library' ) : __( 'Connect to VergeLabs', 'vergelabs-media-library' ) )
-                    . '</a> '
-                : '' )
-            . '<input type="text" id="vgml-ai-license" class="regular-text" autocomplete="off" spellcheck="false" placeholder="'
-                . esc_attr( $connected ? __( 'or paste a different key', 'vergelabs-media-library' ) : __( 'or paste a key: VGML-…', 'vergelabs-media-library' ) ) . '">' . $help( 'license_key' )
-        );
-
-        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'Credits', 'vergelabs-media-library' ),
-            __( 'One credit describes one image.', 'vergelabs-media-library' ),
-            '<span id="vgml-ai-credits">' . esc_html__( 'Unknown until the first run', 'vergelabs-media-library' )
-                . '</span>' . $help( 'credits' )
         );
 
         echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.

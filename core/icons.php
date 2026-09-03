@@ -65,6 +65,7 @@ function vergeml_icon_paths() {
 
         // File types: a page with a folded corner.
         'file' => '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+        'key'  => '<circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.7-8.7M15 7l2.5 2.5M18 4l2 2"/>',
 
         /* --------------------------------------------------- the quick rail */
 

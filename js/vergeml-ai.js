@@ -26,7 +26,7 @@
 			$( 'vgml-ai-counts' ).textContent =
 				s.images + ' images · ' + s.indexed + ' described · ' + s.missing_alt + ' missing alt text';
 
-			if ( $( 'vgml-ai-license' ) ) {
+			if ( $( 'vgml-ai-enrich' ) ) {
 				$( 'vgml-ai-enrich' ).checked = !! s.settings.enrich_search;
 				if ( $( 'vgml-ai-page-context' ) ) {
 					$( 'vgml-ai-page-context' ).checked = !! s.settings.page_context;
@@ -35,17 +35,19 @@
 					$( 'vgml-ai-profile' ).value = s.settings.site_profile || '';
 				}
 				$( 'vgml-ai-mock' ).checked = !! s.settings.mock;
-				if ( s.settings.has_license ) {
+				if ( s.settings.has_license && $( 'vgml-ai-license' ) ) {
 					$( 'vgml-ai-license' ).placeholder = '•••••••• (saved)';
 				}
 				// A key set for the whole network: shown as such, and not
 				// editable here when the network administrator locked it.
-				if ( s.settings.from_network ) {
+				if ( s.settings.from_network && $( 'vgml-ai-license' ) ) {
 					$( 'vgml-ai-license' ).placeholder = s.settings.network_locked
 						? '•••••••• (set for the network)'
 						: '•••••••• (from the network — enter one to use your own)';
 				}
-				$( 'vgml-ai-license' ).disabled = !! s.settings.network_locked;
+				if ( $( 'vgml-ai-license' ) ) {
+					$( 'vgml-ai-license' ).disabled = !! s.settings.network_locked;
+				}
 			}
 
 			// The SEO-pages button carries its own count and stays out of the
@@ -144,13 +146,15 @@
 					path: '/vergeml/v1/ai-settings',
 					method: 'POST',
 					data: {
-						license_key: $( 'vgml-ai-license' ).value,
+						license_key: $( 'vgml-ai-license' ) ? $( 'vgml-ai-license' ).value : '',
 						enrich_search: $( 'vgml-ai-enrich' ).checked ? 1 : 0,
 						page_context: $( 'vgml-ai-page-context' ) && $( 'vgml-ai-page-context' ).checked ? 1 : 0,
 						mock: $( 'vgml-ai-mock' ).checked ? 1 : 0,
 					},
 				} ).then( function () {
-					$( 'vgml-ai-license' ).value = '';
+					if ( $( 'vgml-ai-license' ) ) {
+						$( 'vgml-ai-license' ).value = '';
+					}
 					$( 'vgml-ai-save-note' ).textContent = 'Saved.';
 					window.setTimeout( function () {
 						$( 'vgml-ai-save-note' ).textContent = '';

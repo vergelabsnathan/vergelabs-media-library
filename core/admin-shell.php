@@ -92,6 +92,14 @@ function vergeml_shell_pages() {
             'cap'   => 'manage_categories',
         ),
         array(
+            'slug'  => 'media-licence',
+            'icon'  => 'key',
+            'sub'   => __( 'Connection, key and credits', 'vergelabs-media-library' ),
+            'label' => __( 'Licence', 'vergelabs-media-library' ),
+            'cap'   => 'manage_options',
+            'group' => 'settings',
+        ),
+        array(
             'slug'  => 'media-taxonomies',
             'icon'  => 'folders',
             'sub'   => __( 'Which categories act as folders', 'vergelabs-media-library' ),
@@ -360,7 +368,7 @@ function vergeml_shell_credits() {
     $left = (int) $stored['remaining'];
     $when = isset( $stored['time'] ) ? (int) $stored['time'] : 0;
 
-    $url = function_exists( 'vergeml_shell_url' ) ? vergeml_shell_url( 'media-ai' ) : admin_url( 'admin.php?page=media-ai' );
+    $url = function_exists( 'vergeml_shell_url' ) ? vergeml_shell_url( 'media-licence' ) : admin_url( 'admin.php?page=media-licence' );
 
     /*
      *  "as of five minutes ago" was said whether or not anybody had managed to
