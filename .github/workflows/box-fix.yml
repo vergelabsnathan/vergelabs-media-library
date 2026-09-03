@@ -30,6 +30,7 @@ on:
           - parallel
           - vps-logs
           - writes
+          - cron-life
       parallel:
         description: for job=parallel, the describe concurrency to force (0 removes the override)
         required: false
@@ -158,6 +159,11 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-writes.php root@46.225.66.194:/tmp/vgml-writes.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-writes.sh
+
+      - name: how long the cron requests lived (read-only)
+        if: ${{ inputs.job == 'cron-life' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-cron-life.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
