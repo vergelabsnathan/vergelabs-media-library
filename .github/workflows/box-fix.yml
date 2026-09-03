@@ -28,6 +28,7 @@ on:
           - vps-point
           - vps-unpoint
           - parallel
+          - vps-logs
       parallel:
         description: for job=parallel, the describe concurrency to force (0 removes the override)
         required: false
@@ -145,6 +146,11 @@ jobs:
         if: ${{ inputs.job == 'parallel' }}
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 "VGML_PARALLEL='${{ inputs.parallel }}' bash -s" < tools/box-parallel.sh
+
+      - name: read the on-box service log (read-only)
+        if: ${{ inputs.job == 'vps-logs' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-vps-logs.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
