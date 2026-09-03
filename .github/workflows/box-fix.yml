@@ -23,6 +23,8 @@ on:
           - errorlog
           - errored-rows
           - burst
+          - vps-check
+          - vps-setup
 
 jobs:
   fix:
@@ -110,6 +112,16 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-burst.php root@46.225.66.194:/tmp/vgml-burst.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-burst.sh
+
+      - name: what the box has for running the service (read-only)
+        if: ${{ inputs.job == 'vps-check' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-vps-check.sh
+
+      - name: install Node 20 and pm2 on the box (idempotent)
+        if: ${{ inputs.job == 'vps-setup' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-vps-setup.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
