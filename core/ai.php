@@ -2191,16 +2191,19 @@ function vergeml_ai_page() {
          *  different feature, so it is a choice inside the section.
          */
         ?>
-        <div class="vgml-ai-card">
-            <h2><?php esc_html_e( 'Describe your images', 'vergelabs-media-library' ); ?></h2>
-            <p class="description"><?php esc_html_e( 'Each image is shown to the model once. The description powers search, alt text, and everything after it.', 'vergelabs-media-library' ); ?></p>
+        <div class="vgml-cols vgml-ai-cols">
+        <div class="vgml-cols-main">
+
+        <div class="vgml-ai-card vgml-ai-run">
+            <h2 class="vgml-kicker"><?php esc_html_e( 'Describe your images', 'vergelabs-media-library' ); ?></h2>
+            <p class="vgml-ai-run-lede"><?php esc_html_e( 'Each image is shown to the model once. The description powers search, alt text, and everything after it.', 'vergelabs-media-library' ); ?></p>
 
             <p class="vgml-ai-choice">
                 <label><input type="radio" name="vgml-ai-where" value="here" checked> <?php esc_html_e( 'Watch it here', 'vergelabs-media-library' ); ?></label>
                 <label><input type="radio" name="vgml-ai-where" value="background"> <?php esc_html_e( 'Run in the background — you can close this tab', 'vergelabs-media-library' ); ?></label>
             </p>
 
-            <p>
+            <p class="vgml-ai-buttons">
                 <button type="button" class="button button-primary" id="vgml-ai-run" data-scope="unindexed"><?php esc_html_e( 'Describe new images', 'vergelabs-media-library' ); ?></button>
                 <button type="button" class="button" id="vgml-ai-alt" data-scope="missing-alt"><?php esc_html_e( 'Fix missing alt text', 'vergelabs-media-library' ); ?></button>
                 <?php
@@ -2223,9 +2226,6 @@ function vergeml_ai_page() {
         </div>
 
         <?php if ( $can_configure ) : ?>
-        <h2 class="vgml-ai-settings-head"><?php esc_html_e( 'How it behaves', 'vergelabs-media-library' ); ?></h2>
-        <p class="description vgml-ai-settings-note"><?php esc_html_e( 'Set once, and it applies to every run above.', 'vergelabs-media-library' ); ?></p>
-
         <?php
         $help = function ( $key ) {
             if ( ! function_exists( 'vergeml_help' ) ) {
@@ -2236,36 +2236,37 @@ function vergeml_ai_page() {
             return ob_get_clean();
         };
 
+        /*
+         *  How it behaves: 220px labels, a sentence per switch, one sticky
+         *  save bar for the page (design handoff, screen 3).
+         */
         echo vergeml_pg_card_open( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'Settings', 'vergelabs-media-library' ),
+            __( 'How it behaves', 'vergelabs-media-library' ),
             array(
-                'note'        => __( 'Applies to every image described from now on. The licence and credits are on their own tab.', 'vergelabs-media-library' ),
-                'action_html' => '<a class="button" href="' . esc_url( admin_url( 'admin.php?page=media-licence' ) ) . '">'
-                    . esc_html__( 'Licence', 'vergelabs-media-library' ) . '</a>',
-                'rows'        => true,
+                'note' => __( 'Set once — it applies to every run above.', 'vergelabs-media-library' ),
+                'rows' => true,
             )
         );
 
         echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
             __( 'What this site is about', 'vergelabs-media-library' ),
-            __( 'Your trade\'s words, so descriptions name what you actually sell. Applies to images described from now on.', 'vergelabs-media-library' ),
-            '<textarea id="vgml-ai-profile" rows="3" class="large-text" maxlength="500" placeholder="'
-                . esc_attr( vergeml_ai_profile_hint() ) . '"></textarea>' . $help( 'site_profile' ),
-            true
+            __( 'Your trade\'s words, so descriptions name what you actually sell. Applies from now on.', 'vergelabs-media-library' ),
+            '<textarea id="vgml-ai-profile" rows="3" class="vgml-input" maxlength="500" placeholder="'
+                . esc_attr( vergeml_ai_profile_hint() ) . '"></textarea>' . $help( 'site_profile' )
         );
 
         echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
             __( 'Search', 'vergelabs-media-library' ),
-            __( 'Media search also matches AI captions and tags.', 'vergelabs-media-library' ),
-            '<label><input type="checkbox" id="vgml-ai-enrich"> ' . esc_html__( 'On', 'vergelabs-media-library' )
-                . '</label>' . $help( 'enrich_search' )
+            '',
+            '<label class="vgml-check"><input type="checkbox" id="vgml-ai-enrich"><span>' . esc_html__( 'Media search also matches AI captions and tags.', 'vergelabs-media-library' )
+                . '</span></label>' . $help( 'enrich_search' )
         );
 
         echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
             __( 'Page context', 'vergelabs-media-library' ),
-            __( 'Descriptions know which page an image is on — its title, and with Yoast, Rank Math, SEOPress or AIOSEO its focus keyphrase and description. Advisory: the model still describes only what it sees.', 'vergelabs-media-library' ),
-            '<label><input type="checkbox" id="vgml-ai-page-context"> ' . esc_html__( 'On', 'vergelabs-media-library' )
-                . '</label>' . $help( 'page_context' )
+            '',
+            '<label class="vgml-check"><input type="checkbox" id="vgml-ai-page-context"><span>' . esc_html__( 'Descriptions know which page an image is on — its title, and with Yoast, Rank Math, SEOPress or AIOSEO its focus keyphrase. The model still describes only what it sees.', 'vergelabs-media-library' )
+                . '</span></label>' . $help( 'page_context' )
         );
 
         /*
@@ -2275,28 +2276,27 @@ function vergeml_ai_page() {
          *  is that its numbers are counted.
          */
         $mock_help = defined( 'VERGEML_AI_MOCK' )
-            ? __( 'Forced on by the VERGEML_AI_MOCK constant in this site\'s configuration — the switch cannot turn it off.', 'vergelabs-media-library' )
-            : __( 'Invent captions here, send nothing, spend nothing.', 'vergelabs-media-library' );
+            ? __( 'Demo mode — forced on by the VERGEML_AI_MOCK constant in this site\'s configuration; the switch cannot turn it off.', 'vergelabs-media-library' )
+            : __( 'Demo mode — invent captions here, send nothing, spend nothing.', 'vergelabs-media-library' );
 
         echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
             __( 'Try it free', 'vergelabs-media-library' ),
-            $mock_help,
-            '<label><input type="checkbox" id="vgml-ai-mock"> ' . esc_html__( 'Demo mode', 'vergelabs-media-library' )
-                . '</label>' . $help( 'mock' )
+            '',
+            '<label class="vgml-check"><input type="checkbox" id="vgml-ai-mock"><span>' . esc_html( $mock_help )
+                . '</span></label>' . $help( 'mock' )
         );
 
-        echo '</div>'; // close the rows body before the actions foot.
+        echo '</div>'; // close the rows body before the save bar.
 
-        echo vergeml_pg_actions( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            '<button type="button" class="button button-primary" id="vgml-ai-save">'
-                . esc_html__( 'Save changes', 'vergelabs-media-library' )
-                . '</button><span id="vgml-ai-save-note"></span>'
-        );
+        echo '<div class="vgml-savebar">'
+            . '<button type="button" class="button button-primary" id="vgml-ai-save">' . esc_html__( 'Save changes', 'vergelabs-media-library' ) . '</button>'
+            . '<span class="vgml-savebar-note">' . esc_html__( 'Saves everything on this page.', 'vergelabs-media-library' ) . '</span>'
+            . '<span id="vgml-ai-save-note" class="vgml-saved"></span>'
+            . '</div>';
 
         echo '</section>';
         ?>
         <?php endif; ?>
-
 
         <?php
         /*
@@ -2307,6 +2307,30 @@ function vergeml_ai_page() {
          */
         do_action( 'vergeml_ai_page_cards' );
         ?>
+
+        </div><!-- /main -->
+
+        <aside class="vgml-cols-rail">
+            <?php
+            $credits = get_option( 'vergeml_ai_credits', array() );
+            $left    = is_array( $credits ) && isset( $credits['remaining'] ) && null !== $credits['remaining'] ? (int) $credits['remaining'] : null;
+            ?>
+            <div class="vgml-rail-block">
+                <h6 class="vgml-kicker"><?php esc_html_e( 'Credits', 'vergelabs-media-library' ); ?></h6>
+                <p class="vgml-ai-credits-n"><?php echo esc_html( null === $left ? '—' : number_format_i18n( $left ) ); ?></p>
+                <p class="vgml-note"><?php esc_html_e( 'left · one credit describes one image', 'vergelabs-media-library' ); ?></p>
+                <p class="vgml-ai-credits-go">
+                    <a class="button" href="https://vergelabsmedia.com/#pricing" target="_blank" rel="noopener"><?php esc_html_e( 'Get credits ↗', 'vergelabs-media-library' ); ?></a>
+                    <a class="vgml-btn vgml-btn-ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=media-licence' ) ); ?>"><?php esc_html_e( 'Licence →', 'vergelabs-media-library' ); ?></a>
+                </p>
+            </div>
+            <div class="vgml-rail-block">
+                <h6 class="vgml-kicker"><?php esc_html_e( 'What leaves your site', 'vergelabs-media-library' ); ?></h6>
+                <p class="vgml-note"><?php esc_html_e( 'Images go to the service only to be described; nothing else leaves your site. Captions and tags are stored in your own database.', 'vergelabs-media-library' ); ?></p>
+            </div>
+        </aside>
+
+        </div><!-- /cols -->
 
     </div>
     <?php

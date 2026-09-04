@@ -1920,3 +1920,244 @@
 		gap: 8px;
 	}
 }
+
+/* The older row helper (vergeml_pg_row) drawn as the same 220px grid. */
+.vgml-shell .vgml-pg-row {
+	display: grid;
+	grid-template-columns: 220px 1fr;
+	gap: 24px;
+	padding: 16px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	align-items: start;
+}
+
+.vgml-shell .vgml-pg-row.is-stacked {
+	grid-template-columns: 1fr;
+	gap: 10px;
+}
+
+.vgml-shell .vgml-pg-row-text {
+	min-width: 0;
+}
+
+.vgml-shell .vgml-pg-row-label {
+	display: block;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-pg-row-help {
+	display: block;
+	font-size: 12px;
+	margin-top: 3px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-pg-row-control {
+	font-size: 13px;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-pg-row-control textarea.vgml-input {
+	width: 100%;
+	max-width: 100%;
+}
+
+.vgml-shell .vgml-pg-card-body.is-rows {
+	padding: 0;
+}
+
+.vgml-shell .vgml-pg-card-body.is-rows .vgml-pg-row:first-child {
+	padding-top: 18px;
+}
+
+.vgml-shell .vgml-pg-actions {
+	position: sticky;
+	bottom: 0;
+	z-index: 3;
+	display: flex;
+	gap: 14px;
+	align-items: center;
+	margin: 8px 0 0;
+	padding: 14px 0;
+	background: var(--vgml-ground);
+	border-top: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell .vgml-pg-actions-note {
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
+/* The status band under a page head: a tag and a sentence. */
+.vgml-shell .vgml-status-band {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 20px;
+	padding: 14px 0;
+	border-top: 2px solid var(--vgml-divider);
+	border-bottom: 2px solid var(--vgml-divider);
+	font-size: 13px;
+}
+
+@media screen and (max-width: 640px) {
+	.vgml-shell .vgml-pg-row {
+		grid-template-columns: 1fr;
+		gap: 8px;
+	}
+}
+
+/* --- the AI screen --------------------------------------------------- */
+
+.vgml-shell .vgml-ai-run {
+	background: var(--vgml-surface);
+	border: 0;
+	border-radius: 6px;
+	padding: 22px;
+	margin: 0;
+}
+
+.vgml-shell .vgml-ai-run > .vgml-kicker {
+	margin-bottom: 12px;
+}
+
+.vgml-shell .vgml-ai-run-lede {
+	margin: 0 0 12px;
+	font-size: 13.5px;
+	max-width: 56ch;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-ai-choice {
+	display: flex;
+	gap: 22px;
+	flex-wrap: wrap;
+	margin: 0 0 12px;
+	font-size: 13px;
+}
+
+.vgml-shell .vgml-ai-choice label {
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
+	cursor: pointer;
+}
+
+.vgml-shell .vgml-ai-buttons {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin: 0 0 12px;
+}
+
+.vgml-shell .vgml-ai-run #vgml-ai-note,
+.vgml-shell .vgml-ai-run #vgml-ai-bg-note {
+	margin: 0;
+	padding-top: 10px;
+	border-top: 2px solid var(--vgml-divider);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.vgml-shell .vgml-ai-run #vgml-ai-note:empty,
+.vgml-shell .vgml-ai-run #vgml-ai-bg-note:empty {
+	display: none;
+}
+
+.vgml-shell .vgml-ai-run .vgml-import-bar {
+	height: 4px;
+	background: var(--vgml-n300);
+	margin: 0 0 10px;
+}
+
+.vgml-shell .vgml-ai-run .vgml-import-fill {
+	height: 4px;
+	background: var(--vgml-accent);
+}
+
+.vgml-shell .vgml-ai-log {
+	margin: 10px 0 0;
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-ai-cols .vgml-pg-card {
+	margin-top: 34px;
+}
+
+.vgml-shell .vgml-ai-credits-n {
+	margin: 0;
+	font-size: 30px;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--vgml-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-ai-credits-go {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin: 14px 0 0;
+}
+
+/* --- the Licence screen ---------------------------------------------- */
+
+.vgml-shell .vgml-licence-rows {
+	max-width: 860px;
+	margin-bottom: 0;
+}
+
+.vgml-shell .vgml-licence-form {
+	max-width: 860px;
+}
+
+.vgml-shell .vgml-licence-paste {
+	display: flex;
+	gap: 8px;
+	margin-top: 12px;
+	max-width: 520px;
+}
+
+.vgml-shell .vgml-licence-paste .vgml-input {
+	flex: 1;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-licence-remove {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-top: 22px;
+	padding-top: 16px;
+	border-top: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell .vgml-licence-remove > .vgml-note {
+	flex: 1;
+	margin: 0;
+	font-size: 12.5px;
+}
+
+.vgml-shell .vgml-licence-remove-ask {
+	flex: none;
+}
+
+.vgml-shell .vgml-licence-remove-open {
+	color: var(--vgml-accent-700);
+}
+
+.vgml-shell .vgml-licence-remove-confirm {
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
+	flex-wrap: wrap;
+	font-size: 12.5px;
+}
+
+.vgml-shell .vgml-licence-remove-yes {
+	color: var(--vgml-accent-700);
+	border-color: var(--vgml-accent-300);
+}

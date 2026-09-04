@@ -113,21 +113,28 @@ function vergeml_licence_page() {
         'credits'  => __( 'Credits', 'vergelabs-media-library' ),
     );
 
+    /*
+     *  The status band under the head: a tag for the state, then the licence,
+     *  the plan and the balance in one line (design handoff, screen 6).
+     */
+    $plan_name = isset( $plans[ $plan ] ) ? $plans[ $plan ] : ( '' === $plan ? '' : ucfirst( $plan ) );
     if ( $connected ) {
         if ( 'rejected' === $state ) {
-            $chip = '<span class="vgml-home-counts vgml-is-bad">' . esc_html__( 'Licence not recognised', 'vergelabs-media-library' ) . '</span>';
-        } elseif ( 'unreachable' === $state ) {
-            $chip = '<span class="vgml-home-counts vgml-is-dim">' . esc_html__( 'Connected · service not reached', 'vergelabs-media-library' ) . '</span>';
+            $band = '<span class="vgml-tag">' . esc_html__( 'Not recognised', 'vergelabs-media-library' ) . '</span>'
+                . '<span>' . esc_html__( 'The service did not recognise this key.', 'vergelabs-media-library' ) . '</span>';
         } else {
-            $chip = '<span class="vgml-home-counts">' . esc_html( sprintf(
-                /* translators: 1: the last four characters of the key, 2: credits left */
-                __( 'Connected · licence …%1$s · %2$s credits', 'vergelabs-media-library' ),
-                substr( $key, -4 ),
-                null === $left ? '—' : number_format_i18n( $left )
-            ) ) . '</span>';
+            $band = '<span class="vgml-tag vgml-tag-accent">' . esc_html( 'unreachable' === $state ? __( 'Connected · service not reached', 'vergelabs-media-library' ) : __( 'Connected', 'vergelabs-media-library' ) ) . '</span>'
+                . '<span>' . sprintf(
+                    /* translators: 1: last four of the key, 2: plan, 3: credits */
+                    esc_html__( 'licence %1$s · %2$s · %3$s credits left', 'vergelabs-media-library' ),
+                    '<b>…' . esc_html( substr( $key, -4 ) ) . '</b>',
+                    esc_html( '' === $plan_name ? '—' : $plan_name ),
+                    '<b>' . esc_html( null === $left ? '—' : number_format_i18n( $left ) ) . '</b>'
+                ) . '</span>';
         }
     } else {
-        $chip = '<span class="vgml-home-counts vgml-is-dim">' . esc_html__( 'Not connected', 'vergelabs-media-library' ) . '</span>';
+        $band = '<span class="vgml-tag">' . esc_html__( 'Not connected', 'vergelabs-media-library' ) . '</span>'
+            . '<span>' . esc_html__( 'Nothing can be described until a licence is connected.', 'vergelabs-media-library' ) . '</span>';
     }
 
     ?>
@@ -137,8 +144,11 @@ function vergeml_licence_page() {
         echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
             __( 'Licence', 'vergelabs-media-library' ),
             __( 'This site\'s connection to VergeLabs. Images go to the service only to be described; nothing else leaves your site.', 'vergelabs-media-library' ),
-            $chip
+            '<a class="button" href="https://vergelabsmedia.com/account" target="_blank" rel="noopener">' . esc_html__( 'Your account ↗', 'vergelabs-media-library' ) . '</a>'
+                . '<a class="button button-primary" href="https://vergelabsmedia.com/#pricing" target="_blank" rel="noopener">' . esc_html__( 'Get credits ↗', 'vergelabs-media-library' ) . '</a>'
         );
+
+        echo '<div class="vgml-status-band">' . $band . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
 
         if ( isset( $_GET['vergeml_licence'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a notice after a redirect, no action taken.
             $r = sanitize_key( wp_unslash( $_GET['vergeml_licence'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -158,36 +168,27 @@ function vergeml_licence_page() {
             vergeml_connect_banner();
         }
 
-        echo vergeml_pg_card_open( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'Connection', 'vergelabs-media-library' ),
-            array(
-                'action_html' => '<a class="button" href="https://vergelabsmedia.com/account" target="_blank" rel="noopener">'
-                    . esc_html__( 'Your account', 'vergelabs-media-library' ) . '</a> '
-                    . '<a class="button" href="https://vergelabsmedia.com/#pricing" target="_blank" rel="noopener">'
-                    . esc_html__( 'Get credits', 'vergelabs-media-library' ) . '</a>',
-                'rows'        => true,
-            )
-        );
+        echo '<section class="vgml-pg-card vgml-licence-rows"><div class="vgml-pg-card-body is-rows">';
 
         if ( $connected ) {
             echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
                 __( 'Licence', 'vergelabs-media-library' ),
-                $network
-                    ? __( 'Set by the network administrator for every site.', 'vergelabs-media-library' )
-                    : __( 'The last four characters match what your account page shows.', 'vergelabs-media-library' ),
-                '<code>…' . esc_html( substr( $key, -4 ) ) . '</code>'
+                '',
+                '…' . esc_html( substr( $key, -4 ) ) . ' <span class="vgml-muted">— ' . esc_html( $network
+                    ? __( 'set by the network administrator for every site.', 'vergelabs-media-library' )
+                    : __( 'the last four characters match what your account page shows.', 'vergelabs-media-library' ) ) . '</span>'
             );
             echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
                 __( 'Plan', 'vergelabs-media-library' ),
                 '',
-                esc_html( isset( $plans[ $plan ] ) ? $plans[ $plan ] : ( '' === $plan ? '—' : ucfirst( $plan ) ) )
+                esc_html( '' === $plan_name ? '—' : $plan_name )
             );
             echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
                 __( 'Credits', 'vergelabs-media-library' ),
-                ( 'ok' !== $state && function_exists( 'vergeml_ai_credits_warning' ) && '' !== (string) vergeml_ai_credits_warning() )
+                '',
+                esc_html( null === $left ? '—' : number_format_i18n( $left ) ) . ' <span class="vgml-muted">— ' . esc_html( ( 'ok' !== $state && function_exists( 'vergeml_ai_credits_warning' ) && '' !== (string) vergeml_ai_credits_warning() )
                     ? (string) vergeml_ai_credits_warning()
-                    : __( 'One credit describes one image.', 'vergelabs-media-library' ),
-                '<strong>' . esc_html( null === $left ? '—' : number_format_i18n( $left ) ) . '</strong>'
+                    : __( 'one credit describes one image.', 'vergelabs-media-library' ) ) . '</span>'
             );
         }
 
@@ -204,35 +205,54 @@ function vergeml_licence_page() {
             );
         }
 
-        echo vergeml_pg_card_close(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal markup.
+        echo '</div></section>';
 
         if ( ! $locked ) :
             ?>
-            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="vgml-licence-form" id="vgml-licence-form">
                 <input type="hidden" name="action" value="vergeml_licence_save">
                 <?php wp_nonce_field( 'vergeml_licence_save' ); ?>
+
+                <div class="vgml-section">
+                    <h6 class="vgml-kicker"><?php esc_html_e( 'Or paste a key', 'vergelabs-media-library' ); ?></h6>
+                    <p class="vgml-note"><?php esc_html_e( 'From the licence tab of your account at vergelabsmedia.com.', 'vergelabs-media-library' ); ?></p>
+                    <div class="vgml-licence-paste">
+                        <input type="text" name="vergeml_licence_key" class="vgml-input" autocomplete="off" spellcheck="false" placeholder="<?php echo esc_attr( $connected ? '•••••••• (saved)' : 'VGML-…' ); ?>">
+                        <button type="submit" class="button button-primary"><?php esc_html_e( 'Save key', 'vergelabs-media-library' ); ?></button>
+                    </div>
+                </div>
+
+                <?php if ( $connected && ! $network ) : ?>
                 <?php
-                echo vergeml_pg_card_open( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-                    __( 'Or paste a key', 'vergelabs-media-library' ),
-                    array(
-                        'note' => __( 'From the licence tab of your account at vergelabsmedia.com.', 'vergelabs-media-library' ),
-                        'rows' => true,
-                    )
-                );
-                echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-                    __( 'Licence key', 'vergelabs-media-library' ),
-                    '',
-                    '<input type="text" name="vergeml_licence_key" class="regular-text" autocomplete="off" spellcheck="false" placeholder="'
-                        . esc_attr( $connected ? '•••••••• (saved)' : 'VGML-…' ) . '">'
-                );
-                $buttons = '<button type="submit" class="button button-primary">' . esc_html__( 'Save key', 'vergelabs-media-library' ) . '</button>';
-                if ( $connected && ! $network ) {
-                    $buttons .= ' <button type="submit" name="vergeml_licence_remove" value="1" class="button vgml-button-quiet" onclick="return window.confirm(' . esc_attr( wp_json_encode( __( 'Remove the licence from this site? Nothing can be described until one is connected again.', 'vergelabs-media-library' ) ) ) . ');">'
-                        . esc_html__( 'Remove from this site', 'vergelabs-media-library' ) . '</button>';
-                }
-                echo vergeml_pg_actions( $buttons ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
-                echo vergeml_pg_card_close(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal markup.
+                /*
+                 *  Removing the key is a two-step confirm inline, not a browser
+                 *  dialog (design handoff, item 8): the question sits where
+                 *  the button was, with Keep it beside Yes.
+                 */
                 ?>
+                <div class="vgml-licence-remove">
+                    <p class="vgml-note"><?php esc_html_e( 'Removing the key stops descriptions on this site. Folders, captions and alt text already written stay exactly where they are.', 'vergelabs-media-library' ); ?></p>
+                    <div class="vgml-licence-remove-ask">
+                        <button type="button" class="vgml-btn vgml-btn-ghost vgml-licence-remove-open"><?php esc_html_e( 'Remove from this site', 'vergelabs-media-library' ); ?></button>
+                        <span class="vgml-licence-remove-confirm" hidden>
+                            <b><?php esc_html_e( 'Remove the key from this site?', 'vergelabs-media-library' ); ?></b>
+                            <button type="button" class="button vgml-licence-remove-no"><?php esc_html_e( 'Keep it', 'vergelabs-media-library' ); ?></button>
+                            <button type="submit" name="vergeml_licence_remove" value="1" class="button vgml-licence-remove-yes"><?php esc_html_e( 'Yes, remove', 'vergelabs-media-library' ); ?></button>
+                        </span>
+                    </div>
+                </div>
+                <script>
+                ( function () {
+                    var box = document.querySelector( '.vgml-licence-remove' );
+                    if ( ! box ) { return; }
+                    var open = box.querySelector( '.vgml-licence-remove-open' );
+                    var ask = box.querySelector( '.vgml-licence-remove-confirm' );
+                    var no = box.querySelector( '.vgml-licence-remove-no' );
+                    open.addEventListener( 'click', function () { open.hidden = true; ask.hidden = false; } );
+                    no.addEventListener( 'click', function () { ask.hidden = true; open.hidden = false; } );
+                }() );
+                </script>
+                <?php endif; ?>
             </form>
             <?php
         else :
