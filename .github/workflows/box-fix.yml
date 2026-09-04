@@ -36,6 +36,7 @@ on:
           - folder-audit
           - tree
           - refile-all
+          - reparent
       profile:
         description: for job=refile-all, '1' asks the planner what each folder takes before filing
         required: false
@@ -207,6 +208,12 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-refile-all.php root@46.225.66.194:/tmp/vgml-refile-all.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 "VGML_APPLY='${{ inputs.apply }}' VGML_PROFILE='${{ inputs.profile }}' bash -s" < tools/box-refile-all.sh
+
+      - name: flat path-named folders become a real tree (dry run unless apply=1)
+        if: ${{ inputs.job == 'reparent' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-reparent.php root@46.225.66.194:/tmp/vgml-reparent.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 "VGML_APPLY='${{ inputs.apply }}' bash -s" < tools/box-reparent.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
