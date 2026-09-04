@@ -587,6 +587,38 @@ function vergeml_talk_apply( $folders ) {
 	}
 
 	/*
+	 *  A name that is a path -- "Apparel / Men / Shoes" -- is one folder under
+	 *  two, never one folder with slashes in it. An older planner answered
+	 *  paths as names and the plugin made them literally; those folders are
+	 *  read as paths by the matcher, but no new ones are made that way.
+	 */
+	$split = array();
+	$known = array();
+	foreach ( $folders as $f ) {
+		$known[ mb_strtolower( $f['name'] ) ] = true;
+	}
+	foreach ( $folders as $f ) {
+		$parts = preg_split( '/\s*\/\s*/u', (string) $f['name'] );
+		$parts = array_values( array_filter( array_map( 'trim', (array) $parts ), 'strlen' ) );
+		if ( count( $parts ) < 2 ) {
+			$split[] = $f;
+			continue;
+		}
+		$parent = (string) $f['parent'];
+		foreach ( array_slice( $parts, 0, -1 ) as $segment ) {
+			if ( ! isset( $known[ mb_strtolower( $segment ) ] ) ) {
+				$known[ mb_strtolower( $segment ) ] = true;
+				$split[] = array( 'name' => $segment, 'parent' => $parent, 'matches' => '', 'classes' => array(), 'kinds' => array(), 'audience' => '' );
+			}
+			$parent = $segment;
+		}
+		$f['name']   = (string) end( $parts );
+		$f['parent'] = $parent;
+		$split[]     = $f;
+	}
+	$folders = $split;
+
+	/*
 	 *  Everything needed to put it back: which files were in which folders,
 	 *  and which folders existed. Written before the first change.
 	 */
@@ -1039,6 +1071,7 @@ function vergeml_talk_report( $state ) {
 		'seen'      => $seen,
 		'total'     => $total,
 		'remaining' => max( 0, $total - $seen ),
+		'unfiled'   => isset( $state['unfiled'] ) ? (array) $state['unfiled'] : array(),
 		'message'   => $running
 			? sprintf(
 				/* translators: 1: pictures looked at so far, 2: pictures in total. */
@@ -1046,18 +1079,49 @@ function vergeml_talk_report( $state ) {
 				number_format_i18n( $seen ),
 				number_format_i18n( $total )
 			)
-			: sprintf(
-				/* translators: 1: files moved, 2: how many folders they went into. */
-				_n(
-					'%1$s picture re-filed into %2$s folders.',
-					'%1$s pictures re-filed into %2$s folders.',
-					$moved,
-					'vergelabs-media-library'
-				),
-				number_format_i18n( $moved ),
-				number_format_i18n( count( $counts ) )
-			),
+			: vergeml_talk_outcome_sentence( $moved, count( $counts ), isset( $state['unfiled'] ) ? (array) $state['unfiled'] : array() ),
 	);
+}
+
+/**
+ *  What happened, in one sentence that also says what did not.
+ *
+ *  "204 pictures re-filed into 3 folders" was the whole story before, and the
+ *  missing half was the half that mattered: the ones left where they were,
+ *  and why. A run that files everything is a run that guessed.
+ */
+function vergeml_talk_outcome_sentence( $moved, $folders, $unfiled ) {
+	$head = sprintf(
+		_n( '%1$s picture re-filed into %2$s folders.', '%1$s pictures re-filed into %2$s folders.', $moved, 'vergelabs-media-library' ),
+		number_format_i18n( $moved ),
+		number_format_i18n( $folders )
+	);
+	$parts = array();
+	$floor = isset( $unfiled['floor'] ) ? (int) $unfiled['floor'] : 0;
+	$close = isset( $unfiled['margin'] ) ? (int) $unfiled['margin'] : 0;
+	$gated = isset( $unfiled['gated'] ) ? (int) $unfiled['gated'] : 0;
+	$out   = isset( $unfiled['evicted'] ) ? (int) $unfiled['evicted'] : 0;
+	if ( $floor ) {
+		/* translators: %s: a number of pictures */
+		$parts[] = sprintf( _n( '%s did not fit any folder', '%s did not fit any folder', $floor, 'vergelabs-media-library' ), number_format_i18n( $floor ) );
+	}
+	if ( $close ) {
+		/* translators: %s: a number of pictures */
+		$parts[] = sprintf( _n( '%s was too close to call between two folders', '%s were too close to call between two folders', $close, 'vergelabs-media-library' ), number_format_i18n( $close ) );
+	}
+	if ( $gated ) {
+		/* translators: %s: a number of pictures */
+		$parts[] = sprintf( _n( '%s was the wrong kind for every folder (a logo, a screenshot)', '%s were the wrong kind for every folder (logos, screenshots)', $gated, 'vergelabs-media-library' ), number_format_i18n( $gated ) );
+	}
+	if ( $out ) {
+		/* translators: %s: a number of pictures */
+		$parts[] = sprintf( _n( '%s was taken out of a folder it did not belong in', '%s were taken out of folders they did not belong in', $out, 'vergelabs-media-library' ), number_format_i18n( $out ) );
+	}
+	if ( ! $parts ) {
+		return $head;
+	}
+	/* translators: 1: the re-filed sentence, 2: what was left alone */
+	return sprintf( __( '%1$s Left where they were: %2$s.', 'vergelabs-media-library' ), $head, implode( '; ', $parts ) );
 }
 
 
