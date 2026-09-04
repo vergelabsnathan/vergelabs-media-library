@@ -77,7 +77,7 @@ foreach ( $rows as $r ) {
             $why['evicted'] = ( $why['evicted'] ?? 0 ) + 1;
             if ( $apply ) { wp_set_object_terms( $id, array(), $tax, false ); }
         }
-        $stay[] = sprintf( "  %-34s [%s|%s] %s %s, %s: nearest %s @%.2f", $title, $facts['kind'], mb_substr( $obj, 0, 28 ), $from, '' !== $reason ? 'OUT (' . $reason . ')' : 'stays', $pick['why'], isset( $pick['nearest'] ) ? $name( $pick['nearest'] ) : '-', $pick['score'] );
+        $stay[] = sprintf( "  %-34s [%s|%s] %s %s, %s: nearest %s @%.2f, then %s @%.2f", $title, $facts['kind'], mb_substr( $obj, 0, 28 ), $from, '' !== $reason ? 'OUT (' . $reason . ')' : 'stays', $pick['why'], isset( $pick['nearest'] ) ? $name( $pick['nearest'] ) : '-', $pick['score'], $pick['runner_up'] ? $name( $pick['runner_up'] ) : '-', $pick['runner_score'] );
     }
     if ( preg_match( $pat, $title . ' ' . $obj ) ) {
         $named[] = sprintf( "  %-34s [%s|%s] -> %s  (%s @%.2f)", $title, $facts['kind'], mb_substr( $obj, 0, 28 ), $pick['term_id'] ? $name( $pick['term_id'] ) : 'UNFILED', $pick['why'], $pick['score'] );
