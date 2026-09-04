@@ -39,6 +39,15 @@ $say( 'attachments in no term of it', (int) $wpdb->get_var( $wpdb->prepare( "SEL
 $say( 'described pictures in no term of it', (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} i WHERE i.error='' AND i.embedding IS NOT NULL AND NOT EXISTS (SELECT 1 FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id=tr.term_taxonomy_id WHERE tr.object_id=i.attachment_id AND tt.taxonomy=%s)", $tax ) ) );
 $say( 'tree taxonomies', function_exists( 'vergeml_tree_taxonomies' ) ? vergeml_tree_taxonomies() : null );
 
+echo "\n== guide summary (what the Sort screen is handed) ==\n";
+if ( function_exists( 'vergeml_guide_summary' ) ) {
+    $t0  = microtime( true );
+    $sum = vergeml_guide_summary();
+    $say( 'summary keys', array_keys( (array) $sum ) );
+    $say( 'summary total / unfiled / folders / groups', array( $sum['total'] ?? null, $sum['unfiled'] ?? null, count( (array) ( $sum['folders'] ?? array() ) ), count( (array) ( $sum['groups'] ?? array() ) ) ) );
+    $say( 'summary seconds', round( microtime( true ) - $t0, 1 ) );
+}
+
 echo "\n== sort surface (guide session) ==\n";
 $s = get_option( 'vergeml_guide_session' );
 if ( is_array( $s ) ) {

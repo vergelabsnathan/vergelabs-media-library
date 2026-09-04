@@ -75,13 +75,13 @@ test.describe( 'the sort into folders screen', () => {
 		await open( page, SCREEN.folders );
 		await plant( page );
 
-		const before = await page.locator( '.vgml-rail-row b' ).first().textContent();
-		expect( before.trim() ).toBe( '3' );
+		const after = page.locator( '.vgml-rail-row' ).filter( { hasText: 'Folders after Move' } ).locator( 'b' );
+		await expect( after ).toHaveText( '3' );
 
 		await page.locator( '.vgml-sort-row' ).filter( { has: page.locator( 'input[value="Apparel"]' ) } ).locator( '.vgml-sort-aside' ).click();
 
 		await expect( page.locator( '.vgml-sort-row input.vgml-sort-name' ), 'Apparel and Women are gone from the tree' ).toHaveCount( 1 );
-		await expect( page.locator( '.vgml-rail-row b' ).first() ).toHaveText( '1' );
+		await expect( after ).toHaveText( '1' );
 		await expect( page.locator( '.vgml-sort-asidenote' ) ).toContainText( 'set aside' );
 
 		await page.locator( '.vgml-sort-asidenote button' ).click();
