@@ -157,7 +157,8 @@ function vergeml_guide_summary() {
     $total      = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND embedding IS NOT NULL" );
     $last       = (string) $wpdb->get_var( "SELECT MAX(described_at) FROM {$t} WHERE error = ''" );
     $kinds      = $wpdb->get_results( "SELECT kind, COUNT(*) AS n FROM {$t} WHERE error = '' AND embedding IS NOT NULL GROUP BY kind", ARRAY_A );
-    $n_audience = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND filing LIKE '%\"audience\":\"_%'" );
+    // "audience":"" is the empty answer; only a real value counts.
+    $n_audience = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND filing LIKE '%\"audience\":\"%' AND filing NOT LIKE '%\"audience\":\"\"%'" );
     $n_brand    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND ( filing LIKE '%\"brand\":\"_%' OR tags REGEXP '(^|,)[[:space:]]*(apple|samsung|dell|lg|nike|adidas|sony|hp|lenovo|asus|logitech|canon|nikon)' )" );
     $n_size     = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND ( caption REGEXP '[0-9]+(\\\\.[0-9]+)? ?(inch|\"|cm|mm)' OR filing REGEXP '[0-9]+(\\\\.[0-9]+)? ?(inch|\"|cm|mm)' )" );
     $rows       = $wpdb->get_results( $wpdb->prepare( "SELECT filing FROM {$t} WHERE error = '' AND filing IS NOT NULL AND filing <> '' ORDER BY described_at DESC LIMIT %d", VERGEML_GUIDE_SAMPLE ), ARRAY_A );

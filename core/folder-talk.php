@@ -209,7 +209,7 @@ function vergeml_talk_audience_share() {
 	}
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
 	$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND filing IS NOT NULL AND filing <> ''" );
-	$with  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND filing IS NOT NULL AND filing LIKE '%\"audience\":\"_%'" );
+	$with  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND filing IS NOT NULL AND filing LIKE '%\"audience\":\"%' AND filing NOT LIKE '%\"audience\":\"\"%'" );
 	// phpcs:enable
 	return $total > 0 ? round( $with / $total, 3 ) : 0.0;
 }
