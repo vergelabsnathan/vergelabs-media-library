@@ -859,8 +859,9 @@ function vergeml_journey_todo() {
 
     $todo[] = array(
         'id'    => 'alt',
-        'title' => __( 'Alt text', 'vergelabs-media-library' ),
-        'note'  => __( 'The line a screen reader reads out instead of showing the picture, and the line Google reads. It was written when we looked at your pictures, so putting it on the files costs nothing.', 'vergelabs-media-library' ),
+        'title' => __( 'Pictures waiting for alt text', 'vergelabs-media-library' ),
+        'note'  => __( 'The line a screen reader reads out. It was written when we looked at your pictures — putting it on costs nothing.', 'vergelabs-media-library' ),
+        'kind'  => 'primary',
         'n'     => $alt_ready,
         'count' => sprintf(
             /* translators: %s: how many pictures are waiting for their alt text. */
@@ -912,8 +913,9 @@ function vergeml_journey_todo() {
 
     $todo[] = array(
         'id'    => 'names',
-        'title' => __( 'File names', 'vergelabs-media-library' ),
-        'note'  => __( '“Photo 498” tells nobody anything. We can name each file after what is in it — “Red Synthesizer with Controls” — from the same look. The title in WordPress and the file on disk are two separate changes. Anything you named yourself is left alone, and one click puts the old names back.', 'vergelabs-media-library' ),
+        'title' => __( 'Titles that say nothing', 'vergelabs-media-library' ),
+        'note'  => __( '“Photo 498” tells nobody anything. Each file can be named after what is in it, from the same look we already took. Anything you named yourself is left alone.', 'vergelabs-media-library' ),
+        'kind'  => 'secondary',
         'n'     => $names,
         /*
          *  Bounded by what has been described, and it has to say so. A title
@@ -939,7 +941,7 @@ function vergeml_journey_todo() {
                 _n( '%s title could be written from what the picture shows', '%s titles could be written from what the pictures show', $names, 'vergelabs-media-library' ),
                 number_format_i18n( $names )
             ),
-        'go'    => __( 'Rewrite the titles', 'vergelabs-media-library' ),
+        'go'    => __( 'Rename from descriptions', 'vergelabs-media-library' ),
         'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_rename' ), 'vergeml_do_rename' ),
 
         /*
@@ -960,8 +962,9 @@ function vergeml_journey_todo() {
 
     $todo[] = array(
         'id'    => 'folders',
-        'title' => __( 'Folders', 'vergelabs-media-library' ),
-        'note'  => __( 'Group the pictures into folders by what they have in common, or by when they were uploaded. You read the whole list and approve it before a single file moves.', 'vergelabs-media-library' ),
+        'title' => __( 'Files in no folder', 'vergelabs-media-library' ),
+        'note'  => __( 'Group them by what they have in common, or by when they were uploaded. You approve the whole plan before a single file moves.', 'vergelabs-media-library' ),
+        'kind'  => 'secondary',
         'n'     => (int) $f['unfiled'],
         'count' => sprintf(
             /* translators: %s: how many files are in no folder. */
@@ -990,18 +993,32 @@ function vergeml_journey_todo() {
         }
     }
 
+    $sets = 0;
+    if ( isset( $report ) && is_array( $report ) ) {
+        $sets = count( (array) ( isset( $report['related'] ) ? $report['related'] : array() ) );
+    }
+
     $todo[] = array(
         'id'    => 'copies',
-        'title' => __( 'Copies', 'vergelabs-media-library' ),
-        'note'  => __( 'The same picture uploaded twice, or saved again at a different size. Nothing is deleted without you.', 'vergelabs-media-library' ),
-        'n'     => $copies,
+        'title' => $copies > 0
+            ? __( 'Exact copies, and look-alike sets', 'vergelabs-media-library' )
+            : ( $sets > 0 ? __( 'Look-alike sets, no exact copies', 'vergelabs-media-library' ) : __( 'Copies', 'vergelabs-media-library' ) ),
+        'note'  => $wasted > 0
+            ? sprintf(
+                /* translators: %s: an amount of disk, e.g. 2.3 MB */
+                __( 'Nothing is deleted without you. Keeping one of each frees up to %s.', 'vergelabs-media-library' ),
+                size_format( $wasted, 1 )
+            )
+            : __( 'The same picture uploaded twice, or saved again at a different size. Nothing is deleted without you.', 'vergelabs-media-library' ),
+        'kind'  => 'ghost',
+        'n'     => max( $copies, $sets ),
         'count' => sprintf(
             /* translators: 1: how many files are copies, 2: the disk they take, e.g. "9 MB". */
             _n( '%1$s file is a copy of another · %2$s of disk', '%1$s files are copies of others · %2$s of disk', $copies, 'vergelabs-media-library' ),
             number_format_i18n( $copies ),
             size_format( $wasted )
         ),
-        'go'    => __( 'Look at the copies', 'vergelabs-media-library' ),
+        'go'    => __( 'Review the sets', 'vergelabs-media-library' ),
         'url'   => vergeml_journey_url( 'media-health' ),
         'done'  => __( 'No copies found.', 'vergelabs-media-library' ),
     );
@@ -1211,65 +1228,63 @@ function vergeml_journey_screen() {
 
 
         <?php
+        /*
+         *  The header's right-hand meta: connected, and to which licence.
+         *  Told in four characters, the same four the account page shows.
+         */
+        $meta = '';
+        if ( ! empty( $f['licensed'] ) && function_exists( 'vergeml_ai_settings' ) && function_exists( 'vergeml_ai_unseal' ) ) {
+            $key = (string) vergeml_ai_unseal( vergeml_ai_settings()['license_key'] );
+            if ( '' !== $key ) {
+                /* translators: %s: the last four characters of the licence key */
+                $meta = '<span class="vgml-dash-meta">' . esc_html( sprintf( __( 'Connected · licence …%s', 'vergelabs-media-library' ), substr( $key, -4 ) ) ) . '</span>';
+            }
+        }
+
         echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
             __( 'Your media library', 'vergelabs-media-library' ),
-            __( 'Where things stand, and what to do next.', 'vergelabs-media-library' )
+            __( 'Where things stand, and what to do next.', 'vergelabs-media-library' ),
+            $meta
         );
         ?>
 
-        <!-- the numbers -->
-        <div class="vgml-figures">
-            <?php foreach ( $figures as $fig ) : ?>
-                <a class="vgml-figure<?php echo ! empty( $fig['warn'] ) ? ' is-warn' : ''; ?>" href="<?php echo esc_url( $fig['url'] ); ?>">
-                    <span class="vgml-figure-n"><?php echo esc_html( number_format_i18n( $fig['n'] ) ); ?></span>
-                    <span class="vgml-figure-l"><?php echo esc_html( $fig['label'] ); ?></span>
-                </a>
+        <?php
+        /*
+         *  The stat band. Only a cell that opens somewhere is a link, and it
+         *  says so with an arrow; files, folders and "used nowhere" are
+         *  numbers, not doors (design handoff, item 9).
+         */
+        $band = array(
+            array( 'n' => $f['files'],   'l' => __( 'files', 'vergelabs-media-library' ) ),
+            array( 'n' => $f['folders'], 'l' => __( 'folders', 'vergelabs-media-library' ) ),
+            array( 'n' => $f['unfiled'], 'l' => __( 'unfiled', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-librarian' ) ),
+            array( 'n' => $f['no_alt'],  'l' => __( 'no alt text', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-ai' ) ),
+        );
+        if ( null !== $f['unused'] ) {
+            $band[] = array( 'n' => $f['unused'], 'l' => __( 'used nowhere', 'vergelabs-media-library' ), 'tip' => __( 'Files not used in any post, page or product yet.', 'vergelabs-media-library' ) );
+        }
+        if ( null !== $f['credits'] ) {
+            $band[] = array( 'n' => $f['credits'], 'l' => __( 'credits left', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-licence' ) );
+        }
+        ?>
+        <div class="vgml-band">
+            <?php foreach ( $band as $cell ) : ?>
+                <?php if ( ! empty( $cell['url'] ) ) : ?>
+                    <a class="vgml-band-cell" href="<?php echo esc_url( $cell['url'] ); ?>">
+                        <span class="vgml-band-n"><?php echo esc_html( number_format_i18n( $cell['n'] ) ); ?></span>
+                        <span class="vgml-band-l"><?php echo esc_html( $cell['l'] ); ?> →</span>
+                    </a>
+                <?php else : ?>
+                    <div class="vgml-band-cell"<?php echo ! empty( $cell['tip'] ) ? ' title="' . esc_attr( $cell['tip'] ) . '"' : ''; ?>>
+                        <span class="vgml-band-n"><?php echo esc_html( number_format_i18n( $cell['n'] ) ); ?></span>
+                        <span class="vgml-band-l"><?php echo esc_html( $cell['l'] ); ?></span>
+                    </div>
+                <?php endif; ?>
             <?php endforeach; ?>
         </div>
 
-        <?php if ( $f['images'] > 0 ) : ?>
-        <!-- how far along, as a shape rather than a sentence -->
-        <div class="vgml-meters">
-            <?php
-            $meters = array(
-                array(
-                    'label' => __( 'Described', 'vergelabs-media-library' ),
-                    'pct'   => $described_pct,
-                    'note'  => sprintf(
-                        /* translators: 1: images described, 2: images in total. */
-                        __( '%1$s of %2$s', 'vergelabs-media-library' ),
-                        number_format_i18n( $f['described'] ),
-                        number_format_i18n( $f['images'] )
-                    ),
-                ),
-                array(
-                    'label' => __( 'Alt text', 'vergelabs-media-library' ),
-                    'pct'   => $alt_pct,
-                    'note'  => sprintf(
-                        /* translators: 1: images with alt text, 2: images in total. */
-                        __( '%1$s of %2$s', 'vergelabs-media-library' ),
-                        number_format_i18n( $f['images'] - $f['no_alt'] ),
-                        number_format_i18n( $f['images'] )
-                    ),
-                ),
-            );
-            ?>
-            <?php foreach ( $meters as $m ) : ?>
-                <div class="vgml-meter">
-                    <div class="vgml-meter-top">
-                        <span class="vgml-meter-label"><?php echo esc_html( $m['label'] ); ?></span>
-                        <span class="vgml-meter-note"><?php echo esc_html( $m['note'] ); ?></span>
-                    </div>
-                    <div class="vgml-import-bar">
-                        <div class="vgml-import-fill" style="width:<?php echo esc_attr( $m['pct'] ); ?>%"></div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-
-        <div class="vgml-dash-cols">
-        <div class="vgml-dash-main">
+        <div class="vgml-cols vgml-dash-cols">
+        <div class="vgml-cols-main vgml-dash-main">
 
         <?php
         /*
@@ -1293,86 +1308,64 @@ function vergeml_journey_screen() {
         $anything  = (int) $f['described'] > 0;
         ?>
 
+        <h6 class="vgml-kicker"><?php esc_html_e( 'What to do next', 'vergelabs-media-library' ); ?></h6>
+        <div class="vgml-do-list">
+
         <?php if ( $next && $remaining ) : ?>
-        <div class="vgml-next">
-            <p class="vgml-next-eyebrow"><?php esc_html_e( 'Start here', 'vergelabs-media-library' ); ?></p>
-            <h2><?php echo esc_html( $next['title'] ); ?></h2>
-            <p class="vgml-next-text"><?php echo esc_html( $next['text'] ); ?></p>
-            <?php if ( $next['action'] && $next['url'] ) : ?>
-                <a class="button button-primary" href="<?php echo esc_url( $next['url'] ); ?>"><?php echo esc_html( $next['action'] ); ?></a>
-            <?php endif; ?>
-        </div>
+            <div class="vgml-do vgml-do-first">
+                <div class="vgml-do-n"><?php echo esc_html( number_format_i18n( (int) $f['undescribed'] ) ); ?></div>
+                <div class="vgml-do-text">
+                    <div class="vgml-do-title"><?php echo esc_html( $next['title'] ); ?></div>
+                    <div class="vgml-do-note"><?php echo esc_html( $next['text'] ); ?></div>
+                </div>
+                <?php if ( $next['action'] && $next['url'] ) : ?>
+                    <a class="button button-primary" href="<?php echo esc_url( $next['url'] ); ?>"><?php echo esc_html( $next['action'] ); ?></a>
+                <?php endif; ?>
+            </div>
         <?php endif; ?>
 
         <?php if ( $anything ) : ?>
-        <div class="vgml-do-list">
-            <h2 class="vgml-do-head"><?php esc_html_e( 'What you can do now', 'vergelabs-media-library' ); ?></h2>
             <?php foreach ( vergeml_journey_todo() as $item ) : ?>
                 <?php
                 /*
-                 *  Title, number and note are one block, and the action is the
-                 *  other. They used to be five siblings, which meant the card
-                 *  could only be laid out by stacking them in one grid cell and
-                 *  pushing each down by a fixed margin -- an arrangement that
-                 *  came apart the moment a title wrapped to two lines.
+                 *  One row: the count, the title and the line under it, and
+                 *  exactly one action on the right (design handoff, item 6).
+                 *  Primary, secondary or ghost is the item's own weight.
                  */
+                $kind  = isset( $item['kind'] ) ? $item['kind'] : 'secondary';
+                $class = 'primary' === $kind ? 'button button-primary' : ( 'ghost' === $kind ? 'vgml-btn vgml-btn-ghost' : 'button' );
                 ?>
-                <div class="vgml-do">
+                <div class="vgml-do<?php echo $item['n'] > 0 ? '' : ' is-done'; ?>">
+                    <div class="vgml-do-n"><?php echo esc_html( number_format_i18n( (int) $item['n'] ) ); ?></div>
                     <div class="vgml-do-text">
-                        <h3 class="vgml-do-title"><?php echo esc_html( $item['title'] ); ?></h3>
-                        <?php if ( $item['n'] > 0 ) : ?>
-                            <p class="vgml-do-line"><strong class="vgml-do-count"><?php echo esc_html( $item['count'] ); ?></strong></p>
-                        <?php else : ?>
-                            <p class="vgml-do-line is-done"><?php echo esc_html( $item['done'] ); ?></p>
-                        <?php endif; ?>
-                        <p class="vgml-do-note"><?php echo esc_html( $item['note'] ); ?></p>
-                    </div>
-
-                    <?php if ( $item['n'] > 0 ) : ?>
-                        <p class="vgml-flow-actions">
-                            <a class="button button-primary" href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['go'] ); ?></a>
-                        </p>
-                    <?php endif; ?>
-
-                    <?php if ( ! empty( $item['more'] ) ) : ?>
-                        <div class="vgml-do-more">
+                        <div class="vgml-do-title"><?php echo esc_html( $item['title'] ); ?></div>
+                        <div class="vgml-do-note"><?php echo esc_html( $item['n'] > 0 ? $item['note'] : $item['done'] ); ?></div>
+                        <?php if ( ! empty( $item['more'] ) ) : ?>
                             <?php if ( ! empty( $item['more']['blocked'] ) ) : ?>
-                                <p class="vgml-do-blocked"><?php echo esc_html( $item['more']['blocked'] ); ?></p>
+                                <div class="vgml-do-more"><?php echo esc_html( $item['more']['blocked'] ); ?></div>
                             <?php else : ?>
-                                <div class="vgml-do-text">
-                                    <p class="vgml-do-more-count"><?php echo esc_html( $item['more']['count'] ); ?></p>
-                                    <p class="vgml-do-note"><?php echo esc_html( $item['more']['note'] ); ?></p>
+                                <div class="vgml-do-more">
+                                    <?php echo esc_html( $item['more']['count'] ); ?>
+                                    <a href="<?php echo esc_url( $item['more']['url'] ); ?>"><?php echo esc_html( $item['more']['go'] ); ?></a>
                                 </div>
-                                <p class="vgml-flow-actions">
-                                    <a class="button" href="<?php echo esc_url( $item['more']['url'] ); ?>"><?php echo esc_html( $item['more']['go'] ); ?></a>
-                                </p>
                             <?php endif; ?>
-                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ( $item['n'] > 0 ) : ?>
+                        <a class="<?php echo esc_attr( $class ); ?>" href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['go'] ); ?></a>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
-        </div>
         <?php endif; ?>
 
-        <?php
-        /*
-         *  The seam the old home screen had, kept: the usage-statistics
-         *  opt-in card hangs off it (core/instrument.php), and when the
-         *  dashboard became this list the card quietly stopped rendering
-         *  anywhere. A consent switch that cannot be reached is not consent.
-         */
-        if ( has_action( 'vergeml_admin_home_cards' ) ) : ?>
-        <div class="vgml-home-cards">
-            <?php do_action( 'vergeml_admin_home_cards' ); ?>
         </div>
-        <?php endif; ?>
 
         <?php if ( ! empty( $f['recent'] ) ) : ?>
         <!-- the library itself, and what the model saw in it -->
         <div class="vgml-seen">
             <div class="vgml-seen-head">
-                <h2><?php esc_html_e( 'Recently described', 'vergelabs-media-library' ); ?></h2>
-                <a href="<?php echo esc_url( admin_url( 'upload.php' ) ); ?>"><?php esc_html_e( 'Open the library', 'vergelabs-media-library' ); ?></a>
+                <h6 class="vgml-kicker"><?php esc_html_e( 'Recently described', 'vergelabs-media-library' ); ?></h6>
+                <a class="vgml-btn vgml-btn-ghost" href="<?php echo esc_url( admin_url( 'upload.php' ) ); ?>"><?php esc_html_e( 'Open the library ↗', 'vergelabs-media-library' ); ?></a>
             </div>
             <ul class="vgml-seen-strip">
                 <?php foreach ( $f['recent'] as $shot ) : ?>
@@ -1421,21 +1414,25 @@ function vergeml_journey_screen() {
             $waiting[] = $stage;
         }
         ?>
-        <?php if ( ! empty( $waiting ) ) : ?>
-        <div class="vgml-rest">
-            <h2><?php esc_html_e( 'Also worth doing', 'vergelabs-media-library' ); ?></h2>
-            <ul class="vgml-rest-list">
-                <?php foreach ( $waiting as $stage ) : ?>
-                    <li class="vgml-rest-row is-<?php echo esc_attr( $stage['state'] ); ?>">
-                        <a href="<?php echo esc_url( $stage['url'] ); ?>"><?php echo esc_html( $stage['title'] ); ?></a>
-                        <span class="vgml-rest-state"><?php
-                            echo esc_html( 'blocked' === $stage['state'] ? $stage['blocked'] : vergeml_journey_state_word( $stage['state'] ) );
-                        ?></span>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
+        <?php
+        /*
+         *  The foot: the consent row for size counts (core/instrument.php),
+         *  the Get help row (core/get-help.php), and the version line. The
+         *  hook is kept because a consent switch that cannot be reached is
+         *  not consent.
+         */
+        ?>
+        <div class="vgml-dash-foot">
+            <?php do_action( 'vergeml_admin_home_cards' ); ?>
+            <p class="vgml-dash-version"><?php
+                $bits = array( sprintf( /* translators: %s: version */ __( 'Version %s', 'vergelabs-media-library' ), VERGEML_VERSION ) );
+                if ( '' !== $meta ) {
+                    $bits[] = sprintf( /* translators: %s: last four of the licence */ __( 'Licence …%s', 'vergelabs-media-library' ), substr( $key, -4 ) );
+                    $bits[] = __( 'Connected', 'vergelabs-media-library' );
+                }
+                echo esc_html( implode( ' · ', $bits ) );
+            ?></p>
         </div>
-        <?php endif; ?>
 
         </div><!-- /main -->
 
@@ -1450,10 +1447,10 @@ function vergeml_journey_screen() {
          */
         $scored = vergeml_journey_score();
         ?>
-        <aside class="vgml-dash-rail">
+        <aside class="vgml-cols-rail vgml-dash-rail">
 
-            <div class="vgml-rail-card vgml-scorecard">
-                <h2><?php esc_html_e( 'Library score', 'vergelabs-media-library' ); ?></h2>
+            <div class="vgml-rail-block vgml-scorecard">
+                <h6 class="vgml-kicker"><?php esc_html_e( 'Library score', 'vergelabs-media-library' ); ?></h6>
 
                 <?php if ( null === $scored['score'] ) : ?>
                     <p class="vgml-score-none"><?php esc_html_e( 'Nothing to score until there are files in the library.', 'vergelabs-media-library' ); ?></p>
@@ -1476,8 +1473,8 @@ function vergeml_journey_screen() {
                 </ul>
             </div>
 
-            <div class="vgml-rail-card">
-                <h2><?php esc_html_e( 'Quick actions', 'vergelabs-media-library' ); ?></h2>
+            <div class="vgml-rail-block">
+                <h6 class="vgml-kicker"><?php esc_html_e( 'Quick actions', 'vergelabs-media-library' ); ?></h6>
 
                 <?php
                 $actions = array();
@@ -1589,6 +1586,24 @@ function vergeml_journey_screen() {
 
                 <p class="vgml-quick-said" id="vgml-quick-said" role="status"></p>
             </div>
+
+            <?php if ( ! empty( $waiting ) ) : ?>
+            <div class="vgml-rail-block vgml-rest">
+                <h6 class="vgml-kicker"><?php esc_html_e( 'Also worth doing', 'vergelabs-media-library' ); ?></h6>
+                <ul class="vgml-rest-list">
+                    <?php foreach ( $waiting as $stage ) : ?>
+                        <li class="vgml-rest-row is-<?php echo esc_attr( $stage['state'] ); ?>">
+                            <a href="<?php echo esc_url( $stage['url'] ); ?>">
+                                <span class="vgml-rest-title"><?php echo esc_html( $stage['title'] ); ?> →</span>
+                                <span class="vgml-rest-state"><?php
+                                    echo esc_html( 'blocked' === $stage['state'] ? $stage['blocked'] : ( isset( $stage['text'] ) ? $stage['text'] : vergeml_journey_state_word( $stage['state'] ) ) );
+                                ?></span>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php endif; ?>
 
         </aside>
         </div><!-- /cols -->

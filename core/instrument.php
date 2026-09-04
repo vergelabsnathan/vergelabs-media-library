@@ -265,31 +265,16 @@ function vergeml_stats_card() {
     $state = vergeml_stats_state();
 
     ?>
-    <div class="vgml-stats-card">
-
-        <h2><?php esc_html_e( 'Help size the next features', 'vergelabs-media-library' ); ?></h2>
-
-        <p class="description">
-            <?php esc_html_e( 'This plugin is built by one person who has never seen your library. If you switch this on, it keeps a count of how big it is and how it is arranged, so the defaults get chosen for real libraries instead of test ones.', 'vergelabs-media-library' ); ?>
-        </p>
-
-        <p class="description">
-            <strong><?php esc_html_e( 'Exactly this, and nothing else:', 'vergelabs-media-library' ); ?></strong>
-            <?php esc_html_e( 'how many files you have, how many of them are images, video, audio or documents, how many folders there are and how deeply they nest, how many files were added in the last 30 days, your WordPress and PHP versions, and your site language.', 'vergelabs-media-library' ); ?>
-        </p>
-
-        <p class="description">
-            <?php esc_html_e( 'No filenames, no titles, no folder names, no addresses, and nothing you or anyone else has written. The numbers are kept on this site — nothing is sent anywhere.', 'vergelabs-media-library' ); ?>
-        </p>
-
-        <p>
-            <label>
-                <input type="checkbox" id="vgml-stats-opt" <?php checked( ! empty( $state['opted'] ) ); ?>>
-                <?php esc_html_e( 'Keep these numbers', 'vergelabs-media-library' ); ?>
-            </label>
-            <span id="vgml-stats-note" class="description"></span>
-        </p>
-
+    <div class="vgml-stats-card vgml-foot-row">
+        <div class="vgml-foot-label"><?php esc_html_e( 'Size counts', 'vergelabs-media-library' ); ?></div>
+        <div class="vgml-foot-text">
+            <?php esc_html_e( 'Keep anonymous counts — how many files and folders, how deep they nest, versions, site language — so defaults get chosen for real libraries. Numbers only; nothing you wrote leaves this site.', 'vergelabs-media-library' ); ?>
+            <span id="vgml-stats-note" class="vgml-accent-text"></span>
+        </div>
+        <label class="vgml-foot-check">
+            <input type="checkbox" id="vgml-stats-opt" <?php checked( ! empty( $state['opted'] ) ); ?>>
+            <?php esc_html_e( 'Keep these numbers', 'vergelabs-media-library' ); ?>
+        </label>
     </div>
     <?php
 }
