@@ -353,10 +353,18 @@ function vergeml_filing_pick( $facts, $profiles ) {
             continue;
         }
 
+        /*
+         *  A folder's first class is what it is for; the ones after are what
+         *  it also holds. "Bikes and cycling" (bicycle, person) and "Objects"
+         *  (object, bicycle, gadget) both claimed a road bike outright and the
+         *  picture was too close to call. The folder that is *for* bicycles
+         *  wins by the weight a secondary class does not carry.
+         */
         $class = 0.0;
         foreach ( (array) $facts['classes'] as $pc ) {
-            foreach ( (array) $p['classes'] as $fc ) {
-                $class = max( $class, vergeml_filing_class_match( $pc, $fc ) );
+            foreach ( array_values( (array) $p['classes'] ) as $rank => $fc ) {
+                $weight = 0 === $rank ? 1.0 : 0.85;
+                $class  = max( $class, $weight * vergeml_filing_class_match( $pc, $fc ) );
                 if ( $class >= 1.0 ) {
                     break 2;
                 }
