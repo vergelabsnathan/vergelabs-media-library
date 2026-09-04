@@ -83,8 +83,8 @@ jobs:
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 \
             "ACTION=delete UI_USER=vgml-ui bash -s" < tools/box-ui-user.sh
 
-      - name: keep the trace of anything that failed
-        if: failure()
+      - name: keep the trace, and the guide's screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ui-report

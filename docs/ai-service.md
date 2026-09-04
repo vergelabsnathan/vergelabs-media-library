@@ -161,3 +161,7 @@ site's `auth` salt), write-only through REST, masked in the UI, and never
 exposed by `/ai-status` (a boolean `has_license` only). A copied database
 does not yield working licences; changed salts read as "no licence" and
 re-entering the key is the recovery.
+
+## `/v1/guide`
+
+`POST` with `license_key`, `site`, `mode` (`propose` | `turn`), `summary` (the plugin's library summary), `goal`, `current` (folders that exist), and for `turn` also `draft`, the last 20 `turns` and one `input` (`text` | `choice` | `edit`). `propose` answers `{ proposals: [{ name, tree }, { name, tree }] }`; `turn` answers `{ message, choices?, draft? }` where `draft` is the whole tree when it changed. Model `claude-opus-5` through OpenRouter, `thinking` disabled, 6,000 output tokens, one retry with the validation error. No credit is charged; more than 60 turns of history is refused (`too_many_turns`). Errors follow `/v1/folders`.

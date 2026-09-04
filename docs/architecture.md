@@ -104,3 +104,7 @@ The test ground should assert, per WordPress version in the matrix:
 
 Those three checks would have caught all of: the WP 7.0 layout break, the duplicate author
 filter id, and the missing heading.
+
+## Guided sorting (2026-09-04)
+
+A full-screen, four-step way to arrive at a folder structure: `core/guide.php` keeps one session per site in the option `vergeml_guide_session` (goal, summary, proposals, draft tree with versions, turns, a 25-turn cap) and exposes `/guide/session|summary|propose|turn|apply|progress` under the plugin's REST namespace. The screens are `js/vergeml-guide.js` in `wp.element`, no build step. The assistant lives on the service (`/v1/guide`, `lib/guide.ts`, Opus with thinking disabled) and only ever edits the draft; `apply` hands the final tree to `vergeml_talk_apply()` and the same resumable re-filing every other path uses. Counts on proposals are estimated in the plugin from a 2,000-record sample of the catalogue, never from a model.

@@ -30,6 +30,7 @@ const SHEETS = [
 	'vergeml-librarian',
 	'vergeml-media-list',
 	'vergeml-gallery',
+	'vergeml-guide',
 ];
 
 let stale = 0;

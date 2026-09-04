@@ -16,6 +16,7 @@ export const SCREEN = {
 	dashboard: 'vergelabs-media',
 	folders: 'media-librarian',
 	ai: 'media-ai',
+	guide: 'media-guide',
 	duplicates: 'media-health',
 	taxonomies: 'media-taxonomies',
 };
