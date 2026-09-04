@@ -20,12 +20,39 @@ const DRAFT = {
 	tags: [ { name: 'Colour', values: [ 'tan', 'red' ] } ],
 };
 
+/*
+ *  The planted draft is test data on a live site. It once stayed behind,
+ *  somebody pressed Move on it, and twenty-one real folders went. So the
+ *  session that was there is read first and put back after every test,
+ *  whatever the test did.
+ */
+let saved = null;
+
 async function plant( page ) {
+	if ( saved === null ) {
+		saved = await page.evaluate( () => wp.apiFetch( { path: '/vergeml/v1/guide/session' } ) );
+	}
 	await page.evaluate( ( draft ) => wp.apiFetch( { path: '/vergeml/v1/guide/session', method: 'POST', data: { session: { state: 'shaping', draft } } } ), DRAFT );
 	await page.reload( { waitUntil: 'domcontentloaded' } );
 }
 
+async function restore( page ) {
+	if ( saved === null ) {
+		return;
+	}
+	const s = saved;
+	const draft = s.draft && s.draft.folders && s.draft.folders.length ? s.draft : { folders: [], tags: [] };
+	// Back to the first screen wipes the session; anything else is patched over the planted one.
+	await page.evaluate( ( arg ) => wp.apiFetch( { path: '/vergeml/v1/guide/session', method: 'POST', data: { session: { state: 'library', draft: { folders: [], tags: [] } } } } )
+		.then( () => arg.state === 'library' ? null : wp.apiFetch( { path: '/vergeml/v1/guide/session', method: 'POST', data: { session: { state: arg.state, draft: arg.draft, goal: arg.goal } } } ) ),
+		{ state: s.state || 'library', draft, goal: s.goal || '' } );
+}
+
 test.describe( 'the sort into folders screen', () => {
+
+	test.afterEach( async ( { page } ) => {
+		await restore( page );
+	} );
 
 	test( 'shows the four steps, the command bar and the tree', async ( { page } ) => {
 		const problems = [];

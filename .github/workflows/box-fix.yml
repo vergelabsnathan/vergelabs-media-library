@@ -42,6 +42,7 @@ on:
           - guide-reset
           - tags-check
           - numbers
+          - folders-undo
           - menu-check
       profile:
         description: for job=refile-all, '1' asks the planner what each folder takes before filing
@@ -253,6 +254,11 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-tags-check.php root@46.225.66.194:/tmp/vgml-tags-check.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 'bash -s' < tools/box-tags-check.sh
+
+      - name: put the folders back from the last re-filing's undo record, and clear the sort session
+        if: ${{ inputs.job == 'folders-undo' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-folders-undo.sh
 
       - name: every number the screens show, side by side (read-only)
         if: ${{ inputs.job == 'numbers' }}

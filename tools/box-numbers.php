@@ -67,14 +67,17 @@ $say( 'run lock', get_transient( 'vergeml_ai_run_lock' ) );
 echo "\n== duplicates ==\n";
 if ( function_exists( 'vergeml_health_state' ) ) {
     $h = vergeml_health_state();
-    $say( 'scanned/finished', array( $h['scanned'], $h['finished'] ) );
-    $say( 'duplicates groups/more/wasted', array( count( $h['duplicates']['groups'] ), $h['duplicates']['more'], $h['duplicates']['wasted'] ) );
-    $say( 'related groups/more/wasted', array( count( $h['related']['groups'] ), $h['related']['more'], $h['related']['wasted'] ) );
+    $say( 'health_state keys', array_keys( (array) $h ) );
+    $say( 'health_state finished', isset( $h['finished'] ) ? $h['finished'] : null );
 }
 if ( function_exists( 'vergeml_health_report' ) ) {
     $r = vergeml_health_report();
     $say( 'health_report keys', array_keys( (array) $r ) );
-    $say( 'health_report duplicates/related counts', array( count( (array) ( $r['duplicates'] ?? array() ) ), count( (array) ( $r['related'] ?? array() ) ), $r['wasted'] ?? null ) );
+    foreach ( array( 'duplicates', 'related' ) as $k ) {
+        $v = isset( $r[ $k ] ) ? $r[ $k ] : null;
+        $say( 'health_report.' . $k, is_array( $v ) ? ( isset( $v['groups'] ) ? array( 'groups' => count( (array) $v['groups'] ), 'more' => $v['more'] ?? null, 'wasted' => $v['wasted'] ?? null ) : array( 'list' => count( $v ) ) ) : $v );
+    }
+    $say( 'health_report.wasted', isset( $r['wasted'] ) ? $r['wasted'] : null );
 }
 
 echo "\n== credits ==\n";
