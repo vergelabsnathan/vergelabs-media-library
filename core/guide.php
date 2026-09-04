@@ -452,7 +452,15 @@ function vergeml_guide_rest_session( WP_REST_Request $request ) {
 function vergeml_guide_rest_summary( WP_REST_Request $request ) {
     $s         = vergeml_guide_session();
     $described = vergeml_guide_described_count();
-    if ( ! is_array( $s['summary'] ) || (int) ( isset( $s['summary']['total'] ) ? $s['summary']['total'] : -1 ) !== $described ) {
+    // Stale when the library grew, when the folders changed, or when it was
+    // written by an older build without the unfiled figure.
+    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+    $nterms  = '' !== $tax && taxonomy_exists( $tax ) ? (int) wp_count_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) ) : 0;
+    $stale   = ! is_array( $s['summary'] )
+        || (int) ( isset( $s['summary']['total'] ) ? $s['summary']['total'] : -1 ) !== $described
+        || ! isset( $s['summary']['unfiled'] )
+        || count( (array) ( isset( $s['summary']['folders'] ) ? $s['summary']['folders'] : array() ) ) !== $nterms;
+    if ( $stale ) {
         $s['summary'] = vergeml_guide_summary();
         $s            = vergeml_guide_save( $s );
     }
