@@ -43,6 +43,7 @@ on:
           - tags-check
           - numbers
           - folders-undo
+          - alt-check
           - menu-check
       profile:
         description: for job=refile-all, '1' asks the planner what each folder takes before filing
@@ -259,6 +260,12 @@ jobs:
         if: ${{ inputs.job == 'folders-undo' }}
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-folders-undo.sh
+
+      - name: why the missing-alt run cannot finish (one real step; at most six credits)
+        if: ${{ inputs.job == 'alt-check' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-alt-check.php root@46.225.66.194:/tmp/vgml-alt-check.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-alt-check.sh
 
       - name: every number the screens show, side by side (read-only)
         if: ${{ inputs.job == 'numbers' }}
