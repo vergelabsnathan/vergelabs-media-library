@@ -20,17 +20,18 @@ const VERGEML_GUIDE_SAMPLE   = 2000;
 
 /* --------------------------------------------------------------- the page */
 
-add_action( 'admin_menu', 'vergeml_guide_menu', 23 );
+/*
+ *  The guide's own page is gone: the September 2026 redesign merged it with
+ *  Sort into folders into one surface (js/vergeml-sort.js), driven by this
+ *  file's session and routes. The old address still lands somewhere.
+ */
+add_action( 'admin_init', 'vergeml_guide_redirect' );
 
-function vergeml_guide_menu() {
-    add_submenu_page(
-        VERGEML_MENU,
-        __( 'Sort with a guide', 'vergelabs-media-library' ),
-        __( 'Sort with a guide', 'vergelabs-media-library' ),
-        'manage_categories',
-        'media-guide',
-        'vergeml_guide_page'
-    );
+function vergeml_guide_redirect() {
+    if ( isset( $_GET['page'] ) && 'media-guide' === $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, which screen this is.
+        wp_safe_redirect( admin_url( 'admin.php?page=media-librarian' ) );
+        exit;
+    }
 }
 
 function vergeml_guide_page() {
@@ -129,6 +130,8 @@ function vergeml_guide_clean_tree( $tree ) {
             'kinds'    => array_values( array_filter( array_map( 'sanitize_key', (array) ( isset( $f['kinds'] ) ? $f['kinds'] : array() ) ) ) ),
             'audience' => sanitize_text_field( (string) ( isset( $f['audience'] ) ? $f['audience'] : '' ) ),
             'count'    => isset( $f['count'] ) ? (int) $f['count'] : 0,
+            // Set aside on the Sort screen: kept in the draft, left out of the apply.
+            'aside'    => ! empty( $f['aside'] ),
         );
     }
     foreach ( (array) ( isset( $tree['tags'] ) ? $tree['tags'] : array() ) as $t ) {
@@ -510,7 +513,10 @@ function vergeml_guide_rest_turn( WP_REST_Request $request ) {
         'summary' => $s['summary'],
         'goal'    => $s['goal'],
         'current' => (array) ( isset( $s['summary']['folders'] ) ? $s['summary']['folders'] : array() ),
-        'draft'   => array( 'folders' => $s['draft']['folders'], 'tags' => $s['draft']['tags'] ),
+        'draft'   => array(
+            'folders' => array_values( array_filter( (array) $s['draft']['folders'], function ( $f ) { return empty( $f['aside'] ); } ) ),
+            'tags'    => $s['draft']['tags'],
+        ),
         'turns'   => array_slice( $s['turns'], -20 ),
         'input'   => $input,
     ) );
@@ -707,6 +713,9 @@ function vergeml_guide_rest_apply( WP_REST_Request $request ) {
     $s       = vergeml_guide_session();
     $folders = array();
     foreach ( (array) $s['draft']['folders'] as $f ) {
+        if ( ! empty( $f['aside'] ) ) {
+            continue;
+        }
         $folders[] = array(
             'name'     => $f['name'],
             'parent'   => $f['parent'],

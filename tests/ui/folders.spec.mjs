@@ -1,145 +1,77 @@
 import { test, expect, open, SCREEN } from './fixtures.mjs';
 
 /*
- *  Sorting into folders, as a conversation.
+ *  Sort into folders: one surface.
  *
- *  This screen carried two things that proposed folders -- a step-by-step
- *  wizard and a chat window -- and showed both at once, each with its own set
- *  of folders on screen and nothing to say which one the Do it button meant.
- *  You could ask for Apparel with Women and Men under it, watch the
- *  conversation agree, and still be reading the wizard's original suggestions
- *  directly above it.
- *
- *  Nothing here sends a message to the service. Asking it to plan a library
- *  costs time and a request on every push, and none of what broke needs a
- *  real reply to catch: the failures were in what the page shows before and
- *  around the answer.
+ *  The chat and the guide were two doors to one job; the September 2026
+ *  redesign merged them. What is checked here is the shape of the surface
+ *  before and around any answer from the service: the status strip, the
+ *  command bar, the tree, the one button. Nothing here asks the planner for
+ *  a proposal -- a session with a draft is planted first, so the page has a
+ *  tree to show without a model call on every push.
  */
+
+const DRAFT = {
+	folders: [
+		{ name: 'Apparel', parent: '', matches: 'clothing', classes: [ 'apparel' ], kinds: [ 'photo' ], audience: '', count: 30 },
+		{ name: 'Women', parent: 'Apparel', matches: 'worn by women', classes: [ 'apparel' ], kinds: [ 'photo' ], audience: 'women', count: 12 },
+		{ name: 'Landscapes', parent: '', matches: 'outdoor scenery', classes: [ 'landscape' ], kinds: [ 'photo' ], audience: '', count: 75 },
+	],
+	tags: [ { name: 'Colour', values: [ 'tan', 'red' ] } ],
+};
+
+async function plant( page ) {
+	await page.evaluate( ( draft ) => wp.apiFetch( { path: '/vergeml/v1/guide/session', method: 'POST', data: { session: { state: 'shaping', draft } } } ), DRAFT );
+	await page.reload( { waitUntil: 'domcontentloaded' } );
+}
 
 test.describe( 'the sort into folders screen', () => {
 
-	test( 'leads with the conversation, not the wizard', async ( { page } ) => {
+	test( 'shows the four steps, the command bar and the tree', async ( { page } ) => {
+		const problems = [];
+		page.on( 'pageerror', ( e ) => problems.push( `javascript: ${ e.message }` ) );
+
 		await open( page, SCREEN.folders );
+		await plant( page );
 
-		const talk = page.locator( '#vgml-talk' );
-		const flow = page.locator( '#vgml-lib-flow' );
+		await expect( page.locator( '.vgml-sort-step' ), 'four steps in the strip' ).toHaveCount( 4 );
+		await expect( page.locator( '.vgml-sort-command input' ), 'the command bar' ).toBeVisible();
+		await expect( page.locator( '.vgml-sort-command button' ), 'Send is disabled while the box is empty' ).toBeDisabled();
+		await expect( page.locator( '.vgml-sort-row input.vgml-sort-name' ), 'the draft tree' ).toHaveCount( 3 );
+		await expect( page.locator( '.vgml-sort-apply .button-primary' ) ).toContainText( 'Move' );
 
-		await expect( talk, 'the chat window is the thing this screen is for' ).toBeVisible();
-		await expect( flow, 'the step flow is still offered' ).toHaveCount( 1 );
-
-		/*
-		 *  Document order decides which one a person meets first, and the chat
-		 *  used to be underneath. Comparing positions rather than reading the
-		 *  markup means this still holds if the layout is rebuilt.
-		 */
-		const order = await page.evaluate( () => {
-			const t = document.getElementById( 'vgml-talk' );
-			const f = document.getElementById( 'vgml-lib-flow' );
-			if ( t === null || f === null ) return null;
-			return t.compareDocumentPosition( f ) & Node.DOCUMENT_POSITION_FOLLOWING ? 'talk first' : 'flow first';
-		} );
-
-		expect( order, 'the conversation should come before the step flow' ).toBe( 'talk first' );
+		await page.screenshot( { path: 'test-results/sort-1.png', fullPage: true } );
+		expect( problems, problems.join( '\n' ) ).toEqual( [] );
 	} );
 
-	test( 'offers openers, and takes them away once you have started', async ( { page } ) => {
+	test( 'setting a folder aside takes its children with it and the counts follow', async ( { page } ) => {
 		await open( page, SCREEN.folders );
+		await plant( page );
 
-		const empty = page.locator( '#vgml-talk-empty' );
-		const chips = empty.locator( '.vgml-talk-chip' );
+		const before = await page.locator( '.vgml-rail-row b' ).first().textContent();
+		expect( before.trim() ).toBe( '3' );
 
-		await expect( empty, 'an empty chat window needs to say what it understands' ).toBeVisible();
-		expect( await chips.count(), 'there should be openers to press' ).toBeGreaterThan( 0 );
+		await page.locator( '.vgml-sort-row' ).filter( { has: page.locator( 'input[value="Apparel"]' ) } ).locator( '.vgml-sort-aside' ).click();
 
-		/*
-		 *  Typed, not sent: this drives the same code the send path runs
-		 *  through without asking the service to plan anything. What is being
-		 *  checked is that starting a conversation rearranges the screen.
-		 */
-		await page.evaluate( () => {
-			const say = document.getElementById( 'vgml-talk-say' );
-			say.value = 'Sort these into Apparel, with Women and Men under it';
-			document.getElementById( 'vgml-talk-go' ).click();
-		} );
+		await expect( page.locator( '.vgml-sort-row input.vgml-sort-name' ), 'Apparel and Women are gone from the tree' ).toHaveCount( 1 );
+		await expect( page.locator( '.vgml-rail-row b' ).first() ).toHaveText( '1' );
+		await expect( page.locator( '.vgml-sort-asidenote' ) ).toContainText( 'set aside' );
 
-		await expect(
-			empty,
-			'the openers must leave when there is a conversation to read instead'
-		).toBeHidden( { timeout: 10_000 } );
-
-		await expect(
-			page.locator( '#vgml-lib-flow' ),
-			'the wizard must fold away rather than sit above the chat proposing different folders'
-		).toBeHidden( { timeout: 10_000 } );
-
-		await expect(
-			page.locator( '#vgml-lib-fold' ),
-			'and the page must say where it went'
-		).toBeVisible();
+		await page.locator( '.vgml-sort-asidenote button' ).click();
+		await expect( page.locator( '.vgml-sort-row input.vgml-sort-name' ), 'restore all brings them back' ).toHaveCount( 3 );
 	} );
 
-	test( 'can bring the wizard back', async ( { page } ) => {
+	test( 'typing enables Send, and a chip fills the box', async ( { page } ) => {
 		await open( page, SCREEN.folders );
+		await plant( page );
 
-		await page.evaluate( () => {
-			const say = document.getElementById( 'vgml-talk-say' );
-			say.value = 'group them by room';
-			document.getElementById( 'vgml-talk-go' ).click();
-		} );
-
-		const fold = page.locator( '#vgml-lib-fold' );
-		await expect( fold ).toBeVisible( { timeout: 10_000 } );
-
-		await page.locator( '#vgml-lib-unfold' ).click();
-
-		await expect(
-			page.locator( '#vgml-lib-flow' ),
-			'folding the wizard away must not be a one-way door'
-		).toBeVisible();
+		await page.locator( '.vgml-sort-chips .vgml-tag-outline' ).first().click();
+		await expect( page.locator( '.vgml-sort-command input' ) ).toHaveValue( /Apparel/ );
+		await expect( page.locator( '.vgml-sort-command button' ) ).toBeEnabled();
 	} );
 
-	test( 'the composer stays with the conversation', async ( { page } ) => {
-		await open( page, SCREEN.folders );
-
-		/*
-		 *  The transcript, the box and the status line were three separate
-		 *  elements on the page, so the box drifted further from the
-		 *  conversation with every reply. One panel is what keeps them
-		 *  together; if the box escapes it, this screen is back to being a
-		 *  form with a log bolted on.
-		 */
-		const inside = await page.evaluate( () => {
-			const panel = document.querySelector( '.vgml-talk-panel' );
-			const say = document.getElementById( 'vgml-talk-say' );
-			const log = document.getElementById( 'vgml-talk-log' );
-			if ( panel === null || say === null || log === null ) return null;
-			return panel.contains( say ) && panel.contains( log );
-		} );
-
-		expect( inside, 'the box you type in and the transcript belong in one frame' ).toBe( true );
-	} );
-
-	test( 'every string on this screen is translatable', async ( { page } ) => {
-		await open( page, SCREEN.folders );
-
-		/*
-		 *  These were localised under an 'l10n' key the script never read, so
-		 *  every lookup missed and every word came from the English fallback
-		 *  baked into the JavaScript -- on a translated site too, with nothing
-		 *  raised to say so. A shape check is the only way this is visible
-		 *  from outside, since both paths render the same English words.
-		 */
-		const strings = await page.evaluate( () => window.vergemlTalk || null );
-
-		expect( strings, 'the script must be handed its strings' ).not.toBeNull();
-		expect(
-			strings.l10n,
-			'nesting these under l10n is what made every one of them unreachable'
-		).toBeUndefined();
-
-		for ( const key of [ 'thinking', 'apply', 'failed', 'refine', 'noFolders' ] ) {
-			expect( typeof strings[ key ], `${ key } must be readable where the script looks` ).toBe( 'string' );
-			expect( strings[ key ].length, `${ key } must not be empty` ).toBeGreaterThan( 0 );
-		}
+	test( 'the old guide address lands here', async ( { page } ) => {
+		await page.goto( '/wp-admin/admin.php?page=media-guide', { waitUntil: 'domcontentloaded' } );
+		await expect( page ).toHaveURL( /page=media-librarian/ );
 	} );
 } );

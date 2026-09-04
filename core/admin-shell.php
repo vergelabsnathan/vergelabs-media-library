@@ -71,13 +71,6 @@ function vergeml_shell_pages() {
             'cap'   => 'manage_categories',
         ),
         array(
-            'slug'  => 'media-guide',
-            'icon'  => 'librarian',
-            'sub'   => __( 'Arrive at a structure, step by step', 'vergelabs-media-library' ),
-            'label' => __( 'Sort with a guide', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
-        ),
-        array(
             'slug'  => 'media-ai',
             'icon'  => 'ai',
             'sub'   => __( 'Describe, alt text, credits', 'vergelabs-media-library' ),

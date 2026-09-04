@@ -2670,7 +2670,30 @@ function vergeml_librarian_menu() {
 }
 
 
-add_action( 'admin_enqueue_scripts', 'vergeml_librarian_assets' );
+add_action( 'admin_enqueue_scripts', 'vergeml_sort_assets' );
+
+/**
+ *  The merged Sort surface (September 2026 redesign): one wp.element app,
+ *  driven by the guided session in core/guide.php. The wizard's own script
+ *  below is no longer loaded; its routes remain.
+ */
+function vergeml_sort_assets( $hook ) {
+
+    if ( false === strpos( (string) $hook, 'media-librarian' ) ) {
+        return;
+    }
+
+    wp_enqueue_style( 'vergeml-sort', plugins_url( 'css/vergeml-sort.css', VERGEML_FILE ), array(), vergeml_asset_ver( 'css/vergeml-sort.css' ) );
+    wp_style_add_data( 'vergeml-sort', 'rtl', 'replace' );
+    wp_enqueue_script( 'vergeml-sort', plugins_url( 'js/vergeml-sort.js', VERGEML_FILE ), array( 'wp-element', 'wp-api-fetch', 'wp-i18n' ), vergeml_asset_ver( 'js/vergeml-sort.js' ), true );
+    wp_localize_script( 'vergeml-sort', 'vgmlSort', array(
+        'ns'         => VERGEML_REST_NS,
+        'cap'        => defined( 'VERGEML_GUIDE_TURN_CAP' ) ? VERGEML_GUIDE_TURN_CAP : 25,
+        'aiUrl'      => admin_url( 'admin.php?page=media-ai' ),
+        'importUrl'  => admin_url( 'admin.php?page=media-import-folders' ),
+        'libraryUrl' => admin_url( 'upload.php' ),
+    ) );
+}
 
 function vergeml_librarian_assets( $hook ) {
 
@@ -2927,8 +2950,40 @@ function vergeml_librarian_page() {
      */
     $accent = '';
 
+    /*
+     *  One surface (September 2026 redesign). The status strip, the command
+     *  bar, the editable tree, the one button and the rail are all drawn by
+     *  js/vergeml-sort.js from the guided session; the wizard that used to
+     *  follow the chat here is gone from the page.
+     */
+    $described = function_exists( 'vergeml_guide_described_count' ) ? vergeml_guide_described_count() : 0;
+
     ?>
-    <div class="wrap vgml-home vgml-librarian"<?php echo '' !== $accent ? ' style="--vgml-accent: ' . esc_attr( $accent ) . '"' : ''; ?>>
+    <div class="wrap vgml-home vgml-librarian">
+
+        <?php
+        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            __( 'Sort into folders', 'vergelabs-media-library' ),
+            __( 'Folders worked out from your pictures, and shown to you before anything moves.', 'vergelabs-media-library' )
+        );
+        ?>
+
+        <div id="vgml-sort" class="vgml-sort" data-described="<?php echo esc_attr( (string) $described ); ?>"></div>
+
+    </div>
+    <?php
+}
+
+
+/** The wizard's former page body, kept for reference; no longer rendered. */
+function vergeml_librarian_page_legacy() {
+
+    if ( ! current_user_can( 'manage_categories' ) ) {
+        return;
+    }
+
+    ?>
+    <div class="wrap vgml-home vgml-librarian">
 
         <?php
         echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.

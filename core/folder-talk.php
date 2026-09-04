@@ -1536,8 +1536,12 @@ function vergeml_talk_rest_undo() {
  *  library never reaches the last step, so the after-flow block would hide
  *  this from exactly the people it is for.
  */
-add_action( 'vergeml_librarian_page_top', 'vergeml_talk_card' );
-
+/*
+ *  The card is no longer hooked on to the Sort screen: the September 2026
+ *  redesign merged the chat and the guide into one surface (js/vergeml-sort.js,
+ *  driven by core/guide.php). The routes below stay; the transcript UI is kept
+ *  for anything that still calls it.
+ */
 function vergeml_talk_card() {
 
 	if ( ! current_user_can( 'manage_categories' ) ) {
@@ -1615,8 +1619,6 @@ function vergeml_talk_card() {
 	<?php
 }
 
-
-add_action( 'admin_enqueue_scripts', 'vergeml_talk_assets' );
 
 function vergeml_talk_assets( $hook ) {
 

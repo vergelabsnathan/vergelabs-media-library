@@ -31,6 +31,7 @@ const SHEETS = [
 	'vergeml-media-list',
 	'vergeml-gallery',
 	'vergeml-guide',
+	'vergeml-sort',
 ];
 
 let stale = 0;
