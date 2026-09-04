@@ -1485,6 +1485,32 @@ function vergeml_librarian_apply_step( $batch_id ) {
         update_object_term_cache( $ids, 'attachment' );
     }
 
+    /*
+     *  The matcher (core/filing.php) as a veto. The scheme's clusters decide
+     *  the branch; the matcher stops the placements it can prove wrong -- a
+     *  picture gated out of that branch by kind or audience, or a misfit in a
+     *  branch the planner has described. Everything it cannot judge, the
+     *  cluster keeps.
+     */
+    $veto_rows = array();
+    $veto_prof = array();
+    if ( $ids && function_exists( 'vergeml_filing_pick' ) && isset( $wpdb->vergeml_ai_index ) ) {
+        $branch_ids = array();
+        foreach ( (array) $params['terms'] as $t ) {
+            if ( ! empty( $t['id'] ) ) {
+                $branch_ids[] = (int) $t['id'];
+            }
+        }
+        $veto_prof = $branch_ids ? vergeml_filing_profiles( $branch_ids, $taxonomy ) : array();
+        if ( $veto_prof ) {
+            $in = implode( ',', array_map( 'intval', $ids ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids are cast to int above; this plugin's own table.
+            foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, kind, filing FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL AND attachment_id IN ($in)", ARRAY_A ) as $r ) {
+                $veto_rows[ (int) $r['attachment_id'] ] = $r;
+            }
+        }
+    }
+
     $moves = array();
     $done  = (int) $batch['done'];
     $skip  = (int) $batch['skipped'];
@@ -1532,6 +1558,17 @@ function vergeml_librarian_apply_step( $batch_id ) {
             continue;
         }
 
+        if ( isset( $veto_rows[ $attachment_id ], $veto_prof[ (int) $term_id ] ) ) {
+            $facts  = vergeml_filing_facts( $veto_rows[ $attachment_id ] );
+            $pick   = vergeml_filing_pick( $facts, $veto_prof );
+            $gated  = isset( $pick['gated'][ (int) $term_id ] );
+            $misfit = $facts['classes'] && 'plan' === $veto_prof[ (int) $term_id ]['source']
+                && isset( $pick['scores'][ (int) $term_id ] ) && $pick['scores'][ (int) $term_id ] < VERGEML_FILING_MISFIT;
+            if ( $gated || $misfit ) {
+                $skip++;
+                continue;
+            }
+        }
         $set = wp_set_object_terms( $attachment_id, array( (int) $term_id ), $taxonomy, false );
 
         if ( is_wp_error( $set ) ) {

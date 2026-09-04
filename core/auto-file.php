@@ -253,59 +253,37 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
         return null;
     }
 
-    $vector = vergeml_autofile_vector( (int) $attachment_id );
-
-    if ( ! $vector ) {
-        return null;
-    }
-
-    $folders = null === $folders ? vergeml_autofile_folders( $taxonomy ) : $folders;
-
-    if ( ! $folders ) {
-        return null;
-    }
-
-    $best      = null;
-    $best_dist = null;
-    $runner_up = null;
-
-    foreach ( $folders as $term_id => $centroid ) {
-
-        $distance = vergeml_organize_distance( $vector, $centroid['mean'] );
-
-        if ( null === $best_dist || $distance < $best_dist ) {
-            $runner_up = $best_dist;
-            $best_dist = $distance;
-            $best      = (int) $term_id;
-            continue;
-        }
-
-        if ( null === $runner_up || $distance < $runner_up ) {
-            $runner_up = $distance;
-        }
-    }
-
-    if ( null === $best ) {
-        return null;
-    }
-
-    $centroid = $folders[ $best ];
-
-    // Near the middle of that folder, not merely nearer to it than to the
-    // others. A file can be the least bad fit for every folder you own.
-    $reach = $centroid['spread'] * VERGEML_AUTOFILE_REACH;
-
-    if ( $reach <= 0 || $best_dist > $reach ) {
-        return null;
-    }
-
     /*
-     *  And clearly nearer than the runner-up. When two folders would both
-     *  do, saying so is not useful and choosing is worse -- so neither.
+     *  Filed by evidence (core/filing.php), the same way the chat files. The
+     *  centroid rule this replaced was sound in shape -- a margin, a reach --
+     *  but it saw only vectors, and a vector cannot tell a logo from a shirt
+     *  or a women's shoe from a men's. The gates and the object class can.
+     *  Candidates are every folder on the site; a folder with no profile yet
+     *  gets one from its name.
      */
-    if ( null !== $runner_up && $best_dist * VERGEML_AUTOFILE_MARGIN > $runner_up ) {
+    global $wpdb;
+    $row = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+        "SELECT attachment_id, embedding, kind, filing FROM {$wpdb->vergeml_ai_index} WHERE attachment_id = %d AND error = '' AND embedding IS NOT NULL",
+        (int) $attachment_id
+    ), ARRAY_A );
+    if ( ! $row || ! function_exists( 'vergeml_filing_pick' ) ) {
         return null;
     }
+    static $profiles = null;
+    static $profiled = '';
+    if ( null === $profiles || $profiled !== $taxonomy ) {
+        $terms    = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids' ) );
+        $profiles = is_wp_error( $terms ) ? array() : vergeml_filing_profiles( $terms, $taxonomy );
+        $profiled = $taxonomy;
+    }
+    if ( ! $profiles ) {
+        return null;
+    }
+    $pick = vergeml_filing_pick( vergeml_filing_facts( $row ), $profiles );
+    if ( ! $pick['term_id'] ) {
+        return null; // Nothing fits well enough, or two folders would both do.
+    }
+    $best = (int) $pick['term_id'];
 
     return array(
         'attachment_id' => (int) $attachment_id,
