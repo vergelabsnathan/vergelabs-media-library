@@ -40,6 +40,7 @@ on:
           - plan
           - guide-walk
           - guide-reset
+          - menu-check
       profile:
         description: for job=refile-all, '1' asks the planner what each folder takes before filing
         required: false
@@ -249,6 +250,11 @@ jobs:
         if: ${{ inputs.job == 'guide-reset' }}
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-guide-reset.sh
+
+      - name: what the menu and the shell nav list (read-only)
+        if: ${{ inputs.job == 'menu-check' }}
+        run: |
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-menu-check.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
