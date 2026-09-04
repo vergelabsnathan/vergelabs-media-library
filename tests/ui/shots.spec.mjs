@@ -25,6 +25,10 @@ for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 		await page.setViewportSize( { width: 1440, height: 900 } );
 		await open( page, slug );
 		await expect( page.locator( '.vgml-shell-content' ) ).toBeVisible();
+		if ( name === 'sort' ) {
+			// The app draws once the session has loaded; a planner call may follow, and is not waited for.
+			await expect( page.locator( '.vgml-sort-steps' ) ).toBeVisible( { timeout: 30000 } );
+		}
 		await page.waitForTimeout( 800 );
 		await page.screenshot( { path: `test-results/shot-${ name }.png`, fullPage: true } );
 		expect( problems, problems.join( '\n' ) ).toEqual( [] );

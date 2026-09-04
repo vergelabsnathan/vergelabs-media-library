@@ -469,6 +469,16 @@ function vergeml_shell_badges() {
  *  What goes is everything registered by another plugin.
  */
 
+add_filter( 'admin_body_class', 'vergeml_shell_body_class' );
+
+/** Marks the body on our screens so the ground colour can run under the whole page. */
+function vergeml_shell_body_class( $classes ) {
+    if ( '' !== vergeml_shell_current() ) {
+        $classes .= ' vgml-screen';
+    }
+    return $classes;
+}
+
 add_action( 'in_admin_header', 'vergeml_shell_quiet', 1 );
 
 function vergeml_shell_quiet() {

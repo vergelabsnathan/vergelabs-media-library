@@ -1328,6 +1328,72 @@
 	margin-top: 0;
 }
 
+/* Core's #poststuff heading rules outrank anything without an id. */
+.vgml-shell-content #poststuff h2,
+.vgml-shell-content #poststuff .postbox h3.hndle,
+.vgml-shell-content #poststuff h3.hndle {
+	margin: 30px 0 6px;
+	padding: 0;
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--vgml-n600);
+	line-height: 1.4;
+}
+
+.vgml-shell-content #poststuff .postbox h3.hndle {
+	margin-top: 0;
+}
+
+.vgml-shell-content #poststuff form > h2:first-of-type {
+	margin-top: 28px;
+}
+
+.vgml-shell-content #poststuff .postbox .inside .vergeml-settings-list,
+.vgml-shell-content #poststuff .postbox .inside > ul {
+	margin-right: 0;
+	padding-right: 0;
+}
+
+.vgml-shell-content #poststuff .postbox .inside > .vgml-note {
+	margin-top: 12px;
+}
+
+/* The ground runs to the bottom of the page, not to the end of the shell. */
+body.vgml-screen #wpcontent,
+body.vgml-screen #wpbody-content {
+	background: #f7f9fc;
+}
+
+/* Cards hooked on to a screen by another file (the quarantine card on
+   Duplicates), drawn as a section, not a box. */
+.vgml-shell-content .vgml-ai-card:not(.vgml-ai-run) {
+	margin: 36px 0 0;
+	padding: 16px 0 0;
+	border: 0;
+	border-top: 2px solid var(--vgml-divider);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.vgml-shell-content .vgml-ai-card:not(.vgml-ai-run) > h2 {
+	margin: 0 0 4px;
+	padding: 0;
+	border: 0;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content .vgml-ai-card:not(.vgml-ai-run) > p {
+	margin: 0 0 12px;
+	max-width: 62ch;
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
 /* The WordPress notice inside our pane, bounded like everything else. */
 .vgml-shell-content .notice,
 .vgml-shell-content .eml-admin-notice {
