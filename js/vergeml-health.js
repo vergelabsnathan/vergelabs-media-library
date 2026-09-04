@@ -140,14 +140,18 @@
 			head.appendChild( picklabel );
 		}
 
-		head.appendChild( el( 'span', 'vgml-health-count', sprintf(
+		var files = sprintf(
 			1 === group.items.length
 				? text( 'countOne', '%s file' )
 				: text( 'countMany', '%s files' ),
 			[ String( group.items.length ) ]
-		) ) );
-		head.appendChild( el( 'span', 'vgml-health-wasted',
-			sprintf( text( 'groupWasted', '%s potentially recoverable' ), [ bytes( group.wasted ) ] ) ) );
+		);
+		var line = el( 'span', 'vgml-health-count' );
+		line.appendChild( el( 'b', null, files ) );
+		line.appendChild( document.createTextNode( ' · ' ) );
+		var back = sprintf( text( 'setLine', '%1$s · keep one and get %2$s back' ), [ files, bytes( group.wasted ) ] ).split( ' · ' )[ 1 ] || '';
+		line.appendChild( document.createTextNode( back ) );
+		head.appendChild( line );
 		wrap.appendChild( head );
 
 		var list = el( 'ul', 'vgml-health-files' );
@@ -217,6 +221,15 @@
 
 			wrap.appendChild( deleteControls( entry ) );
 			entries.push( entry );
+		} else {
+			var first = group.items[ 0 ];
+			if ( first && first.edit ) {
+				var open = document.createElement( 'a' );
+				open.className = 'vgml-btn vgml-btn-ghost vgml-health-open';
+				open.href = first.edit;
+				open.textContent = text( 'openLibrary', 'Open in the library ↗' );
+				wrap.appendChild( open );
+			}
 		}
 
 		return wrap;
@@ -553,28 +566,18 @@
 		 *  the title and its one-line note, then the body -- so a screen whose
 		 *  cards come from a script is not the one screen shaped differently.
 		 */
-		var card = el( 'section', 'vgml-pg-card vgml-health-list' );
-		var head = el( 'div', 'vgml-pg-card-head' );
-		var title = el( 'h2', 'vgml-pg-card-title', heading );
+		var card = el( 'section', 'vgml-health-list' + ( deletable ? ' is-exact' : ' is-related' ) );
+		var head = el( 'div', 'vgml-health-list-head' );
+		head.appendChild( el( 'h6', 'vgml-kicker', heading ) );
 
-		if ( note ) {
-			title.appendChild( el( 'span', 'vgml-pg-card-note', note ) );
-		}
-
-		head.appendChild( title );
-
-		if ( section.groups.length ) {
-			head.appendChild( el( 'span', 'vgml-health-summary',
-				sprintf( text( 'summary', '%1$s groups · %2$s potentially recoverable' ),
-					[ String( section.groups.length ), bytes( section.wasted ) ] ) ) );
+		if ( note && section.groups.length ) {
+			head.appendChild( el( 'span', 'vgml-health-list-note', note ) );
 		}
 
 		card.appendChild( head );
 
 		if ( ! section.groups.length ) {
-			var none = el( 'div', 'vgml-pg-empty' );
-			none.appendChild( el( 'span', 'vgml-pg-empty-title', empty ) );
-			card.appendChild( none );
+			card.appendChild( el( 'div', 'vgml-health-empty', empty ) );
 			return card;
 		}
 
@@ -600,12 +603,14 @@
 
 		if ( section.more > 0 ) {
 			card.appendChild( el( 'p', 'vgml-health-more',
-				sprintf( text( 'more', 'and %s more' ), [ String( section.more ) ] ) ) );
+				sprintf( text( 'moreSets', '…and %s more sets, listed in the media library view.' ), [ String( section.more ) ] ) ) );
 		}
 
 		// The card, not its body: everything above was appended into the body.
 		return shell;
 	}
+
+	var justScanned = false;
 
 	function report() {
 
@@ -617,19 +622,25 @@
 			target.innerHTML = '';
 
 			if ( ! r.scanned ) {
-				$( 'vgml-health-counts' ).textContent = text( 'never', '' );
-				$( 'vgml-health-note' ).textContent = '';
+				$( 'vgml-health-note' ).textContent = text( 'never', '' );
 				return r;
 			}
 
-			var groups = r.duplicates.groups.length + r.related.groups.length;
-
-			$( 'vgml-health-counts' ).textContent =
-				sprintf( text( 'summary', '%1$s groups · %2$s potentially recoverable' ),
-					[ String( groups ), bytes( r.wasted ) ] );
+			/*
+			 *  The three-cell band: exact copies, look-alike sets, and what
+			 *  keeping one of each frees. Kept apart on purpose -- only the
+			 *  first can be deleted from here (design handoff, item 3).
+			 */
+			var exact = 0;
+			r.duplicates.groups.forEach( function ( g ) { exact += Math.max( 0, g.items.length - 1 ); } );
+			var sets = r.related.groups.length + ( r.related.more || 0 );
+			$( 'vgml-health-n-exact' ).textContent = String( exact );
+			$( 'vgml-health-n-sets' ).textContent = String( sets );
+			$( 'vgml-health-n-freed' ).textContent = bytes( r.wasted );
+			$( 'vgml-health-band' ).hidden = false;
 
 			target.appendChild( drawList(
-				text( 'duplicates', 'Duplicates' ),
+				text( 'duplicates', 'Exact duplicates' ),
 				text( 'dupeNote', '' ),
 				text( 'noDuplicates', 'No duplicates found.' ),
 				r.duplicates,
@@ -637,17 +648,20 @@
 			) );
 
 			target.appendChild( drawList(
-				text( 'related', 'Possibly related' ),
+				text( 'related', 'Possibly related — worth your own eye' ),
 				text( 'relatedNote', '' ),
 				text( 'noRelated', '' ),
 				r.related,
 				false // a guess, and a guess never gets a delete button
 			) );
 
-			target.appendChild( el( 'p', 'vgml-health-readonly', text( 'careful', '' ) ) );
-
 			$( 'vgml-health-note' ).textContent = '';
 			$( 'vgml-health-scan' ).textContent = text( 'rescan', 'Scan again' );
+			$( 'vgml-health-bar' ).hidden = true;
+			if ( justScanned ) {
+				$( 'vgml-health-counts' ).textContent = text( 'scannedNow', 'Scanned just now.' );
+				justScanned = false;
+			}
 
 			return r;
 		} );
@@ -691,6 +705,7 @@
 
 				fill.style.width = '100%';
 				running = false;
+				justScanned = true;
 				report();
 			} ).catch( function ( err ) {
 				running = false;

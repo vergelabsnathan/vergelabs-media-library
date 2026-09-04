@@ -1227,6 +1227,12 @@ function vergeml_health_assets( $hook ) {
         'l10n' => array(
             'scan'         => __( 'Scan the library', 'vergelabs-media-library' ),
             'rescan'       => __( 'Scan again', 'vergelabs-media-library' ),
+            'scannedNow'   => __( 'Scanned just now.', 'vergelabs-media-library' ),
+            'openLibrary'  => __( 'Open in the library ↗', 'vergelabs-media-library' ),
+            /* translators: 1: how many files, 2: an amount of disk */
+            'setLine'      => __( '%1$s · keep one and get %2$s back', 'vergelabs-media-library' ),
+            /* translators: %s: how many more sets */
+            'moreSets'     => __( '…and %s more sets, listed in the media library view.', 'vergelabs-media-library' ),
             'scanning'     => __( 'Reading files…', 'vergelabs-media-library' ),
             /* translators: %s: number of files still to read. */
             'remaining'    => __( '%s to go', 'vergelabs-media-library' ),
@@ -1235,10 +1241,10 @@ function vergeml_health_assets( $hook ) {
             'never'        => __( 'We have not compared your files yet. Comparing them changes nothing — we only look.', 'vergelabs-media-library' ),
             'duplicates'   => __( 'Duplicates', 'vergelabs-media-library' ),
             'related'      => __( 'Possibly related', 'vergelabs-media-library' ),
-            'noDuplicates' => __( 'No duplicates found.', 'vergelabs-media-library' ),
+            'noDuplicates' => __( 'None found. Only byte-identical files can be deleted from here, because only those delete without losing anything.', 'vergelabs-media-library' ),
             'noRelated'    => __( 'Nothing else looked similar.', 'vergelabs-media-library' ),
-            'dupeNote'     => __( 'Identical files, or the same picture saved at a different size or quality.', 'vergelabs-media-library' ),
-            'relatedNote'  => __( 'These look similar, but we are not confident they are the same picture. Worth your own eye before you do anything.', 'vergelabs-media-library' ),
+            'dupeNote'     => __( 'Identical files. Deleting one of these loses nothing.', 'vergelabs-media-library' ),
+            'relatedNote'  => __( 'These look similar; we are not confident they are the same picture. Nothing here has a delete button, by design.', 'vergelabs-media-library' ),
             /* translators: %s: a formatted file size, e.g. "4.2 MB". */
             /* translators: %s: disk space, e.g. "182.7 KB". */
             'groupWasted'  => __( 'Keep one, delete the rest, and you get %s back', 'vergelabs-media-library' ),
@@ -1308,27 +1314,36 @@ function vergeml_health_page() {
     <div class="wrap vgml-home vgml-health">
 
         <?php
+        /*
+         *  Scan again is the header action, with when it last ran under it;
+         *  the counts are a three-cell band the script fills (design
+         *  handoff, screen 4). Exact copies and look-alike sets are kept
+         *  apart, because only the first can be deleted from here.
+         */
+        $state   = function_exists( 'vergeml_health_state' ) ? vergeml_health_state() : array();
+        $scanned = ! empty( $state['finished'] ) ? (int) $state['finished'] : 0;
+        $when    = $scanned > 0
+            /* translators: %s: how long ago, e.g. "3 hours" */
+            ? sprintf( __( 'Last scanned %s ago.', 'vergelabs-media-library' ), human_time_diff( $scanned, time() ) )
+            : __( 'Not scanned yet. Scanning changes nothing.', 'vergelabs-media-library' );
+
         echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
             __( 'Duplicates', 'vergelabs-media-library' ),
             __( 'The same picture uploaded twice, or saved again at another size. Scanning changes nothing.', 'vergelabs-media-library' ),
-            '<span class="vgml-home-counts" id="vgml-health-counts">' . esc_html__( 'Loading…', 'vergelabs-media-library' ) . '</span>'
+            '<div class="vgml-health-scanbox"><button type="button" class="button" id="vgml-health-scan">'
+                . esc_html( $scanned > 0 ? __( 'Scan again', 'vergelabs-media-library' ) : __( 'Scan the library', 'vergelabs-media-library' ) ) . '</button>'
+                . '<span class="vgml-health-when" id="vgml-health-counts">' . esc_html( $when ) . '</span></div>'
         );
+        ?>
 
-        echo vergeml_pg_card_open( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'Compare the library', 'vergelabs-media-library' ),
-            array( 'note' => __( 'Every file is opened once and compared. Nothing is deleted by scanning.', 'vergelabs-media-library' ) )
-        );
-        ?>
-            <div class="vgml-import-bar" id="vgml-health-bar" hidden><div class="vgml-import-fill" id="vgml-health-fill"></div></div>
-            <p id="vgml-health-note" class="vgml-pg-row-help" style="margin:0"></p>
-        <?php
-        echo '</div>'; // the body, before the foot.
-        echo vergeml_pg_actions( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            '<button type="button" class="button button-primary" id="vgml-health-scan">'
-                . esc_html__( 'Scan the library', 'vergelabs-media-library' ) . '</button>'
-        );
-        echo '</section>';
-        ?>
+        <div class="vgml-import-bar vgml-health-bar" id="vgml-health-bar" hidden><div class="vgml-import-fill" id="vgml-health-fill"></div></div>
+        <p id="vgml-health-note" class="vgml-note"></p>
+
+        <div class="vgml-health-band" id="vgml-health-band" hidden>
+            <div class="vgml-health-cell"><span class="vgml-health-n" id="vgml-health-n-exact">0</span><span class="vgml-band-l"><?php esc_html_e( 'exact copies', 'vergelabs-media-library' ); ?></span></div>
+            <div class="vgml-health-cell"><span class="vgml-health-n" id="vgml-health-n-sets">0</span><span class="vgml-band-l"><?php esc_html_e( 'look-alike sets', 'vergelabs-media-library' ); ?></span></div>
+            <div class="vgml-health-cell"><span class="vgml-health-n" id="vgml-health-n-freed">0</span><span class="vgml-band-l"><?php esc_html_e( 'freed by keeping one of each', 'vergelabs-media-library' ); ?></span></div>
+        </div>
 
         <div id="vgml-health-report"></div>
 

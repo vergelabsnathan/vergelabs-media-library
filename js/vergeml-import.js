@@ -110,15 +110,16 @@
 			flash = null;
 		}
 
-		app.appendChild( fileCard() );
+		app.appendChild( fileCard( sources.length === 0 ) );
 
-		if ( ! sources.length ) {
-			app.appendChild( el( 'p', {}, l10n.none ) );
+		if ( sources.length ) {
+			var found = el( 'div', { class: 'vgml-section' } );
+			found.appendChild( el( 'h6', { class: 'vgml-kicker' }, l10n.found ) );
+			sources.forEach( function ( source ) {
+				found.appendChild( sourceCard( source ) );
+			} );
+			app.appendChild( found );
 		}
-
-		sources.forEach( function ( source ) {
-			app.appendChild( sourceCard( source ) );
-		} );
 
 		if ( history && history.length ) {
 			app.appendChild( historyBox( history ) );
@@ -133,30 +134,53 @@
 	 *  import from. A card that only appeared once a file had been chosen
 	 *  would be a feature nobody could discover.
 	 */
-	function fileCard() {
+	function fileCard( nothingFound ) {
 
-		var box = el( 'div', { class: 'vgml-import-card' } );
+		/*
+		 *  Two cards side by side: Read in and Write out (design handoff,
+		 *  screen 5). The file input is behind a real button; what was
+		 *  chosen, or that nothing was, is said beside it.
+		 */
+		var box = el( 'div', { class: 'vgml-import-two' } );
 
-		var head = el( 'div', { class: 'vgml-import-head' } );
-		head.appendChild( el( 'h2', {}, l10n.fileTitle ) );
-		box.appendChild( head );
+		// ------------------------------------------------------------- in
+		var into = el( 'div', { class: 'vgml-import-col' } );
+		into.appendChild( el( 'h6', { class: 'vgml-kicker' }, l10n.importWhat ) );
+		var intoBody = el( 'div', { class: 'vgml-import-colbody' } );
+		intoBody.appendChild( el( 'p', { class: 'vgml-note' }, l10n.fileWhat ) );
 
-		box.appendChild( el( 'p', { class: 'description' }, l10n.fileWhat ) );
+		var pickRow = el( 'div', { class: 'vgml-import-pickrow' } );
+		var file = el( 'input', { type: 'file', accept: '.csv,text/csv', 'aria-label': l10n.pickFile, class: 'vgml-import-file' } );
+		var choose = el( 'button', { type: 'button', class: 'button button-primary' }, l10n.pickFile );
+		choose.addEventListener( 'click', function () { file.click(); } );
+		var note = el( 'span', { class: 'vgml-muted vgml-import-filenote' }, l10n.noFile );
+		pickRow.appendChild( choose );
+		pickRow.appendChild( note );
+		pickRow.appendChild( file );
+		intoBody.appendChild( pickRow );
+
+		if ( nothingFound ) {
+			intoBody.appendChild( el( 'p', { class: 'vgml-note vgml-import-none' }, l10n.none ) );
+		}
+
+		into.appendChild( intoBody );
+		box.appendChild( into );
 
 		// ------------------------------------------------------------ out
-		var out = el( 'p', {} );
-		out.appendChild( el( 'strong', {}, l10n.exportWhat ) );
-		out.appendChild( document.createTextNode( ' ' ) );
+		var out = el( 'div', { class: 'vgml-import-col' } );
+		out.appendChild( el( 'h6', { class: 'vgml-kicker' }, l10n.exportWhat ) );
+		var outBody = el( 'div', { class: 'vgml-import-colbody' } );
+		outBody.appendChild( el( 'p', { class: 'vgml-note' }, l10n.exportWhatNote ) );
 
-		var pick = el( 'select', { class: 'vgml-import-tax' } );
+		var outRow = el( 'div', { class: 'vgml-import-pickrow' } );
+		var pick = el( 'select', { class: 'vgml-import-tax vgml-input' } );
 
 		taxonomies.forEach( function ( t ) {
 			var opt = el( 'option', { value: t.name }, t.label );
 			pick.appendChild( opt );
 		} );
 
-		out.appendChild( pick );
-		out.appendChild( document.createTextNode( ' ' ) );
+		outRow.appendChild( pick );
 
 		var down = el( 'a', { class: 'button', href: '#' }, l10n.exportGo );
 		down.addEventListener( 'click', function ( e ) {
@@ -164,16 +188,10 @@
 			// The nonce is already on the base URL; only the taxonomy varies.
 			window.location.href = base.exportUrl + '&taxonomy=' + encodeURIComponent( pick.value );
 		} );
-		out.appendChild( down );
+		outRow.appendChild( down );
+		outBody.appendChild( outRow );
+		out.appendChild( outBody );
 		box.appendChild( out );
-
-		// ------------------------------------------------------------- in
-		var into = el( 'p', {} );
-		into.appendChild( el( 'strong', {}, l10n.importWhat ) );
-		into.appendChild( document.createTextNode( ' ' ) );
-
-		var file = el( 'input', { type: 'file', accept: '.csv,text/csv', 'aria-label': l10n.pickFile } );
-		var note = el( 'span', { class: 'description' } );
 
 		file.addEventListener( 'change', function () {
 
@@ -213,11 +231,6 @@
 			// browser as bytes and nothing is written to wp-content.
 			reader.readAsText( chosen );
 		} );
-
-		into.appendChild( file );
-		into.appendChild( document.createTextNode( ' ' ) );
-		into.appendChild( note );
-		box.appendChild( into );
 
 		return box;
 	}
@@ -373,8 +386,10 @@
 
 	function historyBox( history ) {
 
-		var box = el( 'div', { class: 'vgml-import-card' } );
-		box.appendChild( el( 'h2', {}, l10n.history ) );
+		var box = el( 'div', { class: 'vgml-section vgml-import-recent' } );
+		box.appendChild( el( 'h6', { class: 'vgml-kicker' }, l10n.history ) );
+		var list = el( 'div', { class: 'vgml-import-rows' } );
+		box.appendChild( list );
 
 		var now = Math.floor( Date.now() / 1000 );
 
@@ -382,10 +397,11 @@
 
 			var row = el( 'div', { class: 'vgml-import-history' } );
 
-			row.appendChild( el( 'span', {},
-				entry.name + ' — ' + sprintf( l10n.historyLine, n( entry.folders ), n( entry.assignments ), ago( now - entry.when ) ) ) );
+			row.appendChild( el( 'span', { class: 'vgml-import-history-what' },
+				entry.name + ' — ' + sprintf( l10n.historyLine, n( entry.folders ), n( entry.assignments ) ) ) );
+			row.appendChild( el( 'span', { class: 'vgml-muted vgml-import-history-when' }, ago( now - entry.when ) ) );
 
-			var undo = el( 'button', { type: 'button', class: 'button button-small' }, l10n.undo );
+			var undo = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-ghost vgml-import-undo' }, l10n.undo );
 
 			/*
 			 *  Undo is chunked the same way the import is, and driven the same way
@@ -427,7 +443,7 @@
 			} );
 
 			row.appendChild( undo );
-			box.appendChild( row );
+			list.appendChild( row );
 		} );
 
 		return box;
