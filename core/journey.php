@@ -141,13 +141,17 @@ function vergeml_journey_facts() {
     ) );
     // phpcs:enable
 
+    /*
+     *  Folders are the folder taxonomy's terms, and only those. Summing every
+     *  media taxonomy counted a Colour tag set as six folders, so the
+     *  dashboard said 29 where the tree showed 23.
+     */
     $folders = 0;
+    $folder_tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
 
-    if ( function_exists( 'vergeml_tree_taxonomies' ) ) {
-        foreach ( vergeml_tree_taxonomies() as $taxonomy ) {
-            $count = wp_count_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) );
-            $folders += is_wp_error( $count ) ? 0 : (int) $count;
-        }
+    if ( '' !== $folder_tax && taxonomy_exists( $folder_tax ) ) {
+        $count   = wp_count_terms( array( 'taxonomy' => $folder_tax, 'hide_empty' => false ) );
+        $folders = is_wp_error( $count ) ? 0 : (int) $count;
     }
 
     $settings = function_exists( 'vergeml_ai_settings' ) ? vergeml_ai_settings() : array();
@@ -993,9 +997,11 @@ function vergeml_journey_todo() {
         }
     }
 
+    // Look-alike sets: the groups shown plus the ones the report cut off.
     $sets = 0;
-    if ( isset( $report ) && is_array( $report ) ) {
-        $sets = count( (array) ( isset( $report['related'] ) ? $report['related'] : array() ) );
+    if ( isset( $report ) && is_array( $report ) && isset( $report['related'] ) && is_array( $report['related'] ) ) {
+        $sets = count( (array) ( isset( $report['related']['groups'] ) ? $report['related']['groups'] : array() ) )
+            + (int) ( isset( $report['related']['more'] ) ? $report['related']['more'] : 0 );
     }
 
     $todo[] = array(

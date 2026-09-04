@@ -82,9 +82,9 @@
 		return el( 'div', { className: 'vgml-sort-tree' },
 			walk( '', 0 ),
 			el( 'div', { className: 'vgml-sort-row is-unfiled' },
-				el( 'span', { className: 'vgml-sort-name-static' }, __( 'Unfiled', 'vergelabs-media-library' ) ),
-				el( 'span', { className: 'vgml-sort-count' }, n( p.unfiled ) ),
-				el( 'span', { className: 'vgml-sort-desc' }, __( 'stay put — the run lists why, picture by picture', 'vergelabs-media-library' ) )
+				el( 'span', { className: 'vgml-sort-name-static' }, __( 'No folder', 'vergelabs-media-library' ) ),
+				el( 'span', { className: 'vgml-sort-count' }, sprintf( __( 'about %s', 'vergelabs-media-library' ), n( p.unfiled ) ) ),
+				el( 'span', { className: 'vgml-sort-desc' }, __( 'estimate — the run lists why, picture by picture', 'vergelabs-media-library' ) )
 			),
 			el( 'div', { className: 'vgml-sort-addrow' },
 				el( 'button', { type: 'button', className: 'vgml-btn vgml-btn-ghost', onClick: function () { p.onEdit( 'add', null ); } }, __( '+ Add a top-level folder', 'vergelabs-media-library' ) )
@@ -129,6 +129,16 @@
 		useEffect( function () {
 			api( 'GET', 'guide/session' ).then( setSession ).catch( function () { setError( __( 'Could not load the session.', 'vergelabs-media-library' ) ); } );
 		}, [] );
+
+		// The folders as they are now, so the draft can be shown as a change to them.
+		useEffect( function () {
+			if ( ! session || described === 0 || ( session.summary && typeof session.summary.unfiled === 'number' ) ) {
+				return;
+			}
+			api( 'POST', 'guide/summary', {} ).then( function ( s ) {
+				setSession( function ( cur ) { return Object.assign( {}, cur, { summary: s } ); } );
+			} ).catch( function () {} );
+		}, [ session && session.summary ? 1 : 0, described ] );
 
 		/*
 		 *  The first proposal, made once per session: the planner reads the
@@ -215,12 +225,30 @@
 		var applying = session.state === 'applying';
 		var done = session.state === 'done';
 		var capped = ( session.assistant_turns || 0 ) >= ( cfg.cap || 25 );
+		var proposed = !! ( session.proposals && session.proposals.length );
+
+		/*
+		 *  The draft against the folders that exist. Kept, added, removed --
+		 *  and removed is the one that has to be said out loud, because Move
+		 *  deletes every folder the draft does not name.
+		 */
+		var lower = function ( s ) { return String( s || '' ).toLowerCase(); };
+		var current = ( session.summary && session.summary.folders ) || [];
+		var nowUnfiled = session.summary && typeof session.summary.unfiled === 'number' ? session.summary.unfiled : null;
+		var draftNames = live.map( function ( f ) { return lower( f.name ); } );
+		var currentNames = current.map( function ( c ) { return lower( c.name ); } );
+		var removed = current.filter( function ( c ) { return draftNames.indexOf( lower( c.name ) ) < 0; } );
+		var added = live.filter( function ( f ) { return currentNames.indexOf( lower( f.name ) ) < 0; } );
+		var kept = live.length - added.length;
+		var removedPictures = removed.reduce( function ( acc, c ) { return acc + ( c.count || 0 ); }, 0 );
 
 		var steps = [
 			{ title: __( 'What you have', 'vergelabs-media-library' ), state: described > 0 ? 'done' : 'now',
-				sub: described > 0 ? sprintf( __( 'Done — %s pictures read', 'vergelabs-media-library' ), n( described ) ) : __( 'Describe the library first', 'vergelabs-media-library' ) },
+				sub: described > 0 ? sprintf( __( 'Done — %1$s pictures read, %2$s folders today', 'vergelabs-media-library' ), n( described ), n( current.length ) ) : __( 'Describe the library first', 'vergelabs-media-library' ) },
 			{ title: __( 'A first proposal', 'vergelabs-media-library' ), state: hasDraft ? 'done' : ( described > 0 ? 'now' : 'later' ),
-				sub: hasDraft ? sprintf( __( 'Done — %s folders proposed', 'vergelabs-media-library' ), n( live.length ) ) : ( busy === 'propose' ? __( 'Reading the library…', 'vergelabs-media-library' ) : __( 'Say what you want, or wait for a suggestion', 'vergelabs-media-library' ) ) },
+				sub: hasDraft
+					? ( proposed ? sprintf( __( 'Done — %s folders proposed', 'vergelabs-media-library' ), n( live.length ) ) : sprintf( __( 'A draft of %s folders', 'vergelabs-media-library' ), n( live.length ) ) )
+					: ( busy === 'propose' ? __( 'Reading the library…', 'vergelabs-media-library' ) : __( 'Say what you want, or wait for a suggestion', 'vergelabs-media-library' ) ) },
 			{ title: __( 'Shape it together', 'vergelabs-media-library' ), state: hasDraft && ! applying && ! done ? 'now' : ( applying || done ? 'done' : 'later' ),
 				sub: __( 'You are here — say it, or set folders aside', 'vergelabs-media-library' ) },
 			{ title: __( 'Apply', 'vergelabs-media-library' ), state: applying || done ? 'now' : 'later',
@@ -342,9 +370,9 @@
 
 						el( 'div', { className: 'vgml-sort-handhead' },
 							el( 'h4', { className: 'vgml-h4' }, __( 'Or shape it by hand', 'vergelabs-media-library' ) ),
-							el( 'span', { className: 'vgml-muted' }, sprintf( __( '%1$s folders · %2$s of %3$s pictures get a place', 'vergelabs-media-library' ), n( live.length ), n( placed ), n( described ) ) )
+							el( 'span', { className: 'vgml-muted' }, sprintf( __( '%1$s folders · about %2$s of %3$s pictures would get a place', 'vergelabs-media-library' ), n( live.length ), n( placed ), n( described ) ) )
 						),
-						el( 'p', { className: 'vgml-note' }, __( 'The structure, before anything moves. Set a folder aside and the counts follow. Undo is one click for 24 hours.', 'vergelabs-media-library' ) ),
+						el( 'p', { className: 'vgml-note' }, __( 'The structure, before anything moves. Counts are estimates from the catalogue; set a folder aside and they follow. Undo is one click for 24 hours.', 'vergelabs-media-library' ) ),
 						busy === 'propose' && ! hasDraft
 							? el( 'p', { className: 'vgml-sort-waiting' }, __( 'Reading the library and drafting a first proposal…', 'vergelabs-media-library' ) )
 							: el( Tree, { folders: folders, unfiled: unfiled, onEdit: onEdit } ),
@@ -354,6 +382,16 @@
 								: sprintf( __( '%s folders set aside — their pictures stay unfiled.', 'vergelabs-media-library' ), n( asideN ) ) ),
 							el( 'button', { type: 'button', className: 'vgml-btn vgml-btn-ghost', onClick: function () { onEdit( 'restore' ); } }, __( 'Restore all', 'vergelabs-media-library' ) ) ) : null,
 						el( Tags, { tags: draft.tags } ),
+						hasDraft && ! done ? el( 'div', { className: 'vgml-sort-diff' },
+							el( 'h6', { className: 'vgml-kicker' }, __( 'What Move would change', 'vergelabs-media-library' ) ),
+							el( 'p', { className: 'vgml-sort-diff-line' },
+								sprintf( __( 'Keeps %1$s of your folders, adds %2$s, removes %3$s.', 'vergelabs-media-library' ), n( kept ), n( added.length ), n( removed.length ) ) ),
+							removed.length ? el( 'p', { className: 'vgml-sort-diff-removed' },
+								el( 'b', null, __( 'Removed: ', 'vergelabs-media-library' ) ),
+								removed.map( function ( c ) { return c.name + ( c.count ? ' (' + n( c.count ) + ')' : '' ); } ).join( ', ' ),
+								' — ',
+								sprintf( __( 'the %s pictures in them are re-filed where they fit, or left in no folder. Rename a folder in the draft to its current name to keep it.', 'vergelabs-media-library' ), n( removedPictures ) ) ) : null
+						) : null,
 						error ? el( 'p', { className: 'vgml-sort-error' }, error ) : null,
 
 						done
@@ -366,7 +404,10 @@
 									el( 'p', { className: 'vgml-note' }, ( report && report.message ) || __( 'Starting…', 'vergelabs-media-library' ) ),
 									el( 'p', { className: 'vgml-note' }, __( 'You can leave this page; it carries on.', 'vergelabs-media-library' ) ) )
 								: el( 'div', { className: 'vgml-sort-apply' },
-									el( 'button', { type: 'button', className: 'button button-primary', disabled: ! hasDraft || !! busy, onClick: apply }, sprintf( __( 'Move %s pictures into folders', 'vergelabs-media-library' ), n( placed ) ) ),
+									el( 'button', { type: 'button', className: 'button button-primary', disabled: ! hasDraft || !! busy, onClick: apply },
+										removed.length
+											? sprintf( __( 'Move about %1$s pictures and remove %2$s folders', 'vergelabs-media-library' ), n( placed ), n( removed.length ) )
+											: sprintf( __( 'Move about %s pictures into folders', 'vergelabs-media-library' ), n( placed ) ) ),
 									el( 'span', { className: 'vgml-muted' }, __( 'Step 4 — the only step that moves anything. Undo for 24 hours.', 'vergelabs-media-library' ) ) ),
 						done ? el( 'p', { className: 'vgml-sort-again' },
 							el( 'a', { className: 'button', href: cfg.libraryUrl }, __( 'See the folders ↗', 'vergelabs-media-library' ) ),
@@ -375,9 +416,11 @@
 					el( 'div', { className: 'vgml-cols-rail' },
 						el( 'div', { className: 'vgml-rail-block' },
 							el( 'h6', { className: 'vgml-kicker' }, __( 'The plan right now', 'vergelabs-media-library' ) ),
-							el( 'div', { className: 'vgml-rail-row' }, el( 'span', null, __( 'Folders', 'vergelabs-media-library' ) ), el( 'b', null, n( live.length ) ) ),
-							el( 'div', { className: 'vgml-rail-row' }, el( 'span', null, __( 'Pictures placed', 'vergelabs-media-library' ) ), el( 'b', null, sprintf( __( '%1$s of %2$s', 'vergelabs-media-library' ), n( placed ), n( described ) ) ) ),
-							el( 'div', { className: 'vgml-rail-row' }, el( 'span', null, __( 'Stay unfiled', 'vergelabs-media-library' ) ), el( 'b', { className: 'vgml-muted' }, n( unfiled ) ) ),
+							el( 'div', { className: 'vgml-rail-row' }, el( 'span', null, __( 'Folders today', 'vergelabs-media-library' ) ), el( 'b', null, n( current.length ) ) ),
+							nowUnfiled !== null ? el( 'div', { className: 'vgml-rail-row' }, el( 'span', null, __( 'In no folder today', 'vergelabs-media-library' ) ), el( 'b', null, n( nowUnfiled ) ) ) : null,
+							el( 'div', { className: 'vgml-rail-row' }, el( 'span', null, __( 'Folders after Move', 'vergelabs-media-library' ) ), el( 'b', null, n( live.length ) ) ),
+							el( 'div', { className: 'vgml-rail-row' }, el( 'span', null, __( 'Placed after Move (estimate)', 'vergelabs-media-library' ) ), el( 'b', null, sprintf( __( 'about %1$s of %2$s', 'vergelabs-media-library' ), n( placed ), n( described ) ) ) ),
+							removed.length ? el( 'div', { className: 'vgml-rail-row' }, el( 'span', null, __( 'Folders removed', 'vergelabs-media-library' ) ), el( 'b', { className: 'vgml-accent-text' }, n( removed.length ) ) ) : null,
 							el( 'p', { className: 'vgml-note' }, __( 'Nothing moves until you press the button at the end — and undo is one click for 24 hours. Folders are ordinary WordPress categories; they survive this plugin.', 'vergelabs-media-library' ) )
 						),
 						el( 'div', { className: 'vgml-rail-block' },

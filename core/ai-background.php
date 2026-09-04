@@ -72,6 +72,7 @@ function vergeml_ai_run_state() {
         'total'      => 0,
         'described'  => 0,
         'failed'     => 0,
+        'failed_ids' => array(),
         'remaining'  => 0,
         'started_at' => '',
         'updated_at' => '',
@@ -194,6 +195,7 @@ function vergeml_ai_run_start( $scope, $apply_alt, $reason = '' ) {
         'total'      => $pending,
         'described'  => 0,
         'failed'     => 0,
+        'failed_ids' => array(),
         'remaining'  => $pending,
         'started_at' => current_time( 'mysql', true ),
         'stopped'    => '',
@@ -273,9 +275,28 @@ function vergeml_ai_run_tick() {
         $state['described'] += count( $result['described'] );
         $state['remaining']  = (int) $result['remaining'];
 
+        /*
+         *  Pictures, not attempts. A picture the run retried every pass was
+         *  counted every pass, so the screen said "13 of 19 described · 12
+         *  could not be described" about six pictures; and one that went
+         *  through on a later pass is no longer a failure at all.
+         */
+        $failed_ids = array_map( 'intval', (array) ( isset( $state['failed_ids'] ) ? $state['failed_ids'] : array() ) );
+
+        foreach ( (array) $result['described'] as $ok ) {
+            $okid = is_array( $ok ) ? (int) ( isset( $ok['id'] ) ? $ok['id'] : 0 ) : (int) $ok;
+            $at   = array_search( $okid, $failed_ids, true );
+            if ( false !== $at ) {
+                array_splice( $failed_ids, $at, 1 );
+            }
+        }
+
         foreach ( $result['errors'] as $error ) {
 
-            $state['failed']++;
+            $id = isset( $error['id'] ) ? (int) $error['id'] : 0;
+            if ( $id > 0 && ! in_array( $id, $failed_ids, true ) ) {
+                $failed_ids[] = $id;
+            }
 
             /*
              *  A fatal is out of credits, a refused licence or no licence at
@@ -287,6 +308,9 @@ function vergeml_ai_run_tick() {
                 $stop = (string) $error['error'];
             }
         }
+
+        $state['failed_ids'] = array_slice( $failed_ids, -500 );
+        $state['failed']     = count( $failed_ids );
 
         if ( '' !== $stop ) {
             break;

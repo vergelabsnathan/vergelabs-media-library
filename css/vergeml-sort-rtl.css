@@ -250,6 +250,31 @@
 	color: var( --vgml-muted );
 }
 
+/* --- what Move would change ------------------------------------------- */
+
+.vgml-sort-diff {
+	margin-top: 22px;
+	padding-top: 12px;
+	border-top: 2px solid var( --vgml-divider );
+}
+
+.vgml-sort-diff .vgml-kicker {
+	margin-bottom: 6px;
+}
+
+.vgml-sort-diff-line {
+	margin: 0;
+	font-size: 13px;
+}
+
+.vgml-sort-diff-removed {
+	margin: 8px 0 0;
+	font-size: 12.5px;
+	line-height: 1.5;
+	color: var( --vgml-accent-700 );
+	max-width: 70ch;
+}
+
 /* --- apply ------------------------------------------------------------ */
 
 .vgml-sort-apply {

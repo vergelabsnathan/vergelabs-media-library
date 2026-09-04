@@ -792,6 +792,26 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 	}
 
 	/*
+	 *  Everything that sits in a folder about to go is written into the undo
+	 *  record now, before a single term is touched. Deleting a term takes its
+	 *  memberships with it, and the pass below only records the pictures it
+	 *  moves -- so a picture the pass left alone in a folder that was then
+	 *  deleted had nowhere to go back to. Twenty-one folders and their
+	 *  contents went that way once; undo brought back the names, empty.
+	 */
+	foreach ( $remove as $tid ) {
+		$members = get_objects_in_term( $tid, $taxonomy );
+		foreach ( is_wp_error( $members ) ? array() : (array) $members as $oid ) {
+			$oid = (int) $oid;
+			if ( isset( $before['files'][ $oid ] ) ) {
+				continue;
+			}
+			$was = wp_get_object_terms( $oid, $taxonomy, array( 'fields' => 'ids' ) );
+			$before['files'][ $oid ] = is_wp_error( $was ) ? array() : array_map( 'intval', $was );
+		}
+	}
+
+	/*
 	 *  Tags ride along: the guide's second axis, made by vergeml_guide_make_tags()
 	 *  and put on pictures in the same pass, from the catalogue record. Undo
 	 *  keeps the record of what was made so it can take exactly that back.
@@ -1277,22 +1297,48 @@ function vergeml_talk_undo() {
 		return new WP_Error( 'no_taxonomy', __( 'No folders are set up on this site.', 'vergelabs-media-library' ) );
 	}
 
-	// The folders that existed, back first, so files have somewhere to go.
-	$ids = array();
+	/*
+	 *  The folders that existed, back first, so files have somewhere to go --
+	 *  parents before children, and each child under the parent it had. The
+	 *  record carries the parent's name; recreating everything at the top
+	 *  level flattened a tree once and left the shape to be rebuilt by hand.
+	 */
+	$ids     = array();
+	$by_name = array();
+	$terms   = (array) $before['terms'];
+	usort( $terms, function ( $a, $b ) {
+		return ( '' === (string) ( isset( $a['parent'] ) ? $a['parent'] : '' ) ? 0 : 1 ) - ( '' === (string) ( isset( $b['parent'] ) ? $b['parent'] : '' ) ? 0 : 1 );
+	} );
 
-	foreach ( $before['terms'] as $term ) {
+	foreach ( $terms as $term ) {
 
-		$existing = get_term_by( 'name', $term['name'], $taxonomy );
+		$parent_name = (string) ( isset( $term['parent'] ) ? $term['parent'] : '' );
+		$parent_id   = '' !== $parent_name && isset( $by_name[ mb_strtolower( $parent_name ) ] ) ? $by_name[ mb_strtolower( $parent_name ) ] : 0;
 
-		if ( $existing && ! is_wp_error( $existing ) ) {
+		$found = get_terms( array(
+			'taxonomy'   => $taxonomy,
+			'name'       => $term['name'],
+			'parent'     => $parent_id,
+			'hide_empty' => false,
+			'number'     => 1,
+		) );
+		$existing = ( ! is_wp_error( $found ) && $found ) ? $found[0] : null;
+
+		if ( null !== $existing ) {
 			$ids[ (int) $term['term_id'] ] = (int) $existing->term_id;
+			$by_name[ mb_strtolower( $term['name'] ) ] = (int) $existing->term_id;
 			continue;
 		}
 
-		$made = wp_insert_term( $term['name'], $taxonomy );
+		$made = wp_insert_term( $term['name'], $taxonomy, array( 'parent' => $parent_id ) );
+
+		if ( is_wp_error( $made ) && 'term_exists' === $made->get_error_code() && $parent_id > 0 ) {
+			$made = wp_insert_term( $term['name'], $taxonomy, array( 'parent' => $parent_id, 'slug' => sanitize_title( $parent_name . '-' . $term['name'] ) ) );
+		}
 
 		if ( ! is_wp_error( $made ) && isset( $made['term_id'] ) ) {
 			$ids[ (int) $term['term_id'] ] = (int) $made['term_id'];
+			$by_name[ mb_strtolower( $term['name'] ) ] = (int) $made['term_id'];
 		}
 	}
 

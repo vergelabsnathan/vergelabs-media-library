@@ -207,8 +207,19 @@ function vergeml_guide_summary() {
         $by_kind[ '' === (string) $k['kind'] ? 'photo' : (string) $k['kind'] ] = (int) $k['n'];
     }
 
+    // Described pictures in no folder right now: the one real "unfiled" the
+    // Sort screen can say, beside the draft's estimate.
+    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $unfiled = '' !== $tax ? (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$t} i WHERE i.error = '' AND i.embedding IS NOT NULL AND NOT EXISTS (
+            SELECT 1 FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+             WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s )",
+        $tax
+    ) ) : $total; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+
     return array(
         'total'        => $total,
+        'unfiled'      => $unfiled,
         'described_at' => $last,
         'folders'      => $folders,
         'groups'       => $groups,
