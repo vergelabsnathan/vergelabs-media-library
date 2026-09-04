@@ -11,8 +11,21 @@
       "affects": [],
       "workaround": null,
       "status": "open",
-      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/4",
-      "found": "2026-09-03"
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/6",
+      "found": "2026-09-04"
+    },
+    {
+      "dependency": "woocommerce",
+      "name": "WooCommerce",
+      "slug": "woocommerce",
+      "version": "11.1.0",
+      "severity": "yellow",
+      "summary": "changelog mentions taxonom, rest api, removed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/5",
+      "found": "2026-09-04"
     },
     {
       "dependency": "wp-seopress",
