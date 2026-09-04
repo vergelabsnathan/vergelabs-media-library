@@ -267,7 +267,46 @@ function vergeml_filing_profiles( $term_ids, $taxonomy ) {
             $out[ (int) $id ] = $p;
         }
     }
-    return $out;
+    return vergeml_filing_settle_claims( $out );
+}
+
+/**
+ *  One folder per first class.
+ *
+ *  The planner describes a folder by what it holds, and a folder that held
+ *  fifteen bikes on the day it was profiled put "bicycle" first -- as did the
+ *  Bikes folder made the next hour. Two folders with the same first class tie
+ *  by construction and every road bike was too close to call. So a first
+ *  class is a claim, and among the folders that make it the most specific
+ *  one keeps it: the fewest classes, then the deeper path. The others still
+ *  hold that class, second-rank, as what they also take.
+ */
+function vergeml_filing_settle_claims( $profiles ) {
+    $claims = array();
+    foreach ( $profiles as $tid => $p ) {
+        if ( ! empty( $p['classes'] ) ) {
+            $claims[ (string) $p['classes'][0] ][] = (int) $tid;
+        }
+    }
+    foreach ( $claims as $class => $tids ) {
+        if ( count( $tids ) < 2 ) {
+            continue;
+        }
+        usort( $tids, function ( $a, $b ) use ( $profiles ) {
+            $ca = count( $profiles[ $a ]['classes'] );
+            $cb = count( $profiles[ $b ]['classes'] );
+            if ( $ca !== $cb ) {
+                return $ca <=> $cb;
+            }
+            return count( $profiles[ $b ]['path'] ) <=> count( $profiles[ $a ]['path'] );
+        } );
+        foreach ( array_slice( $tids, 1 ) as $loser ) {
+            $classes = array_values( array_filter( $profiles[ $loser ]['classes'], function ( $c ) use ( $class ) { return $c !== $class; } ) );
+            $classes[] = $class;
+            $profiles[ $loser ]['classes'] = $classes;
+        }
+    }
+    return $profiles;
 }
 
 /** Forget a folder's profile, so the next ask rebuilds it (renamed, moved, re-planned). */
