@@ -2968,7 +2968,7 @@ function vergeml_librarian_page() {
         );
         ?>
 
-        <div id="vgml-sort" class="vgml-sort" data-described="<?php echo esc_attr( (string) $described ); ?>"></div>
+        <div id="vgml-sort" class="vgml-sortapp" data-described="<?php echo esc_attr( (string) $described ); ?>"></div>
 
     </div>
     <?php

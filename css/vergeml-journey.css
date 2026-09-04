@@ -339,6 +339,25 @@
 	display: none;
 }
 
+/* The consent card from core/instrument.php, drawn as a foot row, not a box. */
+.vgml-dash .vgml-stats-card,
+.vgml-dash .vgml-help-card {
+	background: transparent;
+	border: 0;
+	border-bottom: 1px solid var( --vgml-n300 );
+	border-radius: 0;
+	box-shadow: none;
+	padding: 16px 0;
+	margin: 0;
+}
+
+.vgml-dash .vgml-rest-state {
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
 @media screen and ( max-width: 640px ) {
 	.vgml-dash .vgml-do {
 		flex-wrap: wrap;

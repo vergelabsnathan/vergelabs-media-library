@@ -25,7 +25,12 @@ const VERGEML_GUIDE_SAMPLE   = 2000;
  *  Sort into folders into one surface (js/vergeml-sort.js), driven by this
  *  file's session and routes. The old address still lands somewhere.
  */
-add_action( 'admin_init', 'vergeml_guide_redirect' );
+/*
+ *  On admin_menu, late, not admin_init: wp-admin/menu.php refuses an
+ *  unregistered ?page= before admin_init ever fires, so a redirect hooked
+ *  there never ran. Inside admin_menu the check has not happened yet.
+ */
+add_action( 'admin_menu', 'vergeml_guide_redirect', 999 );
 
 function vergeml_guide_redirect() {
     if ( isset( $_GET['page'] ) && 'media-guide' === $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, which screen this is.

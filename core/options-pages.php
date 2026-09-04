@@ -2153,7 +2153,7 @@ function vergeml_print_media_library_options() {
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Force filters','vergelabs-media-library'); ?></span></legend>
-                                                <label><input name="vergeml_lib_options[force_filters]" type="hidden" value="0" /><input name="vergeml_lib_options[force_filters]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['force_filters'], true ); ?> /> <?php esc_html_e('Show media filters for ANY Media Popup','vergelabs-media-library'); ?></label>
+                                                <label><input name="vergeml_lib_options[force_filters]" type="hidden" value="0" /><input name="vergeml_lib_options[force_filters]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['force_filters'], true ); ?> /> <?php esc_html_e('Show media filters for any media popup','vergelabs-media-library'); ?></label>
 </fieldset>
                                         </td>
                                     </tr>
@@ -2223,7 +2223,7 @@ function vergeml_print_media_library_options() {
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Infinite scrolling','vergelabs-media-library'); ?></span></legend>
-                                                <label><input name="vergeml_lib_options[infinite_scrolling]" type="hidden" value="0" /><input name="vergeml_lib_options[infinite_scrolling]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['infinite_scrolling'], true ); ?> /> <?php esc_html_e('Enable infinite scrolling','vergelabs-media-library'); ?></label>
+                                                <label><input name="vergeml_lib_options[infinite_scrolling]" type="hidden" value="0" /><input name="vergeml_lib_options[infinite_scrolling]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['infinite_scrolling'], true ); ?> /> <?php esc_html_e('Load more media as you reach the end, instead of pages','vergelabs-media-library'); ?></label>
 </fieldset>
                                         </td>
                                     </tr>
@@ -2233,7 +2233,7 @@ function vergeml_print_media_library_options() {
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Number per page','vergelabs-media-library'); ?></span></legend>
-                                                <label><input name="vergeml_lib_options[loads_per_page]" type="number" min="40" step="10" value="<?php echo (int) $vergeml_lib_options['loads_per_page']; ?>" /> <?php esc_html_e('Load this number of media files per page','vergelabs-media-library'); ?></label>
+                                                <label><input name="vergeml_lib_options[loads_per_page]" type="number" min="40" step="10" value="<?php echo (int) $vergeml_lib_options['loads_per_page']; ?>" /> <?php esc_html_e('media files loaded per page','vergelabs-media-library'); ?></label>
 </fieldset>
                                         </td>
                                     </tr>
@@ -2295,7 +2295,7 @@ function vergeml_print_media_library_options() {
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Search on enter','vergelabs-media-library'); ?></span></legend>
-                                                <label><input name="vergeml_lib_options[search_on_enter]" type="hidden" value="0" /><input id="vergeml_lib_options_search_on_enter" name="vergeml_lib_options[search_on_enter]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['search_on_enter'], true ); ?> /> <?php esc_html_e('Enable search on hitting Enter key','vergelabs-media-library'); ?></label>
+                                                <label><input name="vergeml_lib_options[search_on_enter]" type="hidden" value="0" /><input id="vergeml_lib_options_search_on_enter" name="vergeml_lib_options[search_on_enter]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['search_on_enter'], true ); ?> /> <?php esc_html_e('Search only on the Enter key','vergelabs-media-library'); ?></label>
 </fieldset>
                                         </td>
                                     </tr>
@@ -2305,7 +2305,7 @@ function vergeml_print_media_library_options() {
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Auto search','vergelabs-media-library'); ?></span></legend>
-                                                <label><input name="vergeml_lib_options[search_auto]" type="hidden" value="0" /><input id="vergeml_lib_options_search_auto" name="vergeml_lib_options[search_auto]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['search_auto'], true ); ?> /> <?php esc_html_e('Enable auto search while typing search request','vergelabs-media-library'); ?></label>
+                                                <label><input name="vergeml_lib_options[search_auto]" type="hidden" value="0" /><input id="vergeml_lib_options_search_auto" name="vergeml_lib_options[search_auto]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['search_auto'], true ); ?> /> <?php esc_html_e('Search automatically while typing','vergelabs-media-library'); ?></label>
 </fieldset>
                                         </td>
                                     </tr>
@@ -2315,10 +2315,7 @@ function vergeml_print_media_library_options() {
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Minimun number of letters','vergelabs-media-library'); ?></span></legend>
-                                                <label><input name="vergeml_lib_options[search_min_letters]" type="number" min="2" step="1" value="<?php echo (int) $vergeml_lib_options['search_min_letters']; ?>" /> <?php esc_html_e('Set the minimum number of letters required to start the auto search','vergelabs-media-library'); ?></label>
-                                                <p class="description"><?php esc_html_e('Set higher number to prevent multiple search requests to the database.','vergelabs-media-library'); ?></p>
-                                                <p class="description"><?php esc_html_e( 'Using a higher number can improve auto search query performance.', 'vergelabs-media-library' ); ?></p>
-                                                <p class="description"><?php esc_html_e( 'Works for Media Library Grid Mode and Media Popups.', 'vergelabs-media-library' ); ?></p>
+                                                <label><input name="vergeml_lib_options[search_min_letters]" type="number" min="2" step="1" value="<?php echo (int) $vergeml_lib_options['search_min_letters']; ?>" /> <?php esc_html_e('letters before auto search starts — a higher number spares the database','vergelabs-media-library'); ?></label>
                                             </fieldset>
                                         </td>
                                     </tr>
@@ -2393,7 +2390,7 @@ function vergeml_print_media_library_options() {
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Right sidebar width','vergelabs-media-library'); ?></span></legend>
-                                                <label><input name="vergeml_lib_options[grid_sidebar_width]" type="number" min="200" step="10" value="<?php echo (int) $vergeml_lib_options['grid_sidebar_width']; ?>" /> <?php esc_html_e('Applies when the screen width is more than 900px','vergelabs-media-library'); ?></label>
+                                                <label><input name="vergeml_lib_options[grid_sidebar_width]" type="number" min="200" step="10" value="<?php echo (int) $vergeml_lib_options['grid_sidebar_width']; ?>" /> <?php esc_html_e('right sidebar, when the screen is wider than 900px','vergelabs-media-library'); ?></label>
                                             </fieldset>
                                         </td>
                                     </tr>
@@ -2403,7 +2400,7 @@ function vergeml_print_media_library_options() {
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Ideal column width','vergelabs-media-library'); ?></span></legend>
-                                                <label><input name="vergeml_lib_options[ideal_column_width]" type="number" min="50" step="10" value="<?php echo (int) $vergeml_lib_options['ideal_column_width']; ?>" /> <?php esc_html_e('Set preferable size for thumbnails in the media library and media popups','vergelabs-media-library'); ?></label>
+                                                <label><input name="vergeml_lib_options[ideal_column_width]" type="number" min="50" step="10" value="<?php echo (int) $vergeml_lib_options['ideal_column_width']; ?>" /> <?php esc_html_e('ideal thumbnail column, in the library and media popups','vergelabs-media-library'); ?></label>
                                             </fieldset>
                                         </td>
                                     </tr>
@@ -2413,7 +2410,7 @@ function vergeml_print_media_library_options() {
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Show caption','vergelabs-media-library'); ?></span></legend>
-                                                <label><input name="vergeml_lib_options[grid_show_caption]" type="hidden" value="0" /><input id="vergeml_lib_options_grid_show_caption" name="vergeml_lib_options[grid_show_caption]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['grid_show_caption'], true ); ?> /> <?php esc_html_e('Add text caption for media item thumbnails', 'vergelabs-media-library'); ?></label>
+                                                <label><input name="vergeml_lib_options[grid_show_caption]" type="hidden" value="0" /><input id="vergeml_lib_options_grid_show_caption" name="vergeml_lib_options[grid_show_caption]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['grid_show_caption'], true ); ?> /> <?php esc_html_e('Add a text caption under media thumbnails', 'vergelabs-media-library'); ?></label>
                                             </fieldset>
                                         </td>
                                     </tr>
@@ -2449,22 +2446,9 @@ function vergeml_print_media_library_options() {
                                         <td>
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Enhanced media shortcodes','vergelabs-media-library'); ?></span></legend>
-                                                <label><input name="vergeml_lib_options[enhance_media_shortcodes]" type="hidden" value="0" /><input name="vergeml_lib_options[enhance_media_shortcodes]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['enhance_media_shortcodes'], true ); ?> /> <?php esc_html_e('Enhance WordPress media shortcodes to make them understand media taxonomies, upload date, and media items number limit','vergelabs-media-library'); ?></label>
-                                                <p class="description"><?php esc_html_e( 'Gallery example:', 'vergelabs-media-library' );  ?> [gallery media_category="5" limit="10" monthnum="12" year="2015"]</p>
-                                                <p class="description"><?php esc_html_e( 'Audio playlist example:', 'vergelabs-media-library' ); ?> [playlist media_category="5" limit="10" monthnum="12" year="2015"]</p>
-                                                <p class="description"><?php esc_html_e( 'Video playlist example:', 'vergelabs-media-library' ); ?> [playlist type="video" media_category="5" limit="10" monthnum="12" year="2015"]</p>
-                                                <p class="description"><?php
-                                                printf(
-                                                    '<strong style="color:red">%s!</strong> ',
-                                                    esc_html__( 'Warning', 'vergelabs-media-library' )
-                                                );
-                                                esc_html_e( 'Other gallery plugins and some themes replace the default gallery, and enabling this can conflict with them.', 'vergelabs-media-library' );
-                                                echo ' ';
-                                                printf(
-                                                    /* translators: %s: link to the plugin's issue tracker */
-                                                    esc_html__( 'Check your galleries on the front end and in the editor once this is on, and report anything broken at %s.', 'vergelabs-media-library' ),
-                                                    '<a href="' . esc_url( 'https://github.com/vergelabsnathan/vergelabs-media-library/issues' ) . '">GitHub</a>'
-                                                ); ?></p>
+                                                <label><input name="vergeml_lib_options[enhance_media_shortcodes]" type="hidden" value="0" /><input name="vergeml_lib_options[enhance_media_shortcodes]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['enhance_media_shortcodes'], true ); ?> /> <?php esc_html_e('Let gallery and playlist shortcodes understand media taxonomies, upload date, and an item limit','vergelabs-media-library'); ?></label>
+                                                <p class="description vgml-mono">[gallery media_category="5" limit="10" year="2015"]</p>
+                                                <p class="description vgml-accent-text"><?php esc_html_e( 'Some themes and gallery plugins replace the default gallery. Check your galleries after turning this on, and report anything broken.', 'vergelabs-media-library' ); ?></p>
                                             </fieldset>
                                         </td>
                                     </tr>
@@ -2555,20 +2539,14 @@ function vergeml_print_taxonomies_options() {
          */
         ?>
         <div class="vgml-tax-intro">
-            <p>
+            <p class="vgml-note vgml-tax-intro-text">
                 <?php
                 printf(
                     /* translators: %s: the name of the folder taxonomy, in code formatting. */
-                    esc_html__( 'The folder tree beside your media library is a category list. It is stored as %s, an ordinary WordPress taxonomy, which is why the folders survive if this plugin is ever removed and why another plugin reading the same list sees the same folders.', 'vergelabs-media-library' ),
-                    '<code>media_category</code>'
+                    esc_html__( 'The folder tree beside your media library is a category list — stored as %s, an ordinary WordPress taxonomy. Folders survive if this plugin is ever removed. Anything else you tick below becomes another way to label and filter media, alongside the folders — never a second tree. Unticking hides; it never deletes.', 'vergelabs-media-library' ),
+                    '<code class="vgml-mono">media_category</code>'
                 );
                 ?>
-            </p>
-            <p>
-                <?php esc_html_e( 'Anything else you tick below is not a second folder tree. It becomes another way to label and filter media — tags, a client name, a licence — shown on the media screen and in the filter bar, alongside the folders rather than instead of them.', 'vergelabs-media-library' ); ?>
-            </p>
-            <p class="description">
-                <?php esc_html_e( 'Unticking one hides it from the media screens. It does not delete the taxonomy, and it does not remove anything already filed under it: tick it again and everything is where it was.', 'vergelabs-media-library' ); ?>
             </p>
         </div>
 
@@ -2585,12 +2563,11 @@ function vergeml_print_taxonomies_options() {
 
                         <div class="postbox">
 
-                            <h3 class="hndle"><?php esc_html_e('Media Taxonomies','vergelabs-media-library'); ?></h3>
+                            <h3 class="hndle"><?php esc_html_e('Media taxonomies','vergelabs-media-library'); ?></h3>
 
                             <div class="inside">
 
-                                <p><?php esc_html_e( 'Tick a taxonomy to show it on media, in the filter bar and in the edit panel:', 'vergelabs-media-library' ); ?></p>
-
+                                
                                 <?php $html = '';
 
                                 foreach ( get_taxonomies(array(),'object') as $taxonomy ) {
@@ -2764,22 +2741,21 @@ function vergeml_print_taxonomies_options() {
                                         echo $html;
                                         ?>
                                     </ul>
-                                    <div class="vergeml-button-container-right"><a class="add-new-h2 vergeml-button-create-taxonomy" href="javascript:;">+ <?php esc_html_e( 'Add New Taxonomy', 'vergelabs-media-library' ); ?></a></div>
+                                    <div class="vergeml-button-container-right"><a class="vgml-btn vgml-btn-ghost vergeml-button-create-taxonomy" href="javascript:;">+ <?php esc_html_e( 'Add a new taxonomy', 'vergelabs-media-library' ); ?></a></div>
                                 <?php endif; ?>
 
-                                <?php submit_button( __( 'Save Changes', 'vergelabs-media-library' ), 'primary', 'submit', true, array( 'id' => 'eml-submit-tax-settings-media' ) ); ?>
                             </div>
 
                         </div>
 
                         <div class="postbox">
 
-                            <h3 class="hndle"><?php esc_html_e('Non-Media Taxonomies','vergelabs-media-library'); ?></h3>
+                            <h3 class="hndle"><?php esc_html_e('Also show on media','vergelabs-media-library'); ?></h3>
+                            <p class="vgml-note vgml-tax-other-note"><?php esc_html_e( 'Taxonomies from posts, products and the theme. Ticked ones appear in the filter bar and edit panel.', 'vergelabs-media-library' ); ?></p>
 
                             <div class="inside">
 
-                                <p><?php esc_html_e( 'Tick a taxonomy to show it on media, in the filter bar and in the edit panel:', 'vergelabs-media-library' ); ?></p>
-
+                                
                                 <?php $unuse = array('revision','nav_menu_item','attachment');
 
                                 foreach ( get_post_types(array(),'object') as $post_type ) {
@@ -2872,7 +2848,7 @@ function vergeml_print_taxonomies_options() {
                                     }
                                 }
 
-                                submit_button( __( 'Save Changes', 'vergelabs-media-library' ), 'primary', 'submit', true, array( 'id' => 'eml-submit-tax-settings-non-media' ) ); ?>
+                                ?>
 
                             </div>
 
@@ -2936,7 +2912,10 @@ function vergeml_print_taxonomies_options() {
 
                                 </table>
 
-                                <?php submit_button( __( 'Save Changes', 'vergelabs-media-library' ), 'primary', 'submit', true, array( 'id' => 'eml-submit-tax-settings' ) ); ?>
+                                <div class="vgml-savebar">
+                                    <?php submit_button( __( 'Save changes', 'vergelabs-media-library' ), 'primary', 'submit', false, array( 'id' => 'eml-submit-tax-settings' ) ); ?>
+                                    <span class="vgml-savebar-note"><?php esc_html_e( 'One save for everything on this page.', 'vergelabs-media-library' ); ?></span>
+                                </div>
 
                             </div>
 
@@ -2998,28 +2977,11 @@ function vergeml_print_mimetypes_options() {
         echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
             __( 'File types', 'vergelabs-media-library' ),
             __( 'What may be uploaded, and how each type is labelled and filtered.', 'vergelabs-media-library' ),
-            '<a class="button vergeml-button-create-mime" href="javascript:;">' . esc_html__( 'Add a file type', 'vergelabs-media-library' ) . '</a>'
+            '<button type="button" class="button" id="eml-restore-mime-types-settings" name="eml-restore-mime-types-settings" value="1">' . esc_html__( 'Restore WordPress defaults', 'vergelabs-media-library' ) . '</button>'
+                . '<a class="button button-primary vergeml-button-create-mime" href="javascript:;">' . esc_html__( 'Add a file type', 'vergelabs-media-library' ) . '</a>'
         );
         ?>
-
-        <?php
-        $warning = sprintf( 
-            /* translators: %s: html <strong> and <br> tags to emphaseize some points. */
-            esc_html__( 'WordPress %1$scommon role restrictions%2$s apply to the allowed MIME Types %1$sto avoid security issues%2$s. Advanced role management is coming.%3$s%1$sSVG%2$s is a special case: an SVG file can carry scripts, and this plugin does not clean them. If you allow SVG uploads, install a dedicated SVG sanitiser plugin as well, and only for people you would trust with HTML.%3$s If you experience an issue with uploading file types report it, please.', 'vergelabs-media-library' ),
-            '<strong>',
-            '</strong>',
-            '<br />'
-        );
-        printf(
-            '<div class="notice notice-news eml-admin-notice dashicons-before">
-                <p>%1$s</p>
-                <a href="%2$s" target="_blank" class="button button-primary">%3$s</a>
-            </div>',
-            wp_kses_post( $warning ),
-            esc_url( 'https://github.com/vergelabsnathan/vergelabs-media-library/issues' ),
-            esc_html__( 'Report a filetype', 'vergelabs-media-library' )
-        );
-        ?>
+        <p class="vgml-ft-safety"><?php esc_html_e( 'WordPress role restrictions still apply to allowed types. SVG can carry scripts — keep it off unless a sanitizer plugin is installed and you trust the uploader with HTML.', 'vergelabs-media-library' ); ?></p>
 
 
         <div id="poststuff">
@@ -3032,17 +2994,25 @@ function vergeml_print_mimetypes_options() {
 
                         <?php settings_fields( 'mime-types' ); ?>
 
-                        <?php vergeml_print_mimetypes_buttons(); ?>
+                        <div class="vgml-ft-toolbar">
+                            <input type="search" class="vgml-input" id="vgml-ft-q" placeholder="<?php esc_attr_e( 'Filter extensions or MIME types…', 'vergelabs-media-library' ); ?>" aria-label="<?php esc_attr_e( 'Filter file types', 'vergelabs-media-library' ); ?>">
+                            <div class="vgml-ft-kinds" role="group" aria-label="<?php esc_attr_e( 'Kind of file', 'vergelabs-media-library' ); ?>">
+                                <?php foreach ( array( 'all' => __( 'All', 'vergelabs-media-library' ), 'image' => __( 'Images', 'vergelabs-media-library' ), 'video' => __( 'Video', 'vergelabs-media-library' ), 'audio' => __( 'Audio', 'vergelabs-media-library' ), 'doc' => __( 'Documents', 'vergelabs-media-library' ), 'other' => __( 'Other', 'vergelabs-media-library' ) ) as $kind => $kind_label ) : ?>
+                                    <button type="button" data-kind="<?php echo esc_attr( $kind ); ?>"<?php echo 'all' === $kind ? ' class="is-on"' : ''; ?>><?php echo esc_html( $kind_label ); ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                            <span class="vgml-ft-count" id="vgml-ft-count"></span>
+                        </div>
 
                         <table class="vergeml-mime-type-list wp-list-table widefat" cellspacing="0">
                             <thead>
                             <tr>
                                 <th scope="col" class="manage-column vergeml-column-extension"><?php esc_html_e('Extension','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-mime"><?php esc_html_e('MIME Type','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-singular"><?php esc_html_e('Singular Label','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-plural"><?php esc_html_e('Plural Label','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-filter"><?php esc_html_e('Add Filter','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-upload"><?php esc_html_e('Allow Upload','vergelabs-media-library'); ?></th>
+                                <th scope="col" class="manage-column vergeml-column-mime"><?php esc_html_e('MIME type','vergelabs-media-library'); ?></th>
+                                <th scope="col" class="manage-column vergeml-column-singular"><?php esc_html_e('Label','vergelabs-media-library'); ?></th>
+                                <th scope="col" class="manage-column vergeml-column-plural"><?php esc_html_e('Plural','vergelabs-media-library'); ?></th>
+                                <th scope="col" class="manage-column vergeml-column-filter"><?php esc_html_e('Filter','vergelabs-media-library'); ?></th>
+                                <th scope="col" class="manage-column vergeml-column-upload"><?php esc_html_e('Upload','vergelabs-media-library'); ?></th>
                                 <th scope="col" class="manage-column vergeml-column-delete"></th>
                             </tr>
                             </thead>
@@ -3052,19 +3022,36 @@ function vergeml_print_mimetypes_options() {
 
                             <?php
                             $all_mimes = wp_get_mime_types();
-                            ksort( $all_mimes, SORT_STRING ); ?>
+                            ksort( $all_mimes, SORT_STRING );
+                            $kind_of = function ( $mime ) {
+                                if ( 0 === strpos( $mime, 'image/' ) ) { return 'image'; }
+                                if ( 0 === strpos( $mime, 'video/' ) ) { return 'video'; }
+                                if ( 0 === strpos( $mime, 'audio/' ) ) { return 'audio'; }
+                                if ( preg_match( '#pdf|msword|officedocument|ms-excel|ms-powerpoint|text/plain|text/csv|rtf|opendocument|keynote|pages|numbers|wordperfect#', $mime ) ) { return 'doc'; }
+                                return 'other';
+                            };
+                            $notes = array(
+                                'svg'  => __( 'off until a sanitizer is installed — SVG can carry scripts', 'vergelabs-media-library' ),
+                                'exe'  => __( 'blocked for safety', 'vergelabs-media-library' ),
+                                'js'   => __( 'blocked for safety', 'vergelabs-media-library' ),
+                                'html' => __( 'blocked for safety', 'vergelabs-media-library' ),
+                                'php'  => __( 'blocked for safety', 'vergelabs-media-library' ),
+                            ); ?>
 
                             <?php foreach ( $all_mimes as $type => $mime ) :
 
                                 if ( isset( $vergeml_mimes[$type] ) ) :
 
-                                    $label = '<code>'. str_replace( '|', '</code>, <code>', esc_html($type) ) .'</code>';
+                                    $label = str_replace( '|', ' · ', esc_html( $type ) );
+                                    $note  = '';
+                                    foreach ( $notes as $ext => $text ) {
+                                        if ( in_array( $ext, array_map( 'strtolower', explode( '|', $type ) ), true ) ) { $note = $text; break; }
+                                    }
 
                                     $allowed = (bool) $vergeml_mimes[$type]['upload']; ?>
-
-                                    <tr>
-                                    <td id="<?php echo esc_attr( $type ); ?>"><?php echo wp_kses( $label, array( 'code' => array() ) ); ?></td>
-                                    <td><code><?php echo esc_html($mime); ?></code><input type="hidden" class="vergeml-mime" name="vergeml_mimes[<?php echo esc_attr($type); ?>][mime]" value="<?php echo esc_html($vergeml_mimes[$type]['mime']); ?>" /></td>
+                                    <tr data-kind="<?php echo esc_attr( $kind_of( (string) $mime ) ); ?>" data-search="<?php echo esc_attr( strtolower( $type . ' ' . $mime . ' ' . $vergeml_mimes[$type]['singular'] . ' ' . $vergeml_mimes[$type]['plural'] ) ); ?>">
+                                    <td id="<?php echo esc_attr( $type ); ?>"><?php echo esc_html( $label ); ?></td>
+                                    <td><code><?php echo esc_html($mime); ?></code><?php if ( '' !== $note ) : ?><span class="vgml-ft-note"><?php echo esc_html( $note ); ?></span><?php endif; ?><input type="hidden" class="vergeml-mime" name="vergeml_mimes[<?php echo esc_attr($type); ?>][mime]" value="<?php echo esc_html($vergeml_mimes[$type]['mime']); ?>" /></td>
                                     <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][singular]" value="<?php echo esc_html($vergeml_mimes[$type]['singular']); ?>" /></td>
                                     <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][plural]" value="<?php echo esc_html($vergeml_mimes[$type]['plural']); ?>" /></td>
                                     <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][filter]" title="<?php esc_html_e('Add Filter','vergelabs-media-library'); ?>" value="1" <?php checked(true, (bool) $vergeml_mimes[$type]['filter']); ?> /></td>
@@ -3086,20 +3073,51 @@ function vergeml_print_mimetypes_options() {
                             </tr>
 
                             </tbody>
-                            <tfoot>
-                            <tr>
-                                <th scope="col" class="manage-column vergeml-column-extension"><?php esc_html_e('Extension','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-mime"><?php esc_html_e('MIME Type','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-singular"><?php esc_html_e('Singular Label','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-plural"><?php esc_html_e('Plural Label','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-filter"><?php esc_html_e('Add Filter','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-upload"><?php esc_html_e('Allow Upload','vergelabs-media-library'); ?></th>
-                                <th scope="col" class="manage-column vergeml-column-delete"></th>
-                            </tr>
-                            </tfoot>
                         </table>
-
+                        <div class="vgml-ft-empty" id="vgml-ft-empty" hidden>
+                            <span><?php esc_html_e( 'Nothing matches that filter.', 'vergelabs-media-library' ); ?></span>
+                            <button type="button" class="button" id="vgml-ft-clear"><?php esc_html_e( 'Clear the filter', 'vergelabs-media-library' ); ?></button>
+                        </div>
                         <?php vergeml_print_mimetypes_buttons(); ?>
+                        <script>
+                        ( function () {
+                            var q = document.getElementById( 'vgml-ft-q' );
+                            var kinds = document.querySelectorAll( '.vgml-ft-kinds button' );
+                            var rows = document.querySelectorAll( '.vergeml-mime-type-list tbody tr[data-kind]' );
+                            var count = document.getElementById( 'vgml-ft-count' );
+                            var empty = document.getElementById( 'vgml-ft-empty' );
+                            var clear = document.getElementById( 'vgml-ft-clear' );
+                            var kind = 'all';
+                            var total = rows.length;
+                            var shownOf = <?php echo wp_json_encode( __( '%1$s of %2$s types shown', 'vergelabs-media-library' ) ); ?>;
+                            function apply() {
+                                var needle = ( q.value || '' ).trim().toLowerCase();
+                                var shown = 0;
+                                Array.prototype.forEach.call( rows, function ( r ) {
+                                    var ok = ( kind === 'all' || r.getAttribute( 'data-kind' ) === kind ) && ( ! needle || r.getAttribute( 'data-search' ).indexOf( needle ) >= 0 );
+                                    r.classList.toggle( 'is-hidden', ! ok );
+                                    if ( ok ) { shown++; }
+                                } );
+                                count.textContent = shownOf.replace( '%1$s', String( shown ) ).replace( '%2$s', String( total ) );
+                                empty.hidden = shown > 0;
+                            }
+                            q.addEventListener( 'input', apply );
+                            Array.prototype.forEach.call( kinds, function ( b ) {
+                                b.addEventListener( 'click', function () {
+                                    kind = b.getAttribute( 'data-kind' );
+                                    Array.prototype.forEach.call( kinds, function ( x ) { x.classList.toggle( 'is-on', x === b ); } );
+                                    apply();
+                                } );
+                            } );
+                            clear.addEventListener( 'click', function () {
+                                q.value = '';
+                                kind = 'all';
+                                Array.prototype.forEach.call( kinds, function ( x ) { x.classList.toggle( 'is-on', x.getAttribute( 'data-kind' ) === 'all' ); } );
+                                apply();
+                            } );
+                            apply();
+                        }() );
+                        </script>
 
                     </form>
 
@@ -3125,11 +3143,10 @@ function vergeml_print_mimetypes_options() {
 
 function vergeml_print_mimetypes_buttons() { ?>
 
-    <p class="submit">
-        <?php submit_button( __( 'Save Changes', 'vergelabs-media-library' ), 'primary', 'eml-save-mime-types-settings', false, array( 'id' => 'eml-submit-settings-save-mime-types' ) ); ?>
-
-        <input type="button" name="eml-restore-mime-types-settings" id="eml-restore-mime-types-settings" class="button" value="<?php esc_html_e('Restore WordPress Default MIME Types','vergelabs-media-library'); ?>">
-    </p>
+    <div class="vgml-savebar">
+        <?php submit_button( __( 'Save changes', 'vergelabs-media-library' ), 'primary', 'eml-save-mime-types-settings', false, array( 'id' => 'eml-submit-settings-save-mime-types' ) ); ?>
+        <span class="vgml-savebar-note"><?php esc_html_e( 'Saves everything on this page.', 'vergelabs-media-library' ); ?></span>
+    </div>
 
     <?php
 }
