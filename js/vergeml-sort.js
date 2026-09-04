@@ -138,7 +138,10 @@
 			api( 'POST', 'guide/summary', {} ).then( function ( s ) {
 				setSession( function ( cur ) { return Object.assign( {}, cur, { summary: s } ); } );
 			} ).catch( function () {} );
-		}, [ session && session.summary ? 1 : 0, described ] );
+			// Keyed on whether a session has loaded and whether it carries the
+			// figure: keyed on the summary alone this ran once, before the
+			// session was there, and never again.
+		}, [ session ? 1 : 0, session && session.summary && typeof session.summary.unfiled === 'number' ? 1 : 0, described ] );
 
 		/*
 		 *  The first proposal, made once per session: the planner reads the
