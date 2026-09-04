@@ -40,6 +40,7 @@ on:
           - plan
           - guide-walk
           - guide-reset
+          - tags-check
           - menu-check
       profile:
         description: for job=refile-all, '1' asks the planner what each folder takes before filing
@@ -245,6 +246,12 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-guide-walk.php root@46.225.66.194:/tmp/vgml-guide-walk.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 "VGML_APPLY='${{ inputs.apply }}' bash -s" < tools/box-guide-walk.sh
+
+      - name: the guide's tags made, matched dry against 300 records, and taken back
+        if: ${{ inputs.job == 'tags-check' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-tags-check.php root@46.225.66.194:/tmp/vgml-tags-check.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 'bash -s' < tools/box-tags-check.sh
 
       - name: clear the guided-sorting session (next visit starts at screen 1)
         if: ${{ inputs.job == 'guide-reset' }}

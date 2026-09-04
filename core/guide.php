@@ -539,6 +539,170 @@ function vergeml_guide_rest_turn( WP_REST_Request $request ) {
     return rest_ensure_response( $answer );
 }
 
+/* --------------------------------------------------------------- the tags */
+
+/**
+ *  The draft's tags, made real: one flat media taxonomy per tag, one term per
+ *  value. A tree nests one way, and the assistant turns the second and third
+ *  axes ("by colour and brand") into these. The pictures are assigned in the
+ *  same re-filing pass that files the folders (folder-talk.php), from the
+ *  catalogue record: a term is put on a picture whose record names it.
+ *
+ *  A taxonomy that already carries the name is reused, and so is an existing
+ *  term; nothing is made twice, and undo removes only what this made.
+ *
+ *  @param array $tags From the draft: [ { name, values: [] } ].
+ *  @return array [ { taxonomy, created, terms: { term_id: { needles: [], created } } } ]
+ */
+function vergeml_guide_make_tags( $tags ) {
+    $made = array();
+    foreach ( (array) $tags as $t ) {
+        if ( ! is_array( $t ) || '' === trim( (string) $t['name'] ) ) {
+            continue;
+        }
+        $name   = trim( (string) $t['name'] );
+        $values = array_values( array_unique( array_filter( array_map( 'trim', (array) ( isset( $t['values'] ) ? $t['values'] : array() ) ), 'strlen' ) ) );
+        if ( ! $values ) {
+            continue;
+        }
+        $tax = vergeml_guide_tag_taxonomy( $name );
+        if ( ! $tax ) {
+            continue;
+        }
+        $entry = array( 'taxonomy' => $tax['taxonomy'], 'name' => $name, 'created' => $tax['created'], 'terms' => array() );
+        foreach ( $values as $value ) {
+            $exists = term_exists( $value, $tax['taxonomy'] );
+            if ( is_array( $exists ) && ! empty( $exists['term_id'] ) ) {
+                $entry['terms'][ (int) $exists['term_id'] ] = array( 'needles' => array( mb_strtolower( $value ) ), 'created' => false );
+                continue;
+            }
+            $ins = wp_insert_term( $value, $tax['taxonomy'] );
+            if ( ! is_wp_error( $ins ) && isset( $ins['term_id'] ) ) {
+                $entry['terms'][ (int) $ins['term_id'] ] = array( 'needles' => array( mb_strtolower( $value ) ), 'created' => true );
+            }
+        }
+        if ( $entry['terms'] ) {
+            $made[] = $entry;
+        }
+    }
+    return $made;
+}
+
+/**
+ *  The taxonomy for a tag name: an existing media taxonomy with that label,
+ *  or a new flat one registered now so terms can go in this request.
+ *
+ *  @return array{taxonomy:string,created:bool}|null Null when the key is taken by something that is not a media taxonomy.
+ */
+function vergeml_guide_tag_taxonomy( $name ) {
+    $all = get_option( 'vergeml_taxonomies', array() );
+    $all = is_array( $all ) ? $all : array();
+
+    foreach ( $all as $key => $params ) {
+        if ( empty( $params['eml_media'] ) || ! taxonomy_exists( $key ) ) {
+            continue;
+        }
+        $label = isset( $params['labels']['name'] ) ? (string) $params['labels']['name'] : '';
+        $one   = isset( $params['labels']['singular_name'] ) ? (string) $params['labels']['singular_name'] : '';
+        if ( 0 === strcasecmp( $label, $name ) || 0 === strcasecmp( $one, $name ) ) {
+            return array( 'taxonomy' => (string) $key, 'created' => false );
+        }
+    }
+
+    // A taxonomy key is 32 characters of [a-z0-9_]. Core's own names are not ours to take.
+    $key = trim( substr( sanitize_key( str_replace( array( ' ', '-' ), '_', $name ) ), 0, 32 ), '_' );
+    if ( '' === $key ) {
+        return null;
+    }
+    if ( taxonomy_exists( $key ) || isset( $all[ $key ] ) ) {
+        $key = 'vgml_' . substr( $key, 0, 27 );
+        if ( taxonomy_exists( $key ) || isset( $all[ $key ] ) ) {
+            return null;
+        }
+    }
+
+    $labels = array(
+        'name'          => $name,
+        'singular_name' => $name,
+        'menu_name'     => $name,
+        /* translators: %s: the tag's name, e.g. Colour */
+        'all_items'     => sprintf( __( 'All %s', 'vergelabs-media-library' ), $name ),
+        /* translators: %s: the tag's name, e.g. Colour */
+        'edit_item'     => sprintf( __( 'Edit %s', 'vergelabs-media-library' ), $name ),
+        /* translators: %s: the tag's name, e.g. Colour */
+        'view_item'     => sprintf( __( 'View %s', 'vergelabs-media-library' ), $name ),
+        /* translators: %s: the tag's name, e.g. Colour */
+        'update_item'   => sprintf( __( 'Update %s', 'vergelabs-media-library' ), $name ),
+        /* translators: %s: the tag's name, e.g. Colour */
+        'add_new_item'  => sprintf( __( 'Add New %s', 'vergelabs-media-library' ), $name ),
+        /* translators: %s: the tag's name, e.g. Colour */
+        'new_item_name' => sprintf( __( 'New %s Name', 'vergelabs-media-library' ), $name ),
+        'parent_item'   => '',
+        /* translators: %s: the tag's name, e.g. Colour */
+        'search_items'  => sprintf( __( 'Search %s', 'vergelabs-media-library' ), $name ),
+    );
+
+    $all[ $key ] = array(
+        'assigned'                  => 1,
+        'eml_media'                 => 1,
+        'labels'                    => $labels,
+        'hierarchical'              => 0,
+        'show_admin_column'         => 1,
+        'admin_filter'              => 1,
+        'media_uploader_filter'     => 1,
+        'media_popup_taxonomy_edit' => 0,
+        'sort'                      => 0,
+        'show_in_rest'              => 1,
+        'rewrite'                   => array( 'slug' => $key, 'with_front' => 1 ),
+    );
+    update_option( 'vergeml_taxonomies', $all );
+
+    // The same registration vergeml_on_init() will do on the next load, done now so terms can be inserted in this request.
+    register_taxonomy( $key, 'attachment', array(
+        'labels'                => $labels,
+        'public'                => false,
+        'show_ui'               => true,
+        'show_admin_column'     => true,
+        'hierarchical'          => false,
+        'update_count_callback' => 'vergeml_update_attachment_term_count',
+        'sort'                  => false,
+        'show_in_rest'          => true,
+        'query_var'             => $key,
+        'rewrite'               => false,
+    ) );
+    register_taxonomy_for_object_type( $key, 'attachment' );
+
+    return array( 'taxonomy' => $key, 'created' => true );
+}
+
+/**
+ *  Takes back what vergeml_guide_make_tags() made: the terms it created, and
+ *  the taxonomy when that was new too. Existing ones are left alone.
+ */
+function vergeml_guide_unmake_tags( $made ) {
+    $all = get_option( 'vergeml_taxonomies', array() );
+    $all = is_array( $all ) ? $all : array();
+    $changed = false;
+    foreach ( (array) $made as $entry ) {
+        $tax = (string) $entry['taxonomy'];
+        if ( ! taxonomy_exists( $tax ) ) {
+            continue;
+        }
+        foreach ( (array) $entry['terms'] as $term_id => $term ) {
+            if ( ! empty( $term['created'] ) ) {
+                wp_delete_term( (int) $term_id, $tax );
+            }
+        }
+        if ( ! empty( $entry['created'] ) && isset( $all[ $tax ] ) ) {
+            unset( $all[ $tax ] );
+            $changed = true;
+        }
+    }
+    if ( $changed ) {
+        update_option( 'vergeml_taxonomies', $all );
+    }
+}
+
 function vergeml_guide_rest_apply( WP_REST_Request $request ) {
     $s       = vergeml_guide_session();
     $folders = array();
@@ -555,8 +719,10 @@ function vergeml_guide_rest_apply( WP_REST_Request $request ) {
     if ( ! $folders ) {
         return new WP_Error( 'empty', __( 'The draft has no folders.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
-    $r = vergeml_talk_apply( $folders );
+    $tags = vergeml_guide_make_tags( $s['draft']['tags'] );
+    $r    = vergeml_talk_apply( $folders, $tags );
     if ( is_wp_error( $r ) ) {
+        vergeml_guide_unmake_tags( $tags );
         return $r;
     }
     $s['state'] = 'applying';

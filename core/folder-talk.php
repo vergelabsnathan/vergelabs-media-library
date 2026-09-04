@@ -461,6 +461,10 @@ function vergeml_talk_propose( $instruction, $history = array(), $mode = 'litera
 			return new WP_Error( 'licence', __( 'That licence is not active on this site. Check it under AI.', 'vergelabs-media-library' ) );
 		}
 
+		if ( 'planner_daily_cap' === $reason ) {
+			return new WP_Error( 'capped', __( 'The planner has answered as often as it can for this site today. It is back tomorrow; until then the folders can still be shaped by hand under Media Categories.', 'vergelabs-media-library' ) );
+		}
+
 		return new WP_Error( 'failed', __( 'That did not work, and nothing was changed. Try saying it differently.', 'vergelabs-media-library' ) );
 	}
 
@@ -572,7 +576,7 @@ function vergeml_talk_vector( $folder ) {
  * @param array $folders The proposed folders.
  * @return array|WP_Error What happened.
  */
-function vergeml_talk_apply( $folders ) {
+function vergeml_talk_apply( $folders, $tags = array() ) {
 
 	global $wpdb;
 
@@ -787,6 +791,21 @@ function vergeml_talk_apply( $folders ) {
 		}
 	}
 
+	/*
+	 *  Tags ride along: the guide's second axis, made by vergeml_guide_make_tags()
+	 *  and put on pictures in the same pass, from the catalogue record. Undo
+	 *  keeps the record of what was made so it can take exactly that back.
+	 */
+	$tag_map = array();
+	foreach ( (array) $tags as $entry ) {
+		foreach ( (array) $entry['terms'] as $term_id => $term ) {
+			$tag_map[ (string) $entry['taxonomy'] ][ (int) $term_id ] = (array) $term['needles'];
+		}
+	}
+	if ( $tags ) {
+		$before['tags'] = $tags;
+	}
+
 	update_option( VERGEML_TALK_UNDO, $before, false );
 
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
@@ -817,6 +836,8 @@ function vergeml_talk_apply( $folders ) {
 		'seen'     => 0,
 		'total'    => $total,
 		'counts'   => array(),
+		'tags'     => $tag_map,
+		'tagged'   => 0,
 		/*
 		 *  Held until the end. Deleting a folder while pictures that belong in
 		 *  it have not been looked at yet would drop them out of every folder --
@@ -885,7 +906,7 @@ function vergeml_talk_refile_run( $deadline ) {
 	do {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
 		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT attachment_id, embedding, kind, filing
+			"SELECT attachment_id, embedding, kind, filing, tags
 			   FROM {$wpdb->vergeml_ai_index}
 			  WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d
 		   ORDER BY attachment_id ASC
@@ -903,6 +924,18 @@ function vergeml_talk_refile_run( $deadline ) {
 			// place to carry on from rather than a sample to take again.
 			$state['after'] = $attachment;
 			$state['seen']  = (int) $state['seen'] + 1;
+
+			// The second axis: terms whose value the record names, added, never replacing what is there.
+			if ( ! empty( $state['tags'] ) ) {
+				$hit = false;
+				foreach ( vergeml_talk_tag_row( $row, (array) $state['tags'] ) as $tag_tax => $term_ids ) {
+					wp_set_object_terms( $attachment, $term_ids, $tag_tax, true );
+					$hit = true;
+				}
+				if ( $hit ) {
+					$state['tagged'] = (int) $state['tagged'] + 1;
+				}
+			}
 
 			/*
 			 *  Filed by evidence (core/filing.php): the picture's kind and
@@ -988,6 +1021,57 @@ function vergeml_talk_refile_run( $deadline ) {
 
 
 /**
+ *  Which tag terms a picture's record names.
+ *
+ *  The haystack is what the describer wrote down: the eight tags and the
+ *  filing fields (object, material, colour, setting, style, season, details).
+ *  A value matches as a whole word, singular or plural, so "tan" is not found
+ *  in "tangerine" and "boot" still finds "boots". Nothing is inferred: a
+ *  picture whose record does not say red is not red here.
+ *
+ * @param array $row  A catalogue row with filing and tags.
+ * @param array $tags taxonomy => term_id => needles.
+ * @return array taxonomy => term ids.
+ */
+function vergeml_talk_tag_row( $row, $tags ) {
+
+	$filing = isset( $row['filing'] ) ? json_decode( (string) $row['filing'], true ) : null;
+	$filing = is_array( $filing ) ? $filing : array();
+	$parts  = function_exists( 'vergeml_index_tags_out' ) ? vergeml_index_tags_out( isset( $row['tags'] ) ? $row['tags'] : '' ) : array();
+
+	foreach ( array( 'object', 'material', 'colour', 'setting', 'style', 'season', 'details' ) as $field ) {
+		if ( ! empty( $filing[ $field ] ) && is_string( $filing[ $field ] ) ) {
+			$parts[] = $filing[ $field ];
+		}
+	}
+
+	if ( ! $parts ) {
+		return array();
+	}
+
+	$hay = ' ' . mb_strtolower( implode( ' | ', $parts ) ) . ' ';
+	$out = array();
+
+	foreach ( $tags as $taxonomy => $terms ) {
+		foreach ( (array) $terms as $term_id => $needles ) {
+			foreach ( (array) $needles as $needle ) {
+				$needle = trim( (string) $needle );
+				if ( '' === $needle ) {
+					continue;
+				}
+				if ( preg_match( '/(?<![\p{L}\p{N}])' . preg_quote( $needle, '/' ) . '(?:s|es)?(?![\p{L}\p{N}])/u', $hay ) ) {
+					$out[ (string) $taxonomy ][] = (int) $term_id;
+					break;
+				}
+			}
+		}
+	}
+
+	return $out;
+}
+
+
+/**
  *  The folders that go, once every picture has been looked at.
  *
  * @param array $state Taken by reference so the caller writes it once.
@@ -1060,11 +1144,27 @@ function vergeml_talk_report( $state ) {
 	$total   = isset( $state['total'] ) ? (int) $state['total'] : 0;
 	$seen    = isset( $state['seen'] ) ? (int) $state['seen'] : 0;
 	$running = ! empty( $state['active'] );
+	$tagged  = isset( $state['tagged'] ) ? (int) $state['tagged'] : 0;
+
+	$message = $running
+		? sprintf(
+			/* translators: 1: pictures looked at so far, 2: pictures in total. */
+			__( 'Re-filing — %1$s of %2$s pictures so far. You can leave this page; it carries on.', 'vergelabs-media-library' ),
+			number_format_i18n( $seen ),
+			number_format_i18n( $total )
+		)
+		: vergeml_talk_outcome_sentence( $moved, count( $counts ), isset( $state['unfiled'] ) ? (array) $state['unfiled'] : array() );
+
+	if ( ! $running && $tagged ) {
+		/* translators: %s: a number of pictures */
+		$message .= ' ' . sprintf( _n( '%s picture was tagged.', '%s pictures were tagged.', $tagged, 'vergelabs-media-library' ), number_format_i18n( $tagged ) );
+	}
 
 	return array(
 		'moved'     => $moved,
 		'skipped'   => isset( $state['skipped'] ) ? (int) $state['skipped'] : 0,
 		'folders'   => count( $counts ),
+		'tagged'    => $tagged,
 		'removed'   => isset( $state['removed'] ) ? (int) $state['removed'] : 0,
 		'counts'    => $counts,
 		'running'   => $running,
@@ -1072,14 +1172,7 @@ function vergeml_talk_report( $state ) {
 		'total'     => $total,
 		'remaining' => max( 0, $total - $seen ),
 		'unfiled'   => isset( $state['unfiled'] ) ? (array) $state['unfiled'] : array(),
-		'message'   => $running
-			? sprintf(
-				/* translators: 1: pictures looked at so far, 2: pictures in total. */
-				__( 'Re-filing — %1$s of %2$s pictures so far. You can leave this page; it carries on.', 'vergelabs-media-library' ),
-				number_format_i18n( $seen ),
-				number_format_i18n( $total )
-			)
-			: vergeml_talk_outcome_sentence( $moved, count( $counts ), isset( $state['unfiled'] ) ? (array) $state['unfiled'] : array() ),
+		'message'   => $message,
 	);
 }
 
@@ -1217,6 +1310,11 @@ function vergeml_talk_undo() {
 
 		wp_set_object_terms( (int) $attachment, $back, $taxonomy, false );
 		$put++;
+	}
+
+	// The tags the guide made go with the folders; deleting a term takes it off every picture.
+	if ( ! empty( $before['tags'] ) && function_exists( 'vergeml_guide_unmake_tags' ) ) {
+		vergeml_guide_unmake_tags( (array) $before['tags'] );
 	}
 
 	delete_option( VERGEML_TALK_UNDO );
@@ -1468,6 +1566,11 @@ function vergeml_talk_card() {
 		<div class="vgml-talk-head">
 			<h2><?php esc_html_e( 'Tell it what you want the folders to be', 'vergelabs-media-library' ); ?></h2>
 			<p><?php esc_html_e( 'Say it the way you would say it to a person. Nothing moves until you press Do it, and talking costs no credits — the pictures have already been looked at.', 'vergelabs-media-library' ); ?></p>
+			<p class="vgml-talk-guide-link">
+				<?php esc_html_e( 'Not sure where to start?', 'vergelabs-media-library' ); ?>
+				<a href="<?php echo esc_url( admin_url( 'admin.php?page=media-guide' ) ); ?>"><?php esc_html_e( 'Sort with a guide', 'vergelabs-media-library' ); ?></a>
+				<?php esc_html_e( '— it reads the library first, proposes two structures, and asks before it moves anything.', 'vergelabs-media-library' ); ?>
+			</p>
 		</div>
 
 		<div class="vgml-talk-panel">
