@@ -31,7 +31,8 @@ test( 'the guide walks from the library to shaping', async ( { page } ) => {
 
 	await page.fill( '.vgml-guide-compose input', 'I want shoes split by size, colour and brand.' );
 	await page.click( '.vgml-guide-compose .button-primary' );
-	await expect( page.locator( '.vgml-msg.is-ai' ).nth( 1 ) ).toBeVisible( { timeout: 90000 } );
+	await expect( page.locator( '.vgml-msg.is-thinking' ) ).toBeVisible( { timeout: 15000 } );
+	await expect( page.locator( '.vgml-msg.is-thinking' ) ).toHaveCount( 0, { timeout: 90000 } );
 	await page.screenshot( { path: 'test-results/guide-3b-turn.png', fullPage: true } );
 
 	await page.click( '.vgml-guide-treepane .vgml-guide-confirm .button-primary' );

@@ -166,7 +166,7 @@ function vergeml_guide_summary() {
 
     $groups = array();
     foreach ( (array) vergeml_talk_groups() as $g ) {
-        $groups[] = array( 'size' => (int) $g['size'], 'captions' => array_slice( (array) $g['captions'], 0, 3 ) );
+        $groups[] = array( 'size' => (int) $g['size'], 'captions' => array_map( function ( $c ) { return mb_substr( (string) $c, 0, 110 ); }, array_slice( (array) $g['captions'], 0, 2 ) ) );
     }
 
     // The top object classes across a sample, scaled to the library.
@@ -240,31 +240,70 @@ function vergeml_guide_estimate( $folders ) {
         );
     }
 
-    foreach ( $folders as &$folder ) {
-        $classes = array_map( 'mb_strtolower', (array) ( isset( $folder['classes'] ) ? $folder['classes'] : array() ) );
-        if ( ! $classes ) {
-            $classes = array( mb_strtolower( (string) $folder['name'] ) );
+    /*
+     *  One picture, one folder. Counting each folder on its own let a valley
+     *  count for Landscape, Mountains and Piers at once and the tree claimed
+     *  1,169 of 641 pictures. Each sample record now goes to the most specific
+     *  folder that matches it -- deepest path first, then fewest classes --
+     *  so the counts partition the library and add up to at most the total.
+     */
+    $depth = array();
+    $names = array();
+    foreach ( $folders as $i => $f ) {
+        $names[ mb_strtolower( (string) $f['name'] ) ] = $i;
+    }
+    foreach ( $folders as $i => $f ) {
+        $d = 0;
+        $p = mb_strtolower( (string) ( isset( $f['parent'] ) ? $f['parent'] : '' ) );
+        while ( '' !== $p && isset( $names[ $p ] ) && $d < 8 ) {
+            $d++;
+            $p = mb_strtolower( (string) ( isset( $folders[ $names[ $p ] ]['parent'] ) ? $folders[ $names[ $p ] ]['parent'] : '' ) );
         }
-        $kinds = (array) ( isset( $folder['kinds'] ) ? $folder['kinds'] : array() );
-        $n     = 0;
-        foreach ( $facts as $fact ) {
+        $depth[ $i ] = $d;
+    }
+    $matches = function ( $pc, $fc ) {
+        if ( $pc === $fc || rtrim( $pc, 's' ) === rtrim( $fc, 's' ) ) {
+            return true;
+        }
+        $words = array_map( function ( $w ) { return rtrim( $w, 's' ); }, explode( ' ', $pc ) );
+        return in_array( rtrim( $fc, 's' ), $words, true );
+    };
+    $counts = array_fill( 0, count( $folders ), 0 );
+    foreach ( $facts as $fact ) {
+        $best = -1;
+        foreach ( $folders as $i => $f ) {
+            $classes = array_map( 'mb_strtolower', (array) ( isset( $f['classes'] ) ? $f['classes'] : array() ) );
+            if ( ! $classes ) {
+                $classes = array( mb_strtolower( (string) $f['name'] ) );
+            }
+            $kinds = (array) ( isset( $f['kinds'] ) ? $f['kinds'] : array() );
             if ( $kinds && ! in_array( $fact['kind'], $kinds, true ) ) {
                 continue;
             }
+            $hit = false;
             foreach ( $fact['classes'] as $pc ) {
                 foreach ( $classes as $fc ) {
-                    // Whole words only: "sky" is not "skyline", "water" is not "waterfront".
-                    if ( $pc === $fc
-                        || rtrim( $pc, 's' ) === rtrim( $fc, 's' )
-                        || in_array( $fc, explode( ' ', $pc ), true )
-                        || in_array( rtrim( $fc, 's' ), array_map( function ( $w ) { return rtrim( $w, 's' ); }, explode( ' ', $pc ) ), true ) ) {
-                        $n++;
-                        continue 3;
+                    if ( $matches( $pc, $fc ) ) {
+                        $hit = true;
+                        break 2;
                     }
                 }
             }
+            if ( ! $hit ) {
+                continue;
+            }
+            if ( -1 === $best
+                || $depth[ $i ] > $depth[ $best ]
+                || ( $depth[ $i ] === $depth[ $best ] && count( (array) $f['classes'] ) < count( (array) $folders[ $best ]['classes'] ) ) ) {
+                $best = $i;
+            }
         }
-        $folder['count'] = (int) round( $n * $scale );
+        if ( $best >= 0 ) {
+            $counts[ $best ]++;
+        }
+    }
+    foreach ( $folders as $i => &$folder ) {
+        $folder['count'] = (int) round( $counts[ $i ] * $scale );
     }
     unset( $folder );
     return $folders;
@@ -360,6 +399,10 @@ function vergeml_guide_rest_session( WP_REST_Request $request ) {
         $in      = (array) $request->get_param( 'session' );
         $cur     = vergeml_guide_session();
         $allowed = array( 'library', 'proposal', 'shaping', 'review', 'applying', 'done' );
+        // Back to the first screen means a new session: nothing of the old one is kept.
+        if ( 'library' === (string) ( isset( $in['state'] ) ? $in['state'] : '' ) && 'library' !== $cur['state'] ) {
+            return rest_ensure_response( vergeml_guide_save( vergeml_guide_fresh() ) );
+        }
         if ( isset( $in['state'] ) && in_array( (string) $in['state'], $allowed, true ) ) {
             $cur['state'] = (string) $in['state'];
         }

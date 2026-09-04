@@ -75,6 +75,7 @@
 							? el( 'input', {
 								className: 'vgml-tree-name',
 								value: f.name,
+								style: { width: Math.min( 36, f.name.length + 2 ) + 'ch' },
 								'aria-label': __( 'Folder name', 'vergelabs-media-library' ),
 								onChange: function ( e ) { p.onEdit( 'typing', f, e.target.value ); },
 								onBlur: function ( e ) { if ( e.target.value !== f.original ) { p.onEdit( 'rename', f, e.target.value ); } },
