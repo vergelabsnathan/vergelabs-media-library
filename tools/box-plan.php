@@ -12,7 +12,8 @@ if ( ! is_string( $instruction ) || '' === trim( $instruction ) ) {
 }
 
 $t0 = microtime( true );
-$r  = vergeml_talk_propose( $instruction, array(), 'suggested' );
+$mode = 'literal' === (string) getenv( 'VGML_MODE' ) ? 'literal' : 'suggested';
+$r  = vergeml_talk_propose( $instruction, array(), $mode );
 if ( is_wp_error( $r ) ) { echo 'propose failed: ', $r->get_error_message(), "\n"; return; }
 printf( "proposal in %.1fs (%s)\nnote: %s\n", microtime( true ) - $t0, $apply ? 'APPLYING' : 'dry run', $r['note'] );
 foreach ( $r['folders'] as $f ) {

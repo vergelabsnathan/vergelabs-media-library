@@ -43,6 +43,16 @@ on:
         required: false
         default: '0'
         type: string
+      instruction:
+        description: for job=plan, what to ask the planner (empty = the probe's default)
+        required: false
+        default: ''
+        type: string
+      mode:
+        description: for job=plan, 'literal' or 'suggested'
+        required: false
+        default: 'suggested'
+        type: string
       apply:
         description: for job=refile-all, '1' applies the moves; anything else is a dry run
         required: false
@@ -220,7 +230,7 @@ jobs:
         if: ${{ inputs.job == 'plan' }}
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-plan.php root@46.225.66.194:/tmp/vgml-plan.php
-          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 "VGML_APPLY='${{ inputs.apply }}' bash -s" < tools/box-plan.sh
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 "VGML_APPLY='${{ inputs.apply }}' VGML_MODE='${{ inputs.mode }}' VGML_INSTRUCTION='${{ inputs.instruction }}' bash -s" < tools/box-plan.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are
