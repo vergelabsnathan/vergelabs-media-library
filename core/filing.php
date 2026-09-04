@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 const VERGEML_FILING_META    = '_vergeml_profile';
-const VERGEML_FILING_VERSION = 4; // 2: slash-named folders as paths. 3-4: a rebuild reuses only what a plan said.
+const VERGEML_FILING_VERSION = 5; // 2: slash-named folders as paths. 3-4: a rebuild reuses only what a plan said. 5: the plan's first class stays first.
 
 /*
  *  Calibrated on the box, 3 September 2026: with class matching the right
@@ -199,9 +199,15 @@ function vergeml_filing_profile_build( $term, $taxonomy, $seed = array() ) {
     }
     $leaf = $path ? (string) end( $path ) : (string) $term->name;
 
+    /*
+     *  The plan's first class is what the folder is for, so it stays first;
+     *  the name goes last as a fallback. With the name in front, "Bikes and
+     *  cycling" ranked bicycle second and tied with Objects, which also holds
+     *  bicycles, and every road bike was too close to call.
+     */
     $classes = isset( $seed['classes'] ) && is_array( $seed['classes'] ) ? array_values( array_filter( array_map( 'vergeml_filing_name_class', $seed['classes'] ) ) ) : array();
     if ( ! in_array( vergeml_filing_name_class( $leaf ), $classes, true ) ) {
-        array_unshift( $classes, vergeml_filing_name_class( $leaf ) );
+        $classes[] = vergeml_filing_name_class( $leaf );
     }
 
     $kinds = isset( $seed['kinds'] ) && is_array( $seed['kinds'] ) && $seed['kinds'] ? array_values( array_map( 'sanitize_key', $seed['kinds'] ) ) : vergeml_filing_kinds_of( $leaf );
