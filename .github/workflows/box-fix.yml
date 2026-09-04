@@ -45,6 +45,7 @@ on:
           - folders-undo
           - alt-check
           - recover-check
+          - tree-restore
           - menu-check
       profile:
         description: for job=refile-all, '1' asks the planner what each folder takes before filing
@@ -261,6 +262,12 @@ jobs:
         if: ${{ inputs.job == 'folders-undo' }}
         run: |
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-folders-undo.sh
+
+      - name: put the folder tree's parents back and drop the test leftovers
+        if: ${{ inputs.job == 'tree-restore' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-tree-restore.php root@46.225.66.194:/tmp/vgml-tree-restore.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no root@46.225.66.194 'bash -s' < tools/box-tree-restore.sh
 
       - name: what is left to rebuild the folder tree from (read-only)
         if: ${{ inputs.job == 'recover-check' }}
