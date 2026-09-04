@@ -54,19 +54,19 @@ body.vgml-guide-screen #wpbody-content { padding-bottom: 0; }
 
 /* --- the tree ------------------------------------------------------------- */
 
-.vgml-tree, .vgml-tree ul { list-style: none; margin: 0; padding: 0; }
-.vgml-tree-line { display: flex; align-items: baseline; gap: 10px; padding: 6px 4px; border-bottom: 1px solid #f1f1f3; border-radius: 4px; }
-.vgml-tree-name { font-weight: 500; font-size: 14px; }
-input.vgml-tree-name { border: 0; border-bottom: 1px dashed transparent; background: transparent; padding: 0; font: inherit; font-weight: 500; min-width: 8ch; width: auto; box-shadow: none; }
-input.vgml-tree-name:hover { border-bottom-color: #cfd2d8; }
-input.vgml-tree-name:focus { border-bottom-color: #1d2327; outline: 0; box-shadow: none; }
-.vgml-tree-count { color: #8a8f98; font-variant-numeric: tabular-nums; font-size: 12.5px; }
-.vgml-tree-why { color: #6b7280; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 36ch; }
-.vgml-tree-actions { margin-inline-start: auto; display: none; gap: 12px; }
-.vgml-tree-actions .button-link { font-size: 12px; color: #50575e; }
-.vgml-tree-row:hover > .vgml-tree-line > .vgml-tree-actions { display: flex; }
-.vgml-tree-row.is-changed > .vgml-tree-line { background: #fff8e5; }
-.vgml-tree-addtop { margin-top: 8px; font-size: 13px; }
+.vgml-tree, .vgml-guide-tree ul { list-style: none; margin: 0; padding: 0; }
+.vgml-guide-tree-line { display: flex; align-items: baseline; gap: 10px; padding: 6px 4px; border-bottom: 1px solid #f1f1f3; border-radius: 4px; }
+.vgml-guide-tree-name { font-weight: 500; font-size: 14px; }
+input.vgml-guide-tree-name { border: 0; border-bottom: 1px dashed transparent; background: transparent; padding: 0; font: inherit; font-weight: 500; min-width: 8ch; width: auto; box-shadow: none; }
+input.vgml-guide-tree-name:hover { border-bottom-color: #cfd2d8; }
+input.vgml-guide-tree-name:focus { border-bottom-color: #1d2327; outline: 0; box-shadow: none; }
+.vgml-guide-tree-count { color: #8a8f98; font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.vgml-guide-tree-why { color: #6b7280; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 36ch; }
+.vgml-guide-tree-actions { margin-inline-start: auto; display: none; gap: 12px; }
+.vgml-guide-tree-actions .button-link { font-size: 12px; color: #50575e; }
+.vgml-guide-tree-row:hover > .vgml-guide-tree-line > .vgml-guide-tree-actions { display: flex; }
+.vgml-guide-tree-row.is-changed > .vgml-guide-tree-line { background: #fff8e5; }
+.vgml-guide-tree-addtop { margin-top: 8px; font-size: 13px; }
 
 .vgml-guide-tags { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .vgml-guide-tag { border: 1px solid #cfd2d8; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; }

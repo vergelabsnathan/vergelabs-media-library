@@ -66,24 +66,28 @@
 			var key = f.parent || '';
 			( byParent[ key ] = byParent[ key ] || [] ).push( f );
 		} );
+		var total = function ( f ) {
+			return ( byParent[ f.name ] || [] ).reduce( function ( acc, c ) { return acc + total( c ); }, f.count || 0 );
+		};
 		var walk = function ( parent, depth ) {
 			return ( byParent[ parent ] || [] ).map( function ( f ) {
 				var changed = p.changed && p.changed[ f.name ];
-				return el( 'li', { key: parent + '/' + f.name, className: 'vgml-tree-row' + ( changed ? ' is-changed' : '' ) },
-					el( 'div', { className: 'vgml-tree-line', style: { paddingInlineStart: ( depth * 20 ) + 'px' } },
+				var shown = total( f );
+				return el( 'li', { key: parent + '/' + f.name, className: 'vgml-guide-tree-row' + ( changed ? ' is-changed' : '' ) },
+					el( 'div', { className: 'vgml-guide-tree-line', style: { paddingInlineStart: ( depth * 20 ) + 'px' } },
 						p.editable
 							? el( 'input', {
-								className: 'vgml-tree-name',
+								className: 'vgml-guide-tree-name',
 								value: f.name,
 								style: { width: Math.min( 36, f.name.length + 2 ) + 'ch' },
 								'aria-label': __( 'Folder name', 'vergelabs-media-library' ),
 								onChange: function ( e ) { p.onEdit( 'typing', f, e.target.value ); },
 								onBlur: function ( e ) { if ( e.target.value !== f.original ) { p.onEdit( 'rename', f, e.target.value ); } },
 							} )
-							: el( 'span', { className: 'vgml-tree-name' }, f.name ),
-						el( 'span', { className: 'vgml-tree-count' }, typeof f.count === 'number' && f.count > 0 ? n( f.count ) : '' ),
-						f.matches ? el( 'span', { className: 'vgml-tree-why', title: f.matches }, f.matches ) : null,
-						p.editable ? el( 'span', { className: 'vgml-tree-actions' },
+							: el( 'span', { className: 'vgml-guide-tree-name' }, f.name ),
+						el( 'span', { className: 'vgml-guide-tree-count' }, shown > 0 ? n( shown ) : '' ),
+						f.matches ? el( 'span', { className: 'vgml-guide-tree-why', title: f.matches }, f.matches ) : null,
+						p.editable ? el( 'span', { className: 'vgml-guide-tree-actions' },
 							el( 'button', { type: 'button', className: 'button-link', onClick: function () { p.onEdit( 'add', f ); } }, __( 'add inside', 'vergelabs-media-library' ) ),
 							el( 'button', { type: 'button', className: 'button-link', onClick: function () { p.onEdit( 'remove', f ); } }, __( 'remove', 'vergelabs-media-library' ) )
 						) : null
@@ -92,10 +96,10 @@
 				);
 			} );
 		};
-		return el( 'ul', { className: 'vgml-tree' },
+		return el( 'ul', { className: 'vgml-guide-tree' },
 			walk( '', 0 ),
 			p.editable
-				? el( 'li', null, el( 'button', { type: 'button', className: 'button-link vgml-tree-addtop', onClick: function () { p.onEdit( 'add', null ); } }, __( '+ add a top-level folder', 'vergelabs-media-library' ) ) )
+				? el( 'li', null, el( 'button', { type: 'button', className: 'button-link vgml-guide-tree-addtop', onClick: function () { p.onEdit( 'add', null ); } }, __( '+ add a top-level folder', 'vergelabs-media-library' ) ) )
 				: null
 		);
 	}

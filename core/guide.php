@@ -334,9 +334,14 @@ function vergeml_guide_call( $mode, $payload ) {
     $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
     if ( 200 !== $code || ! is_array( $data ) ) {
         $why = is_array( $data ) && isset( $data['error'] ) ? (string) $data['error'] : 'HTTP ' . $code;
-        $msg = 'could_not_answer' === $why
-            ? __( 'I did not follow that. Say it another way.', 'vergelabs-media-library' )
-            : sprintf( __( 'The service answered: %s', 'vergelabs-media-library' ), $why );
+        if ( 'could_not_answer' === $why ) {
+            $msg = __( 'I did not follow that. Say it another way.', 'vergelabs-media-library' );
+        } elseif ( 'provider_busy' === $why ) {
+            $msg = __( 'The assistant is busy right now. Your draft is safe; try again in a minute.', 'vergelabs-media-library' );
+        } else {
+            /* translators: %s: the service's error code */
+            $msg = sprintf( __( 'The service answered: %s', 'vergelabs-media-library' ), $why );
+        }
         return new WP_Error( 'service_' . $code, $msg, array( 'status' => 502 ) );
     }
     return $data;
