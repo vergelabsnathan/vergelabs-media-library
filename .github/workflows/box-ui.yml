@@ -15,6 +15,12 @@ on:
       - 'tests/ui/**'
       - '.github/workflows/box-ui.yml'
   workflow_dispatch:
+    inputs:
+      guide_walk:
+        description: "'1' also walks the guide, which calls the planner"
+        required: false
+        default: '0'
+        type: string
 
 concurrency:
   group: box-ui
@@ -69,6 +75,7 @@ jobs:
         env:
           UI_BASE: http://46.225.66.194
           UI_USER: vgml-ui
+          GUIDE_WALK: ${{ inputs.guide_walk || '0' }}
           UI_PASS: ${{ steps.who.outputs.pw }}
         run: pnpm test:ui
 

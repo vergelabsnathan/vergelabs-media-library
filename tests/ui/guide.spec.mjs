@@ -7,6 +7,8 @@ import { test, expect, open, SCREEN } from './fixtures.mjs';
  */
 
 test( 'the guide walks from the library to shaping', async ( { page } ) => {
+	// A planner call is ten describes' worth; it does not run on every push.
+	test.skip( process.env.GUIDE_WALK !== '1', 'set GUIDE_WALK=1 to walk the guide (calls the planner)' );
 	test.setTimeout( 180000 );
 	const problems = [];
 	page.on( 'pageerror', ( e ) => problems.push( `javascript: ${ e.message }` ) );

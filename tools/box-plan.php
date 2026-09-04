@@ -12,8 +12,18 @@ if ( ! is_string( $instruction ) || '' === trim( $instruction ) ) {
 }
 
 $t0 = microtime( true );
-$mode = 'literal' === (string) getenv( 'VGML_MODE' ) ? 'literal' : 'suggested';
-$r  = vergeml_talk_propose( $instruction, array(), $mode );
+$mode  = 'literal' === (string) getenv( 'VGML_MODE' ) ? 'literal' : 'suggested';
+$fresh = '1' === (string) getenv( 'VGML_FRESH' );
+$slot  = 'vergeml_probe_plan_' . md5( $mode . '|' . $instruction );
+$r     = $fresh ? false : get_option( $slot );
+if ( ! is_array( $r ) ) {
+    // A planner call is ten describes' worth; the probe keeps the answer and reuses it unless VGML_FRESH=1.
+    $r = vergeml_talk_propose( $instruction, array(), $mode );
+    if ( ! is_wp_error( $r ) ) { update_option( $slot, $r, false ); }
+} else {
+    echo "reusing the stored proposal (VGML_FRESH=1 asks again)
+";
+}
 if ( is_wp_error( $r ) ) { echo 'propose failed: ', $r->get_error_message(), "\n"; return; }
 printf( "proposal in %.1fs (%s)\nnote: %s\n", microtime( true ) - $t0, $apply ? 'APPLYING' : 'dry run', $r['note'] );
 foreach ( $r['folders'] as $f ) {
