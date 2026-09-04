@@ -19,7 +19,7 @@ test( 'the guide walks from the library to shaping', async ( { page } ) => {
 	await page.evaluate( () => wp.apiFetch( { path: '/vergeml/v1/guide/session', method: 'POST', data: { session: { state: 'library', draft: { folders: [], tags: [] } } } } ) );
 	await page.reload( { waitUntil: 'domcontentloaded' } );
 
-	await expect( page.locator( '.vgml-guide-tile' ).first() ).toBeVisible( { timeout: 30000 } );
+	await expect( page.locator( '.vgml-guide-what .vgml-guide-list li' ).first() ).toBeVisible( { timeout: 30000 } );
 	await page.screenshot( { path: 'test-results/guide-1-library.png', fullPage: true } );
 
 	await page.fill( '.vgml-guide-goal textarea', 'a fashion and lifestyle shop' );

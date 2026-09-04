@@ -47,8 +47,7 @@
 				var cls = 'vgml-guide-step' + ( i === p.step ? ' is-now' : ( i < p.step ? ' is-done' : '' ) );
 				return el( 'span', { key: i, className: cls }, el( 'i', null, String( i + 1 ) ), s );
 			} ) ),
-			el( 'div', { className: 'vgml-guide-meta' }, p.meta || '' ),
-			el( 'a', { className: 'vgml-guide-leave', href: vgmlGuide.foldersUrl }, __( 'Leave', 'vergelabs-media-library' ) )
+			el( 'div', { className: 'vgml-guide-meta' }, p.meta || '' )
 		);
 	}
 
@@ -125,16 +124,39 @@
 		}
 		var kinds = s.evidence && s.evidence.kinds ? s.evidence.kinds : {};
 		var pct = function ( x ) { return Math.round( ( x || 0 ) * 100 ); };
+		var cap = function ( t ) { t = String( t || '' ); return t.charAt( 0 ).toUpperCase() + t.slice( 1 ); };
+		var classes = ( s.classes || [] ).slice( 0, 12 );
+		var folders = ( s.folders || [] ).slice().sort( function ( a, b ) { return ( b.count || 0 ) - ( a.count || 0 ); } );
 		return el( Fragment, null,
 			el( 'h1', null, __( 'This library, as the AI sees it', 'vergelabs-media-library' ) ),
-			el( 'p', { className: 'vgml-guide-lede' }, sprintf( __( '%1$s pictures described. %2$s folders exist today. Nothing changes on this screen; it tells you what the proposal will be built from.', 'vergelabs-media-library' ), n( s.total ), n( ( s.folders || [] ).length ) ) ),
-			el( 'div', { className: 'vgml-guide-tiles' }, ( s.groups || [] ).map( function ( g, i ) {
-				return el( 'div', { key: i, className: 'vgml-guide-tile' },
-					el( 'div', { className: 'n' }, n( g.size ) ),
-					el( 'div', { className: 's' }, ( g.captions || [] ).join( ' · ' ) ) );
-			} ) ),
+			el( 'p', { className: 'vgml-guide-lede' }, sprintf( __( 'The AI has described %s pictures. The proposal on the next screen is built from what it found, which is listed here. Nothing changes on this screen.', 'vergelabs-media-library' ), n( s.total ) ) ),
+			el( 'div', { className: 'vgml-guide-cols' },
+				el( 'section', { className: 'vgml-guide-what' },
+					el( 'h2', null, __( 'What the pictures are', 'vergelabs-media-library' ) ),
+					el( 'p', { className: 'vgml-guide-hint' }, __( 'The main thing in each picture, as the AI named it. The twelve most common; counts are estimates.', 'vergelabs-media-library' ) ),
+					classes.length
+						? el( 'ol', { className: 'vgml-guide-list' }, classes.map( function ( c ) {
+							return el( 'li', { key: c.class }, el( 'span', null, cap( c.class ) ), el( 'b', null, n( c.count ) ) );
+						} ) )
+						: el( 'p', { className: 'vgml-guide-hint' }, __( 'The descriptions have no catalogue record yet; describe the library again to get one.', 'vergelabs-media-library' ) )
+				),
+				el( 'section', { className: 'vgml-guide-today' },
+					el( 'h2', null, __( 'Folders today', 'vergelabs-media-library' ) ),
+					el( 'p', { className: 'vgml-guide-hint' }, folders.length
+						? sprintf( __( '%s folders, fullest first. The proposal may keep, rename or drop them; you decide before anything moves.', 'vergelabs-media-library' ), n( folders.length ) )
+						: __( 'None yet. The proposal starts from a blank tree.', 'vergelabs-media-library' ) ),
+					folders.length
+						? el( 'ul', { className: 'vgml-guide-list' }, folders.slice( 0, 12 ).map( function ( f ) {
+							return el( 'li', { key: ( f.parent || '' ) + '>' + f.name },
+								el( 'span', null, f.name, f.parent ? el( 'small', null, __( 'in', 'vergelabs-media-library' ) + ' ' + f.parent ) : null ),
+								el( 'b', null, n( f.count ) ) );
+						} ) )
+						: null,
+					folders.length > 12 ? el( 'p', { className: 'vgml-guide-hint' }, sprintf( __( 'and %s more', 'vergelabs-media-library' ), n( folders.length - 12 ) ) ) : null
+				)
+			),
 			el( 'div', { className: 'vgml-guide-evidence' },
-				el( 'span', { className: 'vgml-guide-label' }, __( 'Evidence the assistant will reason from', 'vergelabs-media-library' ) ),
+				el( 'span', { className: 'vgml-guide-label' }, __( 'What the assistant can go by', 'vergelabs-media-library' ) ),
 				el( 'span', null, sprintf( __( '%s%% name a brand', 'vergelabs-media-library' ), pct( s.evidence.brand ) ) ),
 				el( 'span', null, sprintf( __( '%s%% name a size', 'vergelabs-media-library' ), pct( s.evidence.size ) ) ),
 				el( 'span', null, sprintf( __( '%s%% show who they are for', 'vergelabs-media-library' ), pct( s.evidence.audience ) ) ),
