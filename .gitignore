@@ -40,3 +40,4 @@ vendor/
 # playwright
 /test-results/
 /playwright-report/
+.superpowers/
