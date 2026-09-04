@@ -253,10 +253,11 @@ function vergeml_guide_estimate( $folders ) {
             }
             foreach ( $fact['classes'] as $pc ) {
                 foreach ( $classes as $fc ) {
+                    // Whole words only: "sky" is not "skyline", "water" is not "waterfront".
                     if ( $pc === $fc
                         || rtrim( $pc, 's' ) === rtrim( $fc, 's' )
-                        || false !== mb_strpos( ' ' . $pc . ' ', ' ' . $fc . ' ' )
-                        || false !== mb_strpos( ' ' . $fc . ' ', ' ' . $pc . ' ' ) ) {
+                        || in_array( $fc, explode( ' ', $pc ), true )
+                        || in_array( rtrim( $fc, 's' ), array_map( function ( $w ) { return rtrim( $w, 's' ); }, explode( ' ', $pc ) ), true ) ) {
                         $n++;
                         continue 3;
                     }
