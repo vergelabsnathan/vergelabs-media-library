@@ -163,11 +163,12 @@
 				Object.keys( kinds ).map( function ( k ) { return el( 'span', { key: k }, n( kinds[ k ] ) + ' ' + k ); } )
 			),
 			el( 'label', { className: 'vgml-guide-goal' },
-				__( 'Tell it your goal first (optional)', 'vergelabs-media-library' ),
+				el( 'span', { className: 'vgml-guide-goal-title' }, __( 'What is this library for?', 'vergelabs-media-library' ) ),
+				el( 'span', { className: 'vgml-guide-goal-help' }, __( 'Optional. One sentence about who uses these pictures and how shapes the proposal. Leave it empty and the proposal follows what the pictures are.', 'vergelabs-media-library' ) ),
 				el( 'textarea', {
-					rows: 2,
+					rows: 3,
 					value: p.goal,
-					placeholder: __( 'e.g. a tech blog — folders should follow topics, not dates', 'vergelabs-media-library' ),
+					placeholder: __( 'e.g. product photos for a fashion shop — folders by garment, then men and women', 'vergelabs-media-library' ),
 					onChange: function ( e ) { p.setGoal( e.target.value ); },
 				} )
 			),

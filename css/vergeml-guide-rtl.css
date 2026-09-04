@@ -40,8 +40,12 @@
 .vgml-guide-list li b { font-weight: 500; font-variant-numeric: tabular-nums; color: #50575e; white-space: nowrap; }
 .vgml-guide-list li small { color: #8a8f98; font-size: 12px; margin-inline-start: 6px; }
 .vgml-guide-evidence { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; font-size: 13px; color: #50575e; margin-bottom: 26px; }
-.vgml-guide-goal { display: block; margin-bottom: 26px; font-weight: 600; font-size: 13px; }
-.vgml-guide-goal textarea { display: block; width: 100%; max-width: 64ch; margin-top: 6px; font-weight: 400; font-size: 14px; }
+.vgml-guide-goal { display: block; margin: 0 0 6px; max-width: 64ch; }
+.vgml-guide-goal .vgml-guide-goal-title { display: block; font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+.vgml-guide-goal .vgml-guide-goal-help { display: block; color: #6b7280; font-size: 13.5px; line-height: 1.5; margin-bottom: 12px; }
+.vgml-guide-main .vgml-guide-goal textarea { display: block; width: 100%; box-sizing: border-box; min-height: 104px; margin: 0; padding: 14px 16px; font: inherit; font-size: 15px; line-height: 1.55; color: #1d2327; background: #fafafa; border: 1px solid #cfd2d8; border-radius: 10px; box-shadow: none; resize: vertical; }
+.vgml-guide-main .vgml-guide-goal textarea::placeholder { color: #9aa0a6; }
+.vgml-guide-main .vgml-guide-goal textarea:focus { background: #fff; border-color: #1d2327; outline: none; box-shadow: 0 0 0 3px rgba( 29, 35, 39, 0.08 ); }
 
 .vgml-guide-confirm { display: flex; gap: 12px; align-items: center; margin-top: 30px; }
 .vgml-guide-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
