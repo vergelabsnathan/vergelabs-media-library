@@ -38,6 +38,7 @@ on:
           - refile-all
           - reparent
           - plan
+          - guide-walk
       profile:
         description: for job=refile-all, '1' asks the planner what each folder takes before filing
         required: false
@@ -231,6 +232,12 @@ jobs:
         run: |
           scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-plan.php root@46.225.66.194:/tmp/vgml-plan.php
           ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 "VGML_APPLY='${{ inputs.apply }}' VGML_MODE='${{ inputs.mode }}' VGML_INSTRUCTION='${{ inputs.instruction }}' bash -s" < tools/box-plan.sh
+
+      - name: a scripted guided-sorting session (dry run unless apply=1)
+        if: ${{ inputs.job == 'guide-walk' }}
+        run: |
+          scp -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no tools/box-guide-walk.php root@46.225.66.194:/tmp/vgml-guide-walk.php
+          ssh -i ~/.ssh/hetzner_vgml -o StrictHostKeyChecking=no -o ServerAliveInterval=30 root@46.225.66.194 "VGML_APPLY='${{ inputs.apply }}' bash -s" < tools/box-guide-walk.sh
 
       # Thirty pictures re-described so the new prompt can be judged on real
       # ones before six hundred are paid for. Writes nothing; the credits are

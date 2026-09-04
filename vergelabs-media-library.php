@@ -1520,6 +1520,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // After librarian.php and search-meaning.php: it borrows the folder
         // taxonomy from one and the embedding call from the other.
         include_once( 'core/folder-talk.php' );
+        include_once( 'core/guide.php' );
         // Editing a file from the list it is in. After the index, whose lock
         // on a hand-written field is the whole reason this is safe.
         include_once( 'core/quick-edit.php' );
