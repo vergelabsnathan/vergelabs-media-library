@@ -29,30 +29,90 @@
  *  screen this plugin does not own.
  */
 
-.vgml-shell {
-	--vgml-ground: #F6F8FC;
-	--vgml-pane: #FFFFFF;
-	--vgml-surface: #F1F5FC;
-	--vgml-ink: #16233D;
-	--vgml-body: #3C4964;
-	--vgml-muted: #5B6884;
-	--vgml-accent: #2E5AA8;
-	--vgml-accent-dark: #24365C;
-	--vgml-rule: #DDE5F2;
-	--vgml-rule-strong: #C9D6EA;
+/*
+ *  Inter, bundled. Loaded from Google would be a request to a third party on
+ *  every admin page, which is not ours to make on somebody else's site.
+ *  Variable weight, latin and latin-extended; SIL OFL, see fonts/.
+ */
+@font-face {
+	font-family: "Inter";
+	font-style: normal;
+	font-weight: 100 900;
+	font-display: swap;
+	src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2");
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
-	/* Flush to the admin menu, exactly as .wpr-wrap does it. Losing the
-	   gutter is most of what stops this reading as a settings page. */
+@font-face {
+	font-family: "Inter";
+	font-style: normal;
+	font-weight: 100 900;
+	font-display: swap;
+	src: url("../fonts/inter-latin-ext-wght-normal.woff2") format("woff2");
+	unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/*
+ *  The tokens are the redesign's (docs: design handoff, September 2026):
+ *  ground, surface, navy ink, one blue, one yellow for the credits numeral,
+ *  nine neutrals, and a divider that is the ink at 22%. The older names are
+ *  kept so the rest of this file and the screens keep resolving.
+ */
+.vgml-shell {
+	--vgml-ground: #f7f9fc;
+	--vgml-pane: #ffffff;
+	--vgml-surface: #e9eef8;
+	--vgml-ink: #101d40;
+	--vgml-body: #101d40;
+	--vgml-muted: #6f7891;
+	--vgml-accent: #2b46d8;
+	--vgml-accent-dark: #2439b9;
+	--vgml-accent-100: #e9edfc;
+	--vgml-accent-200: #d6def9;
+	--vgml-accent-300: #b7c5f4;
+	--vgml-accent-700: #1e2f9d;
+	--vgml-accent-800: #1a2775;
+	--vgml-highlight: #ffd84d;
+	--vgml-n100: #f4f6fb;
+	--vgml-n200: #e8ecf5;
+	--vgml-n300: #d5dbe9;
+	--vgml-n400: #b3bcd2;
+	--vgml-n500: #8e97b0;
+	--vgml-n600: #6f7891;
+	--vgml-n700: #545d75;
+	--vgml-n800: #39415a;
+	--vgml-n900: #1a2340;
+	--vgml-divider: rgba(16, 29, 64, .22);
+	--vgml-rule: #d5dbe9;
+	--vgml-rule-strong: rgba(16, 29, 64, .22);
+	--vgml-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+	/* Flush to the admin menu. Losing the gutter is most of what stops this
+	   reading as a settings page. */
 	margin: 0 -20px 0 0;
-	padding: 16px;
+	padding: 0;
 	background: var(--vgml-ground);
 	min-height: calc(100vh - 32px);
 	box-sizing: border-box;
 	color: var(--vgml-body);
+	font-family: var(--vgml-font);
 	font-size: 14px;
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+}
+
+.vgml-shell h1,
+.vgml-shell h2,
+.vgml-shell h3,
+.vgml-shell h4,
+.vgml-shell h5,
+.vgml-shell h6,
+.vgml-shell button,
+.vgml-shell input,
+.vgml-shell select,
+.vgml-shell textarea {
+	font-family: var(--vgml-font);
 }
 
 .vgml-shell *,
@@ -64,41 +124,71 @@
 .vgml-shell-body {
 	display: flex;
 	align-items: flex-start;
-	gap: 16px;
+	gap: 0;
 }
 
-/* ------------------------------------------------------------------ the nav */
+/* ------------------------------------------------------------------ the rail */
 
+/*
+ *  250px, sticky the full height, a 2px rule on its right. Brand row on top,
+ *  the nav in the middle, and at the bottom the one way out of the plugin
+ *  and what is left in the account.
+ */
 .vgml-shell-nav {
-	flex: 0 0 225px;
+	flex: 0 0 250px;
 	position: sticky;
-	top: 46px;
-	padding-top: 8px;
+	top: 32px;
+	height: calc(100vh - 32px);
+	overflow: auto;
+	display: flex;
+	flex-direction: column;
+	border-left: 2px solid var(--vgml-divider);
+	background: var(--vgml-ground);
 }
 
 .vgml-shell-brand {
 	display: flex;
 	align-items: center;
-	gap: 9px;
-	padding: 0 12px 18px;
+	gap: 10px;
+	padding: 20px 18px 16px;
+	border-bottom: 2px solid var(--vgml-divider);
 	color: var(--vgml-ink);
 }
 
 .vgml-shell-mark {
-	display: flex;
-	color: var(--vgml-accent);
+	display: block;
+	width: 16px;
+	height: 16px;
+	flex: none;
+	border-radius: 5px;
+	background: var(--vgml-ink);
+}
+
+.vgml-shell-mark svg {
+	display: none;
 }
 
 .vgml-shell-name {
-	font-size: 14px;
-	font-weight: 600;
+	font-size: 15px;
+	font-weight: 700;
 	letter-spacing: -.01em;
+	line-height: 1.2;
+}
+
+.vgml-shell-name small {
+	font-size: 9px;
+	font-weight: 500;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--vgml-n600);
+	margin-right: 4px;
 }
 
 .vgml-shell-list {
 	margin: 0;
-	padding: 0;
+	padding: 10px 0 16px;
 	list-style: none;
+	flex: 1;
 }
 
 .vgml-shell-list li {
@@ -106,22 +196,18 @@
 }
 
 .vgml-shell-item {
-	display: flex;
-	gap: 10px;
-	align-items: flex-start;
+	display: block;
 	position: relative;
-	padding: 9px 12px;
-	margin-bottom: 1px;
-	border-radius: 4px;
-	color: var(--vgml-body);
+	padding: 8px 15px;
+	border-right: 3px solid transparent;
+	color: var(--vgml-ink);
 	text-decoration: none;
-	font-size: 14px;
-	line-height: 1.35;
-	transition: background .12s ease, color .12s ease;
+	line-height: 1.3;
+	transition: background .12s ease;
 }
 
 .vgml-shell-item:hover {
-	background: rgba(155, 78, 69, .07);
+	background: var(--vgml-n200);
 	color: var(--vgml-ink);
 }
 
@@ -136,32 +222,31 @@
 	outline-offset: -2px;
 }
 
-/*
- *  The current screen reads as the pane it opens: the same white, joined to it
- *  by colour rather than by a chevron. The accent bar is the only ornament in
- *  the whole nav.
- */
 .vgml-shell-item.is-on {
-	background: var(--vgml-pane);
-	color: var(--vgml-ink);
-	font-weight: 600;
+	background: var(--vgml-surface);
+	border-right-color: var(--vgml-accent);
 }
 
-.vgml-shell-item.is-on::before {
-	content: "";
-	position: absolute;
-	right: 0;
-	top: 6px;
-	bottom: 6px;
-	width: 3px;
-	border-radius: 2px 0 0 2px;
-	background: var(--vgml-accent);
+.vgml-shell-item.is-on .vgml-shell-label {
+	color: var(--vgml-accent-700);
+}
+
+.vgml-shell-badge {
+	display: inline-block;
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 1.5;
+	padding: 1px 7px;
+	border-radius: 8px;
+	background: var(--vgml-accent-100);
+	color: var(--vgml-accent-800);
+	margin-right: 8px;
+	vertical-align: 1px;
 }
 
 .vgml-shell-version {
-	margin: 18px 0 0;
-	padding: 0 12px;
-	font-size: 11px;
+	margin: 14px 0 0;
+	font-size: 10.5px;
 	color: var(--vgml-muted);
 }
 
@@ -170,13 +255,10 @@
 .vgml-shell-content {
 	flex: 1 1 auto;
 	min-width: 0;
-	max-width: 1230px;
-	background: var(--vgml-pane);
-	border: 1px solid var(--vgml-rule);
-	/* One radius across the whole admin: the pane, the cards inside it, and
-	 * the sections on the dashboard are all 6px. Slight, and the same. */
-	border-radius: 6px;
-	padding: 32px 24px;
+	max-width: 1140px;
+	background: transparent;
+	border: 0;
+	padding: 36px 44px 80px;
 }
 
 /* WordPress's own wrapper, now inside our pane and no longer supplying chrome. */
@@ -312,52 +394,94 @@
 
 /* ---------------------------------------------------------------- controls */
 
-.vgml-shell-content .button,
-.vgml-shell-content .button-secondary {
+/*
+ *  Three buttons. Primary is the blue fill; secondary is a divider border on
+ *  the ground; ghost is accent text with a light accent hover. 14px/600,
+ *  radius 6, no shadows, disabled at 45%.
+ */
+.vgml-shell .button,
+.vgml-shell .button-secondary,
+.vgml-shell .vgml-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 	height: auto;
 	min-height: 0;
-	padding: 7px 14px;
-	border-radius: 4px;
-	border: 1px solid var(--vgml-rule-strong);
-	background: var(--vgml-surface);
+	padding: 8px 14px;
+	border-radius: 6px;
+	border: 1px solid var(--vgml-divider);
+	background: transparent;
 	color: var(--vgml-ink);
-	font-size: 13px;
-	font-weight: 500;
-	line-height: 1.4;
+	font-family: var(--vgml-font);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.3;
+	text-decoration: none;
+	cursor: pointer;
 	box-shadow: none;
-	transition: background .12s ease, border-color .12s ease;
+	text-shadow: none;
+	transition: background .12s ease, border-color .12s ease, color .12s ease;
 }
 
-.vgml-shell-content .button:hover {
-	background: var(--vgml-rule);
-	border-color: var(--vgml-muted);
+.vgml-shell .button:hover,
+.vgml-shell .vgml-btn:hover {
+	background: rgba(16, 29, 64, .07);
+	border-color: var(--vgml-divider);
 	color: var(--vgml-ink);
 }
 
-.vgml-shell-content .button-primary {
+.vgml-shell .button-primary,
+.vgml-shell .vgml-btn-primary {
 	background: var(--vgml-accent);
 	border-color: var(--vgml-accent);
-	color: #fff;
-	text-shadow: none;
+	color: #f7f9fc;
 }
 
-.vgml-shell-content .button-primary:hover,
-.vgml-shell-content .button-primary:focus {
+.vgml-shell .button-primary:hover,
+.vgml-shell .button-primary:focus,
+.vgml-shell .vgml-btn-primary:hover {
 	background: var(--vgml-accent-dark);
 	border-color: var(--vgml-accent-dark);
-	color: #fff;
+	color: #f7f9fc;
 }
 
-.vgml-shell-content .button:focus-visible,
-.vgml-shell-content .button-primary:focus-visible {
+.vgml-shell .button-hero,
+.vgml-shell .button.button-hero {
+	font-size: 14px;
+	padding: 10px 18px;
+}
+
+.vgml-shell .vgml-btn-ghost,
+.vgml-shell .button-link.vgml-btn-ghost {
+	border-color: transparent;
+	background: transparent;
+	color: var(--vgml-accent);
+}
+
+.vgml-shell .vgml-btn-ghost:hover {
+	background: rgba(43, 70, 216, .10);
+	border-color: transparent;
+	color: var(--vgml-accent-700);
+}
+
+.vgml-shell .vgml-btn-block {
+	display: flex;
+	width: 100%;
+	justify-content: flex-start;
+}
+
+.vgml-shell .button:focus-visible,
+.vgml-shell .button-primary:focus-visible,
+.vgml-shell .vgml-btn:focus-visible {
 	outline: 2px solid var(--vgml-accent);
 	outline-offset: 2px;
 	box-shadow: none;
 }
 
-.vgml-shell-content .button[disabled],
-.vgml-shell-content .button:disabled {
-	opacity: .5;
+.vgml-shell .button[disabled],
+.vgml-shell .button:disabled,
+.vgml-shell .vgml-btn:disabled {
+	opacity: .45;
 	cursor: not-allowed;
 }
 
@@ -529,36 +653,61 @@
 
 	.vgml-shell-nav {
 		position: static;
-		padding-bottom: 12px;
-	}
-
-	.vgml-shell-brand {
-		padding-bottom: 12px;
+		height: auto;
+		border-left: 0;
+		border-bottom: 2px solid var(--vgml-divider);
 	}
 
 	.vgml-shell-list {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 2px;
+		padding: 8px 6px;
 	}
 
-	.vgml-shell-item.is-on::before {
+	.vgml-shell-item {
+		border-right: 0;
+		border-radius: 6px;
+	}
+
+	.vgml-shell-sub {
 		display: none;
 	}
 
-	.vgml-shell-item.is-on {
-		box-shadow: inset 0 -2px 0 var(--vgml-accent);
+	.vgml-shell-foot {
+		display: flex;
+		gap: 16px;
+		align-items: flex-start;
+	}
+
+	.vgml-shell-foot > * {
+		flex: 1;
+	}
+
+	.vgml-shell-credits {
+		margin-top: 0;
+	}
+
+	.vgml-shell-content {
+		padding: 24px 20px 60px;
 	}
 }
 
 @media screen and (max-width: 782px) {
 	.vgml-shell {
 		margin-right: -10px;
-		padding: 10px;
 	}
 
 	.vgml-shell-content {
-		padding: 20px 16px;
+		padding: 20px 16px 48px;
+	}
+
+	.vgml-shell-foot {
+		display: block;
+	}
+
+	.vgml-shell-credits {
+		margin-top: 12px;
 	}
 }
 
@@ -652,16 +801,7 @@
  *  currentColor and not a picture.
  */
 .vgml-shell-ico {
-	display: flex;
-	flex: 0 0 auto;
-	margin-top: 1px;
-	color: var(--vgml-muted);
-	transition: color .12s ease;
-}
-
-.vgml-shell-item:hover .vgml-shell-ico,
-.vgml-shell-item.is-on .vgml-shell-ico {
-	color: var(--vgml-accent);
+	display: none;
 }
 
 .vgml-shell-text {
@@ -671,6 +811,8 @@
 
 .vgml-shell-label {
 	display: block;
+	font-size: 13.5px;
+	font-weight: 600;
 	line-height: 1.3;
 }
 
@@ -680,11 +822,7 @@
 	font-size: 11px;
 	line-height: 1.35;
 	font-weight: 400;
-	color: var(--vgml-muted);
-}
-
-.vgml-shell-item.is-on .vgml-shell-sub {
-	color: var(--vgml-body);
+	color: rgba(16, 29, 64, .55);
 }
 
 .vgml-icon-svg {
@@ -948,130 +1086,128 @@
  *  It was first built sharing the credits card's geometry and a sub-label,
  *  which made it the tenth row of a nine-row menu.
  */
+/* The foot of the rail: the way out, and what is left in the account. */
+.vgml-shell-foot {
+	padding: 16px 18px 18px;
+	border-top: 2px solid var(--vgml-divider);
+}
+
 .vgml-shell-out {
-	margin: 20px 14px 0;
-	padding-top: 18px;
-	border-top: 1px solid var( --vgml-rule-strong );
+	margin: 0;
 }
 
 .vgml-shell-leave {
 	display: flex;
-	gap: 8px;
+	gap: 6px;
 	align-items: center;
-	justify-content: center;
-	padding: 9px 12px;
-	border: 1px solid var( --vgml-accent );
-	border-radius: 4px;
-	background: var( --vgml-accent );
-	color: #fff;
+	width: 100%;
+	padding: 8px 14px;
+	border: 1px solid var(--vgml-accent);
+	border-radius: 6px;
+	background: var(--vgml-accent);
+	color: #f7f9fc;
 	text-decoration: none;
-	font-size: 13px;
+	font-size: 14px;
 	font-weight: 600;
-	line-height: 1.2;
+	line-height: 1.3;
 	transition: background .12s ease, border-color .12s ease;
 }
 
 .vgml-shell-leave:hover,
 .vgml-shell-leave:active {
-	background: var( --vgml-accent-dark );
-	border-color: var( --vgml-accent-dark );
-	color: #fff;
+	background: var(--vgml-accent-dark);
+	border-color: var(--vgml-accent-dark);
+	color: #f7f9fc;
 }
 
 .vgml-shell-leave:focus {
 	box-shadow: none;
 	outline: none;
-	color: #fff;
+	color: #f7f9fc;
 }
 
 .vgml-shell-leave:focus-visible {
-	outline: 2px solid var( --vgml-ink );
+	outline: 2px solid var(--vgml-accent);
 	outline-offset: 2px;
 }
 
 .vgml-shell-leave-ico {
-	flex: 0 0 auto;
-	display: flex;
-	color: currentColor;
-}
-
-/* The nav's own icons are muted; this one is on a filled button. */
-.vgml-shell-leave-ico svg {
-	width: 16px;
-	height: 16px;
+	display: none;
 }
 
 .vgml-shell-leave-label {
 	flex: 0 1 auto;
 }
 
-/* North-east, not right: "opens elsewhere" rather than "next". */
 .vgml-shell-leave-arrow {
 	flex: 0 0 auto;
-	font-size: 13px;
-	opacity: .85;
 }
 
 .vgml-shell-out-note {
 	margin: 6px 0 0;
-	text-align: center;
 	font-size: 11px;
-	color: var( --vgml-muted );
+	color: var(--vgml-muted);
 }
 
-
-/* ----------------------------------------------- what is left in the account */
-
 /*
- *  Above the version, at the bottom of the nav: present on every screen,
- *  never in the way of one. A number somebody checks rather than one that
- *  interrupts them.
+ *  The credits card: navy, the numeral in the one yellow the palette has.
+ *  Told once here; the Licence screen owns the detail.
  */
 .vgml-shell-credits {
 	display: block;
-	margin: 18px 14px 0;
-	padding: 10px 12px;
-	border: 1px solid var( --vgml-rule );
-	border-radius: 4px;
+	margin: 16px 0 0;
+	padding: 14px;
+	border: 0;
+	border-radius: 8px;
 	text-decoration: none;
-	background: var( --vgml-surface );
+	background: var(--vgml-ink);
+	color: #f7f9fc;
 }
 
-.vgml-shell-credits:hover {
-	border-color: var( --vgml-accent );
+.vgml-shell-credits:hover .vgml-shell-credits-go {
+	text-decoration: underline;
 }
 
 .vgml-shell-credits:focus {
 	box-shadow: none;
-	outline: 2px solid var( --vgml-accent );
-	outline-offset: 1px;
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
 }
 
 .vgml-shell-credits-n {
 	display: block;
-	font-size: 20px;
-	font-weight: 600;
-	line-height: 1.1;
-	color: var( --vgml-ink );
+	font-size: 22px;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--vgml-highlight);
 	font-variant-numeric: tabular-nums;
 }
 
 .vgml-shell-credits-l {
 	display: block;
-	margin-top: 1px;
-	font-size: 12px;
-	color: var( --vgml-ink );
+	margin-top: 4px;
+	font-size: 11px;
+	color: #f7f9fc;
+	opacity: .78;
 }
 
 .vgml-shell-credits-w {
-	display: block;
-	margin-top: 3px;
-	font-size: 11px;
-	color: var( --vgml-muted );
+	display: none;
 }
 
-.vgml-shell-credits.is-low .vgml-shell-credits-n {
-	color: var( --vgml-accent );
+.vgml-shell-credits.is-unconfirmed .vgml-shell-credits-w {
+	display: block;
+	margin-top: 2px;
+	font-size: 11px;
+	opacity: .6;
+}
+
+.vgml-shell-credits-go {
+	display: block;
+	margin-top: 6px;
+	font-size: 11.5px;
+	font-weight: 600;
+	color: #ffffff;
 }
 
 
@@ -1101,22 +1237,23 @@
 .vgml-pg-head {
 	display: flex;
 	gap: 20px;
-	align-items: flex-start;
-	margin: 0 0 20px;
+	align-items: flex-end;
+	flex-wrap: wrap;
+	margin: 0 0 22px;
 }
 
 .vgml-pg-head-text {
-	flex: 1 1 auto;
+	flex: 1 1 320px;
 	min-width: 0;
 }
 
 .vgml-shell-content .vgml-pg-title {
 	margin: 0;
 	padding: 0;
-	font-size: 21px;
-	font-weight: 600;
-	line-height: 1.25;
-	letter-spacing: -.01em;
+	font-size: 30px;
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: -.015em;
 	color: var( --vgml-ink );
 }
 
@@ -1125,42 +1262,44 @@
  *  that runs the full pane is a paragraph wearing a lede's clothes.
  */
 .vgml-pg-lede {
-	margin: 6px 0 0;
-	max-width: 62ch;
-	font-size: 13px;
+	margin: 4px 0 0;
+	max-width: 64ch;
+	font-size: 14px;
 	line-height: 1.5;
 	color: var( --vgml-muted );
 }
 
 .vgml-pg-head-action {
 	flex: 0 0 auto;
+	display: flex;
+	gap: 8px;
 	padding-top: 2px;
 }
 
-/* -------------------------------------------------------------- the cards */
+/* ----------------------------------------------------------- the sections */
 
+/*
+ *  No boxes. A section is a 2px rule with a title under it; rows inside it
+ *  are parted by 1px hairlines. The eye goes down one column of labels and
+ *  one of controls, and nothing is wrapped in a rectangle to say it belongs.
+ */
 .vgml-pg-card {
-	margin: 0 0 16px;
-	border: 1px solid var( --vgml-rule );
-	border-radius: 6px;
-	background: var( --vgml-pane );
+	margin: 0 0 34px;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
 }
 
 .vgml-pg-card:last-child {
 	margin-bottom: 0;
 }
 
-/*
- *  The head is the scan line. Title left, the card's own action right, and a
- *  rule under it so the box has a lid -- a card without one is a rectangle
- *  with text in it.
- */
 .vgml-pg-card-head {
 	display: flex;
 	gap: 16px;
-	align-items: center;
-	padding: 13px 16px;
-	border-bottom: 1px solid var( --vgml-rule );
+	align-items: flex-end;
+	padding: 0 0 12px;
+	border-bottom: 2px solid var( --vgml-divider );
 }
 
 .vgml-shell-content .vgml-pg-card-title {
@@ -1168,27 +1307,29 @@
 	min-width: 0;
 	margin: 0;
 	padding: 0;
-	font-size: 14px;
-	font-weight: 600;
+	font-size: 18px;
+	font-weight: 700;
 	line-height: 1.3;
 	color: var( --vgml-ink );
 }
 
 .vgml-pg-card-note {
 	display: block;
-	margin-top: 2px;
-	font-size: 12px;
+	margin-top: 4px;
+	font-size: 13px;
 	font-weight: 400;
-	line-height: 1.45;
+	line-height: 1.5;
 	color: var( --vgml-muted );
+	max-width: 58ch;
 }
 
 .vgml-pg-card-action {
 	flex: 0 0 auto;
+	padding-bottom: 2px;
 }
 
 .vgml-pg-card-body {
-	padding: 16px;
+	padding: 16px 0 0;
 }
 
 /* A card whose body is nothing but rows gets no padding of its own. */
@@ -1381,4 +1522,401 @@
 	font-size: 14px;
 	font-weight: 600;
 	color: var( --vgml-ink );
+}
+
+
+/* ================================================== the redesign's grammar */
+
+/*
+ *  The pieces every screen is rebuilt from, September 2026 (docs: design
+ *  handoff). Kicker, rule, row, stat band, two-column page, sticky save bar,
+ *  tag, table. Values are the handoff's, not invented.
+ */
+
+/* Kicker: a small uppercase title over a section. */
+.vgml-shell .vgml-kicker {
+	margin: 0;
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--vgml-n600);
+}
+
+/* Section heading, 18px. */
+.vgml-shell .vgml-h4 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-muted {
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-note {
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--vgml-muted);
+	max-width: 58ch;
+	margin: 4px 0 0;
+}
+
+.vgml-shell .vgml-accent-text {
+	color: var(--vgml-accent-700);
+	font-weight: 600;
+}
+
+/* The 2px rule between major sections, 1px between rows. */
+.vgml-shell .vgml-rule {
+	border: 0;
+	border-top: 2px solid var(--vgml-divider);
+	margin: 20px 0 0;
+}
+
+.vgml-shell .vgml-section {
+	margin-top: 30px;
+}
+
+.vgml-shell .vgml-section > .vgml-kicker,
+.vgml-shell .vgml-section > .vgml-h4 {
+	margin-bottom: 6px;
+}
+
+.vgml-shell .vgml-rows {
+	border-top: 2px solid var(--vgml-divider);
+}
+
+/* A row: 220px label column, control beside it, hairline under it. */
+.vgml-shell .vgml-row {
+	display: grid;
+	grid-template-columns: 220px 1fr;
+	gap: 24px;
+	padding: 14px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	align-items: start;
+}
+
+.vgml-shell .vgml-row-label {
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-row-help {
+	display: block;
+	font-size: 12px;
+	font-weight: 400;
+	margin-top: 3px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-row-control {
+	font-size: 13px;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-checks {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.vgml-shell .vgml-check {
+	display: flex;
+	gap: 9px;
+	align-items: flex-start;
+	font-size: 13px;
+	cursor: pointer;
+	line-height: 1.45;
+}
+
+.vgml-shell .vgml-check input {
+	margin-top: 2px;
+}
+
+.vgml-shell .vgml-check small {
+	font-size: 11.5px;
+	color: var(--vgml-muted);
+}
+
+/* A flex row with one action on the right. */
+.vgml-shell .vgml-line {
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	padding: 16px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+}
+
+.vgml-shell .vgml-line-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-line-title {
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--vgml-ink);
+}
+
+/* The stat band: numerals across the top of a page. */
+.vgml-shell .vgml-band {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	border-top: 2px solid var(--vgml-divider);
+	border-bottom: 2px solid var(--vgml-divider);
+	margin-top: 22px;
+}
+
+.vgml-shell .vgml-band-cell {
+	display: block;
+	text-align: right;
+	background: transparent;
+	border: 0;
+	border-right: 2px solid var(--vgml-divider);
+	border-top: 1px solid var(--vgml-n200);
+	padding: 18px 16px 14px;
+	color: var(--vgml-ink);
+	text-decoration: none;
+	font: inherit;
+	cursor: default;
+}
+
+.vgml-shell .vgml-band-cell:first-child {
+	border-right: 0;
+}
+
+.vgml-shell a.vgml-band-cell,
+.vgml-shell button.vgml-band-cell {
+	cursor: pointer;
+}
+
+.vgml-shell a.vgml-band-cell:hover,
+.vgml-shell button.vgml-band-cell:hover {
+	background: var(--vgml-n200);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-band-n {
+	display: block;
+	font-size: 34px;
+	font-weight: 700;
+	letter-spacing: -.02em;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-band-l {
+	display: block;
+	font-size: 10.5px;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	margin-top: 7px;
+	color: var(--vgml-muted);
+}
+
+/* Two columns: main and a right rail that drops below when narrow. */
+.vgml-shell .vgml-cols {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 32px 44px;
+	margin-top: 28px;
+	align-items: flex-start;
+}
+
+.vgml-shell .vgml-cols-main {
+	flex: 1 1 460px;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-cols-rail {
+	flex: 0 1 300px;
+	min-width: 250px;
+}
+
+.vgml-shell .vgml-rail-block {
+	border-top: 2px solid var(--vgml-divider);
+	padding-top: 14px;
+}
+
+.vgml-shell .vgml-rail-block + .vgml-rail-block {
+	margin-top: 22px;
+}
+
+.vgml-shell .vgml-rail-block > .vgml-kicker {
+	margin-bottom: 6px;
+}
+
+.vgml-shell .vgml-rail-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	font-size: 13px;
+}
+
+.vgml-shell .vgml-rail-row b {
+	font-weight: 700;
+}
+
+/* The sticky save bar, one per page. */
+.vgml-shell .vgml-savebar,
+.vgml-shell .vgml-ds-savebar {
+	position: sticky;
+	bottom: 0;
+	z-index: 3;
+	display: flex;
+	gap: 14px;
+	align-items: center;
+	margin: 8px 0 0;
+	padding: 14px 0;
+	background: var(--vgml-ground);
+	border: 0;
+	border-top: 2px solid var(--vgml-divider);
+	box-shadow: none;
+}
+
+.vgml-shell .vgml-savebar-note {
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-saved {
+	color: var(--vgml-accent-700);
+	font-weight: 700;
+	font-size: 13px;
+}
+
+/* Banners: the accent tint, for "got it" and "moved". */
+.vgml-shell .vgml-banner {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	background: var(--vgml-accent-100);
+	border-radius: 8px;
+	padding: 12px 16px;
+	font-size: 13px;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-banner b {
+	font-weight: 700;
+}
+
+/* Tags. */
+.vgml-shell .vgml-tag {
+	display: inline-block;
+	font-size: 12px;
+	line-height: 1.3;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: var(--vgml-n200);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-tag-accent {
+	background: var(--vgml-accent-100);
+	color: var(--vgml-accent-800);
+	font-weight: 600;
+}
+
+.vgml-shell .vgml-tag-outline {
+	background: transparent;
+	border: 1px solid var(--vgml-divider);
+	cursor: pointer;
+	font: inherit;
+	font-size: 12px;
+	padding: 5px 12px;
+}
+
+.vgml-shell .vgml-tag-outline:hover {
+	background: var(--vgml-accent-100);
+}
+
+/* Inputs: radius 6, divider border, 2px accent focus. */
+.vgml-shell .vgml-input,
+.vgml-shell-content input[type="text"].vgml-input,
+.vgml-shell-content input[type="number"].vgml-input,
+.vgml-shell-content select.vgml-input,
+.vgml-shell-content textarea.vgml-input {
+	font-family: var(--vgml-font);
+	font-size: 14px;
+	line-height: 1.4;
+	padding: 8px 12px;
+	border: 1px solid var(--vgml-divider);
+	border-radius: 6px;
+	background: #ffffff;
+	color: var(--vgml-ink);
+	box-shadow: none;
+	min-height: 0;
+}
+
+.vgml-shell .vgml-input:focus,
+.vgml-shell-content .vgml-input:focus {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+	border-color: var(--vgml-divider);
+	box-shadow: none;
+}
+
+.vgml-shell input[type="checkbox"],
+.vgml-shell input[type="radio"] {
+	accent-color: var(--vgml-accent);
+	width: 15px;
+	height: 15px;
+	flex: none;
+}
+
+/* Tables. */
+.vgml-shell .vgml-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.vgml-shell .vgml-table th {
+	text-align: right;
+	font-size: 10.5px;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	font-weight: 600;
+	color: var(--vgml-n600);
+	padding: 10px 0 8px 10px;
+	border-bottom: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell .vgml-table td {
+	padding: 10px 0 10px 10px;
+	border-bottom: 1px solid var(--vgml-n300);
+	vertical-align: top;
+}
+
+.vgml-shell .vgml-mono {
+	font-family: ui-monospace, Menlo, Consolas, monospace;
+	font-size: 12px;
+}
+
+/* A gray placeholder thumbnail, 4:3 or square. */
+.vgml-shell .vgml-thumb {
+	display: block;
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+	border-radius: 6px;
+	background: var(--vgml-n300);
+}
+
+.vgml-shell .vgml-thumb.is-square {
+	aspect-ratio: 1 / 1;
+}
+
+@media screen and (max-width: 640px) {
+	.vgml-shell .vgml-row {
+		grid-template-columns: 1fr;
+		gap: 8px;
+	}
 }

@@ -216,10 +216,11 @@ function vergeml_shell_open() {
             <nav class="vgml-shell-nav" aria-label="<?php esc_attr_e( 'VergeLabs Library', 'vergelabs-media-library' ); ?>">
 
                 <div class="vgml-shell-brand">
-                    <span class="vgml-shell-mark" aria-hidden="true"><?php echo vergeml_shell_mark(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a literal SVG below. ?></span>
-                    <span class="vgml-shell-name"><?php esc_html_e( 'VergeLabs Library', 'vergelabs-media-library' ); ?></span>
+                    <span class="vgml-shell-mark" aria-hidden="true"></span>
+                    <span class="vgml-shell-name"><?php esc_html_e( 'VergeLabs', 'vergelabs-media-library' ); ?> <small><?php esc_html_e( 'Media Library', 'vergelabs-media-library' ); ?></small></span>
                 </div>
 
+                <?php $badges = vergeml_shell_badges(); ?>
                 <ul class="vgml-shell-list">
                     <?php $group = ''; ?>
                     <?php foreach ( $pages as $page ) : ?>
@@ -233,11 +234,12 @@ function vergeml_shell_open() {
                                 class="vgml-shell-item<?php echo $page['slug'] === $current ? ' is-on' : ''; ?>"
                                 <?php echo $page['slug'] === $current ? ' aria-current="page"' : ''; ?>
                             >
-                                <span class="vgml-shell-ico"><?php
-                                    echo function_exists( 'vergeml_icon' ) ? vergeml_icon( $page['icon'] ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal SVG, see core/icons.php.
-                                ?></span>
                                 <span class="vgml-shell-text">
-                                    <span class="vgml-shell-label"><?php echo esc_html( $page['label'] ); ?></span>
+                                    <span class="vgml-shell-label"><?php echo esc_html( $page['label'] ); ?><?php
+                                        if ( ! empty( $badges[ $page['slug'] ] ) ) {
+                                            echo '<span class="vgml-shell-badge">' . esc_html( number_format_i18n( $badges[ $page['slug'] ] ) ) . '</span>';
+                                        }
+                                    ?></span>
                                     <?php if ( '' !== $page['sub'] ) : ?>
                                         <span class="vgml-shell-sub"><?php echo esc_html( $page['sub'] ); ?></span>
                                     <?php endif; ?>
@@ -246,6 +248,8 @@ function vergeml_shell_open() {
                         </li>
                     <?php endforeach; ?>
                 </ul>
+
+                <div class="vgml-shell-foot">
 
                 <?php
                 /*
@@ -286,6 +290,7 @@ function vergeml_shell_open() {
                     );
                     ?>
                 </p>
+                </div>
             </nav>
 
             <main class="vgml-shell-content">
@@ -414,13 +419,47 @@ function vergeml_shell_credits() {
     }
 
     return sprintf(
-        '<a class="vgml-shell-credits%1$s" href="%2$s"><span class="vgml-shell-credits-n">%3$s</span><span class="vgml-shell-credits-l">%4$s</span><span class="vgml-shell-credits-w">%5$s</span></a>',
+        '<a class="vgml-shell-credits%1$s" href="%2$s"><span class="vgml-shell-credits-n">%3$s</span><span class="vgml-shell-credits-l">%4$s</span><span class="vgml-shell-credits-w">%5$s</span><span class="vgml-shell-credits-go">%6$s</span></a>',
         esc_attr( $low ),
         esc_url( $url ),
         esc_html( number_format_i18n( $left ) ),
-        esc_html( _n( 'credit left', 'credits left', $left, 'vergelabs-media-library' ) ),
-        esc_html( $note )
+        esc_html__( 'credits left · one credit describes one image', 'vergelabs-media-library' ),
+        esc_html( $note ),
+        esc_html__( 'Licence & credits →', 'vergelabs-media-library' )
     );
+}
+
+
+/**
+ *  The counts on the rail: what is waiting on each screen. Unfiled files on
+ *  Sort, pictures without alt text on AI, look-alike sets on Duplicates.
+ *  From the same cached facts the dashboard reads, so they agree.
+ *
+ *  @return array slug => count, only where the count is above zero.
+ */
+function vergeml_shell_badges() {
+
+    $out = array();
+
+    if ( function_exists( 'vergeml_journey_facts' ) ) {
+        $f = vergeml_journey_facts();
+        if ( ! empty( $f['unfiled'] ) ) {
+            $out['media-librarian'] = (int) $f['unfiled'];
+        }
+        if ( ! empty( $f['no_alt'] ) ) {
+            $out['media-ai'] = (int) $f['no_alt'];
+        }
+    }
+
+    if ( function_exists( 'vergeml_health_state' ) ) {
+        $h    = vergeml_health_state();
+        $sets = isset( $h['related']['groups'] ) ? count( (array) $h['related']['groups'] ) + (int) ( isset( $h['related']['more'] ) ? $h['related']['more'] : 0 ) : 0;
+        if ( $sets > 0 ) {
+            $out['media-health'] = $sets;
+        }
+    }
+
+    return $out;
 }
 
 
