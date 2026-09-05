@@ -300,6 +300,47 @@ bg_check(
 );
 
 
+bg_say( "\nG  a pass that died half-way is picked up again\n" );
+
+/*
+ *  What php-fpm leaves behind when it kills a pass: cron had already taken
+ *  the event off the schedule, the run is still active, and the lock is
+ *  whatever is left of the pass's last heartbeat. Nothing books the next
+ *  pass, because the pass that would have is dead.
+ *
+ *  Core's own cron lock is held for the section, so starting the run does
+ *  not spawn a real pass that finishes the three files before the checks.
+ */
+bg_settings( array( 'mock' => 1 ) );
+set_transient( 'doing_cron', sprintf( '%.22F', microtime( true ) ) );
+
+$bg_made_c = bg_seed( 3, 'c' );
+$bg_made   = array_merge( $bg_made, $bg_made_c );
+
+vergeml_ai_run_start( 'unindexed', false );
+wp_unschedule_event( wp_next_scheduled( 'vergeml_ai_run_tick' ), 'vergeml_ai_run_tick' );
+set_transient( 'vergeml_ai_run_lock', time(), 2 * MINUTE_IN_SECONDS );
+
+$bg_warm = vergeml_ai_run_revive();
+bg_check( 'while the lock is still warm nothing is re-booked -- a living pass books its own', false === $bg_warm && false === wp_next_scheduled( 'vergeml_ai_run_tick' ) );
+
+// The heartbeat lapsed: the pass is dead.
+delete_transient( 'vergeml_ai_run_lock' );
+
+$bg_revived = vergeml_ai_run_revive();
+bg_check( 'once it lapses, the run is booked again', true === $bg_revived && false !== wp_next_scheduled( 'vergeml_ai_run_tick' ) );
+
+// The status the screen polls does the same, so a watched run recovers in seconds.
+wp_unschedule_event( wp_next_scheduled( 'vergeml_ai_run_tick' ), 'vergeml_ai_run_tick' );
+$bg_polled = vergeml_ai_run_payload();
+bg_check( 'the status the screen polls books it too', false !== wp_next_scheduled( 'vergeml_ai_run_tick' ) && null !== $bg_polled['next'] );
+
+vergeml_ai_run_stop( '' );
+bg_check( 'a stopped run stays stopped', false === vergeml_ai_run_revive() && false === wp_next_scheduled( 'vergeml_ai_run_tick' ) );
+
+delete_transient( 'doing_cron' );
+
+
 bg_say( "\ntidying up\n" );
 
 vergeml_ai_run_stop( '' );

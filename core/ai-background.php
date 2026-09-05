@@ -101,6 +101,42 @@ function vergeml_ai_run_schedule() {
 
 
 /**
+ *  vergeml_ai_run_revive
+ *
+ *  A pass books its successor only as it ends. Cron takes the event off the
+ *  schedule before it calls the tick, so a pass that php-fpm kills half-way
+ *  -- a memory limit, a restart, a request timeout -- leaves an active run
+ *  with nothing booked and a lock that outlives it, and nothing on the site
+ *  ever runs it again. The screen says "working" for good.
+ *
+ *  So an active run with nothing booked is booked again, once the dead pass's
+ *  lock has lapsed: from every admin request, and from the status the screen
+ *  polls. A lock still warm means a pass is alive and will book its own.
+ *
+ *  @return bool  whether it booked one.
+ */
+add_action( 'admin_init', 'vergeml_ai_run_revive' );
+
+function vergeml_ai_run_revive() {
+
+    if ( false !== wp_next_scheduled( VERGEML_AI_RUN_HOOK ) ) {
+        return false;
+    }
+
+    $state = vergeml_ai_run_state();
+
+    if ( empty( $state['active'] ) || get_transient( 'vergeml_ai_run_lock' ) ) {
+        return false;
+    }
+
+    vergeml_ai_run_schedule();
+    vergeml_ai_run_nudge();
+
+    return true;
+}
+
+
+/**
  *  Keep going without waiting for a visitor.
  *
  *  WP-Cron is not a clock. It fires when somebody loads a page, so on a site
@@ -258,7 +294,15 @@ function vergeml_ai_run_tick() {
         return;
     }
 
-    set_transient( 'vergeml_ai_run_lock', 1, 5 * MINUTE_IN_SECONDS );
+    /*
+     *  The lock is a heartbeat, not a lease. It lived five minutes and was
+     *  set once, so a pass killed half-way held the run up for the rest of
+     *  those minutes. Now it lasts two and is renewed before every batch; a
+     *  batch is sixteen calls in flight together, each capped at sixty
+     *  seconds, so a living pass never lets it lapse and a dead one is found
+     *  out within two minutes of its last batch (vergeml_ai_run_revive).
+     */
+    set_transient( 'vergeml_ai_run_lock', time(), 2 * MINUTE_IN_SECONDS );
 
     // Cron requests inherit the site's limit, which on shared hosting is
     // often 30 seconds. Ask for more; carry on without it if refused.
@@ -270,6 +314,8 @@ function vergeml_ai_run_tick() {
     $stop    = '';
 
     do {
+        set_transient( 'vergeml_ai_run_lock', time(), 2 * MINUTE_IN_SECONDS );
+
         $result = vergeml_ai_index_step( $state['scope'], VERGEML_AI_RUN_CHUNK, $state['apply_alt'] );
 
         $state['described'] += count( $result['described'] );
@@ -422,6 +468,10 @@ function vergeml_ai_run_routes() {
 
 
 function vergeml_ai_run_payload() {
+
+    // The screen polls this every five seconds, so a run whose pass died is
+    // picked up while somebody is watching it, not on the next admin visit.
+    vergeml_ai_run_revive();
 
     $state = vergeml_ai_run_state();
 
