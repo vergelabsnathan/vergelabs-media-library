@@ -1,0 +1,3344 @@
+<title>Folders Screen Mock</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/*
+ *  The admin shell.
+ *
+ *  Structure copied from WP Rocket's own wpr-admin.css, which is the reference
+ *  Nathan chose, and every number here is theirs rather than invented:
+ *
+ *      .wpr-wrap    { margin: 0 0 0 -20px }        flush to the admin menu
+ *      .wpr-body    { display: flex }
+ *      .wpr-Header  { flex: 0 0 225px }            a fixed nav column
+ *      .wpr-Content { flex: 1 1 auto; background:#fff; padding: 32px 24px;
+ *                     max-width: 1230px }
+ *      .wpr-sectionHeader { border-bottom: 1px solid …; padding-bottom: 24px }
+ *      14px base on a 1.5 line, 4px radius almost everywhere.
+ *
+ *  The trick is structural, not decorative: kill WordPress's gutter, put a nav
+ *  down the left, and separate sections with a rule instead of wrapping each
+ *  one in its own box. That is what stops a screen reading as a settings page.
+ *
+ *  The colours are ours, and they are the site's: the same #F6F8FC ground,
+ *  #16233D ink and #2E5AA8 accent that vergelabsmedia.com and the account
+ *  page use, so somebody who buys on the site and then opens the plugin is
+ *  looking at one product rather than three.
+ *
+ *  These ten values are the whole palette. Change them here and the admin
+ *  changes with them -- that is the point of having them in one place.
+ *
+ *  Everything is scoped under .vgml-shell, so none of it reaches a WordPress
+ *  screen this plugin does not own.
+ */
+
+/*
+ *  Inter, bundled. Loaded from Google would be a request to a third party on
+ *  every admin page, which is not ours to make on somebody else's site.
+ *  Variable weight, latin and latin-extended; SIL OFL, see fonts/.
+ */
+/*
+ *  The tokens are the redesign's (docs: design handoff, September 2026):
+ *  ground, surface, navy ink, one blue, one yellow for the credits numeral,
+ *  nine neutrals, and a divider that is the ink at 22%. The older names are
+ *  kept so the rest of this file and the screens keep resolving.
+ */
+.vgml-shell {
+	--vgml-ground: #f7f9fc;
+	--vgml-pane: #ffffff;
+	--vgml-surface: #e9eef8;
+	--vgml-ink: #101d40;
+	--vgml-body: #101d40;
+	--vgml-muted: #6f7891;
+	--vgml-accent: #2b46d8;
+	--vgml-accent-dark: #2439b9;
+	--vgml-accent-100: #e9edfc;
+	--vgml-accent-200: #d6def9;
+	--vgml-accent-300: #b7c5f4;
+	--vgml-accent-700: #1e2f9d;
+	--vgml-accent-800: #1a2775;
+	--vgml-highlight: #ffd84d;
+	--vgml-n100: #f4f6fb;
+	--vgml-n200: #e8ecf5;
+	--vgml-n300: #d5dbe9;
+	--vgml-n400: #b3bcd2;
+	--vgml-n500: #8e97b0;
+	--vgml-n600: #6f7891;
+	--vgml-n700: #545d75;
+	--vgml-n800: #39415a;
+	--vgml-n900: #1a2340;
+	--vgml-divider: rgba(16, 29, 64, .22);
+	--vgml-rule: #d5dbe9;
+	--vgml-rule-strong: rgba(16, 29, 64, .22);
+	--vgml-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+	/* Flush to the admin menu. Losing the gutter is most of what stops this
+	   reading as a settings page. */
+	margin: 0 0 0 -20px;
+	padding: 0;
+	background: var(--vgml-ground);
+	min-height: calc(100vh - 32px);
+	box-sizing: border-box;
+	color: var(--vgml-body);
+	font-family: var(--vgml-font);
+	font-size: 14px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.vgml-shell h1,
+.vgml-shell h2,
+.vgml-shell h3,
+.vgml-shell h4,
+.vgml-shell h5,
+.vgml-shell h6,
+.vgml-shell button,
+.vgml-shell input,
+.vgml-shell select,
+.vgml-shell textarea {
+	font-family: var(--vgml-font);
+}
+
+.vgml-shell *,
+.vgml-shell *::before,
+.vgml-shell *::after {
+	box-sizing: border-box;
+}
+
+.vgml-shell-body {
+	display: flex;
+	align-items: flex-start;
+	gap: 0;
+}
+
+/* ------------------------------------------------------------------ the rail */
+
+/*
+ *  250px, sticky the full height, a 2px rule on its right. Brand row on top,
+ *  the nav in the middle, and at the bottom the one way out of the plugin
+ *  and what is left in the account.
+ */
+.vgml-shell-nav {
+	flex: 0 0 250px;
+	position: sticky;
+	top: 32px;
+	height: calc(100vh - 32px);
+	overflow: auto;
+	display: flex;
+	flex-direction: column;
+	border-right: 2px solid var(--vgml-divider);
+	background: var(--vgml-ground);
+}
+
+.vgml-shell-brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 20px 18px 16px;
+	border-bottom: 2px solid var(--vgml-divider);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-mark {
+	display: block;
+	width: 16px;
+	height: 16px;
+	flex: none;
+	border-radius: 5px;
+	background: var(--vgml-ink);
+}
+
+.vgml-shell-mark svg {
+	display: none;
+}
+
+.vgml-shell-name {
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: -.01em;
+	line-height: 1.2;
+}
+
+.vgml-shell-name small {
+	font-size: 9px;
+	font-weight: 500;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--vgml-n600);
+	margin-left: 4px;
+}
+
+.vgml-shell-list {
+	margin: 0;
+	padding: 10px 0 16px;
+	list-style: none;
+	flex: 1;
+}
+
+.vgml-shell-list li {
+	margin: 0;
+}
+
+.vgml-shell-item {
+	display: block;
+	position: relative;
+	padding: 8px 15px;
+	border-left: 3px solid transparent;
+	color: var(--vgml-ink);
+	text-decoration: none;
+	line-height: 1.3;
+	transition: background .12s ease;
+}
+
+.vgml-shell-item:hover {
+	background: var(--vgml-n200);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-item:focus {
+	box-shadow: none;
+	outline: none;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-item:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: -2px;
+}
+
+.vgml-shell-item.is-on {
+	background: var(--vgml-surface);
+	border-left-color: var(--vgml-accent);
+}
+
+.vgml-shell-item.is-on .vgml-shell-label {
+	color: var(--vgml-accent-700);
+}
+
+.vgml-shell-badge {
+	display: inline-block;
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 1.5;
+	padding: 1px 7px;
+	border-radius: 8px;
+	background: var(--vgml-accent-100);
+	color: var(--vgml-accent-800);
+	margin-left: 8px;
+	vertical-align: 1px;
+}
+
+.vgml-shell-version {
+	margin: 14px 0 0;
+	font-size: 10.5px;
+	color: var(--vgml-muted);
+}
+
+/* -------------------------------------------------------------- the content */
+
+.vgml-shell-content {
+	flex: 1 1 auto;
+	min-width: 0;
+	max-width: 1140px;
+	background: transparent;
+	border: 0;
+	padding: 36px 44px 80px;
+}
+
+/* WordPress's own wrapper, now inside our pane and no longer supplying chrome. */
+.vgml-shell-content .wrap,
+.vgml-shell-content .wrap.vgml-home {
+	margin: 0;
+	padding: 0;
+	max-width: none;
+	background: none;
+}
+
+.vgml-shell-content .wrap > h1,
+.vgml-shell-content .vgml-home-head h1 {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 24px;
+	line-height: 1.25;
+	font-weight: 700;
+	letter-spacing: -.02em;
+	color: var(--vgml-ink);
+}
+
+/* The page header: a rule and 24px of air, which is Rocket's sectionHeader. */
+.vgml-shell-content .vgml-home-head,
+.vgml-shell-content .wrap > h1:first-child {
+	margin-bottom: 24px;
+	padding-bottom: 24px;
+	border-bottom: 1px solid var(--vgml-rule);
+}
+
+.vgml-shell-content .vgml-home-counts,
+.vgml-shell-content .vgml-home-version {
+	margin: 0;
+	font-size: 13px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content p,
+.vgml-shell-content li,
+.vgml-shell-content label,
+.vgml-shell-content td,
+.vgml-shell-content th {
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--vgml-body);
+}
+
+.vgml-shell-content .description,
+.vgml-shell-content p.description {
+	font-size: 13px;
+	line-height: 1.6;
+	color: var(--vgml-muted);
+	max-width: 68ch;
+}
+
+.vgml-shell-content strong {
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content a {
+	color: var(--vgml-accent);
+}
+
+/*
+ *  Sections, not boxes.
+ *
+ *  The cards are what made these screens read as a stack of widgets, and a
+ *  card inside a pane is a box inside a box. Rocket separates with a rule and
+ *  space, which is quieter and makes a long screen scannable.
+ */
+.vgml-shell-content .vgml-ai-card,
+.vgml-shell-content .vgml-import-card {
+	background: none;
+	border: 0;
+	border-top: 1px solid var(--vgml-rule);
+	box-shadow: none;
+	border-radius: 0;
+	margin: 28px 0 0;
+	padding: 28px 0 0;
+}
+
+.vgml-shell-content .vgml-ai-card:first-of-type,
+.vgml-shell-content .vgml-import-card:first-of-type {
+	border-top: 0;
+	margin-top: 0;
+	padding-top: 0;
+}
+
+.vgml-shell-content h2,
+.vgml-shell-content .vgml-ai-card > h2,
+.vgml-shell-content .vgml-import-card h2 {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.35;
+	letter-spacing: -.01em;
+	color: var(--vgml-ink);
+	border: 0;
+}
+
+.vgml-shell-content h3 {
+	margin: 20px 0 6px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+}
+
+/*
+ *  The home screen's cards stay cards -- they are navigation, and a grid of
+ *  destinations is the one place a box is the right answer. Repainted off
+ *  WordPress blue onto ours.
+ */
+.vgml-shell-content .vgml-home-card {
+	border-color: var(--vgml-rule);
+	border-radius: 4px;
+	background: var(--vgml-surface);
+}
+
+.vgml-shell-content .vgml-home-card:hover,
+.vgml-shell-content .vgml-home-card:focus {
+	border-color: var(--vgml-accent);
+	background: #fff;
+}
+
+.vgml-shell-content .vgml-home-card:focus-visible {
+	outline-color: var(--vgml-accent);
+}
+
+.vgml-shell-content .vgml-home-card h2 {
+	color: var(--vgml-ink);
+}
+
+/* ---------------------------------------------------------------- controls */
+
+/*
+ *  Three buttons. Primary is the blue fill; secondary is a divider border on
+ *  the ground; ghost is accent text with a light accent hover. 14px/600,
+ *  radius 6, no shadows, disabled at 45%.
+ */
+.vgml-shell .button,
+.vgml-shell .button-secondary,
+.vgml-shell .vgml-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: auto;
+	min-height: 0;
+	padding: 8px 14px;
+	border-radius: 6px;
+	border: 1px solid var(--vgml-divider);
+	background: transparent;
+	color: var(--vgml-ink);
+	font-family: var(--vgml-font);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.3;
+	text-decoration: none;
+	cursor: pointer;
+	box-shadow: none;
+	text-shadow: none;
+	transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+
+.vgml-shell .button:hover,
+.vgml-shell .vgml-btn:hover {
+	background: rgba(16, 29, 64, .07);
+	border-color: var(--vgml-divider);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .button-primary,
+.vgml-shell .vgml-btn-primary {
+	background: var(--vgml-accent);
+	border-color: var(--vgml-accent);
+	color: #f7f9fc;
+}
+
+.vgml-shell .button-primary:hover,
+.vgml-shell .button-primary:focus,
+.vgml-shell .vgml-btn-primary:hover {
+	background: var(--vgml-accent-dark);
+	border-color: var(--vgml-accent-dark);
+	color: #f7f9fc;
+}
+
+.vgml-shell .button-hero,
+.vgml-shell .button.button-hero {
+	font-size: 14px;
+	padding: 10px 18px;
+}
+
+.vgml-shell .vgml-btn-ghost,
+.vgml-shell .button-link.vgml-btn-ghost {
+	border-color: transparent;
+	background: transparent;
+	color: var(--vgml-accent);
+}
+
+.vgml-shell .vgml-btn-ghost:hover {
+	background: rgba(43, 70, 216, .10);
+	border-color: transparent;
+	color: var(--vgml-accent-700);
+}
+
+.vgml-shell .vgml-btn-block {
+	display: flex;
+	width: 100%;
+	justify-content: flex-start;
+}
+
+.vgml-shell .button:focus-visible,
+.vgml-shell .button-primary:focus-visible,
+.vgml-shell .vgml-btn:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+.vgml-shell .button[disabled],
+.vgml-shell .button:disabled,
+.vgml-shell .vgml-btn:disabled {
+	opacity: .45;
+	cursor: not-allowed;
+}
+
+.vgml-shell-content input[type="text"],
+.vgml-shell-content input[type="password"],
+.vgml-shell-content input[type="number"],
+.vgml-shell-content input[type="search"],
+.vgml-shell-content input[type="email"],
+.vgml-shell-content input[type="url"],
+.vgml-shell-content select,
+.vgml-shell-content textarea {
+	border: 1px solid var(--vgml-rule-strong);
+	border-radius: 4px;
+	background: #fff;
+	color: var(--vgml-ink);
+	font-size: 13px;
+	padding: 6px 9px;
+	box-shadow: none;
+	min-height: 0;
+}
+
+.vgml-shell-content input[type="text"]:focus,
+.vgml-shell-content input[type="password"]:focus,
+.vgml-shell-content input[type="number"]:focus,
+.vgml-shell-content select:focus,
+.vgml-shell-content textarea:focus {
+	border-color: var(--vgml-accent);
+	box-shadow: 0 0 0 1px var(--vgml-accent);
+	outline: none;
+}
+
+.vgml-shell-content input[type="checkbox"],
+.vgml-shell-content input[type="radio"] {
+	border-color: var(--vgml-rule-strong);
+}
+
+.vgml-shell-content input[type="checkbox"]:checked,
+.vgml-shell-content input[type="radio"]:checked {
+	background: var(--vgml-accent);
+	border-color: var(--vgml-accent);
+}
+
+.vgml-shell-content input[type="checkbox"]:checked::before {
+	filter: brightness(0) invert(1);
+}
+
+.vgml-shell-content input[type="radio"]:checked::before {
+	background: #fff;
+}
+
+/* ------------------------------------------------------------------ tables */
+
+/*
+ *  WordPress's form-table, read as the row grammar.
+ *
+ *  A form-table is already label-left, control-right, one setting per row --
+ *  it is the vgml-pg-row shape in a table. The three settings screens are
+ *  950 lines of Settings API markup in it, and none of that needs touching
+ *  for them to look like the rest of the plugin: the label gets the label's
+ *  weight, the rows get the hairline, and the whole thing sits inside a card.
+ */
+.vgml-shell-content .form-table {
+	margin: 0;
+	border-collapse: collapse;
+}
+
+.vgml-shell-content .form-table th {
+	padding: 14px 20px 14px 16px;
+	width: 220px;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--vgml-ink);
+	vertical-align: top;
+}
+
+.vgml-shell-content .form-table td {
+	padding: 13px 16px 13px 0;
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--vgml-body);
+	vertical-align: top;
+}
+
+.vgml-shell-content .form-table tr + tr th,
+.vgml-shell-content .form-table tr + tr td {
+	border-top: 1px solid var(--vgml-rule);
+}
+
+/* The aside in a row -- "(Can be disabled for Grid Mode only)" -- is help,
+   and reads as help. */
+.vgml-shell-content .form-table td em,
+.vgml-shell-content .form-table td .description,
+.vgml-shell-content .form-table td p.description {
+	font-size: 12px;
+	font-style: normal;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .form-table td label {
+	line-height: 1.7;
+}
+
+/* -------------------------------------------------------- progress and logs */
+
+.vgml-shell-content .vgml-import-bar {
+	background: var(--vgml-rule);
+	border-radius: 44px;
+	height: 6px;
+	overflow: hidden;
+	margin: 14px 0 10px;
+	border: 0;
+}
+
+.vgml-shell-content .vgml-import-fill {
+	background: var(--vgml-accent);
+	height: 100%;
+	border-radius: 44px;
+	transition: width .3s ease;
+}
+
+.vgml-shell-content .vgml-ai-log,
+.vgml-shell-content .vgml-autofile-list,
+.vgml-shell-content .vgml-quarantine-list {
+	margin: 12px 0 0;
+	padding: 0;
+	list-style: none;
+	font-size: 13px;
+	max-height: 320px;
+	overflow-y: auto;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+}
+
+.vgml-shell-content .vgml-ai-log:empty,
+.vgml-shell-content .vgml-autofile-list:empty {
+	display: none;
+	border: 0;
+}
+
+.vgml-shell-content .vgml-ai-log li,
+.vgml-shell-content .vgml-autofile-list li {
+	padding: 8px 12px;
+	margin: 0;
+	border-bottom: 1px solid var(--vgml-rule);
+}
+
+.vgml-shell-content .vgml-ai-log li:last-child,
+.vgml-shell-content .vgml-autofile-list li:last-child {
+	border-bottom: 0;
+}
+
+/* ----------------------------------------------------------------- notices */
+
+.vgml-shell-content .notice {
+	margin: 0 0 18px;
+	border-radius: 4px;
+	border-left-width: 3px;
+	background: var(--vgml-surface);
+	box-shadow: none;
+}
+
+/* ---------------------------------------------------------------- narrower */
+
+@media screen and (max-width: 960px) {
+	.vgml-shell-body {
+		display: block;
+	}
+
+	.vgml-shell-nav {
+		position: static;
+		height: auto;
+		border-right: 0;
+		border-bottom: 2px solid var(--vgml-divider);
+	}
+
+	.vgml-shell-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2px;
+		padding: 8px 6px;
+	}
+
+	.vgml-shell-item {
+		border-left: 0;
+		border-radius: 6px;
+	}
+
+	.vgml-shell-sub {
+		display: none;
+	}
+
+	.vgml-shell-foot {
+		display: flex;
+		gap: 16px;
+		align-items: flex-start;
+	}
+
+	.vgml-shell-foot > * {
+		flex: 1;
+	}
+
+	.vgml-shell-credits {
+		margin-top: 0;
+	}
+
+	.vgml-shell-content {
+		padding: 24px 20px 60px;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.vgml-shell {
+		margin-left: -10px;
+	}
+
+	.vgml-shell-content {
+		padding: 20px 16px 48px;
+	}
+
+	.vgml-shell-foot {
+		display: block;
+	}
+
+	.vgml-shell-credits {
+		margin-top: 12px;
+	}
+}
+
+
+/*
+ *  The settings group.
+ *
+ *  Three of the eight screens are things you set once and never open again.
+ *  Under a quiet heading they stop competing with the five you actually use.
+ */
+.vgml-shell-group {
+	margin: 16px 0 4px;
+	padding: 0 12px;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: .07em;
+	text-transform: uppercase;
+	color: var(--vgml-muted);
+	list-style: none;
+}
+
+/* ------------------------------------------------------------------- help */
+
+/*
+ *  The question mark beside an option. Click, not hover: a hover tooltip
+ *  cannot be reached by keyboard or read on a touch screen, and this exists
+ *  for the person who is not sure what they are looking at.
+ */
+.vgml-help {
+	appearance: none;
+	border: 1px solid var(--vgml-rule-strong);
+	background: var(--vgml-surface);
+	color: var(--vgml-muted);
+	width: 17px;
+	height: 17px;
+	line-height: 1;
+	padding: 0;
+	border-radius: 50%;
+	font-size: 11px;
+	font-weight: 700;
+	cursor: help;
+	vertical-align: middle;
+	margin-left: 4px;
+}
+
+.vgml-help:hover,
+.vgml-help[aria-expanded="true"] {
+	border-color: var(--vgml-accent);
+	background: var(--vgml-accent);
+	color: #fff;
+}
+
+.vgml-help:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+}
+
+.vgml-help-bubble {
+	position: absolute;
+	z-index: 100000;
+	max-width: 320px;
+	padding: 10px 12px;
+	border-radius: 4px;
+	background: #16233D;
+	color: #F6F8FC;
+	font-size: 13px;
+	line-height: 1.5;
+	box-shadow: 0 4px 16px rgba(43, 26, 20, .22);
+}
+
+
+/*
+ *  hidden means hidden.
+ *
+ *  WordPress's .button sets display:inline-block, which beats the browser's
+ *  default [hidden]{display:none} on specificity -- so the Stop button sat
+ *  there on a screen with nothing running, inviting a click that did nothing.
+ */
+.vgml-shell [hidden] {
+	display: none !important;
+}
+
+
+/* ------------------------------------------------------- nav, second line */
+
+/*
+ *  A label and a line saying what the screen is for, which is what WP Rocket
+ *  does and what made its nav readable at a glance where ours was eight bare
+ *  words. The icon is a landmark for somebody scanning a menu they have seen
+ *  fifty times -- it is not decoration, which is why it is a line drawing in
+ *  currentColor and not a picture.
+ */
+.vgml-shell-ico {
+	display: none;
+}
+
+.vgml-shell-text {
+	display: block;
+	min-width: 0;
+}
+
+.vgml-shell-label {
+	display: block;
+	font-size: 13.5px;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.vgml-shell-sub {
+	display: block;
+	margin-top: 1px;
+	font-size: 11px;
+	line-height: 1.35;
+	font-weight: 400;
+	color: rgba(16, 29, 64, .55);
+}
+
+.vgml-icon-svg {
+	display: block;
+}
+
+
+/* ---------------------------------------------------------- settings pages */
+
+/*
+ *  The settings screens were the last thing still reading as WordPress: a
+ *  white card per section sitting on a white pane, and a Save button under
+ *  every one of them.
+ *
+ *  Sections are rules now, like everywhere else in the shell, and the save is
+ *  one bar pinned to the bottom of the window -- a 3,500px page should not
+ *  make somebody scroll to the end to keep a change they made at the top.
+ */
+.vgml-shell-content .vgml-settings-section,
+.vgml-shell-content .vgml-box,
+.vgml-shell-content .eml-section {
+	background: none;
+	border: 0;
+	border-top: 1px solid var(--vgml-rule);
+	border-radius: 0;
+	box-shadow: none;
+	padding: 26px 0 0;
+	margin: 26px 0 0;
+}
+
+.vgml-shell-content h2 + .vgml-settings-section,
+.vgml-shell-content .vgml-settings-section:first-of-type {
+	border-top: 0;
+	margin-top: 0;
+	padding-top: 0;
+}
+
+.vgml-savebar {
+	position: sticky;
+	bottom: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin: 8px 0 0;
+	padding: 14px 0;
+	background: var(--vgml-ground);
+	border-top: 2px solid var(--vgml-divider);
+}
+
+.vgml-savebar .button-primary {
+	margin: 0;
+}
+
+.vgml-savebar-note {
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
+/*
+ *  WordPress's postbox, unboxed: a section is a rule and a title, like every
+ *  other section in the redesign. The heading above it is the section's
+ *  kicker; a postbox carrying its own h3 draws that as the kicker instead.
+ */
+.vgml-shell .vgml-shell-content .postbox,
+.vgml-shell .vgml-shell-content .postbox-container .postbox,
+.vgml-shell .vgml-shell-content .metabox-holder .postbox {
+	margin: 0 0 30px;
+	min-width: 0;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	max-width: 920px;
+}
+
+.vgml-shell-content .postbox > .inside {
+	margin: 0;
+	padding: 0;
+	border-top: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell-content .postbox > .inside > p,
+.vgml-shell-content .postbox > .inside > ul,
+.vgml-shell-content .postbox > .inside > div:not(.form-table) {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.vgml-shell-content .postbox > .inside > p:first-child {
+	padding-top: 12px;
+}
+
+.vgml-shell-content .postbox > h3.hndle,
+.vgml-shell-content .postbox > .hndle {
+	margin: 0 0 6px;
+	padding: 0;
+	border: 0;
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--vgml-n600);
+	cursor: default;
+}
+
+.vgml-shell-content > .wrap > h2,
+.vgml-shell-content .wrap > h2,
+.vgml-shell-content .wrap form > h2 {
+	margin: 30px 0 6px;
+	padding: 0;
+	border: 0;
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--vgml-n600);
+}
+
+.vgml-shell-content .wrap > h2:first-of-type,
+.vgml-shell-content .wrap form > h2:first-of-type {
+	margin-top: 28px;
+}
+
+/* Several Save buttons on one page were doing one job; the one sticky bar does it. */
+.vgml-shell-content .postbox p.submit {
+	display: none;
+}
+
+.vgml-shell-content form {
+	padding-bottom: 0;
+}
+
+/* The form-table as 220px-label rows. */
+.vgml-shell-content .form-table {
+	margin: 0;
+}
+
+.vgml-shell-content .form-table,
+.vgml-shell-content .form-table tbody {
+	display: block;
+}
+
+.vgml-shell-content .form-table tr {
+	display: grid;
+	grid-template-columns: 220px 1fr;
+	gap: 24px;
+	padding: 14px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	align-items: start;
+}
+
+.vgml-shell-content .form-table th,
+.vgml-shell-content .form-table td {
+	display: block;
+	padding: 0;
+	width: auto;
+	border: 0;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.vgml-shell-content .form-table th {
+	font-weight: 700;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content .form-table tr + tr td {
+	border: 0;
+}
+
+.vgml-shell-content .form-table td label {
+	display: flex;
+	gap: 9px;
+	align-items: baseline;
+	font-size: 13px;
+	margin: 0 0 8px;
+	cursor: pointer;
+}
+
+.vgml-shell-content .form-table td label:last-child {
+	margin-bottom: 0;
+}
+
+.vgml-shell-content .form-table td label input[type="checkbox"],
+.vgml-shell-content .form-table td label input[type="radio"] {
+	align-self: center;
+}
+
+.vgml-shell-content .form-table td label em {
+	font-style: normal;
+	font-size: 11.5px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .form-table td br {
+	display: none;
+}
+
+.vgml-shell-content .form-table td p.description {
+	margin: 8px 0 0;
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .form-table td input[type="number"],
+.vgml-shell-content .form-table td input[type="text"],
+.vgml-shell-content .form-table td select {
+	font-family: var(--vgml-font);
+	font-size: 14px;
+	padding: 6px 10px;
+	border: 1px solid var(--vgml-divider);
+	border-radius: 6px;
+	background: #fff;
+	color: var(--vgml-ink);
+	box-shadow: none;
+	min-height: 0;
+	line-height: 1.4;
+}
+
+.vgml-shell-content .form-table td input[type="number"] {
+	width: 90px;
+}
+
+/* The taxonomy lists on Folders and categories. */
+.vgml-shell-content .vergeml-settings-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.vgml-shell-content .vergeml-settings-list > li {
+	margin: 0;
+	padding: 12px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	font-size: 13.5px;
+}
+
+.vgml-shell-content .vergeml-settings-list > li > label {
+	display: inline-flex;
+	gap: 12px;
+	align-items: center;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.vgml-shell-content .vergeml-settings-list > li > .vergeml-button-edit,
+.vgml-shell-content .vergeml-settings-list > li > .vergeml-button-remove {
+	margin-left: 12px;
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--vgml-accent);
+	text-decoration: none;
+}
+
+.vgml-shell-content .vergeml-settings-list > li > .vergeml-button-remove {
+	color: var(--vgml-n500);
+}
+
+.vgml-shell-content .vergeml-taxonomy-edit {
+	margin-top: 12px;
+	padding: 14px 16px;
+	background: var(--vgml-surface);
+	border-radius: 6px;
+	font-size: 13px;
+	font-weight: 400;
+}
+
+.vgml-shell-content .vergeml-taxonomy-edit h4 {
+	margin: 0 0 8px;
+	font-size: 10.5px;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--vgml-n600);
+}
+
+.vgml-shell-content .vergeml-taxonomy-edit ul {
+	margin: 0 0 14px;
+	padding: 0;
+	list-style: none;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 6px 24px;
+}
+
+.vgml-shell-content .vergeml-taxonomy-edit li {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	margin: 0;
+}
+
+.vgml-shell-content .vergeml-taxonomy-edit li > label {
+	flex: 0 0 150px;
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .vergeml-taxonomy-edit input[type="text"] {
+	flex: 1;
+	font-size: 13px;
+	padding: 5px 8px;
+	border: 1px solid var(--vgml-divider);
+	border-radius: 6px;
+	box-shadow: none;
+	min-height: 0;
+}
+
+.vgml-shell-content .postbox > .inside > h4 {
+	margin: 14px 0 6px;
+	font-size: 10px;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	font-weight: 600;
+	color: var(--vgml-n600);
+}
+
+.vgml-shell-content .vgml-tax-other-note {
+	margin: 0 0 8px;
+}
+
+.vgml-shell-content .vergeml-non-media-taxonomy-list > li {
+	padding: 5px 0;
+	border: 0;
+	font-size: 13px;
+}
+
+.vgml-shell-content .vergeml-non-media-taxonomy-list > li > label {
+	font-weight: 400;
+}
+
+.vgml-shell-content .vergeml-non-media-taxonomy-list .vergeml-taxonomy-edit ul {
+	display: block;
+}
+
+.vgml-shell-content .vergeml-non-media-taxonomy-list .vergeml-taxonomy-edit li {
+	margin-bottom: 6px;
+}
+
+/* --- the File types screen ------------------------------------------- */
+
+.vgml-shell .vgml-ft-safety {
+	font-size: 12.5px;
+	margin: 14px 0 0;
+	max-width: 72ch;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-ft-toolbar {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	margin-top: 20px;
+	flex-wrap: wrap;
+}
+
+.vgml-shell .vgml-ft-toolbar .vgml-input {
+	max-width: 250px;
+}
+
+.vgml-shell .vgml-ft-kinds {
+	display: inline-flex;
+	border: 1px solid var(--vgml-divider);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.vgml-shell .vgml-ft-kinds button {
+	font: inherit;
+	font-size: 12.5px;
+	padding: 7px 13px;
+	border: 0;
+	border-left: 1px solid var(--vgml-divider);
+	background: transparent;
+	color: var(--vgml-ink);
+	cursor: pointer;
+	margin-left: -1px;
+}
+
+.vgml-shell .vgml-ft-kinds button:first-child {
+	border-left: 0;
+	margin-left: 0;
+}
+
+.vgml-shell .vgml-ft-kinds button.is-on {
+	background: var(--vgml-accent);
+	color: var(--vgml-ground);
+}
+
+.vgml-shell .vgml-ft-count {
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vergeml-mime-type-list.wp-list-table {
+	margin-top: 14px;
+	border: 0;
+	box-shadow: none;
+	background: transparent;
+	border-collapse: collapse;
+	width: 100%;
+}
+
+.vgml-shell .vergeml-mime-type-list thead th {
+	position: sticky;
+	top: 32px;
+	z-index: 2;
+	background: var(--vgml-ground);
+	text-align: left;
+	font-size: 10.5px;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	font-weight: 600;
+	color: var(--vgml-n600);
+	padding: 10px 10px 8px 0;
+	border-bottom: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell .vergeml-mime-type-list td {
+	padding: 10px 10px 10px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	vertical-align: top;
+	font-size: 13px;
+	background: transparent;
+}
+
+.vgml-shell .vergeml-mime-type-list td code {
+	background: none;
+	padding: 0;
+	font-size: inherit;
+}
+
+.vgml-shell .vergeml-mime-type-list .vergeml-column-extension,
+.vgml-shell .vergeml-mime-type-list td:first-child {
+	width: 110px;
+	font-weight: 700;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vergeml-mime-type-list td:nth-child(2) code {
+	font-family: ui-monospace, Menlo, Consolas, monospace;
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vergeml-mime-type-list .vgml-ft-note {
+	display: block;
+	font-size: 11px;
+	color: var(--vgml-accent-700);
+}
+
+.vgml-shell .vergeml-mime-type-list .vergeml-column-filter,
+.vgml-shell .vergeml-mime-type-list .vergeml-column-upload,
+.vgml-shell .vergeml-mime-type-list td.checkbox_td {
+	width: 80px;
+	text-align: center;
+}
+
+.vgml-shell .vergeml-mime-type-list td input[type="text"] {
+	width: 100%;
+	font-family: var(--vgml-font);
+	font-size: 13px;
+	padding: 5px 8px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	background: transparent;
+	box-shadow: none;
+	min-height: 0;
+}
+
+.vgml-shell .vergeml-mime-type-list td input[type="text"]:hover,
+.vgml-shell .vergeml-mime-type-list td input[type="text"]:focus {
+	border-color: var(--vgml-divider);
+	background: #fff;
+}
+
+.vgml-shell .vergeml-mime-type-list tr.is-hidden {
+	display: none;
+}
+
+.vgml-shell .vergeml-mime-type-list .vergeml-button-remove {
+	color: var(--vgml-n500);
+	text-decoration: none;
+	font-weight: 700;
+}
+
+.vgml-shell .vgml-ft-empty {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 20px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	font-size: 13px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .vergeml-button-container-right {
+	padding: 10px 0;
+}
+
+.vgml-shell-content .vgml-tax-intro-text {
+	max-width: 70ch;
+	margin-top: 0;
+}
+
+/* Core's #poststuff heading rules outrank anything without an id. */
+.vgml-shell-content #poststuff h2,
+.vgml-shell-content #poststuff .postbox h3.hndle,
+.vgml-shell-content #poststuff h3.hndle {
+	margin: 30px 0 6px;
+	padding: 0;
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--vgml-n600);
+	line-height: 1.4;
+}
+
+.vgml-shell-content #poststuff .postbox h3.hndle {
+	margin-top: 0;
+}
+
+.vgml-shell-content #poststuff form > h2:first-of-type {
+	margin-top: 28px;
+}
+
+.vgml-shell-content #poststuff .postbox .inside .vergeml-settings-list,
+.vgml-shell-content #poststuff .postbox .inside > ul {
+	margin-left: 0;
+	padding-left: 0;
+}
+
+.vgml-shell-content #poststuff .postbox .inside > .vgml-note {
+	margin-top: 12px;
+}
+
+/* The ground runs to the bottom of the page, not to the end of the shell. */
+body.vgml-screen #wpcontent,
+body.vgml-screen #wpbody-content {
+	background: #f7f9fc;
+}
+
+/* Cards hooked on to a screen by another file (the quarantine card on
+   Duplicates), drawn as a section, not a box. */
+.vgml-shell-content .vgml-ai-card:not(.vgml-ai-run) {
+	margin: 36px 0 0;
+	padding: 16px 0 0;
+	border: 0;
+	border-top: 2px solid var(--vgml-divider);
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.vgml-shell-content .vgml-ai-card:not(.vgml-ai-run) > h2 {
+	margin: 0 0 4px;
+	padding: 0;
+	border: 0;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content .vgml-ai-card:not(.vgml-ai-run) > p {
+	margin: 0 0 12px;
+	max-width: 62ch;
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
+/* The WordPress notice inside our pane, bounded like everything else. */
+.vgml-shell-content .notice,
+.vgml-shell-content .eml-admin-notice {
+	margin: 0 0 20px;
+	border-radius: 6px;
+}
+
+/* --------------------------------------------- the legacy cards, mapped */
+
+/*
+ *  Two older card classes still drawn by scripts -- vgml-ai-card on the
+ *  Duplicates report and vgml-import-card on Import -- take the same
+ *  geometry, so a screen whose cards are drawn in JavaScript is not the odd
+ *  one out.
+ */
+.vgml-shell-content .vgml-ai-card,
+.vgml-shell-content .vgml-import-card {
+	max-width: none;
+	margin: 0 0 16px;
+	padding: 16px;
+	background: var(--vgml-pane);
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+}
+
+.vgml-shell-content .vgml-ai-card > h2,
+.vgml-shell-content .vgml-import-card > h2,
+.vgml-shell-content .vgml-import-head > h2 {
+	margin: -16px -16px 14px;
+	padding: 13px 16px;
+	border-bottom: 1px solid var(--vgml-rule);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.3;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content .vgml-import-head {
+	display: block;
+}
+
+.vgml-shell-content .vgml-import-head > h2 {
+	margin-bottom: 0;
+}
+
+.vgml-shell-content .vgml-import-head > * + * {
+	display: block;
+	margin-top: 12px;
+}
+
+.vgml-shell-content .vgml-ai-card > p.description,
+.vgml-shell-content .vgml-import-card > p {
+	margin: 0 0 12px;
+	max-width: 64ch;
+	font-size: 13px;
+	line-height: 1.55;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell-content .vgml-import-actions {
+	margin: 14px -16px -16px;
+	padding: 13px 16px;
+	border-top: 1px solid var(--vgml-rule);
+	background: var(--vgml-surface);
+	border-radius: 0 0 6px 6px;
+}
+
+.vgml-shell-content .vgml-import-plan {
+	border-inline-start-color: var(--vgml-accent);
+	background: var(--vgml-surface);
+}
+
+/* The MIME list table, bounded and rounded like a card. */
+.vgml-shell-content .wp-list-table.widefat {
+	border: 1px solid var(--vgml-rule);
+	border-radius: 6px;
+	box-shadow: none;
+	overflow: hidden;
+}
+
+.vgml-shell-content .wp-list-table.widefat thead th,
+.vgml-shell-content .wp-list-table.widefat tfoot th {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+	background: var(--vgml-surface);
+	border-color: var(--vgml-rule);
+}
+
+.vgml-shell-content .wp-list-table.widefat td {
+	border-color: var(--vgml-rule);
+	vertical-align: middle;
+}
+
+
+/* ------------------------------------------------------------ the way out */
+
+/*
+ *  Not a menu item. A button.
+ *
+ *  The folders live on upload.php, so this is the one control in the column
+ *  that leaves the plugin, and it has to look like it. Three things do that
+ *  and all three are load-bearing:
+ *
+ *  - a rule and real space above it, so it is not the end of the list;
+ *  - button chrome -- filled, centred, one line -- where every nav row is
+ *    flush text on two lines;
+ *  - the north-east arrow, which is the web's own mark for "this opens
+ *    somewhere else", and a caption under it saying where.
+ *
+ *  It was first built sharing the credits card's geometry and a sub-label,
+ *  which made it the tenth row of a nine-row menu.
+ */
+/* The foot of the rail: the way out, and what is left in the account. */
+.vgml-shell-foot {
+	padding: 16px 18px 18px;
+	border-top: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell-out {
+	margin: 0;
+}
+
+.vgml-shell-leave {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	width: 100%;
+	padding: 8px 14px;
+	border: 1px solid var(--vgml-accent);
+	border-radius: 6px;
+	background: var(--vgml-accent);
+	color: #f7f9fc;
+	text-decoration: none;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.3;
+	transition: background .12s ease, border-color .12s ease;
+}
+
+.vgml-shell-leave:hover,
+.vgml-shell-leave:active {
+	background: var(--vgml-accent-dark);
+	border-color: var(--vgml-accent-dark);
+	color: #f7f9fc;
+}
+
+.vgml-shell-leave:focus {
+	box-shadow: none;
+	outline: none;
+	color: #f7f9fc;
+}
+
+.vgml-shell-leave:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+}
+
+.vgml-shell-leave-ico {
+	display: none;
+}
+
+.vgml-shell-leave-label {
+	flex: 0 1 auto;
+}
+
+.vgml-shell-leave-arrow {
+	flex: 0 0 auto;
+}
+
+.vgml-shell-out-note {
+	margin: 6px 0 0;
+	font-size: 11px;
+	color: var(--vgml-muted);
+}
+
+/*
+ *  The credits card: navy, the numeral in the one yellow the palette has.
+ *  Told once here; the Licence screen owns the detail.
+ */
+.vgml-shell-credits {
+	display: block;
+	margin: 16px 0 0;
+	padding: 14px;
+	border: 0;
+	border-radius: 8px;
+	text-decoration: none;
+	background: var(--vgml-ink);
+	color: #f7f9fc;
+}
+
+.vgml-shell-credits:hover .vgml-shell-credits-go {
+	text-decoration: underline;
+}
+
+.vgml-shell-credits:focus {
+	box-shadow: none;
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+}
+
+.vgml-shell-credits-n {
+	display: block;
+	font-size: 22px;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--vgml-highlight);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell-credits-l {
+	display: block;
+	margin-top: 4px;
+	font-size: 11px;
+	color: #f7f9fc;
+	opacity: .78;
+}
+
+.vgml-shell-credits-w {
+	display: none;
+}
+
+.vgml-shell-credits.is-unconfirmed .vgml-shell-credits-w {
+	display: block;
+	margin-top: 2px;
+	font-size: 11px;
+	opacity: .6;
+}
+
+.vgml-shell-credits-go {
+	display: block;
+	margin-top: 6px;
+	font-size: 11.5px;
+	font-weight: 600;
+	color: #ffffff;
+}
+
+
+/* ========================================================== the page bodies */
+
+/*
+ *  Nine screens, one grammar.
+ *
+ *  Every screen used to write its own markup, so every screen was a different
+ *  shape: paragraphs where the next one had a list, a heading level chosen per
+ *  page, the button wherever the sentence ended. Read one after another they
+ *  are not a product, they are nine documents.
+ *
+ *  This is the same arrangement the nav is already borrowed from -- WP Rocket's
+ *  settings body. A page is a head and then a stack of cards; a card is a
+ *  titled box; inside a card the unit is a row whose text sits left and whose
+ *  control sits right, so the eye goes down one column of labels and one column
+ *  of controls rather than through prose. Nothing here is invented: the point
+ *  is that a WordPress user has met it before.
+ *
+ *  Namespaced vgml-pg- because vgml-card, vgml-row and vgml-stat are all
+ *  already taken by the librarian, the tree and the instrument panel.
+ */
+
+/* ---------------------------------------------------------- the page head */
+
+.vgml-pg-head {
+	display: flex;
+	gap: 20px;
+	align-items: flex-end;
+	flex-wrap: wrap;
+	margin: 0 0 22px;
+}
+
+.vgml-pg-head-text {
+	flex: 1 1 320px;
+	min-width: 0;
+}
+
+.vgml-shell-content .vgml-pg-title {
+	margin: 0;
+	padding: 0;
+	font-size: 30px;
+	font-weight: 700;
+	line-height: 1.2;
+	letter-spacing: -.015em;
+	color: var( --vgml-ink );
+}
+
+/*
+ *  One sentence, and the width is the cap that keeps it one sentence. A lede
+ *  that runs the full pane is a paragraph wearing a lede's clothes.
+ */
+.vgml-pg-lede {
+	margin: 4px 0 0;
+	max-width: 64ch;
+	font-size: 14px;
+	line-height: 1.5;
+	color: var( --vgml-muted );
+}
+
+.vgml-pg-head-action {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 8px;
+	padding-top: 2px;
+}
+
+/* ----------------------------------------------------------- the sections */
+
+/*
+ *  No boxes. A section is a 2px rule with a title under it; rows inside it
+ *  are parted by 1px hairlines. The eye goes down one column of labels and
+ *  one of controls, and nothing is wrapped in a rectangle to say it belongs.
+ */
+.vgml-pg-card {
+	margin: 0 0 34px;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+}
+
+.vgml-pg-card:last-child {
+	margin-bottom: 0;
+}
+
+.vgml-pg-card-head {
+	display: flex;
+	gap: 16px;
+	align-items: flex-end;
+	padding: 0 0 12px;
+	border-bottom: 2px solid var( --vgml-divider );
+}
+
+.vgml-shell-content .vgml-pg-card-title {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var( --vgml-ink );
+}
+
+.vgml-pg-card-note {
+	display: block;
+	margin-top: 4px;
+	font-size: 13px;
+	font-weight: 400;
+	line-height: 1.5;
+	color: var( --vgml-muted );
+	max-width: 58ch;
+}
+
+.vgml-pg-card-action {
+	flex: 0 0 auto;
+	padding-bottom: 2px;
+}
+
+.vgml-pg-card-body {
+	padding: 16px 0 0;
+}
+
+/* A card whose body is nothing but rows gets no padding of its own. */
+.vgml-pg-card-body.is-rows {
+	padding: 0;
+}
+
+/* --------------------------------------------------------------- the rows */
+
+/*
+ *  Label and description left, the control right, one per line. This is the
+ *  whole reason the screens become scannable: every control lands on the same
+ *  vertical, so "what can I change here" is a column rather than a read.
+ */
+.vgml-pg-row {
+	display: flex;
+	gap: 24px;
+	align-items: flex-start;
+	padding: 14px 16px;
+	border-bottom: 1px solid var( --vgml-rule );
+}
+
+.vgml-pg-row:last-child {
+	border-bottom: 0;
+}
+
+.vgml-pg-row-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	max-width: 68ch;
+}
+
+.vgml-pg-row-label {
+	display: block;
+	font-size: 13px;
+	font-weight: 600;
+	line-height: 1.35;
+	color: var( --vgml-ink );
+}
+
+.vgml-pg-row-help {
+	display: block;
+	margin-top: 3px;
+	font-size: 12px;
+	line-height: 1.5;
+	color: var( --vgml-muted );
+}
+
+.vgml-pg-row-control {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	padding-top: 1px;
+}
+
+/*
+ *  A row whose control is wide -- a textarea, a long select -- stacks instead
+ *  of squeezing. Below 782px WordPress is already in its touch layout and
+ *  everything stacks anyway.
+ */
+.vgml-pg-row.is-stacked {
+	display: block;
+}
+
+.vgml-pg-row.is-stacked .vgml-pg-row-control {
+	margin-top: 10px;
+	display: block;
+}
+
+@media screen and ( max-width: 782px ) {
+
+	.vgml-pg-row {
+		display: block;
+	}
+
+	.vgml-pg-row-control {
+		margin-top: 10px;
+		display: block;
+	}
+
+	.vgml-pg-head {
+		display: block;
+	}
+
+	.vgml-pg-head-action {
+		margin-top: 12px;
+	}
+}
+
+/* ------------------------------------------------------------ the numbers */
+
+/*
+ *  Figures a screen is answering a question with, across the top of a card.
+ *  A number set as a number is read; the same number inside a sentence is not.
+ */
+.vgml-pg-figures {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1px;
+	background: var( --vgml-rule );
+	border-bottom: 1px solid var( --vgml-rule );
+}
+
+.vgml-pg-figure {
+	flex: 1 1 140px;
+	padding: 14px 16px;
+	background: var( --vgml-pane );
+}
+
+.vgml-pg-figure-n {
+	display: block;
+	font-size: 24px;
+	font-weight: 600;
+	line-height: 1.05;
+	color: var( --vgml-ink );
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-pg-figure-l {
+	display: block;
+	margin-top: 3px;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var( --vgml-muted );
+}
+
+/* The figure that is the reason the screen exists. */
+.vgml-pg-figure.is-lead .vgml-pg-figure-n {
+	color: var( --vgml-accent );
+}
+
+/* ------------------------------------------------------------ the actions */
+
+/*
+ *  The foot of a card. One primary, and the rest plain -- two primaries is a
+ *  screen that has not decided what it wants somebody to do.
+ */
+.vgml-pg-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+	padding: 14px 16px;
+	border-top: 1px solid var( --vgml-rule );
+	background: var( --vgml-surface );
+	border-radius: 0 0 6px 6px;
+}
+
+.vgml-pg-actions-note {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var( --vgml-muted );
+}
+
+/*
+ *  WordPress's own buttons, given the height the rest of this sizing assumes.
+ *  Restyling them outright would make the plugin the odd one out in an admin
+ *  somebody has ten other plugins in.
+ */
+.vgml-shell-content .vgml-pg-actions .button,
+.vgml-shell-content .vgml-pg-card-action .button,
+.vgml-shell-content .vgml-pg-head-action .button {
+	min-height: 32px;
+	padding: 0 14px;
+	line-height: 30px;
+	font-size: 13px;
+}
+
+/* --------------------------------------------------------------- emptiness */
+
+/*
+ *  What a card says when there is nothing in it. An empty card that renders
+ *  as an empty box reads as a bug; one that says what would go here reads as
+ *  a state.
+ */
+.vgml-pg-empty {
+	padding: 28px 16px;
+	text-align: center;
+	color: var( --vgml-muted );
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.vgml-pg-empty-title {
+	display: block;
+	margin-bottom: 3px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var( --vgml-ink );
+}
+
+
+/* ================================================== the redesign's grammar */
+
+/*
+ *  The pieces every screen is rebuilt from, September 2026 (docs: design
+ *  handoff). Kicker, rule, row, stat band, two-column page, sticky save bar,
+ *  tag, table. Values are the handoff's, not invented.
+ */
+
+/* Kicker: a small uppercase title over a section. */
+.vgml-shell .vgml-kicker {
+	margin: 0;
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--vgml-n600);
+}
+
+/* Section heading, 18px. */
+.vgml-shell .vgml-h4 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-muted {
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-note {
+	font-size: 13px;
+	line-height: 1.5;
+	color: var(--vgml-muted);
+	max-width: 58ch;
+	margin: 4px 0 0;
+}
+
+.vgml-shell .vgml-accent-text {
+	color: var(--vgml-accent-700);
+	font-weight: 600;
+}
+
+/* The 2px rule between major sections, 1px between rows. */
+.vgml-shell .vgml-rule {
+	border: 0;
+	border-top: 2px solid var(--vgml-divider);
+	margin: 20px 0 0;
+}
+
+.vgml-shell .vgml-section {
+	margin-top: 30px;
+}
+
+.vgml-shell .vgml-section > .vgml-kicker,
+.vgml-shell .vgml-section > .vgml-h4 {
+	margin-bottom: 6px;
+}
+
+.vgml-shell .vgml-rows {
+	border-top: 2px solid var(--vgml-divider);
+}
+
+/* A row: 220px label column, control beside it, hairline under it. */
+.vgml-shell .vgml-row {
+	display: grid;
+	grid-template-columns: 220px 1fr;
+	gap: 24px;
+	padding: 14px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	align-items: start;
+}
+
+.vgml-shell .vgml-row-label {
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-row-help {
+	display: block;
+	font-size: 12px;
+	font-weight: 400;
+	margin-top: 3px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-row-control {
+	font-size: 13px;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-checks {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.vgml-shell .vgml-check {
+	display: flex;
+	gap: 9px;
+	align-items: flex-start;
+	font-size: 13px;
+	cursor: pointer;
+	line-height: 1.45;
+}
+
+.vgml-shell .vgml-check input {
+	margin-top: 2px;
+}
+
+.vgml-shell .vgml-check small {
+	font-size: 11.5px;
+	color: var(--vgml-muted);
+}
+
+/* A flex row with one action on the right. */
+.vgml-shell .vgml-line {
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	padding: 16px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+}
+
+.vgml-shell .vgml-line-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-line-title {
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--vgml-ink);
+}
+
+/* The stat band: numerals across the top of a page. */
+.vgml-shell .vgml-band {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	border-top: 2px solid var(--vgml-divider);
+	border-bottom: 2px solid var(--vgml-divider);
+	margin-top: 22px;
+}
+
+.vgml-shell .vgml-band-cell {
+	display: block;
+	text-align: left;
+	background: transparent;
+	border: 0;
+	border-left: 2px solid var(--vgml-divider);
+	border-top: 1px solid var(--vgml-n200);
+	padding: 18px 16px 14px;
+	color: var(--vgml-ink);
+	text-decoration: none;
+	font: inherit;
+	cursor: default;
+}
+
+.vgml-shell .vgml-band-cell:first-child {
+	border-left: 0;
+}
+
+.vgml-shell a.vgml-band-cell,
+.vgml-shell button.vgml-band-cell {
+	cursor: pointer;
+}
+
+.vgml-shell a.vgml-band-cell:hover,
+.vgml-shell button.vgml-band-cell:hover {
+	background: var(--vgml-n200);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-band-n {
+	display: block;
+	font-size: 34px;
+	font-weight: 700;
+	letter-spacing: -.02em;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-band-l {
+	display: block;
+	font-size: 10.5px;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	margin-top: 7px;
+	color: var(--vgml-muted);
+}
+
+/* Two columns: main and a right rail that drops below when narrow. */
+.vgml-shell .vgml-cols {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 32px 44px;
+	margin-top: 28px;
+	align-items: flex-start;
+}
+
+.vgml-shell .vgml-cols-main {
+	flex: 1 1 460px;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-cols-rail {
+	flex: 0 1 300px;
+	min-width: 250px;
+}
+
+.vgml-shell .vgml-rail-block {
+	border-top: 2px solid var(--vgml-divider);
+	padding-top: 14px;
+}
+
+.vgml-shell .vgml-rail-block + .vgml-rail-block {
+	margin-top: 22px;
+}
+
+.vgml-shell .vgml-rail-block > .vgml-kicker {
+	margin-bottom: 6px;
+}
+
+.vgml-shell .vgml-rail-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 10px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	font-size: 13px;
+}
+
+.vgml-shell .vgml-rail-row b {
+	font-weight: 700;
+}
+
+/* The sticky save bar, one per page. */
+.vgml-shell .vgml-savebar,
+.vgml-shell .vgml-ds-savebar {
+	position: sticky;
+	bottom: 0;
+	z-index: 3;
+	display: flex;
+	gap: 14px;
+	align-items: center;
+	margin: 8px 0 0;
+	padding: 14px 0;
+	background: var(--vgml-ground);
+	border: 0;
+	border-top: 2px solid var(--vgml-divider);
+	box-shadow: none;
+}
+
+.vgml-shell .vgml-savebar-note {
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-saved {
+	color: var(--vgml-accent-700);
+	font-weight: 700;
+	font-size: 13px;
+}
+
+/* Banners: the accent tint, for "got it" and "moved". */
+.vgml-shell .vgml-banner {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	background: var(--vgml-accent-100);
+	border-radius: 8px;
+	padding: 12px 16px;
+	font-size: 13px;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-banner b {
+	font-weight: 700;
+}
+
+/* Tags. */
+.vgml-shell .vgml-tag {
+	display: inline-block;
+	font-size: 12px;
+	line-height: 1.3;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: var(--vgml-n200);
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-tag-accent {
+	background: var(--vgml-accent-100);
+	color: var(--vgml-accent-800);
+	font-weight: 600;
+}
+
+.vgml-shell .vgml-tag-outline {
+	background: transparent;
+	border: 1px solid var(--vgml-divider);
+	cursor: pointer;
+	font: inherit;
+	font-size: 12px;
+	padding: 5px 12px;
+}
+
+.vgml-shell .vgml-tag-outline:hover {
+	background: var(--vgml-accent-100);
+}
+
+/* Inputs: radius 6, divider border, 2px accent focus. */
+.vgml-shell .vgml-input,
+.vgml-shell-content input[type="text"].vgml-input,
+.vgml-shell-content input[type="number"].vgml-input,
+.vgml-shell-content select.vgml-input,
+.vgml-shell-content textarea.vgml-input {
+	font-family: var(--vgml-font);
+	font-size: 14px;
+	line-height: 1.4;
+	padding: 8px 12px;
+	border: 1px solid var(--vgml-divider);
+	border-radius: 6px;
+	background: #ffffff;
+	color: var(--vgml-ink);
+	box-shadow: none;
+	min-height: 0;
+}
+
+.vgml-shell .vgml-input:focus,
+.vgml-shell-content .vgml-input:focus {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+	border-color: var(--vgml-divider);
+	box-shadow: none;
+}
+
+.vgml-shell input[type="checkbox"],
+.vgml-shell input[type="radio"] {
+	accent-color: var(--vgml-accent);
+	width: 15px;
+	height: 15px;
+	flex: none;
+}
+
+/* Tables. */
+.vgml-shell .vgml-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.vgml-shell .vgml-table th {
+	text-align: left;
+	font-size: 10.5px;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	font-weight: 600;
+	color: var(--vgml-n600);
+	padding: 10px 10px 8px 0;
+	border-bottom: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell .vgml-table td {
+	padding: 10px 10px 10px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	vertical-align: top;
+}
+
+.vgml-shell .vgml-mono {
+	font-family: ui-monospace, Menlo, Consolas, monospace;
+	font-size: 12px;
+}
+
+/* A gray placeholder thumbnail, 4:3 or square. */
+.vgml-shell .vgml-thumb {
+	display: block;
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+	border-radius: 6px;
+	background: var(--vgml-n300);
+}
+
+.vgml-shell .vgml-thumb.is-square {
+	aspect-ratio: 1 / 1;
+}
+
+@media screen and (max-width: 640px) {
+	.vgml-shell .vgml-row {
+		grid-template-columns: 1fr;
+		gap: 8px;
+	}
+}
+
+/* The older row helper (vergeml_pg_row) drawn as the same 220px grid. */
+.vgml-shell .vgml-pg-row {
+	display: grid;
+	grid-template-columns: 220px 1fr;
+	gap: 24px;
+	padding: 16px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	align-items: start;
+}
+
+.vgml-shell .vgml-pg-row.is-stacked {
+	grid-template-columns: 1fr;
+	gap: 10px;
+}
+
+.vgml-shell .vgml-pg-row-text {
+	min-width: 0;
+}
+
+.vgml-shell .vgml-pg-row-label {
+	display: block;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-pg-row-help {
+	display: block;
+	font-size: 12px;
+	margin-top: 3px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-pg-row-control {
+	font-size: 13px;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-pg-row-control textarea.vgml-input {
+	width: 100%;
+	max-width: 100%;
+}
+
+.vgml-shell .vgml-pg-card-body.is-rows {
+	padding: 0;
+}
+
+.vgml-shell .vgml-pg-card-body.is-rows .vgml-pg-row:first-child {
+	padding-top: 18px;
+}
+
+.vgml-shell .vgml-pg-actions {
+	position: sticky;
+	bottom: 0;
+	z-index: 3;
+	display: flex;
+	gap: 14px;
+	align-items: center;
+	margin: 8px 0 0;
+	padding: 14px 0;
+	background: var(--vgml-ground);
+	border-top: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell .vgml-pg-actions-note {
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
+/* The status band under a page head: a tag and a sentence. */
+.vgml-shell .vgml-status-band {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 20px;
+	padding: 14px 0;
+	border-top: 2px solid var(--vgml-divider);
+	border-bottom: 2px solid var(--vgml-divider);
+	font-size: 13px;
+}
+
+@media screen and (max-width: 640px) {
+	.vgml-shell .vgml-pg-row {
+		grid-template-columns: 1fr;
+		gap: 8px;
+	}
+}
+
+/* --- the AI screen --------------------------------------------------- */
+
+.vgml-shell .vgml-ai-run {
+	background: var(--vgml-surface);
+	border: 0;
+	border-radius: 6px;
+	padding: 22px;
+	margin: 0;
+}
+
+.vgml-shell .vgml-ai-run > .vgml-kicker {
+	margin-bottom: 12px;
+}
+
+.vgml-shell .vgml-ai-run-lede {
+	margin: 0 0 12px;
+	font-size: 13.5px;
+	max-width: 56ch;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-ai-choice {
+	display: flex;
+	gap: 22px;
+	flex-wrap: wrap;
+	margin: 0 0 12px;
+	font-size: 13px;
+}
+
+.vgml-shell .vgml-ai-choice label {
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
+	cursor: pointer;
+}
+
+.vgml-shell .vgml-ai-buttons {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin: 0 0 12px;
+}
+
+.vgml-shell .vgml-ai-run #vgml-ai-note,
+.vgml-shell .vgml-ai-run #vgml-ai-bg-note {
+	margin: 0;
+	padding-top: 10px;
+	border-top: 2px solid var(--vgml-divider);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.vgml-shell .vgml-ai-run #vgml-ai-note:empty,
+.vgml-shell .vgml-ai-run #vgml-ai-bg-note:empty {
+	display: none;
+}
+
+.vgml-shell .vgml-ai-run .vgml-import-bar {
+	height: 4px;
+	background: var(--vgml-n300);
+	margin: 0 0 10px;
+}
+
+.vgml-shell .vgml-ai-run .vgml-import-fill {
+	height: 4px;
+	background: var(--vgml-accent);
+}
+
+.vgml-shell .vgml-ai-log {
+	margin: 10px 0 0;
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-ai-cols .vgml-pg-card {
+	margin-top: 34px;
+}
+
+.vgml-shell .vgml-ai-credits-n {
+	margin: 0;
+	font-size: 30px;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--vgml-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-ai-credits-go {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin: 14px 0 0;
+}
+
+/* --- the Licence screen ---------------------------------------------- */
+
+.vgml-shell .vgml-licence-rows {
+	max-width: 860px;
+	margin-bottom: 0;
+}
+
+.vgml-shell .vgml-licence-form {
+	max-width: 860px;
+}
+
+.vgml-shell .vgml-licence-paste {
+	display: flex;
+	gap: 8px;
+	margin-top: 12px;
+	max-width: 520px;
+}
+
+.vgml-shell .vgml-licence-paste .vgml-input {
+	flex: 1;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-licence-remove {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	margin-top: 22px;
+	padding-top: 16px;
+	border-top: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell .vgml-licence-remove > .vgml-note {
+	flex: 1;
+	margin: 0;
+	font-size: 12.5px;
+}
+
+.vgml-shell .vgml-licence-remove-ask {
+	flex: none;
+}
+
+.vgml-shell .vgml-licence-remove-open {
+	color: var(--vgml-accent-700);
+}
+
+.vgml-shell .vgml-licence-remove-confirm {
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
+	flex-wrap: wrap;
+	font-size: 12.5px;
+}
+
+.vgml-shell .vgml-licence-remove-yes {
+	color: var(--vgml-accent-700);
+	border-color: var(--vgml-accent-300);
+}
+
+/* --- the Duplicates screen ------------------------------------------- */
+
+.vgml-shell .vgml-health-scanbox {
+	text-align: right;
+}
+
+.vgml-shell .vgml-health-when {
+	display: block;
+	margin-top: 5px;
+	font-size: 11px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-health-bar {
+	height: 4px;
+	background: var(--vgml-n300);
+	margin-top: 16px;
+}
+
+.vgml-shell .vgml-health-bar .vgml-import-fill {
+	height: 4px;
+	background: var(--vgml-accent);
+}
+
+.vgml-shell #vgml-health-note:empty {
+	display: none;
+}
+
+.vgml-shell .vgml-health-band {
+	display: flex;
+	border-top: 2px solid var(--vgml-divider);
+	border-bottom: 2px solid var(--vgml-divider);
+	margin-top: 22px;
+}
+
+.vgml-shell .vgml-health-cell {
+	flex: 1;
+	padding: 18px 16px;
+	border-left: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell .vgml-health-cell:first-child {
+	border-left: 0;
+}
+
+.vgml-shell .vgml-health-n {
+	display: block;
+	font-size: 26px;
+	font-weight: 700;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-health-list {
+	margin-top: 30px;
+}
+
+.vgml-shell .vgml-health-list-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+	margin-bottom: 6px;
+}
+
+.vgml-shell .vgml-health-list-note {
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-health-empty {
+	font-size: 13px;
+	padding: 14px 0;
+	border-top: 2px solid var(--vgml-divider);
+	border-bottom: 1px solid var(--vgml-n300);
+	max-width: 70ch;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-health-groups {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 16px;
+	margin-top: 10px;
+}
+
+.vgml-shell .vgml-health-list.is-exact .vgml-health-groups {
+	grid-template-columns: 1fr;
+}
+
+.vgml-shell .vgml-health-group {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	border: 1px solid var(--vgml-n300);
+	border-radius: 6px;
+	padding: 14px;
+	background: #fff;
+}
+
+.vgml-shell .vgml-health-group-head {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	font-size: 12.5px;
+	order: 2;
+}
+
+.vgml-shell .vgml-health-files {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	gap: 6px;
+	order: 1;
+}
+
+.vgml-shell .vgml-health-list.is-exact .vgml-health-files {
+	flex-direction: column;
+	gap: 8px;
+}
+
+.vgml-shell .vgml-health-files li {
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+}
+
+.vgml-shell .vgml-health-files a {
+	display: block;
+	text-decoration: none;
+	color: var(--vgml-ink);
+	min-width: 0;
+}
+
+.vgml-shell .vgml-health-list.is-exact .vgml-health-files a {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+}
+
+.vgml-shell .vgml-health-files img,
+.vgml-shell .vgml-health-nothumb {
+	display: block;
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+	border-radius: 6px;
+	background: var(--vgml-n300);
+	filter: grayscale(1);
+}
+
+.vgml-shell .vgml-health-list.is-exact .vgml-health-files img,
+.vgml-shell .vgml-health-list.is-exact .vgml-health-nothumb {
+	width: 56px;
+	flex: none;
+	filter: none;
+}
+
+.vgml-shell .vgml-health-name {
+	display: block;
+	font-size: 9.5px;
+	margin-top: 4px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-health-list.is-exact .vgml-health-name {
+	font-size: 12.5px;
+	color: var(--vgml-ink);
+	margin: 0;
+	flex: 1;
+}
+
+.vgml-shell .vgml-health-size,
+.vgml-shell .vgml-health-uses {
+	display: none;
+	font-size: 11.5px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-health-list.is-exact .vgml-health-size,
+.vgml-shell .vgml-health-list.is-exact .vgml-health-uses {
+	display: inline;
+	flex: none;
+}
+
+.vgml-shell .vgml-health-choose {
+	display: inline-flex;
+	gap: 6px;
+	align-items: center;
+	font-size: 12px;
+	margin-bottom: 4px;
+}
+
+.vgml-shell .vgml-health-open {
+	align-self: flex-start;
+	font-size: 12.5px;
+	padding-left: 0;
+	padding-right: 0;
+	order: 3;
+}
+
+.vgml-shell .vgml-health-more {
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+	margin: 14px 0 0;
+}
+
+.vgml-shell .vgml-health-picklabel {
+	display: inline-flex;
+}
+
+/* --- the Import screen ----------------------------------------------- */
+
+.vgml-shell .vgml-import-two {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	gap: 32px 44px;
+	margin-top: 28px;
+	max-width: 980px;
+}
+
+.vgml-shell .vgml-import-col > .vgml-kicker {
+	margin-bottom: 6px;
+}
+
+.vgml-shell .vgml-import-colbody {
+	border-top: 2px solid var(--vgml-divider);
+	padding-top: 14px;
+}
+
+.vgml-shell .vgml-import-colbody > .vgml-note {
+	margin: 0;
+	max-width: 52ch;
+}
+
+.vgml-shell .vgml-import-pickrow {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	margin-top: 14px;
+	flex-wrap: wrap;
+}
+
+.vgml-shell .vgml-import-file {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	overflow: hidden;
+}
+
+.vgml-shell .vgml-import-filenote {
+	font-size: 12px;
+}
+
+.vgml-shell .vgml-import-none {
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid var(--vgml-n300);
+	font-size: 12px;
+}
+
+.vgml-shell .vgml-import-tax.vgml-input {
+	width: 190px;
+}
+
+.vgml-shell .vgml-import-recent {
+	max-width: 980px;
+}
+
+.vgml-shell .vgml-import-rows {
+	border-top: 2px solid var(--vgml-divider);
+	margin-top: 6px;
+}
+
+.vgml-shell .vgml-import-history {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 11px 0;
+	border-bottom: 1px solid var(--vgml-n300);
+	font-size: 13px;
+}
+
+.vgml-shell .vgml-import-history-what {
+	flex: 1;
+	min-width: 0;
+}
+
+.vgml-shell .vgml-import-history-when {
+	font-size: 12px;
+}
+
+.vgml-shell .vgml-import-undo {
+	font-size: 12.5px;
+}
+
+.vgml-shell .vgml-import-good {
+	color: var(--vgml-accent-700);
+	font-weight: 600;
+}
+
+.vgml-shell .vgml-import-bad {
+	color: #8a1f1f;
+}
+
+.vgml-shell .vgml-import .notice {
+	border: 0;
+	border-radius: 8px;
+	background: var(--vgml-accent-100);
+	box-shadow: none;
+	padding: 12px 16px;
+	margin: 20px 0 0;
+}
+
+.vgml-shell .vgml-import .notice p {
+	margin: 0;
+	font-size: 13px;
+}
+
+.vgml-shell .vgml-import-card {
+	border-top: 2px solid var(--vgml-divider);
+	padding-top: 14px;
+	margin-top: 10px;
+}
+
+.vgml-shell .vgml-import-head {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+}
+
+.vgml-shell .vgml-import-head h2 {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 700;
+}
+
+.vgml-shell .vgml-import-by {
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-import-found {
+	margin: 4px 0 0;
+	font-size: 13px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-import-actions {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	margin-top: 12px;
+}
+
+</style>
+<style>
+/* ---- the mock's own frame: a page of three boards, each one WordPress admin with the plugin inside ---- */
+:root {
+	--mk-paper: #dfe4ee;
+	--mk-ink: #101d40;
+	--mk-muted: #6f7891;
+	--mk-accent: #2b46d8;
+	--mk-rule: #d5dbe9;
+	--mk-wp: #1d2327;
+	--mk-wp-text: #c3c4c7;
+	--mk-wp-cur: #2271b1;
+	--mk-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+body {
+	background: var(--mk-paper);
+	color: var(--mk-ink);
+	font-family: var(--mk-font);
+	font-size: 14px;
+	line-height: 1.5;
+	margin: 0;
+	-webkit-font-smoothing: antialiased;
+}
+.mk-page { padding: 26px 24px 80px; }
+.mk-head {
+	max-width: 1440px; margin: 0 auto 22px;
+	display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
+}
+.mk-head h1 { font-size: 18px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+.mk-head p { margin: 0; color: var(--mk-muted); font-size: 13px; }
+.mk-board { max-width: 1440px; margin: 0 auto 44px; }
+.mk-board-label {
+	display: flex; align-items: baseline; gap: 14px; margin: 0 0 10px;
+	font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted);
+}
+.mk-board-label span { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 13px; }
+
+/* WordPress admin, reduced to what matters for the point being made: the bar, the menu, the content. */
+.mk-wp { background: #f0f0f1; border: 1px solid #c7ccd8; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(16, 29, 64, .08); }
+.mk-adminbar { height: 32px; background: var(--mk-wp); color: var(--mk-wp-text); display: flex; align-items: center; gap: 22px; padding: 0 14px; font-size: 13px; }
+.mk-adminbar b { color: #fff; font-weight: 600; }
+.mk-wpbody { display: flex; align-items: stretch; }
+.mk-wpmenu { flex: none; width: 160px; background: var(--mk-wp); color: #f0f0f1; padding: 10px 0; font-size: 13.5px; }
+.mk-wpmenu div { padding: 7px 12px; }
+.mk-wpmenu .cur { background: var(--mk-wp-cur); color: #fff; }
+.mk-wpmenu .sub { padding-left: 22px; font-size: 12.5px; color: #c3c4c7; }
+.mk-wpcontent { flex: 1; min-width: 0; padding-left: 20px; background: #f7f9fc; }
+
+/* The shell in normal flow: the rail is not sticky and not viewport-high; it runs the height of the page. */
+.mk-wp .vgml-shell-nav { position: static; height: auto; overflow: visible; min-height: 100%; }
+.mk-wp .vgml-shell-body { align-items: stretch; }
+.mk-wp .vgml-shell-content { flex: 1; }
+.mk-wp .vgml-shell-list { list-style: none; margin: 0; padding: 0; }
+.mk-wp .vgml-shell-foot { margin-top: auto; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
+.mk-wp .vgml-shell-credits { font-size: 12.5px; color: rgba(255, 255, 255, .78); }
+.mk-wp .vgml-shell-credits b { color: #ffd84d; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mk-wp .vgml-shell-version { margin: 0; font-size: 11.5px; color: var(--mk-muted); }
+.mk-wp .vgml-shell-item { display: block; text-decoration: none; border-left: 3px solid transparent; }
+.mk-wp .vgml-shell-text { display: block; }
+.mk-wp .vgml-shell-label { display: block; font-weight: 600; font-size: 14px; }
+.mk-wp .vgml-shell-sub { display: block; font-size: 12px; color: var(--mk-muted); }
+.mk-wp .vgml-shell-group { padding: 18px 18px 6px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted); }
+.mk-wp .vgml-shell-brand { display: flex; align-items: center; gap: 10px; }
+.mk-wp .vgml-shell-name small { display: block; font-weight: 500; font-size: 12px; color: var(--mk-muted); }
+
+/* Screen head */
+.mk-h1 { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin: 0; line-height: 1.15; }
+.mk-facts { margin: 6px 0 0; color: var(--mk-muted); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+
+/* Folders: two columns */
+.mk-cols { display: grid; grid-template-columns: minmax(380px, 1fr) minmax(380px, 470px); gap: 48px; align-items: start; margin-top: 30px; }
+@media (max-width: 1180px) { .mk-cols { grid-template-columns: 1fr; } }
+
+/* Conversation */
+.mk-conv { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
+.mk-msg { max-width: 62ch; font-size: 14.5px; line-height: 1.55; }
+.mk-msg p { margin: 0; }
+.mk-msg .who { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted); margin: 0 0 4px; }
+.mk-msg.user { align-self: flex-end; background: var(--vgml-surface, #e9eef8); padding: 10px 14px; border-radius: 12px 12px 3px 12px; }
+.mk-msg.user .who { color: var(--mk-muted); }
+.mk-msg b { font-weight: 600; }
+.mk-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.mk-chip { border: 1px solid rgba(16, 29, 64, .22); border-radius: 999px; padding: 5px 12px; font-size: 13px; background: #fff; color: var(--mk-ink); }
+.mk-compose { margin-top: 22px; display: flex; gap: 8px; align-items: stretch; }
+.mk-compose .box { flex: 1; min-height: 46px; border: 1px solid rgba(16, 29, 64, .22); border-radius: 6px; padding: 12px 12px; font-size: 14px; color: var(--mk-muted); background: #fff; }
+.mk-compose .box i { font-style: normal; }
+.mk-cursor { display: inline-block; width: 1px; height: 15px; background: var(--mk-ink); vertical-align: -3px; margin-left: 1px; }
+
+/* Tree */
+.mk-tree { border-top: 2px solid rgba(16, 29, 64, .22); margin-top: 12px; }
+.mk-row { display: grid; grid-template-columns: 16px 1fr auto; gap: 10px; align-items: center; padding: 9px 0 9px calc(var(--d, 0) * 22px); border-bottom: 1px solid var(--mk-rule); font-size: 14px; color: #545d75; }
+.mk-row .handle { color: #b3bcd2; font-size: 13px; letter-spacing: -3px; line-height: 1; }
+.mk-row .count { font-variant-numeric: tabular-nums; color: var(--mk-muted); }
+.mk-row.change { color: var(--mk-ink); font-weight: 600; }
+.mk-row.change .count { color: var(--mk-ink); }
+.mk-row .was { color: var(--mk-muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
+.mk-row.gone { color: var(--mk-muted); }
+.mk-row.gone .name { text-decoration: line-through; text-decoration-color: rgba(16, 29, 64, .35); }
+.mk-sub { padding: 0 0 8px calc(var(--d, 0) * 22px + 26px); margin-top: -5px; border-bottom: 1px solid var(--mk-rule); font-size: 12.5px; color: var(--mk-muted); }
+.mk-sub.moved { color: var(--mk-ink); }
+.mk-hover { margin: 8px 0 8px 26px; padding: 10px 12px; border: 1px solid rgba(16, 29, 64, .22); border-radius: 6px; background: #fff; box-shadow: 0 6px 18px rgba(16, 29, 64, .10); display: grid; grid-template-columns: 1fr auto; gap: 10px 14px; align-items: center; font-size: 13px; }
+.mk-hover .thumbs { display: flex; gap: 4px; }
+.mk-hover img { width: 44px; height: 44px; border-radius: 3px; object-fit: cover; display: block; }
+.mk-hover .on { grid-column: 1 / -1; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted); }
+.mk-move { margin-top: 18px; display: flex; gap: 10px; align-items: center; }
+.mk-btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 6px; border: 1px solid rgba(16, 29, 64, .22); background: #fff; color: var(--mk-ink); font: inherit; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; text-decoration: none; }
+.mk-btn.primary { background: var(--mk-accent); border-color: var(--mk-accent); color: #fff; font-weight: 600; }
+.mk-btn.quiet { color: var(--mk-muted); background: transparent; }
+.mk-btn:focus-visible { outline: 2px solid var(--mk-accent); outline-offset: 2px; }
+
+/* Board 2: the Move button in its three states */
+.mk-states { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; padding: 28px 32px 32px; background: #f7f9fc; }
+@media (max-width: 980px) { .mk-states { grid-template-columns: 1fr; } }
+.mk-state h3 { margin: 0 0 14px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted); }
+.mk-mini { border-top: 2px solid rgba(16, 29, 64, .22); margin-bottom: 14px; }
+.mk-mini .mk-row { grid-template-columns: 1fr auto; padding-left: 0; }
+.mk-fill { height: 3px; background: #d6def9; margin: -1px 0 6px; }
+.mk-fill i { display: block; height: 100%; background: var(--mk-accent); }
+.mk-line { margin: 12px 0 0; max-width: 46ch; font-size: 14.5px; line-height: 1.5; }
+.mk-line .who { display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted); margin: 0 0 4px; }
+
+/* Board 3: settings collapsed */
+.mk-acc { border-top: 2px solid rgba(16, 29, 64, .22); margin-top: 26px; }
+.mk-acc details { border-bottom: 1px solid var(--mk-rule); }
+.mk-acc summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding: 14px 0; font-size: 15px; font-weight: 600; color: var(--mk-ink); }
+.mk-acc summary::-webkit-details-marker { display: none; }
+.mk-acc summary small { display: block; font-size: 12.5px; font-weight: 400; color: var(--mk-muted); margin-top: 2px; }
+.mk-acc summary svg { width: 16px; height: 16px; stroke: var(--mk-muted); fill: none; stroke-width: 2; transition: transform .15s ease; }
+.mk-acc details[open] summary svg { transform: rotate(180deg); }
+.mk-acc .body { padding: 2px 0 22px; display: grid; gap: 16px; max-width: 62ch; }
+.mk-field { display: grid; gap: 6px; }
+.mk-field label { font-size: 13.5px; font-weight: 600; }
+.mk-field .note { font-size: 13px; color: var(--mk-muted); margin: 0; }
+.mk-select { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(16, 29, 64, .22); border-radius: 6px; padding: 7px 10px; background: #fff; font-size: 13.5px; width: max-content; }
+.mk-check { display: flex; gap: 9px; align-items: flex-start; font-size: 13.5px; line-height: 1.45; }
+.mk-check i { display: inline-block; width: 15px; height: 15px; border: 1px solid rgba(16, 29, 64, .35); border-radius: 3px; background: #fff; flex: none; margin-top: 2px; }
+.mk-check i.on { background: var(--mk-accent); border-color: var(--mk-accent); position: relative; }
+.mk-check i.on::after { content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.mk-sizes { display: grid; grid-template-columns: auto auto auto; gap: 6px 18px; font-size: 13.5px; font-variant-numeric: tabular-nums; width: max-content; }
+.mk-sizes b { font-weight: 600; }
+.mk-sizes span { color: var(--mk-muted); }
+.mk-savebar { margin-top: 26px; }
+
+@media (prefers-reduced-motion: reduce) { .mk-acc summary svg { transition: none; } }
+</style>
+
+<div class="mk-page">
+
+	<div class="mk-head">
+		<h1>Folders screen, mock</h1>
+		<p>5 September 2026 · folders and counts are the test site's own, 641 pictures in 19 folders · nothing here is built</p>
+	</div>
+
+	<!-- ============================================================ board 1: the Folders screen -->
+	<section class="mk-board">
+		<div class="mk-board-label">Folders screen <span>one conversation, one tree, one Move. The page scrolls as one; the rail is not pinned.</span></div>
+		<div class="mk-wp">
+			<div class="mk-adminbar"><b>WordPress</b> <span>Verge Media test site</span> <span>Updates 3</span> <span>Comments</span> <span>+ New</span></div>
+			<div class="mk-wpbody">
+				<div class="mk-wpmenu">
+					<div>Dashboard</div><div>Posts</div><div class="cur">Media</div><div class="sub">Library</div><div class="sub">Add New</div><div class="sub cur">VergeLabs</div><div>Pages</div><div>Comments</div><div>WooCommerce</div><div>Products</div><div>Elementor</div><div>Appearance</div><div>Plugins</div><div>Users</div><div>Tools</div><div>Settings</div>
+				</div>
+				<div class="mk-wpcontent">
+					<div class="vgml-shell">
+						<div class="vgml-shell-body">
+							<nav class="vgml-shell-nav" aria-label="VergeLabs Library">
+								<div class="vgml-shell-brand"><span class="vgml-shell-mark" aria-hidden="true"></span><span class="vgml-shell-name">VergeLabs <small>Media Library</small></span></div>
+								<ul class="vgml-shell-list">
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Dashboard</span><span class="vgml-shell-sub">Where things stand</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item is-on" aria-current="page"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders</span><span class="vgml-shell-sub">Say it, edit the tree, press Move</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">AI</span><span class="vgml-shell-sub">Describe, alt text, credits</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Duplicates</span><span class="vgml-shell-sub">Copies, and space they take</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Import folders</span><span class="vgml-shell-sub">From another plugin, or a CSV</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Licence</span><span class="vgml-shell-sub">Connection, key and credits</span></span></a></li>
+									<li class="vgml-shell-group">Settings</li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders and categories</span><span class="vgml-shell-sub">Which categories act as folders</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Library settings</span><span class="vgml-shell-sub">Ordering, filters and uploads</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">File types</span><span class="vgml-shell-sub">What may be uploaded</span></span></a></li>
+								</ul>
+								<div class="vgml-shell-foot">
+									<a class="mk-btn quiet" href="#">Open the media library ↗</a>
+									<div class="vgml-shell-credits"><b>26,014</b> credits · one describes one picture</div>
+									<p class="vgml-shell-version">Version 3.13.2</p>
+								</div>
+							</nav>
+
+							<main class="vgml-shell-content">
+								<h1 class="mk-h1">Folders</h1>
+								<p class="mk-facts">641 pictures · 19 folders · 268 in no folder · described yesterday 13:52</p>
+
+								<div class="mk-cols">
+
+									<!-- conversation -->
+									<div>
+										<h2 class="vgml-kicker">Conversation · 3 of 25 turns</h2>
+										<div class="mk-conv">
+											<div class="mk-msg assistant">
+												<span class="who">Assistant</span>
+												<p>I read 641 pictures. 175 are misty mountain landscapes, 127 are portraits on a plain background, 69 are desk and phone scenes, 60 are piers at sunset, 48 are brick facades, 44 are Manhattan streets. 268 are in no folder; today's 19 folders hold the rest. Folders by subject, by use, or both?</p>
+											</div>
+											<div class="mk-msg user">
+												<span class="who">You</span>
+												<p>By subject. Fold the four small landscape folders into Landscape and nature, and let Portrait take every portrait.</p>
+											</div>
+											<div class="mk-msg assistant">
+												<span class="who">Assistant</span>
+												<p>Mountains and mist, Meadow and blossom, Piers and sunsets and Rural farmland fold into <b>Landscape and nature</b>: 152 pictures, 91 already there. <b>Portrait</b> takes the 109 unfiled portraits: 127 in all. 4 folders removed, none added, 268 unfiled become 159. Architecture keeps its two folders. Keep Workspace as one folder, or split desks from phones?</p>
+												<div class="mk-chips"><span class="mk-chip">Keep as one</span><span class="mk-chip">Split desks and phones</span></div>
+											</div>
+											<div class="mk-msg user">
+												<span class="who">You, in the tree</span>
+												<p>Moved Edison bulb lighting under Workspace</p>
+											</div>
+											<div class="mk-msg assistant">
+												<span class="who">Assistant</span>
+												<p><b>Edison bulb lighting</b> is under Workspace now, 14 pictures. Objects keeps Phones and gadgets, 10. Keep Workspace as one folder, or split desks from phones?</p>
+												<div class="mk-chips"><span class="mk-chip">Keep as one</span><span class="mk-chip">Split desks and phones</span></div>
+											</div>
+										</div>
+										<div class="mk-compose">
+											<div class="box"><i>Say what to change, or edit the tree.</i></div>
+											<button class="mk-btn" type="button">Send</button>
+										</div>
+									</div>
+
+									<!-- tree -->
+									<div>
+										<h2 class="vgml-kicker">Folders · today 19, after Move 15</h2>
+										<div class="mk-tree">
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Apparel</span><span class="count">45</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Architecture</span><span class="count">26</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">City architecture details</span><span class="count">31</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Manhattan skyline</span><span class="count">11</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Bikes and cycling</span><span class="count">11</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Crafts and skills</span><span class="count">5</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Food</span><span class="count">8</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Fx</span><span class="count">6</span></div>
+											<div class="mk-row change"><span class="handle">⋮⋮</span><span class="name">Landscape and nature</span><span class="count">152<span class="was">was 91</span></span></div>
+											<div class="mk-hover">
+												<div>152 pictures land here. 61 come from the four folders below.</div>
+												<div class="thumbs"><img src="data:image/jpeg;base64,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" alt=""><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/4QDeRXhpZgAASUkqAAgAAAAGABIBAwABAAAAAQAAABoBBQABAAAAVgAAABsBBQABAAAAXgAAACgBAwABAAAAAgAAABMCAwABAAAAAQAAAGmHBAABAAAAZgAAAAAAAABIAAAAAQAAAEgAAAABAAAABwAAkAcABAAAADAyMTABkQcABAAAAAECAwCGkgcAFgAAAMAAAAAAoAcABAAAADAxMDABoAMAAQAAAP//AAACoAQAAQAAAIQDAAADoAQAAQAAAKMCAAAAAAAAQVNDSUkAAABQaWNzdW0gSUQ6IDk4MP/bAEMABgQEBQQEBgUFBQYGBgcJDgkJCAgJEg0NCg4VEhYWFRIUFBcaIRwXGB8ZFBQdJx0fIiMlJSUWHCksKCQrISQlJP/bAEMBBgYGCQgJEQkJESQYFBgkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJP/AABEIAJYAlgMBIgACEQEDEQH/xAAbAAACAwEBAQAAAAAAAAAAAAAEBQADBgcCAf/EADYQAAIBAwMCBAMHAwUBAQAAAAECAwAEEQUSITFBBhMiUWFxgQcUFSMykaFCscEWUtHh8HIz/8QAGQEAAwEBAQAAAAAAAAAAAAAAAQIDBAAF/8QAIxEAAgICAgICAwEAAAAAAAAAAAECEQMhEjEEQRNRFCJhcf/aAAwDAQACEQMRAD8AsgkAFExGlsb9qNt3zwaztHoRYeluJRgVWLdonOV4q22JVqe2tpDdRg5G7uDU7opViaCwS5bKcH2rRaVphhTleTwDQkekzWl4vGEJ79K3WlrCsKNKmSDxnpSyegoTLpr+UBtoGe0KscitxCqyqclAQSVTpkVn9ShUklRjP8VOMqdDdozzssbCPG7PJ+FeJYVHqbIB7UU1vhywHJ60u1K5aIYB7c1pTsjVAN9cM8hUcKOlB3s/muD3A5rxLLuJOcmqetWSojJ2VFSTTTRrYLcRs3Iago4SWFbHw1psLRea4DSbgFB7UuSdRGxQtnqSIQxmeT0hRxnvWelmeeRlQcE1p9aheadlAyg4UfGvukaRBHCbmVVL59KnvSLJS2O4W9A9hbNa2i7l2lv7V5bYH9XJNE6hPnIJ+lJpZSWNVxyZLJFFlzNEDhQB8qlCMNx5qVpUnRBxMdtINX2zlTRj2qH4V4W1weKxWaUhjbqGUHNMIJ2tpFK8+9LLZSq4ooMccDNSaLp6NjFq1pd2wVvSyjJBHU03tJd1mdpEi8H09KwdqxeI59OKNs9VkgXylkbYeCB3pKpUGvZutPlguLuUKpQAY9R4+lLPEE0VtOVzgGvPh7U1inYTxZDLwWpN4ru0m1EsjEioxVyH2tlxZW9RcBB1rKa5dYlbjjtR8t6IrcqenwpDeym4Y961Y4+yU3optwZMsTirkQluKojyo4o6yiMpGB86s2RSDbCy8whjGW7D51rrK1Fhaq8vDf0gdqF0f7rZQh3fk9d3RaruNSWWQxwA+WDnceprPKXLRojHiW3l0JcKg9XUkdq9LdMkQjReRxzVumW4OWxkHvV91FDbTqFO935IPallJoaEV0JrsM2WYYpY/cCnmqsgfaGFLYrVpZBt6dathbaI5kkDxW5OSwzxUo8xiOQq3btUrTyMhjn3g4INeUnKnFEXmraZBfxWE77ZpBkccfvVz6chOVrLyRq4/RXHMCOKt3lec1SYHjONpxXxiR1zQHQUsxA4zVsVyqckc0uWYqasZ8sGPSlaCmPTq5ZE2tgjjjvXi5LzIHY5zS11hSMFTya+ffHUAFqml9FL1spu7kLkFuaXC43Ptr1eN5khINfbOCMuNx59qupUjO1bLooXkfAFNrVWt1wOprQWvg65FvHMhGHUHB60Xp3hl5JWE3CjkEVGeYvDGhFBE7ndIDto2ILGdm3A96ZXVq6zvFsyQcAKO1AyZ3Ec0kZ8hpKkWxXbKrLG23FDffBAxlkO5vj3q2O3NwfLjwC3vSyS0kmlMabnbOBirKN9keVFiyy6jcbI1LsewoqRWjdY4wweP9Y6gUXptq2mpvZMOOWI7ccZoZ7j75I0EC8N/wDpKx/UavGl0QnbKmuDMxEUbNjuBmpRaxfhy7SxUN396lNyF4nDbjxFHq+vWtw10C8aofUNnqwPSOM9e+a1fifUmm0e2Om3kKTyyKXXf6lxzj64rkZu4BJ5TyK7jowHNXmHMo/MATHt0NYNr2FZ9O0dZ8P+IfL0KW9vS5WOZlUleWBfAxk89RRmmeILW+1a/tbhokhhZVjYjBbjLf5/auRLLNFAI4rl+MHYeVyDn/Ga96h4lu7ycSO8Jk8wsTt2vyMHmnWxlnVHXdQ1Xw7BNp3k3oe3vs4n2HbHg4yfgTRF5pToxEFzbzp2ZG6j3rj9prsFubS3njaU52SK5ZRsz8/rxXWLPVvDFnZ2KJdmXzY1H5TlmjOOd2euOe9K5ceysJKWy1baS3bawE3/AMnNFW/hzUtUy8FtJtzj2rY6P4IGnXAu5NQVk7hkCg5+Oa21vbLAgVQMY4xSqbb0O2ktnJ4vs71aVOIh8yQKug8GS6Zve9hYsAChU5Brq6bBgE89aEvtNjvpo5JJ2Tyx6VU9T70s3OtMMJxvaAdEu/N06Myr60G0qO1XxOxfcE2gEkf90hl1nMkywXKQssmxPSMFunP7UBqviS+/C3maeC3EA/M8twXk+XtzSQm5LY8sdPRb4g1KHTmlnVy7HP6Dkg+wrm+s+KJ70rHa+dbRBsu4Prb9ulVX2vT6q+0rsiA455pP+J2kt/JpsYIuIkDnjgj/AJrZgw8OzPmzctIsuNWv5JiI7u4SMHIAkIwaJ0vxVqemTDM7Txj+l25HyPWg/JAyzEAD3quWJIkaSVgiKOSTgCtSSM1m5fxcl3aq9zO8O4chvV/Ir5aeItPeQRW15GZMZOcjP71zLUtZTTrCC6D7453XaD3Hc/SmyaUbuKOWPlWG4N0GKKiugcje3mvw+lZZl47e1SuRa74tGh3JsY4hcyxnDFm4HwqUukH5EYd4biK9iUx+arEF5JBt2r7+54rUT2a28BlR1nhQAgqcHHvgVzG+kurW5kikffIhxu963OmGRLK2SeZd+Ad44yvTHxqWSCrZNMLmuLKOF7ncUYgHAOQ31FB200OqKzJDiRThWXHNEX9rpE2UedpVGNgPpJz1HAqaNHFaxyRxeTcRjko52sp9wfeoceK/p3bJOQ+wyhUZRgrsIzVsFpMtwJYZV3oMghgu7/g0fHBHrlvKlwjK642XDjo3scc846mgIrW6sLebehxGSuCvX6/Kir7D0asfaJr34Hd6bcu80M4Rcu2WwpBA59sfXNbf7OvtnCTPZarMRABGkJfnZxgjPtn3rklnI15low0QLYRVbdn/AIr48UsE8qqoZxgt6dpPxqcoWqorHJJO+zvv2k/aZbr4ZcaVeFLlpIz5kUgyBkEjrn2/eqPCf2rDxXBcWdzcizuTvZJdo4T/AB0/muFxXhkIE9oygdSASDRNtd3EU2LOR7eORTFIwTPpPWovFap9l4+QlK0tHa5rO0sQ8t1q8DKrEZK+ot1wB36jpSDXdXTUo0tLSLyoA3LMfXKcdSO3fiufT6/qdjGsCLcYVs+YYxlj8yOhpZJ4j1iGaO7SGdpY24Dx8EkYycDnjiq4sdO5O2dk8i9RVI1viC+OhwW4YAPJIvf+kHmsVb6+i+Lpr2MZikfZgnGVPAPNfNT1PV/Ekkcl5A8ZiGFCpgUpt9HmiMt5fSeX2jRSNzNn+AK1ctmRtt6Oh+OLxNP0zy0nUOZEyoPJGcj+1Zzxrr73mmBIF2wl03OpOD6QSP3P8UufOrMst/JNIyqBvHYDpnNfYNXh0+ymhMSXTuRhpM7RjtjvQ+VHPZS93PqWl2sYiZ4oR5YGepLZOP8A3etxo17NBoMJuklR4/Ts284zxxWObxLPvDqIISwAwqDj/iqZ/Emo3EH3czyCLcSdpxuPxoLNXSAopbsr1Pw/q19fz3U8cdskj5Uztgn6DJqUZp11p0EXm6lzK/Tc27j5dqlFZH9DrHFmB1CRZtSnOzqxx3yK1/h147m2thcN5BU8MwJDew/iqntLeaxtjhXkLnzCVyT8c0ReLFHP+UvoQAYPsBTSyJ6oHDjslzJYgfl7mPIYZO08n3yart3tDPutrORSuMOW4U/Ed6rurtEUvHartOOD2r5ZXo8ss8YZ+gz0H0qfL6Eod6TeSRCXE4Bx6sjjHxq6TxDNKsnkuXdVKAsAQR8qSXFxJIgiZikZ52IeKts4596xxIcPxk/90OTSHV9BKSSON90gZlOOwDD6Yq6zhn1G4aKyiLEkAKgzjtXRdN+yJxo9w1w6PdyIvlKW9Kc81r/DPgq18MyTtEyyCVYwSRzkDBP161jyeXSfE14/Ek3+3Rxu98ManpNr99vbOcQqQGdiMc9OBRHhjQZ/EV8IrVhDhWcF0JXI6A/Ouy+KfD7+ItGl0+FljLsrKzdAQc/2zRWh+ErHS7ea3iVCsrFn4wefb68/Ws/5MnHfZoXhw5/w50PssS4iZmvglwjENHuAD8ZyD/7pWb1X7P2tnW3eaaF9wDM/ORjqPh2611ePSWjmmVXVUjf9RH9OeteNWsotU0qWH72rNH6oAUIJPwPxrRhytdu0Ll8eNdUzimq6M/hdoJIblbpZcjMicLj4Zq6017Sr+FmvdMgkmjPqKKB6emcd6b6vZSXkH3SdGWRHDDIx35/jNYea3Fv4ikiMDMnmkbF7jPzra42YbcejSk+HbpXVN1srYycNg47V9j8LaVeDNrqBz22EH+DzVurQI+nMlvGsbR+pAqgH40n1Swj06CO4jkkB4DY6KfelcGhrXtBz+BQMlL8N/wDUdDy+Br5BiOSOZhyFOQP3pppWtebaxLKx3cgPgkNj400S5EoBB345yO1BIfhFow/+j9T853ksi2ehMgx/epW9C+cMo7N78dKlGwfCjKf6Qu2sn8oMwXlC8e0hvpn9sUpurDUVDmbLMTlh3P0Fa+W8eFJZUmkDgAlFwM/U+9DWetNqTu1xcPJ28qRVBXt1HarOOiVLqzIxWFxO4REdi7BcYwMk4xXqfRJ7abyfLzIGYFQ3OQMmteRcQRCGWSJIkbfuLAoD2x7mls109hOJXIO4k+bGOGyPlxxSLG/R3FIG0/w9HN91mnfyFx5kjsrMAueOMDg9ODXWYLGxutMsmmig8lEBjBUIQcYORXN/xqwu5bJbxBNDagrHGjbQRnO0/DPNa611e01aEPayLwBlO6fCklB+y+Jx9GkS+FhdeY7l8dArk04tfFVlKv5paNvYjrWPG6BQx9WfehJ5S5yDg/Cs8sUZmmM3E6JFr9iRzcBee47ULq2rxzxeZYb7ieJc+XG+3eM9M9K54928YKk1fYancQP+XIQp6gd6k/DXdlI+TXocyeN7hXb7/p1vaSDkxzM2WHP9SqR2p3ofjXTNdeLTZrFoyThFyCB/OR+1RdO8OX9vDe3lnbyXJjCMX6kVNO0zw5HqMc8OnWsc8XKSIgBFdxhBaR15JvbPnibw/HJBuiw7DJXHXHtXJdR0C8s/EKXk0TxxFeDJxk4xgV2nUdQjS+fncvG4CkepxWl/G8EsZMTc4PUfI0/jZZVUhfJwxe4nNZy8cmGwPhQ9xbreI0EoLK/GB1roA8M6VMV85JNowM7zkCrItL0nSrvfbwCQA8MzEnFblNGP42ZK38HyXek+QIzbj+hnGMH396a/6VuYrXfHMsrKOgB5/etrFeWNzEfKtwCByoOTSePUJ4Lh1fT7pIgcFiAQP2NDUgpcTGrefd2KSMyOOCp4xUqjWmKahOi4kIcnceCRUqdD2IrqC2lfYYSXLbz5XOfaiJZbewG1pgjRp6FZQQCf2JpVdRzSwRglLMuDkscsV+VIpLa8ur2Ty7wyKjAI0mfVx7Y4rTH9tsxt10a6a702VY5Gnubgj0tEzbOe/HypbqGvWjAQQREHG1RK+f3FC2ugW1wW+83rSSZ6qThT8hRA0exsFeaPzD0Bcnhf806pA2wez8uc7fTC2eoJwT7D2rYeHpo7Leqwww26IC0rNyz56fLFZOzaIsU80yhTuAIBGDx/4Uxt57SeHbPZlo4AZOhxn5DrSTVofG6ZuTczzw5OACeDntmrCiiMEtmknh65u9R8oXMPmIXHkhMDb15OOOlNdSDWj7MHPfntWR90bVuPIX3ZO84JxVMc7K3pOK9TzLt3DkH2oVZCcswwKoloi+xzBqrjAZsgfGjo9VZGDqxBHeshqF8LW3aRRzuAH1OKYWd0B+s8e9K8aqx45GjVprIlHI2nGM+9ejeFgMk896QqwIDAlVz+rsKINxLbvtkBzjvUlFLotybWxzFdNuwxyuKrkUuxCtz86HtphJw5q2eKMKZIpfUv6k7/ADo3QFGzxBdy2MvPKg8j3prNqq3B86AHYRh1Pf41l9S163WRQELqV5kUj0n2IoX8eSJfTmVD/t4xVou9kpUnR58QG0ub9pBEzkDaSrYzUpBe3izuZIlXLHJGcD6VKFCWKUguIX33shQIPTGoChPjx1pnd2ySIss7gIV3FsBcj5jr/GKz95N57HcjDI4Gf7mmWlQNdSBJpC3lpxuGVUAf+4qydvZBfw9pdINqFPy/6VBKAjNeJbqS4UxCPhjnCjIB9ya9/fxPL5QdpIMckghh8MVSlhcSXjxwr5Kc4ZulVF/wARbiNTG6NJcStgEJ6SPfP0prDDOEZpXdMflE++e1eb5PITyPvUcgON2CMj3/ALV4/E5ri4jVFwmVORjAVex980knqzoo6X4LsbfR7crFbCeby9xjVserHA+A7Uq13WvvuovFd2ws5l6RuwO75HvQL+ItUIa5t1jgVhgCJcM31P8Aig9U1uS8iiimto2ZcFS8eSMd8VgjCXPmz0ZZI8OCJrN1dW0EYtLXzy3VegA+fakF1qWuM4RLGOEn/c4NO7rU4byFYEYmQqC2AVGc+9ebq0F+hcyIsqHjB/itEZV2ZpK+hVC80qoL1xI279Kj0j4/Gm4nI5Q8jt1oMWskEmHdQWH6ie1EW+xo95kGR/RXSmBIKiv5mbypGZbdj60HG6nyTwz27EOAqDhW6r9TWcdrYx79zLgZZSOP3oP8YZZnitoztPHUf5qdWikZV2ahr/7vLhidoAwBzS7U9ZC3HnJtR2XaWC5JX/aT+1KTcXLAqUUkdSOKkcayuCVcFVPIz1oqPs5zfSKppZJeUVtyjdtbriqp2s2gCzJLGzD1AOQQfmKLjaON3G9VcnnPQj6f5r08tokRaaASTAbRjo3x/wCqdUiYts43WPYrlkGSp3Z/mpRD3UsWBEsRAGOVxUo97BQqtLRZWHnM21ULYTqcf2ot7l3lOngFYcKUCtjGTnk9+1SpVoLsg2W6hC+neYiyNkMNzLwT8P4pT+KTSTKFdtzBiGY5+dSpTro6WiWqLd3DTz5JjGSF4BpxpvkynMyuBkH0HHyqVKnLsbGNbYTQ2010JA6QEBEYdCR1r7JaG4DeYQ4wG5zkHHb4VKlTLCyMCaSZITtMZIOVHJoRb1RqKWoRmlIyXZuB9PpUqUFFbAwxsyTgHBYDIY9h7VLpEgngjiZ1NwglJ6YPTHyzUqUkYoJ8MaH0sHZCCXAbaT8qDi26exMSAb+h6kD5nrUqU6WgBtu/3iRlxyBnPyr28zqVcsdw5XHapUrglNtF5lpJLEwSRCWbjhueKlmjXESsxU5bHI5zUqUEgBaqWIiKoNg/pyKlSpRoZH//2Q==" alt=""><img src="data:image/jpeg;base64,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" alt=""></div>
+												<div class="on">on hover</div>
+											</div>
+											<div class="mk-row gone" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Meadow and blossom</span><span class="count">9</span></div>
+											<div class="mk-sub" style="--d:1">removed · 9 pictures go to Landscape and nature</div>
+											<div class="mk-row gone" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Mountains and mist</span><span class="count">39</span></div>
+											<div class="mk-sub" style="--d:1">removed · 39 pictures go to Landscape and nature</div>
+											<div class="mk-row gone" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Piers and sunsets</span><span class="count">8</span></div>
+											<div class="mk-sub" style="--d:1">removed · 8 pictures go to Landscape and nature</div>
+											<div class="mk-row gone" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Rural farmland</span><span class="count">5</span></div>
+											<div class="mk-sub" style="--d:1">removed · 5 pictures go to Landscape and nature</div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Logos and icons</span><span class="count">6</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Objects</span><span class="count">5</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Phones and gadgets</span><span class="count">10</span></div>
+											<div class="mk-row change"><span class="handle">⋮⋮</span><span class="name">Portrait</span><span class="count">127<span class="was">was 18</span></span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Workspace</span><span class="count">25</span></div>
+											<div class="mk-row change" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Edison bulb lighting</span><span class="count">14</span></div>
+											<div class="mk-sub moved" style="--d:1">moved from Objects, by you</div>
+										</div>
+										<div class="mk-move">
+											<button class="mk-btn primary" type="button">Move 170 pictures</button>
+										</div>
+									</div>
+
+								</div>
+							</main>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- ============================================================ board 2: the Move button, three states -->
+	<section class="mk-board">
+		<div class="mk-board-label">The Move button <span>three states, all in place. No note beneath it, no separate screen.</span></div>
+		<div class="mk-wp">
+			<div class="mk-states">
+				<div class="mk-state">
+					<h3>Before</h3>
+					<div class="mk-mini">
+						<div class="mk-row change"><span class="name">Landscape and nature</span><span class="count">152<span class="was">was 91</span></span></div>
+						<div class="mk-row gone"><span class="name">Mountains and mist</span><span class="count">39</span></div>
+						<div class="mk-sub" style="padding-left:0">removed · 39 pictures go to Landscape and nature</div>
+						<div class="mk-row change"><span class="name">Portrait</span><span class="count">127<span class="was">was 18</span></span></div>
+					</div>
+					<button class="mk-btn primary" type="button">Move 170 pictures</button>
+					<p class="mk-line"><span class="who">Before the tree differs from today</span>the button reads <b>Move · no changes yet</b>, and cannot be pressed.</p>
+				</div>
+				<div class="mk-state">
+					<h3>While moving</h3>
+					<div class="mk-mini">
+						<div class="mk-row change"><span class="name">Landscape and nature</span><span class="count">128<span class="was">of 152</span></span></div>
+						<div class="mk-fill"><i style="width:61%"></i></div>
+						<div class="mk-row gone"><span class="name">Mountains and mist</span><span class="count">2<span class="was">of 39 left</span></span></div>
+						<div class="mk-fill"><i style="width:95%"></i></div>
+						<div class="mk-row change"><span class="name">Portrait</span><span class="count">45<span class="was">of 127</span></span></div>
+						<div class="mk-fill"><i style="width:35%"></i></div>
+					</div>
+					<div class="mk-move" style="margin-top:0"><button class="mk-btn primary" type="button">Moving 64 of 170</button><button class="mk-btn" type="button">Stop</button></div>
+					<p class="mk-line"><span class="who">Stop</span>leaves what has moved and says so in the same one line.</p>
+				</div>
+				<div class="mk-state">
+					<h3>Done</h3>
+					<div class="mk-mini">
+						<div class="mk-row"><span class="name">Landscape and nature</span><span class="count">152</span></div>
+						<div class="mk-row"><span class="name">Portrait</span><span class="count">127</span></div>
+						<div class="mk-row"><span class="name">Workspace</span><span class="count">25</span></div>
+					</div>
+					<button class="mk-btn" type="button">Undo until tomorrow 14:20</button>
+					<p class="mk-line"><span class="who">Assistant</span>170 pictures moved into 2 folders. 471 stayed where they were.</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- ============================================================ board 3: a settings screen, collapsed -->
+	<section class="mk-board">
+		<div class="mk-board-label">Library settings <span>every section closed by default; the one you open stays open for you. Copy to the standard.</span></div>
+		<div class="mk-wp">
+			<div class="mk-adminbar"><b>WordPress</b> <span>Verge Media test site</span> <span>Updates 3</span> <span>Comments</span> <span>+ New</span></div>
+			<div class="mk-wpbody">
+				<div class="mk-wpmenu">
+					<div>Dashboard</div><div>Posts</div><div class="cur">Media</div><div class="sub">Library</div><div class="sub">Add New</div><div class="sub cur">VergeLabs</div><div>Pages</div><div>Comments</div><div>WooCommerce</div><div>Products</div><div>Elementor</div><div>Appearance</div><div>Plugins</div><div>Users</div><div>Tools</div><div>Settings</div>
+				</div>
+				<div class="mk-wpcontent">
+					<div class="vgml-shell">
+						<div class="vgml-shell-body">
+							<nav class="vgml-shell-nav" aria-label="VergeLabs Library">
+								<div class="vgml-shell-brand"><span class="vgml-shell-mark" aria-hidden="true"></span><span class="vgml-shell-name">VergeLabs <small>Media Library</small></span></div>
+								<ul class="vgml-shell-list">
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Dashboard</span><span class="vgml-shell-sub">Where things stand</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders</span><span class="vgml-shell-sub">Say it, edit the tree, press Move</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">AI</span><span class="vgml-shell-sub">Describe, alt text, credits</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Duplicates</span><span class="vgml-shell-sub">Copies, and space they take</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Import folders</span><span class="vgml-shell-sub">From another plugin, or a CSV</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Licence</span><span class="vgml-shell-sub">Connection, key and credits</span></span></a></li>
+									<li class="vgml-shell-group">Settings</li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders and categories</span><span class="vgml-shell-sub">Which categories act as folders</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item is-on" aria-current="page"><span class="vgml-shell-text"><span class="vgml-shell-label">Library settings</span><span class="vgml-shell-sub">Ordering, filters and uploads</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">File types</span><span class="vgml-shell-sub">What may be uploaded</span></span></a></li>
+								</ul>
+								<div class="vgml-shell-foot">
+									<a class="mk-btn quiet" href="#">Open the media library ↗</a>
+									<div class="vgml-shell-credits"><b>26,014</b> credits · one describes one picture</div>
+									<p class="vgml-shell-version">Version 3.13.2</p>
+								</div>
+							</nav>
+
+							<main class="vgml-shell-content">
+								<h1 class="mk-h1">Library settings</h1>
+								<p class="mk-facts">5 sections · last saved 2 September 09:41</p>
+
+								<div class="mk-acc">
+									<details open>
+										<summary><span>Ordering<small>Newest first · last folder remembered</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+										<div class="body">
+											<div class="mk-field">
+												<label>Order of pictures in the library</label>
+												<div class="mk-select">Newest first <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6f7891" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+												<p class="note">Applies to the grid and the list. A folder keeps its own order if you set one.</p>
+											</div>
+											<div class="mk-field">
+												<label class="mk-check"><i class="on"></i><span>Open the library in the folder you left it in.</span></label>
+											</div>
+										</div>
+									</details>
+									<details>
+										<summary><span>Filters<small>Folder and file type, above the grid</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+										<div class="body">
+											<div class="mk-field"><label class="mk-check"><i class="on"></i><span>Show the folder filter above the grid.</span></label></div>
+											<div class="mk-field"><label class="mk-check"><i class="on"></i><span>Show the file type filter above the grid.</span></label></div>
+										</div>
+									</details>
+									<details>
+										<summary><span>Uploads<small>New files go to the folder that is open</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+										<div class="body">
+											<div class="mk-field">
+												<label>New uploads go to</label>
+												<div class="mk-select">The folder that is open <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6f7891" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>
+												<p class="note">With no folder open they stay unfiled, and the Folders screen counts them.</p>
+											</div>
+											<div class="mk-field"><label class="mk-check"><i class="on"></i><span>Store files on disk in month and year folders, as WordPress does. This does not change your folders here.</span></label></div>
+										</div>
+									</details>
+									<details>
+										<summary><span>Image sizes<small>150 · 300 · 1024, the WordPress sizes</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+										<div class="body">
+											<p class="note" style="margin:0">Every upload is saved in these sizes as well as the original. Changing a size affects new uploads only.</p>
+											<div class="mk-sizes">
+												<b>Thumbnail</b><span>150 × 150</span><span>cropped to the exact size</span>
+												<b>Medium</b><span>up to 300 × 300</span><span>proportional</span>
+												<b>Large</b><span>up to 1024 × 1024</span><span>proportional</span>
+											</div>
+										</div>
+									</details>
+									<details>
+										<summary><span>Embeds<small>Off</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+										<div class="body">
+											<div class="mk-field"><label class="mk-check"><i></i><span>Turn a pasted link to a video or a tweet into the embedded item. Off keeps the link as text.</span></label></div>
+										</div>
+									</details>
+								</div>
+
+								<div class="mk-savebar"><button class="mk-btn primary" type="button">Save changes</button></div>
+							</main>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+</div>
