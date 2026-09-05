@@ -3066,10 +3066,43 @@ body {
 .mk-check i { display: inline-block; width: 15px; height: 15px; border: 1px solid rgba(16, 29, 64, .35); border-radius: 3px; background: #fff; flex: none; margin-top: 2px; }
 .mk-check i.on { background: var(--mk-accent); border-color: var(--mk-accent); position: relative; }
 .mk-check i.on::after { content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.mk-check i.rad { border-radius: 50%; }
+.mk-check i.rad.on { background: #fff; border: 5px solid var(--mk-accent); }
+.mk-check i.rad.on::after { content: none; }
 .mk-sizes { display: grid; grid-template-columns: auto auto auto; gap: 6px 18px; font-size: 13.5px; font-variant-numeric: tabular-nums; width: max-content; }
 .mk-sizes b { font-weight: 600; }
 .mk-sizes span { color: var(--mk-muted); }
 .mk-savebar { margin-top: 26px; }
+
+/* One draft, two ways to build it: the switch changes the left column only; tree and Move are shared. */
+.mk-method { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mk-seg { display: inline-flex; border: 1px solid rgba(16, 29, 64, .22); border-radius: 6px; padding: 2px; background: #fff; gap: 2px; }
+.mk-seg span { padding: 6px 14px; border-radius: 4px; font-size: 13px; font-weight: 500; color: var(--mk-muted); }
+.mk-seg span.on { background: var(--mk-ink); color: #fff; font-weight: 600; }
+
+/* The composer: a real one, growing with what is typed, send inside it, Stop in the same place while the reply streams. */
+.mk-composer { margin-top: 22px; border: 1px solid rgba(16, 29, 64, .22); border-radius: 10px; background: #fff; padding: 12px 12px 10px; display: grid; gap: 10px; }
+.mk-composer .text { min-height: 44px; font-size: 14.5px; line-height: 1.5; color: var(--mk-muted); }
+.mk-composer .bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mk-composer .bar small { font-size: 12px; color: var(--mk-muted); }
+.mk-send { width: 34px; height: 34px; border-radius: 50%; background: var(--mk-accent); display: inline-flex; align-items: center; justify-content: center; border: 0; padding: 0; }
+.mk-send svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.mk-send.stop { background: var(--mk-ink); }
+.mk-send.stop i { display: block; width: 11px; height: 11px; background: #fff; border-radius: 2px; }
+
+/* Rules: deterministic, instant, no model. */
+.mk-rules { margin-top: 12px; border-top: 2px solid rgba(16, 29, 64, .22); }
+.mk-rule { display: grid; grid-template-columns: 18px 1fr auto; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--mk-rule); align-items: start; }
+.mk-rule .dot { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(16, 29, 64, .35); background: #fff; margin-top: 2px; box-sizing: border-box; }
+.mk-rule.on .dot { border: 5px solid var(--mk-accent); }
+.mk-rule .t { font-size: 14.5px; font-weight: 600; color: var(--mk-ink); }
+.mk-rule .d { font-size: 13px; color: var(--mk-muted); margin-top: 2px; max-width: 52ch; }
+.mk-rule .n { font-size: 13px; color: var(--mk-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mk-rule.on .n { color: var(--mk-ink); font-weight: 600; }
+.mk-rule .opts { display: grid; gap: 8px; margin-top: 10px; }
+.mk-preview { margin: 16px 0 0; font-size: 14.5px; max-width: 52ch; }
+.mk-preview b { font-weight: 600; }
+.mk-row.new .name::after { content: "new"; margin-left: 8px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-accent); }
 
 @media (prefers-reduced-motion: reduce) { .mk-acc summary svg { transition: none; } }
 </style>
@@ -3122,7 +3155,7 @@ body {
 
 									<!-- conversation -->
 									<div>
-										<h2 class="vgml-kicker">Conversation · 3 of 25 turns</h2>
+										<div class="mk-method"><div class="mk-seg" role="tablist" aria-label="How to build the tree"><span class="on">Conversation</span><span>Rules</span></div><span class="vgml-kicker">3 of 25 turns</span></div>
 										<div class="mk-conv">
 											<div class="mk-msg assistant">
 												<span class="who">Assistant</span>
@@ -3147,9 +3180,9 @@ body {
 												<div class="mk-chips"><span class="mk-chip">Keep as one</span><span class="mk-chip">Split desks and phones</span></div>
 											</div>
 										</div>
-										<div class="mk-compose">
-											<div class="box"><i>Say what to change, or edit the tree.</i></div>
-											<button class="mk-btn" type="button">Send</button>
+										<div class="mk-composer">
+											<div class="text">Say what to change</div>
+											<div class="bar"><small>Enter sends · Shift + Enter for a new line</small><button class="mk-send" type="button" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
 										</div>
 									</div>
 
@@ -3189,6 +3222,122 @@ body {
 										</div>
 										<div class="mk-move">
 											<button class="mk-btn primary" type="button">Move 170 pictures</button>
+										</div>
+									</div>
+
+								</div>
+							</main>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- ============================================================ board 1b: the same screen, Rules selected -->
+	<section class="mk-board">
+		<div class="mk-board-label">Rules <span>the same screen with the switch on Rules: no model, no credits, the tree answers as you pick. Applying a rule writes one line into the conversation.</span></div>
+		<div class="mk-wp">
+			<div class="mk-adminbar"><b>WordPress</b> <span>Verge Media test site</span> <span>Updates 3</span> <span>Comments</span> <span>+ New</span></div>
+			<div class="mk-wpbody">
+				<div class="mk-wpmenu">
+					<div>Dashboard</div><div>Posts</div><div class="cur">Media</div><div class="sub">Library</div><div class="sub">Add New</div><div class="sub cur">VergeLabs</div><div>Pages</div><div>Comments</div><div>WooCommerce</div><div>Products</div><div>Elementor</div><div>Appearance</div><div>Plugins</div><div>Users</div><div>Tools</div><div>Settings</div>
+				</div>
+				<div class="mk-wpcontent">
+					<div class="vgml-shell">
+						<div class="vgml-shell-body">
+							<nav class="vgml-shell-nav" aria-label="VergeLabs Library">
+								<div class="vgml-shell-brand"><span class="vgml-shell-mark" aria-hidden="true"></span><span class="vgml-shell-name">VergeLabs <small>Media Library</small></span></div>
+								<ul class="vgml-shell-list">
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Dashboard</span><span class="vgml-shell-sub">Where things stand</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item is-on" aria-current="page"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders</span><span class="vgml-shell-sub">Say it, edit the tree, press Move</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">AI</span><span class="vgml-shell-sub">Describe, alt text, credits</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Duplicates</span><span class="vgml-shell-sub">Copies, and space they take</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Import folders</span><span class="vgml-shell-sub">From another plugin, or a CSV</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Licence</span><span class="vgml-shell-sub">Connection, key and credits</span></span></a></li>
+									<li class="vgml-shell-group">Settings</li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders and categories</span><span class="vgml-shell-sub">Which categories act as folders</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Library settings</span><span class="vgml-shell-sub">Ordering, filters and uploads</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">File types</span><span class="vgml-shell-sub">What may be uploaded</span></span></a></li>
+								</ul>
+								<div class="vgml-shell-foot">
+									<a class="mk-btn quiet" href="#">Open the media library ↗</a>
+									<div class="vgml-shell-credits"><b>26,014</b> credits · one describes one picture</div>
+									<p class="vgml-shell-version">Version 3.13.2</p>
+								</div>
+							</nav>
+
+							<main class="vgml-shell-content">
+								<h1 class="mk-h1">Folders</h1>
+								<p class="mk-facts">641 pictures · 19 folders · 268 in no folder · described yesterday 13:52</p>
+
+								<div class="mk-cols">
+
+									<!-- rules -->
+									<div>
+										<div class="mk-method"><div class="mk-seg" role="tablist" aria-label="How to build the tree"><span>Conversation</span><span class="on">Rules</span></div><span class="vgml-kicker">No model, no credits</span></div>
+										<div class="mk-rules">
+											<div class="mk-rule on">
+												<span class="dot"></span>
+												<div>
+													<div class="t">By kind</div>
+													<div class="d">Photos, illustrations, screenshots, diagrams: what the catalogue recorded for each picture.</div>
+													<div class="opts">
+														<label class="mk-check"><i class="rad on"></i><span>Only the 268 unfiled pictures move. Today's 19 folders stay as they are.</span></label>
+														<label class="mk-check"><i class="rad"></i><span>Every picture moves. Today's 19 folders are removed and 373 pictures leave them.</span></label>
+													</div>
+												</div>
+												<span class="n">4 folders</span>
+											</div>
+											<div class="mk-rule">
+												<span class="dot"></span>
+												<div><div class="t">By month and year</div><div class="d">The month a picture was uploaded, under its year.</div></div>
+												<span class="n">1 folder</span>
+											</div>
+											<div class="mk-rule">
+												<span class="dot"></span>
+												<div><div class="t">By subject</div><div class="d">The catalogue's subject at one level, folders of ten pictures or more.</div></div>
+												<span class="n">7 folders</span>
+											</div>
+											<div class="mk-rule">
+												<span class="dot"></span>
+												<div><div class="t">Into today's folders</div><div class="d">Nothing new. Each unfiled picture goes to the folder its evidence fits, or stays where it is.</div></div>
+												<span class="n">0 new</span>
+											</div>
+										</div>
+										<p class="mk-preview"><b>4 new folders.</b> 265 of the 268 unfiled pictures move. 3 have no kind and stay. Today's 19 folders are untouched.</p>
+									</div>
+
+									<!-- tree -->
+									<div>
+										<h2 class="vgml-kicker">Folders · today 19, after Move 23</h2>
+										<div class="mk-tree">
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Apparel</span><span class="count">45</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Architecture</span><span class="count">26</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">City architecture details</span><span class="count">31</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Manhattan skyline</span><span class="count">11</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Bikes and cycling</span><span class="count">11</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Crafts and skills</span><span class="count">5</span></div>
+											<div class="mk-row change new"><span class="handle">⋮⋮</span><span class="name">Diagrams</span><span class="count">6</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Food</span><span class="count">8</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Fx</span><span class="count">6</span></div>
+											<div class="mk-row change new"><span class="handle">⋮⋮</span><span class="name">Illustrations</span><span class="count">13</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Landscape and nature</span><span class="count">91</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Meadow and blossom</span><span class="count">9</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Mountains and mist</span><span class="count">39</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Piers and sunsets</span><span class="count">8</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Rural farmland</span><span class="count">5</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Logos and icons</span><span class="count">6</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Objects</span><span class="count">5</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Edison bulb lighting</span><span class="count">14</span></div>
+											<div class="mk-row" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Phones and gadgets</span><span class="count">10</span></div>
+											<div class="mk-row change new"><span class="handle">⋮⋮</span><span class="name">Photos</span><span class="count">240</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Portrait</span><span class="count">18</span></div>
+											<div class="mk-row change new"><span class="handle">⋮⋮</span><span class="name">Screenshots</span><span class="count">6</span></div>
+											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Workspace</span><span class="count">25</span></div>
+										</div>
+										<div class="mk-move">
+											<button class="mk-btn primary" type="button">Move 265 pictures</button>
 										</div>
 									</div>
 
