@@ -95,6 +95,8 @@
 		moreN: '%s more folders, unchanged',
 		afterMove: '%s pictures after Move',
 		fromFolders: '%1$s from %2$s',
+		ofN: 'of %s',
+		ofNLeft: 'of %s left',
 		noChanges: 'No changes yet',
 		nothingFound: 'No folder matches',
 		rename: 'Rename',
@@ -664,6 +666,7 @@
 		this.unfolded = {};
 		this.seen = null;
 		this.overlay = null;
+		this.progress = null;
 		this.listEl = null;
 		this.headEl = null;
 		this.findEl = null;
@@ -727,13 +730,39 @@
 		this.render();
 	};
 
+	/*
+	 *  now, after, changes -- and moving: the pictures a Move would put
+	 *  somewhere new, read off the rows as the approved mock has it: what a
+	 *  folder gains over what it holds today, summed. A folder that only
+	 *  moves or is renamed moves no pictures.
+	 */
 	TreeView.prototype.summary = function () {
 		var o = this.overlay;
+		var moving = 0;
+		if ( o ) {
+			o.order.forEach( function ( key ) {
+				var row = o.rows[ key ];
+				if ( 'removed' !== row.status && row.own > row.liveOwn ) {
+					moving += row.own - row.liveOwn;
+				}
+			} );
+		}
 		return {
 			now: this.model.nodes.length,
 			after: o ? o.after : this.model.nodes.length,
-			changes: o ? o.changes : 0
+			changes: o ? o.changes : 0,
+			moving: moving
 		};
+	};
+
+	/*
+	 *  While a Move runs: pictures landed so far by term id. A row with an
+	 *  entry reads "128 of 152" with a fill beneath it; null clears it.
+	 */
+	TreeView.prototype.setProgress = function ( byTerm ) {
+		this.progress = byTerm && typeof byTerm === 'object' ? byTerm : null;
+		this.render();
+		return this;
 	};
 
 	TreeView.prototype.isOpen = function ( key ) {
@@ -1007,7 +1036,24 @@
 		var count = null;
 		if ( folders ) {
 			var shown = entry.shown !== undefined ? entry.shown : entry.total;
-			if ( shown || 'same' !== status ) {
+			// By the draft's key first (a folder the Move makes has no term id until it does), then by term id.
+			var landed = null;
+			if ( this.progress ) {
+				if ( this.progress[ entry.key ] !== undefined ) {
+					landed = Number( this.progress[ entry.key ] );
+				} else if ( entry.id && this.progress[ entry.id ] !== undefined ) {
+					landed = Number( this.progress[ entry.id ] );
+				}
+			}
+			if ( null !== landed && 'removed' !== status ) {
+				// Moving: what has landed, of what will.
+				count = el( 'span', { class: 'vgml-count' }, fmt( landed ) );
+				count.appendChild( el( 'span', { class: 'vgml-was' }, sprintf( l10n.ofN, fmt( Math.max( landed, shown ) ) ) ) );
+				row.appendChild( count );
+				var fill = el( 'span', { class: 'vgml-fill', 'aria-hidden': 'true' } );
+				fill.appendChild( el( 'i', { style: 'width:' + Math.min( 100, Math.round( 100 * landed / Math.max( 1, Math.max( landed, shown ) ) ) ) + '%' } ) );
+				row.appendChild( fill );
+			} else if ( shown || 'same' !== status ) {
 				count = el( 'span', { class: 'vgml-count' }, fmt( shown ) );
 				if ( entry.was !== null && entry.was !== undefined ) {
 					count.appendChild( el( 'span', { class: 'vgml-was' }, sprintf( l10n.was, fmt( entry.was ) ) ) );

@@ -66,8 +66,8 @@ function vergeml_shell_pages() {
         array(
             'slug'  => 'media-librarian',
             'icon'  => 'librarian',
-            'sub'   => __( 'Put unfiled files into folders', 'vergelabs-media-library' ),
-            'label' => __( 'Sort into folders', 'vergelabs-media-library' ),
+            'sub'   => __( 'Build the folder tree', 'vergelabs-media-library' ),
+            'label' => __( 'Folders', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(

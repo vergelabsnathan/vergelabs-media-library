@@ -216,12 +216,8 @@ function vergeml_admin_home() {
         ),
         array(
             'page'  => 'media-librarian',
-            'title' => __( 'Sort into folders', 'vergelabs-media-library' ),
-            // The card says where this library actually is in the ladder, so
-            // the home screen answers "can I use this yet" without a click.
-            'text'  => function_exists( 'vergeml_librarian_card_text' )
-                ? vergeml_librarian_card_text()
-                : __( 'See the folders this library would get, change them, apply them — and put it all back with one click.', 'vergelabs-media-library' ),
+            'title' => __( 'Folders', 'vergelabs-media-library' ),
+            'text'  => __( 'Say what folders you want, or pick a rule. The tree answers. One button moves the pictures; undo for a day.', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(

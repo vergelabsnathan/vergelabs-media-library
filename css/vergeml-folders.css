@@ -1,0 +1,496 @@
+/*
+ *  Folders: the approved mock's grammar
+ *  (docs/superpowers/mocks/2026-09-05-folders-screen.html). Two columns in
+ *  normal flow, the conversation left and the tree right; a segmented switch
+ *  at the head of the left column; a composer that grows; a hairline list of
+ *  rules; the Move button under the tree. Everything is the shell's tokens.
+ *  The tree itself is css/vergeml-tree-view.css.
+ */
+
+.vgml-shell .vgml-folders-facts {
+	margin: 6px 0 0;
+	color: var(--vgml-muted);
+	font-size: 13.5px;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-folders-cols {
+	display: grid;
+	grid-template-columns: minmax(380px, 1fr) minmax(380px, 470px);
+	gap: 48px;
+	align-items: start;
+	margin-top: 30px;
+}
+
+@media (max-width: 1180px) {
+	.vgml-shell .vgml-folders-cols {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* --- the method: one draft, two ways to build it ------------------------ */
+
+.vgml-shell .vgml-method {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.vgml-shell .vgml-seg {
+	display: inline-flex;
+	gap: 2px;
+	padding: 2px;
+	border: 1px solid var(--vgml-divider);
+	border-radius: 6px;
+	background: #fff;
+}
+
+.vgml-shell .vgml-seg-tab {
+	margin: 0;
+	padding: 6px 14px;
+	border: 0;
+	border-radius: 4px;
+	background: none;
+	font: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--vgml-muted);
+	cursor: pointer;
+}
+
+.vgml-shell .vgml-seg-tab[aria-selected="true"] {
+	background: var(--vgml-ink);
+	color: #fff;
+	font-weight: 600;
+}
+
+.vgml-shell .vgml-seg-tab:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 1px;
+}
+
+/* --- the conversation ---------------------------------------------------- */
+
+.vgml-shell .vgml-conv {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	margin-top: 12px;
+}
+
+.vgml-shell .vgml-msg {
+	max-width: 62ch;
+	font-size: 14.5px;
+	line-height: 1.55;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-msg p {
+	margin: 0;
+	font-size: inherit;
+	line-height: inherit;
+}
+
+.vgml-shell .vgml-msg p + p,
+.vgml-shell .vgml-msg .vgml-facts + p,
+.vgml-shell .vgml-msg p + .vgml-facts {
+	margin-top: 8px;
+}
+
+.vgml-shell .vgml-msg .vgml-facts {
+	margin-top: 6px;
+	font-size: inherit;
+	line-height: inherit;
+	color: inherit;
+}
+
+.vgml-shell .vgml-msg b {
+	font-weight: 600;
+}
+
+.vgml-shell .vgml-msg-who {
+	display: block;
+	margin: 0 0 4px;
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-msg.is-user {
+	align-self: flex-end;
+	padding: 10px 14px;
+	border-radius: 12px 12px 3px 12px;
+	background: var(--vgml-surface);
+}
+
+.vgml-shell .vgml-msg.is-note {
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-msg.is-note .vgml-btn {
+	margin-top: 10px;
+}
+
+.vgml-shell .vgml-msg.is-streaming .vgml-msg-body > :last-child::after {
+	content: "";
+	display: inline-block;
+	width: 1px;
+	height: 15px;
+	margin-left: 2px;
+	vertical-align: -3px;
+	background: var(--vgml-ink);
+	animation: vgml-blink 1s steps(2, start) infinite;
+}
+
+@keyframes vgml-blink {
+	to { visibility: hidden; }
+}
+
+.vgml-shell .vgml-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+.vgml-shell .vgml-chip {
+	margin: 0;
+	padding: 5px 12px;
+	border: 1px solid var(--vgml-divider);
+	border-radius: 999px;
+	background: #fff;
+	font: inherit;
+	font-size: 13px;
+	color: var(--vgml-ink);
+	cursor: pointer;
+}
+
+.vgml-shell .vgml-chip:hover {
+	border-color: var(--vgml-ink);
+}
+
+/* --- the composer -------------------------------------------------------- */
+
+.vgml-shell .vgml-composer {
+	display: grid;
+	gap: 10px;
+	margin-top: 22px;
+	padding: 12px 12px 10px;
+	border: 1px solid var(--vgml-divider);
+	border-radius: 10px;
+	background: #fff;
+}
+
+.vgml-shell .vgml-composer:focus-within {
+	border-color: var(--vgml-accent);
+	box-shadow: 0 0 0 1px var(--vgml-accent);
+}
+
+.vgml-shell .vgml-composer-text {
+	display: block;
+	width: 100%;
+	min-height: 44px;
+	max-height: 240px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	resize: none;
+	font: inherit;
+	font-size: 14.5px;
+	line-height: 1.5;
+	color: var(--vgml-ink);
+	overflow: auto;
+}
+
+.vgml-shell .vgml-composer-text:focus {
+	outline: 0;
+	box-shadow: none;
+	border: 0;
+}
+
+.vgml-shell .vgml-composer-text::placeholder {
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-composer-text:disabled {
+	background: transparent;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-composer-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.vgml-shell .vgml-composer-hint {
+	font-size: 12px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-send {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	width: 34px;
+	height: 34px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: var(--vgml-accent);
+	cursor: pointer;
+}
+
+.vgml-shell .vgml-send svg {
+	width: 16px;
+	height: 16px;
+	stroke: #fff;
+	fill: none;
+	stroke-width: 2.2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.vgml-shell .vgml-send i {
+	display: none;
+	width: 11px;
+	height: 11px;
+	border-radius: 2px;
+	background: #fff;
+}
+
+.vgml-shell .vgml-send.is-stop {
+	background: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-send.is-stop svg {
+	display: none;
+}
+
+.vgml-shell .vgml-send.is-stop i {
+	display: block;
+}
+
+.vgml-shell .vgml-send:disabled {
+	opacity: .45;
+	cursor: not-allowed;
+}
+
+.vgml-shell .vgml-send:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+}
+
+.vgml-shell .vgml-startover {
+	padding: 0;
+	font-size: 12px;
+}
+
+/* --- the rules ----------------------------------------------------------- */
+
+.vgml-shell .vgml-rules {
+	margin-top: 12px;
+	border-top: 2px solid var(--vgml-divider);
+}
+
+.vgml-shell .vgml-rules.is-busy {
+	opacity: .7;
+}
+
+.vgml-shell .vgml-rule-row {
+	display: grid;
+	grid-template-columns: 18px 1fr auto;
+	gap: 12px;
+	align-items: start;
+	padding: 14px 0;
+	border-bottom: 1px solid var(--vgml-rule);
+}
+
+.vgml-shell .vgml-rule-pick {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	cursor: pointer;
+}
+
+.vgml-shell .vgml-rule-dot {
+	display: block;
+	width: 16px;
+	height: 16px;
+	margin-top: 2px;
+	border: 1px solid rgba(16, 29, 64, .35);
+	border-radius: 50%;
+	background: #fff;
+	box-sizing: border-box;
+}
+
+.vgml-shell .vgml-rule-row.is-on .vgml-rule-dot {
+	border: 5px solid var(--vgml-accent);
+}
+
+.vgml-shell .vgml-rule-pick:focus-visible .vgml-rule-dot {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+}
+
+.vgml-shell .vgml-rule-title {
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	font-size: 14.5px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+	text-align: left;
+	cursor: pointer;
+}
+
+.vgml-shell .vgml-rule-desc {
+	max-width: 52ch;
+	margin-top: 2px;
+	font-size: 13px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-rule-n {
+	font-size: 13px;
+	color: var(--vgml-muted);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.vgml-shell .vgml-rule-row.is-on .vgml-rule-n {
+	color: var(--vgml-ink);
+	font-weight: 600;
+}
+
+.vgml-shell .vgml-rule-opts {
+	display: grid;
+	gap: 12px;
+	margin-top: 10px;
+}
+
+.vgml-shell .vgml-radios {
+	display: grid;
+	gap: 8px;
+}
+
+.vgml-shell .vgml-radio {
+	display: flex;
+	gap: 9px;
+	align-items: flex-start;
+	font-size: 13.5px;
+	font-weight: 400;
+	line-height: 1.45;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-radio input {
+	margin: 2px 0 0;
+}
+
+.vgml-shell .vgml-field {
+	display: grid;
+	gap: 6px;
+}
+
+.vgml-shell .vgml-field-label {
+	font-size: 13.5px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-select {
+	width: max-content;
+	max-width: 100%;
+}
+
+.vgml-shell .vgml-facts-note {
+	margin-top: 2px;
+	font-size: 13px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-step {
+	display: inline-flex;
+	align-items: center;
+	width: max-content;
+	border: 1px solid var(--vgml-divider);
+	border-radius: 6px;
+	background: #fff;
+	font-size: 13.5px;
+}
+
+.vgml-shell .vgml-step button {
+	margin: 0;
+	padding: 6px 10px;
+	border: 0;
+	background: none;
+	font: inherit;
+	color: var(--vgml-muted);
+	cursor: pointer;
+}
+
+.vgml-shell .vgml-step b {
+	padding: 6px 12px;
+	border-left: 1px solid var(--vgml-rule);
+	border-right: 1px solid var(--vgml-rule);
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-preview {
+	max-width: 52ch;
+	margin-top: 16px;
+	font-size: 14.5px;
+	line-height: 1.5;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .vgml-preview b {
+	font-weight: 600;
+}
+
+/* --- the tree and Move ---------------------------------------------------- */
+
+.vgml-shell .vgml-folders-tree .vgml-tv-head {
+	justify-content: space-between;
+}
+
+.vgml-shell .vgml-tree-kicker {
+	flex: 1 1 auto;
+	margin: 0;
+}
+
+.vgml-shell .vgml-folders-move {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-top: 18px;
+}
+
+.vgml-shell .vgml-folders-move .vgml-btn {
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-move-btn:disabled {
+	opacity: .45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vgml-shell .vgml-msg.is-streaming .vgml-msg-body > :last-child::after {
+		animation: none;
+	}
+}

@@ -8,12 +8,12 @@
  *  removed row muted and struck through with its line beneath; a collapsed
  *  branch with its folder count and, when it hides changes, "N changes".
  *
- *  Scoped to .vgml-tv so it wins over vergeml-tree.css wherever both are on
+ *  Scoped to .vgml-tv[data-surface="folders"] so it wins over vergeml-tree.css wherever both are on
  *  the page, and the shell tokens carry fallbacks so the tree also draws in
  *  the test harness, outside the shell.
  */
 
-.vgml-tv {
+.vgml-tv[data-surface="folders"] {
 	--vgml-tv-ink: var( --vgml-ink, #101d40 );
 	--vgml-tv-muted: var( --vgml-muted, #6f7891 );
 	--vgml-tv-body: #545d75;
@@ -26,7 +26,7 @@
 
 /* --- the head: the two states, the find box ----------------------------- */
 
-.vgml-tv .vgml-tv-head {
+.vgml-tv[data-surface="folders"] .vgml-tv-head {
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: flex-end;
@@ -34,7 +34,7 @@
 	gap: 12px;
 }
 
-.vgml-tv .vgml-tv-switch {
+.vgml-tv[data-surface="folders"] .vgml-tv-switch {
 	display: inline-flex;
 	gap: 2px;
 	padding: 2px;
@@ -43,7 +43,7 @@
 	background: #fff;
 }
 
-.vgml-tv .vgml-tv-state {
+.vgml-tv[data-surface="folders"] .vgml-tv-state {
 	margin: 0;
 	padding: 4px 10px;
 	border: 0;
@@ -57,23 +57,23 @@
 	cursor: pointer;
 }
 
-.vgml-tv .vgml-tv-state[aria-pressed="true"] {
+.vgml-tv[data-surface="folders"] .vgml-tv-state[aria-pressed="true"] {
 	background: var( --vgml-tv-ink );
 	color: #fff;
 	font-weight: 600;
 }
 
-.vgml-tv .vgml-tv-state:focus-visible {
+.vgml-tv[data-surface="folders"] .vgml-tv-state:focus-visible {
 	outline: 2px solid var( --vgml-tv-accent );
 	outline-offset: 1px;
 }
 
-.vgml-tv .vgml-tv-find {
+.vgml-tv[data-surface="folders"] .vgml-tv-find {
 	flex: 1 1 100%;
 	max-width: 260px;
 }
 
-.vgml-tv .vgml-tv-search {
+.vgml-tv[data-surface="folders"] .vgml-tv-search {
 	width: 100%;
 	box-sizing: border-box;
 	margin: 0;
@@ -88,11 +88,11 @@
 	color: var( --vgml-tv-ink );
 }
 
-.vgml-tv .vgml-tv-search::placeholder {
+.vgml-tv[data-surface="folders"] .vgml-tv-search::placeholder {
 	color: var( --vgml-tv-muted );
 }
 
-.vgml-tv .vgml-tv-search:focus {
+.vgml-tv[data-surface="folders"] .vgml-tv-search:focus {
 	border-color: var( --vgml-tv-accent );
 	box-shadow: 0 0 0 1px var( --vgml-tv-accent );
 	outline: 0;
@@ -100,7 +100,7 @@
 
 /* --- the rows ------------------------------------------------------------ */
 
-.vgml-tv .vgml-list {
+.vgml-tv[data-surface="folders"] .vgml-list {
 	list-style: none;
 	margin: 12px 0 0;
 	padding: 0;
@@ -110,13 +110,13 @@
 	overflow: visible;
 }
 
-.vgml-tv .vgml-node {
+.vgml-tv[data-surface="folders"] .vgml-node {
 	position: relative;
 	margin: 0;
 	outline: 0;
 }
 
-.vgml-tv .vgml-row {
+.vgml-tv[data-surface="folders"] .vgml-row {
 	display: flex;
 	align-items: center;
 	gap: 10px;
@@ -134,22 +134,22 @@
 	transition: none;
 }
 
-.vgml-tv .vgml-node[aria-expanded] > .vgml-row {
+.vgml-tv[data-surface="folders"] .vgml-node[aria-expanded] > .vgml-row {
 	cursor: pointer;
 }
 
-.vgml-tv .vgml-row:hover {
+.vgml-tv[data-surface="folders"] .vgml-row:hover {
 	background: rgba( 16, 29, 64, .03 );
 }
 
-.vgml-tv .vgml-node:focus > .vgml-row,
-.vgml-tv .vgml-node:focus-visible > .vgml-row {
+.vgml-tv[data-surface="folders"] .vgml-node:focus > .vgml-row,
+.vgml-tv[data-surface="folders"] .vgml-node:focus-visible > .vgml-row {
 	outline: 2px solid var( --vgml-tv-accent );
 	outline-offset: -2px;
 	border-radius: 4px;
 }
 
-.vgml-tv .vgml-twist {
+.vgml-tv[data-surface="folders"] .vgml-twist {
 	display: inline-flex;
 	flex: 0 0 16px;
 	align-items: center;
@@ -164,22 +164,22 @@
 	cursor: pointer;
 }
 
-.vgml-tv .vgml-twist svg {
+.vgml-tv[data-surface="folders"] .vgml-twist svg {
 	display: block;
 	transition: transform 120ms ease;
 }
 
-.vgml-tv .vgml-twist.is-open svg {
+.vgml-tv[data-surface="folders"] .vgml-twist.is-open svg {
 	transform: rotate( 90deg );
 }
 
 /* Kept in the flow so names line up whether or not a row can open. */
-.vgml-tv .vgml-twist.is-leaf {
+.vgml-tv[data-surface="folders"] .vgml-twist.is-leaf {
 	visibility: hidden;
 	cursor: default;
 }
 
-.vgml-tv .vgml-handle {
+.vgml-tv[data-surface="folders"] .vgml-handle {
 	flex: 0 0 16px;
 	color: #b3bcd2;
 	font-size: 13px;
@@ -189,21 +189,21 @@
 	user-select: none;
 }
 
-.vgml-tv .vgml-node.is-gone .vgml-handle,
-.vgml-tv .vgml-tv-more .vgml-handle {
+.vgml-tv[data-surface="folders"] .vgml-node.is-gone .vgml-handle,
+.vgml-tv[data-surface="folders"] .vgml-tv-more .vgml-handle {
 	visibility: hidden;
 }
 
-.vgml-tv .vgml-handle[draggable="true"]:active {
+.vgml-tv[data-surface="folders"] .vgml-handle[draggable="true"]:active {
 	cursor: grabbing;
 }
 
 /* The mock's rows carry no folder glyph; the markup keeps it for the panel. */
-.vgml-tv .vgml-icon {
+.vgml-tv[data-surface="folders"] .vgml-icon {
 	display: none;
 }
 
-.vgml-tv .vgml-name {
+.vgml-tv[data-surface="folders"] .vgml-name {
 	flex: 1 1 auto;
 	min-width: 0;
 	overflow: hidden;
@@ -211,8 +211,12 @@
 	white-space: nowrap;
 }
 
-.vgml-tv .vgml-tag {
+.vgml-tv[data-surface="folders"] .vgml-tag {
 	margin-inline-start: 8px;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: none;
 	font-size: 10.5px;
 	font-weight: 600;
 	letter-spacing: .08em;
@@ -220,21 +224,21 @@
 	color: var( --vgml-tv-accent );
 }
 
-.vgml-tv .vgml-meta {
+.vgml-tv[data-surface="folders"] .vgml-meta {
 	flex: 0 0 auto;
 	font-size: 12px;
 	font-weight: 400;
 	color: var( --vgml-tv-muted );
 }
 
-.vgml-tv .vgml-mark {
+.vgml-tv[data-surface="folders"] .vgml-mark {
 	flex: 0 0 auto;
 	font-size: 11px;
 	font-weight: 600;
 	color: var( --vgml-tv-accent );
 }
 
-.vgml-tv .vgml-count {
+.vgml-tv[data-surface="folders"] .vgml-count {
 	flex: 0 0 auto;
 	padding: 0;
 	border-radius: 0;
@@ -245,33 +249,33 @@
 	font-variant-numeric: tabular-nums;
 }
 
-.vgml-tv .vgml-was {
+.vgml-tv[data-surface="folders"] .vgml-was {
 	margin-inline-start: 8px;
 	font-size: 12px;
 	font-weight: 400;
 	color: var( --vgml-tv-muted );
 }
 
-.vgml-tv .vgml-node.is-change > .vgml-row {
+.vgml-tv[data-surface="folders"] .vgml-node.is-change > .vgml-row {
 	color: var( --vgml-tv-ink );
 	font-weight: 600;
 }
 
-.vgml-tv .vgml-node.is-change > .vgml-row .vgml-count {
+.vgml-tv[data-surface="folders"] .vgml-node.is-change > .vgml-row .vgml-count {
 	color: var( --vgml-tv-ink );
 }
 
-.vgml-tv .vgml-node.is-gone > .vgml-row {
+.vgml-tv[data-surface="folders"] .vgml-node.is-gone > .vgml-row {
 	color: var( --vgml-tv-muted );
 }
 
-.vgml-tv .vgml-node.is-gone > .vgml-row .vgml-name {
+.vgml-tv[data-surface="folders"] .vgml-node.is-gone > .vgml-row .vgml-name {
 	text-decoration: line-through;
 	text-decoration-color: rgba( 16, 29, 64, .35 );
 }
 
 /* The line under a removed or moved folder: where its pictures go, where it came from. */
-.vgml-tv .vgml-tv-sub {
+.vgml-tv[data-surface="folders"] .vgml-tv-sub {
 	list-style: none;
 	margin: 0;
 	padding: 0 0 9px calc( var( --vgml-indent, 0px ) + 52px );
@@ -281,13 +285,13 @@
 	color: var( --vgml-tv-muted );
 }
 
-.vgml-tv .vgml-node:has( + .vgml-tv-sub ) > .vgml-row {
+.vgml-tv[data-surface="folders"] .vgml-node:has( + .vgml-tv-sub ) > .vgml-row {
 	border-bottom: 0;
 	padding-bottom: 4px;
 }
 
 /* A group's parent path in the Changes state. */
-.vgml-tv .vgml-tv-path {
+.vgml-tv[data-surface="folders"] .vgml-tv-path {
 	list-style: none;
 	margin: 0;
 	padding: 14px 0 6px;
@@ -298,18 +302,18 @@
 	color: var( --vgml-tv-muted );
 }
 
-.vgml-tv .vgml-tv-path:first-child {
+.vgml-tv[data-surface="folders"] .vgml-tv-path:first-child {
 	padding-top: 10px;
 }
 
 /* The siblings that do not change, folded into one row. */
-.vgml-tv .vgml-tv-more > .vgml-row {
+.vgml-tv[data-surface="folders"] .vgml-tv-more > .vgml-row {
 	font-size: 13px;
 	color: var( --vgml-tv-muted );
 	cursor: pointer;
 }
 
-.vgml-tv .vgml-empty {
+.vgml-tv[data-surface="folders"] .vgml-empty {
 	list-style: none;
 	margin: 0;
 	padding: 12px 0;
@@ -319,7 +323,7 @@
 
 /* --- editing ------------------------------------------------------------- */
 
-.vgml-tv .vgml-editor {
+.vgml-tv[data-surface="folders"] .vgml-editor {
 	flex: 1 1 auto;
 	min-width: 0;
 	margin: 0;
@@ -334,23 +338,23 @@
 	color: var( --vgml-tv-ink );
 }
 
-.vgml-tv .vgml-row.is-drop {
+.vgml-tv[data-surface="folders"] .vgml-row.is-drop {
 	box-shadow: inset 0 0 0 2px var( --vgml-tv-accent );
 	border-radius: 4px;
 }
 
-.vgml-tv .vgml-list.is-drop {
+.vgml-tv[data-surface="folders"] .vgml-list.is-drop {
 	outline: 2px dashed var( --vgml-tv-accent );
 	outline-offset: 4px;
 }
 
-.vgml-tv .vgml-node.is-dragging {
+.vgml-tv[data-surface="folders"] .vgml-node.is-dragging {
 	opacity: .5;
 }
 
 /* --- hover: pictures after Move, where from, three of them --------------- */
 
-.vgml-tv .vgml-tv-hover {
+.vgml-tv[data-surface="folders"] .vgml-tv-hover {
 	position: absolute;
 	z-index: 5;
 	inset-inline-start: calc( var( --vgml-indent, 0px ) + 52px );
@@ -366,7 +370,7 @@
 	font-weight: 400;
 }
 
-.vgml-tv .vgml-facts {
+.vgml-tv[data-surface="folders"] .vgml-facts {
 	list-style: none;
 	margin: 0;
 	padding: 0;
@@ -377,14 +381,14 @@
 	color: var( --vgml-tv-muted );
 }
 
-.vgml-tv .vgml-facts li {
+.vgml-tv[data-surface="folders"] .vgml-facts li {
 	position: relative;
 	margin: 0;
 	padding-inline-start: 16px;
 }
 
 /* The brand mark, the rail's rounded square, at 7px in the accent. */
-.vgml-tv .vgml-facts li::before {
+.vgml-tv[data-surface="folders"] .vgml-facts li::before {
 	content: "";
 	position: absolute;
 	inset-inline-start: 0;
@@ -395,13 +399,13 @@
 	background: var( --vgml-tv-accent );
 }
 
-.vgml-tv .vgml-tv-thumbs {
+.vgml-tv[data-surface="folders"] .vgml-tv-thumbs {
 	display: flex;
 	gap: 6px;
 	margin-top: 8px;
 }
 
-.vgml-tv .vgml-tv-thumbs img {
+.vgml-tv[data-surface="folders"] .vgml-tv-thumbs img {
 	width: 56px;
 	height: 42px;
 	object-fit: cover;
@@ -422,15 +426,37 @@
 	}
 }
 
-.vgml-tv .is-entering {
+.vgml-tv[data-surface="folders"] .is-entering {
 	animation: vgml-tv-enter 220ms ease-out;
 }
 
 @media ( prefers-reduced-motion: reduce ) {
-	.vgml-tv .is-entering {
+	.vgml-tv[data-surface="folders"] .is-entering {
 		animation: none;
 	}
-	.vgml-tv .vgml-twist svg {
+	.vgml-tv[data-surface="folders"] .vgml-twist svg {
 		transition: none;
 	}
+}
+
+/* --- while a Move runs: what has landed, of what will ------------------- */
+
+.vgml-tv[data-surface="folders"] .vgml-row {
+	position: relative;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-fill {
+	position: absolute;
+	left: var( --vgml-indent, 0px );
+	right: 0;
+	bottom: -1px;
+	height: 3px;
+	background: #d6def9;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-fill i {
+	display: block;
+	height: 100%;
+	background: var( --vgml-tv-accent );
+	transition: width 300ms ease;
 }

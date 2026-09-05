@@ -2659,49 +2659,13 @@ function vergeml_librarian_card_text() {
 }
 
 
-add_action( 'admin_menu', 'vergeml_librarian_menu', 13 );
-
-function vergeml_librarian_menu() {
-
-    if ( ! defined( 'VERGEML_MENU' ) ) {
-        return;
-    }
-
-    add_submenu_page(
-        VERGEML_MENU,
-        __( 'Sort into folders', 'vergelabs-media-library' ),
-        __( 'Sort into folders', 'vergelabs-media-library' ),
-        'manage_categories',
-        'media-librarian',
-        'vergeml_librarian_page'
-    );
-}
-
-
-add_action( 'admin_enqueue_scripts', 'vergeml_sort_assets' );
-
-/**
- *  The merged Sort surface (September 2026 redesign): one wp.element app,
- *  driven by the guided session in core/guide.php. The wizard's own script
- *  below is no longer loaded; its routes remain.
+/*
+ *  The screen is Folders now: core/guide.php registers the page at the same
+ *  slug (media-librarian, so every link to it still lands) and enqueues
+ *  js/vergeml-folders.js. What follows here is the Librarian's own wizard,
+ *  no longer loaded on that page; its routes remain for the Pro add-on and
+ *  the suites.
  */
-function vergeml_sort_assets( $hook ) {
-
-    if ( false === strpos( (string) $hook, 'media-librarian' ) ) {
-        return;
-    }
-
-    wp_enqueue_style( 'vergeml-sort', plugins_url( 'css/vergeml-sort.css', VERGEML_FILE ), array(), vergeml_asset_ver( 'css/vergeml-sort.css' ) );
-    wp_style_add_data( 'vergeml-sort', 'rtl', 'replace' );
-    wp_enqueue_script( 'vergeml-sort', plugins_url( 'js/vergeml-sort.js', VERGEML_FILE ), array( 'wp-element', 'wp-api-fetch', 'wp-i18n' ), vergeml_asset_ver( 'js/vergeml-sort.js' ), true );
-    wp_localize_script( 'vergeml-sort', 'vgmlSort', array(
-        'ns'         => VERGEML_REST_NS,
-        'cap'        => defined( 'VERGEML_GUIDE_TURN_CAP' ) ? VERGEML_GUIDE_TURN_CAP : 25,
-        'aiUrl'      => admin_url( 'admin.php?page=media-ai' ),
-        'importUrl'  => admin_url( 'admin.php?page=media-import-folders' ),
-        'libraryUrl' => admin_url( 'upload.php' ),
-    ) );
-}
 
 function vergeml_librarian_assets( $hook ) {
 
@@ -2933,53 +2897,10 @@ function vergeml_librarian_assets( $hook ) {
 
 
 function vergeml_librarian_page() {
-
-    if ( ! current_user_can( 'manage_categories' ) ) {
-        wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
+    // The page is Folders (core/guide.php); this name stays for anything that still calls it.
+    if ( function_exists( 'vergeml_folders_page' ) ) {
+        vergeml_folders_page();
     }
-
-    /*
-     *  The accent of whichever admin colour scheme this user picked, handed to
-     *  the stylesheet as a custom property. The folder tree has done this since
-     *  it shipped; this screen hardcoded WordPress's default blue instead, so
-     *  it was the one screen that did not belong to the admin it sat in.
-     */
-    /*
-     *  Our accent, not WordPress's.
-     *
-     *  This used to take the colour from the admin's own scheme, on the
-     *  reasoning that a screen should belong to the admin it sits in. That was
-     *  right when this was one page among WordPress's. It is wrong now the
-     *  plugin has its own shell in its own palette: the result was a Librarian
-     *  with blue buttons sitting inside a rust-coloured application.
-     *
-     *  Empty means "use whatever .vgml-shell already defines", which is the
-     *  one place the palette lives.
-     */
-    $accent = '';
-
-    /*
-     *  One surface (September 2026 redesign). The status strip, the command
-     *  bar, the editable tree, the one button and the rail are all drawn by
-     *  js/vergeml-sort.js from the guided session; the wizard that used to
-     *  follow the chat here is gone from the page.
-     */
-    $described = function_exists( 'vergeml_guide_described_count' ) ? vergeml_guide_described_count() : 0;
-
-    ?>
-    <div class="wrap vgml-home vgml-librarian">
-
-        <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'Sort into folders', 'vergelabs-media-library' ),
-            __( 'Folders worked out from your pictures, and shown to you before anything moves.', 'vergelabs-media-library' )
-        );
-        ?>
-
-        <div id="vgml-sort" class="vgml-sortapp" data-described="<?php echo esc_attr( (string) $described ); ?>"></div>
-
-    </div>
-    <?php
 }
 
 

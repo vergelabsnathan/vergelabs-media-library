@@ -697,7 +697,7 @@ function vergeml_nl_assets( $hook ) {
         'thinking' => __( 'Working out what that means…', 'vergelabs-media-library' ),
         'doing'    => __( 'Doing it…', 'vergelabs-media-library' ),
         /* translators: %d: number of files changed. */
-        'done'     => __( 'Done — %d files moved. If that was not what you meant, undo it on the Sort into folders screen.', 'vergelabs-media-library' ),
+        'done'     => __( 'Done — %d files moved. If that was not what you meant, undo it on the Folders screen.', 'vergelabs-media-library' ),
         'madeIt'   => __( 'Done.', 'vergelabs-media-library' ),
         'nothing'  => __( 'Nothing matched what you asked, so nothing was changed. Try naming a folder you have, or describing the files differently.', 'vergelabs-media-library' ),
     ) );

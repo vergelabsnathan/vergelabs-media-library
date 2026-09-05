@@ -8,7 +8,7 @@ import { test, expect, open, SCREEN } from './fixtures.mjs';
 
 const SLUGS = {
 	dashboard: SCREEN.dashboard,
-	sort: SCREEN.folders,
+	folders: SCREEN.folders,
 	ai: SCREEN.ai,
 	duplicates: SCREEN.duplicates,
 	import: 'media-import-folders',
@@ -18,16 +18,34 @@ const SLUGS = {
 	filetypes: 'mime-types',
 };
 
+let planted = false;
+
 for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 	test( `screenshot: ${ name }`, async ( { page } ) => {
 		const problems = [];
 		page.on( 'pageerror', ( e ) => problems.push( `javascript: ${ e.message }` ) );
 		await page.setViewportSize( { width: 1440, height: 900 } );
+		if ( name === 'folders' ) {
+			/*
+			 *  The conversation opens by itself on an empty session, and that
+			 *  is a planner call. A screenshot on every push must not spend
+			 *  one, so an empty session is given a turn first and emptied
+			 *  again after.
+			 */
+			await open( page, slug );
+			const s = await page.evaluate( () => wp.apiFetch( { path: '/vergeml/v1/guide/session' } ) );
+			planted = ! ( s.session.turns || [] ).length;
+			if ( planted ) {
+				await page.evaluate( () => wp.apiFetch( { path: '/vergeml/v1/guide/session', method: 'POST', data: { reset: true } } )
+					.then( () => wp.apiFetch( { path: '/vergeml/v1/guide/turn', method: 'POST', data: { said: { kind: 'said', text: 'Folders by subject.' }, say: { text: [ 'In the draft:', '- Nothing yet', 'Folders by subject, by use, or both?' ].join( '\n' ), choices: [ 'By subject', 'By use' ] } } } ) ) );
+			}
+		}
 		await open( page, slug );
 		await expect( page.locator( '.vgml-shell-content' ) ).toBeVisible();
-		if ( name === 'sort' ) {
-			// The app draws once the session has loaded; a planner call may follow, and is not waited for.
-			await expect( page.locator( '.vgml-sort-steps' ) ).toBeVisible( { timeout: 30000 } );
+		if ( name === 'folders' ) {
+			// The screen paints from the data that came with the page; the conversation may open by itself afterwards and is not waited for.
+			await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
+			await expect( page.locator( '.vgml-move-btn' ) ).toBeVisible();
 		}
 		if ( name === 'dashboard' ) {
 			// Four counts in the rail, and nothing of the score that was there.

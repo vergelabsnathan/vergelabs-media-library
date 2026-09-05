@@ -79,6 +79,7 @@ const SUITES = [
 	{ name: 'tree-view', file: 'tests/tree/tree-view.mjs', env: 'local' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
+	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },
 	/*
 	 *  The AI folders, in two halves for the usual reason. The PHP one is
 	 *  about the join and the counts and wants real MySQL -- Playground's

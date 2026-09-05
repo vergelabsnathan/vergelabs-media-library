@@ -41,3 +41,6 @@ vendor/
 /test-results/
 /playwright-report/
 .superpowers/
+
+# The Folders walk's screenshots; the suite regenerates them.
+tests/ui/shots/

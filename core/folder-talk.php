@@ -573,12 +573,26 @@ function vergeml_talk_vector( $folder ) {
  *  through leaves folders with nothing in them rather than pictures pointing
  *  at nothing.
  *
- * @param array $folders The proposed folders.
+ * @param array $folders The proposed folders. One that exists today may carry
+ *                       'term_id': it is then renamed or re-parented in place
+ *                       rather than matched by name, so a rename stays a rename.
+ * @param array $tags    From vergeml_guide_make_tags().
+ * @param array $opts    'assign'   attachment id => folder key: file exactly these
+ *                                  pictures there and touch no other (a rule).
+ *                                  Without it, every described picture is filed
+ *                                  by evidence (core/filing.php).
+ *                       'fallback' removed term id => folder key: where the
+ *                                  pictures of a folder that goes end up when
+ *                                  the evidence says nothing.
  * @return array|WP_Error What happened.
  */
-function vergeml_talk_apply( $folders, $tags = array() ) {
+function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 
 	global $wpdb;
+
+	$opts     = is_array( $opts ) ? $opts : array();
+	$assign   = isset( $opts['assign'] ) && is_array( $opts['assign'] ) ? $opts['assign'] : array();
+	$fallback = isset( $opts['fallback'] ) && is_array( $opts['fallback'] ) ? $opts['fallback'] : array();
 
 	$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
 
@@ -659,7 +673,8 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 	 *  $by_name stays for resolving a parent, because the service names a
 	 *  parent by name and nothing deeper is available to disambiguate with.
 	 */
-	$by_name = array();
+	$by_name  = array();
+	$made_ids = array();
 
 	foreach ( $order as $f ) {
 
@@ -671,6 +686,32 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 		}
 
 		$key = vergeml_talk_key( $f['parent'], $f['name'] );
+
+		/*
+		 *  A folder that exists is addressed by its id, not its name: the
+		 *  Folders screen keys its draft by term id, so "Boots" renamed to
+		 *  "Footwear" is that folder with a new name, not a folder gone and a
+		 *  folder made. Renamed or re-parented here, before anything is filed.
+		 */
+		$live = ! empty( $f['term_id'] ) ? get_term( (int) $f['term_id'], $taxonomy ) : null;
+
+		if ( $live instanceof WP_Term ) {
+			$patch = array();
+			if ( (string) $live->name !== (string) $f['name'] ) {
+				$patch['name'] = (string) $f['name'];
+			}
+			if ( (int) $live->parent !== (int) $parent_id && (int) $live->term_id !== (int) $parent_id ) {
+				$patch['parent'] = (int) $parent_id;
+			}
+			if ( $patch ) {
+				wp_update_term( (int) $live->term_id, $taxonomy, $patch );
+			}
+			$ids[ $key ] = (int) $live->term_id;
+			if ( ! isset( $by_name[ mb_strtolower( $f['name'] ) ] ) ) {
+				$by_name[ mb_strtolower( $f['name'] ) ] = (int) $live->term_id;
+			}
+			continue;
+		}
 
 		/*
 		 *  Matched on the name AND the parent. get_term_by( 'name', ... )
@@ -715,8 +756,9 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 
 		if ( ! is_wp_error( $made ) && isset( $made['term_id'] ) ) {
 			$ids[ $key ] = (int) $made['term_id'];
+			$made_ids[]  = (int) $made['term_id'];
 			// The profile the matcher files against, from what the plan said.
-			if ( function_exists( 'vergeml_filing_profile_build' ) ) {
+			if ( function_exists( 'vergeml_filing_profile_build' ) && ! $assign ) {
 				$term_obj = get_term( (int) $made['term_id'], $taxonomy );
 				if ( $term_obj && ! is_wp_error( $term_obj ) ) {
 					vergeml_filing_profile_build( $term_obj, $taxonomy, $f );
@@ -727,6 +769,7 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 			}
 		}
 	}
+	$made = $made_ids;
 
 	if ( ! $ids ) {
 		return new WP_Error( 'no_terms', __( 'None of those folders could be created.', 'vergelabs-media-library' ) );
@@ -734,9 +777,14 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 
 	// -------------------------------------------------------- the vectors
 
+	/*
+	 *  Only the evidence path needs them. A rule says outright which picture
+	 *  goes where, and a folder called "2026 / August" has no meaning a
+	 *  vector could carry.
+	 */
 	$vectors = array();
 
-	foreach ( $folders as $f ) {
+	foreach ( $assign ? array() : $folders as $f ) {
 
 		$key = vergeml_talk_key( $f['parent'], $f['name'] );
 
@@ -751,7 +799,7 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 		}
 	}
 
-	if ( ! $vectors ) {
+	if ( ! $vectors && ! $assign ) {
 		return new WP_Error(
 			'no_vectors',
 			__( 'The folders were created, but we could not reach the service to work out what goes in them. Try again in a moment.', 'vergelabs-media-library' )
@@ -778,17 +826,36 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 	 *  continues on cron, in slices, from the last picture it filed.
 	 */
 
+	/*
+	 *  What goes: every folder that exists and that the tree did not claim --
+	 *  by id, or by the name-and-parent lookup above, which lands in $ids
+	 *  either way. A folder the draft keeps is in $ids; a folder it does not
+	 *  name is not.
+	 */
 	$remove = array();
-	$want   = array();
-
-	foreach ( $folders as $f ) {
-		$want[ mb_strtolower( $f['name'] ) ] = true;
-	}
+	$keep   = array_map( 'intval', array_values( $ids ) );
 
 	foreach ( $before['terms'] as $term ) {
-		if ( ! isset( $want[ mb_strtolower( $term['name'] ) ] ) ) {
+		if ( ! in_array( (int) $term['term_id'], $keep, true ) ) {
 			$remove[] = (int) $term['term_id'];
 		}
+	}
+
+	// Where a removed folder's pictures land when the evidence says nothing, and the rule's own assignments, both as term ids.
+	$fallback_ids = array();
+	foreach ( $fallback as $tid => $key ) {
+		if ( in_array( (int) $tid, $remove, true ) && isset( $ids[ $key ] ) ) {
+			$fallback_ids[ (int) $tid ] = (int) $ids[ $key ];
+		}
+	}
+	$assign_ids = array();
+	foreach ( $assign as $attachment => $key ) {
+		if ( isset( $ids[ $key ] ) ) {
+			$assign_ids[ (int) $attachment ] = (int) $ids[ $key ];
+		}
+	}
+	if ( $assign && ! $assign_ids ) {
+		return new WP_Error( 'empty', __( 'Nothing to apply.', 'vergelabs-media-library' ) );
 	}
 
 	/*
@@ -825,6 +892,9 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 	if ( $tags ) {
 		$before['tags'] = $tags;
 	}
+	// The folders this Move made, so undo can take them away again once they are empty; and how long undo is offered.
+	$before['made']  = $made;
+	$before['until'] = time() + DAY_IN_SECONDS;
 
 	update_option( VERGEML_TALK_UNDO, $before, false );
 
@@ -841,7 +911,7 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 	 *  reaches Apparel and a logo stays out of Men. Best effort: without it the
 	 *  name-derived profiles still file, only more cautiously.
 	 */
-	if ( function_exists( 'vergeml_filing_profile_existing' ) ) {
+	if ( function_exists( 'vergeml_filing_profile_existing' ) && ! $assign_ids ) {
 		vergeml_filing_profile_existing( $taxonomy );
 	}
 
@@ -850,14 +920,18 @@ function vergeml_talk_apply( $folders, $tags = array() ) {
 		'taxonomy' => $taxonomy,
 		'ids'      => $ids,
 		'vectors'  => $vectors,
+		'assign'   => $assign_ids,
+		'fallback' => $fallback_ids,
 		'after'    => 0,
 		'moved'    => 0,
 		'skipped'  => 0,
 		'seen'     => 0,
 		'total'    => $total,
 		'counts'   => array(),
+		'by_term'  => array(),
 		'tags'     => $tag_map,
 		'tagged'   => 0,
+		'until'    => $before['until'],
 		/*
 		 *  Held until the end. Deleting a folder while pictures that belong in
 		 *  it have not been looked at yet would drop them out of every folder --
@@ -958,6 +1032,24 @@ function vergeml_talk_refile_run( $deadline ) {
 			}
 
 			/*
+			 *  A rule said outright where each picture goes. Those pictures
+			 *  go there; every other picture is left exactly as it is -- no
+			 *  evidence, no eviction, no guess.
+			 */
+			if ( ! empty( $state['assign'] ) ) {
+				if ( ! isset( $state['assign'][ $attachment ] ) ) {
+					continue;
+				}
+				$to  = (int) $state['assign'][ $attachment ];
+				$was = wp_get_object_terms( $attachment, $taxonomy, array( 'fields' => 'ids' ) );
+				$undo[ $attachment ] = is_wp_error( $was ) ? array() : array_map( 'intval', $was );
+				wp_set_object_terms( $attachment, array( $to ), $taxonomy, false );
+				$state['by_term'][ $to ] = isset( $state['by_term'][ $to ] ) ? (int) $state['by_term'][ $to ] + 1 : 1;
+				$state['moved'] = (int) $state['moved'] + 1;
+				continue;
+			}
+
+			/*
 			 *  Filed by evidence (core/filing.php): the picture's kind and
 			 *  audience gate the folders, its object class is matched against
 			 *  theirs, and the vector only breaks ties. What clears neither the
@@ -968,6 +1060,22 @@ function vergeml_talk_refile_run( $deadline ) {
 			}
 			$facts = vergeml_filing_facts( $row );
 			$pick  = vergeml_filing_pick( $facts, $profiles );
+
+			/*
+			 *  A picture in a folder that goes, with nowhere the evidence
+			 *  would send it, follows the folder's own pictures to the place
+			 *  the tree said they go -- the parent that absorbed it. It never
+			 *  simply drops out of every folder because its folder went.
+			 */
+			if ( ! $pick['term_id'] && ! empty( $state['fallback'] ) ) {
+				$in = wp_get_object_terms( $attachment, $taxonomy, array( 'fields' => 'ids' ) );
+				foreach ( is_wp_error( $in ) ? array() : array_map( 'intval', $in ) as $tid ) {
+					if ( isset( $state['fallback'][ $tid ] ) ) {
+						$pick['term_id'] = (int) $state['fallback'][ $tid ];
+						break;
+					}
+				}
+			}
 
 			if ( ! $pick['term_id'] ) {
 				$state['skipped'] = (int) $state['skipped'] + 1;
@@ -1006,6 +1114,9 @@ function vergeml_talk_refile_run( $deadline ) {
 			$state['counts'][ $best ] = isset( $state['counts'][ $best ] )
 				? (int) $state['counts'][ $best ] + 1
 				: 1;
+			$state['by_term'][ (int) $pick['term_id'] ] = isset( $state['by_term'][ (int) $pick['term_id'] ] )
+				? (int) $state['by_term'][ (int) $pick['term_id'] ] + 1
+				: 1;
 
 			$state['moved'] = (int) $state['moved'] + 1;
 		}
@@ -1017,6 +1128,11 @@ function vergeml_talk_refile_run( $deadline ) {
 			break;
 		}
 	} while ( $pass < $budget && microtime( true ) < $deadline );
+
+	// A pass that leaves the job running has still moved pictures: the folders in every open tree fill as they land.
+	if ( ! empty( $state['active'] ) && $pass > 0 && function_exists( 'vergeml_folders_moved' ) ) {
+		vergeml_folders_moved( 'chunk' );
+	}
 
 	if ( $undo ) {
 
@@ -1185,20 +1301,61 @@ function vergeml_talk_report( $state ) {
 		$message .= ' ' . sprintf( _n( '%s picture was tagged.', '%s pictures were tagged.', $tagged, 'vergelabs-media-library' ), number_format_i18n( $tagged ) );
 	}
 
+	$by_term = isset( $state['by_term'] ) ? (array) $state['by_term'] : array();
+
 	return array(
 		'moved'     => $moved,
 		'skipped'   => isset( $state['skipped'] ) ? (int) $state['skipped'] : 0,
-		'folders'   => count( $counts ),
+		// Pictures looked at and left where they were, whatever the reason.
+		'stayed'    => max( 0, $seen - $moved ),
+		'folders'   => max( count( $counts ), count( $by_term ) ),
 		'tagged'    => $tagged,
 		'removed'   => isset( $state['removed'] ) ? (int) $state['removed'] : 0,
 		'counts'    => $counts,
+		// Pictures landed so far, by term id: what the tree fills its rows from while a Move runs.
+		'by_term'   => $by_term,
 		'running'   => $running,
+		'stopped'   => ! empty( $state['stopped'] ),
 		'seen'      => $seen,
 		'total'     => $total,
 		'remaining' => max( 0, $total - $seen ),
 		'unfiled'   => isset( $state['unfiled'] ) ? (array) $state['unfiled'] : array(),
+		'until'     => isset( $state['until'] ) ? (int) $state['until'] : 0,
+		'started'   => isset( $state['started'] ) ? (int) $state['started'] : 0,
 		'message'   => $message,
 	);
+}
+
+
+/**
+ *  Stop a Move where it is.
+ *
+ *  What has moved stays moved, and stays undoable; what has not been looked
+ *  at is left where it was; the folders the Move was going to remove at the
+ *  end are not removed, because the pictures in them have not all been
+ *  re-filed. Says so in the same report the poll reads.
+ */
+function vergeml_talk_refile_stop() {
+
+	$state = get_option( VERGEML_TALK_STATE );
+
+	if ( ! is_array( $state ) ) {
+		return array( 'running' => false, 'seen' => 0, 'total' => 0, 'remaining' => 0, 'moved' => 0 );
+	}
+
+	if ( ! empty( $state['active'] ) ) {
+		$state['active']  = false;
+		$state['stopped'] = true;
+		$state['remove']  = array();
+		update_option( VERGEML_TALK_STATE, $state, false );
+		wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+
+		if ( function_exists( 'vergeml_folders_moved' ) ) {
+			vergeml_folders_moved( 'stop' );
+		}
+	}
+
+	return vergeml_talk_report( $state );
 }
 
 /**
@@ -1296,6 +1453,12 @@ function vergeml_talk_undo() {
 		return new WP_Error( 'nothing', __( 'There is nothing to undo.', 'vergelabs-media-library' ) );
 	}
 
+	// Offered for a day. After that the library has moved on and putting it back would undo more than the Move.
+	if ( ! empty( $before['until'] ) && time() > (int) $before['until'] ) {
+		delete_option( VERGEML_TALK_UNDO );
+		return new WP_Error( 'expired', __( 'The day to undo this has passed.', 'vergelabs-media-library' ) );
+	}
+
 	$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
 
 	if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
@@ -1319,6 +1482,28 @@ function vergeml_talk_undo() {
 
 		$parent_name = (string) ( isset( $term['parent'] ) ? $term['parent'] : '' );
 		$parent_id   = '' !== $parent_name && isset( $by_name[ mb_strtolower( $parent_name ) ] ) ? $by_name[ mb_strtolower( $parent_name ) ] : 0;
+
+		/*
+		 *  A folder the Move renamed or moved is still there under its id:
+		 *  it goes back to its old name and place rather than being made
+		 *  again beside itself.
+		 */
+		$still = get_term( (int) $term['term_id'], $taxonomy );
+		if ( $still instanceof WP_Term ) {
+			$patch = array();
+			if ( (string) $still->name !== (string) $term['name'] ) {
+				$patch['name'] = (string) $term['name'];
+			}
+			if ( (int) $still->parent !== (int) $parent_id && (int) $still->term_id !== (int) $parent_id ) {
+				$patch['parent'] = (int) $parent_id;
+			}
+			if ( $patch ) {
+				wp_update_term( (int) $still->term_id, $taxonomy, $patch );
+			}
+			$ids[ (int) $term['term_id'] ] = (int) $still->term_id;
+			$by_name[ mb_strtolower( $term['name'] ) ] = (int) $still->term_id;
+			continue;
+		}
 
 		$found = get_terms( array(
 			'taxonomy'   => $taxonomy,
@@ -1368,6 +1553,25 @@ function vergeml_talk_undo() {
 		vergeml_guide_unmake_tags( (array) $before['tags'] );
 	}
 
+	/*
+	 *  The folders the Move made, taken away again -- only those, and only
+	 *  once the pictures are back where they were and the folder holds
+	 *  nothing. A folder somebody has since put a picture in stays.
+	 */
+	$unmade = 0;
+	foreach ( (array) ( isset( $before['made'] ) ? $before['made'] : array() ) as $tid ) {
+		$term = get_term( (int) $tid, $taxonomy );
+		if ( ! ( $term instanceof WP_Term ) ) {
+			continue;
+		}
+		$held = get_objects_in_term( (int) $tid, $taxonomy );
+		$kids = get_terms( array( 'taxonomy' => $taxonomy, 'parent' => (int) $tid, 'hide_empty' => false, 'fields' => 'ids', 'number' => 1 ) );
+		if ( ( is_wp_error( $held ) || ! $held ) && ( is_wp_error( $kids ) || ! $kids ) ) {
+			wp_delete_term( (int) $tid, $taxonomy );
+			$unmade++;
+		}
+	}
+
 	delete_option( VERGEML_TALK_UNDO );
 
 	if ( function_exists( 'vergeml_folders_moved' ) ) {
@@ -1376,12 +1580,32 @@ function vergeml_talk_undo() {
 
 	return array(
 		'restored' => $put,
+		'unmade'   => $unmade,
 		'message'  => sprintf(
 			/* translators: %s: how many pictures went back. */
 			_n( '%s picture put back.', '%s pictures put back.', $put, 'vergelabs-media-library' ),
 			number_format_i18n( $put )
 		),
 	);
+}
+
+
+/** Whether a Move can still be undone, and until when. */
+function vergeml_talk_undo_available() {
+
+	$before = get_option( VERGEML_TALK_UNDO );
+
+	if ( ! is_array( $before ) || empty( $before['terms'] ) ) {
+		return array( 'available' => false, 'until' => 0 );
+	}
+
+	$until = isset( $before['until'] ) ? (int) $before['until'] : 0;
+
+	if ( $until > 0 && time() > $until ) {
+		return array( 'available' => false, 'until' => $until );
+	}
+
+	return array( 'available' => true, 'until' => $until );
 }
 
 
