@@ -9,24 +9,25 @@ if ( ! defined( 'ABSPATH' ) )
  *
  *  Every parameter decision this plugin has left -- how many files a batch
  *  should take, what a sensible default folder scheme is, what any of it is
- *  worth -- is currently a guess, because nobody here has seen a library that
- *  is not a test fixture. Eight numbers answer most of it.
+ *  worth -- is a guess until somebody has seen a library that is not a test
+ *  fixture. Eight numbers answer most of it.
  *
  *  Three rules, and they are the whole design:
  *
  *  - **Numbers only.** Counts, versions, a locale. No filename, no URL, no
  *    title, no term name, nothing a person wrote and nothing that identifies
- *    a site. Read the snapshot builder below: if it ever grows a string that
- *    came from the database, that is the bug.
- *  - **Off until somebody says otherwise.** No default-on, no pre-ticked box,
- *    no "improve the plugin" checkbox buried in a settings tab. A card on the
- *    home screen that says exactly what is collected, and a switch.
- *  - **Local until there is somewhere to send it.** The snapshot is written to
- *    an option and stays there. There is no endpoint and no request in this
- *    file; transmission waits for a licensed connection that does not exist
- *    yet, which is also why the card does not promise one.
+ *    a site beyond the address every /v1 call already carries. Read the
+ *    snapshot builder below: if it ever grows a string that came from the
+ *    database, that is the bug -- and the service refuses the payload whole.
+ *  - **Off until somebody says otherwise.** No default-on, no pre-ticked box.
+ *    A switch under "Share library counts" in Library settings, with the
+ *    three lines that say exactly what goes and what never does.
+ *  - **Once a day, to one place.** The snapshot is written to an option and
+ *    posted to the service with the licence key and site, the way every
+ *    other /v1 call is made. No key, nothing is sent: the service could not
+ *    accept it.
  *
- *  @since 3.2
+ *  @since 3.2, sent since 3.16.2
  */
 
 
@@ -46,6 +47,7 @@ function vergeml_stats_state() {
         'opted'    => 0,
         'snapshot' => array(),
         'time'     => 0,
+        'sent'     => 0,
     ), $state );
 }
 
@@ -59,11 +61,14 @@ function vergeml_stats_opted() {
 /**
  *  vergeml_stats_snapshot
  *
- *  The eight numbers, as they stand right now.
+ *  The eight numbers, as they stand right now, and the three versions.
  *
  *  mime is a family count -- image, video, audio, application, other -- not a
  *  list of types, because "how many of these libraries are mostly video" is
  *  the question and "which exotic MIME does site 41 have one of" is not.
+ *
+ *  These keys are the contract with the service (app/api/counts): it accepts
+ *  exactly this set and nothing more.
  */
 
 function vergeml_stats_snapshot() {
@@ -130,6 +135,7 @@ function vergeml_stats_snapshot() {
         'folders'     => $folders,
         'depth'       => $depth,
         'recent'      => $recent,
+        'plugin'      => VERGEML_VERSION,
         'wp'          => get_bloginfo( 'version' ),
         'php'         => PHP_VERSION,
         'locale'      => get_locale(),
@@ -165,9 +171,10 @@ function vergeml_stats_depth( $term_id, $parents ) {
 /**
  *  vergeml_stats_refresh
  *
- *  Take a snapshot if one is due. Only ever called on an admin screen, and
- *  only while the switch is on: no cron entry, nothing running on a front-end
- *  request, and nothing at all happening on a site that never opted in.
+ *  Take a snapshot if one is due, and send it. Only ever called on an admin
+ *  screen, and only while the switch is on: no cron entry, nothing running
+ *  on a front-end request, and nothing at all happening on a site that never
+ *  opted in.
  */
 
 function vergeml_stats_refresh( $force = false ) {
@@ -185,9 +192,54 @@ function vergeml_stats_refresh( $force = false ) {
     $state['snapshot'] = vergeml_stats_snapshot();
     $state['time']     = time();
 
+    if ( vergeml_stats_send( $state['snapshot'] ) ) {
+        $state['sent'] = time();
+    }
+
     update_option( VERGEML_STATS_OPTION, $state, false );
 
     return $state;
+}
+
+
+/**
+ *  vergeml_stats_send
+ *
+ *  The snapshot to the service, with the licence key and the site, as every
+ *  /v1 call. Exactly what the builder returned and nothing beside it: the
+ *  body is the snapshot under one key, not a merge anything could leak into.
+ *  Without a key there is nothing to authenticate with and nothing is sent.
+ *  True when the service took it.
+ */
+
+function vergeml_stats_send( $snapshot ) {
+
+    if ( ! function_exists( 'vergeml_ai_settings' ) || ! function_exists( 'vergeml_ai_unseal' ) || ! function_exists( 'vergeml_ai_service_url' ) ) {
+        return false;
+    }
+
+    $settings = vergeml_ai_settings();
+    $key      = vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
+
+    if ( '' === $key ) {
+        return false;
+    }
+
+    $response = wp_remote_post(
+        vergeml_ai_service_url() . '/counts',
+        array(
+            'timeout'   => 8,
+            'headers'   => array( 'Content-Type' => 'application/json' ),
+            'sslverify' => true,
+            'body'      => wp_json_encode( array(
+                'license_key' => $key,
+                'site'        => home_url(),
+                'counts'      => $snapshot,
+            ) ),
+        )
+    );
+
+    return ! is_wp_error( $response ) && 200 === (int) wp_remote_retrieve_response_code( $response );
 }
 
 
@@ -236,6 +288,7 @@ function vergeml_stats_rest_opt( WP_REST_Request $request ) {
     if ( ! $opted ) {
         $state['snapshot'] = array();
         $state['time']     = 0;
+        $state['sent']     = 0;
     }
 
     update_option( VERGEML_STATS_OPTION, $state, false );
@@ -248,15 +301,24 @@ function vergeml_stats_rest_opt( WP_REST_Request $request ) {
         'opted'    => ! empty( $state['opted'] ),
         'snapshot' => $state['snapshot'],
         'time'     => (int) $state['time'],
+        'sent'     => (int) $state['sent'],
     ) );
 }
 
 
 /* ------------------------------------------------------------------- screen */
 
-add_action( 'vergeml_admin_home_cards', 'vergeml_stats_card' );
+/**
+ *  The switch, in Library settings. Called from the settings form in
+ *  core/options-pages.php, where a site owner expects a question about what
+ *  the site shares to be asked -- not on the dashboard, where it was a card
+ *  that said "Size counts" and did nothing.
+ *
+ *  Three lines under the switch, and they are the whole disclosure: what
+ *  goes, how often, and what never does.
+ */
 
-function vergeml_stats_card() {
+function vergeml_stats_settings_section() {
 
     if ( ! current_user_can( 'manage_options' ) ) {
         return;
@@ -265,39 +327,50 @@ function vergeml_stats_card() {
     $state = vergeml_stats_state();
 
     ?>
-    <div class="vgml-stats-card vgml-foot-row">
-        <div class="vgml-foot-label"><?php esc_html_e( 'Size counts', 'vergelabs-media-library' ); ?></div>
-        <div class="vgml-foot-text">
-            <?php esc_html_e( 'Keep anonymous counts — how many files and folders, how deep they nest, versions, site language — so defaults get chosen for real libraries. Numbers only; nothing you wrote leaves this site.', 'vergelabs-media-library' ); ?>
-            <span id="vgml-stats-note" class="vgml-accent-text"></span>
+    <h2><?php esc_html_e( 'Share library counts', 'vergelabs-media-library' ); ?></h2>
+
+    <div class="postbox">
+
+        <div class="inside">
+
+            <table class="form-table">
+
+                <tr>
+                    <th scope="row"><?php esc_html_e( 'Send the counts', 'vergelabs-media-library' ); ?></th>
+                    <td>
+                        <fieldset class="vgml-stats-share">
+                            <legend class="screen-reader-text"><span><?php esc_html_e( 'Send the counts', 'vergelabs-media-library' ); ?></span></legend>
+                            <label><input type="checkbox" id="vgml-stats-opt" <?php checked( ! empty( $state['opted'] ) ); ?>> <?php esc_html_e( 'Send the counts', 'vergelabs-media-library' ); ?></label>
+                            <ul class="vgml-facts">
+                                <li><?php esc_html_e( 'Once a day: files, folders, how deep they nest', 'vergelabs-media-library' ); ?></li>
+                                <li><?php esc_html_e( 'Plugin, WordPress and PHP versions, and the site language', 'vergelabs-media-library' ); ?></li>
+                                <li><?php esc_html_e( 'Never a file name, a title, a folder name or a picture', 'vergelabs-media-library' ); ?></li>
+                            </ul>
+                            <p class="description vgml-accent-text" id="vgml-stats-note"></p>
+                        </fieldset>
+                    </td>
+                </tr>
+
+            </table>
+
         </div>
-        <label class="vgml-foot-check">
-            <input type="checkbox" id="vgml-stats-opt" <?php checked( ! empty( $state['opted'] ) ); ?>>
-            <?php esc_html_e( 'Keep these numbers', 'vergelabs-media-library' ); ?>
-        </label>
+
     </div>
     <?php
+
+    vergeml_stats_script();
 }
 
 
 /**
- *  The home screen does not load wp-api-fetch on its own account, and the card
- *  above is the only thing on it that talks to REST. The switch's behaviour
- *  rides along as inline script rather than a file: it is twenty lines that
- *  exist on exactly one screen.
+ *  The switch saves itself through REST the moment it is moved; the page's
+ *  own Save button is for the options form and this is not one of them.
+ *  Enqueued from the section rather than from a hook: it exists on one
+ *  screen, and a script queued while the page renders is printed with the
+ *  footer.
  */
 
-add_action( 'admin_enqueue_scripts', 'vergeml_stats_assets' );
-
-function vergeml_stats_assets( $hook ) {
-
-    if ( ! defined( 'VERGEML_MENU' ) || 'toplevel_page_' . VERGEML_MENU !== $hook ) {
-        return;
-    }
-
-    if ( ! current_user_can( 'manage_options' ) ) {
-        return;
-    }
+function vergeml_stats_script() {
 
     wp_enqueue_script( 'wp-api-fetch' );
 

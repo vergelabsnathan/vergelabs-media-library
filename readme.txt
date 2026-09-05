@@ -61,6 +61,8 @@ This plugin can send images to an AI service run by VergeLabs, at `https://ai.ve
 
 **Nothing is sent until you enter a licence key and start a run.** With no key the AI screens do nothing: no request on page load, none on upload, none in the background. Demo mode invents captions locally from the file names and sends nothing anywhere, and the Librarian's date-and-type scheme needs no service at all.
 
+**Library counts go only if you switch them on.** Under Library settings, "Share library counts" (off by default) posts to the same service once a day: how many files and folders, how deep the folders nest, files added in the last thirty days, and the plugin, WordPress and PHP versions with the site language, alongside the licence key and the site address. Never a file name, a title, a folder name or a picture.
+
 **What is sent, when you do start a run:** a downsized copy of the image being described (never the original file), its file name, its MIME type, your site's address and your licence key -- one request per image, only while a run is in progress. What comes back is a caption, alt text, tags and a suggested title. The service processes the image and discards it; what it keeps is a usage count.
 
 **What the service does with it, in writing.** [Sub-processors](https://vergelabsmedia.com/legal/sub-processors) names every company that touches the data and where each one is. [What is kept, and for how long](https://vergelabsmedia.com/legal/retention) answers that per category — images are kept for no time at all, and it says which file in the code proves it. [Data Processing Agreement](https://vergelabsmedia.com/legal/dpa), if you need one.

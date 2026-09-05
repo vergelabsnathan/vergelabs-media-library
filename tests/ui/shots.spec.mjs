@@ -29,6 +29,26 @@ for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 			// The app draws once the session has loaded; a planner call may follow, and is not waited for.
 			await expect( page.locator( '.vgml-sort-steps' ) ).toBeVisible( { timeout: 30000 } );
 		}
+		if ( name === 'dashboard' ) {
+			// Four counts in the rail, and nothing of the score that was there.
+			await expect( page.locator( '.vgml-progress-row' ) ).toHaveCount( 4 );
+			await expect( page.locator( '.vgml-scorecard, .vgml-score-n' ) ).toHaveCount( 0 );
+		}
+		if ( name === 'ai' ) {
+			// Demo mode left this screen for the Licence screen.
+			await expect( page.locator( '#vgml-ai-mock' ) ).toHaveCount( 0 );
+		}
+		if ( name === 'library' ) {
+			// Share library counts: the switch and its three lines live here, and nowhere else.
+			await expect( page.locator( '#vgml-stats-opt' ) ).toHaveCount( 1 );
+			await expect( page.locator( '.vgml-facts li' ) ).toHaveCount( 3 );
+			await expect( page.locator( 'body' ) ).toContainText( 'Never a file name, a title, a folder name or a picture' );
+		}
+		if ( name === 'licence' ) {
+			// The switch exists only while no key is present; the band says which state this is.
+			const band = await page.locator( '.vgml-status-band' ).innerText();
+			await expect( page.locator( '#vgml-demo-mode' ) ).toHaveCount( /Not connected/.test( band ) ? 1 : 0 );
+		}
 		await page.waitForTimeout( 800 );
 		await page.screenshot( { path: `test-results/shot-${ name }.png`, fullPage: true } );
 		expect( problems, problems.join( '\n' ) ).toEqual( [] );

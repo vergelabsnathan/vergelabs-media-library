@@ -51,25 +51,31 @@ check( 'the overview offers Library health', await page.evaluate( () =>
 		.find( ( c ) => c.href.includes( 'page=media-health' ) ) ) );
 
 /*
- *  That the card exists, not that it is unticked.
+ *  That the switch exists, not that it is unticked.
  *
  *  This asserted "unticked", which is only true on a site where nobody has
  *  ever switched it on -- so a gate-7 check that set the option, or one click,
- *  made it fail as though the card were broken. Whether it defaults to off is
- *  a question about defaults, and the PHP suite asks it where the answer
- *  cannot drift.
+ *  made it fail as though the switch were broken. Whether it defaults to off
+ *  is a question about defaults, and tests/tree/counts.php asks it where the
+ *  answer cannot drift.
  */
+check( 'the dashboard no longer carries the counts card', await page.evaluate( () =>
+	null === document.getElementById( 'vgml-stats-opt' ) && ! /Size counts/.test( document.body.textContent ) ) );
+
+// Since 3.16.2 the switch lives in Library settings, under "Share library counts".
+await page.goto( `${ BASE }/wp-admin/admin.php?page=media-library`, { waitUntil: 'domcontentloaded' } );
+
 const optBox = await page.evaluate( () => {
 	const box = document.getElementById( 'vgml-stats-opt' );
 	return box ? { checked: box.checked } : null;
 } );
 
-check( 'the stats opt-in card is there, with its switch', null !== optBox,
-	optBox ? `switch is ${ optBox.checked ? 'on' : 'off' }` : 'card missing' );
+check( 'Library settings has the counts switch', null !== optBox,
+	optBox ? `switch is ${ optBox.checked ? 'on' : 'off' }` : 'switch missing' );
 
-check( 'the screen says what it collects', await page.evaluate( () => {
-	const text = document.querySelector( '.wrap' ) ? document.querySelector( '.wrap' ).textContent : document.body.textContent;
-	return /no filenames/i.test( text ) && /nothing is sent anywhere/i.test( text );
+check( 'and says what goes and what never does', await page.evaluate( () => {
+	const text = document.body.textContent;
+	return /Share library counts/.test( text ) && /Once a day: files, folders, how deep they nest/.test( text ) && /Never a file name, a title, a folder name or a picture/.test( text );
 } ) );
 
 /* --- the screen -------------------------------------------------------------- */

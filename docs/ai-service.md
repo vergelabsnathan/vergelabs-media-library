@@ -165,3 +165,7 @@ re-entering the key is the recovery.
 ## `/v1/guide`
 
 `POST` with `license_key`, `site`, `mode` (`propose` | `turn`), `summary` (the plugin's library summary), `goal`, `current` (folders that exist), and for `turn` also `draft`, the last 20 `turns` and one `input` (`text` | `choice` | `edit`). `propose` answers `{ proposals: [{ name, tree }, { name, tree }] }`; `turn` answers `{ message, choices?, draft? }` where `draft` is the whole tree when it changed. Model `claude-opus-5` through OpenRouter, `thinking` disabled, 6,000 output tokens, one retry with the validation error. No credit is charged; more than 60 turns of history is refused (`too_many_turns`). Errors follow `/v1/folders`.
+
+## `/v1/counts`
+
+`POST` with `license_key`, `site` and `counts`: the plugin's snapshot (`vergeml_stats_snapshot()` in `core/instrument.php`), exactly nine keys -- `attachments`, `mimes` (type family to count, at most twelve families), `folders`, `depth`, `recent` (files added in the last thirty days), `plugin`, `wp`, `php`, `locale`. Sent once a day while "Share library counts" is on in Library settings; off by default; not sent without a key. The service authenticates as `/v1/guide` does (licence known, entitled, site activated; `401 bad_key`, `403`), refuses any other key or any non-integer count whole with `400 invalid_counts`, and upserts one row per licence, site and day into `library_counts`. Not metered. Answers `{ ok: true }`.

@@ -350,28 +350,6 @@
 	font-size: 12.5px;
 }
 
-/* --- the opt-in card on the home screen ------------------------------------ */
-
-.vgml-stats-card {
-	max-width: 760px;
-	margin-top: 24px;
-	padding: 20px 24px;
-	background: #fff;
-	border-radius: 8px;
-}
-
-.vgml-stats-card h2 {
-	margin-top: 0;
-}
-
-.vgml-stats-card .description {
-	max-width: 62em;
-}
-
-#vgml-stats-note {
-	margin-left: 10px;
-}
-
 /* --- suggestions: a thumbnail, a claim, two answers ----------------------- */
 
 .vgml-autofile-list {

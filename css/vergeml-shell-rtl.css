@@ -2054,6 +2054,40 @@ body.vgml-screen #wpbody-content {
 	line-height: 1.45;
 }
 
+/*
+ *  A list of facts. The bullet is the brand mark -- the rail's rounded
+ *  square -- at 7px in the accent colour, the geometry of the approved
+ *  Folders mock (docs/superpowers/mocks/2026-09-05-folders-screen.html).
+ *  Every statement with more than one fact is one of these.
+ */
+.vgml-shell .vgml-facts {
+	list-style: none;
+	margin: 8px 0 0;
+	padding: 0;
+	display: grid;
+	gap: 4px;
+	font-size: 13px;
+	line-height: 1.45;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-facts li {
+	position: relative;
+	padding-right: 16px;
+	margin: 0;
+}
+
+.vgml-shell .vgml-facts li::before {
+	content: "";
+	position: absolute;
+	right: 0;
+	top: .5em;
+	width: 7px;
+	height: 7px;
+	border-radius: 1.5px;
+	background: var(--vgml-accent);
+}
+
 .vgml-shell .vgml-check input {
 	margin-top: 2px;
 }

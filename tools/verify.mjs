@@ -146,6 +146,19 @@ const SUITES = [
 	 */
 	{ name: 'private-folders', file: 'tests/tree/private-folders.php', env: 'box', php: true },
 	/*
+	 *  The dashboard. Its figures are counts over the whole library and its
+	 *  states are forced through the facts filter, so it wants the box's
+	 *  real MySQL and its real library; Playground's SQLite does not keep
+	 *  $wpdb->num_queries, which the budget half of it reads.
+	 */
+	{ name: 'journey', file: 'tests/tree/journey.php', env: 'box', php: true },
+	/*
+	 *  The counts a site shares. The sender is proven against a mocked
+	 *  pre_http_request, so it spends nothing and reaches nothing; it wants
+	 *  the box for the same reason the dashboard does.
+	 */
+	{ name: 'counts', file: 'tests/tree/counts.php', env: 'box', php: true },
+	/*
 	 *  Two languages. Reports itself SKIPPED when Polylang is not active, and
 	 *  again on the run that switches folder translation on -- Polylang decides
 	 *  which taxonomies are translated during init, so the setting only bites

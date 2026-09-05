@@ -2433,6 +2433,14 @@ function vergeml_print_media_library_options() {
                         </div>
 
 
+                        <?php
+                        // What this site shares about its library: core/instrument.php.
+                        if ( function_exists( 'vergeml_stats_settings_section' ) ) {
+                            vergeml_stats_settings_section();
+                        }
+                        ?>
+
+
                         <h2><?php esc_html_e('Media Shortcodes','vergelabs-media-library'); ?></h2>
 
                         <div class="postbox">
