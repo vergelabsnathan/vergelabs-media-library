@@ -67,6 +67,11 @@
 	font-weight: 600;
 }
 
+.vgml-dash .vgml-do.is-blocked .vgml-do-note {
+	color: var( --vgml-accent-700 );
+	font-weight: 600;
+}
+
 .vgml-dash .vgml-do > .button,
 .vgml-dash .vgml-do > .vgml-btn {
 	flex: none;
@@ -195,68 +200,60 @@
 
 /* --- the rail --------------------------------------------------------- */
 
-.vgml-dash .vgml-score-n {
-	display: flex;
-	align-items: baseline;
-	gap: 4px;
+/*
+ *  Four rows, each its own count. The bar is .vgml-import-bar from the
+ *  shell, drawn thinner and tighter than it is under an import.
+ */
+.vgml-dash .vgml-progress-rows {
 	margin: 0;
-	font-size: 44px;
-	font-weight: 700;
-	line-height: 1;
-	color: var( --vgml-ink );
-	font-variant-numeric: tabular-nums;
-}
-
-.vgml-dash .vgml-score-n span {
-	font-size: 14px;
-	font-weight: 400;
-	color: var( --vgml-muted );
-}
-
-.vgml-dash .vgml-score-none {
-	margin: 0;
-	font-size: 12.5px;
-	color: var( --vgml-muted );
-}
-
-.vgml-dash .vgml-score-parts {
-	margin: 16px 0 0;
 	padding: 0;
 	list-style: none;
 }
 
-.vgml-dash .vgml-score-parts li {
-	margin: 0 0 13px;
+.vgml-dash .vgml-progress-row {
+	padding: 10px 0 12px;
+	border-bottom: 1px solid var( --vgml-n300 );
 }
 
-.vgml-dash .vgml-score-parts a {
+.vgml-dash .vgml-progress-row:last-child {
+	border-bottom: 0;
+}
+
+.vgml-dash .vgml-progress-head {
 	display: flex;
 	justify-content: space-between;
-	font-size: 12px;
-	text-decoration: none;
+	gap: 10px;
+	font-size: 12.5px;
+	line-height: 1.4;
+}
+
+.vgml-dash .vgml-progress-label {
+	font-weight: 600;
 	color: var( --vgml-ink );
 }
 
-.vgml-dash .vgml-score-label {
-	font-weight: 600;
-}
-
-.vgml-dash .vgml-score-pts {
+.vgml-dash .vgml-progress-count {
 	color: var( --vgml-muted );
 	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
 }
 
-.vgml-dash .vgml-score-bar {
-	display: block;
+.vgml-dash .vgml-progress-row .vgml-import-bar {
+	margin: 7px 0 0;
 	height: 4px;
-	margin-top: 5px;
-	background: var( --vgml-n300 );
 }
 
-.vgml-dash .vgml-score-bar span {
-	display: block;
-	height: 4px;
-	background: var( --vgml-accent );
+.vgml-dash .vgml-progress-action {
+	display: inline-block;
+	margin-top: 7px;
+	font-size: 12px;
+	font-weight: 600;
+	text-decoration: none;
+	color: var( --vgml-accent-700 );
+}
+
+.vgml-dash .vgml-progress-action:hover {
+	text-decoration: underline;
 }
 
 .vgml-dash .vgml-quick,
@@ -339,8 +336,7 @@
 	display: none;
 }
 
-/* The consent card from core/instrument.php, drawn as a foot row, not a box. */
-.vgml-dash .vgml-stats-card,
+/* The Get help row from core/get-help.php, drawn as a foot row, not a box. */
 .vgml-dash .vgml-help-card {
 	background: transparent;
 	border: 0;

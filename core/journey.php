@@ -57,7 +57,7 @@ function vergeml_journey_facts() {
     $blog = get_current_blog_id();
 
     if ( isset( $facts[ $blog ] ) ) {
-        return $facts[ $blog ];
+        return apply_filters( 'vergeml_journey_facts', $facts[ $blog ] );
     }
 
     /*
@@ -73,7 +73,7 @@ function vergeml_journey_facts() {
 
     if ( is_array( $cached ) && isset( $cached['images'] ) ) {
         $facts[ $blog ] = $cached;
-        return $facts[ $blog ];
+        return apply_filters( 'vergeml_journey_facts', $facts[ $blog ] );
     }
 
     global $wpdb;
@@ -231,91 +231,103 @@ function vergeml_journey_facts() {
 
     set_transient( 'vergeml_journey_facts', $facts[ $blog ], MINUTE_IN_SECONDS );
 
-    return $facts[ $blog ];
+    /**
+     *  Filter the dashboard's figures.
+     *
+     *  The seam the suite uses to put the dashboard into a state the live
+     *  library is not in -- no key, nothing described, 268 unfiled -- without
+     *  touching a row of it. Applied on every return, cached or not.
+     *
+     *  @since 3.16.2
+     *
+     *  @param array $facts  see the keys above.
+     */
+    return apply_filters( 'vergeml_journey_facts', $facts[ $blog ] );
 }
 
 
 /**
- *  vergeml_journey_score
+ *  vergeml_journey_progress
  *
- *  One number for "how is this library doing", out of a hundred.
+ *  Four rows, each its own count: how many are done of how many there are,
+ *  and the one action that moves the number. No total, no weights.
  *
- *  Four things, weighted by how much they actually cost somebody. Alt text
- *  weighs most because its absence is the only one with a legal and an
- *  accessibility consequence; duplicates weigh least because they cost disk
- *  and nothing else.
+ *  This was a weighted score out of a hundred. An empty library scored 85,
+ *  379 of 380 filed rounded to full marks above a card reading "1 file is in
+ *  no folder", and the weights were an opinion nobody had asked for. A count
+ *  cannot be argued with: 412 of 641 have alt text, and here is the button
+ *  that writes the rest.
  *
- *  Every part is computed from figures already on the screen, so nobody has to
- *  wonder where the number came from -- the parts are shown under it. A score
- *  whose derivation is hidden is a score nobody trusts and nobody acts on.
+ *  A row at M of M is finished and offers nothing. Every number is a figure
+ *  the screen already has; nothing here reads the database.
  */
-function vergeml_journey_score() {
+function vergeml_journey_progress() {
 
     $f = vergeml_journey_facts();
 
-    /*
-     *  Nothing to score.
-     *
-     *  Every share was "1 when the total is 0", which is defensible per part
-     *  and absurd in the sum: an empty library scored 85 out of 100 -- full
-     *  marks for alt text on no pictures. A number nobody can act on is worse
-     *  than no number, so an empty library gets none.
-     */
     if ( 0 === $f['files'] ) {
-        return array( 'score' => null, 'parts' => array() );
+        return array();
     }
 
-    $share = function ( $good, $all ) {
-        return $all > 0 ? min( 1, max( 0, $good / $all ) ) : 1;
-    };
+    /*
+     *  The copy scan counts files, not pictures. While it runs, its cursor is
+     *  how far it has got; finished, every file was compared.
+     */
+    $health  = function_exists( 'vergeml_health_state' ) ? vergeml_health_state() : array();
+    $checked = ! empty( $health['finished'] )
+        ? $f['files']
+        : ( isset( $health['cursor'] ) ? (int) $health['cursor'] : 0 );
 
-    $parts = array(
+    $rows = array(
         array(
+            'id'     => 'alt',
             'label'  => __( 'Alt text', 'vergelabs-media-library' ),
-            'weight' => 35,
-            'share'  => $share( $f['images'] - $f['no_alt'], $f['images'] ),
+            'n'      => $f['images'] - $f['no_alt'],
+            'm'      => $f['images'],
+            'action' => __( 'Write alt text', 'vergelabs-media-library' ),
             'url'    => vergeml_journey_url( 'media-ai' ),
         ),
         array(
+            'id'     => 'described',
             'label'  => __( 'Described', 'vergelabs-media-library' ),
-            'weight' => 25,
-            'share'  => $share( $f['described'], $f['images'] ),
+            'n'      => $f['described'],
+            'm'      => $f['images'],
+            'action' => __( 'Describe the rest', 'vergelabs-media-library' ),
             'url'    => vergeml_journey_url( 'media-ai' ),
         ),
         array(
+            'id'     => 'filed',
             'label'  => __( 'Filed', 'vergelabs-media-library' ),
-            'weight' => 25,
-            'share'  => $share( $f['files'] - $f['unfiled'], $f['files'] ),
+            'n'      => $f['files'] - $f['unfiled'],
+            'm'      => $f['files'],
+            'action' => __( 'Put files in folders', 'vergelabs-media-library' ),
             'url'    => vergeml_journey_url( 'media-librarian' ),
         ),
         array(
+            'id'     => 'checked',
             'label'  => __( 'Checked for copies', 'vergelabs-media-library' ),
-            'weight' => 15,
-            // Binary: the scan has run, or it has not.
-            'share'  => ( function_exists( 'vergeml_health_state' ) && ! empty( vergeml_health_state()['finished'] ) ) ? 1 : 0,
+            'n'      => $checked,
+            'm'      => $f['files'],
+            'action' => __( 'Check for copies', 'vergelabs-media-library' ),
             'url'    => vergeml_journey_url( 'media-health' ),
         ),
     );
 
-    $score = 0;
+    foreach ( $rows as $at => $row ) {
+        $m = max( 0, (int) $row['m'] );
+        $n = min( $m, max( 0, (int) $row['n'] ) );
 
-    /*
-     *  Full marks mean finished, and nothing else.
-     *
-     *  Rounding gave 25 out of 25 for 379 files filed out of 380 -- a perfect
-     *  score printed directly under a card reading "1 file is in no folder".
-     *  Both were true and together they read as a broken screen. Anything
-     *  short of done now loses at least a point, so the number agrees with
-     *  the sentence above it.
-     */
-    foreach ( $parts as $at => $part ) {
-        $parts[ $at ]['points'] = $part['share'] >= 1
-            ? (int) $part['weight']
-            : (int) min( $part['weight'] - 1, floor( $part['share'] * $part['weight'] ) );
-        $score += $parts[ $at ]['points'];
+        $rows[ $at ]['n'] = $n;
+        $rows[ $at ]['m'] = $m;
+
+        // Finished offers nothing: a row at M of M has no action.
+        if ( $n >= $m ) {
+            $rows[ $at ]['action'] = '';
+            $rows[ $at ]['url']    = '';
+        }
     }
 
-    return array( 'score' => (int) round( $score ), 'parts' => $parts );
+    return $rows;
 }
 
 
@@ -550,7 +562,7 @@ function vergeml_journey_stages() {
         } elseif ( $f['demo'] ) {
             $text = __( 'You are in demo mode. Nothing is sent anywhere and nothing is charged — but the descriptions you see are invented from file names rather than from the pictures, so do not judge the quality by them. Add a licence key when you want it to really look.', 'vergelabs-media-library' );
         } else {
-            $text = __( 'This plugin can look at each of your pictures and write down what is in them, which is what makes everything else here work. Try it free in demo mode first, or add a licence key to start for real.', 'vergelabs-media-library' );
+            $text = __( 'This plugin can look at each of your pictures and write down what is in them, which is what makes everything else here work. Add a licence key to start, or switch on demo mode first.', 'vergelabs-media-library' );
         }
 
         $stages[] = array(
@@ -561,7 +573,7 @@ function vergeml_journey_stages() {
             'action' => ( $f['licensed'] || $f['demo'] )
                 ? __( 'Change this', 'vergelabs-media-library' )
                 : __( 'Start here', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-ai' ),
+            'url'    => vergeml_journey_url( 'media-licence' ),
         );
     }
 
@@ -573,35 +585,12 @@ function vergeml_journey_stages() {
             ? __( 'Sort out the step above first — we cannot look at anything until you turn on demo mode or add a key.', 'vergelabs-media-library' )
             : '';
 
-        if ( 0 === $f['images'] ) {
-            $text = __( 'There are no pictures here yet. Upload some and this page will have something to say.', 'vergelabs-media-library' );
-        } elseif ( 0 === $f['undescribed'] ) {
-            $text = sprintf(
-                /* translators: %s: number of images described. */
-                __( 'We have looked at all %s of your pictures and written down what is in them. Searching your media now finds a photo by what it shows, not just by its file name.', 'vergelabs-media-library' ),
-                number_format_i18n( $f['described'] )
-            );
-        } else {
-            $text = sprintf(
-                /* translators: 1: images, 2: credits it will cost. */
-                /* translators: 1: how many pictures, 2: the same number as credits. */
-                _n(
-                    'We have not looked at %1$s of your pictures yet. When we do, we write down what is in it — so you can find a photo by typing “red bicycle” instead of scrolling, and so the rest of this page has something to work with. It costs %2$s credit, and you can close this tab while it runs.',
-                    'We have not looked at %1$s of your pictures yet. When we do, we write down what is in each one — so you can find a photo by typing “red bicycle” instead of scrolling, and so the rest of this page has something to work with. It costs %2$s credits, one a picture, and you can close this tab while it runs.',
-                    (int) $f['undescribed'],
-                    'vergelabs-media-library'
-                ),
-                number_format_i18n( $f['undescribed'] ),
-                number_format_i18n( $f['undescribed'] )
-            );
-        }
-
         $stages[] = array(
             'id'      => 'describe',
             'title'   => __( 'Describe your images', 'vergelabs-media-library' ),
             'done'    => $f['images'] > 0 && 0 === $f['undescribed'],
             'blocked' => $blocked,
-            'text'    => $text,
+            'text'    => vergeml_journey_describe_text( $f ),
             'action'  => __( 'Describe them', 'vergelabs-media-library' ),
             'url'     => vergeml_journey_url( 'media-ai' ),
         );
@@ -768,6 +757,38 @@ function vergeml_journey_stages() {
 
 
 /**
+ *  What describing will do and cost, from the figures. The describe stage
+ *  and the to-do row say the same thing, so it is written once.
+ */
+function vergeml_journey_describe_text( $f ) {
+
+    if ( 0 === $f['images'] ) {
+        return __( 'There are no pictures here yet. Upload some and this page will have something to say.', 'vergelabs-media-library' );
+    }
+
+    if ( 0 === $f['undescribed'] ) {
+        return sprintf(
+            /* translators: %s: number of images described. */
+            __( 'We have looked at all %s of your pictures and written down what is in them. Searching your media now finds a photo by what it shows, not just by its file name.', 'vergelabs-media-library' ),
+            number_format_i18n( $f['described'] )
+        );
+    }
+
+    return sprintf(
+        /* translators: 1: how many pictures, 2: the same number as credits. */
+        _n(
+            'We have not looked at %1$s of your pictures yet. When we do, we write down what is in it — so you can find a photo by typing “red bicycle” instead of scrolling, and so the rest of this page has something to work with. It costs %2$s credit, and you can close this tab while it runs.',
+            'We have not looked at %1$s of your pictures yet. When we do, we write down what is in each one — so you can find a photo by typing “red bicycle” instead of scrolling, and so the rest of this page has something to work with. It costs %2$s credits, one a picture, and you can close this tab while it runs.',
+            (int) $f['undescribed'],
+            'vergelabs-media-library'
+        ),
+        number_format_i18n( $f['undescribed'] ),
+        number_format_i18n( $f['undescribed'] )
+    );
+}
+
+
+/**
  *  vergeml_journey
  *
  *  Decides state. Exactly one stage is 'now' -- the first that is neither done
@@ -857,9 +878,36 @@ function vergeml_journey_todo() {
     $f    = vergeml_journey_facts();
     $todo = array();
 
+    /* -------------------------------------------------------- describing */
+
+    /*
+     *  First, because everything under it is written from what the model
+     *  saw. Without a key and with demo mode off it cannot run; the row then
+     *  says so once, in place of its count, rather than offering a button
+     *  that does nothing.
+     */
+    if ( function_exists( 'vergeml_ai_pending' ) ) {
+        $todo[] = array(
+            'id'      => 'describe',
+            'title'   => __( 'Describe your images', 'vergelabs-media-library' ),
+            'note'    => vergeml_journey_describe_text( $f ),
+            'kind'    => 'primary',
+            'n'       => (int) $f['undescribed'],
+            'go'      => __( 'Describe them', 'vergelabs-media-library' ),
+            'url'     => vergeml_journey_url( 'media-ai' ),
+            'blocked' => ( ! $f['licensed'] && ! $f['demo'] )
+                ? __( 'Add a licence key or switch on demo mode first.', 'vergelabs-media-library' )
+                : '',
+        );
+    }
+
     /* ---------------------------------------------------------- alt text */
 
-    $alt_ready = function_exists( 'vergeml_ai_alt_pending' ) ? count( vergeml_ai_alt_pending() ) : 0;
+    // Nothing can be waiting when every picture has alt text; the list is
+    // not read for a number the facts already know is zero.
+    $alt_ready = ( 0 === (int) $f['no_alt'] || ! function_exists( 'vergeml_ai_alt_pending' ) )
+        ? 0
+        : count( vergeml_ai_alt_pending() );
 
     $todo[] = array(
         'id'    => 'alt',
@@ -867,16 +915,8 @@ function vergeml_journey_todo() {
         'note'  => __( 'The line a screen reader reads out. It was written when we looked at your pictures — putting it on costs nothing.', 'vergelabs-media-library' ),
         'kind'  => 'primary',
         'n'     => $alt_ready,
-        'count' => sprintf(
-            /* translators: %s: how many pictures are waiting for their alt text. */
-            _n( '%s picture is waiting for it', '%s pictures are waiting for it', $alt_ready, 'vergelabs-media-library' ),
-            number_format_i18n( $alt_ready )
-        ),
         'go'    => __( 'Write the alt text', 'vergelabs-media-library' ),
         'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_alt' ), 'vergeml_do_alt' ),
-        'done'  => 0 === (int) $f['no_alt']
-            ? __( 'Every picture has alt text.', 'vergelabs-media-library' )
-            : __( 'Nothing waiting — the rest have not been looked at yet.', 'vergelabs-media-library' ),
     );
 
     /* ------------------------------------------------------------- names */
@@ -921,63 +961,33 @@ function vergeml_journey_todo() {
         'note'  => __( '“Photo 498” tells nobody anything. Each file can be named after what is in it, from the same look we already took. Anything you named yourself is left alone.', 'vergelabs-media-library' ),
         'kind'  => 'secondary',
         'n'     => $names,
-        /*
-         *  Bounded by what has been described, and it has to say so. A title
-         *  is written from a picture the model has looked at, so on a library
-         *  that is mostly undescribed this number is small for a reason --
-         *  and reading it as "only 27 of my files are badly named" is exactly
-         *  the wrong conclusion.
-         */
-        'count' => $undescribed > 0
-            ? sprintf(
-                /* translators: 1: how many titles could be rewritten, 2: how many pictures have not been described. */
-                _n(
-                    '%1$s title could be written from the pictures we have looked at (%2$s still to describe)',
-                    '%1$s titles could be written from the pictures we have looked at (%2$s still to describe)',
-                    $names,
-                    'vergelabs-media-library'
-                ),
-                number_format_i18n( $names ),
-                number_format_i18n( $undescribed )
-            )
-            : sprintf(
-                /* translators: %s: how many titles could be rewritten. */
-                _n( '%s title could be written from what the picture shows', '%s titles could be written from what the pictures show', $names, 'vergelabs-media-library' ),
-                number_format_i18n( $names )
-            ),
         'go'    => __( 'Rename from descriptions', 'vergelabs-media-library' ),
         'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_rename' ), 'vergeml_do_rename' ),
-
-        /*
-         *  Only true when the files on disk are done too, which is the whole
-         *  point of the fix -- "every file is named" while 492 are not is the
-         *  one sentence this screen must never say.
-         */
-        'done'  => ! $file_feature
-            ? __( 'Every title says what the picture shows.', 'vergelabs-media-library' )
-            : ( 0 === $files
-                ? __( 'Every title and every file name says what the picture shows.', 'vergelabs-media-library' )
-                : __( 'Every title is written. The files on disk are still named as they were uploaded.', 'vergelabs-media-library' ) ),
-
         'more'  => vergeml_journey_file_rename(),
     );
 
     /* ----------------------------------------------------------- folders */
 
+    /*
+     *  Files, not folders. The number is the title, and the action says
+     *  what happens to the files: "Work out the folders" answered a question
+     *  about files with a word about folders. The link is the Sort screen
+     *  today; the Folders screen takes it over when it lands.
+     */
     $todo[] = array(
         'id'    => 'folders',
-        'title' => __( 'Files in no folder', 'vergelabs-media-library' ),
+        'title' => sprintf(
+            /* translators: %s: how many files are in no folder. */
+            _n( '%s file in no folder', '%s files in no folder', (int) $f['unfiled'], 'vergelabs-media-library' ),
+            number_format_i18n( $f['unfiled'] )
+        ),
         'note'  => __( 'Group them by what they have in common, or by when they were uploaded. You approve the whole plan before a single file moves.', 'vergelabs-media-library' ),
         'kind'  => 'secondary',
         'n'     => (int) $f['unfiled'],
-        'count' => sprintf(
-            /* translators: %s: how many files are in no folder. */
-            _n( '%s file is in no folder', '%s files are in no folder', (int) $f['unfiled'], 'vergelabs-media-library' ),
-            number_format_i18n( $f['unfiled'] )
-        ),
-        'go'    => __( 'Work out the folders', 'vergelabs-media-library' ),
+        'go'    => __( 'Put them in folders', 'vergelabs-media-library' ),
         'url'   => vergeml_journey_url( 'media-librarian' ),
-        'done'  => __( 'Everything is in a folder.', 'vergelabs-media-library' ),
+        // The title carries the number, so the row does not print it twice.
+        'count_in_title' => true,
     );
 
     /* ------------------------------------------------------------ copies */
@@ -1018,18 +1028,35 @@ function vergeml_journey_todo() {
             : __( 'The same picture uploaded twice, or saved again at a different size. Nothing is deleted without you.', 'vergelabs-media-library' ),
         'kind'  => 'ghost',
         'n'     => max( $copies, $sets ),
-        'count' => sprintf(
-            /* translators: 1: how many files are copies, 2: the disk they take, e.g. "9 MB". */
-            _n( '%1$s file is a copy of another · %2$s of disk', '%1$s files are copies of others · %2$s of disk', $copies, 'vergelabs-media-library' ),
-            number_format_i18n( $copies ),
-            size_format( $wasted )
-        ),
         'go'    => __( 'Review the sets', 'vergelabs-media-library' ),
         'url'   => vergeml_journey_url( 'media-health' ),
-        'done'  => __( 'No copies found.', 'vergelabs-media-library' ),
     );
 
-    return apply_filters( 'vergeml_journey_todo', $todo );
+    /*
+     *  Only rows with something behind them. A row reading "0 pictures are
+     *  waiting" is a sentence about work that does not exist; the section
+     *  hides itself when nothing is left. A blocked row keeps its place as
+     *  long as its count is real -- the blocker is what it has to say.
+     */
+    $rows = array();
+
+    foreach ( $todo as $item ) {
+
+        $item = wp_parse_args( $item, array( 'blocked' => '', 'more' => null, 'count_in_title' => false ) );
+
+        if ( (int) $item['n'] > 0 ) {
+            $rows[] = $item;
+        }
+    }
+
+    /**
+     *  Filter the to-do rows.
+     *
+     *  @since 3.9.0
+     *
+     *  @param array $rows  ordered; every row has something to do.
+     */
+    return apply_filters( 'vergeml_journey_todo', $rows );
 }
 
 
@@ -1197,14 +1224,6 @@ function vergeml_journey_screen() {
     $f      = vergeml_journey_facts();
     $stages = vergeml_journey();
 
-    $next = null;
-
-    foreach ( $stages as $stage ) {
-        if ( 'now' === $stage['state'] ) {
-            $next = $stage;
-        }
-    }
-
     $pct = function ( $part, $whole ) {
         return $whole > 0 ? (int) round( ( $part / $whole ) * 100 ) : 100;
     };
@@ -1294,59 +1313,42 @@ function vergeml_journey_screen() {
 
         <?php
         /*
-         *  Before anything else can be offered, the pictures have to have been
-         *  looked at. That is the one genuinely sequential thing here and it
-         *  keeps the shape it had -- one card, one button.
+         *  One list. The describe card used to sit above it as a card of its
+         *  own, gated on "anything left to describe", and the list under it
+         *  on "anything described yet" -- two gates that between them hid the
+         *  whole screen behind a single straggling upload. The rows come from
+         *  vergeml_journey_todo(), which returns only what has something to do.
          */
-        /*
-         *  Two independent questions, and they were one.
-         *
-         *  "Is there anything left to look at" gated the whole list of things
-         *  you can do -- so a library of five hundred and twelve pictures with
-         *  one straggler showed nothing but "Start here", and the alt text,
-         *  the names and the folders all vanished behind a single file. One
-         *  upload was enough to do it.
-         *
-         *  The card is about the remainder. The list is about what has been
-         *  found. A library can be both at once, and usually is.
-         */
-        $remaining = (int) $f['undescribed'] > 0;
-        $anything  = (int) $f['described'] > 0;
+        $todo = vergeml_journey_todo();
         ?>
 
+        <?php if ( ! empty( $todo ) ) : ?>
         <h6 class="vgml-kicker"><?php esc_html_e( 'What to do next', 'vergelabs-media-library' ); ?></h6>
         <div class="vgml-do-list">
 
-        <?php if ( $next && $remaining ) : ?>
-            <div class="vgml-do vgml-do-first">
-                <div class="vgml-do-n"><?php echo esc_html( number_format_i18n( (int) $f['undescribed'] ) ); ?></div>
-                <div class="vgml-do-text">
-                    <div class="vgml-do-title"><?php echo esc_html( $next['title'] ); ?></div>
-                    <div class="vgml-do-note"><?php echo esc_html( $next['text'] ); ?></div>
-                </div>
-                <?php if ( $next['action'] && $next['url'] ) : ?>
-                    <a class="button button-primary" href="<?php echo esc_url( $next['url'] ); ?>"><?php echo esc_html( $next['action'] ); ?></a>
-                <?php endif; ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if ( $anything ) : ?>
-            <?php foreach ( vergeml_journey_todo() as $item ) : ?>
+            <?php foreach ( $todo as $item ) : ?>
                 <?php
                 /*
                  *  One row: the count, the title and the line under it, and
                  *  exactly one action on the right (design handoff, item 6).
-                 *  Primary, secondary or ghost is the item's own weight.
+                 *  Primary, secondary or ghost is the item's own weight. A
+                 *  blocked row has no count and no button: the blocker is its
+                 *  line. A title that carries the number does not repeat it.
                  */
-                $kind  = isset( $item['kind'] ) ? $item['kind'] : 'secondary';
-                $class = 'primary' === $kind ? 'button button-primary' : ( 'ghost' === $kind ? 'vgml-btn vgml-btn-ghost' : 'button' );
+                $kind    = isset( $item['kind'] ) ? $item['kind'] : 'secondary';
+                $class   = 'primary' === $kind ? 'button button-primary' : ( 'ghost' === $kind ? 'vgml-btn vgml-btn-ghost' : 'button' );
+                $blocked = '' !== (string) $item['blocked'];
                 ?>
-                <div class="vgml-do<?php echo $item['n'] > 0 ? '' : ' is-done'; ?>">
-                    <div class="vgml-do-n"><?php echo esc_html( number_format_i18n( (int) $item['n'] ) ); ?></div>
+                <div class="vgml-do<?php echo $blocked ? ' is-blocked' : ''; ?>" data-todo="<?php echo esc_attr( $item['id'] ); ?>">
+                    <div class="vgml-do-n"><?php
+                        if ( ! $blocked && empty( $item['count_in_title'] ) ) {
+                            echo esc_html( number_format_i18n( (int) $item['n'] ) );
+                        }
+                    ?></div>
                     <div class="vgml-do-text">
                         <div class="vgml-do-title"><?php echo esc_html( $item['title'] ); ?></div>
-                        <div class="vgml-do-note"><?php echo esc_html( $item['n'] > 0 ? $item['note'] : $item['done'] ); ?></div>
-                        <?php if ( ! empty( $item['more'] ) ) : ?>
+                        <div class="vgml-do-note"><?php echo esc_html( $blocked ? $item['blocked'] : $item['note'] ); ?></div>
+                        <?php if ( ! $blocked && ! empty( $item['more'] ) ) : ?>
                             <?php if ( ! empty( $item['more']['blocked'] ) ) : ?>
                                 <div class="vgml-do-more"><?php echo esc_html( $item['more']['blocked'] ); ?></div>
                             <?php else : ?>
@@ -1357,14 +1359,14 @@ function vergeml_journey_screen() {
                             <?php endif; ?>
                         <?php endif; ?>
                     </div>
-                    <?php if ( $item['n'] > 0 ) : ?>
+                    <?php if ( ! $blocked ) : ?>
                         <a class="<?php echo esc_attr( $class ); ?>" href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['go'] ); ?></a>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
-        <?php endif; ?>
 
         </div>
+        <?php endif; ?>
 
         <?php if ( ! empty( $f['recent'] ) ) : ?>
         <!-- the library itself, and what the model saw in it -->
@@ -1446,38 +1448,49 @@ function vergeml_journey_screen() {
         /*
          *  The rail.
          *
-         *  Two things the dashboard was missing: a number saying how the
-         *  library is doing rather than only how big it is, and buttons that
-         *  DO something. Every button on the old screen navigated somewhere
-         *  else, which makes a dashboard a table of contents.
+         *  Four counts, each with the button that moves it, and then buttons
+         *  that DO something. Every button on the old screen navigated
+         *  somewhere else, which makes a dashboard a table of contents.
          */
-        $scored = vergeml_journey_score();
+        $progress = vergeml_journey_progress();
         ?>
         <aside class="vgml-cols-rail vgml-dash-rail">
 
-            <div class="vgml-rail-block vgml-scorecard">
-                <h6 class="vgml-kicker"><?php esc_html_e( 'Library score', 'vergelabs-media-library' ); ?></h6>
-
-                <?php if ( null === $scored['score'] ) : ?>
-                    <p class="vgml-score-none"><?php esc_html_e( 'Nothing to score until there are files in the library.', 'vergelabs-media-library' ); ?></p>
-                <?php else : ?>
-                    <p class="vgml-score-n"><?php echo esc_html( number_format_i18n( $scored['score'] ) ); ?><span>/100</span></p>
-                <?php endif; ?>
-
-                <ul class="vgml-score-parts">
-                    <?php foreach ( $scored['parts'] as $part ) : ?>
-                        <li>
-                            <a href="<?php echo esc_url( $part['url'] ); ?>">
-                                <span class="vgml-score-label"><?php echo esc_html( $part['label'] ); ?></span>
-                                <span class="vgml-score-pts"><?php
-                                    printf( '%d/%d', (int) $part['points'], (int) $part['weight'] );
+            <?php if ( ! empty( $progress ) ) : ?>
+            <div class="vgml-rail-block vgml-progress">
+                <ul class="vgml-progress-rows">
+                    <?php foreach ( $progress as $row ) : ?>
+                        <?php
+                        /*
+                         *  Label, "N of M", the bar at N/M (the import bar's
+                         *  geometry, so progress is the same shape on every
+                         *  screen), and one action link. Nothing else: no
+                         *  sentence under it, no percentage, no total.
+                         */
+                        $full = $row['n'] >= $row['m'];
+                        $at   = $row['m'] > 0 ? round( ( $row['n'] / $row['m'] ) * 100, 1 ) : 100;
+                        ?>
+                        <li class="vgml-progress-row<?php echo $full ? ' is-full' : ''; ?>" data-progress="<?php echo esc_attr( $row['id'] ); ?>">
+                            <div class="vgml-progress-head">
+                                <span class="vgml-progress-label"><?php echo esc_html( $row['label'] ); ?></span>
+                                <span class="vgml-progress-count"><?php
+                                    echo esc_html( sprintf(
+                                        /* translators: 1: how many are done, 2: how many there are. */
+                                        __( '%1$s of %2$s', 'vergelabs-media-library' ),
+                                        number_format_i18n( $row['n'] ),
+                                        number_format_i18n( $row['m'] )
+                                    ) );
                                 ?></span>
-                            </a>
-                            <span class="vgml-score-bar"><span style="width:<?php echo esc_attr( (int) round( $part['share'] * 100 ) ); ?>%"></span></span>
+                            </div>
+                            <div class="vgml-import-bar"><div class="vgml-import-fill" style="width:<?php echo esc_attr( $at ); ?>%"></div></div>
+                            <?php if ( '' !== $row['action'] ) : ?>
+                                <a class="vgml-progress-action" href="<?php echo esc_url( $row['url'] ); ?>"><?php echo esc_html( $row['action'] ); ?> →</a>
+                            <?php endif; ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>
             </div>
+            <?php endif; ?>
 
             <div class="vgml-rail-block">
                 <h6 class="vgml-kicker"><?php esc_html_e( 'Quick actions', 'vergelabs-media-library' ); ?></h6>

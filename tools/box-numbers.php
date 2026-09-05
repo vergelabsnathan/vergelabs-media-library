@@ -28,7 +28,7 @@ foreach ( array( 'files', 'images', 'described', 'undescribed', 'no_alt', 'folde
 $say( 'alt pending (vergeml_ai_alt_pending)', function_exists( 'vergeml_ai_alt_pending' ) ? count( vergeml_ai_alt_pending() ) : null );
 $say( 'ai pending unindexed (vergeml_ai_pending_count)', function_exists( 'vergeml_ai_pending_count' ) ? vergeml_ai_pending_count( 'unindexed' ) : null );
 $say( 'ai pending missing-alt', function_exists( 'vergeml_ai_pending_count' ) ? vergeml_ai_pending_count( 'missing-alt' ) : null );
-$say( 'score', function_exists( 'vergeml_journey_score' ) ? vergeml_journey_score() : null );
+$say( 'progress', function_exists( 'vergeml_journey_progress' ) ? vergeml_journey_progress() : null );
 
 echo "\n== folders ==\n";
 $tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
