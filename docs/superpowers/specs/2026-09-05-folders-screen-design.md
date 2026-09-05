@@ -162,11 +162,96 @@ The setting that matters most on each screen is in the first section.
 
 ## 10. Order of work
 
-1. Mock: `docs/superpowers/mocks/2026-09-05-folders-screen.html`, in the
-   shell's own stylesheet, with the box's real folders, the real summary
-   numbers, the copy above, the Move in its three states, and one settings
-   screen collapsed. Nathan judges it before any code.
-2. Service: session token, stream route, prompt change, evals.
-3. Plugin: tree component and version stamp, then the Folders screen.
-4. Shell flow, settings collapse, removals, copy pass.
-5. Suites and the box walk.
+The order and the gates live in `plans/folders-one-tree.md`. The mock was
+judged and approved on 2026-09-05 after three rounds; §11 records what those
+rounds added.
+
+## 11. Approved additions, 2026-09-05 afternoon
+
+**The composer.** A real one: grows with what is typed, the send arrow inside
+it at the bottom right, Enter sends, Shift+Enter breaks a line, the arrow
+becomes Stop while a reply streams. Suggestion chips stay attached to the
+assistant's last message, above the composer.
+
+**Two methods, one draft.** A segmented switch at the head of the left
+column: Conversation | Rules. It changes only the left column; the tree and
+Move are shared; switching never resets the draft. An applied rule writes
+one line into the conversation ("You applied By kind: 4 folders, 265
+pictures") so the conversation is the full history of the tree and the
+assistant can react to a rule as it reacts to a hand edit. Not tabs across
+the page: tabs say different content; this is the same result built two ways.
+
+**Rules.** Deterministic, instant, no model, no credits; the tree and Move
+answer as an option changes. Four rules, one open at a time, each with a
+folder count beside it:
+
+- By kind: one folder per kind of picture. Scope: only unfiled pictures
+  move (default) / every picture moves and today's folders are removed.
+- By month and year: date source (upload date / date taken, upload date
+  when missing), levels (year then month / one folder per month), scope.
+- By subject: smallest folder (stepper, default 10), levels (one / two),
+  scope.
+- Into today's folders: when nothing fits (stay unfiled / a folder named
+  Unsorted), how sure (only sure matches / close calls too).
+
+The preview under the open rule is a list: folders made, pictures that move,
+pictures that stay and why, what happens to today's folders. The librarian's
+schemes are these rules; the Sort into folders screen goes.
+
+**The tree at scale.** Two states, a small switch at the tree's head:
+
+- Changes (default while a draft exists): only the folders that change,
+  grouped under their parent path.
+- All folders: top-level folders collapsed to one row with subfolder count
+  and picture count; a branch holding a change opens by itself; a collapsed
+  branch holding changes carries a mark ("2 changes"); unchanged siblings
+  inside an open branch fold into one line ("8 more folders, unchanged").
+
+A find box appears past twenty folders. Hover on a folder: pictures after
+Move, where they come from, three of them.
+
+**Scannable.** Every statement with more than one fact is a list. The bullet
+is the brand mark, the rail's rounded square, at 7px in the accent colour.
+Applies to the assistant's replies, rule previews, hover cards, the Move
+states, settings notes, and every screen in the copy pass.
+
+**Conversational only in the conversation.** The assistant may ask a
+question. Everything functional is fragments: "265 pictures move", "3 stay
+unfiled: no kind", "Cannot be pressed".
+
+**Copy, as approved on the mock** (verbatim where it matters): nav "Folders ·
+Build the folder tree"; facts line "641 pictures · 19 folders · 268 in no
+folder · described yesterday 13:52"; kicker "3 of 25 turns"; assistant
+opener "641 pictures, described yesterday." then a list, then "Folders by
+subject, by use, or both?"; replies "In the draft:" then a list then the
+question; hand edit "You · edited the tree / Moved Edison bulb lighting under
+Workspace"; composer "Describe the change" with "Enter sends · Shift + Enter
+for a new line"; tree head "Folders · 19 now, 15 after Move"; removed folder
+"removed · 39 pictures go to Landscape and nature"; moved folder "moved from
+Objects, by you"; Rules kicker "Uses no credits".
+
+**The nine pending items**, decided 2026-09-05; the plan carries the tasks:
+
+1. Grid and list aligned: an action table for both modes, gaps filled,
+   both modes walked by Playwright. Table before code.
+2. Migration page: one card per importer source; names as text, logos only
+   on Nathan's say (trademarks).
+3. Similar pictures: a per-pair view (dimensions, size, date, where used)
+   with keep both / keep this one / open both; nothing binned while in use
+   unless its uses are rewritten.
+4. Dashboard score: four progress rows with their own counts; no total.
+5. To-do rows only with count > 0 and a runnable action; a blocked action
+   shows once with its blocker.
+6. "Work out the folders" becomes "N files in no folder · Put them in
+   folders", pointing at Folders. Files means files.
+7. Size counts: made true (a service endpoint receives eight integers once
+   a day), moved to Library settings as "Share library counts", off by
+   default, copy in three bullets naming the numbers and what never goes.
+8. AI screen: three tabs. Describe (the run, what is written where,
+   credits). How it describes (the site brief as a conversation with the
+   Folders conversation component; the brief in bullets on the right is the
+   describe prompt's context; "Test on 5 pictures" re-runs and corrections
+   update the brief). Search (what search matches; try a query and see why
+   each hit matched). Mock first.
+9. Demo mode leaves the AI screen; it sits on the Licence screen only while
+   no key is present, labelled "Demo mode", never "Try it free".
