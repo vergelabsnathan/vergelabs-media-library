@@ -3104,6 +3104,40 @@ body {
 .mk-preview b { font-weight: 600; }
 .mk-row.new .name::after { content: "new"; margin-left: 8px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-accent); }
 
+/* The tree at scale: changes first, the whole tree by branch, a find box past twenty folders. */
+.mk-states.two { grid-template-columns: 1fr 1fr; }
+.mk-states .vgml-kicker { margin: 0; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted); }
+.mk-field .mk-check, .mk-field .mk-check span { font-weight: 400; }
+.mk-seg.small span { padding: 4px 10px; font-size: 12px; }
+.mk-find { margin-top: 12px; border: 1px solid rgba(16, 29, 64, .22); border-radius: 6px; padding: 7px 10px; font-size: 13px; color: var(--mk-muted); background: #fff; max-width: 260px; }
+.mk-path { padding: 14px 0 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted); }
+.mk-tree .mk-path:first-child { padding-top: 10px; }
+.mk-row .chev { width: 16px; height: 16px; stroke: var(--mk-muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.mk-row .chev.closed { transform: rotate(-90deg); }
+.mk-row .meta { color: var(--mk-muted); font-weight: 400; font-size: 12px; margin-left: 8px; }
+.mk-row .mark { margin-left: 8px; font-size: 11px; font-weight: 600; color: var(--mk-accent); }
+.mk-row.more { color: var(--mk-muted); font-size: 13px; }
+.mk-row.more .name { padding-left: 0; }
+
+/* The Rules surface: every rule open at once, so every option is visible. On the screen one is open at a time. */
+.mk-rulegrid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 28px 32px 32px; background: #f7f9fc; }
+@media (max-width: 980px) { .mk-rulegrid { grid-template-columns: 1fr; } }
+.mk-rulepanel { border: 1px solid rgba(16, 29, 64, .22); border-radius: 8px; background: #fff; padding: 18px 20px 20px; display: grid; gap: 12px; align-content: start; }
+.mk-rulepanel.on { border-color: var(--mk-accent); box-shadow: inset 0 0 0 1px var(--mk-accent); }
+.mk-rulepanel .head { display: grid; grid-template-columns: 18px 1fr auto; gap: 12px; align-items: center; }
+.mk-rulepanel .dot { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(16, 29, 64, .35); background: #fff; box-sizing: border-box; }
+.mk-rulepanel .dot.on { border: 5px solid var(--mk-accent); }
+.mk-rulepanel .t { font-size: 15px; font-weight: 600; color: var(--mk-ink); }
+.mk-rulepanel .n { font-size: 13px; color: var(--mk-muted); font-variant-numeric: tabular-nums; }
+.mk-rulepanel.on .n { color: var(--mk-ink); font-weight: 600; }
+.mk-rulepanel .d { margin: 0; font-size: 13px; color: var(--mk-muted); }
+.mk-rulepanel .opts { display: grid; gap: 12px; }
+.mk-rulepanel .mk-preview { margin-top: 2px; font-size: 14px; max-width: none; }
+.mk-step { display: inline-flex; align-items: center; border: 1px solid rgba(16, 29, 64, .22); border-radius: 6px; background: #fff; font-size: 13.5px; width: max-content; }
+.mk-step span { padding: 6px 10px; color: var(--mk-muted); }
+.mk-step b { padding: 6px 12px; border-left: 1px solid var(--mk-rule); border-right: 1px solid var(--mk-rule); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mk-radios { display: grid; gap: 8px; }
+
 @media (prefers-reduced-motion: reduce) { .mk-acc summary svg { transition: none; } }
 </style>
 
@@ -3130,7 +3164,7 @@ body {
 								<div class="vgml-shell-brand"><span class="vgml-shell-mark" aria-hidden="true"></span><span class="vgml-shell-name">VergeLabs <small>Media Library</small></span></div>
 								<ul class="vgml-shell-list">
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Dashboard</span><span class="vgml-shell-sub">Where things stand</span></span></a></li>
-									<li><a href="#" class="vgml-shell-item is-on" aria-current="page"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders</span><span class="vgml-shell-sub">Say it, edit the tree, press Move</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item is-on" aria-current="page"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders</span><span class="vgml-shell-sub">Build the folder tree</span></span></a></li>
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">AI</span><span class="vgml-shell-sub">Describe, alt text, credits</span></span></a></li>
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Duplicates</span><span class="vgml-shell-sub">Copies, and space they take</span></span></a></li>
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Import folders</span><span class="vgml-shell-sub">From another plugin, or a CSV</span></span></a></li>
@@ -3159,36 +3193,36 @@ body {
 										<div class="mk-conv">
 											<div class="mk-msg assistant">
 												<span class="who">Assistant</span>
-												<p>I read 641 pictures. 175 are misty mountain landscapes, 127 are portraits on a plain background, 69 are desk and phone scenes, 60 are piers at sunset, 48 are brick facades, 44 are Manhattan streets. 268 are in no folder; today's 19 folders hold the rest. Folders by subject, by use, or both?</p>
+												<p>641 pictures. The largest groups: 175 mountain landscapes, 127 studio portraits, 69 desk scenes, 60 piers at sunset, 48 brick facades, 44 Manhattan streets. 268 are in no folder. Folders by subject, by use, or both?</p>
 											</div>
 											<div class="mk-msg user">
 												<span class="who">You</span>
-												<p>By subject. Fold the four small landscape folders into Landscape and nature, and let Portrait take every portrait.</p>
+												<p>By subject. Merge the four small landscape folders into Landscape and nature. Portrait takes every portrait.</p>
 											</div>
 											<div class="mk-msg assistant">
 												<span class="who">Assistant</span>
-												<p>Mountains and mist, Meadow and blossom, Piers and sunsets and Rural farmland fold into <b>Landscape and nature</b>: 152 pictures, 91 already there. <b>Portrait</b> takes the 109 unfiled portraits: 127 in all. 4 folders removed, none added, 268 unfiled become 159. Architecture keeps its two folders. Keep Workspace as one folder, or split desks from phones?</p>
+												<p>In the draft: Mountains and mist, Meadow and blossom, Piers and sunsets and Rural farmland merged into <b>Landscape and nature</b>, 152 pictures. <b>Portrait</b> takes 109 unfiled portraits, 127 in all. 4 folders fewer. Unfiled drops from 268 to 159. Keep Workspace as one folder, or split desks from phones?</p>
 												<div class="mk-chips"><span class="mk-chip">Keep as one</span><span class="mk-chip">Split desks and phones</span></div>
 											</div>
 											<div class="mk-msg user">
-												<span class="who">You, in the tree</span>
+												<span class="who">You · edited the tree</span>
 												<p>Moved Edison bulb lighting under Workspace</p>
 											</div>
 											<div class="mk-msg assistant">
 												<span class="who">Assistant</span>
-												<p><b>Edison bulb lighting</b> is under Workspace now, 14 pictures. Objects keeps Phones and gadgets, 10. Keep Workspace as one folder, or split desks from phones?</p>
+												<p><b>Edison bulb lighting</b> is under Workspace, 14 pictures. Objects keeps Phones and gadgets, 10. Same question: keep Workspace as one folder, or split desks from phones?</p>
 												<div class="mk-chips"><span class="mk-chip">Keep as one</span><span class="mk-chip">Split desks and phones</span></div>
 											</div>
 										</div>
 										<div class="mk-composer">
-											<div class="text">Say what to change</div>
+											<div class="text">Describe the change</div>
 											<div class="bar"><small>Enter sends · Shift + Enter for a new line</small><button class="mk-send" type="button" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
 										</div>
 									</div>
 
 									<!-- tree -->
 									<div>
-										<h2 class="vgml-kicker">Folders · today 19, after Move 15</h2>
+										<h2 class="vgml-kicker">Folders · 19 now, 15 after Move</h2>
 										<div class="mk-tree">
 											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Apparel</span><span class="count">45</span></div>
 											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Architecture</span><span class="count">26</span></div>
@@ -3200,7 +3234,7 @@ body {
 											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Fx</span><span class="count">6</span></div>
 											<div class="mk-row change"><span class="handle">⋮⋮</span><span class="name">Landscape and nature</span><span class="count">152<span class="was">was 91</span></span></div>
 											<div class="mk-hover">
-												<div>152 pictures land here. 61 come from the four folders below.</div>
+												<div>152 pictures after Move. 61 arrive from the four folders below.</div>
 												<div class="thumbs"><img src="data:image/jpeg;base64,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" alt=""><img src="data:image/jpeg;base64,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" alt=""><img src="data:image/jpeg;base64,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" alt=""></div>
 												<div class="on">on hover</div>
 											</div>
@@ -3250,7 +3284,7 @@ body {
 								<div class="vgml-shell-brand"><span class="vgml-shell-mark" aria-hidden="true"></span><span class="vgml-shell-name">VergeLabs <small>Media Library</small></span></div>
 								<ul class="vgml-shell-list">
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Dashboard</span><span class="vgml-shell-sub">Where things stand</span></span></a></li>
-									<li><a href="#" class="vgml-shell-item is-on" aria-current="page"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders</span><span class="vgml-shell-sub">Say it, edit the tree, press Move</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item is-on" aria-current="page"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders</span><span class="vgml-shell-sub">Build the folder tree</span></span></a></li>
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">AI</span><span class="vgml-shell-sub">Describe, alt text, credits</span></span></a></li>
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Duplicates</span><span class="vgml-shell-sub">Copies, and space they take</span></span></a></li>
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Import folders</span><span class="vgml-shell-sub">From another plugin, or a CSV</span></span></a></li>
@@ -3275,42 +3309,42 @@ body {
 
 									<!-- rules -->
 									<div>
-										<div class="mk-method"><div class="mk-seg" role="tablist" aria-label="How to build the tree"><span>Conversation</span><span class="on">Rules</span></div><span class="vgml-kicker">No model, no credits</span></div>
+										<div class="mk-method"><div class="mk-seg" role="tablist" aria-label="How to build the tree"><span>Conversation</span><span class="on">Rules</span></div><span class="vgml-kicker">Uses no credits</span></div>
 										<div class="mk-rules">
 											<div class="mk-rule on">
 												<span class="dot"></span>
 												<div>
 													<div class="t">By kind</div>
-													<div class="d">Photos, illustrations, screenshots, diagrams: what the catalogue recorded for each picture.</div>
+													<div class="d">One folder per kind of picture: photos, illustrations, screenshots, diagrams.</div>
 													<div class="opts">
-														<label class="mk-check"><i class="rad on"></i><span>Only the 268 unfiled pictures move. Today's 19 folders stay as they are.</span></label>
-														<label class="mk-check"><i class="rad"></i><span>Every picture moves. Today's 19 folders are removed and 373 pictures leave them.</span></label>
+														<label class="mk-check"><i class="rad on"></i><span>Move only the 268 unfiled pictures. Today's 19 folders stay.</span></label>
+														<label class="mk-check"><i class="rad"></i><span>Move every picture. Today's 19 folders are removed.</span></label>
 													</div>
 												</div>
 												<span class="n">4 folders</span>
 											</div>
 											<div class="mk-rule">
 												<span class="dot"></span>
-												<div><div class="t">By month and year</div><div class="d">The month a picture was uploaded, under its year.</div></div>
+												<div><div class="t">By month and year</div><div class="d">A folder per year, a subfolder per month, by upload date.</div></div>
 												<span class="n">1 folder</span>
 											</div>
 											<div class="mk-rule">
 												<span class="dot"></span>
-												<div><div class="t">By subject</div><div class="d">The catalogue's subject at one level, folders of ten pictures or more.</div></div>
+												<div><div class="t">By subject</div><div class="d">A folder per subject from the catalogue. Subjects with fewer than 10 pictures stay unfiled.</div></div>
 												<span class="n">7 folders</span>
 											</div>
 											<div class="mk-rule">
 												<span class="dot"></span>
-												<div><div class="t">Into today's folders</div><div class="d">Nothing new. Each unfiled picture goes to the folder its evidence fits, or stays where it is.</div></div>
+												<div><div class="t">Into today's folders</div><div class="d">No new folders. Each unfiled picture goes to the existing folder it fits. The rest stay unfiled.</div></div>
 												<span class="n">0 new</span>
 											</div>
 										</div>
-										<p class="mk-preview"><b>4 new folders.</b> 265 of the 268 unfiled pictures move. 3 have no kind and stay. Today's 19 folders are untouched.</p>
+										<p class="mk-preview"><b>4 new folders.</b> 265 pictures move. 3 have no kind and stay unfiled. Today's folders are unchanged.</p>
 									</div>
 
 									<!-- tree -->
 									<div>
-										<h2 class="vgml-kicker">Folders · today 19, after Move 23</h2>
+										<h2 class="vgml-kicker">Folders · 19 now, 23 after Move</h2>
 										<div class="mk-tree">
 											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Apparel</span><span class="count">45</span></div>
 											<div class="mk-row"><span class="handle">⋮⋮</span><span class="name">Architecture</span><span class="count">26</span></div>
@@ -3345,6 +3379,129 @@ body {
 							</main>
 						</div>
 					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- ============================================================ board 1c: the tree at scale -->
+	<section class="mk-board">
+		<div class="mk-board-label">The tree at scale <span>an example library: 20,000 pictures in 149 folders. While a draft exists the tree shows the changes; the whole tree is one switch away and opens by branch. Past twenty folders a find box appears.</span></div>
+		<div class="mk-wp">
+			<div class="mk-states two">
+				<div class="mk-state">
+					<div class="mk-method"><h2 class="vgml-kicker">Folders · 149 now, 151 after Move</h2><div class="mk-seg small"><span class="on">Changes 9</span><span>All 149</span></div></div>
+					<div class="mk-find">Find a folder</div>
+					<div class="mk-tree">
+						<div class="mk-path">Apparel / Women</div>
+						<div class="mk-row change"><span class="handle">⋮⋮</span><span class="name">Shoes</span><span class="count">1,240<span class="was">was 980</span></span></div>
+						<div class="mk-row gone"><span class="handle">⋮⋮</span><span class="name">Boots</span><span class="count">260</span></div>
+						<div class="mk-sub">removed · 260 pictures go to Shoes</div>
+						<div class="mk-path">Apparel / Men</div>
+						<div class="mk-row change"><span class="handle">⋮⋮</span><span class="name">Shoes</span><span class="count">890<span class="was">was 610</span></span></div>
+						<div class="mk-row gone"><span class="handle">⋮⋮</span><span class="name">Sneakers</span><span class="count">280</span></div>
+						<div class="mk-sub">removed · 280 pictures go to Shoes</div>
+						<div class="mk-path">Campaigns</div>
+						<div class="mk-row change new"><span class="handle">⋮⋮</span><span class="name">Autumn 2026</span><span class="count">412</span></div>
+						<div class="mk-row change new"><span class="handle">⋮⋮</span><span class="name">Spring 2026</span><span class="count">388</span></div>
+						<div class="mk-path">Top level</div>
+						<div class="mk-row change"><span class="handle">⋮⋮</span><span class="name">Lifestyle</span><span class="count">3,310<span class="was">was 3,214</span></span></div>
+						<div class="mk-row change new"><span class="handle">⋮⋮</span><span class="name">Logos</span><span class="count">96</span></div>
+						<div class="mk-row change"><span class="handle">⋮⋮</span><span class="name">Store interiors</span><span class="count">560<span class="was">was 480</span></span></div>
+					</div>
+					<div class="mk-move"><button class="mk-btn primary" type="button">Move 1,612 pictures</button></div>
+				</div>
+				<div class="mk-state">
+					<div class="mk-method"><h2 class="vgml-kicker">Folders · 149 now, 151 after Move</h2><div class="mk-seg small"><span>Changes 9</span><span class="on">All 149</span></div></div>
+					<div class="mk-find">Find a folder</div>
+					<div class="mk-tree">
+						<div class="mk-row"><span class="handle"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><span class="name">Apparel<span class="meta">42 folders</span></span><span class="count">9,870</span></div>
+						<div class="mk-row" style="--d:1"><span class="handle"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><span class="name">Women<span class="meta">12 folders</span></span><span class="count">4,120</span></div>
+						<div class="mk-row change" style="--d:2"><span class="handle">⋮⋮</span><span class="name">Shoes</span><span class="count">1,240<span class="was">was 980</span></span></div>
+						<div class="mk-row gone" style="--d:2"><span class="handle">⋮⋮</span><span class="name">Boots</span><span class="count">260</span></div>
+						<div class="mk-sub" style="--d:2">removed · 260 pictures go to Shoes</div>
+						<div class="mk-row" style="--d:2"><span class="handle">⋮⋮</span><span class="name">Dresses</span><span class="count">610</span></div>
+						<div class="mk-row" style="--d:2"><span class="handle">⋮⋮</span><span class="name">Knitwear</span><span class="count">402</span></div>
+						<div class="mk-row more" style="--d:2"><span class="handle"></span><span class="name">8 more folders, unchanged</span><span class="count">1,608</span></div>
+						<div class="mk-row" style="--d:1"><span class="handle"><svg class="chev closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><span class="name">Men<span class="meta">11 folders</span><span class="mark">2 changes</span></span><span class="count">3,980</span></div>
+						<div class="mk-row" style="--d:1"><span class="handle"><svg class="chev closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><span class="name">Kids<span class="meta">9 folders</span></span><span class="count">1,770</span></div>
+						<div class="mk-row"><span class="handle"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><span class="name">Campaigns<span class="meta">12 folders</span></span><span class="count">2,140</span></div>
+						<div class="mk-row change new" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Autumn 2026</span><span class="count">412</span></div>
+						<div class="mk-row change new" style="--d:1"><span class="handle">⋮⋮</span><span class="name">Spring 2026</span><span class="count">388</span></div>
+						<div class="mk-row more" style="--d:1"><span class="handle"></span><span class="name">10 more folders, unchanged</span><span class="count">1,340</span></div>
+						<div class="mk-row change"><span class="handle"><svg class="chev closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><span class="name">Lifestyle<span class="meta">18 folders</span></span><span class="count">3,310<span class="was">was 3,214</span></span></div>
+						<div class="mk-row change new"><span class="handle">⋮⋮</span><span class="name">Logos</span><span class="count">96</span></div>
+						<div class="mk-row"><span class="handle"><svg class="chev closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><span class="name">Products<span class="meta">61 folders</span></span><span class="count">4,020</span></div>
+						<div class="mk-row change"><span class="handle"><svg class="chev closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span><span class="name">Store interiors<span class="meta">8 folders</span></span><span class="count">560<span class="was">was 480</span></span></div>
+					</div>
+					<div class="mk-move"><button class="mk-btn primary" type="button">Move 1,612 pictures</button></div>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- ============================================================ board 1d: the Rules surface -->
+	<section class="mk-board">
+		<div class="mk-board-label">The Rules surface <span>every rule opened with every option it has. On the screen one rule is open at a time; the tree and Move answer as an option changes. Counts are the test site's.</span></div>
+		<div class="mk-wp">
+			<div class="mk-rulegrid">
+				<div class="mk-rulepanel on">
+					<div class="head"><span class="dot on"></span><span class="t">By kind</span><span class="n">4 folders</span></div>
+					<p class="d">One folder per kind of picture: photos, illustrations, screenshots, diagrams.</p>
+					<div class="opts">
+						<div class="mk-radios">
+							<label class="mk-check"><i class="rad on"></i><span>Move only the 268 unfiled pictures. Today's 19 folders stay.</span></label>
+							<label class="mk-check"><i class="rad"></i><span>Move every picture. Today's 19 folders are removed.</span></label>
+						</div>
+					</div>
+					<p class="mk-preview"><b>4 new folders.</b> Photos 240, Illustrations 13, Screenshots 6, Diagrams 6. 3 pictures have no kind and stay unfiled.</p>
+				</div>
+				<div class="mk-rulepanel">
+					<div class="head"><span class="dot"></span><span class="t">By month and year</span><span class="n">1 folder</span></div>
+					<p class="d">A folder per year, a subfolder per month.</p>
+					<div class="opts">
+						<div class="mk-field"><label>Date</label><div class="mk-select">Upload date <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6f7891" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div><p class="note">Date taken, from the camera, is the other choice. Pictures without one use the upload date.</p></div>
+						<div class="mk-field"><label>Levels</label><div class="mk-radios">
+							<label class="mk-check"><i class="rad on"></i><span>Year, then month: 2026 / August</span></label>
+							<label class="mk-check"><i class="rad"></i><span>One folder per month: 2026-08</span></label>
+						</div></div>
+						<div class="mk-radios">
+							<label class="mk-check"><i class="rad on"></i><span>Move only the 268 unfiled pictures. Today's 19 folders stay.</span></label>
+							<label class="mk-check"><i class="rad"></i><span>Move every picture. Today's 19 folders are removed.</span></label>
+						</div>
+					</div>
+					<p class="mk-preview"><b>1 new folder.</b> 2026 / August, 268 pictures. Every picture on this site was uploaded in August 2026.</p>
+				</div>
+				<div class="mk-rulepanel">
+					<div class="head"><span class="dot"></span><span class="t">By subject</span><span class="n">7 folders</span></div>
+					<p class="d">A folder per subject from the catalogue.</p>
+					<div class="opts">
+						<div class="mk-field"><label>Smallest folder</label><div class="mk-step"><span>−</span><b>10</b><span>+</span></div><p class="note">Subjects with fewer pictures than this stay unfiled.</p></div>
+						<div class="mk-field"><label>Levels</label><div class="mk-radios">
+							<label class="mk-check"><i class="rad on"></i><span>One level: Landscape</span></label>
+							<label class="mk-check"><i class="rad"></i><span>Two levels: Landscape / Mountains</span></label>
+						</div></div>
+						<div class="mk-radios">
+							<label class="mk-check"><i class="rad"></i><span>Move only the 268 unfiled pictures. Today's 19 folders stay.</span></label>
+							<label class="mk-check"><i class="rad on"></i><span>Move every picture. Today's 19 folders are removed.</span></label>
+						</div>
+					</div>
+					<p class="mk-preview"><b>7 folders, 183 pictures.</b> Landscape 75, Apparel 26, Scenery 23, Architecture 22, Photography 16, Urban landscape 11, Infrastructure 10. 458 pictures have a subject under 10 and stay unfiled.</p>
+				</div>
+				<div class="mk-rulepanel">
+					<div class="head"><span class="dot"></span><span class="t">Into today's folders</span><span class="n">0 new</span></div>
+					<p class="d">No new folders. Each unfiled picture goes to the existing folder it fits.</p>
+					<div class="opts">
+						<div class="mk-field"><label>When a picture fits no folder</label><div class="mk-radios">
+							<label class="mk-check"><i class="rad on"></i><span>It stays unfiled.</span></label>
+							<label class="mk-check"><i class="rad"></i><span>It goes to a folder named Unsorted.</span></label>
+						</div></div>
+						<div class="mk-field"><label>How sure</label><div class="mk-radios">
+							<label class="mk-check"><i class="rad on"></i><span>Only sure matches.</span></label>
+							<label class="mk-check"><i class="rad"></i><span>Close calls too. More pictures move, some to the wrong folder.</span></label>
+						</div></div>
+					</div>
+					<p class="mk-preview"><b>0 pictures move.</b> None of the 268 unfiled pictures fits an existing folder surely enough: 265 score below the floor, 8 are too close to call, 15 are the wrong kind. Today's folders do not describe them; the conversation or a rule that makes folders does.</p>
 				</div>
 			</div>
 		</div>
@@ -3409,7 +3566,7 @@ body {
 								<div class="vgml-shell-brand"><span class="vgml-shell-mark" aria-hidden="true"></span><span class="vgml-shell-name">VergeLabs <small>Media Library</small></span></div>
 								<ul class="vgml-shell-list">
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Dashboard</span><span class="vgml-shell-sub">Where things stand</span></span></a></li>
-									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders</span><span class="vgml-shell-sub">Say it, edit the tree, press Move</span></span></a></li>
+									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Folders</span><span class="vgml-shell-sub">Build the folder tree</span></span></a></li>
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">AI</span><span class="vgml-shell-sub">Describe, alt text, credits</span></span></a></li>
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Duplicates</span><span class="vgml-shell-sub">Copies, and space they take</span></span></a></li>
 									<li><a href="#" class="vgml-shell-item"><span class="vgml-shell-text"><span class="vgml-shell-label">Import folders</span><span class="vgml-shell-sub">From another plugin, or a CSV</span></span></a></li>
