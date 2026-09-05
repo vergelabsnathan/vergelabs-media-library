@@ -33,6 +33,22 @@
 		return;
 	}
 
+	/*
+	 *  The model, the rows and the version poll come from the shared tree
+	 *  component (js/vergeml-tree-view.js), which the Folders screen draws
+	 *  from as well. Everything around them -- the pseudo rows, dragging,
+	 *  menus, windowing, uploads -- is this panel's own.
+	 */
+	var tv = window.vergemlTreeView;
+
+	if ( ! tv ) {
+		return;
+	}
+
+	var model = new tv.Model( [] );
+	var view = tv.create( { surface: 'library', model: model } );
+	var watch = null;
+
 	var state = {
 		taxonomy: cfg.taxonomies[ 0 ] ? cfg.taxonomies[ 0 ].name : '',
 		nodes: [],
@@ -103,17 +119,9 @@
 
 	function index() {
 		revision++;
-		state.byId = {};
-		state.children = {};
-		state.nodes.forEach( function ( n ) {
-			state.byId[ n.id ] = n;
-			( state.children[ n.parent ] = state.children[ n.parent ] || [] ).push( n );
-		} );
-		Object.keys( state.children ).forEach( function ( p ) {
-			state.children[ p ].sort( function ( a, b ) {
-				return a.order - b.order || a.name.localeCompare( b.name );
-			} );
-		} );
+		model.index( state.nodes );
+		state.byId = model.byId;
+		state.children = model.children;
 	}
 
 	/*
@@ -260,50 +268,19 @@
 	 *  FileBird does and is why theirs is quadratic on a deep tree.
 	 */
 	function totals() {
-		var out = {};
-		var order = [];
-
-		function walk( id, depth ) {
-			( state.children[ id ] || [] ).forEach( function ( n ) {
-				order.push( n );
-				walk( n.id, depth + 1 );
-			} );
-		}
-		walk( 0, 0 );
-
-		for ( var i = order.length - 1; i >= 0; i-- ) {
-			var n = order[ i ];
-			var sum = n.count;
-			( state.children[ n.id ] || [] ).forEach( function ( c ) {
-				sum += out[ c.id ];
-			} );
-			out[ n.id ] = sum;
-		}
-		return out;
+		return model.totals();
 	}
 
 	/* ------------------------------------------------------------ filtering */
 
 	function matches( node ) {
-		if ( ! state.filter ) {
-			return true;
-		}
-		return node.name.toLowerCase().indexOf( state.filter ) !== -1;
+		return model.matches( node, state.filter );
 	}
 
 	// A folder stays visible when it matches, or when anything beneath it does --
 	// otherwise searching for a leaf hides the path that leads to it.
 	function visible( node ) {
-		if ( matches( node ) ) {
-			return true;
-		}
-		var kids = state.children[ node.id ] || [];
-		for ( var i = 0; i < kids.length; i++ ) {
-			if ( visible( kids[ i ] ) ) {
-				return true;
-			}
-		}
-		return false;
+		return model.visible( node, state.filter );
 	}
 
 	/* ------------------------------------------------------------- the view */
@@ -336,7 +313,6 @@
 
 	function flatten() {
 		var out = [];
-		var total = totals();
 
 		out.push( { pseudo: 'all', label: l10n.all, count: null, depth: 0, id: 0 } );
 
@@ -423,30 +399,12 @@
 			}
 		}
 
-		( function walk( parentId, depth ) {
-			var siblings = ( state.children[ parentId ] || [] ).filter( visible );
-
-			siblings.forEach( function ( node, i ) {
-				var kids = ( state.children[ node.id ] || [] ).filter( visible );
-				// While searching, every branch on the way to a match is open.
-				var open = state.filter ? true : !! state.open[ node.id ];
-
-				out.push( {
-					node: node,
-					depth: depth,
-					id: node.id,
-					total: total[ node.id ],
-					kids: kids.length,
-					open: open,
-					posinset: i + 1,
-					setsize: siblings.length
-				} );
-
-				if ( kids.length && open ) {
-					walk( node.id, depth + 1 );
-				}
-			} );
-		} )( 0, 0 );
+		// The folders themselves, flattened by the shared component: the same
+		// rows, in the same order, that the Folders screen draws. While
+		// searching, every branch on the way to a match is open.
+		model.entries( { open: state.open, filter: state.filter } ).forEach( function ( entry ) {
+			out.push( entry );
+		} );
 
 		// The row being typed into sits where the folder will end up, so the name
 		// is entered in the position it will occupy rather than in a dialog with no
@@ -730,53 +688,25 @@
 	function nodeRow( entry ) {
 		var node = entry.node;
 
-		var item = el( 'li', {
-			class: 'vgml-node' + ( state.selected === node.id ? ' is-selected' : '' ),
-			role: 'treeitem',
-			'aria-level': entry.depth + 1,
-			'aria-posinset': entry.posinset,
-			'aria-setsize': entry.setsize,
-			'aria-selected': state.selected === node.id ? 'true' : 'false',
-			'data-id': node.id,
-			tabindex: '-1'
+		/*
+		 *  The row itself -- twist, icon, name, count -- is the shared
+		 *  component's, the same one the Folders screen draws. What follows is
+		 *  the panel's: the privacy tag, selection, renaming, dragging.
+		 */
+		var built = view.folderRow( entry, {
+			selected: state.selected === node.id,
+			onToggle: toggle
 		} );
-
-		if ( entry.kids ) {
-			item.setAttribute( 'aria-expanded', entry.open ? 'true' : 'false' );
-		}
-
-		var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( entry.depth * 19 + 8 ) + 'px' } );
-
-		var twist = el( 'button', {
-			class: 'vgml-twist' + ( entry.kids ? '' : ' is-leaf' ),
-			type: 'button',
-			tabindex: '-1',
-			'aria-hidden': 'true'
-		} );
-		twist.innerHTML = entry.kids ? chevron() : '';
-		if ( entry.open ) { twist.classList.add( 'is-open' ); }
-		twist.addEventListener( 'click', function ( e ) {
-			e.stopPropagation();
-			toggle( node.id );
-		} );
-		row.appendChild( twist );
-
-		// `total` is descendant-inclusive, so a parent whose own count is zero but
-		// whose children hold files still reads as full -- which is what the user sees
-		// when they click it.
-		row.appendChild( folderIcon( node.color, entry.open && entry.kids, ! entry.total ) );
-
-		row.appendChild( el( 'span', { class: 'vgml-name' }, node.name ) );
+		var item = built.item;
+		var row = built.row;
 
 		var owned = privacyTag( node );
 		if ( owned ) {
-			row.appendChild( owned );
-		}
-
-		// A pill, not a bare number: it reads as a badge belonging to the row
-		// rather than as a second column of text competing with the name.
-		if ( entry.total ) {
-			row.appendChild( el( 'span', { class: 'vgml-count' }, String( entry.total ) ) );
+			if ( built.count ) {
+				row.insertBefore( owned, built.count );
+			} else {
+				row.appendChild( owned );
+			}
 		}
 
 		row.addEventListener( 'click', function () {
@@ -800,7 +730,6 @@
 			dragSource( row, node.id );
 		}
 
-		item.appendChild( row );
 		return item;
 	}
 
@@ -2578,10 +2507,29 @@
 			state.unassigned = res.unassigned || 0;
 			index();
 			render();
+			// This write moved the folders version; the tree just drawn is
+			// the one it left behind, so the poll need not fetch it again.
+			if ( watch && typeof res.version === 'number' ) {
+				watch.known( res.version );
+			}
 			return res;
 		} ).catch( function ( err ) {
 			toast( ( err && err.message ) || l10n.failed, null );
 		} );
+	}
+
+	/*
+	 *  Another surface changed the folders: this one re-reads them. Not while
+	 *  a name is being typed or a drag is in progress -- the reload would
+	 *  take the editor or the drop target away mid-gesture -- so it waits and
+	 *  looks again.
+	 */
+	function refreshWhenIdle() {
+		if ( editing || creatingUnder >= 0 || dragging || draggingFolder ) {
+			window.setTimeout( refreshWhenIdle, 1500 );
+			return;
+		}
+		load().catch( function () {} );
 	}
 
 	/*
@@ -2756,43 +2704,10 @@
 	 *  the same shape on every machine, big enough to see, and turns with a
 	 *  transition instead of being swapped for a different character.
 	 */
-	function chevron() {
-		return '<svg viewBox="0 0 12 12" width="12" height="12" fill="none">'
-			+ '<path d="M4.2 2.4 L8 6 L4.2 9.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-	}
-
-	function folderIcon( color, open, empty ) {
-
-		var span = el( 'span', {
-			class: 'vgml-icon' + ( empty ? ' is-empty' : '' ) + ( open ? ' is-open' : '' ),
-			'aria-hidden': 'true'
-		} );
-
-		/*
-		 *  Flat. One silhouette, one colour, no simulated depth -- the faux-3D
-		 *  two-plane fill read as dated next to the rest of the panel. Closed
-		 *  is a single solid rounded folder. Open is the flat open-folder
-		 *  glyph: a thin band of the back sheet above a tilted front flap,
-		 *  separated by a real gap that lets the row background through, so
-		 *  the geometry says "open" without a second tone. Empty folders keep
-		 *  the outline treatment from the stylesheet.
-		 */
-		var closedShape = 'M1 4.4a2.2 2.2 0 0 1 2.2-2.2h4a2.2 2.2 0 0 1 1.68.78l.9 1.06h7A2.2 2.2 0 0 1 19 6.24v6.56A2.2 2.2 0 0 1 16.8 15H3.2A2.2 2.2 0 0 1 1 12.8V4.4Z';
-
-		var openBack = 'M1 4.4a2.2 2.2 0 0 1 2.2-2.2h4a2.2 2.2 0 0 1 1.68.78l.9 1.06h7A2.2 2.2 0 0 1 19 6.24v0.36H1V4.4Z';
-		var openFlap = 'M4.75 8h13.5a1.45 1.45 0 0 1 1.4 1.84l-0.95 3.5A2.2 2.2 0 0 1 16.58 15H2.75a1.45 1.45 0 0 1-1.4-1.84l0.95-3.5A2.2 2.2 0 0 1 4.42 8h0.33Z';
-
-		var showOpen = open && ! empty;
-		span.innerHTML = '<svg viewBox="0 0 20 16" width="20" height="16">' +
-			'<path class="vgml-f-back" d="' + ( showOpen ? openBack : closedShape ) + '"/>' +
-			( showOpen ? '<path class="vgml-f-front" d="' + openFlap + '"/>' : '' ) + '</svg>';
-
-		if ( color ) {
-			span.style.color = color;
-		}
-
-		return span;
-	}
+	// Both glyphs live in the shared component now, so the Folders screen's
+	// folders are drawn with the same chevron and the same flat silhouette.
+	var chevron = tv.chevron;
+	var folderIcon = tv.folderIcon;
 
 	/*
 	 *  The toolbar: what can be done, visible before you need it.
@@ -4331,47 +4246,39 @@
 
 				var isPseudo = !! entry.pseudo;
 				var id = entry.id;
+				var item;
+				var row;
 
-				var item = el( 'li', {
-					class: 'vgml-node' + ( isPseudo ? ' vgml-pseudo' : '' ) + ( chosen === id ? ' is-selected' : '' ),
-					role: 'treeitem',
-					'aria-level': entry.depth + 1,
-					'aria-selected': chosen === id ? 'true' : 'false',
-					'data-id': id,
-					tabindex: '-1'
-				} );
-
-				var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( entry.depth * 19 + 8 ) + 'px' } );
-
-				var twist = el( 'button', {
-					class: 'vgml-twist' + ( ! isPseudo && entry.kids ? '' : ' is-leaf' ),
-					type: 'button',
-					tabindex: '-1',
-					'aria-hidden': 'true'
-				} );
-
-				if ( ! isPseudo && entry.kids ) {
-					item.setAttribute( 'aria-expanded', entry.open ? 'true' : 'false' );
-					twist.innerHTML = chevron();
-					if ( entry.open ) { twist.classList.add( 'is-open' ); }
-					twist.addEventListener( 'click', function ( e ) {
-						e.stopPropagation();
-						state.open[ id ] = ! state.open[ id ];
-						draw();
+				if ( isPseudo ) {
+					item = el( 'li', {
+						class: 'vgml-node vgml-pseudo' + ( chosen === id ? ' is-selected' : '' ),
+						role: 'treeitem',
+						'aria-level': entry.depth + 1,
+						'aria-selected': chosen === id ? 'true' : 'false',
+						'data-id': id,
+						tabindex: '-1'
 					} );
-				}
-				row.appendChild( twist );
 
-				row.appendChild( isPseudo
-					? pseudoIcon( entry.pseudo )
-					: folderIcon( entry.node.color, entry.open && entry.kids, ! entry.total ) );
-				// (smart rows never reach here; the modal filters them out)
-
-				row.appendChild( el( 'span', { class: 'vgml-name' }, isPseudo ? entry.label : entry.node.name ) );
-
-				var count = isPseudo ? entry.count : entry.total;
-				if ( count ) {
-					row.appendChild( el( 'span', { class: 'vgml-count' }, String( count ) ) );
+					row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( entry.depth * 19 + 8 ) + 'px' } );
+					row.appendChild( el( 'button', { class: 'vgml-twist is-leaf', type: 'button', tabindex: '-1', 'aria-hidden': 'true' } ) );
+					row.appendChild( pseudoIcon( entry.pseudo ) );
+					// (smart rows never reach here; the modal filters them out)
+					row.appendChild( el( 'span', { class: 'vgml-name' }, entry.label ) );
+					if ( entry.count ) {
+						row.appendChild( el( 'span', { class: 'vgml-count' }, String( entry.count ) ) );
+					}
+					item.appendChild( row );
+				} else {
+					// The same row the library panel and the Folders screen draw.
+					var built = view.folderRow( entry, {
+						selected: chosen === id,
+						onToggle: function ( termId ) {
+							state.open[ termId ] = ! state.open[ termId ];
+							draw();
+						}
+					} );
+					item = built.item;
+					row = built.row;
 				}
 
 				row.addEventListener( 'click', function () {
@@ -4520,6 +4427,14 @@
 		// only after the next click.
 		uploadTarget = state.selected > 0 ? state.selected : 0;
 		dropHint();
+
+		/*
+		 *  The folders version stamp, polled every five seconds and on coming
+		 *  back into view. When a second tab or the Folders screen changes the
+		 *  tree, this panel re-reads it; its own writes record the version
+		 *  they left behind (see folder()), so they cost no reload.
+		 */
+		watch = tv.watchVersion( { onChange: refreshWhenIdle } );
 
 		/*
 		 *  Applied here, not in start(): start() runs before the panel is

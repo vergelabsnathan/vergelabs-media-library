@@ -1114,6 +1114,11 @@ function vergeml_talk_refile_finish( &$state ) {
 	$state['removed'] = count( (array) $state['remove'] );
 	$state['remove']  = array();
 	$state['active']  = false;
+
+	// The Move is complete: every open surface re-reads the tree and its counts.
+	if ( function_exists( 'vergeml_folders_moved' ) ) {
+		vergeml_folders_moved( 'refile' );
+	}
 }
 
 
@@ -1364,6 +1369,10 @@ function vergeml_talk_undo() {
 	}
 
 	delete_option( VERGEML_TALK_UNDO );
+
+	if ( function_exists( 'vergeml_folders_moved' ) ) {
+		vergeml_folders_moved( 'undo' );
+	}
 
 	return array(
 		'restored' => $put,

@@ -1612,6 +1612,10 @@ function vergeml_librarian_apply_step( $batch_id ) {
 
     if ( 'done' === $batch['status'] ) {
         vergeml_librarian_remember_rate( $params );
+        // The Move is complete: every open surface re-reads the tree and its counts.
+        if ( function_exists( 'vergeml_folders_moved' ) ) {
+            vergeml_folders_moved( 'librarian' );
+        }
     }
 
     return vergeml_librarian_report( $batch, $started );
@@ -1824,6 +1828,10 @@ function vergeml_librarian_undo_step( $batch_id ) {
         vergeml_librarian_batch_save( $batch );
 
         wp_cache_delete( 'vergeml_unassigned_' . $taxonomy, 'vergeml' );
+
+        if ( function_exists( 'vergeml_folders_moved' ) ) {
+            vergeml_folders_moved( 'librarian-undo' );
+        }
 
         return vergeml_librarian_undo_report( $batch, 0, $started );
     }

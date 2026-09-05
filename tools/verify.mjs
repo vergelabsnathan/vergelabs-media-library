@@ -72,6 +72,14 @@ const only = argv.filter( ( a, i ) => ! taken.has( i ) && ! a.startsWith( '--' )
 const SUITES = [
 	{ name: 'tree', file: 'tests/tree/t0-endpoints.js', env: 'playground' },
 	/*
+	 *  The shared tree component, against a page loaded from disk: the draft
+	 *  overlay by term id, the two states, the fold rule. No site needed, so
+	 *  env 'local' -- nothing to reach before it runs.
+	 */
+	{ name: 'tree-view', file: 'tests/tree/tree-view.mjs', env: 'local' },
+	// The folders version stamp and its route, including the one-query budget.
+	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
+	/*
 	 *  The AI folders, in two halves for the usual reason. The PHP one is
 	 *  about the join and the counts and wants real MySQL -- Playground's
 	 *  SQLite layer does not maintain $wpdb->num_queries, so the budget half
@@ -293,7 +301,7 @@ function precondition( suite ) {
 	} );
 }
 
-const baseFor = ( suite ) => ( 'playground' === suite.env ? PLAYGROUND : BASE );
+const baseFor = ( suite ) => ( 'playground' === suite.env ? PLAYGROUND : ( 'local' === suite.env ? '' : BASE ) );
 
 async function reachable( url ) {
 	try {
@@ -516,7 +524,7 @@ const passed = [];
 
 for ( const suite of chosen ) {
 
-	if ( ! ( await reachable( baseFor( suite ) ) ) ) {
+	if ( 'local' !== suite.env && ! ( await reachable( baseFor( suite ) ) ) ) {
 		console.log( `\n──────── ${ suite.name }  SKIPPED — ${ baseFor( suite ) } is not answering` );
 		skipped.push( suite.name );
 		continue;

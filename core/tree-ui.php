@@ -134,6 +134,19 @@ function vergeml_tree_assets( $hook ) {
         );
     }
 
+    /*
+     *  The shared tree component first. The panel below and the Folders
+     *  screen draw the same rows from it and poll the same version stamp
+     *  through it, so the two surfaces cannot disagree about the folders.
+     */
+    wp_enqueue_script(
+        'vergeml-tree-view',
+        plugins_url( 'js/vergeml-tree-view.js', VERGEML_FILE ),
+        array(),
+        vergeml_asset_ver( 'js/vergeml-tree-view.js' ),
+        true
+    );
+
     wp_enqueue_script(
         'vergeml-tree',
         plugins_url( 'js/vergeml-tree.js', VERGEML_FILE ),
@@ -149,7 +162,7 @@ function vergeml_tree_assets( $hook ) {
          */
         // vergeml-transport first, so the fallback road is installed before the
         // tree makes its first request rather than after its first failure.
-        array( 'wp-api-fetch', 'vergeml-transport', 'jquery', 'jquery-ui-draggable', 'jquery-ui-droppable' ),
+        array( 'wp-api-fetch', 'vergeml-transport', 'vergeml-tree-view', 'jquery', 'jquery-ui-draggable', 'jquery-ui-droppable' ),
         vergeml_asset_ver( 'js/vergeml-tree.js' ),
         true
     );

@@ -293,6 +293,14 @@ function vergeml_rest_folder( WP_REST_Request $request ) {
     wp_cache_delete( 'vergeml_unassigned_' . $taxonomy, 'vergeml' );
 
     /*
+     *  The folders version stamp moves once more here, after the write: a
+     *  re-order or a colour touches only term meta and fires no term hook.
+     *  The answer carries the new stamp, so the surface that wrote records
+     *  it and does not re-read a tree it already has.
+     */
+    $version = function_exists( 'vergeml_folders_version_bump' ) ? vergeml_folders_version_bump() : 0;
+
+    /*
      *  The whole tree comes back, not a patch of it. A rename touches one label,
      *  but a delete re-parents an unknown number of children and a move changes
      *  every count above both the old and the new parent. Returning the tree is
@@ -312,7 +320,7 @@ function vergeml_rest_folder( WP_REST_Request $request ) {
     $data   = $result instanceof WP_REST_Response ? $result->get_data() : array();
 
     return rest_ensure_response( array_merge(
-        array( 'action' => $action, 'id' => $id ),
+        array( 'action' => $action, 'id' => $id, 'version' => $version ),
         is_array( $data ) ? $data : array()
     ) );
 }

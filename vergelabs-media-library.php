@@ -1444,6 +1444,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/bulk-terms.php' );
         include_once( 'core/rest-tree.php' );
         include_once( 'core/rest-folders.php' );
+        include_once( 'core/folders-version.php' );
         // The second road to every endpoint above and below: the same handlers
         // reached through admin-ajax when a host or a security plugin has
         // closed /wp-json/. Inside the guard, like everything it stands in for.

@@ -1,0 +1,152 @@
+<!doctype html>
+<!--
+	The shared tree component, outside WordPress.
+
+	Loaded from disk by tests/tree/tree-view.mjs. The live tree is the box's
+	folders on 2026-09-05 plus an Apparel branch deep enough to take the count
+	past twenty, so the find box and the fold rule have something to do. The
+	draft is the approved mock's: Landscape and nature absorbs its four
+	subfolders, Portrait grows, Edison bulb lighting moves under Workspace by
+	hand, and Shoes under Women is renamed by hand so one branch has changed
+	and unchanged siblings side by side.
+-->
+<meta charset="utf-8">
+<title>vergeml-tree-view harness</title>
+<link rel="stylesheet" href="../../css/vergeml-tree-view.css">
+<style>
+	body { margin: 0; padding: 24px; font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f7f9fc; color: #101d40; }
+	.board { display: grid; grid-template-columns: 420px 420px; gap: 32px; align-items: start; }
+	.pane { background: #fff; padding: 20px 24px 24px; border-radius: 8px; }
+	.kicker { margin: 0 0 10px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #6f7891; }
+	#library .vgml-list { list-style: none; margin: 0; padding: 0; }
+	#library .vgml-row { display: flex; gap: 8px; align-items: center; padding: 4px 0 4px var( --vgml-indent, 8px ); }
+	#library .vgml-icon { width: 20px; height: 16px; color: #3858e9; }
+	#library .vgml-icon svg { fill: currentColor; }
+	#library .vgml-twist { width: 16px; height: 16px; border: 0; background: none; padding: 0; }
+	#library .vgml-count { font-size: 11px; background: #e9eef8; border-radius: 9px; padding: 1px 6px; }
+</style>
+
+<div class="board">
+	<div class="pane">
+		<p class="kicker" id="summary">Folders</p>
+		<div id="folders"></div>
+	</div>
+	<div class="pane">
+		<p class="kicker">The media library's rows, same component</p>
+		<ul class="vgml-list" role="tree" id="library"></ul>
+	</div>
+</div>
+
+<script src="../../js/vergeml-tree-view.js"></script>
+<script>
+	( function () {
+		var f = function ( id, parent, name, count, order ) {
+			return { id: id, parent: parent, name: name, slug: name.toLowerCase().replace( /[^a-z0-9]+/g, '-' ), count: count, color: '', order: order || 0, private: null };
+		};
+
+		var nodes = [
+			f( 1, 0, 'Apparel', 45 ),
+			f( 2, 1, 'Women', 0 ),
+			f( 3, 2, 'Shoes', 980 ),
+			f( 4, 2, 'Boots', 260 ),
+			f( 5, 2, 'Dresses', 610 ),
+			f( 6, 2, 'Knitwear', 402 ),
+			f( 7, 2, 'Coats', 120 ),
+			f( 8, 2, 'Bags', 90 ),
+			f( 9, 1, 'Men', 0 ),
+			f( 10, 9, 'Shoes', 610 ),
+			f( 11, 9, 'Sneakers', 280 ),
+			f( 12, 9, 'Suits', 300 ),
+			f( 13, 0, 'Architecture', 26 ),
+			f( 14, 13, 'City architecture details', 31 ),
+			f( 15, 13, 'Manhattan skyline', 11 ),
+			f( 16, 0, 'Bikes and cycling', 11 ),
+			f( 17, 0, 'Crafts and skills', 5 ),
+			f( 18, 0, 'Food', 8 ),
+			f( 19, 0, 'Fx', 6 ),
+			f( 20, 0, 'Landscape and nature', 91 ),
+			f( 21, 20, 'Meadow and blossom', 9 ),
+			f( 22, 20, 'Mountains and mist', 39 ),
+			f( 23, 20, 'Piers and sunsets', 8 ),
+			f( 24, 20, 'Rural farmland', 5 ),
+			f( 25, 0, 'Logos and icons', 6 ),
+			f( 26, 0, 'Objects', 5 ),
+			f( 27, 26, 'Phones and gadgets', 10 ),
+			f( 28, 26, 'Edison bulb lighting', 14 ),
+			f( 29, 0, 'Portrait', 18 ),
+			f( 30, 0, 'Workspace', 25 )
+		];
+
+		var tv = window.vergemlTreeView;
+
+		function mockDraft() {
+			var d = tv.fromLive( nodes );
+			[ 21, 22, 23, 24 ].forEach( function ( id ) {
+				d = tv.applyEdit( d, { type: 'remove', key: 't' + id, to: 't20' } );
+			} );
+			d.folders.forEach( function ( x ) {
+				if ( x.key === 't20' ) { x.count = 152; x.from = [ { key: 't21', count: 9 }, { key: 't22', count: 39 }, { key: 't23', count: 8 }, { key: 't24', count: 5 } ]; }
+				if ( x.key === 't29' ) { x.count = 127; }
+			} );
+			d = tv.applyEdit( d, { type: 'reparent', key: 't28', parent: 't30', by: 'you' } );
+			d = tv.applyEdit( d, { type: 'rename', key: 't3', to: 'Shoes and boots', by: 'you' } );
+			return d;
+		}
+
+		var edits = [];
+
+		var view = tv.create( {
+			surface: 'folders',
+			root: document.getElementById( 'folders' ),
+			indent: { step: 22, base: 0 },
+			editable: true,
+			nodes: nodes,
+			onEdit: function ( edit ) {
+				edits.push( edit );
+				view.setDraft( tv.applyEdit( view.getDraft(), edit ) );
+			}
+		} );
+
+		function paintSummary() {
+			var s = view.summary();
+			document.getElementById( 'summary' ).textContent = 'Folders · ' + s.now + ' now, ' + s.after + ' after Move';
+		}
+
+		var libraryModel = new tv.Model( nodes );
+		var libraryView = tv.create( { surface: 'library', model: libraryModel } );
+		var libraryOpen = {};
+
+		function paintLibrary() {
+			var list = document.getElementById( 'library' );
+			list.innerHTML = '';
+			libraryModel.entries( { open: libraryOpen, filter: '' } ).forEach( function ( entry ) {
+				list.appendChild( libraryView.folderRow( entry, {
+					selected: false,
+					onToggle: function ( id ) { libraryOpen[ id ] = ! libraryOpen[ id ]; paintLibrary(); }
+				} ).item );
+			} );
+		}
+
+		window.harness = {
+			tv: tv,
+			nodes: nodes,
+			view: view,
+			edits: edits,
+			mockDraft: mockDraft,
+			libraryModel: libraryModel,
+			libraryView: libraryView,
+			paintLibrary: paintLibrary,
+			paintSummary: paintSummary,
+			withDraft: function () {
+				view.setDraft( mockDraft() );
+				paintSummary();
+			},
+			clone: function () {
+				return nodes.map( function ( n ) { var c = {}; Object.keys( n ).forEach( function ( k ) { c[ k ] = n[ k ]; } ); return c; } );
+			}
+		};
+
+		paintLibrary();
+		paintSummary();
+	} )();
+</script>

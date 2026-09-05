@@ -1977,6 +1977,7 @@ function vergeml_options_cleanup() {
         'vergeml_ai',
         'vergeml_ai_credits',
         'vergeml_private_folders',
+        'vergeml_folders_version',
         'vergeml_watchdog',
         'vergeml_uninstall_wipe'
     );

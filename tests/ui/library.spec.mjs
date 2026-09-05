@@ -31,6 +31,83 @@ test.describe( 'the media library', () => {
 	} );
 } );
 
+/*
+ *  One tree component for the panel and the Folders screen, kept in step by
+ *  the folders version stamp. The old Sort screen read a summary taken at
+ *  session start and matched folders by name, so the two surfaces disagreed
+ *  the moment anything was renamed; now both draw the rows of
+ *  js/vergeml-tree-view.js and both poll /folders/version.
+ */
+test.describe( 'one tree, kept in step', () => {
+
+	test( 'the panel draws its rows from the shared component', async ( { page } ) => {
+		await page.goto( '/wp-admin/upload.php?mode=list', { waitUntil: 'domcontentloaded' } );
+
+		// A folder has a positive term id; the pseudo rows (All files, Unfiled,
+		// the Filters and AI heads) carry ids at or below zero.
+		const rows = page.locator( '.vgml-tree .vgml-list > li.vgml-node[data-id]' ).filter( { has: page.locator( ':scope' ) } )
+			.and( page.locator( ':not([data-id^="-"]):not([data-id="0"])' ) );
+		await expect( rows.first(), 'a folder row in the panel' ).toBeVisible( { timeout: 25_000 } );
+
+		const shape = await rows.first().evaluate( ( li ) =>
+			Array.from( li.querySelector( '.vgml-row' ).children ).map( ( c ) => c.className.split( ' ' )[ 0 ] ) );
+		expect( shape.slice( 0, 3 ), 'twist, icon, name: the row the Folders screen draws too' )
+			.toEqual( [ 'vgml-twist', 'vgml-icon', 'vgml-name' ] );
+
+		const loaded = await page.evaluate( () => !! ( window.vergemlTreeView && window.vergemlTreeView.create ) );
+		expect( loaded, 'js/vergeml-tree-view.js is on the screen' ).toBe( true );
+
+		await page.screenshot( { path: 'test-results/shot-library-list.png', fullPage: false } );
+	} );
+
+	test( 'polls the folders version and re-reads the tree when another writer changes it', async ( { page } ) => {
+		const polls = [];
+		const treeLoads = [];
+		page.on( 'request', ( r ) => {
+			if ( /vergeml\/v1\/folders\/version/.test( r.url() ) ) polls.push( Date.now() );
+			if ( /vergeml\/v1\/tree(\?|$|%3F)/.test( r.url() ) || /rest_route=%2Fvergeml%2Fv1%2Ftree/.test( r.url() ) ) treeLoads.push( Date.now() );
+		} );
+
+		await page.goto( '/wp-admin/upload.php?mode=list', { waitUntil: 'domcontentloaded' } );
+		await expect( page.locator( '.vgml-tree' ).first() ).toBeVisible( { timeout: 25_000 } );
+
+		const answer = await page.evaluate( () => wp.apiFetch( { path: '/vergeml/v1/folders/version' } ) );
+		expect( Number.isInteger( answer.version ), 'the route answers an integer version' ).toBe( true );
+
+		await page.waitForTimeout( 11_000 );
+		expect( polls.length, `${ polls.length } polls in eleven seconds; every five expected` ).toBeGreaterThanOrEqual( 2 );
+
+		/*
+		 *  Another writer: a folder made outside the panel's own code path, as
+		 *  a second tab or the Folders screen would. The panel must notice
+		 *  within a poll and re-read the tree. The probe folder is deleted
+		 *  again whatever happens -- a spec restores what it writes.
+		 */
+		const before = treeLoads.length;
+		const made = await page.evaluate( () => wp.apiFetch( {
+			path: '/vergeml/v1/folder',
+			method: 'POST',
+			data: { taxonomy: 'media_category', action: 'create', name: 'zz version probe' },
+		} ) );
+		expect( Number( made.id ), 'the probe folder was made' ).toBeGreaterThan( 0 );
+
+		try {
+			await expect.poll( () => treeLoads.length, {
+				timeout: 12_000,
+				message: 'the panel re-read the tree after another writer changed it',
+			} ).toBeGreaterThan( before );
+			await expect( page.locator( '.vgml-tree .vgml-name', { hasText: 'zz version probe' } ).first(),
+				'and the new folder is on the screen without a reload' ).toBeVisible( { timeout: 5_000 } );
+		} finally {
+			await page.evaluate( ( id ) => wp.apiFetch( {
+				path: '/vergeml/v1/folder',
+				method: 'POST',
+				data: { taxonomy: 'media_category', action: 'delete', id },
+			} ), Number( made.id ) );
+		}
+	} );
+} );
+
 test.describe( 'the describe run', () => {
 
 	test( 'reports its own state honestly', async ( { page } ) => {

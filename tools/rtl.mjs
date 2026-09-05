@@ -32,6 +32,7 @@ const SHEETS = [
 	'vergeml-gallery',
 	'vergeml-guide',
 	'vergeml-sort',
+	'vergeml-tree-view',
 ];
 
 let stale = 0;

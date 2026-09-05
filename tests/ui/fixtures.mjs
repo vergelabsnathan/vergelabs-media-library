@@ -29,6 +29,24 @@ export const test = base.extend( {
 			await page.goto( '/wp-login.php', { waitUntil: 'domcontentloaded' } );
 			await page.fill( '#user_login', USER );
 			await page.fill( '#user_pass', PASS );
+
+			/*
+			 *  Jetpack's brute-force protection, left without an API key, falls
+			 *  back to a sum on the login form ("Prove your humanity: 2 + 2 =")
+			 *  and answers 401 to any login that does not carry it. The box has
+			 *  Jetpack for the WooCommerce integrations, so the sum is solved
+			 *  when it is on the form and ignored when it is not. Found on
+			 *  2026-09-05, when seventeen specs failed at the door in a row.
+			 */
+			const puzzle = page.locator( 'input[name="jetpack_protect_num"]' );
+			if ( await puzzle.count() ) {
+				const asked = await page.locator( 'label[for="jetpack_protect_answer"]' ).innerText();
+				const sum = /(\d+)\D+(\d+)/.exec( asked.replace( / /g, ' ' ) );
+				if ( sum ) {
+					await puzzle.fill( String( Number( sum[ 1 ] ) + Number( sum[ 2 ] ) ) );
+				}
+			}
+
 			await Promise.all( [
 				page.waitForNavigation( { waitUntil: 'domcontentloaded' } ),
 				page.click( '#wp-submit' ),

@@ -265,6 +265,8 @@ than no check, because it reads as cover.**
 | Suite | File | Where | What it is for |
 |---|---|---|---|
 | `tree` | `tests/tree/t0-endpoints.js` | Playground | the tree endpoint, assigning, undo, move |
+| `tree-view` | `tests/tree/tree-view.mjs` | local, from disk | the shared tree component: the draft by term id, the two states, the fold rule |
+| `folders-version` | `tests/tree/folders-version.php` | box | the folders version stamp, its route, and that the poll is one option read |
 | `ai-folders` | `tests/tree/ai-folders.php` | box | the AI group's counts and its join |
 | `ai-folders-ui` | `tests/tree/ai-folders.mjs` | Playground | whether the group can be used |
 | `auto-file` | `tests/tree/auto-file.php` | Playground | filing by itself, judged through the seam |
