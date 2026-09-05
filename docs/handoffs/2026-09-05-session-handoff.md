@@ -46,6 +46,15 @@ watch commits to `main` around 05:17 UTC: `git pull --rebase` before pushing.
 - Build and check through the harness; warn when a new session is warranted
   instead of relying on compaction.
 - Settings collapsed under chevrons.
+- Model profile: state the running model at the start of the phase and follow
+  the profile in the global CLAUDE.md. Phase 0 fits Opus 5.1 or Sonnet 5 (one
+  task at a time, gates after each); Phases 1–3 want Fable 5.1. The plan's
+  "Model per phase" paragraph says which.
+  Each model's needs, phase size and check cadence are in
+  `~/.claude/harness/model-profiles.md`; Phase 0 in the plan is written in
+  the Opus shape (Files, Behaviour, Proof, Mirror, Copy, Do not) as the
+  reference. Open a phase with the paste-in "Phase opener" at the end of
+  that file.
 - The launch pivot to marketing (Sept 3) is still on record; Nathan chose to
   continue product work knowingly.
 
