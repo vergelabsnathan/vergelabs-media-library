@@ -262,8 +262,68 @@ function vergeml_licence_page() {
             );
             echo vergeml_pg_card_close(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal markup.
         endif;
+
+        if ( ! $connected ) :
+            /*
+             *  Demo mode, here and nowhere else, and only while there is no
+             *  key. Invented captions are the way to see the shape of things
+             *  before connecting, which is a question about the licence, not
+             *  a setting on the AI screen -- "Try it free" was demo mode in a
+             *  strange place. The option written is the same `mock` flag.
+             *
+             *  With VERGEML_AI_MOCK defined the switch is on and cannot be
+             *  moved, and the line under it says why.
+             */
+            $forced = defined( 'VERGEML_AI_MOCK' );
+            $demo   = $forced || ! empty( $settings['mock'] );
+            ?>
+            <div class="vgml-section vgml-licence-demo">
+                <h6 class="vgml-kicker"><?php esc_html_e( 'Demo mode', 'vergelabs-media-library' ); ?></h6>
+                <label class="vgml-check">
+                    <input type="checkbox" id="vgml-demo-mode"<?php checked( $demo ); disabled( $forced ); ?>>
+                    <span><?php esc_html_e( 'Invent captions here. Send nothing, spend nothing.', 'vergelabs-media-library' ); ?></span>
+                </label>
+                <?php if ( $forced ) : ?>
+                    <p class="vgml-note"><?php esc_html_e( 'Demo mode is forced on by VERGEML_AI_MOCK in this site\'s configuration.', 'vergelabs-media-library' ); ?></p>
+                <?php endif; ?>
+            </div>
+            <?php
+            vergeml_licence_demo_script();
+        endif;
         ?>
 
     </div>
     <?php
+}
+
+
+/**
+ *  The switch saves itself through the AI settings route, which writes only
+ *  the flags it is sent. Enqueued from the screen rather than from a hook:
+ *  it exists on one screen, in one state of it, and a script queued while the
+ *  page renders is printed with the footer.
+ */
+function vergeml_licence_demo_script() {
+
+    wp_enqueue_script( 'wp-api-fetch' );
+
+    wp_add_inline_script( 'wp-api-fetch', '( function () {
+	var box = document.getElementById( "vgml-demo-mode" );
+	if ( ! box || box.disabled || ! window.wp || ! window.wp.apiFetch ) {
+		return;
+	}
+	box.addEventListener( "change", function () {
+		box.disabled = true;
+		window.wp.apiFetch( {
+			path: "/vergeml/v1/ai-settings",
+			method: "POST",
+			data: { mock: box.checked ? 1 : 0 }
+		} ).then( function () {
+			box.disabled = false;
+		} ).catch( function () {
+			box.disabled = false;
+			box.checked = ! box.checked;
+		} );
+	} );
+} )();' );
 }

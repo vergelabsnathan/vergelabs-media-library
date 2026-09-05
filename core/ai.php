@@ -2270,21 +2270,10 @@ function vergeml_ai_page() {
         );
 
         /*
-         *  Demo mode, labelled without euphemism. The captions it writes are
-         *  invented from filenames; a screen that let anyone mistake them for
-         *  a model's answer would be lying, and this plugin's whole argument
-         *  is that its numbers are counted.
+         *  Demo mode is not here. It is a question about the licence -- what
+         *  to do before there is one -- so it sits on the Licence screen,
+         *  only while no key is present (core/licence-page.php).
          */
-        $mock_help = defined( 'VERGEML_AI_MOCK' )
-            ? __( 'Demo mode — forced on by the VERGEML_AI_MOCK constant in this site\'s configuration; the switch cannot turn it off.', 'vergelabs-media-library' )
-            : __( 'Demo mode — invent captions here, send nothing, spend nothing.', 'vergelabs-media-library' );
-
-        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'Try it free', 'vergelabs-media-library' ),
-            '',
-            '<label class="vgml-check"><input type="checkbox" id="vgml-ai-mock"><span>' . esc_html( $mock_help )
-                . '</span></label>' . $help( 'mock' )
-        );
 
         echo '</div>'; // close the rows body before the save bar.
 
