@@ -3,21 +3,24 @@
 Phase 8, task 23. The session ran to the stop point the opener named — "a
 mock of the card before code" — and stopped there. **No plugin code was
 written.** What exists is the diagnosis, the mock, the spec and the copy
-table, all waiting on Nathan.
+table. Nathan approved the mock the same day and took all four decisions;
+they are recorded below and the build session works to them.
 
 For the next session, read in this order:
 
 1. `docs/superpowers/specs/2026-09-06-import-cards.md` — the contract:
-   what today's screen does wrong, the card, the three decisions, the copy
-   table, the defect, and what changes in which file.
+   what today's screen does wrong, the card, the copy table, the defect,
+   and what changes in which file. Its "Three decisions for Nathan" are
+   settled — read this handoff's "Taken by Nathan" for the answers.
 2. `docs/superpowers/mocks/2026-09-06-import-cards.html` — four boards.
    Board shots are in `docs/superpowers/mocks/shots/`.
-3. This handoff's "Waiting on Nathan" and "Found, not done".
+3. This handoff's "Taken by Nathan" and "Found, not done".
 4. `~/.claude/harness/model-profiles.md` — state the model, follow the
    profile. Phase 8 is written for the Opus profile.
 
-Plugin on `main`, nothing committed yet by this session (the files are
-untracked; see "What is on disk"). The service was not touched. The nightly
+Plugin on `main`, two commits from this session: the mock, spec and tools,
+then the decisions. Both pushed. No plugin code in either. The service was
+not touched. The nightly
 watch commits to `main` around 05:17 UTC: `git pull --rebase` before pushing.
 
 ## Taken by Nathan, 2026-09-06
@@ -86,7 +89,7 @@ from the import is the failure to avoid; this is that.
 
 ## What is on disk
 
-Untracked, nothing shipped (`tools/` and `docs/` are both excluded from the
+Committed, nothing shipped (`tools/` and `docs/` are both excluded from the
 deploy):
 
 - `docs/superpowers/specs/2026-09-06-import-cards.md`
