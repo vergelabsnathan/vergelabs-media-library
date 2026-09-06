@@ -90,6 +90,8 @@ const SUITES = [
 	{ name: 'brief', file: 'tests/tree/brief.php', env: 'box', php: true },
 	// Try a query: both searches for one phrase, each hit with its why. One embed call, not charged.
 	{ name: 'search-try', file: 'tests/tree/search-try.php', env: 'box', php: true },
+	// Look-alikes: keep this one (rewrite, then set aside), keep both, undo. Walked on two copies it makes and removes; spends nothing.
+	{ name: 'health-keep', file: 'tests/tree/health-keep.php', env: 'box', php: true },
 	/*
 	 *  The AI folders, in two halves for the usual reason. The PHP one is
 	 *  about the join and the counts and wants real MySQL -- Playground's

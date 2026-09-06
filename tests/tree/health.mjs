@@ -11,9 +11,16 @@
  */
 import { chromium } from 'playwright';
 
-const BASE = process.argv[ 2 ] ?? 'http://46.225.66.194';
-const USER = process.argv[ 3 ] ?? 'admin';
-const PASS = process.argv[ 4 ] ?? 'VgmlTest7pass';
+/*
+ *  Credentials as tests/ui takes them: UI_USER and UI_PASS, or the arguments.
+ *  tools/verify.mjs passes neither, so the defaults here were what it logged
+ *  in with, and on the box they logged in as nobody -- the suite timed out at
+ *  the dashboard for as long as those defaults were wrong (found 2026-09-06,
+ *  before Phase 6 touched the screen).
+ */
+const BASE = process.argv[ 2 ] ?? process.env.UI_BASE ?? 'http://46.225.66.194';
+const USER = process.argv[ 3 ] ?? process.env.UI_USER ?? 'admin';
+const PASS = process.argv[ 4 ] ?? process.env.UI_PASS ?? 'password';
 
 const results = [];
 const check = ( name, ok, detail = '' ) => {
@@ -33,8 +40,20 @@ page.on( 'pageerror', ( e ) => {
 } );
 
 await page.goto( `${ BASE }/wp-login.php`, { waitUntil: 'domcontentloaded' } );
+await page.waitForTimeout( 400 );
 await page.fill( '#user_login', USER );
 await page.fill( '#user_pass', PASS );
+
+// Jetpack's brute-force sum, when it is on the form (see tests/ui/fixtures.mjs).
+const puzzle = page.locator( 'input[name="jetpack_protect_num"]' );
+if ( await puzzle.count() ) {
+	const asked = await page.locator( 'label[for="jetpack_protect_answer"]' ).innerText();
+	const sum = /(\d+)\D+(\d+)/.exec( asked.replace( / /g, ' ' ) );
+	if ( sum ) {
+		await page.fill( '#jetpack_protect_answer', String( Number( sum[ 1 ] ) + Number( sum[ 2 ] ) ) );
+	}
+}
+
 await page.click( '#wp-submit' );
 await page.waitForTimeout( 2000 );
 
@@ -123,10 +142,10 @@ check( 'the button now offers a rescan', await page.evaluate( () =>
 	/again/i.test( document.getElementById( 'vgml-health-scan' ).textContent ) ) );
 
 const headings = await page.evaluate( () =>
-	[ ...document.querySelectorAll( '#vgml-health-report h2' ) ].map( ( h ) => h.textContent.trim() ) );
+	[ ...document.querySelectorAll( '#vgml-health-report .vgml-health-list > .vgml-health-list-head .vgml-kicker' ) ].map( ( h ) => h.textContent.trim() ) );
 
 check( 'the two lists are named separately', headings.length === 2
-	&& /duplicates/i.test( headings[ 0 ] ) && /related/i.test( headings[ 1 ] ), headings.join( ' | ' ) );
+	&& /duplicates/i.test( headings[ 0 ] ) && /look-alike/i.test( headings[ 1 ] ), headings.join( ' | ' ) );
 
 /* --- what it says ------------------------------------------------------------ */
 
@@ -136,8 +155,10 @@ const report = await page.evaluate( async () =>
 	await window.wp.apiFetch( { path: '/vergeml/v1/health-report' } ) );
 
 check( 'the endpoint says the library has been read', report.scanned === true );
-check( 'it found duplicate groups on the box', report.duplicates.groups.length > 0,
-	`${ report.duplicates.groups.length } groups` );
+// Whether the box holds byte-identical copies is the box's business (it
+// held 0 on 2026-09-06); the report answering with both lists is ours.
+check( 'it answers with both lists', Array.isArray( report.duplicates.groups ) && Array.isArray( report.related.groups ),
+	`${ report.duplicates.groups.length } duplicate sets, ${ report.related.groups.length } look-alike sets` );
 
 check( 'every group has at least two files', report.duplicates.groups
 	.concat( report.related.groups ).every( ( g ) => g.items.length > 1 ) );
@@ -151,7 +172,7 @@ check( 'the two lists share no file', ( () => {
 } )() );
 
 check( 'thumbnails were rendered', await page.evaluate( () =>
-	document.querySelectorAll( '.vgml-health-files img' ).length > 0 ) );
+	document.querySelectorAll( '.vgml-health-files img, .vgml-pair-pic img' ).length > 0 ) );
 
 // The thumbnails are lazy, which is the right call on a page that can carry a
 // few hundred of them -- so the page has to be walked before asking whether
@@ -166,25 +187,67 @@ await page.evaluate( async () => {
 await page.waitForTimeout( 2500 );
 
 const broken = await page.evaluate( () =>
-	[ ...document.querySelectorAll( '.vgml-health-files img' ) ]
+	[ ...document.querySelectorAll( '.vgml-health-files img, .vgml-pair-pic img' ) ]
 		.filter( ( i ) => ! i.complete || i.naturalWidth === 0 )
 		.map( ( i ) => i.src.split( '/' ).pop() ) );
 
 check( 'every thumbnail resolves to a real file', broken.length === 0,
 	broken.slice( 0, 3 ).join( ', ' ) );
 
-check( 'a total is shown', await page.evaluate( () =>
-	/\d/.test( document.getElementById( 'vgml-health-counts' ).textContent ) ),
-	await page.evaluate( () => document.getElementById( 'vgml-health-counts' ).textContent ) );
+// The numbers are the band under the head (Phase 4); the header's own line
+// says when the scan ran.
+check( 'the totals are shown in the band', await page.evaluate( () =>
+	! document.getElementById( 'vgml-health-band' ).hidden && /\d/.test( document.getElementById( 'vgml-health-n-sets' ).textContent ) ),
+	await page.evaluate( () => document.getElementById( 'vgml-health-band' ).textContent.replace( /\s+/g, ' ' ).trim() ) );
 
 // The space is described as what keeping one copy frees or gives back --
 // plain words for a real action -- and never as "reclaimed", which is the
 // cleaner-plugin word the voice rules keep out.
-check( 'wasted space is what keeping one copy frees, never reclaimed', await page.evaluate( () => {
+check( 'wasted space is what the extra copies hold or keeping one frees, never reclaimed', await page.evaluate( () => {
 	const wrap = document.querySelector( '.wrap.vgml-health' ) || document.querySelector( '.wrap' );
 	const text = wrap ? wrap.textContent : '';
-	return /\bfrees\b|get .{0,30}\bback\b|potentially recoverable/i.test( text ) && ! /\breclaim/i.test( text );
+	return /held by the extra copies|\bfrees\b|get .{0,30}\bback\b/i.test( text ) && ! /\breclaim/i.test( text );
 } ) );
+
+/*
+ *  --- the look-alikes ----------------------------------------------------------
+ *
+ *  Since Phase 6 a set is a card: the pictures side by side, four facts and
+ *  where each is used under each, Keep this one on each side with what it
+ *  sets aside in its label, Keep both and Open both in the foot. Nothing
+ *  here is pressed: a keep changes live pictures, and the walk of that runs
+ *  on copies in tests/tree/health-keep.php and tests/ui/health.spec.mjs.
+ */
+
+console.log( '\nthe look-alikes' );
+
+const cards = await page.evaluate( () =>
+	[ ...document.querySelectorAll( '.vgml-pair' ) ].map( ( card ) => ( {
+		n: Number( card.getAttribute( 'data-n' ) ),
+		sides: card.querySelectorAll( '.vgml-pair-side' ).length,
+		facts: [ ...card.querySelectorAll( '.vgml-pair-side' ) ].map( ( s ) => s.querySelectorAll( '.vgml-pair-facts li' ).length ),
+		keeps: [ ...card.querySelectorAll( '.vgml-pair-keep' ) ].map( ( b ) => b.textContent.trim() ),
+		foot: [ ...card.querySelectorAll( '.vgml-pair-foot .vgml-btn' ) ].map( ( b ) => b.textContent.trim() ),
+		deletes: card.querySelectorAll( '.vgml-health-act, .vgml-health-keep' ).length,
+	} ) ) );
+
+if ( report.related.groups.length ) {
+	check( 'every look-alike set is one card with a side per picture',
+		cards.length === report.related.groups.length && cards.every( ( c ) => c.sides === c.n && c.n >= 2 ),
+		`${ cards.length } cards` );
+	check( 'every side carries the four facts and where it is used',
+		cards.every( ( c ) => c.facts.every( ( f ) => f === 4 ) ) );
+	check( 'every Keep this one says what it sets aside, or why it cannot',
+		cards.every( ( c ) => c.keeps.length === c.n && c.keeps.every( ( t ) => /^Keep this one · .+ set aside$|^Keep this one · .+ rewritten, .+ set aside$|^Keep this one · usage not scanned$/.test( t ) ) ),
+		cards[ 0 ].keeps[ 0 ] );
+	check( 'the foot keeps both, or all, and opens them',
+		cards.every( ( c ) => c.foot.length === 2 && /^Keep (both|all \d+) · not shown again$/.test( c.foot[ 0 ] ) && /^Open (both|all \d+) ↗$/.test( c.foot[ 1 ] ) ),
+		cards[ 0 ].foot.join( ' | ' ) );
+	check( 'no look-alike card carries a delete control', cards.every( ( c ) => c.deletes === 0 ) );
+} else {
+	check( 'no look-alike sets on this box; the list says so', await page.evaluate( () =>
+		/Nothing else looked alike/.test( document.querySelector( '.vgml-health-list.is-related' ).textContent ) ) );
+}
 
 /*
  *  --- and what deleting takes ---------------------------------------------------
@@ -204,11 +267,14 @@ const controls = await page.evaluate( () => {
 	return [ ...wrap.querySelectorAll( '.vgml-health-act button' ) ].map( ( b ) => b.textContent.trim() );
 } );
 
-check( 'every delete control belongs to a duplicate set and says how many it would remove',
-	controls.length > 0 && controls.every( ( t ) => /delete the other/i.test( t ) ),
-	controls.slice( 0, 2 ).join( ' | ' ) );
+// A box with no byte-identical set has no delete control to hold to shape.
+const exact = report.duplicates.groups.length > 0;
 
-const armed = await page.evaluate( async () => {
+check( 'every delete control belongs to a duplicate set and says how many it would remove',
+	exact ? controls.length > 0 && controls.every( ( t ) => /delete the other/i.test( t ) ) : controls.length === 0,
+	exact ? controls.slice( 0, 2 ).join( ' | ' ) : 'no duplicate set on the box, no delete control drawn' );
+
+const armed = ! exact ? null : await page.evaluate( async () => {
 	const button = document.querySelector( '.vgml-health-act button' );
 	if ( ! button ) return null;
 	const before = document.querySelectorAll( '.vgml-health-files img' ).length;
@@ -223,11 +289,11 @@ const armed = await page.evaluate( async () => {
 	};
 } );
 
-check( 'the first press arms rather than deletes', !! armed && armed.stillThere && ( armed.armedClass || /choose which copy/i.test( armed.note ) ),
-	armed ? armed.label : 'no control' );
+check( 'the first press arms rather than deletes', ! exact || ( !! armed && armed.stillThere && ( armed.armedClass || /choose which copy/i.test( armed.note ) ) ),
+	armed ? armed.label : 'no duplicate set to arm' );
 
 check( 'the armed press says permanently, and that there is no undo',
-	!! armed && ( ! armed.armedClass || ( /permanently/i.test( armed.label ) && /no undo/i.test( armed.note ) ) ),
+	! exact || ( !! armed && ( ! armed.armedClass || ( /permanently/i.test( armed.label ) && /no undo/i.test( armed.note ) ) ) ),
 	armed ? armed.note.slice( 0, 80 ) : '' );
 
 /* --- the honest wording, where people meet it -------------------------------- */

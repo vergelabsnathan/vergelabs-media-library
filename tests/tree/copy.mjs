@@ -55,6 +55,14 @@ const STRUCK = [
 	[ 'Set once — it applies to every run above.', 'a note under a card title, explaining a settings form that is gone' ],
 	[ 'Not running.', 'a state with no number, said when nothing was asked' ],
 	[ 'Loading…', 'a placeholder where the server had the number' ],
+	/*
+	 *  Phase 6, the look-alike cards (docs/superpowers/copy/2026-09-06-phase-6-copy.md).
+	 */
+	[ 'Possibly related', 'a hedge for a heading, and no number' ],
+	[ 'we are not confident they are the same picture', 'a note explaining the list instead of stating it; "we"' ],
+	[ 'Nothing else looked similar.', 'the list is named look-alikes now' ],
+	[ 'Open in the library ↗', 'one control for a set that opened only its first file' ],
+	[ 'freed by keeping one of each', 'false once Keep this one sets aside instead of deleting' ],
 ];
 
 /*
@@ -103,6 +111,11 @@ const KEPT = [
 	[ 'core/ai-screen.php', 'On the picture itself: its alt text, only when empty' ],
 	[ 'core/brief.php', 'Nothing is written until the brief is used' ],
 	[ 'core/admin-shell.php', 'one describes one picture' ],
+	[ 'core/health.php', 'Look-alikes · %s sets' ],
+	[ 'core/health.php', 'Keep this one · %s set aside' ],
+	[ 'core/health.php', 'Keep both · not shown again' ],
+	[ 'core/health.php', 'held by the extra copies' ],
+	[ 'core/health-keep.php', 'could not be rewritten' ],
 ];
 
 for ( const [ file, text ] of KEPT ) {

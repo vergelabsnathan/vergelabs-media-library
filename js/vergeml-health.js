@@ -9,10 +9,14 @@
  *  lists is what makes that defensible:
  *
  *    Duplicates        byte-identical. Deleting one is provably lossless, so
- *                      this list has the controls.
- *    Possibly related  a 64-bit hash thinks they look alike. That is a guess,
- *                      and a guess never gets a delete button. This list draws
- *                      and nothing else, exactly as before.
+ *                      this list has the delete controls.
+ *    Look-alikes       a 64-bit hash thinks they look alike. That is a guess,
+ *                      and a guess never gets a delete button. Since Phase 6
+ *                      each set is a card: the pictures side by side, the four
+ *                      facts and where each is used, and Keep this one --
+ *                      which rewrites the other's pages to the kept file and
+ *                      sets the other aside (core/health-keep.php), never
+ *                      deletes -- Keep both, and Open both.
  *
  *  The browser suite asserts that separation rather than the absence of every
  *  control, because the separation is the actual safety property.
@@ -221,18 +225,421 @@
 
 			wrap.appendChild( deleteControls( entry ) );
 			entries.push( entry );
-		} else {
-			var first = group.items[ 0 ];
-			if ( first && first.edit ) {
-				var open = document.createElement( 'a' );
-				open.className = 'vgml-btn vgml-btn-ghost vgml-health-open';
-				open.href = first.edit;
-				open.textContent = text( 'openLibrary', 'Open in the library ↗' );
-				wrap.appendChild( open );
-			}
 		}
 
 		return wrap;
+	}
+
+
+	/* ------------------------------------------------------- the look-alikes */
+
+	/*
+	 *  A set per card. The pictures side by side at a size a person can judge;
+	 *  under each the catalogue title, the file name, the four facts and where
+	 *  it is used; then the controls, each with its consequence in the label
+	 *  (spec section 4.1). Done is one line where the card was (4.3), with
+	 *  Undo for a day and a link to the Set aside list the file went to.
+	 */
+
+	function whenText( ts ) {
+
+		var d = new Date( ts * 1000 );
+		var now = new Date();
+		var time = d.toLocaleTimeString( undefined, { hour: '2-digit', minute: '2-digit' } );
+		var day = d.toDateString();
+
+		if ( day === now.toDateString() ) {
+			return sprintf( text( 'today', 'today %s' ), [ time ] );
+		}
+		if ( day === new Date( now.getTime() + 86400000 ).toDateString() ) {
+			return sprintf( text( 'tomorrow', 'tomorrow %s' ), [ time ] );
+		}
+		return d.toLocaleDateString( undefined, { day: 'numeric', month: 'long' } ) + ' ' + time;
+	}
+
+	function pageCount( n ) {
+		return sprintf( 1 === n ? text( 'pageOne', '%s page' ) : text( 'pageMany', '%s pages' ), [ String( n ) ] );
+	}
+
+	/* Where a file is used, named and linked; or that nothing was found; or that nobody has looked. */
+	function usesLine( item, scanned ) {
+
+		var li = el( 'li' );
+
+		if ( ! scanned ) {
+			li.className = 'is-dim';
+			li.textContent = text( 'usesUnknown', 'Usage not scanned' );
+			return li;
+		}
+
+		var uses = item.used_in || [];
+
+		if ( ! uses.length ) {
+			li.textContent = text( 'notUsed', 'Not used in a post, page, layout or widget' );
+			return li;
+		}
+
+		li.appendChild( document.createTextNode( usesLabel( uses.length ) + ' · ' ) );
+
+		uses.forEach( function ( use, i ) {
+			if ( i ) {
+				li.appendChild( document.createTextNode( ' · ' ) );
+			}
+			var node;
+			if ( use.edit ) {
+				node = document.createElement( 'a' );
+				node.href = use.edit;
+			} else {
+				node = el( 'span' );
+			}
+			node.textContent = use.title;
+			li.appendChild( node );
+			if ( use.type ) {
+				li.appendChild( el( 'small', 'vgml-pair-type', use.type ) );
+			}
+		} );
+
+		return li;
+	}
+
+	/* One picture of a set, with its facts and its Keep this one. */
+	function drawSide( item, others, scanned, onKeep ) {
+
+		var side = el( 'div', 'vgml-pair-side' );
+
+		var pic = document.createElement( 'a' );
+		pic.className = 'vgml-pair-pic';
+		pic.href = item.edit || '#';
+
+		if ( item.large || item.thumb ) {
+			var img = document.createElement( 'img' );
+			img.src = item.large || item.thumb;
+			img.alt = '';
+			img.loading = 'lazy';
+			pic.appendChild( img );
+		} else {
+			pic.appendChild( el( 'span', 'vgml-health-nothumb', item.mime || '' ) );
+		}
+
+		side.appendChild( pic );
+		side.appendChild( el( 'div', 'vgml-pair-title', item.title || item.name || ( '#' + item.id ) ) );
+		side.appendChild( el( 'div', 'vgml-pair-file', item.name || '' ) );
+
+		var facts = el( 'ul', 'vgml-facts vgml-pair-facts' );
+		facts.appendChild( el( 'li', null,
+			( item.width && item.height ? Number( item.width ).toLocaleString() + ' × ' + Number( item.height ).toLocaleString() + ' · ' : '' ) + bytes( item.bytes ) ) );
+		if ( item.date ) {
+			facts.appendChild( el( 'li', null, item.date ) );
+		}
+		facts.appendChild( el( 'li', null, item.folder || text( 'noFolder', 'No folder' ) ) );
+		facts.appendChild( usesLine( item, scanned ) );
+		side.appendChild( facts );
+
+		var keep = document.createElement( 'button' );
+		keep.type = 'button';
+		keep.className = 'vgml-btn vgml-pair-keep';
+
+		if ( ! scanned ) {
+			keep.disabled = true;
+			keep.textContent = text( 'keepUnscan', 'Keep this one · usage not scanned' );
+		} else {
+			// The pages the button will rewrite: the others' uses that are
+			// posts. The site's own settings are not rewritten, and the
+			// answer says so if that is where a file is used.
+			var pages = 0;
+			others.forEach( function ( o ) {
+				( o.used_in || [] ).forEach( function ( use ) {
+					if ( use.id > 0 ) {
+						pages++;
+					}
+				} );
+			} );
+			var what = 1 === others.length ? others[ 0 ].name : String( others.length );
+			keep.textContent = pages
+				? sprintf( text( 'keepOneRw', 'Keep this one · %1$s rewritten, %2$s set aside' ), [ pageCount( pages ), what ] )
+				: sprintf( text( 1 === others.length ? 'keepOne' : 'keepOneOf', 'Keep this one · %s set aside' ), [ what ] );
+		}
+
+		keep.addEventListener( 'click', function () {
+			onKeep( keep );
+		} );
+
+		side.appendChild( keep );
+
+		return side;
+	}
+
+	function drawPair( group, scanned ) {
+
+		var wrap = el( 'div', 'vgml-pair' );
+		wrap.setAttribute( 'data-n', String( group.items.length ) );
+
+		var busy = false;
+		var ids = group.items.map( function ( o ) { return o.id; } );
+
+		/* The card becomes one line, with what to press next beside it. */
+		function done( line, links ) {
+			wrap.className = 'vgml-pair is-done';
+			wrap.innerHTML = '';
+			var p = el( 'p', 'vgml-pair-line' );
+			p.appendChild( document.createTextNode( line ) );
+			( links || [] ).forEach( function ( link ) {
+				p.appendChild( document.createTextNode( ' · ' ) );
+				p.appendChild( link );
+			} );
+			wrap.appendChild( p );
+			return p;
+		}
+
+		function link( label, run ) {
+			var a = document.createElement( 'a' );
+			a.href = '#';
+			a.className = 'vgml-pair-undo';
+			a.textContent = label;
+			a.addEventListener( 'click', function ( e ) {
+				e.preventDefault();
+				run( a );
+			} );
+			return a;
+		}
+
+		function undoOf( path, data ) {
+			return function ( a ) {
+				a.textContent = text( 'working', 'Working…' );
+				apiFetch( { path: path, method: 'POST', data: data } ).then( function ( u ) {
+					done( u.line, [] );
+					report();
+				} ).catch( function ( err ) {
+					a.textContent = ( err && err.message ) || text( 'failed', '' );
+				} );
+			};
+		}
+
+		function asideLink() {
+			var a = document.createElement( 'a' );
+			a.href = '#vgml-quarantine-list';
+			a.className = 'vgml-pair-aside';
+			a.textContent = text( 'asideLink', 'Set aside ↓' );
+			a.addEventListener( 'click', function () {
+				var show = $( 'vgml-quarantine-refresh' );
+				if ( show ) {
+					show.click();
+				}
+			} );
+			return a;
+		}
+
+		function failed( button, label, err ) {
+			busy = false;
+			button.disabled = false;
+			button.textContent = label;
+			var note = wrap.querySelector( '.vgml-pair-note' ) || wrap.appendChild( el( 'p', 'vgml-pair-note' ) );
+			note.textContent = ( err && err.message ) || text( 'failed', '' );
+		}
+
+		var sides = el( 'div', 'vgml-pair-sides' );
+
+		group.items.forEach( function ( item ) {
+
+			var others = group.items.filter( function ( o ) { return o.id !== item.id; } );
+
+			sides.appendChild( drawSide( item, others, scanned, function ( button ) {
+
+				if ( busy ) {
+					return;
+				}
+				busy = true;
+
+				var label = button.textContent;
+				button.disabled = true;
+				button.textContent = text( 'working', 'Working…' );
+
+				apiFetch( {
+					path: '/vergeml/v1/health-keep',
+					method: 'POST',
+					data: { keep: item.id, drop: others.map( function ( o ) { return o.id; } ) },
+				} ).then( function ( r ) {
+					var links = [ link(
+						sprintf( text( 'undoUntil', 'Undo until %s' ), [ whenText( r.undo.until ) ] ),
+						undoOf( '/vergeml/v1/health-keep-undo', { token: r.undo.token } )
+					) ];
+					if ( r.aside && r.aside.length ) {
+						links.push( asideLink() );
+					}
+					done( r.line, links );
+				} ).catch( function ( err ) {
+					failed( button, label, err );
+				} );
+			} ) );
+		} );
+
+		wrap.appendChild( sides );
+
+		var foot = el( 'div', 'vgml-pair-foot' );
+
+		var both = document.createElement( 'button' );
+		both.type = 'button';
+		both.className = 'vgml-btn vgml-pair-both';
+		both.textContent = 2 === ids.length
+			? text( 'keepBoth', 'Keep both · not shown again' )
+			: sprintf( text( 'keepAll', 'Keep all %s · not shown again' ), [ String( ids.length ) ] );
+
+		both.addEventListener( 'click', function () {
+
+			if ( busy ) {
+				return;
+			}
+			busy = true;
+
+			var label = both.textContent;
+			both.disabled = true;
+			both.textContent = text( 'working', 'Working…' );
+
+			apiFetch( { path: '/vergeml/v1/health-retire', method: 'POST', data: { ids: ids } } ).then( function ( r ) {
+				done( r.line, [ link( text( 'undo', 'Undo' ), undoOf( '/vergeml/v1/health-retire', { ids: ids, undo: true } ) ) ] );
+			} ).catch( function ( err ) {
+				failed( both, label, err );
+			} );
+		} );
+
+		foot.appendChild( both );
+
+		/*
+		 *  One tab per file. A browser that allows one window per click
+		 *  leaves the rest for a second press, and the button says which
+		 *  file that press opens.
+		 */
+		var openable = group.items.filter( function ( o ) { return !! o.edit; } );
+		var pending = [];
+		var allLabel = 2 === ids.length
+			? text( 'openBoth', 'Open both ↗' )
+			: sprintf( text( 'openAll', 'Open all %s ↗' ), [ String( ids.length ) ] );
+
+		var open = document.createElement( 'a' );
+		open.className = 'vgml-btn vgml-pair-open';
+		open.href = openable.length ? openable[ 0 ].edit : '#';
+		open.target = '_blank';
+		open.textContent = allLabel;
+
+		open.addEventListener( 'click', function ( e ) {
+			e.preventDefault();
+			if ( ! pending.length ) {
+				pending = openable.slice();
+			}
+			while ( pending.length ) {
+				var w = window.open( pending[ 0 ].edit, '_blank' );
+				if ( ! w ) {
+					break;
+				}
+				pending.shift();
+			}
+			if ( pending.length && pending.length < openable.length ) {
+				open.textContent = sprintf( text( 'openOne', 'Open %s ↗' ), [ pending[ 0 ].name ] );
+				open.href = pending[ 0 ].edit;
+			} else {
+				open.textContent = allLabel;
+				open.href = openable.length ? openable[ 0 ].edit : '#';
+			}
+		} );
+
+		if ( openable.length ) {
+			foot.appendChild( open );
+		}
+
+		wrap.appendChild( foot );
+
+		return wrap;
+	}
+
+	/*
+	 *  Without the usage scan, which pages show a picture is unknown, and a
+	 *  file on the home page could be set aside with nothing rewritten. The
+	 *  Keep buttons say so; this runs the scan from here.
+	 */
+	function usageControl() {
+
+		var wrap = el( 'div', 'vgml-pairs-unscanned' );
+
+		var facts = el( 'ul', 'vgml-facts' );
+		facts.appendChild( el( 'li', null, text( 'unscannedLine', '' ) ) );
+		wrap.appendChild( facts );
+
+		var go = document.createElement( 'button' );
+		go.type = 'button';
+		go.className = 'vgml-btn';
+		go.textContent = text( 'scanUsage', 'Scan usage' );
+
+		go.addEventListener( 'click', function () {
+
+			go.disabled = true;
+
+			( function step( resume ) {
+				apiFetch( { path: '/vergeml/v1/smart-scan', method: 'POST', data: resume ? { resume: resume } : {} } ).then( function ( res ) {
+					if ( ! res.complete && res.resume ) {
+						go.textContent = sprintf( text( 'scanningUse', 'Scanning usage · %1$s of %2$s' ), [ String( res.done || 0 ), String( res.total || 0 ) ] );
+						step( res.resume );
+						return;
+					}
+					report();
+				} ).catch( function ( err ) {
+					go.disabled = false;
+					go.textContent = ( err && err.message ) || text( 'failed', '' );
+				} );
+			} )( null );
+		} );
+
+		wrap.appendChild( go );
+
+		return wrap;
+	}
+
+	function drawPairs( section, scanned ) {
+
+		var card = el( 'section', 'vgml-health-list is-related' );
+		var head = el( 'div', 'vgml-health-list-head vgml-pairs-head' );
+		var n = section.groups.length + ( section.more || 0 );
+
+		head.appendChild( el( 'h6', 'vgml-kicker', n
+			? sprintf( 1 === n ? text( 'relatedOne', 'Look-alikes · %s set' ) : text( 'relatedMany', 'Look-alikes · %s sets' ), [ String( n ) ] )
+			: text( 'related', 'Look-alikes' ) ) );
+
+		if ( section.groups.length ) {
+			var facts = el( 'ul', 'vgml-facts vgml-pairs-facts' );
+			( l10n.relatedFacts || [] ).forEach( function ( fact ) {
+				facts.appendChild( el( 'li', null, fact ) );
+			} );
+			head.appendChild( facts );
+		}
+
+		card.appendChild( head );
+
+		if ( ! section.groups.length ) {
+			card.appendChild( el( 'div', 'vgml-health-empty', text( 'noRelated', 'Nothing else looked alike.' ) ) );
+			return card;
+		}
+
+		var body = el( 'div', 'vgml-pg-card-body' );
+
+		if ( ! scanned ) {
+			body.appendChild( usageControl() );
+		}
+
+		var list = el( 'div', 'vgml-pairs' );
+
+		section.groups.forEach( function ( group ) {
+			list.appendChild( drawPair( group, scanned ) );
+		} );
+
+		body.appendChild( list );
+
+		if ( section.more > 0 ) {
+			body.appendChild( el( 'p', 'vgml-health-more',
+				sprintf( text( 'moreSets', '…and %s more sets, listed in the media library view.' ), [ String( section.more ) ] ) ) );
+		}
+
+		card.appendChild( body );
+
+		return card;
 	}
 
 
@@ -647,13 +1054,9 @@
 				true // byte-identical: deleting one is provably lossless
 			) );
 
-			target.appendChild( drawList(
-				text( 'related', 'Possibly related — worth your own eye' ),
-				text( 'relatedNote', '' ),
-				text( 'noRelated', '' ),
-				r.related,
-				false // a guess, and a guess never gets a delete button
-			) );
+			// A guess, and a guess never gets a delete button: the cards keep
+			// this one by setting the other aside, or keep both.
+			target.appendChild( drawPairs( r.related, !! r.uses_scanned ) );
 
 			$( 'vgml-health-note' ).textContent = '';
 			$( 'vgml-health-scan' ).textContent = text( 'rescan', 'Scan again' );

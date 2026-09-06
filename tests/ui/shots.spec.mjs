@@ -90,6 +90,20 @@ for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 			await expect( page.locator( '.vgml-ai-table tr' ) ).toHaveCount( 4 );
 			await expect( page.locator( '#vgml-ai-enrich' ) ).toHaveCount( 1 );
 		}
+		if ( name === 'duplicates' ) {
+			// The report draws after the page; a look-alike set is one card with a side per picture.
+			await expect( page.locator( '.vgml-health-list.is-related' ) ).toBeVisible( { timeout: 30000 } );
+			const cards = page.locator( '.vgml-pair' );
+			if ( await cards.count() ) {
+				const first = cards.first();
+				await expect( first.locator( '.vgml-pair-side' ) ).toHaveCount( Number( await first.getAttribute( 'data-n' ) ) );
+				await expect( first.locator( '.vgml-pair-side' ).first().locator( '.vgml-pair-facts li' ) ).toHaveCount( 4 );
+				await expect( first.locator( '.vgml-pair-keep' ).first() ).toHaveText( /^Keep this one · /, { useInnerText: true } );
+				await expect( first.locator( '.vgml-pair-foot .vgml-btn' ) ).toHaveCount( 2 );
+			}
+			await expect( page.locator( '.vgml-health-band' ) ).toContainText( 'held by the extra copies' );
+			await expect( page.locator( '#vgml-health-report .vgml-health-open' ) ).toHaveCount( 0 );
+		}
 		if ( name === 'library' ) {
 			// Share library counts: the switch and its three lines live here, and nowhere else.
 			await expect( page.locator( '#vgml-stats-opt' ) ).toHaveCount( 1 );

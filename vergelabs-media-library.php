@@ -1521,6 +1521,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/rename-file.php' );
         // After health.php: the report asks it which copy to keep.
         include_once( 'core/health-delete.php' );
+        // Look-alikes: keep this one (rewrite, then set aside) and keep both.
+        // After quarantine.php, which it sets aside with, and health-delete.php,
+        // whose id repointing it shares.
+        include_once( 'core/health-keep.php' );
         // After librarian.php and search-meaning.php: it borrows the folder
         // taxonomy from one and the embedding call from the other.
         include_once( 'core/folder-talk.php' );

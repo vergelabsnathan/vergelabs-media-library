@@ -313,3 +313,47 @@ when the setting applies; this screen has no save bar, because the brief has
 its own control and a second Save beside it would be two saves on one tab.
 Page context sits on How it describes; the search switch on Search — each
 where the thing it changes is explained.
+
+## 13. Look-alikes, approved 2026-09-06
+
+Mock: `docs/superpowers/mocks/2026-09-06-duplicates-pairs.html`, two boards,
+the box's own 22 sets. Approved by Nathan on 2026-09-06 as drawn, with two
+additions taken on advice: the band's third cell and a `Set aside ↓` link on
+the done line.
+
+**A set per card.** The Duplicates screen's second list ("Possibly related")
+becomes `Look-alikes · 22 sets`: one card per set, the pictures side by side
+at a size a person can judge, under each the catalogue title, the file name,
+and a brand-mark list of the four facts — dimensions · size, date, folder,
+where used (pages named, linked, with their type). A set of three or four is
+one card with a side per picture. No side is proposed as the keeper: the
+scan's claim is only that they look alike, and only the person can tell.
+
+**Bin is Set aside.** "Keep this one" never deletes. It rewrites every page
+that shows the other picture to the kept file — each URL at the kept file's
+nearest size, the block's id and image class, the featured image — verifies
+with the usage scan's own extractor that the page no longer refers to it, and
+then sets it aside (`core/quarantine.php`: a mark, the file on disk and at its
+URL for 30 days, taken back with one press). A use the rewrite cannot reach
+(the site's own settings; a serialised layout whose text length would change)
+leaves that file where it is, and the line says which use and where. Not
+WordPress trash (off on every default site, and a trashed attachment has no
+screen without it), not the exact-copies delete (lossy on a look-alike).
+
+**The labels carry the consequence** (§4.1): `Keep this one · Slide2.jpg set
+aside`, `Keep this one · 1 page rewritten, Slide2.jpg set aside`, `Keep this
+one · usage not scanned` (disabled, with `Scan usage · posts, pages, layouts,
+widgets` above the cards), `Keep both · not shown again`, `Open both ↗` (one
+tab per file; a browser that allows one tab per click leaves the rest for a
+second press, and the button says which file). Done is one line where the card
+was (§4.3): `01.jpg kept · Slide2.jpg set aside for 30 days · Undo until
+tomorrow 10:14 · Set aside ↓`. Undo lasts a day and puts the pages back only
+while they still read as this wrote them. "Keep both" writes the pair into a
+kept list the report skips; its Undo brings the set back.
+
+**The band's third cell** reads `held by the extra copies`: "freed by keeping
+one of each" stopped being true the moment Keep this one set aside instead of
+deleting.
+
+**Left as it was**: the "Files you have taken out of the library" card at the
+foot and its paragraph; the exact-duplicates list and its delete.

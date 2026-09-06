@@ -916,6 +916,19 @@ function vergeml_health_files( $ids ) {
     $uploads = wp_get_upload_dir();
     $out     = array();
 
+    // The folder each file sits in: one query for the whole set.
+    $folders = array();
+    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+
+    if ( taxonomy_exists( $tax ) ) {
+        $terms = wp_get_object_terms( $ids, $tax, array( 'fields' => 'all_with_object_id' ) );
+        if ( ! is_wp_error( $terms ) ) {
+            foreach ( $terms as $term ) {
+                $folders[ (int) $term->object_id ][] = $term->name;
+            }
+        }
+    }
+
     foreach ( (array) $posts as $post ) {
 
         $id   = (int) $post->ID;
@@ -923,13 +936,23 @@ function vergeml_health_files( $ids ) {
 
         $relative = isset( $meta['_wp_attached_file'] ) ? (string) $meta['_wp_attached_file'] : '';
         $attached = maybe_unserialize( isset( $meta['_wp_attachment_metadata'] ) ? $meta['_wp_attachment_metadata'] : '' );
+        $is_image = '' !== $relative && 0 === strpos( (string) $post->post_mime_type, 'image/' );
+        $dir      = trailingslashit( $uploads['baseurl'] ) . trailingslashit( dirname( $relative ) );
 
         $thumb = '';
+        $large = '';
 
         if ( is_array( $attached ) && ! empty( $attached['sizes']['thumbnail']['file'] ) ) {
-            $thumb = trailingslashit( $uploads['baseurl'] ) . trailingslashit( dirname( $relative ) ) . $attached['sizes']['thumbnail']['file'];
-        } elseif ( '' !== $relative && 0 === strpos( (string) $post->post_mime_type, 'image/' ) ) {
+            $thumb = $dir . $attached['sizes']['thumbnail']['file'];
+        } elseif ( $is_image ) {
             $thumb = trailingslashit( $uploads['baseurl'] ) . $relative;
+        }
+
+        // The look-alike card shows the picture at a size a person can judge.
+        if ( is_array( $attached ) && ! empty( $attached['sizes']['large']['file'] ) ) {
+            $large = $dir . $attached['sizes']['large']['file'];
+        } elseif ( $is_image ) {
+            $large = trailingslashit( $uploads['baseurl'] ) . $relative;
         }
 
         // The size index the usage scan keeps, when it has run; the file
@@ -947,8 +970,15 @@ function vergeml_health_files( $ids ) {
             'name'  => '' !== $relative ? wp_basename( $relative ) : '',
             'mime'  => (string) $post->post_mime_type,
             'thumb' => $thumb,
+            'large' => $large,
             'bytes' => $bytes,
             'edit'  => get_edit_post_link( $id, 'raw' ),
+
+            // The four facts a look-alike card carries beside where it is used.
+            'width'  => ( is_array( $attached ) && isset( $attached['width'] ) ) ? (int) $attached['width'] : 0,
+            'height' => ( is_array( $attached ) && isset( $attached['height'] ) ) ? (int) $attached['height'] : 0,
+            'date'   => mysql2date( 'j F Y', $post->post_date ),
+            'folder' => isset( $folders[ $id ] ) ? implode( ' / ', $folders[ $id ] ) : '',
         );
     }
 
@@ -995,7 +1025,23 @@ function vergeml_health_report() {
         }
     }
 
-    $split = vergeml_health_near_pairs( vergeml_health_dhash_pairs(), $seen );
+    // A pair the person kept both of is not a finding any more.
+    if ( function_exists( 'vergeml_health_kept_pairs' ) ) {
+        foreach ( array_keys( vergeml_health_kept_pairs() ) as $key ) {
+            $seen[ $key ] = true;
+        }
+    }
+
+    $hashes = vergeml_health_dhash_pairs();
+
+    // A file set aside is out of the library, so its look-alike stands alone.
+    if ( function_exists( 'vergeml_health_aside_ids' ) ) {
+        foreach ( vergeml_health_aside_ids() as $aside ) {
+            unset( $hashes[ $aside ] );
+        }
+    }
+
+    $split = vergeml_health_near_pairs( $hashes, $seen );
 
     /*
      *  Duplicates are byte-identical. Nothing else.
@@ -1081,6 +1127,12 @@ function vergeml_health_report() {
                         ? vergeml_health_used_count( $id )
                         : -1;
 
+                    // And which places, named: what a look-alike card shows
+                    // and what Keep this one rewrites.
+                    $item['used_in'] = function_exists( 'vergeml_health_uses_of' )
+                        ? vergeml_health_uses_of( $id )
+                        : array();
+
                     $items[] = $item;
                     $sizes[] = (int) $item['bytes'];
                     $live[]  = (int) $id;
@@ -1116,9 +1168,12 @@ function vergeml_health_report() {
     $built_related    = $build( $shown_related );
 
     return array(
-        'scanned'    => ! empty( $state['finished'] ),
-        'finished'   => isset( $state['finished'] ) ? (int) $state['finished'] : 0,
-        'duplicates' => array(
+        'scanned'      => ! empty( $state['finished'] ),
+        'finished'     => isset( $state['finished'] ) ? (int) $state['finished'] : 0,
+        // Whether "used nowhere" means anything: without the usage scan the
+        // look-alike cards cannot offer Keep this one, and say why.
+        'uses_scanned' => function_exists( 'vergeml_health_uses_scanned' ) && vergeml_health_uses_scanned(),
+        'duplicates'   => array(
             'groups' => $built_duplicates['groups'],
             'more'   => max( 0, count( $duplicates ) - count( $shown_duplicates ) ),
             'wasted' => $built_duplicates['wasted'],
@@ -1228,7 +1283,6 @@ function vergeml_health_assets( $hook ) {
             'scan'         => __( 'Scan the library', 'vergelabs-media-library' ),
             'rescan'       => __( 'Scan again', 'vergelabs-media-library' ),
             'scannedNow'   => __( 'Scanned just now.', 'vergelabs-media-library' ),
-            'openLibrary'  => __( 'Open in the library ↗', 'vergelabs-media-library' ),
             /* translators: 1: how many files, 2: an amount of disk */
             'setLine'      => __( '%1$s · keep one and get %2$s back', 'vergelabs-media-library' ),
             /* translators: %s: how many more sets */
@@ -1240,11 +1294,61 @@ function vergeml_health_assets( $hook ) {
             'failed'       => __( 'That did not work, and nothing was changed.', 'vergelabs-media-library' ),
             'never'        => __( 'We have not compared your files yet. Comparing them changes nothing — we only look.', 'vergelabs-media-library' ),
             'duplicates'   => __( 'Duplicates', 'vergelabs-media-library' ),
-            'related'      => __( 'Possibly related', 'vergelabs-media-library' ),
             'noDuplicates' => __( 'None found. Only byte-identical files can be deleted from here, because only those delete without losing anything.', 'vergelabs-media-library' ),
-            'noRelated'    => __( 'Nothing else looked similar.', 'vergelabs-media-library' ),
             'dupeNote'     => __( 'Identical files. Deleting one of these loses nothing.', 'vergelabs-media-library' ),
-            'relatedNote'  => __( 'These look similar; we are not confident they are the same picture. Nothing here has a delete button, by design.', 'vergelabs-media-library' ),
+
+            /*
+             *  Look-alikes: a set per card, the pictures side by side, the
+             *  four facts and where each is used, and the three controls.
+             *  Every label carries what it does (spec §4.1); the done state
+             *  is one line where the card was (§4.3).
+             */
+            /* translators: %s: how many sets. */
+            'relatedOne'   => __( 'Look-alikes · %s set', 'vergelabs-media-library' ),
+            /* translators: %s: how many sets. */
+            'relatedMany'  => __( 'Look-alikes · %s sets', 'vergelabs-media-library' ),
+            'related'      => __( 'Look-alikes', 'vergelabs-media-library' ),
+            'noRelated'    => __( 'Nothing else looked alike.', 'vergelabs-media-library' ),
+            'relatedFacts' => array(
+                __( 'Alike to the scan, not the same file · only you can tell', 'vergelabs-media-library' ),
+                __( 'Keep this one sets the other aside and rewrites its pages to the one kept', 'vergelabs-media-library' ),
+                /* translators: %d: how many days a file waits. */
+                sprintf( __( 'Set aside is not deleted · on disk and at its address for %d days, taken back with one press', 'vergelabs-media-library' ), defined( 'VERGEML_QUARANTINE_DAYS' ) ? VERGEML_QUARANTINE_DAYS : 30 ),
+            ),
+            'noFolder'     => __( 'No folder', 'vergelabs-media-library' ),
+            'notUsed'      => __( 'Not used in a post, page, layout or widget', 'vergelabs-media-library' ),
+            /* translators: %s: a file name. */
+            'keepOne'      => __( 'Keep this one · %s set aside', 'vergelabs-media-library' ),
+            /* translators: %s: how many files. */
+            'keepOneOf'    => __( 'Keep this one · %s set aside', 'vergelabs-media-library' ),
+            /* translators: 1: "1 page" or "N pages", 2: a file name or a count. */
+            'keepOneRw'    => __( 'Keep this one · %1$s rewritten, %2$s set aside', 'vergelabs-media-library' ),
+            /* translators: %s: how many pages. */
+            'pageOne'      => __( '%s page', 'vergelabs-media-library' ),
+            /* translators: %s: how many pages. */
+            'pageMany'     => __( '%s pages', 'vergelabs-media-library' ),
+            'keepUnscan'   => __( 'Keep this one · usage not scanned', 'vergelabs-media-library' ),
+            'keepBoth'     => __( 'Keep both · not shown again', 'vergelabs-media-library' ),
+            /* translators: %s: how many files. */
+            'keepAll'      => __( 'Keep all %s · not shown again', 'vergelabs-media-library' ),
+            'openBoth'     => __( 'Open both ↗', 'vergelabs-media-library' ),
+            /* translators: %s: how many files. */
+            'openAll'      => __( 'Open all %s ↗', 'vergelabs-media-library' ),
+            /* translators: %s: a file name. */
+            'openOne'      => __( 'Open %s ↗', 'vergelabs-media-library' ),
+            /* translators: %s: when the undo ends, e.g. "tomorrow 10:14". */
+            'undoUntil'    => __( 'Undo until %s', 'vergelabs-media-library' ),
+            'undo'         => __( 'Undo', 'vergelabs-media-library' ),
+            'asideLink'    => __( 'Set aside ↓', 'vergelabs-media-library' ),
+            'working'      => __( 'Working…', 'vergelabs-media-library' ),
+            'unscannedLine' => __( 'Usage not scanned · which pages show a picture decides what Keep this one rewrites', 'vergelabs-media-library' ),
+            'scanUsage'    => __( 'Scan usage · posts, pages, layouts, widgets', 'vergelabs-media-library' ),
+            /* translators: 1: how many done, 2: how many in all. */
+            'scanningUse'  => __( 'Scanning usage · %1$s of %2$s', 'vergelabs-media-library' ),
+            /* translators: %s: a time, e.g. 13:52 */
+            'today'        => __( 'today %s', 'vergelabs-media-library' ),
+            /* translators: %s: a time, e.g. 13:52 */
+            'tomorrow'     => __( 'tomorrow %s', 'vergelabs-media-library' ),
             /* translators: %s: a formatted file size, e.g. "4.2 MB". */
             /* translators: %s: disk space, e.g. "182.7 KB". */
             'groupWasted'  => __( 'Keep one, delete the rest, and you get %s back', 'vergelabs-media-library' ),
@@ -1342,7 +1446,7 @@ function vergeml_health_page() {
         <div class="vgml-health-band" id="vgml-health-band" hidden>
             <div class="vgml-health-cell"><span class="vgml-health-n" id="vgml-health-n-exact">0</span><span class="vgml-band-l"><?php esc_html_e( 'exact copies', 'vergelabs-media-library' ); ?></span></div>
             <div class="vgml-health-cell"><span class="vgml-health-n" id="vgml-health-n-sets">0</span><span class="vgml-band-l"><?php esc_html_e( 'look-alike sets', 'vergelabs-media-library' ); ?></span></div>
-            <div class="vgml-health-cell"><span class="vgml-health-n" id="vgml-health-n-freed">0</span><span class="vgml-band-l"><?php esc_html_e( 'freed by keeping one of each', 'vergelabs-media-library' ); ?></span></div>
+            <div class="vgml-health-cell"><span class="vgml-health-n" id="vgml-health-n-freed">0</span><span class="vgml-band-l"><?php esc_html_e( 'held by the extra copies', 'vergelabs-media-library' ); ?></span></div>
         </div>
 
         <div id="vgml-health-report"></div>

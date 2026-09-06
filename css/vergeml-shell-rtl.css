@@ -3253,6 +3253,156 @@ body.vgml-screen #wpbody-content {
 .vgml-shell .vgml-health-picklabel {
 	display: inline-flex;
 }
+/* Look-alikes: a set per card, the pictures side by side (Phase 6). */
+.vgml-shell .vgml-pairs-head {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 6px 40px;
+	align-items: start;
+	margin-bottom: 14px;
+}
+.vgml-shell .vgml-pairs-head .vgml-kicker {
+	margin: 0;
+}
+.vgml-shell .vgml-pairs-facts {
+	margin: 0;
+	font-size: 14px;
+	color: var(--vgml-ink);
+}
+.vgml-shell .vgml-pairs-unscanned {
+	display: grid;
+	gap: 10px;
+	margin-bottom: 14px;
+}
+.vgml-shell .vgml-pairs-unscanned .vgml-facts {
+	margin: 0;
+	font-size: 14px;
+	color: var(--vgml-ink);
+}
+.vgml-shell .vgml-pairs-unscanned .vgml-btn {
+	width: max-content;
+}
+.vgml-shell .vgml-pairs {
+	display: grid;
+	gap: 14px;
+}
+.vgml-shell .vgml-pair {
+	border: 1px solid var(--vgml-n300);
+	border-radius: 6px;
+	background: #fff;
+	padding: 16px 16px 12px;
+}
+.vgml-shell .vgml-pair-sides {
+	display: grid;
+	gap: 20px;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.vgml-shell .vgml-pair[data-n="2"] .vgml-pair-sides {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.vgml-shell .vgml-pair[data-n="3"] .vgml-pair-sides {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.vgml-shell .vgml-pair[data-n="4"] .vgml-pair-sides {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.vgml-shell .vgml-pair-side {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+.vgml-shell .vgml-pair-pic {
+	display: block;
+	aspect-ratio: 16 / 10;
+	background: var(--vgml-n100);
+	border-radius: 4px;
+	overflow: hidden;
+}
+.vgml-shell .vgml-pair-pic img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+}
+.vgml-shell .vgml-pair-title {
+	margin-top: 10px;
+	font-size: 14.5px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.vgml-shell .vgml-pair-file {
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+.vgml-shell .vgml-pair-facts {
+	margin-top: 8px;
+	font-size: 13px;
+	color: var(--vgml-ink);
+	font-variant-numeric: tabular-nums;
+}
+.vgml-shell .vgml-pair-facts li.is-dim {
+	color: var(--vgml-muted);
+}
+.vgml-shell .vgml-pair-facts a {
+	color: var(--vgml-ink);
+	text-decoration: underline;
+	text-decoration-color: var(--vgml-divider);
+	text-underline-offset: 2px;
+}
+.vgml-shell .vgml-pair-type {
+	margin-right: 4px;
+	font-size: 10.5px;
+	font-weight: 600;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	color: var(--vgml-muted);
+}
+.vgml-shell .vgml-pair-keep {
+	margin-top: 12px;
+	align-self: flex-start;
+	max-width: 100%;
+	white-space: normal;
+	text-align: right;
+	font-weight: 500;
+}
+.vgml-shell .vgml-pair-foot {
+	display: flex;
+	gap: 6px;
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid var(--vgml-n300);
+}
+.vgml-shell .vgml-pair-foot .vgml-btn {
+	padding-right: 8px;
+	padding-left: 8px;
+	font-weight: 500;
+	color: var(--vgml-muted);
+}
+.vgml-shell .vgml-pair.is-done {
+	padding: 14px 16px;
+}
+.vgml-shell .vgml-pair-line {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.5;
+}
+.vgml-shell .vgml-pair-line a {
+	color: var(--vgml-accent);
+	font-weight: 600;
+	text-decoration: none;
+}
+.vgml-shell .vgml-pair-note {
+	margin: 8px 0 0;
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
 
 /* --- the Import screen ----------------------------------------------- */
 

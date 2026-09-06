@@ -447,11 +447,21 @@ one session.** Spec §12 records the four decisions; the handoff is
 20. Search tab: what search matches; try a query and see why each hit
     matched. — `core/search-try.php`; `tests/tree/search-try.php`.
 
-Phase 6 — similar pictures, 1 day.
+Phase 6 — similar pictures, 1 day. **Done 2026-09-06 (Fable 5.1), one
+session.** Spec §13 records the decisions; the handoff is
+`docs/handoffs/2026-09-06-phase-6-handoff.md`.
 
 21. A pair view: dimensions, size, date, where used; keep both (retires the
     pair), keep this one (bin the other, rewrite its uses to the kept one),
-    open both. Nothing binned while in use unless the use is rewritten.
+    open both. Nothing binned while in use unless the use is rewritten. —
+    Mock `docs/superpowers/mocks/2026-09-06-duplicates-pairs.html` (the
+    box's 22 real sets), approved. "Bin" is the plugin's own Set aside
+    (`core/quarantine.php`): `core/health-keep.php` rewrites every page to
+    the kept file at its nearest size, verifies with the usage scan's own
+    extractor, then sets the other aside; a use it cannot rewrite leaves the
+    file where it is and says so. Suites: `tests/tree/health-keep.php` (box,
+    on two copies it makes), `tests/ui/health.spec.mjs` (the buttons, under
+    `HEALTH_WALK=1`).
 
 Phase 7 — grid and list, 1 day.
 
