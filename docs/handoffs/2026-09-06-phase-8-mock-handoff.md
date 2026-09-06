@@ -20,25 +20,38 @@ Plugin on `main`, nothing committed yet by this session (the files are
 untracked; see "What is on disk"). The service was not touched. The nightly
 watch commits to `main` around 05:17 UTC: `git pull --rebase` before pushing.
 
-## Waiting on Nathan
+## Taken by Nathan, 2026-09-06
 
-Three are drawn and need a yes or a no. One is a defect and needs a call.
+All four, as recommended. The mock is approved as drawn. Build to it.
+
+1. **Shape B** — the six sources with nothing here are one line, not six
+   cards, and the card that can be pressed is the first thing on the screen.
+2. **The seventh plugin stays** — WP Media Folders by Damien Barrère is read
+   and listed with the rest.
+3. **The spreadsheet splits** — reading a CSV in is a card in the source
+   list; writing one out is its own section below.
+4. **The plan/run defect is fixed inside this phase**, so the card's outcome
+   line is the number the import will actually produce.
+
+## What was put to Nathan
+
+Kept for the record. All four were taken as recommended above.
 
 1. **The six sources with nothing on this site: a card each, or one line.**
    Board 3 draws both side by side. Shape A is the brief read literally and
    spends six rows on the same sentence above the one card that can be
    pressed. Shape B says it in a line and puts the actionable card first.
-   Recommended: **B**.
+   Recommended: **B**. — **Taken.**
 2. **A seventh plugin.** The brief names six; `vergeml_import_sources()`
    also reads **WP Media Folders** by Damien Barrère (`feml-folder`). Drawn
-   in. Say if it should go.
+   in. Say if it should go. — **It stays.**
 3. **The spreadsheet is split.** Reading a CSV in becomes a card in the
    source list; writing one out moves to its own section below, because
    exporting is not importing. Today the two sit side by side above
-   everything else.
+   everything else. — **Taken.**
 4. **The plan and the run disagree, and the card's outcome line depends on
    the plan.** Fix it inside Phase 8, or ship the card without the outcome
-   line until it is fixed. Detail below.
+   line until it is fixed. Detail below. — **Fix it.**
 
 **No logo was drawn and none is proposed.** Names as text, as the plan says.
 
