@@ -267,3 +267,49 @@ Objects, by you"; Rules kicker "Uses no credits".
    each hit matched). Mock first.
 9. Demo mode leaves the AI screen; it sits on the Licence screen only while
    no key is present, labelled "Demo mode", never "Try it free".
+
+## 12. The AI screen, approved 2026-09-06
+
+Mock: `docs/superpowers/mocks/2026-09-06-ai-screen.html`, six boards, every
+number the box's own. Approved by Nathan on 2026-09-06 with the four
+decisions below as drawn.
+
+**Three tabs across the page** — Describe, How it describes, Search — not the
+Conversation | Rules switch: that says one result built two ways; these are
+three different things. Each tab is a page load with the tab in the URL
+(`&tab=how`, `&tab=search`), so a link can land on one. The strip is built
+from the shell's own numbers: the 2px divider as its rule, the rail item's
+3px accent bar turned horizontal on the selected tab.
+
+**Describe.** The facts line under the title (`641 pictures · 641 described ·
+641 with alt text · last run 4 September 13:52`); the run as three facts and
+one control in the Move shape — `Describe 24 new pictures` / `Describe ·
+nothing new` (disabled), `Describing 9 of 24` with Stop beside it, done as
+one line where the button was looking; "What is written where", a table of
+what the model writes, where it goes, and the count on this site; credits,
+runs and what leaves the site in a 300px rail.
+
+**How it describes.** The Folders conversation component (`js/vergeml-talk.js`,
+shared), streamed from `/v1/brief/stream` on a token minted like the
+guide's. The opener is built by the plugin from the catalogue and costs
+nothing; the first model call is the person's first message. The draft brief
+in ink on the right with the brief in use in grey beneath it. `Test on 5
+pictures · 5 credits` describes five with the draft and holds the answers in
+the session — nothing is written, because written they would move the stamp
+and start the sweep by themselves. **Using a brief is re-describing the
+library with it**: the control reads `Re-describe 641 pictures with this
+brief`, then `Re-describing 120 of 641` with Stop, then in use; the held
+answers are written first so the stamp reads the new prompt, and the stale
+run starts with reason `brief_changed`. There is no "new pictures only"
+option: it would be a lie, since the sweep follows a changed prompt anyway.
+
+**Search.** A table of what a search in the media library looks in and who
+wrote it; the caption/tags switch; "Try a query": both searches run for one
+phrase and each hit says why — the fields that held the word, or the score
+that put it there, and which words of the query it carries.
+
+**The two switches save on change**, with one line under each saying so and
+when the setting applies; this screen has no save bar, because the brief has
+its own control and a second Save beside it would be two saves on one tab.
+Page context sits on How it describes; the search switch on Search — each
+where the thing it changes is explained.

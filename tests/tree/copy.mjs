@@ -42,6 +42,19 @@ const STRUCK = [
 	[ 'paste your key by hand', 'two suggestions where one works — kept only in its rewritten form' ],
 	[ 'they simply leave this folder', '"simply", and a question for a statement' ],
 	[ 'An error has occurred. Please reload', 'names nothing, and two instructions for one action' ],
+	/*
+	 *  Phase 5, the AI screen (docs/superpowers/copy/2026-09-06-phase-5-copy.md).
+	 */
+	[ 'one credit describes one image', '"image" where the plugin says "picture"; the rail says it on every screen' ],
+	[ 'Describe your images', '"image" where the plugin says "picture", in the name of the feature' ],
+	[ 'Descriptions, alt text and search, written from your images.', 'a lede that decorates; the facts line replaced it' ],
+	[ 'Each image is shown to the model once.', 'a lede under a kicker; what it said is a row in the table now' ],
+	[ 'Describe new images', 'a button without its number' ],
+	[ 'Fix missing alt text', 'a button without its number, and "fix" for what it does' ],
+	[ 'Run in the background — you can close this tab', '"you can"; the fact is that the tab can be closed' ],
+	[ 'Set once — it applies to every run above.', 'a note under a card title, explaining a settings form that is gone' ],
+	[ 'Not running.', 'a state with no number, said when nothing was asked' ],
+	[ 'Loading…', 'a placeholder where the server had the number' ],
 ];
 
 /*
@@ -86,6 +99,10 @@ const KEPT = [
 	[ 'core/instrument.php', 'On. The counts go once a day.' ],
 	[ 'core/connect.php', 'Paste your key by hand instead.' ],
 	[ 'core/tree-ui.php', 'No file is deleted; they leave this folder.' ],
+	[ 'core/ai-screen.php', 'Describe · nothing new' ],
+	[ 'core/ai-screen.php', 'On the picture itself: its alt text, only when empty' ],
+	[ 'core/brief.php', 'Nothing is written until the brief is used' ],
+	[ 'core/admin-shell.php', 'one describes one picture' ],
 ];
 
 for ( const [ file, text ] of KEPT ) {

@@ -416,7 +416,7 @@ function vergeml_shell_credits() {
         esc_attr( $low ),
         esc_url( $url ),
         esc_html( number_format_i18n( $left ) ),
-        esc_html__( 'credits left · one credit describes one image', 'vergelabs-media-library' ),
+        esc_html__( 'credits · one describes one picture', 'vergelabs-media-library' ),
         esc_html( $note ),
         esc_html__( 'Licence & credits →', 'vergelabs-media-library' )
     );

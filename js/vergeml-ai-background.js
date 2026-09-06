@@ -44,18 +44,36 @@
 
 		stop.hidden = ! s.active;
 
-		// The buttons belong to the describe section now; disable them while a
-		// background run is going so a second one cannot be started on top.
-		if ( start ) { start.disabled = !! s.active; }
-		if ( alt ) { alt.disabled = !! s.active; }
+		/*
+		 *  Progress is in the button that started the run (spec section 4):
+		 *  the one for this scope counts, the others wait. Each button keeps
+		 *  its resting face in data-idle, written by vergeml-ai.js, and gets
+		 *  it back when the run ends.
+		 */
+		var buttons = { unindexed: start, 'missing-alt': alt, 'page-gap': $( 'vgml-ai-page-gap' ) };
+		Object.keys( buttons ).forEach( function ( scope ) {
+			var b = buttons[ scope ];
+			if ( ! b ) {
+				return;
+			}
+			if ( s.active && scope === s.scope ) {
+				b.textContent = sprintf( T.button, [ s.described, s.total ] );
+				b.disabled = true;
+			} else if ( s.active ) {
+				b.disabled = true;
+			} else if ( b.getAttribute( 'data-idle' ) ) {
+				b.textContent = b.getAttribute( 'data-idle' );
+				b.disabled = '1' === b.getAttribute( 'data-idle-off' );
+			}
+		} );
 
 		if ( ! s.active ) {
 			bar.hidden = true;
 
 			if ( s.stopped ) {
-				note.textContent = T.stopped + ' ' + s.stopped;
+				note.textContent = sprintf( T.stopped, [ s.described, s.total, s.remaining ] );
 			} else if ( s.described > 0 ) {
-				note.textContent = T.done + ' ' + sprintf( T.progress, [ s.described, s.total ] );
+				note.textContent = sprintf( T.done, [ s.described, s.failed ] );
 			} else {
 				note.textContent = T.idle;
 			}
@@ -90,6 +108,8 @@
 		note.textContent = parts.join( ' · ' );
 	}
 
+	var wasActive = false;
+
 	function poll() {
 		return apiFetch( { path: '/vergeml/v1/ai-run' } ).then( function ( s ) {
 			render( s );
@@ -101,7 +121,11 @@
 
 			if ( s.active ) {
 				timer = window.setTimeout( poll, 5000 );
+			} else if ( wasActive && window.vergemlAiRefresh ) {
+				// The run just ended: the counts and the buttons' faces are stale.
+				window.vergemlAiRefresh();
 			}
+			wasActive = !! s.active;
 
 			return s;
 		} );

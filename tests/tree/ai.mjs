@@ -44,7 +44,7 @@ check( 'the page renders with both actions', await page.evaluate( () =>
 	!! document.getElementById( 'vgml-ai-run' ) && !! document.getElementById( 'vgml-ai-alt' ) ) );
 
 const counts = await page.evaluate( () => document.getElementById( 'vgml-ai-counts' ).textContent );
-check( 'status counts load', /\d+ images/.test( counts ), counts );
+check( 'status counts load', /\d+ pictures/.test( counts ), counts );
 
 // mock on, through the settings endpoint (no key needed, nothing spent)
 await page.evaluate( async () => {

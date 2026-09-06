@@ -76,11 +76,12 @@ function vergeml_folders_assets( $hook ) {
 
     wp_enqueue_style( 'vergeml-tree-view', plugins_url( 'css/vergeml-tree-view.css', VERGEML_FILE ), array(), vergeml_asset_ver( 'css/vergeml-tree-view.css' ) );
     wp_style_add_data( 'vergeml-tree-view', 'rtl', 'replace' );
-    wp_enqueue_style( 'vergeml-folders', plugins_url( 'css/vergeml-folders.css', VERGEML_FILE ), array( 'vergeml-tree-view' ), vergeml_asset_ver( 'css/vergeml-folders.css' ) );
+    vergeml_talk_assets();
+    wp_enqueue_style( 'vergeml-folders', plugins_url( 'css/vergeml-folders.css', VERGEML_FILE ), array( 'vergeml-tree-view', 'vergeml-talk' ), vergeml_asset_ver( 'css/vergeml-folders.css' ) );
     wp_style_add_data( 'vergeml-folders', 'rtl', 'replace' );
 
     wp_enqueue_script( 'vergeml-tree-view', plugins_url( 'js/vergeml-tree-view.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-tree-view.js' ), true );
-    wp_enqueue_script( 'vergeml-folders', plugins_url( 'js/vergeml-folders.js', VERGEML_FILE ), array( 'wp-api-fetch', 'wp-i18n', 'vergeml-tree-view' ), vergeml_asset_ver( 'js/vergeml-folders.js' ), true );
+    wp_enqueue_script( 'vergeml-folders', plugins_url( 'js/vergeml-folders.js', VERGEML_FILE ), array( 'wp-api-fetch', 'wp-i18n', 'vergeml-tree-view', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-folders.js' ), true );
     wp_set_script_translations( 'vergeml-folders', 'vergelabs-media-library' );
 
     /*
@@ -111,6 +112,19 @@ function vergeml_folders_assets( $hook ) {
  *  Queries: the facts (one), the terms (one, plus their meta), the session
  *  (one option, not autoloaded), the version stamp (one).
  */
+/**
+ *  The conversation component (js/vergeml-talk.js, css/vergeml-talk.css):
+ *  the turns, the composer and the stream, drawn the same on the Folders
+ *  screen and on the AI screen's "How it describes" tab. Each screen's own
+ *  script depends on the handle.
+ */
+function vergeml_talk_assets() {
+    wp_enqueue_style( 'vergeml-talk', plugins_url( 'css/vergeml-talk.css', VERGEML_FILE ), array(), vergeml_asset_ver( 'css/vergeml-talk.css' ) );
+    wp_style_add_data( 'vergeml-talk', 'rtl', 'replace' );
+    wp_enqueue_script( 'vergeml-talk', plugins_url( 'js/vergeml-talk.js', VERGEML_FILE ), array( 'wp-i18n' ), vergeml_asset_ver( 'js/vergeml-talk.js' ), true );
+    wp_set_script_translations( 'vergeml-talk', 'vergelabs-media-library' );
+}
+
 function vergeml_folders_boot() {
 
     static $boot = null;
@@ -579,23 +593,46 @@ function vergeml_guide_token() {
         return vergeml_guide_token_out( $s );
     }
 
+    $minted = vergeml_guide_mint( $licence, $s['summary'] );
+    if ( is_wp_error( $minted ) ) {
+        vergeml_guide_save( $s );
+        return $minted;
+    }
+    $data = $minted;
+
+    $s['token'] = array(
+        'token'      => (string) $data['token'],
+        'expires_at' => isset( $data['expires_at'] ) ? (int) $data['expires_at'] : time() + HOUR_IN_SECONDS,
+        'stamp'      => $stamp,
+    );
+    vergeml_guide_save( $s );
+
+    return vergeml_guide_token_out( $s );
+}
+
+/**
+ *  One token from the service, bound to this licence, this site and the
+ *  context it is handed (the library summary for Folders; the catalogue
+ *  summary for the brief). Metered like a turn on the service's side.
+ *
+ *  @return array|WP_Error the service's answer: token, expires_at, summary_hash
+ */
+function vergeml_guide_mint( $licence, $summary ) {
     $response = wp_remote_post(
         vergeml_guide_stream_url() . '/guide/session',
         array(
             'timeout'   => 25,
             'headers'   => array( 'Content-Type' => 'application/json' ),
             'sslverify' => true,
-            'body'      => wp_json_encode( array( 'license_key' => $licence, 'site' => home_url(), 'summary' => $s['summary'] ) ),
+            'body'      => wp_json_encode( array( 'license_key' => $licence, 'site' => home_url(), 'summary' => $summary ) ),
         )
     );
     if ( is_wp_error( $response ) ) {
-        vergeml_guide_save( $s );
         return new WP_Error( 'unreachable', __( 'The service did not answer. The draft is safe. Try again in a minute.', 'vergelabs-media-library' ), array( 'status' => 502 ) );
     }
     $code = (int) wp_remote_retrieve_response_code( $response );
     $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
     if ( 200 !== $code || ! is_array( $data ) || empty( $data['token'] ) ) {
-        vergeml_guide_save( $s );
         $why = is_array( $data ) && isset( $data['error'] ) ? (string) $data['error'] : 'HTTP ' . $code;
         if ( 429 === $code ) {
             $msg = __( 'The day\'s limit of turns for this site is used. Tomorrow it resets.', 'vergelabs-media-library' );
@@ -607,15 +644,7 @@ function vergeml_guide_token() {
         }
         return new WP_Error( 'service_' . $code, $msg, array( 'status' => 502 ) );
     }
-
-    $s['token'] = array(
-        'token'      => (string) $data['token'],
-        'expires_at' => isset( $data['expires_at'] ) ? (int) $data['expires_at'] : time() + HOUR_IN_SECONDS,
-        'stamp'      => $stamp,
-    );
-    vergeml_guide_save( $s );
-
-    return vergeml_guide_token_out( $s );
+    return $data;
 }
 
 function vergeml_guide_token_out( $s ) {

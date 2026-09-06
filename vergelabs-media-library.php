@@ -1474,6 +1474,9 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // Before ai.php: the AI layer reads and writes through the index.
         include_once( 'core/ai-index.php' );
         include_once( 'core/ai.php' );
+        // The AI screen itself: three tabs over the engine above. After ai.php,
+        // whose menu entry names the page callback this file defines.
+        include_once( 'core/ai-screen.php' );
         // What the page an image sits on is trying to be; advisory context for describe.
         include_once( 'core/seo-context.php' );
         // After ai.php: the background run is that file's own step function on
@@ -1522,6 +1525,11 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // taxonomy from one and the embedding call from the other.
         include_once( 'core/folder-talk.php' );
         include_once( 'core/guide.php' );
+        // The brief as a conversation. After guide.php, whose token mint and
+        // stream address it borrows, and after ai.php, whose describe request
+        // and row write it reuses; inside the guard, because adopting a brief
+        // writes the catalogue and starts a run.
+        include_once( 'core/brief.php' );
         // Editing a file from the list it is in. After the index, whose lock
         // on a hand-written field is the whole reason this is safe.
         include_once( 'core/quick-edit.php' );
@@ -1529,6 +1537,9 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // projection and distance it borrows so that "alike" means one thing
         // in this plugin, and after ai.php for the service URL.
         include_once( 'core/search-meaning.php' );
+        // Try a query: both searches run for one phrase, each hit with its why.
+        // After search-meaning.php, whose ranking and scores it reads.
+        include_once( 'core/search-try.php' );
         // Last, because each of the three things in it stands on something
         // above: the health report's duplicate groups, the index's locked
         // fields, and the vectors auto-file reads.

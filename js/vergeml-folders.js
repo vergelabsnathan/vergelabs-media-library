@@ -2,8 +2,9 @@
  *  Folders: one conversation, one tree, one Move.
  *
  *  Two columns. On the left, a segmented switch between two ways of building
- *  the same draft: the conversation, streamed word by word straight from the
- *  service with a token core/guide.php mints, and the Rules -- four
+ *  the same draft: the conversation (js/vergeml-talk.js, shared with the AI
+ *  screen), streamed word by word straight from the service with a token
+ *  core/guide.php mints, and the Rules -- four
  *  deterministic ways that cost no model call. On the right, the shared tree
  *  (js/vergeml-tree-view.js) drawing today's folders with the draft laid over
  *  them, and the one button that moves pictures, in its three states.
@@ -20,8 +21,9 @@
 
 	var cfg = window.vgmlFolders || {};
 	var TV = window.vergemlTreeView;
+	var TALK = window.vergemlTalk;
 	var wp = window.wp;
-	if ( ! TV || ! wp || ! wp.apiFetch || ! wp.i18n ) {
+	if ( ! TV || ! TALK || ! wp || ! wp.apiFetch || ! wp.i18n ) {
 		return;
 	}
 	var __ = wp.i18n.__;
@@ -50,8 +52,6 @@
 		version: cfg.version || 0,
 		undo: cfg.undo || { available: false, until: 0 },
 		method: 'talk',
-		token: null,
-		stream: null,
 		rules: null,
 		rule: null,
 		preview: [],
@@ -111,35 +111,9 @@
 		method.appendChild( dom.kicker );
 		left.appendChild( method );
 
-		dom.conv = el( 'div', { class: 'vgml-conv', role: 'log', 'aria-live': 'polite' } );
-		left.appendChild( dom.conv );
-
-		dom.composer = el( 'div', { class: 'vgml-composer' } );
-		dom.text = el( 'textarea', { class: 'vgml-composer-text', rows: '1', placeholder: __( 'Describe the change', 'vergelabs-media-library' ), 'aria-label': __( 'Describe the change', 'vergelabs-media-library' ) } );
-		dom.composer.appendChild( dom.text );
-		var bar = el( 'div', { class: 'vgml-composer-bar' } );
-		dom.hint = el( 'small', { class: 'vgml-composer-hint' } );
-		bar.appendChild( dom.hint );
-		dom.send = el( 'button', { type: 'button', class: 'vgml-send', 'aria-label': __( 'Send', 'vergelabs-media-library' ) } );
-		dom.send.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><i></i>';
-		bar.appendChild( dom.send );
-		dom.composer.appendChild( bar );
-		left.appendChild( dom.composer );
-
-		dom.text.addEventListener( 'input', growComposer );
-		dom.text.addEventListener( 'keydown', function ( e ) {
-			if ( 'Enter' === e.key && ! e.shiftKey ) {
-				e.preventDefault();
-				send();
-			}
-		} );
-		dom.send.addEventListener( 'click', function () {
-			if ( state.stream ) {
-				stop();
-			} else {
-				send();
-			}
-		} );
+		talk = TALK.create( talkOpts() );
+		left.appendChild( talk.conv );
+		left.appendChild( talk.composer );
 
 		dom.rules = el( 'div', { class: 'vgml-rules', role: 'radiogroup', 'aria-label': __( 'Rules', 'vergelabs-media-library' ), hidden: 'hidden' } );
 		left.appendChild( dom.rules );
@@ -166,11 +140,6 @@
 		cols.appendChild( left );
 		cols.appendChild( right );
 		root.appendChild( cols );
-	}
-
-	function growComposer() {
-		dom.text.style.height = 'auto';
-		dom.text.style.height = Math.min( 240, dom.text.scrollHeight ) + 'px';
 	}
 
 	/* ------------------------------------------------------------ the tree */
@@ -426,88 +395,16 @@
 
 	/* ---------------------------------------------------- the conversation */
 
-	function who( turn ) {
-		if ( 'assistant' === turn.role ) {
-			return __( 'Assistant', 'vergelabs-media-library' );
-		}
-		if ( 'edit' === turn.kind ) {
-			return __( 'You · edited the tree', 'vergelabs-media-library' );
-		}
-		if ( 'rule' === turn.kind ) {
-			return __( 'You · applied a rule', 'vergelabs-media-library' );
-		}
-		return __( 'You', 'vergelabs-media-library' );
-	}
+	/*
+	 *  js/vergeml-talk.js draws the turns and the composer and streams a turn
+	 *  from the service. This side hands it the token, the request body with
+	 *  the tree, and takes the tree block back as the draft.
+	 */
+	var talk = null;
+	var streamTree = null;
 
-	/** Text with **bold** into nodes, without ever handing the model's words to innerHTML. */
-	function inline( target, text ) {
-		var parts = String( text ).split( '**' );
-		parts.forEach( function ( part, i ) {
-			if ( ! part ) {
-				return;
-			}
-			target.appendChild( i % 2 ? el( 'b', null, part ) : document.createTextNode( part ) );
-		} );
-	}
-
-	/** "- " lines become the brand-mark list; the rest are paragraphs. */
-	function renderSay( target, text ) {
-		target.innerHTML = '';
-		var lines = String( text || '' ).split( /\r?\n/ );
-		var list = null;
-		lines.forEach( function ( line ) {
-			var t = line.trim();
-			if ( ! t ) {
-				list = null;
-				return;
-			}
-			var m = /^[-•*]\s+(.*)$/.exec( t );
-			if ( m ) {
-				if ( ! list ) {
-					list = el( 'ul', { class: 'vgml-facts' } );
-					target.appendChild( list );
-				}
-				var li = el( 'li' );
-				inline( li, m[ 1 ] );
-				list.appendChild( li );
-				return;
-			}
-			list = null;
-			var p = el( 'p' );
-			inline( p, t );
-			target.appendChild( p );
-		} );
-	}
-
-	function messageEl( turn, last ) {
-		var msg = el( 'div', { class: 'vgml-msg is-' + ( 'assistant' === turn.role ? 'assistant' : 'user' ) + ( turn.kind ? ' is-' + turn.kind : '' ) } );
-		msg.appendChild( el( 'span', { class: 'vgml-msg-who' }, who( turn ) ) );
-		var body = el( 'div', { class: 'vgml-msg-body' } );
-		renderSay( body, turn.text );
-		msg.appendChild( body );
-		if ( last && 'assistant' === turn.role && turn.choices && turn.choices.length && canTalk() ) {
-			var chips = el( 'div', { class: 'vgml-chips' } );
-			turn.choices.slice( 0, 3 ).forEach( function ( c ) {
-				var b = el( 'button', { type: 'button', class: 'vgml-chip' }, c );
-				b.addEventListener( 'click', function () {
-					turn_( { choice: c }, { kind: 'choice', text: c } );
-				} );
-				chips.appendChild( b );
-			} );
-			msg.appendChild( chips );
-		}
-		return msg;
-	}
-
-	function renderConversation() {
-		dom.conv.innerHTML = '';
-		var turns = state.session.turns || [];
-		var lastAssistant = -1;
-		turns.forEach( function ( t, i ) {
-			if ( 'assistant' === t.role ) {
-				lastAssistant = i;
-			}
-		} );
+	/** The note before the turns, when nothing can be said yet. */
+	function leadNote() {
 		if ( ! described ) {
 			var none = el( 'div', { class: 'vgml-msg is-note' } );
 			var facts = el( 'ul', { class: 'vgml-facts' } );
@@ -515,70 +412,97 @@
 			facts.appendChild( el( 'li', null, __( 'Folders are worked out from the descriptions', 'vergelabs-media-library' ) ) );
 			none.appendChild( facts );
 			none.appendChild( el( 'a', { class: 'vgml-btn', href: cfg.aiUrl || '#' }, __( 'Describe the pictures', 'vergelabs-media-library' ) ) );
-			dom.conv.appendChild( none );
-		} else if ( ! licensed ) {
+			return none;
+		}
+		if ( ! licensed ) {
 			var nol = el( 'div', { class: 'vgml-msg is-note' } );
 			var l = el( 'ul', { class: 'vgml-facts' } );
 			l.appendChild( el( 'li', null, __( 'No licence connected', 'vergelabs-media-library' ) ) );
 			l.appendChild( el( 'li', null, __( 'Rules work without one. The conversation needs one.', 'vergelabs-media-library' ) ) );
 			nol.appendChild( l );
 			nol.appendChild( el( 'a', { class: 'vgml-btn', href: cfg.licenceUrl || '#' }, __( 'Connect a licence', 'vergelabs-media-library' ) ) );
-			dom.conv.appendChild( nol );
+			return nol;
 		}
-		turns.forEach( function ( t, i ) {
-			dom.conv.appendChild( messageEl( t, i === lastAssistant && i === turns.length - 1 ) );
-		} );
-		if ( state.stream ) {
-			dom.conv.appendChild( state.stream.el );
-		}
-		if ( state.note ) {
-			var note = el( 'div', { class: 'vgml-msg is-note' } );
-			var facts2 = el( 'ul', { class: 'vgml-facts' } );
-			facts2.appendChild( el( 'li', null, state.note ) );
-			note.appendChild( facts2 );
-			dom.conv.appendChild( note );
-		}
-		renderComposer();
+		return null;
 	}
 
-	function renderComposer() {
-		var streaming = !! state.stream;
-		var cap = state.session.cap || cfg.cap || 25;
-		var used = state.session.assistant_turns || 0;
+	function talkOpts() {
+		return {
+			session: state.session,
+			cap: cfg.cap || 25,
+			canTalk: function () {
+				return described && licensed && ! ( state.session.apply && state.session.apply.running );
+			},
+			mint: function () {
+				return api( 'POST', 'guide/token' );
+			},
+			streamPath: '/guide/stream',
+			request: function ( token, input, history ) {
+				return { conversation: history, tree: treeForService(), input: input, summary: token.summary, current: token.current };
+			},
+			persist: function ( body ) {
+				return persist( 'guide/turn', body );
+			},
+			blocks: [ 'tree' ],
+			onBlock: function ( type, data ) {
+				streamTree = resolveTree( data.tree );
+				setDraft( streamTree, true );
+			},
+			onFinish: function () {
+				var extra = null;
+				if ( streamTree ) {
+					extra = { draft: streamTree };
+					state.session.draft = streamTree;
+				}
+				streamTree = null;
+				renderMove();
+				return extra;
+			},
+			onRender: renderKicker,
+			lead: leadNote,
+			placeholder: __( 'Describe the change', 'vergelabs-media-library' ),
+			cappedPlaceholder: function ( used, cap ) {
+				/* translators: 1: turns used, 2: the cap */
+				return sprintf( __( '%1$s of %2$s turns used. Edit the tree by hand, or start over.', 'vergelabs-media-library' ), used, cap );
+			},
+			startOver: startOver,
+			why: {
+				turn_cap: __( 'Every turn of this conversation is used. Edit the tree by hand, or start over.', 'vergelabs-media-library' ),
+				bad_block: __( 'The tree did not come through. The words stayed; the draft is as it was.', 'vergelabs-media-library' )
+			}
+		};
+	}
+
+	function renderKicker() {
 		dom.kicker.textContent = 'rules' === state.method
 			? __( 'Uses no credits', 'vergelabs-media-library' )
 			/* translators: 1: turns used, 2: the cap */
-			: sprintf( __( '%1$s of %2$s turns', 'vergelabs-media-library' ), fmt( used ), fmt( cap ) );
-		dom.send.classList.toggle( 'is-stop', streaming );
-		dom.send.setAttribute( 'aria-label', streaming ? __( 'Stop', 'vergelabs-media-library' ) : __( 'Send', 'vergelabs-media-library' ) );
-		dom.hint.innerHTML = '';
-		if ( capped() ) {
-			/* translators: 1: turns used, 2: the cap */
-			dom.text.placeholder = sprintf( __( '%1$s of %2$s turns used. Edit the tree by hand, or start over.', 'vergelabs-media-library' ), fmt( used ), fmt( cap ) );
-			dom.text.disabled = true;
-			dom.send.disabled = true;
-			var over = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-ghost vgml-startover' }, __( 'Start over', 'vergelabs-media-library' ) );
-			over.addEventListener( 'click', startOver );
-			dom.hint.appendChild( over );
-			return;
-		}
-		dom.text.placeholder = __( 'Describe the change', 'vergelabs-media-library' );
-		dom.text.disabled = ! canTalk() || streaming;
-		dom.send.disabled = ! canTalk() && ! streaming;
-		dom.hint.textContent = __( 'Enter sends · Shift + Enter for a new line', 'vergelabs-media-library' );
+			: sprintf( __( '%1$s of %2$s turns', 'vergelabs-media-library' ), fmt( talk.used() ), fmt( talk.cap() ) );
+	}
+
+	function renderConversation() {
+		talk.render();
+	}
+
+	function turn_( input, said ) {
+		talk.turn( input, said );
+	}
+
+	function stop() {
+		talk.stop();
 	}
 
 	function startOver() {
-		if ( state.stream ) {
-			stop();
+		if ( talk.streaming() ) {
+			talk.stop();
 		}
 		persist( 'guide/session', { reset: true } ).then( function ( r ) {
 			state.session = r || { turns: [], draft: null, assistant_turns: 0, cap: cfg.cap, apply: null };
-			state.note = '';
+			talk.setSession( state.session );
 			view.setDraft( null );
 			renderTreeHead();
 			renderMove();
-			renderConversation();
+			talk.note( '' );
 			if ( canTalk() ) {
 				turn_( { open: true }, null );
 			}
@@ -589,229 +513,14 @@
 		state.method = 'rules' === m ? 'rules' : 'talk';
 		dom.tabTalk.setAttribute( 'aria-selected', 'talk' === state.method ? 'true' : 'false' );
 		dom.tabRules.setAttribute( 'aria-selected', 'rules' === state.method ? 'true' : 'false' );
-		dom.conv.hidden = 'rules' === state.method;
-		dom.composer.hidden = 'rules' === state.method;
+		talk.conv.hidden = 'rules' === state.method;
+		talk.composer.hidden = 'rules' === state.method;
 		dom.rules.hidden = 'talk' === state.method;
 		dom.preview.hidden = 'talk' === state.method || ! state.preview.length;
-		renderComposer();
+		renderKicker();
+		talk.renderComposer();
 		if ( 'rules' === state.method && ! state.rules ) {
 			loadRules();
-		}
-	}
-
-	/* --------------------------------------------------------- the token */
-
-	function ensureToken( force ) {
-		if ( ! force && state.token && state.token.expires_at * 1000 - Date.now() > 60000 ) {
-			return Promise.resolve( state.token );
-		}
-		return api( 'POST', 'guide/token' ).then( function ( t ) {
-			state.token = t;
-			return t;
-		} );
-	}
-
-	/* --------------------------------------------------------- a turn */
-
-	function send() {
-		var text = dom.text.value.trim();
-		if ( ! text || ! canTalk() || state.stream ) {
-			return;
-		}
-		dom.text.value = '';
-		growComposer();
-		turn_( { text: text }, { kind: 'said', text: text } );
-	}
-
-	/**
-	 *  One streamed turn. What the person said goes into the conversation and
-	 *  the session first; the reply streams into a message of its own, word
-	 *  by word, the tree lands when the block does, and the finished turn is
-	 *  persisted with the draft. Stop keeps the words that arrived.
-	 */
-	function turn_( input, said ) {
-		if ( state.stream || ! canTalk() ) {
-			return;
-		}
-		state.note = '';
-		if ( said ) {
-			state.session.turns.push( { role: 'user', kind: said.kind, text: said.text, rule: said.rule, at: Math.floor( Date.now() / 1000 ) } );
-			persist( 'guide/turn', { said: said } );
-		}
-		var msg = el( 'div', { class: 'vgml-msg is-assistant is-streaming' } );
-		msg.appendChild( el( 'span', { class: 'vgml-msg-who' }, __( 'Assistant', 'vergelabs-media-library' ) ) );
-		var body = el( 'div', { class: 'vgml-msg-body' } );
-		msg.appendChild( body );
-		var controller = new AbortController();
-		state.stream = { controller: controller, el: msg, body: body, text: '', tree: null, choices: [], done: false, paint: null };
-		renderConversation();
-		msg.scrollIntoView( { block: 'nearest' } );
-
-		var paint = function () {
-			if ( state.stream && state.stream.paint ) {
-				return;
-			}
-			state.stream.paint = window.requestAnimationFrame( function () {
-				if ( ! state.stream ) {
-					return;
-				}
-				state.stream.paint = null;
-				renderSay( body, state.stream.text || '…' );
-			} );
-		};
-		renderSay( body, '…' );
-
-		var attempt = function ( force ) {
-			return ensureToken( force ).then( function ( token ) {
-				return window.fetch( token.stream + '/guide/stream', {
-					method: 'POST',
-					mode: 'cors',
-					signal: controller.signal,
-					headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token.token },
-					body: JSON.stringify( {
-						conversation: ( state.session.turns || [] ).map( function ( t ) { return { role: t.role, text: t.text }; } ),
-						tree: treeForService(),
-						input: input,
-						summary: token.summary,
-						current: token.current
-					} )
-				} );
-			} );
-		};
-
-		attempt( false ).then( function ( res ) {
-			if ( 401 === res.status ) {
-				return attempt( true );
-			}
-			return res;
-		} ).then( function ( res ) {
-			if ( ! res.ok ) {
-				return res.json().catch( function () { return {}; } ).then( function ( j ) {
-					throw new Error( serviceWhy( res.status, j ) );
-				} );
-			}
-			return readEvents( res, onEvent );
-		} ).then( function () {
-			finish( false );
-		} ).catch( function ( err ) {
-			if ( err && 'AbortError' === err.name ) {
-				finish( true );
-				return;
-			}
-			state.note = ( err && err.message ) || __( 'That did not go through. The draft is safe. Try again.', 'vergelabs-media-library' );
-			finish( false );
-		} );
-
-		function onEvent( type, data ) {
-			if ( ! state.stream ) {
-				return;
-			}
-			if ( 'say' === type ) {
-				state.stream.text += data.text || '';
-				paint();
-			} else if ( 'tree' === type ) {
-				state.stream.tree = resolveTree( data.tree );
-				setDraft( state.stream.tree, true );
-			} else if ( 'done' === type ) {
-				state.stream.choices = data.choices || [];
-				state.stream.done = true;
-			} else if ( 'error' === type ) {
-				state.note = serviceWhy( 0, data );
-			}
-		}
-
-		function finish( stopped ) {
-			var s = state.stream;
-			if ( ! s ) {
-				return;
-			}
-			if ( s.paint ) {
-				window.cancelAnimationFrame( s.paint );
-			}
-			state.stream = null;
-			var text = s.text.trim();
-			var body = {};
-			if ( text ) {
-				body.say = { text: text, choices: s.done && ! stopped ? s.choices : [] };
-				state.session.turns.push( { role: 'assistant', kind: 'say', text: text, choices: body.say.choices, at: Math.floor( Date.now() / 1000 ) } );
-				state.session.assistant_turns = ( state.session.assistant_turns || 0 ) + 1;
-			}
-			if ( s.tree ) {
-				body.draft = s.tree;
-				state.session.draft = s.tree;
-			}
-			if ( body.say || body.draft ) {
-				persist( 'guide/turn', body ).then( function () { renderConversation(); } );
-			}
-			if ( stopped && ! state.note ) {
-				state.note = __( 'Stopped. What arrived stays; the draft is as it was.', 'vergelabs-media-library' );
-			}
-			renderConversation();
-			renderMove();
-		}
-	}
-
-	function serviceWhy( status, j ) {
-		var code = ( j && ( j.code || j.error ) ) || '';
-		if ( 'provider_busy' === code ) {
-			/* translators: %s: seconds */
-			return sprintf( __( 'The assistant is busy. Try again in %s seconds.', 'vergelabs-media-library' ), fmt( j.retry_after || 60 ) );
-		}
-		if ( 'turn_cap' === code ) {
-			return __( 'Every turn of this conversation is used. Edit the tree by hand, or start over.', 'vergelabs-media-library' );
-		}
-		if ( 'bad_tree' === code ) {
-			return __( 'The tree did not come through. The words stayed; the draft is as it was.', 'vergelabs-media-library' );
-		}
-		if ( 'bad_token' === code ) {
-			return __( 'The session token was refused. Reload the page.', 'vergelabs-media-library' );
-		}
-		if ( 429 === status ) {
-			return __( 'The day\'s limit of turns for this site is used. Tomorrow it resets.', 'vergelabs-media-library' );
-		}
-		return __( 'That did not go through. The draft is safe. Try again.', 'vergelabs-media-library' );
-	}
-
-	/** Server-sent events off a fetch body: "event: x\ndata: {...}\n\n". */
-	function readEvents( res, onEvent ) {
-		var reader = res.body.getReader();
-		var decoder = new TextDecoder();
-		var buffer = '';
-		function pump() {
-			return reader.read().then( function ( r ) {
-				if ( r.done ) {
-					return;
-				}
-				buffer += decoder.decode( r.value, { stream: true } );
-				var blocks = buffer.split( /\r?\n\r?\n/ );
-				buffer = blocks.pop();
-				blocks.forEach( function ( block ) {
-					var type = 'message';
-					var data = '';
-					block.split( /\r?\n/ ).forEach( function ( line ) {
-						if ( 0 === line.indexOf( 'event:' ) ) {
-							type = line.slice( 6 ).trim();
-						} else if ( 0 === line.indexOf( 'data:' ) ) {
-							data += line.slice( 5 ).trim();
-						}
-					} );
-					var parsed = {};
-					try {
-						parsed = data ? JSON.parse( data ) : {};
-					} catch ( e ) {
-						parsed = {};
-					}
-					onEvent( type, parsed );
-				} );
-				return pump();
-			} );
-		}
-		return pump();
-	}
-
-	function stop() {
-		if ( state.stream ) {
-			state.stream.controller.abort();
 		}
 	}
 
@@ -853,12 +562,10 @@
 		if ( ! line ) {
 			return;
 		}
-		if ( canTalk() && ! state.stream ) {
+		if ( canTalk() && ! talk.streaming() ) {
 			turn_( { edit: line }, { kind: 'edit', text: line } );
 		} else {
-			state.session.turns.push( { role: 'user', kind: 'edit', text: line, at: Math.floor( Date.now() / 1000 ) } );
-			persist( 'guide/turn', { said: { kind: 'edit', text: line } } );
-			renderConversation();
+			talk.pushUser( { kind: 'edit', text: line } );
 		}
 	}
 
@@ -1164,7 +871,7 @@
 		if ( ! view.getDraft() || dom.move.disabled ) {
 			return;
 		}
-		if ( state.stream ) {
+		if ( talk.streaming() ) {
 			stop();
 		}
 		state.movingGoal = view.summary().moving;
@@ -1172,8 +879,7 @@
 		api( 'POST', 'guide/apply' ).then( function ( r ) {
 			took( r );
 		} ).catch( function ( err ) {
-			state.note = ( err && err.message ) || __( 'That did not go through. Nothing moved.', 'vergelabs-media-library' );
-			renderConversation();
+			talk.note( ( err && err.message ) || __( 'That did not go through. Nothing moved.', 'vergelabs-media-library' ) );
 			renderMove();
 		} );
 	}
@@ -1235,8 +941,7 @@
 			took( { session: r.session, undo: r.undo, version: r.version, report: null } );
 		} ).catch( function ( err ) {
 			dom.undo.disabled = false;
-			state.note = ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' );
-			renderConversation();
+			talk.note( ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' ) );
 		} );
 	}
 

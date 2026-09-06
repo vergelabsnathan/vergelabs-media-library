@@ -160,6 +160,15 @@ function vergeml_ai_run_nudge() {
     }
 
     /*
+     *  A host with a system cron of its own, or a suite that starts a run
+     *  only to look at it, can leave the event to be picked up rather than
+     *  have a pass spawned this instant.
+     */
+    if ( ! apply_filters( 'vergeml_ai_run_should_nudge', true ) ) {
+        return;
+    }
+
+    /*
      *  wp-cron.php only works when the key in the request matches the
      *  'doing_cron' lock. Posting a fresh key without taking the lock, which
      *  is what this did until 3 September 2026, is refused on line one of
@@ -555,17 +564,21 @@ function vergeml_ai_run_assets( $hook ) {
     );
 
     wp_localize_script( 'vergeml-ai-background', 'vergemlAiRun', array(
-        'idle'     => __( 'Not running.', 'vergelabs-media-library' ),
-        /* translators: 1: images described so far, 2: images in the run. */
+        'idle'     => '',
+        /* translators: 1: pictures described so far, 2: pictures in the run. */
         'progress' => __( '%1$d of %2$d described', 'vergelabs-media-library' ),
+        /* translators: 1: pictures described so far, 2: pictures in the run. */
+        'button'   => __( 'Describing %1$d of %2$d', 'vergelabs-media-library' ),
         /* translators: %d: seconds until the next pass is due. */
         'next'     => __( 'next pass due in %ds', 'vergelabs-media-library' ),
         'due'      => __( 'next pass is due', 'vergelabs-media-library' ),
-        /* translators: %d: number of files that could not be described. */
+        /* translators: %d: number of pictures that could not be described. */
         'failed'   => __( '%d could not be described', 'vergelabs-media-library' ),
-        'done'     => __( 'Finished.', 'vergelabs-media-library' ),
-        'stopped'  => __( 'Stopped.', 'vergelabs-media-library' ),
-        'cronOff'  => __( 'This site has WP-Cron disabled. A background run only moves if a real system cron calls wp-cron.php.', 'vergelabs-media-library' ),
-        'starting' => __( 'Starting…', 'vergelabs-media-library' ),
+        /* translators: 1: pictures described, 2: pictures that failed. */
+        'done'     => __( '%1$d pictures described · %2$d failed', 'vergelabs-media-library' ),
+        /* translators: 1: pictures described, 2: pictures in the run, 3: pictures left. */
+        'stopped'  => __( '%1$d of %2$d described · %3$d left · stopped', 'vergelabs-media-library' ),
+        'cronOff'  => __( 'This site has WP-Cron off. The run moves only when a system cron calls wp-cron.php.', 'vergelabs-media-library' ),
+        'starting' => __( 'Starting', 'vergelabs-media-library' ),
     ) );
 }

@@ -587,7 +587,7 @@ function vergeml_journey_stages() {
 
         $stages[] = array(
             'id'      => 'describe',
-            'title'   => __( 'Describe your images', 'vergelabs-media-library' ),
+            'title'   => __( 'Describe your pictures', 'vergelabs-media-library' ),
             'done'    => $f['images'] > 0 && 0 === $f['undescribed'],
             'blocked' => $blocked,
             'text'    => vergeml_journey_describe_text( $f ),
@@ -889,7 +889,7 @@ function vergeml_journey_todo() {
     if ( function_exists( 'vergeml_ai_pending' ) ) {
         $todo[] = array(
             'id'      => 'describe',
-            'title'   => __( 'Describe your images', 'vergelabs-media-library' ),
+            'title'   => __( 'Describe your pictures', 'vergelabs-media-library' ),
             'note'    => vergeml_journey_describe_text( $f ),
             'kind'    => 'primary',
             'n'       => (int) $f['undescribed'],

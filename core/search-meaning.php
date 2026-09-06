@@ -298,6 +298,9 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
         }
     }
 
+    // The scores beside the ids, for a screen that says why a picture matched (core/search-try.php).
+    $GLOBALS['vergeml_meaning_meta']['scores'] = $scored;
+
     if ( ! $scored ) {
         return array();
     }

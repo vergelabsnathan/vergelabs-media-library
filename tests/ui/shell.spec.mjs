@@ -18,6 +18,8 @@ const SLUGS = {
 	dashboard: SCREEN.dashboard,
 	folders: SCREEN.folders,
 	ai: SCREEN.ai,
+	'ai-how': `${ SCREEN.ai }&tab=how`,
+	'ai-search': `${ SCREEN.ai }&tab=search`,
 	duplicates: SCREEN.duplicates,
 	import: 'media-import-folders',
 	licence: 'media-licence',

@@ -10,6 +10,8 @@ const SLUGS = {
 	dashboard: SCREEN.dashboard,
 	folders: SCREEN.folders,
 	ai: SCREEN.ai,
+	'ai-how': `${ SCREEN.ai }&tab=how`,
+	'ai-search': `${ SCREEN.ai }&tab=search`,
 	duplicates: SCREEN.duplicates,
 	import: 'media-import-folders',
 	licence: 'media-licence',
@@ -40,6 +42,13 @@ for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 					.then( () => wp.apiFetch( { path: '/vergeml/v1/guide/turn', method: 'POST', data: { said: { kind: 'said', text: 'Folders by subject.' }, say: { text: [ 'In the draft:', '- Nothing yet', 'Folders by subject, by use, or both?' ].join( '\n' ), choices: [ 'By subject', 'By use' ] } } } ) ) );
 			}
 		}
+		// The brief's tab opens with an opener built on the server: no call to the service, none to mint a token.
+		const service = [];
+		page.on( 'request', ( r ) => {
+			if ( /\/(brief|guide)\/(stream|session|token)$/.test( r.url() ) ) {
+				service.push( r.url() );
+			}
+		} );
 		await open( page, slug );
 		await expect( page.locator( '.vgml-shell-content' ) ).toBeVisible();
 		if ( name === 'folders' ) {
@@ -55,6 +64,31 @@ for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 		if ( name === 'ai' ) {
 			// Demo mode left this screen for the Licence screen.
 			await expect( page.locator( '#vgml-ai-mock' ) ).toHaveCount( 0 );
+			// Three tabs; the run's button says what it will do, with the number or the reason it cannot.
+			await expect( page.locator( '.vgml-tabs .vgml-tab' ) ).toHaveCount( 3 );
+			await expect( page.locator( '.vgml-tabs .vgml-tab.is-on' ) ).toHaveText( 'Describe' );
+			await expect( page.locator( '#vgml-ai-run' ) ).toHaveText( /^Describe (\d[\d,.]* new pictures?|· nothing new)$/ );
+			await expect( page.locator( '#vgml-ai-alt' ) ).toHaveText( /^Alt text (for \d[\d,.]*|· none missing)$/ );
+			await expect( page.locator( '.vgml-ai-table tr' ) ).toHaveCount( 8 );
+			await expect( page.locator( '#vgml-ai-counts' ) ).toHaveText( /^\d[\d,.]* pictures · \d[\d,.]* described · \d[\d,.]* with alt text/ );
+		}
+		if ( name === 'ai-how' ) {
+			await expect( page.locator( '.vgml-tabs .vgml-tab.is-on' ) ).toHaveText( 'How it describes' );
+			// The opener came with the page: facts, then one question, and no chip that costs anything.
+			await expect( page.locator( '.vgml-brief-talk .vgml-msg.is-assistant' ).first() ).toContainText( /described with the brief on the right|No brief yet/ );
+			await expect( page.locator( '.vgml-brief-talk .vgml-msg.is-assistant' ).first() ).toContainText( '?' );
+			await expect( page.locator( '.vgml-composer-text' ) ).toBeVisible();
+			await expect( page.locator( '.vgml-brief-panel .vgml-brief-block' ) ).toBeVisible();
+			await expect( page.locator( '#vgml-brief-turns' ) ).toHaveText( /^\d+ of \d+ turns$/ );
+			await expect( page.locator( '#vgml-ai-page-context' ) ).toHaveCount( 1 );
+			await page.waitForTimeout( 1500 );
+			expect( service, 'opening the tab costs nothing: no request to the service or for a token' ).toEqual( [] );
+		}
+		if ( name === 'ai-search' ) {
+			await expect( page.locator( '.vgml-tabs .vgml-tab.is-on' ) ).toHaveText( 'Search' );
+			await expect( page.locator( '#vgml-search-form' ) ).toBeVisible();
+			await expect( page.locator( '.vgml-ai-table tr' ) ).toHaveCount( 4 );
+			await expect( page.locator( '#vgml-ai-enrich' ) ).toHaveCount( 1 );
 		}
 		if ( name === 'library' ) {
 			// Share library counts: the switch and its three lines live here, and nowhere else.
@@ -69,6 +103,11 @@ for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 		}
 		await page.waitForTimeout( 800 );
 		await page.screenshot( { path: `test-results/shot-${ name }.png`, fullPage: true } );
+		if ( name === 'folders' && planted ) {
+			// The session was empty when this spec found it; it is empty again.
+			await page.evaluate( () => wp.apiFetch( { path: '/vergeml/v1/guide/session', method: 'POST', data: { reset: true } } ) );
+			planted = false;
+		}
 		expect( problems, problems.join( '\n' ) ).toEqual( [] );
 	} );
 }

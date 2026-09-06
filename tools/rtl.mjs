@@ -30,6 +30,7 @@ const SHEETS = [
 	'vergeml-media-list',
 	'vergeml-gallery',
 	'vergeml-folders',
+	'vergeml-talk',
 	'vergeml-tree-view',
 ];
 

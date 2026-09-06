@@ -188,7 +188,7 @@ function vergeml_licence_page() {
                 '',
                 esc_html( null === $left ? '—' : number_format_i18n( $left ) ) . ' <span class="vgml-muted">— ' . esc_html( ( 'ok' !== $state && function_exists( 'vergeml_ai_credits_warning' ) && '' !== (string) vergeml_ai_credits_warning() )
                     ? (string) vergeml_ai_credits_warning()
-                    : __( 'one credit describes one image.', 'vergelabs-media-library' ) ) . '</span>'
+                    : __( 'one describes one picture.', 'vergelabs-media-library' ) ) . '</span>'
             );
         }
 

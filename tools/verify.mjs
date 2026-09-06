@@ -86,6 +86,10 @@ const SUITES = [
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },
+	// The brief as a conversation: the free opener, the held test, adopting. Stands in for the service; spends nothing.
+	{ name: 'brief', file: 'tests/tree/brief.php', env: 'box', php: true },
+	// Try a query: both searches for one phrase, each hit with its why. One embed call, not charged.
+	{ name: 'search-try', file: 'tests/tree/search-try.php', env: 'box', php: true },
 	/*
 	 *  The AI folders, in two halves for the usual reason. The PHP one is
 	 *  about the join and the counts and wants real MySQL -- Playground's

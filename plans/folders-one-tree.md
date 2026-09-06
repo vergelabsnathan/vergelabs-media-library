@@ -428,16 +428,24 @@ profile: each task carries Files, Behaviour, Proof, Mirror, Copy, Do not.
       change a translator comment's placeholders; edit a string the table
       does not list.
 
-Phase 5 — AI screen, 2 days, mock first.
+Phase 5 — AI screen, 2 days, mock first. **Done 2026-09-06 (Fable 5.1),
+one session.** Spec §12 records the four decisions; the handoff is
+`docs/handoffs/2026-09-06-phase-5-handoff.md`.
 
 18. Mock of three tabs (Describe, How it describes, Search) in the shell's
-    grammar, Nathan approves before code.
+    grammar, Nathan approves before code. — Approved as
+    `docs/superpowers/mocks/2026-09-06-ai-screen.html` (six boards, the box's
+    numbers, one real 5-picture test).
 19. "How it describes": the site brief as a conversation using the Folders
     conversation component; the brief in bullets on the right; "Test on 5
     pictures" (5 credits, say so) re-runs with the brief; corrections update
-    the brief. The brief is the describe prompt's context.
+    the brief. The brief is the describe prompt's context. — `core/brief.php`,
+    `js/vergeml-brief.js`, the conversation lifted into `js/vergeml-talk.js`
+    (Folders uses it too); service `/v1/brief/stream` on the guide's token.
+    Suites: `tests/tree/brief.php` (box, stands in for the service),
+    `tests/ui/brief.spec.mjs` (the walk under `BRIEF_WALK=1`, ~25 credits).
 20. Search tab: what search matches; try a query and see why each hit
-    matched.
+    matched. — `core/search-try.php`; `tests/tree/search-try.php`.
 
 Phase 6 — similar pictures, 1 day.
 

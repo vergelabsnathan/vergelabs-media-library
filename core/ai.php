@@ -1608,53 +1608,7 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
             continue;
         }
 
-        /*
-         *  Inside the writing flag: everything below is the pipeline filling
-         *  fields in, and the hooks that protect a user's own words must not
-         *  mistake it for somebody typing.
-         */
-        vergeml_index_writing( true );
-
-        $row = array(
-            'caption'       => $described['caption'],
-            'alt'           => $described['alt'],
-            'title'         => $described['title'],
-            'tags'          => $described['tags'],
-            'kind'          => isset( $described['kind'] ) ? $described['kind'] : '',
-            'document_type' => isset( $described['document_type'] ) ? $described['document_type'] : '',
-            /*
-             *  The catalogue record, stored as it arrived. Until now it reached
-             *  the customer only folded into the embedding, which folders and
-             *  search read but nobody can see -- so a field nobody can check.
-             */
-            'filing'        => wp_json_encode( isset( $described['filing'] ) ? $described['filing'] : array() ),
-            'orientation'   => vergeml_index_orientation( $id ),
-            'model'         => $described['model'],
-            'model_version' => $described['model_version'],
-            'prompt_hash'   => $described['prompt_hash'],
-            'error'         => '',
-            'described_at'  => current_time( 'mysql', true ),
-        );
-
-        // Null is "the service did not say", which is not the same as false
-        // and must not be stored as it.
-        foreach ( array( 'has_people', 'has_text' ) as $flag ) {
-            if ( isset( $described[ $flag ] ) && null !== $described[ $flag ] ) {
-                $row[ $flag ] = $described[ $flag ] ? 1 : 0;
-            }
-        }
-
-        if ( ! empty( $described['embedding'] ) ) {
-            $row['embedding'] = $described['embedding'];
-        }
-
-        vergeml_index_set( $id, $row );
-
-        if ( $apply_alt && '' === (string) get_post_meta( $id, '_wp_attachment_image_alt', true ) ) {
-            update_post_meta( $id, '_wp_attachment_image_alt', $described['alt'] );
-        }
-
-        vergeml_index_writing( false );
+        vergeml_ai_index_store( $id, $described, $apply_alt );
 
         $done[] = array( 'id' => $id, 'caption' => $described['caption'] );
     }
@@ -1693,6 +1647,66 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
         'remaining' => vergeml_ai_pending_count( $scope ),
         'held'      => count( $held ),
     );
+}
+
+
+/**
+ *  One answer from the service, written to the catalogue -- and its alt text
+ *  onto the picture, when the picture had none.
+ *
+ *  The one place a described row is built, so the describe loop above and
+ *  the brief's adopt (core/brief.php), which writes the answers a test held,
+ *  can never store two different shapes of the same thing.
+ */
+function vergeml_ai_index_store( $id, $described, $apply_alt ) {
+
+    /*
+     *  Inside the writing flag: everything below is the pipeline filling
+     *  fields in, and the hooks that protect a user's own words must not
+     *  mistake it for somebody typing.
+     */
+    vergeml_index_writing( true );
+
+    $row = array(
+        'caption'       => $described['caption'],
+        'alt'           => $described['alt'],
+        'title'         => $described['title'],
+        'tags'          => $described['tags'],
+        'kind'          => isset( $described['kind'] ) ? $described['kind'] : '',
+        'document_type' => isset( $described['document_type'] ) ? $described['document_type'] : '',
+        /*
+         *  The catalogue record, stored as it arrived. Until now it reached
+         *  the customer only folded into the embedding, which folders and
+         *  search read but nobody can see -- so a field nobody can check.
+         */
+        'filing'        => wp_json_encode( isset( $described['filing'] ) ? $described['filing'] : array() ),
+        'orientation'   => vergeml_index_orientation( $id ),
+        'model'         => $described['model'],
+        'model_version' => $described['model_version'],
+        'prompt_hash'   => $described['prompt_hash'],
+        'error'         => '',
+        'described_at'  => current_time( 'mysql', true ),
+    );
+
+    // Null is "the service did not say", which is not the same as false
+    // and must not be stored as it.
+    foreach ( array( 'has_people', 'has_text' ) as $flag ) {
+        if ( isset( $described[ $flag ] ) && null !== $described[ $flag ] ) {
+            $row[ $flag ] = $described[ $flag ] ? 1 : 0;
+        }
+    }
+
+    if ( ! empty( $described['embedding'] ) ) {
+        $row['embedding'] = $described['embedding'];
+    }
+
+    vergeml_index_set( $id, $row );
+
+    if ( $apply_alt && '' === (string) get_post_meta( $id, '_wp_attachment_image_alt', true ) ) {
+        update_post_meta( $id, '_wp_attachment_image_alt', $described['alt'] );
+    }
+
+    vergeml_index_writing( false );
 }
 
 
@@ -2104,223 +2118,8 @@ function vergeml_ai_menu() {
     );
 }
 
-add_action( 'admin_enqueue_scripts', 'vergeml_ai_assets' );
-
-function vergeml_ai_assets( $hook ) {
-
-    if ( false === strpos( (string) $hook, 'media-ai' ) ) {
-        return;
-    }
-
-    wp_enqueue_script(
-        'vergeml-ai',
-        plugins_url( 'js/vergeml-ai.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
-        vergeml_asset_ver( 'js/vergeml-ai.js' ),
-        true
-    );
-
-    wp_enqueue_style(
-        'vergeml-admin',
-        plugins_url( 'css/vergeml-admin.css', VERGEML_FILE ),
-        array(),
-        vergeml_asset_ver( 'css/vergeml-admin.css' )
-    );
-}
-
-function vergeml_ai_page() {
-
-    if ( ! current_user_can( 'manage_categories' ) ) {
-        wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
-    }
-
-    $can_configure = current_user_can( 'manage_options' );
-
-    ?>
-    <div class="wrap vgml-home vgml-ai">
-
-        <?php
-        // The licence lives on its own tab. Only the absence of one is said here.
-        if ( function_exists( 'vergeml_connect_has_key' ) && ! vergeml_connect_has_key() && current_user_can( 'manage_options' ) ) {
-            printf(
-                '<div class="notice notice-info"><p>%s <a href="%s">%s</a></p></div>',
-                esc_html__( 'No licence is connected, so nothing can be described yet.', 'vergelabs-media-library' ),
-                esc_url( admin_url( 'admin.php?page=media-licence' ) ),
-                esc_html__( 'Connect one on the Licence tab', 'vergelabs-media-library' )
-            );
-        }
-        ?>
-
-        <?php
-        /*
-         *  Head, cards, rows -- the grammar in core/admin-shell.php, not this
-         *  screen's own. What was here was an h1, a paragraph, and a
-         *  form-table of prose: nothing to scan, and the one button somebody
-         *  came to press was the last thing on the page inside a <p>.
-         *
-         *  The counts line keeps its id. The JS on this screen writes into it
-         *  and into every field id below, so the markup changed and the
-         *  contract did not.
-         */
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'AI', 'vergelabs-media-library' ),
-            __( 'Descriptions, alt text and search, written from your images.', 'vergelabs-media-library' ),
-            '<span class="vgml-home-counts" id="vgml-ai-counts">' . esc_html__( 'Loading…', 'vergelabs-media-library' ) . '</span>'
-        );
-        ?>
-
-        <?php
-        /*
-         *  The work first, the settings after it.
-         *
-         *  This screen opened on seven rows of configuration -- key, credits,
-         *  what the site is about, three switches -- and the one thing
-         *  somebody came here to press was underneath all of it. A page of
-         *  settings with an action hidden at the bottom is a WordPress options
-         *  screen wearing a product's name.
-         */
-        ?>
-        <?php
-        /*
-         *  One describe section.
-         *
-         *  There were two -- "Describe the library" and "Describe in the
-         *  background" -- offering the same two jobs with different buttons,
-         *  and nothing said why you would pick one. Watching it happen or
-         *  letting it run on its own is a choice about this run, not a
-         *  different feature, so it is a choice inside the section.
-         */
-        ?>
-        <div class="vgml-cols vgml-ai-cols">
-        <div class="vgml-cols-main">
-
-        <div class="vgml-ai-card vgml-ai-run">
-            <h2 class="vgml-kicker"><?php esc_html_e( 'Describe your images', 'vergelabs-media-library' ); ?></h2>
-            <p class="vgml-ai-run-lede"><?php esc_html_e( 'Each image is shown to the model once. The description powers search, alt text, and everything after it.', 'vergelabs-media-library' ); ?></p>
-
-            <p class="vgml-ai-choice">
-                <label><input type="radio" name="vgml-ai-where" value="here" checked> <?php esc_html_e( 'Watch it here', 'vergelabs-media-library' ); ?></label>
-                <label><input type="radio" name="vgml-ai-where" value="background"> <?php esc_html_e( 'Run in the background — you can close this tab', 'vergelabs-media-library' ); ?></label>
-            </p>
-
-            <p class="vgml-ai-buttons">
-                <button type="button" class="button button-primary" id="vgml-ai-run" data-scope="unindexed"><?php esc_html_e( 'Describe new images', 'vergelabs-media-library' ); ?></button>
-                <button type="button" class="button" id="vgml-ai-alt" data-scope="missing-alt"><?php esc_html_e( 'Fix missing alt text', 'vergelabs-media-library' ); ?></button>
-                <?php
-                /*
-                 *  The pages an SEO plugin is scoring, first. Shown only when
-                 *  there is something to fix there: on a site without an SEO
-                 *  plugin, or with every such page already covered, the button
-                 *  would be a question nobody asked.
-                 */
-                ?>
-                <button type="button" class="button" id="vgml-ai-page-gap" data-scope="page-gap" hidden
-                    title="<?php esc_attr_e( 'Images without alt text on pages that have a focus keyphrase in Yoast, Rank Math, SEOPress or All in One SEO — the ones those plugins are already marking the page down for.', 'vergelabs-media-library' ); ?>"><?php esc_html_e( 'Fix alt text on your SEO pages', 'vergelabs-media-library' ); ?></button>
-                <button type="button" class="button" id="vgml-ai-bg-stop" hidden><?php esc_html_e( 'Stop', 'vergelabs-media-library' ); ?></button>
-            </p>
-            <div class="vgml-import-bar" id="vgml-ai-bg-bar" hidden><div class="vgml-import-fill" id="vgml-ai-bg-fill"></div></div>
-            <p id="vgml-ai-bg-note"></p>
-            <div class="vgml-import-bar" id="vgml-ai-bar" hidden><div class="vgml-import-fill" id="vgml-ai-fill"></div></div>
-            <p id="vgml-ai-note"></p>
-            <ul id="vgml-ai-log" class="vgml-ai-log"></ul>
-        </div>
-
-        <?php if ( $can_configure ) : ?>
-        <?php
-        $help = function ( $key ) {
-            if ( ! function_exists( 'vergeml_help' ) ) {
-                return '';
-            }
-            ob_start();
-            vergeml_help( $key );
-            return ob_get_clean();
-        };
-
-        /*
-         *  How it behaves: 220px labels, a sentence per switch, one sticky
-         *  save bar for the page (design handoff, screen 3).
-         */
-        echo vergeml_pg_card_open( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'How it behaves', 'vergelabs-media-library' ),
-            array(
-                'note' => __( 'Set once — it applies to every run above.', 'vergelabs-media-library' ),
-                'rows' => true,
-            )
-        );
-
-        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'What this site is about', 'vergelabs-media-library' ),
-            __( 'Your trade\'s words, so descriptions name what you actually sell. Applies from now on.', 'vergelabs-media-library' ),
-            '<textarea id="vgml-ai-profile" rows="3" class="vgml-input" maxlength="500" placeholder="'
-                . esc_attr( vergeml_ai_profile_hint() ) . '"></textarea>' . $help( 'site_profile' )
-        );
-
-        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'Search', 'vergelabs-media-library' ),
-            '',
-            '<label class="vgml-check"><input type="checkbox" id="vgml-ai-enrich"><span>' . esc_html__( 'Media search also matches AI captions and tags.', 'vergelabs-media-library' )
-                . '</span></label>' . $help( 'enrich_search' )
-        );
-
-        echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-            __( 'Page context', 'vergelabs-media-library' ),
-            '',
-            '<label class="vgml-check"><input type="checkbox" id="vgml-ai-page-context"><span>' . esc_html__( 'Descriptions know which page an image is on — its title, and with Yoast, Rank Math, SEOPress or AIOSEO its focus keyphrase. The model still describes only what it sees.', 'vergelabs-media-library' )
-                . '</span></label>' . $help( 'page_context' )
-        );
-
-        /*
-         *  Demo mode is not here. It is a question about the licence -- what
-         *  to do before there is one -- so it sits on the Licence screen,
-         *  only while no key is present (core/licence-page.php).
-         */
-
-        echo '</div>'; // close the rows body before the save bar.
-
-        echo '<div class="vgml-savebar">'
-            . '<button type="button" class="button button-primary" id="vgml-ai-save">' . esc_html__( 'Save changes', 'vergelabs-media-library' ) . '</button>'
-            . '<span class="vgml-savebar-note">' . esc_html__( 'Saves everything on this page.', 'vergelabs-media-library' ) . '</span>'
-            . '<span id="vgml-ai-save-note" class="vgml-saved"></span>'
-            . '</div>';
-
-        echo '</section>';
-        ?>
-        <?php endif; ?>
-
-        <?php
-        /*
-         *  Where anything built on top of the descriptions puts its own card.
-         *  An action rather than more markup here, so a feature that lives in
-         *  its own file -- and can therefore be switched off by safe mode --
-         *  does not have to be wired into this page to appear on it.
-         */
-        do_action( 'vergeml_ai_page_cards' );
-        ?>
-
-        </div><!-- /main -->
-
-        <aside class="vgml-cols-rail">
-            <?php
-            $credits = get_option( 'vergeml_ai_credits', array() );
-            $left    = is_array( $credits ) && isset( $credits['remaining'] ) && null !== $credits['remaining'] ? (int) $credits['remaining'] : null;
-            ?>
-            <div class="vgml-rail-block">
-                <h6 class="vgml-kicker"><?php esc_html_e( 'Credits', 'vergelabs-media-library' ); ?></h6>
-                <p class="vgml-ai-credits-n"><?php echo esc_html( null === $left ? '—' : number_format_i18n( $left ) ); ?></p>
-                <p class="vgml-note"><?php esc_html_e( 'left · one credit describes one image', 'vergelabs-media-library' ); ?></p>
-                <p class="vgml-ai-credits-go">
-                    <a class="button" href="https://vergelabsmedia.com/#pricing" target="_blank" rel="noopener"><?php esc_html_e( 'Get credits ↗', 'vergelabs-media-library' ); ?></a>
-                    <a class="vgml-btn vgml-btn-ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=media-licence' ) ); ?>"><?php esc_html_e( 'Licence →', 'vergelabs-media-library' ); ?></a>
-                </p>
-            </div>
-            <div class="vgml-rail-block">
-                <h6 class="vgml-kicker"><?php esc_html_e( 'What leaves your site', 'vergelabs-media-library' ); ?></h6>
-                <p class="vgml-note"><?php esc_html_e( 'Images go to the service only to be described; nothing else leaves your site. Captions and tags are stored in your own database.', 'vergelabs-media-library' ); ?></p>
-            </div>
-        </aside>
-
-        </div><!-- /cols -->
-
-    </div>
-    <?php
-}
+/*
+ *  The screen itself -- three tabs: Describe, How it describes, Search -- and
+ *  its assets are core/ai-screen.php. The menu entry above names its page
+ *  callback, which that file defines.
+ */

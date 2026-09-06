@@ -211,7 +211,7 @@ function vergeml_admin_home() {
         array(
             'page'  => 'media-ai',
             'title' => __( 'AI', 'vergelabs-media-library' ),
-            'text'  => __( 'Describe your images once; search finds what pictures show, and missing alt text fills itself in.', 'vergelabs-media-library' ),
+            'text'  => __( 'Describe your pictures once; search finds what they show, and missing alt text fills itself in.', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
