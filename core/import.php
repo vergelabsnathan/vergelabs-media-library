@@ -511,9 +511,22 @@ function vergeml_import_existing( $taxonomy ) {
 /**
  *  Case- and space-insensitive, because "Photos" and "photos " are the same
  *  folder to the person who made them and importing both is not a feature.
+ *
+ *  The parent is one of two things. In the run it is always a term id, because
+ *  the run inserts each folder before it reaches that folder's children. The
+ *  plan cannot insert, so for a folder that is about to be made it is the
+ *  placeholder `new:<source id>` instead. Casting that to an integer turned
+ *  every placeholder into 0, so a folder whose parent was about to be created
+ *  was keyed as though it sat at the top of the tree: the preview merged
+ *  FileBird's Apparel-under-Products into our own top-level Apparel and
+ *  counted a folder the import would actually create, and two folders with the
+ *  same name under different parents collided with each other. A preview that
+ *  drifts from the import is the one failure this file exists to avoid.
  */
 
 function vergeml_import_key( $name, $parent ) {
 
-    return strtolower( trim( wp_strip_all_tags( (string) $name ) ) ) . '|' . (int) $parent;
+    $parent = is_numeric( $parent ) ? (int) $parent : (string) $parent;
+
+    return strtolower( trim( wp_strip_all_tags( (string) $name ) ) ) . '|' . $parent;
 }
