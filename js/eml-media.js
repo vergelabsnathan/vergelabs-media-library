@@ -124,12 +124,12 @@
                 spinner.removeClass( 'is-active' );
             }).done( function( x ) {
                 if ( ! x.success ) {
-                    $( '#find-posts-response' ).text( wp.i18n.__( 'An error has occurred. Please reload the page and try again.' ) );
+                    $( '#find-posts-response' ).text( wp.i18n.__( 'That did not load. Reload the page.' ) );
                 }
 
                 $( '#find-posts-response' ).html( x.data );
             }).fail( function() {
-                $( '#find-posts-response' ).text( wp.i18n.__( 'An error has occurred. Please reload the page and try again.' ) );
+                $( '#find-posts-response' ).text( wp.i18n.__( 'That did not load. Reload the page.' ) );
             });
         }
     };

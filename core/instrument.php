@@ -326,9 +326,20 @@ function vergeml_stats_settings_section() {
 
     $state = vergeml_stats_state();
 
-    ?>
-    <h2><?php esc_html_e( 'Share library counts', 'vergelabs-media-library' ); ?></h2>
+    /*
+     *  A section of Library settings' accordion, printed by the screen that
+     *  owns it rather than by this file, so the summary line says what the
+     *  switch is set to without the screen having to know how it is stored.
+     */
+    vergeml_acc_start(
+        'counts',
+        __( 'Share library counts', 'vergelabs-media-library' ),
+        empty( $state['opted'] )
+            ? __( 'Off', 'vergelabs-media-library' )
+            : __( 'On, once a day', 'vergelabs-media-library' )
+    );
 
+    ?>
     <div class="postbox">
 
         <div class="inside">
@@ -358,6 +369,8 @@ function vergeml_stats_settings_section() {
     </div>
     <?php
 
+    vergeml_acc_end();
+
     vergeml_stats_script();
 }
 
@@ -375,8 +388,8 @@ function vergeml_stats_script() {
     wp_enqueue_script( 'wp-api-fetch' );
 
     $l10n = wp_json_encode( array(
-        'on'     => __( 'Saved. Thank you.', 'vergelabs-media-library' ),
-        'off'    => __( 'Off, and what was collected has been deleted.', 'vergelabs-media-library' ),
+        'on'     => __( 'On. The counts go once a day.', 'vergelabs-media-library' ),
+        'off'    => __( 'Off. What was collected has been deleted.', 'vergelabs-media-library' ),
         'failed' => __( 'That did not save.', 'vergelabs-media-library' ),
     ) );
 

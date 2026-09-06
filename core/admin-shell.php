@@ -674,6 +674,64 @@ function vergeml_pg_figures( $figures ) {
 
 
 /**
+ *  One settings section, closed.
+ *
+ *  A settings screen of six sections arrived as 3,500 pixels of open form and
+ *  nobody read past the second. Each section is a line now: its name, what it
+ *  is currently set to, and a chevron. What a person opens is remembered for
+ *  them by js/vergeml-settings.js.
+ *
+ *  <details> rather than a button and hand-rolled ARIA: the browser gives the
+ *  role, the keyboard and a find-in-page that opens the section the match is
+ *  in, and none of that has to be maintained here.
+ *
+ *  The caller prints the section's body and then vergeml_acc_end().
+ *
+ *  @param string $id    Stable id, stored in localStorage. Never translated.
+ *  @param string $title The section's name.
+ *  @param string $facts What it is set to now, values joined by " · ".
+ */
+function vergeml_acc_start( $id, $title, $facts = '' ) {
+
+    echo '<details class="vgml-acc-item" data-section="' . esc_attr( $id ) . '">'
+        . '<summary><span>' . esc_html( $title )
+        . ( '' !== (string) $facts ? '<small>' . esc_html( $facts ) . '</small>' : '' )
+        . '</span>'
+        . '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>'
+        . '</summary>';
+}
+
+
+/** Closes a section opened by vergeml_acc_start(). */
+function vergeml_acc_end() {
+    echo '</details>';
+}
+
+
+/**
+ *  The values a section is set to, as one line.
+ *
+ *  Empty values fall out, so a section with nothing set says nothing rather
+ *  than printing a row of separators.
+ */
+function vergeml_acc_facts( $values ) {
+
+    $kept = array();
+
+    foreach ( (array) $values as $value ) {
+
+        $value = trim( (string) $value );
+
+        if ( '' !== $value ) {
+            $kept[] = $value;
+        }
+    }
+
+    return implode( ' · ', $kept );
+}
+
+
+/**
  *  The foot of a card. One primary button and whatever else is plain; the
  *  note is the caveat that belongs next to the button rather than three
  *  paragraphs above it.

@@ -56,36 +56,6 @@ test.describe( 'the AI screen', () => {
 	} );
 } );
 
-test.describe( 'sort into folders', () => {
-
-	test( 'is a conversation, and keeps what was said', async ( { page } ) => {
-		await open( page, SCREEN.folders );
-
-		const say = page.locator( '#vgml-talk-say' );
-		const log = page.locator( '#vgml-talk-log' );
-
-		test.skip( ( await say.count() ) === 0, 'the talk panel is not on this screen' );
-
-		// The transcript is the whole point: it was a single question with a
-		// take-it-or-leave-it answer, and every refinement started from nothing.
-		await expect( log, 'there is somewhere for the conversation to live' ).toHaveCount( 1 );
-
-		await say.fill( 'Group these by what they show' );
-		await page.locator( '#vgml-talk-go' ).click();
-
-		// What was typed must appear as a turn, immediately, whatever the
-		// service goes on to answer.
-		await expect(
-			log.locator( '.vgml-talk-you' ).first(),
-			'what you said stays on screen'
-		).toBeVisible( { timeout: 15_000 } );
-
-		// And the box empties, ready for the next thing, rather than keeping
-		// the sentence you already sent.
-		await expect( say ).toHaveValue( '' );
-	} );
-} );
-
 test.describe( 'the settings screens', () => {
 
 	test( 'folders and categories says what it is before asking what to tick', async ( { page } ) => {

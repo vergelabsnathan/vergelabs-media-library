@@ -1368,34 +1368,6 @@ function vergeml_journey_screen() {
         </div>
         <?php endif; ?>
 
-        <?php if ( ! empty( $f['recent'] ) ) : ?>
-        <!-- the library itself, and what the model saw in it -->
-        <div class="vgml-seen">
-            <div class="vgml-seen-head">
-                <h6 class="vgml-kicker"><?php esc_html_e( 'Recently described', 'vergelabs-media-library' ); ?></h6>
-                <a class="vgml-btn vgml-btn-ghost" href="<?php echo esc_url( admin_url( 'upload.php' ) ); ?>"><?php esc_html_e( 'Open the library ↗', 'vergelabs-media-library' ); ?></a>
-            </div>
-            <ul class="vgml-seen-strip">
-                <?php foreach ( $f['recent'] as $shot ) : ?>
-                    <?php
-                    $shot_id  = (int) $shot['attachment_id'];
-                    $shot_src = wp_get_attachment_image_url( $shot_id, 'thumbnail' );
-
-                    if ( ! $shot_src ) {
-                        continue;
-                    }
-                    ?>
-                    <li class="vgml-seen-item">
-                        <a href="<?php echo esc_url( admin_url( 'post.php?post=' . $shot_id . '&action=edit' ) ); ?>">
-                            <img src="<?php echo esc_url( $shot_src ); ?>" alt="" loading="lazy" width="150" height="150">
-                            <span class="vgml-seen-kind"><?php echo esc_html( $shot['kind'] ); ?></span>
-                            <span class="vgml-seen-caption"><?php echo esc_html( $shot['caption'] ); ?></span>
-                        </a>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-        <?php endif; ?>
 
         <?php
         /*
@@ -1662,6 +1634,6 @@ function vergeml_journey_assets( $hook ) {
         'finished' => __( 'Finished. Refreshing the numbers…', 'vergelabs-media-library' ),
         'stopped'  => __( 'Stopped:', 'vergelabs-media-library' ),
         'failed'   => __( 'That did not start. Check the licence on the AI screen.', 'vergelabs-media-library' ),
-        'confirmStale' => __( 'Re-describing spends one credit per image. Continue?', 'vergelabs-media-library' ),
+        'confirmStale' => __( 'Re-describing spends one credit per picture.', 'vergelabs-media-library' ),
     ) );
 }

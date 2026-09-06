@@ -222,16 +222,211 @@ Phase 3 — the Folders screen, 1 day.
     apply through the resumable re-filing; the 25-turn cap in the composer's
     label.
 
-Phase 4 — shell, settings, removals, copy, half a day.
+Phase 4 — shell, settings, removals, copy, half a day. Written for the Opus
+profile: each task carries Files, Behaviour, Proof, Mirror, Copy, Do not.
 
-14. Shell in normal flow: remove every sticky/fixed rule; save bars at the
-    end of their forms.
-15. Settings screens: sections under chevrons, closed by default, the open
-    one remembered per person.
-16. Removals: the guide's states and screens, the wizard beside the chat
-    card, the "Recently described" strip, the size-counts card.
-17. Copy pass on every screen to the standard: facts, numbers, lists with
-    the brand-mark bullet; conversational phrasing only in conversations.
+14. **The shell in normal flow.**
+    - Files: `css/vergeml-shell.css` (the five rules opening at 136, 862,
+      1228, 2221, 2429, and the two the change drags in below),
+      `css/vergeml-shell-rtl.css` (generated — run `node tools/rtl.mjs`, never
+      edit it by hand), new `tests/ui/shell.spec.mjs`.
+    - Behaviour:
+      - `.vgml-shell-nav` loses `position`, `top`, `height` and `overflow`.
+        The rail is a 250px column in normal flow; the page scrolls as one
+        and the rail scrolls with it.
+      - `.vgml-savebar`, `.vgml-shell .vgml-savebar`, `.vgml-shell
+        .vgml-ds-savebar` and `.vgml-shell .vgml-pg-actions` lose `position`,
+        `bottom` and `z-index`. They keep the top rule, the padding and the
+        background, and stay the last thing inside their form.
+      - `.vgml-shell .vergeml-mime-type-list thead th` loses `position`,
+        `top` and `z-index`.
+      - `.vgml-health-bulk` (the Duplicates bulk bar) keeps its sticky. It is
+        the one exception, taken by Nathan on 2026-09-05: the list it acts on
+        runs to two hundred sets and a bulk control that scrolls away from
+        what it controls is not used twice. Written into spec §3 and named in
+        the gate, so it reads as a decision and not as a miss.
+      - No other element under `.vgml-shell` computes to `sticky` or `fixed`
+        on any of the nine screens.
+      - Two rules the sticky was propping up, found by looking at the screen
+        after the change and fixed in the same task: `.vgml-shell-body` goes
+        from `align-items: flex-start` to `stretch`, so the divider and the
+        rail's ground run the length of the page instead of stopping where
+        the menu ends; and `.vgml-shell-list` goes from `flex: 1` to
+        `flex: 0 0 auto`, so the rail's foot sits under the last menu item
+        instead of being pushed to the bottom of a page four thousand pixels
+        long.
+    - Proof: `pnpm test:ui shell.spec` on the box, over the nine slugs of
+      `tests/ui/shots.spec.mjs`. (a) The descendants of `.vgml-shell` whose
+      computed `position` is `sticky` or `fixed` are exactly one,
+      `.vgml-health-bulk`, and only on Duplicates; none on the other eight
+      screens. (b)
+      `.vgml-shell-nav`'s computed `position` is `static` and it does not
+      scroll on its own (`scrollHeight - clientHeight <= 1`). (c) On File
+      types the document is taller than the viewport, and scrolled to the
+      bottom the rail's `getBoundingClientRect().top` has moved by the same
+      pixels as the content's. (d) Every `.vgml-savebar` / `.vgml-pg-actions`
+      inside a `<form>` has no visible element after it in that form.
+      Mutation check: put `position: sticky` back on `.vgml-shell-nav`,
+      deploy, the spec goes red at (a) — the rail is itself a pinned element,
+      and (b) and (c) do not get to run because the assertions are in order;
+      the real build back, green.
+    - Mirror: every rule edited in `css/vergeml-shell.css` has a twin in
+      `css/vergeml-shell-rtl.css` two lines lower — edit both.
+      `tests/ui/shots.spec.mjs` is the spec's shape: the `SLUGS` map, `open()`
+      from `fixtures.mjs`, `page.on( 'pageerror' )`.
+    - Copy: none. This task changes no user-facing string.
+    - Do not: touch `css/vergeml-tree.css`'s `.vgml-move` or
+      `css/vergeml-gallery.css`'s lightbox overlay — neither renders inside
+      `.vgml-shell`; remove a save bar's `border-top` or its background;
+      change a property beyond `position`, `top`, `bottom`, `height`,
+      `overflow`, `z-index` and the two the change drags in
+      (`.vgml-shell-body`'s `align-items`, `.vgml-shell-list`'s `flex`);
+      hand-edit `css/vergeml-shell-rtl.css` instead of regenerating it;
+      unstick `.vgml-health-bulk`; open the Folders screen without planting a
+      turn first.
+
+15. **The settings sections under chevrons.**
+    - Files: `core/options-pages.php` —
+      `vergeml_print_media_library_options()` (2102–2512),
+      `vergeml_print_taxonomies_options()` (2513–2966) and
+      `vergeml_print_mimetypes_options()` (2967–3152);
+      `css/vergeml-shell.css` (generated into the RTL twin); new
+      `js/vergeml-settings.js`; `vergeml_acc_start()`, `vergeml_acc_end()` and
+      `vergeml_acc_facts()` in `core/admin-shell.php`; the enqueue in
+      `vergeml_medialibrary_options_page_scripts()`,
+      `vergeml_taxonomies_options_page_scripts()` and
+      `vergeml_mimetype_options_page_scripts()`; `core/instrument.php` (the
+      counts section prints its own `<details>`); `js/eml-mimetype-options.js`
+      (where a new row is cloned to); `tests/ui/shell.spec.mjs`.
+    - Behaviour:
+      - Each section on the three screens becomes `<details class="vgml-acc">`
+        with a `<summary>`: the title, a `<small>` line stating that section's
+        current values, and a chevron at the right that turns when open.
+      - Every section is closed on first load. No `open` attribute is
+        printed.
+      - Opening a section adds its id to
+        `localStorage['vgml-settings-open:<slug>']`; closing it removes it. On
+        load exactly those sections open. Any number may stand open: nothing
+        closes a section the person opened.
+      - Library settings' first section is Order; Folders and categories'
+        first section is Media taxonomies. Library settings has seven
+        sections, not six: Phase 0's "Share library counts" is one of them,
+        printed by `core/instrument.php` into the same accordion.
+      - File types splits its one table into five sections by the kind its
+        own filter already names — Images, Video, Audio, Documents, Other —
+        each holding that kind's rows, one table per section. The kind filter
+        above them opens the section it selects and closes the rest; a text
+        filter opens every section that still has a row; with neither on, the
+        sections are the person's own. A new type has no kind until it has a
+        MIME type, so "Add a file type" clones into Other (`.vgml-ft-new`) and
+        opens that section — `js/eml-mimetype-options.js` prepended into
+        `.vergeml-mime-type-list tbody`, which with five tables would have put
+        a copy in every one. The buttons and the save bar stay outside the
+        accordion, at the end of the form.
+      - The save bar stays outside the accordion, at the end of the form.
+    - Proof: `pnpm test:ui shell.spec` on the box, a second describe block.
+      On each of the three slugs: `details[open]` has count 0 on a first load
+      with `localStorage` cleared; clicking two summaries leaves both open;
+      reloading opens those two and no other; closing both and reloading
+      opens none. On File types, choosing Video opens the Video section and
+      closes the rest. Mutation check: print `open` on the first section and
+      the "closed by default" assertion goes red.
+    - Mirror: the mock's board 3
+      (`docs/superpowers/mocks/2026-09-05-folders-screen.html`, lines
+      3606–3655) is the markup and the summary's `<small>` line; `.mk-acc`
+      there is the style to carry into `vergeml-shell.css` as `.vgml-acc`.
+      `js/vergeml-health.js` is the shape for a small screen script.
+    - Copy: section titles unchanged and in this order — Library settings:
+      "Order", "Filters", "Scrolling", "Search", "Grid Mode", "Share library
+      counts", "Media Shortcodes"; Folders and categories: "Media
+      taxonomies", "Also show on media", "Options"; File types: "Images",
+      "Video", "Audio", "Documents",
+      "Other", the words its own filter already uses. The `<small>` line is
+      the section's current values joined by " · ", from the fields it holds,
+      no label and no sentence; on File types it is the count, "12 types · 9
+      may be uploaded".
+    - Do not: add a section beyond the five kinds, rename one, or move a
+      field between sections; invent a File types section the kind filter
+      does not already name; write a sentence under a summary; use a
+      `<button>` and hand-rolled ARIA where `<details>` does the job.
+
+16. **The removals.**
+    - Files: `core/librarian.php` (`vergeml_librarian_page_legacy()`,
+      `vergeml_librarian_assets()`), `core/folder-talk.php`
+      (`vergeml_talk_card()`, `vergeml_talk_assets()`), `core/journey.php`
+      (the "Recently described" strip, 1371–1398), `js/vergeml-librarian.js`,
+      `js/vergeml-folder-talk.js`, `css/vergeml-librarian.css`,
+      `css/vergeml-librarian-rtl.css`, the `.vgml-seen` block in
+      `css/vergeml-journey.css`, the `vergeml-librarian` entry in
+      `tools/rtl.mjs`'s `SHEETS`, `tests/ui/screens.spec.mjs` (the
+      "sort into folders" describe, 59–88), `tests/tree/journey.php` (the new
+      assertion, and a stale `vgml-seen` boundary in `jn_between`).
+    - Behaviour:
+      - The dead renderers and enqueuers go with their assets. None has a
+        caller in either repo: `vergeml_librarian_assets()` and
+        `vergeml_talk_assets()` are never hooked,
+        `vergeml_librarian_page_legacy()` and `vergeml_talk_card()` are never
+        called, and `vergeml_librarian_steps()` is reached only from the
+        enqueuer. `vergeml_librarian_stage()` stays — `core/journey.php`
+        calls it.
+      - `vergeml_talk_routes()`, `vergeml_talk_apply()`,
+        `vergeml_talk_undo()`, `vergeml_librarian_routes()` and everything
+        the Move and the suites reach stay untouched.
+      - The dashboard no longer renders the "Recently described" strip; the
+        `recent` key its builder returns may stay dormant.
+      - `tests/ui/screens.spec.mjs` loses the describe that skips itself on
+        the pre-redesign talk panel's selectors.
+    - Proof: `php -l` on every touched file; `node tools/verify.mjs guide`
+      and `node tools/verify.mjs folders-version` unchanged;
+      `node tests/tree/journey.php` on the box green with a new assertion
+      that no `.vgml-seen` element renders; `pnpm test:ui shots.spec` nine of
+      nine with no JavaScript error; `grep -rn` for each deleted symbol
+      returns nothing outside its own removal. Mutation check: leave
+      `.vgml-seen` on the dashboard and the journey suite goes red.
+    - Mirror: Phase 3 deleted `js/vergeml-sort.js` and `js/vergeml-guide.js`
+      the same way — the asset, its enqueue, its localize array and its
+      stylesheet in one commit.
+    - Copy: none removed from a live screen except the strip's own two
+      strings, "Recently described" and "Open the library ↗".
+    - Do not: delete `core/folder-talk.php` or `core/librarian.php`; delete a
+      function a REST route or a suite still calls (grep before each);
+      remove `VERGEML_TALK_STATE` or anything `vergeml_guide_*` reads; touch
+      `js/vergeml-folders.js` or `core/guide.php`.
+
+17. **The copy pass on every screen.**
+    - Files: a new `docs/superpowers/copy/2026-09-05-phase-4-copy.md` first;
+      then only the files that table names, across `core/journey.php`,
+      `core/ai.php`, `core/health.php`, `core/import-ui.php`,
+      `core/licence-page.php`, `core/options-pages.php`,
+      `core/admin-menu.php`.
+    - Behaviour:
+      - The table is written first: one row per string, screen, file and
+        line, the string today, the string after, and the rule from spec §5
+        it fails. Nathan approves the table; no file is edited before that.
+      - The pass covers each screen's page-level copy: the `h1`, the facts
+        line under it, section titles and their value lines, button labels,
+        save-bar notes, empty states and blocked lines. Per-control help text
+        is out of this phase and goes into "found, not done".
+      - Every replacement states a fact, or an action with its consequence.
+        Numbers where they inform. No question the person did not ask, no
+        "Let's", no "You are here", no sentence beneath a button.
+      - Lists use the brand-mark bullet, as the Folders screen and Library
+        settings' three counts lines already do.
+    - Proof: `node tools/verify.mjs copy` — a new local suite,
+      `tests/tree/copy.mjs`, one row per struck string with the rule it
+      failed, plus three rows asserting the replacement is present so a row
+      cannot be satisfied by deleting the message. `pnpm test:ui shots.spec`
+      on the box, nine screenshots shown in the conversation;
+      `node tools/verify.mjs journey` green. Mutation check: restore one
+      struck string and its row goes red.
+    - Mirror: the Folders screen's strings, written to the standard in Phase
+      3, and spec §5's four-row table of before and after.
+    - Copy: the table is the copy. It is written in this task and approved
+      before any edit; nothing is written straight into a screen.
+    - Do not: touch a string inside `js/vergeml-folders.js` or
+      `core/guide.php` beyond the table's rows; rewrite a code comment;
+      change a translator comment's placeholders; edit a string the table
+      does not list.
 
 Phase 5 — AI screen, 2 days, mock first.
 

@@ -27,7 +27,6 @@ const SHEETS = [
 	'vergeml-admin',
 	'vergeml-shell',
 	'vergeml-journey',
-	'vergeml-librarian',
 	'vergeml-media-list',
 	'vergeml-gallery',
 	'vergeml-folders',

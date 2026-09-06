@@ -7,10 +7,25 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 
 
-    // create new mime type
+    /*
+     *  Create a new mime type.
+     *
+     *  The screen is five tables now, one per kind under its own chevron. A
+     *  new row cannot be sorted into a kind before it has a MIME type, so it
+     *  goes into Other -- .vgml-ft-new -- and that section is opened, because
+     *  a row added inside a closed section is a button that appears to do
+     *  nothing. prependTo() against the old selector would have put a copy in
+     *  all five.
+     */
     $( document ).on( 'click', '.vergeml-button-create-mime', function() {
 
-        $('.vergeml-mime-type-list').find('.vergeml-clone').clone().attr('class','vergeml-clone-mime').prependTo('.vergeml-mime-type-list tbody').show(300).find('input').first().focus();
+        var section = document.querySelector( '.vgml-ft-new' );
+
+        if ( section && section.closest( '.vgml-acc-item' ) ) {
+            section.closest( '.vgml-acc-item' ).open = true;
+        }
+
+        $('.vergeml-mime-type-list').find('.vergeml-clone').first().clone().attr('class','vergeml-clone-mime').prependTo('.vgml-ft-new tbody').show(300).find('input').first().focus();
 
         return false;
     });

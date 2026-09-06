@@ -134,7 +134,7 @@ function vergeml_help( $key ) {
     printf(
         ' <button type="button" class="vgml-help" data-help="%1$s" aria-label="%2$s" aria-expanded="false">?</button>',
         esc_attr( $texts[ $key ] ),
-        esc_attr__( 'What does this do?', 'vergelabs-media-library' )
+        esc_attr__( 'What this does', 'vergelabs-media-library' )
     );
 }
 

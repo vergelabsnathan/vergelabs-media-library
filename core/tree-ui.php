@@ -345,9 +345,9 @@ function vergeml_tree_assets( $hook ) {
              *  reason folders are terms is that it is not true.
              */
             /* translators: 1: folder name, 2: number of sub-folders. */
-            'deleteConfirm'  => __( 'Delete the folder "%1$s"? Its %2$d sub-folders move up one level. No files are deleted — they simply leave this folder.', 'vergelabs-media-library' ),
+            'deleteConfirm'  => __( 'Delete "%1$s". Its %2$d sub-folders move up one level. No file is deleted; they leave this folder.', 'vergelabs-media-library' ),
             /* translators: %s: folder name. */
-            'deleteSimple'   => __( 'Delete the folder "%s"? No files are deleted — they simply leave this folder.', 'vergelabs-media-library' ),
+            'deleteSimple'   => __( 'Delete "%s". No file is deleted; they leave this folder.', 'vergelabs-media-library' ),
             /*
              *  Two strings, because "1 files filed" is the sort of thing that makes
              *  somebody trust the rest of the interface a little less. Not _n():

@@ -80,6 +80,11 @@ it needs. No element in the shell is sticky or fixed; the save bar sits at
 the end of its form. Audit and remove the other sticky rules in
 `vergeml-shell.css`.
 
+One exception, taken by Nathan on 2026-09-05: the Duplicates screen's bulk
+bar (`.vgml-health-bulk`) keeps its sticky. It acts on a list that runs to
+two hundred sets, and a bulk control that scrolls away from what it controls
+is not used twice. It is named in the gate so it reads as a decision.
+
 ## 4. Feedback contract
 
 1. A control says what it does, with the number. A control that cannot be
@@ -123,8 +128,14 @@ endpoint). The snapshot builder may stay dormant.
 ## 7. Settings collapsed
 
 On the three settings screens every section shows its title and a chevron,
-closed by default. Opening one is remembered per person (`localStorage`).
-The setting that matters most on each screen is in the first section.
+closed by default. Which sections a person opens is remembered for them
+(`localStorage`); any number may stand open, and nothing closes a section
+they opened. The setting that matters most on each screen is in the first
+section.
+
+File types has no sections today: one table, with a filter naming the kinds.
+It gets one section per kind — Images, Video, Audio, Documents, Other — and
+the filter opens the kind it selects. Taken by Nathan on 2026-09-05.
 
 ## 8. Service: the stream
 
@@ -157,8 +168,9 @@ The setting that matters most on each screen is in the first section.
   delete, reparent, Move, undo; the draft survives a rename by id.
 - `tests/ui/shell.spec.mjs`: the rail's computed position is `static`; the
   document grows with content; no element in `.vgml-shell` is sticky or
-  fixed.
-- Settings: sections closed by default; the open one remembered.
+  fixed but `.vgml-health-bulk`, and that one only on Duplicates.
+- Settings: sections closed by default; the ones opened remembered, any
+  number of them.
 
 ## 10. Order of work
 

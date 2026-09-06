@@ -121,25 +121,36 @@
 	box-sizing: border-box;
 }
 
+/*
+ *  The two columns stretch to the taller of them.
+ *
+ *  This was flex-start, which cost nothing while the rail was sticky and
+ *  carried its own full-viewport height. Take the height away and the rail
+ *  collapses to its content: on a long screen the divider and the rail's
+ *  ground stopped a third of the way down and left an empty band beside the
+ *  content. Stretch is the flex default and the nav lays its content out from
+ *  the top regardless.
+ */
 .vgml-shell-body {
 	display: flex;
-	align-items: flex-start;
+	align-items: stretch;
 	gap: 0;
 }
 
 /* ------------------------------------------------------------------ the rail */
 
 /*
- *  250px, sticky the full height, a 2px rule on its right. Brand row on top,
- *  the nav in the middle, and at the bottom the one way out of the plugin
- *  and what is left in the account.
+ *  250px, in normal flow, a 2px rule on its right. Brand row on top, the nav
+ *  in the middle, and at the bottom the one way out of the plugin and what is
+ *  left in the account.
+ *
+ *  It was sticky, pinned the height of the viewport with its own scrollbar.
+ *  Two scrollbars on one screen, and the rail sliding against WordPress's own
+ *  menu beside it, is what Nathan could not use. The page scrolls as one now
+ *  (spec section 3).
  */
 .vgml-shell-nav {
 	flex: 0 0 250px;
-	position: sticky;
-	top: 32px;
-	height: calc(100vh - 32px);
-	overflow: auto;
 	display: flex;
 	flex-direction: column;
 	border-left: 2px solid var(--vgml-divider);
@@ -184,11 +195,20 @@
 	margin-right: 4px;
 }
 
+/*
+ *  The list takes its own height, and the foot follows it.
+ *
+ *  It was flex: 1, which pushed the foot to the bottom of a rail that was one
+ *  viewport tall -- so the credits card sat at the bottom of the screen, in
+ *  view. The rail is now as tall as the page, and flex: 1 put the card four
+ *  thousand pixels down where nobody would find it. The foot belongs under
+ *  the last menu item.
+ */
 .vgml-shell-list {
 	margin: 0;
 	padding: 10px 0 16px;
 	list-style: none;
-	flex: 1;
+	flex: 0 0 auto;
 }
 
 .vgml-shell-list li {
@@ -837,9 +857,10 @@
  *  white card per section sitting on a white pane, and a Save button under
  *  every one of them.
  *
- *  Sections are rules now, like everywhere else in the shell, and the save is
- *  one bar pinned to the bottom of the window -- a 3,500px page should not
- *  make somebody scroll to the end to keep a change they made at the top.
+ *  Sections are rules now, like everywhere else in the shell, and each one is
+ *  closed until it is opened, so a screen of six sections arrives as six
+ *  lines instead of 3,500 pixels. The save bar sits at the end of the form,
+ *  in flow, like everything else in the shell (spec section 3).
  */
 .vgml-shell-content .vgml-settings-section,
 .vgml-shell-content .vgml-box,
@@ -860,10 +881,93 @@
 	padding-top: 0;
 }
 
+/* ------------------------------------------------- settings under chevrons
+ *
+ *  Geometry copied from the approved mock, board 3
+ *  (docs/superpowers/mocks/2026-09-05-folders-screen.html, .mk-acc): a title
+ *  and the section's current values on one line, a chevron at the right that
+ *  turns when it opens, a rule under every row.
+ *
+ *  <details> rather than a button and hand-rolled ARIA, because the browser
+ *  already gives the right role, the right keyboard, and find-in-page that
+ *  opens the section the match is in.
+ */
+.vgml-shell-content .vgml-acc {
+	border-top: 2px solid var(--vgml-divider);
+	margin-top: 26px;
+}
+
+.vgml-shell-content .vgml-acc-item {
+	border-bottom: 1px solid var(--vgml-rule);
+}
+
+.vgml-shell-content .vgml-acc-item > summary {
+	list-style: none;
+	cursor: pointer;
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-items: center;
+	gap: 12px;
+	padding: 14px 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell-content .vgml-acc-item > summary::-webkit-details-marker {
+	display: none;
+}
+
+.vgml-shell-content .vgml-acc-item > summary small {
+	display: block;
+	font-size: 12.5px;
+	font-weight: 400;
+	color: var(--vgml-muted);
+	margin-top: 2px;
+}
+
+.vgml-shell-content .vgml-acc-item > summary svg {
+	width: 16px;
+	height: 16px;
+	stroke: var(--vgml-muted);
+	fill: none;
+	stroke-width: 2;
+	transition: transform .15s ease;
+}
+
+.vgml-shell-content .vgml-acc-item[open] > summary svg {
+	transform: rotate(-180deg);
+}
+
+/*
+ *  A section's body is the postbox WordPress already prints. It loses the
+ *  card it was wearing; the rule above it is the summary's own.
+ */
+.vgml-shell-content .vgml-acc-item .postbox {
+	border: 0;
+	background: none;
+	box-shadow: none;
+	border-radius: 0;
+	margin: 0;
+	padding: 0;
+}
+
+.vgml-shell-content .vgml-acc-item .postbox .inside {
+	margin: 0;
+	padding: 2px 0 22px;
+}
+
+.vgml-shell-content .vgml-acc-item .form-table {
+	margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vgml-shell-content .vgml-acc-item > summary svg {
+		transition: none;
+	}
+}
+
 .vgml-savebar {
-	position: sticky;
-	bottom: 0;
-	z-index: 20;
 	display: flex;
 	align-items: center;
 	gap: 14px;
@@ -1227,9 +1331,6 @@
 }
 
 .vgml-shell .vergeml-mime-type-list thead th {
-	position: sticky;
-	top: 32px;
-	z-index: 2;
 	background: var(--vgml-ground);
 	text-align: right;
 	font-size: 10.5px;
@@ -2218,12 +2319,9 @@ body.vgml-screen #wpbody-content {
 	font-weight: 700;
 }
 
-/* The sticky save bar, one per page. */
+/* The save bar, one per page, at the end of its form. */
 .vgml-shell .vgml-savebar,
 .vgml-shell .vgml-ds-savebar {
-	position: sticky;
-	bottom: 0;
-	z-index: 3;
 	display: flex;
 	gap: 14px;
 	align-items: center;
@@ -2428,9 +2526,6 @@ body.vgml-screen #wpbody-content {
 }
 
 .vgml-shell .vgml-pg-actions {
-	position: sticky;
-	bottom: 0;
-	z-index: 3;
 	display: flex;
 	gap: 14px;
 	align-items: center;

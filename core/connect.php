@@ -212,8 +212,8 @@ function vergeml_connect_banner() {
         }
 
         $why = 'state' === $result
-            ? __( 'That connection could not be verified, so nothing was changed. Please try again.', 'vergelabs-media-library' )
-            : __( 'The licence could not be fetched. Nothing was changed -- please try again, or paste your key by hand.', 'vergelabs-media-library' );
+            ? __( 'That connection could not be verified. Nothing was changed.', 'vergelabs-media-library' )
+            : __( 'The licence could not be fetched. Nothing was changed. Paste your key by hand instead.', 'vergelabs-media-library' );
 
         printf( '<div class="notice notice-error is-dismissible"><p>%s</p></div>', esc_html( $why ) );
     }

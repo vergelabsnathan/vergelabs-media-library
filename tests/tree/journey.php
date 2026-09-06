@@ -477,9 +477,18 @@ jn_check( 'no unfiled files, no row', null === jn_row( jn_with_facts( array( 'un
 $jn_html = jn_with_facts( array( 'unfiled' => 268 ), 'jn_render' );
 $jn_fold = jn_between( $jn_html, 'data-todo="folders"', 'data-todo="' );
 if ( '' === $jn_fold ) {
-    $jn_fold = jn_between( $jn_html, 'data-todo="folders"', 'vgml-seen' );
+    // Folders is the last to-do row: take it to the foot of the screen.
+    $jn_fold = jn_between( $jn_html, 'data-todo="folders"', 'vgml-dash-foot' );
 }
 jn_check( '"Work out the folders" is nowhere on the screen', false === strpos( $jn_html, 'Work out the folders' ) );
+
+/*
+ *  The strip of thumbnails the model had lately described. It answered a
+ *  question nobody asked -- the dashboard's job is what is left to do -- and
+ *  it put twelve image requests on a screen that had nothing to say with them.
+ *  Removed in Phase 4 (spec section 6).
+ */
+jn_check( 'the "Recently described" strip is gone', false === strpos( $jn_html, 'vgml-seen' ) && false === strpos( $jn_html, 'Recently described' ) );
 jn_check( 'the number is in the title, not printed twice', false !== strpos( $jn_fold, '<div class="vgml-do-n"></div>' ) && false !== strpos( $jn_fold, '268 files in no folder' ) );
 jn_check( 'and the button says what happens to the files', false !== strpos( $jn_fold, '>Put them in folders</a>' ) );
 
