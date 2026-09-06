@@ -3406,36 +3406,150 @@ body.vgml-screen #wpbody-content {
 
 /* --- the Import screen ----------------------------------------------- */
 
-.vgml-shell .vgml-import-two {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-	gap: 32px 44px;
-	margin-top: 28px;
+/*
+ *  One card per source, separated by a rule rather than boxed. The name in the
+ *  ink, the author in the muted grey beside it, what it holds under them, what
+ *  the button will do under that, and the button itself on the right. Nothing
+ *  is a box: a card inside a pane is a box inside a box, and the rest of the
+ *  shell stopped doing that.
+ */
+
+.vgml-shell .vgml-import-facts {
+	margin: 6px 0 0;
+	color: var(--vgml-muted);
+	font-size: 13.5px;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-srcs {
+	margin-top: 14px;
 	max-width: 980px;
 }
 
-.vgml-shell .vgml-import-col > .vgml-kicker {
-	margin-bottom: 6px;
+.vgml-shell .vgml-src {
+	border-top: 1px solid var(--vgml-rule);
+	padding: 18px 0 20px;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 4px 24px;
+	align-items: start;
 }
 
-.vgml-shell .vgml-import-colbody {
+.vgml-shell .vgml-src:first-child {
 	border-top: 2px solid var(--vgml-divider);
-	padding-top: 14px;
 }
 
-.vgml-shell .vgml-import-colbody > .vgml-note {
-	margin: 0;
-	max-width: 52ch;
-}
-
-.vgml-shell .vgml-import-pickrow {
+.vgml-shell .vgml-src-head {
+	grid-column: 1;
 	display: flex;
+	align-items: baseline;
 	gap: 10px;
-	align-items: center;
-	margin-top: 14px;
 	flex-wrap: wrap;
 }
 
+.vgml-shell .vgml-src-head h2 {
+	margin: 0;
+	padding: 0;
+	font-size: 17px;
+	font-weight: 600;
+	letter-spacing: -.01em;
+	color: var(--vgml-ink);
+	text-transform: none;
+}
+
+.vgml-shell .vgml-src-by {
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-src-has {
+	grid-column: 1;
+	margin: 4px 0 0;
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--vgml-ink);
+	max-width: 62ch;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-src-does {
+	grid-column: 1;
+	margin: 3px 0 0;
+	font-size: 13.5px;
+	line-height: 1.5;
+	color: var(--vgml-muted);
+	max-width: 62ch;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-src-does:empty {
+	margin: 0;
+}
+
+/* The action sits beside the three lines, not under them. */
+.vgml-shell .vgml-src-act {
+	grid-column: 2;
+	grid-row: 1 / span 3;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+.vgml-shell .vgml-src-note {
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
+.vgml-shell .vgml-src-label {
+	font-size: 12.5px;
+	color: var(--vgml-muted);
+}
+
+/*
+ *  The button carries its own progress.
+ *
+ *  A bar somewhere else on the screen makes the person look away from the
+ *  thing they pressed to find out whether it is working.
+ */
+.vgml-shell .vgml-src-go.is-going {
+	position: relative;
+	overflow: hidden;
+}
+
+.vgml-shell .vgml-src-fill {
+	position: absolute;
+	inset-inline-start: 0;
+	top: 0;
+	bottom: 0;
+	width: 0;
+	background: rgba(255, 255, 255, .22);
+	transition: width .3s ease;
+}
+
+.vgml-shell .vgml-src-going {
+	position: relative;
+}
+
+/*
+ *  The sources with nothing on this site, in one line under the cards. A card
+ *  each spends six rows on the same sentence above the one that can be pressed.
+ */
+.vgml-shell .vgml-srcs-also {
+	margin: 0;
+	padding-top: 14px;
+	border-top: 1px solid var(--vgml-rule);
+	max-width: 78ch;
+}
+
+.vgml-shell .vgml-srcs-also b {
+	color: var(--vgml-n700);
+	font-weight: 500;
+}
+
+/* The file input lives behind a real button. */
 .vgml-shell .vgml-import-file {
 	position: absolute;
 	width: 1px;
@@ -3444,20 +3558,11 @@ body.vgml-screen #wpbody-content {
 	overflow: hidden;
 }
 
-.vgml-shell .vgml-import-filenote {
-	font-size: 12px;
-}
-
-.vgml-shell .vgml-import-none {
-	margin-top: 14px;
-	padding-top: 12px;
-	border-top: 1px solid var(--vgml-n300);
-	font-size: 12px;
-}
-
 .vgml-shell .vgml-import-tax.vgml-input {
 	width: 190px;
 }
+
+/* --- what has been imported ------------------------------------------- */
 
 .vgml-shell .vgml-import-recent {
 	max-width: 980px;
@@ -3469,25 +3574,36 @@ body.vgml-screen #wpbody-content {
 }
 
 .vgml-shell .vgml-import-history {
-	display: flex;
-	align-items: center;
-	gap: 14px;
-	padding: 11px 0;
-	border-bottom: 1px solid var(--vgml-n300);
-	font-size: 13px;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	gap: 18px;
+	align-items: baseline;
+	padding: 13px 0;
+	border-bottom: 1px solid var(--vgml-rule);
+	font-size: 14px;
 }
 
 .vgml-shell .vgml-import-history-what {
-	flex: 1;
 	min-width: 0;
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .vgml-import-history-what b {
+	font-weight: 600;
 }
 
 .vgml-shell .vgml-import-history-when {
-	font-size: 12px;
+	font-size: 13px;
+	font-variant-numeric: tabular-nums;
 }
 
 .vgml-shell .vgml-import-undo {
 	font-size: 12.5px;
+}
+
+.vgml-shell .vgml-import-recent-note {
+	margin-top: 10px;
+	max-width: 70ch;
 }
 
 .vgml-shell .vgml-import-good {
@@ -3513,38 +3629,17 @@ body.vgml-screen #wpbody-content {
 	font-size: 13px;
 }
 
-.vgml-shell .vgml-import-card {
-	border-top: 2px solid var(--vgml-divider);
-	padding-top: 14px;
-	margin-top: 10px;
-}
+/* Narrow: the button drops under the lines it belongs to. */
+@media (max-width: 782px) {
 
-.vgml-shell .vgml-import-head {
-	display: flex;
-	align-items: baseline;
-	gap: 10px;
-}
+	.vgml-shell .vgml-src {
+		grid-template-columns: minmax(0, 1fr);
+	}
 
-.vgml-shell .vgml-import-head h2 {
-	margin: 0;
-	font-size: 15px;
-	font-weight: 700;
-}
-
-.vgml-shell .vgml-import-by {
-	font-size: 12px;
-	color: var(--vgml-muted);
-}
-
-.vgml-shell .vgml-import-found {
-	margin: 4px 0 0;
-	font-size: 13px;
-	color: var(--vgml-muted);
-}
-
-.vgml-shell .vgml-import-actions {
-	display: flex;
-	gap: 10px;
-	align-items: center;
-	margin-top: 12px;
+	.vgml-shell .vgml-src-act {
+		grid-column: 1;
+		grid-row: auto;
+		margin-top: 12px;
+		justify-content: flex-start;
+	}
 }

@@ -47,6 +47,9 @@ function vergeml_import_sources() {
         'premio' => array(
             'name'     => 'Folders',
             'author'   => 'Premio',
+            // Named after the thing itself, so a list of names reads as a
+            // sentence about folders until the author is beside it.
+            'qualify'  => true,
             'kind'     => 'taxonomy',
             'taxonomy' => 'media_folder',
         ),

@@ -63,6 +63,17 @@ const STRUCK = [
 	[ 'Nothing else looked similar.', 'the list is named look-alikes now' ],
 	[ 'Open in the library ↗', 'one control for a set that opened only its first file' ],
 	[ 'freed by keeping one of each', 'false once Keep this one sets aside instead of deleting' ],
+	/*
+	 *  Phase 8, the import cards
+	 *  (docs/superpowers/specs/2026-09-06-import-cards.md).
+	 */
+	[ 'Bring folders over from another plugin', 'a lede describing the screen; the library’s own numbers replaced it' ],
+	[ 'Preview import', 'a second press for one act, and a button with no number' ],
+	[ 'No folders were found in any other plugin', 'one sentence for seven sources that each say for themselves' ],
+	[ 'Recent imports', 'a heading about the list rather than about what was done' ],
+	[ 'Undo this import', 'a button without the number it removes' ],
+	[ 'Undone. The folders we made are gone', 'a reassurance where the two numbers belong' ],
+	[ 'A file, instead of another plugin', 'a heading defined by what it is not' ],
 ];
 
 /*
