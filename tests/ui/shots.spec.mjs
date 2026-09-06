@@ -56,6 +56,17 @@ for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 			await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
 			await expect( page.locator( '.vgml-move-btn' ) ).toBeVisible();
 		}
+		if ( name === 'import' ) {
+			/*
+			 *  The screen paints from two REST calls, so .vgml-shell-content is
+			 *  visible a good moment before there is anything on it. Every import
+			 *  shot on file before this line was the spinner and the words
+			 *  "Looking for folders to import…" -- the screen had never been
+			 *  reviewed from a shot at all.
+			 */
+			await expect( page.locator( '#vgml-import-app .vgml-srcs' ).first() ).toBeVisible( { timeout: 30000 } );
+			await expect( page.locator( '#vgml-import-app .vgml-src' ).first() ).toBeVisible();
+		}
 		if ( name === 'dashboard' ) {
 			// Four counts in the rail, and nothing of the score that was there.
 			await expect( page.locator( '.vgml-progress-row' ) ).toHaveCount( 4 );
