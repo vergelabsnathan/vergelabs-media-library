@@ -357,3 +357,13 @@ deleting.
 
 **Left as it was**: the "Files you have taken out of the library" card at the
 foot and its paragraph; the exact-duplicates list and its delete.
+
+## 14. Grid and list, approved 2026-09-06
+
+The action table and its fills are `2026-09-06-grid-list-modes.md` in this
+folder: twenty-one actions against both modes, seven fills, the four
+differences that stay because they are core's furniture (the grid's sidebar,
+the grid's "N selected", the list's "N items", the list's column headers).
+Unfiled means "in no folder": a flat media taxonomy such as a colour does not
+make a file filed. In list mode the URL is what the tree follows; a bare
+arrival re-selects the remembered folder, as the grid does.

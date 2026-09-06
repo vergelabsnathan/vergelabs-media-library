@@ -996,6 +996,8 @@
 			return;
 		}
 
+		syncListBar();
+
 		var url = new URL( window.location.href );
 		url.searchParams.set( 'vgml_smart', key );
 		url.searchParams.delete( state.taxonomy );
@@ -1327,7 +1329,9 @@
 
 		if ( id === -1 ) {
 			props[ state.taxonomy ] = null;
-			props.uncategorized = 1;
+			// true: the value the grid's own "All Uncategorized" option was
+			// built with, so that option shows while the tree shows Unfiled.
+			props.uncategorized = true;
 		} else if ( id === 0 ) {
 			props[ state.taxonomy ] = null;
 			props.uncategorized = null;
@@ -1342,6 +1346,8 @@
 			lib.set( props );
 			return;
 		}
+
+		syncListBar();
 
 		/*
 		 *  List view has no JS library to talk to, so the filter goes in the query
@@ -1382,7 +1388,10 @@
 		url.searchParams.delete( 'vgml_smart' );
 		url.searchParams.delete( 'paged' );
 
-		if ( url.href === window.location.href ) {
+		// Against the swap in flight, when there is one: a click while the
+		// arrival's own swap is still fetching compared with the bare address,
+		// saw no difference, and left the table on the folder the tree had left.
+		if ( url.href === ( swapHref || window.location.href ) ) {
 			return;
 		}
 
@@ -1390,6 +1399,7 @@
 	}
 
 	var swapping = null;
+	var swapHref = null; // where the swap in flight is heading
 
 	/*
 	 *  "Unfiled" is asked for differently on the two screens.
@@ -1403,7 +1413,119 @@
 		return ( cfg.postType && 'attachment' !== cfg.postType ) ? 'vgml_unfiled' : 'uncategorized';
 	}
 
-	function swapTable( href ) {
+	/*
+	 *  The filter bar above the list is outside what swapTable() replaces,
+	 *  and inside the form the search box submits. Left alone it kept the
+	 *  folder from before the tree click and sent it with the next search, so
+	 *  the table came back on the old folder under a tree highlighting the
+	 *  new one. The tree writes what it shows into the bar.
+	 */
+	function syncListBar() {
+		var form = document.querySelector( '#posts-filter' );
+		if ( ! form ) {
+			return;
+		}
+		var tax = form.querySelector( 'select[name="' + state.taxonomy + '"]' );
+		if ( tax ) {
+			tax.value = state.selected > 0 ? String( state.selected ) : '0';
+		}
+		var kind = form.querySelector( 'select[name="attachment-filter"]' );
+		if ( kind ) {
+			if ( -1 === state.selected ) {
+				kind.value = 'uncategorized';
+			} else if ( 'uncategorized' === kind.value ) {
+				kind.selectedIndex = 0; // "All media items", whichever value core gave it
+			}
+		}
+		var smart = form.querySelector( 'input[name="vgml_smart"]' );
+		if ( state.smartSelected ) {
+			if ( ! smart ) {
+				smart = el( 'input', { type: 'hidden', name: 'vgml_smart' } );
+				form.appendChild( smart );
+			}
+			smart.value = state.smartSelected;
+		} else if ( smart ) {
+			smart.parentNode.removeChild( smart );
+		}
+	}
+
+	/*
+	 *  What the list's URL says is showing: a folder id, -1 for Unfiled, a
+	 *  smart folder as 'smart:<key>', or null when it names none.
+	 */
+	function urlSelection() {
+		var params = new URL( window.location.href ).searchParams;
+		var raw = params.get( state.taxonomy );
+		if ( raw ) {
+			var node = state.byId[ parseInt( raw, 10 ) ] || null;
+			for ( var i = 0; ! node && i < state.nodes.length; i++ ) {
+				if ( state.nodes[ i ].slug === raw ) {
+					node = state.nodes[ i ];
+				}
+			}
+			return node ? node.id : null;
+		}
+		if ( params.get( unfiledVar() ) ) {
+			return -1;
+		}
+		if ( params.get( 'vgml_smart' ) ) {
+			return 'smart:' + params.get( 'vgml_smart' );
+		}
+		return null;
+	}
+
+	// The vars that mean the URL was chosen, not merely arrived at.
+	var URL_VARS = [ 's', 'paged', 'orderby', 'order', 'attachment-filter', 'm', 'author', 'filter_action', 'post_mime_type', 'detached', 'vgml_meaning', 'vgml_smart' ];
+
+	function urlIsBare() {
+		var params = new URL( window.location.href ).searchParams;
+		return ! URL_VARS.concat( [ state.taxonomy, unfiledVar() ] ).some( function ( k ) {
+			return params.has( k );
+		} );
+	}
+
+	/*
+	 *  The tree follows the list's URL. The table was rendered from it, and a
+	 *  tree highlighting the folder it remembered over a table showing another
+	 *  was the two surfaces disagreeing on arrival.
+	 */
+	function followUrl() {
+		var named = urlSelection();
+		if ( 'string' === typeof named ) {
+			state.selected = 0;
+			state.smartSelected = named.slice( 6 );
+		} else {
+			state.selected = null === named ? 0 : named;
+			state.smartSelected = '';
+		}
+		uploadTarget = state.selected > 0 ? state.selected : 0;
+		dropHint();
+		render();
+		syncListBar();
+	}
+
+	/*
+	 *  Arrival in list view. A URL that names a folder is followed and
+	 *  remembered; one with a search, a filter or a page on it is followed and
+	 *  not remembered; a bare one re-selects the remembered folder, as the
+	 *  grid does -- one table swap, on arrival only.
+	 */
+	function listArrival() {
+		if ( null !== urlSelection() ) {
+			followUrl();
+			persist( { selected: state.selected > 0 ? state.selected : 0 } );
+			return;
+		}
+		if ( ! urlIsBare() ) {
+			followUrl();
+			return;
+		}
+		if ( state.selected > 0 ) {
+			select( state.selected );
+		}
+	}
+
+	function swapTable( href, push ) {
 
 		var host = document.querySelector( '.wp-list-table' );
 
@@ -1415,6 +1537,7 @@
 		// Clicking through folders quickly must not race: the last click wins.
 		var token = {};
 		swapping = token;
+		swapHref = href;
 
 		host.classList.add( 'vgml-busy' );
 
@@ -1444,12 +1567,22 @@
 					navs[ i ].parentNode.replaceChild( freshNavs[ i ], navs[ i ] );
 				}
 
-				window.history.pushState( {}, '', href );
+				if ( false !== push ) {
+					window.history.pushState( {}, '', href );
+				}
+
+				// New rows in a new table: arm them, and watch them.
+				armDraggables();
+				watchLists();
 			} )
 			.catch( function () {
 				window.location.href = href;
 			} )
 			.then( function () {
+				if ( swapping === token ) {
+					swapping = null;
+					swapHref = null;
+				}
 				var t = document.querySelector( '.wp-list-table' );
 				if ( t ) {
 					t.classList.remove( 'vgml-busy' );
@@ -1463,7 +1596,8 @@
 	 */
 	window.addEventListener( 'popstate', function () {
 		if ( document.querySelector( '.wp-list-table' ) ) {
-			swapTable( window.location.href );
+			followUrl();
+			swapTable( window.location.href, false );
 		}
 	} );
 
@@ -1829,21 +1963,33 @@
 		armDraggables();
 
 		if ( window.MutationObserver ) {
-
-			var watcher = new window.MutationObserver( function () {
+			listWatcher = new window.MutationObserver( function () {
 				armDraggables();
 			} );
-
-			[ '#the-list', '.attachments', '.media-frame-content' ].forEach( function ( sel ) {
-				Array.prototype.forEach.call( document.querySelectorAll( sel ), function ( node ) {
-					watcher.observe( node, { childList: true, subtree: true } );
-				} );
-			} );
+			watchLists();
 		}
 
 		// A safety net for anything rendered somewhere unobserved.
 		$( document ).on( 'mouseenter mouseover', '.attachment, #the-list tr', function () {
 			armOne( $( this ) );
+		} );
+	}
+
+	var listWatcher = null;
+
+	/*
+	 *  The containers the library renders into, watched for new rows. Called
+	 *  again after swapTable() replaces the list table: the observer watched
+	 *  the table that is gone, and nothing armed the one in its place.
+	 */
+	function watchLists() {
+		if ( ! listWatcher ) {
+			return;
+		}
+		[ '#the-list', '.attachments', '.media-frame-content' ].forEach( function ( sel ) {
+			Array.prototype.forEach.call( document.querySelectorAll( sel ), function ( node ) {
+				listWatcher.observe( node, { childList: true, subtree: true } );
+			} );
 		} );
 	}
 
@@ -1872,7 +2018,14 @@
 			armOne( $( this ) );
 		} );
 
-		$( '#the-list td:not(.check-column)' ).each( function () {
+		/*
+		 *  The title cell is a <th> since WordPress made the primary column
+		 *  one. Armed as a cell of ours, a press on the thumbnail or the title
+		 *  lands on our instance first -- whatever another folder plugin has
+		 *  put on the row. FileBird re-initialises .draggable() on the same
+		 *  <tr>, and jQuery UI merges its options into the one instance there.
+		 */
+		$( '#the-list td:not(.check-column), #the-list th.column-title' ).each( function () {
 			armOne( $( this ) );
 		} );
 	}
@@ -2419,7 +2572,22 @@
 		}
 		var lib = libraryProps();
 		if ( lib ) {
+			/*
+			 *  The files leave the view, so they leave the selection. A
+			 *  selection of tiles no longer shown still read "N selected",
+			 *  and Delete selected would have acted on it.
+			 */
+			clearLibrarySelection();
 			lib.set( { vergeml_bump: String( Date.now() ) } );
+			return;
+		}
+		/*
+		 *  The list's own bump. Its table was rendered for the folder before
+		 *  the move, so the row sat there and "N items" was stale. The fetch a
+		 *  folder click makes brings the rows the folder holds now.
+		 */
+		if ( document.querySelector( '.wp-list-table' ) ) {
+			swapTable( window.location.href );
 		}
 	}
 
@@ -3624,7 +3792,10 @@
 			if ( ! document.querySelector( '.attachments-browser, #the-list' ) ) {
 				return;
 			}
-			if ( root.querySelector( '.vgml-move' ) || document.querySelector( '.media-modal' ) ) {
+			// A modal that is open, not one the grid keeps in the page after
+			// it was closed -- that one kept M dead for the rest of the visit.
+			var modal = document.querySelector( '.media-modal' );
+			if ( root.querySelector( '.vgml-move' ) || ( modal && modal.offsetWidth > 0 ) ) {
 				return;
 			}
 			e.preventDefault();
@@ -3931,6 +4102,17 @@
 				}
 				e.preventDefault();
 				var attachment = wp.media.attachment( parseInt( m[ 1 ], 10 ) );
+				/*
+				 *  The page's rows are the modal's library, so its own ‹ ›
+				 *  walk the list as they walk the grid. Only the file opened is
+				 *  fetched now; an arrow fetches the file it lands on.
+				 */
+				var rows = Array.prototype.map.call( document.querySelectorAll( '#the-list tr[id^="post-"]' ), function ( tr ) {
+					return wp.media.attachment( parseInt( tr.id.replace( 'post-', '' ), 10 ) );
+				} );
+				if ( rows.indexOf( attachment ) === -1 ) {
+					rows = [ attachment ];
+				}
 				attachment.fetch().always( function () {
 					var editFrame = new wp.media.view.MediaFrame.EditAttachments( {
 						frame: 'edit-attachments',
@@ -3947,8 +4129,23 @@
 								return { $el: { val: function () { return ''; } } };
 							} } }
 						},
-						library: new wp.media.model.Attachments( [ attachment ] ),
+						library: new wp.media.model.Attachments( rows ),
 						model: attachment
+					} );
+					/*
+					 *  An arrow fires 'refresh' with the file it landed on, and
+					 *  core draws it at once -- blank, for a row that was never
+					 *  fetched. Core's handler makes way for one that fetches first.
+					 */
+					editFrame.off( 'refresh' );
+					editFrame.on( 'refresh', function ( model ) {
+						if ( model && ! model.get( 'url' ) ) {
+							model.fetch().always( function () {
+								editFrame.rerender( model );
+							} );
+							return;
+						}
+						editFrame.rerender( model );
 					} );
 					// hidden frames would otherwise pile up, one per open
 					editFrame.on( 'close', function () {
@@ -4450,12 +4647,12 @@
 		 *  do; re-selecting makes the library reflect the folder already
 		 *  highlighted in the tree.
 		 *
-		 *  Only in grid. In list view the server has already rendered the right
-		 *  rows from the query string, and re-selecting there started a table swap
-		 *  on every single page load -- a pointless fetch that also faded the table
-		 *  for its duration.
+		 *  In list view the server has already rendered the rows the URL asked
+		 *  for, so the tree follows the URL instead -- see listArrival().
 		 */
-		if ( state.selected > 0 && ! document.querySelector( '.wp-list-table' ) && window.wp && wp.media ) {
+		if ( document.querySelector( '.wp-list-table' ) ) {
+			listArrival();
+		} else if ( state.selected > 0 && window.wp && wp.media ) {
 			setTimeout( function () { select( state.selected ); }, 500 );
 		}
 	}

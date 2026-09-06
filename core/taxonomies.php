@@ -304,6 +304,26 @@ function vergeml_tax_options_validate( $input ) {
 
 
 /**
+ *  vergeml_is_folder_taxonomy
+ *
+ *  "Unfiled" is the tree's row, and the tree draws hierarchical taxonomies:
+ *  a file with a colour or a tag and no folder is still unfiled. Reading
+ *  "uncategorized" as "no term in any media taxonomy" showed 56 files under
+ *  a row that said 272 on a site with a flat Colour taxonomy beside the
+ *  folders. So the filter excludes terms of folder taxonomies only; a flat
+ *  taxonomy's own filter still applies on top.
+ */
+
+function vergeml_is_folder_taxonomy( $name ) {
+
+    $taxonomy = get_taxonomy( $name );
+
+    return $taxonomy instanceof WP_Taxonomy && ! empty( $taxonomy->hierarchical );
+}
+
+
+
+/**
  *  vergeml_ajax_query_attachments_args
  *
  *  @since    2.3.2
@@ -354,7 +374,7 @@ function vergeml_ajax_query_attachments_args( $query ) {
             continue;
         }
 
-        if ( $uncategorized ) {
+        if ( $uncategorized && vergeml_is_folder_taxonomy( $taxonomy_name ) ) {
 
             $tax_query[] = array(
                 'taxonomy' => $taxonomy_name,
@@ -467,7 +487,8 @@ function vergeml_restrict_manage_posts( $post_type, $which ) {
     $vergeml_lib_options = get_option( 'vergeml_lib_options' );
     $vergeml_taxonomies = get_option( 'vergeml_taxonomies', array() );
 
-    $uncategorized = ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] ) ? 1 : 0;
+    // Two spellings of one question: the dropdown's, and the folder tree's URL.
+    $uncategorized = ( ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] ) || ! empty( $_REQUEST['uncategorized'] ) ) ? 1 : 0;
 
 
     if ( current_user_can( 'manage_options' ) && in_array( 'authors', $vergeml_lib_options['filters_to_show'] ) ) {
@@ -690,7 +711,8 @@ function vergeml_backend_parse_tax_query( $query ) {
     }
 
 
-    $uncategorized = ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] ) ? 1 : 0;
+    // Two spellings of one question: the dropdown's, and the folder tree's URL.
+    $uncategorized = ( ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] ) || ! empty( $_REQUEST['uncategorized'] ) ) ? 1 : 0;
     $vergeml_lib_options = get_option( 'vergeml_lib_options' );
 
 
@@ -741,7 +763,7 @@ function vergeml_backend_parse_tax_query( $query ) {
      */
     foreach ( get_object_taxonomies( 'attachment','names' ) as $taxonomy ) {
 
-        if ( $uncategorized ) {
+        if ( $uncategorized && vergeml_is_folder_taxonomy( $taxonomy ) ) {
 
             $tax_query[] = array(
                 'taxonomy' => $taxonomy,

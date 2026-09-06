@@ -463,12 +463,20 @@ session.** Spec §13 records the decisions; the handoff is
     on two copies it makes), `tests/ui/health.spec.mjs` (the buttons, under
     `HEALTH_WALK=1`).
 
-Phase 7 — grid and list, 1 day.
+Phase 7 — grid and list, 1 day. **Done 2026-09-06 (Fable 5.1), one
+session.** The table is `docs/superpowers/specs/2026-09-06-grid-list-modes.md`;
+the handoff is `docs/handoffs/2026-09-06-phase-7-handoff.md`.
 
 22. A table of every action against both modes (open, select, bulk move,
     drag to folder, folder filter, counts, search, sort, keyboard). Fill the
     gaps in `js/vergeml-tree.js` and the list hooks. Nathan sees the table
-    before code.
+    before code. — Twenty-one rows, approved; seven fills in
+    `js/vergeml-tree.js` and `core/taxonomies.php` (the list's modal walks the
+    page's rows; the selection follows the view; the list re-fetches after a
+    move; the title cell is armed as ours; Unfiled by URL, scoped to folder
+    taxonomies; the filter bar follows the tree; on arrival the tree follows
+    the list's URL). Walked by `tests/ui/modes.spec.mjs` under `MODES_WALK=1`,
+    both modes, spending nothing.
 
 Phase 8 — migration page, half a day.
 
