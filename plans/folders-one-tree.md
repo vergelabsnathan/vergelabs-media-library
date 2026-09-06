@@ -478,21 +478,26 @@ the handoff is `docs/handoffs/2026-09-06-phase-7-handoff.md`.
     the list's URL). Walked by `tests/ui/modes.spec.mjs` under `MODES_WALK=1`,
     both modes, spending nothing.
 
-Phase 8 — migration page, half a day. **Mock drawn 2026-09-06 (Opus 5),
-waiting on Nathan.** Spec: `docs/superpowers/specs/2026-09-06-import-cards.md`;
-mock: `docs/superpowers/mocks/2026-09-06-import-cards.html`, four boards;
-handoff: `docs/handoffs/2026-09-06-phase-8-mock-handoff.md`. Nothing built.
+Phase 8 — migration page, half a day. **Built 2026-09-06 (Opus 5).** Spec:
+`docs/superpowers/specs/2026-09-06-import-cards.md`; mock:
+`docs/superpowers/mocks/2026-09-06-import-cards.html`, four boards; handoffs:
+`docs/handoffs/2026-09-06-phase-8-mock-handoff.md` (the mock) and
+`docs/handoffs/2026-09-06-phase-8-task-23-handoff.md` (the build).
 
 23. One card per source the importer reads (FileBird, HappyFiles, Folders by
-    Premio, Real Media Library, Wicked Folders, WP Media Folder, CSV):
-    detected or not, folder count on this site, one button. Names as text;
-    logos only on Nathan's say. — Drawn with the box's own numbers over a
-    FileBird fixture of 14 folders and 394 pictures. Three decisions wait on
-    Nathan (the six empty sources as cards or one line; a seventh plugin the
-    registry reads; the spreadsheet split into read and write), and one
-    defect blocks the card's outcome line: `vergeml_import_plan()` and
-    `vergeml_import_run()` key a folder's parent differently, so the preview
-    says 11 new and 3 merged where the import would make 12 and merge 2.
+    Premio, Real Media Library, Wicked Folders, WP Media Folder, WP Media
+    Folders, CSV): detected or not, folder count on this site, one button.
+    Names as text; logos only on Nathan's say. — **Done.** Built to the mock
+    Nathan approved: found sources first, the six with nothing as one line,
+    one button carrying its own number and its own progress, no preview step,
+    the spreadsheet split into a card that reads in and a section that writes
+    out, and the history named and dated. The plan/run defect was fixed inside
+    the phase, so the card's outcome line is the number the import produces:
+    the preview said 11 new and 3 merged where the import made 12 and merged 2,
+    and now both say 12 and 2. Suites: `tests/tree/import-plan.php` (22/22,
+    mutation checked) and `tests/ui/import.spec.mjs` under `IMPORT_WALK=1`
+    (3 passed), plus the import shot in `shots.spec.mjs`, which had been
+    photographing the spinner on every push.
 
 ## Validation strategy
 
