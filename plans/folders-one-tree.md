@@ -478,12 +478,21 @@ the handoff is `docs/handoffs/2026-09-06-phase-7-handoff.md`.
     the list's URL). Walked by `tests/ui/modes.spec.mjs` under `MODES_WALK=1`,
     both modes, spending nothing.
 
-Phase 8 — migration page, half a day.
+Phase 8 — migration page, half a day. **Mock drawn 2026-09-06 (Opus 5),
+waiting on Nathan.** Spec: `docs/superpowers/specs/2026-09-06-import-cards.md`;
+mock: `docs/superpowers/mocks/2026-09-06-import-cards.html`, four boards;
+handoff: `docs/handoffs/2026-09-06-phase-8-mock-handoff.md`. Nothing built.
 
 23. One card per source the importer reads (FileBird, HappyFiles, Folders by
     Premio, Real Media Library, Wicked Folders, WP Media Folder, CSV):
     detected or not, folder count on this site, one button. Names as text;
-    logos only on Nathan's say.
+    logos only on Nathan's say. — Drawn with the box's own numbers over a
+    FileBird fixture of 14 folders and 394 pictures. Three decisions wait on
+    Nathan (the six empty sources as cards or one line; a seventh plugin the
+    registry reads; the spreadsheet split into read and write), and one
+    defect blocks the card's outcome line: `vergeml_import_plan()` and
+    `vergeml_import_run()` key a folder's parent differently, so the preview
+    says 11 new and 3 merged where the import would make 12 and merge 2.
 
 ## Validation strategy
 
