@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The list — the tree stops taking the table's width</title>
+<style>
+/* ---- the mock's own frame, the same grammar as 2026-09-06-import-cards.html ---- */
+:root {
+	--mk-paper: #dfe4ee;
+	--mk-ink: #101d40;
+	--mk-muted: #6f7891;
+	--mk-accent: #2b46d8;
+	--mk-rule: #d5dbe9;
+	--mk-n700: #545d75;
+	--mk-wp: #1d2327;
+	--mk-wp-text: #c3c4c7;
+	--mk-wp-cur: #2271b1;
+	--mk-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+	background: var(--mk-paper);
+	color: var(--mk-ink);
+	font-family: var(--mk-font);
+	font-size: 14px;
+	line-height: 1.5;
+	margin: 0;
+	-webkit-font-smoothing: antialiased;
+}
+.mk-page { padding: 26px 24px 80px; }
+.mk-head { max-width: 1480px; margin: 0 auto 26px; }
+.mk-head h1 { font-size: 19px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 4px; }
+.mk-head p { margin: 0; color: var(--mk-muted); font-size: 13px; max-width: 92ch; }
+.mk-board { max-width: 1480px; margin: 0 auto 46px; }
+.mk-board-label {
+	display: flex; align-items: baseline; gap: 14px; margin: 0 0 10px;
+	font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted);
+}
+.mk-board-label span { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 13px; }
+
+.mk-wp { background: #f0f0f1; border: 1px solid #c7ccd8; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(16,29,64,.08); }
+.mk-adminbar { height: 30px; background: var(--mk-wp); color: var(--mk-wp-text); display: flex; align-items: center; gap: 20px; padding: 0 14px; font-size: 12.5px; }
+.mk-adminbar b { color: #fff; font-weight: 600; }
+.mk-wpbody { display: flex; align-items: stretch; min-height: 380px; }
+.mk-wpmenu { flex: none; width: 150px; background: var(--mk-wp); color: #f0f0f1; padding: 8px 0; font-size: 13px; }
+.mk-wpmenu div { padding: 6px 12px; }
+.mk-wpmenu .cur { background: var(--mk-wp-cur); color: #fff; }
+.mk-wpmenu .sub { padding-left: 22px; font-size: 12px; color: #c3c4c7; }
+.mk-wpcontent { flex: 1; min-width: 0; padding: 16px 20px 22px; background: #f0f0f1; position: relative; }
+
+/* Screen head */
+.mk-h1 { font-size: 22px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 2px; }
+.mk-facts { margin: 0 0 14px; color: var(--mk-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* The filter bar: the grid/list switch, and — new — the Folders control. */
+.mk-filter { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; flex-wrap: wrap; }
+.mk-switch { display: inline-flex; border: 1px solid #8c8f94; border-radius: 4px; overflow: hidden; background: #fff; }
+.mk-switch span { padding: 5px 11px; font-size: 13px; color: var(--mk-n700); border-right: 1px solid #dcdcde; }
+.mk-switch span:last-child { border-right: 0; }
+.mk-switch span.on { background: #f0f0f1; color: var(--mk-ink); font-weight: 600; }
+.mk-btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 4px; border: 1px solid #8c8f94; background: #fff; color: #2271b1; font: inherit; font-size: 13px; cursor: default; }
+.mk-btn.primary { background: var(--mk-accent); border-color: var(--mk-accent); color: #fff; font-weight: 600; }
+.mk-btn.folders { border-color: var(--mk-accent); color: var(--mk-accent); font-weight: 600; }
+.mk-count { margin-left: auto; color: var(--mk-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* The list table itself. */
+.mk-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #c3c4c7; font-size: 13px; table-layout: fixed; }
+.mk-table th { text-align: left; font-weight: 600; color: var(--mk-ink); padding: 8px 10px; border-bottom: 1px solid #c3c4c7; font-size: 13px; }
+.mk-table td { padding: 8px 10px; border-bottom: 1px solid #f0f0f1; vertical-align: middle; }
+.mk-table tr:last-child td { border-bottom: 0; }
+.mk-table .cb { width: 32px; }
+.mk-table .thumb { width: 48px; }
+.mk-table .thumb i { display: block; width: 34px; height: 34px; border-radius: 3px; background: linear-gradient(135deg,#c8d2e8,#9fb0d4); }
+.mk-file b { font-weight: 600; color: #2271b1; display: block; }
+.mk-file .meta { color: var(--mk-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.mk-table .when { width: 96px; color: var(--mk-muted); font-variant-numeric: tabular-nums; }
+.mk-table .who { width: 92px; color: var(--mk-muted); }
+.mk-nowrap { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The broken board: a table crushed into what is left. */
+.mk-crush { display: flex; align-items: stretch; }
+.mk-fbpane { flex: none; width: 200px; background: #fff; border-right: 1px solid #c3c4c7; padding: 10px; font-size: 12px; color: var(--mk-muted); }
+.mk-fbpane b { display: block; color: var(--mk-ink); font-size: 13px; margin-bottom: 6px; }
+.mk-ourpane { flex: none; width: 190px; background: #fff; border-right: 1px solid #c3c4c7; padding: 10px; font-size: 12px; color: var(--mk-muted); }
+.mk-ourpane b { display: block; color: var(--mk-ink); font-size: 13px; margin-bottom: 6px; }
+.mk-ourpane u { display: block; text-decoration: none; padding: 3px 0; color: var(--mk-n700); }
+.mk-crushed { flex: 1; min-width: 0; }
+.mk-crushtable { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #c3c4c7; table-layout: fixed; font-size: 11px; }
+.mk-crushtable th, .mk-crushtable td { padding: 3px 2px; border-bottom: 1px solid #f0f0f1; vertical-align: top; word-break: break-all; color: var(--mk-n700); font-weight: 400; text-align: left; }
+.mk-crushtable th { font-weight: 600; color: var(--mk-ink); border-bottom: 1px solid #c3c4c7; }
+
+/* The drawer. */
+.mk-stage { position: relative; overflow: hidden; }
+.mk-dim { position: absolute; inset: 0; background: rgba(16,29,64,.34); }
+.mk-drawer {
+	position: absolute; top: 0; bottom: 0; left: 0; width: 300px; background: #fff;
+	border-right: 1px solid #c3c4c7; box-shadow: 4px 0 18px rgba(16,29,64,.18); padding: 14px 14px 18px;
+}
+.mk-drawer-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.mk-drawer-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.mk-drawer-head a { font-size: 12.5px; color: var(--mk-muted); text-decoration: none; }
+.mk-node { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-radius: 4px; font-size: 13.5px; color: var(--mk-n700); }
+.mk-node .n { color: var(--mk-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.mk-node.on { background: #e9edfc; color: var(--mk-ink); font-weight: 600; }
+.mk-node.kid { padding-left: 24px; }
+.mk-drawer-note { margin: 12px 0 0; font-size: 12px; color: var(--mk-muted); border-top: 1px solid var(--mk-rule); padding-top: 10px; }
+
+/* Grid mode's rail, folded. */
+.mk-rail { flex: none; width: 44px; background: #fff; border-right: 1px solid #c3c4c7; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 10px; }
+.mk-rail .chev { width: 28px; height: 28px; border: 1px solid #8c8f94; border-radius: 4px; display: grid; place-items: center; background: #fff; font-size: 13px; color: var(--mk-n700); }
+.mk-rail .vert { writing-mode: vertical-rl; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--mk-muted); }
+
+/* Two-up comparisons. A grid item does not shrink below its content unless
+   it is told to, and one of these holds a table with a floor. */
+.mk-two { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+.mk-two > div { min-width: 0; }
+.mk-two .mk-wp, .mk-two .mk-wpbody { min-height: 0; }
+.mk-two .mk-wpcontent { min-width: 0; }
+/* A drawer stretches to its stage, so the stage is given a height rather than
+   left to the flex row -- otherwise the board grows to a thousand pixels. */
+.mk-two .mk-stage { height: 340px; }
+.mk-two .mk-scrollbox { overflow-x: auto; border: 1px solid #c3c4c7; background: #fff; max-width: 100%; }
+.mk-two h3 { margin: 0 0 8px; font-size: 13.5px; font-weight: 600; }
+.mk-line { margin: 10px 0 0; font-size: 13px; color: var(--mk-muted); max-width: 64ch; }
+.mk-line b { color: var(--mk-n700); font-weight: 600; }
+
+.mk-warn {
+	margin: 12px 0 0; padding: 12px 14px; border-left: 3px solid #d0870f; background: #fdf6e7;
+	font-size: 13px; color: #39415a; max-width: 96ch;
+}
+.mk-warn b { font-weight: 600; }
+.mk-good {
+	margin: 12px 0 0; padding: 12px 14px; border-left: 3px solid #2f8f45; background: #eef7f0;
+	font-size: 13px; color: #39415a; max-width: 96ch;
+}
+.mk-good b { font-weight: 600; }
+
+.mk-table2 { border-collapse: collapse; width: 100%; font-size: 13px; background: #fff; }
+.mk-table2 th { text-align: left; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; color: var(--mk-muted); padding: 10px 12px 8px 0; border-bottom: 2px solid rgba(16,29,64,.22); }
+.mk-table2 td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--mk-rule); vertical-align: top; }
+.mk-table2 td.n { font-variant-numeric: tabular-nums; text-align: right; padding-right: 20px; }
+.mk-table2 tr.bad td { color: #8a1f1f; }
+.mk-table2 tr.win td { color: #2f6b3f; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="mk-page">
+
+	<div class="mk-head">
+		<h1>The list — the tree stops taking the table's width</h1>
+		<p>Drawn 2026-09-07 from the corrected diagnosis. Every number is the box's own, measured at 1600 × 900 with 645 files, thirteen columns and FileBird Pro active. Rows are the box's real files. Spec: <code>docs/superpowers/specs/2026-09-07-list-view.md</code>.</p>
+	</div>
+
+	<!-- ============================================================ board 1: today -->
+	<section class="mk-board" data-shot="1-today">
+		<div class="mk-board-label">Today <span>two folder panes and thirteen columns leave the table 763px · every row is about 1,960px tall and the page is 41,587px</span></div>
+		<div class="mk-wp">
+			<div class="mk-adminbar"><b>VergeLabs Media Test</b><span>Howdy</span></div>
+			<div class="mk-wpbody">
+				<div class="mk-wpmenu">
+					<div>Dashboard</div><div class="cur">Media</div><div class="sub">Library</div><div class="sub">Media Categories</div><div>Pages</div><div>Plugins</div>
+				</div>
+				<div class="mk-wpcontent" style="padding:0">
+					<div class="mk-crush">
+						<div class="mk-fbpane"><b>FileBird</b>319px, its own pane, outside the content column. Sticky.</div>
+						<div class="mk-ourpane"><b>Media Categories</b>
+							<u>All files <span style="float:right">645</span></u>
+							<u>Unfiled <span style="float:right">272</span></u>
+							<u>Architecture</u><u>Landscape and nature</u><u>Workspace</u>
+							<div style="margin-top:8px">316px of gutter, taken whatever is left.</div>
+						</div>
+						<div class="mk-crushed">
+							<table class="mk-crushtable">
+								<tr><th style="width:16px"></th><th>File</th><th>Author</th><th>Media Cat</th><th>Colour</th><th>Used on</th><th style="width:56px">Date</th><th style="width:50px">FileBird</th><th>Alt text</th><th style="width:44px">Size</th><th>Qode</th><th>Alt</th><th style="width:76px">AIOSEO</th></tr>
+								<tr>
+									<td>☐</td>
+									<td>G o t h i c C a t h e d r a l I n t e r i o r v g m l - f x - r e a l - 4 9 9 . j p g E d i t D e l e t e P e r m a n e n t l y V i e w C o p y U R L D o w n l o a d</td>
+									<td>— ( n o a u t h o r )</td>
+									<td>A r c h i t e c t u r e</td>
+									<td>b l u e</td>
+									<td>N o r e f e r e n c e s f o u n d</td>
+									<td>2026/08/30</td>
+									<td>U n c a t e g o r i s e d</td>
+									<td>S o a r i n g G o t h i c c a t h e d r a l c e i l i n g w i t h p o i n t e d a r c h e s</td>
+									<td>68 KB</td>
+									<td>O p t i m i z e</td>
+									<td>S o a r i n g G o t h i c</td>
+									<td>SEO TITLE · META</td>
+								</tr>
+							</table>
+							<div style="padding:8px 4px;font-size:11.5px;color:var(--mk-muted)">…and 644 more rows the same shape. The screenshot of this screen is 28,800px long.</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<p class="mk-warn"><b>The row is not tall because there are thirteen columns.</b> It is tall because everything in it wraps at a character a line, and the biggest single thing is core's own <code>.row-actions</code> — Edit · Delete · View · Copy URL · Download — which core hides with <code>position: relative; left: -9999em</code>. Relative keeps it in the flow, so at 42px wide it wraps to <b>1,153px</b> and sets the height of every row. Removing all four of our columns changes the row by nothing; removing FileBird's pane as well still leaves 348px.</p>
+	</section>
+
+	<!-- ============================================================ board 2: after -->
+	<section class="mk-board" data-shot="2-after">
+		<div class="mk-board-label">After · list mode <span>no gutter, the table has the whole content width, and our four columns are one quiet line under the filename</span></div>
+		<div class="mk-wp">
+			<div class="mk-adminbar"><b>VergeLabs Media Test</b><span>Howdy</span></div>
+			<div class="mk-wpbody">
+				<div class="mk-wpmenu">
+					<div>Dashboard</div><div class="cur">Media</div><div class="sub">Library</div><div class="sub">Media Categories</div><div>Pages</div><div>Plugins</div>
+				</div>
+				<div class="mk-wpcontent">
+					<h1 class="mk-h1">Media Library</h1>
+					<p class="mk-facts">645 files · 641 pictures · 19 folders · 272 in no folder</p>
+					<div class="mk-filter">
+						<div class="mk-switch"><span>Grid</span><span class="on">List</span></div>
+						<button class="mk-btn folders" type="button">Folders</button>
+						<button class="mk-btn" type="button">All dates</button>
+						<button class="mk-btn" type="button">Bulk actions</button>
+						<span class="mk-count">645 items</span>
+					</div>
+					<table class="mk-table">
+						<tr><th class="cb">☐</th><th class="thumb"></th><th>File</th><th class="who">Author</th><th class="when">Date</th></tr>
+						<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Gothic Cathedral Interior</b><span class="meta">vgml-fx-real-499.jpg · Architecture · 68 KB</span></td><td class="who">—</td><td class="when">2026/08/30</td></tr>
+						<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Manhattan Skyline from East River</b><span class="meta">vgml-fx-real-497.jpg · Manhattan skyline · 57 KB</span></td><td class="who">—</td><td class="when">2026/08/30</td></tr>
+						<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Lisbon Yellow Trams</b><span class="meta">vgml-fx-real-496.jpg · City architecture details · 105 KB</span></td><td class="who">—</td><td class="when">2026/08/30</td></tr>
+						<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Towering Storm Cloud at Dusk</b><span class="meta">vgml-fx-real-495.jpg · 40 KB</span></td><td class="who">—</td><td class="when">2026/08/30</td></tr>
+						<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>San Francisco Skyline Aerial View</b><span class="meta">vgml-fx-real-493.jpg · Manhattan skyline · 119 KB</span></td><td class="who">—</td><td class="when">2026/08/30</td></tr>
+						<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Misty Forest Landscape</b><span class="meta">vgml-fx-real-492.jpg · Landscape and nature · 45 KB</span></td><td class="who">—</td><td class="when">2026/08/30</td></tr>
+						<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Forest Stream With Canopy</b><span class="meta">vgml-fx-real-491.jpg · Landscape and nature · 100 KB</span></td><td class="who">—</td><td class="when">2026/08/30</td></tr>
+						<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>MacBook Desk Workspace Setup</b><span class="meta">vgml-fx-real-488.jpg · Workspace · 74 KB</span></td><td class="who">—</td><td class="when">2026/08/30</td></tr>
+						<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Cyclists Racing in Motion</b><span class="meta">vgml-fx-real-484.jpg · Bikes and cycling · 62 KB</span></td><td class="who">—</td><td class="when">2026/08/30</td></tr>
+					</table>
+				</div>
+			</div>
+		</div>
+		<p class="mk-good"><b>The folder is still on every row</b> — it moved into the File cell, under the filename, where WordPress already puts row actions. It costs no width, so no combination of other plugins' columns can crush it, and the four columns stay available in Screen Options for anyone who wants them back.</p>
+	</section>
+
+	<!-- ============================================================ board 3: the decision -->
+	<section class="mk-board" data-shot="3-decision">
+		<div class="mk-board-label">The decision · how the tree lives in list mode <span>the measurements allow exactly these two; A is drawn as the recommendation</span></div>
+		<div class="mk-two">
+
+			<div>
+				<h3>A · the tree is a drawer</h3>
+				<div class="mk-wp">
+					<div class="mk-adminbar"><b>VergeLabs Media Test</b></div>
+					<div class="mk-wpbody">
+						<div class="mk-wpmenu"><div>Dashboard</div><div class="cur">Media</div><div class="sub">Library</div></div>
+						<div class="mk-wpcontent mk-stage" style="padding:16px 20px 22px;overflow:hidden">
+							<h1 class="mk-h1">Media Library</h1>
+							<p class="mk-facts">645 files · 19 folders</p>
+							<div class="mk-filter">
+								<div class="mk-switch"><span>Grid</span><span class="on">List</span></div>
+								<button class="mk-btn folders" type="button">Folders · Workspace</button>
+							</div>
+							<table class="mk-table">
+								<tr><th class="cb">☐</th><th class="thumb"></th><th>File</th><th class="when">Date</th></tr>
+								<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>MacBook Desk Workspace Setup</b><span class="meta">vgml-fx-real-488.jpg · Workspace · 74 KB</span></td><td class="when">2026/08/30</td></tr>
+								<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Forest Stream With Canopy</b><span class="meta">vgml-fx-real-491.jpg · Workspace · 100 KB</span></td><td class="when">2026/08/30</td></tr>
+								<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Misty Forest Landscape</b><span class="meta">vgml-fx-real-492.jpg · Workspace · 45 KB</span></td><td class="when">2026/08/30</td></tr>
+							</table>
+							<div class="mk-dim"></div>
+							<div class="mk-drawer">
+								<div class="mk-drawer-head"><h3>Choose a folder</h3><a href="#">Close</a></div>
+								<div class="mk-node">All files <span class="n">645</span></div>
+								<div class="mk-node">Unfiled <span class="n">272</span></div>
+								<div class="mk-node">Architecture <span class="n">31</span></div>
+								<div class="mk-node">Landscape and nature <span class="n">88</span></div>
+								<div class="mk-node on">Workspace <span class="n">25</span></div>
+								<div class="mk-node kid">Desks <span class="n">9</span></div>
+								<div class="mk-node">Bikes and cycling <span class="n">17</span></div>
+								<p class="mk-drawer-note">Choosing a folder filters the list and closes this. Escape closes it too.</p>
+							</div>
+						</div>
+					</div>
+				</div>
+				<p class="mk-line">The table keeps the whole content width at every screen size, so no plugin's columns can crush it. The tree is one press away and the control says which folder is showing. <b>Cost: the tree is not visible at rest in list mode.</b></p>
+			</div>
+
+			<div>
+				<h3>B · the tree stays, the table scrolls sideways</h3>
+				<div class="mk-wp">
+					<div class="mk-adminbar"><b>VergeLabs Media Test</b></div>
+					<div class="mk-wpbody">
+						<div class="mk-wpmenu"><div>Dashboard</div><div class="cur">Media</div><div class="sub">Library</div></div>
+						<div class="mk-wpcontent" style="padding:0;display:flex">
+							<div class="mk-ourpane" style="width:190px">
+								<b>Media Categories</b>
+								<u>All files <span style="float:right">645</span></u>
+								<u>Unfiled <span style="float:right">272</span></u>
+								<u>Architecture</u><u>Landscape and nature</u><u>Workspace</u>
+							</div>
+							<div style="flex:1;min-width:0;padding:16px 16px 22px;overflow:hidden">
+								<h1 class="mk-h1">Media Library</h1>
+								<p class="mk-facts">645 files · 19 folders</p>
+								<div class="mk-scrollbox">
+									<table class="mk-table" style="min-width:1100px;border:0">
+										<tr><th class="cb">☐</th><th class="thumb"></th><th>File</th><th class="who">Author</th><th class="when">Date</th><th style="width:110px">FileBird</th><th style="width:90px">Size</th><th style="width:130px">AIOSEO</th></tr>
+										<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Gothic Cathedral Interior</b><span class="meta">vgml-fx-real-499.jpg · Architecture</span></td><td class="who">—</td><td class="when">2026/08/30</td><td class="mk-nowrap">Uncategorised</td><td>68 KB</td><td class="mk-nowrap">SEO title set</td></tr>
+										<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Lisbon Yellow Trams</b><span class="meta">vgml-fx-real-496.jpg · City architecture</span></td><td class="who">—</td><td class="when">2026/08/30</td><td class="mk-nowrap">Uncategorised</td><td>105 KB</td><td class="mk-nowrap">SEO title set</td></tr>
+										<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Misty Forest Landscape</b><span class="meta">vgml-fx-real-492.jpg · Landscape</span></td><td class="who">—</td><td class="when">2026/08/30</td><td class="mk-nowrap">Uncategorised</td><td>45 KB</td><td class="mk-nowrap">SEO title set</td></tr>
+									</table>
+								</div>
+								<div style="font-size:12px;color:var(--mk-muted);padding-top:6px">⟵ the table scrolls sideways inside this box ⟶</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<p class="mk-line">The tree stays where it is and the table is given a floor, so the columns keep their width and the row stays short. <b>Cost: a horizontal scrollbar inside the page on every laptop</b>, and the File column is off-screen the moment somebody scrolls right.</p>
+			</div>
+
+		</div>
+	</section>
+
+	<!-- ============================================================ board 4: grid mode's rail, and the numbers -->
+	<section class="mk-board" data-shot="4-rail">
+		<div class="mk-board-label">Grid mode keeps the tree · and what each rule is worth <span>a table crushes, tiles reflow — so nothing changes in grid mode except the rail and the fold</span></div>
+		<div class="mk-two">
+
+			<div>
+				<h3>The rail, folded, in grid mode</h3>
+				<div class="mk-wp">
+					<div class="mk-adminbar"><b>VergeLabs Media Test</b></div>
+					<div class="mk-wpbody" style="min-height:220px">
+						<div class="mk-wpmenu"><div class="cur">Media</div><div class="sub">Library</div></div>
+						<div style="display:flex;flex:1;min-width:0">
+							<div class="mk-rail"><span class="chev">›</span><span class="vert">Folders</span></div>
+							<div style="flex:1;padding:16px 20px">
+								<h1 class="mk-h1">Media Library</h1>
+								<div class="mk-filter" style="margin-top:10px">
+									<div class="mk-switch"><span class="on">Grid</span><span>List</span></div>
+									<span class="mk-count">645 items</span>
+								</div>
+								<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
+									<i style="display:block;aspect-ratio:1;background:linear-gradient(135deg,#c8d2e8,#9fb0d4);border-radius:3px"></i>
+									<i style="display:block;aspect-ratio:1;background:linear-gradient(135deg,#d4cbe8,#b0a4d4);border-radius:3px"></i>
+									<i style="display:block;aspect-ratio:1;background:linear-gradient(135deg,#c8e0d2,#9fd4b0);border-radius:3px"></i>
+									<i style="display:block;aspect-ratio:1;background:linear-gradient(135deg,#e8dcc8,#d4c09f);border-radius:3px"></i>
+									<i style="display:block;aspect-ratio:1;background:linear-gradient(135deg,#c8d2e8,#9fb0d4);border-radius:3px"></i>
+									<i style="display:block;aspect-ratio:1;background:linear-gradient(135deg,#e8c8d2,#d49fb0);border-radius:3px"></i>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<p class="mk-line">One control, labelled. Today the rail is 44px of <b>clipped tree</b> — a folder pill and text sliced mid-word — sitting 38px from FileBird's own unlabelled chevron. And the fold is remembered inverted: fold it, reload, it comes back open.</p>
+			</div>
+
+			<div>
+				<h3>What each rule is worth, measured</h3>
+				<table class="mk-table2">
+					<tr><th>on the box, 1600 × 900</th><th class="n">median row</th><th class="n">page</th></tr>
+					<tr class="bad"><td>as it is today</td><td class="n">1,545px</td><td class="n">32,973px</td></tr>
+					<tr><td><code>.row-actions</code> may not wrap</td><td class="n">601px</td><td class="n">13,595px</td></tr>
+					<tr><td>+ our cells may not wrap</td><td class="n">562px</td><td class="n">13,263px</td></tr>
+					<tr><td>+ our three extra columns off</td><td class="n">562px</td><td class="n">13,263px</td></tr>
+					<tr><td>+ <b>all four</b> of our columns gone</td><td class="n">562px</td><td class="n">13,263px</td></tr>
+					<tr><td>+ FileBird's pane gone as well</td><td class="n">348px</td><td class="n">8,707px</td></tr>
+					<tr class="win"><td>the table given the content width</td><td class="n">~36px</td><td class="n">~2,200px</td></tr>
+				</table>
+				<p class="mk-line">Every row above the last is a rule applied to a table that is still starved. Only the last one gives the table its width back, and it is the only one that produces a list a person can read. <b>That is why this is a design change and not a stylesheet.</b></p>
+			</div>
+
+		</div>
+	</section>
+
+	<!-- ============================================================ board 5: the copy -->
+	<section class="mk-board" data-shot="5-copy">
+		<div class="mk-board-label">Every string that is new <span>nothing else on the screen changes wording</span></div>
+		<div class="mk-wp"><div style="padding:22px 26px 26px;background:#fff">
+			<table class="mk-table2">
+				<tr><th>where</th><th>now</th><th>after</th></tr>
+				<tr><td><b>The drawer's control</b></td><td style="color:var(--mk-muted)">no such control</td><td>Folders</td></tr>
+				<tr><td><b>…with a folder showing</b></td><td style="color:var(--mk-muted)">no such control</td><td>Folders · Workspace</td></tr>
+				<tr><td><b>The drawer's heading</b></td><td style="color:var(--mk-muted)">none</td><td>Choose a folder</td></tr>
+				<tr><td><b>Its close</b></td><td style="color:var(--mk-muted)">none</td><td>Close</td></tr>
+				<tr><td><b>Under the filename</b></td><td style="color:var(--mk-muted)">nothing — four separate columns</td><td>vgml-fx-real-499.jpg · Architecture · 68&nbsp;KB</td></tr>
+				<tr><td><b>…with no folder</b></td><td style="color:var(--mk-muted)">nothing</td><td>vgml-fx-real-495.jpg · 40&nbsp;KB</td></tr>
+				<tr><td><b>The rail, grid mode</b></td><td>an unlabelled ‹ ›</td><td>Folders / Hide folders</td></tr>
+			</table>
+			<p class="mk-line" style="margin-top:14px">Kept as they are: the column headings, the grid/list switch, and every error string.</p>
+		</div></div>
+	</section>
+
+</div>
+</body>
+</html>
