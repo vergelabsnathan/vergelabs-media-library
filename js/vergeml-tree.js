@@ -3615,10 +3615,23 @@
 			( state.collapsed ? 44 : state.width ) + 'px' );
 		var foldBtn = root.querySelector( '.vgml-fold' );
 		if ( foldBtn ) {
-			foldBtn.title = state.collapsed ? ( l10n.expand || 'Expand' ) : ( l10n.collapse || 'Collapse' );
+			/*
+			 *  The rail says which pane it folds. FileBird Pro's own chevron
+			 *  sits 38px away and neither of them said, so the screen offered
+			 *  two unlabelled arrows side by side.
+			 */
+			foldBtn.title = state.collapsed ? foldLabel() : hideLabel();
 			foldBtn.setAttribute( 'aria-label', foldBtn.title );
 			foldBtn.setAttribute( 'aria-expanded', state.collapsed ? 'false' : 'true' );
 		}
+	}
+
+	function foldLabel() {
+		return l10n.foldersShow || 'Folders';
+	}
+
+	function hideLabel() {
+		return l10n.foldersHide || 'Hide folders';
 	}
 
 	function build() {
@@ -3652,9 +3665,11 @@
 		 */
 		var head = el( 'div', { class: 'vgml-head' } );
 
-		var fold = el( 'button', { type: 'button', class: 'vgml-fold', title: l10n.collapse || 'Collapse',
-			'aria-label': l10n.collapse || 'Collapse' } );
+		var fold = el( 'button', { type: 'button', class: 'vgml-fold', title: hideLabel(),
+			'aria-label': hideLabel() } );
 		fold.innerHTML = chevron();
+		// Read down the rail when the panel is folded, and nothing else is in it.
+		fold.appendChild( el( 'span', { class: 'vgml-fold-label' }, foldLabel() ) );
 		fold.addEventListener( 'click', function ( e ) {
 			e.stopPropagation();
 			setCollapsed( ! state.collapsed );
@@ -3979,6 +3994,25 @@
 			document.body.classList.contains( 'eml-grid' );
 	}
 
+	/*
+	 *  The media library in list mode, which is the one screen the panel does
+	 *  not go on.
+	 *
+	 *  Measured on 2026-09-06: the panel took 316px of a 1600px window, FileBird
+	 *  Pro's own pane took 319 more, and thirteen columns were left 763px to
+	 *  share. Everything in a row wrapped at a character a line and the median
+	 *  row was 1,960px tall. A table cannot reflow into what is left the way
+	 *  tiles can, so in list mode the folders are a dropdown in WordPress's own
+	 *  filter bar instead -- see core/media-list.php. Grid mode keeps the panel,
+	 *  the drag and everything else.
+	 *
+	 *  A post type's own list screen keeps its tree: it is not this screen, and
+	 *  `upload-php` is the class WordPress puts on this one.
+	 */
+	function isMediaList() {
+		return document.body.classList.contains( 'upload-php' ) && ! isGridScreen();
+	}
+
 	function hostSelector() {
 		return isGridScreen() ? '.media-frame' : '.wp-list-table';
 	}
@@ -4023,7 +4057,7 @@
 		 *  somebody opens it, in any of eight flavours, possibly several times on
 		 *  one screen -- so it cannot be mounted once and forgotten.
 		 */
-		if ( cfg.onLibrary ) {
+		if ( cfg.onLibrary && ! isMediaList() ) {
 			whenHostExists( function ( found ) {
 				if ( found ) {
 					begin();

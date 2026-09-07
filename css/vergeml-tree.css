@@ -1655,12 +1655,48 @@ body.upload-php .media-frame-toolbar .media-toolbar .media-button.button-primary
 	padding-inline: 0;
 }
 
-.vgml-tree.is-collapsed .vgml-head > *:not( .vgml-fold ),
-.vgml-tree.is-collapsed .vgml-tools,
-.vgml-tree.is-collapsed .vgml-find,
-.vgml-tree.is-collapsed .vgml-list,
-.vgml-tree.is-collapsed .vgml-grip {
+/*
+ *  Folded, the rail holds one labelled control and nothing else.
+ *
+ *  This used to name the five things to hide, and the tree has grown children
+ *  since -- the filter group, the AI group, the crumbs. Each new one was
+ *  painted into a 44px rail and sliced mid-word: measured on 2026-09-06, a
+ *  folder pill and a line of text were visible at x≈505 in a rail that is
+ *  supposed to be empty. Everything but the control, so the next child that
+ *  is added is covered without anyone having to remember this rule.
+ */
+.vgml-tree.is-collapsed > *:not( .vgml-head ),
+.vgml-tree.is-collapsed .vgml-head > *:not( .vgml-fold ) {
 	display: none;
+}
+
+/*
+ *  The control reads down the rail, because 44px has no room across and an
+ *  unlabelled chevron beside another plugin's unlabelled chevron tells nobody
+ *  which pane it folds.
+ */
+.vgml-fold-label {
+	display: none;
+}
+
+.vgml-tree.is-collapsed .vgml-fold {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	width: 28px;
+	height: auto;
+	padding: 6px 0 10px;
+}
+
+.vgml-tree.is-collapsed .vgml-fold-label {
+	display: block;
+	writing-mode: vertical-rl;
+	font-size: 11px;
+	line-height: 1;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	white-space: nowrap;
 }
 
 /* --- the details sidebar ------------------------------------------------- */

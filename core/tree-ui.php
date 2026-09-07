@@ -299,6 +299,13 @@ function vergeml_tree_assets( $hook ) {
             'newSubfolder'   => __( 'New subfolder', 'vergelabs-media-library' ),
             'allFiles'       => __( 'All files', 'vergelabs-media-library' ),
             'collapse'       => __( 'Collapse panel', 'vergelabs-media-library' ),
+            /*
+             *  The rail's one control, which says which pane it folds.
+             *  FileBird Pro's own chevron sits 38px from ours and neither of
+             *  them said, so the screen offered two unlabelled arrows.
+             */
+            'foldersShow'    => __( 'Folders', 'vergelabs-media-library' ),
+            'foldersHide'    => __( 'Hide folders', 'vergelabs-media-library' ),
             'filters'        => __( 'Filters', 'vergelabs-media-library' ),
             'aiFolders'      => __( 'AI folders', 'vergelabs-media-library' ),
             'aiLadder'       => __( 'Nothing described yet — describe your library', 'vergelabs-media-library' ),
