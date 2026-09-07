@@ -1327,6 +1327,24 @@
 
 		var props = { vergeml_smart: null };
 
+		/*
+		 *  Another folder plugin's filter is not left ANDed with ours.
+		 *
+		 *  FileBird puts `fbv` into the grid's query props and leaves it at 0,
+		 *  which its own query reads as "in no FileBird folder". While FileBird
+		 *  has no folders that matches everything and nobody notices; the
+		 *  moment it has any, clicking one of our folders shows only the files
+		 *  that are in ours AND in none of theirs. Measured on the box on
+		 *  2026-09-07: a folder the tree counted at 39 returned 39 on its own,
+		 *  2 with `fbv=0` beside it, and 39 again with FileBird's own "all".
+		 *
+		 *  A person clicking a folder in our tree is asking for that folder.
+		 *  Set only when it is there, so this is a no-op without FileBird.
+		 */
+		if ( libraryProps() && undefined !== libraryProps().get( 'fbv' ) ) {
+			props.fbv = -1;
+		}
+
 		if ( id === -1 ) {
 			props[ state.taxonomy ] = null;
 			// true: the value the grid's own "All Uncategorized" option was
@@ -3959,6 +3977,7 @@
 			 */
 			alignToFrame( frame, wrap );
 			setTimeout( function () { alignToFrame( frame, wrap ); }, 1200 );
+			watchNotices( frame, wrap );
 		}
 
 		setPanelWidth( state.width );
@@ -4040,11 +4059,113 @@
 		document.body.style.setProperty( '--vgml-panel-w', w + 'px' );
 	}
 
+	/*
+	 *  Where the tiles and the panel start, which is below the notices.
+	 *
+	 *  Grid mode's frame is core's own and it is `position: absolute; top: 50px`
+	 *  inside the wrap, so every notice printed after the heading is painted
+	 *  over. On the test box on 2026-09-07 that was eight notices, 863px of
+	 *  them, and the frame and our panel both sat on top of seven -- measured
+	 *  with our own layout rules stripped off the body, so it is not ours, but
+	 *  it is on our screen and it is one number to fix.
+	 *
+	 *  The number is core's own marker. WordPress moves every notice to just
+	 *  above `hr.wp-header-end`, so that rule's bottom edge is exactly "below
+	 *  the heading and below whatever anyone has printed". Measured from the
+	 *  marker rather than from the frame, because the frame is what this then
+	 *  moves: reading a thing you are about to set makes it drift.
+	 */
 	function alignToFrame( frame, wrap ) {
+
+		liftNotices( wrap );
+
 		var top = frame.getBoundingClientRect().top - wrap.getBoundingClientRect().top;
+
 		if ( top > 0 ) {
 			document.body.style.setProperty( '--vgml-panel-top', Math.round( top ) + 'px' );
 		}
+	}
+
+	/*
+	 *  The notices come out of the pinned box.
+	 *
+	 *  css/eml-admin-media.css pins `.wrap` to the viewport in grid mode --
+	 *  `position: absolute; top: 0; bottom: 0` -- and core's frame fills it
+	 *  from 50px down. So every notice printed inside the wrap is painted
+	 *  over: on the test box that was eight of them, 863px, and the tiles
+	 *  started under the third. Pushing the frame down instead is not the
+	 *  answer, because the frame's height is what is left between its top and
+	 *  the bottom of a box that cannot grow -- that turns 858px of tiles into
+	 *  90px.
+	 *
+	 *  So they are lifted out of the wrap and the wrap starts below them. They
+	 *  keep their own markup, their dismiss buttons and their order; only
+	 *  their parent changes, which is what makes the pinned box theirs to sit
+	 *  above rather than under.
+	 */
+	function liftNotices( wrap ) {
+
+		var host = document.querySelector( '#wpbody-content' );
+
+		if ( ! host || ! wrap || ! wrap.parentNode ) {
+			return;
+		}
+
+		var shelf = document.getElementById( 'vgml-notices' );
+
+		if ( ! shelf ) {
+			shelf = el( 'div', { id: 'vgml-notices', class: 'vgml-notices' } );
+			host.insertBefore( shelf, wrap );
+		}
+
+		var found = wrap.querySelectorAll( '.notice, .updated, .error, .update-nag' );
+
+		for ( var i = 0; i < found.length; i++ ) {
+			// Not one the frame drew for itself, and not one already lifted.
+			if ( ! shelf.contains( found[ i ] ) && ! found[ i ].closest( '.media-frame' ) ) {
+				shelf.appendChild( found[ i ] );
+			}
+		}
+
+		document.body.style.setProperty( '--vgml-notices', Math.round( shelf.getBoundingClientRect().height ) + 'px' );
+	}
+
+	/*
+	 *  Notices arrive late and are dismissed by hand, and either changes where
+	 *  the tiles should start. Watched rather than measured once.
+	 */
+	function watchNotices( frame, wrap ) {
+
+		var due = null;
+		var again = function () {
+			clearTimeout( due );
+			due = setTimeout( function () { alignToFrame( frame, wrap ); }, 150 );
+		};
+
+		// A dismissal is a click, and the notice goes a moment later.
+		document.addEventListener( 'click', function ( e ) {
+			if ( e.target && e.target.closest && e.target.closest( '.notice-dismiss, .notice .dismiss' ) ) {
+				setTimeout( again, 250 );
+			}
+		}, true );
+
+		if ( ! window.MutationObserver ) {
+			return;
+		}
+
+		/*
+		 *  Direct children only. Notices are added as children of the content
+		 *  or of the wrap; watching the whole subtree would fire on every tile
+		 *  the grid loads, which is thousands of times for nothing.
+		 */
+		var watch = new MutationObserver( again );
+
+		[ '#wpbody-content', '.wrap' ].forEach( function ( sel ) {
+			var host = document.querySelector( sel );
+			if ( host ) {
+				watch.observe( host, { childList: true } );
+			}
+		} );
 	}
 
 	function start() {

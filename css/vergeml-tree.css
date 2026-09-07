@@ -897,9 +897,20 @@ body.vgml-mode-grid .wrap {
 	padding-inline-start: 0;
 }
 
+/*
+ *  Sideways for the panel, and down for the notices.
+ *
+ *  The frame is core's, absolutely positioned 50px below the top of the wrap,
+ *  which means anything printed after the heading is painted over. Eight
+ *  notices on the test box, 863px of them, and the tiles started under the
+ *  third. The offset is measured from core's own `hr.wp-header-end` -- see
+ *  alignToFrame() in js/vergeml-tree.js -- so the frame and the panel start
+ *  at the same place and that place is below whatever anyone printed.
+ */
 body.vgml-mode-grid .media-frame {
 	inset-inline-start: calc( var( --vgml-panel-w, 300px ) + 16px );
 }
+
 
 body.vgml-mode-grid .vgml-tree {
 	/* Aligned with the frame, not the top of the wrap -- that is where the page
