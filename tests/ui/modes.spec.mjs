@@ -35,10 +35,32 @@ const api = ( page, path, data, method ) => page.evaluate(
 const clearNotices = ( page ) => page.evaluate( () =>
 	document.querySelectorAll( '.notice, .updated, .error, #njt-FileBird-review' ).forEach( ( n ) => n.remove() ) );
 
-/** Open the library in one mode and wait until the tree and the files are there. */
+/**
+ *  The panel remembers being folded, and folded it is a 44px rail with one
+ *  control in it and no tree. A walk that needs the tree opens it first.
+ */
+async function unfold( page ) {
+	if ( await page.locator( '.vgml-tree.is-collapsed' ).count() ) {
+		await page.click( '.vgml-fold' );
+		await page.waitForTimeout( 800 );
+	}
+}
+
+/**
+ *  Open the library in one mode and wait until the files are there.
+ *
+ *  The tree is waited for in grid mode only. Since 3.14 there is none in list
+ *  mode: it took 316px of a table that had 763px for thirteen columns and
+ *  every row was 1,960px tall. The folders are a dropdown in WordPress's own
+ *  filter bar there instead -- docs/superpowers/specs/2026-09-07-list-view.md.
+ */
 async function openMode( page, mode, extra = '' ) {
 	await page.goto( `/wp-admin/upload.php?mode=${ mode }${ extra }`, { waitUntil: 'domcontentloaded' } );
-	await page.waitForSelector( '.vgml-tree .vgml-node[data-id="0"]', { timeout: 30000 } );
+	if ( mode === 'grid' ) {
+		await page.waitForSelector( '.vgml-tree', { timeout: 30000 } );
+		await unfold( page );
+		await page.waitForSelector( '.vgml-tree .vgml-node[data-id="0"]', { timeout: 30000 } );
+	}
 	await page.waitForSelector( mode === 'grid' ? '.attachments-browser' : '#the-list', { timeout: 30000 } );
 	await page.waitForTimeout( 1200 );
 	await clearNotices( page );
@@ -145,6 +167,20 @@ for ( const mode of [ 'grid', 'list' ] ) {
 	test.describe( `${ mode } mode`, () => {
 
 		test.skip( ! process.env.MODES_WALK, 'MODES_WALK=1 to walk both modes on a picture and two folders of their own' );
+
+		/*
+		 *  This walk is the tree's: it clicks folders in it, drags rows onto
+		 *  it and opens the move dialog its M key owns. Since 3.14 none of
+		 *  those exist in list mode -- the folder filter is a dropdown in
+		 *  core's filter bar and files move by a bulk action, because a tree
+		 *  taking 316px from a table left every row 1,960px tall
+		 *  (docs/superpowers/specs/2026-09-07-list-view.md).
+		 *
+		 *  What list mode does instead is walked by "the folder filter" below,
+		 *  which runs on every push. Converting the rest of this walk to the
+		 *  new controls is a piece of work of its own and is on the handoff.
+		 */
+		test.skip( mode === 'list', 'the tree, the drag and the M dialog are grid-only since 3.14; the list is walked by the folder filter test' );
 
 		test( `every action, in ${ mode }`, async ( { page } ) => {
 
@@ -467,3 +503,272 @@ for ( const mode of [ 'grid', 'list' ] ) {
 		} );
 	} );
 }
+
+
+/*
+ *  How tall a row is.
+ *
+ *  Everything above asserts what is on the screen and never a geometry, so
+ *  the suite walked this screen and passed all through the days a row was
+ *  1,960px tall and a screenshot of the media list was 28,800px long. The
+ *  cause is width: a row is as tall as the tallest thing in it that is still
+ *  in the flow, and core's own .row-actions -- hidden with position:
+ *  relative, so still in the flow -- wraps to 1,153px in a 42px column and
+ *  sets the height of every row on the page.
+ *
+ *  Both modes, because the mode is remembered per person: somebody whose last
+ *  visit was the grid opens the list with the grid's state behind them.
+ *  Both column sets, because our four are off by default and a person who
+ *  turns all four on has to get a readable row as well.
+ *
+ *  Reads the screen and puts the column preference back. Spends nothing.
+ */
+
+const ROW_CEILING = 100;
+const OURS = [ `taxonomy-${ TAX }`, 'taxonomy-colour', 'vergeml_used', 'vgmlpro_source' ];
+
+/** Core's own Screen Options request, as a person's tick would send it. */
+const setHidden = ( page, hidden ) => page.evaluate( ( h ) => new Promise( ( r ) =>
+	jQuery.post( window.ajaxurl, {
+		action: 'hidden-columns',
+		hidden: h.join( ',' ),
+		screenoptionnonce: document.getElementById( 'screenoptionnonce' ).value,
+		page: 'upload',
+	}, r ) ), hidden );
+
+/** Every row on the list with its height, tallest first. */
+const rowHeights = ( page ) => page.evaluate( () => Array.from( document.querySelectorAll( '#the-list > tr' ) )
+	.map( ( r ) => ( { id: r.id, h: Math.round( r.getBoundingClientRect().height ) } ) )
+	.sort( ( a, b ) => b.h - a.h ) );
+
+const openList = async ( page ) => {
+	await page.goto( '/wp-admin/upload.php?mode=list', { waitUntil: 'domcontentloaded' } );
+	await page.waitForSelector( '#the-list tr[id^="post-"]', { timeout: 30000 } );
+	await page.waitForTimeout( 1500 );
+	await clearNotices( page );
+};
+
+for ( const mode of [ 'grid', 'list' ] ) {
+
+	test( `no row on the media list is over ${ ROW_CEILING }px, arriving in ${ mode }`, async ( { page } ) => {
+
+		test.setTimeout( 180000 );
+		await page.setViewportSize( { width: 1600, height: 900 } );
+
+		// The mode under test first: it is remembered, so this is the state
+		// the list is opened from.
+		await page.goto( `/wp-admin/upload.php?mode=${ mode }`, { waitUntil: 'domcontentloaded' } );
+		await page.waitForTimeout( 2500 );
+
+		await openList( page );
+
+		/*
+		 *  Nothing of ours takes a gutter. `.wrap` used to be padded 316px to
+		 *  make room for the tree, and the tree was absolutely positioned in
+		 *  the padding -- unconditionally, on a screen where FileBird Pro had
+		 *  already taken 319px of its own.
+		 */
+		const room = await page.evaluate( () => ( {
+			table: Math.round( document.querySelector( '.wp-list-table' ).getBoundingClientRect().width ),
+			body: Math.round( document.querySelector( '#wpbody-content' ).getBoundingClientRect().width ),
+			trees: document.querySelectorAll( '.vgml-tree' ).length,
+		} ) );
+
+		expect( room.trees, 'no folder panel in list mode' ).toBe( 0 );
+		expect(
+			room.body - room.table,
+			`the table has the content column (content ${ room.body }px, table ${ room.table }px)`
+		).toBeLessThan( 48 );
+
+		const columns = await page.$$eval( '.wp-list-table thead th[id]', ( ths ) =>
+			ths.map( ( th ) => ( { id: th.id, hidden: th.classList.contains( 'hidden' ) } ) ) );
+		const before = columns.filter( ( c ) => c.hidden ).map( ( c ) => c.id );
+		const ours = columns.map( ( c ) => c.id ).filter( ( id ) => OURS.includes( id ) );
+
+		expect( ours.length, 'our columns are on this screen to switch on' ).toBeGreaterThan( 0 );
+
+		try {
+			const sets = [
+				[ 'with our columns off', Array.from( new Set( [ ...before, ...ours ] ) ) ],
+				[ 'with all four on', before.filter( ( id ) => ! ours.includes( id ) ) ],
+			];
+
+			for ( const [ what, hidden ] of sets ) {
+
+				await setHidden( page, hidden );
+				await openList( page );
+
+				const on = await page.$$eval( '.wp-list-table thead th[id]', ( ths ) =>
+					ths.filter( ( th ) => ! th.classList.contains( 'hidden' ) ).map( ( th ) => th.id ) );
+				const rows = await rowHeights( page );
+
+				expect( rows.length, 'the list has rows to measure' ).toBeGreaterThan( 0 );
+				expect(
+					rows[ 0 ].h,
+					`${ what }, arriving in ${ mode }: the tallest of ${ rows.length } rows is ${ rows[ 0 ].h }px over ${ on.length } columns (${ on.join( ', ' ) })`
+				).toBeLessThanOrEqual( ROW_CEILING );
+			}
+		} finally {
+			await openList( page ).catch( () => null );
+			await setHidden( page, before ).catch( () => null );
+		}
+	} );
+}
+
+
+/*
+ *  The folder filter, which is what list mode has instead of the tree.
+ *
+ *  WordPress has filtered a list table by a hierarchical taxonomy this way
+ *  since the Posts screen had categories: a dropdown beside All dates and a
+ *  Filter button, submitted as a GET. So the folder ends up in the URL, which
+ *  is what makes it survive the browser's own Back button -- the thing a
+ *  drawer or a tree click does not give you.
+ *
+ *  Read-only: it filters and goes back, and writes nothing.
+ */
+
+test( 'the folder filter: Unfiled and every folder with its count, and the count is what comes back', async ( { page } ) => {
+
+	test.setTimeout( 180000 );
+	await page.setViewportSize( { width: 1600, height: 900 } );
+	await openList( page );
+
+	const bar = await page.evaluate( () => Array.from( document.querySelectorAll( 'select.vgml-folder-filter option' ) )
+		.map( ( o ) => ( { value: o.value, text: o.text.replace( / /g, ' ' ).trim(), level: o.className } ) ) );
+
+	expect( bar.length, 'the dropdown is on the screen' ).toBeGreaterThan( 2 );
+	expect( bar[ 0 ].text, 'nothing chosen reads "All folders"' ).toBe( 'All folders' );
+	expect( bar[ 1 ].text, 'Unfiled is second, with its count' ).toMatch( /^Unfiled \(\d[\d,.]*\)$/ );
+	expect( bar[ 1 ].value ).toBe( 'not_in' );
+
+	// Every folder carries a count, and children are indented the way core's
+	// own category dropdown indents them.
+	for ( const option of bar.slice( 2 ) ) {
+		expect( option.text, `"${ option.text }" carries its count` ).toMatch( /\(\d[\d,.]*\)$/ );
+	}
+	expect( bar.filter( ( o ) => /^level-[1-9]/.test( o.level ) ).length, 'the tree is in it: children are indented' ).toBeGreaterThan( 0 );
+
+	/* A folder with a manageable count, filtered for. */
+	const count = ( o ) => Number( ( o.text.match( /\((\d[\d,.]*)\)$/ ) || [ 0, '0' ] )[ 1 ].replace( /[,.]/g, '' ) );
+	const pick = bar.slice( 2 ).find( ( o ) => count( o ) > 0 && count( o ) < 200 );
+
+	expect( pick, 'there is a folder with files in it to filter for' ).toBeTruthy();
+
+	await page.selectOption( 'select.vgml-folder-filter', pick.value );
+	await Promise.all( [ page.waitForNavigation( { waitUntil: 'domcontentloaded' } ), page.click( '#post-query-submit' ) ] );
+	await page.waitForTimeout( 1500 );
+	await clearNotices( page );
+
+	const shown = await page.evaluate( () => ( {
+		url: location.search,
+		items: Number( ( ( document.querySelector( '.displaying-num' ) || {} ).textContent || '0' ).replace( /\D/g, '' ) ),
+		chosen: document.querySelector( 'select.vgml-folder-filter' ).value,
+	} ) );
+
+	expect( shown.items, `"${ pick.text }" says ${ count( pick ) } and the list returns that many` ).toBe( count( pick ) );
+	expect( shown.chosen, 'the dropdown reads the folder that is showing' ).toBe( pick.value );
+	expect( shown.url, 'the folder is in the URL, which is what a bookmark keeps' ).toContain( `${ TAX }=${ pick.value }` );
+
+	/* Unfiled, and its count. */
+	await openList( page );
+	await page.selectOption( 'select.vgml-folder-filter', 'not_in' );
+	await Promise.all( [ page.waitForNavigation( { waitUntil: 'domcontentloaded' } ), page.click( '#post-query-submit' ) ] );
+	await page.waitForTimeout( 1500 );
+	await clearNotices( page );
+
+	const unfiled = await page.evaluate( () => ( {
+		items: Number( ( ( document.querySelector( '.displaying-num' ) || {} ).textContent || '0' ).replace( /\D/g, '' ) ),
+		chosen: document.querySelector( 'select.vgml-folder-filter' ).value,
+	} ) );
+
+	expect( unfiled.items, 'Unfiled returns the number it offers' ).toBe( count( bar[ 1 ] ) );
+	expect( unfiled.chosen, 'and the dropdown still reads Unfiled' ).toBe( 'not_in' );
+
+	/* The back button: core's mechanism, so the list that was there comes back. */
+	await page.goBack( { waitUntil: 'domcontentloaded' } );
+	await page.waitForTimeout( 2500 );
+	const back = await page.evaluate( () => ( {
+		url: location.search,
+		items: Number( ( ( document.querySelector( '.displaying-num' ) || {} ).textContent || '0' ).replace( /\D/g, '' ) ),
+	} ) );
+
+	expect( back.url, 'Back leaves the filter behind' ).not.toContain( `${ TAX }=not_in` );
+	expect( back.items, 'and the whole library is on screen again' ).toBeGreaterThan( unfiled.items );
+} );
+
+
+/*
+ *  Move to folder..., in Bulk actions -- what replaces dragging a row onto
+ *  the tree, in the idiom a list table already has.
+ *
+ *  Gated, because it moves real files. It uses files that are in no folder
+ *  and puts them back in no folder, and it makes and deletes a folder of its
+ *  own, so what it leaves behind is what it found.
+ */
+
+test( 'Move to folder: only the ticked rows move, and the notice says how many went where', async ( { page } ) => {
+
+	test.skip( ! process.env.MODES_WALK, 'MODES_WALK=1 to move three real files into a folder of its own and put them back' );
+	test.setTimeout( 240000 );
+	await page.setViewportSize( { width: 1600, height: 900 } );
+
+	const NAME = 'P9 list move';
+	const unfiledList = async () => {
+		await page.goto( `/wp-admin/upload.php?mode=list&${ TAX }=not_in`, { waitUntil: 'domcontentloaded' } );
+		await page.waitForSelector( '#the-list tr[id^="post-"]', { timeout: 30000 } );
+		await page.waitForTimeout( 1200 );
+		await clearNotices( page );
+	};
+	const folders = ( id ) => api( page, `/wp/v2/media/${ id }?_fields=id,${ TAX }` ).then( ( m ) => m[ TAX ] || [] );
+
+	await unfiledList();
+
+	const ids = await page.evaluate( () => Array.from( document.querySelectorAll( '#the-list tr[id^="post-"]' ) )
+		.slice( 0, 4 ).map( ( r ) => Number( r.id.replace( 'post-', '' ) ) ) );
+
+	expect( ids.length, 'there are four unfiled files to walk on' ).toBe( 4 );
+
+	const move = ids.slice( 0, 3 );
+	const leave = ids[ 3 ];
+	const made = Number( ( await api( page, `${ NS }/folder`, { taxonomy: TAX, action: 'create', name: NAME } ) ).id );
+
+	try {
+		await unfiledList();
+
+		const group = await page.evaluate( () => {
+			const g = document.querySelector( '#bulk-action-selector-top optgroup' );
+			return g ? { label: g.label, options: g.children.length } : null;
+		} );
+
+		expect( group, 'the bulk menu has a folder group' ).toBeTruthy();
+		expect( group.label ).toBe( 'Move to folder…' );
+		expect( group.options, 'every folder is in it' ).toBeGreaterThan( 0 );
+
+		for ( const id of move ) {
+			await page.check( `#the-list input[name="media[]"][value="${ id }"]` );
+		}
+
+		await page.selectOption( '#bulk-action-selector-top', `vergeml-move-${ made }` );
+		await Promise.all( [ page.waitForNavigation( { waitUntil: 'domcontentloaded' } ), page.click( '#doaction' ) ] );
+		await page.waitForTimeout( 2000 );
+
+		await expect( page.locator( '.notice', { hasText: 'moved to' } ) )
+			.toContainText( `3 files moved to ${ NAME }.` );
+
+		for ( const id of move ) {
+			expect( await folders( id ), `file ${ id } is in that folder and nowhere else` ).toEqual( [ made ] );
+		}
+		expect( await folders( leave ), 'the row that was not ticked did not move' ).toEqual( [] );
+
+	} finally {
+		for ( const id of ids ) {
+			await api( page, `${ NS }/assign`, { taxonomy: TAX, attachments: [ id ], add: [], mode: 'move' } ).catch( () => null );
+		}
+		// By name, so a copy another plugin made of it goes too.
+		const tree = await api( page, `${ NS }/tree?taxonomy=${ TAX }` ).catch( () => ( { nodes: [] } ) );
+		for ( const n of ( tree.nodes || [] ).filter( ( n ) => n.name === NAME ) ) {
+			await api( page, `${ NS }/folder`, { taxonomy: TAX, action: 'delete', id: n.id } ).catch( () => null );
+		}
+	}
+} );
