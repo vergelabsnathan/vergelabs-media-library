@@ -194,10 +194,44 @@ function vergeml_list_assets( $hook ) {
         $cells[] = '.wp-list-table.media td.column-' . $column;
     }
 
-    wp_add_inline_style(
-        'vergeml-media-list',
-        implode( ",\n", $cells ) . " {\n\twhite-space: nowrap;\n\toverflow: hidden;\n\ttext-overflow: ellipsis;\n}"
-    );
+    /*
+     *  And a cell of ours never takes more room than it needs.
+     *
+     *  The table is laid out fixed, so a column without a width takes an equal
+     *  share of whatever is left -- which meant that with our four switched on
+     *  and nobody else's columns there, each of ours was as wide as the File
+     *  column itself, 157px, and the title wrapped beside its own thumbnail
+     *  into a 149px row. Nine per cent is about what they had on a crowded
+     *  table anyway; it is a ceiling, not a claim. Measured 2026-09-07 on the
+     *  box: File 157px -> 318px, tallest row 149px -> 98px.
+     */
+    $css = implode( ",\n", $cells ) . " {\n\twhite-space: nowrap;\n\toverflow: hidden;\n\ttext-overflow: ellipsis;\n}";
+
+    /*
+     *  A width is a floor as well as a ceiling in a fixed table, so it is
+     *  worth nine per cent each only while there is room to give. On a table
+     *  already carrying eight other plugins' columns it takes 36% away from
+     *  them and they tower instead -- measured 2026-09-07 on the box, a row
+     *  went from 1,698px to 2,103px. Counted here rather than in the
+     *  stylesheet because CSS counts the columns that are hidden too.
+     */
+    $screen  = get_current_screen();
+    $visible = $screen
+        ? array_diff( array_keys( (array) get_column_headers( $screen ) ), (array) get_hidden_columns( $screen ) )
+        : array();
+
+    if ( $visible && count( $visible ) <= 8 ) {
+
+        $headings = array();
+
+        foreach ( vergeml_list_our_columns() as $column ) {
+            $headings[] = '.wp-list-table.media .column-' . $column;
+        }
+
+        $css .= "\n\n" . implode( ",\n", $headings ) . " {\n\twidth: 9%;\n}";
+    }
+
+    wp_add_inline_style( 'vergeml-media-list', $css );
 
     wp_enqueue_script(
         'vergeml-media-list',
@@ -579,7 +613,7 @@ function vergeml_list_move_notice() {
         '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
         esc_html( sprintf(
             /* translators: 1: how many files were moved, 2: the folder they went to. */
-            __( '%1$s files moved to %2$s.', 'vergelabs-media-library' ),
+            _n( '%1$s file moved to %2$s.', '%1$s files moved to %2$s.', $moved, 'vergelabs-media-library' ),
             number_format_i18n( $moved ),
             $to
         ) )
