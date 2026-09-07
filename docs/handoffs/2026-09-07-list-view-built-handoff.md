@@ -310,6 +310,47 @@ second folder plugin, which is what `core/neighbours.php` warns about in those
 words. The folder-filter test asserts the exact number only when nothing else
 is filtering, and prints the difference when something is.
 
+## The inherited code, and what was done about it
+
+5,155 lines across fourteen `eml-*` files came with the fork -- about 7% of the
+codebase, written by somebody else, and never re-read. Today's worst layout bug
+came out of one line of it.
+
+**Done: the grid screen is no longer pinned to the viewport.**
+`body.upload-php.eml-grid #wpbody-content > .wrap` was `position: absolute; top:
+0; left: 15px; right: 0; bottom: 0`, which made the whole screen a fixed box
+with core's frame filling it from 50px down. Every notice printed inside the
+wrap was painted over, and nothing could be given room without taking it from
+the tiles. It is `position: relative; min-height: 70vh` now: the frame is
+*larger* -- 502px to 580px at 1600 x 900 -- and the page behaves like every
+other admin screen.
+
+**Done: a test that says nothing covers the library.** No notice, ours or
+anyone's, may sit over the tiles, the tree or the table, in either mode, on
+every push. That bug shipped for as long as the fork has existed because the
+suite asserted what was on the screen and never what was on top of what.
+
+**Not done: the other thirteen files.** All twelve non-RTL assets are still
+enqueued, so nothing is trivially deletable; a real audit means reading them.
+Two things are already worth questioning:
+
+- `body.upload-php.eml-grid #wpbody { position: fixed; top: 32px; bottom: 0 }`
+  is the deeper pin, and `#wpfooter` is hidden on this screen to go with it.
+  Unpinning it measured no worse (frame 580px either way) and would make the
+  screen ordinary, but it changes how the whole grid scrolls and deserves its
+  own look with screenshots rather than a measurement.
+- `js/eml-media-grid.js` is 622 lines and `js/eml-enhanced-medialist.js` 360,
+  both untouched since the fork.
+
+The lesson under all of it, worth more than the files: **this plugin has
+defences that were written and never proved.** The Polylang filter had sat in
+`core/multilingual.php` since the file was written, doing nothing, because it
+was handed an empty list. `core/neighbours.php` warns that two folder plugins
+filter the same lists and nothing checked whether they do -- they do, and it
+cost a folder 3 of its 45 rows. `modes.spec` walked the media list for weeks
+while every row was 1,960px tall. One assertion per claim the plugin makes is
+the cheapest work on this list.
+
 ## Found, still not done
 
 - **Merging folders Polylang already twinned.** The prevention is in; the
