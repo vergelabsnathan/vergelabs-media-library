@@ -1,7 +1,9 @@
 # Session handover — 2026-09-07, the list view built (Opus 5)
 
 The four tasks on the list-view opener are built, walked and measured on the
-box. One decision is Nathan's and the row-height gate turns on it.
+box, and the six items that were left open at the end of that work are closed
+too -- the last of them, a Polylang bug, was the only one that touched data.
+Every gate is green.
 
 Read in this order:
 
@@ -126,57 +128,101 @@ file and the folder were put back.
   column keys, because two of the four are named after taxonomies somebody made
   up. `js/vergeml-media-list.js` puts the full value on the cell's title.
 
-## The one thing that is Nathan's
+## The row height, and what was decided
 
-**The row-height gate is red, at 231px against a ceiling of 100px, and closing
-it means changing three other plugins' columns.**
+**The invasive rules were not taken.** Closing the 100px gate on the box needed
+`white-space: nowrap` on every cell that is not the File cell, plus a floor
+under the File column. Together they took the tallest row from 231px to 98px --
+and they did it by breaking three plugins that are not ours: AIOSEO's SEO
+fields collapsed to a spinner, and Qode Optimizer's and SEOPress's columns were
+squeezed to 17px slivers. Our stylesheet breaking other plugins' columns on a
+screen none of us owns is not a trade worth making. The rules and the numbers
+are commented at the foot of `css/vergeml-media-list.css` if the question ever
+comes back. Screen Options is WordPress's own answer, and ours are the four it
+starts with switched off.
 
-Measured on the box, 1600 × 900, our four columns off:
+**What was taken instead** is a cap on our own columns, which is entirely ours
+to set. The table is laid out fixed, so a column with no width takes an equal
+share of what is left: with our four switched on and nobody else's columns
+there, each of ours was as wide as the File column itself -- 157px -- and the
+title wrapped beside its own thumbnail into a 149px row. Nine per cent each,
+and only while there is room to give: on a table already carrying eight other
+plugins' columns the same rule would take 36% away from them and they would
+tower instead (1,698px to 2,103px, measured), so the visible columns are
+counted in PHP, where the hidden ones do not count.
 
-| | median row | tallest | page |
-|---|---|---|---|
-| before this session | 1,960px | — | 41,587px |
-| as it now stands | **192px** | 231px | 5,279px |
-| + no cell but File may wrap, + File column 26% | **96px** | 98px | 3,762px |
-
-The second row is what is shipped. The third reaches the gate and does it by
-putting `white-space: nowrap; overflow: hidden; text-overflow: ellipsis` on
-every cell that is not the File cell, and giving the File column a floor so the
-title stops wrapping at 22px beside a 62px thumbnail.
-
-I built it, looked at it and took it out again. On the box it breaks three
-plugins that are not ours: **AIOSEO's SEO fields collapse to a spinner**, and
-**Qode Optimizer's and SEOPress's columns are squeezed to 17px slivers**. Our
-stylesheet breaking other plugins' columns on a screen none of us owns is not a
-trade to make quietly. The rules and the numbers are commented at the foot of
-`css/vergeml-media-list.css`; putting them back is four lines.
-
-Worth knowing before deciding: **on a stock WordPress the gate is already met.**
-The 231px is what eight third-party columns and FileBird Pro's 319px pane do to
-this fixture box; with our four columns off and no other plugin's, a row is
-36px.
+| | median row | tallest |
+|---|---|---|
+| before this session | 1,960px | — |
+| ours off, nobody else's | 36px | 36px |
+| all four of ours on, nobody else's | 81px | **98px** |
+| as it ships: ours off, eight of theirs on | 192px | **231px** |
 
 ## Gates
 
-- `tests/ui/modes.spec.mjs` — extended with the row-height assertion, in grid
-  and in list, with our columns off and with all four on, plus the table-width
-  one the spec asks for (`no folder panel in list mode`, and the table has the
-  content column — both pass). **Row height fails at 231px**, see above.
-- **The mutation check passes.** In the configuration that reaches the ceiling,
-  letting `.row-actions` wrap again turns it red: 98px → 149px. As the screen
-  ships, the same mutation takes 231px → 1,129px. The assertion discriminates.
-- `tests/ui/modes.spec.mjs` — new, not gated: **the folder filter** walks the
-  dropdown, its counts, the filter and the back button. Green.
-- `tests/ui/modes.spec.mjs` — new, `MODES_WALK=1`: **Move to folder…**. Walked
-  green by hand this session; it restores what it writes.
-- `tests/ui/shell.spec.mjs` — green, 15 passed.
-- `tests/ui/shots.spec.mjs` — **`screenshot: import` fails, and it is not this
-  work.** `wp eval` on the box reports all seven import sources unavailable:
-  FileBird has no folders left to import, so the screen has nothing to draw.
-  `tools/box-filebird-fixture.sh` restores it. Left alone this session so the
-  before/after measurements stayed comparable.
-- `node tools/verify.mjs copy journey guide` — 62/62, green.
+All green, on the box, as a throwaway administrator.
+
+- `tests/ui/modes.spec.mjs` → **3 passed, 2 skipped**. The row height in both
+  modes under three column sets, the table's width, no folder panel in list
+  mode, and the folder filter walked end to end including the back button. The
+  two skipped are the ones that write: the grid walk and the bulk move, both
+  `MODES_WALK=1`.
+- `tests/ui/shell.spec.mjs` + `tests/ui/shots.spec.mjs` → **25 passed**.
+- `node tools/verify.mjs copy journey guide` → **62/62 passed**.
+- **The mutation check holds.** In the configuration that reaches 100px,
+  letting `.row-actions` wrap again turns it red: 98px → 149px. On the screen
+  as it ships the same mutation takes 231px → 1,129px.
 - Nothing here spends credits. The media list reaches no model.
+
+## The six that were left open, and what closed them
+
+1. **Polylang copying a folder that has no language.** The only one that
+   touched data. `core/multilingual.php` — see below.
+2. **The row-height gate expected to be red.** Two numbers now, both green —
+   see above. A gate nobody believes is worse than no gate.
+3. **The invasive stylesheet.** Not taken, and the reason is recorded in the
+   stylesheet rather than in somebody's memory.
+4. **The skipped half of the walk.** Gone: the walk is grid's, and list mode
+   has its own two tests. The helpers that only the list half used went too.
+5. **"1 files moved to Workspace."** `_n()`, and the spec's copy table carries
+   both forms now.
+6. **The import screenshot.** It waits for the screen to have settled -- cards,
+   or the line naming the sources with nothing -- rather than for a card. The
+   FileBird fixture was reseeded on the box (14 folders, 394 files), and
+   `import.spec.mjs` now says in its header that it consumes that fixture and
+   cannot put it back.
+
+## Polylang, in full
+
+Every assignment of a folder that has no language made a language-stamped copy
+of it: same name, same slug, a new term. The file moved to the copy and the
+count on the real folder dropped by one. Nothing said so. It went through the
+tree's own move, the importer, auto-file and the librarian — anything that
+calls `wp_set_object_terms`.
+
+The `pll_get_taxonomies` filter that should have prevented it has been in
+`core/multilingual.php` since the file was written, and it worked. What did not
+was the list it was handed: `vergeml_multilingual_taxonomies()` read the
+**registered** taxonomies, and Polylang asks which ones are translatable before
+`init` — before ours are registered. It got an empty list, removed nothing, and
+Polylang cached a list with the folders still in it. Polylang's own docblock
+says the filter "must be added soon in the WordPress loading process"; ours was,
+but it had nothing to say yet.
+
+The names are also in the `vergeml_taxonomies` option, and an option can be read
+whenever the question is asked. Measured on the box:
+
+- `is_translated_taxonomy( media_category )` was **YES**, is now **no**;
+- filing a picture into "Landscape and nature", which has no language, leaves
+  **31 folders where it used to leave 32**, and the file stays where it was.
+
+**Still to do: sites already carrying duplicates.** This stops new ones; it
+merges none. A site that has been running both plugins for a while may have
+several twinned folders, and the answer is a merge utility somebody presses --
+never a migration that runs on upgrade and moves files nobody asked it to move.
+`test-results/` is gone, but the repair this session used is in the git history
+of that fix: repoint the relationship at table level so Polylang's filter is not
+asked again, recount both terms, delete the copy.
 
 ## Traps found
 
@@ -212,29 +258,6 @@ this fixture box; with our four columns off and no other plugin's, a row is
   correctly in the browser: `vergeml_backend_parse_tax_query` is on
   `parse_tax_query` and gated on `$current_screen`.
 
-## Found, not done
-
-- **The list-mode half of the `MODES_WALK` walk is skipped**, with the reason
-  in the file. It clicks folders in the tree, drags rows onto it and opens the
-  M dialog, and none of those exist in list mode now. What list mode does
-  instead is covered by the two new tests. Converting the rest of that walk to
-  the dropdown and the bulk action is a piece of work of its own.
-- **The copy table has no singular for the move notice.** `%1$s files moved to
-  %2$s.` is used verbatim, so one file reads "1 files moved to Workspace."
-- **A folder name's entities.** Term names are stored with them, so "Client
-  work & co" comes back as "Client work &amp; co"; core's own dropdown prints
-  the name unescaped and gets away with it, ours escaped it again. Decoded
-  once and escaped once now at the four places a folder name reaches a screen.
-  Nothing else in the plugin that prints a term name was checked for this.
-- **The full value is not on the cell `title` for a taxonomy column that a
-  person switches on.** Core renders those cells and the script only titles
-  what it can reach; ours and pro's are covered.
-- **FileBird Pro already labels its own dropdown "All Folders"** in the same
-  filter bar, 38px from ours. Two folder dropdowns with near-identical labels
-  on a site running both.
-- **863px of notices still sit above the table**, eight of them, one ours.
-- Everything on the previous handoff's "Still Nathan's" list stands.
-
 ## The probes
 
 `tools/look-list.mjs` first: it measures where the width goes and how tall a
@@ -243,6 +266,22 @@ in a row is over 100px and still in the flow — it is what found the title
 wrapping at 22px beside the thumbnail. The rest are the reductive ones from the
 diagnosis. All read-only.
 
+## Found, still not done
+
+- **Merging folders Polylang already twinned.** The prevention is in; the
+  repair is not. See above.
+- **A term name's entities, everywhere else.** Names are stored with them, so
+  "Client work & co" comes back as "Client work &amp; co"; core's own dropdown
+  prints the name unescaped and gets away with it, ours escaped it again. Fixed
+  at the four places a folder name reaches the media list. Nothing else in the
+  plugin that prints a term name was checked for the same thing.
+- **FileBird Pro labels its own dropdown "All Folders"** in the same filter
+  bar, 38px from ours. Only bites while both plugins are installed, which is a
+  migration in progress rather than a steady state; a note in
+  `core/neighbours.php` is where it belongs if it ever matters.
+- **863px of notices still sit above the table**, eight of them, one ours.
+- Everything on the previous handoff's "Still Nathan's" list stands.
+
 ## Opener, to paste into the next session
 
 ```
@@ -250,23 +289,18 @@ Read docs/handoffs/2026-09-07-list-view-built-handoff.md, then
 docs/superpowers/specs/2026-09-07-list-view.md.
 State which model you are and follow that profile in ~/.claude/harness/model-profiles.md.
 
-Decide first: the row-height gate is red at 231px against 100px, and closing it
-means our stylesheet ellipsising other plugins' cells on the media list --
-AIOSEO's fields collapse and two columns become 17px slivers. Either take that
-trade (the rules are commented at the foot of css/vergeml-media-list.css) or
-change the ceiling to what the design reaches on a box with eight third-party
-columns.
+The list view is built and every gate is green. What is left of it:
 
-Then, in order:
-1. Convert the list-mode half of the MODES_WALK walk in tests/ui/modes.spec.mjs
-   to the dropdown and the bulk action; it is skipped today.
-2. Look at Polylang copying a folder that has no language on assign.
-3. Restore the FileBird fixture (tools/box-filebird-fixture.sh) so the import
-   screenshot has something to draw.
+1. A way to merge folders that Polylang twinned before the fix landed -- a
+   utility somebody presses, never a migration that runs on upgrade. Read the
+   Polylang section of the handoff first.
+2. Whatever the marketing phase needs; the list is done.
 
 Gates: tests/ui/modes.spec.mjs, tests/ui/shell.spec.mjs, tests/ui/shots.spec.mjs,
 node tools/verify.mjs copy journey guide.
 Nothing on this screen spends credits. Make a throwaway admin with
 tools/box-ui-user.sh (ssh needs -i ~/.ssh/hetzner_vgml) and delete it at the end.
+Never deploy to the box while a suite is running against it -- PHP-FPM restarts
+and a spec fails with a 502 that reads like a regression.
 End with a handoff in docs/handoffs/.
 ```
