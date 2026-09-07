@@ -164,47 +164,48 @@ body.upload-php.eml-grid #wpbody-content {
     }
 }
 /*
- *  The grid screen is pinned to the viewport, so the tiles scroll inside it
- *  rather than the page scrolling past them.
+ *  The grid screen is not pinned to the viewport any more.
  *
- *  `top` is not 0 any more. Anything printed inside this box -- and admin
- *  notices are printed inside it -- is covered by the media frame that fills
- *  it. On the test box on 2026-09-07 that was eight notices, 863px of them,
- *  from FileBird, HubSpot, WP Rocket, Brizy, Elementor, AIOSEO and ourselves,
- *  and the tiles started under the third one.
+ *  It used to be `position: absolute; top: 0; left: 15px; right: 0; bottom: 0`
+ *  -- inherited from the fork, never questioned -- so the whole screen was a
+ *  fixed-height box with core's media frame filling it from 50px down. Two
+ *  things followed. Every admin notice printed inside the wrap was painted
+ *  over: eight of them on the test box, 863px, and the tiles began under the
+ *  third. And nothing could be given room without taking it from the tiles,
+ *  because the box could not grow.
  *
- *  liftNotices() in js/vergeml-tree.js moves them out into #vgml-notices,
- *  above this box, and sets --vgml-notices to how tall they are. Zero when
- *  there are none, which is the layout this screen has always had.
+ *  In the flow with a floor instead. The page scrolls the way every other
+ *  admin screen scrolls, notices take the room they take, and the frame is
+ *  larger for it -- 502px to 580px measured on 2026-09-07 at 1600 x 900.
  */
 body.upload-php.eml-grid #wpbody-content > .wrap {
-    position: absolute;
-    left: 15px;
-    top: var( --vgml-notices, 0px );
-    right: 0;
-    bottom: 0;
+    position: relative;
+    min-height: 70vh;
 }
 
 /*
- *  And they are given a third of the screen at most.
+ *  The notices still come out of the wrap, because the frame inside it is
+ *  core's own and absolutely positioned 50px from the top whatever the wrap
+ *  does. liftNotices() in js/vergeml-tree.js moves them to #vgml-notices just
+ *  above it.
  *
- *  This box is pinned to the viewport, so whatever sits above it comes out of
- *  the tiles: 863px of notices left the grid 167px, which is two rows. A third
- *  is enough to read the top one and see that there are more, the rest scroll,
- *  every dismiss button still works, and dismissing a few gives the room
- *  straight back.
+ *  Half the screen at most. On a library with one or two notices this does
+ *  nothing at all; on the test box, where eight plugins print 863px of them,
+ *  it is the difference between opening the media library and opening a wall
+ *  of adverts with the pictures somewhere below. Every notice is still there
+ *  and every dismiss button still works.
  */
 body.upload-php.eml-grid #wpbody-content > .vgml-notices {
     position: relative;
     z-index: 2;
-    margin-inline-start: 15px;
-    max-height: 34vh;
+    max-height: 50vh;
     overflow-y: auto;
 }
 
 .vgml-notices:empty {
     display: none;
 }
+
 body.upload-php.eml-grid #wpbody-content > #screen-meta-links,
 body.upload-php.eml-grid #wpbody-content > #screen-meta {
     position: relative;

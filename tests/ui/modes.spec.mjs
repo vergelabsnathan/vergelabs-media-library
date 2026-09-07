@@ -754,3 +754,78 @@ test( 'Move to folder: only the ticked rows move, and the notice says how many w
 		}
 	}
 } );
+
+
+/*
+ *  Nothing covers the library.
+ *
+ *  The grid screen was pinned to the viewport by a rule inherited from the
+ *  fork -- `position: absolute; top: 0; bottom: 0` on the wrap -- with core's
+ *  frame filling it from 50px down, so every admin notice printed inside the
+ *  wrap was painted over. Eight of them on the box, 863px, and the tiles began
+ *  under the third. It shipped that way for as long as the fork has existed
+ *  and nothing ever said so, because the suite asserted what was on the screen
+ *  and never what was on top of what.
+ *
+ *  So: no notice, ours or anyone's, may sit over the tiles, the tree or the
+ *  table. Geometry, in both modes, on every push.
+ */
+
+for ( const mode of [ 'grid', 'list' ] ) {
+
+	test( `nothing covers the library, in ${ mode }`, async ( { page } ) => {
+
+		test.setTimeout( 120000 );
+		await page.setViewportSize( { width: 1600, height: 900 } );
+
+		await page.goto( `/wp-admin/upload.php?mode=${ mode }`, { waitUntil: 'domcontentloaded' } );
+		await page.waitForSelector( mode === 'grid' ? '.media-frame' : '#the-list', { timeout: 30000 } );
+		await page.waitForTimeout( 5000 );
+
+		const covered = await page.evaluate( () => {
+
+			const box = ( el ) => {
+				const r = el.getBoundingClientRect();
+				return { x: r.x, y: r.y + window.scrollY, w: r.width, h: r.height };
+			};
+			const seen = ( el ) => {
+				const s = getComputedStyle( el );
+				const r = el.getBoundingClientRect();
+				return r.width > 4 && r.height > 4 && s.display !== 'none' && s.visibility !== 'hidden' && Number( s.opacity ) > 0.05;
+			};
+			const over = ( a, b ) => Math.min( a.x + a.w, b.x + b.w ) - Math.max( a.x, b.x ) > 2
+				&& Math.min( a.y + a.h, b.y + b.h ) - Math.max( a.y, b.y ) > 2;
+
+			// A notice inside the shelf is clipped by it, so the shelf is what
+			// is on the screen rather than each notice in it.
+			const shelf = document.getElementById( 'vgml-notices' );
+			const notices = Array.from( document.querySelectorAll( '#wpbody-content .notice, #wpbody-content .updated, #wpbody-content .error, #wpbody-content .update-nag' ) )
+				.filter( ( el ) => ! ( shelf && shelf.contains( el ) ) )
+				.concat( shelf ? [ shelf ] : [] )
+				.filter( seen );
+
+			const library = [ '.media-frame', '.vgml-tree', '.wp-list-table' ]
+				.map( ( sel ) => ( { sel, el: document.querySelector( sel ) } ) )
+				.filter( ( x ) => x.el && seen( x.el ) );
+
+			const bad = [];
+
+			notices.forEach( ( n ) => {
+				library.forEach( ( l ) => {
+					if ( n.contains( l.el ) || l.el.contains( n ) ) return;
+					if ( over( box( n ), box( l.el ) ) ) {
+						bad.push( `${ ( n.className || n.id || 'notice' ).toString().split( ' ' )[ 0 ] } over ${ l.sel }` );
+					}
+				} );
+			} );
+
+			return { bad, notices: notices.length, library: library.map( ( l ) => l.sel ) };
+		} );
+
+		expect( covered.library.length, 'the library is on the screen to be covered' ).toBeGreaterThan( 0 );
+		expect(
+			covered.bad,
+			`${ covered.notices } notice(s) on this screen; nothing may sit over ${ covered.library.join( ', ' ) }`
+		).toEqual( [] );
+	} );
+}
