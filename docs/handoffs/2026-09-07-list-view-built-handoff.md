@@ -266,21 +266,77 @@ in a row is over 100px and still in the flow — it is what found the title
 wrapping at 22px beside the thumbnail. The rest are the reductive ones from the
 diagnosis. All read-only.
 
+## Four more, found after the list was done
+
+**1. Notices covered the grid, and it was ours.** `css/eml-admin-media.css`
+pins the wrap to the viewport on the grid screen -- `position: absolute; top:
+0; bottom: 0` -- and core's frame fills it from 50px down, so every notice
+printed inside the wrap is painted over. Eight of them on the box, 863px, and
+the tiles started under the third. The first diagnosis blamed core's frame and
+was wrong: the A/B stripped `vgml-mode-grid` and the rule keys on `eml-grid`.
+
+Pushing the frame down is not the fix -- the box cannot grow, so the frame's
+height is what is left, and 858px of tiles became 90px. `liftNotices()` in
+`js/vergeml-tree.js` moves them into `#vgml-notices` above the pinned box and
+the box starts below them, capped at a third of the screen and scrolling
+because whatever sits above comes out of the tiles. No overlap on any of the
+four screens now, frame back to 858px.
+
+**2. FileBird narrowed our folders in the grid.** It puts `fbv` into the grid's
+query props and leaves it at 0, which its own query reads as "in no FileBird
+folder". While FileBird has no folders that matches everything; the moment it
+has any, clicking one of our folders shows only the files in ours AND in none
+of theirs. Measured: a folder the tree counted at 39 returned 39 alone, **2**
+with `fbv=0`, 39 again with FileBird's own "all". Clicking a folder in our tree
+clears it now, and it is a no-op without FileBird.
+
+Worth knowing: this was invisible until the FileBird fixture was reseeded in
+this same session. It has been true for every customer running both since the
+grid tree shipped.
+
+**3. The plugin's screens are not slow; the box is.** Measured, nothing
+changed. Median server time over three runs: core's dashboard 3,932ms, Posts
+4,727ms, Plugins 4,145ms, the media list 4,713ms -- against ours at
+3,482-3,700ms, and ours also make fewer after-load calls (0-3) than core's
+(2-10). There is a ~3.5s floor on every admin page on that box, which is thirty
+plugins loading on every request. Our own share of that floor cannot be
+separated without deactivating plugins one at a time, which was not done.
+
+**4. Our folder counts and the media list disagree while FileBird is
+filtering.** A folder holding 45 attachments -- all ordinary, no children,
+checked in the database -- comes back as 42 rows with FileBird's own "all
+folders" and 28 without. Our count is right; the list is being narrowed by a
+second folder plugin, which is what `core/neighbours.php` warns about in those
+words. The folder-filter test asserts the exact number only when nothing else
+is filtering, and prints the difference when something is.
+
 ## Found, still not done
 
 - **Merging folders Polylang already twinned.** The prevention is in; the
   repair is not. See above.
+- **The FileBird collision in list mode.** The grid clears `fbv` when a folder
+  is clicked; the list cannot, because FileBird's control is a real dropdown in
+  the same bar that a person can see and set. Whether our filter should reset
+  theirs there too is a decision, not a bug.
 - **A term name's entities, everywhere else.** Names are stored with them, so
   "Client work & co" comes back as "Client work &amp; co"; core's own dropdown
   prints the name unescaped and gets away with it, ours escaped it again. Fixed
   at the four places a folder name reaches the media list. Nothing else in the
   plugin that prints a term name was checked for the same thing.
-- **FileBird Pro labels its own dropdown "All Folders"** in the same filter
-  bar, 38px from ours. Only bites while both plugins are installed, which is a
-  migration in progress rather than a steady state; a note in
-  `core/neighbours.php` is where it belongs if it ever matters.
-- **863px of notices still sit above the table**, eight of them, one ours.
+- **863px of notices still sit above the table in list mode**, eight of them,
+  one ours. They no longer cover anything; they are still 863px.
 - Everything on the previous handoff's "Still Nathan's" list stands.
+
+## The file renamer, since it comes up
+
+`core/rename-file.php` exists and is complete for moving files. It is off: the
+REST route registers only under `define( 'VERGEML_FILE_RENAME', true )` and
+`core/journey.php:355` hides its card behind the same constant. The reasons are
+in the file's own header -- it rewrites `post_content` by bare stem, so a file
+called `team.jpg` on a page saying "our team" rewrites the prose; it never
+touches builder layouts or field meta the usage scan already knows about; it
+leaves `-scaled` originals behind; and on multisite `wp_update_post()` strips
+markup the acting user may not post. Gated since 3.13.2.
 
 ## Opener, to paste into the next session
 
