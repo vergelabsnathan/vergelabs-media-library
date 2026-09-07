@@ -1537,6 +1537,12 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // Editing a file from the list it is in. After the index, whose lock
         // on a hand-written field is the whole reason this is safe.
         include_once( 'core/quick-edit.php' );
+        // The media list in list mode: our columns off the default set, the
+        // folder filter in core's own filter bar, and Move to folder in bulk
+        // actions. After taxonomies.php, whose filter row it takes the folder
+        // dropdown out of, and after smart-folders.php and librarian.php,
+        // whose column key and folder taxonomy it names.
+        include_once( 'core/media-list.php' );
         // Searching by what a picture means. After organize.php, whose
         // projection and distance it borrows so that "alike" means one thing
         // in this plugin, and after ai.php for the service URL.

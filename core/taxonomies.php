@@ -514,6 +514,15 @@ function vergeml_restrict_manage_posts( $post_type, $which ) {
             if ( ! (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'] )
                 continue;
 
+            /*
+             *  The folder taxonomy has a control of its own since 3.14:
+             *  core/media-list.php draws "All folders" in this same bar,
+             *  hierarchical, with a count on every folder and Unfiled second.
+             *  Two dropdowns for one taxonomy is one too many.
+             */
+            if ( vergeml_is_folder_taxonomy( $taxonomy->name ) )
+                continue;
+
             echo "<label for='" . esc_attr( $taxonomy->name ) . "' class='screen-reader-text'>" . esc_html__( 'Filter by', 'vergelabs-media-library' ) . ' ' . esc_html( $taxonomy->labels->name ) . "</label>";
 
             $selected = ( ! $uncategorized && isset( $wp_query->query[$taxonomy->name] ) ) ? $wp_query->query[$taxonomy->name] : 0;

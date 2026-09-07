@@ -151,3 +151,59 @@
 .vgml-meaning-on {
 	color: #5B6884;
 }
+
+
+/* ----------------------------------------------------------------------- */
+/*  The row: what our columns used to say, as one quiet line under the name. */
+
+/*
+ *  Core's own paragraph, with the folder and the size written onto the end of
+ *  it by js/vergeml-media-list.js. It never wraps: this line is ours, and a
+ *  line of ours is never the reason a row is tall.
+ */
+.wp-list-table.media .column-title .filename {
+	color: #5B6884;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+
+/* ----------------------------------------------------------------------- */
+/*  Nothing on a row may wrap its way into a tower.                        */
+
+/*
+ *  Core's own row actions, which are the single tallest thing in a media row.
+ *
+ *  They are hidden until hover with `position: relative; left: -9999em` --
+ *  relative, so they keep their vertical space. At a normal title width they
+ *  are one line and nobody notices. In the 42px column this screen had on
+ *  2026-09-06 they wrapped to 1,153px and set the height of every row on the
+ *  page: worth 950px a row on its own, measured. Nothing here moves them, so
+ *  the hover reveal behaves exactly as core intends.
+ */
+.wp-list-table.media .row-actions {
+	white-space: nowrap;
+}
+
+/*
+ *  Every column of ours gets the same treatment, from core/media-list.php --
+ *  which is the one place that knows which columns are ours, because two of
+ *  them are named after taxonomies somebody made up.
+ */
+
+/*
+ *  Not done, and why.
+ *
+ *  Two more rules were measured on 2026-09-07 and taken out again. Together
+ *  they took the tallest row from 231px to 98px on the box:
+ *
+ *      .wp-list-table.media tbody td:not( .column-title ) { white-space: nowrap; … }
+ *      .wp-list-table.media .column-title { width: 26%; }
+ *
+ *  They reach the 100px the spec asks for and they do it by changing other
+ *  plugins' cells: AIOSEO's SEO fields collapsed to a spinner, and Qode's and
+ *  SEOPress's columns were squeezed to 17px slivers. Our stylesheet breaking
+ *  three other plugins' columns on a screen none of us owns is not a trade to
+ *  make quietly, so it is Nathan's -- see the handoff for the numbers.
+ */
