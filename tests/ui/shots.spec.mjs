@@ -63,9 +63,25 @@ for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 			 *  shot on file before this line was the spinner and the words
 			 *  "Looking for folders to import…" -- the screen had never been
 			 *  reviewed from a shot at all.
+			 *
+			 *  What it waits for is the screen having settled, which is a card
+			 *  per source with folders OR the line that names the sources with
+			 *  none -- not a card, because whether the box has anything to
+			 *  import is the fixture's business and not this spec's. It went
+			 *  red for a fortnight because import.spec had imported the
+			 *  FileBird folders it was waiting on; a screenshot spec should
+			 *  never be the thing that tells you a fixture is empty.
+			 *  tools/box-filebird-fixture.sh puts them back.
 			 */
 			await expect( page.locator( '#vgml-import-app .vgml-srcs' ).first() ).toBeVisible( { timeout: 30000 } );
-			await expect( page.locator( '#vgml-import-app .vgml-src' ).first() ).toBeVisible();
+			await expect(
+				page.locator( '#vgml-import-app .vgml-src, #vgml-import-app .vgml-srcs-also' ).first(),
+				'the sources have painted: a card each, or the line naming the ones with nothing'
+			).toBeVisible();
+
+			if ( ! ( await page.locator( '#vgml-import-app .vgml-src' ).count() ) ) {
+				console.log( '  the box has no folders to import; the shot is of the empty screen. tools/box-filebird-fixture.sh reseeds it.' );
+			}
 		}
 		if ( name === 'dashboard' ) {
 			// Four counts in the rail, and nothing of the score that was there.

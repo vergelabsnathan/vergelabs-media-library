@@ -18,6 +18,13 @@ import { test, expect, open } from './fixtures.mjs';
  *  from tools/box-filebird-fixture.sh, which is the tree the card was drawn
  *  against.
  *
+ *  **It consumes that fixture and cannot put it back.** The undo takes our
+ *  terms off the files, but FileBird's own folders are what the importer
+ *  read, and a browser cannot write them. So run
+ *  `tools/box-filebird-fixture.sh` after this walk, or the next person to
+ *  look at the import screen finds nothing on it. That is what happened on
+ *  2026-09-06 and it left shots.spec red for a fortnight.
+ *
  *  What it proves, in the order the person meets it:
  *
  *    - every source the importer reads is named, whether or not it has
