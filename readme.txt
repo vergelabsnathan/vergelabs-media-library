@@ -4,7 +4,7 @@ Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.16.0
+Stable tag: 3.16.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -266,6 +266,19 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 
 
 ## Changelog ##
+
+### 3.16.1 ###
+*The list, made readable, and two plugins that were quietly narrowing it*
+
+= The media list =
+* **A row was two thousand pixels tall.** On a library with other plugins' columns the folder tree took 316px of a table that had 763px for thirteen columns, and everything in a row wrapped at a character a line. The tree is gone from list mode -- the folders are a dropdown in WordPress's own filter bar there, the way the Posts screen has filtered by a category for years, and files move with a **Move to folder...** bulk action. Grid mode keeps the tree and the drag. A row is 192px on the same screen, and the page went from 41,587px to 5,279px.
+* **Our four columns are off by default** and still in Screen Options. What they said is one quiet line under the filename -- name, folder, size -- which costs the table no width. A column of ours can no longer wrap, and none of them takes more room than it needs.
+* Core's own row actions no longer wrap on this screen, which was worth 900px a row on its own.
+
+= Fixed =
+* **Polylang made a copy of every folder that had no language.** Filing a picture into such a folder created a second folder with the same name and slug, moved the file into the copy, and said nothing. The filter that should have prevented it had been there since 3.15 and was being handed an empty list, because Polylang asks which taxonomies are translatable before ours are registered. Folders on a Polylang site are one set again.
+* **FileBird narrowed the grid.** With FileBird installed and holding folders, clicking one of ours showed only the files that were in ours *and* in none of theirs -- a folder of 39 pictures showed 2. Our tree clears FileBird's filter now.
+* **Admin notices covered the media library in grid mode.** The screen was pinned to the viewport, so notices printed inside it were painted over by the tiles: eight of them on a busy site, and the pictures began below the third. The screen scrolls like every other admin screen now.
 
 ### 3.16.0 ###
 *One button instead of a copied key*

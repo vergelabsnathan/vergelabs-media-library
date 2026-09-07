@@ -261,9 +261,30 @@ function vergeml_list_is_list_mode() {
 
     global $current_screen;
 
-    $mode = get_user_option( 'media_library_mode' ) ? get_user_option( 'media_library_mode' ) : 'grid';
+    if ( ! isset( $current_screen ) || 'upload' !== $current_screen->base ) {
+        return false;
+    }
 
-    return isset( $current_screen ) && 'upload' === $current_screen->base && 'list' === $mode;
+    /*
+     *  The mode in the request first, and the remembered one only when the
+     *  request does not say.
+     *
+     *  The remembered mode alone was wrong on a library nobody had switched
+     *  yet: `get_user_option( 'media_library_mode' )` is unset until somebody
+     *  chooses, so it fell back to 'grid' while `?mode=list` was drawing the
+     *  list table in front of them -- and the folder dropdown and Move to
+     *  folder were both missing. Found on a clean WordPress on 2026-09-07;
+     *  every test until then ran as a person who had already been to list
+     *  mode, which is exactly the person this bug cannot happen to.
+     */
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading which of core's own two views is on screen.
+    $asked = isset( $_GET['mode'] ) ? sanitize_key( wp_unslash( $_GET['mode'] ) ) : '';
+
+    if ( 'list' === $asked || 'grid' === $asked ) {
+        return 'list' === $asked;
+    }
+
+    return 'list' === ( get_user_option( 'media_library_mode' ) ? get_user_option( 'media_library_mode' ) : 'grid' );
 }
 
 

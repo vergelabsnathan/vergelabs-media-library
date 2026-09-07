@@ -459,6 +459,36 @@ function vergeml_ajax_query_attachments_args( $query ) {
  *  @created  11/08/13
  */
 
+/**
+ *  vergeml_media_library_mode
+ *
+ *  Which of core's two media views is on screen: 'list' or 'grid'.
+ *
+ *  The request first, and the remembered preference only when the request does
+ *  not say. Every caller here used to read the preference alone, and it is
+ *  unset until somebody switches views -- so on a library nobody had switched
+ *  yet, `upload.php?mode=list` drew the list table while all of this decided
+ *  it was looking at the grid. The folder dropdown was missing, and so was the
+ *  filter that makes choosing a folder do anything. Found on a clean
+ *  WordPress on 2026-09-07; every test until then ran as somebody who had
+ *  already been to list mode, which is the one person it cannot happen to.
+ */
+
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading which of core's own two views is on screen.
+function vergeml_media_library_mode() {
+
+    $asked = isset( $_GET['mode'] ) ? sanitize_key( wp_unslash( $_GET['mode'] ) ) : '';
+
+    if ( 'list' === $asked || 'grid' === $asked ) {
+        return $asked;
+    }
+
+    $saved = get_user_option( 'media_library_mode' );
+
+    return $saved ? (string) $saved : 'grid';
+}
+
+
 add_action( 'restrict_manage_posts', 'vergeml_restrict_manage_posts', 10, 2 );
 
 // phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.DB.SlowDBQuery.slow_db_query_tax_query
@@ -477,7 +507,7 @@ function vergeml_restrict_manage_posts( $post_type, $which ) {
            $wp_query;
 
 
-    $media_library_mode = get_user_option( 'media_library_mode'  ) ? get_user_option( 'media_library_mode'  ) : 'grid';
+    $media_library_mode = vergeml_media_library_mode();
 
 
     if ( ! isset( $current_screen ) || 'upload' !== $current_screen->base || 'list' !== $media_library_mode ) {
@@ -592,7 +622,7 @@ function vergeml_dropdown_cats( $output, $r ) {
     }
 
 
-    $media_library_mode = get_user_option( 'media_library_mode' ) ? get_user_option( 'media_library_mode' ) : 'grid';
+    $media_library_mode = vergeml_media_library_mode();
 
 
     if ( 'upload' !== $current_screen->base || 'list' !== $media_library_mode ) {
@@ -713,7 +743,7 @@ function vergeml_backend_parse_tax_query( $query ) {
     }
 
 
-    $media_library_mode = get_user_option( 'media_library_mode' ) ? get_user_option( 'media_library_mode' ) : 'grid';
+    $media_library_mode = vergeml_media_library_mode();
 
     if (  'list' !== $media_library_mode ) {
         return;
@@ -1674,7 +1704,7 @@ function vergeml_pre_get_posts( $query ) {
     }
 
     if ( is_admin() ) {
-        $media_library_mode = get_user_option( 'media_library_mode'  ) ? get_user_option( 'media_library_mode'  ) : 'grid';
+        $media_library_mode = vergeml_media_library_mode();
     }
 
     if ( is_admin() && ! ( isset( $current_screen ) && 'upload' === $current_screen->base && 'list' === $media_library_mode ) ) {

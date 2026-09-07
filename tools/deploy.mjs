@@ -84,7 +84,7 @@ const SKIP = new Set( [
 // in a zip, and none of these does anything on a site. The manifest is added
 // to the payload separately, by name, so it is not walked here.
 const SKIP_FILE = new Set( [
-	'.verify.lock', 'package-lock.json', 'package.json', 'CLAUDE.md',
+	'.verify.lock', 'package-lock.json', 'package.json', 'pnpm-lock.yaml', 'CLAUDE.md',
 	'.wp-env.json', '.gitignore', '.gitattributes', '.deploy-manifest',
 ] );
 
@@ -350,18 +350,24 @@ function readZipIndex( file ) {
  *  link runs. It was ten days behind the source and nothing said so, which is
  *  why staleness is now an error rather than an observation.
  */
-function zipEntries( files, mf ) {
-	return [
-		...files.map( ( rel ) => [ `${ SLUG }/${ rel }`, fs.readFileSync( path.join( ROOT, rel ) ) ] ),
-		[ `${ SLUG }/.deploy-manifest`, Buffer.from( mf, 'utf8' ) ],
-	];
+/*
+ *  No manifest in this one.
+ *
+ *  It used to carry `.deploy-manifest`, and Plugin Check refuses a zip with a
+ *  hidden file in it: "Hidden files are not permitted", one ERROR, which is
+ *  the wordpress.org submission gate saying no. The manifest exists so the box
+ *  can prove it holds what was sent (see the payload below, which still
+ *  carries it); nothing installing this zip ever reads it.
+ */
+function zipEntries( files ) {
+	return files.map( ( rel ) => [ `${ SLUG }/${ rel }`, fs.readFileSync( path.join( ROOT, rel ) ) ] );
 }
 
 
-function buildZip( files, mf ) {
+function buildZip( files ) {
 
 	fs.mkdirSync( path.dirname( ZIP ), { recursive: true } );
-	writeZip( ZIP, zipEntries( files, mf ) );
+	writeZip( ZIP, zipEntries( files ) );
 
 	return fs.statSync( ZIP ).size;
 }
@@ -374,7 +380,7 @@ function buildZip( files, mf ) {
  *  manifest could be right while a file beside it was not, and the central
  *  directory already carries a checksum of every entry.
  */
-function zipMatches( files, mf ) {
+function zipMatches( files ) {
 
 	const have = readZipIndex( ZIP );
 
@@ -382,7 +388,7 @@ function zipMatches( files, mf ) {
 		return { ok: false, why: 'no readable zip' };
 	}
 
-	const want = new Map( zipEntries( files, mf ).map( ( [ name, body ] ) => [ name, crc32( body ) ] ) );
+	const want = new Map( zipEntries( files ).map( ( [ name, body ] ) => [ name, crc32( body ) ] ) );
 
 	for ( const [ name, sum ] of want ) {
 		if ( ! have.has( name ) ) {
@@ -557,7 +563,7 @@ let failed = false;
 
 if ( DO_ZIP ) {
 
-	const before = zipMatches( files, mf );
+	const before = zipMatches( files );
 
 	if ( CHECK ) {
 		console.log( before.ok ? '  zip   up to date' : `  zip   STALE -- ${ before.why }` );
@@ -565,8 +571,8 @@ if ( DO_ZIP ) {
 	} else if ( before.ok ) {
 		console.log( '  zip   already current, left alone' );
 	} else {
-		const size = buildZip( files, mf );
-		const after = zipMatches( files, mf );
+		const size = buildZip( files );
+		const after = zipMatches( files );
 		console.log( after.ok
 			? `  zip   rebuilt and verified  ${ ( size / 1024 ).toFixed( 0 ) }KB  ${ path.relative( ROOT, ZIP ) }`
 			: `  zip   REBUILT BUT DOES NOT VERIFY -- ${ after.why }` );
