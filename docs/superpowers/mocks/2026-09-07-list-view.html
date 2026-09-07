@@ -62,6 +62,20 @@ body {
 .mk-btn.primary { background: var(--mk-accent); border-color: var(--mk-accent); color: #fff; font-weight: 600; }
 .mk-btn.folders { border-color: var(--mk-accent); color: var(--mk-accent); font-weight: 600; }
 .mk-count { margin-left: auto; color: var(--mk-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+/* WordPress's own filter controls: a select, not a button. */
+.mk-sel { display: inline-flex; align-items: center; gap: 18px; padding: 4px 9px; border: 1px solid #8c8f94; border-radius: 4px; background: #fff; color: var(--mk-n700); font-size: 13px; }
+.mk-sel i { font-style: normal; color: #646970; font-size: 11px; }
+.mk-sel.on { border-color: var(--mk-accent); color: var(--mk-ink); font-weight: 600; }
+
+/* The dropdown, open. */
+.mk-open { position: relative; }
+.mk-menu { position: absolute; top: 100%; left: 0; margin-top: 3px; min-width: 258px; background: #fff; border: 1px solid #8c8f94; border-radius: 4px; box-shadow: 0 3px 12px rgba(16,29,64,.18); padding: 4px 0; z-index: 3; }
+.mk-menu div { display: flex; justify-content: space-between; gap: 20px; padding: 5px 12px; font-size: 13px; color: var(--mk-n700); }
+.mk-menu div.on { background: #2271b1; color: #fff; }
+.mk-menu div.kid { padding-left: 28px; }
+.mk-menu div.rule { padding: 0; margin: 4px 0; border-top: 1px solid var(--mk-rule); }
+.mk-menu .n { color: var(--mk-muted); font-variant-numeric: tabular-nums; }
+.mk-menu div.on .n { color: rgba(255,255,255,.8); }
 
 /* The list table itself. */
 .mk-table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #c3c4c7; font-size: 13px; table-layout: fixed; }
@@ -119,6 +133,7 @@ body {
 /* A drawer stretches to its stage, so the stage is given a height rather than
    left to the flex row -- otherwise the board grows to a thousand pixels. */
 .mk-two .mk-stage { height: 340px; }
+.mk-open-board .mk-wp { overflow: visible; }
 .mk-two .mk-scrollbox { overflow-x: auto; border: 1px solid #c3c4c7; background: #fff; max-width: 100%; }
 .mk-two h3 { margin: 0 0 8px; font-size: 13.5px; font-weight: 600; }
 .mk-line { margin: 10px 0 0; font-size: 13px; color: var(--mk-muted); max-width: 64ch; }
@@ -199,7 +214,7 @@ body {
 
 	<!-- ============================================================ board 2: after -->
 	<section class="mk-board" data-shot="2-after">
-		<div class="mk-board-label">After · list mode <span>no gutter, the table has the whole content width, and our four columns are one quiet line under the filename</span></div>
+		<div class="mk-board-label">After · list mode <span>stock WordPress: no gutter, the table across the full width, and the folder filter where WordPress puts filters</span></div>
 		<div class="mk-wp">
 			<div class="mk-adminbar"><b>VergeLabs Media Test</b><span>Howdy</span></div>
 			<div class="mk-wpbody">
@@ -211,9 +226,12 @@ body {
 					<p class="mk-facts">645 files · 641 pictures · 19 folders · 272 in no folder</p>
 					<div class="mk-filter">
 						<div class="mk-switch"><span>Grid</span><span class="on">List</span></div>
-						<button class="mk-btn folders" type="button">Folders</button>
-						<button class="mk-btn" type="button">All dates</button>
-						<button class="mk-btn" type="button">Bulk actions</button>
+						<span class="mk-sel">Bulk actions <i>▾</i></span>
+						<button class="mk-btn" type="button">Apply</button>
+						<span class="mk-sel">All dates <i>▾</i></span>
+						<span class="mk-sel on">All folders <i>▾</i></span>
+						<span class="mk-sel">All media items <i>▾</i></span>
+						<button class="mk-btn" type="button">Filter</button>
 						<span class="mk-count">645 items</span>
 					</div>
 					<table class="mk-table">
@@ -234,82 +252,62 @@ body {
 		<p class="mk-good"><b>The folder is still on every row</b> — it moved into the File cell, under the filename, where WordPress already puts row actions. It costs no width, so no combination of other plugins' columns can crush it, and the four columns stay available in Screen Options for anyone who wants them back.</p>
 	</section>
 
-	<!-- ============================================================ board 3: the decision -->
-	<section class="mk-board" data-shot="3-decision">
-		<div class="mk-board-label">The decision · how the tree lives in list mode <span>the measurements allow exactly these two; A is drawn as the recommendation</span></div>
+	<!-- ============================================================ board 3: the two controls -->
+	<section class="mk-board mk-open-board" data-shot="3-controls">
+		<div class="mk-board-label">The two controls, close up <span>both are WordPress's own: the Posts screen has filtered by a hierarchical taxonomy this way for years</span></div>
 		<div class="mk-two">
 
 			<div>
-				<h3>A · the tree is a drawer</h3>
-				<div class="mk-wp">
-					<div class="mk-adminbar"><b>VergeLabs Media Test</b></div>
-					<div class="mk-wpbody">
-						<div class="mk-wpmenu"><div>Dashboard</div><div class="cur">Media</div><div class="sub">Library</div></div>
-						<div class="mk-wpcontent mk-stage" style="padding:16px 20px 22px;overflow:hidden">
-							<h1 class="mk-h1">Media Library</h1>
-							<p class="mk-facts">645 files · 19 folders</p>
-							<div class="mk-filter">
-								<div class="mk-switch"><span>Grid</span><span class="on">List</span></div>
-								<button class="mk-btn folders" type="button">Folders · Workspace</button>
+				<h3>Filtering to a folder</h3>
+				<div class="mk-wp"><div style="padding:18px 20px 380px;background:#f0f0f1;border-radius:8px">
+					<div class="mk-filter" style="margin:0">
+						<span class="mk-sel">All dates <i>▾</i></span>
+						<span class="mk-open">
+							<span class="mk-sel on">All folders <i>▾</i></span>
+							<div class="mk-menu">
+								<div class="on">All folders <span class="n">645</span></div>
+								<div>Unfiled <span class="n">272</span></div>
+								<div class="rule"></div>
+								<div>Architecture <span class="n">31</span></div>
+								<div>Bikes and cycling <span class="n">17</span></div>
+								<div>City architecture details <span class="n">24</span></div>
+								<div>Landscape and nature <span class="n">88</span></div>
+								<div class="kid">Forests <span class="n">31</span></div>
+								<div class="kid">Coast <span class="n">19</span></div>
+								<div>Manhattan skyline <span class="n">42</span></div>
+								<div>Workspace <span class="n">25</span></div>
+								<div class="kid">Desks <span class="n">9</span></div>
 							</div>
-							<table class="mk-table">
-								<tr><th class="cb">☐</th><th class="thumb"></th><th>File</th><th class="when">Date</th></tr>
-								<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>MacBook Desk Workspace Setup</b><span class="meta">vgml-fx-real-488.jpg · Workspace · 74 KB</span></td><td class="when">2026/08/30</td></tr>
-								<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Forest Stream With Canopy</b><span class="meta">vgml-fx-real-491.jpg · Workspace · 100 KB</span></td><td class="when">2026/08/30</td></tr>
-								<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Misty Forest Landscape</b><span class="meta">vgml-fx-real-492.jpg · Workspace · 45 KB</span></td><td class="when">2026/08/30</td></tr>
-							</table>
-							<div class="mk-dim"></div>
-							<div class="mk-drawer">
-								<div class="mk-drawer-head"><h3>Choose a folder</h3><a href="#">Close</a></div>
-								<div class="mk-node">All files <span class="n">645</span></div>
-								<div class="mk-node">Unfiled <span class="n">272</span></div>
-								<div class="mk-node">Architecture <span class="n">31</span></div>
-								<div class="mk-node">Landscape and nature <span class="n">88</span></div>
-								<div class="mk-node on">Workspace <span class="n">25</span></div>
-								<div class="mk-node kid">Desks <span class="n">9</span></div>
-								<div class="mk-node">Bikes and cycling <span class="n">17</span></div>
-								<p class="mk-drawer-note">Choosing a folder filters the list and closes this. Escape closes it too.</p>
-							</div>
-						</div>
+						</span>
+						<button class="mk-btn" type="button">Filter</button>
 					</div>
-				</div>
-				<p class="mk-line">The table keeps the whole content width at every screen size, so no plugin's columns can crush it. The tree is one press away and the control says which folder is showing. <b>Cost: the tree is not visible at rest in list mode.</b></p>
+				</div></div>
+				<p class="mk-line">Children indent, every folder carries its count, and <b>Unfiled</b> is second because it is the one people go looking for. Pressing Filter is core's own mechanism — no new interaction, and it works with a browser's back button.</p>
 			</div>
 
 			<div>
-				<h3>B · the tree stays, the table scrolls sideways</h3>
-				<div class="mk-wp">
-					<div class="mk-adminbar"><b>VergeLabs Media Test</b></div>
-					<div class="mk-wpbody">
-						<div class="mk-wpmenu"><div>Dashboard</div><div class="cur">Media</div><div class="sub">Library</div></div>
-						<div class="mk-wpcontent" style="padding:0;display:flex">
-							<div class="mk-ourpane" style="width:190px">
-								<b>Media Categories</b>
-								<u>All files <span style="float:right">645</span></u>
-								<u>Unfiled <span style="float:right">272</span></u>
-								<u>Architecture</u><u>Landscape and nature</u><u>Workspace</u>
+				<h3>Putting files in a folder</h3>
+				<div class="mk-wp"><div style="padding:18px 20px 380px;background:#f0f0f1;border-radius:8px">
+					<div class="mk-filter" style="margin:0">
+						<span class="mk-open">
+							<span class="mk-sel on">Bulk actions <i>▾</i></span>
+							<div class="mk-menu" style="min-width:210px">
+								<div>Bulk actions</div>
+								<div>Delete permanently</div>
+								<div class="rule"></div>
+								<div class="on">Move to folder…</div>
 							</div>
-							<div style="flex:1;min-width:0;padding:16px 16px 22px;overflow:hidden">
-								<h1 class="mk-h1">Media Library</h1>
-								<p class="mk-facts">645 files · 19 folders</p>
-								<div class="mk-scrollbox">
-									<table class="mk-table" style="min-width:1100px;border:0">
-										<tr><th class="cb">☐</th><th class="thumb"></th><th>File</th><th class="who">Author</th><th class="when">Date</th><th style="width:110px">FileBird</th><th style="width:90px">Size</th><th style="width:130px">AIOSEO</th></tr>
-										<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Gothic Cathedral Interior</b><span class="meta">vgml-fx-real-499.jpg · Architecture</span></td><td class="who">—</td><td class="when">2026/08/30</td><td class="mk-nowrap">Uncategorised</td><td>68 KB</td><td class="mk-nowrap">SEO title set</td></tr>
-										<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Lisbon Yellow Trams</b><span class="meta">vgml-fx-real-496.jpg · City architecture</span></td><td class="who">—</td><td class="when">2026/08/30</td><td class="mk-nowrap">Uncategorised</td><td>105 KB</td><td class="mk-nowrap">SEO title set</td></tr>
-										<tr><td>☐</td><td class="thumb"><i></i></td><td class="mk-file"><b>Misty Forest Landscape</b><span class="meta">vgml-fx-real-492.jpg · Landscape</span></td><td class="who">—</td><td class="when">2026/08/30</td><td class="mk-nowrap">Uncategorised</td><td>45 KB</td><td class="mk-nowrap">SEO title set</td></tr>
-									</table>
-								</div>
-								<div style="font-size:12px;color:var(--mk-muted);padding-top:6px">⟵ the table scrolls sideways inside this box ⟶</div>
-							</div>
-						</div>
+						</span>
+						<button class="mk-btn" type="button">Apply</button>
+						<span style="font-size:13px;color:var(--mk-muted)">3 selected</span>
 					</div>
-				</div>
-				<p class="mk-line">The tree stays where it is and the table is given a floor, so the columns keep their width and the row stays short. <b>Cost: a horizontal scrollbar inside the page on every laptop</b>, and the File column is off-screen the moment somebody scrolls right.</p>
+				</div></div>
+				<p class="mk-line">This is what replaces dragging a row onto the tree, and it is how a WordPress list table moves things. <b>The drag itself goes from list mode</b> — there is no tree there to drop on. Grid mode keeps both the tree and the drag.</p>
 			</div>
 
 		</div>
 	</section>
+
 
 	<!-- ============================================================ board 4: grid mode's rail, and the numbers -->
 	<section class="mk-board" data-shot="4-rail">
@@ -369,10 +367,11 @@ body {
 		<div class="mk-wp"><div style="padding:22px 26px 26px;background:#fff">
 			<table class="mk-table2">
 				<tr><th>where</th><th>now</th><th>after</th></tr>
-				<tr><td><b>The drawer's control</b></td><td style="color:var(--mk-muted)">no such control</td><td>Folders</td></tr>
-				<tr><td><b>…with a folder showing</b></td><td style="color:var(--mk-muted)">no such control</td><td>Folders · Workspace</td></tr>
-				<tr><td><b>The drawer's heading</b></td><td style="color:var(--mk-muted)">none</td><td>Choose a folder</td></tr>
-				<tr><td><b>Its close</b></td><td style="color:var(--mk-muted)">none</td><td>Close</td></tr>
+				<tr><td><b>The folder dropdown</b></td><td style="color:var(--mk-muted)">no such control</td><td>All folders</td></tr>
+				<tr><td><b>Its first two rows</b></td><td style="color:var(--mk-muted)">none</td><td>All folders (645) · Unfiled (272)</td></tr>
+				<tr><td><b>A folder in it</b></td><td style="color:var(--mk-muted)">none</td><td>Landscape and nature (88)</td></tr>
+				<tr><td><b>Bulk actions</b></td><td style="color:var(--mk-muted)">Delete permanently only</td><td>Move to folder…</td></tr>
+				<tr><td><b>After a move</b></td><td style="color:var(--mk-muted)">none</td><td>3 files moved to Workspace.</td></tr>
 				<tr><td><b>Under the filename</b></td><td style="color:var(--mk-muted)">nothing — four separate columns</td><td>vgml-fx-real-499.jpg · Architecture · 68&nbsp;KB</td></tr>
 				<tr><td><b>…with no folder</b></td><td style="color:var(--mk-muted)">nothing</td><td>vgml-fx-real-495.jpg · 40&nbsp;KB</td></tr>
 				<tr><td><b>The rail, grid mode</b></td><td>an unlabelled ‹ ›</td><td>Folders / Hide folders</td></tr>
