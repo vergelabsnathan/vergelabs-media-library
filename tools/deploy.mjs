@@ -91,8 +91,40 @@ const SKIP_FILE = new Set( [
 
 /* ------------------------------------------------------------- the payload */
 
-/** Every file that ships, relative to the plugin root, sorted. */
+/**
+ *  Every file that ships, relative to the plugin root, sorted.
+ *
+ *  What git tracks, filtered by the two lists above -- not what happens to be
+ *  in the folder.
+ *
+ *  This used to walk the filesystem, and a walk ships whatever is lying
+ *  around. On 2026-09-07 the zip held twenty files nobody had committed: a
+ *  dozen screenshots in `test-results/` and, worse, a scratch folder from a
+ *  local tool with a session token in it. Every one of them was in
+ *  `.gitignore` already; the walk simply never asked. Plugin Check flags
+ *  hidden files in a zip, so the tooling was also going to fail the listing
+ *  for a reason nothing on the screen explained.
+ *
+ *  If git cannot answer -- an export with no repository -- the walk is still
+ *  there, and it says so rather than shipping silently.
+ */
 function payload() {
+
+	try {
+		const tracked = execFileSync( 'git', [ 'ls-files', '-z' ], { cwd: ROOT, maxBuffer: 32 * 1024 * 1024 } )
+			.toString()
+			.split( '\0' )
+			.filter( Boolean );
+
+		if ( tracked.length ) {
+			return tracked
+				.filter( ( rel ) => ! SKIP.has( rel.split( '/' )[ 0 ] ) && ! SKIP_FILE.has( rel ) )
+				.filter( ( rel ) => fs.existsSync( path.join( ROOT, rel ) ) )
+				.sort();
+		}
+	} catch {
+		console.log( '  note  git could not list the tracked files; falling back to walking the folder' );
+	}
 
 	const out = [];
 
