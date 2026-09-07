@@ -134,7 +134,7 @@ function vergeml_list_row_meta() {
             $terms = get_the_terms( $id, $taxonomy );
 
             if ( $terms && ! is_wp_error( $terms ) ) {
-                $folder = (string) $terms[0]->name;
+                $folder = vergeml_list_folder_name( $terms[0]->name );
             }
         }
 
@@ -244,6 +244,22 @@ function vergeml_list_is_list_mode() {
  *  reckoning vergeml_backend_parse_tax_query() applies to the query.
  */
 
+/**
+ *  vergeml_list_folder_name
+ *
+ *  A folder's name as a person typed it.
+ *
+ *  Term names are stored with their entities, so "Client work & co" comes back
+ *  as "Client work &amp; co". Core's own category dropdown prints the name
+ *  unescaped and gets away with it; escaping it again would put "&amp;amp;" on
+ *  the screen. Decoded once and escaped once, which is right either way.
+ */
+
+function vergeml_list_folder_name( $name ) {
+    return html_entity_decode( (string) $name, ENT_QUOTES, get_bloginfo( 'charset' ) );
+}
+
+
 class vergeml_Walker_FolderDropdown extends Walker_CategoryDropdown {
 
     function start_el( &$output, $category, $depth = 0, $args = array(), $id = 0 ) {
@@ -261,7 +277,7 @@ class vergeml_Walker_FolderDropdown extends Walker_CategoryDropdown {
         $output .= '>' . $pad . esc_html( sprintf(
             /* translators: 1: folder name, 2: how many files are in it. */
             __( '%1$s (%2$s)', 'vergelabs-media-library' ),
-            $category->name,
+            vergeml_list_folder_name( $category->name ),
             number_format_i18n( $count )
         ) ) . "</option>\n";
     }
@@ -424,7 +440,7 @@ function vergeml_list_folder_branch( $children, $parent, $depth ) {
         $out[ 'vergeml-move-' . (int) $term->term_id ] = str_repeat( '&nbsp;', $depth * 3 ) . esc_html( sprintf(
             /* translators: 1: folder name, 2: how many files are in it. */
             __( '%1$s (%2$s)', 'vergelabs-media-library' ),
-            $term->name,
+            vergeml_list_folder_name( $term->name ),
             number_format_i18n( vergeml_list_folder_count( $term ) )
         ) );
 
@@ -529,7 +545,7 @@ function vergeml_list_handle_move( $location, $doaction, $post_ids ) {
              *  query string at the ampersand. PHP decodes it once out of
              *  $_GET, so the read side needs no decode of its own.
              */
-            'vgml_to'    => rawurlencode( $term->name ),
+            'vgml_to'    => rawurlencode( vergeml_list_folder_name( $term->name ) ),
         ),
         remove_query_arg( array( 'vgml_moved', 'vgml_to' ), $location )
     );
