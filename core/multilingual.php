@@ -41,7 +41,35 @@ if ( ! defined( 'ABSPATH' ) ) {
  *  hooks below cannot drift apart on which taxonomies they copy and protect.
  */
 function vergeml_multilingual_taxonomies() {
-    return function_exists( 'vergeml_tree_taxonomies' ) ? vergeml_tree_taxonomies() : array( 'media_category' );
+
+    /*
+     *  Not vergeml_tree_taxonomies() on its own.
+     *
+     *  That reads the registered taxonomies, and Polylang asks which ones are
+     *  translatable before `init` -- before ours are registered. It handed our
+     *  filter an empty list, the filter removed nothing, and Polylang cached a
+     *  list with the folders still in it. From then on every assignment of a
+     *  folder that has no language made a language-stamped copy of it: on
+     *  2026-09-07 one file went into a second "Architecture", same name, same
+     *  slug, and the count on the real one dropped by one. Silent, and it
+     *  would have happened on every Polylang site.
+     *
+     *  The names are also in an option, and an option can be read whenever the
+     *  question is asked.
+     */
+    $registered = function_exists( 'vergeml_tree_taxonomies' ) ? vergeml_tree_taxonomies() : array();
+
+    if ( $registered ) {
+        return $registered;
+    }
+
+    $stored = array_keys( (array) get_option( 'vergeml_taxonomies', array() ) );
+
+    // The same four vergeml_tree_taxonomies() refuses: core's own, and the two
+    // Polylang puts on attachments when media translation is on.
+    $stored = array_diff( $stored, array( 'post_tag', 'category', 'language', 'post_translations' ) );
+
+    return $stored ? array_values( $stored ) : array( 'media_category' );
 }
 
 function vergeml_multilingual_shared_folders() {
