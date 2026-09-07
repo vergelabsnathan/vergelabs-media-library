@@ -169,7 +169,7 @@ this fixture box; with our four columns off and no other plugin's, a row is
   dropdown, its counts, the filter and the back button. Green.
 - `tests/ui/modes.spec.mjs` — new, `MODES_WALK=1`: **Move to folder…**. Walked
   green by hand this session; it restores what it writes.
-- `tests/ui/shell.spec.mjs` — green.
+- `tests/ui/shell.spec.mjs` — green, 15 passed.
 - `tests/ui/shots.spec.mjs` — **`screenshot: import` fails, and it is not this
   work.** `wp eval` on the box reports all seven import sources unavailable:
   FileBird has no folders left to import, so the screen has nothing to draw.
@@ -180,6 +180,12 @@ this fixture box; with our four columns off and no other plugin's, a row is
 
 ## Traps found
 
+- **Do not deploy to the box while a suite is running against it.** A
+  `deploy.mjs --box` mid-run restarts PHP-FPM: `shell.spec` came back with the
+  File types settings screen empty and it looked like a regression in this
+  work. The page was a **502**, which the error context says and the assertion
+  does not. Re-run clean before believing a failure. The same deploy also
+  failed on Playwright's own trace files, which it was rsyncing.
 - **`admin_footer-{$hook}` fires after `admin_print_footer_scripts`.** Line 105
   against line 95 of `admin-footer.php`. So `wp_add_inline_script` from there is
   too late and silently does nothing. `admin_enqueue_scripts` is the place, and
@@ -215,6 +221,11 @@ this fixture box; with our four columns off and no other plugin's, a row is
   the dropdown and the bulk action is a piece of work of its own.
 - **The copy table has no singular for the move notice.** `%1$s files moved to
   %2$s.` is used verbatim, so one file reads "1 files moved to Workspace."
+- **A folder name's entities.** Term names are stored with them, so "Client
+  work & co" comes back as "Client work &amp; co"; core's own dropdown prints
+  the name unescaped and gets away with it, ours escaped it again. Decoded
+  once and escaped once now at the four places a folder name reaches a screen.
+  Nothing else in the plugin that prints a term name was checked for this.
 - **The full value is not on the cell `title` for a taxonomy column that a
   person switches on.** Core renders those cells and the script only titles
   what it can reach; ours and pro's are covered.
