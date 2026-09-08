@@ -224,6 +224,67 @@ test.describe( 'the Folders screen', () => {
 		await expect.poll( async () => JSON.stringify( ( ( await getSession( page ) ).session.draft || {} ).rule ), { timeout: 20000 } ).toBe( JSON.stringify( { id: 'kind', options: { scope: 'all' } } ) );
 	} );
 
+	/*
+	 *  The model is asked for a "count" per folder in the tree shape and it
+	 *  answers with arithmetic nothing performed -- "Illustrations (23),
+	 *  Screenshots (6)" on this box on 4 September 2026, for a library nobody
+	 *  had counted. The turn route now runs vergeml_filing_pick() over the
+	 *  draft before it hands it back, and this asserts the only thing that
+	 *  makes that worth doing: every number on the draft is that run's.
+	 *
+	 *  The planted probe carries count 12, which is exactly the shape of the
+	 *  number this replaces. It costs no turn: the route takes a draft with
+	 *  no words beside it.
+	 */
+	test( 'every number on the draft is the dry run\'s, and the line says what it will not place', async ( { page } ) => {
+		await open( page, SCREEN.dashboard );
+		if ( found === null ) {
+			found = await getSession( page );
+		}
+		const boot = await plant( page, true );
+		const folders = boot.nodes.map( ( n ) => ( { key: 't' + n.id, term_id: n.id, name: n.name, parent: n.parent ? 't' + n.parent : '' } ) );
+		folders.push( { key: 'probe1', term_id: null, name: 'Draft probe', parent: '', count: 12, matches: 'a probe', classes: [ 'probe' ], kinds: [ 'photo' ], audience: '' } );
+
+		const r = await page.evaluate(
+			( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/turn`, method: 'POST', data: { draft } } ),
+			[ NS, { folders, gone: {}, tags: [], origin: 'talk', rule: null } ]
+		);
+
+		expect( r.fit, 'the turn route answers with the matcher\'s own run' ).not.toBeNull();
+		expect( r.fit.looked ).toBeGreaterThan( 0 );
+
+		// Every folder's number, and no folder without one.
+		for ( const f of r.draft.folders ) {
+			expect( r.fit.counts, `the dry run has a number for ${ f.name }` ).toHaveProperty( f.key );
+			expect( f.count, `${ f.name } carries the dry run's number` ).toBe( r.fit.counts[ f.key ] );
+		}
+
+		// The run accounts for every picture it looked at: placed, or named as
+		// one of the three reasons it would not place it.
+		const unplaced = r.fit.unfiled.floor + r.fit.unfiled.margin + r.fit.unfiled.gated;
+		expect( unplaced ).toBeLessThanOrEqual( r.fit.looked );
+		expect( r.fit.move ).toBeLessThanOrEqual( r.fit.looked - unplaced );
+
+		await open( page, SCREEN.folders );
+		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
+		await expect( page.locator( '.vgml-preview li' ).first() ).toHaveText( /^\d[\d,.]* pictures? moves? into \d[\d,.]* folders$|^0 pictures move$/ );
+		if ( unplaced > 0 ) {
+			await expect( page.locator( '.vgml-preview li' ) ).toHaveCount( r.fit.preview.length );
+			await expect( page.locator( '.vgml-preview li' ).last() ).toHaveText( r.fit.preview.at( -1 ).text );
+		}
+
+		/*
+		 *  And the button agrees with the line. The tree can only total what
+		 *  folders gain, which on a draft that consolidates is a different and
+		 *  much smaller number -- it read "Move 4 pictures" beside "241
+		 *  pictures move" until both were taken from the same run.
+		 */
+		const onButton = ( await page.locator( '.vgml-move-btn' ).innerText() ).replace( /\D/g, '' );
+		expect( onButton, 'the Move button counts what the dry run counted' ).toBe( String( r.fit.move ) );
+
+		await page.screenshot( { path: 'tests/ui/shots/folders-dry-run.png', fullPage: true } );
+	} );
+
 	test( 'the old guide address lands here', async ( { page } ) => {
 		// Planted first: the screen it lands on opens the conversation by itself on an empty session.
 		await open( page, SCREEN.dashboard );

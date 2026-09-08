@@ -55,6 +55,11 @@
 		rules: null,
 		rule: null,
 		preview: [],
+		// What vergeml_filing_pick() said about the draft, from the turn that
+		// settled it. Kept apart from a rule's preview: they answer about two
+		// different drafts and one must never be shown under the other. The
+		// session carries it, so a reload reads the same numbers.
+		fit: ( cfg.session && cfg.session.fit ) || null,
 		moving: null,
 		note: ''
 	};
@@ -70,10 +75,31 @@
 					state.session.turns = r.turns;
 					state.session.assistant_turns = r.assistant_turns;
 				}
+				/*
+				 *  The turn route runs the matcher over the draft before it
+				 *  hands it back, so this is where the real numbers arrive:
+				 *  the count on every folder, and the line for what the run
+				 *  would not place -- which is the number an owner needs
+				 *  before pressing Move and the one the model cannot write.
+				 *
+				 *  A session write answers `fit: null`, and that clears the
+				 *  lines rather than leaving an answer about an older tree.
+				 */
+				if ( r && undefined !== r.fit ) {
+					tookFit( r );
+				}
 				return r;
 			} );
 		}, function () {} );
 		return queue;
+	}
+
+	function tookFit( r ) {
+		state.fit = r.fit || null;
+		if ( r.fit && r.draft ) {
+			setDraft( r.draft, true );
+		}
+		renderPreview();
 	}
 
 	function capped() {
@@ -334,17 +360,23 @@
 		folders.forEach( function ( f, i ) {
 			var p = lower( f.parent );
 			var pi = p && byName[ p ] !== undefined && byName[ p ] !== i ? byName[ p ] : -1;
-			var count = f.count !== undefined && f.count !== null ? Number( f.count ) : null;
-			var node = keys[ i ].term_id ? live.byId[ keys[ i ].term_id ] : null;
-			if ( node && ( null === count || count === ( node.count || 0 ) ) ) {
-				count = null;
-			}
 			out.folders.push( {
 				key: keys[ i ].key,
 				term_id: keys[ i ].term_id,
 				name: String( f.name || '' ).replace( /\//g, '-' ),
 				parent: pi >= 0 ? keys[ pi ].key : '',
-				count: count,
+				/*
+				 *  The reply carries a "count" and it is dropped here.
+				 *
+				 *  It was the model's estimate and nothing else -- the tree
+				 *  shape asks a text model for a number and it answers with
+				 *  arithmetic nothing performed. On the box on 4 September
+				 *  2026 that read "Illustrations (23), Screenshots (6)" for a
+				 *  library nobody had counted. Null means "unchanged" to the
+				 *  tree, so a folder reads what it holds today until the turn
+				 *  route answers with what vergeml_filing_pick() says.
+				 */
+				count: null,
 				matches: f.matches || '',
 				classes: f.classes || [],
 				kinds: f.kinds || [],
@@ -516,7 +548,7 @@
 		talk.conv.hidden = 'rules' === state.method;
 		talk.composer.hidden = 'rules' === state.method;
 		dom.rules.hidden = 'talk' === state.method;
-		dom.preview.hidden = 'talk' === state.method || ! state.preview.length;
+		renderPreview();
 		renderKicker();
 		talk.renderComposer();
 		if ( 'rules' === state.method && ! state.rules ) {
@@ -723,9 +755,15 @@
 		renderPreview();
 	}
 
+	/** A rule answers about the rule's draft; the dry run about the conversation's. */
+	function previewLines() {
+		return 'rules' === state.method ? ( state.preview || [] ) : ( ( state.fit && state.fit.preview ) || [] );
+	}
+
 	function renderPreview() {
+		var lines = previewLines();
 		dom.preview.innerHTML = '';
-		( state.preview || [] ).forEach( function ( line ) {
+		lines.forEach( function ( line ) {
 			var li = el( 'li' );
 			if ( line.strong ) {
 				var parts = String( line.text ).split( ': ' );
@@ -738,7 +776,7 @@
 			}
 			dom.preview.appendChild( li );
 		} );
-		dom.preview.hidden = 'talk' === state.method || ! state.preview.length;
+		dom.preview.hidden = ! lines.length;
 	}
 
 	function pickRule( id ) {
@@ -827,6 +865,22 @@
 		return d.toLocaleDateString( undefined, { day: 'numeric', month: 'long' } ) + ' ' + time;
 	}
 
+	/*
+	 *  How many pictures a Move actually moves.
+	 *
+	 *  The tree can only say what each folder gains, and on a conversation's
+	 *  draft that is not the question. The Move puts every placed picture in
+	 *  one folder and takes it out of every other, so a library being
+	 *  consolidated has folders shrinking all over and almost nothing gained:
+	 *  the screen read "Move 4 pictures" beside "241 pictures move into 19
+	 *  folders", both about the same draft. The dry run counted them one way,
+	 *  against the matcher, so that is the number. A rule keeps the tree's,
+	 *  which is right for a rule: it only ever adds.
+	 */
+	function movingCount( s ) {
+		return state.fit ? Number( state.fit.move ) || 0 : s.moving;
+	}
+
 	function renderMove() {
 		var s = view ? view.summary() : { changes: 0, moving: 0 };
 		var apply = state.session.apply;
@@ -845,8 +899,9 @@
 		}
 
 		if ( s.changes > 0 && described ) {
+			var n = movingCount( s );
 			/* translators: %s: pictures */
-			dom.move.textContent = sprintf( _n( 'Move %s picture', 'Move %s pictures', s.moving, 'vergelabs-media-library' ), fmt( s.moving ) );
+			dom.move.textContent = sprintf( _n( 'Move %s picture', 'Move %s pictures', n, 'vergelabs-media-library' ), fmt( n ) );
 			dom.move.disabled = false;
 			dom.move.hidden = false;
 		} else {
@@ -874,7 +929,7 @@
 		if ( talk.streaming() ) {
 			stop();
 		}
-		state.movingGoal = view.summary().moving;
+		state.movingGoal = movingCount( view.summary() );
 		dom.move.disabled = true;
 		api( 'POST', 'guide/apply' ).then( function ( r ) {
 			took( r );
@@ -915,10 +970,12 @@
 		view.setDraft( null );
 		state.session.draft = null;
 		state.preview = [];
+		state.fit = null;
 		state.rule = null;
 		refreshTree().then( function () {
 			renderTreeHead();
 			renderMove();
+			renderPreview();
 			renderConversation();
 			if ( 'rules' === state.method ) {
 				state.rules = null;

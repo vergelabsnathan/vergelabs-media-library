@@ -325,6 +325,9 @@ function vergeml_guide_fresh() {
         'assistant_turns' => 0,
         'token'           => null,
         'apply'           => null,
+        // What vergeml_filing_pick() says about the draft as it now stands.
+        // Null until a turn has settled one; never the model's arithmetic.
+        'fit'             => null,
     );
 }
 
@@ -349,6 +352,7 @@ function vergeml_guide_session_out( $s ) {
         'assistant_turns' => (int) $s['assistant_turns'],
         'cap'             => VERGEML_GUIDE_TURN_CAP,
         'apply'           => $s['apply'],
+        'fit'             => $s['fit'],
     );
 }
 
@@ -741,6 +745,10 @@ function vergeml_guide_rest_session( WP_REST_Request $request ) {
         $s = vergeml_guide_session();
         if ( null !== $request->get_param( 'draft' ) ) {
             $s['draft'] = vergeml_guide_clean_draft( $request->get_param( 'draft' ) );
+            // A different draft, so the dry run's answer is about a tree that
+            // is no longer on screen. It is dropped rather than shown stale;
+            // the turn that follows this edit computes the new one.
+            $s['fit'] = null;
         }
         vergeml_guide_save( $s );
         return rest_ensure_response( vergeml_guide_session_out( $s ) );
@@ -787,6 +795,34 @@ function vergeml_guide_rest_turn( WP_REST_Request $request ) {
         $s['draft'] = vergeml_guide_clean_draft( $request->get_param( 'draft' ) );
     }
 
+    /*
+     *  The draft settles here -- the browser streams the words straight from
+     *  the service (/guide/token, /guide/stream), but the tree it built out of
+     *  them comes back through this route and no further -- so this is where
+     *  the model stops being the source of a number.
+     *
+     *  The counts the draft arrived with are the model's estimate. They are
+     *  replaced, every one of them, by what vergeml_filing_pick() says, and
+     *  the run's own summary rides back with the turn. A rule the owner ran
+     *  has already computed its own counts against the same matcher; running
+     *  this over it would answer the same question twice.
+     */
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+
+    if ( is_array( $s['draft'] ) && '' !== $taxonomy && 'rule' !== $s['draft']['origin'] ) {
+        $fit = vergeml_guide_draft_fit( $s['draft'], $taxonomy );
+        foreach ( $s['draft']['folders'] as &$f ) {
+            $f['count'] = $fit && isset( $fit['counts'][ $f['key'] ] ) ? (int) $fit['counts'][ $f['key'] ] : null;
+        }
+        unset( $f );
+        $s['fit'] = $fit;
+    } else {
+        // A rule's draft carries its own counts, computed against this same
+        // matcher when the rule was built. Anything else has no draft to
+        // answer about. Either way the last answer is dropped, never kept.
+        $s['fit'] = null;
+    }
+
     vergeml_guide_save( $s );
 
     return rest_ensure_response( vergeml_guide_session_out( $s ) );
@@ -820,6 +856,262 @@ function vergeml_guide_turn_apply( &$s, $said, $say ) {
     }
 
     return true;
+}
+
+
+/* ------------------------------------------------------------ the dry run */
+
+/**
+ *  The draft, run dry: what the matcher would do with the library if this
+ *  draft were filed, and what it would leave alone.
+ *
+ *  Until this, every number beside a draft folder was the model's. The tree
+ *  shape asks it for "count" and it answers with arithmetic nothing performed:
+ *  on the test box on 4 September 2026 that read "Illustrations (23),
+ *  Screenshots (6), Diagrams (5)" and "all 641 images are now routed", with no
+ *  pass having run and no way for the owner to tell.
+ *
+ *  So the plugin computes them, with the matcher that will do the filing
+ *  (core/filing.php), over the pictures the Move will look at. It is the dry
+ *  run vergeml_guide_rule_fit() already does for a rule, with one difference:
+ *  a rule scores against folders that exist, and a draft's folders mostly do
+ *  not exist yet -- so their profiles are built in memory from what the draft
+ *  says about them, which is the same seed vergeml_talk_apply() hands
+ *  vergeml_filing_profile_build() when it makes the folder for real.
+ *
+ *  Nothing here decides anything and nothing here is filed. It answers the
+ *  question an owner has before pressing Move and until now could not ask:
+ *  what does this draft do to my library, and what does it leave alone.
+ *
+ *  @param array  $draft    A cleaned draft (vergeml_guide_clean_draft()).
+ *  @param string $taxonomy The folder taxonomy.
+ *  @return array|null 'counts' (draft key => pictures in it after Move),
+ *                     'unfiled' (why => pictures), 'move', 'looked',
+ *                     'preview' (the lines, in the rules' own words); null
+ *                     when the matcher cannot answer at all.
+ */
+function vergeml_guide_draft_fit( $draft, $taxonomy ) {
+
+    if ( ! is_array( $draft ) || empty( $draft['folders'] ) || ! function_exists( 'vergeml_filing_pick' ) ) {
+        return null;
+    }
+
+    global $wpdb;
+
+    $live  = vergeml_guide_live_index( $taxonomy );
+    $by_key = array();
+    foreach ( $draft['folders'] as $f ) {
+        $by_key[ (string) $f['key'] ] = $f;
+    }
+
+    /*
+     *  Profiles are keyed by a number of this run's own making, not by term
+     *  id: vergeml_filing_pick() casts its keys to int, a new folder has no
+     *  id to give it, and a synthetic id that happened to collide with a real
+     *  one would put pictures in the wrong folder silently.
+     */
+    $profiles = array();
+    $order    = array();
+    $n        = 0;
+
+    foreach ( $draft['folders'] as $f ) {
+        $path = array();
+        $walk = (string) $f['key'];
+        $g    = 0;
+        while ( isset( $by_key[ $walk ] ) && $g++ < 64 ) {
+            array_unshift( $path, (string) $by_key[ $walk ]['name'] );
+            $walk = (string) $by_key[ $walk ]['parent'];
+        }
+        $p = vergeml_guide_draft_profile( $f, $path, $live, $taxonomy );
+        if ( ! is_array( $p ) ) {
+            continue;
+        }
+        $n++;
+        $p['term_id']   = $n;
+        $p['parent_id'] = 0;
+        $profiles[ $n ] = $p;
+        $order[ $n ]    = (string) $f['key'];
+    }
+
+    if ( ! $profiles ) {
+        return null;
+    }
+
+    // The same last step vergeml_filing_profiles() takes: one folder per first class.
+    $profiles = vergeml_filing_settle_claims( $profiles );
+
+    // Every described picture, because a draft's Move re-files every one of them.
+    $rows = vergeml_guide_rule_rows( $taxonomy, 'all', array( 'filing', 'terms' ) );
+    if ( ! $rows ) {
+        return null;
+    }
+
+    $vectors = array();
+    foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; ids are integers.
+        foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, tags FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', $chunk ) . ')', ARRAY_A ) as $v ) {
+            $vectors[ (int) $v['attachment_id'] ] = $v;
+        }
+    }
+
+    $land = array();
+    $gone = array();
+    $into = array();
+    $why  = array( 'floor' => 0, 'margin' => 0, 'gated' => 0 );
+    $move = 0;
+
+    foreach ( $rows as $r ) {
+
+        $id   = (int) $r['attachment_id'];
+        $row  = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '' ) );
+        $pick = vergeml_filing_pick( vergeml_filing_facts( $row ), $profiles );
+
+        if ( ! $pick['term_id'] || ! isset( $order[ (int) $pick['term_id'] ] ) ) {
+            $w = isset( $why[ $pick['why'] ] ) ? $pick['why'] : 'floor';
+            $why[ $w ]++;
+            continue;
+        }
+
+        $key          = $order[ (int) $pick['term_id'] ];
+        $land[ $key ] = isset( $land[ $key ] ) ? $land[ $key ] + 1 : 1;
+        $in           = empty( $r['in_terms'] ) ? array() : array_map( 'intval', explode( ',', (string) $r['in_terms'] ) );
+
+        // Counts after Move, as vergeml_guide_rule_draft() reads them: what a
+        // folder gains, less what leaves the folders the picture sits in now.
+        foreach ( $in as $tid ) {
+            $gone[ $tid ] = isset( $gone[ $tid ] ) ? $gone[ $tid ] + 1 : 1;
+        }
+
+        /*
+         *  Whether this picture changes hands at all.
+         *
+         *  The Move puts a placed picture in exactly one folder and takes it
+         *  out of every other -- wp_set_object_terms() with append false --
+         *  so "already in the folder it lands in" is not enough to leave it
+         *  alone: a picture in Blog posts and Website that lands in Blog
+         *  posts still loses Website, and that is a change the owner is about
+         *  to approve. Only a picture that is in that one folder and nothing
+         *  else stays exactly as it is. A new folder has no term to sit in,
+         *  so everything landing there moves.
+         */
+        $dest = (int) $by_key[ $key ]['term_id'];
+        if ( 1 !== count( $in ) || ! $dest || (int) $in[0] !== $dest ) {
+            $move++;
+            $into[ $key ] = true;
+        }
+    }
+
+    $counts = array();
+    foreach ( $draft['folders'] as $f ) {
+        $key    = (string) $f['key'];
+        $landed = isset( $land[ $key ] ) ? $land[ $key ] : 0;
+        $tid    = (int) $f['term_id'];
+        $counts[ $key ] = $tid && isset( $live['by_id'][ $tid ] )
+            ? max( 0, (int) $live['by_id'][ $tid ]['count'] + $landed - ( isset( $gone[ $tid ] ) ? $gone[ $tid ] : 0 ) )
+            : $landed;
+    }
+
+    /*
+     *  The lines, word for word the ones a rule's own dry run gives, because
+     *  they are the same four facts about the same matcher and an owner
+     *  should not have to learn two vocabularies for one number.
+     */
+    $lines = array();
+    /* translators: 1: pictures that move, 2: folders they go to */
+    $lines[] = array( 'text' => $move ? sprintf( _n( '%1$s picture moves into %2$s folders', '%1$s pictures move into %2$s folders', $move, 'vergelabs-media-library' ), number_format_i18n( $move ), number_format_i18n( count( $into ) ) ) : __( '0 pictures move', 'vergelabs-media-library' ), 'strong' => true );
+    if ( $why['floor'] ) {
+        /* translators: %s: pictures */
+        $lines[] = array( 'text' => sprintf( __( '%s score below the floor', 'vergelabs-media-library' ), number_format_i18n( $why['floor'] ) ) );
+    }
+    if ( $why['margin'] ) {
+        /* translators: %s: pictures */
+        $lines[] = array( 'text' => sprintf( __( '%s too close to call', 'vergelabs-media-library' ), number_format_i18n( $why['margin'] ) ) );
+    }
+    if ( $why['gated'] ) {
+        /* translators: %s: pictures */
+        $lines[] = array( 'text' => sprintf( __( '%s the wrong kind', 'vergelabs-media-library' ), number_format_i18n( $why['gated'] ) ) );
+    }
+
+    return array(
+        'counts'  => $counts,
+        'unfiled' => $why,
+        'move'    => $move,
+        'looked'  => count( $rows ),
+        'preview' => $lines,
+    );
+}
+
+/**
+ *  The profile one draft folder is matched against.
+ *
+ *  A folder that exists and that the draft neither renames nor moves keeps the
+ *  profile it has, because vergeml_talk_apply() leaves it alone and that is
+ *  what the Move will match against. Everything else is built here, in memory
+ *  and stored nowhere, from what the draft says the folder is for.
+ *
+ *  This mirrors vergeml_filing_profile_build() and cannot call it: that
+ *  function needs a WP_Term to walk and writes the result to term meta, and a
+ *  draft folder has no term and must leave no trace. Keep the two in step --
+ *  the text below is what the vector is made from, and a difference here is a
+ *  number on screen that the Move will not reproduce.
+ *
+ *  @return array|null null when no vector could be made (no licence, service down).
+ */
+function vergeml_guide_draft_profile( $f, $path, $live, $taxonomy ) {
+
+    $tid = (int) $f['term_id'];
+
+    if ( $tid && isset( $live['by_id'][ $tid ] ) ) {
+        $names = array();
+        $walk  = $tid;
+        $guard = 0;
+        while ( isset( $live['by_id'][ $walk ] ) && $guard++ < 64 ) {
+            array_unshift( $names, (string) $live['by_id'][ $walk ]['name'] );
+            $walk = (int) $live['by_id'][ $walk ]['parent'];
+        }
+        if ( array_map( 'mb_strtolower', $names ) === array_map( 'mb_strtolower', $path ) ) {
+            $p = vergeml_filing_profile( $tid, $taxonomy );
+            if ( is_array( $p ) ) {
+                return $p;
+            }
+        }
+    }
+
+    $leaf    = $path ? (string) end( $path ) : (string) $f['name'];
+    $classes = array_values( array_filter( array_map( 'vergeml_filing_name_class', (array) $f['classes'] ) ) );
+    if ( ! in_array( vergeml_filing_name_class( $leaf ), $classes, true ) ) {
+        $classes[] = vergeml_filing_name_class( $leaf );
+    }
+
+    $kinds    = $f['kinds'] ? array_values( array_map( 'sanitize_key', (array) $f['kinds'] ) ) : vergeml_filing_kinds_of( $leaf );
+    $audience = vergeml_filing_audience_of( (string) $f['audience'] );
+    if ( '' === $audience ) {
+        $audience = vergeml_filing_audience_of( implode( ' ', $path ) );
+    }
+    $matches = (string) $f['matches'];
+
+    $text = trim( implode( ' / ', $path ) . ( '' !== $matches ? '. ' . $matches : '' ) )
+        . ' | object: ' . implode( '; ', $classes )
+        . ( '' !== $audience ? ' | audience: ' . $audience : '' );
+
+    $vector = function_exists( 'vergeml_meaning_vector' ) ? vergeml_meaning_vector( $text ) : null;
+    if ( ! is_array( $vector ) || ! $vector ) {
+        return null;
+    }
+
+    return array(
+        'version'  => VERGEML_FILING_VERSION,
+        'source'   => $matches || $f['classes'] ? 'plan' : 'name',
+        'plan'     => array(),
+        'path'     => $path,
+        'classes'  => $classes,
+        'kinds'    => $kinds,
+        'audience' => $audience,
+        'matches'  => $matches,
+        'text'     => $text,
+        'vector'   => $vector,
+        'built_at' => time(),
+    );
 }
 
 
