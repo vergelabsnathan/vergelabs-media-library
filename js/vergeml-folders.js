@@ -95,10 +95,22 @@
 	}
 
 	function tookFit( r ) {
-		state.fit = r.fit || null;
+		/*
+		 *  Not while a Move runs. The turn that was in flight when the button
+		 *  was pressed answers with the draft it settled, and taking it would
+		 *  put back on screen the very draft the Move is in the middle of
+		 *  applying -- after took() had cleared it.
+		 */
+		if ( state.session.apply && state.session.apply.running ) {
+			return;
+		}
 		if ( r.fit && r.draft ) {
 			setDraft( r.draft, true );
 		}
+		// After setDraft, which clears it: the run belongs to the draft it was
+		// computed for and to no other.
+		state.fit = r.fit || null;
+		renderMove();
 		renderPreview();
 	}
 
@@ -288,6 +300,13 @@
 	}
 
 	function setDraft( draft, quiet ) {
+		/*
+		 *  A different draft, so the dry run's answer is about a tree that is
+		 *  no longer on screen. Dropped rather than shown against the new one:
+		 *  a rule's draft would otherwise wear the conversation's number for as
+		 *  long as the round trip takes, and the Move button with it.
+		 */
+		state.fit = null;
 		state.session.draft = draft;
 		view.setDraft( draft );
 		renderTreeHead();

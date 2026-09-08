@@ -321,6 +321,26 @@ test.describe( 'the Folders screen', () => {
 		await expect( page.locator( '.vgml-msg.is-note' ) ).toContainText( 'Stopped' );
 		await expect( page.locator( '.vgml-method-kicker' ) ).toHaveText( '1 of 25 turns' );
 
+		/*
+		 *  What the model actually said, against the rule it is now given.
+		 *
+		 *  On 4 September this same opener produced "Landscape and nature and
+		 *  its five subfolders absorb most nature/scenery shots -- roughly 220
+		 *  combined" and "all 641 images are now routed". Nothing had run.
+		 *  guideRules now forbids a count of its own and forbids speaking about
+		 *  the library at all, and the counts come from the matcher beside it.
+		 *
+		 *  A share the summary handed it ("4% name an audience") is evidence it
+		 *  was given and may be quoted; a count of pictures or folders is
+		 *  arithmetic it cannot have done.
+		 */
+		const said = await page.locator( '.vgml-msg.is-assistant .vgml-msg-body' ).first().innerText();
+		console.log( '  the assistant said:', JSON.stringify( said ) );
+		expect( said, 'the model claims nothing has happened to the library' )
+			.not.toMatch( /\b(routed|already (in|filed)|nothing is left unfiled|are now (in|filed))\b/i );
+		const counts = ( said.match( /\b\d[\d,.]*\b(?!\s*%)/g ) || [] ).filter( ( n ) => Number( n.replace( /[^\d]/g, '' ) ) > 3 );
+		expect( counts, 'no count of the model\'s own in what it said' ).toEqual( [] );
+
 		// A rule, then Move: the pictures the rule named go, the tree fills as they land.
 		await page.locator( '.vgml-seg-tab[data-method="rules"]' ).click();
 		await page.locator( '.vgml-rule-row' ).first().locator( '.vgml-rule-pick' ).click();

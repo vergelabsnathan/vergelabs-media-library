@@ -137,7 +137,27 @@ function vergeml_meaning_vector( $text ) {
      */
     $vector = array_map( 'floatval', $data['embedding'] );
 
-    set_transient( $slot, $vector, HOUR_IN_SECONDS );
+    /*
+     *  Kept for a week, not an hour.
+     *
+     *  The hour was a guess and it cost more than it bought. Measured on the
+     *  box on 2026-09-08: the service answers the same phrase with the same
+     *  512 floats every time, three fresh calls, identical checksum. So an
+     *  expiry buys no freshness -- it only throws away work.
+     *
+     *  What it costs: the matcher asks for a vector per class phrase, and the
+     *  first run after an expiry has to fetch all of them one at a time. A dry
+     *  run of a draft over 641 pictures took 210 seconds with the cache empty
+     *  and 7.5 with it warm, and 700 phrase fetches are the whole difference.
+     *  Once an hour, every hour, on every site.
+     *
+     *  A model change is what would make these stale, and an expiry is not how
+     *  that is handled: the slot carries its own version ("qv2"), and changing
+     *  the embedder means changing it, which drops every one of them at once
+     *  rather than leaving a week of old and new vectors being compared with
+     *  each other.
+     */
+    set_transient( $slot, $vector, WEEK_IN_SECONDS );
     $seen_here[ $slot ] = $vector;
 
     return $vector;

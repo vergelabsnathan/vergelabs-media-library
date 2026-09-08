@@ -960,7 +960,27 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
     $why  = array( 'floor' => 0, 'margin' => 0, 'gated' => 0 );
     $move = 0;
 
+    /*
+     *  A budget, because this is in the way of somebody waiting for an answer.
+     *
+     *  Warm it is arithmetic and a library of 641 takes seven seconds. Cold it
+     *  is not: the matcher wants a vector for every class phrase it has not
+     *  seen, one HTTP call each, and the same run took 210 seconds with the
+     *  cache empty. That is a request nobody's server will hold open.
+     *
+     *  So it stops, and stopping means answering nothing rather than answering
+     *  half. A count computed over the first two hundred pictures is not a
+     *  smaller truth, it is a wrong number -- which is the thing this whole
+     *  phase exists to remove. What the attempt did fetch stays cached for the
+     *  next one, and the phrases are now kept for a week rather than an hour.
+     */
+    $deadline = microtime( true ) + max( 1, (int) apply_filters( 'vergeml_guide_fit_budget', 20 ) );
+
     foreach ( $rows as $r ) {
+
+        if ( microtime( true ) > $deadline ) {
+            return null;
+        }
 
         $id   = (int) $r['attachment_id'];
         $row  = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '' ) );
