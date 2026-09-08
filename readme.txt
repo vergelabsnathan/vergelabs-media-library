@@ -240,6 +240,8 @@ On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-librar
 Every night an automated watch looks for new releases of WordPress, PHP and the plugins and themes this plugin integrates with, greps each new release for every hook and field we rely on, upgrades a staging site and runs the checks there. What passed is recorded here, newest first:
 
 <!-- watch:verified -->
+* Rank Math SEO 1.0.278 — contract intact, stage suites passed (2026-09-08)
+* Dokan 5.1.0 — contract intact, stage suites passed (2026-09-08)
 * Polylang (Pro follows the same numbering) 3.8.8 — contract intact, stage suites passed (2026-09-07)
 * Dokan 5.0.19 — contract intact, stage suites passed (2026-09-04)
 * Divi 5.11.0 — Folder gallery module renders from a built page (2026-09-01)
