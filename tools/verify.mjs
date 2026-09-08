@@ -86,6 +86,14 @@ const SUITES = [
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },
+	/*
+	 *  Why a picture went where it went, from the matcher's answer to the row
+	 *  that keeps it. The box, not Playground: a FLOAT that has to come back
+	 *  null, six columns dbDelta has to add to a table with rows already in
+	 *  it, and an ALTER that puts them back. SQLite answers a different
+	 *  question about all three.
+	 */
+	{ name: 'filing-trail', file: 'tests/tree/filing-trail.php', env: 'box', php: true },
 	// The brief as a conversation: the free opener, the held test, adopting. Stands in for the service; spends nothing.
 	{ name: 'brief', file: 'tests/tree/brief.php', env: 'box', php: true },
 	// Try a query: both searches for one phrase, each hit with its why. One embed call, not charged.

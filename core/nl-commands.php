@@ -512,7 +512,9 @@ function vergeml_nl_run( $plan ) {
             continue;
         }
 
-        $moves[] = array( $batch_id, $id, $term_id, 0 );
+        // A person named the folder in words, so nothing scored this: the
+        // row says a person decided, and leaves the numbers null.
+        $moves[] = array( $batch_id, $id, $term_id, 0, array( 'why' => 'by hand' ) );
         $done++;
     }
 

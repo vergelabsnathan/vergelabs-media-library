@@ -47,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 const VERGEML_LIBRARIAN_BATCHES = 'vergeml_librarian_batches';
 const VERGEML_LIBRARIAN_MOVES   = 'vergeml_librarian_moves';
-const VERGEML_LIBRARIAN_VERSION = 1;
+const VERGEML_LIBRARIAN_VERSION = 2; // 2: a move records why it went there.
 const VERGEML_LIBRARIAN_OPTION  = 'vergeml_librarian';
 
 /*
@@ -189,6 +189,29 @@ function vergeml_librarian_install() {
      *  undo. `term_created` says whether the folder came with it -- a folder
      *  that already existed is one the user owns, and undo must never delete
      *  it however empty it ends up.
+     *
+     *  And why it went there, which the matcher worked out and this plugin
+     *  used to throw away the moment it had acted on it. `why` is the
+     *  matcher's own word -- ok, floor, margin, gated -- or `plan` when a
+     *  proposal chose the folder and a person approved it, or `by hand` when
+     *  a person named it outright. `score` and `runner_score` are null on
+     *  those last two, because there is no score: a null says nobody
+     *  computed one, where 0.0 would say the matcher looked and found
+     *  nothing.
+     *
+     *  `term_id = 0` is the row for a picture the matcher refused to move.
+     *  It is the only row that answers the negative question -- which
+     *  pictures sit somewhere the evidence does not support -- and it costs
+     *  one row per picture a run looked at and left alone.
+     *
+     *  `prompt_hash` and `model_version` are copied from the index row the
+     *  score was computed from, so a move points back at the exact
+     *  description it rests on and that description already names the model
+     *  and the prompt behind it.
+     *
+     *  Additive and nullable, and nothing is backfilled: an empty `why` on an
+     *  old row means the move happened before any of this shipped, and it has
+     *  to stay readable as exactly that.
      */
     $sql = "CREATE TABLE {$moves} (
         move_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -197,6 +220,12 @@ function vergeml_librarian_install() {
         term_id bigint(20) unsigned NOT NULL DEFAULT 0,
         term_created tinyint(1) NOT NULL DEFAULT 0,
         undone tinyint(1) NOT NULL DEFAULT 0,
+        why varchar(16) NOT NULL DEFAULT '',
+        score float NULL,
+        runner_up bigint(20) unsigned NOT NULL DEFAULT 0,
+        runner_score float NULL,
+        prompt_hash varchar(64) NOT NULL DEFAULT '',
+        model_version varchar(64) NOT NULL DEFAULT '',
         PRIMARY KEY  (move_id),
         KEY batch_id (batch_id),
         KEY batch_undone (batch_id,undone),
@@ -1576,11 +1605,19 @@ function vergeml_librarian_apply_step( $batch_id ) {
             continue;
         }
 
+        /*
+         *  The proposal put this picture in this branch and a person pressed
+         *  Move on it, so 'plan' is the word: not the matcher, which only
+         *  ever gets a veto here, and not a finger on one picture either.
+         *  Nothing scored this placement, so nothing is written where the
+         *  scores go.
+         */
         $moves[] = array(
             (int) $batch['batch_id'],
             $attachment_id,
             (int) $term_id,
             (int) $params['terms'][ $key ]['created'],
+            array( 'why' => 'plan' ),
         );
 
         $done++;
@@ -1699,11 +1736,56 @@ function vergeml_librarian_term_for( $key, &$params, $taxonomy ) {
 
 
 /**
+ *  The reason a move happened, in the shape the row keeps it.
+ *
+ *  What vergeml_filing_pick() returns is what this reads -- 'why', 'score',
+ *  'runner_up', 'runner_score' -- so a caller that has a pick hands over the
+ *  pick and assembles nothing. 'prompt_hash' and 'model_version' come from
+ *  the index row the score was computed from, when the caller has it.
+ *
+ *  The words: 'ok', 'floor', 'margin' and 'gated' are the matcher's own, and
+ *  come with numbers. 'plan' is a proposal's placement a person approved, and
+ *  'by hand' is a person naming the folder outright -- neither was scored, so
+ *  both leave score and runner_score null. A null there says nobody computed
+ *  one; a 0.0 would say the matcher looked and found nothing, which is a
+ *  different thing and a false one.
+ *
+ *  An empty word is the fifth state: a move made before any of this shipped,
+ *  or by a caller that has nothing to say. It is never backfilled.
+ */
+
+function vergeml_librarian_move_reason( $reason ) {
+
+    $reason = is_array( $reason ) ? $reason : array();
+
+    return array(
+        'why'           => isset( $reason['why'] ) ? mb_substr( (string) $reason['why'], 0, 16 ) : '',
+        'score'         => isset( $reason['score'] ) ? (float) $reason['score'] : null,
+        'runner_up'     => isset( $reason['runner_up'] ) ? (int) $reason['runner_up'] : 0,
+        'runner_score'  => isset( $reason['runner_score'] ) ? (float) $reason['runner_score'] : null,
+        'prompt_hash'   => isset( $reason['prompt_hash'] ) ? mb_substr( (string) $reason['prompt_hash'], 0, 64 ) : '',
+        'model_version' => isset( $reason['model_version'] ) ? mb_substr( (string) $reason['model_version'], 0, 64 ) : '',
+    );
+}
+
+
+/**
  *  One INSERT for the whole chunk.
  *
  *  Twenty-five inserts would be twenty-five queries against a budget that has
  *  to hold two per file for the assignment itself. The rows are small and
  *  identical in shape, which is exactly the case a multi-row insert is for.
+ *
+ *  A row is [ batch, attachment, term, term_created ] and may carry a fifth
+ *  element, the reason. Four elements still work and always will: a plan that
+ *  was already in flight when this shipped finishes on the rows it started
+ *  with, and writes an empty reason rather than a fatal.
+ *
+ *  The two scores are the one place the placeholder list varies by row. A
+ *  null cannot travel through prepare as %f -- it would arrive as 0.000000,
+ *  which is the exact lie this column exists to avoid -- so the literal NULL
+ *  goes into the placeholder instead, beside the placeholders that were
+ *  already being interpolated here.
  */
 
 function vergeml_librarian_moves_insert( $moves ) {
@@ -1714,11 +1796,33 @@ function vergeml_librarian_moves_insert( $moves ) {
     $values = array();
 
     foreach ( $moves as $move ) {
-        $rows[]   = '(%d, %d, %d, %d, 0)';
+
+        $reason = vergeml_librarian_move_reason( isset( $move[4] ) ? $move[4] : null );
+
+        $rows[] = '(%d, %d, %d, %d, 0, %s, '
+            . ( null === $reason['score'] ? 'NULL' : '%f' )
+            . ', %d, '
+            . ( null === $reason['runner_score'] ? 'NULL' : '%f' )
+            . ', %s, %s)';
+
         $values[] = (int) $move[0];
         $values[] = (int) $move[1];
         $values[] = (int) $move[2];
         $values[] = (int) $move[3];
+        $values[] = $reason['why'];
+
+        if ( null !== $reason['score'] ) {
+            $values[] = $reason['score'];
+        }
+
+        $values[] = $reason['runner_up'];
+
+        if ( null !== $reason['runner_score'] ) {
+            $values[] = $reason['runner_score'];
+        }
+
+        $values[] = $reason['prompt_hash'];
+        $values[] = $reason['model_version'];
     }
 
     /*
@@ -1735,7 +1839,8 @@ function vergeml_librarian_moves_insert( $moves ) {
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
     $wpdb->query( $wpdb->prepare(
         "INSERT INTO {$wpdb->vergeml_librarian_moves}
-             ( batch_id, attachment_id, term_id, term_created, undone )
+             ( batch_id, attachment_id, term_id, term_created, undone,
+               why, score, runner_up, runner_score, prompt_hash, model_version )
          VALUES {$placeholders}",
         $values
     ) );
@@ -1982,6 +2087,12 @@ function vergeml_librarian_by_depth( $a, $b ) {
 
 /**
  *  The moves still to take back, newest first.
+ *
+ *  A row with no term is a picture a run looked at and left alone, and there
+ *  is nothing in it to take back. It is excluded here rather than skipped in
+ *  the loop, because the loop's skip counts as "moved, or gone" and would
+ *  tell somebody that hundreds of their pictures had been touched since -- a
+ *  sentence about an abstention that never moved anything.
  */
 
 function vergeml_librarian_moves_pending( $batch_id, $limit ) {
@@ -1992,7 +2103,7 @@ function vergeml_librarian_moves_pending( $batch_id, $limit ) {
     return (array) $wpdb->get_results( $wpdb->prepare(
         "SELECT move_id, attachment_id, term_id, term_created
            FROM {$wpdb->vergeml_librarian_moves}
-          WHERE batch_id = %d AND undone = 0
+          WHERE batch_id = %d AND undone = 0 AND term_id > 0
           ORDER BY move_id DESC
           LIMIT %d",
         (int) $batch_id,

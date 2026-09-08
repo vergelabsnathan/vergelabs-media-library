@@ -1046,7 +1046,7 @@ function vergeml_guide_apply_plan( $draft ) {
         $talk_key[ $f['key'] ] = vergeml_talk_key( $parent_name, (string) $f['name'] );
     }
 
-    $opts = array( 'assign' => array(), 'fallback' => array() );
+    $opts = array( 'assign' => array(), 'fallback' => array(), 'reasons' => array() );
 
     foreach ( (array) $draft['gone'] as $tid => $to ) {
         if ( '' !== $to && isset( $talk_key[ $to ] ) ) {
@@ -1064,6 +1064,17 @@ function vergeml_guide_apply_plan( $draft ) {
                 $opts['assign'][ (int) $attachment ] = $talk_key[ $key ];
             }
         }
+
+        /*
+         *  Every picture the rule judged, including the ones it would not
+         *  place. The ones it placed become a move that says why; the ones it
+         *  would not become a row with no folder, which is the only record
+         *  anywhere of a picture the evidence had nothing to say about.
+         */
+        if ( ! empty( $rule['reasons'] ) ) {
+            $opts['reasons'] = (array) $rule['reasons'];
+        }
+
         if ( ! $opts['assign'] ) {
             return new WP_Error( 'empty', __( 'The rule moves no pictures.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
         }
@@ -1417,8 +1428,12 @@ function vergeml_guide_rule( $id, $options ) {
  *
  *  @param array $groups  key => { path: [ names ], members: [ attachment ids ] }
  *  @param array $rows    the rows the rule read, with in_terms when scope is all
+ *  @param array $reasons attachment id => [ why, score, runner_up, runner_score ],
+ *                        for the one rule that has a matcher behind it. The
+ *                        other rules group by tag, kind or date: nothing
+ *                        scored those, and they carry no reasons at all.
  */
-function vergeml_guide_rule_draft( $taxonomy, $scope, $groups, $rows ) {
+function vergeml_guide_rule_draft( $taxonomy, $scope, $groups, $rows, $reasons = array() ) {
 
     $live    = vergeml_guide_live_index( $taxonomy );
     $folders = array();
@@ -1503,10 +1518,11 @@ function vergeml_guide_rule_draft( $taxonomy, $scope, $groups, $rows ) {
     }
 
     return array(
-        'draft'  => array( 'folders' => array_values( $folders ), 'gone' => $gone, 'origin' => 'rule', 'rule' => null ),
-        'assign' => $assign,
-        'made'   => $made,
-        'move'   => count( $assign ),
+        'draft'   => array( 'folders' => array_values( $folders ), 'gone' => $gone, 'origin' => 'rule', 'rule' => null ),
+        'assign'  => $assign,
+        'reasons' => $reasons,
+        'made'    => $made,
+        'move'    => count( $assign ),
     );
 }
 
@@ -1699,6 +1715,21 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
     $why   = array( 'floor' => 0, 'margin' => 0, 'gated' => 0 );
     $picks = array();
 
+    /*
+     *  What the matcher said about each picture, kept beside what it decided.
+     *
+     *  This used to be a tally and nothing else: term_id survived, the score,
+     *  the runner-up and the word were counted and dropped, and the move that
+     *  followed could never say why it happened. One entry per picture the
+     *  rule looked at, placed or not -- the ones it would not place are the
+     *  rows that answer the negative question.
+     *
+     *  Packed [ why, score, runner_up, runner_score ] rather than keyed,
+     *  because this rides to the Move in an option beside the assignments and
+     *  a library of fifty thousand pays for every byte of it twice a pass.
+     */
+    $reasons = array();
+
     if ( $ids && $rows && function_exists( 'vergeml_filing_profiles' ) ) {
         global $wpdb;
         // The matcher wants the vector too; read it for the unfiled rows only.
@@ -1715,9 +1746,20 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
             $row   = array_merge( $r, isset( $vectors[ (int) $r['attachment_id'] ] ) ? $vectors[ (int) $r['attachment_id'] ] : array( 'embedding' => null, 'tags' => '' ) );
             $facts = vergeml_filing_facts( $row );
             $pick  = vergeml_filing_pick( $facts, $profiles );
+
+            $reasons[ (int) $r['attachment_id'] ] = array(
+                (string) $pick['why'],
+                (float) $pick['score'],
+                (int) $pick['runner_up'],
+                (float) $pick['runner_score'],
+            );
+
             if ( $pick['term_id'] ) {
                 $picks[ (int) $r['attachment_id'] ] = (int) $pick['term_id'];
             } elseif ( 'margin' === $pick['why'] && 'close' === $o['sure'] && ! empty( $pick['nearest'] ) ) {
+                // Placed on the owner's own "close enough", and the row keeps
+                // saying 'margin': it went somewhere the matcher would not
+                // have sent it by itself, and that is worth being able to see.
                 $picks[ (int) $r['attachment_id'] ] = (int) $pick['nearest'];
             } else {
                 $w = isset( $why[ $pick['why'] ] ) ? $pick['why'] : 'floor';
@@ -1757,7 +1799,7 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
         }
     }
 
-    $out   = vergeml_guide_rule_draft( $taxonomy, 'unfiled', $groups, $rows );
+    $out   = vergeml_guide_rule_draft( $taxonomy, 'unfiled', $groups, $rows, $reasons );
     $lines = array();
     $into  = count( $picks ) ? count( array_unique( array_values( $picks ) ) ) : 0;
     /* translators: 1: pictures that move, 2: folders they go to */

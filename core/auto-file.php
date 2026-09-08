@@ -263,7 +263,7 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
      */
     global $wpdb;
     $row = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
-        "SELECT attachment_id, embedding, kind, filing FROM {$wpdb->vergeml_ai_index} WHERE attachment_id = %d AND error = '' AND embedding IS NOT NULL",
+        "SELECT attachment_id, embedding, kind, filing, prompt_hash, model_version FROM {$wpdb->vergeml_ai_index} WHERE attachment_id = %d AND error = '' AND embedding IS NOT NULL",
         (int) $attachment_id
     ), ARRAY_A );
     if ( ! $row || ! function_exists( 'vergeml_filing_pick' ) ) {
@@ -290,6 +290,21 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
         'term_id'       => $best,
         'taxonomy'      => $taxonomy,
         'earned'        => vergeml_autofile_earned( $best ),
+
+        /*
+         *  What the matcher just worked out, kept rather than dropped, so the
+         *  move this becomes can say why it went there. The description it
+         *  was judged on comes along too: the two index columns are the link
+         *  back to the model and the prompt behind the words that scored.
+         */
+        'reason'        => array(
+            'why'           => (string) $pick['why'],
+            'score'         => (float) $pick['score'],
+            'runner_up'     => (int) $pick['runner_up'],
+            'runner_score'  => (float) $pick['runner_score'],
+            'prompt_hash'   => isset( $row['prompt_hash'] ) ? (string) $row['prompt_hash'] : '',
+            'model_version' => isset( $row['model_version'] ) ? (string) $row['model_version'] : '',
+        ),
     );
 }
 
@@ -372,7 +387,7 @@ function vergeml_autofile_record( $term_id, $what ) {
  *  never delete a folder because of anything here.
  */
 
-function vergeml_autofile_file( $attachment_id, $term_id, $how ) {
+function vergeml_autofile_file( $attachment_id, $term_id, $how, $reason = null ) {
 
     $taxonomy = vergeml_librarian_taxonomy();
 
@@ -399,7 +414,7 @@ function vergeml_autofile_file( $attachment_id, $term_id, $how ) {
         return $set;
     }
 
-    vergeml_librarian_moves_insert( array( array( $batch_id, $attachment_id, $term_id, 0 ) ) );
+    vergeml_librarian_moves_insert( array( array( $batch_id, $attachment_id, $term_id, 0, $reason ) ) );
 
     // The folder just gained a file, so its middle moved. Dropping the cache
     // is cheaper than being subtly wrong about the next one.
@@ -429,14 +444,16 @@ function vergeml_autofile_batch( $how ) {
 
     /*
      *  The scheme is how the Librarian's own list explains a batch to
-     *  somebody looking at it later, so the three ways a file can arrive here
+     *  somebody looking at it later, so the four ways a file can arrive here
      *  stay distinguishable: one you agreed to, one that happened by itself,
-     *  and one you asked for in words.
+     *  one you asked for in words, and the re-filing pass a Move on the
+     *  Folders screen starts.
      */
     $schemes = array(
         'accepted' => 'suggested',
         'spoken'   => 'spoken',
         'auto'     => 'auto',
+        'refile'   => 'refile',
     );
 
     $scheme = isset( $schemes[ $how ] ) ? $schemes[ $how ] : 'auto';
@@ -538,7 +555,7 @@ function vergeml_autofile_sweep( $limit = VERGEML_AUTOFILE_CHUNK ) {
         }
 
         if ( $suggestion['earned'] ) {
-            $done = vergeml_autofile_file( $suggestion['attachment_id'], $suggestion['term_id'], 'auto' );
+            $done = vergeml_autofile_file( $suggestion['attachment_id'], $suggestion['term_id'], 'auto', $suggestion['reason'] );
             if ( ! is_wp_error( $done ) ) {
                 vergeml_autofile_record( $suggestion['term_id'], 'auto' );
                 $filed++;
@@ -737,7 +754,14 @@ function vergeml_autofile_rest_act( WP_REST_Request $request ) {
         return new WP_Error( 'vergeml_autofile_unknown_action', __( 'That is not something you can do with a suggestion.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
 
-    $done = vergeml_autofile_file( $attachment_id, $term_id, 'accepted' );
+    /*
+     *  A suggestion the matcher made and a person agreed to, so the folder
+     *  was proposed rather than scored here: the numbers behind the
+     *  suggestion are not in hand at this endpoint -- the browser sends a
+     *  file and a folder, not a pick -- and re-running the matcher now could
+     *  answer about a different folder than the one being accepted.
+     */
+    $done = vergeml_autofile_file( $attachment_id, $term_id, 'accepted', array( 'why' => 'plan' ) );
 
     if ( is_wp_error( $done ) ) {
         return $done;

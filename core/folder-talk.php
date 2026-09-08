@@ -584,6 +584,11 @@ function vergeml_talk_vector( $folder ) {
  *                       'fallback' removed term id => folder key: where the
  *                                  pictures of a folder that goes end up when
  *                                  the evidence says nothing.
+ *                       'reasons'  attachment id => [ why, score, runner_up,
+ *                                  runner_score ]: what the matcher said about
+ *                                  each picture the rule judged, so the move
+ *                                  can record it and a picture the rule would
+ *                                  not place can be recorded as exactly that.
  * @return array|WP_Error What happened.
  */
 function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
@@ -593,6 +598,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 	$opts     = is_array( $opts ) ? $opts : array();
 	$assign   = isset( $opts['assign'] ) && is_array( $opts['assign'] ) ? $opts['assign'] : array();
 	$fallback = isset( $opts['fallback'] ) && is_array( $opts['fallback'] ) ? $opts['fallback'] : array();
+	$reasons  = isset( $opts['reasons'] ) && is_array( $opts['reasons'] ) ? $opts['reasons'] : array();
 
 	$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
 
@@ -922,6 +928,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		'vectors'  => $vectors,
 		'assign'   => $assign_ids,
 		'fallback' => $fallback_ids,
+		'reasons'  => $reasons,
 		'after'    => 0,
 		'moved'    => 0,
 		'skipped'  => 0,
@@ -986,6 +993,21 @@ function vergeml_talk_refile_run( $deadline ) {
 	$pass = 0;
 
 	/*
+	 *  What this pass did and why, for the librarian's own record.
+	 *
+	 *  This is the pass that files most of the pictures on most sites, and
+	 *  until now it wrote nothing down at all: the matcher worked out a score,
+	 *  a runner-up and a word for every picture, acted on them, and dropped
+	 *  them. So "picture 1779 is in Architecture" was recoverable and "because
+	 *  it scored 0.81 against 0.44" was not.
+	 *
+	 *  Collected in memory and written once at the end of the pass, for the
+	 *  same reason the undo record is: a pass is a few hundred pictures, and
+	 *  an insert per picture is a few hundred queries where one will do.
+	 */
+	$trail = array();
+
+	/*
 	 *  Filterable, and not only for the test that drives them.
 	 *
 	 *  A host with a short execution limit wants smaller slices, and a box with
@@ -1000,7 +1022,7 @@ function vergeml_talk_refile_run( $deadline ) {
 	do {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
 		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT attachment_id, embedding, kind, filing, tags
+			"SELECT attachment_id, embedding, kind, filing, tags, prompt_hash, model_version
 			   FROM {$wpdb->vergeml_ai_index}
 			  WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d
 		   ORDER BY attachment_id ASC
@@ -1038,6 +1060,16 @@ function vergeml_talk_refile_run( $deadline ) {
 			 */
 			if ( ! empty( $state['assign'] ) ) {
 				if ( ! isset( $state['assign'][ $attachment ] ) ) {
+					/*
+					 *  The rule looked at this picture and would not place
+					 *  it. That is a row with no folder in it -- the only
+					 *  record anywhere of a picture the evidence had nothing
+					 *  to say about, and the answer to the question this
+					 *  plugin could not answer at all before.
+					 */
+					if ( isset( $state['reasons'][ $attachment ] ) ) {
+						$trail[] = array( $attachment, 0, vergeml_talk_reason( $state['reasons'][ $attachment ], $row ) );
+					}
 					continue;
 				}
 				$to  = (int) $state['assign'][ $attachment ];
@@ -1046,6 +1078,7 @@ function vergeml_talk_refile_run( $deadline ) {
 				wp_set_object_terms( $attachment, array( $to ), $taxonomy, false );
 				$state['by_term'][ $to ] = isset( $state['by_term'][ $to ] ) ? (int) $state['by_term'][ $to ] + 1 : 1;
 				$state['moved'] = (int) $state['moved'] + 1;
+				$trail[]        = array( $attachment, $to, vergeml_talk_reason( isset( $state['reasons'][ $attachment ] ) ? $state['reasons'][ $attachment ] : null, $row ) );
 				continue;
 			}
 
@@ -1081,6 +1114,14 @@ function vergeml_talk_refile_run( $deadline ) {
 				$state['skipped'] = (int) $state['skipped'] + 1;
 				$why              = isset( $pick['why'] ) ? $pick['why'] : 'floor';
 				$state['unfiled'][ $why ] = isset( $state['unfiled'][ $why ] ) ? (int) $state['unfiled'][ $why ] + 1 : 1;
+
+				// Left alone, and now on the record as left alone: the word,
+				// the score it did reach, and the folder it could not beat.
+				$trail[] = array(
+					$attachment,
+					0,
+					vergeml_talk_reason( array( $why, $pick['score'], $pick['runner_up'], $pick['runner_score'] ), $row ),
+				);
 				/*
 				 *  Nothing fits well enough, so it is left where it is -- unless
 				 *  where it is fails a gate. A logo sitting in Men is not "no
@@ -1119,6 +1160,18 @@ function vergeml_talk_refile_run( $deadline ) {
 				: 1;
 
 			$state['moved'] = (int) $state['moved'] + 1;
+
+			/*
+			 *  The word is the matcher's own, even here: a picture that got a
+			 *  folder because the one it was in went away carries 'floor' and
+			 *  the score it actually reached, not a tidier 'ok' that nothing
+			 *  computed.
+			 */
+			$trail[] = array(
+				$attachment,
+				(int) $pick['term_id'],
+				vergeml_talk_reason( array( $pick['why'], $pick['score'], $pick['runner_up'], $pick['runner_score'] ), $row ),
+			);
 		}
 
 		$pass += count( (array) $rows );
@@ -1152,7 +1205,79 @@ function vergeml_talk_refile_run( $deadline ) {
 
 	update_option( VERGEML_TALK_STATE, $state, false );
 
+	vergeml_talk_trail_write( $trail );
+
 	return $state;
+}
+
+
+/**
+ *  A reason, in the shape the move row keeps it.
+ *
+ *  $packed is [ why, score, runner_up, runner_score ] as the matcher gave it
+ *  -- straight from vergeml_filing_pick() here, or carried from the rule that
+ *  ran before the Move. Without one, the folder came from a rule that groups
+ *  by tag, kind or date: nothing scored that placement, so it is a 'plan' and
+ *  the score columns stay empty rather than saying zero.
+ *
+ *  Either way the index row's prompt and model come along, because they are
+ *  what the picture was judged on at that moment, and they are the step that
+ *  joins a move to the description it rests on.
+ */
+
+function vergeml_talk_reason( $packed, $row ) {
+
+	$reason = array(
+		'prompt_hash'   => isset( $row['prompt_hash'] ) ? (string) $row['prompt_hash'] : '',
+		'model_version' => isset( $row['model_version'] ) ? (string) $row['model_version'] : '',
+	);
+
+	if ( ! is_array( $packed ) || ! isset( $packed[0], $packed[1], $packed[2], $packed[3] ) ) {
+		$reason['why'] = 'plan';
+		return $reason;
+	}
+
+	$reason['why']          = (string) $packed[0];
+	$reason['score']        = (float) $packed[1];
+	$reason['runner_up']    = (int) $packed[2];
+	$reason['runner_score'] = (float) $packed[3];
+
+	return $reason;
+}
+
+
+/**
+ *  The pass's moves and abstentions, into the librarian's record.
+ *
+ *  One batch a day for this scheme, the same way the suggestions and the
+ *  spoken commands get theirs, and it is only asked for when there is a first
+ *  row to put in it -- a pass that moved nothing and judged nothing writes no
+ *  batch and no rows.
+ *
+ *  Best effort on purpose: this records what happened, it does not decide
+ *  anything, and a site where the librarian's tables are missing must go on
+ *  filing pictures exactly as it did before.
+ */
+
+function vergeml_talk_trail_write( $trail ) {
+
+	if ( ! $trail || ! function_exists( 'vergeml_autofile_batch' ) || ! function_exists( 'vergeml_librarian_moves_insert' ) ) {
+		return;
+	}
+
+	$batch_id = vergeml_autofile_batch( 'refile' );
+
+	if ( is_wp_error( $batch_id ) ) {
+		return;
+	}
+
+	$moves = array();
+
+	foreach ( $trail as $t ) {
+		$moves[] = array( (int) $batch_id, (int) $t[0], (int) $t[1], 0, $t[2] );
+	}
+
+	vergeml_librarian_moves_insert( $moves );
 }
 
 
