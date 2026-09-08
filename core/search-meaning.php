@@ -51,9 +51,27 @@ const VERGEML_MEANING_FLOOR = 0.22;
  *  Cached for an hour against the phrase itself: the same search runs several
  *  times a session -- somebody pages through, or refines and comes back -- and
  *  a phrase means the same thing every time.
+ *
+ *  And cached again for the length of the request, in front of that.
+ *
+ *  Measured on the box on 2026-09-08: a fully warm get_transient() costs
+ *  0.161 ms -- two get_option() calls and four apply_filters() around them,
+ *  with only a per-request object cache. That is nothing until something asks
+ *  in a loop, and the matcher does: vergeml_filing_class_match() takes a
+ *  vector for each side of every class pair, so one dry run of a draft over
+ *  641 pictures against 31 folders asked for 204,014 of them and spent 32.9
+ *  of its 44 seconds here. The arithmetic underneath was 7.
+ *
+ *  There are about 450 distinct phrases behind those 204,014 asks. This holds
+ *  them. It returns the same vector the transient would -- nothing decides
+ *  anything differently, and the filing baseline in tests/tree/ proves it --
+ *  and it means a phrase is looked up once per request rather than four
+ *  hundred times.
  */
 
 function vergeml_meaning_vector( $text ) {
+
+    static $seen_here = array();
 
     $text = trim( (string) $text );
 
@@ -62,9 +80,15 @@ function vergeml_meaning_vector( $text ) {
     }
 
     $slot = 'vergeml_qv2_' . md5( strtolower( $text ) );
+
+    if ( isset( $seen_here[ $slot ] ) ) {
+        return $seen_here[ $slot ];
+    }
+
     $seen = get_transient( $slot );
 
     if ( is_array( $seen ) ) {
+        $seen_here[ $slot ] = $seen;
         return $seen;
     }
 
@@ -114,6 +138,7 @@ function vergeml_meaning_vector( $text ) {
     $vector = array_map( 'floatval', $data['embedding'] );
 
     set_transient( $slot, $vector, HOUR_IN_SECONDS );
+    $seen_here[ $slot ] = $vector;
 
     return $vector;
 }
