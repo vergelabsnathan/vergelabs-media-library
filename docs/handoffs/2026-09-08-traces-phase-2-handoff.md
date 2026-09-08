@@ -251,6 +251,17 @@ corrected; the first turn taken on it will replace every one of those numbers
 with the matcher's. Opening the screen and reading them side by side is the
 shortest demonstration of what this phase does.
 
+## The plugin repo is not pushed
+
+Five commits here (`bb4e6db` … `c2c12bf`), and local `main` is **25 ahead of
+`origin/main` and 2 behind** — the two are the nightly watch's own
+`chore(watch)` commits. Phase 1's commits are among the 25, so this is where
+the last session left it, not something this one caused. The plugin ships
+through `tools/deploy.mjs`, not through GitHub, so nothing is blocked by it;
+but two phases of work exist only on this machine. A `git pull --rebase` would
+land cleanly — the watch commits touch only watch reports — and it was left
+alone because pushing this repo was not asked for and is Nathan's call.
+
 ## The service is deployed
 
 `04f9490` and `0fd052e` are on `main`. Deployment `dpl_33HDLBckpqs7XDCMG2QCmkogAPLJ`
