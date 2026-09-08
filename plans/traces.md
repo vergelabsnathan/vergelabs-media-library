@@ -17,10 +17,10 @@ catch that.
 
 ## Stop points — Nathan's, before the phase that needs them
 
-- **Phase 3 does not start until the mock is approved.** The two surfaces in
-  the spec's "What a person sees" are not drawn. No code for either until
-  Nathan has seen a static mock with real numbers from a real dry run on the
-  box, sent as screenshots into the conversation, not as a link.
+- **The mock on Phase 3 was lifted by Nathan on 2026-09-08.** Build the two
+  surfaces from the Folders screen's existing components -- its cards, its
+  counts, its type -- and invent no new visual grammar. Screenshot them into
+  the conversation before the phase is called done.
 - **The prompt rule's wording** is settled in the spec; a change to it is
   Nathan's.
 - **Whether the "share of drafts changed before filing" number is shown to the
@@ -146,3 +146,48 @@ not change a single decision, and that is the assertion that proves it.
 Nothing in Phases 1, 3, 4 or 5 reaches a model. Phase 2 spends one guide turn
 per walk. No describe pass is needed at any point; the index on the box is
 already described.
+
+## Openers, one per phase
+
+Paste one of these into a **fresh** session. One phase per session; do not run
+two. Every one of them ends with a handoff and no compaction.
+
+### Phase 1
+
+```
+Read plans/traces.md, then docs/superpowers/specs/2026-09-08-traces.md and its
+diagnosis. State which model you are and follow that profile in
+~/.claude/harness/model-profiles.md.
+
+This session is Phase 1 only: the reason a picture moved is recorded.
+
+Before anything, capture the baseline the last gate needs: run the filing pass
+read-only over the box's library and save the placements, so the same pass can
+be compared after Phase 5. It must be identical.
+
+Then: six columns on vergeml_librarian_moves, vergeml_librarian_moves_insert()
+carrying them, every caller passing the vergeml_filing_pick() result it already
+has, a hand move writing 'by hand', and an abstention written as a row with
+term_id 0. In core/guide.php around line 1718 only $pick['term_id'] survives
+today -- that is the change. The pairs in $work are [attachment, branch] and
+are the carrier; extending them is additive.
+
+Do not touch the floor, the margin, the gates or the order of the matcher.
+Do not backfill history.
+
+Gates: tests/tree/filing-trail.php (new, with its mutation check -- make
+filing_pick return a why that does not match what it decided and it goes red),
+then tests/ui/modes.spec.mjs, shell.spec, shots.spec, folders.spec, and
+node tools/verify.mjs copy journey guide, and node tests/tree/t0-endpoints.js.
+
+Nothing in this phase spends credits. Make a throwaway admin with
+tools/box-ui-user.sh (ssh needs -i ~/.ssh/hetzner_vgml) and delete it at the
+end. Never deploy to the box while a suite is running against it.
+End with a handoff in docs/handoffs/.
+```
+
+### Phases 2 to 5
+
+Same shape, one phase named, the phase's own files, behaviour, proof and "do
+not" copied from above. Do not write a new opener from memory: the phase in
+this plan is the brief.
