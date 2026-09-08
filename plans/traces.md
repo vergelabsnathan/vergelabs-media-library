@@ -84,12 +84,13 @@ is a few cents, not a describe pass.
 
 **Do not.** Do not change what the model may propose. Do not add a model call.
 
-## Phase 3 · What a person sees — Opus, and only after the mock
+## Phase 3 · What a person sees — Opus
 
-The two surfaces. Blocked on the stop point above.
+The two surfaces. Not blocked: Nathan lifted the mock on 2026-09-08. Built from
+the Folders screen's existing components, no new visual grammar invented.
 
-**Files.** `js/vergeml-folders.js`, `core/guide.php`, and whichever screen the
-mock puts "why is it here" on.
+**Files.** `js/vergeml-folders.js`, `core/guide.php`, and the attachment's own
+screen for "why is it here".
 
 **Proof.** `tests/ui/folders.spec.mjs` extended: the draft's counts equal the
 dry run's, and the abstention line equals the number of abstentions. A
