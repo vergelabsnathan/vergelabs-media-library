@@ -118,10 +118,18 @@ screen for "why is it here".
 dry run's, and the abstention line equals the number of abstentions. A
 screenshot into the conversation before the phase is called done.
 
-## Phase 3.5 · Why the measurements move — Opus
+## Phase 3.5 · Why the measurements move — Fable 5.1
 
 **No feature. Three unexplained numbers, and it runs before Phase 4.** Added
-2026-09-09 from `tickets/2026-09-09-traces-loose-ends.md`. The output is an
+2026-09-09 from `tickets/2026-09-09-traces-loose-ends.md`.
+
+**Fable, not Opus.** Written as Opus on 2026-09-09 and corrected the same day:
+this is an investigation, and there are no acceptance criteria to give it per
+task because nobody knows the answers yet. Opus's profile wants a narrow task
+with a proof beside it and fails by patching a symptom; that is exactly the
+wrong shape here. Fable takes a whole problem with the context loaded once and
+room to follow it. Its failure mode is scope widening, and the "do not" below
+plus the found-not-done list in the handoff are the fence. The output is an
 answer per number and a suite or a note that keeps it answered, not a fix for
 its own sake — two of the three may turn out to be somebody else's plugin, and
 that is a result.
