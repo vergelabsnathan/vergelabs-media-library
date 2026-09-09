@@ -648,15 +648,17 @@
 			}
 			renderRules();
 		} ).catch( function () {
-			state.rules = { rules: [], unfiled: 0, pictures: 0 };
+			state.rules = null;
+			talk.note( __( 'The numbers did not load. No rule can say what it would do — reload to try again.', 'vergelabs-media-library' ) );
 			renderRules();
 		} );
 	}
 
-	function radio( name, value, label, checked, onPick ) {
+	function radio( name, value, label, checked, onPick, disabled ) {
 		var lab = el( 'label', { class: 'vgml-check vgml-radio' } );
 		var input = el( 'input', { type: 'radio', name: name, value: value } );
 		input.checked = !! checked;
+		input.disabled = !! disabled;
 		input.addEventListener( 'change', function () { onPick( value ); } );
 		lab.appendChild( input );
 		lab.appendChild( el( 'span', null, label ) );
@@ -665,12 +667,16 @@
 
 	function scopeRadios( o, set ) {
 		var wrap = el( 'div', { class: 'vgml-radios' } );
-		var unfiled = state.rules ? state.rules.unfiled : 0;
+		var known = !! state.rules;
 		var now = state.nodes.length;
-		/* translators: 1: unfiled pictures, 2: folders today */
-		wrap.appendChild( radio( 'vgml-scope', 'unfiled', sprintf( __( 'Move only the %1$s unfiled pictures. Today\'s %2$s folders stay.', 'vergelabs-media-library' ), fmt( unfiled ), fmt( now ) ), 'unfiled' === o.scope, function ( v ) { set( 'scope', v ); } ) );
+		var unfiledLabel = known
+			/* translators: 1: unfiled pictures, 2: folders today */
+			? sprintf( __( 'Move only the %1$s unfiled pictures. Today\'s %2$s folders stay.', 'vergelabs-media-library' ), fmt( state.rules.unfiled ), fmt( now ) )
+			/* translators: %s: folders today */
+			: sprintf( __( 'Move only the unfiled pictures. Today\'s %s folders stay.', 'vergelabs-media-library' ), fmt( now ) );
+		wrap.appendChild( radio( 'vgml-scope', 'unfiled', unfiledLabel, 'unfiled' === o.scope, function ( v ) { set( 'scope', v ); }, ! known ) );
 		/* translators: %s: folders today */
-		wrap.appendChild( radio( 'vgml-scope', 'all', sprintf( __( 'Move every picture. Today\'s %s folders are removed.', 'vergelabs-media-library' ), fmt( now ) ), 'all' === o.scope, function ( v ) { set( 'scope', v ); } ) );
+		wrap.appendChild( radio( 'vgml-scope', 'all', sprintf( __( 'Move every picture. Today\'s %s folders are removed.', 'vergelabs-media-library' ), fmt( now ) ), 'all' === o.scope, function ( v ) { set( 'scope', v ); }, ! known ) );
 		return wrap;
 	}
 
@@ -764,11 +770,16 @@
 				body.appendChild( ruleOptions( r.id, state.rule.options, setRuleOption ) );
 			}
 			row.appendChild( body );
-			var n = 'fit' === r.id
-				? ( on && 'unsorted' === state.rule.options.rest ? __( '1 new', 'vergelabs-media-library' ) : __( '0 new', 'vergelabs-media-library' ) )
+			var n;
+			if ( 'fit' === r.id ) {
+				n = on && 'unsorted' === state.rule.options.rest ? __( '1 new', 'vergelabs-media-library' ) : __( '0 new', 'vergelabs-media-library' );
+			} else if ( state.rules ) {
 				/* translators: %s: folders */
-				: sprintf( _n( '%s folder', '%s folders', counts[ r.id ] || 0, 'vergelabs-media-library' ), fmt( counts[ r.id ] || 0 ) );
-			row.appendChild( el( 'span', { class: 'vgml-rule-n' }, n ) );
+				n = sprintf( _n( '%s folder', '%s folders', counts[ r.id ] || 0, 'vergelabs-media-library' ), fmt( counts[ r.id ] || 0 ) );
+			}
+			if ( n ) {
+				row.appendChild( el( 'span', { class: 'vgml-rule-n' }, n ) );
+			}
 			dom.rules.appendChild( row );
 		} );
 		renderPreview();

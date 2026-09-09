@@ -104,6 +104,7 @@ function vergeml_register_gallery_block() {
             'pick'        => __( 'Pick a folder to show its images.', 'vergelabs-media-library' ),
             'empty'       => __( 'That folder has no images in it yet. Put some in it and they appear here on their own — you will not have to edit this page again.', 'vergelabs-media-library' ),
             'noFolders'   => __( 'There are no folders yet. Make one in the media library.', 'vergelabs-media-library' ),
+            'foldersFailed' => __( 'The folders did not load. No folder can be picked until they do — reload to try again.', 'vergelabs-media-library' ),
         ),
     ) );
 

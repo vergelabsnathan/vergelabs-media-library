@@ -225,6 +225,55 @@ test.describe( 'the Folders screen', () => {
 	} );
 
 	/*
+	 *  guide/rules refused. Until this phase the catch fabricated
+	 *  { rules: [], unfiled: 0, pictures: 0 } -- a shape nobody computed, read
+	 *  back as a real zero in three places: the scope radios, and every rule
+	 *  pill. The cards themselves come from the local RULES constant, so they
+	 *  stay pickable; what must not survive is a number nobody computed.
+	 */
+	test( 'when guide/rules is refused, the screen says so and shows no fabricated zero', async ( { page } ) => {
+		await open( page, SCREEN.dashboard );
+		if ( found === null ) {
+			found = await getSession( page );
+		}
+		await plant( page, false );
+		await page.route( '**/guide/rules*', ( route ) => route.fulfill( { status: 500, contentType: 'application/json', body: '{"code":"rest_error","message":"fail"}' } ) );
+
+		await open( page, SCREEN.folders );
+		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
+
+		await page.locator( '.vgml-seg-tab[data-method="rules"]' ).click();
+
+		// The four cards still render from the local RULES constant and stay pickable.
+		await expect( page.locator( '.vgml-rule-row' ) ).toHaveCount( 4 );
+		const kindRow = page.locator( '.vgml-rule-row' ).first();
+		await kindRow.locator( '.vgml-rule-pick' ).click();
+		await expect( kindRow ).toHaveClass( /is-on/ );
+
+		// No number nobody computed: the pill for a rule that needed the server is gone, not zero.
+		await expect( kindRow.locator( '.vgml-rule-n' ) ).toHaveCount( 0 );
+
+		// The scope choice is disabled while the number behind it is unknown, and carries no count.
+		await expect( kindRow.locator( 'input[value="unfiled"]' ) ).toBeDisabled();
+		await expect( kindRow.locator( 'input[value="all"]' ) ).toBeDisabled();
+		await expect( kindRow.locator( '.vgml-radio' ).first() ).toHaveText( /^Move only the unfiled pictures\. Today's \d+ folders stay\.$/ );
+
+		// The failure itself, through the note this file already uses for a failed Move.
+		await expect( page.locator( '.vgml-msg.is-note' ) ).toHaveText( 'The numbers did not load. No rule can say what it would do — reload to try again.' );
+
+		// None of the three rules that need the server's count wears a pill at all.
+		for ( const row of await page.locator( '.vgml-rule-row' ).all() ) {
+			const title = await row.locator( '.vgml-rule-title' ).innerText();
+			if ( 'Into today\'s folders' === title ) {
+				continue; // Its "0 new" / "1 new" is computed locally and is not this bug.
+			}
+			await expect( row.locator( '.vgml-rule-n' ), `${ title } carries no number the server did not return` ).toHaveCount( 0 );
+		}
+
+		await page.screenshot( { path: 'tests/ui/shots/folders-rules-failed.png', fullPage: true } );
+	} );
+
+	/*
 	 *  The model is asked for a "count" per folder in the tree shape and it
 	 *  answers with arithmetic nothing performed -- "Illustrations (23),
 	 *  Screenshots (6)" on this box on 4 September 2026, for a library nobody

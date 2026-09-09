@@ -45,6 +45,7 @@
 	 *  the list changes about as often as somebody makes a folder.
 	 */
 	var folderCache = null;
+	var folderFailed = false;
 	var folderWaiting = null;
 
 	function loadFolders() {
@@ -63,8 +64,8 @@
 			folderCache = ( res && res.folders ) || [];
 			return folderCache;
 		} ).catch( function () {
-			folderCache = [];
-			return folderCache;
+			folderFailed = true;
+			return [];
 		} );
 
 		return folderWaiting;
@@ -174,7 +175,7 @@
 		if ( null === folders ) {
 			body = el( Placeholder, { label: l10n.title }, el( Spinner ) );
 		} else if ( ! folders.length ) {
-			body = el( Placeholder, { label: l10n.title, instructions: l10n.noFolders } );
+			body = el( Placeholder, { label: l10n.title, instructions: folderFailed ? l10n.foldersFailed : l10n.noFolders } );
 		} else if ( ! attributes.folder ) {
 			/*
 			 *  A prompt rather than an empty rectangle. An unconfigured block that
