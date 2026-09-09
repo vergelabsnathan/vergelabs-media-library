@@ -2571,6 +2571,29 @@ function vergeml_librarian_routes() {
         'permission_callback' => $can,
         'callback'            => 'vergeml_librarian_rest_batches',
     ) );
+
+    /*
+     *  One picture's answer, asked for one picture at a time.
+     *
+     *  vergeml_why_here_field() is kept off `query-attachments` because that
+     *  listing runs attachment_fields_to_edit for every item on the page --
+     *  5.7 queries a picture, measured -- and the grid's modal renders from
+     *  that same response, so the field never reaches it. This is how the
+     *  modal gets the answer instead: on demand, for the picture somebody
+     *  opened, and never for the eighty they scrolled past.
+     *
+     *  manage_categories is the librarian's permission and is not the one
+     *  here: this reads one attachment's own record, so it asks the same
+     *  question the screen it appears on asks -- may this person edit this
+     *  picture. Mirrors core/quick-edit.php's route.
+     */
+    register_rest_route( VERGEML_REST_NS, '/librarian-why/(?P<id>\d+)', array(
+        'methods'             => WP_REST_Server::READABLE,
+        'callback'            => 'vergeml_librarian_rest_why',
+        'permission_callback' => function ( WP_REST_Request $request ) {
+            return current_user_can( 'edit_post', (int) $request['id'] );
+        },
+    ) );
 }
 
 
@@ -3009,11 +3032,9 @@ function vergeml_librarian_why( $attachment_id ) {
     /*
      *  The folder a refusal was about, read out beside the one it beat.
      *
-     *  It is on the record now and it is not in a line: the wording that would
-     *  name both folders in the margin sentence is Nathan's and is not settled,
-     *  so this phase stores the column and reads it back, and the two lines
-     *  below say exactly what they said before. Whoever writes that string has
-     *  the value waiting for it.
+     *  Phase 4 stored the column and left the sentence alone because the
+     *  wording was Nathan's and unsettled. It is settled now, and the margin
+     *  line below names both folders from it.
      */
     $near = isset( $row['nearest'] ) && (int) $row['nearest'] ? get_term( (int) $row['nearest'], $taxonomy ) : null;
     $near = $near instanceof WP_Term ? $near->name : '';
@@ -3079,16 +3100,18 @@ function vergeml_librarian_why( $attachment_id ) {
     } elseif ( 'margin' === $why ) {
 
         /*
-         *  The best folder's score is on the row; its name is not. The matcher
-         *  knows it -- vergeml_filing_pick() returns it as `nearest` -- and the
-         *  trail has no column for it, so the line names the one folder the
-         *  record can name rather than a folder nothing wrote down.
+         *  Both folders, now that the row carries both names.
+         *
+         *  `nearest` is the folder the matcher scored best and refused anyway;
+         *  the runner-up is the one it could not beat by the margin. A row
+         *  written before either column existed can name neither, and the line
+         *  is left off there rather than half-written -- the same choice the
+         *  "Ahead of" line above makes when the record cannot say it.
          */
-        /* translators: 1: the best score reached, 2: the runner-up's score, 3: the runner-up's folder name */
-        $out['lines'][] = '' !== $runner
-            ? sprintf( __( 'Left where it was · scored %1$s against %2$s for %3$s, too close to call', 'vergelabs-media-library' ), $n( $score ), $n( $rscore ), $runner )
-            /* translators: %s: the best score reached */
-            : sprintf( __( 'Left where it was · scored %s, and the next folder was too close to call', 'vergelabs-media-library' ), $n( $score ) );
+        if ( '' !== $near && null !== $score && '' !== $runner && null !== $rscore ) {
+            /* translators: 1: the folder that scored best, 2: its score, 3: the runner-up's folder name, 4: the runner-up's score */
+            $out['lines'][] = sprintf( __( 'Left where it was · %1$s scored %2$s against %3$s at %4$s, too close to call', 'vergelabs-media-library' ), $near, $n( $score ), $runner, $n( $rscore ) );
+        }
 
     } elseif ( 'gated' === $why ) {
 
@@ -3105,15 +3128,23 @@ function vergeml_librarian_why( $attachment_id ) {
         );
     }
 
-    // Only a picture that was filed was filed in a batch. An abstention was
-    // looked at in one, which is a different sentence and not one this says.
-    if ( $out['term_id'] && $out['batch_id'] ) {
-        /* translators: 1: a date, 2: the batch's number */
-        $out['lines'][] = sprintf(
-            __( 'Filed %1$s · batch %2$s', 'vergelabs-media-library' ),
-            $filed ? wp_date( 'j F', strtotime( $filed . ' UTC' ) ) : __( 'at an unrecorded moment', 'vergelabs-media-library' ),
-            number_format_i18n( $out['batch_id'] )
-        );
+    /*
+     *  Only a picture that was filed was filed. An abstention was looked at in
+     *  the same batch on the same day, which is the same two facts under an
+     *  honest verb -- so it gets the line as well, and not the one that would
+     *  claim a move nobody made.
+     */
+    if ( $out['batch_id'] ) {
+
+        $when = $filed
+            ? wp_date( 'j F', strtotime( $filed . ' UTC' ) )
+            : __( 'at an unrecorded moment', 'vergelabs-media-library' );
+
+        $out['lines'][] = $out['term_id']
+            /* translators: 1: a date, 2: the batch's number */
+            ? sprintf( __( 'Filed %1$s · batch %2$s', 'vergelabs-media-library' ), $when, number_format_i18n( $out['batch_id'] ) )
+            /* translators: 1: a date, 2: the batch's number */
+            : sprintf( __( 'Looked at %1$s · batch %2$s', 'vergelabs-media-library' ), $when, number_format_i18n( $out['batch_id'] ) );
     }
 
     return $out;
@@ -3170,6 +3201,55 @@ function vergeml_why_here_field( $fields, $post ) {
     );
 
     return $fields;
+}
+
+
+/**
+ *  The same answer, for the screen the filter cannot reach.
+ *
+ *  The grid's modal is where most people meet a picture, and it draws its
+ *  fields from the listing's response rather than asking for the picture it
+ *  opened -- so the field above, which the listing is spared, is not in it.
+ *  The lines come from vergeml_librarian_why() either way: one reader, two
+ *  surfaces, and no second answer to keep in step with the first.
+ */
+
+function vergeml_librarian_rest_why( WP_REST_Request $request ) {
+
+    $id   = (int) $request['id'];
+    $post = get_post( $id );
+
+    if ( ! $post || 'attachment' !== $post->post_type ) {
+        return new WP_Error( 'vergeml_not_a_file', __( 'That is not a file in the library.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
+    }
+
+    $why = vergeml_librarian_why( $id );
+
+    // A picture with no record answers with no lines, and the view shows no
+    // section -- exactly what the field does with the same nothing.
+    return array(
+        'id'    => $id,
+        'label' => __( 'Why is it here', 'vergelabs-media-library' ),
+        'lines' => ( $why && ! empty( $why['lines'] ) ) ? array_values( $why['lines'] ) : array(),
+    );
+}
+
+
+add_action( 'wp_enqueue_media', 'vergeml_why_here_assets' );
+
+function vergeml_why_here_assets() {
+
+    if ( ! is_admin() ) {
+        return;
+    }
+
+    wp_enqueue_script(
+        'vergeml-why-view',
+        plugins_url( 'js/vergeml-why-view.js', VERGEML_FILE ),
+        array( 'media-views', 'wp-api-fetch' ),
+        vergeml_asset_ver( 'js/vergeml-why-view.js' ),
+        true
+    );
 }
 
 

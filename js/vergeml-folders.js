@@ -945,9 +945,22 @@
 
 		if ( moving ) {
 			var r = state.moving || {};
-			var goal = Math.max( Number( r.moved ) || 0, state.movingGoal || 0 );
-			/* translators: 1: pictures moved so far, 2: pictures to move */
-			dom.move.textContent = sprintf( __( 'Moving %1$s of %2$s', 'vergelabs-media-library' ), fmt( r.moved || 0 ), fmt( goal ) );
+			var moved = Number( r.moved ) || 0;
+			/*
+			 *  The goal, where there is one.
+			 *
+			 *  movingCount() returns null when the dry run never counted, and
+			 *  Math.max against that read the moved count back as the total:
+			 *  "Moving 12 of 12", a finish line copied from the runner. A total
+			 *  nobody worked out is not shown, exactly as the button's own
+			 *  "Move the draft" shows no number for the same reason.
+			 */
+			var goal = Number( state.movingGoal ) || 0;
+			dom.move.textContent = goal
+				/* translators: 1: pictures moved so far, 2: pictures to move */
+				? sprintf( __( 'Moving %1$s of %2$s', 'vergelabs-media-library' ), fmt( moved ), fmt( Math.max( moved, goal ) ) )
+				/* translators: %s: pictures moved so far */
+				: sprintf( __( '%s moved so far', 'vergelabs-media-library' ), fmt( moved ) );
 			dom.move.disabled = true;
 			dom.undo.hidden = true;
 			return;

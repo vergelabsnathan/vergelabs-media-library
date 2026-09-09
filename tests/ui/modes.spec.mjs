@@ -867,3 +867,80 @@ for ( const mode of [ 'grid', 'list' ] ) {
 		).toEqual( [] );
 	} );
 }
+
+
+/*
+ *  "Why is it here", where most people meet a picture.
+ *
+ *  The field is kept off `query-attachments` because that listing runs
+ *  attachment_fields_to_edit once per item -- 5.7 queries a picture, measured
+ *  -- and the grid's modal renders from that same response, so until now the
+ *  answer stopped at the attachment's own screen. The modal asks a read-only
+ *  route for the one picture somebody opened instead.
+ *
+ *  Both halves are asserted here, because either alone can pass while the
+ *  thing is broken: the modal says what the record says, and the listing is
+ *  still carrying none of it. Read-only -- it opens a picture that already has
+ *  a record and writes nothing.
+ */
+
+test( 'the grid modal says why a picture is here, and the listing still does not', async ( { page } ) => {
+
+	test.setTimeout( 240000 );
+	await page.setViewportSize( { width: 1600, height: 1000 } );
+
+	await openMode( page, 'grid' );
+
+	/*
+	 *  The listing's own response, read back off the models it filled. The
+	 *  guard this phase must not undo is what keeps the field out of it, and a
+	 *  listing that carries the markup has cost every visitor those queries
+	 *  whether or not anybody opened a picture.
+	 */
+	const inListing = await page.evaluate( () => wp.media.frames.browse.state().get( 'library' )
+		.map( ( m ) => ( ( m.get( 'compat' ) || {} ).item || '' ) )
+		.join( '' )
+		.includes( 'vgml-why-facts' ) );
+
+	expect( inListing, 'the listing response carries no why-is-it-here markup' ).toBe( false );
+
+	/*
+	 *  A picture the record has something to say about, found through the same
+	 *  route the modal uses. Nothing is planted: the box has been filing
+	 *  pictures since Phase 1 and this reads whichever of them comes first.
+	 */
+	const candidates = await api( page, '/wp/v2/media?per_page=100&media_type=image&_fields=id' );
+	let subject = null;
+
+	for ( const { id } of candidates ) {
+		const answer = await api( page, `${ NS }/librarian-why/${ id }` ).catch( () => null );
+		if ( answer && answer.lines && answer.lines.length ) {
+			subject = { id, label: answer.label, lines: answer.lines };
+			break;
+		}
+	}
+
+	expect( subject, `no picture among ${ candidates.length } has a filing record to read` ).toBeTruthy();
+
+	// The modal, opened straight at that picture the way its own deep link does.
+	await page.goto( `/wp-admin/upload.php?item=${ subject.id }`, { waitUntil: 'domcontentloaded' } );
+
+	const frame = page.locator( '.edit-attachment-frame' );
+	await expect( frame, 'the modal opens on that picture' ).toBeVisible( { timeout: 30000 } );
+	await expect( frame.locator( '.vgml-why .vgml-why-facts li' ).first() ).toBeVisible( { timeout: 30000 } );
+
+	expect( await frame.locator( '.vgml-why .name' ).innerText() ).toBe( subject.label );
+
+	const inModal = await frame.locator( '.vgml-why-facts li' ).allInnerTexts();
+
+	await page.screenshot( { path: 'tests/ui/shots/why-here-modal.png', fullPage: true } );
+
+	// And the attachment's own screen, which has answered this since Phase 3.
+	await page.goto( `/wp-admin/post.php?post=${ subject.id }&action=edit`, { waitUntil: 'domcontentloaded' } );
+	await expect( page.locator( '.vgml-why-facts li' ).first() ).toBeVisible( { timeout: 30000 } );
+
+	const onScreen = await page.locator( '.vgml-why-facts li' ).allInnerTexts();
+
+	expect( inModal, 'the modal reads the record, line for line' ).toEqual( subject.lines );
+	expect( inModal, 'and the same lines the attachment\'s own screen shows' ).toEqual( onScreen );
+} );
