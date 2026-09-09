@@ -41,7 +41,32 @@ build that predates all of it.
 
 ## Track A · Selling, today
 
-### A1 · The artefacts are current — about an hour
+### A1 · The artefacts are current — **DONE 2026-09-09**
+
+Both zips rebuilt from `HEAD` with `git archive`, staged, `PLUGIN_RELEASES`
+replaced in Vercel production, deployed twice. Proven by identity, not status:
+
+```
+free catalogue: 3.16.1 (update true)      served 995,959 bytes — sha256 identical to the build
+pro catalogue:  1.0.2  (licence_required) served  25,008 bytes — sha256 identical to the build
+pro 1.0.1 (superseded):                   404
+```
+
+**Pro was bumped to 1.0.2 in the doing**, because six fixes had landed since the
+shipped build and every one was still labelled 1.0.1 — including the licence
+check that could be redirected by another plugin. Different bytes under a
+version already in the wild means no site is ever offered the fix.
+`readme.txt`'s Stable tag also read 1.0.0 against a header of 1.0.1; both read
+1.0.2 now and the changelog says what each version holds.
+
+**Not done in A1:** a clean-install smoke of the served zip on Playground. The
+served bytes are byte-identical to the archive built here and the same code is
+running on the box, but nobody has watched the public file install into an
+empty WordPress.
+
+The original brief for this step, kept:
+
+
 
 **Files.** `plugin/dist/`, `pro/`, `service/public/releases/`, and the
 `PLUGIN_RELEASES` env var in Vercel production.
@@ -70,11 +95,28 @@ step exists to catch.
 
 ### A2 · The money is real — about forty-five minutes, and Nathan is in it
 
+**Nathan says production is already on live keys** (2026-09-09). One thing that
+follows from that and has *not* been checked:
+
+**The webhook.** `stripe-live-setup.ts` creates live products and prices — it
+does **not** create the webhook endpoint. If the keys were flipped to live and
+the endpoint was not re-created in live mode, or its signing secret does not
+match `STRIPE_WEBHOOK_SECRET` in Vercel, then the charge succeeds and the
+licence is never issued. That is precisely the failure already lived through:
+every component returned 200 and the customer got nothing. Check it in the
+Stripe dashboard **in live mode** before buying anything:
+
+- an endpoint pointing at `https://vergelabsmedia.com/api/stripe/webhook`
+- its signing secret equal to `STRIPE_WEBHOOK_SECRET` in Vercel production
+- the events the code handles are subscribed
+
 **Do.**
-1. Confirm production is on **live** Stripe keys. `service/scripts/stripe-live-setup.ts`
-   refuses to run unless `STRIPE_SECRET_KEY` is a live key; it is the script that
-   creates the live-mode products, prices and webhook. Confirm the webhook
-   endpoint and its signing secret are the live ones.
+1. Confirm the four `STRIPE_PRICE_*` ids in production are **live-mode** price
+   ids. If they are not, `vercel env pull --environment=production --yes
+   /tmp/prod.env` then `node --env-file=/tmp/prod.env --import tsx
+   scripts/stripe-live-setup.ts` creates them and prints the ids to set. It is
+   idempotent and refuses to run against a test key. This step is Nathan's: the
+   harness blocks running env-file scripts against production.
 2. **Nathan buys one Single (€39) with a real card**, from
    `vergelabsmedia.com/cart?plan=single`, as a buyer — not as a sequence of
    component checks.
