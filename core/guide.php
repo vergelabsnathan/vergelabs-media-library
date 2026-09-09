@@ -815,7 +815,17 @@ function vergeml_guide_rest_turn( WP_REST_Request $request ) {
             $f['count'] = $fit && isset( $fit['counts'][ $f['key'] ] ) ? (int) $fit['counts'][ $f['key'] ] : null;
         }
         unset( $f );
-        $s['fit'] = $fit;
+        /*
+         *  A run that answered nothing says so.
+         *
+         *  Until here it wrote null, which is the same value a draft with
+         *  nothing to answer about gets, and the screen drew nothing at all --
+         *  no counts, no lines. Silence beside a draft reads as "these folders
+         *  are unchanged", and that is a claim nobody computed. The counts stay
+         *  null; what arrives instead is the sentence saying they are missing,
+         *  in the same list the counts themselves use.
+         */
+        $s['fit'] = $fit ? $fit : vergeml_guide_fit_unknown();
     } else {
         // A rule's draft carries its own counts, computed against this same
         // matcher when the rule was built. Anything else has no draft to
@@ -1053,11 +1063,43 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
     }
 
     return array(
+        'counted' => true,
         'counts'  => $counts,
         'unfiled' => $why,
         'move'    => $move,
         'looked'  => count( $rows ),
         'preview' => $lines,
+    );
+}
+
+/**
+ *  The answer when there is no answer.
+ *
+ *  vergeml_guide_draft_fit() returns null down two roads: it ran past its
+ *  twenty-second budget -- a cold site has some seven hundred phrase vectors to
+ *  fetch, one HTTP call each -- or it could not build a single profile to score
+ *  against. Either way no number is known, and none is invented to fill the
+ *  gap: the fit keeps its shape, `counted` is false, `move` is null rather than
+ *  zero, and the two lines below go where the four counting lines would have.
+ *
+ *  Zero is the wrong answer here and not a smaller one. "0 pictures move" is
+ *  something the matcher says after looking; this is what it says when it never
+ *  finished looking, and an owner about to press Move must be able to tell
+ *  those apart.
+ *
+ *  @return array The fit's own shape, with nothing counted in it.
+ */
+function vergeml_guide_fit_unknown() {
+    return array(
+        'counted' => false,
+        'counts'  => array(),
+        'unfiled' => null,
+        'move'    => null,
+        'looked'  => 0,
+        'preview' => array(
+            array( 'text' => __( 'The counts are not worked out yet', 'vergelabs-media-library' ), 'strong' => true ),
+            array( 'text' => __( 'The next turn should have them', 'vergelabs-media-library' ) ),
+        ),
     );
 }
 

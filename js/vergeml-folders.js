@@ -779,8 +779,29 @@
 		return 'rules' === state.method ? ( state.preview || [] ) : ( ( state.fit && state.fit.preview ) || [] );
 	}
 
+	/*
+	 *  The dry run looked and gave no answer -- it ran past its budget, or it
+	 *  could not score at all. It says so in the lines above; here it takes the
+	 *  numbers away with it. A folder shows no count, the Move button offers
+	 *  none, and nothing on the draft reads as a zero: zero is what the matcher
+	 *  says after looking, and it never finished looking.
+	 *
+	 *  A rule is not this. Its own draft carries counts it computed itself,
+	 *  against this same matcher, when the rule was built.
+	 */
+	function fitUnknown() {
+		return 'rules' !== state.method && !! ( state.fit && false === state.fit.counted );
+	}
+
+	function syncCounted() {
+		if ( view ) {
+			view.setCounted( ! fitUnknown() );
+		}
+	}
+
 	function renderPreview() {
 		var lines = previewLines();
+		syncCounted();
 		dom.preview.innerHTML = '';
 		lines.forEach( function ( line ) {
 			var li = el( 'li' );
@@ -897,11 +918,15 @@
 	 *  which is right for a rule: it only ever adds.
 	 */
 	function movingCount( s ) {
+		if ( fitUnknown() ) {
+			return null;
+		}
 		return state.fit ? Number( state.fit.move ) || 0 : s.moving;
 	}
 
 	function renderMove() {
 		var s = view ? view.summary() : { changes: 0, moving: 0 };
+		syncCounted();
 		var apply = state.session.apply;
 		var moving = apply && apply.running;
 		dom.stop.hidden = ! moving;
@@ -919,8 +944,15 @@
 
 		if ( s.changes > 0 && described ) {
 			var n = movingCount( s );
-			/* translators: %s: pictures */
-			dom.move.textContent = sprintf( _n( 'Move %s picture', 'Move %s pictures', n, 'vergelabs-media-library' ), fmt( n ) );
+			if ( null === n ) {
+				// No count to offer. The button still works -- the draft is
+				// filed the same way whether or not the run finished counting,
+				// and a cold library must not be locked out of Move.
+				dom.move.textContent = __( 'Move the draft', 'vergelabs-media-library' );
+			} else {
+				/* translators: %s: pictures */
+				dom.move.textContent = sprintf( _n( 'Move %s picture', 'Move %s pictures', n, 'vergelabs-media-library' ), fmt( n ) );
+			}
 			dom.move.disabled = false;
 			dom.move.hidden = false;
 		} else {

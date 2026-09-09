@@ -667,6 +667,10 @@
 		this.seen = null;
 		this.overlay = null;
 		this.progress = null;
+		// Whether the draft's counts are known. False only when the caller's
+		// dry run gave no answer: the rows then carry no count at all rather
+		// than the fallback, which for a folder the draft makes is a zero.
+		this.counted = true;
 		this.listEl = null;
 		this.headEl = null;
 		this.findEl = null;
@@ -761,6 +765,24 @@
 	 */
 	TreeView.prototype.setProgress = function ( byTerm ) {
 		this.progress = byTerm && typeof byTerm === 'object' ? byTerm : null;
+		this.render();
+		return this;
+	};
+
+	/*
+	 *  Whether anything is known about how many pictures the draft puts where.
+	 *
+	 *  A draft folder with no count falls back to the live folder's number, and
+	 *  a folder the draft makes has no live folder -- so it falls back to zero
+	 *  and reads as an answer. When the caller's dry run gave none, it says so,
+	 *  and the rows say nothing: no count, and no "after Move" on the card.
+	 */
+	TreeView.prototype.setCounted = function ( known ) {
+		known = false !== known;
+		if ( known === this.counted ) {
+			return this;
+		}
+		this.counted = known;
 		this.render();
 		return this;
 	};
@@ -1053,6 +1075,16 @@
 				var fill = el( 'span', { class: 'vgml-fill', 'aria-hidden': 'true' } );
 				fill.appendChild( el( 'i', { style: 'width:' + Math.min( 100, Math.round( 100 * landed / Math.max( 1, Math.max( landed, shown ) ) ) ) + '%' } ) );
 				row.appendChild( fill );
+			} else if ( this.overlay && ! this.counted && 'removed' !== status ) {
+				/*
+				 *  Nothing. Every number a draft row could show here is an
+				 *  after-Move number, and none was worked out: a folder the
+				 *  draft makes would read 0 and a folder it keeps would read
+				 *  its size today, which is the "unchanged" nobody computed. A
+				 *  removed folder keeps its count -- that one is the size it
+				 *  has now, and the Move is what empties it.
+				 */
+				count = null;
 			} else if ( shown || 'same' !== status ) {
 				count = el( 'span', { class: 'vgml-count' }, fmt( shown ) );
 				if ( entry.was !== null && entry.was !== undefined ) {
@@ -1216,8 +1248,13 @@
 		if ( 'removed' === row.status ) {
 			facts.appendChild( el( 'li', null, entry.sub ) );
 		} else {
-			facts.appendChild( el( 'li', null, sprintf( l10n.afterMove, fmt( row.after ) ) ) );
-			if ( row.from && row.from.length ) {
+			// Same rule as the row's own count: an after-Move number nobody
+			// worked out is left off rather than guessed at, and so is where
+			// the pictures would come from, which is the same arithmetic.
+			if ( this.counted ) {
+				facts.appendChild( el( 'li', null, sprintf( l10n.afterMove, fmt( row.after ) ) ) );
+			}
+			if ( this.counted && row.from && row.from.length ) {
 				var n = 0;
 				var names = [];
 				row.from.forEach( function ( f ) {
@@ -1232,7 +1269,9 @@
 				facts.appendChild( el( 'li', null, entry.sub ) );
 			}
 		}
-		card.appendChild( facts );
+		if ( facts.childNodes.length ) {
+			card.appendChild( facts );
+		}
 
 		if ( row.samples && row.samples.length ) {
 			var thumbs = el( 'div', { class: 'vgml-tv-thumbs' } );
