@@ -807,7 +807,54 @@ if ( ! function_exists( 'vergeml_librarian_why' ) ) {
                 && ! preg_grep( '/^Filed /', $ft_read['lines'] ),
             is_array( $ft_read ) ? implode( ' / ', $ft_read['lines'] ) : 'nothing'
         );
+
+        /*
+         *  It was looked at, and it says so.
+         *
+         *  The date and the batch are as true of a picture the pass refused as
+         *  of one it filed -- the same run, the same day -- and until this line
+         *  existed they were dropped rather than captioned with a verb that
+         *  would have claimed a move nobody made.
+         */
+        ft_check(
+            sprintf( 'the %s picture says when it was looked at, and in which batch', $ft_left ),
+            is_array( $ft_read ) && (int) $ft_read['batch_id'] > 0
+                && (bool) preg_grep( '/^Looked at .+ · batch /u', $ft_read['lines'] ),
+            is_array( $ft_read ) ? implode( ' / ', $ft_read['lines'] ) : 'nothing'
+        );
     }
+
+    /*
+     *  Too close to call, with both folders named.
+     *
+     *  The line had only the runner-up's name in it until `nearest` was stored,
+     *  so it said what the picture was not put in and never what it nearly was.
+     *  Both names are on the row now and both are in the sentence, the one that
+     *  scored best first.
+     */
+    $ft_margin_read = vergeml_librarian_why( (int) $ft_files['margin'] );
+
+    $ft_margin_line = is_array( $ft_margin_read ) ? sprintf(
+        'Left where it was · %s scored %s against %s at %s, too close to call',
+        (string) $ft_margin_read['near'],
+        number_format_i18n( (float) $ft_margin_read['score'], 2 ),
+        (string) $ft_margin_read['runner'],
+        number_format_i18n( (float) $ft_margin_read['runner_score'], 2 )
+    ) : '';
+
+    $ft_margin_pair = is_array( $ft_margin_read )
+        ? array( (string) $ft_margin_read['near'], (string) $ft_margin_read['runner'] )
+        : array();
+
+    sort( $ft_margin_pair );
+
+    ft_check(
+        'the one too close to call names both folders, the one that scored best first',
+        is_array( $ft_margin_read )
+            && array( 'zzTrailA', 'zzTrailC' ) === $ft_margin_pair
+            && in_array( $ft_margin_line, $ft_margin_read['lines'], true ),
+        is_array( $ft_margin_read ) ? implode( ' / ', $ft_margin_read['lines'] ) : 'nothing'
+    );
 
     // The floor's line says the number it missed and the number it had to clear.
     $ft_floor_read = vergeml_librarian_why( (int) $ft_files['floor'] );
@@ -874,6 +921,74 @@ if ( ! function_exists( 'vergeml_librarian_why' ) ) {
     ft_check(
         'a picture with no row at all answers with nothing',
         null === vergeml_librarian_why( (int) $ft_unknown_id )
+    );
+
+    /*
+     *  One answer, two surfaces.
+     *
+     *  The grid's modal cannot have the field -- it renders from the listing's
+     *  response, and the listing is spared this filter on purpose -- so it asks
+     *  a route instead. The thing that must hold is that the route is not a
+     *  second opinion: what it hands the modal is what the attachment's own
+     *  screen puts on the page, line for line, for every outcome.
+     */
+    foreach ( array( 'ok', 'floor', 'margin', 'gated' ) as $ft_which ) {
+
+        $ft_id      = (int) $ft_files[ $ft_which ];
+        $ft_reader  = vergeml_librarian_why( $ft_id );
+        $ft_request = new WP_REST_Request( 'GET', '/vergeml/v1/librarian-why/' . $ft_id );
+
+        $ft_request->set_param( 'id', $ft_id );
+
+        $ft_answer = vergeml_librarian_rest_why( $ft_request );
+
+        ft_check(
+            sprintf( 'the route hands the %s picture the reader\'s own lines', $ft_which ),
+            is_array( $ft_answer ) && isset( $ft_answer['lines'] ) && is_array( $ft_reader )
+                && $ft_answer['lines'] === array_values( $ft_reader['lines'] ),
+            is_array( $ft_answer ) ? implode( ' / ', (array) $ft_answer['lines'] ) : 'nothing'
+        );
+
+        $ft_fields = vergeml_why_here_field( array(), get_post( $ft_id ) );
+        $ft_html   = isset( $ft_fields['vergeml_why_here']['html'] ) ? (string) $ft_fields['vergeml_why_here']['html'] : '';
+        $ft_absent = array();
+
+        foreach ( (array) $ft_reader['lines'] as $ft_line ) {
+            if ( false === strpos( $ft_html, esc_html( $ft_line ) ) ) {
+                $ft_absent[] = $ft_line;
+            }
+        }
+
+        ft_check(
+            sprintf( 'and the attachment\'s own screen shows the %s picture the same ones', $ft_which ),
+            '' !== $ft_html && array() === $ft_absent,
+            $ft_absent ? 'missing: ' . implode( ' / ', $ft_absent ) : sprintf( 'all %d lines', count( (array) $ft_reader['lines'] ) )
+        );
+    }
+
+    $ft_none_request = new WP_REST_Request( 'GET', '/vergeml/v1/librarian-why/' . (int) $ft_unknown_id );
+
+    $ft_none_request->set_param( 'id', (int) $ft_unknown_id );
+
+    $ft_none   = vergeml_librarian_rest_why( $ft_none_request );
+    $ft_nofield = vergeml_why_here_field( array(), get_post( (int) $ft_unknown_id ) );
+
+    ft_check(
+        'a picture with no row gets no lines from the route and no field on the screen',
+        is_array( $ft_none ) && array() === $ft_none['lines'] && ! isset( $ft_nofield['vergeml_why_here'] ),
+        is_array( $ft_none ) ? sprintf( '%d lines', count( (array) $ft_none['lines'] ) ) : 'nothing'
+    );
+
+    // Registered, readable, one picture at a time.
+    $ft_routes = rest_get_server()->get_routes();
+    $ft_route  = '/vergeml/v1/librarian-why/(?P<id>\d+)';
+
+    ft_check(
+        'the route is registered, and it only reads',
+        isset( $ft_routes[ $ft_route ] )
+            && ! empty( $ft_routes[ $ft_route ][0]['methods']['GET'] )
+            && empty( $ft_routes[ $ft_route ][0]['methods']['POST'] ),
+        isset( $ft_routes[ $ft_route ] ) ? implode( ',', array_keys( array_filter( $ft_routes[ $ft_route ][0]['methods'] ) ) ) : 'not registered'
     );
 }
 

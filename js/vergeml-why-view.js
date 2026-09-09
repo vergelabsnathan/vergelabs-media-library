@@ -45,10 +45,27 @@
 	var answers = {};
 	var asking = {};
 
-	/** The right-hand column, wherever this view keeps it. */
-	function column( view ) {
-		var el = view.$el.find( '.attachment-info' );
-		return el.length ? el.first() : view.$el;
+	/**
+	 *  Where the answer goes: under the fields, above the actions.
+	 *
+	 *  `.attachment-compat` is where every other plugin's attachment field is
+	 *  rendered, and where this one is on the attachment's own screen, so the
+	 *  section reads in the same place on both. Failing that the right-hand
+	 *  column, and failing that the view itself -- a fact at the bottom of the
+	 *  panel is worth more than a fact nowhere.
+	 */
+	function place( view, section ) {
+
+		var compat = view.$el.find( '.attachment-compat' );
+
+		if ( compat.length ) {
+			compat.first().after( section );
+			return;
+		}
+
+		var info = view.$el.find( '.attachment-info' );
+
+		( info.length ? info.first() : view.$el ).append( section );
 	}
 
 	function section( id, answer ) {
@@ -95,7 +112,7 @@
 			return;
 		}
 
-		column( view ).append( section( id, answers[ id ] ) );
+		place( view, section( id, answers[ id ] ) );
 	}
 
 	function ask( view ) {

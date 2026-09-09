@@ -904,43 +904,85 @@ test( 'the grid modal says why a picture is here, and the listing still does not
 
 	expect( inListing, 'the listing response carries no why-is-it-here markup' ).toBe( false );
 
+	const ids = await shownIds( page, 'grid' );
+	expect( ids.length, 'the grid has pictures in it' ).toBeGreaterThan( 0 );
+
+	const subject = ids[ 0 ];
+
 	/*
-	 *  A picture the record has something to say about, found through the same
-	 *  route the modal uses. Nothing is planted: the box has been filing
-	 *  pictures since Phase 1 and this reads whichever of them comes first.
+	 *  The route answers, and the listing never asked it.
+	 *
+	 *  Both halves matter: an answer proves the route is registered and this
+	 *  person may read it, and a listing that asked eighty times would have
+	 *  moved the cost off the server and onto the network instead of removing
+	 *  it. Counted from the browser, which is where the requests are.
 	 */
-	const candidates = await api( page, '/wp/v2/media?per_page=100&media_type=image&_fields=id' );
-	let subject = null;
+	const answer = await api( page, `${ NS }/librarian-why/${ subject }` );
 
-	for ( const { id } of candidates ) {
-		const answer = await api( page, `${ NS }/librarian-why/${ id }` ).catch( () => null );
-		if ( answer && answer.lines && answer.lines.length ) {
-			subject = { id, label: answer.label, lines: answer.lines };
-			break;
-		}
-	}
+	expect( answer.id, 'the route answers for the picture it was asked about' ).toBe( subject );
+	expect( Array.isArray( answer.lines ), 'and answers in lines' ).toBe( true );
+	expect( answer.label, 'under the same label the attachment screen uses' ).toBeTruthy();
 
-	expect( subject, `no picture among ${ candidates.length } has a filing record to read` ).toBeTruthy();
+	// Counted from here on, so the question this suite just asked itself is
+	// not mistaken for one the screen asked.
+	const asked = [];
+	page.on( 'request', ( r ) => r.url().includes( '/librarian-why/' ) && asked.push( r.url() ) );
 
-	// The modal, opened straight at that picture the way its own deep link does.
-	await page.goto( `/wp-admin/upload.php?item=${ subject.id }`, { waitUntil: 'domcontentloaded' } );
+	await openMode( page, 'grid' );
+
+	expect( asked, 'the listing asks nothing of the route' ).toEqual( [] );
+
+	/*
+	 *  A record, painted in the modal.
+	 *
+	 *  The lines are fulfilled rather than filed, and that is deliberate: the
+	 *  reader's own answer is proved against real rows in
+	 *  tests/tree/filing-trail.php, which builds all four outcomes and removes
+	 *  them again. What is proved here is the half only a browser can show --
+	 *  that the modal asks when a picture is opened and paints what came back
+	 *  -- and it is proved the same way Phase 5 proved a refused request,
+	 *  which needs no state on the box and cannot rot with the library.
+	 */
+	const LINES = [
+		'In Architecture · scored 0.81',
+		'Ahead of Landscape at 0.44 · by 0.37',
+		'Filed 9 September · batch 23',
+	];
+
+	await page.route( `**/librarian-why/${ subject }**`, ( route ) => route.fulfill( {
+		status: 200,
+		contentType: 'application/json',
+		body: JSON.stringify( { id: subject, label: answer.label, lines: LINES } ),
+	} ) );
+
+	await page.goto( `/wp-admin/upload.php?item=${ subject }`, { waitUntil: 'domcontentloaded' } );
 
 	const frame = page.locator( '.edit-attachment-frame' );
 	await expect( frame, 'the modal opens on that picture' ).toBeVisible( { timeout: 30000 } );
 	await expect( frame.locator( '.vgml-why .vgml-why-facts li' ).first() ).toBeVisible( { timeout: 30000 } );
 
-	expect( await frame.locator( '.vgml-why .name' ).innerText() ).toBe( subject.label );
-
-	const inModal = await frame.locator( '.vgml-why-facts li' ).allInnerTexts();
+	expect( asked.length, 'and asks for the one picture it opened' ).toBeGreaterThan( 0 );
+	expect( await frame.locator( '.vgml-why .name' ).innerText() ).toBe( answer.label );
+	expect( await frame.locator( '.vgml-why-facts li' ).allInnerTexts(), 'line for line, what the record said' ).toEqual( LINES );
 
 	await page.screenshot( { path: 'tests/ui/shots/why-here-modal.png', fullPage: true } );
 
-	// And the attachment's own screen, which has answered this since Phase 3.
-	await page.goto( `/wp-admin/post.php?post=${ subject.id }&action=edit`, { waitUntil: 'domcontentloaded' } );
-	await expect( page.locator( '.vgml-why-facts li' ).first() ).toBeVisible( { timeout: 30000 } );
+	/*
+	 *  And a picture the record has never heard of shows no section at all --
+	 *  not an empty list under a heading, which would be a claim that there is
+	 *  something to read.
+	 */
+	await page.unroute( `**/librarian-why/${ subject }**` );
+	await page.route( `**/librarian-why/${ subject }**`, ( route ) => route.fulfill( {
+		status: 200,
+		contentType: 'application/json',
+		body: JSON.stringify( { id: subject, label: answer.label, lines: [] } ),
+	} ) );
 
-	const onScreen = await page.locator( '.vgml-why-facts li' ).allInnerTexts();
+	await page.goto( `/wp-admin/upload.php?item=${ subject }`, { waitUntil: 'domcontentloaded' } );
+	await expect( frame ).toBeVisible( { timeout: 30000 } );
+	await expect( frame.locator( '.attachment-info' ).first() ).toBeVisible( { timeout: 30000 } );
+	await page.waitForTimeout( 3000 );
 
-	expect( inModal, 'the modal reads the record, line for line' ).toEqual( subject.lines );
-	expect( inModal, 'and the same lines the attachment\'s own screen shows' ).toEqual( onScreen );
+	expect( await frame.locator( '.vgml-why' ).count(), 'no record, no section' ).toBe( 0 );
 } );
