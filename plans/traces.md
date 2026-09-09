@@ -5,9 +5,12 @@ Diagnosis: `docs/superpowers/specs/2026-09-08-traces-diagnosis.md`
 Ticket: `tickets/2026-09-08-traces.md`
 Second ticket: `tickets/2026-09-09-traces-loose-ends.md` — what the build found
 
-**Phases 1, 2 and 3 are done.** Their handoffs are
+**Phases 1, 2, 3 and 3.5 are done.** Their handoffs are
 `docs/handoffs/2026-09-08-traces-phase-1-handoff.md`,
-`…-phase-2-handoff.md` and `docs/handoffs/2026-09-09-traces-phase-3-handoff.md`.
+`…-phase-2-handoff.md`, `docs/handoffs/2026-09-09-traces-phase-3-handoff.md`
+and `docs/handoffs/2026-09-09-traces-phase-3-5-handoff.md`. **Phase 4 is
+next**, and the 3.5 handoff's "found, not done" list is about the tables it
+alters — read it before starting.
 
 Seven phases now, not five. Phase 3 surfaced things that belong in this plan
 rather than in a list nobody runs, so 3.5 and 6 were added on 2026-09-09 and
@@ -164,6 +167,22 @@ that says so, and the assertion is changed to say what it actually measures.
 re-taken when the drift is explained, and re-baselining first destroys the only
 evidence there is. Do not backfill the 109 rows.
 
+**Done 2026-09-09**, by Opus rather than Fable —
+`docs/handoffs/2026-09-09-traces-phase-3-5-handoff.md`. In one line each:
+
+- **The drift is the embedding service, and it is not a defect.** The same
+  phrase does not come back as the same vector; the drift is fourth-decimal and
+  changes no placement. `tools/filing-baseline-check.mjs` is the gate now, and
+  the baseline was not re-taken.
+- **The 109 rows had no reason passed to them, not a reason dropped** —
+  measured by writing one row of each shape and reading it back. So an empty
+  `why` means what the schema says it means. The last step is open and stated
+  as open: no build that has been on the box can have written them, and the
+  batch id was never reused.
+- **`modes.spec:506` was measuring another suite's leftover pictures**, which
+  sit at the top of page one because page one is the newest attachments. Green
+  in both orders now, and it prints the row's picture on a pass.
+
 ## Phase 4 · Who approved it, and the record made true — Opus
 
 Was Sonnet and two nullable columns. It is now a schema change with a
@@ -275,13 +294,26 @@ run the same filing pass on the box over the same pictures and compare the
 placements. **They must be identical.** This work records reasoning; it does
 not change a single decision, and that is the assertion that proves it.
 
-**And that gate is not currently trustworthy.** `tests/tree/filing-baseline.txt`
-has drifted from the box for reasons nobody has found, so the comparison it
-anchors proves nothing yet. **Phase 3.5 exists to answer that before Phase 5
-reaches it.** The one exception the plan now carries to "nothing changes a
-behaviour" is Phase 4's `vergeml_talk_undo()` marking its rows undone — a
-correction to a record, not to a decision, and the placements it produces are
-identical either way.
+**And that gate is run with `node tools/filing-baseline-check.mjs`, not with a
+byte diff.** Phase 3.5 found why the baseline drifts and it is not a defect:
+the matcher scores a folder partly on how alike two class phrases are, each
+class phrase's vector comes from the service, and the service — OpenAI's
+`text-embedding-3-small` — does not answer the same phrase with the same 512
+floats every time. Asked six times, two phrases in nine gave a second answer,
+~1.5e-4 apart. So a score is reproducible to about a thousandth and a
+**placement** is reproducible exactly, the floor and the margin and the depth
+tie-break being two to three orders of magnitude above the noise.
+
+The checker asserts the three things that hold: the library is the one the
+baseline was taken over, every picture would be filed exactly where it was, and
+no score moved further than 0.001. It never re-takes the baseline. Measured on
+2026-09-09: 43 of 641 rows moved in the fourth decimal, no `term_id` and no
+`why` differed, and the check is red on a changed placement, a score outside
+the band, or a missing picture.
+
+The one exception the plan carries to "nothing changes a behaviour" is Phase
+4's `vergeml_talk_undo()` marking its rows undone — a correction to a record,
+not to a decision, and the placements it produces are identical either way.
 
 ## Cost
 
@@ -345,9 +377,13 @@ Paid for between 6 and 9 September, and cheaper to read than to rediscover.
 - **`tests/perf/mu-fit-cold.php` must be on the box**, or `folders.spec`'s
   give-up test fails with *"is tests/perf/mu-fit-cold.php installed?"*. It is
   inert unless a request carries `vgml_fit_cold`.
-- **`modes.spec:506` depends on what ran before it** — 337px with
-  `folders.spec` ahead of it, green without. Phase 3.5 owns this; until then
-  do not read either result as news.
+- **`modes.spec:506` measures page one of the media list**, which is the twenty
+  newest attachments — so fixtures another suite left behind land at the top of
+  what it measures and it reports a screen nobody ships. That was the 337px:
+  eight `zz` pictures dated 8 September among real ones whose newest is dated
+  1 September. Answered in Phase 3.5, green in both orders since. It now prints
+  the tallest row's **picture** on a pass as well as a failure; if it goes red,
+  read that name first.
 - **`shots.spec` can fail once** with `net::ERR_ABORTED` on `page.goto`.
   Re-run the spec alone before believing it.
 - **The `GUIDE_WALK=1` walk moves real pictures and does not undo when it
