@@ -54,7 +54,30 @@ for ( const name of SHEETS ) {
 	console.log( `  wrote  css/${ name }-rtl.css  (${ generated.length } bytes)` );
 }
 
+/*
+ *  And the sheets this file does not generate.
+ *
+ *  css/eml-admin-media.css has an -rtl.css twin that is kept by hand -- it
+ *  came with Enhanced Media Library and was never converted -- and it is not
+ *  in SHEETS above. So `--check` answered "up to date" on 2026-09-09 while
+ *  that twin was missing a whole block somebody had just added to the source,
+ *  and an RTL site would have drawn a list with no indent and no bullet.
+ *
+ *  Not generated here: converting it wholesale would rewrite rules nobody has
+ *  reviewed. Named instead, every run, so the next person editing one of these
+ *  is told there is a second file to edit.
+ */
+const HAND_KEPT = fs.readdirSync( path.join( ROOT, 'css' ) )
+	.filter( ( f ) => f.endsWith( '-rtl.css' ) )
+	.map( ( f ) => f.replace( /-rtl\.css$/, '' ) )
+	.filter( ( name ) => ! SHEETS.includes( name ) );
+
+if ( HAND_KEPT.length ) {
+	console.log( `\n  by hand, not generated -- edit both files:` );
+	HAND_KEPT.forEach( ( name ) => console.log( `         css/${ name }.css  and  css/${ name }-rtl.css` ) );
+}
+
 if ( CHECK ) {
-	console.log( stale ? `\n  ${ stale } RTL sheet(s) behind their source -- run node tools/rtl.mjs` : '  rtl   up to date' );
+	console.log( stale ? `\n  ${ stale } RTL sheet(s) behind their source -- run node tools/rtl.mjs` : '\n  rtl   up to date (of the generated ones)' );
 	process.exit( stale ? 1 : 0 );
 }
