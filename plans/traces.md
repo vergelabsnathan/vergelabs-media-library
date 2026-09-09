@@ -5,12 +5,37 @@ Diagnosis: `docs/superpowers/specs/2026-09-08-traces-diagnosis.md`
 Ticket: `tickets/2026-09-08-traces.md`
 Second ticket: `tickets/2026-09-09-traces-loose-ends.md` — what the build found
 
-**Phases 1, 2, 3 and 3.5 are done.** Their handoffs are
-`docs/handoffs/2026-09-08-traces-phase-1-handoff.md`,
-`…-phase-2-handoff.md`, `docs/handoffs/2026-09-09-traces-phase-3-handoff.md`
-and `docs/handoffs/2026-09-09-traces-phase-3-5-handoff.md`. **Phase 4 is
-next**, and the 3.5 handoff's "found, not done" list is about the tables it
-alters — read it before starting.
+**All seven phases are done**, 2026-09-08 to 2026-09-09. One handoff each, in
+`docs/handoffs/`:
+
+| phase | model named / model run | handoff |
+|---|---|---|
+| 1 · The reason is kept | Opus / Opus 5 | `2026-09-08-traces-phase-1-handoff.md` |
+| 2 · The model stops counting | Opus / Opus 5 | `2026-09-08-traces-phase-2-handoff.md` |
+| 3 · What a person sees | Opus / Opus 5 | `2026-09-09-traces-phase-3-handoff.md` |
+| 3.5 · Why the measurements move | Fable 5.1 / **Opus 5** | `2026-09-09-traces-phase-3-5-handoff.md` |
+| 4 · Who approved it, and the record made true | Opus / Opus 5 | `2026-09-09-traces-phase-4-handoff.md` |
+| 5 · The failure states | Sonnet / Sonnet 5 | `2026-09-09-traces-phase-5-handoff.md` |
+| 6 · The answer where the question is asked | Opus / **Sonnet 5 → Opus 5** | `2026-09-09-traces-phase-6-handoff.md` |
+
+Two phases did not run on the model named. Phase 3.5 ran as Opus and was worked
+as a sequence of narrow measurements rather than one long investigation; the
+Fable fences were kept. Phase 6 opened as Sonnet, said so before any code was
+written, and Nathan switched the session to Opus. Both handoffs record it.
+
+**What is left is Nathan's, not a phase.** Two decisions in the stop points
+below are still open — whether the "share of drafts changed before filing"
+number is shown to the owner, and whether the three hand-kept RTL sheets are
+generated. Neither blocks anything that ships. The Phase 6 handoff also holds
+a "found, not done" list of calls he can overrule.
+
+**One thing the surface needs and the box cannot give.**
+`vergeml_librarian_moves` holds no rows — Phase 4's `gate7-schema.php` took
+batch 18 and batch 23 with them, and nothing has filed since — so every
+picture on the box correctly shows no "why is it here" section, and the
+Phase 6 screenshot is fulfilled test data rather than a real record. The first
+real filing pass repopulates it. `tools/box-why-find.php` (read-only) says the
+state in one line.
 
 Seven phases now, not five. Phase 3 surfaced things that belong in this plan
 rather than in a list nobody runs, so 3.5 and 6 were added on 2026-09-09 and
@@ -41,18 +66,24 @@ catch that.
 - **Whether the "share of drafts changed before filing" number is shown to the
   owner** or only recorded. Recording it is Phase 4; showing it is a surface
   and needs the mock.
-- **Three strings are open**, each named in the phase that needs it:
-  - **Phase 6, not Phase 4** — the "too close to call" line now that `nearest`
-    is stored and it can name both folders. The approved shape was
-    *"Architecture 0.58 and Landscape 0.54, too close to call"*. Phase 4 stored
-    the column and left `core/librarian.php:2908` and `:2910` alone because the
-    string was not settled; it moves here so all three open strings are written
-    in one pass, against both surfaces at once, since Phase 6 is what puts this
-    line in the grid modal.
-  - Phase 6 — the date and batch on an **abstention**, which was looked at
-    rather than filed.
-  - Phase 6 — the **in-flight Move** when no count was worked out. It reads
-    *"Moving 12 of 12"* today.
+- ~~**Three strings are open**~~ — **all three written in Phase 6**,
+  2026-09-09, in one pass against both surfaces. What each says now:
+  - ~~**Phase 6, not Phase 4** — the "too close to call" line now that
+    `nearest` is stored and it can name both folders.~~ Written in
+    `vergeml_librarian_why()` as `Left where it was · %1$s scored %2$s against
+    %3$s at %4$s, too close to call` — the folder that scored best and was
+    refused, then the one it could not beat. Both older variants are gone, and
+    `core/librarian.php`'s two abstention branches are no longer left alone.
+    A row written before `nearest` existed has two of the four values, so the
+    line is omitted there rather than half-written; that is a judgment call in
+    the Phase 6 handoff's "found, not done" and is Nathan's to overrule.
+  - ~~Phase 6 — the date and batch on an **abstention**, which was looked at
+    rather than filed.~~ Written as `Looked at %1$s · batch %2$s`.
+  - ~~Phase 6 — the **in-flight Move** when no count was worked out. It reads
+    *"Moving 12 of 12"* today.~~ Written in `js/vergeml-folders.js` as
+    `%s moved so far`. The `Math.max( moved, goal || 0 )` that copied the
+    moved count into a total nobody worked out is gone; a known goal still
+    reads *"Moving 12 of 40"*.
 - **Whether the three hand-kept RTL sheets should be generated** instead of
   named. Generating rewrites rules nobody has reviewed.
 
