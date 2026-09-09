@@ -282,7 +282,160 @@ test.describe( 'the Folders screen', () => {
 		const onButton = ( await page.locator( '.vgml-move-btn' ).innerText() ).replace( /\D/g, '' );
 		expect( onButton, 'the Move button counts what the dry run counted' ).toBe( String( r.fit.move ) );
 
+		/*
+		 *  Every number the screen paints, against the run that produced it.
+		 *
+		 *  The assertions above are about the answer the route gave. This is
+		 *  about what a person actually reads: a row's own count is the run's
+		 *  number for that folder, and a row standing for a branch is the sum of
+		 *  that branch's numbers and nothing else. They are not the same claim --
+		 *  a folder with no count of its own falls back to the count it has
+		 *  today, and that fallback painted a 0 on a folder the draft invents
+		 *  until the state above it was given a name.
+		 */
+		const kids = {};
+		r.draft.folders.forEach( ( f ) => {
+			( kids[ f.parent || '' ] = kids[ f.parent || '' ] || [] ).push( f.key );
+		} );
+
+		const subtree = ( key ) => ( r.fit.counts[ key ] || 0 )
+			+ ( kids[ key ] || [] ).reduce( ( sum, k ) => sum + subtree( k ), 0 );
+
+		// Each visible row's key and the number on it, without the "was N" that
+		// rides inside the same pill.
+		const painted = await page.evaluate( () => {
+			const out = {};
+			document.querySelectorAll( '.vgml-list .vgml-node[data-key]' ).forEach( ( row ) => {
+				const pill = row.querySelector( '.vgml-count' );
+				if ( ! pill ) {
+					return;
+				}
+				const was = pill.querySelector( '.vgml-was' );
+				out[ row.getAttribute( 'data-key' ) ] = {
+					n: Number( ( was ? pill.textContent.replace( was.textContent, '' ) : pill.textContent ).replace( /[^\d]/g, '' ) ),
+					open: row.getAttribute( 'aria-expanded' ),
+				};
+			} );
+			return out;
+		} );
+
+		expect( Object.keys( painted ).length, 'the draft paints numbers at all' ).toBeGreaterThan( 0 );
+
+		for ( const [ key, seen ] of Object.entries( painted ) ) {
+			// A collapsed branch reads for everything beneath it; anything else
+			// reads for itself.
+			const closed = 'false' === seen.open;
+			const want = closed ? subtree( key ) : ( r.fit.counts[ key ] || 0 );
+			expect( seen.n, `the number on ${ key } is the dry run's` ).toBe( want );
+		}
+
+		// And the folder the draft makes, which has no count of its own to fall
+		// back on: whatever it reads, the run said it.
+		expect( painted.probe1, 'the folder the draft makes carries a number' ).toBeTruthy();
+		expect( painted.probe1.n ).toBe( r.fit.counts.probe1 );
+
+		/*
+		 *  The abstentions, line by line. Each of the three lines carries one
+		 *  number and it is the count of pictures the run refused for that
+		 *  reason -- the negative answer, which is the one the model could never
+		 *  write and the one an owner needs before pressing Move.
+		 */
+		const lines = await page.locator( '.vgml-preview li' ).allInnerTexts();
+
+		expect( lines, 'the lines on screen are the run\'s own' ).toEqual( r.fit.preview.map( ( l ) => l.text ) );
+
+		for ( const [ word, phrase ] of [
+			[ 'floor', 'score below the floor' ],
+			[ 'margin', 'too close to call' ],
+			[ 'gated', 'the wrong kind' ],
+		] ) {
+			const line = lines.find( ( l ) => l.includes( phrase ) );
+			if ( r.fit.unfiled[ word ] ) {
+				expect( line, `${ word } has a line` ).toBeTruthy();
+				expect(
+					Number( line.replace( /[^\d]/g, '' ) ),
+					`the ${ word } line counts the ${ word } abstentions`
+				).toBe( r.fit.unfiled[ word ] );
+			} else {
+				expect( line, `no line claims a ${ word } that did not happen` ).toBeUndefined();
+			}
+		}
+
 		await page.screenshot( { path: 'tests/ui/shots/folders-dry-run.png', fullPage: true } );
+	} );
+
+	/*
+	 *  The other answer the dry run has, and until now the screen had no way
+	 *  of saying it.
+	 *
+	 *  vergeml_guide_draft_fit() stops at its budget and returns null -- a cold
+	 *  library has some seven hundred phrase vectors to fetch, one HTTP call
+	 *  each, and the same run that takes ten seconds warm took two hundred and
+	 *  ten cold. The screen drew nothing at all: no counts, no lines, which
+	 *  beside a draft reads as "these folders are unchanged" and is a claim
+	 *  nobody computed. A folder the draft makes read 0.
+	 *
+	 *  Forced here rather than waited for: tests/perf/mu-fit-cold.php gives the
+	 *  run a budget of nothing when the request carries vgml_fit_cold, so the
+	 *  state is reached on a warm box in one turn. The budget is not raised to
+	 *  avoid the state anywhere -- the state is the point.
+	 */
+	test( 'when the dry run gives up the draft says so, and offers no number at all', async ( { page } ) => {
+		await open( page, SCREEN.dashboard );
+		if ( found === null ) {
+			found = await getSession( page );
+		}
+		const boot = await plant( page, true );
+		const folders = boot.nodes.map( ( n ) => ( { key: 't' + n.id, term_id: n.id, name: n.name, parent: n.parent ? 't' + n.parent : '' } ) );
+		folders.push( { key: 'probe1', term_id: null, name: 'Draft probe', parent: '', count: 12, matches: 'a probe', classes: [ 'probe' ], kinds: [ 'photo' ], audience: '' } );
+
+		const r = await page.evaluate(
+			( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/turn?vgml_fit_cold=1`, method: 'POST', data: { draft } } ),
+			[ NS, { folders, gone: {}, tags: [], origin: 'talk', rule: null } ]
+		);
+
+		expect( r.fit, 'a run that answered nothing still answers' ).not.toBeNull();
+		expect( r.fit.counted, 'and says it counted nothing -- is tests/perf/mu-fit-cold.php installed?' ).toBe( false );
+
+		// Nothing counted, and nothing that could be read as a count.
+		expect( Object.keys( r.fit.counts ) ).toHaveLength( 0 );
+		expect( r.fit.move, 'no number of pictures to move' ).toBeNull();
+		for ( const f of r.draft.folders ) {
+			expect( f.count, `${ f.name } carries no number the dry run did not produce` ).toBeNull();
+		}
+
+		// The line the counts' own list carries instead.
+		expect( r.fit.preview.map( ( l ) => l.text ) ).toEqual( [
+			'The counts are not worked out yet',
+			'The next turn should have them',
+		] );
+
+		await open( page, SCREEN.folders );
+		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
+
+		await expect( page.locator( '.vgml-preview li' ) ).toHaveCount( 2 );
+		await expect( page.locator( '.vgml-preview li' ).first() ).toHaveText( 'The counts are not worked out yet' );
+		await expect( page.locator( '.vgml-preview li' ).last() ).toHaveText( 'The next turn should have them' );
+
+		// No folder wears a number. The fallback for a folder the draft makes
+		// is zero, and that zero was the fabrication this replaces.
+		await expect( page.locator( '.vgml-list .vgml-count' ) ).toHaveCount( 0 );
+
+		// And the button offers none, while still offering the Move: a cold
+		// library is not locked out of filing because a count is missing.
+		const move = page.locator( '.vgml-move-btn' );
+		await expect( move ).toBeEnabled();
+		await expect( move ).toHaveText( 'Move the draft' );
+
+		/*
+		 *  The word itself, over everything beside the conversation: the tree,
+		 *  the lines and the button. A zero is what the matcher says after it
+		 *  has looked, and it never finished looking.
+		 */
+		const draftText = await page.locator( '.vgml-folders-tree' ).innerText();
+		expect( draftText, 'no zero is offered as an answer on the draft' ).not.toMatch( /\b0\b/ );
+
+		await page.screenshot( { path: 'tests/ui/shots/folders-no-counts.png', fullPage: true } );
 	} );
 
 	test( 'the old guide address lands here', async ( { page } ) => {

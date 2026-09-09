@@ -470,6 +470,184 @@ if ( is_array( $ft_hand_row ) ) {
 }
 
 
+/* ------------------------------------------------ why is this picture here */
+
+/*
+ *  The read, against the write above.
+ *
+ *  Everything so far proves the reason reaches the table. This proves a person
+ *  can get it back out: vergeml_librarian_why() over the same four pictures,
+ *  answering with the values vergeml_filing_pick() returned for each of them
+ *  and no others. It reconstructs nothing -- if the reader ever computed a
+ *  score of its own, these numbers would drift from $ft_picks and this section
+ *  is where that shows.
+ */
+
+ft_say( "\nwhy is this picture here\n" );
+
+if ( ! function_exists( 'vergeml_librarian_why' ) ) {
+
+    ft_check( 'core/librarian.php can read a placement back', false, 'no vergeml_librarian_why()' );
+
+} else {
+
+    foreach ( $ft_files as $ft_why => $ft_id ) {
+
+        $ft_read = vergeml_librarian_why( (int) $ft_id );
+        $ft_pick = $ft_picks[ $ft_why ];
+
+        if ( ! is_array( $ft_read ) ) {
+            ft_check( sprintf( 'the %s picture answers', $ft_why ), false, 'nothing came back' );
+            continue;
+        }
+
+        ft_check(
+            sprintf( 'the %s picture answers with the matcher\'s own word', $ft_why ),
+            $ft_why === (string) $ft_read['why'],
+            'said ' . (string) $ft_read['why']
+        );
+
+        ft_check(
+            sprintf( 'the %s picture answers with the score the matcher gave it', $ft_why ),
+            ft_near( $ft_read['score'], $ft_pick['score'] ),
+            sprintf( 'read %.6f, pick %.6f', (float) $ft_read['score'], (float) $ft_pick['score'] )
+        );
+
+        ft_check(
+            sprintf( 'the %s picture names the folder it could not beat, and that folder\'s score', $ft_why ),
+            (int) $ft_read['runner_up'] === (int) $ft_pick['runner_up'] && ft_near( $ft_read['runner_score'], $ft_pick['runner_score'] ),
+            sprintf( 'read %d/%.6f, pick %d/%.6f', (int) $ft_read['runner_up'], (float) $ft_read['runner_score'], (int) $ft_pick['runner_up'], (float) $ft_pick['runner_score'] )
+        );
+
+        ft_check(
+            sprintf( 'the %s picture names the description it rests on', $ft_why ),
+            'zz-model-7' === (string) $ft_read['model_version'] && 'zzhash0123456789' === (string) $ft_read['prompt_hash'],
+            sprintf( '%s / %s', (string) $ft_read['model_version'], (string) $ft_read['prompt_hash'] )
+        );
+
+        // The model and the first of the hash, in a line a person reads.
+        ft_check(
+            sprintf( 'the %s picture says the model and the prompt in a line', $ft_why ),
+            in_array( 'Described by zz-model-7 · prompt zzhash01', $ft_read['lines'], true ),
+            implode( ' / ', $ft_read['lines'] )
+        );
+    }
+
+    /*
+     *  The one it placed says where and why, with both scores and the gap
+     *  between them; the three it refused say they were left alone, and none of
+     *  them claims a folder or a filing.
+     */
+    $ft_ok = vergeml_librarian_why( (int) $ft_files['ok'] );
+
+    ft_check(
+        'the one it filed says the folder it went to',
+        is_array( $ft_ok ) && (int) $ft_ok['term_id'] === (int) $ft_terms['zzTrailA'] && 'zzTrailA' === (string) $ft_ok['term'],
+        is_array( $ft_ok ) ? sprintf( 'term %d, %s', (int) $ft_ok['term_id'], (string) $ft_ok['term'] ) : 'nothing'
+    );
+
+    ft_check(
+        'in a line that carries the folder and the score',
+        is_array( $ft_ok ) && isset( $ft_ok['lines'][0] )
+            && 0 === strpos( $ft_ok['lines'][0], 'In zzTrailA · scored ' ),
+        is_array( $ft_ok ) && isset( $ft_ok['lines'][0] ) ? $ft_ok['lines'][0] : 'no line'
+    );
+
+    ft_check(
+        'and a line for the batch a person approved',
+        is_array( $ft_ok ) && (int) $ft_ok['batch_id'] > 0
+            && (bool) preg_grep( '/^Filed /', $ft_ok['lines'] ),
+        is_array( $ft_ok ) ? 'batch ' . (int) $ft_ok['batch_id'] : 'nothing'
+    );
+
+    foreach ( array( 'floor', 'margin', 'gated' ) as $ft_left ) {
+
+        $ft_read = vergeml_librarian_why( (int) $ft_files[ $ft_left ] );
+
+        ft_check(
+            sprintf( 'the %s picture reads as one that was left where it was', $ft_left ),
+            is_array( $ft_read ) && isset( $ft_read['lines'][0] )
+                && 0 === strpos( $ft_read['lines'][0], 'Left where it was · ' ),
+            is_array( $ft_read ) && isset( $ft_read['lines'][0] ) ? $ft_read['lines'][0] : 'no line'
+        );
+
+        ft_check(
+            sprintf( 'the %s picture claims no folder and no filing', $ft_left ),
+            is_array( $ft_read ) && 0 === (int) $ft_read['term_id'] && '' === (string) $ft_read['term']
+                && ! preg_grep( '/^Filed /', $ft_read['lines'] ),
+            is_array( $ft_read ) ? implode( ' / ', $ft_read['lines'] ) : 'nothing'
+        );
+    }
+
+    // The floor's line says the number it missed and the number it had to clear.
+    $ft_floor_read = vergeml_librarian_why( (int) $ft_files['floor'] );
+
+    ft_check(
+        'the floor is named as the thing the score did not clear',
+        is_array( $ft_floor_read ) && false !== strpos( $ft_floor_read['lines'][0], 'below the floor of ' . number_format_i18n( VERGEML_FILING_FLOOR, 2 ) ),
+        is_array( $ft_floor_read ) ? $ft_floor_read['lines'][0] : 'nothing'
+    );
+
+    // A person's move says a person made it, and offers no score at all.
+    $ft_hand_read = vergeml_librarian_why( (int) $ft_hand_id );
+
+    ft_check(
+        'a picture a person moved says so, and gives no score',
+        is_array( $ft_hand_read ) && array( 'Put here by hand · nothing scored it' ) === array_slice( $ft_hand_read['lines'], 0, 1 )
+            && null === $ft_hand_read['score'],
+        is_array( $ft_hand_read ) ? implode( ' / ', $ft_hand_read['lines'] ) : 'nothing'
+    );
+
+    /*
+     *  And the row that has no reason on it at all -- the shape every move
+     *  written before the trail shipped has. It must read as that and not as a
+     *  blank: a picture whose record says nothing is a different statement from
+     *  a picture nobody has a record of.
+     */
+    $ft_blank_id = ft_file( 'blank', $ft_class, 'photo', '' );
+
+    wp_set_object_terms( (int) $ft_blank_id, array( (int) $ft_terms['zzTrailA'] ), $ft_tax, false );
+
+    $wpdb->insert(
+        $ft_moves,
+        array(
+            'batch_id'      => 0,
+            'attachment_id' => (int) $ft_blank_id,
+            'term_id'       => (int) $ft_terms['zzTrailA'],
+            'term_created'  => 0,
+            'undone'        => 0,
+            'why'           => '',
+            'runner_up'     => 0,
+            'prompt_hash'   => '',
+            'model_version' => '',
+        ),
+        array( '%d', '%d', '%d', '%d', '%d', '%s', '%d', '%s', '%s' )
+    );
+
+    $ft_blank_read = vergeml_librarian_why( (int) $ft_blank_id );
+
+    ft_check(
+        'a move made before any of this was recorded reads as exactly that',
+        is_array( $ft_blank_read ) && array( 'Moved before the reason was recorded' ) === $ft_blank_read['lines'],
+        is_array( $ft_blank_read ) ? implode( ' / ', $ft_blank_read['lines'] ) : 'nothing'
+    );
+
+    ft_check(
+        'and invents no score to fill the gap',
+        is_array( $ft_blank_read ) && null === $ft_blank_read['score'] && null === $ft_blank_read['runner_score'],
+        is_array( $ft_blank_read ) ? sprintf( 'score %s', var_export( $ft_blank_read['score'], true ) ) : 'nothing'
+    );
+
+    // A picture the record has never heard of says nothing rather than something empty.
+    $ft_unknown_id = ft_file( 'unknown', $ft_class, 'photo', '' );
+
+    ft_check(
+        'a picture with no row at all answers with nothing',
+        null === vergeml_librarian_why( (int) $ft_unknown_id )
+    );
+}
+
+
 /* ------------------------------------------------------ an older site upgrades */
 
 ft_say( "\nan older site upgrades\n" );
