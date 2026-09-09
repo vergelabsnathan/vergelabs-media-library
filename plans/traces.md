@@ -441,6 +441,18 @@ Paid for between 6 and 9 September, and cheaper to read than to rediscover.
   reason.
 - **Never deploy while a suite is running against the box.** PHP-FPM restarts
   and a spec fails with a 502 that reads exactly like a regression.
+- **`tests/librarian/gate7-schema.php` drops both librarian tables, on the box,
+  and puts back no rows.** It proves a site that loses its tables gets them
+  back, by losing them — four times — and then fires a real `datetype` apply
+  that leaves the folders it made. Run in Phase 4 for reassurance after a schema
+  bump, it destroyed batch 18's 109 rows and batch 23 and added eleven folders.
+  `log_bin` is OFF on that MariaDB and there is no dump: it does not come back.
+  **Do not run `librarian-schema` against the box until it snapshots and
+  restores those two tables.** Run only the suites the phase names.
+- **The browser specs need an administrator.** `UI_USER` and `UI_PASS`, made
+  with `tools/box-ui-user.sh` and deleted at the end. Without them all 39 tests
+  fail identically at ~22s each, which reads like a broken build and is a
+  missing login.
 - **A suite that stops early leaves its fixtures in the library.** Four
   `zz trail` pictures sat among Nathan's real ones from 8 to 9 September.
   `tools/box-why-clean.php` sweeps both prefixes; run it if a tree suite exits
