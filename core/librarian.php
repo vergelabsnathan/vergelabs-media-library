@@ -2747,3 +2747,248 @@ function vergeml_librarian_page() {
 }
 
 
+/* ------------------------------------------------- why is this picture here */
+
+/**
+ *  What the record says about where one picture sits.
+ *
+ *  The moves table has carried the matcher's reasoning since the trail
+ *  shipped, and nothing has ever read it back. This is the read: the folder,
+ *  the word the matcher used, the score it reached, the folder it could not
+ *  beat, the description the score was computed from, and the batch a person
+ *  approved. All of it out of two tables that were written as a byproduct of
+ *  the move -- nothing here reconstructs a score, and nothing re-runs the
+ *  matcher, because a number worked out now would answer a question about
+ *  today rather than about the day the picture moved.
+ *
+ *  It reads the row that explains where the picture is **now**, which is not
+ *  always the last row written about it. The guide's own undo puts the terms
+ *  back without marking the rows undone, so the newest row can describe a
+ *  move that no longer holds; a row is only allowed to speak for a placement
+ *  the library still agrees with. Failing that, an abstention -- which is a
+ *  statement about a picture that did not move and so cannot go stale. Failing
+ *  both, a row with no reason on it, which says only that the move happened
+ *  before any of this was recorded.
+ *
+ *  One picture, on demand. Nothing calls this from a list.
+ *
+ *  @param int $attachment_id
+ *  @return array|null The row's own values plus the lines that say them, or
+ *                     null when the record has nothing about this picture.
+ */
+function vergeml_librarian_why( $attachment_id ) {
+
+    global $wpdb;
+
+    $attachment_id = (int) $attachment_id;
+
+    if ( ! $attachment_id || ! isset( $wpdb->vergeml_librarian_moves ) ) {
+        return null;
+    }
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table, one picture, on demand.
+    $rows = (array) $wpdb->get_results( $wpdb->prepare(
+        "SELECT * FROM {$wpdb->vergeml_librarian_moves} WHERE attachment_id = %d AND undone = 0 ORDER BY move_id DESC LIMIT 20",
+        $attachment_id
+    ), ARRAY_A );
+
+    if ( ! $rows ) {
+        return null;
+    }
+
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+    $in       = $taxonomy ? wp_get_object_terms( $attachment_id, $taxonomy, array( 'fields' => 'ids' ) ) : array();
+    $in       = is_wp_error( $in ) ? array() : array_map( 'intval', (array) $in );
+
+    $row = null;
+
+    foreach ( $rows as $r ) {
+        if ( (int) $r['term_id'] && in_array( (int) $r['term_id'], $in, true ) ) {
+            $row = $r;
+            break;
+        }
+    }
+
+    if ( ! $row ) {
+        foreach ( $rows as $r ) {
+            if ( 0 === (int) $r['term_id'] && '' !== (string) $r['why'] ) {
+                $row = $r;
+                break;
+            }
+        }
+    }
+
+    /*
+     *  Nothing left that speaks for where the picture is. A row with no reason
+     *  on it still says one true thing -- that the move predates the record --
+     *  so it is kept; a row with a reason that names a folder the picture is no
+     *  longer in is dropped, because repeating it would explain a placement
+     *  that is not the one on screen.
+     */
+    if ( ! $row && '' === (string) $rows[0]['why'] ) {
+        $row = $rows[0];
+    }
+
+    if ( ! $row ) {
+        return null;
+    }
+
+    $why    = (string) $row['why'];
+    $term   = (int) $row['term_id'] ? get_term( (int) $row['term_id'], $taxonomy ) : null;
+    $runner = (int) $row['runner_up'] ? get_term( (int) $row['runner_up'], $taxonomy ) : null;
+    $term   = $term instanceof WP_Term ? $term->name : '';
+    $runner = $runner instanceof WP_Term ? $runner->name : '';
+
+    $score  = null === $row['score'] ? null : (float) $row['score'];
+    $rscore = null === $row['runner_score'] ? null : (float) $row['runner_score'];
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    $filed = (int) $row['batch_id'] ? (string) $wpdb->get_var( $wpdb->prepare(
+        "SELECT created_at FROM {$wpdb->vergeml_librarian_batches} WHERE batch_id = %d",
+        (int) $row['batch_id']
+    ) ) : '';
+
+    $out = array(
+        'why'           => $why,
+        'term_id'       => (int) $row['term_id'],
+        'term'          => $term,
+        'score'         => $score,
+        'runner_up'     => (int) $row['runner_up'],
+        'runner'        => $runner,
+        'runner_score'  => $rscore,
+        'prompt_hash'   => (string) $row['prompt_hash'],
+        'model_version' => (string) $row['model_version'],
+        'batch_id'      => (int) $row['batch_id'],
+        'filed_at'      => $filed,
+        'lines'         => array(),
+    );
+
+    $n = function ( $v ) {
+        return number_format_i18n( (float) $v, 2 );
+    };
+
+    if ( '' === $why ) {
+
+        $out['lines'][] = __( 'Moved before the reason was recorded', 'vergelabs-media-library' );
+        return $out;
+
+    } elseif ( 'by hand' === $why ) {
+
+        $out['lines'][] = __( 'Put here by hand · nothing scored it', 'vergelabs-media-library' );
+
+    } elseif ( 'plan' === $why ) {
+
+        $out['lines'][] = __( 'Chosen in a draft you approved · nothing scored it', 'vergelabs-media-library' );
+
+    } elseif ( $out['term_id'] ) {
+
+        /* translators: 1: a folder name, 2: a score, for example 0.81 */
+        $out['lines'][] = sprintf( __( 'In %1$s · scored %2$s', 'vergelabs-media-library' ), $term, $n( $score ) );
+
+        if ( '' !== $runner && null !== $rscore ) {
+            /* translators: 1: a folder name, 2: that folder's score, 3: the difference between the two scores */
+            $out['lines'][] = sprintf( __( 'Ahead of %1$s at %2$s · by %3$s', 'vergelabs-media-library' ), $runner, $n( $rscore ), $n( $score - $rscore ) );
+        }
+
+    } elseif ( 'floor' === $why ) {
+
+        /* translators: 1: the best score any folder reached, 2: the floor a score has to clear */
+        $out['lines'][] = sprintf( __( 'Left where it was · best score %1$s, below the floor of %2$s', 'vergelabs-media-library' ), $n( $score ), $n( VERGEML_FILING_FLOOR ) );
+
+    } elseif ( 'margin' === $why ) {
+
+        /*
+         *  The best folder's score is on the row; its name is not. The matcher
+         *  knows it -- vergeml_filing_pick() returns it as `nearest` -- and the
+         *  trail has no column for it, so the line names the one folder the
+         *  record can name rather than a folder nothing wrote down.
+         */
+        /* translators: 1: the best score reached, 2: the runner-up's score, 3: the runner-up's folder name */
+        $out['lines'][] = '' !== $runner
+            ? sprintf( __( 'Left where it was · scored %1$s against %2$s for %3$s, too close to call', 'vergelabs-media-library' ), $n( $score ), $n( $rscore ), $runner )
+            /* translators: %s: the best score reached */
+            : sprintf( __( 'Left where it was · scored %s, and the next folder was too close to call', 'vergelabs-media-library' ), $n( $score ) );
+
+    } elseif ( 'gated' === $why ) {
+
+        $out['lines'][] = __( 'Left where it was · the wrong kind for the folder that fit', 'vergelabs-media-library' );
+
+    }
+
+    if ( '' !== $out['model_version'] || '' !== $out['prompt_hash'] ) {
+        /* translators: 1: a model version, 2: the first characters of the prompt's hash */
+        $out['lines'][] = sprintf(
+            __( 'Described by %1$s · prompt %2$s', 'vergelabs-media-library' ),
+            '' === $out['model_version'] ? __( 'an earlier model', 'vergelabs-media-library' ) : $out['model_version'],
+            '' === $out['prompt_hash'] ? __( 'unrecorded', 'vergelabs-media-library' ) : substr( $out['prompt_hash'], 0, 8 )
+        );
+    }
+
+    // Only a picture that was filed was filed in a batch. An abstention was
+    // looked at in one, which is a different sentence and not one this says.
+    if ( $out['term_id'] && $out['batch_id'] ) {
+        /* translators: 1: a date, 2: the batch's number */
+        $out['lines'][] = sprintf(
+            __( 'Filed %1$s · batch %2$s', 'vergelabs-media-library' ),
+            $filed ? wp_date( 'j F', strtotime( $filed . ' UTC' ) ) : __( 'at an unrecorded moment', 'vergelabs-media-library' ),
+            number_format_i18n( $out['batch_id'] )
+        );
+    }
+
+    return $out;
+}
+
+
+/**
+ *  "Why is it here", on every attachment's details.
+ *
+ *  Mirrors "Used in" (core/smart-folders.php): a field beside the delete
+ *  button, answering the one question the screen could not. The list is the
+ *  vgml-facts list the Folders screen uses, so a fact reads the same wherever
+ *  it is read.
+ */
+
+add_filter( 'attachment_fields_to_edit', 'vergeml_why_here_field', 13, 2 );
+
+function vergeml_why_here_field( $fields, $post ) {
+
+    /*
+     *  Not on the way past.
+     *
+     *  This filter is not only the details panel: wp_prepare_attachment_for_js()
+     *  runs it through get_compat_media_markup() for every attachment it
+     *  prepares, and the media grid's own `query-attachments` request prepares
+     *  a whole page of them at once. Two queries a picture is nothing on the
+     *  one picture somebody opened and eighty times that on a listing nobody
+     *  asked this question of. So the listing is left alone and the answer is
+     *  worked out where it is read.
+     */
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading which request this is, not acting on it.
+    if ( wp_doing_ajax() && isset( $_REQUEST['action'] ) && 'query-attachments' === $_REQUEST['action'] ) {
+        return $fields;
+    }
+
+    $why = vergeml_librarian_why( $post->ID );
+
+    if ( ! $why || ! $why['lines'] ) {
+        return $fields; // No record, no claims.
+    }
+
+    $html = '<ul class="vgml-why-facts">';
+
+    foreach ( $why['lines'] as $line ) {
+        $html .= '<li>' . esc_html( $line ) . '</li>';
+    }
+
+    $html .= '</ul>';
+
+    $fields['vergeml_why_here'] = array(
+        'label' => __( 'Why is it here', 'vergelabs-media-library' ),
+        'input' => 'html',
+        'html'  => $html,
+    );
+
+    return $fields;
+}
+
+

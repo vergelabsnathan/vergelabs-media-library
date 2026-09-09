@@ -727,3 +727,41 @@ a.vgml-used-pill:focus-visible {
     font-size: 12px;
     line-height: 1.5;
 }
+
+/*
+ *  "Why is it here": the facts list, mirrored.
+ *
+ *  This sheet is not in tools/rtl.mjs -- it is the one pair kept by hand -- so
+ *  the indent and the brand mark are flipped here rather than generated. The
+ *  geometry is otherwise identical to eml-admin-media.css, which took it from
+ *  .vgml-shell .vgml-facts.
+ */
+.vgml-why-facts {
+    list-style: none;
+    margin: 3px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+    max-width: 44em;
+    color: #646970;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.vgml-why-facts li {
+    position: relative;
+    margin: 0;
+    padding-right: 16px;
+    overflow-wrap: anywhere;
+}
+
+.vgml-why-facts li::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: .5em;
+    width: 7px;
+    height: 7px;
+    border-radius: 1.5px;
+    background: #2b46d8;
+}

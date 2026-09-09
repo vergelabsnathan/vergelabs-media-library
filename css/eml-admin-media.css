@@ -760,3 +760,43 @@ a.vgml-used-pill:focus-visible {
     font-size: 12px;
     line-height: 1.5;
 }
+
+/*
+ *  "Why is it here": the facts list, on a screen that is not the shell.
+ *
+ *  Geometry copied from .vgml-shell .vgml-facts in css/vergeml-shell.css --
+ *  the same 16px indent, the same 7px brand mark with its 1.5px corner, the
+ *  same 4px gap -- because the reader is looking at the same kind of statement
+ *  and should not have to learn a second way of reading it. The accent is the
+ *  literal value that file's --vgml-accent holds; the media modal is outside
+ *  the shell, so there is no variable to inherit here.
+ */
+.vgml-why-facts {
+    list-style: none;
+    margin: 3px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+    max-width: 44em;
+    color: #646970;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.vgml-why-facts li {
+    position: relative;
+    margin: 0;
+    padding-left: 16px;
+    overflow-wrap: anywhere;
+}
+
+.vgml-why-facts li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: .5em;
+    width: 7px;
+    height: 7px;
+    border-radius: 1.5px;
+    background: #2b46d8;
+}
