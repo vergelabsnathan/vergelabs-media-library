@@ -115,6 +115,19 @@ if ( '' === $ft_tax || ! taxonomy_exists( $ft_tax ) ) {
 $ft_moves   = $wpdb->vergeml_librarian_moves;
 $ft_batches = $wpdb->vergeml_librarian_batches;
 
+/*
+ *  The schema, before anything measures it.
+ *
+ *  Not decoration: this suite reads `user_id` off batch rows that exist before
+ *  it starts, and the plugin's upgrade runs on a call path rather than on
+ *  deploy -- so on a box that has just taken a build, the column is not there
+ *  until something creates a batch. tests/tree/auto-file.php and
+ *  tests/tree/nl-commands.php open the same way. The upgrade check further
+ *  down puts the table back to the old shape on purpose and lets the lazy
+ *  install fix it again, which this does not affect.
+ */
+vergeml_librarian_maybe_install();
+
 ft_say( "\nthe reason a picture moved\n\n" );
 
 
@@ -297,7 +310,27 @@ $ft_undo_before  = get_option( VERGEML_TALK_UNDO );
  *  this run's own rows are in, and never touches an id that was already here.
  */
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$ft_batch_before = array_map( 'intval', (array) $wpdb->get_col( "SELECT batch_id FROM {$ft_batches}" ) );
+$ft_batch_rows = (array) $wpdb->get_results( "SELECT batch_id, user_id, params FROM {$ft_batches}", ARRAY_A );
+
+$ft_batch_before  = array();
+$ft_actor_before  = array();
+$ft_params_before = array();
+
+foreach ( $ft_batch_rows as $ft_b ) {
+    $ft_batch_before[] = (int) $ft_b['batch_id'];
+    $ft_actor_before[ (int) $ft_b['batch_id'] ]  = (int) $ft_b['user_id'];
+    /*
+     *  And what each of them said about itself.
+     *
+     *  The pass below writes into whatever refile batch is open for the day,
+     *  which on this box is one cron made this morning -- and the undo further
+     *  down then stamps that batch with who undid it. That stamp is true of
+     *  this run and false of the batch, so it is taken off again in the
+     *  teardown. A suite that leaves a real batch claiming a person undid it
+     *  is the same class of thing as a suite that deletes one.
+     */
+    $ft_params_before[ (int) $ft_b['batch_id'] ] = (string) $ft_b['params'];
+}
 
 $ft_after = min( array_values( $ft_files ) ) - 1;
 
@@ -322,6 +355,36 @@ if ( 4 !== $ft_reach ) {
     ft_report();
     exit( 1 );
 }
+
+/*
+ *  Somebody presses it.
+ *
+ *  The batch a Move creates records who asked for it, and under WP-CLI nobody
+ *  is logged in -- so without this the suite would only ever see the 0 that
+ *  means cron, and could not tell a working column from a column that is
+ *  always 0. Put back to nobody at the end of the actor section below.
+ */
+wp_set_current_user( 1 );
+
+/*
+ *  A clean undo record for the pass to merge into.
+ *
+ *  vergeml_talk_refile_run() unions what it moved onto whatever is already in
+ *  the option, and on the box that option is Nathan's own last Move. The undo
+ *  further down runs for real, so it has to be handed a record that names this
+ *  suite's pictures and nothing else -- a real undo over a merged record would
+ *  put somebody's whole library back. `made` is empty on purpose: this undo
+ *  unmakes no folder.
+ */
+update_option( VERGEML_TALK_UNDO, array(
+    'terms' => array(
+        array( 'term_id' => (int) $ft_terms['zzTrailA'], 'name' => 'zzTrailA', 'parent' => '' ),
+        array( 'term_id' => (int) $ft_terms['zzTrailC'], 'name' => 'zzTrailC', 'parent' => '' ),
+    ),
+    'files' => array(),
+    'made'  => array(),
+    'until' => time() + DAY_IN_SECONDS,
+), false );
 
 update_option( VERGEML_TALK_STATE, array(
     'active'   => true,
@@ -350,6 +413,10 @@ $ft_done = vergeml_talk_refile_run( microtime( true ) + 20.0 );
 
 ft_check( 'the pass looked at four pictures and no others', 4 === (int) $ft_done['seen'], (int) $ft_done['seen'] . ' seen' );
 ft_check( 'it filed the one that fits and left three', 1 === (int) $ft_done['moved'] && 3 === (int) $ft_done['skipped'] );
+
+// What the pass left for undo, kept so the undo section below can be handed
+// exactly this and nothing of anybody else's.
+$ft_undo_after = get_option( VERGEML_TALK_UNDO );
 
 // Put the screen's own state back before anything else can read it.
 if ( false === $ft_state_before ) {
@@ -404,6 +471,19 @@ foreach ( $ft_files as $ft_why => $ft_id ) {
         sprintf( 'row %d/%.6f, pick %d/%.6f', (int) $ft_row['runner_up'], (float) $ft_row['runner_score'], (int) $ft_pick['runner_up'], (float) $ft_pick['runner_score'] )
     );
 
+    /*
+     *  The folder it nearly went to. vergeml_filing_pick() returns `nearest`
+     *  only when it refused -- on a placement the folder it chose is already
+     *  the row -- so the expectation is the pick's own answer either way, and
+     *  a placement asserting 0 is as much the point as a refusal asserting a
+     *  folder.
+     */
+    ft_check(
+        sprintf( 'the %s row carries the folder it nearly went to', $ft_why ),
+        (int) $ft_row['nearest'] === ( isset( $ft_pick['nearest'] ) ? (int) $ft_pick['nearest'] : 0 ),
+        sprintf( 'row %d, pick %d', (int) $ft_row['nearest'], isset( $ft_pick['nearest'] ) ? (int) $ft_pick['nearest'] : 0 )
+    );
+
     ft_check(
         sprintf( 'the %s row points back at the description it rests on', $ft_why ),
         'zzhash0123456789' === (string) $ft_row['prompt_hash'] && 'zz-model-7' === (string) $ft_row['model_version'],
@@ -436,6 +516,50 @@ ft_check( 'three of them are abstentions, written as rows with no folder', 3 ===
 $ft_negative = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$ft_moves} WHERE term_id = 0 AND why <> ''" );
 
 ft_check( 'the negative question has an answer to return', $ft_negative >= 3, $ft_negative . ' pictures the evidence would not place' );
+
+
+/* --------------------------------------------- a reused batch keeps its own */
+
+ft_say( "\nwho approved it\n" );
+
+$ft_pass_batch = 0;
+
+foreach ( $ft_rows as $ft_r ) {
+    $ft_pass_batch = (int) $ft_r['batch_id'];
+    break;
+}
+
+/*
+ *  vergeml_autofile_batch() hands out one open batch per scheme per day, so a
+ *  pass a person starts often writes into a batch something else already made
+ *  -- on this box, a re-filing pass that cron began at 06:35. The actor is the
+ *  batch's, not the row's, and the batch belongs to whoever made it: a Move at
+ *  ten o'clock does not turn a batch cron opened at six into that person's
+ *  doing. So a reused batch keeps the actor it was made with, and the check is
+ *  that nothing overwrote it.
+ */
+if ( in_array( $ft_pass_batch, $ft_batch_before, true ) ) {
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $ft_reused = (int) $wpdb->get_var( $wpdb->prepare( "SELECT user_id FROM {$ft_batches} WHERE batch_id = %d", $ft_pass_batch ) );
+
+    ft_check(
+        'a batch that was already open keeps the actor it was made with',
+        $ft_reused === (int) $ft_actor_before[ $ft_pass_batch ],
+        sprintf( 'batch %d: was %d, is %d', $ft_pass_batch, (int) $ft_actor_before[ $ft_pass_batch ], $ft_reused )
+    );
+
+} else {
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $ft_made = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$ft_batches} WHERE batch_id = %d", $ft_pass_batch ), ARRAY_A );
+
+    ft_check(
+        'the batch this pass made names the person who started it',
+        is_array( $ft_made ) && 1 === (int) $ft_made['user_id'] && null !== $ft_made['approved_at'],
+        is_array( $ft_made ) ? sprintf( 'user_id %d', (int) $ft_made['user_id'] ) : 'no batch row'
+    );
+}
 
 
 /* -------------------------------------------------------- a person decides */
@@ -476,7 +600,90 @@ if ( is_array( $ft_hand_row ) ) {
             null === $ft_hand_row['score'] ? 'null' : (string) $ft_hand_row['score'],
             null === $ft_hand_row['runner_score'] ? 'null' : (string) $ft_hand_row['runner_score'] )
     );
+
+    /*
+     *  And the batch it went into says who did it.
+     *
+     *  This is the one a person unambiguously caused: a spoken command, typed
+     *  by somebody who is logged in. The re-filing batch above may be one cron
+     *  opened earlier in the day, which is why the person is proved here.
+     */
+    $ft_spoken_batch = (int) $ft_hand_row['batch_id'];
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $ft_spoken_row = $wpdb->get_row( $wpdb->prepare(
+        "SELECT * FROM {$ft_batches} WHERE batch_id = %d",
+        $ft_spoken_batch
+    ), ARRAY_A );
+
+    if ( in_array( $ft_spoken_batch, $ft_batch_before, true ) ) {
+
+        ft_check(
+            'the batch it went into was already open, and kept its own actor',
+            is_array( $ft_spoken_row ) && (int) $ft_spoken_row['user_id'] === (int) $ft_actor_before[ $ft_spoken_batch ],
+            sprintf( 'batch %d reused', $ft_spoken_batch )
+        );
+
+    } else {
+
+        ft_check(
+            'the batch it made names the person who pressed it',
+            is_array( $ft_spoken_row ) && 1 === (int) $ft_spoken_row['user_id'],
+            is_array( $ft_spoken_row ) ? 'user_id ' . (string) $ft_spoken_row['user_id'] : 'no batch row'
+        );
+
+        ft_check(
+            'and the moment they did',
+            is_array( $ft_spoken_row ) && null !== $ft_spoken_row['approved_at'],
+            is_array( $ft_spoken_row ) ? 'approved_at ' . ( null === $ft_spoken_row['approved_at'] ? 'NULL' : (string) $ft_spoken_row['approved_at'] ) : 'no batch row'
+        );
+    }
 }
+
+/*
+ *  The other reading, and it matters as much: a batch nobody pressed.
+ *
+ *  Cron, the nightly watch and WP-CLI file with no user, and 0 beside a null
+ *  moment has to keep meaning "nobody pressed anything" rather than reading
+ *  like a column that failed to fill. Written through the same function that
+ *  writes the ones above, with nobody logged in.
+ */
+wp_set_current_user( 0 );
+
+$ft_nobody = (int) vergeml_autofile_batch( 'auto' );
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$ft_nobody_row = $wpdb->get_row( $wpdb->prepare(
+    "SELECT * FROM {$ft_batches} WHERE batch_id = %d",
+    $ft_nobody
+), ARRAY_A );
+
+if ( in_array( $ft_nobody, $ft_batch_before, true ) ) {
+
+    ft_check(
+        'an auto batch was already open, and kept its own actor',
+        is_array( $ft_nobody_row ) && (int) $ft_nobody_row['user_id'] === (int) $ft_actor_before[ $ft_nobody ],
+        sprintf( 'batch %d reused', $ft_nobody )
+    );
+
+} else {
+
+    ft_check(
+        'a batch nobody pressed records nobody, not a guess',
+        is_array( $ft_nobody_row ) && 0 === (int) $ft_nobody_row['user_id'] && null === $ft_nobody_row['approved_at'],
+        is_array( $ft_nobody_row )
+            ? sprintf( 'user_id %d, approved_at %s', (int) $ft_nobody_row['user_id'], null === $ft_nobody_row['approved_at'] ? 'NULL' : (string) $ft_nobody_row['approved_at'] )
+            : 'no batch row'
+    );
+
+    // It carries no move rows, so the teardown's "batches this run caused"
+    // cannot see it. Made here, removed here.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $wpdb->delete( $ft_batches, array( 'batch_id' => $ft_nobody ), array( '%d' ) );
+}
+
+// Back to the person, for the undo further down.
+wp_set_current_user( 1 );
 
 
 /* ------------------------------------------------ why is this picture here */
@@ -526,6 +733,20 @@ if ( ! function_exists( 'vergeml_librarian_why' ) ) {
             sprintf( 'the %s picture names the folder it could not beat, and that folder\'s score', $ft_why ),
             (int) $ft_read['runner_up'] === (int) $ft_pick['runner_up'] && ft_near( $ft_read['runner_score'], $ft_pick['runner_score'] ),
             sprintf( 'read %d/%.6f, pick %d/%.6f', (int) $ft_read['runner_up'], (float) $ft_read['runner_score'], (int) $ft_pick['runner_up'], (float) $ft_pick['runner_score'] )
+        );
+
+        /*
+         *  Both folders, read back out of the record: the one it could not
+         *  beat, above, and the one it nearly went to, here. The margin line
+         *  itself still names only the runner-up -- the wording that would say
+         *  both is Nathan's and is not settled -- so this asserts the values
+         *  the reader now hands over, which is what that string will use.
+         */
+        ft_check(
+            sprintf( 'the %s picture names the folder it nearly went to', $ft_why ),
+            (int) $ft_read['nearest'] === ( isset( $ft_pick['nearest'] ) ? (int) $ft_pick['nearest'] : 0 )
+                && ( 0 === (int) $ft_read['nearest'] ? '' === (string) $ft_read['near'] : '' !== (string) $ft_read['near'] ),
+            sprintf( 'read %d "%s", pick %d', (int) $ft_read['nearest'], (string) $ft_read['near'], isset( $ft_pick['nearest'] ) ? (int) $ft_pick['nearest'] : 0 )
         );
 
         ft_check(
@@ -657,11 +878,117 @@ if ( ! function_exists( 'vergeml_librarian_why' ) ) {
 }
 
 
+/* ------------------------------------------ a guide undo says it was undone */
+
+ft_say( "\nand an undo says so\n" );
+
+/*
+ *  The one behaviour change in this work, and it corrects a record rather than
+ *  a decision.
+ *
+ *  vergeml_talk_undo() put the terms back and left every row it reversed
+ *  saying undone = 0, which is the same value a row that was never undone
+ *  carries -- so the table went on asserting placements that had just been
+ *  taken back, and vergeml_librarian_why() had to work around it by checking
+ *  whether the picture was still in the folder its own row named.
+ *
+ *  This runs the real undo. It is handed back exactly the record the pass
+ *  wrote and nothing of anybody else's -- the option was seeded before the
+ *  pass and Nathan's own is restored below -- because an undo over a merged
+ *  record would put a whole library back to prove a point about a column.
+ */
+$ft_moved_id = 0;
+
+foreach ( $ft_rows as $ft_aid => $ft_r ) {
+    if ( (int) $ft_r['term_id'] ) {
+        $ft_moved_id = (int) $ft_aid;
+        break;
+    }
+}
+
+ft_check( 'the pass placed one picture, which is the one an undo takes back', 0 !== $ft_moved_id, 'no placement to undo' );
+
+update_option( VERGEML_TALK_UNDO, $ft_undo_after, false );
+
+$ft_undone = vergeml_talk_undo();
+
+ft_check(
+    'the undo ran and put the picture back',
+    is_array( $ft_undone ) && (int) $ft_undone['restored'] >= 1,
+    is_wp_error( $ft_undone ) ? $ft_undone->get_error_message() : sprintf( '%d restored', is_array( $ft_undone ) ? (int) $ft_undone['restored'] : 0 )
+);
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$ft_moved_row = $wpdb->get_row( $wpdb->prepare(
+    "SELECT * FROM {$ft_moves} WHERE attachment_id = %d AND term_id <> 0 ORDER BY move_id DESC LIMIT 1",
+    $ft_moved_id
+), ARRAY_A );
+
+ft_check(
+    'the row that claimed the move is marked undone',
+    is_array( $ft_moved_row ) && 1 === (int) $ft_moved_row['undone'],
+    is_array( $ft_moved_row ) ? 'undone ' . (string) $ft_moved_row['undone'] : 'no row'
+);
+
+/*
+ *  And the three that were only looked at are not. An abstention records a
+ *  picture that did not move; an undo reverses nothing there, and marking it
+ *  would delete the only answer the negative question has.
+ */
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids are cast to int above.
+$ft_abstain_marked = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$ft_moves} WHERE attachment_id IN ($ft_in) AND term_id = 0 AND undone = 1" );
+
+ft_check( 'the abstentions are left alone -- nothing moved, so nothing was reversed', 0 === $ft_abstain_marked, $ft_abstain_marked . ' marked' );
+
+ft_check(
+    'and the reader no longer answers with a placement that was taken back',
+    null === vergeml_librarian_why( $ft_moved_id ),
+    'still answering'
+);
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$ft_undo_batch = $wpdb->get_row( $wpdb->prepare(
+    "SELECT * FROM {$ft_batches} WHERE batch_id = %d",
+    $ft_pass_batch
+), ARRAY_A );
+
+$ft_undo_params = is_array( $ft_undo_batch ) ? json_decode( (string) $ft_undo_batch['params'], true ) : array();
+
+ft_check(
+    'the undo names its own actor',
+    is_array( $ft_undo_params )
+        && isset( $ft_undo_params['undo']['user_id'], $ft_undo_params['undo']['at'] )
+        && 1 === (int) $ft_undo_params['undo']['user_id'],
+    is_array( $ft_undo_params ) && isset( $ft_undo_params['undo']['user_id'] )
+        ? sprintf( 'undone by %d at %s', (int) $ft_undo_params['undo']['user_id'], (string) $ft_undo_params['undo']['at'] )
+        : 'no undo actor'
+);
+
+/*
+ *  And beside it, not over it. `user_id` on the row is who approved the Move;
+ *  an undo writing there would lose the one fact the column was added for.
+ */
+$ft_approver_was = isset( $ft_actor_before[ $ft_pass_batch ] ) ? (int) $ft_actor_before[ $ft_pass_batch ] : 1;
+
+ft_check(
+    'and does not write over who approved the Move',
+    is_array( $ft_undo_batch ) && (int) $ft_undo_batch['user_id'] === $ft_approver_was,
+    is_array( $ft_undo_batch ) ? sprintf( 'approved by %d, was %d', (int) $ft_undo_batch['user_id'], $ft_approver_was ) : 'no batch row'
+);
+
+// Nathan's own record back, immediately.
+if ( false === $ft_undo_before ) {
+    delete_option( VERGEML_TALK_UNDO );
+} else {
+    update_option( VERGEML_TALK_UNDO, $ft_undo_before, false );
+}
+
+
 /* ------------------------------------------------------ an older site upgrades */
 
 ft_say( "\nan older site upgrades\n" );
 
-$ft_new_columns = array( 'why', 'score', 'runner_up', 'runner_score', 'prompt_hash', 'model_version' );
+$ft_new_columns = array( 'why', 'score', 'runner_up', 'runner_score', 'prompt_hash', 'model_version', 'nearest' );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
 $ft_have = (array) $wpdb->get_col( "SHOW COLUMNS FROM {$ft_moves}" );
@@ -728,7 +1055,19 @@ $ft_have = (array) $wpdb->get_col( "SHOW COLUMNS FROM {$ft_moves}" );
 
 $ft_missing = array_values( array_diff( $ft_new_columns, $ft_have ) );
 
-ft_check( 'the upgrade puts all six columns back', ! $ft_missing, $ft_missing ? implode( ', ', $ft_missing ) . ' still missing' : '' );
+ft_check( 'the upgrade puts every reason column back', ! $ft_missing, $ft_missing ? implode( ', ', $ft_missing ) . ' still missing' : '' );
+
+/*
+ *  The batches table's pair too. They were dropped by the same DROP above only
+ *  if they were there, so this is the same question asked of the other table:
+ *  a site that upgrades without ever visiting wp-admin still gets them.
+ */
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+$ft_bhave = (array) $wpdb->get_col( "SHOW COLUMNS FROM {$ft_batches}" );
+
+$ft_bmissing = array_values( array_diff( array( 'user_id', 'approved_at' ), $ft_bhave ) );
+
+ft_check( 'and the batch knows who approved it', ! $ft_bmissing, $ft_bmissing ? implode( ', ', $ft_bmissing ) . ' missing' : '' );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $ft_kept = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$ft_moves} WHERE move_id = %d", $ft_legacy_row ), ARRAY_A );
@@ -887,6 +1226,43 @@ ft_check(
     'the re-filing state is as it found it',
     ( false === $ft_state_before ? false === get_option( VERGEML_TALK_STATE ) : get_option( VERGEML_TALK_STATE ) === $ft_state_before )
 );
+
+/*
+ *  What the batches that were already here said about themselves, back.
+ *
+ *  Only the ones this run changed, and each back to the exact string it had.
+ */
+$ft_params_put = 0;
+
+foreach ( $ft_params_before as $ft_bid => $ft_was ) {
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $ft_now_params = $wpdb->get_var( $wpdb->prepare( "SELECT params FROM {$ft_batches} WHERE batch_id = %d", (int) $ft_bid ) );
+
+    if ( null === $ft_now_params || (string) $ft_now_params === $ft_was ) {
+        continue;
+    }
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $wpdb->update( $ft_batches, array( 'params' => $ft_was ), array( 'batch_id' => (int) $ft_bid ), array( '%s' ), array( '%d' ) );
+
+    $ft_params_put++;
+}
+
+ft_say( sprintf( "  put back what %d batch%s said about itself\n", $ft_params_put, 1 === $ft_params_put ? '' : 'es' ) );
+
+$ft_params_wrong = 0;
+
+foreach ( $ft_params_before as $ft_bid => $ft_was ) {
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $ft_now_params = $wpdb->get_var( $wpdb->prepare( "SELECT params FROM {$ft_batches} WHERE batch_id = %d", (int) $ft_bid ) );
+    if ( null !== $ft_now_params && (string) $ft_now_params !== $ft_was ) {
+        $ft_params_wrong++;
+    }
+}
+
+ft_check( 'no batch that was already here says anything new about itself', 0 === $ft_params_wrong, $ft_params_wrong . ' changed' );
+
 
 /* ------------------------------------- and nobody else's record was touched */
 

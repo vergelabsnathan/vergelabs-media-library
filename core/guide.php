@@ -2106,6 +2106,8 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
                 (float) $pick['score'],
                 (int) $pick['runner_up'],
                 (float) $pick['runner_score'],
+                // The folder it scored best and refused anyway; 0 on a placement.
+                isset( $pick['nearest'] ) ? (int) $pick['nearest'] : 0,
             );
 
             if ( $pick['term_id'] ) {

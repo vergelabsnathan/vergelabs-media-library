@@ -585,10 +585,13 @@ function vergeml_talk_vector( $folder ) {
  *                                  pictures of a folder that goes end up when
  *                                  the evidence says nothing.
  *                       'reasons'  attachment id => [ why, score, runner_up,
- *                                  runner_score ]: what the matcher said about
- *                                  each picture the rule judged, so the move
- *                                  can record it and a picture the rule would
- *                                  not place can be recorded as exactly that.
+ *                                  runner_score, nearest ]: what the matcher
+ *                                  said about each picture the rule judged, so
+ *                                  the move can record it and a picture the
+ *                                  rule would not place can be recorded as
+ *                                  exactly that. `nearest` is the folder a
+ *                                  refusal was about and is optional -- a
+ *                                  tuple packed before it shipped has four.
  * @return array|WP_Error What happened.
  */
 function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
@@ -1120,7 +1123,7 @@ function vergeml_talk_refile_run( $deadline ) {
 				$trail[] = array(
 					$attachment,
 					0,
-					vergeml_talk_reason( array( $why, $pick['score'], $pick['runner_up'], $pick['runner_score'] ), $row ),
+					vergeml_talk_reason( array( $why, $pick['score'], $pick['runner_up'], $pick['runner_score'], isset( $pick['nearest'] ) ? $pick['nearest'] : 0 ), $row ),
 				);
 				/*
 				 *  Nothing fits well enough, so it is left where it is -- unless
@@ -1170,7 +1173,7 @@ function vergeml_talk_refile_run( $deadline ) {
 			$trail[] = array(
 				$attachment,
 				(int) $pick['term_id'],
-				vergeml_talk_reason( array( $pick['why'], $pick['score'], $pick['runner_up'], $pick['runner_score'] ), $row ),
+				vergeml_talk_reason( array( $pick['why'], $pick['score'], $pick['runner_up'], $pick['runner_score'], isset( $pick['nearest'] ) ? $pick['nearest'] : 0 ), $row ),
 			);
 		}
 
@@ -1242,6 +1245,12 @@ function vergeml_talk_reason( $packed, $row ) {
 	$reason['runner_up']    = (int) $packed[2];
 	$reason['runner_score'] = (float) $packed[3];
 
+	// The folder it nearly went to, on a refusal. Optional: a tuple packed by a
+	// plan already in flight across a deploy has four entries and no fifth.
+	if ( isset( $packed[4] ) ) {
+		$reason['nearest'] = (int) $packed[4];
+	}
+
 	return $reason;
 }
 
@@ -1278,6 +1287,27 @@ function vergeml_talk_trail_write( $trail ) {
 	}
 
 	vergeml_librarian_moves_insert( $moves );
+
+	/*
+	 *  Which batches this Move's rows are in, kept beside the undo record.
+	 *
+	 *  The undo restores terms from that record and has no other way to find
+	 *  the rows it just reversed: a picture can have older rows from earlier
+	 *  passes, and marking those would say an undo reversed a move it never
+	 *  touched. A large pass runs over several cron slices and writes to the
+	 *  same day's batch each time, so this is a set rather than a value.
+	 */
+	$before = get_option( VERGEML_TALK_UNDO );
+
+	if ( is_array( $before ) ) {
+
+		$batches   = isset( $before['batches'] ) ? array_map( 'intval', (array) $before['batches'] ) : array();
+		$batches[] = (int) $batch_id;
+
+		$before['batches'] = array_values( array_unique( $batches ) );
+
+		update_option( VERGEML_TALK_UNDO, $before, false );
+	}
 }
 
 
@@ -1657,7 +1687,8 @@ function vergeml_talk_undo() {
 		}
 	}
 
-	$put = 0;
+	$put      = 0;
+	$restored = array();
 
 	foreach ( (array) $before['files'] as $attachment => $terms ) {
 
@@ -1671,6 +1702,27 @@ function vergeml_talk_undo() {
 
 		wp_set_object_terms( (int) $attachment, $back, $taxonomy, false );
 		$put++;
+		$restored[] = (int) $attachment;
+	}
+
+	/*
+	 *  And the record says so.
+	 *
+	 *  Putting the terms back without marking the rows left the table asserting
+	 *  placements that had just been reversed -- the one correction in this
+	 *  work, and it corrects a record rather than a decision. Only the rows
+	 *  this Move's own passes wrote, only the pictures actually put back, and
+	 *  never an abstention: nothing moved there, so nothing was reversed.
+	 */
+	$batches = isset( $before['batches'] ) ? (array) $before['batches'] : array();
+
+	$marked = function_exists( 'vergeml_librarian_moves_undone' )
+		? vergeml_librarian_moves_undone( $batches, $restored )
+		: 0;
+
+	// And who pressed it, beside what it did.
+	if ( function_exists( 'vergeml_librarian_batches_undone_by' ) ) {
+		vergeml_librarian_batches_undone_by( $batches, (int) get_current_user_id() );
 	}
 
 	// The tags the guide made go with the folders; deleting a term takes it off every picture.
@@ -1706,6 +1758,7 @@ function vergeml_talk_undo() {
 	return array(
 		'restored' => $put,
 		'unmade'   => $unmade,
+		'marked'   => $marked,
 		'message'  => sprintf(
 			/* translators: %s: how many pictures went back. */
 			_n( '%s picture put back.', '%s pictures put back.', $put, 'vergelabs-media-library' ),

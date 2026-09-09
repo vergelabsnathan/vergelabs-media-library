@@ -47,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 const VERGEML_LIBRARIAN_BATCHES = 'vergeml_librarian_batches';
 const VERGEML_LIBRARIAN_MOVES   = 'vergeml_librarian_moves';
-const VERGEML_LIBRARIAN_VERSION = 2; // 2: a move records why it went there.
+const VERGEML_LIBRARIAN_VERSION = 3; // 3: a batch records who approved it, and a refusal the folder it nearly went to.
 const VERGEML_LIBRARIAN_OPTION  = 'vergeml_librarian';
 
 /*
@@ -164,6 +164,14 @@ function vergeml_librarian_install() {
      *  that fail silently: two spaces after PRIMARY KEY, KEY rather than
      *  INDEX, one field per line. TEXT columns carry no DEFAULT -- MySQL
      *  before 8.0.13 refuses one, and this plugin's floor is much older.
+     *
+     *  `user_id` and `approved_at` are who pressed it and when. A 0 there is
+     *  not a gap: it is a batch nobody pressed -- cron, the nightly watch, a
+     *  WP-CLI run -- and it has to stay readable as exactly that, the same way
+     *  an empty `why` on a move does. `approved_at` is null beside it, because
+     *  a moment nobody chose is not a moment. It is a column of its own rather
+     *  than a reading of `created_at` because the two come apart as soon as
+     *  anything is ever approved after the fact.
      */
     $sql = "CREATE TABLE {$batches} (
         batch_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -175,6 +183,8 @@ function vergeml_librarian_install() {
         skip_n int(10) unsigned NOT NULL DEFAULT 0,
         params longtext NULL,
         reason varchar(191) NOT NULL DEFAULT '',
+        user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+        approved_at datetime NULL,
         created_at datetime NOT NULL,
         updated_at datetime NOT NULL,
         PRIMARY KEY  (batch_id),
@@ -209,6 +219,13 @@ function vergeml_librarian_install() {
      *  description it rests on and that description already names the model
      *  and the prompt behind it.
      *
+     *  `nearest` is the folder the matcher scored best and refused anyway --
+     *  the one a `floor` or a `margin` row was about. Without it a refusal can
+     *  say what it beat but not what it nearly was, which is the half of the
+     *  sentence somebody actually wants: `runner_up` is the folder that came
+     *  second, `nearest` the folder that came first and was not good enough.
+     *  It is 0 on a placement, where the folder it went to is already the row.
+     *
      *  Additive and nullable, and nothing is backfilled: an empty `why` on an
      *  old row means the move happened before any of this shipped, and it has
      *  to stay readable as exactly that.
@@ -226,6 +243,7 @@ function vergeml_librarian_install() {
         runner_score float NULL,
         prompt_hash varchar(64) NOT NULL DEFAULT '',
         model_version varchar(64) NOT NULL DEFAULT '',
+        nearest bigint(20) unsigned NOT NULL DEFAULT 0,
         PRIMARY KEY  (move_id),
         KEY batch_id (batch_id),
         KEY batch_undone (batch_id,undone),
@@ -354,17 +372,24 @@ function vergeml_librarian_batch_out( $row ) {
     $params = json_decode( (string) $row['params'], true );
 
     return array(
-        'batch_id'   => (int) $row['batch_id'],
-        'run_id'     => (int) $row['run_id'],
-        'scheme'     => (string) $row['scheme'],
-        'status'     => (string) $row['status'],
-        'cursor'     => (int) $row['step_cursor'],
-        'done'       => (int) $row['done_n'],
-        'skipped'    => (int) $row['skip_n'],
-        'params'     => is_array( $params ) ? $params : array(),
-        'reason'     => (string) $row['reason'],
-        'created_at' => (string) $row['created_at'],
-        'updated_at' => (string) $row['updated_at'],
+        'batch_id'    => (int) $row['batch_id'],
+        'run_id'      => (int) $row['run_id'],
+        'scheme'      => (string) $row['scheme'],
+        'status'      => (string) $row['status'],
+        'cursor'      => (int) $row['step_cursor'],
+        'done'        => (int) $row['done_n'],
+        'skipped'     => (int) $row['skip_n'],
+        'params'      => is_array( $params ) ? $params : array(),
+        'reason'      => (string) $row['reason'],
+        /*
+         *  Read defensively: a batch row written before the columns shipped
+         *  comes back without them, and this is also what the step loop reads
+         *  on its way through vergeml_librarian_batch_save().
+         */
+        'user_id'     => isset( $row['user_id'] ) ? (int) $row['user_id'] : 0,
+        'approved_at' => isset( $row['approved_at'] ) && null !== $row['approved_at'] ? (string) $row['approved_at'] : '',
+        'created_at'  => (string) $row['created_at'],
+        'updated_at'  => (string) $row['updated_at'],
     );
 }
 
@@ -1281,6 +1306,13 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
 
     $now = current_time( 'mysql', true );
 
+    /*
+     *  Who is asking for this batch. A person pressing Sort has an id; the
+     *  scheduler, the nightly watch and WP-CLI have none, and 0 with a null
+     *  moment beside it is the honest record of that rather than a gap.
+     */
+    $user = (int) get_current_user_id();
+
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $wpdb->insert(
         vergeml_librarian_batches_table(),
@@ -1293,25 +1325,29 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
             'skip_n'      => $skipped,
             'params'      => wp_json_encode( $params ),
             'reason'      => vergeml_librarian_reason( $gate['allow'] ? '' : $gate['reason'] ),
+            'user_id'     => $user,
+            'approved_at' => $user ? $now : null,
             'created_at'  => $now,
             'updated_at'  => $now,
         ),
-        array( '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s' )
+        array( '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s' )
     );
     // phpcs:enable
 
     return array(
-        'batch_id'   => (int) $wpdb->insert_id,
-        'run_id'     => (int) $plan['run_id'],
-        'scheme'     => (string) $plan['scheme'],
-        'status'     => $gate['allow'] ? 'running' : 'paused',
-        'cursor'     => 0,
-        'done'       => 0,
-        'skipped'    => $skipped,
-        'params'     => $params,
-        'reason'     => $gate['allow'] ? '' : $gate['reason'],
-        'created_at' => $now,
-        'updated_at' => $now,
+        'batch_id'    => (int) $wpdb->insert_id,
+        'run_id'      => (int) $plan['run_id'],
+        'scheme'      => (string) $plan['scheme'],
+        'status'      => $gate['allow'] ? 'running' : 'paused',
+        'cursor'      => 0,
+        'done'        => 0,
+        'skipped'     => $skipped,
+        'params'      => $params,
+        'reason'      => $gate['allow'] ? '' : $gate['reason'],
+        'user_id'     => $user,
+        'approved_at' => $user ? $now : '',
+        'created_at'  => $now,
+        'updated_at'  => $now,
     );
 }
 
@@ -1765,6 +1801,7 @@ function vergeml_librarian_move_reason( $reason ) {
         'runner_score'  => isset( $reason['runner_score'] ) ? (float) $reason['runner_score'] : null,
         'prompt_hash'   => isset( $reason['prompt_hash'] ) ? mb_substr( (string) $reason['prompt_hash'], 0, 64 ) : '',
         'model_version' => isset( $reason['model_version'] ) ? mb_substr( (string) $reason['model_version'], 0, 64 ) : '',
+        'nearest'       => isset( $reason['nearest'] ) ? (int) $reason['nearest'] : 0,
     );
 }
 
@@ -1803,7 +1840,7 @@ function vergeml_librarian_moves_insert( $moves ) {
             . ( null === $reason['score'] ? 'NULL' : '%f' )
             . ', %d, '
             . ( null === $reason['runner_score'] ? 'NULL' : '%f' )
-            . ', %s, %s)';
+            . ', %s, %s, %d)';
 
         $values[] = (int) $move[0];
         $values[] = (int) $move[1];
@@ -1823,6 +1860,7 @@ function vergeml_librarian_moves_insert( $moves ) {
 
         $values[] = $reason['prompt_hash'];
         $values[] = $reason['model_version'];
+        $values[] = $reason['nearest'];
     }
 
     /*
@@ -1840,7 +1878,8 @@ function vergeml_librarian_moves_insert( $moves ) {
     $wpdb->query( $wpdb->prepare(
         "INSERT INTO {$wpdb->vergeml_librarian_moves}
              ( batch_id, attachment_id, term_id, term_created, undone,
-               why, score, runner_up, runner_score, prompt_hash, model_version )
+               why, score, runner_up, runner_score, prompt_hash, model_version,
+               nearest )
          VALUES {$placeholders}",
         $values
     ) );
@@ -1915,6 +1954,21 @@ function vergeml_librarian_undo_step( $batch_id ) {
     $params   = $batch['params'];
     $taxonomy = isset( $params['taxonomy'] ) ? (string) $params['taxonomy'] : vergeml_librarian_taxonomy();
     $undo     = isset( $params['undo'] ) ? (array) $params['undo'] : array( 'undone' => 0, 'touched' => 0, 'removed' => 0, 'kept' => 0 );
+
+    /*
+     *  Who pressed Undo, and when, recorded once.
+     *
+     *  It goes beside what the undo did rather than in a column of its own,
+     *  because `user_id` and `approved_at` on the batch are the approval of the
+     *  Move -- overwriting them with the undo's actor would lose the very thing
+     *  they were added for. An undo walks in steps over the same request path,
+     *  so the first step is the person and the rest are that person's browser
+     *  finishing the job; 0 is cron or WP-CLI, the same reading as everywhere.
+     */
+    if ( ! isset( $undo['user_id'] ) ) {
+        $undo['user_id'] = (int) get_current_user_id();
+        $undo['at']      = current_time( 'mysql', true );
+    }
 
     $batch['status'] = 'undoing';
 
@@ -2178,6 +2232,117 @@ function vergeml_librarian_moves_mark( $move_ids ) {
         $move_ids
     ) );
     // phpcs:enable
+}
+
+
+/**
+ *  The rows a Move's own undo reversed, marked as reversed.
+ *
+ *  vergeml_librarian_undo_step() marks the rows it walks through
+ *  vergeml_librarian_moves_mark(); the Folders screen's undo put the terms
+ *  back without touching the table at all, so its rows went on asserting
+ *  placements that no longer held. `undone = 0` meant "no undo ran" on some
+ *  rows and "an undo ran and this row does not know" on others, and nothing
+ *  could tell them apart -- which is why vergeml_librarian_why() has to check
+ *  whether the picture is still in the folder its newest row claims.
+ *
+ *  Two fences, and each one is a row that must not be marked:
+ *
+ *      term_id = 0   an abstention. Nothing moved, so nothing was reversed,
+ *                    and the record of a picture the run looked at and left
+ *                    alone stays true whatever the undo does.
+ *      undone = 1    already marked, by this or by the librarian's own undo.
+ *
+ * @param array $batch_ids      The batches the Move's pass wrote.
+ * @param array $attachment_ids The pictures the undo actually put back.
+ * @return int How many rows were marked.
+ */
+
+function vergeml_librarian_moves_undone( $batch_ids, $attachment_ids ) {
+
+    global $wpdb;
+
+    $batch_ids      = array_values( array_unique( array_filter( array_map( 'intval', (array) $batch_ids ) ) ) );
+    $attachment_ids = array_values( array_unique( array_filter( array_map( 'intval', (array) $attachment_ids ) ) ) );
+
+    if ( ! $batch_ids || ! $attachment_ids ) {
+        return 0;
+    }
+
+    $batches = implode( ',', array_fill( 0, count( $batch_ids ), '%d' ) );
+    $files   = implode( ',', array_fill( 0, count( $attachment_ids ), '%d' ) );
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    $done = $wpdb->query( $wpdb->prepare(
+        "UPDATE {$wpdb->vergeml_librarian_moves}
+            SET undone = 1
+          WHERE undone = 0
+            AND term_id <> 0
+            AND batch_id IN ( $batches )
+            AND attachment_id IN ( $files )",
+        array_merge( $batch_ids, $attachment_ids )
+    ) );
+    // phpcs:enable
+
+    return false === $done ? 0 : (int) $done;
+}
+
+
+/**
+ *  Who reversed these batches, and when.
+ *
+ *  The Folders screen's undo is one press over a whole Move, so it stamps each
+ *  batch that Move wrote. It goes in the batch's `params` beside what the undo
+ *  did -- `user_id` and `approved_at` on the row are the approval of the Move
+ *  itself, and an undo writing over those would lose exactly the fact they were
+ *  added to keep.
+ *
+ *  Best effort, like everything on this path: an undo that puts a library back
+ *  must not fail because a record could not be annotated.
+ *
+ * @param array $batch_ids The batches the Move wrote.
+ * @param int   $user_id   Who pressed it; 0 for cron or WP-CLI.
+ * @return int How many batches were stamped.
+ */
+
+function vergeml_librarian_batches_undone_by( $batch_ids, $user_id ) {
+
+    $batch_ids = array_values( array_unique( array_filter( array_map( 'intval', (array) $batch_ids ) ) ) );
+
+    if ( ! $batch_ids ) {
+        return 0;
+    }
+
+    $now     = current_time( 'mysql', true );
+    $stamped = 0;
+
+    foreach ( $batch_ids as $batch_id ) {
+
+        $batch = vergeml_librarian_batch_get( $batch_id );
+
+        if ( ! $batch ) {
+            continue;
+        }
+
+        $params = $batch['params'];
+        $undo   = isset( $params['undo'] ) ? (array) $params['undo'] : array();
+
+        if ( isset( $undo['user_id'] ) ) {
+            continue;
+        }
+
+        $undo['user_id'] = (int) $user_id;
+        $undo['at']      = $now;
+
+        $params['undo']  = $undo;
+        $batch['params'] = $params;
+
+        vergeml_librarian_batch_save( $batch );
+
+        $stamped++;
+    }
+
+    return $stamped;
 }
 
 
@@ -2762,10 +2927,12 @@ function vergeml_librarian_page() {
  *  today rather than about the day the picture moved.
  *
  *  It reads the row that explains where the picture is **now**, which is not
- *  always the last row written about it. The guide's own undo puts the terms
- *  back without marking the rows undone, so the newest row can describe a
- *  move that no longer holds; a row is only allowed to speak for a placement
- *  the library still agrees with. Failing that, an abstention -- which is a
+ *  always the last row written about it. The guide's own undo marks its rows
+ *  undone now, and this still does not lean on that: a picture can be
+ *  moved by hand, by a plugin or by another Move afterwards, and the newest
+ *  row can describe a placement that no longer holds without any undo being
+ *  involved. A row is only allowed to speak for a placement the library still
+ *  agrees with. Failing that, an abstention -- which is a
  *  statement about a picture that did not move and so cannot go stale. Failing
  *  both, a row with no reason on it, which says only that the move happened
  *  before any of this was recorded.
@@ -2839,6 +3006,18 @@ function vergeml_librarian_why( $attachment_id ) {
     $term   = $term instanceof WP_Term ? $term->name : '';
     $runner = $runner instanceof WP_Term ? $runner->name : '';
 
+    /*
+     *  The folder a refusal was about, read out beside the one it beat.
+     *
+     *  It is on the record now and it is not in a line: the wording that would
+     *  name both folders in the margin sentence is Nathan's and is not settled,
+     *  so this phase stores the column and reads it back, and the two lines
+     *  below say exactly what they said before. Whoever writes that string has
+     *  the value waiting for it.
+     */
+    $near = isset( $row['nearest'] ) && (int) $row['nearest'] ? get_term( (int) $row['nearest'], $taxonomy ) : null;
+    $near = $near instanceof WP_Term ? $near->name : '';
+
     $score  = null === $row['score'] ? null : (float) $row['score'];
     $rscore = null === $row['runner_score'] ? null : (float) $row['runner_score'];
 
@@ -2856,6 +3035,8 @@ function vergeml_librarian_why( $attachment_id ) {
         'runner_up'     => (int) $row['runner_up'],
         'runner'        => $runner,
         'runner_score'  => $rscore,
+        'nearest'       => isset( $row['nearest'] ) ? (int) $row['nearest'] : 0,
+        'near'          => $near,
         'prompt_hash'   => (string) $row['prompt_hash'],
         'model_version' => (string) $row['model_version'],
         'batch_id'      => (int) $row['batch_id'],

@@ -302,6 +302,7 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
             'score'         => (float) $pick['score'],
             'runner_up'     => (int) $pick['runner_up'],
             'runner_score'  => (float) $pick['runner_score'],
+            'nearest'       => isset( $pick['nearest'] ) ? (int) $pick['nearest'] : 0,
             'prompt_hash'   => isset( $row['prompt_hash'] ) ? (string) $row['prompt_hash'] : '',
             'model_version' => isset( $row['model_version'] ) ? (string) $row['model_version'] : '',
         ),
@@ -475,6 +476,18 @@ function vergeml_autofile_batch( $how ) {
 
     $now = current_time( 'mysql', true );
 
+    /*
+     *  Who caused it. An accepted suggestion and a spoken command have a
+     *  person behind them; the sweep that files by itself runs on cron and has
+     *  none, and 0 with a null moment is what "nobody pressed anything" looks
+     *  like on the record.
+     *
+     *  The batch is reused for the rest of the day, so this is the first
+     *  person to file that way today rather than every one of them -- which is
+     *  what a batch is: the thing the undo button acts on.
+     */
+    $user = (int) get_current_user_id();
+
     $wpdb->insert(
         vergeml_librarian_batches_table(),
         array(
@@ -486,10 +499,12 @@ function vergeml_autofile_batch( $how ) {
             'skip_n'      => 0,
             'params'      => wp_json_encode( array( 'source' => 'auto-file' ) ),
             'reason'      => '',
+            'user_id'     => $user,
+            'approved_at' => $user ? $now : null,
             'created_at'  => $now,
             'updated_at'  => $now,
         ),
-        array( '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s' )
+        array( '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d', '%s', '%s', '%s' )
     );
     // phpcs:enable
 
