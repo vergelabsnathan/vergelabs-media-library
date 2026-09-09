@@ -190,11 +190,38 @@ behaviour change beside it, which `~/.claude/harness/model-profiles.md` puts
 outside what Sonnet is given.
 
 **Files.** `core/librarian.php`, `core/folder-talk.php`
-(`vergeml_talk_undo()`), and the two places a batch is created.
+(`vergeml_talk_undo()`), the two places a batch is inserted
+(`core/auto-file.php:479` and `core/librarian.php:1286`), and the three tree
+suites in the first bullet below.
 
-**Behaviour.**
+**Before any edit, ten minutes.** `vergeml_librarian_moves` holds 109 rows and
+all of them are batch 18. **Batch 23 — `refile`, created 2026-09-09 06:35:37 —
+has zero rows**, and `vergeml_talk_trail_write()` returns before creating a
+batch when the trail is empty, so a batch with no rows means the batch was made
+and the insert wrote nothing. Find out whether that insert is failing;
+`tools/box-batch-when.php` reads the table and is read-only. If it is failing,
+that is the whole phase and the rest waits: three more columns on a table whose
+writes fail silently is worse than none.
+
+**Behaviour**, in this order — the first one comes before the schema because
+every task after it runs those suites against the box repeatedly.
+- **The tree suites stop deleting other people's batches.** Found in Phase 3.5:
+  `tests/tree/auto-file.php:385` deletes every `auto`/`suggested` batch created
+  today, `tests/tree/nl-commands.php:296` every `spoken` batch ever, and
+  `tests/tree/filing-trail.php:768` every batch above its own start high-water
+  mark — while each deletes move rows only `WHERE attachment_id` is one of its
+  own fixtures. So a suite reaches batches it never created and orphans their
+  moves, and `filing-trail.php` runs `env: 'box'`. A suite deletes the batches
+  it caused and their move rows with them, and nothing else.
 - `vergeml_librarian_batches` gains `user_id` and `approved_at`; the Move and
-  the undo record their actor.
+  the undo record their actor. A batch made by cron or by the watch records 0,
+  which reads as "nobody pressed anything" and has to stay readable as that.
+- **`VERGEML_LIBRARIAN_VERSION` goes 2 → 3.** Without it `maybe_install()`
+  never runs dbDelta and the columns never reach an existing site. And the
+  upgrade runs on a call path rather than on deploy: Phase 3.5 measured the
+  Phase 1 code live on the box from 8 September 09:00:08 with the table not
+  altered until 06:46 the next morning. Confirm the columns with `SHOW COLUMNS`
+  on the box, not with a deploy that exited zero.
 - `vergeml_librarian_moves` gains `nearest` — the folder
   `vergeml_filing_pick()` scored best and refused. dbDelta, additive,
   nullable, no backfill, exactly as Phase 1's six were.
@@ -204,23 +231,40 @@ outside what Sonnet is given.
   it leaves today assert moves that no longer hold.
 - With `nearest` stored, `vergeml_librarian_why()`'s margin line names both
   folders. **The copy for that is Nathan's** — the approved line was
-  *"Architecture 0.58 and Landscape 0.54, too close to call"* and the current
-  one names the runner-up only.
+  *"Architecture 0.58 and Landscape 0.54, too close to call"*, and the two
+  current ones, at `core/librarian.php:2908` and `:2910`, name the runner-up
+  only. **If Nathan has not settled the string, leave both lines exactly as
+  they are**, store the column, and say so in the handoff. The session does not
+  write this string.
 
 **Proof.** `tests/tree/filing-trail.php` extended: a filed batch names the
 person and the moment; an undo names its own; a refused picture's row carries
 the folder it nearly went to and `vergeml_librarian_why()` reads both names
 out; and **a guide undo leaves no row claiming a move that was reversed** —
-the assertion that fails today.
+the assertion that fails today. For the suites, the batch count and the move
+count on the box are the same before and after running each of the three twice.
+
+**And `node tools/filing-baseline-check.mjs`**, which is this phase's own
+proof: a schema change must change no placement. It asserts the placements are
+identical and no score moved further than 0.001, and it must not be
+re-baselined — see the gate section for why a byte diff of that file can no
+longer pass.
 
 **Mirror.** Phase 1's dbDelta and the reserved-word trap in
 `core/librarian.php`'s header; `vergeml_librarian_undo_step()` at
 `core/librarian.php:2177` for how rows are marked.
 
 **Do not.** Do not show the "share of drafts changed before filing" number —
-that is a surface and needs the mock. Do not touch the matcher.
+that is a surface and needs the mock. Do not touch the matcher. **Do not
+backfill, delete or tidy batch 18's 109 rows** — Phase 3.5 could not identify
+the build that wrote them and left that open deliberately; they are the
+evidence. Do not re-take `tests/tree/filing-baseline.txt`.
 
-## Phase 5 · The failure states — Sonnet
+**Left out on purpose.** `vergeml_librarian_moves_insert()` still accepts a
+four-element row, and it now has no caller. Requiring the fifth element would
+also remove the branch its header defends — a plan already in flight when a
+deploy lands finishes on the rows it started with rather than fataling. That is
+a decision, not a task, and it is Nathan's.
 
 ## Phase 5 · The failure states — Sonnet
 
@@ -281,9 +325,14 @@ the markup — it is the approved one.
 npx playwright test --config tests/ui/playwright.config.mjs modes.spec shell.spec shots.spec folders.spec
 node tools/verify.mjs copy journey guide
 node tests/tree/t0-endpoints.js
+node tools/filing-baseline-check.mjs
 ```
 
 And per phase, the suite named in it.
+
+The last line was added in Phase 3.5 and belongs on every phase from Phase 4
+on, not only on Phase 5: it is cheap, it spends nothing, and it is the only
+thing standing between "we changed no decision" and a claim nobody checked.
 
 **The mutation check, once, in Phase 1.** Make `vergeml_filing_pick()` return a
 `why` that does not match what it decided, and `tests/tree/filing-trail.php`
