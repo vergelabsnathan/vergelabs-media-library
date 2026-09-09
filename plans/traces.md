@@ -42,9 +42,13 @@ catch that.
   owner** or only recorded. Recording it is Phase 4; showing it is a surface
   and needs the mock.
 - **Three strings are open**, each named in the phase that needs it:
-  - Phase 4 — the "too close to call" line once `nearest` is stored and it can
-    name both folders. The approved shape was *"Architecture 0.58 and Landscape
-    0.54, too close to call"*.
+  - **Phase 6, not Phase 4** — the "too close to call" line now that `nearest`
+    is stored and it can name both folders. The approved shape was
+    *"Architecture 0.58 and Landscape 0.54, too close to call"*. Phase 4 stored
+    the column and left `core/librarian.php:2908` and `:2910` alone because the
+    string was not settled; it moves here so all three open strings are written
+    in one pass, against both surfaces at once, since Phase 6 is what puts this
+    line in the grid modal.
   - Phase 6 — the date and batch on an **abstention**, which was looked at
     rather than filed.
   - Phase 6 — the **in-flight Move** when no count was worked out. It reads
@@ -269,19 +273,61 @@ a decision, not a task, and it is Nathan's.
 ## Phase 5 · The failure states — Sonnet
 
 Already approved by Nathan on 2026-09-07 and carried here so it is not lost.
+**Re-read against the code on 2026-09-09**, at the end of Phase 4: the line
+numbers had moved, one of the two files is a different problem, and the failure
+fabricates a zero in three places rather than one. What follows is the corrected
+brief; do not work from the paragraph it replaced.
 
-**Files.** `js/vergeml-folders.js:599`, `js/vergeml-gallery-block.js:66`.
+**Files.** `js/vergeml-folders.js` — three sites, all in the same failure:
 
-**Behaviour.** A failed load says so through `talk.note()`; the scope choice is
-disabled while the number is unknown; no fabricated zeros.
+| site | what it reads when `guide/rules` fails |
+|---|---|
+| `:651` | the fabricated `{ rules: [], unfiled: 0, pictures: 0 }` in `loadRules()`'s catch |
+| `:668` | *"Move only the **0** unfiled pictures. Today's 19 folders stay."* beside *"Move every picture. Today's 19 folders are removed."* |
+| `:744` | every rule card's pill reads *"**0** folders"* — `counts[ r.id ] || 0` in `renderRules()` |
+
+The third is the one nobody had noticed and it is the same lie as the other two.
+The four rule cards themselves come from the local `RULES` constant, so they
+still render and stay pickable on a failure — that is correct and stays. What
+must not survive is a number nobody computed.
+
+`js/vergeml-gallery-block.js:65` is a **different** shape and is not a
+fabricated zero: `loadFolders()` catches and returns an empty folder *list*, so
+the block's folder picker silently offers nothing rather than saying it could
+not load. Fix it in the same pass, in the same spirit; it has no count to
+suppress.
+
+**Behaviour.**
+- A failed `guide/rules` says so through `talk.note()`, which this file already
+  uses for a failed Move.
+- No fabricated zeros: the scope radios and the rule pills show no number at all
+  rather than 0, exactly as Phase 3's draft counts do.
+- The scope choice is disabled while the number is unknown. The rule cards stay
+  pickable.
+- The gallery block says its folders could not load rather than showing none.
+
+**Copy.** Nathan's, as always. Proposed on 2026-09-09 and used unless he changes
+it before the session starts — fact, consequence, action, in the voice of the
+sibling string in the same file (*"That did not go through. Nothing moved."*):
+
+    The numbers did not load. No rule can say what it would do — reload to try again.
 
 **Proof.** `tests/ui/folders.spec.mjs`: with the endpoint refused, the screen
-shows the failure and the scope radios are unavailable — and the word "0
-unfiled" is nowhere on the screen.
+shows the failure, the scope radios are unavailable, and `0` appears
+nowhere on the rules panel — not in a scope radio, not on a rule pill. That last
+assertion is the one that fails today, in three places. Mirror it on Phase 3's
+own test, *"when the dry run gives up the draft says so, and offers no number at
+all"*, which already refuses the screen a fabricated zero and asserts it the
+same way.
 
 **Mirror.** Phase 3's own give-up state: `vergeml_guide_fit_unknown()` in
-`core/guide.php` and `fitUnknown()` in `js/vergeml-folders.js` are the same
-problem already solved once — a number nobody computed, not shown.
+`core/guide.php` and `fitUnknown()` / `syncCounted()` at
+`js/vergeml-folders.js:792` are the same problem already solved once — a number
+nobody computed, not shown.
+
+**Do not.** Do not make the rule cards unpickable: picking one starts a dry run,
+which is a separate request and may well succeed. Do not invent a retry
+mechanism; the note names reloading and that is enough.
 
 ## Phase 6 · The answer where the question is asked — Opus
 
