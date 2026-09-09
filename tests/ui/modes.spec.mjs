@@ -489,9 +489,29 @@ const setHidden = ( page, hidden ) => page.evaluate( ( h ) => new Promise( ( r )
 		page: 'upload',
 	}, r ) ), hidden );
 
-/** Every row on the list with its height, tallest first. */
+/**
+ *  Every row on the list with its height, tallest first -- and the picture
+ *  each row is, which is the half that was missing.
+ *
+ *  The row carries its title because this measures whatever WordPress puts on
+ *  page one, and page one is the twenty newest attachments by date. So a
+ *  suite that stops before its teardown and leaves fixtures in the library
+ *  puts its own pictures at the top of what this measures, and the alarm then
+ *  reports a screen nobody ships. That happened: `ROW_ALARM` read 337px on
+ *  2026-09-08 and passed an hour later on the same build, and eight `zz`
+ *  fixture pictures dated 2026-09-08 09:00 were sitting among the real ones
+ *  in between. The newest real picture on the box is dated 2026-09-01.
+ *
+ *  There is no point asking which cell is tall: they are table cells, so
+ *  every one of them is exactly the row's height. The row's identity is what
+ *  tells you whether you are looking at the library or at debris.
+ */
 const rowHeights = ( page ) => page.evaluate( () => Array.from( document.querySelectorAll( '#the-list > tr' ) )
-	.map( ( r ) => ( { id: r.id, h: Math.round( r.getBoundingClientRect().height ) } ) )
+	.map( ( r ) => ( {
+		id: r.id,
+		h: Math.round( r.getBoundingClientRect().height ),
+		title: ( ( r.querySelector( '.column-title a, .column-title strong' ) || {} ).textContent || '' ).trim().slice( 0, 40 ),
+	} ) )
 	.sort( ( a, b ) => b.h - a.h ) );
 
 const openList = async ( page ) => {
@@ -559,9 +579,27 @@ for ( const mode of [ 'grid', 'list' ] ) {
 				const rows = await rowHeights( page );
 
 				expect( rows.length, 'the list has rows to measure' ).toBeGreaterThan( 0 );
+
+				/*
+				 *  Said on a pass as well as a failure. Two phases recorded
+				 *  this alarm as red, then read a later green as a repair,
+				 *  because a green printed nothing and there was nothing to
+				 *  compare the two runs with. A number nobody can compare is
+				 *  a number nobody reads.
+				 */
+				console.log(
+					`      ${ mode } · ${ what }\n` +
+					`        tallest ${ rows[ 0 ].h }px of ${ rows.length } rows, ceiling ${ ceiling }\n` +
+					`        that row is ${ rows[ 0 ].id } "${ rows[ 0 ].title }"\n` +
+					`        ${ on.length } columns on: ${ on.join( ', ' ) }`
+				);
+
 				expect(
 					rows[ 0 ].h,
-					`${ what }, arriving in ${ mode }: the tallest of ${ rows.length } rows is ${ rows[ 0 ].h }px over ${ on.length } columns (${ on.join( ', ' ) })`
+					`${ what }, arriving in ${ mode }: the tallest of ${ rows.length } rows is ${ rows[ 0 ].h }px ` +
+					`over ${ on.length } columns (${ on.join( ', ' ) }). ` +
+					`The row is ${ rows[ 0 ].id } "${ rows[ 0 ].title }" — page one is the twenty newest ` +
+					`attachments, so check it is a real picture and not a fixture a suite left behind`
 				).toBeLessThanOrEqual( ceiling );
 			}
 		} finally {
