@@ -243,9 +243,9 @@ it that one test fails with *"is tests/perf/mu-fit-cold.php installed?"*.
 **Nothing in this phase reached a model.** No describe pass, no guide turn, no
 eval. The dry run spends no credits; `GUIDE_WALK=1` was never set.
 
-## Not pushed
+## Pushed
 
-The plugin repo is where Phase 2 left it: local `main` ahead of `origin/main`,
-with the nightly watch's own commits behind. Nothing in this phase is
-committed yet. The plugin ships through `tools/deploy.mjs`, not GitHub, so the
-box is current — but three phases of work now exist only on this machine.
+All three phases are on `origin/main` as of 2026-09-09 — six commits for this
+phase, rebased onto the nightly watch's two and pushed clean. `main` is 0
+behind, 0 ahead. Phases 1 and 2 went up with them; they had existed only on
+this machine since 8 September.
