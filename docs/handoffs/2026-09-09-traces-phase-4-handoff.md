@@ -322,8 +322,8 @@ session did not write it, as the plan says.
 | `node tests/tree/t0-endpoints.js` (Playground) | **21/21** |
 | `node tools/filing-baseline-check.mjs` | **3 of 3**, 641 pictures |
 | `node tools/verify.mjs say` (Playground) | 32/32 |
-| `npx playwright test … modes.spec shell.spec shots.spec folders.spec` | **35 passed, 3 skipped, 1 failed** — see below |
-| ~~`node tools/verify.mjs librarian librarian-schema`~~ | passed 13/13, **and destroyed the box's librarian tables — read the incident below before running it again** |
+| `npx playwright test … modes.spec shell.spec shots.spec folders.spec` | **36 passed, 3 skipped, 0 failed** (16.1m) |
+| `node tools/verify.mjs librarian-schema` | **15/15**, after the fix in the incident below — 13/13 before it, at the cost of the box's librarian tables |
 
 The browser specs need an administrator: `UI_USER` and `UI_PASS`, with a
 throwaway made by `tools/box-ui-user.sh`. Without them all 39 tests fail
@@ -336,15 +336,13 @@ same numbers Phase 3.5 measured: 231px against a ceiling of 300 with every
 other plugin's column on, and 98px against 100 with only ours. The library it
 measured had no debris in it.
 
-**`folders.spec:147` fails, and it is not a flake.** *"a hand edit is a line in
-the conversation, and survives a reload by id"* times out waiting for
-`.vgml-editor` after double-clicking the first folder's name — reproduced on a
-second run of `folders.spec` alone. No JavaScript changed in this phase; the
-diff is core PHP, three tree suites and two tools. It first ran **after** the
-incident below put eleven extra folders at the top of the tree, which is where
-`.vgml-node[data-key]` first now points. **It has not been re-checked against a
-clean tree, so nobody should read it as either a regression or a false alarm
-yet.** That is the first thing to do next session, after the cleanup.
+**`folders.spec:147` failed twice and was an artefact.** *"a hand edit is a
+line in the conversation, and survives a reload by id"* timed out waiting for
+`.vgml-editor` after double-clicking the first folder's name, on the run made
+while the incident below had eleven extra folders at the top of the tree — and
+`.vgml-node[data-key]` first is exactly where the test clicks. On the cleaned
+tree it passes, and so does the whole gate. No JavaScript changed in this phase;
+the diff is core PHP, four suites and three tools.
 
 **The baseline check is this phase's own proof**, and it is the assertion the
 whole plan rests on:
@@ -442,7 +440,72 @@ the work, which is the exact thing this entire plan exists to stop. The second
 is that it could not be done faithfully anyway — the 109 attachment ids were
 never written down, only the first.
 
-### What Nathan needs to do, and it needs Nathan
+### Put right, the same session
+
+Nathan gave permission to go back into the box. All of it is done and checked:
+
+- **The eleven folders are off.** Deleted by id — `2148`–`2154` then `2144`–`2147`,
+  children first — rather than through `vergeml_librarian_undo_step()`, which
+  deletes any folder the batch claims it made if that folder is empty, and two
+  of Nathan's real folders (**Campaigns** 2039 and **Website** 2025) are
+  legitimately empty. Surgical beat clever. The tree reads **31**, and it was
+  checked by diffing the full listing against the one captured before the
+  damage: every id, parent and count identical.
+- **`folders.spec:147` was an artefact, not a bug.** On the clean tree
+  `folders.spec` is 6 passed, 1 skipped, exit 0. The test double-clicks the
+  first `.vgml-node[data-key]`, which had become the empty folder "2013".
+- **The full browser gate re-ran clean on the clean tree: 36 passed, 3 skipped,
+  0 failed** (16.1m).
+- **`gate7-schema.php` can no longer do this** — below.
+- The throwaway administrator is deleted and the box's `/tmp` probes are removed.
+
+What is **not** put right, and cannot be: batch 18's 109 rows, batch 23, and
+batch 1's original row. Nothing was reconstructed.
+
+### The suite is fixed, and the fix is proved
+
+`tests/librarian/gate7-schema.php` now renames both tables aside before its
+first drop and renames them back at the end. Renamed rather than copied: atomic,
+the same cost whether the table holds ten rows or ten million, and the rows are
+never round-tripped through PHP. Under their own names the tables are genuinely
+gone, so every drop, every reinstall and the REST call still prove exactly what
+they proved before — against tables made for the run and thrown away with it.
+
+It also counts the tree before and after and takes off every folder section D's
+apply created, and **fails loudly rather than tidying** if one of them holds a
+picture, because the row that would undo that move is in the working table.
+
+A run that dies mid-way leaves the aside copies behind. The suite refuses to
+start in that state rather than write over them — at that point the aside copy
+is the only place the site's records still exist.
+
+**Proved, not described.** `tools/box-gate7-canary.php` plants a batch and three
+move rows with known values, including a `nearest` on each refusal. After a full
+run of the suite — four drops and a live apply:
+
+```
+ok    no folder this run made is left on the tree  -- 11 removed
+ok    the site's own batches and moves are back, every row of them
+      -- wp_vergeml_librarian_batches 2/2, wp_vergeml_librarian_moves 3/3
+
+15/15 passed
+```
+
+```
+batch rows: 1 of 1
+move rows:  3 of 3
+  999101  term 991  why ok      nearest 0    score 0.5 prompt zzcanary
+  999102  term 0    why margin  nearest 992  score 0.5 prompt zzcanary
+  999103  term 0    why floor   nearest 993  score 0.5 prompt zzcanary
+
+every marker row came back exactly as it was written
+folders: 31
+```
+
+It recreated the same eleven folders and removed them itself. The canary rows
+were cleared afterwards; the box holds 1 batch and 0 move rows.
+
+### The original instructions, kept for the record
 
 The eleven folders should come off. I could not do it: the auto-mode classifier
 refused both the term deletes and, after that, further database reads against
@@ -467,37 +530,25 @@ wp term delete media_category 2148 2149 2150 2151 2152 2153 2154 2144 2145 2146 
 
 Children first, then their four parents, which is the order above.
 
-### The suite has to stop being able to do this
-
-`gate7-schema.php` is the fourth suite in the family Task 1 was about, and it is
-by far the most destructive: the other three deleted batch rows, this one drops
-both tables. The same fix applies and it is the one this phase already used
-twice — **snapshot both tables' contents before the drop and restore them
-after**, the way `filing-trail.php` now snapshots what a reused batch says about
-itself. It cannot simply be moved to Playground: its whole subject is dbDelta
-and MariaDB, which SQLite cannot answer, which is why it lives on the box.
-
-That is a change to a suite this phase's brief does not name, on a file whose
-purpose is deliberately destructive, so I have not written it. **It is the first
-task of the next session**, ahead of Phase 5, and until it is done nobody should
-run `librarian-schema` — or `verify.mjs` with no suite named, if that runs
-everything — against the box.
+`gate7-schema.php` was the fourth suite in the family Task 1 was about, and by
+far the most destructive: the other three deleted batch rows, this one dropped
+both tables. It could not simply move to Playground — its whole subject is
+dbDelta and MariaDB, which SQLite cannot answer, which is why it lives on the
+box.
 
 ---
 
 ## The box, as it was left
 
-Not as it was found. The incident above is the difference.
+Restored, except for what cannot be. The incident above is the difference.
 
-- **42 folders, not 31.** Eleven empty date/type folders, `2144`–`2154`, to be
-  removed by Nathan with one of the two commands above.
+- **31 folders**, every id, parent and count identical to the listing captured
+  before the damage.
 - **1 batch, 0 move rows.** Batch 1, recreated 2026-09-09 10:32:42 with
-  `user_id 1`. Batches 18 and 23 and their 109 rows are gone.
+  `user_id 1`. Batches 18 and 23 and their 109 rows are gone for good.
 - **Schema version 3**, all three new columns confirmed by `SHOW COLUMNS`.
-- **A throwaway administrator, `vgml-phase4`, is still there** — the browser
-  specs need it and it was left in place because `folders.spec:147` has to be
-  re-run after the cleanup. Remove it when that is settled:
-  `ACTION=delete UI_USER=vgml-phase4 bash /tmp/box-ui-user.sh`.
+- **The throwaway administrator is deleted**, and so are the probe scripts left
+  in the box's `/tmp`.
 - Nathan's own 4 September draft with the model's fabricated counts is where it
   was.
 - `wp-content/mu-plugins/mu-fit-cold.php` is still installed and still inert
@@ -551,15 +602,9 @@ week-long cache Phase 3.5 documented, and no probe here asked for a new one.
 
 ## Next
 
-**Before Phase 5, in this order:**
-
-1. **Nathan takes the eleven folders off the box** — the command is in the
-   incident section. The box should read 31.
-2. **Re-run `folders.spec` against the clean tree.** Until that is done,
-   `folders.spec:147` is an open question, not a verdict.
-3. **Make `tests/librarian/gate7-schema.php` snapshot and restore the two
-   tables**, so it can never again cost what it cost here. Until then that
-   suite does not run against the box.
+Nothing is outstanding. All three of the things this section listed while the
+box was still broken — the folders, the spec, the suite — were done in the same
+session and are recorded above.
 
 **Phase 5** — the failure states, Sonnet, `js/vergeml-folders.js:599` and
 `js/vergeml-gallery-block.js:66`. It is small, already approved by Nathan on
