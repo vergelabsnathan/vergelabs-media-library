@@ -134,6 +134,16 @@ if ( '' === $GLOBALS['uf_tax'] ) {
 vergeml_index_install();
 vergeml_librarian_maybe_install();
 
+/*
+ *  Every batch that was already here, by id, so the teardown can delete the
+ *  ones this run caused and nothing else. It used to delete every `auto` and
+ *  `suggested` batch created today, which is a real day's filing on any box
+ *  that files by itself -- and it deleted move rows only for its own fixtures,
+ *  so the rest were left pointing at a batch that no longer exists.
+ */
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$GLOBALS['uf_batch_before'] = array_map( 'intval', (array) $wpdb->get_col( "SELECT batch_id FROM {$wpdb->vergeml_librarian_batches}" ) );
+
 
 /**
  *  An eight-dimensional point near a named corner, nudged by $n so that a
@@ -377,14 +387,41 @@ foreach ( array_unique( $GLOBALS['uf_posts'] ) as $id ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$uf_mine_in = implode( ',', array_map( 'intval', array_unique( $GLOBALS['uf_posts'] ) ) );
+
+// Which batches this run's rows are in, asked before the rows go.
+// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids are cast to int above.
+$uf_batch_mine = array_map( 'intval', (array) $wpdb->get_col(
+    "SELECT DISTINCT batch_id FROM {$wpdb->vergeml_librarian_moves} WHERE attachment_id IN ($uf_mine_in)"
+) );
+
 foreach ( array_unique( $GLOBALS['uf_posts'] ) as $id ) {
     $wpdb->delete( vergeml_librarian_moves_table(), array( 'attachment_id' => (int) $id ), array( '%d' ) );
 }
 
-$wpdb->query( $wpdb->prepare(
-    "DELETE FROM {$wpdb->vergeml_librarian_batches} WHERE scheme IN ( 'auto', 'suggested' ) AND created_at >= %s",
-    gmdate( 'Y-m-d 00:00:00' )
-) );
+/*
+ *  A batch goes only if this run's rows were in it, it was not already here,
+ *  and it is empty now. vergeml_autofile_batch() reuses one open batch per
+ *  scheme per day, so the third condition is what keeps a real file's row from
+ *  being orphaned by this suite's tidy-up.
+ */
+foreach ( array_unique( $uf_batch_mine ) as $uf_bid ) {
+
+    if ( in_array( (int) $uf_bid, (array) $GLOBALS['uf_batch_before'], true ) ) {
+        continue;
+    }
+
+    $uf_still = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->vergeml_librarian_moves} WHERE batch_id = %d",
+        (int) $uf_bid
+    ) );
+
+    if ( $uf_still ) {
+        continue;
+    }
+
+    $wpdb->delete( $wpdb->vergeml_librarian_batches, array( 'batch_id' => (int) $uf_bid ), array( '%d' ) );
+}
 // phpcs:enable
 
 foreach ( $uf_terms as $term_id ) {

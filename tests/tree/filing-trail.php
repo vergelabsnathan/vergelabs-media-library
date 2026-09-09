@@ -287,8 +287,17 @@ ft_say( "\nthe pass writes it down\n" );
 $ft_state_before = get_option( VERGEML_TALK_STATE );
 $ft_undo_before  = get_option( VERGEML_TALK_UNDO );
 
+/*
+ *  Every batch that was already here, by id.
+ *
+ *  A high-water mark was the wrong instrument and this suite used one: the
+ *  re-filing cron, an auto-file and a person pressing Move all create batches
+ *  above it while the suite runs, and deleting those leaves their move rows
+ *  pointing at a batch that is gone. The teardown asks instead which batches
+ *  this run's own rows are in, and never touches an id that was already here.
+ */
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-$ft_batch_high = (int) $wpdb->get_var( "SELECT COALESCE( MAX( batch_id ), 0 ) FROM {$ft_batches}" );
+$ft_batch_before = array_map( 'intval', (array) $wpdb->get_col( "SELECT batch_id FROM {$ft_batches}" ) );
 
 $ft_after = min( array_values( $ft_files ) ) - 1;
 
@@ -665,6 +674,29 @@ foreach ( $ft_new_columns as $ft_col ) {
     }
 }
 
+/*
+ *  The option goes back to 1 before the columns come off, not after.
+ *
+ *  Between the ALTER and the reinstall this box's live moves table has no
+ *  reason columns, and every insert that names them fails silently -- the
+ *  write path is best effort by design, because a site whose librarian tables
+ *  are missing must go on filing pictures. So the window itself is survivable;
+ *  what was not survivable was the order. With the option still saying 2, a run
+ *  that stopped in that window -- a deploy restarting PHP-FPM under it is the
+ *  way it has happened -- left the table at the old shape and
+ *  vergeml_librarian_maybe_install() with no reason to ever look again.
+ *
+ *  Batch 23 on the box is what that costs: a re-filing pass at 06:35:37 on
+ *  2026-09-09, two minutes after a deploy, made its batch and wrote none of its
+ *  109-row-shaped trail, and nothing said so. Written first, the option is the
+ *  repair order: the next batch anything creates calls maybe_install() and puts
+ *  the columns back.
+ */
+$ft_option           = get_option( VERGEML_LIBRARIAN_OPTION, array() );
+$ft_option           = is_array( $ft_option ) ? $ft_option : array();
+$ft_option['schema'] = 1;
+update_option( VERGEML_LIBRARIAN_OPTION, $ft_option, false );
+
 if ( $ft_drop ) {
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- column names are this file's own literals.
     $wpdb->query( "ALTER TABLE {$ft_moves} " . implode( ', ', $ft_drop ) );
@@ -688,11 +720,6 @@ $wpdb->insert( $ft_moves, array(
 ), array( '%d', '%d', '%d', '%d', '%d' ) );
 
 $ft_legacy_row = (int) $wpdb->insert_id;
-
-$ft_option = get_option( VERGEML_LIBRARIAN_OPTION, array() );
-$ft_option = is_array( $ft_option ) ? $ft_option : array();
-$ft_option['schema'] = 1;
-update_option( VERGEML_LIBRARIAN_OPTION, $ft_option, false );
 
 vergeml_librarian_maybe_install();
 
@@ -745,6 +772,55 @@ ft_check(
 
 ft_say( "\nputting it back\n" );
 
+/*
+ *  A batch this run did not cause, made while it is running.
+ *
+ *  This is the re-filing cron, an auto-file or a person pressing Move landing
+ *  mid-suite, and it is the case the old teardown got wrong: it deleted every
+ *  batch above the id it started at, so a batch like this went and its move
+ *  rows were left pointing at nothing. Planted here so the teardown below is
+ *  asserted rather than described -- with the old DELETE ... WHERE batch_id >
+ *  high-water in place, the two checks after it go red.
+ */
+$ft_now = current_time( 'mysql', true );
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$wpdb->insert( $ft_batches, array(
+    'run_id'      => 0,
+    'scheme'      => 'refile',
+    'status'      => 'running',
+    'step_cursor' => 0,
+    'done_n'      => 0,
+    'skip_n'      => 0,
+    'params'      => wp_json_encode( array( 'source' => 'zz bystander' ) ),
+    'reason'      => '',
+    'created_at'  => $ft_now,
+    'updated_at'  => $ft_now,
+), array( '%d', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s' ) );
+
+$ft_bystander = (int) $wpdb->insert_id;
+
+vergeml_librarian_moves_insert( array( array( $ft_bystander, 999002, 999003, 0, array(
+    'why'           => 'ok',
+    'score'         => 0.9,
+    'runner_up'     => 999004,
+    'runner_score'  => 0.1,
+    'prompt_hash'   => 'zzbystand',
+    'model_version' => 'zz/bystander',
+) ) ) );
+
+/*
+ *  Which batches this run's own rows are in, asked before those rows go. That
+ *  is what "the batches it caused" means, and it is knowable; an id range is
+ *  not.
+ */
+$ft_mine_in = implode( ',', array_map( 'intval', array_unique( $GLOBALS['ft_posts'] ) ) );
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids are cast to int above.
+$ft_batch_mine = array_map( 'intval', (array) $wpdb->get_col( "SELECT DISTINCT batch_id FROM {$ft_moves} WHERE attachment_id IN ($ft_mine_in)" ) );
+
+$ft_batch_mine[] = 999999;
+
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $wpdb->delete( $ft_moves, array( 'batch_id' => 999999 ), array( '%d' ) );
 
@@ -762,10 +838,35 @@ foreach ( $ft_terms as $ft_term_id ) {
     }
 }
 
-// The batches this run caused, and only those: anything already here is
-// somebody else's record and is not this suite's to delete.
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-$wpdb->query( $wpdb->prepare( "DELETE FROM {$ft_batches} WHERE batch_id > %d", $ft_batch_high ) );
+/*
+ *  The batches this run caused, and only those.
+ *
+ *  Three conditions, and each one rules out a batch that is somebody else's:
+ *  the id carries a row of this run's, the id was not already here when the
+ *  run started, and the batch is empty now that this run's rows are gone. The
+ *  last one matters because vergeml_autofile_batch() hands out one open batch
+ *  per scheme per day -- a real move landing in the same batch leaves rows in
+ *  it, and a batch with rows is a record, not litter.
+ */
+foreach ( array_unique( $ft_batch_mine ) as $ft_bid ) {
+
+    if ( in_array( (int) $ft_bid, $ft_batch_before, true ) ) {
+        continue;
+    }
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $ft_still = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$ft_moves} WHERE batch_id = %d",
+        (int) $ft_bid
+    ) );
+
+    if ( $ft_still ) {
+        continue;
+    }
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $wpdb->delete( $ft_batches, array( 'batch_id' => (int) $ft_bid ), array( '%d' ) );
+}
 
 $ft_left = 0;
 
@@ -786,6 +887,57 @@ ft_check(
     'the re-filing state is as it found it',
     ( false === $ft_state_before ? false === get_option( VERGEML_TALK_STATE ) : get_option( VERGEML_TALK_STATE ) === $ft_state_before )
 );
+
+/* ------------------------------------- and nobody else's record was touched */
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$ft_by_left = (int) $wpdb->get_var( $wpdb->prepare(
+    "SELECT COUNT(*) FROM {$ft_batches} WHERE batch_id = %d",
+    $ft_bystander
+) );
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$ft_by_rows = (int) $wpdb->get_var( $wpdb->prepare(
+    "SELECT COUNT(*) FROM {$ft_moves} WHERE batch_id = %d",
+    $ft_bystander
+) );
+
+ft_check(
+    'a batch made by something else while this ran is still there',
+    1 === $ft_by_left && 1 === $ft_by_rows,
+    sprintf( 'batch %d: %d batch row, %d move rows', $ft_bystander, $ft_by_left, $ft_by_rows )
+);
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$ft_batch_after = array_map( 'intval', (array) $wpdb->get_col( "SELECT batch_id FROM {$ft_batches}" ) );
+
+$ft_batch_lost = array_values( array_diff( $ft_batch_before, $ft_batch_after ) );
+
+ft_check(
+    'every batch that was already here is still here',
+    ! $ft_batch_lost,
+    $ft_batch_lost ? implode( ', ', $ft_batch_lost ) . ' deleted' : ''
+);
+
+/*
+ *  The damage a range delete does is not the missing batch, it is the rows
+ *  left behind pointing at it. Asked over the whole table, so it also catches
+ *  a batch this suite never heard of.
+ */
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own tables.
+$ft_orphans = (int) $wpdb->get_var(
+    "SELECT COUNT(*) FROM {$ft_moves} m
+       LEFT JOIN {$ft_batches} b ON b.batch_id = m.batch_id
+      WHERE b.batch_id IS NULL"
+);
+
+ft_check( 'no move row is left pointing at a batch that is gone', 0 === $ft_orphans, $ft_orphans . ' orphaned' );
+
+// The bystander was this suite's to make, so it is this suite's to remove.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$wpdb->delete( $ft_moves, array( 'batch_id' => $ft_bystander ), array( '%d' ) );
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$wpdb->delete( $ft_batches, array( 'batch_id' => $ft_bystander ), array( '%d' ) );
 
 ft_say( sprintf( "\n%d/%d passed\n", $GLOBALS['ft_pass'], $GLOBALS['ft_pass'] + $GLOBALS['ft_fail'] ) );
 

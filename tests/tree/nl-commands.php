@@ -68,6 +68,15 @@ if ( '' === $nl_tax ) {
 
 vergeml_librarian_maybe_install();
 
+/*
+ *  Every batch that was already here, by id. The teardown used to delete every
+ *  `spoken` batch that had ever existed and keep only its own fixtures' move
+ *  rows, so a site that had ever filed anything by voice lost the record and
+ *  kept the rows.
+ */
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$nl_batch_before = array_map( 'intval', (array) $wpdb->get_col( "SELECT batch_id FROM {$wpdb->vergeml_librarian_batches}" ) );
+
 $nl_posts = array();
 $nl_terms = array();
 
@@ -288,14 +297,37 @@ foreach ( $nl_posts as $id ) {
 }
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+$nl_mine_in = implode( ',', array_map( 'intval', $nl_posts ) );
+
+// Which batches this run's rows are in, asked before the rows go.
+// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids are cast to int above.
+$nl_batch_mine = array_map( 'intval', (array) $wpdb->get_col(
+    "SELECT DISTINCT batch_id FROM {$wpdb->vergeml_librarian_moves} WHERE attachment_id IN ($nl_mine_in)"
+) );
+
 foreach ( $nl_posts as $id ) {
     $wpdb->delete( vergeml_librarian_moves_table(), array( 'attachment_id' => (int) $id ), array( '%d' ) );
 }
 
-$wpdb->query( $wpdb->prepare(
-    "DELETE FROM {$wpdb->vergeml_librarian_batches} WHERE scheme = %s",
-    'spoken'
-) );
+// The batches this run caused: its own rows were in them, they were not here
+// when it started, and they are empty now that those rows are gone.
+foreach ( array_unique( $nl_batch_mine ) as $nl_bid ) {
+
+    if ( in_array( (int) $nl_bid, $nl_batch_before, true ) ) {
+        continue;
+    }
+
+    $nl_still = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$wpdb->vergeml_librarian_moves} WHERE batch_id = %d",
+        (int) $nl_bid
+    ) );
+
+    if ( $nl_still ) {
+        continue;
+    }
+
+    $wpdb->delete( $wpdb->vergeml_librarian_batches, array( 'batch_id' => (int) $nl_bid ), array( '%d' ) );
+}
 // phpcs:enable
 
 foreach ( $nl_terms as $term_id ) {
