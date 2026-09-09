@@ -892,21 +892,35 @@ test( 'the grid modal says why a picture is here, and the listing still does not
 	await openMode( page, 'grid' );
 
 	/*
+	 *  Waited for rather than assumed: openMode returns when the browser is on
+	 *  the screen, and on a busy box the tiles arrive after it. A read taken
+	 *  too early sees an empty library, which would pass the listing check
+	 *  below by having nothing in it to carry.
+	 */
+	await expect.poll( () => shownIds( page, 'grid' ).then( ( a ) => a.length ), {
+		timeout: 30000,
+		message: 'the grid fills with pictures',
+	} ).toBeGreaterThan( 0 );
+
+	/*
 	 *  The listing's own response, read back off the models it filled. The
 	 *  guard this phase must not undo is what keeps the field out of it, and a
 	 *  listing that carries the markup has cost every visitor those queries
-	 *  whether or not anybody opened a picture.
+	 *  whether or not anybody opened a picture. Counted per picture, so the
+	 *  number of pictures it was true of is part of the answer.
 	 */
-	const inListing = await page.evaluate( () => wp.media.frames.browse.state().get( 'library' )
-		.map( ( m ) => ( ( m.get( 'compat' ) || {} ).item || '' ) )
-		.join( '' )
-		.includes( 'vgml-why-facts' ) );
+	const listing = await page.evaluate( () => {
+		const models = wp.media.frames.browse.state().get( 'library' ).models;
+		return {
+			seen: models.length,
+			carrying: models.filter( ( m ) => ( ( m.get( 'compat' ) || {} ).item || '' ).includes( 'vgml-why-facts' ) ).length,
+		};
+	} );
 
-	expect( inListing, 'the listing response carries no why-is-it-here markup' ).toBe( false );
+	expect( listing.seen, 'the listing filled with pictures to check' ).toBeGreaterThan( 0 );
+	expect( listing.carrying, `not one of ${ listing.seen } listed pictures carries why-is-it-here markup` ).toBe( 0 );
 
 	const ids = await shownIds( page, 'grid' );
-	expect( ids.length, 'the grid has pictures in it' ).toBeGreaterThan( 0 );
-
 	const subject = ids[ 0 ];
 
 	/*
@@ -929,6 +943,13 @@ test( 'the grid modal says why a picture is here, and the listing still does not
 	page.on( 'request', ( r ) => r.url().includes( '/librarian-why/' ) && asked.push( r.url() ) );
 
 	await openMode( page, 'grid' );
+
+	// The same wait, for the same reason: a listing that has not arrived has
+	// not asked anything either, and would pass this by doing nothing at all.
+	await expect.poll( () => shownIds( page, 'grid' ).then( ( a ) => a.length ), {
+		timeout: 30000,
+		message: 'the grid fills with pictures again',
+	} ).toBeGreaterThan( 0 );
 
 	expect( asked, 'the listing asks nothing of the route' ).toEqual( [] );
 
@@ -965,7 +986,11 @@ test( 'the grid modal says why a picture is here, and the listing still does not
 	expect( await frame.locator( '.vgml-why .name' ).innerText() ).toBe( answer.label );
 	expect( await frame.locator( '.vgml-why-facts li' ).allInnerTexts(), 'line for line, what the record said' ).toEqual( LINES );
 
-	await page.screenshot( { path: 'tests/ui/shots/why-here-modal.png', fullPage: true } );
+	// The modal, with the answer scrolled to. A full-page shot of this screen
+	// photographs the panel's first screenful and calls it evidence.
+	await frame.locator( '.vgml-why' ).scrollIntoViewIfNeeded();
+	await page.waitForTimeout( 500 );
+	await frame.screenshot( { path: 'tests/ui/shots/why-here-modal.png' } );
 
 	/*
 	 *  And a picture the record has never heard of shows no section at all --

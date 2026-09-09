@@ -46,20 +46,22 @@
 	var asking = {};
 
 	/**
-	 *  Where the answer goes: under the fields, above the actions.
+	 *  Where the answer goes: under the picture's own fields, above the
+	 *  taxonomy boxes every plugin adds to.
 	 *
-	 *  `.attachment-compat` is where every other plugin's attachment field is
-	 *  rendered, and where this one is on the attachment's own screen, so the
-	 *  section reads in the same place on both. Failing that the right-hand
-	 *  column, and failing that the view itself -- a fact at the bottom of the
-	 *  panel is worth more than a fact nowhere.
+	 *  `.attachment-compat` is where those boxes are rendered, and on this box
+	 *  they run to several screens of checkboxes -- an answer placed after them
+	 *  is an answer nobody scrolls to. Before them it sits with the alt text
+	 *  and the file's own facts, which is what it is. Failing that the
+	 *  right-hand column, and failing that the view itself: a fact at the
+	 *  bottom of the panel is worth more than a fact nowhere.
 	 */
 	function place( view, section ) {
 
 		var compat = view.$el.find( '.attachment-compat' );
 
 		if ( compat.length ) {
-			compat.first().after( section );
+			compat.first().before( section );
 			return;
 		}
 
