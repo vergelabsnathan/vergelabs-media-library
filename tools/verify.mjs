@@ -91,6 +91,12 @@ const SUITES = [
 	 */
 	{ name: 'surface', file: 'tests/security/surface.mjs', env: 'local' },
 	/*
+	 *  All 202 database calls, classified one at a time, with the eleven read by
+	 *  hand keyed to a hash of their own SQL so a reason cannot outlive the query
+	 *  it was written about. env 'local': PHP as text, nothing reached.
+	 */
+	{ name: 'db-calls', file: 'tests/security/db-calls.mjs', env: 'local' },
+	/*
 	 *  Every route's permission callback, as an anonymous visitor, a subscriber,
 	 *  an author and an editor. Real MySQL and real roles, so the box: it creates
 	 *  three users and two attachment rows to ask the object question with, and
