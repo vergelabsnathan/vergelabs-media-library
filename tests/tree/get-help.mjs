@@ -10,8 +10,8 @@
 import { chromium } from 'playwright';
 
 const BASE = process.argv[ 2 ] ?? 'http://46.225.66.194';
-const USER = process.argv[ 3 ] ?? 'admin';
-const PASS = process.argv[ 4 ] ?? '';
+const USER = process.argv[ 3 ] ?? process.env.UI_USER ?? 'admin';
+const PASS = process.argv[ 4 ] ?? process.env.UI_PASS ?? '';
 
 const results = [];
 const check = ( name, ok, detail = '' ) => {
