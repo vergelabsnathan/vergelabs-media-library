@@ -11,8 +11,8 @@
       "affects": [],
       "workaround": null,
       "status": "open",
-      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/11",
-      "found": "2026-09-09"
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/12",
+      "found": "2026-09-10"
     },
     {
       "dependency": "woocommerce",
