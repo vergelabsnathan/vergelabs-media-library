@@ -97,6 +97,12 @@ const SUITES = [
 	 */
 	{ name: 'db-calls', file: 'tests/security/db-calls.mjs', env: 'local' },
 	/*
+	 *  Every HTML sink on both sides of the wire. Plugin Check covers the PHP half;
+	 *  this one exists for the other half, where a folder name arrives as JSON and
+	 *  a script puts it in the page with no esc_html() in sight.
+	 */
+	{ name: 'escaping', file: 'tests/security/escaping.mjs', env: 'local' },
+	/*
 	 *  Every route's permission callback, as an anonymous visitor, a subscriber,
 	 *  an author and an editor. Real MySQL and real roles, so the box: it creates
 	 *  three users and two attachment rows to ask the object question with, and
