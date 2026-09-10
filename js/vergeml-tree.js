@@ -3964,6 +3964,15 @@
 		 */
 		var frame = isGridScreen() ? host : null;
 
+		/*
+		 *  Named so the stylesheet can treat the list table as a table: it
+		 *  scrolls sideways beside the panel rather than reflowing into what is
+		 *  left of the window, which is what made this screen unusable before.
+		 */
+		if ( ! frame && isMediaList() ) {
+			document.body.classList.add( 'vgml-mode-list' );
+		}
+
 		if ( frame ) {
 			document.body.classList.add( 'vgml-mode-grid' );
 
@@ -4014,16 +4023,24 @@
 	}
 
 	/*
-	 *  The media library in list mode, which is the one screen the panel does
-	 *  not go on.
+	 *  The media library in list mode.
 	 *
-	 *  Measured on 2026-09-06: the panel took 316px of a 1600px window, FileBird
-	 *  Pro's own pane took 319 more, and thirteen columns were left 763px to
-	 *  share. Everything in a row wrapped at a character a line and the median
-	 *  row was 1,960px tall. A table cannot reflow into what is left the way
-	 *  tiles can, so in list mode the folders are a dropdown in WordPress's own
-	 *  filter bar instead -- see core/media-list.php. Grid mode keeps the panel,
-	 *  the drag and everything else.
+	 *  This screen used to be the one screen the panel did not go on. The
+	 *  reason was real and measured on 2026-09-06: the panel took 316px of a
+	 *  1600px window, FileBird Pro's own pane took 319 more, and thirteen
+	 *  columns were left 763px to share -- every row wrapped to a character a
+	 *  line and the median row stood 1,960px tall. The folders were a dropdown
+	 *  in WordPress's filter bar instead (core/media-list.php).
+	 *
+	 *  Nathan overruled it on 2026-09-10, having asked three times: the folders
+	 *  must be visible here, the same as anywhere else. A library whose folders
+	 *  appear in one view and not another is not a library, it is a surprise.
+	 *
+	 *  The crushed-columns measurement was never wrong, so it is answered
+	 *  rather than ignored: the table scrolls sideways under the panel instead
+	 *  of reflowing into it (css/vergeml-tree.css, body.vgml-mode-list), and the
+	 *  panel folds to a 44px rail on this screen like every other, which hands
+	 *  the width straight back.
 	 *
 	 *  A post type's own list screen keeps its tree: it is not this screen, and
 	 *  `upload-php` is the class WordPress puts on this one.
@@ -4178,7 +4195,7 @@
 		 *  somebody opens it, in any of eight flavours, possibly several times on
 		 *  one screen -- so it cannot be mounted once and forgotten.
 		 */
-		if ( cfg.onLibrary && ! isMediaList() ) {
+		if ( cfg.onLibrary ) {
 			whenHostExists( function ( found ) {
 				if ( found ) {
 					begin();

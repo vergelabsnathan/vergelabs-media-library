@@ -1,0 +1,373 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Folders — every way in</title>
+
+<!--
+	The mock loads the plugin's own stylesheets rather than a copy of them, so
+	what is shown here is literally the product's grammar and cannot drift from
+	it. Only the pieces that do not exist yet are styled below, and every one of
+	them is built from the shell's tokens.
+
+	Real data: the folders a technology publication actually keeps, against the
+	library now on the box.
+-->
+<link rel="stylesheet" href="../../../css/vergeml-shell.css">
+<link rel="stylesheet" href="../../../css/vergeml-tree-view.css">
+<link rel="stylesheet" href="../../../css/vergeml-talk.css">
+<link rel="stylesheet" href="../../../css/vergeml-folders.css">
+
+<style>
+/* ---------------------------------------------------------------- app shell */
+/*
+ *  The screen fills the window and stops. Three regions scroll on their own;
+ *  the page does not scroll at all. Below 900px tall or 1180px wide it falls
+ *  back to normal flow, because a fixed shell in a short window hides the
+ *  thing you came for.
+ */
+html, body { margin: 0; height: 100%; }
+body { background: #F6F8FC; font-family: var(--vgml-font, Inter, system-ui, sans-serif); }
+
+.vgml-shell.is-shell {
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.vgml-shell.is-shell .vgml-folders-cols {
+	flex: 1 1 auto;
+	min-height: 0;              /* or the children refuse to scroll */
+	margin-top: 22px;
+	overflow: hidden;
+}
+
+.vgml-shell.is-shell .vgml-folders-left,
+.vgml-shell.is-shell .vgml-folders-right {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+/*  The thread: the one region that grows without end, now bounded.  */
+.vgml-shell.is-shell .vgml-conv {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding-inline-end: 10px;
+}
+
+.vgml-shell.is-shell .vgml-composer-wrap,
+.vgml-shell.is-shell .vgml-folders-move { flex: 0 0 auto; }
+
+.vgml-shell.is-shell .vgml-folders-tree {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+@media (max-height: 900px), (max-width: 1180px) {
+	.vgml-shell.is-shell { height: auto; overflow: visible; }
+	.vgml-shell.is-shell .vgml-conv { max-height: 60vh; }
+}
+
+/* ------------------------------------------------- the methods, and what they are */
+/*
+ *  Four ways in, each saying what it is. The segmented switch is the screen's
+ *  own (.vgml-seg / .vgml-seg-tab); what is new is only the sentence under it,
+ *  which is the thing that was missing.
+ */
+.vgml-method-say {
+	margin: 10px 0 0;
+	max-width: 62ch;
+	color: var(--vgml-muted);
+	font-size: 13.5px;
+	line-height: 1.55;
+}
+
+/* ------------------------------------------------------------ paste + preview */
+.vgml-paste-cols {
+	flex: 0 0 auto;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 18px;
+	align-items: start;
+	margin-top: 14px;
+}
+
+.vgml-paste-area {
+	width: 100%;
+	min-height: 240px;
+	padding: 12px 14px;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	background: var(--vgml-surface);
+	color: var(--vgml-ink);
+	font: 13.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+	resize: vertical;
+}
+
+.vgml-paste-area:focus {
+	outline: 0;
+	border-color: var(--vgml-accent);
+	box-shadow: 0 0 0 1px var(--vgml-accent);
+}
+
+.vgml-preview-box {
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	background: var(--vgml-surface);
+	min-height: 240px;
+	max-height: 340px;
+	overflow-y: auto;
+	padding: 8px 4px 10px;
+}
+
+.vgml-preview-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 4px 12px 10px;
+	border-bottom: 1px solid var(--vgml-divider);
+	margin-bottom: 6px;
+}
+
+.vgml-preview-title { font-size: 13px; font-weight: 600; color: var(--vgml-ink); }
+.vgml-preview-read { font-size: 12.5px; color: var(--vgml-muted); }
+
+/*  What was understood, stated as fact under the preview.  */
+.vgml-read-line {
+	margin: 12px 0 0;
+	font-size: 13.5px;
+	color: var(--vgml-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-read-line .n { font-weight: 600; }
+
+/* ------------------------------------------------------------------ dropzone */
+.vgml-drop {
+	margin-top: 14px;
+	border: 1px dashed var(--vgml-rule-strong);
+	border-radius: 4px;
+	background: var(--vgml-surface);
+	padding: 26px 20px;
+	text-align: center;
+}
+
+.vgml-drop-title { font-size: 14.5px; font-weight: 600; color: var(--vgml-ink); }
+.vgml-drop-say { margin: 6px 0 0; font-size: 13.5px; color: var(--vgml-muted); }
+
+.vgml-drop-types {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: center;
+	margin-top: 14px;
+}
+
+/*
+ *  The type pills reuse .vgml-rule-pick's geometry -- the same 4px radius,
+ *  hairline and 12.5px label the rule chooser already draws.
+ */
+.vgml-type {
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	padding: 4px 9px;
+	font-size: 12.5px;
+	color: var(--vgml-n700);
+	background: var(--vgml-ground);
+}
+
+.vgml-file-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 14px;
+	padding: 10px 12px;
+	border: 1px solid var(--vgml-rule);
+	border-radius: 4px;
+	background: var(--vgml-surface);
+	font-size: 13.5px;
+	color: var(--vgml-ink);
+}
+
+.vgml-file-meta { color: var(--vgml-muted); margin-inline-start: auto; }
+
+/* --------------------------------------------------------- the draft, as a tree */
+/*
+ *  The proposal is the tree component's rows, not a bullet list. Chevrons on
+ *  anything with children, counts on the right, and the same is-new mark the
+ *  tree already uses for a folder this draft would create.
+ */
+.vgml-draft { padding: 2px 0 0; }
+
+.vgml-draft-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	padding: 0 2px 10px;
+	border-bottom: 1px solid var(--vgml-divider);
+}
+
+.vgml-draft-title { font-size: 13px; font-weight: 600; }
+.vgml-draft-sub { font-size: 12.5px; color: var(--vgml-muted); }
+</style>
+
+<div class="vgml-shell is-shell" style="padding: 22px 24px 18px;">
+
+	<div class="vgml-page-head">
+		<h1 style="margin:0;font-size:22px;letter-spacing:-.01em;">Folders</h1>
+		<p class="vgml-folders-facts">1,000 pictures · 0 folders · 1,000 in no folder · described 0</p>
+	</div>
+
+	<div class="vgml-folders-cols">
+
+		<!-- ============================================ left: how the draft is built -->
+		<div class="vgml-folders-left">
+
+			<div class="vgml-method">
+				<div class="vgml-seg" role="tablist">
+					<button class="vgml-seg-tab" role="tab" aria-selected="false">Conversation</button>
+					<button class="vgml-seg-tab" role="tab" aria-selected="false">Rules</button>
+					<button class="vgml-seg-tab" role="tab" aria-selected="true">Paste a list</button>
+					<button class="vgml-seg-tab" role="tab" aria-selected="false">Upload a file</button>
+				</div>
+				<span class="vgml-method-kicker">4 of 25 turns</span>
+			</div>
+
+			<!--
+				The sentence that was missing. One or two lines, saying what this
+				way in is and when to reach for it -- a fact and its consequence,
+				which is the copy standard.
+			-->
+			<p class="vgml-method-say">
+				Paste the folders you already have, one per line. Indentation,
+				<code>Parent &gt; Child</code> and <code>Parent/Child</code> all work — whichever
+				you paste, the preview shows what was understood before anything is made.
+			</p>
+
+			<div class="vgml-paste-cols">
+				<textarea class="vgml-paste-area" spellcheck="false">Hardware
+	Phones
+	Laptops
+	Components
+		Chips
+		Graphics cards
+Data centres
+	Server racks
+	Cooling
+Energy
+	Solar
+	Wind
+	Batteries
+People &gt; Interviews
+People &gt; Conference talks
+Space/Launches
+Space/Satellites</textarea>
+
+				<div class="vgml-preview-box">
+					<div class="vgml-preview-head">
+						<span class="vgml-preview-title">What that makes</span>
+						<span class="vgml-preview-read">read as indented</span>
+					</div>
+
+					<div class="vgml-tv" data-surface="folders">
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Hardware</span><span class="vgml-count">—</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:26px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Phones</span><span class="vgml-count">—</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:26px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Laptops</span><span class="vgml-count">—</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:26px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Components</span><span class="vgml-count">—</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:44px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Chips</span><span class="vgml-count">—</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:44px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Graphics cards</span><span class="vgml-count">—</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Data centres</span><span class="vgml-count">—</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:26px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Server racks</span><span class="vgml-count">—</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:26px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Cooling</span><span class="vgml-count">—</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">Energy</span><span class="vgml-count">3</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">People</span><span class="vgml-count">2</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">Space</span><span class="vgml-count">2</span></div></div>
+					</div>
+						<div class="vgml-node is-new" data-depth="1" style="padding-inline-start:22px;">
+							<span class="vgml-name">Phones</span><span class="vgml-count">—</span>
+						</div>
+						<div class="vgml-node is-new" data-depth="1" style="padding-inline-start:22px;">
+							<span class="vgml-name">Laptops</span><span class="vgml-count">—</span>
+						</div>
+						<div class="vgml-node is-open is-new" data-depth="1" style="padding-inline-start:22px;">
+							<span class="vgml-twisty" aria-hidden="true">▾</span>
+							<span class="vgml-name">Components</span><span class="vgml-count">—</span>
+						</div>
+						<div class="vgml-node is-new" data-depth="2" style="padding-inline-start:44px;">
+							<span class="vgml-name">Chips</span><span class="vgml-count">—</span>
+						</div>
+						<div class="vgml-node is-new" data-depth="2" style="padding-inline-start:44px;">
+							<span class="vgml-name">Graphics cards</span><span class="vgml-count">—</span>
+						</div>
+						<div class="vgml-node is-open is-new" data-depth="0">
+							<span class="vgml-twisty" aria-hidden="true">▾</span>
+							<span class="vgml-name">Data centres</span><span class="vgml-count">—</span>
+						</div>
+						<div class="vgml-node is-new" data-depth="1" style="padding-inline-start:22px;">
+							<span class="vgml-name">Server racks</span><span class="vgml-count">—</span>
+						</div>
+						<div class="vgml-node is-new" data-depth="1" style="padding-inline-start:22px;">
+							<span class="vgml-name">Cooling</span><span class="vgml-count">—</span>
+						</div>
+						<div class="vgml-node is-collapsed is-new" data-depth="0">
+							<span class="vgml-twisty" aria-hidden="true">▸</span>
+							<span class="vgml-name">Energy</span><span class="vgml-count">3</span>
+						</div>
+						<div class="vgml-node is-collapsed is-new" data-depth="0">
+							<span class="vgml-twisty" aria-hidden="true">▸</span>
+							<span class="vgml-name">People</span><span class="vgml-count">2</span>
+						</div>
+						<div class="vgml-node is-collapsed is-new" data-depth="0">
+							<span class="vgml-twisty" aria-hidden="true">▸</span>
+							<span class="vgml-name">Space</span><span class="vgml-count">2</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<p class="vgml-read-line">
+				<span class="n">18 folders</span>, 3 levels deep. None of them exist yet.
+			</p>
+
+			<!-- ------------------------------------------------ the upload method -->
+
+
+		</div>
+
+		<!-- ================================================ right: the tree and Move -->
+		<div class="vgml-folders-right">
+
+			<div class="vgml-draft-head">
+				<span class="vgml-draft-title">Folders · 0 now, 18 after Move</span>
+				<span class="vgml-draft-sub">Changes first</span>
+			</div>
+
+			<div class="vgml-folders-tree">
+					<div class="vgml-tv" data-surface="folders">
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Hardware</span><span class="vgml-count">312</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:26px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Phones</span><span class="vgml-count">96</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:26px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Laptops</span><span class="vgml-count">54</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:26px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Components</span><span class="vgml-count">162</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:44px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Chips</span><span class="vgml-count">88</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:44px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Graphics cards</span><span class="vgml-count">74</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Data centres</span><span class="vgml-count">148</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:26px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Server racks</span><span class="vgml-count">101</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:26px"><span class="vgml-twisty is-leaf" aria-hidden="true"></span><span class="vgml-name">Cooling</span><span class="vgml-count">47</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">Energy</span><span class="vgml-count">124</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">People</span><span class="vgml-count">137</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">Space</span><span class="vgml-count">96</span></div></div>
+						<div class="vgml-node is-new"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">Robotics</span><span class="vgml-count">83</span></div></div>
+					</div>
+			</div>
+
+			<div class="vgml-folders-move">
+				<button class="vgml-btn vgml-move-btn">Move 1,000 pictures</button>
+			</div>
+
+		</div>
+	</div>
+</div>

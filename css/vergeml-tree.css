@@ -119,6 +119,36 @@ body.vgml-has-tree .vgml-tree {
 	width: var( --vgml-panel-w, 300px );
 }
 
+/*
+ *  List mode: the table keeps its columns.
+ *
+ *  The panel was kept off this screen until 2026-09-10 because of what it did
+ *  to the table -- thirteen columns sharing 763px, every cell wrapping to a
+ *  character a line, the median row 1,960px tall. The panel is here now, so
+ *  the table is given somewhere to go instead: it scrolls sideways in its own
+ *  strip beside the panel rather than reflowing into it.
+ *
+ *  Only the table scrolls. The filter bar, the pagination and the bulk-action
+ *  menus stay where they are, because a screen whose controls slide off to the
+ *  right is a worse trade than the one this replaces.
+ */
+body.vgml-mode-list .wp-list-table {
+	min-width: 900px;
+}
+
+body.vgml-mode-list #posts-filter > .wp-list-table,
+body.vgml-mode-list .vgml-list-scroll {
+	display: block;
+	overflow-x: auto;
+	overflow-y: visible;
+	max-width: 100%;
+}
+
+/*  The rail keeps the table's full width available when it is folded.  */
+body.vgml-mode-list.vgml-panel-collapsed .wrap {
+	padding-inline-start: 60px;
+}
+
 /* --- header ------------------------------------------------------------- */
 
 .vgml-head {
