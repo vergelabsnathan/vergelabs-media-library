@@ -90,6 +90,14 @@ const SUITES = [
 	 *  only cannot drift if something regenerates it -- this is that something.
 	 */
 	{ name: 'surface', file: 'tests/security/surface.mjs', env: 'local' },
+	/*
+	 *  Every route's permission callback, as an anonymous visitor, a subscriber,
+	 *  an author and an editor. Real MySQL and real roles, so the box: it creates
+	 *  three users and two attachment rows to ask the object question with, and
+	 *  deletes all five. It calls the gates and never the handlers, so none of
+	 *  the 76 endpoints runs and nothing is written or spent.
+	 */
+	{ name: 'roles', file: 'tests/security/roles.php', env: 'box', php: true },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },

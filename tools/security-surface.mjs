@@ -1147,7 +1147,39 @@ function markdown() {
 	return L.join( '\n' ) + '\n';
 }
 
-const model = { counted, rest: restRows, ajax: ajaxRows, adminPost: postRows, cron: cronRows, meta: metaRows, screens, frontend, settings, inputHooks, duplicateFns };
+/* --------------------------------------------- who the gates let through */
+
+/**
+ *  The three lists tests/security/roles.php asserts against, derived from the
+ *  permission callbacks rather than typed out.
+ *
+ *  The suite has to carry them as PHP -- it runs on the box with only itself
+ *  shipped -- so they exist in two places by necessity. tests/security/surface.mjs
+ *  parses the PHP copy and compares it with this, which is what stops the two
+ *  from drifting apart and the suite from asserting last month's routes.
+ */
+const roleLists = ( () => {
+
+	const key = ( r ) => `${ r.route } ${ r.methods }`;
+	const gate = ( r ) => [ ...new Set( r.permCaps.map( ( c ) => c.cap ) ) ].sort().join( '+' );
+
+	const authorMay = [];
+	const objectScoped = [];
+	const adminOnly = [];
+
+	for ( const r of restRows ) {
+		const g = gate( r );
+		if ( g === 'edit_post' ) objectScoped.push( key( r ) );
+		else if ( /manage_options|manage_network_options|delete_posts/.test( g ) ) adminOnly.push( key( r ) );
+		else if ( g === 'upload_files' || g === 'edit_posts+upload_files' ) authorMay.push( key( r ) );
+	}
+
+	const sorted = ( a ) => [ ...a ].sort();
+
+	return { authorMay: sorted( authorMay ), objectScoped: sorted( objectScoped ), adminOnly: sorted( adminOnly ) };
+} )();
+
+const model = { counted, roleLists, rest: restRows, ajax: ajaxRows, adminPost: postRows, cron: cronRows, meta: metaRows, screens, frontend, settings, inputHooks, duplicateFns };
 
 if ( JSON_ONLY ) {
 	process.stdout.write( JSON.stringify( model, ( k, v ) => ( k === 'body' ? undefined : v ), '\t' ) + '\n' );

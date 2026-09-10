@@ -191,6 +191,44 @@ check(
 	unsanitised.map( ( s ) => `${ s.option } (${ s.rel }:${ s.line })` ).join( ', ' )
 );
 
+/* ------------------------------ the role suite's expectation is still the code's */
+
+/*
+ *  tests/security/roles.php runs on the box with only itself shipped, so it has
+ *  to carry its three expectation lists as PHP. Two copies of the same fact is
+ *  how a suite ends up asserting last month's routes, so the PHP copy is parsed
+ *  back out here and compared with what the permission callbacks say now. A
+ *  route whose gate changes and whose list does not goes red locally, before
+ *  anything is deployed.
+ */
+const ROLES_PHP = path.join( HERE, 'roles.php' );
+const rolesSrc = fs.readFileSync( ROLES_PHP, 'utf8' );
+
+/** One `$r_name = array( 'a', 'b' );` block, as a list of strings. */
+function phpList( name ) {
+	const at = rolesSrc.indexOf( `$${ name } = array(` );
+	if ( at === -1 ) return null;
+	const close = rolesSrc.indexOf( ');', at );
+	return [ ...rolesSrc.slice( at, close ).matchAll( /'((?:[^'\\]|\\.)*)'/g ) ]
+		.map( ( m ) => m[ 1 ].replace( /\\\\/g, '\\' ) )
+		.sort();
+}
+
+for ( const [ phpName, modelKey ] of [
+	[ 'r_author_may', 'authorMay' ],
+	[ 'r_object_scoped', 'objectScoped' ],
+	[ 'r_admin_only', 'adminOnly' ],
+] ) {
+	const have = phpList( phpName );
+	const want = model.roleLists[ modelKey ];
+	const same = have && have.length === want.length && have.every( ( v, i ) => v === want[ i ] );
+	check(
+		`roles.php $${ phpName } matches the ${ want.length } endpoints the gates actually describe`,
+		same,
+		have ? `PHP has ${ have.length }: only in PHP [${ have.filter( ( v ) => ! want.includes( v ) ) }], only in code [${ want.filter( ( v ) => ! have.includes( v ) ) }]` : 'the array was not found in roles.php'
+	);
+}
+
 /*
  *  A cron hook runs with nobody logged in. A capability question inside one is
  *  answered by whatever user cron happens to be, which is nobody, so a feature
