@@ -83,6 +83,13 @@ const SUITES = [
 	 *  first thing typed when somebody adds the next error message.
 	 */
 	{ name: 'copy', file: 'tests/tree/copy.mjs', env: 'local' },
+	/*
+	 *  The security surface, regenerated from the source and compared with the
+	 *  committed docs/security-surface.md. env 'local': it reads PHP as text and
+	 *  reaches nothing. Phase 5.1 asked for a list that cannot drift, and a list
+	 *  only cannot drift if something regenerates it -- this is that something.
+	 */
+	{ name: 'surface', file: 'tests/security/surface.mjs', env: 'local' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },
