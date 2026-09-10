@@ -396,7 +396,133 @@ runbook.
 
 ---
 
-## ACCEPTANCE — the four yesses, at 2,000
+---
+
+## Phase 5 · The plugin is not a hazard — Opus, adversarial
+
+**The yes:** every way in is enumerated and audited, an outsider has tried to
+break it, and there is a way to ship a fix the same day one is reported.
+
+**Why this is its own phase.** A WordPress plugin at 2,000 installs is a target
+worth somebody's afternoon. A vulnerability does not stay private: Patchstack
+and WPScan publish it, the listing can be pulled from WordPress.org, and every
+install hears at once. The plugin also runs inside *other people's* businesses —
+a hole here is a hole in a company that trusted you.
+
+**The surface, measured 2026-09-10:**
+
+| | count |
+|---|---|
+| REST routes | **69** |
+| AJAX actions | **8** |
+| direct `$wpdb` calls | **291** |
+| `current_user_can` checks | 128 |
+| nonce checks | **28** |
+| routes with `permission_callback` returning true | **0** |
+
+Two numbers to sit with: 291 direct database calls, and 28 nonces against 69
+routes plus 8 AJAX actions. Neither is damning — a REST permission callback is
+not a nonce — but neither has been audited as a whole.
+
+### 5.1 · Enumerate every way in
+
+- **Behaviour.** One table: every REST route, AJAX action, admin_post handler,
+  form, cron hook and filter that acts on input. For each: what it does, who may
+  call it, what it reads from the request, what it writes.
+- **Proof.** `docs/security-surface.md`, generated from the code rather than
+  remembered, and regenerated in CI so it cannot drift.
+- **Do not.** Audit nothing until the list is complete. An audit of an unknown
+  surface is a sample.
+
+### 5.2 · Authorization: capability, ownership, intent
+
+- **Behaviour.** Every row of 5.1 answers three questions: **can this caller do
+  this at all**, **may they do it to *this* object**, and **did they mean to**.
+  Anything missing one is a finding.
+- **Mirror.** `core/quick-edit.php:161` and the librarian-why route: `edit_post`
+  on *that* attachment, not a blanket `manage_options`. The question the screen
+  asks, asked of the object in front of it.
+- **GOTCHA.** The dangerous shape is IDOR, not a missing login — a subscriber or
+  an editor acting on somebody else's attachment, folder or licence. Test as a
+  low-privileged user, not as an anonymous one.
+- **Proof.** A suite calling every route as **anonymous, subscriber, author and
+  editor**, asserting the refusal. Red when a route forgets.
+
+### 5.3 · Injection: all 291 database calls, classified
+
+- **Behaviour.** Each is **prepared**, **interpolates only a `$wpdb` table
+  name**, **interpolates only integers it cast itself**, or **is a finding**.
+  Per call, not per file.
+- **Proof.** The 14 `UnescapedDBParameter` and 9 `InterpolatedNotPrepared`
+  warnings reach zero, or carry a one-line reason a reviewer would accept.
+- **GOTCHA.** Twelve were annotated as safe today after reading them. That was
+  right, and it is also exactly how a real one gets waved through. Re-read them
+  **adversarially**: assume the annotation is wrong and try to prove it.
+
+### 5.4 · Escaping, where HTML is built from data we did not write
+
+- **Behaviour.** Plugin Check reports **zero** unescaped-output errors on the
+  clean tree — a good start, not an audit. Check by hand everywhere markup is
+  built from folder names, file names, captions and tags the model wrote, and
+  anything from an imported file.
+- **GOTCHA.** A folder name reaches the tree, the modal, the list table and the
+  block editor. One unescaped path is a stored XSS that fires for every
+  administrator who opens the library.
+
+### 5.5 · Files, paths and uploads
+
+- **Behaviour.** The import, the renamer, and every `wp_delete_file` path: no
+  traversal, nothing written outside uploads, no path from a request acted on
+  before it is resolved and checked.
+- **GOTCHA.** `/rename-files` is gated behind `VERGEML_FILE_RENAME` and its
+  reference rewrite is unfinished. It stays off, and this task records that in
+  writing rather than leaving it to memory.
+
+### 5.6 · Outbound requests, and SSRF
+
+- **Behaviour.** Every host the plugin fetches — the AI service, the
+  known-issues file, anything a user can influence. A URL from settings or a
+  request is validated, never trusted.
+- **Proof.** A list of every outbound host and what decides it.
+
+### 5.7 · Secrets: at rest, in logs, in responses
+
+- **Behaviour.** The licence key is sealed (`vergeml_ai_seal`) — confirm the
+  sealing is real, and that the key never appears in a log, an error, a REST
+  response or a support bundle. Same for the download token and the guide token.
+- **GOTCHA.** A 159MB debug log turned up today. Grep the next one for anything
+  key-shaped before it is ever attached to a support email.
+
+### 5.8 · The service, audited separately
+
+- **Behaviour.** `npm audit` clean of high and critical; the Stripe webhook
+  verifies its signature; the download token is signed **and** the licence
+  re-checked at redemption (it is — keep it); login rate limits hold; session
+  tokens stored hashed (they are); no secret in a client bundle.
+- **Proof.** A dependency report and a walk of each.
+
+### 5.9 · Somebody who did not write it tries to break it
+
+- **Behaviour.** An independent review of plugin and service — a paid
+  WordPress-specialist review or a scoped bounty. Brief them with 5.1's table.
+- **Why it earns money.** Everything above is found by the person who wrote the
+  code, which is the weakest kind of audit there is however careful they were.
+
+### 5.10 · A way to be told, and a way to fix it that day
+
+- **Behaviour.** `SECURITY.md` with an address that is read, a stated response
+  time and a disclosure policy. Then rehearse: a report arrives at 09:00 — what
+  is shipped by 17:00? It uses 1.7's rollback and 4.2's alerting.
+- **Proof.** The runbook, and one rehearsal.
+- **Why:** at this size the question is not whether a report arrives. It is
+  whether the answer is "fixed and shipped" or "we are looking into it".
+
+**Gate:** the surface table complete · the role-based refusal suite green · 291
+calls classified with none unexplained · `npm audit` clean of high and critical ·
+an independent review with findings closed · `SECURITY.md` published and one
+rehearsal done.
+
+## ACCEPTANCE — the five yesses, at 2,000
 
 - [ ] **Yes 1.** verify 33/33, zero red · Plugin Check ≤ 2 known · the matrix
       table complete across WordPress, PHP, multisite, RTL and five neighbours ·
@@ -416,13 +542,19 @@ runbook.
 - [ ] **Yes 4.** `/api/health` honest · an alert received · stale releases
       caught · limits hold at 10× · a spend cap that refuses · **a database
       restored from backup and counted** · a runbook · secrets rotated.
+- [ ] **Yes 5.** Every route, action and hook enumerated · a suite proving each
+      refuses anonymous, subscriber, author and editor where it should · all 291
+      database calls classified with none unexplained · outbound hosts listed ·
+      no secret in a log or a response · `npm audit` clean of high and critical ·
+      **an independent review with its findings closed** · `SECURITY.md` live and
+      a same-day fix rehearsed.
 
 ## Order, and the rollout
 
 Phases 1 and 4 are independent — one is the plugin, one is the service. Phase 2
 needs Nathan and a card. Phase 3 needs an approved mock.
 
-**If time is short: 2, 4, 1, 3.** A shop that delivers, watched by something that
+**If time is short: 2, 4, 5, 1, 3.** Security moves ahead of the board and the polish, because a hole shipped to 2,000 sites is the only item on this page that cannot be taken back. A shop that delivers, watched by something that
 says when it stops, on a plugin whose faults are known, is a business.
 
 **And do not go to 2,000 in one step.** 20, then 200, then 2,000, with a week
