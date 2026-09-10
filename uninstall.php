@@ -159,7 +159,12 @@ if ( is_multisite() ) {
     if ( $vergeml_any_wipe ) {
         // Per-user leftovers on every site: plain keys and blog-prefixed ones.
         $vergeml_base = str_replace( '_', '\_', $wpdb->base_prefix );
-        $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'vergeml\_%' OR meta_key LIKE '{$vergeml_base}%\_vergeml\_%'" );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- both patterns are bound below; the prefix is WordPress's own, escaped for LIKE.
+        $wpdb->query( $wpdb->prepare(
+            "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE %s OR meta_key LIKE %s",
+            'vergeml\_%',
+            $vergeml_base . '%\_vergeml\_%'
+        ) );
     }
 }
 else {

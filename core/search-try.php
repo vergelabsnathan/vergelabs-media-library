@@ -69,18 +69,18 @@ function vergeml_search_try( $q ) {
         $any  = array();
         $own  = array();
         foreach ( $fields as $name => $column ) {
-            $any[] = $wpdb->prepare( "{$column} LIKE %s", $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- column from a fixed list.
+            $any[] = $wpdb->prepare( "{$column} LIKE %s", $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- column from a fixed list.
             if ( in_array( $name, $core, true ) ) {
-                $own[] = $wpdb->prepare( "{$column} LIKE %s", $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $own[] = $wpdb->prepare( "{$column} LIKE %s", $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
             }
         }
         $where_all[]  = '( ' . implode( ' OR ', $any ) . ' )';
         $where_core[] = '( ' . implode( ' OR ', $own ) . ' )';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
         $out['word']['per_word'][] = array( 'word' => $term, 'n' => (int) $wpdb->get_var( "SELECT COUNT(*) {$from} AND ( " . implode( ' OR ', $any ) . ' )' ) );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- assembled from prepared pieces.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- assembled from prepared pieces.
     $out['word']['total'] = (int) $wpdb->get_var( "SELECT COUNT(*) {$from} AND " . implode( ' AND ', $where_all ) );
     $out['word']['core']  = (int) $wpdb->get_var( "SELECT COUNT(*) {$from} AND " . implode( ' AND ', $where_core ) );
 
@@ -138,7 +138,7 @@ function vergeml_search_try( $q ) {
             $out['meaning']['total']     = count( $scores );
             $out['meaning']['shown']     = count( $ids );
             if ( $ids ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids cast to int.
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- ids cast to int.
                 $found = $wpdb->get_results( "SELECT attachment_id, title, caption, tags FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', array_map( 'intval', $ids ) ) . ')', ARRAY_A );
                 $by    = array();
                 foreach ( (array) $found as $row ) {

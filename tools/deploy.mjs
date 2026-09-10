@@ -529,7 +529,30 @@ function deployBox( box, files, mf ) {
 		[ -d "$D" ] && cp -a "$D" /root/vgml-backup-$( date +%Y%m%d-%H%M%S )
 		mkdir -p "$D"
 		cd "$D"
+		#  What the payload is about to write, so anything else can go.
+		unzip -Z1 /tmp/vgml-payload.zip | sed 's|/$||' | LC_ALL=C sort -u > /tmp/vgml-manifest.txt
 		unzip -o -q /tmp/vgml-payload.zip
+		#
+		#  A deploy REPLACES the plugin; it does not add to it.
+		#
+		#  Overlaying and never removing let 1,853 files accumulate in a public
+		#  plugin directory on 2026-09-10 -- tools/, tests/, docs/, plans/,
+		#  node_modules/, test-results/ -- none of which the release ships. Two
+		#  costs, and the second is the serious one: Plugin Check read 1,045
+		#  errors that were almost all dev leftovers, so the submission number
+		#  was unmeasurable; and tools/*.php, which take environment variables
+		#  and write to the database, were sitting under a webserver.
+		#
+		#  Anything in the directory that is not in the payload is removed.
+		find . -type f | sed 's|^\./||' | LC_ALL=C sort -u > /tmp/vgml-present.txt
+		LC_ALL=C comm -23 /tmp/vgml-present.txt /tmp/vgml-manifest.txt > /tmp/vgml-stray.txt
+		strays=$( wc -l < /tmp/vgml-stray.txt )
+		if [ "$strays" -gt 0 ]; then
+			echo "removing $strays file(s) the release does not ship"
+			while IFS= read -r f; do rm -f "./$f"; done < /tmp/vgml-stray.txt
+			find . -type d -empty -delete
+		fi
+		rm -f /tmp/vgml-manifest.txt /tmp/vgml-present.txt /tmp/vgml-stray.txt
 		chown -R www-data:www-data "$D"
 		rm -f /tmp/vgml-payload.zip
 		#  The zip carries no modification times, so every file lands stamped

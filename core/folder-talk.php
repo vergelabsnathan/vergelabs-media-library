@@ -1522,6 +1522,7 @@ function vergeml_talk_refile_stop() {
  */
 function vergeml_talk_outcome_sentence( $moved, $folders, $unfiled ) {
 	$head = sprintf(
+		/* translators: 1: how many pictures were re-filed, 2: how many folders they went into */
 		_n( '%1$s picture re-filed into %2$s folders.', '%1$s pictures re-filed into %2$s folders.', $moved, 'vergelabs-media-library' ),
 		number_format_i18n( $moved ),
 		number_format_i18n( $folders )

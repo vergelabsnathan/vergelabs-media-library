@@ -3122,6 +3122,7 @@ function vergeml_librarian_why( $attachment_id ) {
     if ( '' !== $out['model_version'] || '' !== $out['prompt_hash'] ) {
         /* translators: 1: a model version, 2: the first characters of the prompt's hash */
         $out['lines'][] = sprintf(
+            /* translators: 1: the name of the model that described the picture, 2: the prompt it used */
             __( 'Described by %1$s · prompt %2$s', 'vergelabs-media-library' ),
             '' === $out['model_version'] ? __( 'an earlier model', 'vergelabs-media-library' ) : $out['model_version'],
             '' === $out['prompt_hash'] ? __( 'unrecorded', 'vergelabs-media-library' ) : substr( $out['prompt_hash'], 0, 8 )

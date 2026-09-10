@@ -3336,6 +3336,7 @@ function vergeml_print_mimetypes_options() {
                             var clear = document.getElementById( 'vgml-ft-clear' );
                             var kind = 'all';
                             var total = rows.length;
+                            <?php /* translators: 1: how many file types are shown, 2: how many there are */ ?>
                             var shownOf = <?php echo wp_json_encode( __( '%1$s of %2$s types shown', 'vergelabs-media-library' ) ); ?>;
                             var sections = document.querySelectorAll( '.vgml-acc-item' );
                             /*

@@ -365,7 +365,7 @@ function vergeml_help_card() {
         <div class="vgml-foot-text"><?php
             if ( $matches ) {
                 /* translators: %d: number of known issues */
-                echo esc_html( sprintf( _n( 'One known problem matches what this site runs.', '%d known problems match what this site runs.', count( $matches ), 'vergelabs-media-library' ), count( $matches ) ) );
+                echo esc_html( sprintf( _n( '%d known problem matches what this site runs.', '%d known problems match what this site runs.', count( $matches ), 'vergelabs-media-library' ), count( $matches ) ) );
             } else {
                 esc_html_e( 'Nothing known is wrong with the versions this site runs. If something is, ask with the report attached.', 'vergelabs-media-library' );
             }

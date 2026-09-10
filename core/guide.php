@@ -201,7 +201,7 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
     $t = $wpdb->vergeml_ai_index;
 
     if ( '' !== $taxonomy ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
         $row = $wpdb->get_row( $wpdb->prepare(
             "SELECT COUNT(*) AS n, MAX(i.described_at) AS last,
                     SUM( CASE WHEN NOT EXISTS (
@@ -211,7 +211,7 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
             $taxonomy
         ), ARRAY_A );
     } else {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
         $row = $wpdb->get_row( "SELECT COUNT(*) AS n, MAX(described_at) AS last, COUNT(*) AS unfiled FROM {$t} WHERE error = '' AND embedding IS NOT NULL", ARRAY_A );
     }
 
@@ -300,7 +300,7 @@ function vergeml_guide_described_count() {
     if ( ! isset( $wpdb->vergeml_ai_index ) ) {
         return 0;
     }
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
     return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL" );
 }
 
@@ -454,7 +454,7 @@ function vergeml_guide_summary() {
     global $wpdb;
     $t = $wpdb->vergeml_ai_index;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
     $total      = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND embedding IS NOT NULL" );
     $last       = (string) $wpdb->get_var( "SELECT MAX(described_at) FROM {$t} WHERE error = ''" );
     $kinds      = $wpdb->get_results( "SELECT kind, COUNT(*) AS n FROM {$t} WHERE error = '' AND embedding IS NOT NULL GROUP BY kind", ARRAY_A );
@@ -508,7 +508,7 @@ function vergeml_guide_summary() {
             SELECT 1 FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
              WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s )",
         $tax
-    ) ) : $total; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    ) ) : $total; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
 
     return array(
         'total'        => $total,
@@ -958,7 +958,7 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
 
     $vectors = array();
     foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; ids are integers.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
         foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, tags FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', $chunk ) . ')', ARRAY_A ) as $v ) {
             $vectors[ (int) $v['attachment_id'] ] = $v;
         }
@@ -1657,7 +1657,7 @@ function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array() ) {
         $where .= $wpdb->prepare( " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s )", $taxonomy );
     }
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; the parts are prepared above.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; the parts are prepared above.
     return (array) $wpdb->get_results( "SELECT {$select} FROM {$t} i{$join} WHERE {$where}{$group} ORDER BY i.attachment_id ASC", ARRAY_A );
 }
 
@@ -2090,7 +2090,7 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
         $vectors  = array();
         $chunks   = array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 );
         foreach ( $chunks as $chunk ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; ids are integers.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
             foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, tags FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', $chunk ) . ')', ARRAY_A ) as $v ) {
                 $vectors[ (int) $v['attachment_id'] ] = $v;
             }

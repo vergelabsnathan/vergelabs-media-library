@@ -1195,11 +1195,11 @@ function vergeml_ai_image_payload( $attachment_id ) {
 
             if ( ! is_wp_error( $saved ) && ! empty( $saved['path'] ) && file_exists( $saved['path'] ) ) {
                 $data = base64_encode( file_get_contents( $saved['path'] ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-                @unlink( $saved['path'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
-                if ( $saved['path'] !== $tmp ) { @unlink( $tmp ); } // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+                wp_delete_file( $saved['path'] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+                if ( $saved['path'] !== $tmp ) { wp_delete_file( $tmp ); } // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
                 return 'data:image/jpeg;base64,' . $data;
             }
-            @unlink( $tmp ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+            wp_delete_file( $tmp ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
         }
         // No editor on this host: fall through and send what there is.
     }

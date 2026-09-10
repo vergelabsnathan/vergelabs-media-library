@@ -113,7 +113,7 @@ function vergeml_ai_screen_counts() {
         'stale'     => function_exists( 'vergeml_ai_pending_count' ) ? (int) vergeml_ai_pending_count( 'stale' ) : 0,
     );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table, and core's.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table, and core's.
     $c['images'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type LIKE 'image/%'" );
     // DISTINCT: a picture with two alt rows (an import left duplicates on the box) is one picture with alt text.
     $c['alt_have'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_wp_attachment_image_alt' WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE 'image/%' AND m.meta_value <> ''" );
@@ -132,6 +132,7 @@ function vergeml_ai_screen_counts() {
         foreach ( array( 'object', 'material', 'colour', 'setting', 'style', 'audience', 'season', 'details' ) as $f ) {
             $sums[] = $wpdb->prepare( "SUM(filing LIKE %s AND filing NOT LIKE %s) AS {$f}", '%"' . $f . '":"%', '%"' . $f . '":""%' );
         }
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- every fragment above went through prepare(); the field names come from the fixed list, not from input.
         $filing = $wpdb->get_row( 'SELECT ' . implode( ', ', $sums ) . " FROM {$t} WHERE error = ''", ARRAY_A );
         foreach ( (array) $filing as $f => $n ) {
             $c['filing'][ $f ] = (int) $n;
@@ -256,8 +257,11 @@ function vergeml_ai_tab_describe( $c ) {
         <section class="vgml-ai-sec vgml-ai-run">
             <h2 class="vgml-kicker"><?php esc_html_e( 'Describe', 'vergelabs-media-library' ); ?></h2>
             <ul class="vgml-facts vgml-ai-facts">
+                <?php /* translators: %s: a number of pictures */ ?>
                 <li id="vgml-ai-fact-new"><?php echo esc_html( sprintf( _n( '%s new picture', '%s new pictures', $c['new'], 'vergelabs-media-library' ), number_format_i18n( $c['new'] ) ) ); ?></li>
+                <?php /* translators: %s: a number of pictures */ ?>
                 <li id="vgml-ai-fact-alt"><?php echo esc_html( sprintf( __( '%s without alt text', 'vergelabs-media-library' ), number_format_i18n( $c['missing'] ) ) ); ?></li>
+                <?php /* translators: 1: how many pictures use the brief in use, 2: how many pictures there are */ ?>
                 <li id="vgml-ai-fact-brief"><?php echo esc_html( sprintf( __( '%1$s of %2$s on the brief in use', 'vergelabs-media-library' ), number_format_i18n( $on_brief ), number_format_i18n( $c['described'] ) ) ); ?></li>
             </ul>
 
@@ -269,11 +273,13 @@ function vergeml_ai_tab_describe( $c ) {
             <div class="vgml-ai-buttons">
                 <button type="button" class="vgml-btn vgml-btn-primary" id="vgml-ai-run" data-scope="unindexed" <?php disabled( 0 === $c['new'] ); ?>><?php
                     echo esc_html( $c['new'] > 0
+                        /* translators: %s: a number of pictures */
                         ? sprintf( _n( 'Describe %s new picture', 'Describe %s new pictures', $c['new'], 'vergelabs-media-library' ), number_format_i18n( $c['new'] ) )
                         : __( 'Describe · nothing new', 'vergelabs-media-library' ) );
                 ?></button>
                 <button type="button" class="vgml-btn" id="vgml-ai-alt" data-scope="missing-alt" <?php disabled( 0 === $c['missing'] ); ?>><?php
                     echo esc_html( $c['missing'] > 0
+                        /* translators: %s: a number of pictures */
                         ? sprintf( __( 'Alt text for %s', 'vergelabs-media-library' ), number_format_i18n( $c['missing'] ) )
                         : __( 'Alt text · none missing', 'vergelabs-media-library' ) );
                 ?></button>
@@ -284,6 +290,7 @@ function vergeml_ai_tab_describe( $c ) {
                  */
                 ?>
                 <button type="button" class="vgml-btn" id="vgml-ai-page-gap" data-scope="page-gap" <?php echo $c['gap'] > 0 ? '' : 'hidden'; ?>><?php
+                    /* translators: %s: a number of pictures */
                     echo esc_html( sprintf( __( 'Alt text on your SEO pages · %s', 'vergelabs-media-library' ), number_format_i18n( $c['gap'] ) ) );
                 ?></button>
                 <button type="button" class="vgml-btn" id="vgml-ai-stop" hidden><?php esc_html_e( 'Stop', 'vergelabs-media-library' ); ?></button>
@@ -311,11 +318,13 @@ function vergeml_ai_tab_describe( $c ) {
                 <tr>
                     <td><b><?php esc_html_e( 'Alt text', 'vergelabs-media-library' ); ?></b></td>
                     <td><?php esc_html_e( 'The picture\'s alt text field, only when it is empty', 'vergelabs-media-library' ); ?></td>
+                    <?php /* translators: 1: how many have alt text, 2: how many there are, 3: how many kept the alt text they already had */ ?>
                     <td class="n"><?php echo esc_html( sprintf( __( '%1$s of %2$s have one · %3$s kept what was there', 'vergelabs-media-library' ), number_format_i18n( $c['alt_have'] ), number_format_i18n( $c['images'] ), number_format_i18n( max( 0, $c['alt_have'] - $c['alt_model'] ) ) ) ); ?></td>
                 </tr>
                 <tr>
                     <td><b><?php esc_html_e( 'Title', 'vergelabs-media-library' ); ?></b></td>
                     <td><?php esc_html_e( 'The catalogue · Rename puts it on the picture in place of the file name', 'vergelabs-media-library' ); ?></td>
+                    <?php /* translators: 1: how many were renamed, 2: how many there are */ ?>
                     <td class="n"><?php echo esc_html( sprintf( __( '%1$s of %2$s renamed', 'vergelabs-media-library' ), number_format_i18n( $c['titled'] ), number_format_i18n( $c['described'] ) ) ); ?></td>
                 </tr>
                 <tr>
@@ -326,11 +335,13 @@ function vergeml_ai_tab_describe( $c ) {
                 <tr>
                     <td><b><?php esc_html_e( 'Tags', 'vergelabs-media-library' ); ?></b></td>
                     <td><?php esc_html_e( 'The catalogue · matched by search', 'vergelabs-media-library' ); ?></td>
+                    <?php /* translators: %s: a number of distinct tags */ ?>
                     <td class="n"><?php echo esc_html( sprintf( __( '%s distinct', 'vergelabs-media-library' ), number_format_i18n( $c['tags'] ) ) ); ?></td>
                 </tr>
                 <tr>
                     <td><b><?php esc_html_e( 'Kind · people · text', 'vergelabs-media-library' ); ?></b></td>
                     <td><?php esc_html_e( 'The catalogue · the Folders rules and the filing gates use them', 'vergelabs-media-library' ); ?></td>
+                    <?php /* translators: 1: how many pictures have people in them, 2: how many have text in them */ ?>
                     <td class="n"><?php echo esc_html( implode( ' · ', $kinds ) ); ?><br><?php echo esc_html( sprintf( __( '%1$s with people · %2$s with text', 'vergelabs-media-library' ), number_format_i18n( $c['people'] ), number_format_i18n( $c['text'] ) ) ); ?></td>
                 </tr>
                 <tr>
@@ -343,6 +354,7 @@ function vergeml_ai_tab_describe( $c ) {
                 <tr>
                     <td><b><?php esc_html_e( 'Meaning', 'vergelabs-media-library' ); ?></b></td>
                     <td><?php esc_html_e( 'The catalogue, as a vector · search by meaning, and the Folders tie-break', 'vergelabs-media-library' ); ?></td>
+                    <?php /* translators: 1: how many are described, 2: how many there are */ ?>
                     <td class="n"><?php echo esc_html( sprintf( __( '%1$s of %2$s', 'vergelabs-media-library' ), number_format_i18n( $c['described'] ), number_format_i18n( $c['described'] ) ) ); ?></td>
                 </tr>
             </table>
@@ -365,6 +377,7 @@ function vergeml_ai_tab_describe( $c ) {
             <p class="vgml-ai-num vgml-ai-credits-n"><?php echo esc_html( null === $left ? '—' : number_format_i18n( $left ) ); ?></p>
             <ul class="vgml-facts">
                 <li><?php esc_html_e( 'One describes one picture', 'vergelabs-media-library' ); ?></li>
+                <?php /* translators: %s: a price */ ?>
                 <li><?php echo esc_html( sprintf( __( '%s to describe the library again', 'vergelabs-media-library' ), number_format_i18n( $c['images'] ) ) ); ?></li>
             </ul>
             <div class="vgml-ai-buttons">
@@ -377,6 +390,7 @@ function vergeml_ai_tab_describe( $c ) {
             <h6 class="vgml-kicker"><?php esc_html_e( 'Runs', 'vergelabs-media-library' ); ?></h6>
             <ul class="vgml-facts">
                 <?php foreach ( $c['runs'] as $run ) : ?>
+                    <?php /* translators: 1: when the run happened, 2: how many pictures it covered */ ?>
                     <li><?php echo esc_html( sprintf( _n( '%1$s · %2$s picture', '%1$s · %2$s pictures', $run['n'], 'vergelabs-media-library' ), vergeml_ai_when( $run['last'] ), number_format_i18n( $run['n'] ) ) ); ?></li>
                 <?php endforeach; ?>
             </ul>
@@ -444,16 +458,19 @@ function vergeml_ai_tab_search( $c, $can_configure ) {
                 <tr>
                     <td><b><?php esc_html_e( 'File name, title, caption, description', 'vergelabs-media-library' ); ?></b></td>
                     <td><?php esc_html_e( 'WordPress, and you', 'vergelabs-media-library' ); ?></td>
+                    <?php /* translators: %s: a number of pictures */ ?>
                     <td class="n"><?php echo esc_html( sprintf( _n( '%s picture', '%s pictures', $c['images'], 'vergelabs-media-library' ), number_format_i18n( $c['images'] ) ) ); ?></td>
                 </tr>
                 <tr>
                     <td><b><?php esc_html_e( 'Caption, tags, title', 'vergelabs-media-library' ); ?></b></td>
                     <td><?php esc_html_e( 'The model, on the Describe tab', 'vergelabs-media-library' ); ?></td>
+                    <?php /* translators: 1: how many are described, 2: how many distinct tags they carry */ ?>
                     <td class="n"><?php echo esc_html( sprintf( __( '%1$s described · %2$s distinct tags', 'vergelabs-media-library' ), number_format_i18n( $c['described'] ), number_format_i18n( $c['tags'] ) ) ); ?></td>
                 </tr>
                 <tr>
                     <td><b><?php esc_html_e( 'Meaning', 'vergelabs-media-library' ); ?></b></td>
                     <td><?php esc_html_e( 'The model\'s vector of each picture · offered as "Search by meaning" beside a word search', 'vergelabs-media-library' ); ?></td>
+                    <?php /* translators: 1: how many are described, 2: how many there are */ ?>
                     <td class="n"><?php echo esc_html( sprintf( __( '%1$s of %2$s', 'vergelabs-media-library' ), number_format_i18n( $c['described'] ), number_format_i18n( $c['described'] ) ) ); ?></td>
                 </tr>
             </table>
@@ -488,7 +505,9 @@ function vergeml_ai_tab_search( $c, $can_configure ) {
             <ul class="vgml-facts">
                 <li><?php esc_html_e( 'Each described picture carries a vector of what it shows', 'vergelabs-media-library' ); ?></li>
                 <li><?php esc_html_e( 'The phrase you type gets one from the service · no credit', 'vergelabs-media-library' ); ?></li>
+                <?php /* translators: 1: how many pictures are compared, 2: how many there are */ ?>
                 <li><?php echo esc_html( sprintf( __( 'Every picture is compared: %1$s of %2$s', 'vergelabs-media-library' ), number_format_i18n( $c['described'] ), number_format_i18n( $c['described'] ) ) ); ?></li>
+                <?php /* translators: %s: the lowest score that is shown */ ?>
                 <li><?php echo esc_html( sprintf( __( 'Below %s nothing is shown', 'vergelabs-media-library' ), defined( 'VERGEML_MEANING_FLOOR' ) ? number_format_i18n( VERGEML_MEANING_FLOOR, 2 ) : '0.22' ) ); ?></li>
             </ul>
         </div>
