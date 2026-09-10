@@ -532,6 +532,13 @@ function deployBox( box, files, mf ) {
 		unzip -o -q /tmp/vgml-payload.zip
 		chown -R www-data:www-data "$D"
 		rm -f /tmp/vgml-payload.zip
+		#  The zip carries no modification times, so every file lands stamped
+		#  1980-01-01 -- and vergeml_asset_ver() builds its cache-busting
+		#  string out of exactly that. Deploy after deploy produced the same
+		#  string, so browsers kept the JavaScript they already had and a
+		#  deployed fix stayed invisible to the person looking at the screen.
+		#  Stamping them now is what makes a deploy visible.
+		find "$D" -type f -exec touch {} +
 	` );
 
 	/*

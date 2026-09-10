@@ -44,8 +44,35 @@ if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '3.16.1' );
  *  its own URL. Falls back to the bare version if the file cannot be stated.
  */
 function vergeml_asset_ver( $rel ) {
-    $mtime = @filemtime( plugin_dir_path( VERGEML_FILE ) . $rel );
-    return $mtime ? VERGEML_VERSION . '.' . $mtime : VERGEML_VERSION;
+
+    $path = plugin_dir_path( VERGEML_FILE ) . $rel;
+
+    // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- a missing file falls back to the version below.
+    $mtime = @filemtime( $path );
+
+    /*
+     *  The size as well as the time, because the time cannot be trusted.
+     *
+     *  Every file shipped to the test box arrived stamped 1980-01-01 -- the
+     *  zip epoch, which is what an archive writes when it carries no mtime.
+     *  So this returned the same string after every deploy, browsers kept
+     *  serving the JavaScript they already had, and a fix could be deployed
+     *  and verified on the server while the person looking at the screen
+     *  still ran last week's code. That cost a day: the folders panel was
+     *  fixed, deployed, proven by a fresh browser in a suite, and still
+     *  invisible to the one person who mattered.
+     *
+     *  A size changes whenever the content does, near enough, and it costs
+     *  the same stat call that already happened.
+     */
+    // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+    $size = @filesize( $path );
+
+    if ( ! $mtime && ! $size ) {
+        return VERGEML_VERSION;
+    }
+
+    return VERGEML_VERSION . '.' . (int) $mtime . '.' . (int) $size;
 }
 
 /*
