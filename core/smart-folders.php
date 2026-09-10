@@ -210,6 +210,48 @@ function vergeml_smart_counts( $fresh = false ) {
         return $cache[ $blog ];
     }
 
+    /*
+     *  Beyond the request, because the request was never the expensive part.
+     *
+     *  Measured on 2026-09-10 against 251,000 attachments and 775,587 postmeta
+     *  rows: this statement cost 10,038ms, against 21ms at a thousand. The
+     *  static above made it once per page load; every page load still paid it.
+     *  Two of the five branches abandon their index at that size and full-scan
+     *  735,532 meta rows.
+     *
+     *  wp_cache first for a site that has Redis or Memcached, and a transient
+     *  behind it for the site that has neither -- which is most of them, and
+     *  where wp_cache alone would be exactly the static we already had.
+     */
+    if ( ! $fresh ) {
+        $stored = vergeml_smart_counts_stored( $blog );
+
+        if ( is_array( $stored ) ) {
+            $cache[ $blog ] = $stored;
+            return $stored;
+        }
+    }
+
+    /*
+     *  A library big enough that asking is itself the problem.
+     *
+     *  Above the threshold nothing is counted on a page load. The four
+     *  expensive numbers report null -- which this file already means as "we
+     *  have not looked", and which the tree already draws differently from
+     *  zero -- and the scan fills them in the way it already fills in the
+     *  unused count. A page that takes ten seconds to tell somebody how many
+     *  files have no alt text has answered the wrong question.
+     */
+    if ( ! $fresh && vergeml_smart_counts_too_big() ) {
+        $out = vergeml_smart_counts_unlooked();
+        $cache[ $blog ] = $out;
+        //  Kept like any other answer. Without this the threshold check itself
+        //  ran on every page load, which was 205ms of asking how big the
+        //  library is in order to decide not to measure it.
+        vergeml_smart_counts_store( $blog, $out );
+        return $out;
+    }
+
     $scanned = vergeml_smart_scan_state();
     $done    = ! empty( $scanned['finished'] );
 
@@ -260,15 +302,30 @@ function vergeml_smart_counts( $fresh = false ) {
          UNION ALL
          SELECT 'recent', COUNT(*) FROM {$wpdb->posts} p
          WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-           AND YEAR( p.post_date ) = %d AND MONTH( p.post_date ) = %d {$exclude}";
+           AND p.post_date >= %s AND p.post_date < %s {$exclude}";
+
+    /*
+     *  This month as a half-open range, not YEAR() and MONTH().
+     *
+     *  A function around the column means the index cannot be used to find the
+     *  rows, only to walk them: measured at 251,000 attachments, the YEAR/MONTH
+     *  spelling read 114,714 rows in 158ms and the range read 6,218 in 5.8ms.
+     *  Twenty-seven times, for the same answer.
+     *
+     *  post_date and current_time() are both site-local, and they must stay
+     *  that way together -- reading the range off post_date_gmt would move the
+     *  count at every month boundary, and the number on screen must not change.
+     */
+    $month_from = sprintf( '%04d-%02d-01 00:00:00', (int) current_time( 'Y' ), (int) current_time( 'n' ) );
+    $month_to   = gmdate( 'Y-m-d H:i:s', strtotime( $month_from . ' +1 month' ) );
 
     $core_args = array(
         VERGEML_META_UNUSED,
         $wpdb->esc_like( 'image/' ) . '%',
         VERGEML_META_FILESIZE,
         vergeml_large_bytes(),
-        (int) current_time( 'Y' ),
-        (int) current_time( 'n' ),
+        $month_from,
+        $month_to,
     );
 
     /*
@@ -351,6 +408,181 @@ function vergeml_smart_counts( $fresh = false ) {
     $out['_total']     = isset( $counts['_total'] ) ? $counts['_total'] : null;
 
     $cache[ $blog ] = $out;
+
+    vergeml_smart_counts_store( $blog, $out );
+
+    return $out;
+}
+
+
+/* ------------------------------------------- keeping the five numbers ---- */
+
+/**
+ *  The name both stores answer to, per site.
+ *
+ *  Multisite carries the blog id for the same reason the static above is keyed
+ *  by it: a network job that switches blogs must not be handed the previous
+ *  site's numbers.
+ */
+function vergeml_smart_counts_key( $blog = 0 ) {
+    return 'vergeml_smart_counts_' . (int) ( $blog ? $blog : get_current_blog_id() );
+}
+
+
+/** How long a number may be wrong for if nothing tells us it changed. */
+const VERGEML_SMART_COUNTS_TTL = 12 * HOUR_IN_SECONDS;
+
+
+/**
+ *  What was kept, or null when nothing was.
+ *
+ *  Null inside the array survives on purpose: a count of null means the scan
+ *  has never run, which is a different answer from zero, and casting it on the
+ *  way back out would turn "we have not looked" into "there are none".
+ */
+function vergeml_smart_counts_stored( $blog = 0 ) {
+
+    $key = vergeml_smart_counts_key( $blog );
+
+    $found = false;
+    $hit   = wp_cache_get( $key, 'vergeml', false, $found );
+
+    if ( $found && is_array( $hit ) ) {
+        return $hit;
+    }
+
+    $kept = get_transient( $key );
+
+    if ( is_array( $kept ) ) {
+        // Warm the object cache so the rest of this request is free.
+        wp_cache_set( $key, $kept, 'vergeml', VERGEML_SMART_COUNTS_TTL );
+        return $kept;
+    }
+
+    return null;
+}
+
+
+/** Keep them in both, so a site without an object cache is helped too. */
+function vergeml_smart_counts_store( $blog, $counts ) {
+
+    if ( ! is_array( $counts ) ) {
+        return;
+    }
+
+    $key = vergeml_smart_counts_key( $blog );
+
+    wp_cache_set( $key, $counts, 'vergeml', VERGEML_SMART_COUNTS_TTL );
+    set_transient( $key, $counts, VERGEML_SMART_COUNTS_TTL );
+}
+
+
+/**
+ *  Forget them, because the library changed under us.
+ *
+ *  Once per request however many times it is called: an import writing ten
+ *  thousand attachments fires add_attachment ten thousand times, and ten
+ *  thousand option deletes to reach the same state as one is work nobody asked
+ *  for.
+ */
+function vergeml_smart_counts_forget() {
+
+    static $done = array();
+
+    $blog = get_current_blog_id();
+
+    if ( isset( $done[ $blog ] ) ) {
+        return;
+    }
+
+    $done[ $blog ] = true;
+
+    $key = vergeml_smart_counts_key( $blog );
+
+    wp_cache_delete( $key, 'vergeml' );
+    delete_transient( $key );
+}
+
+add_action( 'add_attachment', 'vergeml_smart_counts_forget' );
+add_action( 'delete_attachment', 'vergeml_smart_counts_forget' );
+add_action( 'attachment_updated', 'vergeml_smart_counts_forget' );
+
+/*
+ *  The three meta keys the five counts actually read. Anything else moving is
+ *  not a reason to throw the numbers away, and the TTL is the backstop for a
+ *  plugin that writes one of these with $wpdb directly.
+ */
+foreach ( array( 'added_post_meta', 'updated_post_meta', 'deleted_post_meta' ) as $vergeml_meta_hook ) {
+    add_action( $vergeml_meta_hook, function ( $meta_id, $object_id, $meta_key ) {
+        $watched = array(
+            '_wp_attachment_image_alt',
+            defined( 'VERGEML_META_FILESIZE' ) ? VERGEML_META_FILESIZE : '',
+            defined( 'VERGEML_META_UNUSED' ) ? VERGEML_META_UNUSED : '',
+        );
+        if ( in_array( (string) $meta_key, array_filter( $watched ), true ) ) {
+            vergeml_smart_counts_forget();
+        }
+    }, 10, 3 );
+}
+unset( $vergeml_meta_hook );
+
+
+/**
+ *  Whether this library is past the size where counting it on a page load is
+ *  a reasonable thing to do.
+ *
+ *  Filterable, and 50,000 is a starting number rather than a discovered one:
+ *  at 251,000 the statement costs ten seconds, at 1,000 it costs twenty-one
+ *  milliseconds, and the cliff is somewhere between. It wants revisiting
+ *  against a real library rather than a fixture.
+ */
+function vergeml_smart_counts_too_big() {
+
+    global $wpdb;
+
+    static $answer = null;
+
+    if ( null !== $answer ) {
+        return $answer;
+    }
+
+    $threshold = (int) apply_filters( 'vergeml_smart_counts_threshold', 50000 );
+
+    /*
+     *  "Is there a fifty-thousand-and-first?", not "how many are there".
+     *
+     *  wp_count_posts() counts the whole table, which on the library this
+     *  exists to protect is exactly the work being avoided -- measured at
+     *  205ms on 251,000 attachments, spent to decide not to spend ten seconds.
+     *  Walking the index to one row past the threshold is bounded by the
+     *  threshold instead of by the library, so it costs the same on a million
+     *  pictures as on fifty thousand and one.
+     */
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- bounded index walk; the answer is cached in the static above and in the counts store.
+    $beyond = $wpdb->get_var( $wpdb->prepare(
+        "SELECT 1 FROM {$wpdb->posts}
+          WHERE post_type = 'attachment' AND post_status = 'inherit'
+          LIMIT 1 OFFSET %d",
+        $threshold
+    ) );
+
+    $answer = ( null !== $beyond );
+
+    return $answer;
+}
+
+
+/** Every folder's number as "not looked", which is what null means here. */
+function vergeml_smart_counts_unlooked() {
+
+    $out = array();
+
+    foreach ( vergeml_smart_folders() as $key => $spec ) {
+        $out[ $key ] = null;
+    }
+
+    $out['_described'] = null;
+    $out['_total']     = null;
 
     return $out;
 }
