@@ -9,8 +9,8 @@
 			"shape": "single",
 			"lang": "en_US",
 			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
+			"ok": true,
+			"step": "all 9 steps",
 			"steps": [
 				{
 					"name": "the site answers and the plugin is on",
@@ -49,8 +49,8 @@
 				},
 				{
 					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
+					"ok": true,
+					"detail": "13 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -59,7 +59,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 211
+			"seconds": 247
 		},
 		"wp=6.5,php=7.4": {
 			"wp": "6.5.10",
@@ -778,8 +778,8 @@
 			"shape": "single",
 			"lang": "en_US",
 			"with": "Enhanced Media Library 2.9.4",
-			"ok": false,
-			"step": "filter the grid by the folder: the grid shows 4 files [7,6,5,5], expected [5]",
+			"ok": true,
+			"step": "all 9 steps",
 			"steps": [
 				{
 					"name": "the site answers and the plugin is on",
@@ -803,8 +803,8 @@
 				},
 				{
 					"name": "filter the grid by the folder",
-					"ok": false,
-					"detail": "the grid shows 4 files [7,6,5,5], expected [5]"
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
 				},
 				{
 					"name": "select two files and move them in one drag",
@@ -818,8 +818,8 @@
 				},
 				{
 					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
+					"ok": true,
+					"detail": "14 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -828,7 +828,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 218
+			"seconds": 219
 		},
 		"with=polylang-pro": {
 			"wp": "7.1",

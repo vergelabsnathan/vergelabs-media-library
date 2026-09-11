@@ -21,21 +21,26 @@ row means that row is newer than the run above it.
 | 7.0.4 | 8.2 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
 | 7.0.4 | 8.5 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
 | 7.1 | 7.4 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
-| 7.1 | 8.2 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.1 | 8.2 | single | en_US | nothing | ✓ | all 9 steps |
 | 7.1 | 8.5 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
 | 7.1 | 8.2 | single | nl_NL | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
 | 7.1 | 8.2 | single | ar | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
 | 7.1 | 8.2 | single | en_US | FileBird | ✗ | drag one into the folder: no file row to drag |
 | 7.1 | 8.2 | single | en_US | Premio Folders (wordpress.org) | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
-| 7.1 | 8.2 | single | en_US | Enhanced Media Library 2.9.4 | ✗ | filter the grid by the folder: the grid shows 4 files [7,6,5,5], expected [5] |
+| 7.1 | 8.2 | single | en_US | Enhanced Media Library 2.9.4 | ✓ | all 9 steps |
 | 7.1 | 8.2 | single | en_US | Polylang Pro 3.8.7 | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
 | 7.1 | 8.5 | multisite, subdirectory (the box) | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
 | — | — | multisite, subdomain | en_US | nothing | ✗ | not provisioned: /var/www/ms is SUBDOMAIN_INSTALL false and a network does not change shape after install; a second network on the box is Nathan's call |
+| 7.1 | 8.5 | multisite, subdirectory (the box) | en_US | FileBird 6.5.8 (MariaDB) | — | not run |
 
 The nine version cells are Playground (SQLite, no GD); the language and
-companion cells run on WordPress 7.1 / PHP 8.2 there. The multisite cell is the
-box's network at `/var/www/ms` — real MariaDB, `WP_DEBUG` off, the uninstall step
-left out because deactivating any plugin on the box fatals in core's FTP class.
+companion cells run on WordPress 7.1 / PHP 8.2 there. The multisite cells are the
+box's two networks — `/var/www/ms` (subdirectory) and `/var/www/ms2` (subdomain,
+tested on its sub-site `two.`) — real MariaDB, `WP_DEBUG` off, the uninstall step
+left out because deleting through the box's Plugins screen fatals in core's FTP
+class. FileBird on MariaDB is the box's own copy, linked into `/var/www/ms` for
+the run; Playground's SQLite refuses FileBird's own `FIND_IN_SET` query, which is
+what the Playground FileBird row shows.
 <!-- matrix:end -->
 
 Tested 2026-08-20 against WordPress (wp-env latest), PHP 8.3, `WP_DEBUG` and

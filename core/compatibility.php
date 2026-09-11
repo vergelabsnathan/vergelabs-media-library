@@ -77,7 +77,10 @@ function vergeml_compat_on_wp_loaded() {
  *  the older one answers: the tree sets media_category on the library, the
  *  request leaves without it, and the grid shows every file (matrix,
  *  2026-09-11). The newer fork wins, so the old one's scripts and styles are
- *  taken off the page while it is still active. Its PHP is left alone; the
+ *  taken off the page while it is still active -- and so is its media
+ *  template: both print #tmpl-attachment-grid-view, wp.template() takes the
+ *  first on the page, and the old one reads a global its own scripts no longer
+ *  define, so the grid rendered nothing. Its other PHP is left alone; the
  *  upgrade suite proves both can run.
  *
  *  @since    3.16.2
@@ -85,6 +88,14 @@ function vergeml_compat_on_wp_loaded() {
 
 add_action( 'admin_enqueue_scripts', 'vergeml_compat_eml_scripts', 100 );
 add_action( 'wp_enqueue_media', 'vergeml_compat_eml_scripts', 100 );
+add_action( 'wp_loaded', 'vergeml_compat_eml_templates' );
+
+function vergeml_compat_eml_templates() {
+
+    if ( function_exists( 'wpuxss_eml_print_media_templates' ) ) {
+        remove_action( 'print_media_templates', 'wpuxss_eml_print_media_templates' );
+    }
+}
 
 function vergeml_compat_eml_scripts() {
 
