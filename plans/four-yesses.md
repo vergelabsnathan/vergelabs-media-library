@@ -75,7 +75,7 @@ Kamatera was retired 2026-08-29; the box is the real MySQL.
 | who reviews, and what it costs | 5.9 |
 | `security@in.vergelabs.nl` reaches a person | 5.10 |
 | plan inclusions (2,000 credits inside €39) — priced, not decided | none |
-| re-describe the box's library (≈ €4.83); mock on or off there — **mock stays on until 2.3 (2026-09-11)** | none, but every meaning-search proof |
+| re-describe the box's library (≈ €4.83), then re-take `tests/tree/filing-baseline.txt`; mock on or off there — **mock stays on until 2.3 (2026-09-11)** | the filing-baseline gate of Phase 1, every meaning-search proof |
 
 ## What is already true, 2026-09-10
 

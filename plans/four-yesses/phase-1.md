@@ -35,7 +35,12 @@ available). S3: 1.5 + 1.7. S4: 1.8, when Nathan has done his part.
   is `gate7-schema.php`, which drops the librarian tables on the box and is
   never run there (Nathan's rule). Zero red among the rest.
 - `node tools/plugin-check.mjs` — ≤ 2 known.
-- `node tools/filing-baseline-check.mjs` — the baseline unchanged.
+- `node tools/filing-baseline-check.mjs` — the baseline unchanged. **Cannot
+  run on 2026-09-11:** the box's library is all mock (0 pictures for the
+  baseline script) and `tests/tree/filing-baseline.txt` is from the
+  pre-reset library (641 pictures, 31 folders; the box has 1,000 and 20).
+  Needs a real describe of the box (≈ €4.83) and then a re-taken baseline —
+  both Nathan's call (stop-point table).
 - `docs/compatibility.md` carries the 1.4 table; `docs/runbooks/rollback.md`
   exists and was followed once.
 
