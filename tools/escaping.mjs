@@ -67,7 +67,7 @@ const REVIEWED = {
 	/* --- JavaScript ---------------------------------------------------- */
 
 	'js/eml-admin.js': [
-		[ '950a39b6c2', 'vergemlConfirmDialog() and vergemlAlertDialog() both inject their html argument, and neither has a caller -- every call site spells them without the "vergeml" prefix, so they are dead code. See "Two dialog helpers with no callers" below' ],
+		[ '950a39b6c2', 'vergemlConfirmDialog() and vergemlAlertDialog() inject their html argument. All sixteen call sites pass vergeml.l10n strings -- our own translated copy, never a value out of the database or the request. Until 2026-09-11 every call site misspelled them and they were dead code; see "Two dialog helpers that had no callers" below' ],
 	],
 
 	'js/eml-media-grid.js': [
@@ -552,21 +552,19 @@ function markdown() {
 			L.push( `| ${ e.rel }:${ e.line } | \`${ e.fingerprint }\` | \`${ e.sink }\` | ${ esc( e.reviewed ) } |` );
 		}
 		L.push( '' );
-		L.push( '#### Two dialog helpers with no callers' );
+		L.push( '#### Two dialog helpers that had no callers' );
 		L.push( '' );
 		L.push( '`js/eml-admin.js` defines `window.vergemlConfirmDialog` and' );
-		L.push( '`window.vergemlAlertDialog`, both of which inject their `html` argument. Neither is' );
-		L.push( 'ever called: all sixteen call sites across `eml-options.js`,' );
-		L.push( '`eml-mimetype-options.js` and `vergeml-taxonomies-options.js` spell them' );
-		L.push( '`emlConfirmDialog`, `emlAlertDialog`, `emlFullscreenSpinnerStart` and' );
-		L.push( '`emlFullscreenSpinnerStop` — four names that are defined nowhere, so every one of' );
-		L.push( 'those calls throws a ReferenceError.' );
+		L.push( '`window.vergemlAlertDialog`, both of which inject their `html` argument. On' );
+		L.push( '2026-09-10 neither had a caller: all sixteen call sites spelled them, and the two' );
+		L.push( 'spinner helpers, without the `vergeml` prefix, and those names were defined nowhere.' );
+		L.push( 'Every call threw a ReferenceError, and because `event.preventDefault()` ran first,' );
+		L.push( 'Complete Cleanup, Restore default MIME types, Apply settings to the network and six' );
+		L.push( 'taxonomy dialogs did nothing at all.' );
 		L.push( '' );
-		L.push( 'It fails closed. `event.preventDefault()` runs first and the handler then aborts, so' );
-		L.push( 'the action simply does not happen — Complete Cleanup, Restore default MIME types,' );
-		L.push( 'Apply settings to the network, and six taxonomy confirmations and alerts. **Found,' );
-		L.push( 'not done:** it is a correctness defect rather than a hole, and it belongs with the' );
-		L.push( 'board in Phase 1.' );
+		L.push( 'Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call to an' );
+		L.push( '`eml`- or `vergeml`-prefixed name that no script defines. Every caller passes a' );
+		L.push( '`vergeml.l10n` string, which is the only thing that may go into these two.' );
 		L.push( '' );
 	}
 

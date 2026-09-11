@@ -178,7 +178,7 @@
                             'wp_template_part_area',
                         ])) &&
                     (n.attr('id', ''),
-                    emlAlertDialog(
+                    vergemlAlertDialog(
                         vergeml.l10n.tax_error_duplicate_title,
                         vergeml.l10n.tax_error_duplicate_text,
                         vergeml.l10n.okay,
@@ -261,7 +261,7 @@
                         ? t.hide(300, function () {
                               $(this).remove();
                           })
-                        : emlConfirmDialog(
+                        : vergemlConfirmDialog(
                               vergeml.l10n.tax_deletion_confirm_title,
                               vergeml.l10n.tax_deletion_confirm_text_p1 +
                                   vergeml.l10n.tax_deletion_confirm_text_p2 +
@@ -319,7 +319,7 @@
                           ? (s(t, l), void o(t, l))
                           : (s('', l),
                             o('', l),
-                            void emlAlertDialog(
+                            void vergemlAlertDialog(
                                 vergeml.l10n.tax_error_wrong_taxname_title,
                                 vergeml.l10n.tax_error_wrong_taxname,
                                 vergeml.l10n.okay,
@@ -340,7 +340,7 @@
                     $(this).val(t),
                     '' === t &&
                         ($(this).val(n),
-                        emlAlertDialog(
+                        vergemlAlertDialog(
                             vergeml.l10n.tax_error_wrong_slug_title,
                             vergeml.l10n.tax_error_wrong_slug,
                             vergeml.l10n.okay,
@@ -471,7 +471,7 @@
                                       '</p>')));
                     }),
                     i ||
-                        emlAlertDialog(u, a, vergeml.l10n.okay, 'button button-primary').done(
+                        vergemlAlertDialog(u, a, vergeml.l10n.okay, 'button button-primary').done(
                             function () {
                                 return (
                                     $('.vergeml-clone-taxonomy, .vergeml-taxonomy-name').trigger(
@@ -487,7 +487,7 @@
             $(document).on('click', '.eml-button-synchronize-terms', function (t) {
                 var n, m, s;
                 if ((n = $(t.target)).hasClass('disabled')) return (t.preventDefault(), !1);
-                emlConfirmDialog(
+                vergemlConfirmDialog(
                     vergeml.l10n.sync_warning_title,
                     vergeml.l10n.sync_warning_text,
                     vergeml.l10n.sync_warning_yes,
@@ -497,7 +497,7 @@
                     .done(function () {
                         ((m = n.attr('data-post-type')),
                             (s = n.attr('data-taxonomy')),
-                            emlFullscreenSpinnerStart(vergeml.l10n.in_progress_sync_text),
+                            vergemlFullscreenSpinnerStart(vergeml.l10n.in_progress_sync_text),
                             $.post(
                                 ajaxurl,
                                 {
@@ -507,7 +507,7 @@
                                     taxonomy: s,
                                 },
                                 function (e) {
-                                    emlFullscreenSpinnerStop();
+                                    vergemlFullscreenSpinnerStop();
                                 },
                             ));
                     })

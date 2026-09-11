@@ -103,6 +103,19 @@ const SUITES = [
 	 */
 	{ name: 'escaping', file: 'tests/security/escaping.mjs', env: 'local' },
 	/*
+	 *  Every bare eml-/vergeml- call in the scripts names something a script
+	 *  defines. Sixteen did not, for however long a rename had been in the tree,
+	 *  and four destructive buttons silently did nothing. env 'local'.
+	 */
+	{ name: 'globals', file: 'tests/security/globals.mjs', env: 'local' },
+	/*
+	 *  The Delete All Data button opens its confirmation and Cancel closes it.
+	 *  Playground, never the box: the button deletes everything if the dialog is
+	 *  ever answered yes, and a test that can only do that to a throwaway site is
+	 *  one that can be run without thinking.
+	 */
+	{ name: 'dialogs', file: 'tests/security/dialogs.mjs', env: 'playground' },
+	/*
 	 *  Every route's permission callback, as an anonymous visitor, a subscriber,
 	 *  an author and an editor. Real MySQL and real roles, so the box: it creates
 	 *  three users and two attachment rows to ask the object question with, and

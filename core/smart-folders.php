@@ -279,6 +279,15 @@ function vergeml_smart_counts( $fresh = false ) {
      *
      *  Fragments carry no placeholders. They are built from constants, and
      *  the argument list below is positional.
+     *
+     *  **This filter returns SQL, and the SQL is interpolated.** Whatever comes
+     *  back is spliced into the WHERE of five statements as it is, with no
+     *  escaping and no placeholder, because it is a fragment and not a value.
+     *  Build it from `$wpdb` table names, constants and literals only. Never put
+     *  request text, an option, or anything a person typed into it -- a term
+     *  name here is an injection, and this comment is the only warning there
+     *  is. A value belongs in a branch's `args` (see `vergeml_smart_count_branches`
+     *  below), where it goes through prepare().
      */
     $exclude = (string) apply_filters( 'vergeml_smart_count_exclude', '' );
 
@@ -331,6 +340,13 @@ function vergeml_smart_counts( $fresh = false ) {
     /*
      *  Extra branches, each `array( 'sql' => ..., 'args' => array() )`, and
      *  each producing the same two columns as the five above.
+     *
+     *  **`sql` is interpolated; `args` is prepared.** The `sql` string is
+     *  appended to the statement as it is, so it must be built from `$wpdb`
+     *  table names, constants and literals, with a `%s`/`%d` placeholder for
+     *  every value and that value in `args`. Nothing a person typed goes in
+     *  `sql`, ever. core/quarantine.php and core/ai-folders.php are the two
+     *  implementations to copy.
      */
     $extra_sql  = '';
     $extra_args = array();

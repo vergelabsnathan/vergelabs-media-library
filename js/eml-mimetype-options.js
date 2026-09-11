@@ -74,10 +74,10 @@ window.vergeml = window.vergeml || { l10n: {} };
 
         event.preventDefault();
 
-        emlConfirmDialog( vergeml.l10n.mime_restoring_confirm_title, vergeml.l10n.mime_restoring_confirm_text, vergeml.l10n.mime_restoring_yes, vergeml.l10n.cancel, 'button button-primary eml-warning-button' )
+        vergemlConfirmDialog( vergeml.l10n.mime_restoring_confirm_title, vergeml.l10n.mime_restoring_confirm_text, vergeml.l10n.mime_restoring_yes, vergeml.l10n.cancel, 'button button-primary eml-warning-button' )
         .done( function() {
 
-            emlFullscreenSpinnerStart( vergeml.l10n.in_progress_restoring_text );
+            vergemlFullscreenSpinnerStart( vergeml.l10n.in_progress_restoring_text );
 
             $('<input type="hidden"/>').attr( 'name', name )
                 .val( value )
@@ -124,7 +124,7 @@ window.vergeml = window.vergeml || { l10n: {} };
 
         if ( ! submit_it ) {
 
-            emlAlertDialog( alert_title, alert_text, vergeml.l10n.okay, 'button button-primary' )
+            vergemlAlertDialog( alert_title, alert_text, vergeml.l10n.okay, 'button button-primary' )
             .done( function() {
                 return false;
             });

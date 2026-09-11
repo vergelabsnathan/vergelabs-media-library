@@ -53,8 +53,8 @@ what it is given, so changing any of them expires its reason.
 
 | where | fingerprint | sink | why it is safe |
 |---|---|---|---|
-| js/eml-admin.js:33 | `950a39b6c2` | `jQuery .html()` | vergemlConfirmDialog() and vergemlAlertDialog() both inject their html argument, and neither has a caller -- every call site spells them without the "vergeml" prefix, so they are dead code. See "Two dialog helpers with no callers" below |
-| js/eml-admin.js:74 | `950a39b6c2` | `jQuery .html()` | vergemlConfirmDialog() and vergemlAlertDialog() both inject their html argument, and neither has a caller -- every call site spells them without the "vergeml" prefix, so they are dead code. See "Two dialog helpers with no callers" below |
+| js/eml-admin.js:33 | `950a39b6c2` | `jQuery .html()` | vergemlConfirmDialog() and vergemlAlertDialog() inject their html argument. All sixteen call sites pass vergeml.l10n strings -- our own translated copy, never a value out of the database or the request. Until 2026-09-11 every call site misspelled them and they were dead code; see "Two dialog helpers that had no callers" below |
+| js/eml-admin.js:74 | `950a39b6c2` | `jQuery .html()` | vergemlConfirmDialog() and vergemlAlertDialog() inject their html argument. All sixteen call sites pass vergeml.l10n strings -- our own translated copy, never a value out of the database or the request. Until 2026-09-11 every call site misspelled them and they were dead code; see "Two dialog helpers that had no callers" below |
 | js/eml-media-grid.js:106 | `3b644de74c` | `jQuery .html()` | a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow character appended |
 | js/eml-media.js:130 | `5075804ae4` | `jQuery .html()` | core's own Find Posts dialog: x.data is the HTML table core builds in wp_ajax_find_posts, behind core's nonce and capability. This mirrors core's media.js |
 | js/vergeml-gallery.js:36 | `8e5f448d16` | `innerHTML` | glyph is a parameter of mk(), called exactly twice, both times with an HTML entity literal |
@@ -72,21 +72,19 @@ what it is given, so changing any of them expires its reason.
 | js/vergeml-tree.js:4747 | `a85ef70f6b` | `innerHTML` | an HTML entity chosen by a boolean, inside literal markup |
 | js/vergeml-tree.js:4753 | `379ac53d9c` | `innerHTML` | one of two HTML entities |
 
-#### Two dialog helpers with no callers
+#### Two dialog helpers that had no callers
 
 `js/eml-admin.js` defines `window.vergemlConfirmDialog` and
-`window.vergemlAlertDialog`, both of which inject their `html` argument. Neither is
-ever called: all sixteen call sites across `eml-options.js`,
-`eml-mimetype-options.js` and `vergeml-taxonomies-options.js` spell them
-`emlConfirmDialog`, `emlAlertDialog`, `emlFullscreenSpinnerStart` and
-`emlFullscreenSpinnerStop` — four names that are defined nowhere, so every one of
-those calls throws a ReferenceError.
+`window.vergemlAlertDialog`, both of which inject their `html` argument. On
+2026-09-10 neither had a caller: all sixteen call sites spelled them, and the two
+spinner helpers, without the `vergeml` prefix, and those names were defined nowhere.
+Every call threw a ReferenceError, and because `event.preventDefault()` ran first,
+Complete Cleanup, Restore default MIME types, Apply settings to the network and six
+taxonomy dialogs did nothing at all.
 
-It fails closed. `event.preventDefault()` runs first and the handler then aborts, so
-the action simply does not happen — Complete Cleanup, Restore default MIME types,
-Apply settings to the network, and six taxonomy confirmations and alerts. **Found,
-not done:** it is a correctness defect rather than a hole, and it belongs with the
-board in Phase 1.
+Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call to an
+`eml`- or `vergeml`-prefixed name that no script defines. Every caller passes a
+`vergeml.l10n` string, which is the only thing that may go into these two.
 
 <details><summary>All 48 JavaScript HTML sinks</summary>
 
@@ -170,7 +168,7 @@ single quote, and to teach the importer to strip one leading `'` back off.
 | core/options-pages.php:1593 | `cd9e4aee76` | `json_encode( $settings )` | json_encode() into a download: application/json with Content-Disposition attachment, so not an HTML context. wp_json_encode() would be the house style |
 | core/options-pages.php:2916 | `e60edee9bb` | `$html` | assembled from __() translations and literal form markup; no value out of the request or the database is interpolated unescaped. Two sites, the media and non-media post-type branches, with the same expression |
 | core/options-pages.php:3019 | `e60edee9bb` | `$html` | assembled from __() translations and literal form markup; no value out of the request or the database is interpolated unescaped. Two sites, the media and non-media post-type branches, with the same expression |
-| core/smart-folders.php:1321 | `dde83623fc` | `implode( '<br>', $lines )` | each $lines[] entry is sprintf( '<a href="%s">%s</a>', esc_url( get_edit_post_link( … ) ), esc_html( $title ) ) |
+| core/smart-folders.php:1337 | `dde83623fc` | `implode( '<br>', $lines )` | each $lines[] entry is sprintf( '<a href="%s">%s</a>', esc_url( get_edit_post_link( … ) ), esc_html( $title ) ) |
 
 ## PHP output with nothing accounting for it
 

@@ -12,10 +12,10 @@ window.vergeml = window.vergeml || { l10n: {} };
 
         event.preventDefault();
 
-        emlConfirmDialog( vergeml.l10n.cleanup_warning_title, vergeml.l10n.cleanup_warning_text_p1+vergeml.l10n.cleanup_warning_text_p2, vergeml.l10n.cleanup_warning_yes, vergeml.l10n.cancel, 'button button-primary eml-warning-button' )
+        vergemlConfirmDialog( vergeml.l10n.cleanup_warning_title, vergeml.l10n.cleanup_warning_text_p1+vergeml.l10n.cleanup_warning_text_p2, vergeml.l10n.cleanup_warning_yes, vergeml.l10n.cancel, 'button button-primary eml-warning-button' )
         .done( function() {
 
-            emlFullscreenSpinnerStart( vergeml.l10n.in_progress_cleanup_text );
+            vergemlFullscreenSpinnerStart( vergeml.l10n.in_progress_cleanup_text );
 
             $('#eml-form-cleanup').submit();
 
@@ -49,17 +49,17 @@ window.vergeml = window.vergeml || { l10n: {} };
                 applying_settings_text = '';
         }
 
-        emlConfirmDialog( vergeml.l10n.applying_settings_title, applying_settings_text + ' ' + vergeml.l10n.cleanup_warning_text_p2, vergeml.l10n.applying_settings_yes, vergeml.l10n.cancel, 'button button-primary eml-warning-button' )
+        vergemlConfirmDialog( vergeml.l10n.applying_settings_title, applying_settings_text + ' ' + vergeml.l10n.cleanup_warning_text_p2, vergeml.l10n.applying_settings_yes, vergeml.l10n.cancel, 'button button-primary eml-warning-button' )
         .done( function() {
 
-            emlFullscreenSpinnerStart( vergeml.l10n.in_progress_apply_setings_text );
+            vergemlFullscreenSpinnerStart( vergeml.l10n.in_progress_apply_setings_text );
 
             $.post( ajaxurl, {
                 nonce: vergeml.l10n.apply_to_network_nonce,
                 action: 'vergeml-apply-settings-to-network',
                 settings: settings
             },function( response ) {
-                emlFullscreenSpinnerStop();
+                vergemlFullscreenSpinnerStop();
             });
         })
         .fail(function() {
