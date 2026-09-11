@@ -244,3 +244,19 @@ filesystem class and it is not ours.
 
 The box is back on clean `main` and re-verified after the mutation deploys: the last
 `roles` run is 19/19 against the real code.
+
+---
+
+## Amendment, 2026-09-11
+
+Findings 3 and 4 above are done, same session, commit `0a1e205`:
+
+- **3.** The sixteen call sites renamed to the `vergeml*` helpers. Held by
+  `tests/security/globals.mjs` (7/7, local) and `tests/security/dialogs.mjs`
+  (5/5, Playground — presses Delete All Data, asserts the dialog, presses Cancel).
+  Both mutation-checked; both registered in `tools/verify.mjs`.
+- **4.** Docblocks on both filters in `core/smart-folders.php` saying what may go
+  in `sql` and what must go in `args`.
+
+Findings 1 (CSV formula — needs the Excel decision) and 2 (per-object `edit_post`
+— after Phase 1 task 1.1) stand as written.
