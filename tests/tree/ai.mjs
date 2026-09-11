@@ -46,7 +46,12 @@ check( 'the page renders with both actions', await page.evaluate( () =>
 const counts = await page.evaluate( () => document.getElementById( 'vgml-ai-counts' ).textContent );
 check( 'status counts load', /\d+ pictures/.test( counts ), counts );
 
-// mock on, through the settings endpoint (no key needed, nothing spent)
+// mock on, through the settings endpoint (no key needed, nothing spent).
+// The two flags go back to what they were at the end: a run that left mock
+// on turned every later describe on the box into a mock one, and a library
+// of a thousand real descriptions into a thousand hashes (2026-09-11).
+const settingsBefore = await page.evaluate( async () =>
+	( await window.wp.apiFetch( { path: '/vergeml/v1/ai-status' } ) ).settings );
 await page.evaluate( async () => {
 	await window.wp.apiFetch( { path: '/vergeml/v1/ai-settings', method: 'POST', data: { mock: 1, enrich_search: 1 } } );
 } );
@@ -130,6 +135,10 @@ const badgeCount = null === smartBadge || '' === smartBadge ? 0 : Number( smartB
 check( 'Missing alt text agrees with the status', badgeCount === after.missing_alt, `badge ${ String( smartBadge ) }, status ${ after.missing_alt }` );
 
 check( 'no javascript errors throughout', errors.length === 0, errors.slice( 0, 2 ).join( ' | ' ) );
+
+await page.evaluate( async ( was ) => {
+	await window.wp.apiFetch( { path: '/vergeml/v1/ai-settings', method: 'POST', data: { mock: was.mock, enrich_search: was.enrich_search } } );
+}, settingsBefore );
 
 await browser.close();
 
