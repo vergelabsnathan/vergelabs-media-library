@@ -66,7 +66,7 @@ function vergeml_shell_pages() {
         array(
             'slug'  => 'media-librarian',
             'icon'  => 'librarian',
-            'sub'   => __( 'Build the folder tree', 'vergelabs-media-library' ),
+            'sub'   => __( 'Build the folders', 'vergelabs-media-library' ),
             'label' => __( 'Folders', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),

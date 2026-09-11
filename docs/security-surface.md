@@ -111,7 +111,7 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/search-meaning` | GET | closure | upload_files | no | `s*`, `limit`, $request | db query, outbound http, db write, schedules cron | no | core/search-meaning.php:509 |
 | `/vergeml/v1/search-try` | GET | closure | upload_files | no | `s*`, $request | db query, outbound http, db write, schedules cron | no | core/search-try.php:193 |
 | `/vergeml/v1/similar` | GET | $can | manage_categories | no | `id*`, `limit`, $request | db query | yes | core/utilities.php:433 |
-| `/vergeml/v1/smart-scan` | POST | closure | manage_categories | no | `resume`, $request | db query, meta/option write | no | core/smart-folders.php:1111 |
+| `/vergeml/v1/smart-scan` | POST | closure | manage_categories | no | `resume`, $request | db query, meta/option write | no | core/smart-folders.php:1127 |
 | `/vergeml/v1/state` | GET | vergeml_can_read_tree | upload_files | no | `taxonomy*`, $request | — | no | core/rest-folders.php:46 |
 | `/vergeml/v1/state` | POST | vergeml_can_read_tree | upload_files | no | `taxonomy*`, `open`, `selected`, `width`, `collapsed`, `filtersOpen`, `aiOpen`, `skin`, `density`, $request | — | no | core/rest-folders.php:46 |
 | `/vergeml/v1/stats-opt` | POST | closure | manage_options | no | `opted*`, $request | meta/option write, db query, outbound http | no | core/instrument.php:264 |
@@ -269,7 +269,7 @@ capability gate belongs to whatever screen they fire on, not to them.
 | `admin_notices` | action | vergeml_rename_undo_notice | $_GET | — | — | — | core/rename.php:448 |
 | `admin_page_access_denied` | action | vergeml_admin_menu_redirects | $_GET | — | — | — | core/admin-menu.php:141 |
 | `ajax_query_attachments_args` | filter | vergeml_quarantine_hide_grid | $_POST | — | — | — | core/quarantine.php:229 |
-| `ajax_query_attachments_args` | filter | vergeml_smart_grid_query | $_POST | — | — | — | core/smart-folders.php:1142 |
+| `ajax_query_attachments_args` | filter | vergeml_smart_grid_query | $_POST | — | — | — | core/smart-folders.php:1158 |
 | `ajax_query_attachments_args` | filter | vergeml_ajax_query_attachments_args | $_REQUEST | — | — | — | core/taxonomies.php:333 |
 | `attachment_fields_to_edit` | filter | vergeml_why_here_field | $_REQUEST | db query | — | — | core/librarian.php:3164 |
 | `handle_bulk_actions-upload` | filter | vergeml_handle_bulk_terms | $_REQUEST | term assign | edit_post($post_id) | — | core/bulk-terms.php:142 |
@@ -280,7 +280,7 @@ capability gate belongs to whatever screen they fire on, not to them.
 | `pre_get_posts` | action | vergeml_folder_filter_posts | $_GET | — | — | — | core/post-folders.php:240 |
 | `pre_get_posts` | action | vergeml_quarantine_hide_list | $_GET | — | — | — | core/quarantine.php:249 |
 | `pre_get_posts` | action | vergeml_meaning_take_over | $_GET | db query, outbound http, db write, schedules cron | — | — | core/search-meaning.php:618 |
-| `pre_get_posts` | action | vergeml_smart_list_query | $_GET | — | — | — | core/smart-folders.php:1168 |
+| `pre_get_posts` | action | vergeml_smart_list_query | $_GET | — | — | — | core/smart-folders.php:1184 |
 | `rest_api_init` | action | vergeml_ai_alt_route | $request | db query, meta/option write | upload_files, manage_options | — | core/ai.php:1783 |
 | `rest_api_init` | action | vergeml_file_rename_routes | $request | db query, meta/option write, filesystem, post/term write | manage_options | — | core/rename-file.php:560 |
 | `rest_api_init` | action | vergeml_rename_routes | $request | db query, post/term write, meta/option write | upload_files, manage_options, edit_post($id) | — | core/rename.php:481 |

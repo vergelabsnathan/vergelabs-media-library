@@ -55,8 +55,8 @@ one of these queries expires its review and turns the suite red.
 | core/search-try.php:87 | `db4c1ee30a` | `get_results` | the rows query behind the same two assembled lists; LIMIT 30 is a literal |
 | core/seo-context.php:306 | `1f45eb3c01` | `get_col` | vergeml_seo_gap_sql() interpolates its $select argument, and both of its two call sites pass a hardcoded literal; the $keys and $stars lists inside it are array_map( 'esc_sql', ... ) |
 | core/seo-context.php:332 | `ace3ecc40b` | `get_var` | the same function, the other call site, also a hardcoded literal |
-| core/smart-folders.php:354 | `77f8356ddc` | `get_results` | the interpolated {$exclude} and each appended $branch['sql'] come from two filters, not from a request; both of our own implementations build from $wpdb table names and constants, and every value is bound through prepare(). An extension point that accepts SQL -- see "Two filters that accept SQL" in the doc |
-| core/smart-folders.php:374 | `043d77dfa1` | `get_results` | the same $core_sql, read a second time for the extended flag |
+| core/smart-folders.php:370 | `77f8356ddc` | `get_results` | the interpolated {$exclude} and each appended $branch['sql'] come from two filters, not from a request; both of our own implementations build from $wpdb table names and constants, and every value is bound through prepare(). An extension point that accepts SQL -- see "Two filters that accept SQL" in the doc |
+| core/smart-folders.php:390 | `043d77dfa1` | `get_results` | the same $core_sql, read a second time for the extended flag |
 
 ### Two filters that accept SQL
 
@@ -382,16 +382,16 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 354 | — | `get_results` | read by hand — see the reason | — |
-| 374 | — | `get_results` | read by hand — see the reason | — |
-| 562 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
-| 671 | — | `get_var` | prepared | $wpdb->postmeta — a $wpdb table name |
-| 757 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name |
-| 792 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; $placeholders — $placeholders is only ever implode of a generated %d placeholder list |
-| 831 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
-| 857 | — | `get_col` | prepared | $wpdb->options — a $wpdb table name |
-| 898 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name |
-| 935 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
+| 370 | — | `get_results` | read by hand — see the reason | — |
+| 390 | — | `get_results` | read by hand — see the reason | — |
+| 578 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
+| 687 | — | `get_var` | prepared | $wpdb->postmeta — a $wpdb table name |
+| 773 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name |
+| 808 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; $placeholders — $placeholders is only ever implode of a generated %d placeholder list |
+| 847 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
+| 873 | — | `get_col` | prepared | $wpdb->options — a $wpdb table name |
+| 914 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name |
+| 951 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
 
 ### core/taxonomies.php
 
