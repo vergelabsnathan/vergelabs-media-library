@@ -309,4 +309,40 @@ if ( function_exists( 'vergeml_organize_project' ) ) {
     vgml_scale_line( 'search by meaning (scan + score)', $t, $q, sprintf( 'scanned %s of %s embedded', number_format( count( $rows ) ), number_format( $with ) ) );
 }
 
+// 11. one step of the duplicate scan, as the Duplicates screen's loop calls it.
+//     The step hashes a batch and writes their metas, so the scan's own state is
+//     put back afterwards and the batch's hashes removed: the fixture is as before.
+if ( function_exists( 'vergeml_health_scan_step' ) ) {
+    $state_before = get_option( VERGEML_HEALTH_OPTION );
+    $batch_ids    = vergeml_health_backlog( 0, VERGEML_HEALTH_BATCH );
+    wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
+    $step = vergeml_health_scan_step( 0 );
+    vgml_scale_line( 'duplicate scan, one step', $t, $q, sprintf( '%d hashed, %s remaining', $step['hashed'], number_format( $step['remaining'] ) ) );
+    if ( $batch_ids ) {
+        $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s AND post_id IN (" . implode( ',', array_map( 'intval', $batch_ids ) ) . ')', VERGEML_META_HASH ) );
+    }
+    if ( false === $state_before ) { delete_option( VERGEML_HEALTH_OPTION ); } else { update_option( VERGEML_HEALTH_OPTION, $state_before, false ); }
+    wp_cache_flush();
+}
+
+// 12. search by word, the two ways the plugin runs it: the media grid's own
+//     search box (core/search.php widens core's LIKE to the index fields) and
+//     the Try-a-query screen (core/search-try.php, word pass; its meaning pass
+//     only runs when the service is connected, so nothing here reaches a model).
+//     "group7" is a tag on one in forty of the embedded rows; "scale" is in every title.
+if ( ! defined( 'WP_ADMIN' ) ) define( 'WP_ADMIN', true ); // the widening only applies to admin and AJAX queries, as the grid's are
+$columns = function_exists( 'vergeml_search_columns' ) ? vergeml_search_columns() : array();
+foreach ( array( 'group7', 'scale' ) as $word ) {
+    wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
+    $grid = new WP_Query( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => 40, 'paged' => 1, 's' => $word ) );
+    vgml_scale_line( "media grid search \"$word\", 40/page", $t, $q, number_format( $grid->found_posts ) . ' found' . ( $columns ? ', widened to ' . implode( '+', $columns ) : ', core columns only' ) );
+}
+if ( function_exists( 'vergeml_search_try' ) ) {
+    foreach ( array( 'group7', 'scale caption' ) as $word ) {
+        wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
+        $try = vergeml_search_try( $word );
+        vgml_scale_line( "try a query \"$word\" (word pass)", $t, $q, sprintf( '%s matched, meaning %s', number_format( (int) $try['word']['total'] ), empty( $try['meaning']['available'] ) ? 'not connected' : 'ran' ) );
+    }
+}
+
 echo "\n";
