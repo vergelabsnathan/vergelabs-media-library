@@ -1,0 +1,27 @@
+{
+	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"landingPage": "/wp-admin/plugins.php",
+	"preferredVersions": {
+		"php": "8.3",
+		"wp": "latest"
+	},
+	"login": true,
+	"steps": [
+		{
+			"step": "defineWpConfigConsts",
+			"consts": {
+				"WP_DEBUG": true,
+				"WP_DEBUG_LOG": true,
+				"WP_DEBUG_DISPLAY": false
+			}
+		},
+		{
+			"step": "activatePlugin",
+			"pluginPath": "/wordpress/wp-content/plugins/vergelabs-media-library"
+		},
+		{
+			"step": "runPHP",
+			"code": "<?php\nrequire_once '/wordpress/wp-load.php';\nrequire_once ABSPATH . 'wp-admin/includes/image.php';\n\nfunction vgml_png( $w, $h, $r, $g, $b ) {\n    $raw = '';\n    for ( $y = 0; $y < $h; $y++ ) {\n        $raw .= chr( 0 ) . str_repeat( chr( $r ) . chr( $g ) . chr( $b ), $w );\n    }\n    $chunk = function ( $type, $data ) {\n        return pack( 'N', strlen( $data ) ) . $type . $data . pack( 'N', crc32( $type . $data ) );\n    };\n    $ihdr = pack( 'NN', $w, $h ) . chr( 8 ) . chr( 2 ) . chr( 0 ) . chr( 0 ) . chr( 0 );\n    return \"\\x89PNG\\r\\n\\x1a\\n\" . $chunk( 'IHDR', $ihdr ) . $chunk( 'IDAT', gzcompress( $raw, 6 ) ) . $chunk( 'IEND', '' );\n}\n\n// Three folders, one nested: Photos, Photos > Harbour, Logos.\n$photos  = wp_insert_term( 'Photos', 'media_category' );\n$harbour = wp_insert_term( 'Harbour', 'media_category', array( 'parent' => (int) $photos['term_id'] ) );\n$logos   = wp_insert_term( 'Logos', 'media_category' );\n\n$dir = wp_upload_dir();\n\n// Four images; three filed (one in the nested folder), one left alone.\n$plan = array(\n    array( 'Harbour at dusk', (int) $harbour['term_id'], 176, 104, 62 ),\n    array( 'Ridgeline study', (int) $photos['term_id'],  92, 118, 92 ),\n    array( 'Wordmark, dark',  (int) $logos['term_id'],   31,  56, 100 ),\n    array( 'Unfiled scan',    0,                         200, 200, 200 ),\n);\n\n$i = 0;\nforeach ( $plan as $row ) {\n    list( $title, $term, $r, $g, $b ) = $row;\n    $path = trailingslashit( $dir['path'] ) . 'uninstall-' . ( ++$i ) . '.png';\n    file_put_contents( $path, vgml_png( 320, 240, $r, $g, $b ) );\n    $id = wp_insert_attachment( array(\n        'post_title'     => $title,\n        'post_mime_type' => 'image/png',\n        'post_status'    => 'inherit',\n    ), $path );\n    wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $path ) );\n    if ( $term ) {\n        wp_set_object_terms( $id, array( $term ), 'media_category' );\n    }\n}\n\nupdate_option( 'vergeml_uninstall_wipe', '0' );\nset_transient( 'vergeml_probe_marker', 1, HOUR_IN_SECONDS );\n"
+		}
+	]
+}

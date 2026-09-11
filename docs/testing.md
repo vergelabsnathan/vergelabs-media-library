@@ -295,6 +295,13 @@ Plus, outside the runner:
 - `pro/tests/api-base.php` — four modes, one per process, because a constant can
   only be defined once. See its header.
 - `service/lib/*.test.ts` — `npx vitest run` in the service repo.
+- Uninstall, both ways: `node tools/uninstall-walk.mjs`. Two Playgrounds in
+  turn, three folders and four images each, the plugin deleted through the
+  Plugins screen; run 1 proves the folders and the filing survive by default,
+  run 2 proves "also remove everything" leaves no option, table or term and
+  no attachment goes. `VGML_UNINSTALL_MUTATE=1` makes `uninstall.php` wipe
+  regardless of the switch and must go red. Not on the box: deactivating a
+  plugin there fatals.
 
 ## The benchmark
 
