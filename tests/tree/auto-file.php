@@ -12,9 +12,20 @@
  *  are facts of the fixture rather than of a model. What is being tested is
  *  the decision, and the decision is the same whatever produced the numbers.
  *
+ *  Since 2026-09-05 the decision is core/filing.php's: the picture's object
+ *  classes against each folder's, gated by kind and audience, the vector as
+ *  the tie-break, and nothing below the floor. So every planted row carries
+ *  its classes and its vector in the index, and every folder a profile
+ *  planted as term meta with the fixture's own vector -- a profile built from
+ *  the name would be embedded by the service, and a tie between two folders
+ *  would then hang on noise. A row with no classes cannot clear the floor,
+ *  which is the matcher being right, and was seven reds here until the
+ *  fixture said what its pictures showed.
+ *
  *      wp eval-file tests/tree/auto-file.php --allow-root
  *
- *  or through tests/tree/auto-file-blueprint.json in Playground.
+ *  On the box: the index stores the vector as packed floats, which the
+ *  Playground's SQLite layer refuses.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -107,13 +118,9 @@ $GLOBALS['uf_posts'] = array();
 $uf_terms = array();
 
 /*
- *  Vectors are served through the seam rather than written to the index.
- *
- *  Not a convenience: Playground's SQLite layer refuses any INSERT carrying
- *  packed floats, so an embedding cannot be stored there at all. Storing one
- *  is core/ai-index.php's job and is exercised where storage works; what this
- *  suite is about is the decision taken once a vector exists, and that is the
- *  same decision whatever handed it over.
+ *  Vectors are also served through the seam, for the centroid the earning
+ *  side still reads; the decision itself reads the row, so the row has to
+ *  carry the vector as well (see uf_file).
  */
 $GLOBALS['uf_vectors'] = array();
 
@@ -161,7 +168,13 @@ function uf_vector( $corner, $n ) {
 }
 
 
-function uf_file( $title, $vector, $term_id = 0 ) {
+/**
+ *  A described picture. $object is what the model would have said it shows,
+ *  in the "object" field the matcher reads its classes from -- "zzinvoices",
+ *  or "zzinvoices; zzharbour" for a picture that is both, or nothing for a
+ *  picture that says nothing.
+ */
+function uf_file( $title, $vector, $term_id = 0, $object = '' ) {
 
 
     $id = wp_insert_post( array(
@@ -173,10 +186,12 @@ function uf_file( $title, $vector, $term_id = 0 ) {
 
     $GLOBALS['uf_posts'][] = (int) $id;
 
-    // The row says "described"; the vector comes through the seam.
+    // The row says "described", what it shows, and where it sits.
     vergeml_index_set( (int) $id, array(
         'caption'      => 'seeded',
         'kind'         => 'photo',
+        'filing'       => wp_json_encode( array( 'object' => $object ) ),
+        'embedding'    => $vector,
         'described_at' => gmdate( 'Y-m-d H:i:s' ),
     ) );
 
@@ -194,7 +209,28 @@ function uf_file( $title, $vector, $term_id = 0 ) {
 
 uf_say( "the fixture\n" );
 
-foreach ( array( 'zzInvoices', 'zzHarbour' ) as $name ) {
+/**
+ *  The folder's side of the match, planted in the shape
+ *  vergeml_filing_profile_build() stores: its name as its one class, the
+ *  kinds a photo folder takes, and the fixture's corner as its vector.
+ */
+function uf_profile( $term_id, $name, $vector ) {
+    update_term_meta( $term_id, VERGEML_FILING_META, array(
+        'version'  => VERGEML_FILING_VERSION,
+        'source'   => 'name',
+        'plan'     => array(),
+        'path'     => array( $name ),
+        'classes'  => array( strtolower( $name ) ),
+        'kinds'    => array( 'photo', 'illustration' ),
+        'audience' => '',
+        'matches'  => '',
+        'text'     => $name,
+        'vector'   => $vector,
+        'built_at' => time(),
+    ) );
+}
+
+foreach ( array( 'zzInvoices' => 0, 'zzHarbour' => 4 ) as $name => $corner ) {
     $term = wp_insert_term( $name, $GLOBALS['uf_tax'] );
     if ( is_wp_error( $term ) ) {
         $existing = get_term_by( 'name', $name, $GLOBALS['uf_tax'] );
@@ -202,12 +238,13 @@ foreach ( array( 'zzInvoices', 'zzHarbour' ) as $name ) {
     } else {
         $uf_terms[ $name ] = (int) $term['term_id'];
     }
+    uf_profile( $uf_terms[ $name ], $name, uf_vector( $corner, 0 ) );
 }
 
 // Four filed files per folder, clustered at opposite corners.
 for ( $i = 0; $i < 4; $i++ ) {
-    uf_file( 'inv-' . $i, uf_vector( 0, $i ), $uf_terms['zzInvoices'] );
-    uf_file( 'har-' . $i, uf_vector( 4, $i ), $uf_terms['zzHarbour'] );
+    uf_file( 'inv-' . $i, uf_vector( 0, $i ), $uf_terms['zzInvoices'], 'zzinvoices' );
+    uf_file( 'har-' . $i, uf_vector( 4, $i ), $uf_terms['zzHarbour'], 'zzharbour' );
 }
 
 $uf_centroid = vergeml_autofile_centroid( $uf_terms['zzInvoices'], $GLOBALS['uf_tax'] );
@@ -217,7 +254,8 @@ uf_check( 'a folder with four described files has a middle',
 
 $uf_thin = wp_insert_term( 'zzThin', $GLOBALS['uf_tax'] );
 $uf_terms['zzThin'] = is_wp_error( $uf_thin ) ? 0 : (int) $uf_thin['term_id'];
-uf_file( 'thin-0', uf_vector( 2, 0 ), $uf_terms['zzThin'] );
+uf_profile( $uf_terms['zzThin'], 'zzThin', uf_vector( 2, 0 ) );
+uf_file( 'thin-0', uf_vector( 2, 0 ), $uf_terms['zzThin'], 'zzthin' );
 
 uf_check( 'a folder with one described file has none',
     null === vergeml_autofile_centroid( $uf_terms['zzThin'], $GLOBALS['uf_tax'] ),
@@ -228,7 +266,7 @@ uf_check( 'a folder with one described file has none',
 
 uf_say( "\nwhere it would go\n" );
 
-$uf_near = uf_file( 'near-invoices', uf_vector( 0, 2 ) );
+$uf_near = uf_file( 'near-invoices', uf_vector( 0, 2 ), 0, 'zzinvoices' );
 
 $uf_suggestion = vergeml_autofile_suggest( $uf_near );
 
@@ -238,24 +276,24 @@ uf_check( 'a file near one folder is suggested for it',
 
 uf_check( 'and it is not earned yet', is_array( $uf_suggestion ) && false === $uf_suggestion['earned'] );
 
-// Halfway between the two clusters: both would do, so neither.
+// Halfway between the two clusters, and showing both: both would do, so neither.
 $uf_between = array_fill( 0, 8, 0.0 );
 $uf_between[0] = 0.5;
 $uf_between[4] = 0.5;
 
-$uf_mid = uf_file( 'between', $uf_between );
+$uf_mid = uf_file( 'between', $uf_between, 0, 'zzinvoices; zzharbour' );
 
 uf_check( 'a file between two folders is suggested for neither',
     null === vergeml_autofile_suggest( $uf_mid ),
     'when two folders would both do, choosing is worse than not' );
 
-// Nowhere near anything.
+// Nowhere near anything, and showing nothing any folder is for.
 $uf_far = uf_file( 'far', uf_vector( 6, 9 ) );
 
 uf_check( 'a file near nothing is suggested for nothing',
     null === vergeml_autofile_suggest( $uf_far ) );
 
-$uf_already = uf_file( 'already-filed', uf_vector( 0, 3 ), $uf_terms['zzHarbour'] );
+$uf_already = uf_file( 'already-filed', uf_vector( 0, 3 ), $uf_terms['zzHarbour'], 'zzinvoices' );
 
 uf_check( 'a file somebody already filed is left alone',
     null === vergeml_autofile_suggest( $uf_already ),
@@ -304,7 +342,7 @@ uf_check( 'five accepted suggestions earn a folder its autonomy',
 uf_check( 'the other folder has earned nothing',
     false === vergeml_autofile_earned( $uf_terms['zzHarbour'] ) );
 
-$uf_auto = uf_file( 'auto-me', uf_vector( 0, 1 ) );
+$uf_auto = uf_file( 'auto-me', uf_vector( 0, 1 ), 0, 'zzinvoices' );
 
 $uf_sweep2 = vergeml_autofile_sweep( 50 );
 
@@ -334,7 +372,7 @@ uf_check( 'and the accepted count is withdrawn, not decremented',
     0 === $uf_ledger['accepted'],
     'a refusal is evidence the middle does not mean what we thought' );
 
-$uf_after = uf_file( 'after-refusal', uf_vector( 0, 2 ) );
+$uf_after = uf_file( 'after-refusal', uf_vector( 0, 2 ), 0, 'zzinvoices' );
 
 $uf_sweep3 = vergeml_autofile_sweep( 50 );
 

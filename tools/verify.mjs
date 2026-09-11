@@ -150,12 +150,14 @@ const SUITES = [
 	{ name: 'ai-folders', file: 'tests/tree/ai-folders.php', env: 'box', php: true },
 	{ name: 'ai-folders-ui', file: 'tests/tree/ai-folders.mjs', env: 'playground' },
 	/*
-	 *  Filing by itself. Playground, not the box, because its vectors come
-	 *  through the seam rather than the index -- SQLite refuses an INSERT
-	 *  carrying packed floats, so the storage half is proven where storage
-	 *  works and the judgement half is proven here.
+	 *  Filing by itself. The box: since the matcher reads the picture's
+	 *  classes and vector off the index row (core/filing.php, 5 Sept), the
+	 *  fixture stores both, and a packed-float embedding is an INSERT the
+	 *  Playground's SQLite layer refuses. It was labelled playground while
+	 *  the vectors came through a seam, and ran on the box regardless --
+	 *  every PHP suite ships over SSH.
 	 */
-	{ name: 'auto-file', file: 'tests/tree/auto-file.php', env: 'playground', php: true },
+	{ name: 'auto-file', file: 'tests/tree/auto-file.php', env: 'box', php: true },
 	/*
 	 *  Spoken commands. Mostly a suite about refusals, so it needs nothing
 	 *  a real database has that Playground does not.
