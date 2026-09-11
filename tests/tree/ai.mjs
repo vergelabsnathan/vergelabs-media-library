@@ -60,18 +60,26 @@ const before = await page.evaluate( async () =>
 
 await page.click( '#vgml-ai-run' );
 
-// the loop is done when the note says so
+// the loop is done when the note says so. run() clears the note and only
+// finish() writes it, so a non-empty note is the end of the run whichever
+// line it ends on; the completed line is "N pictures described · K failed ·
+// HH:MM" (js/vergeml-ai.js), and a stop, a stall or an error reads otherwise.
 await page.waitForFunction( () =>
-	/Done|to go/.test( document.getElementById( 'vgml-ai-note' ).textContent ), null, { timeout: 120000 } );
-await page.waitForFunction( () =>
-	document.getElementById( 'vgml-ai-note' ).textContent.startsWith( 'Done' ), null, { timeout: 180000 } );
+	document.getElementById( 'vgml-ai-note' ).textContent.trim() !== '', null, { timeout: 180000 } );
+
+const note = await page.evaluate( () => document.getElementById( 'vgml-ai-note' ).textContent.trim() );
+check( 'the run finished rather than stopping or failing', /^[\d.,]+ pictures? described · [\d.,]+ failed · \S+/.test( note ), note );
 
 const after = await page.evaluate( async () =>
 	await window.wp.apiFetch( { path: '/vergeml/v1/ai-status' } ) );
 
 check( 'every image got described', after.unindexed === 0, `${ before.unindexed } -> ${ after.unindexed }` );
 check( 'descriptions were stored', after.indexed >= before.indexed && after.indexed > 0, `${ after.indexed } indexed` );
-check( 'missing alt text was filled on the way', after.missing_alt === 0, `${ before.missing_alt } -> ${ after.missing_alt }` );
+// "Describe new images" only touches the pictures with no description, and
+// each of those gets its alt text on the way. The rest of the library is not
+// this run's to fill -- on the reset fixture 997 described pictures carry no
+// alt text, and that number is not a failure of the describe loop.
+check( 'missing alt text was filled on the way, for every picture described', after.missing_alt === before.missing_alt - before.unindexed, `${ before.missing_alt } -> ${ after.missing_alt }, ${ before.unindexed } described` );
 check( 'the log shows captions', await page.evaluate( () =>
 	document.querySelectorAll( '#vgml-ai-log li' ).length > 0 ) );
 
@@ -86,13 +94,20 @@ await page.locator( '.vgml-tree .vgml-node[data-id="0"] .vgml-row' ).click();
 await page.waitForTimeout( 1500 );
 
 // mock captions all start with "Mock caption describing" -- a word from that
-// phrase appears in no filename, so a hit proves the caption matched
-await page.fill( '.media-toolbar .search', 'describing' );
-await page.waitForTimeout( 3000 );
-
-const hits = await page.evaluate( () =>
-	document.querySelectorAll( '.attachments-browser .attachments .attachment' ).length );
+// phrase appears in no filename, so a hit proves the caption matched. The
+// answer is read from the query the search sends, not from the tiles after a
+// fixed sleep: the grid clears while it re-queries, and on a thousand
+// pictures the re-query outlasts any sleep short enough to be a test.
+const [ searched ] = await Promise.all( [
+	page.waitForResponse( ( r ) =>
+		r.url().includes( 'admin-ajax.php' ) && /query-attachments/.test( r.request().postData() || '' ) && /describing/.test( r.request().postData() || '' ), { timeout: 60000 } ),
+	page.fill( '.media-toolbar .search', 'describing' ),
+] );
+const found = await searched.json();
+const hits = Array.isArray( found.data ) ? found.data.length : 0;
 check( 'a caption-only word fills the grid', hits > 0, `${ hits } results` );
+await page.waitForFunction( () =>
+	document.querySelectorAll( '.attachments-browser .attachments .attachment' ).length > 0, null, { timeout: 30000 } );
 
 /* --- the smart folder agrees --------------------------------------------------- */
 
@@ -109,7 +124,10 @@ const smartBadge = await page.evaluate( () => {
 	const badge = row.closest( '.vgml-row' ).querySelector( '.vgml-count, .vgml-smart-scan' );
 	return badge ? badge.textContent.trim() : '0';
 } );
-check( 'Missing alt text emptied out', smartBadge === '0' || smartBadge === null || smartBadge === '', String( smartBadge ) );
+// the folder's badge and the status endpoint count the same pictures: an
+// empty or absent badge is a zero, anything else is the number.
+const badgeCount = null === smartBadge || '' === smartBadge ? 0 : Number( smartBadge.replace( /[^\d]/g, '' ) );
+check( 'Missing alt text agrees with the status', badgeCount === after.missing_alt, `badge ${ String( smartBadge ) }, status ${ after.missing_alt }` );
 
 check( 'no javascript errors throughout', errors.length === 0, errors.slice( 0, 2 ).join( ' | ' ) );
 
