@@ -94,6 +94,13 @@ Still the last resort, and still reliable. Rename
 `wp-content/plugins/vergelabs-media-library` to anything else; WordPress finds
 the plugin file missing and deactivates it on the next admin page load.
 
+## If it was a release
+
+A version that should not have gone out is withdrawn from the update channel,
+not from the sites: `docs/runbooks/rollback.md` — what to change on Vercel,
+how to see that a site stopped being offered it, the six-hour cache, and what
+to do for a site that already took it (the same rename as section 5).
+
 ## If it was us
 
 The safe-mode notice shows the file and line. `core/system-report.php` collects
