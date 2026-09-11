@@ -1,7 +1,7 @@
 {
 	"fullRun": "2026-09-11",
 	"command": "node tools/matrix.mjs",
-	"zip": "d448aed3af8e",
+	"zip": "fe9f647216ea",
 	"cells": {
 		"wp=7.1,php=8.2": {
 			"wp": "7.1",
@@ -50,7 +50,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "13 error(s) from other code, not counted"
+					"detail": "15 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -59,7 +59,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 247
+			"seconds": 294
 		},
 		"wp=6.5,php=7.4": {
 			"wp": "6.5.10",
@@ -67,8 +67,8 @@
 			"shape": "single",
 			"lang": "en_US",
 			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
+			"ok": true,
+			"step": "all 9 steps",
 			"steps": [
 				{
 					"name": "the site answers and the plugin is on",
@@ -104,601 +104,6 @@
 					"name": "deactivate and delete the plugin",
 					"ok": true,
 					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "31 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 216
-		},
-		"wp=6.5,php=8.2": {
-			"wp": "6.5.10",
-			"php": "8.2",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "32 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 161
-		},
-		"wp=6.5,php=8.5": {
-			"wp": "6.5.10",
-			"php": "8.5",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "200 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 166
-		},
-		"wp=7.0,php=7.4": {
-			"wp": "7.0.4",
-			"php": "7.4",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "31 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 194
-		},
-		"wp=7.0,php=8.2": {
-			"wp": "7.0.4",
-			"php": "8.2",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "32 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 201
-		},
-		"wp=7.0,php=8.5": {
-			"wp": "7.0.4",
-			"php": "8.5",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "33 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 196
-		},
-		"wp=7.1,php=7.4": {
-			"wp": "7.1",
-			"php": "7.4",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "31 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 204
-		},
-		"wp=7.1,php=8.5": {
-			"wp": "7.1",
-			"php": "8.5",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "33 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 184
-		},
-		"lang=nl_NL": {
-			"wp": "7.1",
-			"php": "8.2",
-			"shape": "single",
-			"lang": "nl_NL",
-			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=nl-NL"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "the site speaks nl_NL",
-					"ok": true,
-					"detail": "html lang=nl-NL"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "32 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 182
-		},
-		"lang=ar": {
-			"wp": "7.1",
-			"php": "8.2",
-			"shape": "single",
-			"lang": "ar",
-			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=ar"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "the site speaks ar",
-					"ok": true,
-					"detail": "html lang=ar dir=rtl; 4 RTL sheet(s) of 5 of ours"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "32 log line(s), none ours"
-				},
-				{
-					"name": "the RTL sheets are current (tools/rtl.mjs --check)",
-					"ok": true,
-					"detail": "up to date"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 180
-		},
-		"with=filebird": {
-			"wp": "7.1",
-			"php": "8.2",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "FileBird",
-			"ok": false,
-			"step": "drag one into the folder: no file row to drag",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": false,
-					"detail": "no file row to drag"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": false,
-					"detail": "the grid shows 0 files [], expected [5]"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": false,
-					"detail": "page.waitForSelector: Timeout 30000ms exceeded."
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": false,
-					"detail": "gone; folder survives; 0 of 3 files keep it; 3 of 3 attachments remain"
 				},
 				{
 					"name": "no JS error from this plugin",
@@ -707,21 +112,21 @@
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": false,
-					"detail": "FROM wp_posts LEFT JOIN wp_postmeta ON ( wp_posts.ID = wp_postmeta.post_id AND wp_postmeta.meta_key = '_vergeml_quarantined' )"
+					"ok": true,
+					"detail": "31 log line(s), none ours"
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 205
+			"seconds": 187
 		},
-		"with=folders": {
-			"wp": "7.1",
+		"wp=6.5,php=8.2": {
+			"wp": "6.5.10",
 			"php": "8.2",
 			"shape": "single",
 			"lang": "en_US",
-			"with": "Premio Folders (wordpress.org)",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
+			"with": "nothing",
+			"ok": true,
+			"step": "all 9 steps",
 			"steps": [
 				{
 					"name": "the site answers and the plugin is on",
@@ -760,8 +165,8 @@
 				},
 				{
 					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
+					"ok": true,
+					"detail": "12 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -770,14 +175,130 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 193
+			"seconds": 188
 		},
-		"with=enhanced-media-library": {
-			"wp": "7.1",
+		"wp=6.5,php=8.5": {
+			"wp": "6.5.10",
+			"php": "8.5",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "nothing",
+			"ok": true,
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "10 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "200 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 165
+		},
+		"wp=7.0,php=7.4": {
+			"wp": "7.0.4",
+			"php": "7.4",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "nothing",
+			"ok": true,
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "16 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "31 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 266
+		},
+		"wp=7.0,php=8.2": {
+			"wp": "7.0.4",
 			"php": "8.2",
 			"shape": "single",
 			"lang": "en_US",
-			"with": "Enhanced Media Library 2.9.4",
+			"with": "nothing",
 			"ok": true,
 			"step": "all 9 steps",
 			"steps": [
@@ -828,16 +349,16 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 219
+			"seconds": 215
 		},
-		"with=polylang-pro": {
-			"wp": "7.1",
-			"php": "8.2",
+		"wp=7.0,php=8.5": {
+			"wp": "7.0.4",
+			"php": "8.5",
 			"shape": "single",
 			"lang": "en_US",
-			"with": "Polylang Pro 3.8.7",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
+			"with": "nothing",
+			"ok": true,
+			"step": "all 9 steps",
 			"steps": [
 				{
 					"name": "the site answers and the plugin is on",
@@ -876,26 +397,26 @@
 				},
 				{
 					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
+					"ok": true,
+					"detail": "14 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
 					"ok": true,
-					"detail": "32 log line(s), none ours"
+					"detail": "33 log line(s), none ours"
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 231
+			"seconds": 233
 		},
-		"shape=multisite-subdirectory": {
+		"wp=7.1,php=7.4": {
 			"wp": "7.1",
-			"php": "8.5",
-			"shape": "multisite, subdirectory (the box)",
+			"php": "7.4",
+			"shape": "single",
 			"lang": "en_US",
 			"with": "nothing",
-			"ok": false,
-			"step": "no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list",
+			"ok": true,
+			"step": "all 9 steps",
 			"steps": [
 				{
 					"name": "the site answers and the plugin is on",
@@ -905,22 +426,367 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 4, 1 folders"
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 16, 17, 18"
+					"detail": "attachments 5, 6, 7"
 				},
 				{
 					"name": "drag one into the folder",
 					"ok": true,
-					"detail": "the folder lit up; file 16 is in [4]"
+					"detail": "the folder lit up; file 5 is in [2]"
 				},
 				{
 					"name": "filter the grid by the folder",
 					"ok": true,
-					"detail": "the grid shows file 16 alone"
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "14 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "31 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 243
+		},
+		"wp=7.1,php=8.5": {
+			"wp": "7.1",
+			"php": "8.5",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "nothing",
+			"ok": true,
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "17 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "33 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 289
+		},
+		"lang=nl_NL": {
+			"wp": "7.1",
+			"php": "8.2",
+			"shape": "single",
+			"lang": "nl_NL",
+			"with": "nothing",
+			"ok": false,
+			"step": "the site answers and the plugin is on: the plugin is active but the library screen has no tree -- 0 JS error(s) of ours; 0 of our assets on the page; list table present; body classes upload-php post-type-attachment customize-support",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": false,
+					"detail": "the plugin is active but the library screen has no tree -- 0 JS error(s) of ours; 0 of our assets on the page; list table present; body classes upload-php post-type-attachment customize-support"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 119
+		},
+		"lang=ar": {
+			"wp": "7.1",
+			"php": "8.2",
+			"shape": "single",
+			"lang": "ar",
+			"with": "nothing",
+			"ok": false,
+			"step": "the site answers and the plugin is on: the plugin is active but the library screen has no tree -- 0 JS error(s) of ours; 0 of our assets on the page; list table present; body classes upload-php rtl post-type-attachment customize-support",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": false,
+					"detail": "the plugin is active but the library screen has no tree -- 0 JS error(s) of ours; 0 of our assets on the page; list table present; body classes upload-php rtl post-type-attachment customize-support"
+				},
+				{
+					"name": "the RTL sheets are current (tools/rtl.mjs --check)",
+					"ok": true,
+					"detail": "up to date"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 132
+		},
+		"with=filebird": {
+			"wp": "7.1",
+			"php": "8.2",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "FileBird",
+			"ok": true,
+			"skipped": "not run on Playground: FileBird's own FIND_IN_SET query does not run on SQLite (its list is empty there with or without us); see the MariaDB row",
+			"step": "not run on Playground: FileBird's own FIND_IN_SET query does not run on SQLite (its list is empty there with or without us); see the MariaDB row",
+			"steps": [],
+			"ran": "2026-09-11",
+			"seconds": 0
+		},
+		"with=folders": {
+			"wp": "7.1",
+			"php": "8.2",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "Premio Folders (wordpress.org)",
+			"ok": true,
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "15 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "32 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 301
+		},
+		"with=enhanced-media-library": {
+			"wp": "7.1",
+			"php": "8.2",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "Enhanced Media Library 2.9.4",
+			"ok": true,
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "13 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "32 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 217
+		},
+		"with=polylang-pro": {
+			"wp": "7.1",
+			"php": "8.2",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "Polylang Pro 3.8.7",
+			"ok": true,
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "14 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "32 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 285
+		},
+		"shape=multisite-subdirectory": {
+			"wp": "7.1",
+			"php": "8.5",
+			"shape": "multisite, subdirectory (the box)",
+			"lang": "en_US",
+			"with": "nothing",
+			"ok": true,
+			"skipped": "",
+			"step": "all 9 steps · uninstall not run on the box",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 7, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 31, 32, 33"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 31 is in [7]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 31 alone"
 				},
 				{
 					"name": "select two files and move them in one drag",
@@ -934,8 +800,8 @@
 				},
 				{
 					"name": "no JS error from this plugin",
-					"ok": false,
-					"detail": "TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list"
+					"ok": true,
+					"detail": "0 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -944,19 +810,124 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 36
+			"seconds": 38
 		},
 		"shape=multisite-subdomain": {
-			"wp": "—",
-			"php": "—",
-			"shape": "multisite, subdomain",
+			"wp": "7.1",
+			"php": "8.5",
+			"shape": "multisite, subdomain (the box, sub-site)",
 			"lang": "en_US",
 			"with": "nothing",
-			"ok": false,
-			"step": "not provisioned: /var/www/ms is SUBDOMAIN_INSTALL false and a network does not change shape after install; a second network on the box is Nathan's call",
-			"steps": [],
+			"ok": true,
+			"skipped": "",
+			"step": "all 9 steps · uninstall not run on the box",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 3, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 10, 11, 12"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 10 is in [3]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 10 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "remove what the run made (uninstall not run on this site)",
+					"ok": true,
+					"detail": "3 of 3 files removed; 0 folders (was 0)"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "0 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "no fatal on any screen visited (no debug log on this site)"
+				}
+			],
 			"ran": "2026-09-11",
-			"seconds": 0
+			"seconds": 38
+		},
+		"with=filebird,shape=multisite-subdirectory": {
+			"wp": "7.1",
+			"php": "8.5",
+			"shape": "multisite, subdirectory (the box)",
+			"lang": "en_US",
+			"with": "FileBird 6.5.8 (MariaDB)",
+			"ok": true,
+			"step": "all 9 steps · uninstall not run on the box",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 6, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 26, 27, 28"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 26 is in [6]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 26 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "remove what the run made (uninstall not run on this site)",
+					"ok": true,
+					"detail": "3 of 3 files removed; 0 folders (was 0)"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "0 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "no fatal on any screen visited (no debug log on this site)"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 42
 		}
 	}
 }

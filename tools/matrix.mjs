@@ -55,7 +55,10 @@ const MS_DIR = '/var/www/ms';
 const SSH = [ '-i', path.join( os.homedir(), '.ssh', 'hetzner_vgml' ), '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', `root@${ BOX }` ];
 
 const COMPANIONS = {
-	'filebird': { label: 'FileBird', zip: path.join( SESSION, 'Pluginexamples', 'filebird.zip' ), dir: 'filebird' },
+	// Not booted: FileBird's own media query (HAVING FIND_IN_SET over GROUP_CONCAT) does
+	// not run on Playground's SQLite, so its list is empty there whatever we do. Measured
+	// 2026-09-11; the same cell on the box's MariaDB is 9/9, and that row is the answer.
+	'filebird': { label: 'FileBird', zip: path.join( SESSION, 'Pluginexamples', 'filebird.zip' ), dir: 'filebird', skip: 'not run on Playground: FileBird\'s own FIND_IN_SET query does not run on SQLite (its list is empty there with or without us); see the MariaDB row' },
 	'folders': { label: 'Premio Folders (wordpress.org)', wporg: 'folders' },
 	'enhanced-media-library': { label: 'Enhanced Media Library 2.9.4', path: path.join( SESSION, 'research', 'enhanced-media-library.2.9.4', 'enhanced-media-library' ), dir: 'enhanced-media-library' },
 	'polylang-pro': { label: 'Polylang Pro 3.8.7', zip: path.join( SESSION, 'Pluginexamples', 'ropA76DFP9HM-polylang-pro.zip' ), dir: 'polylang-pro' },
@@ -347,7 +350,12 @@ for ( const cell of chosen ) {
 	console.log( `\n  ▸ ${ cell.key }  ·  WP ${ cell.wp } · PHP ${ cell.php } · ${ cell.shape } · ${ cell.lang } · ${ cell.with ? COMPANIONS[ cell.with ].label : 'nothing' }` );
 
 	let result;
-	if ( cell.box ) {
+	const skip = cell.with && COMPANIONS[ cell.with ].skip;
+	if ( skip ) {
+		// Recorded, not counted: the row says why it cannot run here.
+		result = { ok: true, skipped: skip, steps: [], failed: '' };
+		console.log( `    — ${ skip }` );
+	} else if ( cell.box ) {
 		result = await runBox( cell );
 	} else {
 		result = await runPlayground( cell );
@@ -360,7 +368,8 @@ for ( const cell of chosen ) {
 		wp: cell.wp, php: cell.php, shape: cell.shape, lang: cell.lang,
 		with: cell.with ? COMPANIONS[ cell.with ].label : 'nothing',
 		ok: result.ok,
-		step: result.ok ? `all ${ result.steps.length } steps${ note }` : result.failed,
+		skipped: result.skipped || '',
+		step: result.skipped ? result.skipped : ( result.ok ? `all ${ result.steps.length } steps${ note }` : result.failed ),
 		steps: result.steps,
 		ran: today,
 		seconds,
@@ -394,7 +403,7 @@ function writeDoc( data ) {
 			return `| ${ c.wp } | ${ c.php } | ${ c.shape } | ${ c.lang } | ${ c.with ? COMPANIONS[ c.with ].label : 'nothing' } | — | not run |`;
 		}
 		const rerun = r.ran !== data.fullRun ? ` (rerun ${ r.ran })` : '';
-		return `| ${ r.wp } | ${ r.php } | ${ r.shape } | ${ r.lang } | ${ r.with } | ${ r.ok ? '✓' : '✗' } | ${ esc( r.step ) }${ rerun } |`;
+		return `| ${ r.wp } | ${ r.php } | ${ r.shape } | ${ r.lang } | ${ r.with } | ${ r.skipped ? '—' : ( r.ok ? '✓' : '✗' ) } | ${ esc( r.step ) }${ rerun } |`;
 	} );
 	const block = [
 		'<!-- matrix:start -->',
