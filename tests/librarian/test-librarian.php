@@ -247,16 +247,26 @@ l_check( 'the progress column avoided the reserved word',
 
 echo "\nthe date/type scheme\n";
 
+/*
+ *  A year of their own. The scheme reads the whole library, and a month the
+ *  fixture already fills is a month whose size this suite cannot know: the
+ *  reset library of 2026-09-10 put twenty-eight pictures in every month of
+ *  2026, so the March of eight became thirty-six and the July of two stopped
+ *  folding. The year before the oldest upload belongs to nobody else.
+ */
+$oldest = (int) $wpdb->get_var( "SELECT MIN( YEAR( post_date ) ) FROM {$wpdb->posts} WHERE post_type = 'attachment'" );
+$l_year = (string) ( $oldest > 1971 ? $oldest - 1 : 2000 );
+
 $march = array();
 for ( $i = 0; $i < 8; $i++ ) {
-    $march[] = l_attachment( 'march-' . $i, '2026-03-0' . ( $i + 1 ) . ' 09:00:00' );
+    $march[] = l_attachment( 'march-' . $i, $l_year . '-03-0' . ( $i + 1 ) . ' 09:00:00' );
 }
 
 // Two files in a month of their own: under MIN_BRANCH, so they must fold up
 // into their year rather than become a folder of two.
 $stray = array(
-    l_attachment( 'july-1', '2026-07-01 09:00:00' ),
-    l_attachment( 'july-2', '2026-07-02 09:00:00' ),
+    l_attachment( 'july-1', $l_year . '-07-01 09:00:00' ),
+    l_attachment( 'july-2', $l_year . '-07-02 09:00:00' ),
 );
 
 $scheme = vergeml_librarian_scheme_datetype();
@@ -289,17 +299,27 @@ l_check( 'two calls produce the same tree', $fingerprint( $scheme ) === $fingerp
 $march_branch = null;
 $year_branch  = null;
 
+// Found by the ids planted, not by a size: the month branch is the one under
+// the planted year that holds every March file, and it holds nothing else.
+$member_ids = function ( $branch ) {
+    $ids = array();
+    foreach ( $branch['members'] as $member ) {
+        $ids[] = (int) $member['id'];
+    }
+    return $ids;
+};
+
 foreach ( $scheme as $branch ) {
-    if ( 0 === $branch['depth'] && '2026' === $branch['label'] ) {
+    if ( 0 === $branch['depth'] && $l_year === $branch['label'] ) {
         $year_branch = $branch;
     }
-    if ( 1 === $branch['depth'] && array( '2026' ) === array_slice( $branch['path'], 0, 1 ) && 8 === $branch['size'] ) {
+    if ( 1 === $branch['depth'] && array( $l_year ) === array_slice( $branch['path'], 0, 1 ) && ! array_diff( $march, $member_ids( $branch ) ) ) {
         $march_branch = $branch;
     }
 }
 
-l_check( 'a month with enough files becomes its own folder', null !== $march_branch,
-    $march_branch ? implode( ' / ', $march_branch['path'] ) : 'not found' );
+l_check( 'a month with enough files becomes its own folder', null !== $march_branch && 8 === $march_branch['size'],
+    $march_branch ? implode( ' / ', $march_branch['path'] ) . ', ' . $march_branch['size'] . ' files' : 'not found under ' . $l_year );
 
 $folded_ids = array();
 
@@ -316,7 +336,7 @@ l_check( 'a month too small folds into its year',
 $why = $march_branch ? $march_branch['members'][0]['why'] : '';
 
 l_check( 'every file carries a reason naming the month and the kind',
-    false !== strpos( $why, '2026' ) && false !== strpos( $why, 'image' ),
+    false !== strpos( $why, $l_year ) && false !== strpos( $why, 'image' ),
     $why );
 
 
