@@ -76,6 +76,8 @@ Kamatera was retired 2026-08-29; the box is the real MySQL.
 | `security@in.vergelabs.nl` reaches a person | 5.10 |
 | plan inclusions (2,000 credits inside €39) — priced, not decided | none |
 | re-describe the box's library (≈ €4.83), then re-take `tests/tree/filing-baseline.txt`; mock on or off there — **mock stays on until 2.3 (2026-09-11)** | the filing-baseline gate of Phase 1, every meaning-search proof |
+| a subdomain network on the box for the matrix's last row, or drop the row — `/var/www/ms` is subdirectory and cannot change shape (2026-09-11) | the 1.4 gate exits 1 until then |
+| FileBird active on a MariaDB site (the box's network) to confirm or clear the matrix's FileBird row — Playground's SQLite refuses FileBird's own `FIND_IN_SET` query (2026-09-11) | the 1.4 FileBird row |
 
 ## What is already true, 2026-09-10
 
