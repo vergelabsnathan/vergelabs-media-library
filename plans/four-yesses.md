@@ -32,11 +32,57 @@ So the plan gains four things it did not have at 300: **a compatibility matrix**
 **a rollback that has been rehearsed**, **limits and a spend cap**, and **a
 restore drill**. Anything less is optimism.
 
+## How to run this plan — read first (2026-09-11)
+
+The tasks below are the reasoning. **The executable form is one file per
+phase under `plans/four-yesses/`** — `phase-1.md` … `phase-5.md` — every task
+as a mini-spec in the shape `~/.claude/harness/model-profiles.md` requires
+(Files · Behaviour · Proof · Mirror · Copy · Do not), a model named per task,
+the sessions sized, the stop points and the gates as commands at the top of
+each file. A session opens with its phase file, not with this one. The ticket
+is `tickets/2026-09-11-four-yesses.md`.
+
+**What the survey of 2026-09-11 corrected.** Three Phase 4 items were built
+on 2026-09-10 and are now "prove" tasks: `/api/health` (five checks),
+`/api/cron/release-check`, and per-licence rate limits in `lib/limits.ts`.
+`SECURITY.md` exists. The credit spend already locks the row
+(`select … for update`), so 2.5 proves rather than fixes. The Folders screen
+exists (f3497e9); what awaits approval is the ways-in mock of 2026-09-10. No
+Dutch or Arabic translation exists — `languages/` holds the `.pot` only.
+Kamatera was retired 2026-08-29; the box is the real MySQL.
+
+**Stop points, all of them, with the task each blocks.**
+
+| decision | blocks |
+|---|---|
+| retire `librarian-ui` with the sentence in phase-1, or keep it red | 1.3 |
+| translations: machine-translate the `.pot` into nl_NL and ar, or ship English | 1.4, 3.11 |
+| WPML zip (paid, not in `Pluginexamples/`) or drop it from the row | 1.4 |
+| a clean host for the size numbers, or the box with its 28 plugins | 1.5 |
+| the WordPress.org username | 1.8 |
+| a real card and an hour, for the buyer walk | 2.2 |
+| ≈ €0.50 to describe 100 pictures through the screen | 2.3 |
+| a test-mode Stripe key for the lifecycle walks | 2.4, 2.8 |
+| approve the ways-in mock (four screenshots) | 3.1 → 3.2–3.5 |
+| approve the first-screen mock and its copy | 3.6 |
+| approve the eighteen-state sheet and its copy | 3.7 |
+| the confirmation strings for bulk move, folder delete, uninstall wipe | 3.9 |
+| five strangers, their time, and who watches | 3.12 |
+| which monitor, whose inbox | 4.2 |
+| the global daily spend number (proposed €50/day) | 4.5 |
+| a scratch Supabase project for the restore | 4.6 |
+| rotate the OpenRouter key (his account) | 4.9 |
+| who reviews, and what it costs | 5.9 |
+| `security@in.vergelabs.nl` reaches a person | 5.10 |
+| plan inclusions (2,000 credits inside €39) — priced, not decided | none |
+| re-describe the box's library (≈ €4.83); mock on or off there | none, but every meaning-search proof |
+
 ## What is already true, 2026-09-10
 
 - Plugin Check: **2 errors**, neither a submission blocker. Zip is 135 files, no hidden ones.
 - Service: **365 tests green**, typecheck clean, live, licence-gated.
 - Plugin: **21 of 33 suites green**; 10 red and uncharacterised; 2 skipped.
+  → 2026-09-11: **30 of 33**, one red (`librarian-ui`, explained), 2 skipped.
 - Counts at 251,000 attachments: **8.6ms cold**, was 10,038ms.
 - Pricing re-rated on measured cost (€0.00483/image) and live.
 - Box: 136 files, scanners blocked, deploy syncs and stamps mtimes.
@@ -570,6 +616,14 @@ would teach expensively. The matrix in 1.4 is what makes 200 safe; the limits in
 - Call anything done on a component check when a person could walk it instead.
 
 ## AMENDMENTS
+
+- 2026-09-11 — prepared for execution at Nathan's request ("overprepare is
+  overperform"). Every task rewritten as a six-field mini-spec in
+  `plans/four-yesses/phase-N.md`, model per task, sessions sized, stop points
+  consolidated above. State corrected from a survey: 4.1, 4.3 and the
+  per-licence half of 4.4 exist; `SECURITY.md` exists; 2.5 is a proof; the
+  Folders screen exists; no translations exist. Ticket:
+  `tickets/2026-09-11-four-yesses.md`.
 
 - 2026-09-10 — raised from 300 to 2,000 installs at Nathan's request. Added the
   compatibility matrix (1.4), size measurement (1.5), uninstall safety (1.6),
