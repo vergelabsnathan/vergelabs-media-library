@@ -1,5 +1,49 @@
 # Handover — Phase 1, session S2: task 1.4, the compatibility matrix (Fable 5.1)
 
+## Where it ended (evening, 2026-09-11)
+
+**`node tools/matrix.mjs` exits 0. 17 of 18 rows green, the 18th recorded.**
+Nathan's word at midday was "all 4" — fix what the morning's matrix found,
+provision the subdomain network included — so the afternoon did, in order:
+
+- `4186b44` — the guard in `js/eml-media-list.js` (14 rows red on it). Base
+  cell 9/9.
+- `006d942` + `fa35911` — Enhanced Media Library alongside: two causes, both
+  traced in a browser. Both plugins load the same forked media JavaScript
+  (EML's copy answered and dropped our `media_category` from the request),
+  and both print `#tmpl-attachment-grid-view` (EML's read a global its own
+  scripts used to define, so the grid drew nothing). `core/compatibility.php`
+  dequeues EML's media scripts/styles and removes its `print_media_templates`
+  action while it is active. Cell 9/9.
+- FileBird on MariaDB — the box's own inactive FileBird 6.5.8 linked into
+  `/var/www/ms` for the run by the runner, 9/9. The Playground FileBird row is
+  recorded "not run" with its reason (FileBird's `FIND_IN_SET` query does not
+  run on SQLite) and left out of the exit code — `9f69bf7`.
+- The subdomain network — `tools/box-ms2-provision.sh`, run on Nathan's go:
+  `/var/www/ms2`, database `wpms2`, nginx for `ms2.` and `*.ms2.`, WordPress
+  7.1 converted `--subdomains`, sub-site `two.`, our plugin network-active.
+  Cell on `two.ms2.46.225.66.194.nip.io` 9/9 (after `node tools/deploy.mjs
+  --box`, which the box needed for the guard — the box runs the deployed copy,
+  not the zip).
+- Dutch and Arabic — red in the afternoon's full run, green after the first
+  step learned to reload: a Playground booted with a language pack served its
+  first library screen without our assets and drew them on the next load,
+  while the same page fetched again was complete. Not the plugin. `b300355`.
+
+Full run of the afternoon: 13 green / 5 red before those last fixes, then the
+rows rerun one by one. A full run end to end has not been repeated after the
+last change; it is the first thing S3 should do (about 70 minutes; the runner
+could run Playground cells three at a time and cut that to 20 — not done).
+
+Box: main site untouched; `/var/www/ms` clean (no attachment, no term, only
+`admin`); `/var/www/ms2` new, as above. Nothing reached a model.
+
+The rest of this file is the morning's handoff, kept as written; its "Found,
+not done" list is now done except the note about REST `DELETE` and the box's
+nginx.
+
+---
+
 Run on 2026-09-11. One task, two commits, the matrix built and run in full.
 No plugin change. Nothing reached a model. The box's main site was not
 touched; the network at `/var/www/ms` was used through a throwaway
