@@ -262,10 +262,29 @@ try {
 						lib = await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
 						await screenSaysFatal();
 					}
-					if ( lib && lib.ok() && await page.$( '.vgml-tree' ) ) {
+					// The tree is drawn by our script after the page loads, and under a
+					// non-English locale WordPress fetches script translations first, so
+					// it lands later than domcontentloaded: wait for it the way every
+					// later step does (Dutch and Arabic read "no tree" at the instant
+					// check on 2026-09-11 while the fetched page held all ten assets).
+					let tree = lib && lib.ok() ? await page.waitForSelector( '.vgml-tree', { timeout: 20000 } ).catch( () => null ) : null;
+					// A site that booted with a language pack has served its first library
+					// screen without our assets and drawn them on the next load (Dutch and
+					// Arabic, 2026-09-11, while the same page fetched again was complete).
+					// A person reloads; so does this, three times over a minute, and the
+					// detail says so.
+					let reloads = 0;
+					while ( ! tree && reloads < 3 ) {
+						reloads++;
+						await page.waitForTimeout( 10000 );
+						lib = await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
+						await screenSaysFatal();
+						tree = lib && lib.ok() ? await page.waitForSelector( '.vgml-tree', { timeout: 15000 } ).catch( () => null ) : null;
+					}
+					if ( tree ) {
 						live = true;
 						await openLibrary();
-						return { ok: true, detail: `library screen, lang=${ seen.lang || '?' }` };
+						return { ok: true, detail: `library screen, lang=${ seen.lang || '?' }${ reloads ? `, after ${ reloads } reload(s)` : '' }` };
 					}
 					// Signed in, screen loaded, no tree: the plugin is not running here, or
 					// something on the screen stopped it. Say which, as far as the screen tells.

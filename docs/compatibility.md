@@ -23,8 +23,8 @@ row means that row is newer than the run above it.
 | 7.1 | 7.4 | single | en_US | nothing | ✓ | all 9 steps |
 | 7.1 | 8.2 | single | en_US | nothing | ✓ | all 9 steps |
 | 7.1 | 8.5 | single | en_US | nothing | ✓ | all 9 steps |
-| 7.1 | 8.2 | single | nl_NL | nothing | ✗ | the site answers and the plugin is on: the plugin is active but the library screen has no tree -- 0 JS error(s) of ours; 0 of our assets on the page; list table present; body classes upload-php post-type-attachment customize-support |
-| 7.1 | 8.2 | single | ar | nothing | ✗ | the site answers and the plugin is on: the plugin is active but the library screen has no tree -- 0 JS error(s) of ours; 0 of our assets on the page; list table present; body classes upload-php rtl post-type-attachment customize-support |
+| 7.1 | 8.2 | single | nl_NL | nothing | ✓ | all 10 steps |
+| 7.1 | 8.2 | single | ar | nothing | ✓ | all 11 steps |
 | 7.1 | 8.2 | single | en_US | FileBird | — | not run on Playground: FileBird's own FIND_IN_SET query does not run on SQLite (its list is empty there with or without us); see the MariaDB row |
 | 7.1 | 8.2 | single | en_US | Premio Folders (wordpress.org) | ✓ | all 9 steps |
 | 7.1 | 8.2 | single | en_US | Enhanced Media Library 2.9.4 | ✓ | all 9 steps |
