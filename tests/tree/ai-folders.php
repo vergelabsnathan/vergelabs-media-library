@@ -534,13 +534,44 @@ E  the budget
  *  can be right for the wrong reason.
  */
 
+/*
+ *  Read through the `query` filter rather than off $wpdb->last_query. Since
+ *  the counts were made to keep beyond the request (2026-09-10) the recount
+ *  stores its answer in a transient straight after reading it, and that
+ *  write is what last_query held when this looked. The statement wanted is
+ *  the one that names the unused branch; last_query stays as the fallback
+ *  for a layer that does not run the filter.
+ */
+function af_counts_statement() {
+
+    global $wpdb;
+
+    $seen = array();
+    $tap  = function ( $sql ) use ( &$seen ) {
+        $seen[] = (string) $sql;
+        return $sql;
+    };
+
+    add_filter( 'query', $tap );
+    vergeml_smart_counts( true );
+    remove_filter( 'query', $tap );
+
+    $seen[] = (string) $wpdb->last_query;
+
+    foreach ( array_reverse( $seen ) as $sql ) {
+        if ( false !== strpos( $sql, "'unused'" ) ) {
+            return $sql;
+        }
+    }
+
+    return (string) $wpdb->last_query;
+}
+
 af_set_group( false );
-vergeml_smart_counts( true );
-$af_sql_off = (string) $wpdb->last_query;
+$af_sql_off = af_counts_statement();
 
 af_set_group( true );
-vergeml_smart_counts( true );
-$af_sql_on = (string) $wpdb->last_query;
+$af_sql_on = af_counts_statement();
 
 af_check( 'the counts are one statement with the group off',
     false !== strpos( $af_sql_off, "'unused'" ) && false === strpos( $af_sql_off, 'ai-kind-' ) );
