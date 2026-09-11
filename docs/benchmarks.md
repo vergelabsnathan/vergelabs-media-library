@@ -2,6 +2,80 @@
 
 Measured, not asserted. Method is at the bottom so anyone can re-run it and disagree.
 
+## Two library sizes on real MariaDB — 2026-09-11
+
+Measured on the Hetzner box (4 vCPU, 8 GB, MariaDB 11.8.6, PHP 8.5.4-FPM, WordPress 7.1),
+on its second WordPress at `/var/www/ms` — a network with this plugin network-active and
+nothing else. The main site with 28 plugins active was off limits this session; the same
+commands with `VGML_WP_DIR=/var/www/wp` give the numbers with those plugins in the way.
+Every path timed reads the database and PHP only: the fixture has no files on disk, no
+index rows are described, and nothing reaches a model.
+
+Fixture: `tools/scale.php up n=<size> folders=500` — attachments across 500 folders under one
+parent, 40% with a 768-dim embedding and its 64-dim projection, 10% sharing a hash.
+Runner: `VGML_WP_DIR=/var/www/ms VGML_SCALE_N=<size> bash tools/box-benchmark.sh` — `up`, then
+three rounds of `scale.php time`, `box-counts-cost.php` and `box-grid-speed.php`, then `down`.
+Each number is the middle of the three rounds; the object cache is flushed before every
+measurement, so these are cold. Wall-clock is ms; queries are `$wpdb->num_queries`.
+
+| path | 10,000 · 500 folders | 250,000 · 500 folders |
+|---|---|---|
+| `GET /vergeml/v1/tree`, cold | 112 ms · 13 q | 1,071 ms · 13 q |
+| `GET /vergeml/v1/tree`, warm | 27 ms · 0 q | 30 ms · 0 q |
+| unfiled count (`NOT EXISTS`) | 36 ms · 1 q | 672 ms · 1 q |
+| recount one folder (per assignment) | 2 ms · 3 q | 50 ms · 3 q |
+| media grid, one folder, 40/page (`box-grid-speed.php`) | 11 ms | 63 ms |
+| media grid, one folder, 40/page, our filter | 14 ms · 10 q | 52 ms · 10 q |
+| media grid, all files, 40/page (core) | 35 ms · 9 q | 527 ms · 9 q |
+| `GET /wp/v2/media?per_page=40` | 539 ms · 13 q | 717 ms · 13 q |
+| media grid search, one tag word, widened | 121 ms · 9 q | 7,008 ms · 9 q |
+| media grid search, a word in every title, widened | 99 ms · 9 q | 5,873 ms · 9 q |
+| Try a query, word pass, one tag word | 254 ms · 68 q | 10,594 ms · 68 q |
+| Try a query, word pass, two common words | 278 ms · 69 q | 15,786 ms · 69 q |
+| search by meaning (scan + score + rank) | 200 ms · 6 q · all 4,000 scanned | 8,129 ms · 6 q · **5,000 of 100,000 scanned** |
+| smart counts, cold (`box-counts-cost.php`) | 86 ms · 7 q | 6.2 ms · 4 q (over the 50,000 threshold: nothing counted) |
+| duplicates report | 32 ms · 7 q | 526 ms · 7 q |
+| duplicate scan, one step of 25 | 163 ms · 59 q | 4,138 ms · 59 q |
+| AI backlog `pending('unindexed')` | 52 ms · 1 q | 3,558 ms · 1 q |
+| AI backlog `pending('missing-alt')` | 53 ms · 1 q | 1,663 ms · 1 q |
+| dashboard facts (journey) | 2 ms · 2 q (cached) | 4,756 ms · 20 q |
+| dashboard screen, full render | 105 ms · 15 q | 8,349 ms · 22 q |
+| peak memory across the run | 67 MB | **187 MB** |
+
+Fixture up in 20 s and 155 s; down in 20 s and 45 s. The site was 0 attachments and 0 folders
+before and after each size.
+
+**What holds.** The tree is 13 statements at both sizes — flat in queries, as claimed since
+the 20,000-file measurement above — and its warm answer is 30 ms at a quarter of a million.
+The smart counts reproduce the 2026-09-10 figure: over the threshold nothing is counted on a
+page load and the cold cost is 6 ms (8.6 ms then, on the main site). A folder's page of the
+grid is 52 ms with our filter; core's own grid of every file, 40 a page, is 527 ms at this size
+because it counts all 250,000 rows for the pagination. `wp/v2/media` grows by a third, not
+by 25×.
+
+**What does not, at 250,000 (found, not done — Phase 3 lines):**
+
+- **The dashboard takes 8 s to render.** `vergeml_journey_facts()` is 4.8 s and 20 queries
+  cold; the screen adds 3.5 s more. At 10,000 the facts were served from cache in 2 ms, so the
+  cache works — the first load after it expires does not.
+- **Search by meaning sees 5% of the library.** `vergeml_meaning_convert_batch()` runs
+  `WHERE … projection IS NULL ORDER BY described_at DESC LIMIT 250` before the scan; with
+  nothing left to convert that is one full scan and filesort of a 100,000-row, 3 KB-a-row
+  table, which spends the 2 s budget before the first projection chunk is read. The search
+  then reads one chunk of 5,000 and stops, `partial`. The fix is a cheap "nothing to convert"
+  answer — an index on `projection`, or a flag the convert tick keeps.
+- **The widened word search is 6–7 s a keystroke.** Core's own grid search on the same
+  library is not in this table; the widening joins the index table's captions, alt and tags
+  into a `LIKE` with no index that can serve it. Try a query's word pass is 10–16 s for the
+  same reason, plus 68 statements.
+- **The duplicate scan step is 4 s and 187 MB.** `vergeml_health_scan_step()` computes
+  `remaining` with `count( vergeml_health_backlog( $cursor ) )` — every remaining id loaded to
+  be counted; 171,404 of them here. The AI backlog `pending()` calls load every id the same
+  way (150,000 and 250,000), which is where the peak memory comes from; on a host with the
+  default 128M `memory_limit` the AI screen and the Duplicates screen would fatal at this size.
+- **The unfiled count is 672 ms** and is inside every cold tree answer; the tree's other
+  12 statements are ~400 ms together.
+
 ## Head to head against FileBird
 
 Same box, same data, same probe: 20,000 attachments, 200 folders (20 roots × 9 children),
