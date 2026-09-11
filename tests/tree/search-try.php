@@ -103,6 +103,17 @@ echo "\nC  By meaning\n\n";
 
 if ( ! $t_r['meaning']['available'] ) {
     t_check( 'C1 the service did not answer: said so, the word pass stands (skipped C2-C5)', array() === $t_r['meaning']['hits'] );
+} elseif ( array() === $t_r['meaning']['hits'] ) {
+    /*
+     *  The service answered and nothing cleared the floor. A mock description
+     *  carries a hash of the filename for a vector, which no real query vector
+     *  lands near, so on a library of mock rows an empty answer is the mock
+     *  being what it is. On real descriptions it is the search by meaning
+     *  failing to find the library's own most common word, and that stays red.
+     *  Either way C2-C5 have no hits to read; min() on nothing is a fatal.
+     */
+    $t_real = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t_table} WHERE error = '' AND model <> 'mock'" );
+    t_check( 'C1 the service answered and nothing cleared the floor: right only on mock descriptions (skipped C2-C5)', 0 === $t_real, $t_real . ' rows described by a real model' );
 } else {
     $t_scores = array_map( function ( $h ) { return (float) $h['score']; }, $t_r['meaning']['hits'] );
     $t_sorted = $t_scores;
