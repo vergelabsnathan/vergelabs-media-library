@@ -10,122 +10,7 @@
 			"lang": "en_US",
 			"with": "nothing",
 			"ok": true,
-			"step": "all 9 steps",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": true,
-					"detail": "15 error(s) from other code, not counted"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "32 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 294
-		},
-		"wp=6.5,php=7.4": {
-			"wp": "6.5.10",
-			"php": "7.4",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": true,
-			"step": "all 9 steps",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": true,
-					"detail": "10 error(s) from other code, not counted"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "31 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 187
-		},
-		"wp=6.5,php=8.2": {
-			"wp": "6.5.10",
-			"php": "8.2",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": true,
+			"skipped": "",
 			"step": "all 9 steps",
 			"steps": [
 				{
@@ -175,73 +60,16 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 188
+			"seconds": 187
 		},
-		"wp=6.5,php=8.5": {
+		"wp=6.5,php=7.4": {
 			"wp": "6.5.10",
-			"php": "8.5",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": true,
-			"step": "all 9 steps",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": true,
-					"detail": "10 error(s) from other code, not counted"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "200 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 165
-		},
-		"wp=7.0,php=7.4": {
-			"wp": "7.0.4",
 			"php": "7.4",
 			"shape": "single",
 			"lang": "en_US",
 			"with": "nothing",
 			"ok": true,
+			"skipped": "",
 			"step": "all 9 steps",
 			"steps": [
 				{
@@ -282,7 +110,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "16 error(s) from other code, not counted"
+					"detail": "13 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -291,7 +119,184 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 266
+			"seconds": 228
+		},
+		"wp=6.5,php=8.2": {
+			"wp": "6.5.10",
+			"php": "8.2",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "nothing",
+			"ok": true,
+			"skipped": "",
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "13 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "32 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 230
+		},
+		"wp=6.5,php=8.5": {
+			"wp": "6.5.10",
+			"php": "8.5",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "nothing",
+			"ok": true,
+			"skipped": "",
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "13 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "200 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 201
+		},
+		"wp=7.0,php=7.4": {
+			"wp": "7.0.4",
+			"php": "7.4",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "nothing",
+			"ok": true,
+			"skipped": "",
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "12 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "31 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-11",
+			"seconds": 219
 		},
 		"wp=7.0,php=8.2": {
 			"wp": "7.0.4",
@@ -300,6 +305,7 @@
 			"lang": "en_US",
 			"with": "nothing",
 			"ok": true,
+			"skipped": "",
 			"step": "all 9 steps",
 			"steps": [
 				{
@@ -349,7 +355,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 215
+			"seconds": 225
 		},
 		"wp=7.0,php=8.5": {
 			"wp": "7.0.4",
@@ -358,6 +364,7 @@
 			"lang": "en_US",
 			"with": "nothing",
 			"ok": true,
+			"skipped": "",
 			"step": "all 9 steps",
 			"steps": [
 				{
@@ -398,7 +405,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "14 error(s) from other code, not counted"
+					"detail": "12 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -407,7 +414,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 233
+			"seconds": 197
 		},
 		"wp=7.1,php=7.4": {
 			"wp": "7.1",
@@ -416,6 +423,7 @@
 			"lang": "en_US",
 			"with": "nothing",
 			"ok": true,
+			"skipped": "",
 			"step": "all 9 steps",
 			"steps": [
 				{
@@ -456,7 +464,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "14 error(s) from other code, not counted"
+					"detail": "12 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -465,7 +473,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 243
+			"seconds": 203
 		},
 		"wp=7.1,php=8.5": {
 			"wp": "7.1",
@@ -474,6 +482,7 @@
 			"lang": "en_US",
 			"with": "nothing",
 			"ok": true,
+			"skipped": "",
 			"step": "all 9 steps",
 			"steps": [
 				{
@@ -514,7 +523,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "17 error(s) from other code, not counted"
+					"detail": "11 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -523,7 +532,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 289
+			"seconds": 165
 		},
 		"lang=nl_NL": {
 			"wp": "7.1",
@@ -578,7 +587,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "13 error(s) from other code, not counted"
+					"detail": "10 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -587,7 +596,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 247
+			"seconds": 203
 		},
 		"lang=ar": {
 			"wp": "7.1",
@@ -642,7 +651,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "14 error(s) from other code, not counted"
+					"detail": "10 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -656,7 +665,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 263
+			"seconds": 202
 		},
 		"with=filebird": {
 			"wp": "7.1",
@@ -678,6 +687,7 @@
 			"lang": "en_US",
 			"with": "Premio Folders (wordpress.org)",
 			"ok": true,
+			"skipped": "",
 			"step": "all 9 steps",
 			"steps": [
 				{
@@ -718,7 +728,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "15 error(s) from other code, not counted"
+					"detail": "10 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -727,7 +737,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 301
+			"seconds": 174
 		},
 		"with=enhanced-media-library": {
 			"wp": "7.1",
@@ -736,6 +746,7 @@
 			"lang": "en_US",
 			"with": "Enhanced Media Library 2.9.4",
 			"ok": true,
+			"skipped": "",
 			"step": "all 9 steps",
 			"steps": [
 				{
@@ -776,7 +787,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "13 error(s) from other code, not counted"
+					"detail": "10 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -785,7 +796,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 217
+			"seconds": 162
 		},
 		"with=polylang-pro": {
 			"wp": "7.1",
@@ -794,6 +805,7 @@
 			"lang": "en_US",
 			"with": "Polylang Pro 3.8.7",
 			"ok": true,
+			"skipped": "",
 			"step": "all 9 steps",
 			"steps": [
 				{
@@ -834,7 +846,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "14 error(s) from other code, not counted"
+					"detail": "10 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -843,7 +855,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 285
+			"seconds": 206
 		},
 		"shape=multisite-subdirectory": {
 			"wp": "7.1",
@@ -863,22 +875,22 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 7, 1 folders"
+					"detail": "\"Matrix run\" is folder 8, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 31, 32, 33"
+					"detail": "attachments 36, 37, 38"
 				},
 				{
 					"name": "drag one into the folder",
 					"ok": true,
-					"detail": "the folder lit up; file 31 is in [7]"
+					"detail": "the folder lit up; file 36 is in [8]"
 				},
 				{
 					"name": "filter the grid by the folder",
 					"ok": true,
-					"detail": "the grid shows file 31 alone"
+					"detail": "the grid shows file 36 alone"
 				},
 				{
 					"name": "select two files and move them in one drag",
@@ -922,22 +934,22 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 3, 1 folders"
+					"detail": "\"Matrix run\" is folder 4, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 10, 11, 12"
+					"detail": "attachments 15, 16, 17"
 				},
 				{
 					"name": "drag one into the folder",
 					"ok": true,
-					"detail": "the folder lit up; file 10 is in [3]"
+					"detail": "the folder lit up; file 15 is in [4]"
 				},
 				{
 					"name": "filter the grid by the folder",
 					"ok": true,
-					"detail": "the grid shows file 10 alone"
+					"detail": "the grid shows file 15 alone"
 				},
 				{
 					"name": "select two files and move them in one drag",
@@ -961,7 +973,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 38
+			"seconds": 39
 		},
 		"with=filebird,shape=multisite-subdirectory": {
 			"wp": "7.1",
@@ -970,6 +982,7 @@
 			"lang": "en_US",
 			"with": "FileBird 6.5.8 (MariaDB)",
 			"ok": true,
+			"skipped": "",
 			"step": "all 9 steps · uninstall not run on the box",
 			"steps": [
 				{
@@ -980,22 +993,22 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 6, 1 folders"
+					"detail": "\"Matrix run\" is folder 9, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 26, 27, 28"
+					"detail": "attachments 41, 42, 43"
 				},
 				{
 					"name": "drag one into the folder",
 					"ok": true,
-					"detail": "the folder lit up; file 26 is in [6]"
+					"detail": "the folder lit up; file 41 is in [9]"
 				},
 				{
 					"name": "filter the grid by the folder",
 					"ok": true,
-					"detail": "the grid shows file 26 alone"
+					"detail": "the grid shows file 41 alone"
 				},
 				{
 					"name": "select two files and move them in one drag",
@@ -1019,7 +1032,7 @@
 				}
 			],
 			"ran": "2026-09-11",
-			"seconds": 42
+			"seconds": 39
 		}
 	}
 }
