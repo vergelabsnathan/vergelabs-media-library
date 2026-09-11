@@ -59,6 +59,8 @@ const COMPANIONS = {
 	'folders': { label: 'Premio Folders (wordpress.org)', wporg: 'folders' },
 	'enhanced-media-library': { label: 'Enhanced Media Library 2.9.4', path: path.join( SESSION, 'research', 'enhanced-media-library.2.9.4', 'enhanced-media-library' ), dir: 'enhanced-media-library' },
 	'polylang-pro': { label: 'Polylang Pro 3.8.7', zip: path.join( SESSION, 'Pluginexamples', 'ropA76DFP9HM-polylang-pro.zip' ), dir: 'polylang-pro' },
+	// Not a Playground companion: the box's own inactive copy, linked into the network for one run.
+	'filebird-box': { label: 'FileBird 6.5.8 (MariaDB)' },
 };
 
 /*
@@ -80,10 +82,23 @@ for ( const lang of [ 'nl_NL', 'ar' ] ) {
 	cells.push( { key: `lang=${ lang }`, wp: BASE_WP, php: BASE_PHP, shape: 'single', lang, with: '' } );
 }
 for ( const name of Object.keys( COMPANIONS ) ) {
+	if ( ! COMPANIONS[ name ].zip && ! COMPANIONS[ name ].wporg && ! COMPANIONS[ name ].path ) {
+		continue; // a box-only companion has its own cell below
+	}
 	cells.push( { key: `with=${ name }`, wp: BASE_WP, php: BASE_PHP, shape: 'single', lang: 'en_US', with: name } );
 }
-cells.push( { key: 'shape=multisite-subdirectory', wp: '7.1', php: '8.5', shape: 'multisite, subdirectory (the box)', lang: 'en_US', with: '', box: true } );
-cells.push( { key: 'shape=multisite-subdomain', wp: '—', php: '—', shape: 'multisite, subdomain', lang: 'en_US', with: '', unprovisioned: true } );
+/*
+ *  The box's two networks. /var/www/ms is the subdirectory network
+ *  tools/multisite.mjs reaches; /var/www/ms2 is the subdomain network
+ *  tools/box-ms2-provision.sh made on 2026-09-11, run against its sub-site
+ *  two.ms2… so a subdomain is what is tested. The FileBird row on MariaDB
+ *  links the box's own inactive FileBird into ms for the run and unlinks it
+ *  after -- Playground's SQLite refuses FileBird's own FIND_IN_SET query, so
+ *  that row can only be answered on a real database.
+ */
+cells.push( { key: 'shape=multisite-subdirectory', wp: '7.1', php: '8.5', shape: 'multisite, subdirectory (the box)', lang: 'en_US', with: '', box: true, dir: MS_DIR, url: MS_URL } );
+cells.push( { key: 'shape=multisite-subdomain', wp: '7.1', php: '8.5', shape: 'multisite, subdomain (the box, sub-site)', lang: 'en_US', with: '', box: true, dir: '/var/www/ms2', url: `http://two.ms2.${ BOX }.nip.io` } );
+cells.push( { key: 'with=filebird,shape=multisite-subdirectory', wp: '7.1', php: '8.5', shape: 'multisite, subdirectory (the box)', lang: 'en_US', with: 'filebird-box', box: true, dir: MS_DIR, url: MS_URL, link: { from: '/var/www/wp/wp-content/plugins/filebird', slug: 'filebird' } } );
 
 const argv = process.argv.slice( 2 );
 const only = argv.includes( '--cell' ) ? argv[ argv.indexOf( '--cell' ) + 1 ] : '';
@@ -296,21 +311,31 @@ async function runPlayground( cell ) {
 async function runBox( cell ) {
 	const user = 'vgmlmatrix'; // no hyphen: a network allows only a-z and 0-9 in a username
 	const pass = crypto.randomBytes( 12 ).toString( 'base64url' );
-	const wp = `cd ${ MS_DIR } && sudo -u www-data wp`;
+	const wp = `cd ${ cell.dir } && sudo -u www-data wp`;
 	const ssh = ( cmd ) => spawnSync( 'ssh', [ ...SSH, cmd ], { encoding: 'utf8' } );
+	// A network user is made on the main site; a sub-site needs the role set on it as well.
+	const role = `${ wp } user set-role ${ user } administrator --url=${ cell.url } --allow-root 2>&1 | grep -v Deprecated;`;
+	// The companion, when there is one: linked in and switched on for this run only,
+	// switched off and unlinked after -- through WP-CLI, never the Plugins screen.
+	const plugins = `${ cell.dir }/wp-content/plugins`;
+	const linkIn = cell.link ? `ln -sfn ${ cell.link.from } ${ plugins }/${ cell.link.slug }; ${ wp } plugin activate ${ cell.link.slug } --url=${ cell.url } --allow-root 2>&1 | grep -v Deprecated;` : '';
+	const linkOut = cell.link ? `${ wp } plugin deactivate ${ cell.link.slug } --url=${ cell.url } --allow-root >/dev/null 2>&1; unlink ${ plugins }/${ cell.link.slug };` : '';
 
-	const made = ssh( `${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1; ${ wp } user create ${ user } ${ user }@invalid.test --role=administrator --user_pass='${ pass }' --allow-root 2>&1 | grep -v Deprecated; ${ wp } core version --allow-root; php -r 'echo PHP_VERSION;'` );
+	const made = ssh( `${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1; ${ wp } user create ${ user } ${ user }@invalid.test --role=administrator --user_pass='${ pass }' --allow-root 2>&1 | grep -v Deprecated; ${ role } ${ linkIn } ${ wp } core version --allow-root; php -r 'echo PHP_VERSION;'` );
 	const lines = made.stdout.trim().split( /\r?\n/ );
 	if ( 0 !== made.status || ! /Success/.test( made.stdout ) ) {
-		return { ok: false, steps: [], failed: `could not make an administrator on ${ MS_DIR }: ${ made.stdout.trim().slice( -160 ) || made.stderr.trim().slice( -160 ) }` };
+		if ( linkOut ) {
+			ssh( linkOut );
+		}
+		return { ok: false, steps: [], failed: `could not make an administrator on ${ cell.dir }: ${ made.stdout.trim().slice( -160 ) || made.stderr.trim().slice( -160 ) }` };
 	}
 	cell.wp = lines[ lines.length - 2 ] || cell.wp;
 	cell.php = ( lines[ lines.length - 1 ] || cell.php ).split( '.' ).slice( 0, 2 ).join( '.' );
 
 	try {
-		return await fiveMinutes( MS_URL, { VGML_USER: user, VGML_PASS: pass, VGML_MATRIX_NO_UNINSTALL: '1', VGML_MATRIX_PROBE: '', VGML_MATRIX_LOCALE: '', VGML_MATRIX_MUTATE: MUTATE ? '1' : '' } );
+		return await fiveMinutes( cell.url, { VGML_USER: user, VGML_PASS: pass, VGML_MATRIX_NO_UNINSTALL: '1', VGML_MATRIX_PROBE: '', VGML_MATRIX_LOCALE: '', VGML_MATRIX_MUTATE: MUTATE ? '1' : '' } );
 	} finally {
-		ssh( `${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1` );
+		ssh( `${ linkOut } ${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1` );
 	}
 }
 
@@ -322,10 +347,7 @@ for ( const cell of chosen ) {
 	console.log( `\n  ▸ ${ cell.key }  ·  WP ${ cell.wp } · PHP ${ cell.php } · ${ cell.shape } · ${ cell.lang } · ${ cell.with ? COMPANIONS[ cell.with ].label : 'nothing' }` );
 
 	let result;
-	if ( cell.unprovisioned ) {
-		result = { ok: false, steps: [], failed: `not provisioned: ${ MS_DIR } is SUBDOMAIN_INSTALL false and a network does not change shape after install; a second network on the box is Nathan's call` };
-		console.log( `    ✗ ${ result.failed }` );
-	} else if ( cell.box ) {
+	if ( cell.box ) {
 		result = await runBox( cell );
 	} else {
 		result = await runPlayground( cell );
@@ -392,9 +414,13 @@ function writeDoc( data ) {
 		...rows,
 		'',
 		'The nine version cells are Playground (SQLite, no GD); the language and',
-		'companion cells run on WordPress 7.1 / PHP 8.2 there. The multisite cell is the',
-		'box\'s network at `/var/www/ms` — real MariaDB, `WP_DEBUG` off, the uninstall step',
-		'left out because deactivating any plugin on the box fatals in core\'s FTP class.',
+		'companion cells run on WordPress 7.1 / PHP 8.2 there. The multisite cells are the',
+		'box\'s two networks — `/var/www/ms` (subdirectory) and `/var/www/ms2` (subdomain,',
+		'tested on its sub-site `two.`) — real MariaDB, `WP_DEBUG` off, the uninstall step',
+		'left out because deleting through the box\'s Plugins screen fatals in core\'s FTP',
+		'class. FileBird on MariaDB is the box\'s own copy, linked into `/var/www/ms` for',
+		'the run; Playground\'s SQLite refuses FileBird\'s own `FIND_IN_SET` query, which is',
+		'what the Playground FileBird row shows.',
 		'<!-- matrix:end -->',
 	].join( '\n' );
 

@@ -69,6 +69,55 @@ function vergeml_compat_on_wp_loaded() {
 
 
 /**
+ *  Enhanced Media Library, active at the same time
+ *
+ *  The careless upgrade: this plugin installed before the old one is switched
+ *  off. Both are then on the media screens, and both ship the same forked
+ *  media JavaScript -- models, views, grid, admin. Two copies on one page and
+ *  the older one answers: the tree sets media_category on the library, the
+ *  request leaves without it, and the grid shows every file (matrix,
+ *  2026-09-11). The newer fork wins, so the old one's scripts and styles are
+ *  taken off the page while it is still active. Its PHP is left alone; the
+ *  upgrade suite proves both can run.
+ *
+ *  @since    3.16.2
+ */
+
+add_action( 'admin_enqueue_scripts', 'vergeml_compat_eml_scripts', 100 );
+add_action( 'wp_enqueue_media', 'vergeml_compat_eml_scripts', 100 );
+
+function vergeml_compat_eml_scripts() {
+
+    if ( ! function_exists( 'wpuxss_eml_enqueue_media' ) ) {
+        return;
+    }
+
+    $scripts = array(
+        'wpuxss-eml-admin-script',
+        'wpuxss-eml-media-list-script',
+        'wpuxss-eml-media-models-script',
+        'wpuxss-eml-media-views-script',
+        'wpuxss-eml-enhanced-medialist-script',
+        'wpuxss-eml-media-editor-script',
+        'wpuxss-eml-media-grid-script',
+        'wpuxss-eml-media-script',
+        'wpuxss-eml-taxonomies-options-script',
+    );
+
+    foreach ( $scripts as $handle ) {
+        wp_dequeue_script( $handle );
+        wp_deregister_script( $handle );
+    }
+
+    foreach ( array( 'wpuxss-eml-admin-custom-style', 'wpuxss-eml-admin-media-style' ) as $handle ) {
+        wp_dequeue_style( $handle );
+        wp_deregister_style( $handle );
+    }
+}
+
+
+
+/**
  *  Media Shorcodes
  *
  *  @since    2.8
