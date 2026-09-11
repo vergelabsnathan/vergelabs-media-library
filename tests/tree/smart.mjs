@@ -126,7 +126,16 @@ check( 'the grid filtered to the unused set', tiles === Math.min( unusedCount, 8
 /* --- the live one filters too ------------------------------------------------ */
 
 await page.locator( '.vgml-tree .vgml-smart[data-smart="no-alt"] .vgml-row' ).click();
-await page.waitForTimeout( 2500 );
+
+// The same wait the unused check uses: the re-query on a thousand pictures
+// outlasts any fixed sleep on the box, and a count read early is a count of
+// the grid mid-clear.
+const noAltBadge = await page.evaluate( () =>
+	parseInt( document.querySelector( '.vgml-tree .vgml-smart[data-smart="no-alt"] .vgml-count' ).textContent, 10 ) );
+await page.waitForFunction( ( expected ) => {
+	const s = document.querySelector( '.media-frame .spinner.is-active' );
+	return ! s && document.querySelectorAll( '.attachment' ).length === Math.min( expected, 80 );
+}, noAltBadge, { timeout: 60000 } ).catch( () => {} );
 
 const noAlt = await page.evaluate( () => ( {
 	badge: parseInt( document.querySelector( '.vgml-tree .vgml-smart[data-smart="no-alt"] .vgml-count' ).textContent, 10 ),
@@ -146,7 +155,10 @@ const folder = await page.evaluate( () => {
 } );
 
 await page.locator( `.vgml-tree .vgml-node[data-id="${ folder.id }"] .vgml-row` ).click();
-await page.waitForTimeout( 2500 );
+await page.waitForFunction( ( expected ) => {
+	const s = document.querySelector( '.media-frame .spinner.is-active' );
+	return ! s && document.querySelectorAll( '.attachment' ).length === Math.min( expected, 80 );
+}, folder.count, { timeout: 60000 } ).catch( () => {} );
 
 const after = await page.evaluate( () => ( {
 	tiles: document.querySelectorAll( '.attachment' ).length,
