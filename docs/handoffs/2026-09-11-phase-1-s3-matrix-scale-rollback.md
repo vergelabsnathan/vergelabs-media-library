@@ -148,19 +148,22 @@ Commit `81ea1f6`.
 
 ## Stop points (Nathan)
 
-- **The production redeploy** for the rollback rehearsal's step 4:
-  `vercel redeploy <current prod URL> --target production` from `service/`
-  after an env change. The runbook documents the step; its propagation time
-  is still unmeasured (builds took 28–34 s in `vercel ls`). If you want the
-  full production rehearsal: `catalogues.mjs`'s three files are in the
-  session scratchpad, or rebuild with `tools/broken-release.py`.
+- **The production redeploy** (runbook step 4) was refused by the classifier
+  twice, once with the catalogue changed and once with it unchanged. Its
+  propagation time is unmeasured; `vercel ls` shows builds of 28–34 s. A
+  permission rule for `vercel redeploy` in `settings.json` would let the
+  agent finish the rehearsal next time.
 - **The 28-plugin numbers** for `docs/benchmarks.md`, if wanted:
   `VGML_WP_DIR=/var/www/wp VGML_SCALE_N=250000 bash tools/box-benchmark.sh`
   on the main site (the three php files go to `/root/vgml-bench/` first; the
   header of the runner says which). It leaves nothing behind, but it is the
   fixture site with 1,000 mock pictures and 28 plugins.
-- **`SERVICE_ENV`** on the service repo: refresh it with the production
-  catalogue and run `vps.yml`, or the box's service keeps advertising 3.0.0.
+- **The box's service now advertises production's catalogue** (set for good
+  at 20:20 UTC; `/opt/vgml-service` still holds the keepsake of the stale
+  line, so `ACTION=restore` would bring 3.0.0 back — don't). The
+  `SERVICE_ENV` secret is still the stale one: writing it from the box's env
+  file was refused by the classifier, so the next `vps.yml` run reverts the
+  catalogue unless the secret is refreshed first.
 - 1.8's username; the describe for the filing baseline — unchanged.
 
 ## Traps found on the way
