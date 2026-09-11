@@ -260,3 +260,60 @@ Findings 3 and 4 above are done, same session, commit `0a1e205`:
 
 Findings 1 (CSV formula — needs the Excel decision) and 2 (per-object `edit_post`
 — after Phase 1 task 1.1) stand as written.
+
+---
+
+## The session queue — five yesses, in the plan's order
+
+Nathan's ask on 2026-09-11: run the harness until all five are green. One phase
+per fresh session, `/clear` between, handoff at the end of each, never compact.
+Each opener below is the whole brief; paste it and nothing else.
+
+Three of the five cannot go green without an input only Nathan has. They are
+marked, and the session that needs one should be started **after** it is given,
+not before — a session that waits on a card is a session wasted.
+
+| # | session | model | needs from Nathan first |
+|---|---|---|---|
+| A | Phase 5, tasks 5.5–5.10 | Opus, adversarial | the CSV decision (finding 1) |
+| B | Phase 1, task 1.1 — characterise the ten red suites, fix none | Opus | — |
+| C | Phase 1, tasks 1.2–1.7 — fix, matrix, size, uninstall, rollback | Opus, may need two sessions | the WordPress.org username (1.8 only) |
+| D | Phase 4, tasks 4.4–4.9 — limits, spend cap, restore drill, provider failure, runbook, rotation | Opus | the Actions-email confirmation; the OpenRouter key rotation |
+| E | Phase 2, tasks 2.1–2.8 — the buyer walk and the lifecycle | Opus | **a real card, in hand, at the start** |
+| F | Phase 3, tasks 3.1–3.5 — the Folders screen from the approved mock | Fable | **the mock approved, screenshots in the conversation** |
+| G | Phase 3, tasks 3.6–3.12 — the first sixty seconds, states, viewports, WCAG, Dutch and Arabic, five strangers | Opus, two sessions | five people willing to be watched |
+| H | Finding 2 — `edit_post` per attachment on the 47 routes | Opus | after B and C are green |
+
+The plan's order if time is short is 2, 4, 5, 1, 3. A and B are ordered first here
+only because they are the two that need nothing from Nathan today.
+
+### Openers
+
+**A.**
+> Read `docs/handoffs/2026-09-10-phase-5-security-1-to-4.md`, then
+> `plans/four-yesses.md`. State which model you are and follow that profile in
+> `~/.claude/harness/model-profiles.md`. This session is Phase 5, tasks 5.5 to
+> 5.10 only. Start by running Plugin Check against a clean archive — it never
+> came up last session. Gates: `node tools/verify.mjs surface db-calls escaping
+> globals roles`, and each task's own. End with a handoff in `docs/handoffs/`.
+
+**B.**
+> Read the latest handoff in `docs/handoffs/`, then `plans/four-yesses.md`. State
+> which model you are and follow that profile. This session is Phase 1, task 1.1
+> only: characterise the ten red suites — `search-try`, `ai-folders`, `auto-file`,
+> `ai-background`, `ai`, `smart`, `organize`, `voice`, `librarian`, `librarian-ui`
+> — and fix none. Read `librarian` first; it was green at 14:30 and red at 17:00
+> on 2026-09-10 with no commit touching it. One paragraph per suite: what it
+> asserts, what fails, why, what the fix touches. Nothing here spends a credit.
+> End with a handoff.
+
+**C, D, E, F, G, H** — write each opener at the end of the session before it,
+from that session's handoff, in the shape above.
+
+### The three questions, so the queue does not stall
+
+1. **CSV:** may the export prefix a name beginning `=`, `+`, `-`, `@` with `'`?
+   Changes the file customers download; the importer strips it back off.
+2. **Card:** when can Phase 2 have a real card for the walk?
+3. **Mock:** is `docs/superpowers/mocks/2026-09-05-folders-screen.html` approved as
+   it stands, or does the column layout still need a round?
