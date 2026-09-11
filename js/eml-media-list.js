@@ -28,7 +28,11 @@
         }
 
 
-        $resetFilters.prop( 'disabled', ! $filters.filter( function() { return $(this).prop( 'selectedIndex' ) } ).get().length );
+        // Only exists when the screen has more than one filter; a site with no
+        // dated uploads has no date filter, and this line used to throw there.
+        if ( $resetFilters ) {
+            $resetFilters.prop( 'disabled', ! $filters.filter( function() { return $(this).prop( 'selectedIndex' ) } ).get().length );
+        }
 
 
 
