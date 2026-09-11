@@ -164,20 +164,24 @@ if ( 'up' === $mode ) {
         }
         $len = sqrt( $sum );
         $packed = '';
-        foreach ( $vector as $val ) { $packed .= pack( 'f', $val / $len ); }
+        $unit   = array();
+        foreach ( $vector as $val ) { $unit[] = $val / $len; $packed .= pack( 'f', $val / $len ); }
+        // The 64-dim projection search by meaning reads, as a describe writes it today.
+        $proj = ( function_exists( 'vergeml_organize_project' ) && function_exists( 'vergeml_index_vector_in' ) )
+            ? vergeml_index_vector_in( vergeml_organize_project( $unit, VERGEML_ORGANIZE_DIMS ) ) : null;
 
         $rows[] = $wpdb->prepare(
-            "(%d, %s, %s, %s, %s, 'photo', %s, %d, 'scale-model', '1', 'scalehash', '', '', %s, %s)",
+            "(%d, %s, %s, %s, %s, 'photo', %s, %d, %s, 'scale-model', '1', 'scalehash', '', '', %s, %s)",
             $id, 'Scale caption ' . $i, 'Scale alt ' . $i, 'Scale title ' . $i, wp_json_encode( array( 'group' . $g, 'scale' ) ),
-            $packed, $dims, $now_gmt, $now_gmt
+            $packed, $dims, $proj, $now_gmt, $now_gmt
         );
         if ( count( $rows ) >= 200 ) {
-            $wpdb->query( "INSERT IGNORE INTO {$wpdb->vergeml_ai_index} (attachment_id, caption, alt, title, tags, kind, embedding, embedding_dims, model, model_version, prompt_hash, locked, error, described_at, updated_at) VALUES " . implode( ',', $rows ) );
+            $wpdb->query( "INSERT IGNORE INTO {$wpdb->vergeml_ai_index} (attachment_id, caption, alt, title, tags, kind, embedding, embedding_dims, projection, model, model_version, prompt_hash, locked, error, described_at, updated_at) VALUES " . implode( ',', $rows ) );
             $rows = array();
         }
     }
     if ( $rows ) {
-        $wpdb->query( "INSERT IGNORE INTO {$wpdb->vergeml_ai_index} (attachment_id, caption, alt, title, tags, kind, embedding, embedding_dims, model, model_version, prompt_hash, locked, error, described_at, updated_at) VALUES " . implode( ',', $rows ) );
+        $wpdb->query( "INSERT IGNORE INTO {$wpdb->vergeml_ai_index} (attachment_id, caption, alt, title, tags, kind, embedding, embedding_dims, projection, model, model_version, prompt_hash, locked, error, described_at, updated_at) VALUES " . implode( ',', $rows ) );
     }
     printf( "  %d index rows with %d-dim embeddings (%.1fs)\n", $with, $dims, microtime( true ) - $t0 );
 
@@ -295,18 +299,20 @@ foreach ( array( 'unindexed', 'missing-alt', 'stale' ) as $scope ) {
     vgml_scale_line( "pending('$scope')", $t, $q, number_format( $c ) );
 }
 
-// 10. search by meaning: the scan of the newest VERGEML_MEANING_SCAN embeddings
-if ( function_exists( 'vergeml_organize_project' ) ) {
-    $with = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE embedding IS NOT NULL" );
+// 10. search by meaning, the real path (core/search-meaning.php): the query
+//     vector is planted in the transient the search reads first, so nothing
+//     reaches the service; the scan, the scoring and the ranking are the plugin's own.
+if ( function_exists( 'vergeml_meaning_search' ) ) {
+    $with  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE projection IS NOT NULL" );
+    $text  = 'scale benchmark query';
+    $qv    = array();
+    for ( $d = 0; $d < $dims; $d++ ) { $qv[] = ( hexdec( substr( md5( 'base3:' . $d ), 0, 4 ) ) / 65535 ) - 0.5; } // near group 3
+    set_transient( 'vergeml_qv2_' . md5( strtolower( $text ) ), $qv, MINUTE_IN_SECONDS );
     wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
-    $rows = $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, embedding FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL ORDER BY described_at DESC LIMIT %d", VERGEML_MEANING_SCAN ), ARRAY_A );
-    $query = vergeml_organize_project( array_fill( 0, $dims, 0.03 ), VERGEML_ORGANIZE_DIMS );
-    $hits = 0;
-    foreach ( $rows as $row ) {
-        $v = vergeml_organize_project( vergeml_index_vector_out( $row['embedding'] ), VERGEML_ORGANIZE_DIMS );
-        if ( vergeml_meaning_similarity( $query, $v ) >= VERGEML_MEANING_FLOOR ) $hits++;
-    }
-    vgml_scale_line( 'search by meaning (scan + score)', $t, $q, sprintf( 'scanned %s of %s embedded', number_format( count( $rows ) ), number_format( $with ) ) );
+    $found = vergeml_meaning_search( $text, 60 );
+    $meta  = isset( $GLOBALS['vergeml_meaning_meta'] ) ? $GLOBALS['vergeml_meaning_meta'] : array();
+    vgml_scale_line( 'search by meaning (scan + score + rank)', $t, $q, sprintf( '%d hits, scanned %s of %s with a projection%s', count( (array) $found ), number_format( (int) ( $meta['scanned'] ?? 0 ) ), number_format( $with ), ! empty( $meta['partial'] ) ? ', PARTIAL (budget)' : '' ) );
+    delete_transient( 'vergeml_qv2_' . md5( strtolower( $text ) ) );
 }
 
 // 11. one step of the duplicate scan, as the Duplicates screen's loop calls it.

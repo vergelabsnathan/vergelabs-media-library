@@ -34,7 +34,7 @@ for round in 1 2 3; do
 	echo; echo "== round $round · scale.php time"
 	$WP eval-file "$B/scale.php" time 2>&1 | quiet
 	echo "== round $round · smart counts"
-	$WP eval-file "$B/counts.php" 2>&1 | quiet | head -4
+	$WP eval-file "$B/counts.php" 2>&1 | quiet | head -8
 	echo "== round $round · grid probe"
 	$WP eval-file "$B/grid.php" 2>&1 | quiet | grep -E "WP_Query|picking"
 done
