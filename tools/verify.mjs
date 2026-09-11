@@ -293,7 +293,6 @@ const SUITES = [
 	 *  tests/librarian/gate7-blueprint.json drives it through Playground.
 	 */
 	{ name: 'librarian-schema', file: 'tests/librarian/gate7-schema.php', env: 'box', php: true },
-	{ name: 'librarian-ui', file: 'tests/librarian/librarian.mjs', env: 'playground' },
 	{ name: 'watchdog', file: 'tests/watchdog/recovery.js', env: 'playground' },
 ];
 

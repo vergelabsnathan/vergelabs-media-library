@@ -283,8 +283,12 @@ than no check, because it reads as cover.**
 | `organize` | `tests/organize/test-organize.php` | box | the proposed tree |
 | `librarian` | `tests/librarian/test-librarian.php` | box | applying and undoing, in the database |
 | `librarian-schema` | `tests/librarian/gate7-schema.php` | box | dropped tables, and the lazy reinstall |
-| `librarian-ui` | `tests/librarian/librarian.mjs` | Playground | whether the screen can be used |
 | `watchdog` | `tests/watchdog/recovery.js` | Playground | breaks the plugin, and proves it recovers |
+
+Retired 2026-09-11: `librarian-ui` (`tests/librarian/librarian.mjs`) asserted the
+ladder-and-rungs screen removed on 4 September; nothing has rendered
+`#vgml-lib-stage` since, and the Folders screen that replaced it is covered by
+`tests/ui/folders.spec.mjs`.
 
 Plus, outside the runner:
 

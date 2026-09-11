@@ -30,7 +30,10 @@ available). S3: 1.5 + 1.7. S4: 1.8, when Nathan has done his part.
 - 1.8 — the WordPress.org username.
 
 **Gates, as commands.**
-- `node tools/verify.mjs` — 33 of 33 (32 after 1.3 retires one), zero red.
+- `node tools/verify.mjs <every suite except librarian-schema>` — the board is
+  39 entries on 2026-09-11 (38 after 1.3), not the plan's 33; `librarian-schema`
+  is `gate7-schema.php`, which drops the librarian tables on the box and is
+  never run there (Nathan's rule). Zero red among the rest.
 - `node tools/plugin-check.mjs` — ≤ 2 known.
 - `node tools/filing-baseline-check.mjs` — the baseline unchanged.
 - `docs/compatibility.md` carries the 1.4 table; `docs/runbooks/rollback.md`

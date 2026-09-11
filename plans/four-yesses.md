@@ -55,11 +55,11 @@ Kamatera was retired 2026-08-29; the box is the real MySQL.
 
 | decision | blocks |
 |---|---|
-| retire `librarian-ui` with the sentence in phase-1, or keep it red | 1.3 |
-| translations: machine-translate the `.pot` into nl_NL and ar, or ship English | 1.4, 3.11 |
+| retire `librarian-ui` with the sentence in phase-1, or keep it red — **retire (2026-09-11)** | 1.3 |
+| translations: machine-translate the `.pot` into nl_NL and ar, or ship English — **English strings; locale and RTL only (2026-09-11)** | 1.4, 3.11 |
 | WPML zip (paid, not in `Pluginexamples/`) or drop it from the row | 1.4 |
 | a clean host for the size numbers, or the box with its 28 plugins | 1.5 |
-| the WordPress.org username | 1.8 |
+| the WordPress.org username — **VergelabsDev (2026-09-11)** | 1.8 |
 | a real card and an hour, for the buyer walk | 2.2 |
 | ≈ €0.50 to describe 100 pictures through the screen | 2.3 |
 | a test-mode Stripe key for the lifecycle walks | 2.4, 2.8 |
@@ -75,7 +75,7 @@ Kamatera was retired 2026-08-29; the box is the real MySQL.
 | who reviews, and what it costs | 5.9 |
 | `security@in.vergelabs.nl` reaches a person | 5.10 |
 | plan inclusions (2,000 credits inside €39) — priced, not decided | none |
-| re-describe the box's library (≈ €4.83); mock on or off there | none, but every meaning-search proof |
+| re-describe the box's library (≈ €4.83); mock on or off there — **mock stays on until 2.3 (2026-09-11)** | none, but every meaning-search proof |
 
 ## What is already true, 2026-09-10
 
