@@ -302,6 +302,14 @@ Plus, outside the runner:
   no attachment goes. `VGML_UNINSTALL_MUTATE=1` makes `uninstall.php` wipe
   regardless of the switch and must go red. Not on the box: deactivating a
   plugin there fatals.
+- The compatibility matrix: `node tools/matrix.mjs`. WordPress 6.5, 7.0, 7.1
+  by PHP 7.4, 8.2, 8.5 in Playground; Dutch and Arabic; FileBird, Premio
+  Folders, Enhanced Media Library and Polylang Pro alongside; the box's
+  network for multisite. Each cell installs the release zip and runs
+  `tests/compat/five-minutes.mjs` -- folder, upload, drag, filter, bulk move,
+  uninstall -- and the table lands in `docs/compatibility.md`. Exits non-zero
+  naming the ✗ cells; `--cell wp=6.5,php=7.4` reruns one.
+  `VGML_MATRIX_MUTATE=1` asserts the folder count wrong by one and must go red.
 
 ## The benchmark
 

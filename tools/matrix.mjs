@@ -136,6 +136,21 @@ function unzip( work, zip, into ) {
 	return path.join( work, into );
 }
 
+// Not fs.cpSync: on Node 22.17 it kills the process outright (exit 127, no
+// message) when the source sits under the repo's own path; this walk does not.
+function copyTree( from, to ) {
+	fs.mkdirSync( to, { recursive: true } );
+	for ( const entry of fs.readdirSync( from, { withFileTypes: true } ) ) {
+		const a = path.join( from, entry.name );
+		const b = path.join( to, entry.name );
+		if ( entry.isDirectory() ) {
+			copyTree( a, b );
+		} else if ( entry.isFile() ) {
+			fs.copyFileSync( a, b );
+		}
+	}
+}
+
 /*
  *  The five-minute script as a child, its lines echoed, its RESULT line kept.
  */
@@ -186,7 +201,16 @@ async function runPlayground( cell ) {
 			if ( c.wporg ) {
 				steps.push( { step: 'installPlugin', pluginData: { resource: 'wordpress.org/plugins', slug: c.wporg }, options: { activate: true } } );
 			} else {
-				const dir = c.zip ? path.join( unzip( work, c.zip, 'with' ), c.dir ) : c.path;
+				// Copied into the work directory either way: the CLI is spawned through
+				// cmd.exe, and the repo's own path carries a character cmd.exe mangles --
+				// mounted from there, the CLI never started and the log stayed empty.
+				let dir;
+				if ( c.zip ) {
+					dir = path.join( unzip( work, c.zip, 'with' ), c.dir );
+				} else {
+					dir = path.join( work, 'with', c.dir );
+					copyTree( c.path, dir );
+				}
 				mounts.push( [ dir, `/wordpress/wp-content/plugins/${ c.dir }` ] );
 				steps.push( { step: 'activatePlugin', pluginPath: `/wordpress/wp-content/plugins/${ c.dir }` } );
 			}
@@ -270,7 +294,7 @@ async function runPlayground( cell ) {
  *  script deletes what it uploaded and the folder it made.
  */
 async function runBox( cell ) {
-	const user = 'vgml-matrix';
+	const user = 'vgmlmatrix'; // no hyphen: a network allows only a-z and 0-9 in a username
 	const pass = crypto.randomBytes( 12 ).toString( 'base64url' );
 	const wp = `cd ${ MS_DIR } && sudo -u www-data wp`;
 	const ssh = ( cmd ) => spawnSync( 'ssh', [ ...SSH, cmd ], { encoding: 'utf8' } );

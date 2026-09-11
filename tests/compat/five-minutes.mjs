@@ -141,9 +141,24 @@ async function rest( method, route, body, headers = {} ) {
 }
 
 const tree = async () => ( await rest( 'GET', '/vergeml/v1/tree?taxonomy=media_category' ) ).json;
-const termsOf = async ( id ) => {
-	const r = await rest( 'GET', `/wp/v2/media/${ id }?_fields=media_category` );
-	return ( r.json && r.json.media_category ) || [];
+/*
+ *  Read until the write shows, up to six seconds. Playground serves requests
+ *  from several workers over one SQLite file and a read straight after a
+ *  write has come back stale (WP 6.5 / PHP 8.5, 2026-09-11: the drag's file
+ *  read as in no folder, and the folder counted three a step later). A file
+ *  that never shows the folder still fails the step.
+ */
+const termsOf = async ( id, want = 0 ) => {
+	let terms = [];
+	for ( let i = 0; i < 12; i++ ) {
+		const r = await rest( 'GET', `/wp/v2/media/${ id }?_fields=media_category` );
+		terms = ( r.json && r.json.media_category ) || [];
+		if ( ! want || terms.includes( want ) ) {
+			break;
+		}
+		await page.waitForTimeout( 500 );
+	}
+	return terms;
 };
 const probe = async () => {
 	const res = await page.request.get( `${ BASE }/?vgml_matrix=state` );
@@ -154,6 +169,12 @@ let seen = { lang: '', dir: '', rtlSheets: 0, sheets: 0 };
 async function openLibrary( query = 'mode=list' ) {
 	await page.goto( `${ BASE }/wp-admin/upload.php?${ query }`, { waitUntil: 'domcontentloaded' } );
 	await screenSaysFatal();
+	// A companion's first-visit redirect (Premio Folders sends the first admin
+	// request to its own settings page) is followed once, as a person would.
+	if ( ! page.url().includes( 'upload.php' ) ) {
+		await page.goto( `${ BASE }/wp-admin/upload.php?${ query }`, { waitUntil: 'domcontentloaded' } );
+		await screenSaysFatal();
+	}
 	await page.waitForSelector( '.vgml-tree', { timeout: 60000 } );
 	await page.waitForTimeout( 800 );
 	seen = await page.evaluate( () => ( {
@@ -234,17 +255,30 @@ try {
 				}
 				if ( res && res.ok() && await page.$( '#wpadminbar' ) ) {
 					await screenSaysFatal();
-					const lib = await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
+					let lib = await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
 					await screenSaysFatal();
+					if ( ! page.url().includes( 'upload.php' ) ) {
+						// Sent elsewhere by a companion's welcome screen: once more.
+						lib = await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
+						await screenSaysFatal();
+					}
 					if ( lib && lib.ok() && await page.$( '.vgml-tree' ) ) {
 						live = true;
 						await openLibrary();
 						return { ok: true, detail: `library screen, lang=${ seen.lang || '?' }` };
 					}
-					// Signed in, screen loaded, no tree: the plugin is not running here.
+					// Signed in, screen loaded, no tree: the plugin is not running here, or
+					// something on the screen stopped it. Say which, as far as the screen tells.
+					const mine = jsErrors.filter( ( e ) => e.ours );
+					const shape = await page.evaluate( () => ( {
+						body: document.body.className.split( ' ' ).filter( ( c ) => ! /^(wp-|branch-|version-|admin-|locale-|no-|js|svg|auto-fold|sticky|folded|is-)/.test( c ) ).slice( 0, 6 ).join( ' ' ),
+						list: !! document.querySelector( '#the-list' ),
+						ours: document.querySelectorAll( 'link[href*="vergeml"], script[src*="vergeml"]' ).length,
+					} ) );
 					const row = await page.goto( `${ BASE }/wp-admin/plugins.php`, { waitUntil: 'domcontentloaded' } );
 					const active = row && row.ok() && await page.$( `#deactivate-${ SLUG }` );
-					return { ok: false, detail: active ? 'the plugin is active but the library screen has no tree' : `the plugin is not active (${ fatals[ 0 ] || 'no fatal seen' })` };
+					const why = `${ mine.length } JS error(s) of ours${ mine[ 0 ] ? ` (${ mine[ 0 ].text.replace( /\s+/g, ' ' ).slice( 0, 90 ) })` : '' }; ${ shape.ours } of our assets on the page; list table ${ shape.list ? 'present' : 'absent' }; body classes ${ shape.body || 'none of note' }`;
+					return { ok: false, detail: active ? `the plugin is active but the library screen has no tree -- ${ why }` : `the plugin is not active (${ fatals[ 0 ] || 'no fatal seen' })` };
 				}
 			} catch { /* still booting */ }
 			await page.waitForTimeout( 5000 );
@@ -307,7 +341,7 @@ try {
 		if ( r.error ) {
 			return { ok: false, detail: r.error };
 		}
-		const terms = await termsOf( ids[ 0 ] );
+		const terms = await termsOf( ids[ 0 ], folderId );
 		const ok = terms.includes( folderId );
 		return { ok, detail: `${ r.hovering ? 'the folder lit up' : 'the folder did not light up' }; file ${ ids[ 0 ] } is in [${ terms.join( ',' ) }]` };
 	} );
@@ -334,6 +368,15 @@ try {
 
 	await step( 'select two files and move them in one drag', async () => {
 		await openLibrary();
+		// The tree remembers the folder the grid step chose and the list comes
+		// back filtered to it; a person clicks All files to see everything.
+		const all = await page.$( '.vgml-node[data-id="0"] .vgml-row' );
+		if ( all ) {
+			await all.click();
+		}
+		for ( const id of ids.slice( 1 ) ) {
+			await page.waitForSelector( `#post-${ id }`, { timeout: 30000 } );
+		}
 		for ( const id of ids.slice( 1 ) ) {
 			await page.check( `#cb-select-${ id }` );
 		}
@@ -343,7 +386,7 @@ try {
 		}
 		const inFolder = [];
 		for ( const id of ids.slice( 1 ) ) {
-			if ( ( await termsOf( id ) ).includes( folderId ) ) {
+			if ( ( await termsOf( id, folderId ) ).includes( folderId ) ) {
 				inFolder.push( id );
 			}
 		}
@@ -369,16 +412,20 @@ try {
 	if ( NO_UNINSTALL ) {
 		await step( 'remove what the run made (uninstall not run on this site)', async () => {
 			let gone = 0;
+			let refused = '';
 			for ( const id of ids ) {
-				const r = await rest( 'DELETE', `/wp/v2/media/${ id }?force=true` );
+				// POST with the override header: the box's nginx answers 405 to DELETE.
+				const r = await rest( 'POST', `/wp/v2/media/${ id }?force=true`, undefined, { 'X-HTTP-Method-Override': 'DELETE' } );
 				if ( 200 === r.status ) {
 					gone++;
+				} else if ( ! refused ) {
+					refused = `; DELETE answered ${ r.status } ${ ( r.text || '' ).replace( /\s+/g, ' ' ).slice( 0, 100 ) }`;
 				}
 			}
 			await rest( 'POST', '/vergeml/v1/folder', { taxonomy: 'media_category', action: 'delete', id: folderId } );
 			const t = await tree();
 			const ok = gone === ids.length && t.nodes.length === foldersBefore;
-			return { ok, detail: `${ gone } of ${ ids.length } files removed; ${ t.nodes.length } folders (was ${ foldersBefore })` };
+			return { ok, detail: `${ gone } of ${ ids.length } files removed; ${ t.nodes.length } folders (was ${ foldersBefore })${ refused }` };
 		} );
 	} else {
 		await step( 'deactivate and delete the plugin', async () => {
@@ -421,11 +468,20 @@ try {
 		if ( PROBE ) {
 			lines = ( await probe() ).log || [];
 		}
-		const fatalLines = lines.filter( ( l ) => /PHP Fatal|Uncaught/i.test( l ) );
-		const ours = lines.filter( ( l ) => /vergeml|vergelabs-media-library/i.test( l ) && ! fatalLines.includes( l ) );
+		// A WordPress database error spans lines: the header, then the query. The
+		// header is the line before the one that names us, so it comes along.
+		const withHeader = ( i ) => {
+			let j = i;
+			while ( j > 0 && ! /^\[\d/.test( lines[ j ] ) ) {
+				j--;
+			}
+			return ( j === i ? lines[ i ] : `${ lines[ j ] } ... ${ lines[ i ] }` ).replace( /\s+/g, ' ' );
+		};
+		const fatalLines = lines.map( ( l, i ) => /PHP Fatal|Uncaught/i.test( l ) ? withHeader( i ) : '' ).filter( Boolean );
+		const ours = lines.map( ( l, i ) => /vergeml|vergelabs-media-library/i.test( l ) && ! /PHP Fatal|Uncaught/i.test( l ) ? withHeader( i ) : '' ).filter( Boolean );
 		const ok = 0 === fatals.length && 0 === fatalLines.length && 0 === ours.length;
 		const first = fatals[ 0 ] || fatalLines[ 0 ] || ours[ 0 ] || '';
-		return { ok, detail: ok ? ( PROBE ? `${ lines.length } log line(s), none ours` : 'no fatal on any screen visited (no debug log on this site)' ) : first.slice( 0, 160 ) };
+		return { ok, detail: ok ? ( PROBE ? `${ lines.length } log line(s), none ours` : 'no fatal on any screen visited (no debug log on this site)' ) : first.slice( 0, 260 ) };
 	} );
 } catch ( e ) {
 	if ( 'stop' !== e.message ) {

@@ -1,5 +1,43 @@
 # Compatibility
 
+<!-- matrix:start -->
+## The matrix — 2026-09-11
+
+Produced 2026-09-11 by `node tools/matrix.mjs`: the release zip
+(`playground/vergelabs-media-library.zip`, sha256 d448aed3af8e…) installed on every cell
+and `tests/compat/five-minutes.mjs` run against it — make a folder, upload three
+images, drag one in, filter the grid by the folder, select two and move them in one
+drag, deactivate and delete. Any JS error from this plugin, any fatal, and anything
+of ours in the debug log is a ✗. A ✗ names the step. One cell reruns with
+`node tools/matrix.mjs --cell <key>` (`--list` names the keys); a rerun date on a
+row means that row is newer than the run above it.
+
+| WordPress | PHP | Shape | Language | Alongside | Result | Step |
+|---|---|---|---|---|---|---|
+| 6.5.10 | 7.4 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 6.5.10 | 8.2 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 6.5.10 | 8.5 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.0.4 | 7.4 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.0.4 | 8.2 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.0.4 | 8.5 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.1 | 7.4 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.1 | 8.2 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.1 | 8.5 | single | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.1 | 8.2 | single | nl_NL | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.1 | 8.2 | single | ar | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.1 | 8.2 | single | en_US | FileBird | ✗ | drag one into the folder: no file row to drag |
+| 7.1 | 8.2 | single | en_US | Premio Folders (wordpress.org) | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.1 | 8.2 | single | en_US | Enhanced Media Library 2.9.4 | ✗ | filter the grid by the folder: the grid shows 4 files [7,6,5,5], expected [5] |
+| 7.1 | 8.2 | single | en_US | Polylang Pro 3.8.7 | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| 7.1 | 8.5 | multisite, subdirectory (the box) | en_US | nothing | ✗ | no JS error from this plugin: TypeError: Cannot read properties of undefined (reading 'prop') at HTMLDocument.<anonymous> (eml-media-list.js:31:23) on /wp-admin/upload.php?mode=list |
+| — | — | multisite, subdomain | en_US | nothing | ✗ | not provisioned: /var/www/ms is SUBDOMAIN_INSTALL false and a network does not change shape after install; a second network on the box is Nathan's call |
+
+The nine version cells are Playground (SQLite, no GD); the language and
+companion cells run on WordPress 7.1 / PHP 8.2 there. The multisite cell is the
+box's network at `/var/www/ms` — real MariaDB, `WP_DEBUG` off, the uninstall step
+left out because deactivating any plugin on the box fatals in core's FTP class.
+<!-- matrix:end -->
+
 Tested 2026-08-20 against WordPress (wp-env latest), PHP 8.3, `WP_DEBUG` and
 `WP_DEBUG_LOG` on. Reproduce with `tests/compat/matrix.sh`.
 
