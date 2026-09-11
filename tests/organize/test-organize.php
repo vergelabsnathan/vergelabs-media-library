@@ -228,13 +228,33 @@ o_check( 'ten thousand at 64 dims is budgeted in tens of megabytes',
     round( $memory['need'] / 1048576, 1 ) . 'MB' );
 
 /*
- *  Pinned to a modest shared host for the length of these three assertions.
- *  WP-CLI runs with no limit at all, so without this the refusal path is never
+ *  Pinned to a modest host for the length of these three assertions. WP-CLI
+ *  runs with no limit at all, so without this the refusal path is never
  *  reached and the check passes by never happening -- which is the failure
  *  mode this whole suite exists to avoid.
+ *
+ *  The smallest limit the host will take, not a fixed 128M: PHP refuses a
+ *  limit below what the process already holds, and on the box WP-CLI with
+ *  twenty-eight plugins loaded sits at 369MB, so ini_set( '128M' ) returned
+ *  false and the three checks below read a limit of nothing. The pin is
+ *  asserted, and the two sizes that depend on it are worked out from the
+ *  plugin's own arithmetic rather than fixed for a 128MB host.
  */
 $real_limit = ini_get( 'memory_limit' );
-ini_set( 'memory_limit', '128M' ); // phpcs:ignore WordPress.PHP.IniSet.memory_limit_Blacklisted -- restored four lines down; this is the assertion.
+$pinned     = '';
+
+foreach ( array( '128M', '256M', '512M', '1G', '2G' ) as $try ) {
+    if ( false !== @ini_set( 'memory_limit', $try ) ) { // phpcs:ignore WordPress.PHP.IniSet.memory_limit_Blacklisted, WordPress.PHP.NoSilencedErrors.Discouraged -- restored below; a refusal is the answer being asked for.
+        $pinned = $try;
+        break;
+    }
+}
+
+$limit = vergeml_organize_memory_limit();
+
+o_check( 'the limit is pinned to the smallest the host takes, and the plugin reads it',
+    '' !== $pinned && $limit > 0 && (string) $pinned === ini_get( 'memory_limit' ),
+    '' === $pinned ? 'ini_set refused every value up to 2G' : $pinned . ' with ' . round( memory_get_usage( true ) / 1048576 ) . 'MB in use' );
 
 $huge = vergeml_organize_memory( 5000000, 1536 );
 
@@ -245,20 +265,29 @@ o_check( 'a library that cannot fit is told so before it starts',
 o_check( 'a run that cannot fit at any width is refused rather than started',
     0 === vergeml_organize_fit_dims( 5000000, 64 ) );
 
-// Fifty thousand is the band where 64 dimensions will not fit a 128MB host
-// and 32 will: the run is narrowed rather than refused, which is the whole
-// reason the projection width is decided per host instead of per release.
+// The band where 64 dimensions will not fit half the pinned limit and 32
+// will: the run is narrowed rather than refused, which is the whole reason
+// the projection width is decided per host instead of per release. Sized
+// from what the plugin says one file costs, halfway between the two widths.
+$budget   = $limit / 2;
+$per_file = function ( $dims ) {
+    return vergeml_organize_memory( 1000, $dims )['need'] / 1000;
+};
+$n_narrow = (int) floor( $budget / ( ( $per_file( 64 ) + $per_file( 32 ) ) / 2 ) );
+
 o_check( 'a run that only fits narrower is narrowed rather than refused',
-    vergeml_organize_fit_dims( 50000, 64 ) < 64 && vergeml_organize_fit_dims( 50000, 64 ) > 0,
-    vergeml_organize_fit_dims( 50000, 64 ) . ' dims for 50,000 files on a 128MB host' );
+    vergeml_organize_fit_dims( $n_narrow, 64 ) < 64 && vergeml_organize_fit_dims( $n_narrow, 64 ) > 0,
+    vergeml_organize_fit_dims( $n_narrow, 64 ) . ' dims for ' . number_format( $n_narrow ) . ' files on a ' . $pinned . ' host' );
 
 /*
  *  And the refusal reaches the caller as a failed run carrying a reason,
- *  rather than as a run that starts and dies halfway through. Two hundred
- *  thousand ids, no rows behind them -- the arithmetic happens before anything
- *  is loaded, which is the entire point of it.
+ *  rather than as a run that starts and dies halfway through. Enough ids to
+ *  overrun the budget at the narrowest width there is, no rows behind them
+ *  -- the arithmetic happens before anything is loaded, which is the entire
+ *  point of it.
  */
-$refused = vergeml_organize_step( array( 'scope' => range( 1, 200000 ) ) );
+$n_refuse = (int) ceil( $budget / $per_file( 16 ) ) + 1000;
+$refused  = vergeml_organize_step( array( 'scope' => range( 1, $n_refuse ) ) );
 
 ini_set( 'memory_limit', $real_limit ); // phpcs:ignore WordPress.PHP.IniSet.memory_limit_Blacklisted -- putting back what the host had.
 
@@ -266,7 +295,7 @@ $GLOBALS['o_runs'][] = (int) $refused['run_id'];
 
 o_check( 'a run it cannot finish is refused at creation, not halfway',
     'failed' === $refused['status'] && '' !== $refused['error'],
-    $refused['status'] . ': ' . $refused['error'] );
+    number_format( $n_refuse ) . ' files on a ' . $pinned . ' host, ' . $refused['status'] . ': ' . $refused['error'] );
 
 o_check( 'a refused run does no work',
     $refused['done'] && 0 === $refused['loaded'] );
