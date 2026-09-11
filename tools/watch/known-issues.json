@@ -11,8 +11,37 @@
       "affects": [],
       "workaround": null,
       "status": "open",
-      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/12",
-      "found": "2026-09-10"
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/15",
+      "found": "2026-09-11"
+    },
+    {
+      "dependency": "advanced-custom-fields",
+      "name": "Advanced Custom Fields",
+      "slug": "advanced-custom-fields",
+      "version": "6.8.10",
+      "severity": "yellow",
+      "summary": "changelog mentions attachment, upload, rest api",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/14",
+      "found": "2026-09-11"
+    },
+    {
+      "dependency": "core",
+      "name": "WordPress",
+      "slug": "core",
+      "version": "7.1",
+      "severity": "red",
+      "summary": "2 symbol(s) gone: media.view.MediaFrame.EditAttachments, media.view.MediaFrame.Manage.Router",
+      "affects": [
+        "js/vergeml-media-views.js",
+        "js/eml-media-grid.js"
+      ],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/13",
+      "found": "2026-09-11"
     },
     {
       "dependency": "woocommerce",
