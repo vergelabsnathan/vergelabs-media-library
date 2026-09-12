@@ -67,6 +67,37 @@ question.
 Each is its own task with a test in `lib/invoice.test.ts` (to create); none
 fixed here, per the plan.
 
+## S6b — "fix it, you have Stripe access" (same session, later)
+
+- **Live Stripe**: ES `oss_union` registration `taxreg_1UEwp2ENqcXgcnrDKtscslQB`,
+  active from 2026-09-12 — the one live write of the day, on Nathan's
+  instruction. EU consumers are now charged destination VAT. Spanish
+  domestic buyers are still `not_collecting` (needs a `standard` ES
+  registration; Canary-vs-mainland IVA is the gestor's question — not done).
+- `lib/invoice.ts` — `taxSummary()`: `VAT 21%` / `Sales Tax 8.875%` from the
+  expanded `tax_rate`; a reverse charge → `VAT 0%` plus "Tax to be paid on
+  reverse charge basis" (Stripe's own sentence) under the total;
+  `not_collecting` stays `VAT (none charged)`. `countryName()`: `NL` →
+  `Netherlands`. The retrieve expands `total_tax_amounts.tax_rate`.
+- `lib/invoice-pdf.tsx` — `taxNote` on `InvoiceData`, one muted line under
+  the total.
+- `lib/invoice.test.ts` (new) — 7 tests on the two pure functions; written
+  before the code.
+- Re-rendered PDFs in the folder show it (`oss-B-ours.pdf`: `VAT 0%`,
+  the sentence, `Netherlands`; `oss-A-ours.pdf`: `VAT 21% €8.19`).
+- `pnpm test` → `Tests 413 passed | 14 skipped (427)`; typecheck 0.
+  Commit `ffa392f`; `vercel ls --prod` Ready after 23 s; `/api/build` →
+  `{"sha":"ffa392f57f12afed074ed4ca8f44553dbfb7ac8c","ref":"main","deployed":"dpl_39P4VngCMipt5RrVNakXHagWStrw"}`.
+- Findings 5–7 stand (two supplier addresses, the UK row, no buyer address
+  at checkout).
+
+Nathan also said, mid-session, verbatim: "the reverse charge is out costs and
+for a refund its the smount minus rate for credits". Recorded, not built: it
+reads as two policy statements (reverse charge at our cost; a refund is the
+amount minus the used credits at their rate) and the second is a refund
+rule, not an invoice one. Needs one clear sentence from him before it is a
+task.
+
 ## Mechanics
 
 - react-pdf under `tsx`: `ERR_PACKAGE_PATH_NOT_EXPORTED` for
@@ -84,8 +115,8 @@ fixed here, per the plan.
   with paid yearly subscriptions (`metadata.vat_walk`), and the ES OSS
   registration `taxreg_1UEvyBENbkxwktzhluujM311` still active. Delete from
   the dashboard when read; test mode, no money.
-- Live: nothing written. Read-only calls only.
-- Service card is S6 (scope includes the two new scripts). Pro card S5b.
+- Live: one write — the ES OSS registration above. Everything else read-only.
+- Service card is S6b. Pro card S5b.
 - Scratchpad: `test.vars` (the test keys Nathan pasted — they are in this
   transcript too; roll them in the dashboard if that matters), `prod.vars`,
   `development.vars`, `preview.vars`, probes. Delete after the session.
