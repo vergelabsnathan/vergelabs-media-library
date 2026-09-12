@@ -84,11 +84,6 @@ here; the suite breaks the "tests restore what they write" rule.
 
 ## Found, not done
 
-- **`tests/tree/ai-folders.php` D2 destroys every description on the box**
-  and puts back nine. Every board whose order puts `brief` before `ai`
-  after such a run goes red on `brief`. Fix: D2 snapshots the index rows
-  (or renames the table) and restores them; or the runner orders `ai`
-  before `brief`. A suite change — Phase 3's list.
 - **Plugin Check `mismatched_plugin_name`**: readme.txt's `=== … ===` title
   carries the strapline "Media folders, categories and AI alt text"; the
   plugin header says "VergeLabs Media Library". Making them equal is a copy
@@ -100,10 +95,22 @@ here; the suite breaks the "tests restore what they write" rule.
   at `service/public/releases/vergelabs-media-library.zip` is the old
   148-entry build (`539e4937…`) and still carries them — replacing it is a
   service deploy, not done here.
-- **Two throwaway admins from earlier sessions are still on the box:**
-  `vgml-slow-1789044170`, `vgml-stale-1789042163`. Not mine; not deleted.
 - `docs/wordpress-org-submission.md` lines 5–19 (the 27-08 and 29-08 notes)
   are history now; left as they were.
+
+## Done after the handoff, on Nathan's go
+
+- **`ai-folders.php` D2 no longer drops the index.** It points
+  `$wpdb->vergeml_ai_index` at a name nothing created for one counts call
+  and puts it back; the two checks that assumed the destruction
+  (`described === 9`) assert the seed as a delta and the payload as the
+  site-wide count. Proof, in order with no `ai` run between: index 1,000
+  → `ai-folders 38/38` ("9 of ours described, 1009 site-wide") →
+  `brief 40/40` → index 1,000. Mutation: the rename neutralised gives
+  37/38 on "the AI folders report null, not zero". Commit `90990f7`.
+- The two stale throwaway admins (`vgml-slow-1789044170`,
+  `vgml-stale-1789042163`) removed through `box-ui-user.sh`; the box's
+  users are `admin` only.
 
 ## Stop points (Nathan)
 
@@ -136,8 +143,7 @@ here; the suite breaks the "tests restore what they write" rule.
 ## Box state
 
 - `/var/www/wp`: 1,000 attachments, 1,000 index rows (model `mock`,
-  described 06:37–06:38 UTC), plugin 3.16.1 active, users `admin` plus the
-  two stale throwaways above. `vgml-s4` deleted.
+  described 06:37–06:38 UTC), plugin 3.16.1 active, users `admin` only.
 - `/var/www/ms`, `/var/www/ms2`, `/var/www/upd`, `/opt/vgml-service`: not
   touched this session.
 - Playgrounds on 8899 and 8907 stopped; the extracted archive under the
@@ -149,11 +155,10 @@ here; the suite breaks the "tests restore what they write" rule.
   `/pnpm-lock.yaml`; the submission doc's six items closed.
 - `2dffb2b` fix(verify): credentials to box suites only; the doc's Done
   table at 3.16.1.
-- this handoff.
+- `5ccea5c` this handoff; `90990f7` the ai-folders fix, after it.
 
 ## Next
 
 Phase 1 is done on the agent's side once Nathan sends the form. Phase 2
 opens as `plans/four-yesses/phase-2.md` says, with this file as the
-handoff. The `ai-folders.php` D2 line above is worth taking before the
-next full board, or every fresh-session board starts with a red `brief`.
+handoff.
