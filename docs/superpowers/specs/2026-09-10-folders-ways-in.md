@@ -39,27 +39,59 @@ a chatbot.
   out of v1** — reading those is interpretation, not parsing; it needs a model
   pass, costs credits, and can be confidently wrong. It is a later phase and it
   is a different promise.
-- **Pasted text may be written any of three ways**, detected rather than
-  declared: `Parent > Child`, `Parent/Child`, and indentation. A live tree
-  preview shows what was understood, and the preview is what makes it safe.
+- ~~**Pasted text may be written any of three ways**, detected rather than
+  declared: `Parent > Child`, `Parent/Child`, and indentation.~~ **Revised
+  2026-09-12 (Nathan): one way, and not indentation.** See below.
 - **Every route in produces a draft, never folders.** The same draft the
   conversation builds, over the same tree, behind the same Move button with the
   same undo. One grammar for every way in.
 
+## Decision, 2026-09-12 (Nathan) — one way in, and it is paths
+
+Seen the four-way mock: "I want only one way, and not the indentation — it
+doesn't work." The manual way in is **one text box, one folder per line, the
+full path with `>` between levels**:
+
+```
+Hardware
+Hardware > Phones
+Hardware > Components > Chips
+Data centres > Cooling
+```
+
+Why paths and nothing else:
+
+- **It survives pasting.** Indentation dies in email, Slack, a spreadsheet
+  cell or a phone — tabs become spaces, spaces get trimmed. A `>` on the
+  line is still there.
+- **Every line is complete on its own.** Order does not matter, lines from
+  two places can be pasted together, and a line whose parent is not listed
+  creates it. With indentation one wrong line shifts everything under it.
+- **`>` already reads as "inside"** — it is the breadcrumb every site uses.
+  `/` would also work but collides with real names ("Black/White", "AC/DC")
+  and reads as a file path.
+- **The preview stays honest:** "18 folders, 3 levels deep" is counted from
+  the paths, not guessed from whitespace.
+
+The cost is retyping the parent on each line for a deep tree. That is the
+right trade against silent mis-nesting.
+
+Gone with this decision: the **Rules** entry, the **Upload a file** entry,
+indentation and `/` as spellings, and the "detected rather than declared"
+rule. The conversation stays — it is the product; paste is the one manual
+way beside it.
+
 ## The contract
 
-### One draft, four ways to fill it
+### One draft, two ways to fill it
 
-The method switch gains two entries. Each one carries **one or two sentences
-saying what it is and what it will do** — the screen's own words, not a
-tooltip:
+The method switch has two entries. Each carries **one or two sentences saying
+what it is and what it will do** — the screen's own words, not a tooltip:
 
 | method | what the screen says |
 |---|---|
 | **Conversation** | Describe how you want the library organised and the assistant proposes a structure. Best when you are not sure yet. |
-| **Rules** | Build folders from what the pictures already are — their kind, their subject, who they are for. No conversation, no model. |
-| **Paste a list** | Paste the folders you already have, one per line. Indentation, `Parent > Child` and `Parent/Child` all work. |
-| **Upload a file** | Bring a structure from a spreadsheet or a document: CSV, TXT, Markdown, JSON or XLSX. |
+| **Paste folders** | One folder per line, the full path with `>` between levels: `Hardware > Phones`. A parent that is not listed is created. The preview shows what was understood before anything is made. |
 
 ### A structure looks like a structure
 
@@ -77,30 +109,24 @@ ink, accent and divider are the shell's tokens.
 
 A textarea, and beside it a live tree of what was understood — updated as it is
 typed, before anything is committed. Under it, one line of plain fact:
-*"14 folders, 3 levels deep. 2 already exist and will be reused."*
+*"18 folders, 3 levels deep. None of them exist yet."* — or *"… 2 already
+exist and will be reused."*
 
-**The detection, in order.** A line's indentation (tab or two spaces) sets its
-depth if any line is indented; otherwise a `>` or `/` in the line splits it into
-a path; otherwise the file is flat. Mixed spellings in one paste are read by
-whichever is most common, and the preview shows the result either way.
+**The reading, and there is only one.** A line is split on `>`; each segment is
+trimmed; empty segments are dropped; the segments are the path from the top.
+Leading whitespace is ignored, never read as depth. Every folder on a path is
+created if the tree does not have it, so `Hardware > Components > Chips` alone
+makes three. The same path twice is one folder. A name is matched to an existing
+folder case-insensitively at that exact place in the tree, and reused.
 
 **What is refused, and said out loud**: an empty name, a line deeper than five
-levels, more than 500 folders in one paste, and a name a folder already has at
-that exact place in the tree (reused, not duplicated).
-
-### Upload, same destination
-
-Drop a file or choose one. CSV with one path per line, or a column per level, or
-a `name,parent` pair — sniffed, not configured. XLSX reads the first sheet. JSON
-takes an array of paths or a nested object. Markdown and TXT are read as an
-indented list.
-
-The file's name and row count are shown, then the same preview as paste, then
-the same draft. **A file never becomes folders on its own.**
+levels, more than 500 folders in one paste. A line with no `>` is a top-level
+folder, not an error.
 
 ## Out of scope
 
-- PDF and Word.
+- File upload of any kind, and PDF and Word in particular (2026-09-12).
+- Rules as a way in (2026-09-12).
 - Any change to what the matcher decides or how pictures are filed.
 - The other eight screens' layout. The app shell is this screen only in this
   work; doing all nine is its own phase.
@@ -112,8 +138,9 @@ the same draft. **A file never becomes folders on its own.**
 - The conversation thread scrolls inside its own region with the composer and
   the Move button on screen at the 25-turn cap — asserted at 1600×1000 and at
   1280×800.
-- A paste in each of the three spellings produces the same tree.
+- A paste of paths in any order, with a repeated path and a missing parent,
+  produces the one tree the paths describe; an indented paste is read as
+  top-level lines, never as depth.
 - A paste of 501 folders is refused, and says why.
-- A file of each accepted type produces a draft, and produces no folders.
 - The existing filing baseline is unchanged: this work decides nothing about
   where a picture goes.
