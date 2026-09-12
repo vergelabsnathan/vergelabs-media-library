@@ -473,12 +473,24 @@ af_check( 'the group reports itself as partly described',
 
 /* ------------------------------------------------- D2: the index taken away */
 
-af_say( "\nD2 the index dropped by hand\n" );
+af_say( "\nD2 the index taken away\n" );
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-$wpdb->query( 'DROP TABLE IF EXISTS ' . vergeml_index_table() );
+/*
+ *  Taken away, not dropped. Until 2026-09-12 this section ran DROP TABLE on
+ *  the live index and put nine rows back, which on the box threw away every
+ *  description the other suites rely on: brief went red on the next board
+ *  that reached it before ai had re-described the library. The AI branch
+ *  names the table through vergeml_index_table() at query time, so pointing
+ *  $wpdb at a name nothing has created fails that half of the statement the
+ *  same way a dropped table does -- and the rows are never touched.
+ */
+$af_index_real = $wpdb->vergeml_ai_index;
+
+$wpdb->vergeml_ai_index = $af_index_real . '_gone';
 
 $af_gone = vergeml_smart_counts( true );
+
+$wpdb->vergeml_ai_index = $af_index_real;
 
 af_check( 'the AI folders report null, not zero', null === $af_gone['ai-kind-photo'] );
 
@@ -486,26 +498,11 @@ af_check( 'the five originals still have their numbers',
     null !== $af_gone['unattached'] && null !== $af_gone['recent'],
     'a broken index must not cost the tree its own counts' );
 
-/*
- *  Put back, and refilled. Dropping the table took the descriptions with it,
- *  so anything after this would be measuring an empty index and reporting it
- *  as a failure of the thing it was actually testing.
- */
-vergeml_index_install();
+$GLOBALS['af_counts'] = vergeml_smart_counts( true );
 
-foreach ( $af_seed as $i => $row ) {
-    vergeml_index_set( $GLOBALS['af_made'][ $i ], array(
-        'caption'       => 'seeded',
-        'kind'          => $row[0],
-        'has_people'    => $row[1],
-        'has_text'      => $row[2],
-        'document_type' => $row[3],
-        'described_at'  => gmdate( 'Y-m-d H:i:s' ),
-    ) );
-}
-
-af_check( 'the seed is back after the drop',
-    9 === (int) vergeml_smart_counts( true )['_described'] );
+af_check( 'the index is back, and the seed with it',
+    9 === af_added( '_described' ),
+    af_added( '_described' ) . ' of ours described, ' . (int) $GLOBALS['af_counts']['_described'] . ' site-wide' );
 
 
 /* ------------------------------------------------------------- E: the budget */
@@ -606,7 +603,10 @@ af_check( 'the tree endpoint answers with the group on',
 $af_data = $af_response->get_data();
 
 af_check( 'and its payload carries the AI group',
-    is_array( $af_data ) && ! empty( $af_data['ai'] ) && 9 === (int) $af_data['ai']['described'] );
+    is_array( $af_data ) && ! empty( $af_data['ai'] )
+        && (int) $af_data['ai']['described'] === (int) $GLOBALS['af_counts']['_described']
+        && (int) $af_data['ai']['described'] >= 9,
+    ( is_array( $af_data ) && ! empty( $af_data['ai'] ) ? (int) $af_data['ai']['described'] : 'no ai group' ) . ' described in the payload, ' . (int) $GLOBALS['af_counts']['_described'] . ' site-wide' );
 
 
 /* -------------------------------------------------------------------- tidy */
