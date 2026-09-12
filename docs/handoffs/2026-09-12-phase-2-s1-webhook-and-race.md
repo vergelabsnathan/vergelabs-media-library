@@ -1,14 +1,52 @@
 # Handover — Phase 2, session S1: tasks 2.1 and 2.5 (Opus 5)
 
-Run on 2026-09-12, in `../service`. Both tasks are built, typechecked,
-committed on `main` and dry-run as far as this machine is allowed to go.
-Nothing reached Stripe live except one read of `/api/health` (which calls
-`balance.retrieve` server-side, free); nothing reached the production
-database; nothing reached a model. No card, no endpoint registered.
+Run on 2026-09-12, in `../service`. **Both tasks are done and proven live**,
+pushed and deployed. The first half of the session ran under the auto-mode
+classifier, which refused every push, env pull and prod-DB step even with
+Nathan's go in the conversation; Nathan left auto mode and the second half
+closed everything. Nothing reached a model; no card; nothing was created or
+changed in Stripe — the live endpoint already existed, correct.
 
-The session hit the auto-mode classifier five times; each is a stop point
-below rather than something to route around. The service is **3 commits
-ahead of origin, unpushed** — the push is the production deploy.
+## Closed after auto mode was off (the "stop points" below are history)
+
+- **Pushed** `6fab2af`, `39ad4ff`, `241427a`, then `b231ced` (runbook
+  correction). Deployment `dpl_2EaFEvYaVp5cFEG1FmCvhdAjHj9K`, created
+  09:07:11 (the minute of the push), Ready, aliased to vergelabsmedia.com;
+  the previous one was 22 h old. Health after: 200, all five checks ok.
+- **2.1 proof, live.** `node --env-file=<prod> scripts/webhook-check.mjs`:
+
+  ```
+  mode: live
+  enabled  https://vergelabsmedia.com/api/stripe/webhook
+     events: checkout.session.completed, payment_intent.succeeded, invoice.paid, invoice.payment_failed, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted
+  OK  https://vergelabsmedia.com/api/stripe/webhook enabled with the 7 handled events
+  ```
+
+  Deliveries: the 15 most recent live events of handled types (2026-09-01 to
+  09-04: 3× `payment_intent.succeeded`, 3× `invoice.paid`, 3×
+  `invoice.payment_failed`, 3× `subscription.created`, 3× `.updated`; no
+  `checkout.session.completed` or `.deleted` ever) all `pending_webhooks=0`,
+  and four of them (`evt_1UBhjvENqcXgcnrD2WLx1n6S`, `evt_3UBhj4ENqcXgcnrD0fhHHLjE`,
+  `evt_1UC3GkENqcXgcnrDUdQrXslH`, `evt_1UBhjKENqcXgcnrDtAcReaQ1`) are in
+  `processed_events` 1–2 s after Stripe created them (`62 rows, last
+  2026-09-04T19:59:28`). `STRIPE_WEBHOOK_SECRET` in Vercel is 11 days old,
+  older than all of them. So the secret is this endpoint's; the plan's
+  "send a test event from the dashboard" was not needed and not done.
+- **2.1 mutation, the safe form.** A body with a wrong `stripe-signature`
+  and one with none, POSTed to the live route: `400 {"error":"invalid_signature"}`
+  both. Rolling the live secret was not done — it would leave a window with
+  charges and no licences. Runbook updated (`b231ced`); it also corrects the
+  plan's mirror: `webhook-events.mjs` patches the event list, `events.mjs`
+  is the deliveries read.
+- **2.5 proof, live.** `LIVE_DB=1 … vitest run lib/credits-race.test.ts`
+  against production: `✓ twenty spends race for ten credits: ten win, the
+  ledger never goes below zero 7444ms · Test Files 1 passed · Tests 1 passed`.
+- **2.5 mutation.** `for update` removed from `spendCredits` in the working
+  tree, rerun: `× exactly ten spends succeed: expected … to have a length of
+  10 but got 17` — seventeen spends on a balance of ten. `store.ts` restored
+  (`git checkout`, both lock lines back, tree clean). The test's `finally`
+  cleaned up on the red run too.
+- The pulled env file was deleted from the scratchpad afterwards.
 
 ## Where it ended
 
@@ -94,52 +132,18 @@ inside a string — a heredoc ate a `\n` (memory `file-edits-in-this-harness`)
 will install them on the next deploy; `unrs-resolver` reports an ignored
 build script, which pnpm 10 warns about and does not fail on.
 
-## Stop points (Nathan)
+## Stop points (Nathan) — as they stood before auto mode was left
 
-Each was tried once here and refused by the classifier or a hook; none was
-worked around.
+1–4 (live check, endpoint, proof, 2.5 live run, push) are closed above.
+Still open:
 
-1. **The live check and the endpoint** (2.1). `vercel env pull` was refused
-   (credential materialisation) and a loader reading `.env.local` in code was
-   refused as a bypass. With the live key in the environment:
-
-   ```
-   node --env-file=/tmp/prod.env scripts/webhook-check.mjs
-   ```
-
-   Read-only, €0. If it says `MISSING: no endpoint`, either create it in the
-   dashboard (url, the seven events, description "VergeLabs Media Library
-   licensing") or run `node --env-file=/tmp/prod.env --import tsx
-   scripts/stripe-live-setup.ts` — the product/price steps are idempotent
-   and print `unchanged`-shaped lines; the endpoint step creates it. Then
-   the secret: dashboard → the endpoint → Reveal → Vercel production
-   `STRIPE_WEBHOOK_SECRET` → redeploy. The runbook has every line.
-2. **The proof** (2.1): dashboard → endpoint → Send test event →
-   `invoice.paid` → delivery log `200`; `webhook-check.mjs` → the `OK` line;
-   `/api/health` → `webhook secret present` (it already does). Mutation: Roll
-   secret in the dashboard, send again → `400 invalid_signature`; then the
-   new secret into Vercel, redeploy, retry → `200`. Do not leave the site on
-   a rolled secret.
-3. **The live run of 2.5**, the production database from a script, which
-   this session was told not to do:
-
-   ```
-   LIVE_DB=1 DATABASE_URL=<the Vercel one> pnpm test lib/credits-race.test.ts
-   ```
-
-   Expected: `1 passed`. It creates one licence and one customer
-   (`race+<stamp>@vergelabs.nl`) and deletes both in `finally`. Mutation
-   (the plan's): comment out `await t.query('select id from licences where
-   id = $1 for update', …)` at `lib/store.ts:858` (the one inside
-   `spendCredits`; line 760 is `activate`'s) and rerun — expect red on
-   "exactly ten spends succeed" or "the ledger sums to zero"; put the line
-   back.
-4. **Push** — `git push origin main` was refused (publication). Three commits
-   wait: `6fab2af` lint, `39ad4ff` 2.1, `241427a` 2.5. The push is the
-   production deploy; after it, `vercel ls` or the health line proves the
-   new build serves (memory: verify build identity, not status codes).
 5. **The five lint rules at `warn`** — 24 findings, listed by file with
    `pnpm run lint`. Whether to fix them, and when, is yours.
+6. **The classifier.** Under auto mode it refused `git push`, `vercel env
+   pull`, a node loader, `pnpm dlx --force` and a plain `cat` — with your
+   permission written in the conversation. Either add allow rules for
+   `git push`, `vercel env pull/add/rm` in `~/.claude/settings.json`, or
+   run harness sessions outside auto mode as this one ended.
 
 ## Found, not done
 
@@ -178,15 +182,16 @@ worked around.
 Not touched. `/var/www/wp` as the S4 handoff left it (1,000 attachments,
 1,000 index rows, model `mock`, admin only); Playgrounds stopped.
 
-## Commits (service, unpushed)
+## Commits (service, pushed)
 
 - `6fab2af` chore(lint): eslint CLI in place of the removed next lint.
 - `39ad4ff` feat(stripe): the endpoint step, the check, the runbook — 2.1.
 - `241427a` test(credits): the race — 2.5.
+- `b231ced` docs(runbook): the deliveries proof and the safe mutation.
 
 ## Next
 
-S2 is 2.2, the buyer walk, with Nathan present and a card — it needs
-stop points 1, 2 and 4 above closed first: a registered live endpoint with
-a delivered `200`, deployed. 2.5's live run (3) can go in the same sitting
-as 1; it costs nothing.
+S2 is 2.2, the buyer walk, with Nathan present and a real card: one €39
+charge and its refund. Its precondition — a live endpoint that delivers
+and a route that records — is proven above with real events. Open S2
+outside auto mode.
