@@ -21,8 +21,11 @@ green (`pnpm test`), typecheck clean.
 **Model.** Opus 5 throughout. 2.2 and 2.4 are walks, not builds — one task
 per session, because each waits on Stripe and on a person.
 
-**Sessions.** S1: 2.1 + 2.5. S2: 2.2 (Nathan present, with a card). S3: 2.3.
-S4: 2.4 (test mode, test clocks). S5: 2.6 + 2.7. S6: 2.8.
+**Sessions.** S1: 2.1 + 2.5 (done 09-12). S2: 2.2 (done 09-12, Nathan present,
+with a card — handoff `docs/handoffs/2026-09-12-phase-2-s2-buyer-walk.md`).
+**S2b: 2.9 + 2.10 — the two money defects the walk found, before anything
+else.** S2c: 2.11. S3: 2.3. S4: 2.4 (test mode, test clocks). S5: 2.6 + 2.7.
+S6: 2.8. The walk's copy findings go to Phase 3.7, listed in the handoff.
 
 **Stop points (Nathan).**
 - 2.2 — a real card, and his presence for the walk. The refund at the end is
@@ -257,3 +260,124 @@ its refund. Nothing else reaches a model; test-mode Stripe costs nothing.
   `lib/invoice.ts:62`; any new wording is Nathan's accountant's, not ours.
 - **Do not:** decide a tax position in the session; change rates; run in
   live mode.
+
+---
+
+## Found by the buyer walk (2026-09-12) — added after S2
+
+## 2.9 · A refund ends the licence — Opus
+
+- **Files:** `app/api/stripe/webhook/route.ts` (a new `case 'charge.refunded':`
+  in `applyEvent`); `lib/store.ts` only if no existing function cancels a
+  licence by subscription or by customer (`upsertSubscription` with status
+  `canceled` exists — use it); the live endpoint's event list, through
+  `scripts/stripe-live-setup.ts`'s `endpoint()` step (it reads the route's
+  `case` lines, so the new case is enough) and `node scripts/webhook-check.mjs`
+  after; create `lib/refund.test.ts`.
+- **Behaviour:**
+  - `charge.refunded` with `charge.refunded === true` (a full refund) on a
+    charge whose invoice belongs to a subscription: the subscription is
+    cancelled at Stripe immediately (`subscriptions.cancel`) and the licence
+    row goes `canceled` in the same event — the customer sees `/account`
+    Canceled and Pro's next check `reason: canceled`, without a second
+    dashboard click. Cancelling at Stripe raises `customer.subscription.deleted`,
+    which the existing case handles again, harmlessly.
+  - a full refund of a lifetime licence's payment intent: the licence goes
+    `canceled`.
+  - a full refund of a credit pack: a `refund` ledger row of `-pack` keyed on
+    the refund id, so the ledger says why.
+  - a partial refund: nothing, logged with the charge id — 2.4 decides.
+  - the event is idempotent: a redelivery finds the licence already canceled
+    and does nothing (`processed_events` already refuses the duplicate at the
+    top of the route).
+- **Proof:** `pnpm test lib/refund.test.ts` green: `applyEvent` (export it, or
+  the piece it dispatches to) with a constructed `charge.refunded` event
+  against PGlite the way `lib/credits.test.ts` fixtures do; asserts the
+  licence status, the Stripe cancel call (a stub), and the credit-pack ledger
+  row. Then live: `node scripts/webhook-check.mjs` prints `OK … enabled with
+  the 8 handled events`. Mutation: delete the `case 'charge.refunded'` line
+  and the test goes red on status.
+- **Mirror:** `case 'customer.subscription.deleted'` at `route.ts:349` for the
+  cancel shape; `case 'payment_intent.succeeded'` for telling a lifetime from
+  a pack by `metadata.kind` / `plan`; the 2.2 handoff for the exact event
+  ids of a real refund (`evt_3UEmWdENqcXgcnrD19lKgVmf`).
+- **Copy:** none in this task. A "your refund is done, the licence is closed"
+  email is a Phase 3.7 string — do not write one.
+- **Do not:** handle `refund.created` as well (one event, one path);
+  cancel on a partial refund; touch the seat rows (the customer may
+  reconnect if they buy again); roll the webhook secret.
+
+## 2.10 · The first invoice is granted once — Opus
+
+- **Files:** `app/api/cron/reconcile/route.ts` (the "paid invoice we never
+  saw" loop at ~95–99), `app/api/stripe/webhook/route.ts` (`case
+  'invoice.paid'`, the existing-row branch at ~430–437), `lib/reconcile.ts`
+  (a pure `isRenewalInvoice(invoice)` — `billing_reason === 'subscription_cycle'`),
+  `lib/reconcile.test.ts` (extend).
+- **Behaviour — the cause:** a Payment-Element subscription is issued in
+  `invoice.paid` with its first-year grant keyed `sub:<subscription>` as
+  `initial`; `credit_entries_source_key` is unique on `(licence_id,
+  source_id, reason)`, so the nightly reconcile's grant for that same first
+  invoice, keyed `in_<invoice>` as `renewal`, is a different row. Every
+  subscription sold through the site gets its first year twice, the night
+  after purchase — licences 7, 8 (09-04 03:17) and 11 (09-12) prove it.
+  A redelivered first `invoice.paid` would do the same through the webhook's
+  renewal branch.
+  - reconcile grants only for invoices whose `billing_reason` is
+    `subscription_cycle`; the `subscription_create` invoice is the webhook's
+    issue path and never a renewal;
+  - the webhook's existing-row branch of `invoice.paid` uses the same
+    predicate;
+  - the three wrong rows: `delete from credit_entries where reason =
+    'renewal' and source_id in ('in_1UBhihENqcXgcnrDfmNenL8e',
+    'in_1UBhj4ENqcXgcnrDqs6t9thw', 'in_1UEmWcENqcXgcnrDAkjxMTaP')` — **Nathan
+    runs it** (7 and 8 are his own licences; 11 is the walk's, canceled).
+- **Proof:** `pnpm test lib/reconcile.test.ts`: `isRenewalInvoice` true for
+  `subscription_cycle`, false for `subscription_create`, `manual`,
+  `subscription_update`. Then the live line, the morning after deploy:
+  `node scripts/…` or SQL — no licence has two grants dated within its first
+  48 hours (`select licence_id, count(*) from credit_entries where reason in
+  ('initial','renewal') group by 1 having count(*) > 1` returns only
+  licences older than a year). Mutation: return `true` unconditionally from
+  `isRenewalInvoice` and the unit test goes red.
+- **Mirror:** `statusFromStripe` in `lib/reconcile.ts` — "duplicated
+  deliberately from the webhook: reconciliation must reach the same
+  conclusion the webhook would" — the predicate follows the same rule, one
+  function used by both.
+- **Copy:** none.
+- **Do not:** change the ledger's unique index; re-key the `initial` grant
+  (`checkout_session_id` is the issue idempotency key and is unique on
+  `licences`); delete the rows from the session — hand Nathan the SQL.
+
+## 2.11 · A buyer can download Pro — Opus
+
+- **Files:** `app/account/page.tsx` (the Licence tab: a "Download Pro
+  <version> (zip)" control; the two `href="/#install"` "Download Pro →"
+  buttons at ~1435 and ~1773 point at it instead), create
+  `app/api/account/download/route.ts` (session → `whoseLicence` →
+  `entitlement` → `signDownload` → 302 to `/api/plugin/download?token=…`);
+  `lib/email.ts` `sendLicenceEmail` — its button already says "Download Pro
+  from your account" and links `/account`; leave the string, it becomes true.
+- **Behaviour:** signed in as the owner of an entitled licence, the Licence
+  tab offers the current Pro release (`findRelease('vergelabs-media-library-pro')`
+  from `PLUGIN_RELEASES`) and clicking it downloads the zip through the
+  existing signed route, same token TTL as the updater; a canceled or expired
+  licence shows the control disabled with the plan's own status word beside
+  it (no new copy); a signed-out visitor gets `/account`'s sign-in.
+- **Proof:** a vitest for the new route with a minted session (`lib/live-db.test.ts`
+  shape, or the `vergelabs.sessions` insert the account smoke used) asserting
+  302 to a `/api/plugin/download?token=` URL whose token `verifyDownload`
+  accepts for that licence, and 403 for a licence the session does not own;
+  then the picture: the buyer's `/account` Licence tab with the control and
+  the zip landing in the browser's downloads (Playwright `download` event,
+  `suggestedFilename()` ends `.zip`). Mutation: drop the `whoseLicence`
+  check and the 403 assertion goes red.
+- **Mirror:** `app/api/invoice/route.ts` — session-gated, licence-checked,
+  streams a file; `app/api/plugin/update/route.ts:98–111` for the exact
+  `signDownload` claim shape and `DOWNLOAD_TTL_SECONDS`.
+- **Copy:** the control's label is the one string, and it is the plan's:
+  `Download Pro <version> (zip)`.
+- **Do not:** serve the zip from the account route itself (one download
+  route, one token check); expose a link that does not expire; put the
+  download on `/order` (the key is enough there — the account is where the
+  licence check lives).
