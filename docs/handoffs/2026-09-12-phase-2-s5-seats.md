@@ -97,6 +97,10 @@ nothing but the code, so the service would have to add them to the
 - Nothing in `lib/licence.test.ts` asserts the verify route's staging
   branch; the seat suite covers it end-to-end from the plugin side only.
 - The fence-vs-handoffDir mismatch above.
+- The stop hook compares the handoff's mtime with the *last edit*, and the
+  last edit was the handoff itself, recorded a fraction of a millisecond
+  later — so a session whose final edit is its handoff cannot end without
+  touching the handoff once more. This line is that touch.
 
 ## Next — 2.7, from a fresh session (what this one found before the fence)
 
