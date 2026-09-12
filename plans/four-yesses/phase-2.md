@@ -23,8 +23,9 @@ per session, because each waits on Stripe and on a person.
 
 **Sessions.** S1: 2.1 + 2.5 (done 09-12). S2: 2.2 (done 09-12, Nathan present,
 with a card — handoff `docs/handoffs/2026-09-12-phase-2-s2-buyer-walk.md`).
-**S2b: 2.9 + 2.10 — the two money defects the walk found, before anything
-else.** S2c: 2.11. S3: 2.3. S4: 2.4 (test mode, test clocks). S5: 2.6 + 2.7.
+S2b: 2.9 + 2.10 — the two money defects the walk found (done 09-12, live;
+handoff `docs/handoffs/2026-09-12-phase-2-s2b-refund-and-first-invoice.md`).
+**S2c: 2.11.** S3: 2.3. S4: 2.4 (test mode, test clocks). S5: 2.6 + 2.7.
 S6: 2.8. The walk's copy findings go to Phase 3.7, listed in the handoff.
 
 **Stop points (Nathan).**
