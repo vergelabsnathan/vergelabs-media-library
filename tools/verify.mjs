@@ -540,9 +540,12 @@ function run( suite ) {
 		 *  Browser suites take base, user, password as positional arguments and
 		 *  default to the original box admin. That account's password is not
 		 *  what it was, so the gate passes VGML_USER / VGML_PASS through when
-		 *  they are set -- the same pair every flow:* script reads.
+		 *  they are set -- the same pair every flow:* script reads. Box suites
+		 *  only: a Playground suite handed the box's throwaway admin tries a
+		 *  login that does not exist there (dialogs, 2026-09-12), and the
+		 *  blueprint's own admin/password is the account it wants.
 		 */
-		const creds = process.env.VGML_USER && process.env.VGML_PASS ? [ process.env.VGML_USER, process.env.VGML_PASS ] : [];
+		const creds = 'playground' !== suite.env && process.env.VGML_USER && process.env.VGML_PASS ? [ process.env.VGML_USER, process.env.VGML_PASS ] : [];
 		const child = spawn( process.execPath, [ path.join( ROOT, suite.file ), baseFor( suite ), ...creds ], {
 			cwd: ROOT,
 			stdio: 'inherit',
