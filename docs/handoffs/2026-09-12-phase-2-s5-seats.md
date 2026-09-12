@@ -4,8 +4,10 @@ Run on 2026-09-12. `pro/tests/seats.php` exists and is green on the box and
 in Playground through the new `pro/tools/verify.mjs`; the staging mutation
 is red. Nothing on `/var/www/wp` was deactivated, `sitesAllowed` is
 untouched, and the box's Pro is back on Nathan's agency licence (its
-options are restored by the suite whatever happens). Task 2.7 follows in
-this same session; this handoff is the 2.6 boundary.
+options are restored by the suite whatever happens). The brief had 2.7
+follow in this session after this handoff; the phase fence refuses every
+edit once a handoff exists ("a session does not roll into the next step"),
+so 2.7 starts from a fresh session — what it needs is under "Next".
 
 ## What changed
 
@@ -95,6 +97,48 @@ nothing but the code, so the service would have to add them to the
 - Nothing in `lib/licence.test.ts` asserts the verify route's staging
   branch; the seat suite covers it end-to-end from the plugin side only.
 - The fence-vs-handoffDir mismatch above.
+
+## Next — 2.7, from a fresh session (what this one found before the fence)
+
+- **Pro 1.0.2 stores the key plain.** `vgmlpro_get_key()` is
+  `get_option( 'vgmlpro_licence_key' )` and the form writes it with
+  `update_option`; there is no sealing anywhere in `pro/`. The plan's
+  "sealed at rest (the option value is not the key)" is therefore a build in
+  `pro/includes/licence.php` (in the phase's scope), not only a test: a
+  `vgmlpro_set_key()` that seals, `vgmlpro_get_key()` that unseals — mirror
+  `vergeml_ai_seal()` / `vergeml_ai_unseal()` in `plugin/core/ai.php:323`
+  (AES-256-GCM, key from `wp_salt('auth')`, `v1:` prefix) — and a legacy
+  branch: a stored value starting `VGML-` is a 1.0.2 site's plain key, read
+  as-is and re-written sealed. `settings.php:61` and `tests/seats.php`'s
+  `update_option( VGMLPRO_OPTION_KEY, … )` then go through `vgmlpro_set_key()`.
+- **Pro has no shape check either.** "A malformed key is refused before any
+  request" needs one in `vgmlpro_refresh()`: `VGML-` + 34 characters from
+  `0123456789ABCDEFGHJKMNPQRSTVWXYZ` (`isValidKeyShape`, `lib/licence.ts:188`;
+  total length 39). Prove "before any request" with a `pre_http_request`
+  counter in the suite; mutation: drop the check and a request goes out.
+- **An expired licence** comes from the script, not from waiting:
+  `issueLicence` hardcodes `status 'active'`, so extend
+  `scripts/issue-box-licence.ts` with `EXPIRED=1` — issue with a synthetic
+  `stripeSubscription` (`'box-sub-' + Date.now()`), then
+  `store.upsertSubscription({ stripeSubscription, status: 'past_due',
+  currentPeriodEnd: 30 days ago })`; `entitlement()` then says `expired`
+  (grace is 7 days). The edit was written and blocked by the fence; nothing
+  is in the tree.
+- **`updates.php`**: `/api/plugin/update` answers `site_not_activated` with
+  an empty package unless the calling site holds a seat on the key, so the
+  suite activates the test key first (same restore pattern as `seats.php`).
+  Real call with `VGMLPRO_VERSION` 1.0.2 → `update:false`; the newer-version
+  leg makes the same request with `version=1.0.0`, plants the service's own
+  body in `vgmlpro_update_check` (the transient the updater reads), and
+  asserts `vgmlpro_inject_update()` puts it in `response` with `package`
+  starting `https://vergelabsmedia.com/api/plugin/download?token=`; a GET
+  of that URL answering 200 proves the token is the service's. Mutation:
+  route the item to `no_update` and the leg goes red.
+- `pro/tools/verify.mjs` exists; 2.7 adds `licence` and `updates` entries
+  (box, `needsKey: true`) and is then the three-suite gate. Note the
+  seats suite is three runner entries for one file.
+- Both cards (`pro/.harness/active.json`, `service/.harness/active.json`)
+  need a fresh phase line for 2.7, or the fence keeps refusing.
 
 ## State left behind
 
