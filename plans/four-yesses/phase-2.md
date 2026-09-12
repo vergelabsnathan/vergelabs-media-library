@@ -21,7 +21,7 @@ green (`pnpm test`), typecheck clean.
 **Model.** Opus 5 throughout. 2.2 and 2.4 are walks, not builds — one task
 per session, because each waits on Stripe and on a person.
 
-**Sessions.** S1: 2.1 + 2.5 (done 09-12). S2: 2.2 (done 09-12, Nathan present,
+**Sessions.** S1: 2.1 + 2.5 (done 09-12). **S4b: 2.12** (the walk's four defects, before 2.8). S2: 2.2 (done 09-12, Nathan present,
 with a card — handoff `docs/handoffs/2026-09-12-phase-2-s2-buyer-walk.md`).
 S2b: 2.9 + 2.10 — the two money defects the walk found (done 09-12, live;
 handoff `docs/handoffs/2026-09-12-phase-2-s2b-refund-and-first-invoice.md`).
@@ -382,3 +382,68 @@ its refund. Nothing else reaches a model; test-mode Stripe costs nothing.
   route, one token check); expose a link that does not expire; put the
   download on `/order` (the key is enough there — the account is where the
   licence check lives).
+
+---
+
+## Found by the lifecycle walk (2026-09-12, S4) — added after 2.4
+
+## 2.12 · The webhook survives a year — Opus
+
+Four defects `service/docs/lifecycle.md` found (A–D), fixed together because
+they are four branches of one `applyEvent` and 2.8 sends four more purchases
+through it. Decisions taken 2026-09-12 (Nathan: "let's continue" on the
+recommendation): the grace after a failed card is counted from the failed
+invoice's due date; a lost dispute is treated exactly like a full refund.
+
+- **Files:** `app/api/stripe/webhook/route.ts` (the `invoice.paid`
+  existing-row branch, the `customer.subscription.*` branch, the
+  `invoice.payment_failed` case, a new `case 'charge.dispute.closed':` that
+  shares the refund path), `lib/reconcile.ts` (a pure
+  `periodEndToStore(status, periodEnd)`), `app/api/cron/reconcile/route.ts`
+  (uses it), `lib/reconcile.test.ts` (extend); create `lib/lifecycle.test.ts`.
+  Then the live endpoint's event list through `ENDPOINT_ONLY=1
+  scripts/stripe-live-setup.ts` **after the build is serving**, and
+  `node scripts/webhook-check.mjs` → `OK … 9 handled events`.
+- **Behaviour:**
+  - **A** — a renewal's `invoice.paid` stores the *new* period's end: the
+    latest `lines.data[].period.end` on the invoice, never
+    `invoice.period_end` (which is the period just closed — `in_1UEsac…`
+    carried 2027-09-12 there and 2028-09-12 on the line). No lines → the
+    period is left as it is.
+  - **B** — on `invoice.payment_failed` the licence goes `past_due` with
+    `current_period_end` = the failed invoice's `period_end` (the renewal's
+    due date), so `entitlement()`'s seven days run from the day the card
+    failed. A `past_due` subscription's own `current_period_end` — which
+    Stripe rolls a year forward at the failed attempt — is **not** stored:
+    `periodEndToStore('past_due', …)` is null, in the webhook's
+    subscription branch and in the nightly reconcile alike. The next paid
+    invoice (A) or an `active` subscription event moves it forward again.
+  - **C** — `invoice.payment_failed` never lowers `canceled`: the update
+    carries `and status <> 'canceled'`. Delivered after
+    `customer.subscription.deleted`, it changes nothing.
+  - **D** — `charge.dispute.closed` with `status: 'lost'` does what
+    `charge.refunded` does for a full refund: the subscription is cancelled
+    at Stripe and the licence goes `canceled`; a lifetime licence goes
+    `canceled`; a credit pack gets a `refund` ledger row of `-pack` keyed on
+    the dispute id. `won`, `warning_closed` and every other status: nothing.
+    `charge.dispute.created` stays unhandled (a dispute can be won).
+  - Everything else in `applyEvent` unchanged; every write still inside the
+    event transaction.
+- **Proof:** `pnpm vitest run lib/lifecycle.test.ts lib/reconcile.test.ts`
+  green: A (the line's period wins), B (past_due + due date; a past_due
+  subscription event leaves the period alone; `entitlement()` at due + 8
+  days is `expired`), C (deleted then failed → still canceled), D (lost on a
+  subscription → `subscriptions.cancel` called once and `canceled`; lost on
+  a pack → one `-2000 refund` row keyed `dp_…`, twice delivered; won →
+  nothing). Then `pnpm test && pnpm typecheck` green, deploy verified by
+  commit, `webhook-check.mjs` `OK`. Mutation: restore
+  `fromUnix(invoice.period_end)` in A and the line-period test goes red;
+  drop `and status <> 'canceled'` and C goes red.
+- **Mirror:** `lib/refund.test.ts` for constructing events against PGlite
+  with Stripe stubbed; the `charge.refunded` case for the money-back shape;
+  `isRenewalInvoice` for a predicate shared by webhook and reconcile.
+- **Copy:** none. The emails (finding E) and the screens (F) are Phase 3.7.
+- **Do not:** handle `charge.dispute.created`; touch the seats; change the
+  grace length (`GRACE_DAYS = 7`); subscribe the new event before the build
+  that handles it is serving (runbook rule); move `applyEvent` out of the
+  route file here — that is its own line in the S4 handoff.
