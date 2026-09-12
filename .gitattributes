@@ -14,3 +14,5 @@
 /plans            export-ignore
 /.github          export-ignore
 /site             export-ignore
+/tickets          export-ignore
+/pnpm-lock.yaml   export-ignore
