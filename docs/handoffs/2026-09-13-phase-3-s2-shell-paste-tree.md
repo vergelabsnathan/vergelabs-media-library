@@ -139,7 +139,74 @@ verbatim, the tree's own rows, no change to how pictures are filed.
 - No conversation was opened: every spec plants a capped session first.
 - The throwaway admin `vgml-ui` was created for the runs and deleted after.
 
-## Next
+## Reordered, 2026-09-13 (Nathan: "manage that")
+
+Fable credits are at 10 % with two days to the reset, and nothing before the
+reset needs Fable. Yes 1 and Yes 2 are done; Yes 3 cannot close in two days
+on any model (five strangers, a newcomer timed, an eighteen-state design to
+approve). The plan's own order when time is short is **2, 4, 5, 1, 3**. So:
+
+1. **Nathan sends the wordpress.org form** (`docs/wordpress-org-submission.md`,
+   the S4 Phase 1 handoff). The review queue is the longest pole.
+2. **Phase 4 S1 on Opus, in `../service`, next** — 4.1 prove the health
+   endpoint's five 503 paths, 4.3 prove the release check against a stale
+   channel. Needs nothing from Nathan. Card below; the session writes it to
+   `service/.harness/active.json` before its first edit.
+3. **Phase 5's first session on Opus** after that, while the queue sits.
+4. **Phase 3 S3 after the reset** — the card for it is kept further down,
+   unchanged, for that session.
+
+```json
+{
+  "phase": "Four yesses — Phase 4, S1: 4.1 health endpoint proven + 4.3 release check proven",
+  "model": "opus",
+  "plan": "../plugin/plans/four-yesses/phase-4.md",
+  "spec": "../plugin/plans/four-yesses.md",
+  "scope": [
+    "app/api/health/route.ts",
+    "app/api/cron/release-check/route.ts",
+    "lib/updates.ts",
+    "lib/health.test.ts",
+    "lib/release-check.test.ts",
+    "docs/**"
+  ],
+  "readFirst": [
+    "../plugin/docs/handoffs/2026-09-13-phase-3-s2-shell-paste-tree.md",
+    "../plugin/plans/four-yesses/phase-4.md",
+    "app/api/health/route.ts",
+    "app/api/cron/release-check/route.ts",
+    "lib/updates.test.ts"
+  ],
+  "handoffDir": "../plugin/docs/handoffs",
+  "stopPoints": [
+    "No check reads a value into the health body; the five check names stay as they are",
+    "The test never calls the live provider: the relay check is mocked",
+    "The release check must compare the zip itself (Version header, or size and digest), never the version string alone",
+    "Production is not broken in this session (that is 4.2's rehearsal, with the monitor in place)"
+  ],
+  "gates": [
+    "pnpm test → green with lib/health.test.ts (five 503s, each naming its own check and no other) and lib/release-check.test.ts (stale 3.0.0 → reported; correct JSON → passes; a 404 zip → reported)",
+    "pnpm typecheck",
+    "the live /api/health 200 body pasted in the handoff, through a node fetch script (the hook blocks curl)",
+    "mutation: the stripe check swallowing its error → its test red",
+    "the cron's last run in Vercel's log; if the release check only logs on failure, wire it to the releases health check and say so"
+  ]
+}
+```
+
+Opener to paste into a fresh session, cwd `service`:
+
+```
+Read ../plugin/docs/handoffs/2026-09-13-phase-3-s2-shell-paste-tree.md
+("Reordered" section), then ../plugin/plans/four-yesses/phase-4.md tasks 4.1
+and 4.3. State which model you are and follow that profile in
+~/.claude/harness/model-profiles.md. This session is Phase 4 S1. Write the
+card from the handoff to .harness/active.json before the first edit. Stop
+points and gates are in the card. End with a handoff in
+../plugin/docs/handoffs/.
+```
+
+## Next, after the reset — Phase 3 S3
 
 Phase 3 S3 on Opus, per `plans/four-yesses/phase-3.md`: **3.5** (the method
 sentences — now two: the Conversation sentence from the spec table, the Paste
