@@ -1,35 +1,33 @@
 {
-  "phase": "Four yesses — Phase 5, S1: 5.5 files, paths and uploads + 5.6 outbound hosts and SSRF",
+  "phase": "Four yesses — Phase 5, S2a: 5.7 secrets at rest, in logs, in responses",
   "model": "opus",
   "plan": "plans/four-yesses/phase-5.md",
   "spec": "plans/four-yesses.md",
   "scope": [
     "core/**",
-    "pro/includes/**",
     "tests/security/**",
     "tools/**",
     "docs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-13-phase-4-s1-health-release-check.md",
+    "docs/handoffs/2026-09-13-phase-5-s1-paths-hosts.md",
     "plans/four-yesses/phase-5.md",
-    "docs/security-surface.md",
-    "tests/security/roles.php",
-    "tests/security/db-calls.mjs"
+    "core/ai.php",
+    "tests/security/paths.php",
+    "tests/security/roles.php"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "The renamer stays off: never enabled to test it; defined('VERGEML_FILE_RENAME') false on the box",
-    "No allowlist a filter can extend; VERGEML_AI_SERVICE and VERGEML_KNOWN_ISSUES_URL are owner define()s and documented as such",
-    "The suite deletes nothing but its own fixture files; paths.php runs on the box, not Playground",
-    "Refusal strings are the existing WP_Error ones; none new"
+    "The canary key is never printed in the suite's output and never left in the box's settings; what was there is restored",
+    "The seal's key derivation is read and stated, not redesigned",
+    "The box's debug log is grepped for key shapes once, by hand, before any of it is attached to a ticket; nothing is uploaded",
+    "Refusal strings are the existing ones; none new"
   ],
   "gates": [
-    "node tools/verify.mjs paths hosts → green; tests/security/paths.php on the box: traversal, absolute path, symlink out — each refused, target hash unchanged",
-    "mutation: the prefix check stripped at one site on the box copy → its case red; a wp_remote_get($_GET['u']) in a scratch file → hosts.mjs red",
-    "sslverify true at all 19 sites, asserted",
-    "docs/security-surface.md gains its Files section; docs/security-hosts.md one row per call site with a decided-by of the three kinds",
-    "node tools/verify.mjs surface db-calls escaping globals roles → still green"
+    "node tools/verify.mjs secrets → green on the box: option table, each REST body as administrator, debug log after a describe pass, support bundle, instrument payload — zero CANARY hits except the sealed option, which does not contain the substring",
+    "mutation: the key stored unsealed on the box copy → the option grep red",
+    "vergeml_ai_unseal( get_option(...) ) shown necessary to read the key; wp_salt() use stated in docs",
+    "node tools/verify.mjs surface db-calls globals roles paths hosts → still green (escaping stays 9/10 until Phase 3 S3)"
   ]
 }

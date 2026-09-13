@@ -146,6 +146,16 @@ const SUITES = [
 	 *  filesystem. Creates and removes its own files and rows only. Phase 5.5.
 	 */
 	{ name: 'paths', file: 'tests/security/paths.php', env: 'box', php: true },
+	/*
+	 *  The licence key at rest, in logs and in responses: a canary key planted
+	 *  through the settings route, then the tables, every GET route as an
+	 *  administrator, a describe pass against a stand-in service, PHP's log,
+	 *  the support ticket and the counts snapshot read back for it. The box:
+	 *  real options table, real debug.log, a real image to build the payload
+	 *  from. pre_http_request answers every request, so nothing is spent; the
+	 *  options it writes are put back from a shutdown function. Phase 5.7.
+	 */
+	{ name: 'secrets', file: 'tests/security/secrets.php', env: 'box', php: true },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },
