@@ -109,18 +109,25 @@ fires it alone, and one real leak in the health route is closed.
   pattern actually in the repo is `account-download.test.ts`
   (`vi.mock('@/lib/stripe')`). Mirrored that.
 
-## Stop points for Nathan
+## Stop point, decided — the release check reaches a person by heartbeat
 
-1. **Where the release check's result lives**, so health (and 4.2's monitor)
-   sees a stale channel without anyone reading a dashboard. Options:
-   (a) a Better Stack **heartbeat** monitor in 4.2: the cron route pings the
-   heartbeat URL on a 200 and not on a 503; a missed or failed ping emails —
-   no table, no schema, fits 4.2's card; (b) a `checks` table (one row per
-   check name, last result, `checked_at`) by migration, the cron writes it,
-   health's `releases` check reads it and fails if the last run failed or is
-   older than 36 h — a schema change, its own session; (c) 4.2's HTTP monitor
-   calls the cron route daily with the bearer — puts the secret in a third
-   party. **Recommendation: (a)**, decided in 4.2's card.
+**Nathan, 2026-09-13: a heartbeat monitor.** Of the three ways (a Better
+Stack heartbeat; a `checks` table by migration that health reads; the HTTP
+monitor calling the cron route with the bearer), the heartbeat: no schema,
+no secret leaves Vercel, and it also catches the cron not running at all.
+
+For 4.2's card, alongside the HTTP check on `/api/health`:
+- A Better Stack heartbeat with a daily period and a grace that covers the
+  04:23 UTC run (expect by 05:00 UTC).
+- `app/api/cron/release-check/route.ts` pings the heartbeat URL after a run
+  whose `wrong.length === 0`, and does not ping on a 503. The URL is a new
+  env variable (`RELEASE_CHECK_HEARTBEAT_URL`; unset means no ping, so tests
+  and local runs stay silent). `lib/release-check.test.ts` gains: the ping is
+  sent on 200, not on 503, not when the variable is unset.
+- Proof, in 4.2's rehearsal: set `PLUGIN_RELEASES` stale, run the cron route
+  once by hand, receive the missed-heartbeat email; restore; run; receive the
+  recovery. `docs/runbooks/monitor.md` and the `releases` section of
+  `incident.md` say so.
 
 ## Found, not done
 
