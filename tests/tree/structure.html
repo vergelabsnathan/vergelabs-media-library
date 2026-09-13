@@ -1,0 +1,64 @@
+<!doctype html>
+<!--
+	The paste reader (js/vergeml-structure.js) and the preview it feeds, outside
+	WordPress. Loaded from disk by tests/tree/structure.mjs.
+
+	The live tree is a slice of the box's folders on 2026-09-12, so that a paste
+	can name a folder that exists ("Objects > Phones and gadgets") and one that
+	does not.
+-->
+<meta charset="utf-8">
+<title>vergeml-structure harness</title>
+<link rel="stylesheet" href="../../css/vergeml-tree-view.css">
+<style>
+	body { margin: 0; padding: 24px; font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f7f9fc; color: #101d40; }
+	.pane { width: 460px; background: #fff; padding: 20px 24px 24px; border-radius: 8px; }
+	.pane .vgml-tv-head { display: none; }
+</style>
+
+<div class="pane"><div id="preview"></div></div>
+
+<script src="../../js/vergeml-tree-view.js"></script>
+<script src="../../js/vergeml-structure.js"></script>
+<script>
+	( function () {
+		var f = function ( id, parent, name, count ) {
+			return { id: id, parent: parent, name: name, slug: name.toLowerCase().replace( /[^a-z0-9]+/g, '-' ), count: count, color: '', order: 0, private: null };
+		};
+		var nodes = [
+			f( 13, 0, 'Architecture', 26 ),
+			f( 14, 13, 'City architecture details', 31 ),
+			f( 16, 0, 'Bikes and cycling', 11 ),
+			f( 20, 0, 'Landscape and nature', 91 ),
+			f( 22, 20, 'Mountains and mist', 39 ),
+			f( 26, 0, 'Objects', 5 ),
+			f( 27, 26, 'Phones and gadgets', 10 ),
+			f( 29, 0, 'Portrait', 18 )
+		];
+		var tv = window.vergemlTreeView;
+		var view = tv.create( {
+			surface: 'folders',
+			root: document.getElementById( 'preview' ),
+			nodes: [],
+			indent: { step: 22, base: 8 },
+			fold: false,
+			openAll: true
+		} );
+		view.setMode( 'all', true );
+		view.setCounted( false );
+
+		window.harness = {
+			nodes: nodes,
+			structure: window.vergemlStructure,
+			tv: tv,
+			view: view,
+			show: function ( text ) {
+				var parsed = window.vergemlStructure.parse( text, nodes );
+				var pv = window.vergemlStructure.toPreview( parsed, nodes );
+				view.setTree( pv.nodes );
+				view.setDraft( parsed.count ? pv.draft : null );
+				return parsed;
+			}
+		};
+	} )();
+</script>

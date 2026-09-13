@@ -657,6 +657,10 @@
 		this.onEdit = opts.onEdit || function () {};
 		this.onToggle = opts.onToggle || null;
 		this.onHover = opts.onHover || null;
+		// The paste preview asks for the whole paste, every branch open and no
+		// siblings folded: it is showing what was read, not a library.
+		this.fold = false !== opts.fold;
+		this.openAll = !! opts.openAll;
 		this.model = opts.model || new Model( opts.nodes || [] );
 		this.draft = null;
 		this.mode = 'all';
@@ -793,6 +797,9 @@
 		}
 		if ( this.openOverride[ key ] !== undefined ) {
 			return this.openOverride[ key ];
+		}
+		if ( this.openAll ) {
+			return true;
 		}
 		return !! ( this.overlay && this.overlay.changesUnder( key ) > 0 );
 	};
@@ -946,7 +953,7 @@
 			 */
 			var holdsChange = kids.some( function ( r ) { return o.changesUnder( r.key ) > 0; } );
 			var isLeaf = function ( r ) { return ! ( o.children[ r.key ] || [] ).length; };
-			if ( depth > 0 && holdsChange && ! self.filter && ! self.unfolded[ parentKey ] ) {
+			if ( self.fold && depth > 0 && holdsChange && ! self.filter && ! self.unfolded[ parentKey ] ) {
 				shown = kids.filter( function ( r ) { return o.changesUnder( r.key ) > 0 || ! isLeaf( r ); } );
 				folded = kids.filter( function ( r ) { return 0 === o.changesUnder( r.key ) && isLeaf( r ); } );
 			}

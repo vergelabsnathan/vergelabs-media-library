@@ -1,0 +1,38 @@
+{
+  "phase": "Four yesses — Phase 3, S2: 3.2 app shell + 3.3 draft as tree + 3.4 paste paths",
+  "model": "fable",
+  "plan": "plans/four-yesses/phase-3.md",
+  "spec": "docs/superpowers/specs/2026-09-10-folders-ways-in.md",
+  "scope": [
+    "core/guide.php",
+    "css/vergeml-folders.css",
+    "css/vergeml-folders-rtl.css",
+    "js/vergeml-folders.js",
+    "js/vergeml-structure.js",
+    "js/vergeml-tree-view.js",
+    "tests/**",
+    "tools/verify.mjs",
+    "docs/**",
+    "plans/**"
+  ],
+  "readFirst": [
+    "docs/handoffs/2026-09-12-phase-3-s1-one-way-in.md",
+    "plans/four-yesses/phase-3.md",
+    "docs/superpowers/specs/2026-09-10-folders-ways-in.md",
+    "docs/superpowers/mocks/2026-09-10-folders-ways-in.html"
+  ],
+  "handoffDir": "docs/handoffs",
+  "stopPoints": [
+    "The copy in the S1 handoff is verbatim; any other user-facing string is Nathan's",
+    "The tree grammar is the existing css/vergeml-tree-view.css; no new row class",
+    "Nothing changes in how pictures are filed (core/filing.php, the matcher, the apply)",
+    "The other eight screens keep normal page flow"
+  ],
+  "gates": [
+    "node tests/tree/structure.mjs → N/N",
+    "node tests/tree/tree-view.mjs → N/N (the fold option must not move it)",
+    "npx playwright test --config tests/ui/playwright.config.mjs tests/ui/folders.spec.mjs → green on the box at 1600×1000 and 1280×800",
+    "node tools/filing-baseline-check.mjs → unchanged",
+    "mutation: min-height:0 off → 1280×800 red; a bullet in the draft → red; whitespace read as depth → red; 500 cap off → red"
+  ]
+}

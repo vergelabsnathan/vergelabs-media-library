@@ -78,6 +78,12 @@ const SUITES = [
 	 */
 	{ name: 'tree-view', file: 'tests/tree/tree-view.mjs', env: 'local' },
 	/*
+	 *  The paste reader (js/vergeml-structure.js) and the preview it feeds,
+	 *  against a page loaded from disk: one reading of a paste, the three
+	 *  refusals, reuse of what exists. env 'local'.
+	 */
+	{ name: 'structure', file: 'tests/tree/structure.mjs', env: 'local' },
+	/*
 	 *  The copy standard, over the strings Phase 4 struck. Reads the source
 	 *  from disk, so env 'local'. Copy rots back: "Please try again" is the
 	 *  first thing typed when somebody adds the next error message.
