@@ -139,7 +139,7 @@ verbatim, the tree's own rows, no change to how pictures are filed.
 - No conversation was opened: every spec plants a capped session first.
 - The throwaway admin `vgml-ui` was created for the runs and deleted after.
 
-## Reordered, 2026-09-13 (Nathan: "manage that")
+## Reordered, 2026-09-13 (Nathan: "manage that") — pushed as `b29e26c`
 
 Fable credits are at 10 % with two days to the reset, and nothing before the
 reset needs Fable. Yes 1 and Yes 2 are done; Yes 3 cannot close in two days
