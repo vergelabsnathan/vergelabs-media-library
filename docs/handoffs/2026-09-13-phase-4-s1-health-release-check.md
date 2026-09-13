@@ -69,15 +69,22 @@ fires it alone, and one real leak in the health route is closed.
   the deployment's age is the identity.
 - `CRON_SECRET` is in Vercel production (`vercel env ls`: Encrypted, 22 d).
 
-## The gate not met, and why — the cron's last run, and the wiring
+## The live cron run, and the wiring
 
-- **The 04:23 UTC run is not readable from here.** `vercel logs` in CLI 50
-  streams from now only; the run is four hours old. The Cron Jobs page in the
-  Vercel dashboard shows it. A manual run against production needs
-  `CRON_SECRET` in the header, and the secrets guard refuses any command that
-  names an env file, so that probe is yours: one node fetch of
-  `/api/cron/release-check` with `Authorization: Bearer <CRON_SECRET>` — a
-  200 with two `ok: true` results is the line for the handoff.
+- **Run live by Nathan at 08:49 UTC** (the secrets guard keeps the cron
+  secret from the session; `vercel env pull` to a temp file, the one line
+  lifted into `$env:CRON_SECRET`, the file deleted, one node fetch from
+  `service`):
+
+  ```
+  200 { "ok": true, "checked_at": "2026-09-13T08:49:44.587Z", "results": [
+    { "slug": "vergelabs-media-library",     "advertised": "3.16.1", "served": "3.16.1", "ok": true, "detail": "the catalogue and the package agree" },
+    { "slug": "vergelabs-media-library-pro", "advertised": "1.0.2",  "served": "1.0.2",  "ok": true, "detail": "the catalogue and the package agree" } ] }
+  ```
+
+  `served` is read from `Version:` inside each zip, so the channel serves
+  what it advertises today. The scheduled 04:23 UTC run itself is only on
+  the dashboard's Cron Jobs page (`vercel logs` in CLI 50 streams from now).
 - **On failure the release check logs and answers 503 to the cron runner, and
   that is all.** The dashboard marks the run failed; nobody is emailed;
   `/api/health`'s `releases` check does not read it. The gate says "wire it
@@ -114,7 +121,6 @@ fires it alone, and one real leak in the health route is closed.
    older than 36 h — a schema change, its own session; (c) 4.2's HTTP monitor
    calls the cron route daily with the bearer — puts the secret in a third
    party. **Recommendation: (a)**, decided in 4.2's card.
-2. The live cron probe above (yours, one command).
 
 ## Found, not done
 
