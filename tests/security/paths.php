@@ -49,8 +49,21 @@
  *
  *  ## Mutation checks
  *
- *  Run on 2026-09-13 against the box copy, each red at the row named and green
- *  again once reverted and redeployed. See docs/handoffs/ for the day's record.
+ *  Run on 2026-09-13 against the box copy, each red at the rows named and
+ *  66/66 again once the repo copy was redeployed:
+ *
+ *    1. `|| false === vergeml_path_in_uploads( $path )` removed from the archive
+ *       walk and the describe payload, and `|| ! is_uploaded_file( … )` from the
+ *       settings import, together
+ *       → 12 red: "one file added, three counted missing" (4 added, 0 missing),
+ *         "the archive holds real.jpg and nothing else" (the outside file and
+ *         the link packed under their own names), every payload row (a 103-byte
+ *         data URL each), and the import's three (eml_settings_wrong_format).
+ *    2. the renamer's per-file check made `if ( false )`
+ *       → 19 red, first "traversal: vergeml_file_rename() returns false"; the
+ *         mutated renamer moved the outside target and the mutated undo moved
+ *         it again, so every later "unchanged" row followed. The suite's own
+ *         file, removed by hand afterwards; nothing else was touched.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

@@ -36,8 +36,21 @@
  *
  *  ## Mutation checks
  *
- *  Run on 2026-09-13, each red at the row named and green again once reverted.
- *  See docs/handoffs/ for the day's record.
+ *  Run on 2026-09-13, each red at the rows named and 13/13 once reverted:
+ *
+ *    1. core/zz-scratch.php holding `wp_remote_get( $_GET["u"] )`
+ *       → "every call site has a row", "no URL expression reads the request"
+ *         and the bare-variable row all name core/zz-scratch.php:2.
+ *    2. vergeml_connect_base()'s apply_filters() put back
+ *       → "no URL helper applies a filter, reads an option or reads the
+ *         request" names it. This is the finding the suite was written after.
+ *    3. `'sslverify' => true` made `false` at search-meaning.php
+ *       → "no site says sslverify => false" and the 17-verify row.
+ *    4. the https_local_ssl_verify form put on ai.php's activate call
+ *       → "loopbacks … and only those" names vergeml_ai_activate_site().
+ *    5. three register rows' kind changed to `filter`, the instrument row deleted
+ *       → the kind row names all three; "every call site has a row" names
+ *         core/instrument.php:228.
  */
 
 import fs from 'node:fs';
