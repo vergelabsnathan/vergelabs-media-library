@@ -48,7 +48,7 @@ one of these queries expires its review and turns the suite red.
 |---|---|---|---|
 | core/ai-index.php:259 | `77b42d1645` | `get_results` | $in is implode of an array_chunk of $ids, and $ids is array_map( 'intval', (array) $ids ) on the function's first line -- integers, every one of them |
 | core/ai-screen.php:136 | `56dead9d32` | `get_row` | every $sums[] element is its own $wpdb->prepare() fragment, and the column alias after AS comes from a literal list of eight field names in the foreach header above it |
-| core/guide.php:2094 | `f8e582bd4e` | `get_results` | $chunk comes from array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) by way of $chunks -- integers by construction |
+| core/guide.php:2108 | `f8e582bd4e` | `get_results` | $chunk comes from array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) by way of $chunks -- integers by construction |
 | core/search-try.php:80 | `36af7892eb` | `get_var` | each $any[] is $wpdb->prepare( "{$column} LIKE %s", $like ); $column comes from vergeml_search_try_fields(), a literal array of seven, and the search term goes through esc_like() and a placeholder |
 | core/search-try.php:84 | `3e7ba748c4` | `get_var` | each $where_all[] is "( " . implode( " OR ", $any ) . " )" over the prepared fragments above, and {$from} interpolates two $wpdb table names and nothing else |
 | core/search-try.php:85 | `6a95da9eb6` | `get_var` | the same as the row above, restricted to the three columns WordPress itself searches |
@@ -117,13 +117,13 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | line | in | method | class | proof |
 |---|---|---|---|---|
 | 932 | — | `get_var` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->vergeml_ai_index — a $wpdb table name |
-| 1273 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
-| 1289 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->vergeml_ai_index — a $wpdb table name |
-| 1332 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
-| 1341 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->vergeml_ai_index — a $wpdb table name |
-| 1736 | — | `get_col` | prepared | $wpdb->vergeml_ai_index — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
-| 1992 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
-| 1993 | — | `get_var` | only a `$wpdb` table name | $wpdb->vergeml_ai_index — a $wpdb table name |
+| 1275 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
+| 1291 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->vergeml_ai_index — a $wpdb table name |
+| 1334 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
+| 1343 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->vergeml_ai_index — a $wpdb table name |
+| 1738 | — | `get_col` | prepared | $wpdb->vergeml_ai_index — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
+| 1994 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
+| 1995 | — | `get_var` | only a `$wpdb` table name | $wpdb->vergeml_ai_index — a $wpdb table name |
 
 ### core/auto-file.php
 
@@ -162,20 +162,20 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 205 | — | `get_row` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name; $t — $t is only ever a $wpdb table name |
-| 215 | — | `get_row` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
-| 304 | — | `get_var` | only a `$wpdb` table name | $wpdb->vergeml_ai_index — a $wpdb table name |
-| 458 | — | `get_var` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
-| 459 | — | `get_var` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
-| 460 | — | `get_results` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
-| 462 | — | `get_var` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
-| 463 | — | `get_var` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
-| 464 | — | `get_var` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
-| 465 | — | `get_results` | prepared | $t — $t is only ever a $wpdb table name |
-| 506 | — | `get_var` | prepared | $t — $t is only ever a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
-| 962 | — | `get_results` | only integers it cast itself | $wpdb->vergeml_ai_index — a $wpdb table name; implode( ',', $chunk ) — implode of $chunk is only ever each chunk of a map whose closure returns (int) |
-| 1661 | — | `get_results` | only integers it cast itself | $select — $select is only ever a string literal in our own source / appended a string literal in our own source; $t — $t is only ever a $wpdb table name; $join — $join is only ever a string literal in our own source / appended text holding only a $wpdb table name / appended a $wpdb->prepare() fragment whose format string holds only a $wpdb table name; $where — $where is only ever a string literal in our own source / appended a $wpdb->prepare() fragment whose format string holds only a $wpdb table name; $group — $group is only ever a string literal in our own source |
-| 2094 | — | `get_results` | read by hand — see the reason | $wpdb->vergeml_ai_index — a $wpdb table name |
+| 219 | — | `get_row` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name; $t — $t is only ever a $wpdb table name |
+| 229 | — | `get_row` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
+| 318 | — | `get_var` | only a `$wpdb` table name | $wpdb->vergeml_ai_index — a $wpdb table name |
+| 472 | — | `get_var` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
+| 473 | — | `get_var` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
+| 474 | — | `get_results` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
+| 476 | — | `get_var` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
+| 477 | — | `get_var` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
+| 478 | — | `get_var` | only a `$wpdb` table name | $t — $t is only ever a $wpdb table name |
+| 479 | — | `get_results` | prepared | $t — $t is only ever a $wpdb table name |
+| 520 | — | `get_var` | prepared | $t — $t is only ever a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
+| 976 | — | `get_results` | only integers it cast itself | $wpdb->vergeml_ai_index — a $wpdb table name; implode( ',', $chunk ) — implode of $chunk is only ever each chunk of a map whose closure returns (int) |
+| 1675 | — | `get_results` | only integers it cast itself | $select — $select is only ever a string literal in our own source / appended a string literal in our own source; $t — $t is only ever a $wpdb table name; $join — $join is only ever a string literal in our own source / appended text holding only a $wpdb table name / appended a $wpdb->prepare() fragment whose format string holds only a $wpdb table name; $where — $where is only ever a string literal in our own source / appended a $wpdb->prepare() fragment whose format string holds only a $wpdb table name; $group — $group is only ever a string literal in our own source |
+| 2108 | — | `get_results` | read by hand — see the reason | $wpdb->vergeml_ai_index — a $wpdb table name |
 
 ### core/health-delete.php
 
@@ -294,14 +294,14 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | line | in | method | class | proof |
 |---|---|---|---|---|
 | 1449 | — | `get_var` | prepared | — |
-| 1866 | — | `delete` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
-| 1874 | — | `get_results` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; $rows2remove_format — $rows2remove_format is only ever implode of a generated %d placeholder list |
-| 1895 | — | `query` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; $rows2remove_format — $rows2remove_format is only ever implode of a generated %d placeholder list |
-| 1938 | — | `query` | only integers it cast itself | $wpdb->prefix — a $wpdb table name; $table — $table is only ever each item of a literal array in our own source |
-| 1961 | — | `get_col` | prepared | $id_column — $id_column is only ever a string literal in our own source; $table — $table is only ever a core table name from _get_meta_table() |
-| 1976 | — | `query` | prepared | $table — $table is only ever a core table name from _get_meta_table(); $id_column — $id_column is only ever a string literal in our own source; $placeholders — $placeholders is only ever implode of a generated %d placeholder list |
-| 2026 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
-| 2080 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 1868 | — | `delete` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 1876 | — | `get_results` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; $rows2remove_format — $rows2remove_format is only ever implode of a generated %d placeholder list |
+| 1897 | — | `query` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; $rows2remove_format — $rows2remove_format is only ever implode of a generated %d placeholder list |
+| 1940 | — | `query` | only integers it cast itself | $wpdb->prefix — a $wpdb table name; $table — $table is only ever each item of a literal array in our own source |
+| 1963 | — | `get_col` | prepared | $id_column — $id_column is only ever a string literal in our own source; $table — $table is only ever a core table name from _get_meta_table() |
+| 1978 | — | `query` | prepared | $table — $table is only ever a core table name from _get_meta_table(); $id_column — $id_column is only ever a string literal in our own source; $placeholders — $placeholders is only ever implode of a generated %d placeholder list |
+| 2028 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 2082 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
 
 ### core/organize.php
 

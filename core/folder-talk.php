@@ -1407,10 +1407,12 @@ function vergeml_talk_refile_schedule() {
 	 */
 	$url = add_query_arg( 'doing_wp_cron', sprintf( '%.22F', microtime( true ) ), site_url( 'wp-cron.php' ) );
 
+	// A loopback to this site's own wp-cron.php, on the rule core's spawn_cron()
+	// uses: unverified unless the owner turns https_local_ssl_verify on.
 	wp_remote_post( $url, array(
 		'timeout'   => 0.01,
 		'blocking'  => false,
-		'sslverify' => false,
+		'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
 	) );
 }
 

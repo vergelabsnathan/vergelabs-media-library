@@ -25,11 +25,20 @@ const VERGEML_CONNECT_NONCE  = 'vergeml_connect';
 // The state is single-use and bound to this administrator either way.
 const VERGEML_CONNECT_TTL    = DAY_IN_SECONDS;
 
-/** Where the handshake happens. Filterable so a staging service can be used. */
+/**
+ *  Where the handshake happens: the constant, or the owner's VERGEML_SITE_URL
+ *  in wp-config.php for a staging service.
+ *
+ *  Not filterable. The exchange below posts the one-time code here and gets
+ *  the licence key back, so a filter on this host would let any co-installed
+ *  plugin collect keys -- the same reason vergeml_ai_service_url() has none
+ *  (docs/manual/hooks.md). It was filterable until Phase 5.6 of
+ *  plans/four-yesses.md; nothing used the filter.
+ */
 function vergeml_connect_base() {
     $base = defined( 'VERGEML_SITE_URL' ) ? VERGEML_SITE_URL : 'https://vergelabsmedia.com';
 
-    return untrailingslashit( apply_filters( 'vergeml_connect_base', $base ) );
+    return untrailingslashit( $base );
 }
 
 /** The nonce-protected URL behind the "Connect" button. */
