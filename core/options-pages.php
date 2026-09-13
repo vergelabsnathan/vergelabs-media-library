@@ -1627,9 +1627,11 @@ function vergeml_settings_import() {
 
 
     /*
-     *  Only tmp_name is read, and only to hand to wp_handle_upload below, which
-     *  does its own MIME and error checking. The name is sanitised so nothing
-     *  from the upload reaches the filesystem or a message unchecked.
+     *  Only tmp_name is read, and only when PHP says it is this request's own
+     *  upload -- is_uploaded_file() below. Anything else in tmp_name is
+     *  treated as no file at all, so the read can never follow a path that
+     *  arrived some other way. The name is sanitised so nothing from the
+     *  upload reaches the filesystem or a message unchecked.
      */
 
     $import_file = array(
@@ -1640,7 +1642,7 @@ function vergeml_settings_import() {
         'size'     => isset( $_FILES['import_file']['size'] ) ? (int) $_FILES['import_file']['size'] : 0,
     );
 
-    if ( empty( $import_file['tmp_name'] ) ) {
+    if ( empty( $import_file['tmp_name'] ) || ! is_uploaded_file( $import_file['tmp_name'] ) ) {
 
         add_settings_error(
             'eml-settings',

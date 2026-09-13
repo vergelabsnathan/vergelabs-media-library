@@ -2,7 +2,9 @@
 
 **Generated. Do not edit.** `node tools/security-surface.mjs` writes this file;
 `node tools/security-surface.mjs --check` fails when the code has moved and this
-file has not, which is what keeps a new route from arriving undocumented.
+file has not, which is what keeps a new route from arriving undocumented. The one
+exception is the **Files** section at the end, written by hand between its two
+markers and carried over verbatim on every regeneration.
 
 Read from 66 shipped PHP files — `git ls-files` minus the directories
 tools/deploy.mjs refuses to ship, so nothing in `tests/` or `tools/` is counted as a
@@ -40,13 +42,13 @@ Anything without brackets is a site-wide yes.
 
 | route | method | permission callback | capability | object-scoped | reads | writes | id from request | where |
 |---|---|---|---|---|---|---|---|---|
-| `/vergeml/v1/ai-alt` | GET | closure | upload_files | no | — | db query | no | core/ai.php:1787 |
-| `/vergeml/v1/ai-alt` | POST | closure | manage_options | no | `limit`, $request | meta/option write, db query | no | core/ai.php:1787 |
-| `/vergeml/v1/ai-index` | POST | closure | manage_categories | no | `scope`, `limit`, `apply_alt`, $request | db query, meta/option write, db write, outbound http, schedules cron | no | core/ai.php:1956 |
+| `/vergeml/v1/ai-alt` | GET | closure | upload_files | no | — | db query | no | core/ai.php:1789 |
+| `/vergeml/v1/ai-alt` | POST | closure | manage_options | no | `limit`, $request | meta/option write, db query | no | core/ai.php:1789 |
+| `/vergeml/v1/ai-index` | POST | closure | manage_categories | no | `scope`, `limit`, `apply_alt`, $request | db query, meta/option write, db write, outbound http, schedules cron | no | core/ai.php:1958 |
 | `/vergeml/v1/ai-run` | GET | closure | manage_categories | no | — | schedules cron, outbound http | no | core/ai-background.php:454 |
 | `/vergeml/v1/ai-run` | POST | closure | manage_categories | no | `action`, `scope`, `apply_alt`, $request | db query, meta/option write, schedules cron, outbound http | no | core/ai-background.php:454 |
-| `/vergeml/v1/ai-settings` | POST | closure | manage_options, manage_network_options | no | `license_key`, `site_profile`, `auto_alt`, `enrich_search`, `page_context`, `mock`, $request | meta/option write, db query, outbound http | no | core/ai.php:1970 |
-| `/vergeml/v1/ai-status` | GET | closure | manage_categories | no | — | db query, meta/option write, outbound http | no | core/ai.php:1948 |
+| `/vergeml/v1/ai-settings` | POST | closure | manage_options, manage_network_options | no | `license_key`, `site_profile`, `auto_alt`, `enrich_search`, `page_context`, `mock`, $request | meta/option write, db query, outbound http | no | core/ai.php:1972 |
+| `/vergeml/v1/ai-status` | GET | closure | manage_categories | no | — | db query, meta/option write, outbound http | no | core/ai.php:1950 |
 | `/vergeml/v1/alt-fill-step` | POST | $can | manage_categories | no | `limit`, $request | meta/option write, db query | no | core/utilities.php:420 |
 | `/vergeml/v1/alt-undo` | POST | $can | manage_categories | no | — | db query, meta/option write | no | core/utilities.php:427 |
 | `/vergeml/v1/assign` | POST | vergeml_can_assign | upload_files, edit_posts, edit_post($attachment_id), edit_post($attachment_id) | yes (2) | `taxonomy*`, `post_type`, `attachments`, `add`, `remove`, `mode`, `batch`, $request | term assign, db query | yes | core/rest-tree.php:184 |
@@ -68,16 +70,16 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/folders-undo` | POST | $may | manage_categories | no | — | post/term write, delete, term assign, meta/option write, db query | no | core/folder-talk.php:1829 |
 | `/vergeml/v1/folders/version` | GET | vergeml_can_read_tree | upload_files | no | — | — | no | core/folders-version.php:102 |
 | `/vergeml/v1/gallery-folders` | GET | vergeml_can_read_tree | upload_files | no | `taxonomy`, $request | — | no | core/gallery-block.php:351 |
-| `/vergeml/v1/guide/apply` | POST | $may | manage_categories | no | — | outbound http, schedules cron, meta/option write, db query, post/term write, term assign, delete | no | core/guide.php:716 |
-| `/vergeml/v1/guide/progress` | GET | $may | manage_categories | no | — | outbound http, schedules cron, meta/option write | no | core/guide.php:721 |
-| `/vergeml/v1/guide/rule` | POST | $may | manage_categories | no | `rule*`, `options`, $request | db query | no | core/guide.php:707 |
-| `/vergeml/v1/guide/rules` | GET | $may | manage_categories | no | — | db query | no | core/guide.php:702 |
-| `/vergeml/v1/guide/session` | GET | $may | manage_categories | no | $request | meta/option write, db query | no | core/guide.php:673 |
-| `/vergeml/v1/guide/session` | POST | $may | manage_categories | no | `draft`, `reset`, $request | meta/option write, db query | no | core/guide.php:673 |
-| `/vergeml/v1/guide/stop` | POST | $may | manage_categories | no | — | outbound http, schedules cron, meta/option write | no | core/guide.php:726 |
-| `/vergeml/v1/guide/token` | POST | $may | manage_categories | no | — | db query, meta/option write, outbound http | no | core/guide.php:685 |
-| `/vergeml/v1/guide/turn` | POST | $may | manage_categories | no | `said`, `say`, `draft`, `turns`, $request | meta/option write, db query, outbound http | yes | core/guide.php:690 |
-| `/vergeml/v1/guide/undo` | POST | $may | manage_categories | no | — | post/term write, delete, term assign, meta/option write, db query | no | core/guide.php:731 |
+| `/vergeml/v1/guide/apply` | POST | $may | manage_categories | no | — | outbound http, schedules cron, meta/option write, db query, post/term write, term assign, delete | no | core/guide.php:730 |
+| `/vergeml/v1/guide/progress` | GET | $may | manage_categories | no | — | outbound http, schedules cron, meta/option write | no | core/guide.php:735 |
+| `/vergeml/v1/guide/rule` | POST | $may | manage_categories | no | `rule*`, `options`, $request | db query | no | core/guide.php:721 |
+| `/vergeml/v1/guide/rules` | GET | $may | manage_categories | no | — | db query | no | core/guide.php:716 |
+| `/vergeml/v1/guide/session` | GET | $may | manage_categories | no | $request | meta/option write, db query | no | core/guide.php:687 |
+| `/vergeml/v1/guide/session` | POST | $may | manage_categories | no | `draft`, `reset`, $request | meta/option write, db query | no | core/guide.php:687 |
+| `/vergeml/v1/guide/stop` | POST | $may | manage_categories | no | — | outbound http, schedules cron, meta/option write | no | core/guide.php:740 |
+| `/vergeml/v1/guide/token` | POST | $may | manage_categories | no | — | db query, meta/option write, outbound http | no | core/guide.php:699 |
+| `/vergeml/v1/guide/turn` | POST | $may | manage_categories | no | `said`, `say`, `draft`, `turns`, $request | meta/option write, db query, outbound http | yes | core/guide.php:704 |
+| `/vergeml/v1/guide/undo` | POST | $may | manage_categories | no | — | post/term write, delete, term assign, meta/option write, db query | no | core/guide.php:745 |
 | `/vergeml/v1/health-delete` | POST | closure | manage_options, delete_posts | no | `keep*`, `drop*`, $request | delete, db query, db write, meta/option write | no | core/health-delete.php:470 |
 | `/vergeml/v1/health-keep` | POST | $can | manage_options | no | `keep*`, `drop*`, $request | db write, db query, meta/option write | no | core/health-keep.php:824 |
 | `/vergeml/v1/health-keep-undo` | POST | $can | manage_options | no | `token*`, $request | db write, db query, meta/option write | no | core/health-keep.php:834 |
@@ -104,8 +106,8 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/quarantine-manifest` | GET | $can | manage_categories | no | — | — | no | core/quarantine.php:413 |
 | `/vergeml/v1/rename` | GET | closure | upload_files | no | — | db query | no | core/rename.php:485 |
 | `/vergeml/v1/rename` | POST | closure | upload_files, manage_options, edit_post($id) | yes (1) | `action`, `limit`, `ids`, $request | post/term write, meta/option write, db query | yes | core/rename.php:485 |
-| `/vergeml/v1/rename-files` | GET | closure | manage_options | no | — | db query | no | core/rename-file.php:565 |
-| `/vergeml/v1/rename-files` | POST | closure | manage_options | no | `action`, `limit`, `ids`, $request | meta/option write, filesystem, post/term write, db query | yes | core/rename-file.php:565 |
+| `/vergeml/v1/rename-files` | GET | closure | manage_options | no | — | db query | no | core/rename-file.php:579 |
+| `/vergeml/v1/rename-files` | POST | closure | manage_options | no | `action`, `limit`, `ids`, $request | meta/option write, filesystem, post/term write, db query | yes | core/rename-file.php:579 |
 | `/vergeml/v1/say-plan` | POST | $can | manage_categories | no | `text*`, $request | filesystem | no | core/nl-commands.php:551 |
 | `/vergeml/v1/say-run` | POST | $can | manage_categories | no | `plan*`, $request | post/term write, term assign, meta/option write, db write, db query | no | core/nl-commands.php:560 |
 | `/vergeml/v1/search-meaning` | GET | closure | upload_files | no | `s*`, `limit`, $request | db query, outbound http, db write, schedules cron | no | core/search-meaning.php:509 |
@@ -126,7 +128,7 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/autofile-act` | POST | unscoped capability on an id from the request | core/auto-file.php:645 |
 | `/vergeml/v1/brief/turn` | POST | unscoped capability on an id from the request | core/brief.php:647 |
 | `/vergeml/v1/folders-apply` | POST | unscoped capability on an id from the request | core/folder-talk.php:1819 |
-| `/vergeml/v1/guide/turn` | POST | unscoped capability on an id from the request | core/guide.php:690 |
+| `/vergeml/v1/guide/turn` | POST | unscoped capability on an id from the request | core/guide.php:704 |
 | `/vergeml/v1/health-retire` | POST | unscoped capability on an id from the request | core/health-keep.php:843 |
 | `/vergeml/v1/import` | POST | unscoped capability on an id from the request | core/import-ui.php:37 |
 | `/vergeml/v1/librarian-apply-step` | POST | unscoped capability on an id from the request | core/librarian.php:2535 |
@@ -134,7 +136,7 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/organize-step` | POST | unscoped capability on an id from the request | core/organize.php:2878 |
 | `/vergeml/v1/folder-privacy` | POST | unscoped capability on an id from the request | core/private-folders.php:205 |
 | `/vergeml/v1/quarantine-act` | POST | unscoped capability on an id from the request | core/quarantine.php:402 |
-| `/vergeml/v1/rename-files` | POST | unscoped capability on an id from the request | core/rename-file.php:565 |
+| `/vergeml/v1/rename-files` | POST | unscoped capability on an id from the request | core/rename-file.php:579 |
 | `/vergeml/v1/folder` | POST | unscoped capability on an id from the request | core/rest-folders.php:28 |
 
 ## AJAX actions
@@ -145,7 +147,7 @@ user and nothing more; `wp_ajax_nopriv_` requires nothing at all.
 | action | nopriv | callback | capability | nonce | reads | writes | where |
 |---|---|---|---|---|---|---|---|
 | `vergeml-apply-settings-to-network` | no | vergeml_apply_settings_to_network | manage_network_options | check_ajax_referer | $_REQUEST | meta/option write | core/options-pages.php:1228 |
-| `vergeml-admin-notice-dismiss` | no | vergeml_admin_notice_dismiss | — | check_ajax_referer | $_POST | meta/option write | core/options-pages.php:3575 |
+| `vergeml-admin-notice-dismiss` | no | vergeml_admin_notice_dismiss | — | check_ajax_referer | $_POST | meta/option write | core/options-pages.php:3577 |
 | `tb_load_editor` | no | vergeml_builder_load_tree | upload_files, upload_files, edit_posts, upload_files, manage_categories, manage_categories | — | $request | db query | core/page-builders.php:262 |
 | `save-attachment-compat` | no | vergeml_save_attachment_compat | edit_post($id) | check_ajax_referer | $_REQUEST | post/term write, term assign, db query | core/taxonomies.php:1173 |
 | `delete-post` | no | vergeml_delete_post | delete_post($id) | check_ajax_referer | $_POST | delete, db query | core/taxonomies.php:1289 |
@@ -159,13 +161,13 @@ capability and the nonce are the whole of the gate.
 
 | action | nopriv | callback | capability | nonce | reads | writes | where |
 |---|---|---|---|---|---|---|---|
-| `vergeml_zip` | no | vergeml_zip_download | upload_files | check_admin_referer | $_GET | delete | core/folder-tools.php:172 |
+| `vergeml_zip` | no | vergeml_zip_download | upload_files | check_admin_referer | $_GET | delete | core/folder-tools.php:214 |
 | `vergeml_help_send` | no | vergeml_help_send | manage_options | check_admin_referer | $_POST | outbound http | core/get-help.php:165 |
 | `vergeml_export_csv` | no | vergeml_csv_download | manage_categories | check_admin_referer | $_GET | — | core/import-csv.php:156 |
-| `vergeml_do_file_rename` | no | vergeml_journey_do_file_rename | manage_options | check_admin_referer | — | meta/option write, filesystem, post/term write, db query | core/journey.php:397 |
-| `vergeml_undo_file_rename` | no | vergeml_journey_undo_file_rename | manage_options | check_admin_referer | — | meta/option write, filesystem, post/term write | core/journey.php:418 |
-| `vergeml_do_alt` | no | vergeml_journey_do_alt | upload_files | check_admin_referer | — | meta/option write, db query | core/journey.php:1071 |
-| `vergeml_do_rename` | no | vergeml_journey_do_rename | upload_files, edit_post($id) | check_admin_referer | — | post/term write, meta/option write, db query | core/journey.php:1150 |
+| `vergeml_do_file_rename` | no | vergeml_journey_do_file_rename | manage_options | check_admin_referer | — | meta/option write, filesystem, post/term write, db query | core/journey.php:404 |
+| `vergeml_undo_file_rename` | no | vergeml_journey_undo_file_rename | manage_options | check_admin_referer | — | meta/option write, filesystem, post/term write | core/journey.php:405 |
+| `vergeml_do_alt` | no | vergeml_journey_do_alt | upload_files | check_admin_referer | — | meta/option write, db query | core/journey.php:1078 |
+| `vergeml_do_rename` | no | vergeml_journey_do_rename | upload_files, edit_post($id) | check_admin_referer | — | post/term write, meta/option write, db query | core/journey.php:1157 |
 | `vergeml_licence_save` | no | vergeml_licence_save | manage_options | check_admin_referer | $_POST | meta/option write, outbound http | core/licence-page.php:33 |
 | `vergeml_rename` | no | vergeml_rename_handle_one | edit_post($id), edit_post($id) | check_admin_referer | $_GET | post/term write, meta/option write, db query | core/rename.php:337 |
 | `vergeml_rename_undo` | no | vergeml_rename_handle_undo | upload_files | check_admin_referer | — | post/term write, meta/option write, db query | core/rename.php:431 |
@@ -194,16 +196,16 @@ whole of what WordPress checks before the callback runs. A screen that then read
 | `eml-settings` | add_options_page | manage_options | vergeml_print_settings (core/options-pages.php:786) | — | — | — | core/options-pages.php:191 |
 | `eml-settings` | add_submenu_page | manage_network_options | vergeml_print_network_settings (core/options-pages.php:995) | $_GET | meta/option write, outbound http | wp_verify_nonce | core/options-pages.php:215 |
 | `media` | add_submenu_page | manage_options | vergeml_print_media_settings (core/options-pages.php:385) | — | — | — | core/options-pages.php:124 |
-| `media-ai` | add_submenu_page | manage_categories | vergeml_ai_page (core/ai-screen.php:182) | $_GET | — | — | core/ai.php:2111 |
+| `media-ai` | add_submenu_page | manage_categories | vergeml_ai_page (core/ai-screen.php:182) | $_GET | — | — | core/ai.php:2113 |
 | `media-health` | add_submenu_page | manage_categories | vergeml_health_page (core/health.php:1411) | — | — | — | core/health.php:1247 |
 | `media-help` | add_submenu_page | manage_options | vergeml_help_page (core/get-help.php:250) | $_GET | outbound http | — | core/get-help.php:34 |
 | `media-import-folders` | add_submenu_page | manage_categories | vergeml_import_screen (core/import-ui.php:309) | — | — | — | core/import-ui.php:22 |
-| `media-librarian` | add_submenu_page | manage_categories | vergeml_folders_page (core/guide.php:278) | — | — | — | core/guide.php:57 |
-| `media-library` | add_submenu_page | manage_options | vergeml_print_media_library_options (core/options-pages.php:2129) | — | — | — | core/options-pages.php:133 |
+| `media-librarian` | add_submenu_page | manage_categories | vergeml_folders_page (core/guide.php:292) | — | — | — | core/guide.php:57 |
+| `media-library` | add_submenu_page | manage_options | vergeml_print_media_library_options (core/options-pages.php:2131) | — | — | — | core/options-pages.php:133 |
 | `media-licence` | add_submenu_page | manage_options | vergeml_licence_page (core/licence-page.php:85) | $_GET | meta/option write, outbound http | — | core/licence-page.php:20 |
-| `media-taxonomies` | add_submenu_page | manage_options | vergeml_print_taxonomies_options (core/options-pages.php:2645) | — | — | — | core/options-pages.php:142 |
-| `mime-types` | add_submenu_page | manage_options | vergeml_print_mimetypes_options (core/options-pages.php:3141) | — | — | — | core/options-pages.php:151 |
-| `vergelabs-media` | add_menu_page | manage_categories | vergeml_journey_screen (core/journey.php:1218) | $_GET | meta/option write, outbound http | — | core/admin-menu.php:50 |
+| `media-taxonomies` | add_submenu_page | manage_options | vergeml_print_taxonomies_options (core/options-pages.php:2647) | — | — | — | core/options-pages.php:142 |
+| `mime-types` | add_submenu_page | manage_options | vergeml_print_mimetypes_options (core/options-pages.php:3143) | — | — | — | core/options-pages.php:151 |
+| `vergelabs-media` | add_menu_page | manage_categories | vergeml_journey_screen (core/journey.php:1225) | $_GET | meta/option write, outbound http | — | core/admin-menu.php:50 |
 
 ## The front end
 
@@ -258,9 +260,9 @@ capability gate belongs to whatever screen they fire on, not to them.
 | `admin_init` | action | vergeml_neighbour_dismiss | $_GET | meta/option write | — | wp_verify_nonce | core/neighbours.php:121 |
 | `admin_init` | action | vergeml_settings_export | $_POST | — | manage_options, manage_network_options | wp_verify_nonce | core/options-pages.php:1562 |
 | `admin_init` | action | vergeml_settings_import | $_POST, $_FILES | meta/option write | manage_options, manage_network_options | wp_verify_nonce | core/options-pages.php:1607 |
-| `admin_init` | action | vergeml_settings_restoring | $_POST | meta/option write | manage_options, manage_network_options | wp_verify_nonce | core/options-pages.php:1699 |
-| `admin_init` | action | vergeml_uninstall_wipe_save | $_POST | meta/option write | manage_options | wp_verify_nonce | core/options-pages.php:1749 |
-| `admin_init` | action | vergeml_settings_cleanup | $_POST | db write, db query, delete, meta/option write | manage_options, manage_network_options | wp_verify_nonce | core/options-pages.php:1773 |
+| `admin_init` | action | vergeml_settings_restoring | $_POST | meta/option write | manage_options, manage_network_options | wp_verify_nonce | core/options-pages.php:1701 |
+| `admin_init` | action | vergeml_uninstall_wipe_save | $_POST | meta/option write | manage_options | wp_verify_nonce | core/options-pages.php:1751 |
+| `admin_init` | action | vergeml_settings_cleanup | $_POST | db write, db query, delete, meta/option write | manage_options, manage_network_options | wp_verify_nonce | core/options-pages.php:1775 |
 | `admin_menu` | action | vergeml_guide_redirect | $_GET | — | — | — | core/guide.php:40 |
 | `admin_menu` | action | vergeml_submenu_order | $_GET | — | — | — | core/options-pages.php:238 |
 | `admin_notices` | action | vergeml_bulk_terms_notice | $_GET | — | — | — | core/bulk-terms.php:222 |
@@ -281,10 +283,76 @@ capability gate belongs to whatever screen they fire on, not to them.
 | `pre_get_posts` | action | vergeml_quarantine_hide_list | $_GET | — | — | — | core/quarantine.php:249 |
 | `pre_get_posts` | action | vergeml_meaning_take_over | $_GET | db query, outbound http, db write, schedules cron | — | — | core/search-meaning.php:618 |
 | `pre_get_posts` | action | vergeml_smart_list_query | $_GET | — | — | — | core/smart-folders.php:1184 |
-| `rest_api_init` | action | vergeml_ai_alt_route | $request | db query, meta/option write | upload_files, manage_options | — | core/ai.php:1783 |
-| `rest_api_init` | action | vergeml_file_rename_routes | $request | db query, meta/option write, filesystem, post/term write | manage_options | — | core/rename-file.php:560 |
+| `rest_api_init` | action | vergeml_ai_alt_route | $request | db query, meta/option write | upload_files, manage_options | — | core/ai.php:1785 |
+| `rest_api_init` | action | vergeml_file_rename_routes | $request | db query, meta/option write, filesystem, post/term write | manage_options | — | core/rename-file.php:574 |
 | `rest_api_init` | action | vergeml_rename_routes | $request | db query, post/term write, meta/option write | upload_files, manage_options, edit_post($id) | — | core/rename.php:481 |
 | `restrict_manage_posts` | action | vergeml_list_folder_filter | $_REQUEST | db query | — | — | core/media-list.php:359 |
 | `restrict_manage_posts` | action | vergeml_meaning_offer | $_GET | — | — | — | core/search-meaning.php:575 |
 | `restrict_manage_posts` | action | vergeml_restrict_manage_posts | $_REQUEST | — | manage_options | — | core/taxonomies.php:492 |
 
+<!-- hand-written: files -->
+## Files
+
+Written by hand on 2026-09-13, Phase 5.5 of `plans/four-yesses.md`. Every site
+that renames, deletes, packs or reads out a file, or accepts an upload; where its
+path comes from; what stands between the path and the disk. Line numbers are the
+day's and drift — the function names do not.
+
+**No route takes a path.** Not one REST argument, AJAX field or `$_GET` key
+names a file on disk; the CSV import posts the file's *text* and the settings
+import reads only PHP's own `$_FILES` entry. So the way a path gets out of
+uploads is a poisoned `_wp_attached_file` row — `get_attached_file()` returns
+one that begins with a slash verbatim, and resolves a `../` inside a relative
+one — or a symlink placed inside uploads that points out. `vergeml_path_in_uploads()`
+(core/folder-tools.php) resolves a path with `realpath()`, which follows symlinks,
+and refuses anything not under `wp_get_upload_dir()['basedir']`; it is the same
+rule WordPress applies to its own deletes in `wp_delete_file_from_directory()`.
+`tests/security/paths.php` plants all three shapes on the box and drives each
+site below through them; the target's hash is taken after every case.
+
+### Writes, renames and deletes
+
+| where | does | the path comes from | between it and the disk | proven by |
+|---|---|---|---|---|
+| core/rename-file.php `vergeml_file_rename()` | `rename()` the original and every size | `get_attached_file()` + `sizes[].file` from attachment metadata | `VERGEML_FILE_RENAME` off — route and both `admin_post` handlers unregistered (core/journey.php); `manage_options`; `vergeml_path_in_uploads()` on **each** file before any moves, all or nothing | paths.php A, C |
+| core/rename-file.php `vergeml_file_undo()` | `rename()` back | the same, plus `_vergeml_file_before` meta | the same rule, per file | paths.php C |
+| core/health-delete.php `vergeml_health_delete()` | `wp_delete_attachment( $id, true )` | ids from `drop`; the path from the row | `manage_options` + `delete_posts`; only byte-identical twins of `keep` (`vergeml_health_twins()`); WordPress's `wp_delete_file_from_directory()` refuses a file outside uploads | paths.php H |
+| core/taxonomies.php `vergeml_delete_post()` | `wp_delete_post()` on the grid's delete | id from `$_POST` | `delete_post( $id )` + `check_ajax_referer`; the file delete is WordPress's, as above | roles suite (the gate); core |
+| core/folder-tools.php `vergeml_zip_folder()` | `ZipArchive::open( $zip_path )` | `wp_tempnam()`, made by the caller | a plugin-made temp path, never a row's | — |
+| core/folder-tools.php `vergeml_zip_folder()`, `vergeml_zip_download()` | `wp_delete_file()` the temp archive | the same temp path | the same | — |
+| core/ai.php `vergeml_ai_image_payload()` | `$editor->save( $tmp )`, `wp_delete_file()` twice | `wp_tempnam( 'vgml-send' )` | a plugin-made temp path, never a row's | — |
+
+### Reads whose bytes leave the site, or shape what it shows
+
+| where | does | the path comes from | between it and the disk | proven by |
+|---|---|---|---|---|
+| core/folder-tools.php `vergeml_zip_folder()` | `ZipArchive::addFile()` into a download | `get_attached_file()` per file in the folder | `upload_files` + `check_admin_referer`; `vergeml_path_in_uploads()` — a row outside counts as "missing" | paths.php D |
+| core/ai.php `vergeml_ai_image_payload()` | `file_get_contents()` into a data URL sent to the service | `get_attached_file()`, or the `large`/`medium_large` size beside it | `vergeml_path_in_uploads()` — refused as `vergeml_ai_no_file` | paths.php E |
+| core/health.php `vergeml_health_hash_file()`, `vergeml_health_gif_animated()`, `vergeml_health_skip_reason()` | `md5_file()`, `fopen()` for a byte scan, `getimagesize()` | `get_attached_file()`, `image_get_intermediate_size()` | read only; what leaves is a hash or a boolean, never bytes | — |
+| core/mime-types.php, two filters on SVGs | `simplexml_load_file()` for width and height | `get_attached_file()`; when the file is missing, `wp_get_attachment_url()` | read only; the fallback fetches the site's own URL, not one from the request — the one outbound read that is not `wp_remote_*`, noted in docs/security-hosts.md | — |
+| core/health-delete.php, core/quarantine.php, core/smart-folders.php, core/media-list.php | `filesize()` | `get_attached_file()` | a number, no bytes | — |
+
+### Uploads and request bodies
+
+| where | does | the path comes from | between it and the disk | proven by |
+|---|---|---|---|---|
+| core/options-pages.php `vergeml_settings_import()` | `file_get_contents()` on `$_FILES['import_file']['tmp_name']`, `json_decode`, four `update_option()` | PHP's `$_FILES` — the one place a path arrives with a request | `manage_options` + `wp_verify_nonce`; `is_uploaded_file()` — a tmp_name PHP did not put there is "no file", and nothing is read or backed up | paths.php F |
+| core/import-ui.php `/import` | `vergeml_csv_parse( $request['text'] )` | none — the browser reads the file and posts its text | `manage_categories`; 200,000-row and 12-level caps in core/import-csv.php | paths.php G |
+| core/import-csv.php `vergeml_csv_parse()` | `fopen( 'php://temp' )` | a memory stream | — | — |
+| core/transport.php `vergeml_transport_bridge()` | `file_get_contents( 'php://input' )` | the request body | `wp_verify_nonce` | — |
+
+### Found on the way, fixed the same day
+
+- `admin_post_vergeml_do_file_rename` and `admin_post_vergeml_undo_file_rename`
+  were registered unconditionally while the offer that links to them, and the
+  REST route, sat behind `VERGEML_FILE_RENAME`. An administrator holding a nonce
+  for the action reached the unfinished renamer on a site where it is off. Both
+  registrations now sit behind the same constant; paths.php A asserts neither is
+  hooked.
+- The settings import's comment said `wp_handle_upload()` checked the file; no
+  such call existed, and `tmp_name` was read as given. `is_uploaded_file()` now
+  gates the read.
+- The folder archive packed whatever a row's path resolved to. With the check
+  stripped on the box copy, the suite's archive held the outside target's bytes
+  under its own name — the finding this section exists to close.
+<!-- /hand-written -->

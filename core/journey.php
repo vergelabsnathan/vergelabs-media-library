@@ -394,7 +394,16 @@ function vergeml_journey_file_rename() {
 }
 
 
-add_action( 'admin_post_vergeml_do_file_rename', 'vergeml_journey_do_file_rename' );
+/*
+ *  Both handlers behind the same constant as the REST route in
+ *  core/rename-file.php. The offer above already was; the handlers were not,
+ *  so an administrator holding a nonce for the action could run the unfinished
+ *  renamer on a site where it is off. Found by Phase 5.5 of plans/four-yesses.md.
+ */
+if ( defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME ) {
+    add_action( 'admin_post_vergeml_do_file_rename', 'vergeml_journey_do_file_rename' );
+    add_action( 'admin_post_vergeml_undo_file_rename', 'vergeml_journey_undo_file_rename' );
+}
 
 function vergeml_journey_do_file_rename() {
 
@@ -414,8 +423,6 @@ function vergeml_journey_do_file_rename() {
     exit;
 }
 
-
-add_action( 'admin_post_vergeml_undo_file_rename', 'vergeml_journey_undo_file_rename' );
 
 function vergeml_journey_undo_file_rename() {
 

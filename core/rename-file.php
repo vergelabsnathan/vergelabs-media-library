@@ -300,6 +300,13 @@ function vergeml_file_rename( $attachment_id ) {
             continue; // a size that was never generated; nothing to move
         }
 
+        // Nothing outside uploads moves, whatever the row or the metadata
+        // says. Checked per file: the sizes are paths from metadata too.
+        if ( false === vergeml_path_in_uploads( $from ) ) {
+            $moved = vergeml_file_unmove( $moved );
+            return false;
+        }
+
         // A size is named stem-WIDTHxHEIGHT.ext, so the stem swap carries them
         // all without parsing the dimensions back out.
         $to = $dir . '/' . str_replace( $old_stem, $new_stem, $base );
@@ -489,6 +496,13 @@ function vergeml_file_undo() {
 
             if ( ! file_exists( $from ) ) {
                 continue;
+            }
+
+            // The same rule as the rename: nothing outside uploads moves.
+            if ( false === vergeml_path_in_uploads( $from ) ) {
+                vergeml_file_unmove( $moved );
+                $ok = false;
+                break;
             }
 
             $to = $dir . '/' . str_replace( $new_stem, $old_stem, $base );

@@ -1,38 +1,35 @@
 {
-  "phase": "Four yesses — Phase 3, S2: 3.2 app shell + 3.3 draft as tree + 3.4 paste paths",
-  "model": "fable",
-  "plan": "plans/four-yesses/phase-3.md",
-  "spec": "docs/superpowers/specs/2026-09-10-folders-ways-in.md",
+  "phase": "Four yesses — Phase 5, S1: 5.5 files, paths and uploads + 5.6 outbound hosts and SSRF",
+  "model": "opus",
+  "plan": "plans/four-yesses/phase-5.md",
+  "spec": "plans/four-yesses.md",
   "scope": [
-    "core/guide.php",
-    "css/vergeml-folders.css",
-    "css/vergeml-folders-rtl.css",
-    "js/vergeml-folders.js",
-    "js/vergeml-structure.js",
-    "js/vergeml-tree-view.js",
-    "tests/**",
-    "tools/verify.mjs",
+    "core/**",
+    "pro/includes/**",
+    "tests/security/**",
+    "tools/**",
     "docs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-12-phase-3-s1-one-way-in.md",
-    "plans/four-yesses/phase-3.md",
-    "docs/superpowers/specs/2026-09-10-folders-ways-in.md",
-    "docs/superpowers/mocks/2026-09-10-folders-ways-in.html"
+    "docs/handoffs/2026-09-13-phase-4-s1-health-release-check.md",
+    "plans/four-yesses/phase-5.md",
+    "docs/security-surface.md",
+    "tests/security/roles.php",
+    "tests/security/db-calls.mjs"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "The copy in the S1 handoff is verbatim; any other user-facing string is Nathan's",
-    "The tree grammar is the existing css/vergeml-tree-view.css; no new row class",
-    "Nothing changes in how pictures are filed (core/filing.php, the matcher, the apply)",
-    "The other eight screens keep normal page flow"
+    "The renamer stays off: never enabled to test it; defined('VERGEML_FILE_RENAME') false on the box",
+    "No allowlist a filter can extend; VERGEML_AI_SERVICE and VERGEML_KNOWN_ISSUES_URL are owner define()s and documented as such",
+    "The suite deletes nothing but its own fixture files; paths.php runs on the box, not Playground",
+    "Refusal strings are the existing WP_Error ones; none new"
   ],
   "gates": [
-    "node tests/tree/structure.mjs → N/N",
-    "node tests/tree/tree-view.mjs → N/N (the fold option must not move it)",
-    "npx playwright test --config tests/ui/playwright.config.mjs tests/ui/folders.spec.mjs → green on the box at 1600×1000 and 1280×800",
-    "node tools/filing-baseline-check.mjs → unchanged",
-    "mutation: min-height:0 off → 1280×800 red; a bullet in the draft → red; whitespace read as depth → red; 500 cap off → red"
+    "node tools/verify.mjs paths hosts → green; tests/security/paths.php on the box: traversal, absolute path, symlink out — each refused, target hash unchanged",
+    "mutation: the prefix check stripped at one site on the box copy → its case red; a wp_remote_get($_GET['u']) in a scratch file → hosts.mjs red",
+    "sslverify true at all 19 sites, asserted",
+    "docs/security-surface.md gains its Files section; docs/security-hosts.md one row per call site with a decided-by of the three kinds",
+    "node tools/verify.mjs surface db-calls escaping globals roles → still green"
   ]
 }

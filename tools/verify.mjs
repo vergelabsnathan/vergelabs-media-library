@@ -103,6 +103,14 @@ const SUITES = [
 	 */
 	{ name: 'db-calls', file: 'tests/security/db-calls.mjs', env: 'local' },
 	/*
+	 *  Every outbound request names a host decided by a constant, an owner's
+	 *  define() or one of those two -- never by a request, an option or a post.
+	 *  The register is docs/security-hosts.md, one row per wp_remote_* site; a
+	 *  call without a row, or an sslverify => false anywhere, goes red. env
+	 *  'local': PHP as text, nothing reached. Phase 5.6.
+	 */
+	{ name: 'hosts', file: 'tests/security/hosts.mjs', env: 'local' },
+	/*
 	 *  Every HTML sink on both sides of the wire. Plugin Check covers the PHP half;
 	 *  this one exists for the other half, where a folder name arrives as JSON and
 	 *  a script puts it in the page with no esc_html() in sight.
@@ -129,6 +137,15 @@ const SUITES = [
 	 *  the 76 endpoints runs and nothing is written or spent.
 	 */
 	{ name: 'roles', file: 'tests/security/roles.php', env: 'box', php: true },
+	/*
+	 *  Nothing outside uploads is renamed, packed, read out or deleted: three
+	 *  poisoned attachment rows (a traversal, an absolute path, a symlink out)
+	 *  driven through the renamer, the folder archive, the describe payload,
+	 *  the settings import and WordPress's own delete, with the target's hash
+	 *  taken after each. The box, not Playground: a symlink needs a real
+	 *  filesystem. Creates and removes its own files and rows only. Phase 5.5.
+	 */
+	{ name: 'paths', file: 'tests/security/paths.php', env: 'box', php: true },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },

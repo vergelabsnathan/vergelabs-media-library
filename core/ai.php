@@ -1169,7 +1169,9 @@ function vergeml_ai_image_payload( $attachment_id ) {
         $path = $base;
     }
 
-    if ( '' === $path ) {
+    // The bytes below leave the site. A row pointing outside uploads -- an
+    // absolute path, a `../`, a symlink out -- is not an image file.
+    if ( '' === $path || false === vergeml_path_in_uploads( $path ) ) {
         return new WP_Error( 'vergeml_ai_no_file', __( 'No usable image file found.', 'vergelabs-media-library' ) );
     }
 

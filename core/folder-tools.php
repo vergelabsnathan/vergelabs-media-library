@@ -67,6 +67,46 @@ function vergeml_file_upload_into_folder( $attachment_id ) {
 }
 
 
+/* ------------------------------------------------- a path that stays inside */
+
+/**
+ *  vergeml_path_in_uploads
+ *
+ *  The path as the filesystem resolves it, or false when it is not a file
+ *  under the uploads directory.
+ *
+ *  Every file the plugin renames, packs into an archive or reads out to a
+ *  service is found through get_attached_file(), and that returns a
+ *  `_wp_attached_file` that begins with a slash or a drive letter verbatim --
+ *  so a poisoned row names any file on the host, and a `../` inside a relative
+ *  one walks out of uploads. realpath() also follows symlinks, which is what
+ *  catches a link inside uploads that points out. WordPress applies the same
+ *  rule to its own deletes in wp_delete_file_from_directory(); this is the
+ *  read-and-rename half of it. Phase 5.5 of plans/four-yesses.md.
+ *
+ *  Defined here because this file loads before core/ai.php and
+ *  core/rename-file.php, the other two callers -- see the include order in
+ *  vergelabs-media-library.php.
+ */
+
+function vergeml_path_in_uploads( $path ) {
+
+    $uploads = wp_get_upload_dir();
+
+    $real = realpath( wp_normalize_path( (string) $path ) );
+    $base = realpath( wp_normalize_path( (string) $uploads['basedir'] ) );
+
+    if ( false === $real || false === $base ) {
+        return false;
+    }
+
+    $real = wp_normalize_path( $real );
+    $base = trailingslashit( wp_normalize_path( $base ) );
+
+    return 0 === strpos( $real, $base ) ? $real : false;
+}
+
+
 /* --------------------------------------------------------- folder as a ZIP */
 
 /**
@@ -126,7 +166,9 @@ function vergeml_zip_folder( $folder, $taxonomy, $zip_path ) {
 
             $path = get_attached_file( $id );
 
-            if ( ! $path || ! file_exists( $path ) ) {
+            // addFile() reads whatever the path resolves to, and the archive
+            // goes to the browser: a row pointing outside uploads is "missing".
+            if ( ! $path || ! file_exists( $path ) || false === vergeml_path_in_uploads( $path ) ) {
                 $missing++;
                 continue;
             }

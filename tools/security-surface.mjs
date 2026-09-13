@@ -923,7 +923,9 @@ function markdown() {
 	L.push( '' );
 	L.push( '**Generated. Do not edit.** `node tools/security-surface.mjs` writes this file;' );
 	L.push( '`node tools/security-surface.mjs --check` fails when the code has moved and this' );
-	L.push( 'file has not, which is what keeps a new route from arriving undocumented.' );
+	L.push( 'file has not, which is what keeps a new route from arriving undocumented. The one' );
+	L.push( 'exception is the **Files** section at the end, written by hand between its two' );
+	L.push( 'markers and carried over verbatim on every regeneration.' );
 	L.push( '' );
 	L.push( `Read from ${ counted.files } shipped PHP files — \`git ls-files\` minus the directories` );
 	L.push( 'tools/deploy.mjs refuses to ship, so nothing in `tests/` or `tools/` is counted as a' );
@@ -1144,7 +1146,34 @@ function markdown() {
 		L.push( '' );
 	}
 
+	L.push( handWritten() );
+
 	return L.join( '\n' ) + '\n';
+}
+
+/*
+ *  The Files section is a person's reading, not a parse: which sites rename,
+ *  pack, read out or delete a file, where each path comes from and what stands
+ *  between it and the disk. Phase 5.5 asked for it by hand, so it lives in the
+ *  generated file between two markers and is carried across verbatim -- the
+ *  inverse of the GENERATED BLOCK in tests/security/roles.php. A file without
+ *  the markers gets an empty section, which --check will then report as drift
+ *  until somebody writes it.
+ */
+const HAND_OPEN = '<!-- hand-written: files -->';
+const HAND_CLOSE = '<!-- /hand-written -->';
+
+function handWritten() {
+
+	const have = fs.existsSync( OUT ) ? fs.readFileSync( OUT, 'utf8' ) : '';
+	const from = have.indexOf( HAND_OPEN );
+	const to = have.indexOf( HAND_CLOSE );
+
+	if ( from >= 0 && to > from ) {
+		return have.slice( from, to + HAND_CLOSE.length );
+	}
+
+	return `${ HAND_OPEN }\n## Files\n\n_Not written yet._\n${ HAND_CLOSE }`;
 }
 
 /* --------------------------------------------- who the gates let through */
