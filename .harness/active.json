@@ -1,33 +1,30 @@
 {
-  "phase": "Four yesses — Phase 5, S2a: 5.7 secrets at rest, in logs, in responses",
+  "phase": "Four yesses — Phase 5, S3: 5.9's brief — the reviewer's pack, written and sent",
   "model": "opus",
   "plan": "plans/four-yesses/phase-5.md",
   "spec": "plans/four-yesses.md",
   "scope": [
-    "core/**",
-    "tests/security/**",
-    "tools/**",
-    "docs/**",
-    "plans/**"
+    "docs/security-brief.md",
+    "docs/security-findings.md"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-13-phase-5-s1-paths-hosts.md",
+    "docs/handoffs/2026-09-13-phase-5-s2c-next-bump.md",
     "plans/four-yesses/phase-5.md",
-    "core/ai.php",
-    "tests/security/paths.php",
-    "tests/security/roles.php"
+    "docs/security-surface.md",
+    "tests/security/roles.php",
+    "SECURITY.md",
+    "../service/docs/security.md"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "The canary key is never printed in the suite's output and never left in the box's settings; what was there is restored",
-    "The seal's key derivation is read and stated, not redesigned",
-    "The box's debug log is grepped for key shapes once, by hand, before any of it is attached to a ticket; nothing is uploaded",
-    "Refusal strings are the existing ones; none new"
+    "Who reviews and what it costs (a WordPress-specialist review or a scoped bounty) is Nathan's; the brief is the session's, the money and the choice are his",
+    "Do not close a finding without the reviewer's word; do not pick the reviewer",
+    "The brief is sent by Nathan; the session writes it and records the date only once he says it went"
   ],
   "gates": [
-    "node tools/verify.mjs secrets → green on the box: option table, each REST body as administrator, debug log after a describe pass, support bundle, instrument payload — zero CANARY hits except the sealed option, which does not contain the substring",
-    "mutation: the key stored unsealed on the box copy → the option grep red",
-    "vergeml_ai_unseal( get_option(...) ) shown necessary to read the key; wp_salt() use stated in docs",
-    "node tools/verify.mjs surface db-calls globals roles paths hosts → still green (escaping stays 9/10 until Phase 3 S3)"
+    "docs/security-brief.md exists and lists: docs/security-surface.md; the roles suite's coverage count (rows of the surface table covered by tests/security/roles.php, counted, out of the total); the three hand-written registers (docs/security-hosts.md, docs/security-secrets.md, and the Files section of docs/security-surface.md from 5.5); ../service/docs/security.md; how to get a box; what is in and out of scope, from SECURITY.md",
+    "docs/security-findings.md exists with the row shape (finding, status, task, commit) and no rows yet",
+    "node tools/verify.mjs surface db-calls escaping globals roles paths hosts secrets — green, unchanged by this session",
+    "the brief's coverage count is a number with the command that produced it, not a reading"
   ]
 }
