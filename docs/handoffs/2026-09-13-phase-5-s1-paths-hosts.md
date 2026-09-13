@@ -89,6 +89,18 @@ things found and closed on the way. Nothing reached a model.
 - "the 14 sites" — the register lists every site the survey found, grouped:
   7 writes/renames/deletes, 5 read-outs, 4 uploads/bodies.
 
+## Decided by Nathan, 2026-09-13, on the advice above
+
+- **The two wp-cron loopbacks keep core's `https_local_ssl_verify` rule.** Not
+  forced to `true`. The register and hosts.mjs already assert exactly that;
+  the gate line "sslverify true at all 19" reads as "17 verify, 2 loopbacks on
+  core's rule" from here on.
+- **The small "found, not done" items stay open for 5.9's reviewer** — the
+  https rule on `VERGEML_SITE_URL`/`VERGEML_KNOWN_ISSUES_URL`, the SVG URL
+  fallback, the private-folder zip question. They go into the brief as known
+  open items, not quietly fixed first.
+- Next: Phase 5 S2a (5.7) on Opus in `plugin`, from `/clear`, before 5.8.
+
 ## Decisions taken (routine, mine)
 
 - The helper lives in `core/folder-tools.php` because the main plugin file is
