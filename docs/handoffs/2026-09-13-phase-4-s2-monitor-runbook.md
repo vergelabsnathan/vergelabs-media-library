@@ -58,6 +58,46 @@ met; the gates that are documents are.
 2. **The customer sentences** — drafted below, not written in. Two facts in them are unverified and are marked.
 3. **The rehearsal** — not run. It needs (a) the monitor, (b) `PLUGIN_RELEASES` set to `not json` and **a redeploy**, (c) ≥ two failed checks — ten minutes at a five-minute interval, plus the build — then (d) the variable restored and **a second redeploy**. The redeploy is refused to the agent (twice on 09-11, `rollback.md`); both are Nathan's, so the ten-minute window is his to keep. With a five-minute interval and "two consecutive failures", the window can run to fifteen minutes; Better Stack's confirmation period (a re-check from a second region seconds later) instead of a second interval keeps it inside ten. The next session proposes that in its first check-in.
 
+## Monitor created — after the handoff above, same session, 18:16–18:19 UTC
+
+Nathan chose **UptimeRobot**, not Better Stack, by making the monitor
+himself and pasting his API key into the conversation. What the account
+holds, read and corrected by script (`getAlertContacts`, `getMonitors`,
+`editMonitor` on `https://api.uptimerobot.com/v2/`):
+
+- Monitor **803983434**, type 1 (HTTP), interval **300 s**, timeout 30 s,
+  created 18:16:52 UTC with the URL `https://vergelabsmedia.com/api/healt`
+  — a missing `h` — so its first check at 18:18:09 was `404 Not Found` and
+  the status was 9, "seems down".
+- Corrected at ~18:18:40 to `https://vergelabsmedia.com/api/health`, named
+  `vergelabsmedia.com/api/health`, alert contact 8815599
+  (`nathan@vergelabs.nl`, threshold 0, recurrence 0 — one email at down,
+  one at up) attached. The account's one contact.
+- **Up at 18:18:57 UTC** (log type 2, status 2). The 404 → up transition
+  happened after the contact was attached, so an "is UP" email may already
+  be in Nathan's inbox — if it is, that is the recovery-email half of the
+  gate, unrehearsed but real.
+- UptimeRobot re-checks from a second location before it declares down, so
+  one failed five-minute check alerts: the rehearsal's break fits in ten
+  minutes with no "two consecutive" setting to make.
+- The API key is in this conversation's transcript. It is the account's
+  main key (it edits and deletes). Nathan regenerates it in UptimeRobot →
+  My Settings → API when the rehearsal is done, or uses a read-only key
+  next time. It is in no file in either repo; the script that used it is
+  in the session's temp dir.
+
+This changes the next card: `monitor.md` is written for Better Stack and
+is rewritten for UptimeRobot ("Created" filled from the facts above; the
+pause is UptimeRobot's Pause on the monitor, which the API also does with
+`editMonitor status=0`). The **heartbeat** for the release check is on
+UptimeRobot's paid plans only (monitor type 5); free Better Stack has it.
+Nathan's 09-13 heartbeat decision therefore has a question on it: a second
+account at Better Stack for the one heartbeat, the UptimeRobot paid tier,
+or the cron route's 503 stays unwatched until 4.7. The next session asks
+in its first check-in and does not build the ping before the answer.
+
+Still Nathan's for the rehearsal: the two redeploys. Nothing else.
+
 ## Customer sentences, drafted for approval (stop point 2)
 
 Written to the copy standard: the fact, then what it means for them. Channel is email through Resend — the site has no status line (`public/index.html` carries the design-system banner, nothing for incidents). Nathan edits or approves; then they go into `incident.md`, "What to tell customers", one per situation.
@@ -117,7 +157,7 @@ Card, to `service/.harness/active.json` before the first edit:
   ],
   "handoffDir": "../plugin/docs/handoffs",
   "stopPoints": [
-    "The Better Stack account is Nathan's: the session creates the monitor and the heartbeat only with an Uptime API token he pastes, and writes what it created into monitor.md 'Created'; without a token it records what he created from the dashboard",
+    "The monitor exists: UptimeRobot 803983434 on /api/health, 300 s, email to nathan@vergelabs.nl (this handoff, 'Monitor created'); monitor.md is rewritten for UptimeRobot from those facts, nothing invented; the heartbeat for the release check is paid on UptimeRobot — Nathan picks a second Better Stack account, the paid tier, or leaves it unwatched, before the ping is built",
     "The customer sentences go into incident.md only as approved in the S2 handoff or as Nathan edits them; the two facts marked unverified are read from the code first (a failed purchase's state; whether a failed describe is refunded) and the sentence changed if the code says otherwise",
     "The rehearsal breaks production deliberately: PLUGIN_RELEASES to 'not json', a redeploy (Nathan's), the alert email, the variable restored, a second redeploy (Nathan's), the recovery email — at most ten minutes broken; the session proposes the confirmation-period setting so two failures fit inside ten minutes, and does not start the break before Nathan says he is at the terminal for both redeploys",
     "RELEASE_CHECK_HEARTBEAT_URL is set on Vercel production by the session (vercel env add) once the heartbeat exists; the deploy that carries it is Nathan's"
