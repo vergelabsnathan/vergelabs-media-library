@@ -74,9 +74,10 @@ holds, read and corrected by script (`getAlertContacts`, `getMonitors`,
   (`nathan@vergelabs.nl`, threshold 0, recurrence 0 — one email at down,
   one at up) attached. The account's one contact.
 - **Up at 18:18:57 UTC** (log type 2, status 2). The 404 → up transition
-  happened after the contact was attached, so an "is UP" email may already
-  be in Nathan's inbox — if it is, that is the recovery-email half of the
-  gate, unrehearsed but real.
+  happened after the contact was attached, and **Nathan confirmed the "is
+  UP" email arrived** (his words, ~18:25 UTC): the recovery-email half of
+  the gate is real, unrehearsed. The screenshot goes into the S2b handoff
+  with the rehearsal's pair.
 - UptimeRobot re-checks from a second location before it declares down, so
   one failed five-minute check alerts: the rehearsal's break fits in ten
   minutes with no "two consecutive" setting to make.
