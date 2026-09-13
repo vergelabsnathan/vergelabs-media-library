@@ -81,8 +81,18 @@ function vergeml_folders_assets( $hook ) {
     wp_style_add_data( 'vergeml-folders', 'rtl', 'replace' );
 
     wp_enqueue_script( 'vergeml-tree-view', plugins_url( 'js/vergeml-tree-view.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-tree-view.js' ), true );
-    wp_enqueue_script( 'vergeml-folders', plugins_url( 'js/vergeml-folders.js', VERGEML_FILE ), array( 'wp-api-fetch', 'wp-i18n', 'vergeml-tree-view', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-folders.js' ), true );
+    // The paste reader: text to the same draft shape, no model, no request.
+    wp_enqueue_script( 'vergeml-structure', plugins_url( 'js/vergeml-structure.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-structure.js' ), true );
+    wp_enqueue_script( 'vergeml-folders', plugins_url( 'js/vergeml-folders.js', VERGEML_FILE ), array( 'wp-api-fetch', 'wp-i18n', 'vergeml-tree-view', 'vergeml-structure', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-folders.js' ), true );
     wp_set_script_translations( 'vergeml-folders', 'vergelabs-media-library' );
+
+    /*
+     *  This screen alone is an app shell: fixed to the viewport, three regions
+     *  scrolling on their own (css/vergeml-folders.css, under this class). The
+     *  other eight screens keep WordPress's page flow. A body class, not a
+     *  script, so the first paint is already the shell.
+     */
+    add_filter( 'admin_body_class', 'vergeml_folders_body_class' );
 
     /*
      *  Everything the first paint needs travels with the page: the session,
@@ -104,6 +114,10 @@ function vergeml_folders_assets( $hook ) {
         'licenceUrl'=> admin_url( 'admin.php?page=media-licence' ),
         'walk'      => (bool) apply_filters( 'vergeml_folders_walk', false ),
     ) );
+}
+
+function vergeml_folders_body_class( $classes ) {
+    return $classes . ' vgml-app-folders';
 }
 
 /**

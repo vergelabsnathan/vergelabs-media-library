@@ -129,6 +129,13 @@ turn first. Every browser run needs a throwaway admin.
 
 ## 3.4 · Bring a structure you already have — Fable
 
+> **Revised 2026-09-12 (Nathan's decision, spec section "Decision,
+> 2026-09-12"):** one way in beside the conversation — paste paths with `>`,
+> one folder per line. No indentation, no `/`, no file upload, no Rules entry,
+> no SheetJS. The reader is `js/vergeml-structure.js`, the suite
+> `tests/tree/structure.mjs`; the copy is the S1 handoff's. What follows is
+> the task as first written, kept for the record.
+
 - **Files:** create `js/vergeml-structure.js` (paste detection, file parsing,
   preview), `core/guide.php` (the two methods' markup), `js/vergeml-folders.js`
   (wiring into the draft); create `tests/tree/structure.mjs` (parsers,

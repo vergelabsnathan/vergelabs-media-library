@@ -661,6 +661,9 @@
 		// siblings folded: it is showing what was read, not a library.
 		this.fold = false !== opts.fold;
 		this.openAll = !! opts.openAll;
+		// And no head of its own: the box beside it has one, and a second state
+		// switch in the page, even hidden, is one the screen's tests would find.
+		this.head = false !== opts.head;
 		this.model = opts.model || new Model( opts.nodes || [] );
 		this.draft = null;
 		this.mode = 'all';
@@ -1422,8 +1425,10 @@
 			return;
 		}
 		if ( ! this.listEl ) {
-			this.headEl = this.buildHead();
-			this.root.appendChild( this.headEl );
+			if ( this.head ) {
+				this.headEl = this.buildHead();
+				this.root.appendChild( this.headEl );
+			}
 			this.listEl = el( 'ul', { class: 'vgml-list', role: 'tree' } );
 			this.listEl.addEventListener( 'keydown', function ( e ) { self.onKey( e ); } );
 			if ( this.editable ) {
@@ -1449,7 +1454,9 @@
 			this.root.appendChild( this.listEl );
 		}
 
-		this.paintHead();
+		if ( this.head ) {
+			this.paintHead();
+		}
 
 		var entries = this.entries();
 		this.lastEntries = entries;

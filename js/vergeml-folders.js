@@ -4,10 +4,16 @@
  *  Two columns. On the left, a segmented switch between two ways of building
  *  the same draft: the conversation (js/vergeml-talk.js, shared with the AI
  *  screen), streamed word by word straight from the service with a token
- *  core/guide.php mints, and the Rules -- four
- *  deterministic ways that cost no model call. On the right, the shared tree
+ *  core/guide.php mints, and a paste -- one folder per line, the full path
+ *  with ">" between levels, read locally (js/vergeml-structure.js) and shown
+ *  as a tree before anything is made. On the right, the shared tree
  *  (js/vergeml-tree-view.js) drawing today's folders with the draft laid over
  *  them, and the one button that moves pictures, in its three states.
+ *
+ *  Either way in produces a draft, never folders: the same draft, over the
+ *  same tree, behind the same Move button with the same undo. A paste settles
+ *  through the same turn route a conversation's tree does, so every number
+ *  beside it is the matcher's dry run and none is the paste's own.
  *
  *  Everything the first paint needs came with the page (vgmlFolders): no
  *  request stands between the page and the tree. The session persists each
@@ -22,8 +28,9 @@
 	var cfg = window.vgmlFolders || {};
 	var TV = window.vergemlTreeView;
 	var TALK = window.vergemlTalk;
+	var STRUCT = window.vergemlStructure;
 	var wp = window.wp;
-	if ( ! TV || ! TALK || ! wp || ! wp.apiFetch || ! wp.i18n ) {
+	if ( ! TV || ! TALK || ! STRUCT || ! wp || ! wp.apiFetch || ! wp.i18n ) {
 		return;
 	}
 	var __ = wp.i18n.__;
@@ -44,6 +51,10 @@
 		return String( s || '' ).toLowerCase().trim();
 	}
 
+	function escapeHtml( s ) {
+		return String( s ).replace( /&/g, '&amp;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' ).replace( /"/g, '&quot;' );
+	}
+
 	/* ------------------------------------------------------------- state */
 
 	var state = {
@@ -52,14 +63,14 @@
 		version: cfg.version || 0,
 		undo: cfg.undo || { available: false, until: 0 },
 		method: 'talk',
-		rules: null,
-		rule: null,
-		preview: [],
 		// What vergeml_filing_pick() said about the draft, from the turn that
-		// settled it. Kept apart from a rule's preview: they answer about two
-		// different drafts and one must never be shown under the other. The
-		// session carries it, so a reload reads the same numbers.
+		// settled it. The session carries it, so a reload reads the same numbers.
 		fit: ( cfg.session && cfg.session.fit ) || null,
+		// A paste handed to the turn route and not yet answered: the rows carry
+		// no count and Move waits, because the only numbers that could be shown
+		// are ones nobody has computed.
+		pastePending: false,
+		pasteSeq: 0,
 		moving: null,
 		note: ''
 	};
@@ -134,16 +145,16 @@
 	function build() {
 		var cols = el( 'div', { class: 'vgml-folders-cols' } );
 
-		// Left: the method, the conversation, the composer; or the rules.
+		// Left: the method, the conversation, the composer; or the paste.
 		var left = el( 'div', { class: 'vgml-folders-left' } );
 		var method = el( 'div', { class: 'vgml-method' } );
 		var seg = el( 'div', { class: 'vgml-seg', role: 'tablist', 'aria-label': __( 'How to build the tree', 'vergelabs-media-library' ) } );
 		dom.tabTalk = el( 'button', { type: 'button', role: 'tab', class: 'vgml-seg-tab', 'data-method': 'talk', 'aria-selected': 'true' }, __( 'Conversation', 'vergelabs-media-library' ) );
-		dom.tabRules = el( 'button', { type: 'button', role: 'tab', class: 'vgml-seg-tab', 'data-method': 'rules', 'aria-selected': 'false' }, __( 'Rules', 'vergelabs-media-library' ) );
+		dom.tabPaste = el( 'button', { type: 'button', role: 'tab', class: 'vgml-seg-tab', 'data-method': 'paste', 'aria-selected': 'false' }, __( 'Paste folders', 'vergelabs-media-library' ) );
 		seg.appendChild( dom.tabTalk );
-		seg.appendChild( dom.tabRules );
+		seg.appendChild( dom.tabPaste );
 		dom.tabTalk.addEventListener( 'click', function () { setMethod( 'talk' ); } );
-		dom.tabRules.addEventListener( 'click', function () { setMethod( 'rules' ); } );
+		dom.tabPaste.addEventListener( 'click', function () { setMethod( 'paste' ); } );
 		method.appendChild( seg );
 		dom.kicker = el( 'span', { class: 'vgml-kicker vgml-method-kicker' } );
 		method.appendChild( dom.kicker );
@@ -153,8 +164,8 @@
 		left.appendChild( talk.conv );
 		left.appendChild( talk.composer );
 
-		dom.rules = el( 'div', { class: 'vgml-rules', role: 'radiogroup', 'aria-label': __( 'Rules', 'vergelabs-media-library' ), hidden: 'hidden' } );
-		left.appendChild( dom.rules );
+		left.appendChild( buildPaste() );
+
 		dom.preview = el( 'ul', { class: 'vgml-facts vgml-preview', hidden: 'hidden' } );
 		left.appendChild( dom.preview );
 
@@ -303,7 +314,7 @@
 		/*
 		 *  A different draft, so the dry run's answer is about a tree that is
 		 *  no longer on screen. Dropped rather than shown against the new one:
-		 *  a rule's draft would otherwise wear the conversation's number for as
+		 *  a paste's draft would otherwise wear the conversation's number for as
 		 *  long as the round trip takes, and the Move button with it.
 		 */
 		state.fit = null;
@@ -525,10 +536,8 @@
 	}
 
 	function renderKicker() {
-		dom.kicker.textContent = 'rules' === state.method
-			? __( 'Uses no credits', 'vergelabs-media-library' )
-			/* translators: 1: turns used, 2: the cap */
-			: sprintf( __( '%1$s of %2$s turns', 'vergelabs-media-library' ), fmt( talk.used() ), fmt( talk.cap() ) );
+		/* translators: 1: turns used, 2: the cap */
+		dom.kicker.textContent = sprintf( __( '%1$s of %2$s turns', 'vergelabs-media-library' ), fmt( talk.used() ), fmt( talk.cap() ) );
 	}
 
 	function renderConversation() {
@@ -551,6 +560,10 @@
 			state.session = r || { turns: [], draft: null, assistant_turns: 0, cap: cfg.cap, apply: null };
 			talk.setSession( state.session );
 			view.setDraft( null );
+			state.pasteSeq++;
+			state.pastePending = false;
+			dom.pasteArea.value = '';
+			readPaste( false );
 			renderTreeHead();
 			renderMove();
 			talk.note( '' );
@@ -561,18 +574,15 @@
 	}
 
 	function setMethod( m ) {
-		state.method = 'rules' === m ? 'rules' : 'talk';
+		state.method = 'paste' === m ? 'paste' : 'talk';
 		dom.tabTalk.setAttribute( 'aria-selected', 'talk' === state.method ? 'true' : 'false' );
-		dom.tabRules.setAttribute( 'aria-selected', 'rules' === state.method ? 'true' : 'false' );
-		talk.conv.hidden = 'rules' === state.method;
-		talk.composer.hidden = 'rules' === state.method;
-		dom.rules.hidden = 'talk' === state.method;
+		dom.tabPaste.setAttribute( 'aria-selected', 'paste' === state.method ? 'true' : 'false' );
+		talk.conv.hidden = 'paste' === state.method;
+		talk.composer.hidden = 'paste' === state.method;
+		dom.paste.hidden = 'talk' === state.method;
 		renderPreview();
 		renderKicker();
 		talk.renderComposer();
-		if ( 'rules' === state.method && ! state.rules ) {
-			loadRules();
-		}
 	}
 
 	/* ------------------------------------------------------- hand edits */
@@ -608,6 +618,10 @@
 				/* translators: %s: a folder name */
 				: sprintf( __( 'Moved %s to the top level', 'vergelabs-media-library' ), nameOf( draft, edit.key ) );
 		}
+		// A paste still being answered is answered about a draft this edit has
+		// just changed: that answer is dropped when it comes.
+		state.pasteSeq++;
+		state.pastePending = false;
 		var next = withOrigin( TV.applyEdit( draft, edit ), state.session.draft );
 		setDraft( next );
 		if ( ! line ) {
@@ -620,188 +634,181 @@
 		}
 	}
 
-	/* ------------------------------------------------------------- rules */
+	/* ------------------------------------------------------------- paste */
 
-	var RULES = [
-		{ id: 'kind', label: __( 'By kind', 'vergelabs-media-library' ), desc: __( 'One folder per kind of picture: photos, illustrations, screenshots, diagrams.', 'vergelabs-media-library' ) },
-		{ id: 'date', label: __( 'By month and year', 'vergelabs-media-library' ), desc: __( 'A folder per year, a subfolder per month, by upload date.', 'vergelabs-media-library' ) },
-		{ id: 'subject', label: __( 'By subject', 'vergelabs-media-library' ), desc: '' },
-		{ id: 'fit', label: __( 'Into today\'s folders', 'vergelabs-media-library' ), desc: __( 'No new folders. Each unfiled picture goes to the existing folder it fits. The rest stay unfiled.', 'vergelabs-media-library' ) }
-	];
+	/*
+	 *  One text box, one folder per line, the full path with ">" between
+	 *  levels. Read as it is typed (js/vergeml-structure.js); beside it the
+	 *  tree of what was understood, in the tree component's own rows, and
+	 *  under it one line of fact. A paste that reads clean becomes the draft
+	 *  on the right and goes to the turn route for its numbers, exactly as a
+	 *  conversation's tree does. A paste with a refusal in it is said out loud
+	 *  and makes nothing.
+	 */
+	var previewView = null;
+	var pasteTimer = null;
+	var settleTimer = null;
 
-	function ruleDefaults( id ) {
-		switch ( id ) {
-			case 'kind': return { scope: 'unfiled' };
-			case 'date': return { source: 'upload', levels: 'ym', scope: 'unfiled' };
-			case 'subject': return { min: 10, levels: 'one', scope: 'unfiled' };
-			default: return { rest: 'stay', sure: 'sure' };
-		}
+	function structL10n() {
+		return {
+			/* translators: %s: a line number */
+			noName: __( 'Line %s: no name', 'vergelabs-media-library' ),
+			/* translators: 1: a line number, 2: the most levels allowed */
+			tooDeep: __( 'Line %1$s: deeper than %2$s levels', 'vergelabs-media-library' ),
+			/* translators: 1: folders in the paste, 2: the most one paste can hold */
+			tooMany: __( '%1$s folders; %2$s is the most one paste can hold', 'vergelabs-media-library' )
+		};
 	}
 
-	function loadRules() {
-		api( 'GET', 'guide/rules' ).then( function ( r ) {
-			state.rules = r;
-			var d = state.session.draft;
-			if ( d && 'rule' === d.origin && d.rule && ! state.rule ) {
-				state.rule = { id: d.rule.id, options: d.rule.options };
-				applyRule( true );
-			}
-			renderRules();
-		} ).catch( function () {
-			state.rules = null;
-			talk.note( __( 'The numbers did not load. No rule can say what it would do — reload to try again.', 'vergelabs-media-library' ) );
-			renderRules();
+	function buildPaste() {
+		dom.paste = el( 'div', { class: 'vgml-paste', hidden: 'hidden' } );
+
+		var say = el( 'p', { class: 'vgml-method-say' } );
+		say.innerHTML = sprintf(
+			/* translators: 1: the ">" sign, 2: an example path, "Hardware > Phones" */
+			escapeHtml( __( 'One folder per line, the full path with %1$s between levels: %2$s. A parent that is not listed is created. The preview shows what was understood before anything is made.', 'vergelabs-media-library' ) ),
+			'<code>&gt;</code>',
+			'<code>Hardware &gt; Phones</code>'
+		);
+		dom.paste.appendChild( say );
+
+		var cols = el( 'div', { class: 'vgml-paste-cols' } );
+		dom.pasteArea = el( 'textarea', { class: 'vgml-paste-area', rows: '12', spellcheck: 'false', 'aria-label': __( 'Paste folders', 'vergelabs-media-library' ) } );
+		dom.pasteArea.addEventListener( 'input', function () {
+			window.clearTimeout( pasteTimer );
+			pasteTimer = window.setTimeout( function () { readPaste( true ); }, 200 );
 		} );
-	}
+		cols.appendChild( dom.pasteArea );
 
-	function radio( name, value, label, checked, onPick, disabled ) {
-		var lab = el( 'label', { class: 'vgml-check vgml-radio' } );
-		var input = el( 'input', { type: 'radio', name: name, value: value } );
-		input.checked = !! checked;
-		input.disabled = !! disabled;
-		input.addEventListener( 'change', function () { onPick( value ); } );
-		lab.appendChild( input );
-		lab.appendChild( el( 'span', null, label ) );
-		return lab;
-	}
+		var box = el( 'div', { class: 'vgml-preview-box' } );
+		var head = el( 'div', { class: 'vgml-preview-head' } );
+		head.appendChild( el( 'span', { class: 'vgml-preview-title' }, __( 'What that makes', 'vergelabs-media-library' ) ) );
+		head.appendChild( el( 'span', { class: 'vgml-preview-read' }, __( 'read as paths', 'vergelabs-media-library' ) ) );
+		box.appendChild( head );
+		dom.pasteTree = el( 'div', { class: 'vgml-paste-tree' } );
+		box.appendChild( dom.pasteTree );
+		cols.appendChild( box );
+		dom.paste.appendChild( cols );
 
-	function scopeRadios( o, set ) {
-		var wrap = el( 'div', { class: 'vgml-radios' } );
-		var known = !! state.rules;
-		var now = state.nodes.length;
-		var unfiledLabel = known
-			/* translators: 1: unfiled pictures, 2: folders today */
-			? sprintf( __( 'Move only the %1$s unfiled pictures. Today\'s %2$s folders stay.', 'vergelabs-media-library' ), fmt( state.rules.unfiled ), fmt( now ) )
-			/* translators: %s: folders today */
-			: sprintf( __( 'Move only the unfiled pictures. Today\'s %s folders stay.', 'vergelabs-media-library' ), fmt( now ) );
-		wrap.appendChild( radio( 'vgml-scope', 'unfiled', unfiledLabel, 'unfiled' === o.scope, function ( v ) { set( 'scope', v ); }, ! known ) );
-		/* translators: %s: folders today */
-		wrap.appendChild( radio( 'vgml-scope', 'all', sprintf( __( 'Move every picture. Today\'s %s folders are removed.', 'vergelabs-media-library' ), fmt( now ) ), 'all' === o.scope, function ( v ) { set( 'scope', v ); }, ! known ) );
-		return wrap;
-	}
+		dom.readLine = el( 'p', { class: 'vgml-read-line', hidden: 'hidden' } );
+		dom.paste.appendChild( dom.readLine );
+		dom.refused = el( 'ul', { class: 'vgml-facts vgml-paste-refused', hidden: 'hidden' } );
+		dom.paste.appendChild( dom.refused );
 
-	function field( label, control, note ) {
-		var f = el( 'div', { class: 'vgml-field' } );
-		f.appendChild( el( 'label', { class: 'vgml-field-label' }, label ) );
-		f.appendChild( control );
-		if ( note ) {
-			f.appendChild( note );
-		}
-		return f;
-	}
-
-	function ruleOptions( id, o, set ) {
-		var opts = el( 'div', { class: 'vgml-rule-opts' } );
-		var now = new Date();
-		var year = String( now.getFullYear() );
-		var month = now.toLocaleString( undefined, { month: 'long' } );
-		var ym = year + '-' + ( '0' + ( now.getMonth() + 1 ) ).slice( -2 );
-		if ( 'date' === id ) {
-			var sel = el( 'select', { class: 'vgml-input vgml-select' } );
-			sel.appendChild( el( 'option', { value: 'upload' }, __( 'Upload date', 'vergelabs-media-library' ) ) );
-			sel.appendChild( el( 'option', { value: 'taken' }, __( 'Date taken', 'vergelabs-media-library' ) ) );
-			sel.value = o.source;
-			sel.addEventListener( 'change', function () { set( 'source', sel.value ); } );
-			var note = el( 'ul', { class: 'vgml-facts vgml-facts-note' } );
-			note.appendChild( el( 'li', null, __( 'Or: date taken, from the camera', 'vergelabs-media-library' ) ) );
-			note.appendChild( el( 'li', null, __( 'Pictures without one use the upload date', 'vergelabs-media-library' ) ) );
-			opts.appendChild( field( __( 'Date', 'vergelabs-media-library' ), sel, note ) );
-			var lv = el( 'div', { class: 'vgml-radios' } );
-			/* translators: 1: a year, 2: a month */
-			lv.appendChild( radio( 'vgml-levels', 'ym', sprintf( __( 'Year, then month: %1$s / %2$s', 'vergelabs-media-library' ), year, month ), 'ym' === o.levels, function ( v ) { set( 'levels', v ); } ) );
-			/* translators: %s: a year-month, e.g. 2026-08 */
-			lv.appendChild( radio( 'vgml-levels', 'month', sprintf( __( 'One folder per month: %s', 'vergelabs-media-library' ), ym ), 'month' === o.levels, function ( v ) { set( 'levels', v ); } ) );
-			opts.appendChild( field( __( 'Levels', 'vergelabs-media-library' ), lv ) );
-		}
-		if ( 'subject' === id ) {
-			var step = el( 'div', { class: 'vgml-step' } );
-			var minus = el( 'button', { type: 'button', 'aria-label': __( 'Smaller', 'vergelabs-media-library' ) }, '−' );
-			var n = el( 'b', null, fmt( o.min ) );
-			var plus = el( 'button', { type: 'button', 'aria-label': __( 'Larger', 'vergelabs-media-library' ) }, '+' );
-			minus.addEventListener( 'click', function () { set( 'min', Math.max( 1, o.min - ( o.min > 10 ? 5 : 1 ) ) ); } );
-			plus.addEventListener( 'click', function () { set( 'min', Math.min( 500, o.min + ( o.min >= 10 ? 5 : 1 ) ) ); } );
-			step.appendChild( minus );
-			step.appendChild( n );
-			step.appendChild( plus );
-			opts.appendChild( field( __( 'Smallest folder', 'vergelabs-media-library' ), step, el( 'p', { class: 'vgml-note' }, __( 'Subjects with fewer pictures than this stay unfiled.', 'vergelabs-media-library' ) ) ) );
-			var lv2 = el( 'div', { class: 'vgml-radios' } );
-			lv2.appendChild( radio( 'vgml-levels', 'one', __( 'One level: Landscape', 'vergelabs-media-library' ), 'one' === o.levels, function ( v ) { set( 'levels', v ); } ) );
-			lv2.appendChild( radio( 'vgml-levels', 'two', __( 'Two levels: Landscape / Mountains', 'vergelabs-media-library' ), 'two' === o.levels, function ( v ) { set( 'levels', v ); } ) );
-			opts.appendChild( field( __( 'Levels', 'vergelabs-media-library' ), lv2 ) );
-		}
-		if ( 'fit' === id ) {
-			var rest = el( 'div', { class: 'vgml-radios' } );
-			rest.appendChild( radio( 'vgml-rest', 'stay', __( 'It stays unfiled.', 'vergelabs-media-library' ), 'stay' === o.rest, function ( v ) { set( 'rest', v ); } ) );
-			rest.appendChild( radio( 'vgml-rest', 'unsorted', __( 'It goes to a folder named Unsorted.', 'vergelabs-media-library' ), 'unsorted' === o.rest, function ( v ) { set( 'rest', v ); } ) );
-			opts.appendChild( field( __( 'When a picture fits no folder', 'vergelabs-media-library' ), rest ) );
-			var sure = el( 'div', { class: 'vgml-radios' } );
-			sure.appendChild( radio( 'vgml-sure', 'sure', __( 'Only sure matches.', 'vergelabs-media-library' ), 'sure' === o.sure, function ( v ) { set( 'sure', v ); } ) );
-			sure.appendChild( radio( 'vgml-sure', 'close', __( 'Close calls too. More pictures move, some to the wrong folder.', 'vergelabs-media-library' ), 'close' === o.sure, function ( v ) { set( 'sure', v ); } ) );
-			opts.appendChild( field( __( 'How sure', 'vergelabs-media-library' ), sure ) );
-		} else {
-			opts.appendChild( scopeRadios( o, set ) );
-		}
-		return opts;
-	}
-
-	function renderRules() {
-		dom.rules.innerHTML = '';
-		var counts = {};
-		( ( state.rules && state.rules.rules ) || [] ).forEach( function ( r ) { counts[ r.id ] = r.folders; } );
-		RULES.forEach( function ( r ) {
-			var on = state.rule && state.rule.id === r.id;
-			var row = el( 'div', { class: 'vgml-rule-row' + ( on ? ' is-on' : '' ) } );
-			var pick = el( 'button', { type: 'button', class: 'vgml-rule-pick', role: 'radio', 'aria-checked': on ? 'true' : 'false', 'aria-label': r.label } );
-			pick.appendChild( el( 'span', { class: 'vgml-rule-dot', 'aria-hidden': 'true' } ) );
-			pick.addEventListener( 'click', function () { pickRule( r.id ); } );
-			row.appendChild( pick );
-			var body = el( 'div', { class: 'vgml-rule-body' } );
-			var title = el( 'button', { type: 'button', class: 'vgml-rule-title' }, r.label );
-			title.addEventListener( 'click', function () { pickRule( r.id ); } );
-			body.appendChild( title );
-			var desc = r.desc;
-			if ( 'subject' === r.id ) {
-				var min = on ? state.rule.options.min : 10;
-				/* translators: %s: the smallest folder */
-				desc = sprintf( __( 'A folder per subject from the catalogue. Subjects with fewer than %s pictures stay unfiled.', 'vergelabs-media-library' ), fmt( min ) );
-			}
-			body.appendChild( el( 'div', { class: 'vgml-rule-desc' }, desc ) );
-			if ( on ) {
-				body.appendChild( ruleOptions( r.id, state.rule.options, setRuleOption ) );
-			}
-			row.appendChild( body );
-			var n;
-			if ( 'fit' === r.id ) {
-				n = on && 'unsorted' === state.rule.options.rest ? __( '1 new', 'vergelabs-media-library' ) : __( '0 new', 'vergelabs-media-library' );
-			} else if ( state.rules ) {
-				/* translators: %s: folders */
-				n = sprintf( _n( '%s folder', '%s folders', counts[ r.id ] || 0, 'vergelabs-media-library' ), fmt( counts[ r.id ] || 0 ) );
-			}
-			if ( n ) {
-				row.appendChild( el( 'span', { class: 'vgml-rule-n' }, n ) );
-			}
-			dom.rules.appendChild( row );
+		previewView = TV.create( {
+			surface: 'folders',
+			root: dom.pasteTree,
+			nodes: [],
+			indent: { step: 22, base: 8 },
+			editable: false,
+			head: false,
+			fold: false,
+			openAll: true,
+			l10n: treeL10n()
 		} );
+		previewView.setMode( 'all', true );
+		// No count on a folder the paste makes: the dry run has not looked yet,
+		// and a zero here would be a number nobody computed.
+		previewView.setCounted( false );
+
+		return dom.paste;
+	}
+
+	function readPaste( andDraft ) {
+		var parsed = STRUCT.parse( dom.pasteArea.value, state.nodes, structL10n() );
+
+		var pv = STRUCT.toPreview( parsed, state.nodes );
+		previewView.setTree( pv.nodes );
+		previewView.setDraft( parsed.count ? pv.draft : null );
+		// An empty box shows an empty preview, not the tree's "No changes yet".
+		dom.pasteTree.hidden = ! parsed.count;
+
+		dom.readLine.innerHTML = '';
+		if ( parsed.count ) {
+			/* translators: %s: folders */
+			dom.readLine.appendChild( el( 'b', null, sprintf( _n( '%s folder', '%s folders', parsed.count, 'vergelabs-media-library' ), fmt( parsed.count ) ) ) );
+			dom.readLine.appendChild( document.createTextNode( ', '
+				/* translators: %s: levels */
+				+ sprintf( _n( '%s level deep', '%s levels deep', parsed.levels, 'vergelabs-media-library' ), fmt( parsed.levels ) ) + '. '
+				+ ( parsed.reused
+					/* translators: %s: folders that exist already */
+					? sprintf( _n( '%s already exists and will be reused.', '%s already exist and will be reused.', parsed.reused, 'vergelabs-media-library' ), fmt( parsed.reused ) )
+					: __( 'None of them exist yet.', 'vergelabs-media-library' ) ) ) );
+		}
+		dom.readLine.hidden = ! parsed.count;
+
+		dom.refused.innerHTML = '';
+		parsed.refusals.forEach( function ( r ) {
+			dom.refused.appendChild( el( 'li', null, r.text ) );
+		} );
+		dom.refused.hidden = ! parsed.refusals.length;
+
+		if ( andDraft && parsed.count && ! parsed.refusals.length ) {
+			pasteDraft( STRUCT.toDraft( parsed, state.nodes ) );
+		}
+	}
+
+	/*
+	 *  The paste as the draft. On screen at once, so the tree on the right
+	 *  answers as the person types; to the turn route once the typing settles,
+	 *  so the numbers that come back are the matcher's. Until they do the rows
+	 *  carry no count and Move waits: pressing it before the session holds
+	 *  this draft would move pictures into the draft before it.
+	 */
+	function pasteDraft( draft ) {
+		state.pasteSeq++;
+		var seq = state.pasteSeq;
+		state.pastePending = true;
+		setDraft( draft, true );
 		renderPreview();
+
+		window.clearTimeout( settleTimer );
+		settleTimer = window.setTimeout( function () {
+			if ( seq !== state.pasteSeq ) {
+				return;
+			}
+			queue = queue.then( function () {
+				return api( 'POST', 'guide/turn', { draft: draft } ).then( function ( r ) {
+					if ( seq !== state.pasteSeq ) {
+						return;
+					}
+					state.pastePending = false;
+					if ( r && undefined !== r.fit ) {
+						tookFit( r );
+					} else {
+						renderMove();
+						renderPreview();
+					}
+				}, function ( err ) {
+					if ( seq !== state.pasteSeq ) {
+						return;
+					}
+					state.pastePending = false;
+					dom.refused.appendChild( el( 'li', null, ( err && err.message ) || __( 'That did not go through. Try again.', 'vergelabs-media-library' ) ) );
+					dom.refused.hidden = false;
+					renderMove();
+					renderPreview();
+				} );
+			}, function () {} );
+		}, 600 );
 	}
 
-	/** A rule answers about the rule's draft; the dry run about the conversation's. */
+	/* --------------------------------------------------- the dry run's lines */
+
 	function previewLines() {
-		return 'rules' === state.method ? ( state.preview || [] ) : ( ( state.fit && state.fit.preview ) || [] );
+		return state.pastePending ? [] : ( ( state.fit && state.fit.preview ) || [] );
 	}
 
 	/*
 	 *  The dry run looked and gave no answer -- it ran past its budget, or it
-	 *  could not score at all. It says so in the lines above; here it takes the
-	 *  numbers away with it. A folder shows no count, the Move button offers
-	 *  none, and nothing on the draft reads as a zero: zero is what the matcher
-	 *  says after looking, and it never finished looking.
-	 *
-	 *  A rule is not this. Its own draft carries counts it computed itself,
-	 *  against this same matcher, when the rule was built.
+	 *  could not score at all -- or it has not answered yet. It says so in the
+	 *  lines above; here it takes the numbers away with it. A folder shows no
+	 *  count, the Move button offers none, and nothing on the draft reads as a
+	 *  zero: zero is what the matcher says after looking, and it never
+	 *  finished looking.
 	 */
 	function fitUnknown() {
-		return 'rules' !== state.method && !! ( state.fit && false === state.fit.counted );
+		return state.pastePending || !! ( state.fit && false === state.fit.counted );
 	}
 
 	function syncCounted() {
@@ -828,70 +835,6 @@
 			dom.preview.appendChild( li );
 		} );
 		dom.preview.hidden = ! lines.length;
-	}
-
-	function pickRule( id ) {
-		if ( state.rule && state.rule.id === id ) {
-			return;
-		}
-		state.rule = { id: id, options: ruleDefaults( id ) };
-		renderRules();
-		applyRule( false );
-	}
-
-	var ruleTimer = null;
-	function setRuleOption( k, v ) {
-		if ( ! state.rule ) {
-			return;
-		}
-		state.rule.options[ k ] = v;
-		renderRules();
-		window.clearTimeout( ruleTimer );
-		ruleTimer = window.setTimeout( function () { applyRule( false ); }, 150 );
-	}
-
-	/**
-	 *  A rule, applied to the draft: the tree and Move answer as the option
-	 *  changes, and one line in the conversation says what was applied, so
-	 *  the conversation stays the whole history of the tree.
-	 */
-	function applyRule( quiet ) {
-		var rule = state.rule;
-		if ( ! rule ) {
-			return;
-		}
-		dom.rules.classList.add( 'is-busy' );
-		api( 'POST', 'guide/rule', { rule: rule.id, options: rule.options } ).then( function ( r ) {
-			if ( ! state.rule || state.rule.id !== rule.id ) {
-				return;
-			}
-			dom.rules.classList.remove( 'is-busy' );
-			state.preview = r.preview || [];
-			var draft = r.draft;
-			draft.tags = [];
-			setDraft( draft, quiet );
-			if ( quiet ) {
-				renderPreview();
-				return;
-			}
-			var label = '';
-			RULES.forEach( function ( x ) { if ( x.id === rule.id ) { label = x.label; } } );
-			/* translators: 1: the rule, 2: folders, 3: pictures */
-			var line = sprintf( __( '%1$s: %2$s folders, %3$s pictures', 'vergelabs-media-library' ), label, fmt( r.made ), fmt( r.move ) );
-			var turns = state.session.turns;
-			var last = turns[ turns.length - 1 ];
-			if ( last && 'rule' === last.kind && last.rule === rule.id ) {
-				turns.pop();
-			}
-			turns.push( { role: 'user', kind: 'rule', rule: rule.id, text: line, at: Math.floor( Date.now() / 1000 ) } );
-			persist( 'guide/turn', { said: { kind: 'rule', rule: rule.id, text: line }, draft: draft } );
-			renderPreview();
-			renderConversation();
-		} ).catch( function ( err ) {
-			dom.rules.classList.remove( 'is-busy' );
-			state.preview = [ { text: ( err && err.message ) || __( 'That did not go through. Try again.', 'vergelabs-media-library' ) } ];
-			renderPreview();
-		} );
 	}
 
 	/* -------------------------------------------------------------- Move */
@@ -925,8 +868,7 @@
 	 *  consolidated has folders shrinking all over and almost nothing gained:
 	 *  the screen read "Move 4 pictures" beside "241 pictures move into 19
 	 *  folders", both about the same draft. The dry run counted them one way,
-	 *  against the matcher, so that is the number. A rule keeps the tree's,
-	 *  which is right for a rule: it only ever adds.
+	 *  against the matcher, so that is the number.
 	 */
 	function movingCount( s ) {
 		if ( fitUnknown() ) {
@@ -971,13 +913,15 @@
 			if ( null === n ) {
 				// No count to offer. The button still works -- the draft is
 				// filed the same way whether or not the run finished counting,
-				// and a cold library must not be locked out of Move.
+				// and a cold library must not be locked out of Move -- unless
+				// a paste is still on its way to the session, in which case
+				// pressing it would move pictures into the draft before it.
 				dom.move.textContent = __( 'Move the draft', 'vergelabs-media-library' );
 			} else {
 				/* translators: %s: pictures */
 				dom.move.textContent = sprintf( _n( 'Move %s picture', 'Move %s pictures', n, 'vergelabs-media-library' ), fmt( n ) );
 			}
-			dom.move.disabled = false;
+			dom.move.disabled = state.pastePending;
 			dom.move.hidden = false;
 		} else {
 			dom.move.textContent = __( 'Move · no changes yet', 'vergelabs-media-library' );
@@ -1044,18 +988,16 @@
 		view.setProgress( null );
 		view.setDraft( null );
 		state.session.draft = null;
-		state.preview = [];
 		state.fit = null;
-		state.rule = null;
+		state.pasteSeq++;
+		state.pastePending = false;
 		refreshTree().then( function () {
 			renderTreeHead();
 			renderMove();
 			renderPreview();
 			renderConversation();
-			if ( 'rules' === state.method ) {
-				state.rules = null;
-				loadRules();
-			}
+			// The folders a paste named exist now; the preview reads them as such.
+			readPaste( false );
 		} );
 	}
 
@@ -1084,7 +1026,9 @@
 	renderTreeHead();
 	renderConversation();
 	renderMove();
-	setMethod( state.session.draft && 'rule' === state.session.draft.origin && ! ( state.session.turns || [] ).length ? 'rules' : 'talk' );
+	setMethod( 'talk' );
+	// The thread is a bounded region now; it opens on its latest turn, where the composer is.
+	talk.conv.scrollTop = talk.conv.scrollHeight;
 	root.classList.add( 'is-ready' );
 
 	// A Move still running from before this page loaded carries on being watched.
@@ -1097,5 +1041,5 @@
 		turn_( { open: true }, null );
 	}
 
-	window.vgmlFoldersApp = { state: state, view: function () { return view; }, stop: stop };
+	window.vgmlFoldersApp = { state: state, view: function () { return view; }, preview: function () { return previewView; }, stop: stop };
 }() );

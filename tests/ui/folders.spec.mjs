@@ -156,8 +156,12 @@ test.describe( 'the Folders screen', () => {
 		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( 'Move · no changes yet' );
 		await expect( page.locator( '.vgml-move-btn' ) ).toBeDisabled();
 
-		// Rename the first top-level folder in place: double-click the name, type, Enter.
-		const first = page.locator( '.vgml-node[data-key]' ).first();
+		// Rename the first folder without children in place: double-click the
+		// name, type, Enter. A leaf, because on a branch the first click of a
+		// double-click toggles the branch and re-renders the row, so the second
+		// click lands on a new element and no rename opens (found 2026-09-13;
+		// the library's first folder has children since the tech-news seed).
+		const first = page.locator( '.vgml-folders-tree .vgml-node[data-key]:not([aria-expanded])' ).first();
 		const name = await first.locator( '.vgml-name' ).innerText();
 		await first.locator( '.vgml-name' ).dblclick();
 		await page.locator( '.vgml-editor' ).fill( name + ' renamed' );
@@ -181,96 +185,205 @@ test.describe( 'the Folders screen', () => {
 		await expect( page.locator( '.vgml-node.is-change .vgml-name' ).first() ).toContainText( name + ' renamed' );
 	} );
 
-	test( 'a rule builds the draft without a model, the tree answers, and one line says so', async ( { page } ) => {
+	/*
+	 *  The app shell (Phase 3, 3.2). Until it, css/vergeml-talk.css gave the
+	 *  thread no height and no overflow: every turn made the page taller, and
+	 *  at the 25-turn cap the composer and the Move button were several screens
+	 *  below the fold (docs/superpowers/specs/2026-09-10-folders-ways-in.md).
+	 *  Now the screen is fixed to the viewport and the thread scrolls inside
+	 *  its own region, with the composer and Move on screen -- at 1600×1000
+	 *  and at 1280×800, the two sizes the spec names.
+	 *
+	 *  Mutation: remove `min-height: 0` from `.vgml-conv` in
+	 *  css/vergeml-folders.css and the 1280×800 assertions go red.
+	 */
+	test( 'the thread scrolls in its own region; the composer and Move stay on screen at the cap', async ( { page } ) => {
 		await open( page, SCREEN.dashboard );
 		if ( found === null ) {
 			found = await getSession( page );
 		}
-		await plant( page, false );
+		await plant( page, true );
+
+		for ( const [ width, height ] of [ [ 1600, 1000 ], [ 1280, 800 ] ] ) {
+			await page.setViewportSize( { width, height } );
+			await open( page, SCREEN.folders );
+			await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
+			await expect( page.locator( '.vgml-msg' ) ).toHaveCount( 50 );
+
+			const at = `${ width }×${ height }`;
+			const composer = await page.locator( '.vgml-composer' ).boundingBox();
+			const move = await page.locator( '.vgml-move-btn' ).boundingBox();
+			expect( composer, `${ at }: the composer is on screen` ).not.toBeNull();
+			expect( move, `${ at }: Move is on screen` ).not.toBeNull();
+			expect( composer.y + composer.height, `${ at }: the composer's bottom is inside the viewport` ).toBeLessThanOrEqual( height );
+			expect( move.y + move.height, `${ at }: Move's bottom is inside the viewport` ).toBeLessThanOrEqual( height );
+			expect( composer.y, `${ at }: the composer's top is inside the viewport` ).toBeGreaterThanOrEqual( 0 );
+
+			const thread = await page.locator( '.vgml-conv' ).evaluate( ( c ) => ( { scrollHeight: c.scrollHeight, clientHeight: c.clientHeight } ) );
+			expect( thread.scrollHeight, `${ at }: the thread scrolls inside its region (${ JSON.stringify( thread ) })` ).toBeGreaterThan( thread.clientHeight );
+
+			/*
+			 *  And nothing paints over them. A thread that overflows without
+			 *  scrolling is squeezed to the same height and its last turns land
+			 *  on top of the composer: every bounding box above is still right,
+			 *  and the composer cannot be clicked. So the element at each one's
+			 *  own centre must be itself (mutation: drop `overflow-y: auto`
+			 *  from `.vgml-conv` and this goes red).
+			 */
+			const under = await page.evaluate( ( [ c, m ] ) => {
+				const at = ( b, sel ) => {
+					const e = document.elementFromPoint( b.x + b.width / 2, b.y + b.height / 2 );
+					return e ? !! e.closest( sel ) : false;
+				};
+				return { composer: at( c, '.vgml-composer' ), move: at( m, '.vgml-move-btn' ) };
+			}, [ composer, move ] );
+			expect( under.composer, `${ at }: the composer is the element at its own centre, not a turn painted over it` ).toBe( true );
+			expect( under.move, `${ at }: Move is the element at its own centre` ).toBe( true );
+
+			/*
+			 *  And the end of the thread can be reached. A region that does not
+			 *  scroll hides its last turns behind the composer instead -- the
+			 *  composer still wins the hit test above, being painted later -- so
+			 *  the proof is the last turn itself: scroll the region to its end
+			 *  and the last message sits inside it.
+			 */
+			const reach = await page.evaluate( () => {
+				const c = document.querySelector( '.vgml-conv' );
+				c.scrollTop = c.scrollHeight;
+				const box = c.getBoundingClientRect();
+				const last = c.querySelector( '.vgml-msg:last-child' ).getBoundingClientRect();
+				return { scrollTop: c.scrollTop, regionBottom: box.bottom, lastBottom: last.bottom, lastTop: last.top, regionTop: box.top };
+			} );
+			expect( reach.scrollTop, `${ at }: the region scrolled (${ JSON.stringify( reach ) })` ).toBeGreaterThan( 0 );
+			expect( reach.lastBottom, `${ at }: the last turn's bottom is inside the region` ).toBeLessThanOrEqual( reach.regionBottom + 1 );
+			expect( reach.lastTop, `${ at }: the last turn's top is inside the region` ).toBeGreaterThanOrEqual( reach.regionTop - 1 );
+
+			/*
+			 *  The page does not scroll sideways, and the screen does not
+			 *  scroll away. WordPress's own admin menu can be taller than the
+			 *  window (this box has thirty plugins in it, 1,624px on
+			 *  2026-09-13), and that is the page's to scroll; the pane is
+			 *  pinned, so at the bottom of the page the composer and Move are
+			 *  exactly where they were.
+			 */
+			const doc = await page.evaluate( () => ( { w: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth } ) );
+			expect( doc.w, `${ at }: no horizontal scroll` ).toBeLessThanOrEqual( doc.cw );
+			await page.evaluate( () => window.scrollTo( 0, document.documentElement.scrollHeight ) );
+			const composerAfter = await page.locator( '.vgml-composer' ).boundingBox();
+			const moveAfter = await page.locator( '.vgml-move-btn' ).boundingBox();
+			expect( composerAfter.y + composerAfter.height, `${ at }: the composer stays on screen when the page is scrolled` ).toBeLessThanOrEqual( height );
+			expect( moveAfter.y + moveAfter.height, `${ at }: Move stays on screen when the page is scrolled` ).toBeLessThanOrEqual( height );
+			await page.evaluate( () => window.scrollTo( 0, 0 ) );
+
+			await page.screenshot( { path: `tests/ui/shots/folders-shell-${ width }x${ height }.png` } );
+		}
+	} );
+
+	/*
+	 *  Paste folders (Phase 3, 3.3 and 3.4): the one manual way in beside the
+	 *  conversation, on Nathan's decision of 2026-09-12. One folder per line,
+	 *  the full path with ">" between levels; a live preview in the tree's own
+	 *  rows; one line of fact; and the paste lands as a draft behind the Move
+	 *  button, with every number on it the dry run's.
+	 *
+	 *  Costs one dry run on the box: one embed call per new folder path, cached
+	 *  a week; no model turn.
+	 *
+	 *  Mutation: render one preview branch as a <li> bullet and the row count
+	 *  goes red; read leading whitespace as depth and the levels go red.
+	 */
+	test( 'a paste is read as paths, previewed as the tree\'s rows, and lands as the draft behind Move', async ( { page } ) => {
+		test.setTimeout( 180_000 );
+		await open( page, SCREEN.dashboard );
+		if ( found === null ) {
+			found = await getSession( page );
+		}
+		const boot = await plant( page, false );
+		const live = boot.nodes.find( ( n ) => ! n.parent );
+
+		await page.setViewportSize( { width: 1600, height: 1000 } );
 		await open( page, SCREEN.folders );
 		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
 
 		const service = [];
 		page.on( 'request', ( r ) => { if ( /\/guide\/(stream|session)$/.test( r.url() ) && ! /vergeml\/v1/.test( r.url() ) ) service.push( r.url() ); } );
 
-		await page.locator( '.vgml-seg-tab[data-method="rules"]' ).click();
-		await expect( page.locator( '.vgml-method-kicker' ) ).toHaveText( 'Uses no credits' );
-		await expect( page.locator( '.vgml-rule-row' ) ).toHaveCount( 4 );
-		await expect( page.locator( '.vgml-rule-n' ).first() ).toHaveText( /^\d+ folders?$/ );
+		await page.locator( '.vgml-seg-tab[data-method="paste"]' ).click();
+		await expect( page.locator( '.vgml-seg-tab[aria-selected="true"]' ) ).toHaveText( 'Paste folders' );
+		await expect( page.locator( '.vgml-method-say' ) ).toHaveText( 'One folder per line, the full path with > between levels: Hardware > Phones. A parent that is not listed is created. The preview shows what was understood before anything is made.' );
+		await expect( page.locator( '.vgml-preview-title' ) ).toHaveText( 'What that makes' );
+		await expect( page.locator( '.vgml-preview-read' ) ).toHaveText( 'read as paths' );
+		await expect( page.locator( '.vgml-conv' ) ).toBeHidden();
+		await expect( page.locator( '.vgml-composer' ) ).toBeHidden();
 
-		await page.locator( '.vgml-rule-row' ).first().locator( '.vgml-rule-pick' ).click();
-		await expect( page.locator( '.vgml-rule-row.is-on .vgml-rule-title' ) ).toHaveText( 'By kind' );
-		await expect( page.locator( '.vgml-rule-row.is-on .vgml-radio' ).first() ).toContainText( /^Move only the \d+ unfiled pictures\. Today's \d+ folders stay\.$/ );
-		await expect( page.locator( '.vgml-preview li' ).first() ).toContainText( /new folders?: /, { timeout: 20000 } );
-		await expect( page.locator( '.vgml-preview li' ).nth( 1 ) ).toHaveText( /^\d[\d,.]* pictures? moves?$/ );
-		await expect( page.locator( '.vgml-preview li' ).last() ).toHaveText( "Today's folders unchanged" );
-		await expect( page.locator( '.vgml-node.is-new' ).first() ).toBeVisible();
-		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( /^Move \d[\d,.]* pictures$/ );
-		await expect( page.locator( '.vgml-move-btn' ) ).toBeEnabled();
+		// In any order, with a repeated path, a missing parent, a live folder
+		// reused case-insensitively, and an indented line that is not depth.
+		// Names the box's seed does not hold: the tech-news seed already has
+		// Hardware, Energy, Space and the rest, and those would be reused.
+		expect( boot.nodes.some( ( n ) => /paste probe/i.test( n.name ) ), 'the box holds no folder named Paste probe' ).toBe( false );
+		const paste = [
+			'Paste probe > Cores > Alpha chips',
+			'Paste probe > Wells',
+			'Paste probe > Cores',
+			'    Paste probe > Yards',
+			'paste probe > wells',
+			live.name.toUpperCase(),
+		].join( '\n' );
+		await page.locator( '.vgml-paste-area' ).fill( paste );
 
-		// The other scope: today's folders go, and the line is replaced, not added.
-		await page.locator( '.vgml-rule-row.is-on input[value="all"]' ).check();
-		await expect( page.locator( '.vgml-preview li' ).last() ).toHaveText( /^Today's \d+ folders are removed$/, { timeout: 20000 } );
-		await expect( page.locator( '.vgml-node.is-gone' ).first() ).toBeVisible();
+		// The preview: every folder a row of the tree, nothing a bullet, the new ones marked.
+		const rows = page.locator( '.vgml-preview-box .vgml-node[data-key] > .vgml-row' );
+		await expect( rows ).toHaveCount( 6 );
+		await expect( page.locator( '.vgml-preview-box li:not(.vgml-node)' ), 'no bullet in the preview' ).toHaveCount( 0 );
+		await expect( page.locator( '.vgml-preview-box .vgml-node.is-new' ) ).toHaveCount( 5 );
+		await expect( page.locator( '.vgml-preview-box .vgml-node:not(.is-new) .vgml-name' ) ).toHaveText( live.name );
+		// The name without the "new" tag that rides inside the same span; as a set, since siblings follow the term order.
+		const names = ( sel ) => page.$$eval( sel, ( els ) => els.map( ( e ) => e.firstChild.textContent ).sort() );
+		expect( await names( '.vgml-preview-box .vgml-node[aria-level="1"] > .vgml-row .vgml-name' ) ).toEqual( [ 'Paste probe', live.name ].sort() );
+		expect( await names( '.vgml-preview-box .vgml-node[aria-level="2"] > .vgml-row .vgml-name' ) ).toEqual( [ 'Cores', 'Wells', 'Yards' ] );
+		expect( await names( '.vgml-preview-box .vgml-node[aria-level="3"] > .vgml-row .vgml-name' ) ).toEqual( [ 'Alpha chips' ] );
+		await expect( page.locator( '.vgml-preview-box .vgml-count' ), 'no count on a folder nobody has counted' ).toHaveCount( 0 );
+		await expect( page.locator( '.vgml-read-line' ) ).toHaveText( '6 folders, 3 levels deep. 1 already exists and will be reused.' );
+		await expect( page.locator( '.vgml-paste-refused' ) ).toBeHidden();
 
-		await page.screenshot( { path: 'tests/ui/shots/folders-rules.png', fullPage: true } );
+		// The draft, on the right: the paste over today's folders, the new ones first.
+		await expect( page.locator( '.vgml-tree-kicker' ) ).toHaveText( `Folders · ${ boot.nodes.length } now, ${ boot.nodes.length + 5 } after Move` );
+		await expect( page.locator( '.vgml-folders-tree .vgml-node.is-new' ) ).toHaveCount( 5 );
+		await expect( page.locator( '.vgml-folders-tree .vgml-node.is-gone' ), 'a paste removes nothing' ).toHaveCount( 0 );
+		await expect( page.locator( '.vgml-folders-tree li:not(.vgml-node):not(.vgml-tv-path):not(.vgml-tv-sub)' ), 'no bullet in the draft' ).toHaveCount( 0 );
 
-		await page.locator( '.vgml-seg-tab[data-method="talk"]' ).click();
-		await expect( page.locator( '.vgml-msg.is-rule' ) ).toHaveCount( 1 );
-		await expect( page.locator( '.vgml-msg.is-rule .vgml-msg-who' ) ).toHaveText( 'You · applied a rule' );
-		await expect( page.locator( '.vgml-msg.is-rule .vgml-msg-body' ) ).toHaveText( /^By kind: \d+ folders, \d[\d,.]* pictures$/ );
-		expect( service, 'no call to the service: a rule costs nothing' ).toEqual( [] );
+		// Until the dry run answers, the button waits and no folder wears a number the paste invented.
+		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( 'Move the draft' );
+		await expect( page.locator( '.vgml-move-btn' ) ).toBeDisabled();
 
-		await expect.poll( async () => JSON.stringify( ( ( await getSession( page ) ).session.draft || {} ).rule ), { timeout: 20000 } ).toBe( JSON.stringify( { id: 'kind', options: { scope: 'all' } } ) );
-	} );
-
-	/*
-	 *  guide/rules refused. Until this phase the catch fabricated
-	 *  { rules: [], unfiled: 0, pictures: 0 } -- a shape nobody computed, read
-	 *  back as a real zero in three places: the scope radios, and every rule
-	 *  pill. The cards themselves come from the local RULES constant, so they
-	 *  stay pickable; what must not survive is a number nobody computed.
-	 */
-	test( 'when guide/rules is refused, the screen says so and shows no fabricated zero', async ( { page } ) => {
-		await open( page, SCREEN.dashboard );
-		if ( found === null ) {
-			found = await getSession( page );
+		// Then the numbers are the matcher's: the session holds the draft, the counts are the run's.
+		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( /^Move \d[\d,.]* pictures?$|^Move the draft$/, { timeout: 60000 } );
+		await expect( page.locator( '.vgml-move-btn' ) ).toBeEnabled( { timeout: 60000 } );
+		const s = await getSession( page );
+		expect( s.session.draft, 'the paste is the session\'s draft' ).not.toBeNull();
+		expect( s.session.draft.folders.filter( ( f ) => ! f.term_id ).map( ( f ) => f.name ).sort() ).toEqual( [ 'Alpha chips', 'Cores', 'Paste probe', 'Wells', 'Yards' ] );
+		expect( s.session.draft.folders.filter( ( f ) => f.term_id ).length, 'every live folder is kept' ).toBe( boot.nodes.length );
+		expect( s.session.fit, 'the turn route ran the dry run over the paste' ).not.toBeNull();
+		if ( s.session.fit.counted ) {
+			const onButton = ( await page.locator( '.vgml-move-btn' ).innerText() ).replace( /\D/g, '' );
+			expect( onButton, 'the Move button counts what the dry run counted' ).toBe( String( s.session.fit.move ) );
+			await expect( page.locator( '.vgml-preview li' ).first() ).toHaveText( /^\d[\d,.]* pictures? moves? into \d[\d,.]* folders$|^0 pictures move$/ );
 		}
-		await plant( page, false );
-		await page.route( '**/guide/rules*', ( route ) => route.fulfill( { status: 500, contentType: 'application/json', body: '{"code":"rest_error","message":"fail"}' } ) );
+		expect( service, 'no call to the service from the browser: a paste is read here' ).toEqual( [] );
 
-		await open( page, SCREEN.folders );
+		await page.screenshot( { path: 'tests/ui/shots/folders-paste.png' } );
+
+		// A refusal is said out loud, by line, and makes nothing: the draft stays as it was.
+		await page.locator( '.vgml-paste-area' ).fill( paste + '\nA > B > C > D > E > F\n>' );
+		await expect( page.locator( '.vgml-paste-refused li' ) ).toHaveText( [ 'Line 7: deeper than 5 levels', 'Line 8: no name' ] );
+		await expect( page.locator( '.vgml-read-line' ) ).toHaveText( '6 folders, 3 levels deep. 1 already exists and will be reused.' );
+		await expect( page.locator( '.vgml-folders-tree .vgml-node.is-new' ) ).toHaveCount( 5 );
+		await page.screenshot( { path: 'tests/ui/shots/folders-paste-refused.png' } );
+
+		// The paste survives a reload as the draft, keyed by id.
+		await page.reload( { waitUntil: 'domcontentloaded' } );
 		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
-
-		await page.locator( '.vgml-seg-tab[data-method="rules"]' ).click();
-
-		// The four cards still render from the local RULES constant and stay pickable.
-		await expect( page.locator( '.vgml-rule-row' ) ).toHaveCount( 4 );
-		const kindRow = page.locator( '.vgml-rule-row' ).first();
-		await kindRow.locator( '.vgml-rule-pick' ).click();
-		await expect( kindRow ).toHaveClass( /is-on/ );
-
-		// No number nobody computed: the pill for a rule that needed the server is gone, not zero.
-		await expect( kindRow.locator( '.vgml-rule-n' ) ).toHaveCount( 0 );
-
-		// The scope choice is disabled while the number behind it is unknown, and carries no count.
-		await expect( kindRow.locator( 'input[value="unfiled"]' ) ).toBeDisabled();
-		await expect( kindRow.locator( 'input[value="all"]' ) ).toBeDisabled();
-		await expect( kindRow.locator( '.vgml-radio' ).first() ).toHaveText( /^Move only the unfiled pictures\. Today's \d+ folders stay\.$/ );
-
-		// The failure itself, through the note this file already uses for a failed Move.
-		await expect( page.locator( '.vgml-msg.is-note' ) ).toHaveText( 'The numbers did not load. No rule can say what it would do — reload to try again.' );
-
-		// None of the three rules that need the server's count wears a pill at all.
-		for ( const row of await page.locator( '.vgml-rule-row' ).all() ) {
-			const title = await row.locator( '.vgml-rule-title' ).innerText();
-			if ( 'Into today\'s folders' === title ) {
-				continue; // Its "0 new" / "1 new" is computed locally and is not this bug.
-			}
-			await expect( row.locator( '.vgml-rule-n' ), `${ title } carries no number the server did not return` ).toHaveCount( 0 );
-		}
-
-		await page.screenshot( { path: 'tests/ui/shots/folders-rules-failed.png', fullPage: true } );
+		await expect( page.locator( '.vgml-folders-tree .vgml-node.is-new' ) ).toHaveCount( 5 );
 	} );
 
 	/*
