@@ -1459,6 +1459,20 @@ function vergeml_guide_rest_apply( WP_REST_Request $request ) {
         return rest_ensure_response( vergeml_guide_progress_out( $s ) );
     }
 
+    /*
+     *  A run the session does not know about -- its own apply answered late
+     *  and the browser had already closed the request (2026-09-14), or another
+     *  administrator pressed Move. Either way a second apply on top of a
+     *  running one would re-file the same library twice; the answer is the
+     *  progress of the one that is running.
+     */
+    $running = vergeml_talk_progress();
+    if ( ! empty( $running['running'] ) ) {
+        $s['apply'] = array( 'started_at' => time(), 'running' => true, 'stopped' => false );
+        vergeml_guide_save( $s );
+        return rest_ensure_response( vergeml_guide_progress_out( $s, $running ) );
+    }
+
     $plan = vergeml_guide_apply_plan( $s['draft'] );
     if ( is_wp_error( $plan ) ) {
         return $plan;

@@ -914,17 +914,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 	);
 	// phpcs:enable
 
-	/*
-	 *  Folders that were already here know only their names. One planner call
-	 *  tells the matcher what each of them takes (core/filing.php), so a coat
-	 *  reaches Apparel and a logo stays out of Men. Best effort: without it the
-	 *  name-derived profiles still file, only more cautiously.
-	 */
-	if ( function_exists( 'vergeml_filing_profile_existing' ) && ! $assign_ids ) {
-		vergeml_filing_profile_existing( $taxonomy );
-	}
-
-	update_option( VERGEML_TALK_STATE, array(
+	$state = array(
 		'active'   => true,
 		'taxonomy' => $taxonomy,
 		'ids'      => $ids,
@@ -932,6 +922,18 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		'assign'   => $assign_ids,
 		'fallback' => $fallback_ids,
 		'reasons'  => $reasons,
+		/*
+		 *  Folders that were already here know only their names. One planner
+		 *  call tells the matcher what each of them takes (core/filing.php), so
+		 *  a coat reaches Apparel and a logo stays out of Men. Best effort:
+		 *  without it the name-derived profiles still file, only more
+		 *  cautiously. Done by the first pass, not here: until 2026-09-14 this
+		 *  request made that model call and then filed for five seconds before
+		 *  answering, 20-40 s in all, and the screen had given the button back
+		 *  long before -- the browser closed the request (nginx 499) and the
+		 *  screen said nothing had moved while a thousand pictures moved.
+		 */
+		'profile'  => function_exists( 'vergeml_filing_profile_existing' ) && ! $assign_ids,
 		'after'    => 0,
 		'moved'    => 0,
 		'skipped'  => 0,
@@ -950,13 +952,14 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		 */
 		'remove'   => $remove,
 		'started'  => time(),
-	), false );
+	);
 
-	$state = vergeml_talk_refile_run( microtime( true ) + 5.0 );
+	update_option( VERGEML_TALK_STATE, $state, false );
 
-	if ( ! empty( $state['active'] ) ) {
-		vergeml_talk_refile_schedule();
-	}
+	// The answer is "running, nothing seen yet"; the passes are cron's, and
+	// the screen polls them. A Move answers in the time it takes to make the
+	// folders, however large the library.
+	vergeml_talk_refile_schedule();
 
 	return vergeml_talk_report( $state );
 }
@@ -984,6 +987,15 @@ function vergeml_talk_refile_run( $deadline ) {
 		$state['active'] = false;
 		update_option( VERGEML_TALK_STATE, $state, false );
 		return $state;
+	}
+
+	// The planner's profile of the folders, once, before anything is filed
+	// against them. Written down first so a pass that dies mid-call does not
+	// ask the planner again on every resumption.
+	if ( ! empty( $state['profile'] ) ) {
+		$state['profile'] = false;
+		update_option( VERGEML_TALK_STATE, $state, false );
+		vergeml_filing_profile_existing( $taxonomy );
 	}
 
 	/*

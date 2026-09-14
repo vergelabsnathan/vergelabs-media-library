@@ -263,8 +263,12 @@
 			version: state.version,
 			onChange: function ( v ) {
 				state.version = v;
-				// While a Move runs the folders are half-made; the tree is re-read once, when it ends.
-				if ( state.session.apply && state.session.apply.running ) {
+				// While a Move runs the folders are half-made; the tree is re-read
+				// once, when it ends. That includes the seconds between the press
+				// and the answer: on 2026-09-14 the folders being made bumped the
+				// version, this re-read redrew the button as "Move 1,000 pictures",
+				// enabled, while the request was still in flight.
+				if ( state.applying || ( state.session.apply && state.session.apply.running ) ) {
 					return;
 				}
 				refreshTree();
@@ -881,7 +885,7 @@
 		var s = view ? view.summary() : { changes: 0, moving: 0 };
 		syncCounted();
 		var apply = state.session.apply;
-		var moving = apply && apply.running;
+		var moving = state.applying || ( apply && apply.running );
 		dom.stop.hidden = ! moving;
 		root.setAttribute( 'data-state', moving ? 'moving' : ( state.undo.available && ! s.changes ? 'done' : 'resting' ) );
 
@@ -949,10 +953,16 @@
 			stop();
 		}
 		state.movingGoal = movingCount( view.summary() );
-		dom.move.disabled = true;
+		// Pressed, not yet answered: the button reads as moving from here, so
+		// nothing that redraws it in between can hand it back.
+		state.applying = true;
+		state.moving = null;
+		renderMove();
 		api( 'POST', 'guide/apply' ).then( function ( r ) {
+			state.applying = false;
 			took( r );
 		} ).catch( function ( err ) {
+			state.applying = false;
 			talk.note( ( err && err.message ) || __( 'That did not go through. Nothing moved.', 'vergelabs-media-library' ) );
 			renderMove();
 		} );
