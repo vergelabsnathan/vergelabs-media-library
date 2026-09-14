@@ -235,6 +235,10 @@ If you genuinely want everything gone, that exists too, in two forms on the Util
 
 On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues).
 
+= Where do I report security bugs found in this plugin? =
+
+Please report security bugs found in the source code of the VergeLabs Media Library plugin through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/dc92736f-d80d-4eca-8412-aa5e58c3599a). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin. You can also email security@in.vergelabs.nl.
+
 
 
 ### Which versions of WordPress and other plugins has it been checked against? ###

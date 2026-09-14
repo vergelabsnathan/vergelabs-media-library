@@ -4,7 +4,9 @@
 
 Email **security@in.vergelabs.nl**, or open a [private advisory on
 GitHub](https://github.com/vergelabsnathan/vergelabs-media-library/security/advisories/new)
-— only we can read it. Please do not open a public issue, and please do not post
+— only we can read it — or go through the [Patchstack Vulnerability Disclosure
+Program](https://patchstack.com/database/vdp/dc92736f-d80d-4eca-8412-aa5e58c3599a),
+which verifies the report, assigns the CVE and notifies us. Please do not open a public issue, and please do not post
 it in the WordPress.org support forum — both are readable by the people the bug
 would be used against. The same contacts are at
 `https://vergelabsmedia.com/.well-known/security.txt`.
