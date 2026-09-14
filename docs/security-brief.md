@@ -204,6 +204,27 @@ claims about the routes are assertions with a mutation check each:
 The standing gates on that commit: `pnpm audit` exit 0, `pnpm build` exit 0,
 `pnpm typecheck` exit 0, `pnpm test` 450 passed.
 
+## What breaks in this class of plugin
+
+Pulled from the WPScan API on 2026-09-14 for six media-folder plugins:
+Enhanced Media Library (the one this plugin is forked from), FileBird,
+Folders, HappyFiles, Real Media Library, Media Library Assistant. 62 published
+findings, 2018–2026. The origin's one finding (Author+ stored XSS, fixed in
+EML 2.8.10, April 2024) predates the fork base (2.9.x, July 2024).
+
+| class | findings | typical row | where ours is asserted |
+|---|---|---|---|
+| stored / reflected XSS | 29 | Author+ stored XSS via a folder name, a shortcode parameter, an SVG upload | `docs/security-escaping.md`, `escaping.mjs` 9/10; the four journeys |
+| SQL injection | 11 | Contributor+ via a shortcode or an `order` parameter | `docs/security-db-calls.md`, `db-calls.mjs` 11/11 — the `ORDER BY` sites are in the 11 read by hand |
+| missing / incorrect authorisation, IDOR | 10 | Author+ deletes or tampers with folders that are not theirs, resets settings | the surface table's capability and scope columns; `roles.php` 74/76 — the 13 unscoped rows and the 33 uncalled gated entries are this class |
+| upload, traversal, file read, deletion, RCE | 10 | Author+ arbitrary upload; traversal in an upload handler; unauthenticated file read | the Files section; `paths.php` 66/66 — no route takes a path; the SVG handling in `core/mime-types.php` is the one upload-shaped site |
+| CSRF | 1 | a bulk-action form without a nonce | the nonce column; AJAX and `admin_post` entries that change something with no nonce: 0 |
+| error-log disclosure | 1 | unauthenticated read of a log file | the debug log is under `wp-content/`, WordPress's own; `secrets.php` asserts no key is in it |
+
+HappyFiles has none on record. Media Library Assistant carries 41 of the 62.
+The plugin's own slug is not on WPScan yet; it will be once wordpress.org lists
+it. The key used is Nathan's, free tier, in no file.
+
 ## Known open items
 
 Found by the sessions above and left open on purpose — Nathan's decision of
