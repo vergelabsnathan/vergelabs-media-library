@@ -8,15 +8,15 @@ Stable tag: 3.16.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Media library folders, categories and tags, plus AI alt text and captions. The maintained successor to Enhanced Media Library, fixed for WordPress 7.
+Folders, categories and tags for the WordPress media library, with AI alt text and captions.
 
 ## Description ##
 
 **Folders for your media library, categories that stay in WordPress, and alt text written for you.**
 
-VergeLabs Media Library is a maintained fork of [Enhanced Media Library](https://wordpress.org/plugins/enhanced-media-library/) by wpUXsolutions, which has had no release since July 2024. It repairs the media toolbar on WordPress 7.0 and clears the PHP 8 warnings. Everything else is the plugin you already know.
+Folders that are real taxonomy terms, so nothing breaks when you deactivate. Categories and tags on every attachment, filterable in the grid and the list. Alt text and captions written by a model that has looked at the picture, one run at a time, only when you start it. Works on WordPress 6.5 through 7.1 and PHP 7.4 through 8.3.
 
-Based on Enhanced Media Library by wpUXsolutions, and licensed GPLv2 or later as the original is.
+Grown from [Enhanced Media Library](https://wordpress.org/plugins/enhanced-media-library/) by wpUXsolutions, GPLv2 or later as the original is; its settings carry over on activation.
 
 [Source and issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library)
 
