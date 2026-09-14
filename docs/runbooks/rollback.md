@@ -41,9 +41,12 @@ production deployment, and then the wait for sites to ask again.
    change yet — it keeps the environment it was built with, so there is no
    gap in service between this step and the next.
 4. Deploy: `vercel redeploy <current production URL> --target production`
-   (`vercel ls` prints the URL), or push to `main`. The two production builds
-   before the rehearsal took 28 and 34 seconds. This is the step that changes
-   what sites see, and it is Nathan's: the agent's redeploy was refused.
+   (`vercel ls` prints the URL), or push to `main`. Production builds took
+   24–45 seconds on 2026-09-11 and 09-13. This is the step that changes what
+   sites see. It ran from the agent's terminal twice on 2026-09-13 (the
+   monitor rehearsal, `../../../service/docs/runbooks/incident.md`,
+   "Rehearsed") and was refused by the shell classifier on 2026-09-11; if it
+   is refused, it is Nathan's, from his terminal or the dashboard.
 5. Say so in the handoff or the commit: which version was withdrawn, at what
    time, and what the catalogue now says.
 
