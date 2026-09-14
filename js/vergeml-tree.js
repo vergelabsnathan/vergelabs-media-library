@@ -3971,6 +3971,7 @@
 		 */
 		if ( ! frame && isMediaList() ) {
 			document.body.classList.add( 'vgml-mode-list' );
+			wrapListForScrolling( host );
 		}
 
 		if ( frame ) {
@@ -4047,6 +4048,28 @@
 	 */
 	function isMediaList() {
 		return document.body.classList.contains( 'upload-php' ) && ! isGridScreen();
+	}
+
+	/*
+	 *  The strip the list table scrolls sideways in (css/vergeml-tree.css,
+	 *  .vgml-list-scroll). A div around the table, because the table itself
+	 *  must stay a table: given `display: block` it loses core's fixed layout
+	 *  and every column width with it.
+	 *
+	 *  This is the one element of core's that mount() moves. The rule above
+	 *  exists because wp.media had bound to the grid's frame; the list table
+	 *  is markup whose handlers are delegated from the document, and a node
+	 *  keeps its descendants and their listeners when it is reparented.
+	 */
+	function wrapListForScrolling( table ) {
+		if ( ! table || ! table.parentNode || table.parentNode.classList.contains( 'vgml-list-scroll' ) ) {
+			return;
+		}
+
+		var strip = document.createElement( 'div' );
+		strip.className = 'vgml-list-scroll';
+		table.parentNode.insertBefore( strip, table );
+		strip.appendChild( table );
 	}
 
 	function hostSelector() {

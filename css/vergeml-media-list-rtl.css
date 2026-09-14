@@ -169,6 +169,16 @@
 	text-overflow: ellipsis;
 }
 
+/*
+ *  A line that never wraps is only safe in a fixed-layout table, which is
+ *  what core's `.fixed` makes this one. On 2026-09-14 the table had been
+ *  given `display: block` to scroll sideways under the panel, which took the
+ *  fixed layout away: the two nowrap lines here became File's floor, 759px
+ *  at every window, and three columns went off the right edge. The table is
+ *  a table again (css/vergeml-tree.css, .vgml-list-scroll); these rules did
+ *  not change.
+ */
+
 
 /* ----------------------------------------------------------------------- */
 /*  Nothing on a row may wrap its way into a tower.                        */
@@ -196,15 +206,16 @@
 /*
  *  Not done, and why.
  *
- *  Two more rules were measured on 2026-09-07 and taken out again. Together
- *  they took the tallest row from 231px to 98px on the box:
+ *  One rule was measured on 2026-09-07 and taken out again:
  *
  *      .wp-list-table.media tbody td:not( .column-title ) { white-space: nowrap; … }
- *      .wp-list-table.media .column-title { width: 26%; }
  *
- *  They reach the 100px the spec asks for and they do it by changing other
- *  plugins' cells: AIOSEO's SEO fields collapsed to a spinner, and Qode's and
- *  SEOPress's columns were squeezed to 17px slivers. Our stylesheet breaking
- *  three other plugins' columns on a screen none of us owns is not a trade to
- *  make quietly, so it is Nathan's -- see the handoff for the numbers.
+ *  It takes the tallest row under 100px by changing other plugins' cells:
+ *  AIOSEO's SEO fields collapsed to a spinner, Qode's and SEOPress's columns
+ *  were squeezed to 17px slivers. A row is tall on a site where another
+ *  plugin's column wraps its own text; that column is theirs to size and the
+ *  user's to hide under Screen Options. (The 26% width tried the same day
+ *  squeezed them because the table was laying out auto at the time; it
+ *  lives in core/media-list.php as 40% now, written only when a column
+ *  beyond core's own is on the screen.)
  */

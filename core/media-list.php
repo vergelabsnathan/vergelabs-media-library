@@ -231,6 +231,33 @@ function vergeml_list_assets( $hook ) {
         $css .= "\n\n" . implode( ",\n", $headings ) . " {\n\twidth: 9%;\n}";
     }
 
+    /*
+     *  File's share, only while a column beyond core's own is on the screen.
+     *
+     *  With core's three alone, File has no width and takes the leftover,
+     *  which is what core intends. Once more columns arrive the leftover is
+     *  what they leave -- 151px at 1440 on the box on 2026-09-14, the title
+     *  a letter to a line beside its own thumbnail. Unconditional, a width
+     *  would sit File in the middle of a three-column table with the leftover
+     *  as a blank to its left, measured the same day.
+     *
+     *  Two shares, because a fixed table is zero-sum. Among ours (9% each)
+     *  40% leaves rows at 81px median, 98px tallest at 1600. With another
+     *  plugin's columns on the screen -- an SEO plugin's fields at 20%, an
+     *  optimiser's, an alt-text column -- 40% squeezes theirs to 47px and
+     *  their text wraps into 562px rows at 1440; 30% gives them 93px and
+     *  rows of 231, the same table the screen had before, with nothing off
+     *  the right edge. Their columns are theirs to size and the user's to
+     *  hide.
+     */
+    $core   = array( 'cb', 'title', 'author', 'date', 'parent', 'comments' );
+    $beyond = array_diff( $visible, $core );
+    $theirs = array_diff( $beyond, vergeml_list_our_columns() );
+
+    if ( $beyond ) {
+        $css .= "\n\n.wp-list-table.media .column-title {\n\twidth: " . ( $theirs ? '30%' : '40%' ) . ";\n}";
+    }
+
     wp_add_inline_style( 'vergeml-media-list', $css );
 
     wp_enqueue_script(

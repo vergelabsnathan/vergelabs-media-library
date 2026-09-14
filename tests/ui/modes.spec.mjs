@@ -469,7 +469,7 @@ test.describe( 'grid mode', () => {
  */
 
 /** Ours, and what a row may cost when only ours and WordPress's are on. */
-const OURS = [ `taxonomy-${ TAX }`, 'taxonomy-colour', 'vergeml_used', 'vgmlpro_source' ];
+const OURS = [ `taxonomy-${ TAX }`, 'taxonomy-colour', 'taxonomy-audience', 'vergeml_used', 'vgmlpro_source' ];
 const ROW_CEILING = 100;
 
 /*
@@ -536,22 +536,27 @@ for ( const mode of [ 'grid', 'list' ] ) {
 		await openList( page );
 
 		/*
-		 *  Nothing of ours takes a gutter. `.wrap` used to be padded 316px to
-		 *  make room for the tree, and the tree was absolutely positioned in
-		 *  the padding -- unconditionally, on a screen where FileBird Pro had
-		 *  already taken 319px of its own.
+		 *  The folder panel is on this screen -- Nathan's ruling of 2026-09-10,
+		 *  js/vergeml-tree.js isMediaList() -- and the table answers the width
+		 *  it loses by scrolling sideways in its own box, never the page. On
+		 *  2026-09-14 File's nowrap lines held the column at 759px and the page
+		 *  scrolled 193px at 1440: three columns off the right edge.
 		 */
 		const room = await page.evaluate( () => ( {
 			table: Math.round( document.querySelector( '.wp-list-table' ).getBoundingClientRect().width ),
 			body: Math.round( document.querySelector( '#wpbody-content' ).getBoundingClientRect().width ),
 			trees: document.querySelectorAll( '.vgml-tree' ).length,
+			page: document.documentElement.scrollWidth,
+			window: window.innerWidth,
+			file: Math.round( document.querySelector( '.wp-list-table th#title' ).getBoundingClientRect().width ),
 		} ) );
 
-		expect( room.trees, 'no folder panel in list mode' ).toBe( 0 );
+		expect( room.trees, 'the folder panel is on the list screen too' ).toBe( 1 );
 		expect(
-			room.body - room.table,
-			`the table has the content column (content ${ room.body }px, table ${ room.table }px)`
-		).toBeLessThan( 48 );
+			room.page,
+			`the page does not scroll sideways (page ${ room.page }px, window ${ room.window }px)`
+		).toBeLessThanOrEqual( room.window );
+		expect( room.file, `File is a share of the table, not a fixed 759px (${ room.file }px of ${ room.table }px)` ).toBeLessThan( room.table * 0.5 );
 
 		const columns = await page.$$eval( '.wp-list-table thead th[id]', ( ths ) =>
 			ths.map( ( th ) => ( { id: th.id, hidden: th.classList.contains( 'hidden' ) } ) ) );
@@ -565,7 +570,7 @@ for ( const mode of [ 'grid', 'list' ] ) {
 		try {
 			const sets = [
 				[ 'ours off, and the other plugins\' columns off', ROW_CEILING, theirs.concat( ours ) ],
-				[ 'all four of ours on, the other plugins\' columns off', ROW_CEILING, theirs ],
+				[ 'all five of ours on, the other plugins\' columns off', ROW_CEILING, theirs ],
 				[ 'as the screen ships, with every other plugin\'s column on', ROW_ALARM, ours ],
 			];
 

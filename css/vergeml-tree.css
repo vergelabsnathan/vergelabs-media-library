@@ -131,14 +131,21 @@ body.vgml-has-tree .vgml-tree {
  *  Only the table scrolls. The filter bar, the pagination and the bulk-action
  *  menus stay where they are, because a screen whose controls slide off to the
  *  right is a worse trade than the one this replaces.
+ *
+ *  The strip is a div js/vergeml-tree.js wraps around the table, never the
+ *  table itself: `display: block` on a <table> was tried first and it takes
+ *  core's `table-layout: fixed` with it -- the element is no longer a table
+ *  box, so the anonymous table inside lays out auto, every nowrap line
+ *  becomes a floor, a cell with a long alt text balloons, and the widths
+ *  core and this plugin give the columns are ignored. Measured 2026-09-14:
+ *  File 759px at every window, three columns off the right edge, rows 211px;
+ *  as a table again, File 390px at 1600, rows 81px, nothing off the edge.
  */
 body.vgml-mode-list .wp-list-table {
 	min-width: 900px;
 }
 
-body.vgml-mode-list #posts-filter > .wp-list-table,
 body.vgml-mode-list .vgml-list-scroll {
-	display: block;
 	overflow-x: auto;
 	overflow-y: visible;
 	max-width: 100%;
