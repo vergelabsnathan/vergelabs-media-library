@@ -2,9 +2,12 @@
 
 ## Reporting a vulnerability
 
-Email **security@in.vergelabs.nl**. Please do not open a public issue, and please
-do not post it in the WordPress.org support forum — both are readable by the
-people the bug would be used against.
+Email **security@in.vergelabs.nl**, or open a [private advisory on
+GitHub](https://github.com/vergelabsnathan/vergelabs-media-library/security/advisories/new)
+— only we can read it. Please do not open a public issue, and please do not post
+it in the WordPress.org support forum — both are readable by the people the bug
+would be used against. The same contacts are at
+`https://vergelabsmedia.com/.well-known/security.txt`.
 
 Include what you can: the version, what you did, what happened, and where you
 found it. A proof of concept is welcome and never required.
