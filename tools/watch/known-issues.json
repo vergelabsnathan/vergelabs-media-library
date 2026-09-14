@@ -11,8 +11,8 @@
       "affects": [],
       "workaround": null,
       "status": "open",
-      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/17",
-      "found": "2026-09-13"
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/18",
+      "found": "2026-09-14"
     },
     {
       "dependency": "advanced-custom-fields",
