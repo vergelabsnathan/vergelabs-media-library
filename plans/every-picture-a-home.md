@@ -188,9 +188,12 @@ pill will do.
   `To sort` holds exactly the leftovers, preview count = run count, and the
   trail has a row per picture. Undo at the end; the library is as it was.
 - **Proof:** the script's own assertions, printed as rows; `node tools/verify.mjs
-  fill-walk` → green. Mutation: A.1's sibling branch removed on the box copy
-  → "0 in no folder" red. Cost: one propose (~10 credits) or none with the
-  fixture; no describes.
+  fill-walk` → green. Mutation: the `leave` branch removed from
+  `vergeml_filing_answer_plan` on the box copy → "0 in no folder" red (216
+  left, 2026-09-15); A.1's sibling branch removed → "at least one sibling
+  question" red — not "0 in no folder", because the residue path answers
+  every picture whatever the pick said. Cost: one propose (~10 credits) or
+  none with the fixture; no describes.
 - **Mirror:** `tools/box-why-walk.php` + `-undo.php` for a walk that undoes
   itself; memory `tests-never-touch-live-state`.
 - **Copy:** none.
