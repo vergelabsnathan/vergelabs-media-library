@@ -6,6 +6,9 @@ change (`node tools/deploy.mjs --box`, every file re-hashed there). Spend:
 **nothing** — no model route fires anywhere in this work; the specs plant
 state and the alt step is a copy from the catalogue.
 
+> "yeah fine" — Nathan, 2026-09-15, on the built asking / done / alt text
+> shots opened beside the mocks' on his screen at the end of the session.
+
 > **One thing to know first.** A mutation run wiped the file alt text of
 > every picture on the box (details under *What Nathan should know*). The
 > 100 that had one were put back from the catalogue — a reconstruction
