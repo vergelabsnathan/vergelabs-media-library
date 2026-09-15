@@ -7,6 +7,9 @@ file re-hashed there). Spend: **one opening turn (~10 credits)**, spent by
 the mutation that puts the auto-open back to prove the suite catches it;
 everything else was dry runs (embeds, cached) and no model call.
 
+> "yes approved" — Nathan, 2026-09-15, on the eight shots (the mocks beside
+> the built screen) opened on his screen at the end of the session.
+
 ## What the screen is now
 
 `core/guide.php` renders the head (title + three pills: pictures, described,
