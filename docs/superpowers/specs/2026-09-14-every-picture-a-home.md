@@ -103,6 +103,14 @@ step is offered after because a person sorting does not want to be asked
 about alt text mid-sort. Shows: pictures missing alt as a pill, the button,
 what it writes and what it never overwrites (one line).
 
+**Later, decided 2026-09-15 — alt follows the page.** Page context is
+captured when a picture is described and never revisited; a picture placed
+on an article afterwards keeps its earlier alt. A `save_post` hook queues a
+text-only refit (catalogue entry + the page's keyphrase and description, no
+image, a fraction of a credit) and rewrites the alt only where the catalogue
+supports the keyphrase. Its own card after the folder build; not in this
+plan's sessions.
+
 ### Step 5 · Rename files
 Optional, last, and **off** until the reference rewrite is finished
 (`VERGEML_FILE_RENAME`, memory `file-renamer-gated`). The step is shown as

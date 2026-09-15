@@ -113,10 +113,90 @@ get the same treatment after.
 - Tokens in transcripts to rotate if wanted: Better Stack, WPScan.
 - `escaping.mjs` 9/10 (Phase 3 S3's row), unchanged.
 
-## Next
+## Later the same evening
 
-1. Nathan's yes on the Folders mock → build it (one session, `plugin`).
-2. Press Move on the box (or `VGML_APPLY=1 tools/box-plan.sh`) and judge
-   the filed library.
-3. Small service card: prompt-cache padding, empty date folder, the
-   quiet-site cadence.
+- Nathan pressed Move on the box: 20 folders, **487 placed, 513 in no
+  folder** (247 under the floor, 232 inside the margin between siblings, 34
+  gated); the preview had said 816. His verdict as a user: unusable, and an
+  architecture problem, not a threshold. He is right: the matcher was built
+  to be right and the button promised to be done.
+- The Move button had also come back enabled mid-request (nginx 499): the
+  apply made a planner call and filed for five seconds before answering,
+  and the version watcher redrew the button. Fixed in `49b3e88`: apply
+  answers at once (3.9 s on the box), the screen holds an applying state,
+  a second apply returns the running one's progress. Verified through the
+  screen with a throwaway Move, undone.
+- Nathan's order for the feature, recorded in the ticket: describe → tree
+  (proposed or his, confirmed 100% before anything files) → fill (residue
+  is *asked about*, grouped, never forced on a low score) → alt text as its
+  own step → rename last. Written up as spec + ticket + plan (`caa9dec`):
+  `docs/superpowers/specs/2026-09-14-every-picture-a-home.md`,
+  `tickets/2026-09-14-every-picture-a-home.md`,
+  `plans/every-picture-a-home.md` — Phase A the engine (A.1–A.5), Phase B
+  the screens (B.1–B.6), seven sessions, mini-specs with a mutation check
+  each. "Alt follows the page" parked in the spec for its own card after.
+- The Folders glance mock is approved (Nathan, 2026-09-14): it is B's
+  grammar.
+- The box is left with Nathan's Move in place (487 / 513): the state the
+  plan's A.4 walk starts by undoing.
+
+## Next — Phase A, S1: A.1 + A.2, on Opus, in `plugin`, from a fresh session
+
+Card, to `plugin/.harness/active.json` before the first edit:
+
+```json
+{
+  "phase": "Every picture a home — Phase A, S1: A.1 one filing path + A.2 the residue, grouped and named",
+  "model": "opus",
+  "plan": "plans/every-picture-a-home.md",
+  "spec": "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
+  "scope": [
+    "core/filing.php",
+    "core/folder-talk.php",
+    "core/guide.php",
+    "tests/filing/**",
+    "tools/verify.mjs",
+    "../service/app/api/ai/name-group/**",
+    "../service/lib/anthropic.ts",
+    "../service/lib/name-group.test.ts",
+    "docs/**",
+    "plans/**"
+  ],
+  "readFirst": [
+    "docs/handoffs/2026-09-14-box-as-a-user.md",
+    "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
+    "plans/every-picture-a-home.md",
+    "core/filing.php",
+    "core/folder-talk.php",
+    "tools/box-refile-all.php"
+  ],
+  "handoffDir": "docs/handoffs",
+  "stopPoints": [
+    "The floor and margin values do not change; the outcomes around them do",
+    "Residue naming is metered (free to the licence) unless Nathan says a credit",
+    "Nothing on the box is filed by this session; A.4 is the walk, next session",
+    "No screen work: js/ and css/ are Phase B"
+  ],
+  "gates": [
+    "node tools/verify.mjs filing → 12/12 (pick) and green (residue); each mutation named in the plan turns its own row red",
+    "../service: pnpm test green with lib/name-group.test.ts; typecheck clean",
+    "node tools/verify.mjs surface roles escaping → still green (escaping 9/10)",
+    "tools/box-refile-all.php dry run on the box prints outcomes, not just stays: fits / siblings / nothing counts sum to the described total"
+  ]
+}
+```
+
+Opener, cwd `plugin`:
+
+```
+Read docs/handoffs/2026-09-14-box-as-a-user.md, then
+plans/every-picture-a-home.md tasks A.1 and A.2 and the spec's §2 Step 3.
+State which model you are. This session is Phase A S1 of every-picture-a-home.
+Write the card from the handoff to .harness/active.json before the first
+edit. Lean: build inline, test first, one mutation check per task, no
+subagents. Stop points and gates are in the card. End with a handoff in
+docs/handoffs/ carrying the S2 card (A.3 + A.4).
+```
+
+Phase B's S3 (the two mocks, B.1) can run in parallel in its own session;
+its card is the plan's B.1 with scope `docs/superpowers/mocks/**` only.
