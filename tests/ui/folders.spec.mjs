@@ -526,6 +526,77 @@ test.describe( 'the Folders screen', () => {
 		await expect( page.locator( '.g-tree .vgml-node.is-change .vgml-name' ).first() ).toContainText( name + ' renamed' );
 	} );
 
+	/*
+	 *  Click-to-add (Nathan, mid-walk 2026-09-15): the + on a row, the "New
+	 *  folder" at the foot. Typed in place; a path reaches deeper. The paste's
+	 *  path to the session -- the draft to the turn route for its counts, no
+	 *  model asked -- so no POST to token / stream / propose.
+	 */
+	test( 'a folder is added by clicking: + on a row, a path for deeper, New folder at the foot; no model route', async ( { page } ) => {
+		test.setTimeout( 180_000 );
+		await remember( page );
+		const boot = await plant( page, true );
+		expect( boot.nodes.some( ( n ) => /add probe|top probe/i.test( n.name ) ), 'the box holds no folder named Add probe or Top probe' ).toBe( false );
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open( page, SCREEN.folders );
+		await ready( page );
+
+		const model = [];
+		page.on( 'request', ( r ) => {
+			if ( 'POST' === r.method() && /\/guide\/(token|stream|propose)(\?|$)/.test( r.url() ) ) {
+				model.push( r.url() );
+			}
+		} );
+
+		// The + on a branch row, shown on hover: an editor one level under it; a path makes two folders, the first under the branch.
+		const branch = page.locator( '.g-tree .vgml-node[data-key][aria-level="1"][aria-expanded]' ).first();
+		const branchName = ( await branch.locator( '.vgml-name' ).innerText() ).trim();
+		await branch.locator( '.vgml-row' ).hover();
+		await expect( branch.locator( '.vgml-add' ) ).toBeVisible();
+		await expect( branch.locator( '.vgml-add' ) ).toHaveAttribute( 'aria-label', `Add a folder inside ${ branchName }` );
+		await branch.locator( '.vgml-add' ).click();
+		const editor = page.locator( '.g-tree .vgml-node.is-adding .vgml-editor' );
+		await expect( editor ).toBeFocused();
+		await expect( page.locator( '.g-tree .vgml-node.is-adding' ) ).toHaveAttribute( 'aria-level', '2' );
+		await editor.fill( 'Add probe > Deeper' );
+		await page.keyboard.press( 'Enter' );
+
+		await expect( page.locator( '.g-change .vgml-msg.is-edit' ).last() ).toContainText( `Added Deeper under ${ branchName }` );
+		const probe = page.locator( '.g-tree .vgml-node.is-new' ).filter( { has: page.locator( '.vgml-name', { hasText: /^Add probe$/ } ) } );
+		await expect( probe ).toHaveCount( 1 );
+		await expect( probe ).toHaveAttribute( 'aria-level', '2' );
+		// Deeper is under Add probe: a row at level 3, or a new chip on Add probe's line.
+		await expect( page.locator( '.g-tree .vgml-node[aria-level="3"].is-new .vgml-name, .g-tree .vgml-tv-sibs .vgml-sib.is-new' ).filter( { hasText: 'Deeper' } ) ).toHaveCount( 1 );
+		await expect( page.locator( '.g-tree .vgml-editor' ) ).toHaveCount( 0 );
+
+		// The foot: a top-level folder.
+		await page.locator( '.g-tree .vgml-tv-add .vgml-add-top' ).click();
+		await expect( page.locator( '.g-tree .vgml-node.is-adding' ) ).toHaveAttribute( 'aria-level', '1' );
+		await page.locator( '.g-tree .vgml-node.is-adding .vgml-editor' ).fill( 'Top probe' );
+		await page.keyboard.press( 'Enter' );
+		await expect( page.locator( '.g-tree .vgml-node[aria-level="1"].is-new .vgml-name' ).filter( { hasText: /^Top probe$/ } ) ).toHaveCount( 1 );
+		await expect( page.locator( '.g-change .vgml-msg.is-edit' ).last() ).toContainText( 'Added Top probe' );
+
+		// Escape drops an empty one and changes nothing.
+		await page.locator( '.g-tree .vgml-tv-add .vgml-add-top' ).click();
+		await page.keyboard.press( 'Escape' );
+		await expect( page.locator( '.g-tree .vgml-editor' ) ).toHaveCount( 0 );
+
+		// The session holds all three as new folders in their places, the dry run answered, the confirm is offered.
+		const confirm = page.locator( '.g-card[data-card="tree"] .vgml-confirm-btn' );
+		await expect( confirm ).toBeEnabled( { timeout: 90000 } );
+		const s = await getSession( page );
+		const byName = Object.fromEntries( s.session.draft.folders.map( ( f ) => [ f.name, f ] ) );
+		const branchKey = s.session.draft.folders.find( ( f ) => f.name === branchName ).key;
+		expect( byName[ 'Add probe' ] && byName[ 'Add probe' ].term_id, 'Add probe is new' ).toBeNull();
+		expect( byName[ 'Add probe' ].parent ).toBe( branchKey );
+		expect( byName[ 'Deeper' ].parent ).toBe( byName[ 'Add probe' ].key );
+		expect( byName[ 'Top probe' ].parent ).toBe( '' );
+		expect( s.session.fit, 'the turn route ran the dry run over the add' ).not.toBeNull();
+		expect( model, 'no model route fired' ).toEqual( [] );
+		await page.screenshot( { path: 'tests/ui/shots/folders-add-by-click.png' } );
+	} );
+
 	test( 'the old guide address lands here', async ( { page } ) => {
 		await remember( page );
 		await plant( page, false );

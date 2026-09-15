@@ -225,6 +225,51 @@ check( 'removing a folder lifts its children to its parent and records where its
 check( 'a folder cannot be dropped inside its own sub-folder', 't2' !== edits.apparelParent, edits.apparelParent );
 check( 'an added folder has no term id', 1 === edits.addedNew );
 
+// The add takes a path from its parent in the paste's grammar: what exists at that place is reused, the rest is made.
+const pathAdd = await page.evaluate( () => {
+	const h = window.harness;
+	const d0 = h.mockDraft();
+	const d1 = h.tv.applyEdit( d0, { type: 'add', parent: 't1', name: 'women > Rooftop > Terrace', by: 'you' } );
+	const women = d1.folders.filter( ( f ) => 't1' === f.parent && 'women' === f.name.toLowerCase() );
+	const rooftop = d1.folders.find( ( f ) => 'Rooftop' === f.name );
+	const terrace = d1.folders.find( ( f ) => 'Terrace' === f.name );
+	return {
+		made: d1.folders.length - d0.folders.length,
+		women: women.length,
+		rooftopUnder: rooftop ? rooftop.parent : '',
+		terraceUnder: terrace && rooftop ? terrace.parent === rooftop.key : false,
+		terraceNew: terrace ? null === terrace.term_id : false,
+	};
+} );
+check( 'an add with a path reuses the folder that exists and makes the rest under it', 2 === pathAdd.made && 1 === pathAdd.women && 't2' === pathAdd.rooftopUnder && pathAdd.terraceUnder && pathAdd.terraceNew, JSON.stringify( pathAdd ) );
+
+// On screen: + on a row opens an editor under it; Enter is one `add` edit; the row is there, new, and its parent is open.
+await page.evaluate( () => window.harness.withDraft() );
+await page.hover( '#folders .vgml-node[data-key="t13"] .vgml-row' );
+await page.click( '#folders .vgml-node[data-key="t13"] .vgml-add' );
+const editorUnder = await page.evaluate( () => {
+	const ed = document.querySelector( '#folders .vgml-node.is-adding' );
+	const prev = ed && ed.previousElementSibling;
+	return { there: !! ed, level: ed ? ed.getAttribute( 'aria-level' ) : '', afterArchitectureBranch: !! ( prev && ( 't15' === prev.getAttribute( 'data-key' ) || 't13' === prev.getAttribute( 'data-key' ) || prev.classList.contains( 'vgml-tv-sibs' ) ) ), focused: document.activeElement && document.activeElement.classList.contains( 'vgml-editor' ) };
+} );
+check( 'the + on a row opens an empty editor under that branch, one level deeper, focused', editorUnder.there && '2' === editorUnder.level && editorUnder.afterArchitectureBranch && editorUnder.focused, JSON.stringify( editorUnder ) );
+await page.fill( '#folders .vgml-node.is-adding .vgml-editor', 'Bridges' );
+await page.keyboard.press( 'Enter' );
+const addedRow = await page.evaluate( () => {
+	const h = window.harness;
+	const last = h.edits[ h.edits.length - 1 ];
+	const row = [ ...document.querySelectorAll( '#folders .vgml-node' ) ].find( ( n ) => 'Bridges' === ( n.querySelector( '.vgml-name' ) || {} ).textContent );
+	const chip = [ ...document.querySelectorAll( '#folders .vgml-sib' ) ].find( ( c ) => c.textContent.indexOf( 'Bridges' ) === 0 );
+	return { edit: last, asRow: !! row, rowNew: !! ( row && row.classList.contains( 'is-new' ) ), asChip: !! chip, chipNew: !! ( chip && chip.classList.contains( 'is-new' ) ), editors: document.querySelectorAll( '#folders .vgml-editor' ).length };
+} );
+check( 'Enter emits one add edit under that parent and the folder shows, new, with no editor left', addedRow.edit && 'add' === addedRow.edit.type && 't13' === addedRow.edit.parent && 'Bridges' === addedRow.edit.name && ( ( addedRow.asRow && addedRow.rowNew ) || ( addedRow.asChip && addedRow.chipNew ) ) && 0 === addedRow.editors, JSON.stringify( addedRow ) );
+const editsBefore = await page.evaluate( () => window.harness.edits.length );
+await page.click( '#folders .vgml-tv-add .vgml-add-top' );
+const footOpened = await page.evaluate( () => ( { editors: document.querySelectorAll( '#folders .vgml-editor' ).length, level: ( document.querySelector( '#folders .vgml-node.is-adding' ) || { getAttribute: () => '' } ).getAttribute( 'aria-level' ) } ) );
+await page.keyboard.press( 'Escape' );
+const escaped = await page.evaluate( () => ( { editors: document.querySelectorAll( '#folders .vgml-editor' ).length, edits: window.harness.edits.length, foot: !! document.querySelector( '#folders .vgml-tv-add .vgml-add-top' ) } ) );
+check( 'New folder at the foot opens a top-level editor; Escape drops it and emits nothing', 1 === footOpened.editors && '1' === footOpened.level && 0 === escaped.editors && escaped.foot && escaped.edits === editsBefore, JSON.stringify( { footOpened, escaped, editsBefore } ) );
+
 await page.evaluate( () => window.harness.withDraft() );
 await page.dblclick( '#folders .vgml-node[data-key="t29"] .vgml-name' );
 await page.fill( '#folders .vgml-editor', 'People' );

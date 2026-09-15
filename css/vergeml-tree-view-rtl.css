@@ -385,6 +385,57 @@
 	color: var( --vgml-tv-ink );
 }
 
+/* Add a folder inside this one: shown when the row is hovered or focused, kept in the flow so pills stay put. */
+.vgml-tv[data-surface="folders"] .vgml-add {
+	display: inline-flex;
+	flex: 0 0 20px;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	margin: 0 6px 0 0;
+	padding: 0;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: none;
+	color: var( --vgml-tv-muted );
+	font: inherit;
+	font-size: 15px;
+	line-height: 1;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 120ms ease;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-row:hover .vgml-add,
+.vgml-tv[data-surface="folders"] .vgml-node:focus > .vgml-row .vgml-add,
+.vgml-tv[data-surface="folders"] .vgml-node:focus-within > .vgml-row .vgml-add {
+	opacity: 1;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-add:hover,
+.vgml-tv[data-surface="folders"] .vgml-add:focus-visible {
+	border-color: var( --vgml-tv-accent );
+	color: var( --vgml-tv-accent );
+	opacity: 1;
+	outline: none;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-add {
+	list-style: none;
+	margin: 0;
+	padding: 6px var( --vgml-tv-indent, 8px ) 0 0;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-add-top {
+	cursor: pointer;
+	font: inherit;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-node.is-adding .vgml-handle {
+	visibility: hidden;
+}
+
 .vgml-tv[data-surface="folders"] .vgml-row.is-drop {
 	box-shadow: inset 0 0 0 2px var( --vgml-tv-accent );
 	border-radius: 4px;

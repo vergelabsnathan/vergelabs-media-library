@@ -1382,6 +1382,22 @@
 				? sprintf( __( 'Moved %1$s under %2$s', 'vergelabs-media-library' ), nameOf( draft, edit.key ), nameOf( draft, edit.parent ) )
 				/* translators: %s: a folder name */
 				: sprintf( __( 'Moved %s to the top level', 'vergelabs-media-library' ), nameOf( draft, edit.key ) );
+		} else if ( 'add' === edit.type ) {
+			/*
+			 *  Typed on the tree. The paste's path, not a model turn: the draft
+			 *  goes to the turn route for the matcher's counts and no model is
+			 *  asked -- confirm profiles the new folder, as it does a pasted one.
+			 */
+			var made = edit.name.split( '>' ).map( function ( s ) { return s.trim(); } ).filter( Boolean );
+			var last = made.length ? made[ made.length - 1 ] : edit.name;
+			line = edit.parent
+				/* translators: 1: a folder name, 2: its parent */
+				? sprintf( __( 'Added %1$s under %2$s', 'vergelabs-media-library' ), last, nameOf( draft, edit.parent ) )
+				/* translators: %s: a folder name */
+				: sprintf( __( 'Added %s', 'vergelabs-media-library' ), last );
+			talk.pushUser( { kind: 'edit', text: line } );
+			pasteDraft( withOrigin( TV.applyEdit( draft, edit ), state.session.draft ) );
+			return;
 		}
 		// A paste still being answered is answered about a draft this edit has
 		// just changed: that answer is dropped when it comes.

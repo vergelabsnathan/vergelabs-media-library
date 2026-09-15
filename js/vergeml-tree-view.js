@@ -100,7 +100,10 @@
 		noChanges: 'No changes yet',
 		nothingFound: 'No folder matches',
 		rename: 'Rename',
-		remove: 'Remove from the draft'
+		remove: 'Remove from the draft',
+		addIn: 'Add a folder inside %s',
+		addTop: 'New folder',
+		addName: 'Name, or Solar > Rooftop'
 	};
 
 	/* --------------------------------------------------------------- glyphs */
@@ -405,13 +408,37 @@
 				break;
 
 			case 'add':
-				next.folders.push( {
-					key: edit.key || newKey(),
-					term_id: null,
-					name: String( edit.name || '' ).replace( /\//g, '-' ).trim(),
-					parent: edit.parent || '',
-					count: edit.count || 0,
-					by: edit.by || ''
+				/*
+				 *  The name may be a path from the parent, "Solar > Rooftop", in
+				 *  the paste's grammar: a segment that already exists at that
+				 *  place (case-insensitively) is reused, the rest are made, so
+				 *  one add can reach a folder the tree shows only as a chip.
+				 */
+				var parent = edit.parent || '';
+				var segments = String( edit.name || '' ).split( '>' ).map( function ( s ) {
+					return s.replace( /\//g, '-' ).trim();
+				} ).filter( Boolean );
+				segments.forEach( function ( segment, i ) {
+					var have = null;
+					next.folders.forEach( function ( g ) {
+						if ( g.parent === parent && g.name.toLowerCase() === segment.toLowerCase() ) {
+							have = g;
+						}
+					} );
+					if ( have ) {
+						parent = have.key;
+						return;
+					}
+					var made = {
+						key: i === segments.length - 1 && edit.key ? edit.key : newKey(),
+						term_id: null,
+						name: segment,
+						parent: parent,
+						count: edit.count || 0,
+						by: edit.by || ''
+					};
+					next.folders.push( made );
+					parent = made.key;
 				} );
 				break;
 		}
@@ -1145,6 +1172,16 @@
 			row.appendChild( count );
 		}
 
+		if ( folders && this.editable && 'removed' !== status ) {
+			// The one visible action on a row: a folder inside this one. Rename and nesting stay as they are (double-click, drag).
+			var add = el( 'button', { type: 'button', class: 'vgml-add', tabindex: '-1', 'aria-label': sprintf( l10n.addIn, entry.name ), title: sprintf( l10n.addIn, entry.name ) }, '+' );
+			add.addEventListener( 'click', function ( e ) {
+				e.stopPropagation();
+				self.startAdd( item, entry );
+			} );
+			row.appendChild( add );
+		}
+
 		item.appendChild( row );
 
 		if ( folders ) {
@@ -1152,6 +1189,70 @@
 		}
 
 		return { item: item, row: row, name: name, count: count };
+	};
+
+	/*
+	 *  A new folder, typed in place: an empty row under the parent (or at the
+	 *  foot of the tree for a top-level one) with the same editor a rename uses.
+	 *  Enter makes it -- as an `add` edit, so the screen treats it like any
+	 *  hand edit; Escape, or leaving it empty, drops the row and nothing changes.
+	 */
+	TreeView.prototype.startAdd = function ( item, entry ) {
+		var self = this;
+		if ( this.editing || ! this.listEl ) {
+			return;
+		}
+		this.editing = entry ? entry.key : '+';
+		var depth = entry ? entry.depth + 1 : 0;
+		var li = el( 'li', { class: 'vgml-node is-new is-adding', role: 'treeitem', 'aria-level': depth + 1 } );
+		var row = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( depth * this.indent.step + this.indent.base ) + 'px' } );
+		row.appendChild( el( 'span', { class: 'vgml-twist is-leaf', 'aria-hidden': 'true' } ) );
+		if ( 'folders' === this.surface ) {
+			row.appendChild( el( 'span', { class: 'vgml-handle', 'aria-hidden': 'true' }, '⋮⋮' ) );
+		}
+		row.appendChild( folderIcon( '', false, true ) );
+		var input = el( 'input', { type: 'text', class: 'vgml-editor', value: '', placeholder: this.l10n.addName, 'aria-label': entry ? sprintf( this.l10n.addIn, entry.name ) : this.l10n.addTop } );
+		row.appendChild( input );
+		li.appendChild( row );
+		var done = false;
+
+		function finish( commit ) {
+			if ( done ) {
+				return;
+			}
+			done = true;
+			self.editing = '';
+			var name = input.value.trim();
+			if ( commit && name ) {
+				if ( entry && ! self.isOpen( entry.key ) ) {
+					self.openOverride[ entry.key ] = true;
+				}
+				self.onEdit( { type: 'add', parent: entry ? entry.key : '', name: name, by: 'you' } );
+			} else {
+				self.render();
+			}
+		}
+
+		input.addEventListener( 'keydown', function ( e ) {
+			e.stopPropagation();
+			if ( 'Enter' === e.key ) { e.preventDefault(); finish( true ); }
+			if ( 'Escape' === e.key ) { e.preventDefault(); finish( false ); }
+		} );
+		input.addEventListener( 'blur', function () { finish( true ); } );
+		input.addEventListener( 'click', function ( e ) { e.stopPropagation(); } );
+
+		if ( item ) {
+			// After the parent's own rows: its lines and chips, and every deeper row.
+			var level = Number( item.getAttribute( 'aria-level' ) ) || 1;
+			var after = item.nextSibling;
+			while ( after && ( ! after.hasAttribute( 'aria-level' ) || Number( after.getAttribute( 'aria-level' ) ) > level ) && ! after.classList.contains( 'vgml-tv-add' ) ) {
+				after = after.nextSibling;
+			}
+			this.listEl.insertBefore( li, after );
+		} else {
+			this.listEl.insertBefore( li, this.listEl.querySelector( '.vgml-tv-add' ) );
+		}
+		input.focus();
 	};
 
 	/* --- interactions on the Folders surface --- */
@@ -1601,6 +1702,14 @@
 		if ( ! entries.length ) {
 			this.listEl.appendChild( el( 'li', { class: 'vgml-empty', role: 'none' },
 				this.filter ? this.l10n.nothingFound : this.l10n.noChanges ) );
+		}
+
+		if ( this.editable && 'folders' === this.surface && ! this.filter ) {
+			var foot = el( 'li', { class: 'vgml-tv-add', role: 'none' } );
+			var top = el( 'button', { type: 'button', class: 'vgml-add-top g-chip' }, '+ ' + this.l10n.addTop );
+			top.addEventListener( 'click', function () { self.startAdd( null, null ); } );
+			foot.appendChild( top );
+			this.listEl.appendChild( foot );
 		}
 
 		this.seen = next;
