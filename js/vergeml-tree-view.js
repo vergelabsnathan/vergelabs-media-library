@@ -1593,7 +1593,8 @@
 					j++;
 				}
 			}
-			var fits = kids.length === e.kids && kids.every( function ( k ) {
+			// A leaf has nothing to fold: no chips line under it (it drew an empty one, a second rule under every leaf).
+			var fits = kids.length > 0 && kids.length === e.kids && kids.every( function ( k ) {
 				return ! k.kids && ! k.path && ! k.line && ! k.fold && k.depth === e.depth + 1 && 'removed' !== k.status && ! k.sub && self.editing !== k.key;
 			} );
 			out.push( e );

@@ -104,7 +104,7 @@
 	list-style: none;
 	margin: 12px 0 0;
 	padding: 0;
-	border-top: 2px solid var( --vgml-tv-divider );
+	border-top: 0; /* the approved mock: rows carry the rules, nothing heavier above the first */
 	max-height: none;
 	min-height: 0;
 	overflow: visible;
@@ -286,7 +286,8 @@
 	flex-wrap: wrap;
 	gap: 6px 10px;
 	margin: 0;
-	padding: 2px 0 8px calc( var( --vgml-indent, 0px ) + 12px );
+	/* Under the parent's name (twist 16 + handle 16 + two 10px gaps, less the one step of indent this line carries), a hair to the right as the mock has it. */
+	padding: 2px 0 8px calc( var( --vgml-indent, 0px ) + 36px );
 	list-style: none;
 	border-bottom: 1px solid var( --vgml-tv-rule );
 }

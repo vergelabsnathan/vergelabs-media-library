@@ -189,7 +189,9 @@
 	padding-block: 7px;
 }
 
-.vgml-shell .g-tree .vgml-node[aria-expanded] > .vgml-row .vgml-name {
+/* A parent, and any top-level folder: a top-level leaf is a sibling of the parents, not a lesser row. */
+.vgml-shell .g-tree .vgml-node[aria-expanded] > .vgml-row .vgml-name,
+.vgml-shell .g-tree .vgml-node[aria-level="1"] > .vgml-row .vgml-name {
 	font-weight: 600;
 	color: var(--vgml-ink);
 }

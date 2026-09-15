@@ -302,6 +302,13 @@ const deeper = await page.evaluate( () => {
 	return { edit: last, t14IsRow: !! t14, t14Level: t14 ? t14.getAttribute( 'aria-level' ) : '', facadesUnder: fac ? fac.parent : '', facadesShown: [ ...document.querySelectorAll( '#chips .vgml-name, #chips .vgml-sib' ) ].some( ( n ) => /^Facades/.test( n.textContent ) ) };
 } );
 check( 'the + on a chip opens an editor after the chips line, one level deeper; Enter makes the folder under the chip, which becomes a row', chipBefore.isChip && chipBefore.hasAdd && chipBefore.hasRemove && chipEditor.there && '3' === chipEditor.level && chipEditor.afterSibs && 'add' === deeper.edit.type && 't14' === deeper.edit.parent && deeper.t14IsRow && '2' === deeper.t14Level && 't14' === deeper.facadesUnder && deeper.facadesShown, JSON.stringify( { chipBefore, chipEditor, deeper } ) );
+const leafLine = await page.evaluate( () => {
+	// Bikes and cycling (t16) is a top-level leaf: nothing folds under it, so nothing is drawn under it.
+	const leaf = document.querySelector( '#chips .vgml-node[data-key="t16"]' );
+	const next = leaf && leaf.nextElementSibling;
+	return { there: !! leaf, nextIsChipsLine: !! ( next && next.classList.contains( 'vgml-tv-sibs' ) ), emptyLines: [ ...document.querySelectorAll( '#chips .vgml-tv-sibs' ) ].filter( ( li ) => ! li.querySelector( '.vgml-sib' ) ).length };
+} );
+check( 'a leaf row has no chips line under it (no empty line, no second rule)', leafLine.there && ! leafLine.nextIsChipsLine && 0 === leafLine.emptyLines, JSON.stringify( leafLine ) );
 await page.hover( '#chips .vgml-sib[data-key="t27"]' );
 await page.click( '#chips .vgml-sib[data-key="t27"] .vgml-remove' );
 const chipRemoved = await page.evaluate( () => {
