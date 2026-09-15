@@ -383,3 +383,148 @@ pill will do.
 - **Copy:** drafted in the mocks, approved with them.
 - **Do not:** remove a fact the screen needs (credits, last run, what
   leaves the site) — move it behind a disclosure, don't delete it.
+
+---
+
+# Phase C — the fill, honest (added 2026-09-15 evening, from Nathan's walk)
+
+Nathan walked A.5 on the box (`docs/handoffs/2026-09-15-s6b-deep-dive-the-fill-is-not-honest.md`):
+612 placed, 30 questions, a 61-picture group "look like server racks" that
+held 9 racks and 16 telecom towers, and *Put in Server racks* took all 61.
+The engine's A.1–A.4 hold on their fixtures; the box's real profiles broke
+the assumption under them: `infrastructure` sits on five folders, `people`
+on three, `computer hardware` on two, so the matcher ties and abstains
+(109 margins of 388 residue), the residue lumps by a 0.5 cosine to a fixed
+seed and labels the lump after its largest minority, and the screen hides
+every error and rebuilds everything twice per press. Four tasks. **FLOOR,
+MARGIN and SURE do not move**: what changes is what a class hit is worth,
+what a tie means, how a group is formed and named, and what one press costs.
+
+**Sessions.** S7: C.1 + C.2. S8: C.3 + C.4. Then the Folders polish card,
+then B.6.
+
+**Stop points (Nathan).** The sample's verdict (the 60-picture sheet of
+2026-09-15, his marks). The box after his walk stays his (61 in Server
+racks by hand, 327 in To sort) unless he says undo. K = 8 questions asked
+at most, the rest one card — his number to change.
+
+## C.1 · The matcher tells folders apart — Opus
+
+- **Files:** `core/filing.php` (`vergeml_filing_pick`, `_profiles`,
+  `_settle_claims`, `_questions`), `core/folder-talk.php` (the run's tally
+  and the questions build for a new kind), `tests/filing/pick.php`.
+- **Behaviour:** (1) a class held by k folders counts 1/k on each
+  (`'shared' => [class => k]` computed once in `_profiles`), so a specific
+  hit beats a shared word; (2) the picture's second phrase weighs 0.85, the
+  first 1.0; (3) a folder's own leaf name matching a phrase exactly scores
+  1.0 wherever it sits in the list; (4) a margin between two folders of
+  *different* parents returns `children => [best, runner]` and becomes a
+  question of kind `either` — "N pictures: Hardware or Server racks?" with
+  `put-in:best`, `put-in:runner`, `split`, `leave`, `show-me` — tallied
+  beside `siblings`; (5) a pick gated on every folder by kind carries its
+  kind out (`why gated`, `kind`) so C.2 can group it.
+- **Proof:** `pick.php` rows: "server rack; computer hardware" against
+  Hardware[computer hardware, computer] and Server racks[infrastructure,
+  server racks] → Server racks, `sure`; four folders sharing
+  `infrastructure` + one also `server rack` and a picture "server rack;
+  infrastructure" → that one, `sure`, no margin; a cross-parent margin →
+  `children` set; `either` shape in `residue.php`. Mutations: the 1/k
+  weight removed → the four-folder row red; the second-phrase weight
+  removed → the Hardware row red; the cross-parent branch removed → the
+  `either` row red. `tools/box-refile-all.php` dry run: margin well under
+  109, printed beside today's line.
+- **Mirror:** A.1; the S1 handoff's line that all 202 margins were
+  shared-word ties.
+- **Copy:** the `either` sentence: "%1$s pictures: %2$s or %3$s?" — pills,
+  no prose.
+- **Do not:** move the three constants; re-profile the box's folders to
+  make the numbers look better (C.4 fixes the planner; until then the
+  test is the fixture and the dry run).
+
+## C.2 · The residue, grouped and labelled honestly — Opus
+
+- **Files:** `core/filing.php` (`vergeml_filing_residue_groups`,
+  `_questions`, new `vergeml_filing_group_nearest`), `core/folder-talk.php`
+  (`vergeml_talk_questions_build`, `_question_text`; `state.residue` carries
+  `id => nearest`), `tests/filing/residue.php`, `tests/tree/copy.mjs`.
+- **Behaviour:** kind first: screenshots, illustrations, diagrams,
+  documents, logos each form their own group and never merge across
+  kinds; merge only near-identical phrases (`class_match ≥ 0.95` or
+  centroid cosine ≥ 0.8), centroid recomputed over the merged vectors;
+  after merging, `class` = the majority phrase with its `share`; the
+  sentence is "N look like X" only from 70 % up, else "N mixed, mostly X";
+  `GROUP_TINY` 5; the K = 8 largest readable groups are asked, the rest are
+  one card "N more, in small groups" with leave / show-me; `put-in:X` only
+  when X is the per-picture nearest for ≥ 60 % of the group and passes X's
+  kind and audience gates. "I can't read" is renamed for what it is:
+  "N with nothing to go on".
+- **Proof:** `residue.php`: seven screenshot facts among photo-like
+  vectors → their own group, never merged; a 3 at cosine 0.6 does not
+  merge, at 0.85 does; seed 3 + incoming 5 → class flips, share 0.625,
+  sentence "mixed"; 12 groups → 9 cards; nearest map 9/61 → no put-in,
+  40/61 → put-in. `copy.mjs` pins the three strings. Mutations: the kind
+  key removed → row 1 red; `GROUP_NEAR` back to 0.5 → the 0.6 row red; the
+  cap removed → the 12-groups row red; the majority rule removed → the
+  9/61 row red.
+- **Mirror:** A.2; the 61 as the fixture's shape (racks 9, towers 16,
+  robots 3, screenshots 7, singletons).
+- **Copy:** the four sentences above, ≤ 8 words each.
+- **Do not:** call the namer for a group the cap will fold (spend);
+  let a group's name be an existing folder's name without offering
+  `put-in` for that folder under the majority rule.
+
+## C.3 · One press, one honest answer — Opus (Fable for the JS if it has budget)
+
+- **Files:** `js/vergeml-folders.js` (`onAnswer`, `tookAnswer`,
+  `refreshTree`, `renderQuestions`, `renderFill`), `core/guide.php`
+  (`vergeml_guide_rest_answer`), `core/folder-talk.php`
+  (`vergeml_talk_answer`), `tests/ui/folders.spec.mjs`.
+- **Behaviour:** an error from `guide/answer` lands on the card
+  (`.g-q-result`), never in the hidden change line; the move loop runs
+  under `wp_defer_term_counting` and flushes counts once; the answer
+  response carries the answered question, `made`, `undo` and the status —
+  not all thirty questions with thumbnails; the client marks the card
+  answered locally, appends the next card without rebuilding the grid,
+  rebuilds the tree once (`setNewIds` before `setTree`, no re-append of
+  the tree node); the strip shows a count when capped at 48; keyboard:
+  1–4 answer the focused card, Enter opens the strip.
+- **Proof:** `folders.spec`: 30 planted questions; a 409 intercepted →
+  its text on the card; `guide/answer` response has no `questions[].sample`;
+  one `MutationObserver` childList batch on `.vgml-list` per answer; the
+  answered card is the same DOM node after; a timing row printed (answer
+  round trip on the box, and the same on Playground for the plugin's own
+  cost). Mutations: the defer removed → the query-count row red; the
+  re-append restored → the observer row red.
+- **Mirror:** S5's questions view; `tests/ui/folders.spec.mjs` "the Fill
+  step asks".
+- **Copy:** none new.
+- **Do not:** measure on the box alone — its REST round trip is 2.9 s
+  with 36 plugins; Playground gives the plugin's own number.
+
+## C.4 · The planner speaks the describer's words — Opus
+
+- **Files:** service `lib/anthropic.ts` (`profileFolders`, `planFolders`
+  prompts), `lib/describe.ts` (schema `.describe` for `object`),
+  `app/api/ai/folders/*`, plugin `core/filing.php`
+  (`vergeml_filing_profile_ask` sends the vocabulary; `class_match` canon
+  fold), `core/folder-talk.php` (`vergeml_talk_samples` carries `object`),
+  `tests/filing/pick.php`, service `lib/*.test.ts`.
+- **Behaviour:** the profile and plan prompts receive the library's top
+  object terms with counts (as the guide summary already does) and the
+  rule "use these words verbatim; a class belongs to one folder; a parent
+  lists only what none of its children claims"; the plugin drops from a
+  returned seed any class already rank-0 on a stored profile and logs it;
+  the describer's schema description matches its prompt ("specific;
+  class"); `class_match` folds British/American spellings and irregular
+  plurals from a small table and floors the cosine path at 0.6.
+- **Proof:** vitest: the prompt text carries the terms and the one-folder
+  rule; `describe.test.ts` asserts the schema description contains ";";
+  `pick.php`: `class_match('data centre','data center') === 1.0`; a
+  planner answer with a neighbour's class → dropped, logged. Mutations:
+  the rule line removed → the prompt test red; the fold table emptied →
+  the pick row red.
+- **Mirror:** `core/guide.php:513-528` (the summary's top terms);
+  `lib/name-group.test.ts` for the prompt-test shape.
+- **Copy:** none on screen.
+- **Do not:** re-profile the box's folders by script to prove it (a
+  planner call, metered; Nathan's call, through the screen).
