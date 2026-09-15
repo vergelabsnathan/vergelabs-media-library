@@ -747,6 +747,49 @@ function vergeml_guide_routes() {
         'callback'            => 'vergeml_guide_rest_undo',
         'permission_callback' => $may,
     ) );
+    // The questions the fill left, and where the step stands. Read-only and cheap.
+    register_rest_route( VERGEML_REST_NS, '/guide/questions', array(
+        'methods'             => WP_REST_Server::READABLE,
+        'callback'            => 'vergeml_guide_rest_questions',
+        'permission_callback' => $may,
+    ) );
+    // One answer to one question: keep-parent | split | new-folder | put-in:<term> | leave | show-me.
+    register_rest_route( VERGEML_REST_NS, '/guide/answer', array(
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'vergeml_guide_rest_answer',
+        'permission_callback' => $may,
+        'args'                => array(
+            'id'     => array( 'type' => 'string', 'required' => true ),
+            'answer' => array( 'type' => 'string', 'required' => true ),
+        ),
+    ) );
+}
+
+function vergeml_guide_rest_questions( WP_REST_Request $request ) {
+    return rest_ensure_response( array(
+        'questions' => vergeml_talk_questions(),
+        'status'    => vergeml_talk_fill_status(),
+        'version'   => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
+    ) );
+}
+
+function vergeml_guide_rest_answer( WP_REST_Request $request ) {
+
+    $r = vergeml_talk_answer(
+        sanitize_text_field( (string) $request->get_param( 'id' ) ),
+        sanitize_text_field( (string) $request->get_param( 'answer' ) )
+    );
+    if ( is_wp_error( $r ) ) {
+        return $r;
+    }
+
+    return rest_ensure_response( array(
+        'result'    => $r,
+        'questions' => vergeml_talk_questions(),
+        'status'    => vergeml_talk_fill_status(),
+        'undo'      => vergeml_talk_undo_available(),
+        'version'   => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
+    ) );
 }
 
 function vergeml_guide_rest_session( WP_REST_Request $request ) {
@@ -973,7 +1016,7 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
     $vectors = array();
     foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
-        foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, tags FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', $chunk ) . ')', ARRAY_A ) as $v ) {
+        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s WHERE i.attachment_id IN (" . implode( ',', $chunk ) . ')', VERGEML_FILING_PLACED_BY ), ARRAY_A ) as $v ) {
             $vectors[ (int) $v['attachment_id'] ] = $v;
         }
     }
@@ -981,7 +1024,6 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
     $land = array();
     $gone = array();
     $into = array();
-    $why  = array( 'floor' => 0, 'margin' => 0, 'gated' => 0 );
     $move = 0;
 
     /*
@@ -1000,19 +1042,29 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
      */
     $deadline = microtime( true ) + max( 1, (int) apply_filters( 'vergeml_guide_fit_budget', 20 ) );
 
+    /*
+     *  The picks and the tally come from the function the run itself uses,
+     *  slice by slice, against profiles seeded the same way -- so this number
+     *  and the Move's are one number. What follows only turns picks into
+     *  counts per draft key and "does it change hands".
+     */
+    $index = array();
+    foreach ( $rows as $r ) {
+        $id      = (int) $r['attachment_id'];
+        $index[] = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '', 'placed_by' => '' ) );
+    }
+    $counted = vergeml_filing_count( $profiles, $index, $deadline );
+    if ( null === $counted ) {
+        return null;
+    }
+    $why = $counted['counts']['why'];
+
     foreach ( $rows as $r ) {
 
-        if ( microtime( true ) > $deadline ) {
-            return null;
-        }
-
         $id   = (int) $r['attachment_id'];
-        $row  = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '' ) );
-        $pick = vergeml_filing_pick( vergeml_filing_facts( $row ), $profiles );
+        $pick = $counted['picks'][ $id ];
 
         if ( ! $pick['term_id'] || ! isset( $order[ (int) $pick['term_id'] ] ) ) {
-            $w = isset( $why[ $pick['why'] ] ) ? $pick['why'] : 'floor';
-            $why[ $w ]++;
             continue;
         }
 
@@ -1083,6 +1135,8 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
         'move'    => $move,
         'looked'  => count( $rows ),
         'preview' => $lines,
+        // The outcomes as the run will count them: fits / siblings / nothing, sure / likely, kept.
+        'tally'   => $counted['counts'],
     );
 }
 
@@ -1110,6 +1164,7 @@ function vergeml_guide_fit_unknown() {
         'unfiled' => null,
         'move'    => null,
         'looked'  => 0,
+        'tally'   => null,
         'preview' => array(
             array( 'text' => __( 'The counts are not worked out yet', 'vergelabs-media-library' ), 'strong' => true ),
             array( 'text' => __( 'The next turn should have them', 'vergelabs-media-library' ) ),
@@ -1120,10 +1175,14 @@ function vergeml_guide_fit_unknown() {
 /**
  *  The profile one draft folder is matched against.
  *
- *  A folder that exists and that the draft neither renames nor moves keeps the
- *  profile it has, because vergeml_talk_apply() leaves it alone and that is
- *  what the Move will match against. Everything else is built here, in memory
- *  and stored nowhere, from what the draft says the folder is for.
+ *  What the draft says the folder is for -- its classes, kinds, audience and
+ *  matching phrase -- is the profile, for a folder the draft makes and for
+ *  one it keeps alike: vergeml_talk_apply() seeds every folder the draft
+ *  describes the same way (vergeml_talk_seed_profile), so this is what the
+ *  Move will match against. Only a folder the draft says nothing about (a
+ *  pasted tree, a hand-made folder) keeps the profile it has. Until
+ *  2026-09-15 a kept folder scored its stored profile here while the run
+ *  re-profiled it through the planner: two paths, 816 against 487.
  *
  *  This mirrors vergeml_filing_profile_build() and cannot call it: that
  *  function needs a WP_Term to walk and writes the result to term meta, and a
@@ -1137,7 +1196,7 @@ function vergeml_guide_draft_profile( $f, $path, $live, $taxonomy ) {
 
     $tid = (int) $f['term_id'];
 
-    if ( $tid && isset( $live['by_id'][ $tid ] ) ) {
+    if ( $tid && isset( $live['by_id'][ $tid ] ) && empty( $f['classes'] ) ) {
         $names = array();
         $walk  = $tid;
         $guard = 0;

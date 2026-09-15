@@ -22,13 +22,30 @@
  *  anything you care about. The rest want real MySQL. A suite whose
  *  environment is not answering is reported as SKIPPED, never as passed.
  */
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const LOCK = path.join( ROOT, '.verify.lock' );
+
+/*
+ *  The checkout as Playground can mount it. On Windows the path has spaces
+ *  and an emoji, and cmd.exe splits the one and mangles the other on the way
+ *  to the CLI; the volume's 8.3 short name is plain ASCII for the same files
+ *  (the same trick tools/play.mjs uses).
+ */
+let MOUNT_ROOT = ROOT;
+if ( 'win32' === process.platform ) {
+	try {
+		const short = execSync( `for %I in ("${ ROOT }") do @echo %~sI`, { shell: 'cmd.exe', encoding: 'utf8' } ).trim().split( /\r?\n/ ).pop();
+		if ( short && ! /\s/.test( short ) ) {
+			MOUNT_ROOT = short;
+		}
+	} catch ( e ) { /* keep the long path */ }
+}
 
 const argv = process.argv.slice( 2 );
 
@@ -122,6 +139,14 @@ const SUITES = [
 	 *  and four destructive buttons silently did nothing. env 'local'.
 	 */
 	{ name: 'globals', file: 'tests/security/globals.mjs', env: 'local' },
+	/*
+	 *  The filing engine on fixtures: the matcher's three outcomes and the
+	 *  count both the preview and the run read, then the residue grouped and
+	 *  the answers applied to an in-memory map. Pure PHP over arrays -- no
+	 *  WordPress, no database -- so it runs here, through Playground's PHP
+	 *  with the checkout mounted (runPhpLocal), and never on the box.
+	 */
+	{ name: 'filing', files: [ 'tests/filing/pick.php', 'tests/filing/residue.php' ], env: 'local', php: 'wasm' },
 	/*
 	 *  The Delete All Data button opens its confirmation and Cancel closes it.
 	 *  Playground, never the box: the button deletes everything if the dialog is
@@ -560,9 +585,98 @@ function runPhp( suite ) {
 	} );
 }
 
+/*
+ *  A PHP suite with no site in it, run here.
+ *
+ *  There is no PHP binary on this machine and the box is the wrong place for a
+ *  suite that reaches no database: a fixture that fails there fails after a
+ *  copy over SSH and a WordPress boot, for nothing. Playground's PHP is
+ *  already on this machine (tools/play.mjs), and `run-blueprint` with a runPHP
+ *  step is a PHP interpreter with the checkout mounted at /plugin. What the
+ *  suite prints is captured to a file on a second mount, because the CLI shows
+ *  no stdout when it is told not to install WordPress.
+ *
+ *  Passed only when the suite's own "N/M passed" line says every row passed
+ *  and the process exited 0 -- the same two facts runPhp() reads off the box.
+ */
+function runPhpLocal( suite ) {
+	return new Promise( ( resolve ) => {
+
+		const files = suite.files ?? [ suite.file ];
+		const outDir = fs.mkdtempSync( path.join( os.tmpdir(), 'vgml-verify-' ) );
+		const results = [];
+
+		const one = ( i ) => {
+
+			if ( i >= files.length ) {
+				fs.rmSync( outDir, { recursive: true, force: true } );
+				return resolve( results.every( ( r ) => 0 === r ) ? 0 : 1 );
+			}
+
+			const file = files[ i ];
+			const out = path.join( outDir, 'result.txt' );
+			const blueprint = path.join( outDir, 'blueprint.json' );
+
+			fs.rmSync( out, { force: true } );
+			fs.writeFileSync( blueprint, JSON.stringify( { steps: [ {
+				step: 'runPHP',
+				// Whatever the suite prints, fatal errors included, reaches the file: the shutdown function runs after exit().
+				code: `<?php ob_start(); register_shutdown_function( function () { file_put_contents( '/out/result.txt', ob_get_clean() ); } ); require '/plugin/${ file }';`,
+			} ] } ) );
+
+			console.log( `\n  ${ file }` );
+
+			const child = spawn(
+				'npx',
+				[ '-y', '@wp-playground/cli', 'run-blueprint',
+					'--blueprint', blueprint,
+					'--mount-dir', MOUNT_ROOT, '/plugin',
+					'--mount-dir', outDir, '/out',
+					'--wordpress-install-mode', 'do-not-attempt-installing',
+					'--verbosity', 'quiet' ],
+				{ cwd: ROOT, stdio: [ 'ignore', 'ignore', 'inherit' ], shell: true, env: { ...process.env, MSYS_NO_PATHCONV: '1' } }
+			);
+
+			child.on( 'error', () => { results.push( 1 ); one( i + 1 ); } );
+
+			child.on( 'close', ( c ) => {
+
+				const said = fs.existsSync( out ) ? fs.readFileSync( out, 'utf8' ) : '';
+				process.stdout.write( said );
+
+				const found = String( said ).match( /(\d+)\s*\/\s*(\d+)\s+passed/g );
+				const last = found && found.length ? found[ found.length - 1 ].match( /(\d+)\s*\/\s*(\d+)/ ) : null;
+				const pass = last ? Number( last[ 1 ] ) : null;
+				const total = last ? Number( last[ 2 ] ) : null;
+
+				if ( null === total ) {
+					console.log( '\n  FAILED — the suite printed no "N/M passed" line, so there is nothing to trust here' );
+					results.push( 1 );
+				} else if ( 0 === total ) {
+					console.log( '\n  FAILED — the suite reported 0 checks' );
+					results.push( 1 );
+				} else if ( pass !== total || 0 !== ( c ?? 1 ) ) {
+					console.log( `\n  FAILED — ${ pass }/${ total }, exit ${ c }` );
+					results.push( 1 );
+				} else {
+					results.push( 0 );
+				}
+
+				one( i + 1 );
+			} );
+		};
+
+		one( 0 );
+	} );
+}
+
 function run( suite ) {
 
-	console.log( `\n──────── ${ suite.name }  (${ suite.file } → ${ baseFor( suite ) })` );
+	console.log( `\n──────── ${ suite.name }  (${ suite.files ? suite.files.join( ', ' ) : suite.file } → ${ 'wasm' === suite.php ? 'php-wasm' : baseFor( suite ) })` );
+
+	if ( 'wasm' === suite.php ) {
+		return runPhpLocal( suite );
+	}
 
 	if ( suite.php ) {
 		return runPhp( suite );

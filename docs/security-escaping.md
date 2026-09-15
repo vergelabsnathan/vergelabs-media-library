@@ -46,7 +46,7 @@ function on this side of the wire, so each one is a row a person must read.
 
 | where | sink | what it is given |
 |---|---|---|
-| js/vergeml-folders.js:667 | `innerHTML` | `sprintf( /* translators: 1: the ">" sign, 2: an example path, "Hardware > Phones" */ escapeHtml( __( 'One folder per line, the full path with %1$s bet` |
+| js/vergeml-folders.js:671 | `innerHTML` | `sprintf( /* translators: 1: the ">" sign, 2: an example path, "Hardware > Phones" */ escapeHtml( __( 'One folder per line, the full path with %1$s bet` |
 
 ### The 18 read by hand
 
@@ -71,8 +71,8 @@ what it is given, so changing any of them expires its reason.
 | js/vergeml-tree.js:853 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
 | js/vergeml-tree.js:885 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
 | js/vergeml-tree.js:3688 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
-| js/vergeml-tree.js:4747 | `a85ef70f6b` | `innerHTML` | an HTML entity chosen by a boolean, inside literal markup |
-| js/vergeml-tree.js:4753 | `379ac53d9c` | `innerHTML` | one of two HTML entities |
+| js/vergeml-tree.js:4770 | `a85ef70f6b` | `innerHTML` | an HTML entity chosen by a boolean, inside literal markup |
+| js/vergeml-tree.js:4776 | `379ac53d9c` | `innerHTML` | one of two HTML entities |
 
 #### Two dialog helpers that had no callers
 
@@ -100,10 +100,10 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-autofile.js:43 | `innerHTML` | a literal | `''` |
 | js/vergeml-autofile.js:156 | `innerHTML` | a literal | `''` |
 | js/vergeml-brief.js:206 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:667 | `innerHTML` | **not a literal** | `sprintf( /* translators: 1: the ">" sign, 2: an example path, "Hardwar` |
-| js/vergeml-folders.js:726 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:740 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:823 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:671 | `innerHTML` | **not a literal** | `sprintf( /* translators: 1: the ">" sign, 2: an example path, "Hardwar` |
+| js/vergeml-folders.js:730 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:744 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:827 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |
@@ -139,9 +139,9 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-tree.js:2668 | `innerHTML` | a literal | `''` |
 | js/vergeml-tree.js:2941 | `innerHTML` | a literal | `'&#8943;'` |
 | js/vergeml-tree.js:3688 | `innerHTML` | **not a literal** | `chevron()` |
-| js/vergeml-tree.js:4597 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:4747 | `innerHTML` | **not a literal** | `'<span aria-hidden="true">' + ( collapsed ? '&#9656;' : '&#9666;' ) + ` |
-| js/vergeml-tree.js:4753 | `innerHTML` | **not a literal** | `now ? '&#9656;' : '&#9666;'` |
+| js/vergeml-tree.js:4620 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:4770 | `innerHTML` | **not a literal** | `'<span aria-hidden="true">' + ( collapsed ? '&#9656;' : '&#9666;' ) + ` |
+| js/vergeml-tree.js:4776 | `innerHTML` | **not a literal** | `now ? '&#9656;' : '&#9666;'` |
 
 </details>
 

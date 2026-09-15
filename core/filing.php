@@ -47,6 +47,19 @@ const VERGEML_FILING_VERSION = 5; // 2: slash-named folders as paths. 3-4: a reb
 const VERGEML_FILING_FLOOR  = 0.55;
 const VERGEML_FILING_MARGIN = 0.08;
 
+/*
+ *  Above this a placement is 'sure'; between the floor and this it is
+ *  'likely'. The word rides with the picture so a person checking the fill
+ *  can look at the likely ones first (spec 2026-09-14, §2 Step 3).
+ */
+const VERGEML_FILING_SURE = 0.70;
+
+/** Term meta: a folder the fill stays out of, both ways. Set by A.3; read here. */
+const VERGEML_FILING_LOCKED = '_vergeml_locked';
+
+/** Post meta: who put the picture where it is. 'user' means every fill leaves it alone. */
+const VERGEML_FILING_PLACED_BY = '_vergeml_placed_by';
+
 /** How much the class match weighs against the vector. */
 const VERGEML_FILING_CLASS_WEIGHT = 0.75;
 
@@ -264,6 +277,7 @@ function vergeml_filing_profiles( $term_ids, $taxonomy ) {
         if ( is_array( $p ) ) {
             $p['term_id']   = (int) $id;
             $p['parent_id'] = (int) ( get_term( (int) $id, $taxonomy )->parent ?? 0 );
+            $p['locked']    = (bool) get_term_meta( (int) $id, VERGEML_FILING_LOCKED, true );
             $out[ (int) $id ] = $p;
         }
     }
@@ -358,35 +372,69 @@ function vergeml_filing_class_match( $a, $b ) {
 /**
  *  The picture's side of the match, as the caller reads it off the index row.
  *
- *  @param array $row An index row: 'filing' (json), 'kind', 'embedding'.
- *  @return array 'classes', 'kind', 'audience', 'vector'.
+ *  @param array $row An index row: 'filing' (json), 'kind', 'embedding'; 'placed_by' when the caller joined it.
+ *  @return array 'classes', 'kind', 'audience', 'vector', 'placed_by'.
  */
 function vergeml_filing_facts( $row ) {
     $filing = isset( $row['filing'] ) ? json_decode( (string) $row['filing'], true ) : null;
     $filing = is_array( $filing ) ? $filing : array();
     $kind   = isset( $row['kind'] ) && '' !== (string) $row['kind'] ? sanitize_key( (string) $row['kind'] ) : 'photo';
     return array(
-        'classes'  => vergeml_filing_classes_of_object( isset( $filing['object'] ) ? $filing['object'] : '' ),
-        'kind'     => $kind,
-        'audience' => vergeml_filing_audience_of_picture( isset( $filing['audience'] ) ? $filing['audience'] : '' ),
-        'vector'   => isset( $row['embedding'] ) && function_exists( 'vergeml_index_vector_out' ) ? vergeml_index_vector_out( $row['embedding'] ) : null,
+        'classes'   => vergeml_filing_classes_of_object( isset( $filing['object'] ) ? $filing['object'] : '' ),
+        'kind'      => $kind,
+        'audience'  => vergeml_filing_audience_of_picture( isset( $filing['audience'] ) ? $filing['audience'] : '' ),
+        'vector'    => isset( $row['embedding'] ) && function_exists( 'vergeml_index_vector_out' ) ? vergeml_index_vector_out( $row['embedding'] ) : null,
+        'placed_by' => isset( $row['placed_by'] ) ? (string) $row['placed_by'] : '',
     );
 }
 
 /**
- *  Pick.
+ *  Pick: one of three outcomes.
+ *
+ *    fits      best clears the floor and beats the runner-up by the margin.
+ *              Placed there; 'sure' from 0.70, 'likely' below it.
+ *    siblings  best and runner-up are two children of one folder and too
+ *              close to call between them. Placed in that parent, 'likely',
+ *              and the parent is asked about once for the whole group.
+ *    nothing   below the floor, every folder gated, or too close to call
+ *              between two folders that are not siblings. Not placed; the
+ *              run groups these and asks.
+ *
+ *  Abstaining between two siblings was the largest hole in the 2026-09-14
+ *  Move: 232 of 513 unfiled pictures were a data-centre photo scoring close
+ *  on Server racks and Cooling and going nowhere. The parent is the honest
+ *  answer to "which of these two", and it is a folder.
+ *
+ *  Two things are never picked: a locked folder (VERGEML_FILING_LOCKED), and
+ *  a new folder for a picture the user placed by hand -- that comes back as
+ *  'nothing' with why 'placed', and every fill leaves it exactly where it is.
  *
  *  @param array $facts    From vergeml_filing_facts().
  *  @param array $profiles From vergeml_filing_profiles(), keyed by term id.
- *  @return array 'term_id' (0 for none), 'score', 'runner_up', 'runner_score', 'why', 'scores' (term id => score).
+ *  @return array 'outcome', 'term_id' (0 for none; the parent for siblings),
+ *                'parent_id', 'score', 'runner_up', 'runner_score',
+ *                'confidence' ('sure' | 'likely' | ''), 'why' ('ok' |
+ *                'siblings' | 'floor' | 'margin' | 'gated' | 'placed'),
+ *                'children' (siblings: the two), 'nearest' (nothing: the
+ *                folder it came closest to), 'scores' (term id => score),
+ *                'gated' (term id => 'kind' | 'audience' | 'locked').
  */
 function vergeml_filing_pick( $facts, $profiles ) {
+
+    if ( isset( $facts['placed_by'] ) && 'user' === $facts['placed_by'] ) {
+        return vergeml_filing_outcome( 'nothing', 'placed', array( 'scores' => array(), 'gated' => array() ) );
+    }
 
     $scores = array();
     $gated  = array();
 
     foreach ( $profiles as $tid => $p ) {
 
+        // Locked: the fill stays out of it.
+        if ( ! empty( $p['locked'] ) ) {
+            $gated[ $tid ] = 'locked';
+            continue;
+        }
         // Gate: kind.
         if ( ! in_array( $facts['kind'], (array) $p['kinds'], true ) ) {
             $gated[ $tid ] = 'kind';
@@ -429,7 +477,7 @@ function vergeml_filing_pick( $facts, $profiles ) {
     }
 
     if ( ! $scores ) {
-        return array( 'term_id' => 0, 'score' => 0.0, 'runner_up' => 0, 'runner_score' => 0.0, 'why' => 'gated', 'scores' => array(), 'gated' => $gated );
+        return vergeml_filing_outcome( 'nothing', 'gated', array( 'scores' => array(), 'gated' => $gated ) );
     }
 
     arsort( $scores );
@@ -466,15 +514,154 @@ function vergeml_filing_pick( $facts, $profiles ) {
 
     $score  = (float) $scores[ $best ];
     $rscore = $runner ? (float) $scores[ $runner ] : 0.0;
+    $common = array( 'score' => $score, 'runner_up' => $runner, 'runner_score' => $rscore, 'scores' => $scores, 'gated' => $gated );
 
     if ( $score < VERGEML_FILING_FLOOR ) {
-        return array( 'term_id' => 0, 'score' => $score, 'runner_up' => $runner, 'runner_score' => $rscore, 'why' => 'floor', 'scores' => $scores, 'gated' => $gated, 'nearest' => $best );
-    }
-    if ( $runner && $score - $rscore < VERGEML_FILING_MARGIN ) {
-        return array( 'term_id' => 0, 'score' => $score, 'runner_up' => $runner, 'runner_score' => $rscore, 'why' => 'margin', 'scores' => $scores, 'gated' => $gated, 'nearest' => $best );
+        return vergeml_filing_outcome( 'nothing', 'floor', $common + array( 'nearest' => $best ) );
     }
 
-    return array( 'term_id' => $best, 'score' => $score, 'runner_up' => $runner, 'runner_score' => $rscore, 'why' => 'ok', 'scores' => $scores, 'gated' => $gated );
+    if ( $runner && $score - $rscore < VERGEML_FILING_MARGIN ) {
+        /*
+         *  Two children of one folder, too close to call between them: the
+         *  parent takes the picture. Decided on the paths, like descent is,
+         *  and only when the parent is a folder the fill may use -- two
+         *  slash-named orphans under a parent that does not exist, or a
+         *  locked one, are still nothing.
+         */
+        $parent = vergeml_filing_parent_of( $best, $profiles );
+        if ( $parent && $parent === vergeml_filing_parent_of( $runner, $profiles ) && empty( $profiles[ $parent ]['locked'] ) ) {
+            return vergeml_filing_outcome( 'siblings', 'siblings', $common + array(
+                'term_id'    => $parent,
+                'parent_id'  => $parent,
+                'confidence' => 'likely',
+                'children'   => array( $best, $runner ),
+            ) );
+        }
+        return vergeml_filing_outcome( 'nothing', 'margin', $common + array( 'nearest' => $best ) );
+    }
+
+    return vergeml_filing_outcome( 'fits', 'ok', $common + array(
+        'term_id'    => $best,
+        'parent_id'  => vergeml_filing_parent_of( $best, $profiles ),
+        'confidence' => $score >= VERGEML_FILING_SURE ? 'sure' : 'likely',
+    ) );
+}
+
+/** The pick's answer in one shape, whatever it is. */
+function vergeml_filing_outcome( $outcome, $why, $extra = array() ) {
+    return array_merge( array(
+        'outcome'      => $outcome,
+        'term_id'      => 0,
+        'parent_id'    => 0,
+        'score'        => 0.0,
+        'runner_up'    => 0,
+        'runner_score' => 0.0,
+        'confidence'   => '',
+        'why'          => $why,
+        'scores'       => array(),
+        'gated'        => array(),
+    ), $extra );
+}
+
+/**
+ *  The folder above $tid, as a term id in $profiles, or 0.
+ *
+ *  By path first: the preview scores a draft whose folders have no term ids
+ *  yet, so its profiles carry no parent_id, and a slash-named folder's parent
+ *  is a path segment rather than a term. The stored parent_id is the answer
+ *  when it names a profile the paths did not.
+ */
+function vergeml_filing_parent_of( $tid, $profiles ) {
+    if ( ! isset( $profiles[ $tid ]['path'] ) || count( (array) $profiles[ $tid ]['path'] ) < 2 ) {
+        return 0;
+    }
+    $want = array_map( 'mb_strtolower', array_slice( (array) $profiles[ $tid ]['path'], 0, -1 ) );
+    foreach ( $profiles as $pid => $p ) {
+        if ( (int) $pid !== (int) $tid && isset( $p['path'] ) && array_map( 'mb_strtolower', (array) $p['path'] ) === $want ) {
+            return (int) $pid;
+        }
+    }
+    $stored = isset( $profiles[ $tid ]['parent_id'] ) ? (int) $profiles[ $tid ]['parent_id'] : 0;
+    return $stored && isset( $profiles[ $stored ] ) ? $stored : 0;
+}
+
+
+/* ------------------------------------------------------------- counting */
+
+/**
+ *  Every picture in $rows picked, and the outcomes counted.
+ *
+ *  The one function both the preview and the run read their numbers from.
+ *  Until 2026-09-14 the preview counted against the draft's own classes and
+ *  the run re-profiled every folder through the planner and counted against
+ *  that: 816 on the button, 487 in the library. Now the run is this over each
+ *  slice, acting on the picks, and the preview is this over the whole
+ *  library, reading the counts -- same profiles, same pick, same tally.
+ *
+ *  @param array $profiles Keyed by term id (real or the preview's own).
+ *  @param array $rows     Index rows (attachment_id, filing, kind, embedding, placed_by).
+ *  @param float $deadline microtime to stop at; 0 for none. Past it the answer
+ *                         is null, never a count over part of the library.
+ *  @return array|null 'picks' (attachment id => pick), 'counts' (vergeml_filing_tally_fresh()).
+ */
+function vergeml_filing_count( $profiles, $rows, $deadline = 0.0 ) {
+    $picks  = array();
+    $counts = vergeml_filing_tally_fresh();
+    foreach ( (array) $rows as $row ) {
+        if ( $deadline > 0 && microtime( true ) > $deadline ) {
+            return null;
+        }
+        $id           = (int) $row['attachment_id'];
+        $picks[ $id ] = vergeml_filing_pick( vergeml_filing_facts( $row ), $profiles );
+        vergeml_filing_tally( $counts, $picks[ $id ] );
+    }
+    return array( 'picks' => $picks, 'counts' => $counts );
+}
+
+/** The tally's shape: what the Fill step shows as pills, and where things land. */
+function vergeml_filing_tally_fresh() {
+    return array(
+        'looked'   => 0,
+        'fits'     => 0,
+        'siblings' => 0,
+        'nothing'  => 0,
+        'kept'     => 0, // Placed by the user: looked at, left alone, not asked about.
+        'sure'     => 0,
+        'likely'   => 0,
+        'why'      => array( 'floor' => 0, 'margin' => 0, 'gated' => 0 ),
+        'by_term'  => array(),
+    );
+}
+
+/** One pick into the tally. */
+function vergeml_filing_tally( &$counts, $pick ) {
+    $counts['looked']++;
+    if ( 'placed' === $pick['why'] ) {
+        $counts['kept']++;
+        return;
+    }
+    $counts[ $pick['outcome'] ]++;
+    if ( '' !== $pick['confidence'] ) {
+        $counts[ $pick['confidence'] ]++;
+    }
+    if ( $pick['term_id'] ) {
+        $counts['by_term'][ (int) $pick['term_id'] ] = isset( $counts['by_term'][ (int) $pick['term_id'] ] ) ? $counts['by_term'][ (int) $pick['term_id'] ] + 1 : 1;
+    } elseif ( isset( $counts['why'][ $pick['why'] ] ) ) {
+        $counts['why'][ $pick['why'] ]++;
+    }
+}
+
+/** Two tallies into one: the run adds each slice's to the state's. */
+function vergeml_filing_tally_add( $a, $b ) {
+    foreach ( array( 'looked', 'fits', 'siblings', 'nothing', 'kept', 'sure', 'likely' ) as $k ) {
+        $a[ $k ] = (int) ( isset( $a[ $k ] ) ? $a[ $k ] : 0 ) + (int) ( isset( $b[ $k ] ) ? $b[ $k ] : 0 );
+    }
+    foreach ( array( 'why', 'by_term' ) as $map ) {
+        foreach ( (array) ( isset( $b[ $map ] ) ? $b[ $map ] : array() ) as $k => $n ) {
+            $a[ $map ][ $k ] = (int) ( isset( $a[ $map ][ $k ] ) ? $a[ $map ][ $k ] : 0 ) + (int) $n;
+        }
+    }
+    return $a;
 }
 
 /**
@@ -492,6 +679,269 @@ function vergeml_filing_is_descendant( $child, $ancestor, $profiles ) {
         return false;
     }
     return array_slice( $c, 0, count( $a ) ) === $a;
+}
+
+
+/* -------------------------------------------------------------- residue */
+
+/*
+ *  A group of residue is asked about as one question, so it has to be worth
+ *  a question: five pictures. Under that it joins the nearest group it looks
+ *  like (cosine of centroids over NEAR); still under three after that, it is
+ *  one of the pictures the fill "can't read", asked about together. Eight
+ *  pictures is what a question shows.
+ */
+const VERGEML_FILING_GROUP_MIN  = 5;
+const VERGEML_FILING_GROUP_TINY = 3;
+const VERGEML_FILING_GROUP_NEAR = 0.5;
+const VERGEML_FILING_SAMPLE     = 8;
+
+/** Term meta and slug of the one folder "leave them" leaves things in. Locked: the fill never files into or out of it. */
+const VERGEML_FILING_TO_SORT_SLUG = 'to-sort';
+
+/**
+ *  The residue, grouped.
+ *
+ *  By the specific phrase the describer wrote first ("robot arm" of "robot
+ *  arm; machinery"), plural folded; then every group under GROUP_MIN joins
+ *  the nearest group by centroid when it is near enough, largest first;
+ *  then everything still under GROUP_TINY, with the pictures that have no
+ *  class or no vector, is the one unreadable group, last.
+ *
+ *  @param array $facts attachment id => vergeml_filing_facts().
+ *  @return array[] Each: 'class', 'classes' (class => n, biggest first),
+ *                  'ids', 'count', 'centroid' (vector|null), 'unreadable'.
+ */
+function vergeml_filing_residue_groups( $facts ) {
+
+    $groups = array();
+    $pool   = array();
+
+    foreach ( (array) $facts as $id => $f ) {
+        $class = isset( $f['classes'][0] ) ? vergeml_filing_group_key( $f['classes'][0] ) : '';
+        if ( '' === $class ) {
+            $pool[] = (int) $id;
+            continue;
+        }
+        if ( ! isset( $groups[ $class ] ) ) {
+            $groups[ $class ] = array( 'class' => $class, 'classes' => array( $class => 0 ), 'ids' => array(), 'vectors' => array() );
+        }
+        $groups[ $class ]['ids'][] = (int) $id;
+        $groups[ $class ]['classes'][ $class ]++;
+        if ( is_array( $f['vector'] ) && $f['vector'] ) {
+            $groups[ $class ]['vectors'][] = $f['vector'];
+        }
+    }
+
+    foreach ( $groups as $k => $g ) {
+        $groups[ $k ]['centroid'] = vergeml_filing_centroid( $g['vectors'] );
+        unset( $groups[ $k ]['vectors'] );
+    }
+
+    // Small groups, largest first, each into the nearest group still standing.
+    $small = array_filter( array_keys( $groups ), function ( $k ) use ( $groups ) { return count( $groups[ $k ]['ids'] ) < VERGEML_FILING_GROUP_MIN; } );
+    usort( $small, function ( $a, $b ) use ( $groups ) { return count( $groups[ $b ]['ids'] ) <=> count( $groups[ $a ]['ids'] ) ?: min( $groups[ $a ]['ids'] ) <=> min( $groups[ $b ]['ids'] ); } );
+
+    foreach ( $small as $k ) {
+        if ( ! isset( $groups[ $k ] ) || ! is_array( $groups[ $k ]['centroid'] ) ) {
+            continue;
+        }
+        $best  = '';
+        $score = VERGEML_FILING_GROUP_NEAR;
+        foreach ( $groups as $other => $g ) {
+            if ( $other === $k || ! is_array( $g['centroid'] ) ) {
+                continue;
+            }
+            $s = (float) vergeml_meaning_similarity( $g['centroid'], $groups[ $k ]['centroid'] );
+            if ( $s >= $score ) {
+                $score = $s;
+                $best  = $other;
+            }
+        }
+        if ( '' === $best ) {
+            continue;
+        }
+        $groups[ $best ]['ids'] = array_merge( $groups[ $best ]['ids'], $groups[ $k ]['ids'] );
+        foreach ( $groups[ $k ]['classes'] as $class => $n ) {
+            $groups[ $best ]['classes'][ $class ] = ( isset( $groups[ $best ]['classes'][ $class ] ) ? $groups[ $best ]['classes'][ $class ] : 0 ) + $n;
+        }
+        unset( $groups[ $k ] );
+    }
+
+    // What is still too small to ask about on its own.
+    $out = array();
+    foreach ( $groups as $g ) {
+        if ( count( $g['ids'] ) < VERGEML_FILING_GROUP_TINY ) {
+            $pool = array_merge( $pool, $g['ids'] );
+            continue;
+        }
+        arsort( $g['classes'] );
+        $g['count'] = count( $g['ids'] );
+        $g['unreadable'] = false;
+        $out[] = $g;
+    }
+    usort( $out, function ( $a, $b ) { return $b['count'] <=> $a['count'] ?: min( $a['ids'] ) <=> min( $b['ids'] ); } );
+
+    if ( $pool ) {
+        sort( $pool );
+        $out[] = array( 'class' => '', 'classes' => array(), 'ids' => array_values( $pool ), 'count' => count( $pool ), 'centroid' => null, 'unreadable' => true );
+    }
+
+    return $out;
+}
+
+/** "Robot arms" and "robot arm" are one group. */
+function vergeml_filing_group_key( $phrase ) {
+    $p = trim( mb_strtolower( (string) $phrase ) );
+    return mb_strlen( $p ) > 3 && 's' === mb_substr( $p, -1 ) && 's' !== mb_substr( $p, -2, 1 ) ? mb_substr( $p, 0, -1 ) : $p;
+}
+
+/** The mean of some vectors, or null with none. */
+function vergeml_filing_centroid( $vectors ) {
+    if ( ! $vectors ) {
+        return null;
+    }
+    $sum = array();
+    foreach ( $vectors as $v ) {
+        foreach ( (array) $v as $d => $x ) {
+            $sum[ $d ] = ( isset( $sum[ $d ] ) ? $sum[ $d ] : 0.0 ) + (float) $x;
+        }
+    }
+    $n = count( $vectors );
+    foreach ( $sum as $d => $x ) {
+        $sum[ $d ] = $x / $n;
+    }
+    return $sum;
+}
+
+/**
+ *  The questions, from the groups and the sibling tally.
+ *
+ *  One per parent that took pictures two of its children tied over, first;
+ *  then one per residue group, by size; the unreadable one last. The shape
+ *  is what /guide/questions serves and /guide/answer takes:
+ *
+ *    { id, kind: 'siblings'|'residue', term_id, children, count, sample,
+ *      ids, name, class, unreadable, answers: [...] }
+ *
+ *  The answers are the words a question offers, and vergeml_filing_answer_plan()
+ *  refuses any other. 'put-in:<term>' is offered only when a folder is near
+ *  enough to name.
+ *
+ *  @param array $groups   vergeml_filing_residue_groups().
+ *  @param array $siblings parent term id => [ 'ids' => attachment => best child, 'children' => child => n ].
+ *  @param array $names    group index => name from the naming call; missing = the class word.
+ *  @param array $nearest  group index => nearest folder term id, 0 for none.
+ */
+function vergeml_filing_questions( $groups, $siblings, $names = array(), $nearest = array() ) {
+
+    $out = array();
+
+    foreach ( (array) $siblings as $parent => $s ) {
+        $ids      = isset( $s['ids'] ) ? (array) $s['ids'] : array();
+        $children = isset( $s['children'] ) ? (array) $s['children'] : array();
+        arsort( $children );
+        $out[] = array(
+            'id'         => 's:' . (int) $parent,
+            'kind'       => 'siblings',
+            'term_id'    => (int) $parent,
+            'children'   => array_map( 'intval', array_slice( array_keys( $children ), 0, 2 ) ),
+            'count'      => count( $ids ),
+            'sample'     => array_map( 'intval', array_slice( array_keys( $ids ), 0, VERGEML_FILING_SAMPLE ) ),
+            'ids'        => array_map( 'intval', $ids ),
+            'name'       => '',
+            'class'      => '',
+            'unreadable' => false,
+            'answers'    => array( 'keep-parent', 'split', 'show-me' ),
+        );
+    }
+
+    foreach ( (array) $groups as $i => $g ) {
+        $near = isset( $nearest[ $i ] ) ? (int) $nearest[ $i ] : 0;
+        if ( ! empty( $g['unreadable'] ) ) {
+            $name    = '';
+            $answers = array( 'leave', 'show-me' );
+        } else {
+            $name    = isset( $names[ $i ] ) && '' !== trim( (string) $names[ $i ] ) ? trim( (string) $names[ $i ] ) : vergeml_filing_class_name( $g['class'] );
+            $answers = array_values( array_filter( array( 'new-folder', $near ? 'put-in:' . $near : '', 'leave', 'show-me' ) ) );
+        }
+        $out[] = array(
+            'id'         => 'r:' . (int) $i,
+            'kind'       => 'residue',
+            'term_id'    => 0,
+            'children'   => array(),
+            'count'      => (int) $g['count'],
+            'sample'     => array_map( 'intval', array_slice( (array) $g['ids'], 0, VERGEML_FILING_SAMPLE ) ),
+            'ids'        => array_map( 'intval', (array) $g['ids'] ),
+            'name'       => $name,
+            'class'      => (string) $g['class'],
+            'unreadable' => ! empty( $g['unreadable'] ),
+            'answers'    => $answers,
+        );
+    }
+
+    return $out;
+}
+
+/** A class word as a folder name: "keynote speaker" -> "Keynote speaker". */
+function vergeml_filing_class_name( $class ) {
+    $c = trim( (string) $class );
+    return '' === $c ? '' : mb_strtoupper( mb_substr( $c, 0, 1 ) ) . mb_substr( $c, 1 );
+}
+
+/**
+ *  What an answer does, as a plan the executor carries out and a suite can
+ *  check on a map. Null for an answer the question does not offer.
+ *
+ *  'moves' is attachment => term id, or 'new' (the folder 'make' names) or
+ *  'to-sort' (the To sort folder). 'placed_by' says the pictures are the
+ *  user's after this: a folder they chose is never re-filed. 'show' carries
+ *  the ids for "show me", which answers nothing.
+ */
+function vergeml_filing_answer_plan( $q, $answer ) {
+
+    $answer = (string) $answer;
+    if ( ! is_array( $q ) || ! in_array( $answer, (array) $q['answers'], true ) ) {
+        return null;
+    }
+
+    $plan = array( 'answer' => $answer, 'moves' => array(), 'make' => null, 'placed_by' => false, 'show' => null, 'answered' => true );
+
+    if ( 'show-me' === $answer ) {
+        $plan['show']     = array_values( (array) $q['ids'] );
+        $plan['answered'] = false;
+        return $plan;
+    }
+
+    if ( 'siblings' === $q['kind'] ) {
+        if ( 'split' === $answer ) {
+            foreach ( (array) $q['ids'] as $id => $best ) {
+                $plan['moves'][ (int) $id ] = (int) $best;
+            }
+        }
+        return $plan; // keep-parent: they are in the parent already.
+    }
+
+    $ids = array_values( (array) $q['ids'] );
+
+    if ( 'new-folder' === $answer ) {
+        $plan['make']      = (string) $q['name'];
+        $plan['placed_by'] = true;
+        foreach ( $ids as $id ) {
+            $plan['moves'][ (int) $id ] = 'new';
+        }
+    } elseif ( 0 === strpos( $answer, 'put-in:' ) ) {
+        $plan['placed_by'] = true;
+        foreach ( $ids as $id ) {
+            $plan['moves'][ (int) $id ] = (int) substr( $answer, 7 );
+        }
+    } elseif ( 'leave' === $answer ) {
+        foreach ( $ids as $id ) {
+            $plan['moves'][ (int) $id ] = 'to-sort';
+        }
+    }
+
+    return $plan;
 }
 
 

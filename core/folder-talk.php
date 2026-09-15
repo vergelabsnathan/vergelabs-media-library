@@ -566,6 +566,27 @@ function vergeml_talk_vector( $folder ) {
 
 
 /**
+ *  The profile a folder is filed against, from what the tree says about it.
+ *
+ *  The same seed for a folder the Move makes, renames or keeps by name: the
+ *  draft's classes, kinds, audience and matching phrase. That is what the
+ *  preview scored (vergeml_guide_draft_profile mirrors this build), so the
+ *  run scores the same. A folder the draft says nothing about keeps the
+ *  profile it has; a rule's Move (assign) files nothing by evidence and seeds
+ *  nothing.
+ */
+function vergeml_talk_seed_profile( $term_id, $taxonomy, $f, $assign ) {
+	if ( $assign || ! function_exists( 'vergeml_filing_profile_build' ) || empty( $f['classes'] ) ) {
+		return;
+	}
+	$term = get_term( (int) $term_id, $taxonomy );
+	if ( $term && ! is_wp_error( $term ) ) {
+		vergeml_filing_profile_build( $term, $taxonomy, $f );
+	}
+}
+
+
+/**
  *  Do it.
  *
  *  Terms first, then the re-filing. In that order because a picture cannot be
@@ -715,6 +736,8 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 			if ( $patch ) {
 				wp_update_term( (int) $live->term_id, $taxonomy, $patch );
 			}
+			// Kept, renamed or moved alike: what the draft says it is for is what it is matched against, as the preview had it.
+			vergeml_talk_seed_profile( (int) $live->term_id, $taxonomy, $f, $assign );
 			$ids[ $key ] = (int) $live->term_id;
 			if ( ! isset( $by_name[ mb_strtolower( $f['name'] ) ] ) ) {
 				$by_name[ mb_strtolower( $f['name'] ) ] = (int) $live->term_id;
@@ -739,6 +762,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		$existing = ( ! is_wp_error( $found ) && $found ) ? $found[0] : null;
 
 		if ( null !== $existing ) {
+			vergeml_talk_seed_profile( (int) $existing->term_id, $taxonomy, $f, $assign );
 			$ids[ $key ] = (int) $existing->term_id;
 			if ( ! isset( $by_name[ mb_strtolower( $f['name'] ) ] ) ) {
 				$by_name[ mb_strtolower( $f['name'] ) ] = (int) $existing->term_id;
@@ -766,13 +790,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		if ( ! is_wp_error( $made ) && isset( $made['term_id'] ) ) {
 			$ids[ $key ] = (int) $made['term_id'];
 			$made_ids[]  = (int) $made['term_id'];
-			// The profile the matcher files against, from what the plan said.
-			if ( function_exists( 'vergeml_filing_profile_build' ) && ! $assign ) {
-				$term_obj = get_term( (int) $made['term_id'], $taxonomy );
-				if ( $term_obj && ! is_wp_error( $term_obj ) ) {
-					vergeml_filing_profile_build( $term_obj, $taxonomy, $f );
-				}
-			}
+			vergeml_talk_seed_profile( (int) $made['term_id'], $taxonomy, $f, $assign );
 			if ( ! isset( $by_name[ mb_strtolower( $f['name'] ) ] ) ) {
 				$by_name[ mb_strtolower( $f['name'] ) ] = (int) $made['term_id'];
 			}
@@ -845,9 +863,14 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 	$keep   = array_map( 'intval', array_values( $ids ) );
 
 	foreach ( $before['terms'] as $term ) {
-		if ( ! in_array( (int) $term['term_id'], $keep, true ) ) {
-			$remove[] = (int) $term['term_id'];
+		if ( in_array( (int) $term['term_id'], $keep, true ) ) {
+			continue;
 		}
+		// A locked folder (To sort, a folder somebody locked) is not the Move's to delete: unlock it first.
+		if ( defined( 'VERGEML_FILING_LOCKED' ) && get_term_meta( (int) $term['term_id'], VERGEML_FILING_LOCKED, true ) ) {
+			continue;
+		}
+		$remove[] = (int) $term['term_id'];
 	}
 
 	// Where a removed folder's pictures land when the evidence says nothing, and the rule's own assignments, both as term ids.
@@ -923,17 +946,19 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		'fallback' => $fallback_ids,
 		'reasons'  => $reasons,
 		/*
-		 *  Folders that were already here know only their names. One planner
-		 *  call tells the matcher what each of them takes (core/filing.php), so
-		 *  a coat reaches Apparel and a logo stays out of Men. Best effort:
-		 *  without it the name-derived profiles still file, only more
-		 *  cautiously. Done by the first pass, not here: until 2026-09-14 this
-		 *  request made that model call and then filed for five seconds before
-		 *  answering, 20-40 s in all, and the screen had given the button back
-		 *  long before -- the browser closed the request (nginx 499) and the
-		 *  screen said nothing had moved while a thousand pictures moved.
+		 *  No planner call, here or in the passes. The run files against the
+		 *  profiles this request just seeded from the draft (vergeml_talk_seed_profile),
+		 *  which are the profiles the preview scored -- one filing path. Until
+		 *  2026-09-14 the first pass re-profiled every folder through the
+		 *  planner and the number on the button (816) was not the number that
+		 *  happened (487). Profiling is Step 2's, when a tree is confirmed.
 		 */
-		'profile'  => function_exists( 'vergeml_filing_profile_existing' ) && ! $assign_ids,
+		'tally'    => function_exists( 'vergeml_filing_tally_fresh' ) ? vergeml_filing_tally_fresh() : array(),
+		// What the fill could not place, and what it placed in a parent because two children tied: the questions are made from these when the run ends.
+		'residue'  => array(),
+		'siblings' => array(),
+		'questions' => array(),
+		'names'    => array(),
 		'after'    => 0,
 		'moved'    => 0,
 		'skipped'  => 0,
@@ -989,13 +1014,11 @@ function vergeml_talk_refile_run( $deadline ) {
 		return $state;
 	}
 
-	// The planner's profile of the folders, once, before anything is filed
-	// against them. Written down first so a pass that dies mid-call does not
-	// ask the planner again on every resumption.
-	if ( ! empty( $state['profile'] ) ) {
-		$state['profile'] = false;
-		update_option( VERGEML_TALK_STATE, $state, false );
-		vergeml_filing_profile_existing( $taxonomy );
+	// A Move already in flight across the deploy that added these.
+	foreach ( array( 'residue' => array(), 'siblings' => array(), 'questions' => array(), 'names' => array(), 'tally' => vergeml_filing_tally_fresh() ) as $k => $fresh ) {
+		if ( ! isset( $state[ $k ] ) || ! is_array( $state[ $k ] ) ) {
+			$state[ $k ] = $fresh;
+		}
 	}
 
 	/*
@@ -1037,15 +1060,30 @@ function vergeml_talk_refile_run( $deadline ) {
 	do {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
 		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT attachment_id, embedding, kind, filing, tags, prompt_hash, model_version
-			   FROM {$wpdb->vergeml_ai_index}
-			  WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d
-		   ORDER BY attachment_id ASC
+			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by
+			   FROM {$wpdb->vergeml_ai_index} i
+			   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
+			  WHERE i.error = '' AND i.embedding IS NOT NULL AND i.attachment_id > %d
+		   ORDER BY i.attachment_id ASC
 			  LIMIT %d",
+			VERGEML_FILING_PLACED_BY,
 			(int) $state['after'],
 			$slice
 		), ARRAY_A );
 		// phpcs:enable
+
+		/*
+		 *  Filed by evidence (core/filing.php): the picture's kind and
+		 *  audience gate the folders, its object class is matched against
+		 *  theirs, and the vector only breaks ties. The picks for the slice
+		 *  come from the one function the preview counts with, against the
+		 *  profiles this Move seeded, so the number on the button is the
+		 *  number that happens.
+		 */
+		if ( empty( $state['assign'] ) && ! isset( $profiles ) ) {
+			$profiles = vergeml_filing_profiles( array_values( (array) $state['ids'] ), $taxonomy );
+		}
+		$picks = empty( $state['assign'] ) ? vergeml_filing_count( $profiles, (array) $rows ) : null;
 
 		foreach ( (array) $rows as $row ) {
 
@@ -1097,17 +1135,14 @@ function vergeml_talk_refile_run( $deadline ) {
 				continue;
 			}
 
-			/*
-			 *  Filed by evidence (core/filing.php): the picture's kind and
-			 *  audience gate the folders, its object class is matched against
-			 *  theirs, and the vector only breaks ties. What clears neither the
-			 *  floor nor the margin stays where it is and is counted as such.
-			 */
-			if ( ! isset( $profiles ) ) {
-				$profiles = vergeml_filing_profiles( array_values( (array) $state['ids'] ), $taxonomy );
-			}
 			$facts = vergeml_filing_facts( $row );
-			$pick  = vergeml_filing_pick( $facts, $profiles );
+			$pick  = $picks['picks'][ $attachment ];
+
+			// Placed by hand: not the fill's to move, evict or ask about. Looked at, kept, no row.
+			if ( 'placed' === $pick['why'] ) {
+				vergeml_filing_tally( $state['tally'], $pick );
+				continue;
+			}
 
 			/*
 			 *  A picture in a folder that goes, with nowhere the evidence
@@ -1120,15 +1155,20 @@ function vergeml_talk_refile_run( $deadline ) {
 				foreach ( is_wp_error( $in ) ? array() : array_map( 'intval', $in ) as $tid ) {
 					if ( isset( $state['fallback'][ $tid ] ) ) {
 						$pick['term_id'] = (int) $state['fallback'][ $tid ];
+						$pick['outcome'] = 'fits';
 						break;
 					}
 				}
 			}
 
+			vergeml_filing_tally( $state['tally'], $pick );
+
 			if ( ! $pick['term_id'] ) {
 				$state['skipped'] = (int) $state['skipped'] + 1;
 				$why              = isset( $pick['why'] ) ? $pick['why'] : 'floor';
 				$state['unfiled'][ $why ] = isset( $state['unfiled'][ $why ] ) ? (int) $state['unfiled'][ $why ] + 1 : 1;
+				// The residue: grouped and asked about when the run ends, never left in no folder.
+				$state['residue'][] = $attachment;
 
 				// Left alone, and now on the record as left alone: the word,
 				// the score it did reach, and the folder it could not beat.
@@ -1175,6 +1215,19 @@ function vergeml_talk_refile_run( $deadline ) {
 				: 1;
 
 			$state['moved'] = (int) $state['moved'] + 1;
+
+			/*
+			 *  Two children tied and the parent took it. Remembered per parent,
+			 *  with the child that came first, so one question can ask about
+			 *  the whole group and "split" can file each by its own best.
+			 */
+			if ( 'siblings' === $pick['outcome'] ) {
+				$parent = (int) $pick['parent_id'];
+				$state['siblings'][ $parent ]['ids'][ $attachment ] = (int) $pick['children'][0];
+				foreach ( (array) $pick['children'] as $child ) {
+					$state['siblings'][ $parent ]['children'][ (int) $child ] = isset( $state['siblings'][ $parent ]['children'][ (int) $child ] ) ? $state['siblings'][ $parent ]['children'][ (int) $child ] + 1 : 1;
+				}
+			}
 
 			/*
 			 *  The word is the matcher's own, even here: a picture that got a
@@ -1398,6 +1451,9 @@ function vergeml_talk_refile_finish( &$state ) {
 	$state['remove']  = array();
 	$state['active']  = false;
 
+	// What the fill could not decide, as questions -- few, grouped, named.
+	$state['questions'] = vergeml_talk_questions_build( $state );
+
 	// The Move is complete: every open surface re-reads the tree and its counts.
 	if ( function_exists( 'vergeml_folders_moved' ) ) {
 		vergeml_folders_moved( 'refile' );
@@ -1489,6 +1545,10 @@ function vergeml_talk_report( $state ) {
 		'total'     => $total,
 		'remaining' => max( 0, $total - $seen ),
 		'unfiled'   => isset( $state['unfiled'] ) ? (array) $state['unfiled'] : array(),
+		// The outcomes, as the Fill step shows them: fits / siblings / nothing, sure / likely, kept.
+		'tally'     => isset( $state['tally'] ) && is_array( $state['tally'] ) ? $state['tally'] : vergeml_filing_tally_fresh(),
+		// How many questions the run left open; the questions themselves are /guide/questions.
+		'questions' => isset( $state['questions'] ) ? count( array_filter( (array) $state['questions'], function ( $q ) { return empty( $q['answered'] ); } ) ) : 0,
 		'until'     => isset( $state['until'] ) ? (int) $state['until'] : 0,
 		'started'   => isset( $state['started'] ) ? (int) $state['started'] : 0,
 		'message'   => $message,
@@ -1720,6 +1780,11 @@ function vergeml_talk_undo() {
 		$restored[] = (int) $attachment;
 	}
 
+	// An answer's "new folder" or "put in" marked its pictures as the user's; that goes back with them.
+	foreach ( (array) ( isset( $before['placed'] ) ? $before['placed'] : array() ) as $attachment ) {
+		delete_post_meta( (int) $attachment, VERGEML_FILING_PLACED_BY );
+	}
+
 	/*
 	 *  And the record says so.
 	 *
@@ -1799,6 +1864,410 @@ function vergeml_talk_undo_available() {
 	}
 
 	return array( 'available' => true, 'until' => $until );
+}
+
+
+/* ---------------------------------------------------------- the questions */
+
+/*
+ *  What the fill could not decide, asked about -- few, grouped, named.
+ *
+ *  A Move used to end with "513 in no folder" and a sentence about why. Now
+ *  it ends with questions: one per parent that took pictures two of its
+ *  children tied over ("232 fit both Server racks and Cooling"), one per
+ *  group of the residue ("61 look like robot arms"), and one for whatever is
+ *  left that no group holds ("18 I can't read"). Every answer is a click,
+ *  and every answer leaves the pictures in a folder: "leave them" is To
+ *  sort, a real folder, never nothing.
+ */
+
+/**
+ *  Built once, when the run ends (vergeml_talk_refile_finish). The residue's
+ *  facts are read back off the index; each group of five or more gets a name
+ *  from one metered call, cached in the state by its members so the same
+ *  group is never named twice; the folder nearest a group's centroid is what
+ *  "put in" offers.
+ */
+function vergeml_talk_questions_build( &$state ) {
+
+	global $wpdb;
+
+	$taxonomy = (string) $state['taxonomy'];
+	$residue  = array_values( array_unique( array_map( 'intval', (array) ( isset( $state['residue'] ) ? $state['residue'] : array() ) ) ) );
+	$siblings = isset( $state['siblings'] ) ? (array) $state['siblings'] : array();
+
+	$facts    = array();
+	$captions = array();
+	foreach ( array_chunk( $residue, 500 ) as $chunk ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
+		foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, kind, filing, caption FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', array_map( 'intval', $chunk ) ) . ')', ARRAY_A ) as $row ) {
+			$facts[ (int) $row['attachment_id'] ]    = vergeml_filing_facts( $row );
+			$captions[ (int) $row['attachment_id'] ] = (string) $row['caption'];
+		}
+	}
+
+	$groups = vergeml_filing_residue_groups( $facts );
+
+	$profiles = $groups && function_exists( 'vergeml_filing_profiles' ) ? vergeml_filing_profiles( array_values( (array) $state['ids'] ), $taxonomy ) : array();
+	$names    = array();
+	$nearest  = array();
+	if ( ! isset( $state['names'] ) || ! is_array( $state['names'] ) ) {
+		$state['names'] = array();
+	}
+
+	foreach ( $groups as $i => $g ) {
+		if ( ! empty( $g['unreadable'] ) ) {
+			continue;
+		}
+		$nearest[ $i ] = vergeml_talk_nearest_folder( $g['centroid'], $profiles );
+		if ( $g['count'] < VERGEML_FILING_GROUP_MIN ) {
+			continue; // The class word names it; a call is for a group worth a folder.
+		}
+		$key = md5( implode( ',', $g['ids'] ) );
+		if ( ! isset( $state['names'][ $key ] ) ) {
+			$sample = array();
+			foreach ( array_slice( $g['ids'], 0, VERGEML_FILING_SAMPLE ) as $id ) {
+				if ( isset( $captions[ $id ] ) && '' !== $captions[ $id ] ) {
+					$sample[] = mb_substr( $captions[ $id ], 0, 160 );
+				}
+			}
+			$name = vergeml_talk_name_group( array_keys( (array) $g['classes'] ), $sample );
+			if ( null !== $name ) {
+				$state['names'][ $key ] = $name; // Cached only when a name came back: a failed call is asked again next time, never remembered as a blank.
+			}
+		}
+		if ( isset( $state['names'][ $key ] ) ) {
+			$names[ $i ] = $state['names'][ $key ];
+		}
+	}
+
+	return vergeml_filing_questions( $groups, $siblings, $names, $nearest );
+}
+
+/** The folder whose profile vector is nearest a group's centroid; 0 when none is near enough to offer, or the nearest is locked. */
+function vergeml_talk_nearest_folder( $centroid, $profiles ) {
+	if ( ! is_array( $centroid ) || ! function_exists( 'vergeml_meaning_similarity' ) ) {
+		return 0;
+	}
+	$best  = 0;
+	$score = VERGEML_FILING_GROUP_NEAR;
+	foreach ( (array) $profiles as $tid => $p ) {
+		if ( ! empty( $p['locked'] ) || ! is_array( $p['vector'] ) ) {
+			continue;
+		}
+		$s = (float) vergeml_meaning_similarity( $p['vector'], $centroid );
+		if ( $s >= $score ) {
+			$score = $s;
+			$best  = (int) $tid;
+		}
+	}
+	return $best;
+}
+
+/**
+ *  One name for a group, from the service: metered like an embed, no
+ *  credit. Null when the service cannot answer; the class word stands in.
+ */
+function vergeml_talk_name_group( $objects, $captions ) {
+
+	if ( ! function_exists( 'vergeml_ai_settings' ) || ! function_exists( 'vergeml_ai_unseal' ) ) {
+		return null;
+	}
+	$settings = vergeml_ai_settings();
+	$licence  = vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
+	if ( '' === $licence ) {
+		return null;
+	}
+
+	$response = wp_remote_post(
+		vergeml_ai_service_url() . '/name-group',
+		array(
+			'timeout'   => 20,
+			'headers'   => array( 'Content-Type' => 'application/json' ),
+			'sslverify' => true,
+			'body'      => wp_json_encode( array(
+				'license_key' => $licence,
+				'site'        => home_url(),
+				'objects'     => array_values( array_map( 'strval', (array) $objects ) ),
+				'captions'    => array_values( array_map( 'strval', (array) $captions ) ),
+			) ),
+		)
+	);
+	if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+		return null;
+	}
+	$data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+	$name = is_array( $data ) && isset( $data['name'] ) ? sanitize_text_field( (string) $data['name'] ) : '';
+	return '' === $name ? null : $name;
+}
+
+/**
+ *  The question's sentence and its answers' labels, verbatim from the spec
+ *  (2026-09-14, §2 Step 3). Numbers and folder names filled in; nothing else
+ *  said.
+ */
+function vergeml_talk_question_text( $q, $taxonomy ) {
+
+	$name = function ( $tid ) use ( $taxonomy ) {
+		$t = $tid ? get_term( (int) $tid, $taxonomy ) : null;
+		return $t instanceof WP_Term ? (string) $t->name : '';
+	};
+	$n = number_format_i18n( (int) $q['count'] );
+
+	$labels = array(
+		'keep-parent' => sprintf( /* translators: %s: the parent folder */ __( 'Keep them in %s', 'vergelabs-media-library' ), $name( $q['term_id'] ) ),
+		'split'       => __( 'Split them by best score', 'vergelabs-media-library' ),
+		'new-folder'  => sprintf( /* translators: %s: the folder to make */ __( 'New folder %s', 'vergelabs-media-library' ), (string) $q['name'] ),
+		'leave'       => __( 'Leave them', 'vergelabs-media-library' ),
+		'show-me'     => 'siblings' === $q['kind'] ? __( 'Let me look', 'vergelabs-media-library' ) : __( 'Show me', 'vergelabs-media-library' ),
+	);
+
+	$answers = array();
+	foreach ( (array) $q['answers'] as $a ) {
+		if ( 0 === strpos( $a, 'put-in:' ) ) {
+			/* translators: %s: an existing folder */
+			$answers[ $a ] = sprintf( __( 'Put in %s', 'vergelabs-media-library' ), $name( (int) substr( $a, 7 ) ) );
+		} elseif ( isset( $labels[ $a ] ) ) {
+			$answers[ $a ] = $labels[ $a ];
+		}
+	}
+
+	if ( 'siblings' === $q['kind'] ) {
+		$kids = array_map( $name, (array) $q['children'] );
+		/* translators: 1: pictures, 2: one folder, 3: its sibling */
+		$text = sprintf( _n( '%1$s picture fits both %2$s and %3$s.', '%1$s pictures fit both %2$s and %3$s.', (int) $q['count'], 'vergelabs-media-library' ), $n, isset( $kids[0] ) ? $kids[0] : '', isset( $kids[1] ) ? $kids[1] : '' );
+	} elseif ( ! empty( $q['unreadable'] ) ) {
+		/* translators: %s: pictures */
+		$text = sprintf( __( '%s I can\'t read', 'vergelabs-media-library' ), $n );
+	} else {
+		/* translators: 1: pictures, 2: what they look like, plural ("robot arms") */
+		$text = sprintf( __( '%1$s look like %2$s', 'vergelabs-media-library' ), $n, vergeml_talk_plural( (string) $q['class'] ) );
+	}
+
+	return array( 'text' => $text, 'answers' => $answers );
+}
+
+/** "robot arm" -> "robot arms"; good enough for a class word, which is a noun. */
+function vergeml_talk_plural( $word ) {
+	$w = trim( (string) $word );
+	if ( '' === $w || 's' === mb_substr( $w, -1 ) ) {
+		return $w;
+	}
+	if ( preg_match( '/(sh|ch|x|z)$/u', $w ) ) {
+		return $w . 'es';
+	}
+	if ( preg_match( '/[^aeiou]y$/u', $w ) ) {
+		return mb_substr( $w, 0, -1 ) . 'ies';
+	}
+	return $w . 's';
+}
+
+/** The open and answered questions, as the screen reads them: sentence, labelled answers, a sample with thumbnails. */
+function vergeml_talk_questions() {
+
+	$state    = get_option( VERGEML_TALK_STATE );
+	$taxonomy = is_array( $state ) && isset( $state['taxonomy'] ) ? (string) $state['taxonomy'] : '';
+	$out      = array();
+
+	foreach ( is_array( $state ) && isset( $state['questions'] ) ? (array) $state['questions'] : array() as $q ) {
+		$words  = vergeml_talk_question_text( $q, $taxonomy );
+		$sample = array();
+		foreach ( (array) $q['sample'] as $id ) {
+			$sample[] = array( 'id' => (int) $id, 'thumb' => (string) wp_get_attachment_image_url( (int) $id, 'thumbnail' ) );
+		}
+		$out[] = array(
+			'id'       => (string) $q['id'],
+			'kind'     => (string) $q['kind'],
+			'count'    => (int) $q['count'],
+			'name'     => (string) $q['name'],
+			'term_id'  => (int) $q['term_id'],
+			'text'     => $words['text'],
+			'answers'  => $words['answers'],
+			'sample'   => $sample,
+			'answered' => isset( $q['answered'] ) ? (string) $q['answered'] : '',
+			'result'   => isset( $q['result'] ) ? (array) $q['result'] : null,
+		);
+	}
+
+	return $out;
+}
+
+/**
+ *  Where the fill stands: open questions, pictures in no folder, and whether
+ *  the step is done -- which is both at zero, and nothing less.
+ */
+function vergeml_talk_fill_status() {
+
+	global $wpdb;
+
+	$state    = get_option( VERGEML_TALK_STATE );
+	$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+	$open     = 0;
+	foreach ( is_array( $state ) && isset( $state['questions'] ) ? (array) $state['questions'] : array() as $q ) {
+		if ( empty( $q['answered'] ) ) {
+			$open++;
+		}
+	}
+
+	$unfiled = 0;
+	if ( '' !== $taxonomy && isset( $wpdb->vergeml_ai_index ) ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+		$unfiled = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} i WHERE i.error = '' AND i.embedding IS NOT NULL AND NOT EXISTS (
+				SELECT 1 FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+				 WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s )",
+			$taxonomy
+		) );
+	}
+
+	return array(
+		'open'    => $open,
+		'unfiled' => $unfiled,
+		'running' => is_array( $state ) && ! empty( $state['active'] ),
+		'done'    => 0 === $open && 0 === $unfiled && ! ( is_array( $state ) && ! empty( $state['active'] ) ),
+	);
+}
+
+/**
+ *  The To sort folder: made on first use, locked, so the fill never files
+ *  into it or out of it. A person can always move things out by hand.
+ */
+function vergeml_talk_to_sort( $taxonomy ) {
+
+	$term = get_term_by( 'slug', VERGEML_FILING_TO_SORT_SLUG, $taxonomy );
+	if ( $term instanceof WP_Term ) {
+		update_term_meta( (int) $term->term_id, VERGEML_FILING_LOCKED, 1 );
+		return (int) $term->term_id;
+	}
+	$made = wp_insert_term( __( 'To sort', 'vergelabs-media-library' ), $taxonomy, array( 'slug' => VERGEML_FILING_TO_SORT_SLUG ) );
+	if ( is_wp_error( $made ) || ! isset( $made['term_id'] ) ) {
+		return 0;
+	}
+	update_term_meta( (int) $made['term_id'], VERGEML_FILING_LOCKED, 1 );
+	return (int) $made['term_id'];
+}
+
+/**
+ *  One answer, carried out.
+ *
+ *  The plan is vergeml_filing_answer_plan()'s; this makes the folder it
+ *  names, resolves To sort, moves the pictures, marks the ones the user
+ *  chose a folder for as theirs, and writes each move into the undo record
+ *  and the trail -- so Undo covers the whole step, answers included.
+ *
+ *  @return array|WP_Error { id, answer, moved, made (term id), term_id, show (ids), line }
+ */
+function vergeml_talk_answer( $id, $answer ) {
+
+	$state = get_option( VERGEML_TALK_STATE );
+	if ( ! is_array( $state ) || empty( $state['questions'] ) ) {
+		return new WP_Error( 'no_questions', __( 'There are no questions to answer.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
+	}
+	if ( ! empty( $state['active'] ) ) {
+		return new WP_Error( 'running', __( 'The fill is still running.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
+	}
+
+	$at = null;
+	foreach ( (array) $state['questions'] as $i => $q ) {
+		if ( (string) $q['id'] === (string) $id ) {
+			$at = $i;
+			break;
+		}
+	}
+	if ( null === $at ) {
+		return new WP_Error( 'no_question', __( 'No such question.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
+	}
+	$q = $state['questions'][ $at ];
+	if ( ! empty( $q['answered'] ) ) {
+		return new WP_Error( 'answered', __( 'That question is answered.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
+	}
+
+	$plan = vergeml_filing_answer_plan( $q, $answer );
+	if ( null === $plan ) {
+		return new WP_Error( 'bad_answer', __( 'That is not one of the answers.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+	}
+
+	$taxonomy = (string) $state['taxonomy'];
+	$made     = 0;
+	$to_sort  = 0;
+
+	if ( null !== $plan['make'] ) {
+		$found = get_terms( array( 'taxonomy' => $taxonomy, 'name' => $plan['make'], 'parent' => 0, 'hide_empty' => false, 'number' => 1 ) );
+		if ( ! is_wp_error( $found ) && $found ) {
+			$made = (int) $found[0]->term_id;
+		} else {
+			$new = wp_insert_term( $plan['make'], $taxonomy, array( 'parent' => 0 ) );
+			if ( is_wp_error( $new ) || ! isset( $new['term_id'] ) ) {
+				return new WP_Error( 'no_folder', __( 'The folder could not be made.', 'vergelabs-media-library' ), array( 'status' => 500 ) );
+			}
+			$made = (int) $new['term_id'];
+			$state['made_by_answer'][] = $made;
+		}
+	}
+	if ( in_array( 'to-sort', array_values( (array) $plan['moves'] ), true ) ) {
+		$to_sort = vergeml_talk_to_sort( $taxonomy );
+		if ( ! $to_sort ) {
+			return new WP_Error( 'no_folder', __( 'The To sort folder could not be made.', 'vergelabs-media-library' ), array( 'status' => 500 ) );
+		}
+	}
+	foreach ( (array) $plan['moves'] as $tid ) {
+		if ( is_int( $tid ) && ! ( get_term( $tid, $taxonomy ) instanceof WP_Term ) ) {
+			return new WP_Error( 'no_folder', __( 'That folder is gone.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+		}
+	}
+
+	$undo   = array();
+	$trail  = array();
+	$moved  = 0;
+	$landed = 0;
+	foreach ( (array) $plan['moves'] as $attachment => $to ) {
+		$attachment = (int) $attachment;
+		$to         = 'new' === $to ? $made : ( 'to-sort' === $to ? $to_sort : (int) $to );
+		$landed     = $to;
+		$was        = wp_get_object_terms( $attachment, $taxonomy, array( 'fields' => 'ids' ) );
+		$undo[ $attachment ] = is_wp_error( $was ) ? array() : array_map( 'intval', $was );
+		wp_set_object_terms( $attachment, array( $to ), $taxonomy, false );
+		if ( $plan['placed_by'] ) {
+			update_post_meta( $attachment, VERGEML_FILING_PLACED_BY, 'user' );
+		}
+		$moved++;
+		$trail[] = array( $attachment, $to, array( 'why' => $plan['placed_by'] ? 'user' : 'answer', 'prompt_hash' => '', 'model_version' => '' ) );
+	}
+
+	if ( $undo ) {
+		$before = get_option( VERGEML_TALK_UNDO );
+		if ( is_array( $before ) ) {
+			$before['files'] = ( isset( $before['files'] ) ? (array) $before['files'] : array() ) + $undo;
+			if ( $made && ! empty( $state['made_by_answer'] ) && in_array( $made, (array) $state['made_by_answer'], true ) ) {
+				$before['made'][] = $made;
+			}
+			if ( $plan['placed_by'] ) {
+				$before['placed'] = array_values( array_unique( array_merge( isset( $before['placed'] ) ? (array) $before['placed'] : array(), array_keys( $undo ) ) ) );
+			}
+			update_option( VERGEML_TALK_UNDO, $before, false );
+		}
+		vergeml_talk_trail_write( $trail );
+	}
+
+	$result = array( 'moved' => $moved, 'term_id' => $landed, 'made' => $made );
+	if ( $plan['answered'] ) {
+		$state['questions'][ $at ]['answered'] = (string) $answer;
+		$state['questions'][ $at ]['result']   = $result;
+	}
+	update_option( VERGEML_TALK_STATE, $state, false );
+
+	if ( $moved && function_exists( 'vergeml_folders_moved' ) ) {
+		vergeml_folders_moved( 'answer' );
+	}
+
+	return array(
+		'id'     => (string) $q['id'],
+		'answer' => (string) $answer,
+		'moved'  => $moved,
+		'made'   => $made,
+		'term_id' => $landed,
+		'show'   => $plan['show'],
+	);
 }
 
 

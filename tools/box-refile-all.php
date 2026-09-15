@@ -44,16 +44,23 @@ foreach ( $profiles as $tid => $p ) {
     printf( "  %-34s classes: %-40s kinds: %-20s audience: %s\n", implode( ' / ', $p['path'] ), implode( ', ', array_slice( $p['classes'], 0, 4 ) ), implode( ',', $p['kinds'] ), '' === $p['audience'] ? '-' : $p['audience'] );
 }
 
-$rows = $wpdb->get_results( "SELECT attachment_id, embedding, kind, filing FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL ORDER BY attachment_id", ARRAY_A );
+$rows = $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.kind, i.filing, pm.meta_value AS placed_by FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s WHERE i.error = '' AND i.embedding IS NOT NULL ORDER BY i.attachment_id", VERGEML_FILING_PLACED_BY ), ARRAY_A );
 $t0 = microtime( true );
 $name = function ( $tid ) use ( $profiles ) { return isset( $profiles[ $tid ] ) ? implode( ' / ', $profiles[ $tid ]['path'] ) : '(none)'; };
+
+// The one function the preview and the run count with: every row picked, the outcomes tallied.
+$counted = vergeml_filing_count( $profiles, $rows );
+$tally   = $counted['counts'];
+printf( "\n=== outcomes (vergeml_filing_count): looked %d = fits %d (sure %d, likely %d) + siblings %d + nothing %d (floor %d, margin %d, gated %d) + kept %d  -> %s\n",
+    $tally['looked'], $tally['fits'], $tally['sure'], $tally['likely'], $tally['siblings'], $tally['nothing'], $tally['why']['floor'], $tally['why']['margin'], $tally['why']['gated'], $tally['kept'],
+    $tally['looked'] === $tally['fits'] + $tally['siblings'] + $tally['nothing'] + $tally['kept'] && $tally['looked'] === count( $rows ) ? 'they sum to the described total' : 'THEY DO NOT SUM' );
 
 $into = array(); $why = array(); $moves = array(); $stay = array(); $named = array();
 $pat = '/bike|bicycle|phone|wallet|heart|logo|chart|sneaker|shoe|jeans|bag|tote/i';
 foreach ( $rows as $r ) {
     $id    = (int) $r['attachment_id'];
     $facts = vergeml_filing_facts( $r );
-    $pick  = vergeml_filing_pick( $facts, $profiles );
+    $pick  = $counted['picks'][ $id ];
     $cur   = wp_get_object_terms( $id, $tax, array( 'fields' => 'ids' ) );
     $cur   = is_wp_error( $cur ) ? array() : array_map( 'intval', $cur );
     $from  = $cur ? $name( $cur[0] ) : '(unfiled)';

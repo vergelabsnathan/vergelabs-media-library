@@ -1,30 +1,39 @@
 {
-  "phase": "Four yesses — Phase 5, S3: 5.9's brief — the reviewer's pack, written and sent",
+  "phase": "Every picture a home — Phase A, S1: A.1 one filing path + A.2 the residue, grouped and named",
   "model": "opus",
-  "plan": "plans/four-yesses/phase-5.md",
-  "spec": "plans/four-yesses.md",
+  "plan": "plans/every-picture-a-home.md",
+  "spec": "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
   "scope": [
-    "docs/security-brief.md",
-    "docs/security-findings.md"
+    "core/filing.php",
+    "core/folder-talk.php",
+    "core/guide.php",
+    "tests/filing/**",
+    "tools/verify.mjs",
+    "../service/app/api/ai/name-group/**",
+    "../service/lib/anthropic.ts",
+    "../service/lib/name-group.test.ts",
+    "docs/**",
+    "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-13-phase-5-s2c-next-bump.md",
-    "plans/four-yesses/phase-5.md",
-    "docs/security-surface.md",
-    "tests/security/roles.php",
-    "SECURITY.md",
-    "../service/docs/security.md"
+    "docs/handoffs/2026-09-14-box-as-a-user.md",
+    "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
+    "plans/every-picture-a-home.md",
+    "core/filing.php",
+    "core/folder-talk.php",
+    "tools/box-refile-all.php"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "Who reviews and what it costs (a WordPress-specialist review or a scoped bounty) is Nathan's; the brief is the session's, the money and the choice are his",
-    "Do not close a finding without the reviewer's word; do not pick the reviewer",
-    "The brief is sent by Nathan; the session writes it and records the date only once he says it went"
+    "The floor and margin values do not change; the outcomes around them do",
+    "Residue naming is metered (free to the licence) unless Nathan says a credit",
+    "Nothing on the box is filed by this session; A.4 is the walk, next session",
+    "No screen work: js/ and css/ are Phase B"
   ],
   "gates": [
-    "docs/security-brief.md exists and lists: docs/security-surface.md; the roles suite's coverage count (rows of the surface table covered by tests/security/roles.php, counted, out of the total); the three hand-written registers (docs/security-hosts.md, docs/security-secrets.md, and the Files section of docs/security-surface.md from 5.5); ../service/docs/security.md; how to get a box; what is in and out of scope, from SECURITY.md",
-    "docs/security-findings.md exists with the row shape (finding, status, task, commit) and no rows yet",
-    "node tools/verify.mjs surface db-calls escaping globals roles paths hosts secrets — green, unchanged by this session",
-    "the brief's coverage count is a number with the command that produced it, not a reading"
+    "node tools/verify.mjs filing → 12/12 (pick) and green (residue); each mutation named in the plan turns its own row red",
+    "../service: pnpm test green with lib/name-group.test.ts; typecheck clean",
+    "node tools/verify.mjs surface roles escaping → still green (escaping 9/10)",
+    "tools/box-refile-all.php dry run on the box prints outcomes, not just stays: fits / siblings / nothing counts sum to the described total"
   ]
 }
