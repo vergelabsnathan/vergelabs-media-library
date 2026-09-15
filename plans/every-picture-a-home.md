@@ -296,7 +296,7 @@ pill will do.
 - **Copy:** none.
 - **Do not:** change `aria-*` on rows; touch the drag handlers.
 
-## B.4 · The Fill step: live counts and the questions — Fable if available, else Opus
+## B.4 · The Fill step: live counts and the questions — Fable if available, else Opus (done 2026-09-15, S5, Opus)
 
 - **Files:** `js/vergeml-folders.js` (the Fill state: polls `/guide/progress`,
   renders `/guide/questions`, posts `/guide/answer`), `css/vergeml-folders.css`,
@@ -317,8 +317,24 @@ pill will do.
 - **Copy:** from the spec §2 Step 3 and B.1's approved mock.
 - **Do not:** show a question before the run ends; show more than eight
   thumbnails; scroll the page for a card.
+- **As built (S5):** `renderFill()` has four states — running (the pill row
+  from the report's `tally`, the rows from `view.setProgress`), asking (the
+  `.g-qs` column to the tree's right, `.g-cols.is-asking`; three cards, the
+  answered one kept with its result line until the next answer; *Leave the
+  rest* posts `id: "rest"` to `/guide/answer`, which answers every open
+  question with leave, or keep-parent for a sibling question), done
+  (`fillDone()`: 0 open, 0 unfiled, not running; `.g-cols.is-done`, the
+  parents closed, what the answers made marked new through
+  `view.setNewIds(made)`, *Next: Alt text*, Undo), and the run's button.
+  The questions are read once the page has painted, only when the fill left
+  some (`vergeml_talk_fill_status().open`); `made` (the folders the answers
+  made, To sort included when leave made it) travels with the page and with
+  every answer. *Show me* opens the card on the group's pictures, each a
+  link to its modal. Undo now closes the questions with the Move. The
+  questions are planted for the suite by `tests/ui/fill-fixture.php` over
+  SSH (`tests/ui/box.mjs`), since no route writes the talk state.
 
-## B.5 · Alt text and Rename as steps; confidence on a picture — Opus
+## B.5 · Alt text and Rename as steps; confidence on a picture — Opus (done 2026-09-15, S5)
 
 - **Files:** `core/guide.php` (Steps 4 and 5 markup), `js/vergeml-folders.js`,
   `core/ai.php` (`vergeml_ai_apply_alt` called from the step), `js/vergeml-media-list.js`
@@ -337,6 +353,19 @@ pill will do.
 - **Copy:** "Write alt text for 900 pictures · never replaces one you have";
   "Rename files · not available yet".
 - **Do not:** enable the renamer; write alt text during the fill.
+- **As built (S5):** Step 4's button is the plugin's own `/ai-alt` route,
+  two hundred a request until none is left, no model route; the pill is
+  every image without alt text (`alt_missing`), the button the ones the
+  catalogue can fill (`alt_pending`, a new count in the boot: twelve queries
+  now, `tests/tree/guide.php` A1). Never overwrites: `vergeml_ai_alt_pending`'s
+  own `meta_value = ''` condition, asserted on a picture given an alt of its
+  own. Step 5 was already gated on the rail from S4. The word on a picture is
+  `vergeml_filing_confidence()` (core/filing.php): `by you` from the
+  placed-by mark or a by-hand row, else the move's `why` — `ok` by score,
+  `siblings` likely. `/librarian-why/{id}` answers `confidence` and `word`;
+  the modal's section shows it as `.vgml-why-word` beside the label; the
+  media list's line carries it after the folder (`.vgml-word`, one query a
+  page for the moves rows).
 
 ## B.6 · The AI screen and the Dashboard at a glance — Opus
 
