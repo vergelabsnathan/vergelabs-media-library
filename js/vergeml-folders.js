@@ -561,8 +561,8 @@
 		dom.qs.hidden = ! ( asking && 'fill' === state.step );
 		renderQuestions();
 
-		// A done tree is read as totals: the parents closed. Open again the moment it is not done.
-		var openAll = ! ( done && 'fill' === state.step );
+		// The parents open only while the fill paints its bars (every row landed of total, the approved running mock); closed otherwise.
+		var openAll = running() && 'fill' === state.step;
 		if ( view && view.openAll !== openAll ) {
 			view.openAll = openAll;
 			view.openOverride = {};
@@ -933,8 +933,9 @@
 			indent: { step: 22, base: 0 },
 			editable: ! confirmed(),
 			siblings: true,
-			// Every branch open and nothing folded: the tree is the screen, one list, and a small parent's children are one row of chips.
-			openAll: true,
+			// Parents closed, nothing folded (Nathan, 2026-09-15: a tree of 300 reads by its parents): a closed parent carries
+			// its folder count; a parent the draft changed under opens by itself; a small open parent's children are chips.
+			openAll: false,
 			fold: false,
 			l10n: treeL10n(),
 			onEdit: onHandEdit

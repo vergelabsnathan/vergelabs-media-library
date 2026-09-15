@@ -641,6 +641,26 @@
 			return n;
 		}
 
+		/*
+		 *  Changes of shape only -- a folder added, removed, renamed or moved --
+		 *  which is what opens a closed parent by itself. A count that grows is
+		 *  a change (it counts above, it marks the row), but a proposal grows
+		 *  every folder, and a tree that opens everywhere is not closed by default.
+		 */
+		var shapeUnderMemo = {};
+		function shapeUnder( key ) {
+			if ( shapeUnderMemo[ key ] !== undefined ) {
+				return shapeUnderMemo[ key ];
+			}
+			var r = rows[ key ];
+			var n = r && ( 'added' === r.status || 'removed' === r.status || r.renamedFrom || ( r.movedFrom !== null && r.movedFrom !== undefined ) ) ? 1 : 0;
+			( children[ key ] || [] ).forEach( function ( c ) {
+				n += shapeUnder( c.key );
+			} );
+			shapeUnderMemo[ key ] = n;
+			return n;
+		}
+
 		var changes = 0;
 		order.forEach( function ( key ) {
 			if ( 'same' !== rows[ key ].status ) {
@@ -656,6 +676,7 @@
 			now: model.nodes.length,
 			after: draft.folders.length,
 			changesUnder: changesUnder,
+			shapeUnder: shapeUnder,
 			pathOf: function ( key ) {
 				var names = [];
 				var guard = 0;
@@ -859,7 +880,7 @@
 		if ( this.openAll ) {
 			return true;
 		}
-		return !! ( this.overlay && this.overlay.changesUnder( key ) > 0 );
+		return !! ( this.overlay && this.overlay.shapeUnder( key ) > 0 );
 	};
 
 	TreeView.prototype.toggle = function ( key ) {
@@ -954,7 +975,18 @@
 			Object.keys( this.openOverride ).forEach( function ( key ) {
 				openMap[ key.replace( /^t/, '' ) ] = !! self.openOverride[ key ];
 			} );
-			return this.model.entries( { open: openMap, filter: this.filter } );
+			// A closed parent says how many folders sit under it, as the draft path's rows do (entryFor's meta).
+			var below = function ( id ) {
+				var n = 0;
+				( self.model.children[ id ] || [] ).forEach( function ( node ) {
+					n += 1 + below( node.id );
+				} );
+				return n;
+			};
+			return this.model.entries( { open: openMap, filter: this.filter } ).map( function ( entry ) {
+				entry.meta = entry.kids && ! entry.open ? plural( self.l10n, 'folder1', 'folderN', below( entry.id ) ) : '';
+				return entry;
+			} );
 		}
 
 		if ( 'changes' === this.mode ) {
@@ -1190,13 +1222,13 @@
 	/** + and × after a row's or a chip's name: `entry` carries key and name; `onAdd` opens the editor in the right place. */
 	TreeView.prototype.actions = function ( into, entry, onAdd ) {
 		var self = this;
-		var add = el( 'button', { type: 'button', class: 'vgml-add', tabindex: '-1', 'aria-label': sprintf( this.l10n.addIn, entry.name ), title: sprintf( this.l10n.addIn, entry.name ) }, '+' );
+		var add = el( 'button', { type: 'button', class: 'vgml-add', tabindex: '-1', 'aria-label': sprintf( this.l10n.addIn, entry.name ), title: sprintf( this.l10n.addIn, entry.name ) } ); // The glyph is CSS: a chip's text stays its name.
 		add.addEventListener( 'click', function ( e ) {
 			e.stopPropagation();
 			onAdd();
 		} );
 		into.appendChild( add );
-		var remove = el( 'button', { type: 'button', class: 'vgml-remove', tabindex: '-1', 'aria-label': sprintf( this.l10n.removeOne, entry.name ), title: sprintf( this.l10n.removeOne, entry.name ) }, '×' );
+		var remove = el( 'button', { type: 'button', class: 'vgml-remove', tabindex: '-1', 'aria-label': sprintf( this.l10n.removeOne, entry.name ), title: sprintf( this.l10n.removeOne, entry.name ) } );
 		remove.addEventListener( 'click', function ( e ) {
 			e.stopPropagation();
 			if ( ! self.editing ) {
@@ -1570,8 +1602,10 @@
 			b.setAttribute( 'aria-pressed', self.mode === mode ? 'true' : 'false' );
 		} );
 
-		this.findEl.hidden = this.model.nodes.length <= 20 && ! this.filter;
+		// A search from ten folders: with the parents closed by default, finding is how a big tree is read (Nathan, 2026-09-15: "say 300 categories").
+		this.findEl.hidden = this.model.nodes.length < 10 && ! this.filter;
 	};
+
 
 	/*
 	 *  A parent with one to three children, every one a leaf and none of them

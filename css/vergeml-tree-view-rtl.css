@@ -420,6 +420,14 @@
 	transition: opacity 120ms ease;
 }
 
+.vgml-tv[data-surface="folders"] .vgml-add::before {
+	content: '+';
+}
+
+.vgml-tv[data-surface="folders"] .vgml-remove::before {
+	content: '×';
+}
+
 .vgml-tv[data-surface="folders"] .vgml-row .vgml-add {
 	margin-right: 6px;
 }

@@ -141,7 +141,7 @@ check( 'a collapsed branch holding changes carries the mark', 'false' === landsc
 await page.click( '#folders .vgml-node[data-key="t20"] > .vgml-row .vgml-twist' );
 
 const findShown = await page.$eval( '#folders .vgml-tv-find', ( e ) => ! e.hidden );
-check( 'a find box appears past twenty folders', findShown );
+check( 'a find box appears from ten folders', findShown );
 await page.fill( '#folders .vgml-tv-search', 'sneak' );
 const found = await page.$$eval( '#folders .vgml-node[data-key]', ( lis ) => lis.map( ( li ) => li.querySelector( '.vgml-name' ).textContent.trim() ) );
 check( 'finding shows the match and the path to it, nothing else', found.join( '|' ) === 'Apparel|Men|Sneakers', found.join( ' | ' ) );
@@ -152,12 +152,12 @@ await page.fill( '#folders .vgml-tv-search', '' );
 
 const fewer = await page.evaluate( () => {
 	const h = window.harness;
-	const small = h.clone().filter( ( n ) => n.id <= 20 );
+	const small = h.clone().filter( ( n ) => n.id <= 9 );
 	const v = h.tv.create( { surface: 'folders', root: document.createElement( 'div' ), nodes: small } );
 	v.setDraft( h.tv.fromLive( small ) );
 	return { rows: small.length, hidden: v.findEl.hidden };
 } );
-check( 'and not before twenty', 20 === fewer.rows && true === fewer.hidden, JSON.stringify( fewer ) );
+check( 'and not under ten', 9 === fewer.rows && true === fewer.hidden, JSON.stringify( fewer ) );
 
 /* ---------------------------------------- D  the draft carried by term id */
 
@@ -318,6 +318,49 @@ const chipRemoved = await page.evaluate( () => {
 } );
 check( 'the × on a chip emits one remove edit for that folder', 'remove' === chipRemoved.edit.type && 't27' === chipRemoved.edit.key && chipRemoved.gone, JSON.stringify( chipRemoved ) );
 await page.evaluate( () => document.getElementById( 'chips' ).remove() );
+
+// Closed by default (no openAll): a closed parent says how many folders sit under it, at any depth; open, it says nothing; the find box shows from ten folders.
+const closed = await page.evaluate( () => {
+	const h = window.harness;
+	const root = document.createElement( 'div' );
+	root.id = 'closed';
+	document.body.appendChild( root );
+	const v = h.tv.create( { surface: 'folders', root, nodes: h.nodes, siblings: true, editable: true, onEdit: () => {} } );
+	v.setMode( 'all', true );
+	v.setDraft( h.tv.fromLive( h.nodes ) );
+	const text = ( key ) => { const s = root.querySelector( `.vgml-node[data-key="${ key }"] .vgml-meta` ); return s ? s.textContent : null; };
+	const out = { apparelClosed: root.querySelector( '.vgml-node[data-key="t1"]' ).getAttribute( 'aria-expanded' ), apparel: text( 't1' ), architecture: text( 't13' ), leaf: text( 't16' ), rowsShown: root.querySelectorAll( '.vgml-node[data-key]' ).length, find: ! v.findEl.hidden };
+	v.toggle( 't1' );
+	out.apparelOpen = text( 't1' );
+	out.womenClosed = text( 't2' );
+	// A draft that changes something under a closed parent opens that parent by itself.
+	v.setDraft( h.tv.applyEdit( h.tv.fromLive( h.nodes ), { type: 'add', parent: 't26', name: 'Lamps', by: 'you' } ) );
+	out.objectsOpen = root.querySelector( '.vgml-node[data-key="t26"]' ).getAttribute( 'aria-expanded' );
+	out.lampsShown = [ ...root.querySelectorAll( '.vgml-name, .vgml-sib' ) ].some( ( n ) => /^Lamps/.test( n.textContent ) );
+	// A proposal's counts grow under every parent; that is a change on the row (was N), not a reason to open it.
+	const grown = h.tv.fromLive( h.nodes );
+	grown.folders.forEach( ( f ) => { if ( 't14' === f.key ) { f.count = 99; } } );
+	v.openOverride = {};
+	v.setDraft( grown );
+	const arch = root.querySelector( '.vgml-node[data-key="t13"]' );
+	out.grownStaysClosed = arch.getAttribute( 'aria-expanded' );
+	out.grownCount = ( arch.querySelector( '.vgml-count' ) || {} ).textContent;
+	const small = h.tv.create( { surface: 'folders', root: document.createElement( 'div' ), nodes: h.nodes.slice( 0, 5 ) } );
+	small.setDraft( h.tv.fromLive( h.nodes.slice( 0, 5 ) ) );
+	out.findSmall = ! small.findEl.hidden;
+	// The live tree with no draft at all (the box before a proposal): the same count on a closed parent.
+	const liveRoot = document.createElement( 'div' );
+	document.body.appendChild( liveRoot );
+	h.tv.create( { surface: 'folders', root: liveRoot, nodes: h.nodes, siblings: true } ).render();
+	const liveMeta = liveRoot.querySelector( '.vgml-node[data-key="t1"] .vgml-meta' );
+	out.liveApparel = liveMeta ? liveMeta.textContent : null;
+	liveRoot.remove();
+	root.remove();
+	return out;
+} );
+check( 'closed by default: a closed parent carries its folder count at any depth, an open one does not, top level only shows',
+	'false' === closed.apparelClosed && '11 folders' === closed.apparel && '2 folders' === closed.architecture && null === closed.leaf && 11 === closed.rowsShown && null === closed.apparelOpen && '6 folders' === closed.womenClosed, JSON.stringify( closed ) );
+check( 'a change of shape under a closed parent opens it, a change of count does not; the find box shows from ten folders and not under', 'true' === closed.objectsOpen && closed.lampsShown && 'false' === closed.grownStaysClosed && /^136/.test( closed.grownCount || '' ) && closed.find && ! closed.findSmall && '11 folders' === closed.liveApparel, JSON.stringify( closed ) );
 await page.evaluate( () => window.harness.withDraft() );
 
 const editsBeforeRemove = await page.evaluate( () => window.harness.edits.length );
