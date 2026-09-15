@@ -664,6 +664,14 @@
 		// And no head of its own: the box beside it has one, and a second state
 		// switch in the page, even hidden, is one the screen's tests would find.
 		this.head = false !== opts.head;
+		/*
+		 *  The Folders screen alone: a parent with up to three children, all of
+		 *  them leaves, shows them on one line under it as chips (the approved
+		 *  mock, 2026-09-15-step-rail.html) instead of three rows. A data
+		 *  attribute on the root, so the sheet can tell; the rows themselves --
+		 *  their aria, their drag -- are untouched, the chips are not rows.
+		 */
+		this.siblings = !! opts.siblings;
 		this.model = opts.model || new Model( opts.nodes || [] );
 		this.draft = null;
 		this.mode = 'all';
@@ -686,6 +694,9 @@
 		if ( this.root ) {
 			this.root.classList.add( 'vgml-tv' );
 			this.root.setAttribute( 'data-surface', this.surface );
+			if ( this.siblings ) {
+				this.root.setAttribute( 'data-siblings', 'row' );
+			}
 			if ( opts.accent ) {
 				this.root.style.setProperty( '--vgml-accent', opts.accent );
 			}
@@ -1053,10 +1064,13 @@
 		row.appendChild( folderIcon( entry.node ? entry.node.color : '', entry.open && entry.kids, ! entry.total ) );
 
 		var name = el( 'span', { class: 'vgml-name' }, entry.name );
-		if ( folders && 'added' === status ) {
-			name.appendChild( el( 'span', { class: 'vgml-tag' }, l10n.newTag ) );
-		}
 		row.appendChild( name );
+		// "new" is a pill beside the name, not inside it: the name clips on
+		// overflow and the pill must not go with it (the approved mock's
+		// .g-pill.is-new; every count below is .g-pill too).
+		if ( folders && 'added' === status ) {
+			row.appendChild( el( 'span', { class: 'vgml-tag g-pill is-new' }, l10n.newTag ) );
+		}
 
 		if ( folders && entry.meta ) {
 			row.appendChild( el( 'span', { class: 'vgml-meta' }, entry.meta ) );
@@ -1079,7 +1093,7 @@
 			}
 			if ( null !== landed && 'removed' !== status ) {
 				// Moving: what has landed, of what will.
-				count = el( 'span', { class: 'vgml-count' }, fmt( landed ) );
+				count = el( 'span', { class: 'vgml-count g-pill' }, fmt( landed ) );
 				count.appendChild( el( 'span', { class: 'vgml-was' }, sprintf( l10n.ofN, fmt( Math.max( landed, shown ) ) ) ) );
 				row.appendChild( count );
 				var fill = el( 'span', { class: 'vgml-fill', 'aria-hidden': 'true' } );
@@ -1096,7 +1110,7 @@
 				 */
 				count = null;
 			} else if ( shown || 'same' !== status ) {
-				count = el( 'span', { class: 'vgml-count' }, fmt( shown ) );
+				count = el( 'span', { class: 'vgml-count g-pill' }, fmt( shown ) );
 				if ( entry.was !== null && entry.was !== undefined ) {
 					count.appendChild( el( 'span', { class: 'vgml-was' }, sprintf( l10n.was, fmt( entry.was ) ) ) );
 				}
@@ -1419,6 +1433,57 @@
 		this.findEl.hidden = this.model.nodes.length <= 20 && ! this.filter;
 	};
 
+	/*
+	 *  A parent with one to three children, every one a leaf and none of them
+	 *  removed, moved or renamed (those carry a line of their own), shows them
+	 *  as one row of chips under it. Not while a Move paints its bars, and not
+	 *  while one of them is being renamed in place: a chip is not a row.
+	 */
+	TreeView.prototype.siblingRows = function ( entries ) {
+		var self = this;
+		var out = [];
+		var i = 0;
+		while ( i < entries.length ) {
+			var e = entries[ i ];
+			var kids = [];
+			var j = i + 1;
+			if ( e.kids && e.kids <= 3 && e.open && ! e.path && ! e.line && ! e.fold && ! this.progress ) {
+				while ( j < entries.length && entries[ j ].depth > e.depth ) {
+					kids.push( entries[ j ] );
+					j++;
+				}
+			}
+			var fits = kids.length === e.kids && kids.every( function ( k ) {
+				return ! k.kids && ! k.path && ! k.line && ! k.fold && k.depth === e.depth + 1 && 'removed' !== k.status && ! k.sub && self.editing !== k.key;
+			} );
+			out.push( e );
+			if ( ! fits ) {
+				i++;
+				continue;
+			}
+			// The parent reads for the branch, as it does closed: the children beside it are chips, not rows.
+			if ( e.row ) {
+				e.shown = e.total;
+				e.was = e.node && e.row.liveTotal !== e.total ? e.row.liveTotal : null;
+			}
+			out.push( {
+				sibs: kids.map( function ( k ) {
+					var shown = k.shown !== undefined ? k.shown : k.total;
+					return {
+						key: k.key,
+						name: k.name,
+						status: k.status,
+						count: self.overlay && ! self.counted ? null : ( shown || 'same' !== k.status ? shown : null )
+					};
+				} ),
+				key: e.key + ':sibs',
+				depth: e.depth + 1
+			} );
+			i = j;
+		}
+		return out;
+	};
+
 	TreeView.prototype.render = function () {
 		var self = this;
 		if ( ! this.root ) {
@@ -1458,7 +1523,7 @@
 			this.paintHead();
 		}
 
-		var entries = this.entries();
+		var entries = this.siblings ? this.siblingRows( this.entries() ) : this.entries();
 		this.lastEntries = entries;
 		var first = null === this.seen;
 		var seen = this.seen || {};
@@ -1477,13 +1542,26 @@
 				// The line under a removed or moved folder, not a folder itself.
 				li = el( 'li', { class: 'vgml-tv-sub' + ( 'removed' === entry.status ? ' is-gone' : ' is-moved' ), role: 'none',
 					style: '--vgml-indent:' + ( entry.depth * self.indent.step + self.indent.base ) + 'px' }, entry.line );
+			} else if ( entry.sibs ) {
+				// The children of a small parent, as chips on one line: name and count, nothing else.
+				li = el( 'li', { class: 'vgml-tv-sibs', role: 'none', style: '--vgml-indent:' + ( entry.depth * self.indent.step + self.indent.base ) + 'px' } );
+				entry.sibs.forEach( function ( kid ) {
+					var chip = el( 'span', { class: 'vgml-sib', 'data-key': kid.key }, kid.name );
+					if ( 'added' === kid.status ) {
+						chip.classList.add( 'is-new' );
+					}
+					if ( kid.count !== null ) {
+						chip.appendChild( el( 'span', { class: 'vgml-count g-pill' }, fmt( kid.count ) ) );
+					}
+					li.appendChild( chip );
+				} );
 			} else if ( entry.fold ) {
 				li = el( 'li', { class: 'vgml-node vgml-tv-more', role: 'treeitem', 'aria-level': entry.depth + 1,
 					'aria-posinset': entry.posinset, 'aria-setsize': entry.setsize, tabindex: '-1', 'data-key': entry.key } );
 				var more = el( 'div', { class: 'vgml-row', style: '--vgml-indent:' + ( entry.depth * self.indent.step + self.indent.base ) + 'px' } );
 				more.appendChild( el( 'span', { class: 'vgml-twist is-leaf', 'aria-hidden': 'true' } ) );
 				more.appendChild( el( 'span', { class: 'vgml-name' }, plural( self.l10n, 'more1', 'moreN', entry.fold.count ) ) );
-				more.appendChild( el( 'span', { class: 'vgml-count' }, fmt( entry.fold.total ) ) );
+				more.appendChild( el( 'span', { class: 'vgml-count g-pill' }, fmt( entry.fold.total ) ) );
 				more.addEventListener( 'click', function () { self.unfold( entry.fold.parent ); } );
 				li.appendChild( more );
 			} else {

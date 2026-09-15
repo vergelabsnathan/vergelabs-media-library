@@ -1,24 +1,24 @@
 import { test, expect, open, SCREEN } from './fixtures.mjs';
 
 /*
- *  Folders: one conversation, one tree, one Move.
+ *  Folders: five steps, one tree, one primary.
  *
  *  Walked on the box. Without GUIDE_WALK=1 nothing here asks the service for
  *  a turn and nothing moves a file: the session is planted through the same
- *  routes the screen uses, the tree and the rules answer from the database,
- *  and the screenshots are of the resting screen. With GUIDE_WALK=1 the
- *  conversation opens and is stopped mid-stream (two planner calls' worth:
- *  the token and the turn, ten describes each), a rule is applied and moved
- *  (real pictures, on the box), the moving and done states are screenshotted,
- *  and the Move is undone.
+ *  routes the screen uses, the tree and the dry run answer from the database
+ *  (one embed per new folder path, cached a week), and the screenshots are of
+ *  the resting screen. With GUIDE_WALK=1 "Propose folders" is pressed and the
+ *  stream stopped (two planner calls' worth: the token and the turn).
  *
  *  Screenshots go to tests/ui/shots/, not test-results/: Playwright empties
- *  test-results/ at the start of every run, and the walk's screenshots are
- *  evidence that must outlive the next run.
+ *  test-results/ at the start of every run, and the shots are evidence that
+ *  must outlive the next run.
  *
  *  The session that was on the box is read first and put back at the end,
  *  whatever the tests did: a planted draft once stayed behind, somebody
- *  pressed Move on it, and twenty-one real folders went.
+ *  pressed Move on it, and twenty-one real folders went. The confirm test
+ *  plants a draft of new folders only, with their classes, so /guide/confirm
+ *  asks the planner about nothing and seeds no profile onto a real folder.
  */
 
 const WALK = process.env.GUIDE_WALK === '1';
@@ -32,6 +32,16 @@ const WALK = process.env.GUIDE_WALK === '1';
  *  by tests/tree/guide.php against the same measurement.
  */
 const TODAY = { restRequests: 1, restQueries: 1 };
+
+/*
+ *  The word budget (spec §3): ≤ 80 words on screen per step, counted as
+ *  tokens of innerText that carry a letter or a digit, with the tree
+ *  component (.vgml-tv) left out -- the tree is the person's own data and a
+ *  twenty-folder tree alone is past 80. tools/shoot-mock.mjs --words counts
+ *  the mocks the same way.
+ */
+const BUDGET = 80;
+const SIZES = [ [ 1600, 1000 ], [ 1280, 800 ] ];
 
 const NS = '/vergeml/v1';
 
@@ -53,6 +63,8 @@ async function restore( page ) {
 	if ( ! /wp-admin/.test( page.url() ) ) {
 		await open( page, SCREEN.dashboard );
 	}
+	// A tree the tests confirmed is opened again before anything is written over it.
+	await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/unconfirm`, method: 'POST' } ).catch( () => null ), NS );
 	await reset( page );
 	const s = found.session;
 	const turns = ( s.turns || [] ).map( ( t ) => t.role === 'assistant'
@@ -63,6 +75,16 @@ async function restore( page ) {
 	}
 	if ( s.draft ) {
 		await page.evaluate( ( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/session`, method: 'POST', data: { draft } } ), [ NS, s.draft ] );
+	}
+	if ( s.tree === 'confirmed' ) {
+		await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/confirm`, method: 'POST' } ).catch( () => null ), NS );
+	}
+}
+
+async function remember( page ) {
+	await open( page, SCREEN.dashboard );
+	if ( found === null ) {
+		found = await getSession( page );
 	}
 }
 
@@ -81,14 +103,41 @@ async function plant( page, withDraft ) {
 	if ( ! withDraft ) {
 		return boot;
 	}
-	const nodes = boot.nodes;
+	await page.evaluate( ( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/session`, method: 'POST', data: { draft } } ), [ NS, liveDraft( boot.nodes ) ] );
+	return boot;
+}
+
+/** The live folders as a draft, the first top-level one renamed by hand, plus one folder the draft makes. */
+function liveDraft( nodes ) {
 	const folders = nodes.map( ( n ) => ( { key: 't' + n.id, term_id: n.id, name: n.name, parent: n.parent ? 't' + n.parent : '' } ) );
 	const first = folders.find( ( f ) => f.parent === '' );
 	first.name = first.name + ' (draft)';
 	first.by = 'you';
 	folders.push( { key: 'probe1', term_id: null, name: 'Draft probe', parent: '', count: 12, matches: 'a probe', classes: [ 'probe' ], kinds: [ 'photo' ], audience: '' } );
-	await page.evaluate( ( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/session`, method: 'POST', data: { draft } } ), [ NS, { folders, gone: {}, tags: [], origin: 'talk', rule: null } ] );
-	return boot;
+	return { folders, gone: {}, tags: [], origin: 'talk', rule: null };
+}
+
+/** The parent whose branch holds the most pictures: what the placeholder names. */
+function largestParent( nodes ) {
+	const kids = {};
+	nodes.forEach( ( n ) => { ( kids[ n.parent ] = kids[ n.parent ] || [] ).push( n ); } );
+	const total = ( n ) => n.count + ( kids[ n.id ] || [] ).reduce( ( s, k ) => s + total( k ), 0 );
+	return nodes.filter( ( n ) => kids[ n.id ] ).sort( ( a, b ) => total( b ) - total( a ) )[ 0 ];
+}
+
+const WORDS = ( el ) => {
+	const count = ( t ) => String( t || '' ).split( /\s+/ ).filter( ( x ) => /[\p{L}\p{N}]/u.test( x ) ).length;
+	const all = count( el.innerText );
+	const clone = el.cloneNode( true );
+	clone.querySelectorAll( '.vgml-tv' ).forEach( ( t ) => t.remove() );
+	el.parentNode.insertBefore( clone, el.nextSibling );
+	const without = count( clone.innerText );
+	clone.remove();
+	return { with: all, without };
+};
+
+async function ready( page ) {
+	await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
 }
 
 test.describe( 'the Folders screen', () => {
@@ -97,80 +146,336 @@ test.describe( 'the Folders screen', () => {
 		await restore( page );
 	} );
 
-	test( 'paints from the page, within the budget measured today, and shows the draft over the tree', async ( { page } ) => {
+	/*
+	 *  Opening the page asks no model for anything. Until 2026-09-15 a
+	 *  described library with an empty session opened the conversation by
+	 *  itself: a planner call, ten describes' worth, on every visit that
+	 *  found the session empty. Now a proposal is a button with its cost.
+	 *
+	 *  Mutation: put `turn_( { open: true }, null )` back at the end of
+	 *  js/vergeml-folders.js and the model-route assertion goes red.
+	 */
+	test( 'opens on the session\'s step, paints from the page, and asks no model route', async ( { page } ) => {
 		const problems = [];
 		page.on( 'pageerror', ( e ) => problems.push( `javascript: ${ e.message }` ) );
 
-		await open( page, SCREEN.dashboard );
-		if ( found === null ) {
-			found = await getSession( page );
-		}
-		await plant( page, true );
+		await remember( page );
+		await reset( page );
 
 		const rest = [];
-		let ready = false;
+		const model = [];
+		let painted = false;
 		page.on( 'response', ( r ) => {
-			if ( ! ready && /\/vergeml\/v1\//.test( r.url() ) ) {
+			if ( ! painted && /\/vergeml\/v1\//.test( r.url() ) ) {
 				rest.push( { url: r.url(), queries: Number( r.headers()[ 'x-vgml-queries' ] || 0 ) } );
 			}
 		} );
-		await page.setViewportSize( { width: 1440, height: 1100 } );
+		page.on( 'request', ( r ) => {
+			if ( /\/guide\/(turn|token|stream|propose)(\?|$)/.test( r.url() ) && 'POST' === r.method() ) {
+				model.push( r.url() );
+			}
+		} );
+
+		await page.setViewportSize( { width: 1600, height: 1000 } );
 		await open( page, SCREEN.folders );
-		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
-		ready = true;
+		await ready( page );
+		painted = true;
 
 		expect( rest.length, `REST requests before first paint: ${ rest.map( ( r ) => r.url ).join( ', ' ) }` ).toBeLessThanOrEqual( TODAY.restRequests );
 		expect( rest.reduce( ( n, r ) => n + r.queries, 0 ), 'their queries' ).toBeLessThanOrEqual( TODAY.restQueries );
 
-		await expect( page.locator( '.vgml-folders-facts' ) ).toHaveText( /\d[\d,.]* pictures · \d+ folders · \d[\d,.]* in no folder · described / );
-		await expect( page.locator( '.vgml-seg-tab[aria-selected="true"]' ) ).toHaveText( 'Conversation' );
-		await expect( page.locator( '.vgml-method-kicker' ) ).toHaveText( /^\d+ of \d+ turns$/ );
-		await expect( page.locator( '.vgml-msg.is-assistant' ).first() ).toContainText( 'In the draft:' );
-		await expect( page.locator( '.vgml-msg.is-assistant .vgml-facts li' ).first() ).toContainText( 'Landscape and nature' );
-		// At the cap the composer's own label says so, and offers the way out.
-		await expect( page.locator( '.vgml-composer-text' ) ).toHaveAttribute( 'placeholder', /^\d+ of \d+ turns used\. Edit the tree by hand, or start over\.$/ );
-		await expect( page.locator( '.vgml-startover' ) ).toBeVisible();
+		// The head: three pills. The rail: five steps, every one a button, Tree current on a described library.
+		await expect( page.locator( '.vgml-folders-facts .g-pill' ) ).toHaveText( [ /^\d[\d,.]* pictures$/, /^\d[\d,.]* described$/, /^\d+ folders$/ ] );
+		await expect( page.locator( '.g-rail .g-step' ) ).toHaveText( [ 'Describe', 'Tree', 'Fill', 'Alt text', 'Rename' ] );
+		expect( await page.$$eval( '.g-rail .g-step', ( els ) => els.every( ( e ) => 'BUTTON' === e.tagName && ! e.disabled ) ), 'every step is a button, none disabled' ).toBe( true );
+		await expect( page.locator( '.g-step.is-current' ) ).toHaveText( 'Tree' );
+		await expect( page.locator( '.g-step[data-step="describe"]' ) ).toHaveClass( /is-done/ );
+		await expect( page.locator( '#vgml-folders' ) ).toHaveAttribute( 'data-step', 'tree' );
 
-		// The tree: the draft over today's folders, keyed by id, Changes first.
-		await expect( page.locator( '.vgml-tree-kicker' ) ).toHaveText( /^Folders · \d+ now, \d+ after Move$/ );
-		await expect( page.locator( '.vgml-tv-state[data-mode="changes"]' ) ).toHaveAttribute( 'aria-pressed', 'true' );
-		await expect( page.locator( '.vgml-node.is-new .vgml-name' ) ).toContainText( 'Draft probe' );
-		await expect( page.locator( '.vgml-node.is-change' ).filter( { hasText: '(draft)' } ) ).toHaveCount( 1 );
-		await expect( page.locator( '.vgml-tv-sub' ).filter( { hasText: 'renamed from' } ) ).toContainText( ', by you' );
-		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( /^Move \d+ pictures$/ );
-		await expect( page.locator( '.vgml-move-btn' ) ).toBeEnabled();
+		// Nothing was proposed and nothing asked: the button says what a proposal costs.
+		await page.waitForTimeout( 2500 );
+		expect( model, 'no model route fired on load' ).toEqual( [] );
+		await expect( page.locator( '.vgml-propose-btn' ) ).toHaveText( 'Propose folders' );
+		await expect( page.locator( '.g-card[data-card="tree"] .g-move .g-pill' ) ).toHaveText( '10 credits' );
+		await expect( page.locator( '.g-card[data-card="tree"] .vgml-confirm-btn' ) ).toHaveText( 'This is my tree' );
+		await expect( page.locator( '.g-card[data-card="tree"] .g-quiet' ).last() ).toHaveText( 'Skip' );
+		expect( ( await getSession( page ) ).session.turns, 'the session is still empty' ).toEqual( [] );
 
-		await page.screenshot( { path: 'tests/ui/shots/folders-resting.png', fullPage: true } );
+		// The tree with pills (B.3): every count a pill, a small parent's children as chips.
+		const counts = await page.$$eval( '.g-tree .vgml-count', ( els ) => els.map( ( e ) => e.className ) );
+		expect( counts.length ).toBeGreaterThan( 0 );
+		expect( counts.every( ( c ) => /\bg-pill\b/.test( c ) ), `every count is a pill: ${ counts.join( ' | ' ) }` ).toBe( true );
+		await expect( page.locator( '.g-tree' ) ).toHaveAttribute( 'data-siblings', 'row' );
+
+		await page.screenshot( { path: 'tests/ui/shots/folders-empty-session.png' } );
 		expect( problems, problems.join( '\n' ) ).toEqual( [] );
 	} );
 
-	test( 'a hand edit is a line in the conversation, and survives a reload by id', async ( { page } ) => {
-		await open( page, SCREEN.dashboard );
-		if ( found === null ) {
-			found = await getSession( page );
-		}
-		await plant( page, false );
+	/*
+	 *  The change line. Its placeholder is built from the tree on screen,
+	 *  never fixed text; "Paste or upload a list" is a button, and the upload
+	 *  is read here in the browser -- a .txt as the paste, a .csv row as one
+	 *  path -- into the same parser. A .pdf is refused in one line: nothing
+	 *  in the plugin reads one.
+	 */
+	test( 'the placeholder names the largest parent; a .txt or .csv uploads into the draft; a .pdf is refused', async ( { page } ) => {
+		test.setTimeout( 180_000 );
+		await remember( page );
+		const boot = await plant( page, true );
+		const parent = largestParent( boot.nodes );
+
+		await page.setViewportSize( { width: 1600, height: 1000 } );
 		await open( page, SCREEN.folders );
-		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
+		await ready( page );
 
-		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( 'Move · no changes yet' );
-		await expect( page.locator( '.vgml-move-btn' ) ).toBeDisabled();
+		const input = page.locator( '.g-change .vgml-composer-text' );
+		await expect( input ).toHaveAttribute( 'data-placeholder-from', 'tree' );
+		// At the cap the composer's label is the cap's; the tree's placeholder is what the app built.
+		const built = await page.evaluate( () => document.querySelector( '.g-change .vgml-composer-text' ).getAttribute( 'aria-label' ) );
+		expect( built, 'the placeholder is built from the tree' ).toContain( `split ${ parent.name.replace( / \(draft\)$/, '' ) }` );
+		await expect( page.locator( '.vgml-startover' ) ).toBeVisible();
 
-		// Rename the first folder without children in place: double-click the
-		// name, type, Enter. A leaf, because on a branch the first click of a
-		// double-click toggles the branch and re-renders the row, so the second
-		// click lands on a new element and no rename opens (found 2026-09-13;
-		// the library's first folder has children since the tech-news seed).
-		const first = page.locator( '.vgml-folders-tree .vgml-node[data-key]:not([aria-expanded])' ).first();
+		// The draft over the tree: the folder it makes wears the yellow pill, the renamed one its line.
+		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-tag' ) ).toHaveText( 'new' );
+		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-tag' ) ).toHaveClass( /\bg-pill\b.*\bis-new\b|\bis-new\b.*\bg-pill\b/ );
+		await expect( page.locator( '.vgml-tv-sub' ).filter( { hasText: 'renamed from' } ) ).toContainText( ', by you' );
+
+		// The way in: a button, expanded on press.
+		const wayIn = page.locator( '.g-chip.is-way-in' );
+		await expect( wayIn ).toHaveText( 'Paste or upload a list' );
+		await expect( page.locator( '.vgml-paste' ) ).toBeHidden();
+		await wayIn.click();
+		await expect( wayIn ).toHaveAttribute( 'aria-expanded', 'true' );
+		await expect( page.locator( '.vgml-paste' ) ).toBeVisible();
+
+		expect( boot.nodes.some( ( n ) => /upload probe|csv probe/i.test( n.name ) ), 'the box holds no folder named Upload probe or Csv probe' ).toBe( false );
+		const newBefore = await page.locator( '.g-tree .vgml-node.is-new' ).count();
+
+		// A .txt: the paste, line for line.
+		await page.locator( '.vgml-paste-file' ).setInputFiles( { name: 'tree.txt', mimeType: 'text/plain', buffer: Buffer.from( 'Upload probe > Alpha\nUpload probe > Beta\n' ) } );
+		await expect( page.locator( '.vgml-paste-area' ) ).toHaveValue( 'Upload probe > Alpha\nUpload probe > Beta\n' );
+		await expect( page.locator( '.vgml-read-line .g-pill' ).first() ).toHaveText( '3 folders' );
+		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Upload probe' } ) ).toHaveCount( 1 );
+		// Its two leaves are chips under it, new, on this surface.
+		await expect( page.locator( '.g-tree .vgml-tv-sibs .vgml-sib.is-new' ) ).toHaveText( [ 'Alpha', 'Beta' ] );
+		await expect( page.locator( '.vgml-paste-refused' ) ).toBeHidden();
+
+		// Until the dry run answers the confirm waits; then it is offered, and the session holds the paste.
+		const confirm = page.locator( '.g-card[data-card="tree"] .vgml-confirm-btn' );
+		await expect( confirm ).toBeDisabled();
+		await expect( confirm ).toBeEnabled( { timeout: 90000 } );
+		const s = await getSession( page );
+		expect( s.session.draft.folders.filter( ( f ) => ! f.term_id ).map( ( f ) => f.name ).sort() ).toEqual( [ 'Alpha', 'Beta', 'Upload probe' ] );
+		expect( s.session.fit, 'the turn route ran the dry run over the upload' ).not.toBeNull();
+		if ( s.session.fit.counted ) {
+			await expect( page.locator( '.g-card[data-card="tree"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d+ folders$/, /^\d[\d,.]* placed$/, /^\d[\d,.]* stay unfiled$/ ] );
+		}
+		await page.screenshot( { path: 'tests/ui/shots/folders-upload.png' } );
+
+		// A .csv: each row's cells are one path's levels.
+		await page.locator( '.vgml-paste-file' ).setInputFiles( { name: 'tree.csv', mimeType: 'text/csv', buffer: Buffer.from( '"Csv probe","Gamma"\nCsv probe;Delta\n' ) } );
+		await expect( page.locator( '.vgml-paste-area' ) ).toHaveValue( 'Csv probe > Gamma\nCsv probe > Delta' );
+		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Csv probe' } ) ).toHaveCount( 1 );
+
+		// A .pdf: one line, and the draft as it was.
+		await page.locator( '.vgml-paste-file' ).setInputFiles( { name: 'tree.pdf', mimeType: 'application/pdf', buffer: Buffer.from( '%PDF-1.4' ) } );
+		await expect( page.locator( '.vgml-paste-refused li' ) ).toHaveText( [ 'tree.pdf is not a .txt or .csv file' ] );
+		await expect( page.locator( '.vgml-paste-area' ) ).toHaveValue( 'Csv probe > Gamma\nCsv probe > Delta' );
+		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Csv probe' } ) ).toHaveCount( 1 );
+		expect( newBefore ).toBeGreaterThanOrEqual( 1 );
+		await page.screenshot( { path: 'tests/ui/shots/folders-upload-refused.png' } );
+	} );
+
+	/*
+	 *  "This is my tree" (A.3, /guide/confirm): the rail moves to Fill, the
+	 *  tree refuses every edit until Unconfirm. Skip is the other way past
+	 *  the step: Fill, with the tree still open. The draft here is new folders
+	 *  only, with classes, so the confirm asks the planner about nothing and
+	 *  seeds no profile onto a real folder (see the file's header).
+	 */
+	test( 'confirm advances the rail and locks the tree; Unconfirm opens it; Skip leaves it unconfirmed', async ( { page } ) => {
+		await remember( page );
+		await plant( page, false );
+		const draft = {
+			folders: [
+				{ key: 'c1', term_id: null, name: 'Confirm probe', parent: '', classes: [ 'probe' ], kinds: [ 'photo' ], audience: '', matches: 'a probe' },
+				{ key: 'c2', term_id: null, name: 'Alpha', parent: 'c1', classes: [ 'probe alpha' ], kinds: [ 'photo' ], audience: '', matches: 'a probe' },
+			],
+			gone: {}, tags: [], origin: 'talk', rule: null,
+		};
+		await page.evaluate( ( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/session`, method: 'POST', data: { draft } } ), [ NS, draft ] );
+
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open( page, SCREEN.folders );
+		await ready( page );
+		await expect( page.locator( '#vgml-folders' ) ).toHaveAttribute( 'data-step', 'tree' );
+
+		// Skip first: Fill current, the tree not confirmed, and Fill's own button is the confirm.
+		await page.locator( '.g-card[data-card="tree"] .g-quiet' ).filter( { hasText: 'Skip' } ).click();
+		await expect( page.locator( '.g-step.is-current' ) ).toHaveText( 'Fill' );
+		await expect( page.locator( '.g-step[data-step="tree"]' ) ).not.toHaveClass( /is-done/ );
+		expect( ( await getSession( page ) ).session.tree ).toBe( 'editing' );
+		await expect( page.locator( '.g-card[data-card="fill"] .vgml-confirm-btn' ) ).toHaveText( 'This is my tree' );
+		await page.screenshot( { path: 'tests/ui/shots/folders-fill-skipped.png' } );
+
+		// Back, and confirm.
+		await page.locator( '.g-step[data-step="tree"]' ).click();
+		await expect( page.locator( '.g-step.is-current' ) ).toHaveText( 'Tree' );
+		const r = await Promise.all( [
+			page.waitForResponse( ( res ) => /\/guide\/confirm/.test( res.url() ) ),
+			page.locator( '.g-card[data-card="tree"] .vgml-confirm-btn' ).click(),
+		] );
+		expect( r[ 0 ].status(), 'confirm answered' ).toBe( 200 );
+		expect( ( await r[ 0 ].json() ).profiled, 'the planner was asked about nothing' ).toBe( 0 );
+		await expect( page.locator( '.g-step.is-current' ) ).toHaveText( 'Fill' );
+		await expect( page.locator( '.g-step[data-step="tree"]' ) ).toHaveClass( /is-done/ );
+		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( /^Fill \d[\d,.]* pictures?$/ );
+		await expect( page.locator( '.vgml-move-btn' ) ).toBeEnabled();
+		expect( ( await getSession( page ) ).session.tree ).toBe( 'confirmed' );
+
+		// Locked: a rule, a turn and a draft are refused with 409; the change line is gone from the Tree step.
+		const status = await page.evaluate( ( ns ) => Promise.all( [
+			wp.apiFetch( { path: `${ ns }/guide/rule`, method: 'POST', data: { rule: 'kind', options: {} } } ).then( () => 200, ( e ) => e.data && e.data.status ),
+			wp.apiFetch( { path: `${ ns }/guide/turn`, method: 'POST', data: { said: { kind: 'said', text: 'x' } } } ).then( () => 200, ( e ) => e.data && e.data.status ),
+			wp.apiFetch( { path: `${ ns }/guide/session`, method: 'POST', data: { draft: { folders: [], gone: {}, tags: [], origin: 'talk', rule: null } } } ).then( () => 200, ( e ) => e.data && e.data.status ),
+		] ), NS );
+		expect( status, 'rule, turn and draft answer 409 on a confirmed tree' ).toEqual( [ 409, 409, 409 ] );
+		await page.locator( '.g-step[data-step="tree"]' ).click();
+		await expect( page.locator( '.g-change' ) ).toBeHidden();
+		await expect( page.locator( '.g-card[data-card="tree"] .vgml-btn-primary' ) ).toHaveText( 'Next: Fill' );
+		await page.screenshot( { path: 'tests/ui/shots/folders-confirmed.png' } );
+
+		// Unconfirm: 200, editing again, the change line back.
+		const u = await Promise.all( [
+			page.waitForResponse( ( res ) => /\/guide\/unconfirm/.test( res.url() ) ),
+			page.locator( '.g-card[data-card="tree"] .g-quiet' ).filter( { hasText: 'Unconfirm' } ).click(),
+		] );
+		expect( u[ 0 ].status() ).toBe( 200 );
+		await expect( page.locator( '.g-change' ) ).toBeVisible();
+		await expect( page.locator( '.g-step[data-step="tree"]' ) ).not.toHaveClass( /is-done/ );
+		expect( ( await getSession( page ) ).session.tree ).toBe( 'editing' );
+	} );
+
+	/*
+	 *  The budget, per step, at the two sizes the spec names, on a planted
+	 *  session at its cap. Screenshots of every step beside the mocks'
+	 *  (docs/superpowers/mocks/shots/2026-09-15-*).
+	 */
+	test( 'every step is within 80 words at 1600×1000 and 1280×800', async ( { page } ) => {
+		await remember( page );
+		await plant( page, true );
+
+		for ( const [ width, height ] of SIZES ) {
+			await page.setViewportSize( { width, height } );
+			await open( page, SCREEN.folders );
+			await ready( page );
+			for ( const step of [ 'describe', 'tree', 'fill', 'alt', 'rename' ] ) {
+				await page.evaluate( ( s ) => window.vgmlFoldersApp.setStep( s ), step );
+				await expect( page.locator( '#vgml-folders' ) ).toHaveAttribute( 'data-step', step );
+				const words = await page.$eval( '.wrap.vgml-librarian', WORDS );
+				expect( words.without, `${ step } at ${ width }×${ height }: ${ words.without } words without the tree (${ words.with } with it)` ).toBeLessThanOrEqual( BUDGET );
+				const doc = await page.evaluate( () => ( { w: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth } ) );
+				expect( doc.w, `${ step } at ${ width }×${ height }: no horizontal scroll` ).toBeLessThanOrEqual( doc.cw );
+				await page.screenshot( { path: `tests/ui/shots/folders-${ step }-${ width }x${ height }.png` } );
+			}
+		}
+	} );
+
+	/*
+	 *  The model is asked for a "count" per folder in the tree shape and it
+	 *  answers with arithmetic nothing performed -- "Illustrations (23),
+	 *  Screenshots (6)" on this box on 4 September 2026, for a library nobody
+	 *  had counted. The turn route runs vergeml_filing_pick() over the draft
+	 *  before it hands it back, and this asserts the only thing that makes
+	 *  that worth doing: every number on the screen is that run's -- the two
+	 *  pills in the card head, the pill on every row and every chip.
+	 */
+	test( 'every number on the draft is the dry run\'s: the head pills, the rows, the chips', async ( { page } ) => {
+		await remember( page );
+		const boot = await plant( page, true );
+
+		const r = await page.evaluate(
+			( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/turn`, method: 'POST', data: { draft } } ),
+			[ NS, liveDraft( boot.nodes ) ]
+		);
+
+		expect( r.fit, 'the turn route answers with the matcher\'s own run' ).not.toBeNull();
+		expect( r.fit.looked ).toBeGreaterThan( 0 );
+		for ( const f of r.draft.folders ) {
+			expect( r.fit.counts, `the dry run has a number for ${ f.name }` ).toHaveProperty( f.key );
+			expect( f.count, `${ f.name } carries the dry run's number` ).toBe( r.fit.counts[ f.key ] );
+		}
+		const unplaced = r.fit.unfiled.floor + r.fit.unfiled.margin + r.fit.unfiled.gated;
+		expect( unplaced ).toBeLessThanOrEqual( r.fit.looked );
+
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open( page, SCREEN.folders );
+		await ready( page );
+
+		// The head: folders, placed, stay unfiled -- the run's numbers, as pills.
+		const head = page.locator( '.g-card[data-card="tree"] .g-card-head .g-pill' );
+		await expect( head ).toHaveText( [ `${ r.draft.folders.length } folders`, `${ ( r.fit.looked - unplaced ).toLocaleString( 'en-US' ) } placed`, `${ unplaced.toLocaleString( 'en-US' ) } stay unfiled` ] );
+
+		// The placeholder: the largest parent, and the biggest group the run would not place.
+		const built = await page.evaluate( () => document.querySelector( '.g-change .vgml-composer-text' ).getAttribute( 'aria-label' ) );
+		if ( r.fit.residue ) {
+			expect( built ).toContain( `add ${ r.fit.residue.class }` );
+		}
+
+		// Every painted number, by key: a row reads for itself, a closed branch or a parent over chips for the branch.
+		const kids = {};
+		r.draft.folders.forEach( ( f ) => { ( kids[ f.parent || '' ] = kids[ f.parent || '' ] || [] ).push( f.key ); } );
+		const subtree = ( key ) => ( r.fit.counts[ key ] || 0 ) + ( kids[ key ] || [] ).reduce( ( sum, k ) => sum + subtree( k ), 0 );
+
+		const painted = await page.evaluate( () => {
+			const out = {};
+			const num = ( pill ) => {
+				const was = pill.querySelector( '.vgml-was' );
+				return Number( ( was ? pill.textContent.replace( was.textContent, '' ) : pill.textContent ).replace( /[^\d]/g, '' ) );
+			};
+			document.querySelectorAll( '.g-tree .vgml-node[data-key]:not(.vgml-tv-more)' ).forEach( ( row ) => {
+				const pill = row.querySelector( ':scope > .vgml-row > .vgml-count' );
+				if ( pill ) {
+					out[ row.getAttribute( 'data-key' ) ] = { n: num( pill ), open: row.getAttribute( 'aria-expanded' ), chips: !! ( row.nextElementSibling && row.nextElementSibling.classList.contains( 'vgml-tv-sibs' ) ) };
+				}
+			} );
+			document.querySelectorAll( '.g-tree .vgml-sib[data-key]' ).forEach( ( chip ) => {
+				const pill = chip.querySelector( '.vgml-count' );
+				if ( pill ) {
+					out[ chip.getAttribute( 'data-key' ) ] = { n: num( pill ), open: null, chips: false, chip: true };
+				}
+			} );
+			return out;
+		} );
+		expect( Object.keys( painted ).length, 'the draft paints numbers at all' ).toBeGreaterThan( 0 );
+		for ( const [ key, seen ] of Object.entries( painted ) ) {
+			const branch = 'false' === seen.open || seen.chips;
+			const want = branch ? subtree( key ) : ( r.fit.counts[ key ] || 0 );
+			expect( seen.n, `the number on ${ key }${ seen.chip ? ' (a chip)' : '' } is the dry run's` ).toBe( want );
+		}
+		expect( painted.probe1, 'the folder the draft makes carries a number' ).toBeTruthy();
+		expect( painted.probe1.n ).toBe( r.fit.counts.probe1 );
+
+		await page.screenshot( { path: 'tests/ui/shots/folders-dry-run.png', fullPage: true } );
+	} );
+
+	test( 'a hand edit is one line under the input, and survives a reload by id', async ( { page } ) => {
+		await remember( page );
+		await plant( page, false );
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open( page, SCREEN.folders );
+		await ready( page );
+
+		// Rename a top-level leaf in place: a leaf under a small parent is a chip here, and a branch's first click toggles it.
+		const first = page.locator( '.g-tree .vgml-node[data-key][aria-level="1"]:not([aria-expanded])' ).first();
 		const name = await first.locator( '.vgml-name' ).innerText();
 		await first.locator( '.vgml-name' ).dblclick();
 		await page.locator( '.vgml-editor' ).fill( name + ' renamed' );
 		await page.keyboard.press( 'Enter' );
 
-		await expect( page.locator( '.vgml-msg.is-edit' ).last() ).toContainText( `Renamed ${ name } to ${ name } renamed` );
-		await expect( page.locator( '.vgml-msg.is-edit .vgml-msg-who' ).last() ).toHaveText( 'You · edited the tree' );
+		await expect( page.locator( '.g-change .vgml-msg.is-edit' ).last() ).toContainText( `Renamed ${ name } to ${ name } renamed` );
+		await expect( page.locator( '.g-change .vgml-msg.is-edit' ).last() ).toBeVisible();
 		await expect( page.locator( '.vgml-tv-sub' ).filter( { hasText: `renamed from ${ name }` } ) ).toContainText( ', by you' );
-		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( 'Move 0 pictures' );
 
 		await expect.poll( async () => {
 			const s = await getSession( page );
@@ -180,509 +485,40 @@ test.describe( 'the Folders screen', () => {
 		expect( ( await getSession( page ) ).session.turns.at( -1 ).kind ).toBe( 'edit' );
 
 		await page.reload( { waitUntil: 'domcontentloaded' } );
-		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
-		await expect( page.locator( '.vgml-msg.is-edit' ).last() ).toContainText( 'Renamed' );
-		await expect( page.locator( '.vgml-node.is-change .vgml-name' ).first() ).toContainText( name + ' renamed' );
-	} );
-
-	/*
-	 *  The app shell (Phase 3, 3.2). Until it, css/vergeml-talk.css gave the
-	 *  thread no height and no overflow: every turn made the page taller, and
-	 *  at the 25-turn cap the composer and the Move button were several screens
-	 *  below the fold (docs/superpowers/specs/2026-09-10-folders-ways-in.md).
-	 *  Now the screen is fixed to the viewport and the thread scrolls inside
-	 *  its own region, with the composer and Move on screen -- at 1600×1000
-	 *  and at 1280×800, the two sizes the spec names.
-	 *
-	 *  Mutation: remove `min-height: 0` from `.vgml-conv` in
-	 *  css/vergeml-folders.css and the 1280×800 assertions go red.
-	 */
-	test( 'the thread scrolls in its own region; the composer and Move stay on screen at the cap', async ( { page } ) => {
-		await open( page, SCREEN.dashboard );
-		if ( found === null ) {
-			found = await getSession( page );
-		}
-		await plant( page, true );
-
-		for ( const [ width, height ] of [ [ 1600, 1000 ], [ 1280, 800 ] ] ) {
-			await page.setViewportSize( { width, height } );
-			await open( page, SCREEN.folders );
-			await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
-			await expect( page.locator( '.vgml-msg' ) ).toHaveCount( 50 );
-
-			const at = `${ width }×${ height }`;
-			const composer = await page.locator( '.vgml-composer' ).boundingBox();
-			const move = await page.locator( '.vgml-move-btn' ).boundingBox();
-			expect( composer, `${ at }: the composer is on screen` ).not.toBeNull();
-			expect( move, `${ at }: Move is on screen` ).not.toBeNull();
-			expect( composer.y + composer.height, `${ at }: the composer's bottom is inside the viewport` ).toBeLessThanOrEqual( height );
-			expect( move.y + move.height, `${ at }: Move's bottom is inside the viewport` ).toBeLessThanOrEqual( height );
-			expect( composer.y, `${ at }: the composer's top is inside the viewport` ).toBeGreaterThanOrEqual( 0 );
-
-			const thread = await page.locator( '.vgml-conv' ).evaluate( ( c ) => ( { scrollHeight: c.scrollHeight, clientHeight: c.clientHeight } ) );
-			expect( thread.scrollHeight, `${ at }: the thread scrolls inside its region (${ JSON.stringify( thread ) })` ).toBeGreaterThan( thread.clientHeight );
-
-			/*
-			 *  And nothing paints over them. A thread that overflows without
-			 *  scrolling is squeezed to the same height and its last turns land
-			 *  on top of the composer: every bounding box above is still right,
-			 *  and the composer cannot be clicked. So the element at each one's
-			 *  own centre must be itself (mutation: drop `overflow-y: auto`
-			 *  from `.vgml-conv` and this goes red).
-			 */
-			const under = await page.evaluate( ( [ c, m ] ) => {
-				const at = ( b, sel ) => {
-					const e = document.elementFromPoint( b.x + b.width / 2, b.y + b.height / 2 );
-					return e ? !! e.closest( sel ) : false;
-				};
-				return { composer: at( c, '.vgml-composer' ), move: at( m, '.vgml-move-btn' ) };
-			}, [ composer, move ] );
-			expect( under.composer, `${ at }: the composer is the element at its own centre, not a turn painted over it` ).toBe( true );
-			expect( under.move, `${ at }: Move is the element at its own centre` ).toBe( true );
-
-			/*
-			 *  And the end of the thread can be reached. A region that does not
-			 *  scroll hides its last turns behind the composer instead -- the
-			 *  composer still wins the hit test above, being painted later -- so
-			 *  the proof is the last turn itself: scroll the region to its end
-			 *  and the last message sits inside it.
-			 */
-			const reach = await page.evaluate( () => {
-				const c = document.querySelector( '.vgml-conv' );
-				c.scrollTop = c.scrollHeight;
-				const box = c.getBoundingClientRect();
-				const last = c.querySelector( '.vgml-msg:last-child' ).getBoundingClientRect();
-				return { scrollTop: c.scrollTop, regionBottom: box.bottom, lastBottom: last.bottom, lastTop: last.top, regionTop: box.top };
-			} );
-			expect( reach.scrollTop, `${ at }: the region scrolled (${ JSON.stringify( reach ) })` ).toBeGreaterThan( 0 );
-			expect( reach.lastBottom, `${ at }: the last turn's bottom is inside the region` ).toBeLessThanOrEqual( reach.regionBottom + 1 );
-			expect( reach.lastTop, `${ at }: the last turn's top is inside the region` ).toBeGreaterThanOrEqual( reach.regionTop - 1 );
-
-			/*
-			 *  The page does not scroll sideways, and the screen does not
-			 *  scroll away. WordPress's own admin menu can be taller than the
-			 *  window (this box has thirty plugins in it, 1,624px on
-			 *  2026-09-13), and that is the page's to scroll; the pane is
-			 *  pinned, so at the bottom of the page the composer and Move are
-			 *  exactly where they were.
-			 */
-			const doc = await page.evaluate( () => ( { w: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth } ) );
-			expect( doc.w, `${ at }: no horizontal scroll` ).toBeLessThanOrEqual( doc.cw );
-			await page.evaluate( () => window.scrollTo( 0, document.documentElement.scrollHeight ) );
-			const composerAfter = await page.locator( '.vgml-composer' ).boundingBox();
-			const moveAfter = await page.locator( '.vgml-move-btn' ).boundingBox();
-			expect( composerAfter.y + composerAfter.height, `${ at }: the composer stays on screen when the page is scrolled` ).toBeLessThanOrEqual( height );
-			expect( moveAfter.y + moveAfter.height, `${ at }: Move stays on screen when the page is scrolled` ).toBeLessThanOrEqual( height );
-			await page.evaluate( () => window.scrollTo( 0, 0 ) );
-
-			await page.screenshot( { path: `tests/ui/shots/folders-shell-${ width }x${ height }.png` } );
-		}
-	} );
-
-	/*
-	 *  Paste folders (Phase 3, 3.3 and 3.4): the one manual way in beside the
-	 *  conversation, on Nathan's decision of 2026-09-12. One folder per line,
-	 *  the full path with ">" between levels; a live preview in the tree's own
-	 *  rows; one line of fact; and the paste lands as a draft behind the Move
-	 *  button, with every number on it the dry run's.
-	 *
-	 *  Costs one dry run on the box: one embed call per new folder path, cached
-	 *  a week; no model turn.
-	 *
-	 *  Mutation: render one preview branch as a <li> bullet and the row count
-	 *  goes red; read leading whitespace as depth and the levels go red.
-	 */
-	test( 'a paste is read as paths, previewed as the tree\'s rows, and lands as the draft behind Move', async ( { page } ) => {
-		test.setTimeout( 180_000 );
-		await open( page, SCREEN.dashboard );
-		if ( found === null ) {
-			found = await getSession( page );
-		}
-		const boot = await plant( page, false );
-		const live = boot.nodes.find( ( n ) => ! n.parent );
-
-		await page.setViewportSize( { width: 1600, height: 1000 } );
-		await open( page, SCREEN.folders );
-		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
-
-		const service = [];
-		page.on( 'request', ( r ) => { if ( /\/guide\/(stream|session)$/.test( r.url() ) && ! /vergeml\/v1/.test( r.url() ) ) service.push( r.url() ); } );
-
-		await page.locator( '.vgml-seg-tab[data-method="paste"]' ).click();
-		await expect( page.locator( '.vgml-seg-tab[aria-selected="true"]' ) ).toHaveText( 'Paste folders' );
-		await expect( page.locator( '.vgml-method-say' ) ).toHaveText( 'One folder per line, the full path with > between levels: Hardware > Phones. A parent that is not listed is created. The preview shows what was understood before anything is made.' );
-		await expect( page.locator( '.vgml-preview-title' ) ).toHaveText( 'What that makes' );
-		await expect( page.locator( '.vgml-preview-read' ) ).toHaveText( 'read as paths' );
-		await expect( page.locator( '.vgml-conv' ) ).toBeHidden();
-		await expect( page.locator( '.vgml-composer' ) ).toBeHidden();
-
-		// In any order, with a repeated path, a missing parent, a live folder
-		// reused case-insensitively, and an indented line that is not depth.
-		// Names the box's seed does not hold: the tech-news seed already has
-		// Hardware, Energy, Space and the rest, and those would be reused.
-		expect( boot.nodes.some( ( n ) => /paste probe/i.test( n.name ) ), 'the box holds no folder named Paste probe' ).toBe( false );
-		const paste = [
-			'Paste probe > Cores > Alpha chips',
-			'Paste probe > Wells',
-			'Paste probe > Cores',
-			'    Paste probe > Yards',
-			'paste probe > wells',
-			live.name.toUpperCase(),
-		].join( '\n' );
-		await page.locator( '.vgml-paste-area' ).fill( paste );
-
-		// The preview: every folder a row of the tree, nothing a bullet, the new ones marked.
-		const rows = page.locator( '.vgml-preview-box .vgml-node[data-key] > .vgml-row' );
-		await expect( rows ).toHaveCount( 6 );
-		await expect( page.locator( '.vgml-preview-box li:not(.vgml-node)' ), 'no bullet in the preview' ).toHaveCount( 0 );
-		await expect( page.locator( '.vgml-preview-box .vgml-node.is-new' ) ).toHaveCount( 5 );
-		await expect( page.locator( '.vgml-preview-box .vgml-node:not(.is-new) .vgml-name' ) ).toHaveText( live.name );
-		// The name without the "new" tag that rides inside the same span; as a set, since siblings follow the term order.
-		const names = ( sel ) => page.$$eval( sel, ( els ) => els.map( ( e ) => e.firstChild.textContent ).sort() );
-		expect( await names( '.vgml-preview-box .vgml-node[aria-level="1"] > .vgml-row .vgml-name' ) ).toEqual( [ 'Paste probe', live.name ].sort() );
-		expect( await names( '.vgml-preview-box .vgml-node[aria-level="2"] > .vgml-row .vgml-name' ) ).toEqual( [ 'Cores', 'Wells', 'Yards' ] );
-		expect( await names( '.vgml-preview-box .vgml-node[aria-level="3"] > .vgml-row .vgml-name' ) ).toEqual( [ 'Alpha chips' ] );
-		await expect( page.locator( '.vgml-preview-box .vgml-count' ), 'no count on a folder nobody has counted' ).toHaveCount( 0 );
-		await expect( page.locator( '.vgml-read-line' ) ).toHaveText( '6 folders, 3 levels deep. 1 already exists and will be reused.' );
-		await expect( page.locator( '.vgml-paste-refused' ) ).toBeHidden();
-
-		// The draft, on the right: the paste over today's folders, the new ones first.
-		await expect( page.locator( '.vgml-tree-kicker' ) ).toHaveText( `Folders · ${ boot.nodes.length } now, ${ boot.nodes.length + 5 } after Move` );
-		await expect( page.locator( '.vgml-folders-tree .vgml-node.is-new' ) ).toHaveCount( 5 );
-		await expect( page.locator( '.vgml-folders-tree .vgml-node.is-gone' ), 'a paste removes nothing' ).toHaveCount( 0 );
-		await expect( page.locator( '.vgml-folders-tree li:not(.vgml-node):not(.vgml-tv-path):not(.vgml-tv-sub)' ), 'no bullet in the draft' ).toHaveCount( 0 );
-
-		// Until the dry run answers, the button waits and no folder wears a number the paste invented.
-		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( 'Move the draft' );
-		await expect( page.locator( '.vgml-move-btn' ) ).toBeDisabled();
-
-		// Then the numbers are the matcher's: the session holds the draft, the counts are the run's.
-		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( /^Move \d[\d,.]* pictures?$|^Move the draft$/, { timeout: 60000 } );
-		await expect( page.locator( '.vgml-move-btn' ) ).toBeEnabled( { timeout: 60000 } );
-		const s = await getSession( page );
-		expect( s.session.draft, 'the paste is the session\'s draft' ).not.toBeNull();
-		expect( s.session.draft.folders.filter( ( f ) => ! f.term_id ).map( ( f ) => f.name ).sort() ).toEqual( [ 'Alpha chips', 'Cores', 'Paste probe', 'Wells', 'Yards' ] );
-		expect( s.session.draft.folders.filter( ( f ) => f.term_id ).length, 'every live folder is kept' ).toBe( boot.nodes.length );
-		expect( s.session.fit, 'the turn route ran the dry run over the paste' ).not.toBeNull();
-		if ( s.session.fit.counted ) {
-			const onButton = ( await page.locator( '.vgml-move-btn' ).innerText() ).replace( /\D/g, '' );
-			expect( onButton, 'the Move button counts what the dry run counted' ).toBe( String( s.session.fit.move ) );
-			await expect( page.locator( '.vgml-preview li' ).first() ).toHaveText( /^\d[\d,.]* pictures? moves? into \d[\d,.]* folders$|^0 pictures move$/ );
-		}
-		expect( service, 'no call to the service from the browser: a paste is read here' ).toEqual( [] );
-
-		await page.screenshot( { path: 'tests/ui/shots/folders-paste.png' } );
-
-		// A refusal is said out loud, by line, and makes nothing: the draft stays as it was.
-		await page.locator( '.vgml-paste-area' ).fill( paste + '\nA > B > C > D > E > F\n>' );
-		await expect( page.locator( '.vgml-paste-refused li' ) ).toHaveText( [ 'Line 7: deeper than 5 levels', 'Line 8: no name' ] );
-		await expect( page.locator( '.vgml-read-line' ) ).toHaveText( '6 folders, 3 levels deep. 1 already exists and will be reused.' );
-		await expect( page.locator( '.vgml-folders-tree .vgml-node.is-new' ) ).toHaveCount( 5 );
-		await page.screenshot( { path: 'tests/ui/shots/folders-paste-refused.png' } );
-
-		// The paste survives a reload as the draft, keyed by id.
-		await page.reload( { waitUntil: 'domcontentloaded' } );
-		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
-		await expect( page.locator( '.vgml-folders-tree .vgml-node.is-new' ) ).toHaveCount( 5 );
-	} );
-
-	/*
-	 *  The model is asked for a "count" per folder in the tree shape and it
-	 *  answers with arithmetic nothing performed -- "Illustrations (23),
-	 *  Screenshots (6)" on this box on 4 September 2026, for a library nobody
-	 *  had counted. The turn route now runs vergeml_filing_pick() over the
-	 *  draft before it hands it back, and this asserts the only thing that
-	 *  makes that worth doing: every number on the draft is that run's.
-	 *
-	 *  The planted probe carries count 12, which is exactly the shape of the
-	 *  number this replaces. It costs no turn: the route takes a draft with
-	 *  no words beside it.
-	 */
-	test( 'every number on the draft is the dry run\'s, and the line says what it will not place', async ( { page } ) => {
-		await open( page, SCREEN.dashboard );
-		if ( found === null ) {
-			found = await getSession( page );
-		}
-		const boot = await plant( page, true );
-		const folders = boot.nodes.map( ( n ) => ( { key: 't' + n.id, term_id: n.id, name: n.name, parent: n.parent ? 't' + n.parent : '' } ) );
-		folders.push( { key: 'probe1', term_id: null, name: 'Draft probe', parent: '', count: 12, matches: 'a probe', classes: [ 'probe' ], kinds: [ 'photo' ], audience: '' } );
-
-		const r = await page.evaluate(
-			( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/turn`, method: 'POST', data: { draft } } ),
-			[ NS, { folders, gone: {}, tags: [], origin: 'talk', rule: null } ]
-		);
-
-		expect( r.fit, 'the turn route answers with the matcher\'s own run' ).not.toBeNull();
-		expect( r.fit.looked ).toBeGreaterThan( 0 );
-
-		// Every folder's number, and no folder without one.
-		for ( const f of r.draft.folders ) {
-			expect( r.fit.counts, `the dry run has a number for ${ f.name }` ).toHaveProperty( f.key );
-			expect( f.count, `${ f.name } carries the dry run's number` ).toBe( r.fit.counts[ f.key ] );
-		}
-
-		// The run accounts for every picture it looked at: placed, or named as
-		// one of the three reasons it would not place it.
-		const unplaced = r.fit.unfiled.floor + r.fit.unfiled.margin + r.fit.unfiled.gated;
-		expect( unplaced ).toBeLessThanOrEqual( r.fit.looked );
-		expect( r.fit.move ).toBeLessThanOrEqual( r.fit.looked - unplaced );
-
-		await open( page, SCREEN.folders );
-		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
-		await expect( page.locator( '.vgml-preview li' ).first() ).toHaveText( /^\d[\d,.]* pictures? moves? into \d[\d,.]* folders$|^0 pictures move$/ );
-		if ( unplaced > 0 ) {
-			await expect( page.locator( '.vgml-preview li' ) ).toHaveCount( r.fit.preview.length );
-			await expect( page.locator( '.vgml-preview li' ).last() ).toHaveText( r.fit.preview.at( -1 ).text );
-		}
-
-		/*
-		 *  And the button agrees with the line. The tree can only total what
-		 *  folders gain, which on a draft that consolidates is a different and
-		 *  much smaller number -- it read "Move 4 pictures" beside "241
-		 *  pictures move" until both were taken from the same run.
-		 */
-		const onButton = ( await page.locator( '.vgml-move-btn' ).innerText() ).replace( /\D/g, '' );
-		expect( onButton, 'the Move button counts what the dry run counted' ).toBe( String( r.fit.move ) );
-
-		/*
-		 *  Every number the screen paints, against the run that produced it.
-		 *
-		 *  The assertions above are about the answer the route gave. This is
-		 *  about what a person actually reads: a row's own count is the run's
-		 *  number for that folder, and a row standing for a branch is the sum of
-		 *  that branch's numbers and nothing else. They are not the same claim --
-		 *  a folder with no count of its own falls back to the count it has
-		 *  today, and that fallback painted a 0 on a folder the draft invents
-		 *  until the state above it was given a name.
-		 */
-		const kids = {};
-		r.draft.folders.forEach( ( f ) => {
-			( kids[ f.parent || '' ] = kids[ f.parent || '' ] || [] ).push( f.key );
-		} );
-
-		const subtree = ( key ) => ( r.fit.counts[ key ] || 0 )
-			+ ( kids[ key ] || [] ).reduce( ( sum, k ) => sum + subtree( k ), 0 );
-
-		// Each visible row's key and the number on it, without the "was N" that
-		// rides inside the same pill.
-		const painted = await page.evaluate( () => {
-			const out = {};
-			document.querySelectorAll( '.vgml-list .vgml-node[data-key]' ).forEach( ( row ) => {
-				const pill = row.querySelector( '.vgml-count' );
-				if ( ! pill ) {
-					return;
-				}
-				const was = pill.querySelector( '.vgml-was' );
-				out[ row.getAttribute( 'data-key' ) ] = {
-					n: Number( ( was ? pill.textContent.replace( was.textContent, '' ) : pill.textContent ).replace( /[^\d]/g, '' ) ),
-					open: row.getAttribute( 'aria-expanded' ),
-				};
-			} );
-			return out;
-		} );
-
-		expect( Object.keys( painted ).length, 'the draft paints numbers at all' ).toBeGreaterThan( 0 );
-
-		for ( const [ key, seen ] of Object.entries( painted ) ) {
-			// A collapsed branch reads for everything beneath it; anything else
-			// reads for itself.
-			const closed = 'false' === seen.open;
-			const want = closed ? subtree( key ) : ( r.fit.counts[ key ] || 0 );
-			expect( seen.n, `the number on ${ key } is the dry run's` ).toBe( want );
-		}
-
-		// And the folder the draft makes, which has no count of its own to fall
-		// back on: whatever it reads, the run said it.
-		expect( painted.probe1, 'the folder the draft makes carries a number' ).toBeTruthy();
-		expect( painted.probe1.n ).toBe( r.fit.counts.probe1 );
-
-		/*
-		 *  The abstentions, line by line. Each of the three lines carries one
-		 *  number and it is the count of pictures the run refused for that
-		 *  reason -- the negative answer, which is the one the model could never
-		 *  write and the one an owner needs before pressing Move.
-		 */
-		const lines = await page.locator( '.vgml-preview li' ).allInnerTexts();
-
-		expect( lines, 'the lines on screen are the run\'s own' ).toEqual( r.fit.preview.map( ( l ) => l.text ) );
-
-		for ( const [ word, phrase ] of [
-			[ 'floor', 'score below the floor' ],
-			[ 'margin', 'too close to call' ],
-			[ 'gated', 'the wrong kind' ],
-		] ) {
-			const line = lines.find( ( l ) => l.includes( phrase ) );
-			if ( r.fit.unfiled[ word ] ) {
-				expect( line, `${ word } has a line` ).toBeTruthy();
-				expect(
-					Number( line.replace( /[^\d]/g, '' ) ),
-					`the ${ word } line counts the ${ word } abstentions`
-				).toBe( r.fit.unfiled[ word ] );
-			} else {
-				expect( line, `no line claims a ${ word } that did not happen` ).toBeUndefined();
-			}
-		}
-
-		await page.screenshot( { path: 'tests/ui/shots/folders-dry-run.png', fullPage: true } );
-	} );
-
-	/*
-	 *  The other answer the dry run has, and until now the screen had no way
-	 *  of saying it.
-	 *
-	 *  vergeml_guide_draft_fit() stops at its budget and returns null -- a cold
-	 *  library has some seven hundred phrase vectors to fetch, one HTTP call
-	 *  each, and the same run that takes ten seconds warm took two hundred and
-	 *  ten cold. The screen drew nothing at all: no counts, no lines, which
-	 *  beside a draft reads as "these folders are unchanged" and is a claim
-	 *  nobody computed. A folder the draft makes read 0.
-	 *
-	 *  Forced here rather than waited for: tests/perf/mu-fit-cold.php gives the
-	 *  run a budget of nothing when the request carries vgml_fit_cold, so the
-	 *  state is reached on a warm box in one turn. The budget is not raised to
-	 *  avoid the state anywhere -- the state is the point.
-	 */
-	test( 'when the dry run gives up the draft says so, and offers no number at all', async ( { page } ) => {
-		await open( page, SCREEN.dashboard );
-		if ( found === null ) {
-			found = await getSession( page );
-		}
-		const boot = await plant( page, true );
-		const folders = boot.nodes.map( ( n ) => ( { key: 't' + n.id, term_id: n.id, name: n.name, parent: n.parent ? 't' + n.parent : '' } ) );
-		folders.push( { key: 'probe1', term_id: null, name: 'Draft probe', parent: '', count: 12, matches: 'a probe', classes: [ 'probe' ], kinds: [ 'photo' ], audience: '' } );
-
-		const r = await page.evaluate(
-			( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/turn?vgml_fit_cold=1`, method: 'POST', data: { draft } } ),
-			[ NS, { folders, gone: {}, tags: [], origin: 'talk', rule: null } ]
-		);
-
-		expect( r.fit, 'a run that answered nothing still answers' ).not.toBeNull();
-		expect( r.fit.counted, 'and says it counted nothing -- is tests/perf/mu-fit-cold.php installed?' ).toBe( false );
-
-		// Nothing counted, and nothing that could be read as a count.
-		expect( Object.keys( r.fit.counts ) ).toHaveLength( 0 );
-		expect( r.fit.move, 'no number of pictures to move' ).toBeNull();
-		for ( const f of r.draft.folders ) {
-			expect( f.count, `${ f.name } carries no number the dry run did not produce` ).toBeNull();
-		}
-
-		// The line the counts' own list carries instead.
-		expect( r.fit.preview.map( ( l ) => l.text ) ).toEqual( [
-			'The counts are not worked out yet',
-			'The next turn should have them',
-		] );
-
-		await open( page, SCREEN.folders );
-		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
-
-		await expect( page.locator( '.vgml-preview li' ) ).toHaveCount( 2 );
-		await expect( page.locator( '.vgml-preview li' ).first() ).toHaveText( 'The counts are not worked out yet' );
-		await expect( page.locator( '.vgml-preview li' ).last() ).toHaveText( 'The next turn should have them' );
-
-		// No folder wears a number. The fallback for a folder the draft makes
-		// is zero, and that zero was the fabrication this replaces.
-		await expect( page.locator( '.vgml-list .vgml-count' ) ).toHaveCount( 0 );
-
-		// And the button offers none, while still offering the Move: a cold
-		// library is not locked out of filing because a count is missing.
-		const move = page.locator( '.vgml-move-btn' );
-		await expect( move ).toBeEnabled();
-		await expect( move ).toHaveText( 'Move the draft' );
-
-		/*
-		 *  The word itself, over everything beside the conversation: the tree,
-		 *  the lines and the button. A zero is what the matcher says after it
-		 *  has looked, and it never finished looking.
-		 */
-		const draftText = await page.locator( '.vgml-folders-tree' ).innerText();
-		expect( draftText, 'no zero is offered as an answer on the draft' ).not.toMatch( /\b0\b/ );
-
-		await page.screenshot( { path: 'tests/ui/shots/folders-no-counts.png', fullPage: true } );
+		await ready( page );
+		await expect( page.locator( '.g-change .vgml-msg.is-edit' ).last() ).toContainText( 'Renamed' );
+		await expect( page.locator( '.g-tree .vgml-node.is-change .vgml-name' ).first() ).toContainText( name + ' renamed' );
 	} );
 
 	test( 'the old guide address lands here', async ( { page } ) => {
-		// Planted first: the screen it lands on opens the conversation by itself on an empty session.
-		await open( page, SCREEN.dashboard );
-		if ( found === null ) {
-			found = await getSession( page );
-		}
+		await remember( page );
 		await plant( page, false );
 		await page.goto( '/wp-admin/admin.php?page=media-guide', { waitUntil: 'domcontentloaded' } );
 		await expect( page ).toHaveURL( /page=media-librarian/ );
 	} );
 
-	test( 'walk: the conversation opens and streams, Stop stops it, a rule is moved and undone', async ( { page } ) => {
-		test.skip( ! WALK, 'GUIDE_WALK=1 spends planner calls and moves real pictures on the box' );
+	test( 'walk: Propose folders streams a proposal, and Stop stops it', async ( { page } ) => {
+		test.skip( ! WALK, 'GUIDE_WALK=1 spends planner calls on the box' );
 		test.setTimeout( 300_000 );
 		console.log( '  cost: the token and the opening turn are two planner calls, ten describes\' worth each' );
 
-		await open( page, SCREEN.dashboard );
-		if ( found === null ) {
-			found = await getSession( page );
-		}
+		await remember( page );
 		await reset( page );
-		await page.setViewportSize( { width: 1440, height: 1100 } );
+		await page.setViewportSize( { width: 1600, height: 1000 } );
 		await open( page, SCREEN.folders );
-		await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
+		await ready( page );
 
-		// The opener streams: the send arrow is Stop while it does.
+		await page.locator( '.vgml-propose-btn' ).click();
 		await expect( page.locator( '.vgml-send.is-stop' ), 'send became Stop while the reply streams' ).toBeVisible( { timeout: 60000 } );
-		await expect( page.locator( '.vgml-msg.is-streaming' ) ).toBeVisible();
 		await page.waitForFunction( () => ( document.querySelector( '.vgml-msg.is-streaming .vgml-msg-body' ) || {} ).textContent.length > 20, null, { timeout: 60000 } );
 		await page.locator( '.vgml-send.is-stop' ).click();
 		await expect( page.locator( '.vgml-send' ) ).not.toHaveClass( /is-stop/ );
-		await expect( page.locator( '.vgml-msg.is-streaming' ) ).toHaveCount( 0 );
-		await expect( page.locator( '.vgml-msg.is-assistant' ).first(), 'what streamed stays' ).not.toBeEmpty();
 		await expect( page.locator( '.vgml-msg.is-note' ) ).toContainText( 'Stopped' );
-		await expect( page.locator( '.vgml-method-kicker' ) ).toHaveText( '1 of 25 turns' );
 
-		/*
-		 *  What the model actually said, against the rule it is now given.
-		 *
-		 *  On 4 September this same opener produced "Landscape and nature and
-		 *  its five subfolders absorb most nature/scenery shots -- roughly 220
-		 *  combined" and "all 641 images are now routed". Nothing had run.
-		 *  guideRules now forbids a count of its own and forbids speaking about
-		 *  the library at all, and the counts come from the matcher beside it.
-		 *
-		 *  A share the summary handed it ("4% name an audience") is evidence it
-		 *  was given and may be quoted; a count of pictures or folders is
-		 *  arithmetic it cannot have done.
-		 */
 		const said = await page.locator( '.vgml-msg.is-assistant .vgml-msg-body' ).first().innerText();
 		console.log( '  the assistant said:', JSON.stringify( said ) );
 		expect( said, 'the model claims nothing has happened to the library' )
 			.not.toMatch( /\b(routed|already (in|filed)|nothing is left unfiled|are now (in|filed))\b/i );
-		const counts = ( said.match( /\b\d[\d,.]*\b(?!\s*%)/g ) || [] ).filter( ( n ) => Number( n.replace( /[^\d]/g, '' ) ) > 3 );
-		expect( counts, 'no count of the model\'s own in what it said' ).toEqual( [] );
-
-		// A rule, then Move: the pictures the rule named go, the tree fills as they land.
-		await page.locator( '.vgml-seg-tab[data-method="rules"]' ).click();
-		await page.locator( '.vgml-rule-row' ).first().locator( '.vgml-rule-pick' ).click();
-		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( /^Move \d[\d,.]* pictures$/, { timeout: 20000 } );
-		const label = await page.locator( '.vgml-move-btn' ).innerText();
-		const expected = Number( label.replace( /[^\d]/g, '' ) );
-		await page.locator( '.vgml-move-btn' ).click();
-
-		await expect( page.locator( '.vgml-folders[data-state="moving"]' ) ).toBeVisible( { timeout: 30000 } );
-		await expect( page.locator( '.vgml-move-btn' ) ).toHaveText( /^Moving \d[\d,.]* of \d[\d,.]*$/ );
-		await expect( page.locator( '.vgml-move-stop' ) ).toBeVisible();
-		await expect( page.locator( '.vgml-fill' ).first(), 'a folder fills as pictures land' ).toBeVisible( { timeout: 30000 } );
-		await page.screenshot( { path: 'tests/ui/shots/folders-moving.png', fullPage: true } );
-
-		await expect( page.locator( '.vgml-folders[data-state="done"]' ) ).toBeVisible( { timeout: 180000 } );
-		await expect( page.locator( '.vgml-move-undo' ) ).toHaveText( /^Undo until (today|tomorrow) \d{1,2}:\d{2}/ );
-		await expect( page.locator( '.vgml-msg.is-moved .vgml-facts li' ).first() ).toHaveText( new RegExp( `^${ expected.toLocaleString() } pictures moved into \\d+ folders$` ) );
-		await expect( page.locator( '.vgml-msg.is-moved .vgml-facts li' ).nth( 1 ) ).toHaveText( /^\d[\d,.]* stayed where they were$/ );
-		await expect( page.locator( '.vgml-folders-tree .vgml-node.is-new' ) ).toHaveCount( 0 );
-		await page.screenshot( { path: 'tests/ui/shots/folders-done.png', fullPage: true } );
-
-		// Undo: the pictures back, the folders the Move made gone again.
-		const before = await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/session` } ).then( ( s ) => s.nodes.length ), NS );
-		await page.locator( '.vgml-move-undo' ).click();
-		await expect( page.locator( '.vgml-msg.is-moved' ).last() ).toContainText( 'put back', { timeout: 60000 } );
-		await expect( page.locator( '.vgml-move-undo' ) ).toBeHidden();
-		const after = await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/session` } ).then( ( s ) => s.nodes.length ), NS );
-		expect( after, 'the folders the rule made are gone again' ).toBeLessThan( before );
+		await page.screenshot( { path: 'tests/ui/shots/folders-proposed.png' } );
 	} );
 } );

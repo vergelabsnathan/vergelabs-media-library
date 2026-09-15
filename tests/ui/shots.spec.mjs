@@ -20,29 +20,12 @@ const SLUGS = {
 	filetypes: 'mime-types',
 };
 
-let planted = false;
-
 for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 	test( `screenshot: ${ name }`, async ( { page } ) => {
 		const problems = [];
 		page.on( 'pageerror', ( e ) => problems.push( `javascript: ${ e.message }` ) );
 		await page.setViewportSize( { width: 1440, height: 900 } );
-		if ( name === 'folders' ) {
-			/*
-			 *  The conversation opens by itself on an empty session, and that
-			 *  is a planner call. A screenshot on every push must not spend
-			 *  one, so an empty session is given a turn first and emptied
-			 *  again after.
-			 */
-			await open( page, slug );
-			const s = await page.evaluate( () => wp.apiFetch( { path: '/vergeml/v1/guide/session' } ) );
-			planted = ! ( s.session.turns || [] ).length;
-			if ( planted ) {
-				await page.evaluate( () => wp.apiFetch( { path: '/vergeml/v1/guide/session', method: 'POST', data: { reset: true } } )
-					.then( () => wp.apiFetch( { path: '/vergeml/v1/guide/turn', method: 'POST', data: { said: { kind: 'said', text: 'Folders by subject.' }, say: { text: [ 'In the draft:', '- Nothing yet', 'Folders by subject, by use, or both?' ].join( '\n' ), choices: [ 'By subject', 'By use' ] } } } ) ) );
-			}
-		}
-		// The brief's tab opens with an opener built on the server: no call to the service, none to mint a token.
+		// The brief's tab opens with an opener built on the server, and the Folders screen opens on its step: no call to the service, none to mint a token.
 		const service = [];
 		page.on( 'request', ( r ) => {
 			if ( /\/(brief|guide)\/(stream|session|token)$/.test( r.url() ) ) {
@@ -52,9 +35,13 @@ for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 		await open( page, slug );
 		await expect( page.locator( '.vgml-shell-content' ) ).toBeVisible();
 		if ( name === 'folders' ) {
-			// The screen paints from the data that came with the page; the conversation may open by itself afterwards and is not waited for.
+			// The screen paints from the data that came with the page, on the step the session is at, and asks no model for anything.
 			await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
-			await expect( page.locator( '.vgml-move-btn' ) ).toBeVisible();
+			await expect( page.locator( '.g-rail .g-step' ) ).toHaveCount( 5 );
+			await expect( page.locator( '.g-step.is-current' ) ).toHaveCount( 1 );
+			await expect( page.locator( '.g-card:not([hidden]) .g-move .vgml-btn-primary' ) ).toBeVisible();
+			await page.waitForTimeout( 1500 );
+			expect( service, 'opening the screen costs nothing: no request to the service or for a token' ).toEqual( [] );
 		}
 		if ( name === 'import' ) {
 			/*
@@ -144,11 +131,6 @@ for ( const [ name, slug ] of Object.entries( SLUGS ) ) {
 		}
 		await page.waitForTimeout( 800 );
 		await page.screenshot( { path: `test-results/shot-${ name }.png`, fullPage: true } );
-		if ( name === 'folders' && planted ) {
-			// The session was empty when this spec found it; it is empty again.
-			await page.evaluate( () => wp.apiFetch( { path: '/vergeml/v1/guide/session', method: 'POST', data: { reset: true } } ) );
-			planted = false;
-		}
 		expect( problems, problems.join( '\n' ) ).toEqual( [] );
 	} );
 }

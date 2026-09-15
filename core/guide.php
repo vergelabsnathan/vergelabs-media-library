@@ -26,6 +26,8 @@ const VERGEML_GUIDE_SAMPLE      = 2000;
 const VERGEML_GUIDE_TOKEN_SLACK = 120;
 /** A rule's answer is kept this long for the same library and the same folders. */
 const VERGEML_GUIDE_RULE_CACHE  = 600;
+/** What a proposal costs, said on the button before it is pressed: one planner call. */
+const VERGEML_GUIDE_PROPOSE_CREDITS = 10;
 
 
 /* --------------------------------------------------------------- the page */
@@ -87,17 +89,10 @@ function vergeml_folders_assets( $hook ) {
     wp_set_script_translations( 'vergeml-folders', 'vergelabs-media-library' );
 
     /*
-     *  This screen alone is an app shell: fixed to the viewport, three regions
-     *  scrolling on their own (css/vergeml-folders.css, under this class). The
-     *  other eight screens keep WordPress's page flow. A body class, not a
-     *  script, so the first paint is already the shell.
-     */
-    add_filter( 'admin_body_class', 'vergeml_folders_body_class' );
-
-    /*
      *  Everything the first paint needs travels with the page: the session,
      *  the tree and the stamp. No request stands between the page and its
-     *  first paint (Gate 5, tests/ui/folders.spec.mjs).
+     *  first paint (Gate 5, tests/ui/folders.spec.mjs), and no model route
+     *  fires on load: a proposal is a button with its cost.
      */
     wp_localize_script( 'vergeml-folders', 'vgmlFolders', array(
         'ns'        => VERGEML_REST_NS,
@@ -109,15 +104,13 @@ function vergeml_folders_assets( $hook ) {
         'nodes'     => $boot['nodes'],
         'version'   => (int) $boot['version'],
         'facts'     => $boot['facts'],
+        'fill'      => $boot['fill'],
         'undo'      => $boot['undo'],
         'aiUrl'     => admin_url( 'admin.php?page=media-ai' ),
         'licenceUrl'=> admin_url( 'admin.php?page=media-licence' ),
+        'proposeCredits' => VERGEML_GUIDE_PROPOSE_CREDITS,
         'walk'      => (bool) apply_filters( 'vergeml_folders_walk', false ),
     ) );
-}
-
-function vergeml_folders_body_class( $classes ) {
-    return $classes . ' vgml-app-folders';
 }
 
 /**
@@ -159,6 +152,8 @@ function vergeml_folders_boot() {
         'version'  => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
         'facts'    => $facts,
         'session'  => vergeml_guide_session_out( $session ),
+        // Where Step 3 stands: open questions, pictures in no folder, running, done.
+        'fill'     => function_exists( 'vergeml_talk_fill_status' ) ? vergeml_talk_fill_status() : array( 'open' => 0, 'unfiled' => (int) $facts['unfiled'], 'running' => false, 'done' => false ),
         'undo'     => function_exists( 'vergeml_talk_undo_available' ) ? vergeml_talk_undo_available() : array( 'available' => false, 'until' => 0 ),
         'licensed' => function_exists( 'vergeml_ai_unseal' ) && '' !== (string) ( isset( $settings['license_key'] ) ? vergeml_ai_unseal( $settings['license_key'] ) : '' ),
     );
@@ -206,7 +201,20 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
 
     global $wpdb;
 
-    $out = array( 'pictures' => 0, 'folders' => (int) $folders, 'unfiled' => 0, 'described_at' => '' );
+    $out = array( 'pictures' => 0, 'folders' => (int) $folders, 'unfiled' => 0, 'described_at' => '', 'images' => 0, 'not_described' => 0, 'alt_missing' => 0, 'alt_have' => 0 );
+
+    /*
+     *  The rail's steps, as counts: every image in the library, the ones not
+     *  described yet (Step 1), the ones without alt text (Step 4). The same
+     *  queries the AI screen counts with, so both screens say one number.
+     */
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- core's table.
+    $out['images'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type LIKE 'image/%'" );
+    if ( function_exists( 'vergeml_ai_pending_count' ) ) {
+        $out['not_described'] = (int) vergeml_ai_pending_count( 'unindexed' );
+        $out['alt_missing']   = (int) vergeml_ai_pending_count( 'missing-alt' );
+    }
+    $out['alt_have'] = max( 0, $out['images'] - $out['alt_missing'] );
 
     if ( ! isset( $wpdb->vergeml_ai_index ) ) {
         return $out;
@@ -264,46 +272,44 @@ function vergeml_folders_when( $ts ) {
     return wp_date( 'j F', $ts ) . ' ' . $time;
 }
 
-function vergeml_folders_facts_line( $facts ) {
-
-    $parts = array();
-
-    if ( (int) $facts['pictures'] > 0 ) {
-        /* translators: %s: a number of pictures */
-        $parts[] = sprintf( _n( '%s picture', '%s pictures', (int) $facts['pictures'], 'vergelabs-media-library' ), number_format_i18n( (int) $facts['pictures'] ) );
-    } else {
-        $parts[] = __( 'No pictures described yet', 'vergelabs-media-library' );
-    }
-    /* translators: %s: a number of folders */
-    $parts[] = sprintf( _n( '%s folder', '%s folders', (int) $facts['folders'], 'vergelabs-media-library' ), number_format_i18n( (int) $facts['folders'] ) );
-    if ( (int) $facts['pictures'] > 0 ) {
-        /* translators: %s: a number of pictures */
-        $parts[] = sprintf( __( '%s in no folder', 'vergelabs-media-library' ), number_format_i18n( (int) $facts['unfiled'] ) );
-        $when    = '' !== (string) $facts['described_at'] ? vergeml_folders_when( strtotime( (string) $facts['described_at'] . ' UTC' ) ) : '';
-        if ( '' !== $when ) {
-            /* translators: %s: when, e.g. "yesterday 13:52" */
-            $parts[] = sprintf( __( 'described %s', 'vergelabs-media-library' ), $when );
-        }
-    }
-
-    return implode( ' · ', $parts );
-}
-
 function vergeml_folders_page() {
 
     if ( ! current_user_can( 'manage_categories' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
-    $boot = vergeml_folders_boot();
+    $boot  = vergeml_folders_boot();
+    $facts = $boot['facts'];
 
+    /*
+     *  The approved mocks (docs/superpowers/mocks/2026-09-15-step-rail.html
+     *  and the two beside it): the title with three pills, then the rail --
+     *  five steps, every one a button, because no step is a gate -- then the
+     *  step's card, which the script draws from the state the page carries.
+     */
+    $steps = array(
+        'describe' => __( 'Describe', 'vergelabs-media-library' ),
+        'tree'     => __( 'Tree', 'vergelabs-media-library' ),
+        'fill'     => __( 'Fill', 'vergelabs-media-library' ),
+        'alt'      => __( 'Alt text', 'vergelabs-media-library' ),
+        'rename'   => __( 'Rename', 'vergelabs-media-library' ),
+    );
     ?>
     <div class="wrap vgml-home vgml-librarian">
-        <?php
-        echo vergeml_pg_head( __( 'Folders', 'vergelabs-media-library' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
-        ?>
-        <p class="vgml-folders-facts"><?php echo esc_html( vergeml_folders_facts_line( $boot['facts'] ) ); ?></p>
-        <div id="vgml-folders" class="vgml-folders" data-described="<?php echo esc_attr( (string) $boot['facts']['pictures'] ); ?>"></div>
+        <div class="g-head">
+            <h1 class="vgml-pg-title"><?php esc_html_e( 'Folders', 'vergelabs-media-library' ); ?></h1>
+            <div class="g-pills vgml-folders-facts">
+                <span class="g-pill" data-fact="images"><b><?php echo esc_html( number_format_i18n( (int) $facts['images'] ) ); ?></b> <?php esc_html_e( 'pictures', 'vergelabs-media-library' ); ?></span>
+                <span class="g-pill" data-fact="described"><b><?php echo esc_html( number_format_i18n( (int) $facts['pictures'] ) ); ?></b> <?php esc_html_e( 'described', 'vergelabs-media-library' ); ?></span>
+                <span class="g-pill" data-fact="folders"><b><?php echo esc_html( number_format_i18n( (int) $facts['folders'] ) ); ?></b> <?php esc_html_e( 'folders', 'vergelabs-media-library' ); ?></span>
+            </div>
+        </div>
+        <div class="g-rail" role="group" aria-label="<?php esc_attr_e( 'Steps', 'vergelabs-media-library' ); ?>">
+            <?php foreach ( $steps as $key => $label ) : ?>
+                <button type="button" class="g-step" data-step="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></button>
+            <?php endforeach; ?>
+        </div>
+        <div id="vgml-folders" class="vgml-folders" data-described="<?php echo esc_attr( (string) $facts['pictures'] ); ?>"></div>
     </div>
     <?php
 }
@@ -1201,6 +1207,9 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
     $gone = array();
     $into = array();
     $move = 0;
+    // The residue by its first class ("3d printer" of "3d printers; machinery"), so the screen can name the biggest group.
+    $residue      = array();
+    $residue_word = array();
 
     /*
      *  A budget, because this is in the way of somebody waiting for an answer.
@@ -1246,6 +1255,17 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
         $pick = $counted['picks'][ $id ];
 
         if ( ! $pick['term_id'] || ! isset( $order[ (int) $pick['term_id'] ] ) ) {
+            if ( 'nothing' === $pick['outcome'] && ! vergeml_filing_kept( $pick ) ) {
+                $filing = json_decode( (string) $r['filing'], true );
+                $class  = vergeml_filing_classes_of_object( is_array( $filing ) && isset( $filing['object'] ) ? $filing['object'] : '' );
+                $key    = isset( $class[0] ) ? vergeml_filing_group_key( $class[0] ) : '';
+                if ( '' !== $key ) {
+                    $residue[ $key ] = isset( $residue[ $key ] ) ? $residue[ $key ] + 1 : 1;
+                    if ( ! isset( $residue_word[ $key ] ) ) {
+                        $residue_word[ $key ] = $class[0]; // The describer's own words, as the screen will say them.
+                    }
+                }
+            }
             continue;
         }
 
@@ -1309,6 +1329,9 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
         $lines[] = array( 'text' => sprintf( __( '%s the wrong kind', 'vergelabs-media-library' ), number_format_i18n( $why['gated'] ) ) );
     }
 
+    arsort( $residue );
+    $top = key( $residue );
+
     return array(
         'counted' => true,
         'counts'  => $counts,
@@ -1318,6 +1341,8 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
         'preview' => $lines,
         // The outcomes as the run will count them: fits / siblings / nothing, sure / likely, kept.
         'tally'   => $counted['counts'],
+        // The biggest group the run would not place, by class word: what the screen's "add …" reads.
+        'residue' => null === $top ? null : array( 'class' => (string) $residue_word[ $top ], 'count' => (int) $residue[ $top ] ),
     );
 }
 
@@ -1346,6 +1371,7 @@ function vergeml_guide_fit_unknown() {
         'move'    => null,
         'looked'  => 0,
         'tally'   => null,
+        'residue' => null,
         'preview' => array(
             array( 'text' => __( 'The counts are not worked out yet', 'vergelabs-media-library' ), 'strong' => true ),
             array( 'text' => __( 'The next turn should have them', 'vergelabs-media-library' ) ),

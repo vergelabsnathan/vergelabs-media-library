@@ -56,7 +56,8 @@ global $wpdb;
 $g_before = $wpdb->num_queries;
 $g_boot   = vergeml_folders_boot();
 $g_cost   = $wpdb->num_queries - $g_before;
-g_check( 'A1 the boot data costs at most nine queries (render 1 + the request 1 + the tree 7, as measured on 2026-09-05)', $g_cost <= 9, $g_cost . ' queries' );
+// Nine on 2026-09-05 (render 1 + the request 1 + the tree 7); eleven measured on 2026-09-15 with the rail's steps (images, not described, without alt, the fill's state and its unfiled count).
+g_check( 'A1 the boot data costs at most eleven queries (as measured on 2026-09-15, with the rail\'s steps)', $g_cost <= 11, $g_cost . ' queries' );
 g_check( 'A2 it carries the tree, the session and the stamp', isset( $g_boot['nodes'], $g_boot['session'], $g_boot['version'], $g_boot['facts'] ) && is_array( $g_boot['nodes'] ) );
 $g_before = $wpdb->num_queries;
 ob_start();
@@ -64,8 +65,9 @@ vergeml_folders_page();
 $g_html = ob_get_clean();
 $g_more = $wpdb->num_queries - $g_before;
 g_check( 'A3 the page itself adds no query to that', 0 === $g_more, $g_more . ' more' );
-g_check( 'A4 the facts line and the root are in the page', false !== strpos( $g_html, 'vgml-folders-facts' ) && false !== strpos( $g_html, 'id="vgml-folders"' ) );
-g_check( 'A5 the facts line says pictures, folders, in no folder', 1 === preg_match( '/pictures · \d+ folders · [\d,.]+ in no folder/', $g_html ) || false !== strpos( $g_html, 'No pictures described yet' ), wp_strip_all_tags( substr( $g_html, strpos( $g_html, 'vgml-folders-facts' ), 160 ) ) );
+g_check( 'A4 the head pills, the rail and the root are in the page', false !== strpos( $g_html, 'vgml-folders-facts' ) && false !== strpos( $g_html, 'class="g-rail"' ) && false !== strpos( $g_html, 'id="vgml-folders"' ) );
+g_check( 'A5 the head says pictures, described, folders as three pills', 3 === preg_match_all( '/<span class="g-pill" data-fact="(images|described|folders)"><b>[\d,.]+<\/b> (pictures|described|folders)<\/span>/', $g_html ), wp_strip_all_tags( substr( $g_html, strpos( $g_html, 'vgml-folders-facts' ), 400 ) ) );
+g_check( 'A6 the rail is five steps and every one is a button', 5 === preg_match_all( '/<button type="button" class="g-step" data-step="(describe|tree|fill|alt|rename)">/', $g_html ), (string) preg_match_all( '/class="g-step"/', $g_html ) . ' steps' );
 
 /* ------------------------------------------------------ B  a draft, made safe */
 

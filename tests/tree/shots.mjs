@@ -78,7 +78,8 @@ async function session( { dark, rtl } ) {
 	 */
 	page.on( 'pageerror', ( e ) => {
 		const stack = String( e.stack || '' );
-		if ( stack.indexOf( 'wp-admin/js/user-profile.js' ) !== -1 ) return;
+		// Minified on the box since WordPress 7.1 (user-profile.min.js); matched either way.
+		if ( /wp-admin\/js\/user-profile(\.min)?\.js/.test( stack ) ) return;
 		const where = stack.split( String.fromCharCode( 10 ) ).slice( 1, 4 ).join( ' <- ' );
 		errors.push( String( e.message ) + ( where ? '  @ ' + where : '' ) );
 	} );

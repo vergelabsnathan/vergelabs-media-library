@@ -1,35 +1,57 @@
 {
-  "phase": "Every picture a home — Phase B, S3: B.1 two mocks, approved",
+  "phase": "Every picture a home — Phase B, S4: B.2 the rail, confirm, no talking first + B.3 the tree with pills",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md",
   "spec": "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
   "scope": [
-    "docs/superpowers/mocks/2026-09-15-fill-questions.html",
-    "docs/superpowers/mocks/2026-09-15-step-rail.html",
-    "docs/superpowers/mocks/shots/**",
-    "docs/**"
+    "core/guide.php",
+    "js/vergeml-folders.js",
+    "js/vergeml-talk.js",
+    "js/vergeml-tree-view.js",
+    "css/vergeml-folders.css",
+    "css/vergeml-talk.css",
+    "css/vergeml-tree-view.css",
+    "tests/ui/folders.spec.mjs",
+    "tests/tree/**",
+    "tools/shoot-mock.mjs",
+    "tools/verify.mjs",
+    "docs/**",
+    "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-15-phase-a-s2-confirm-lock-sticky-and-the-walk.md",
-    "plans/every-picture-a-home.md",
-    "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
-    "docs/superpowers/mocks/2026-09-14-folders-glance.html",
-    "docs/superpowers/mocks/2026-09-06-ai-screen.html",
-    "core/folder-talk.php (vergeml_talk_question_text, vergeml_talk_questions)",
-    "tools/shoot-mock.mjs"
+    "docs/handoffs/2026-09-15-phase-b-s3-the-mocks-approved.md",
+    "docs/superpowers/mocks/2026-09-15-step-rail.html",
+    "docs/superpowers/mocks/2026-09-15-fill-questions.html",
+    "docs/superpowers/mocks/2026-09-15-other-steps.html",
+    "plans/every-picture-a-home.md (B.2, B.3)",
+    "docs/superpowers/specs/2026-09-14-every-picture-a-home.md (§2 Step 2, §3)",
+    "js/vergeml-folders.js (buildPaste, readPaste, setMethod, renderMove, the auto-open turn)",
+    "js/vergeml-tree-view.js (render)",
+    "core/guide.php (the page markup; /guide/confirm, /guide/unconfirm from S2)",
+    "tests/ui/folders.spec.mjs",
+    "css/vergeml-shell.css (the nav's count pill)"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "Both mocks approved by Nathan in the conversation, screenshots posted, before the handoff; the word 'approved' quoted",
-    "No js/ or core/ change; nothing deployed",
-    "Real numbers from the box's walk (this handoff): 4 sibling questions (Components/Phones 4, Server racks/Cooling 4 …), 46 look like 3d printers, 45 I can't read; the spec's sentences verbatim",
-    "No eyebrow, no middot string, no paragraph; ≤ 80 words a state, counted in the handoff",
-    "Banned visuals stand: no numbered-circle step flow with connecting lines for the rail — five pills"
+    "The approved mocks are the design; the glance mock's side card is gone — one column on Step 2, the change line under the tree, the primary last",
+    "No step is a gate: every rail pill is a button (hollow ones too), Skip beside the primary on Describe / Tree / Alt text; spec §2's 'disabled until the previous is done' line is rewritten, not kept",
+    "The Folders page opens on the session's step and fires no model route on load — Propose folders is a button with its cost (10 credits)",
+    "The placeholder is built from the tree on screen (largest parent; biggest residue class from the dry run), never a fixed string",
+    "Paste or upload a list is a button: .txt / .csv read in the browser into readPaste; no PDF; no server upload",
+    "Word budget in the suite: innerText tokens with a letter or digit, excluding .vgml-tv, ≤ 80 per step",
+    "B.3 changes no aria-* on rows and no drag handler; the row geometry outside the Folders screen does not change",
+    "Specs restore what they write on the box (memory: tests never touch live state); folders.spec plants a turn first (20 credits a visit otherwise)",
+    "Fable for B.3 only if the budget is there; say which model did which task in the handoff"
   ],
   "gates": [
-    "docs/superpowers/mocks/2026-09-15-step-rail.html: the glance mock with the rail (Describe ticked, Tree current, Fill/Alt text/Rename quiet), 'This is my tree' primary; screenshot at 1600×1000 and 1280×800",
-    "docs/superpowers/mocks/2026-09-15-fill-questions.html: asking state (tree filling, pill row placed · sure · likely · questions · to sort, three question cards with eight thumbnails and their answer buttons) and done state ('1,000 in folders · 0 to sort', Undo); screenshots",
-    "Word counts ≤ 80 per state, printed by the shoot script or counted by hand and written in the handoff",
-    "Nathan: 'approved' for each, quoted"
+    "folders.spec.mjs: open the page on an empty session → no POST to /guide/turn or /guide/propose (assert on the request log); the rail shows five .g-step buttons; mutation: re-enable the auto-open → red",
+    "folders.spec.mjs: confirm → rail advances, Fill current; /guide/rule answers 409; Unconfirm → 200; Skip on Tree → Fill current with the tree unconfirmed",
+    "folders.spec.mjs: the placeholder contains the largest parent's name from the planted draft; the paste/upload button accepts a .txt file (setInputFiles) and the draft gains its folders; a .pdf is refused with one line",
+    "folders.spec.mjs: innerText word count per step ≤ 80 with .vgml-tv excluded, at 1600×1000 and 1280×800",
+    "tests/tree/*.mjs: every count in the component is a .g-pill (or the component's pill class); new is the brand-yellow pill; a parent with ≤ 3 children renders the sibling row on the Folders surface only; mutation: the pill class dropped → red",
+    "tests/tree/shots.mjs before/after in the handoff; shots.spec.mjs still green",
+    "node tools/shoot-mock.mjs docs/superpowers/mocks/2026-09-15-step-rail.html --viewports 1600x1000,1280x800 --words prints the same counts as this handoff's table",
+    "node tools/verify.mjs surface roles escaping → green (escaping 9/10 known)",
+    "Spec §2 and plan B.1 corrected as listed under Found, not done; node tools/deploy.mjs --check after deploy to the box"
   ]
 }

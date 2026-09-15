@@ -212,17 +212,36 @@
 	white-space: nowrap;
 }
 
-.vgml-tv[data-surface="folders"] .vgml-tag {
-	margin-inline-start: 8px;
-	padding: 0;
+/*
+ *  Every fact on a row is a pill (the approved mock of 2026-09-15, whose
+ *  .g-pill.g-count is .vgml-count.g-pill here and whose .g-pill.is-new is
+ *  .vgml-tag.g-pill.is-new): the count in the neutral tint, "new" in the
+ *  brand yellow because it means "this needs you".
+ */
+.vgml-tv[data-surface="folders"] .g-pill {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 5px;
+	padding: 4px 11px;
 	border: 0;
-	border-radius: 0;
-	background: none;
-	font-size: 10.5px;
+	border-radius: 999px;
+	background: var( --vgml-n200, #e8ecf5 );
+	color: var( --vgml-tv-ink );
+	font-size: 13px;
 	font-weight: 600;
-	letter-spacing: .08em;
-	text-transform: uppercase;
-	color: var( --vgml-tv-accent );
+	line-height: 1.3;
+	letter-spacing: 0;
+	text-transform: none;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tag {
+	flex: 0 0 auto;
+	margin-inline-start: 0;
+	padding: 2px 8px;
+	background: var( --vgml-highlight, #ffd84d );
+	font-size: 11.5px;
 }
 
 .vgml-tv[data-surface="folders"] .vgml-meta {
@@ -241,20 +260,47 @@
 
 .vgml-tv[data-surface="folders"] .vgml-count {
 	flex: 0 0 auto;
-	padding: 0;
-	border-radius: 0;
-	background: none;
-	font-size: 14px;
-	line-height: inherit;
-	color: var( --vgml-tv-muted );
-	font-variant-numeric: tabular-nums;
+	margin-inline-start: auto;
 }
 
 .vgml-tv[data-surface="folders"] .vgml-was {
-	margin-inline-start: 8px;
 	font-size: 12px;
 	font-weight: 400;
 	color: var( --vgml-tv-muted );
+}
+
+/* --- the sibling row: a small parent's children as chips ------------------ */
+
+.vgml-tv[data-surface="folders"] .vgml-tv-sibs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+	margin: 0;
+	padding: 2px calc( var( --vgml-indent, 0px ) + 12px ) 8px 0;
+	list-style: none;
+	border-bottom: 1px solid var( --vgml-tv-rule );
+}
+
+.vgml-tv[data-surface="folders"] .vgml-sib {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 12px 6px 6px;
+	border: 1px solid var( --vgml-tv-rule );
+	border-radius: 999px;
+	background: var( --vgml-pane, #fff );
+	font-size: 13.5px;
+	color: var( --vgml-tv-ink );
+}
+
+.vgml-tv[data-surface="folders"] .vgml-sib.is-new {
+	border-color: var( --vgml-highlight, #ffd84d );
+}
+
+.vgml-tv[data-surface="folders"] .vgml-sib .vgml-count {
+	margin-inline-start: 0;
+	padding: 2px 9px;
+	font-size: 12.5px;
 }
 
 .vgml-tv[data-surface="folders"] .vgml-node.is-change > .vgml-row {

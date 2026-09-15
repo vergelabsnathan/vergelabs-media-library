@@ -250,6 +250,71 @@ check( 'hover on a changed folder: pictures after Move and where they come from'
 await page.screenshot( { path: path.join( HERE, 'shots', 'tree-view-all.png' ), fullPage: true } );
 check( 'screenshots written', true, 'tests/tree/shots/tree-view-{changes,all}.png' );
 
+/* --------------------------------------------- G  pills, and the sibling row */
+
+/*
+ *  B.3 (every-picture-a-home): on the Folders surface every count is a pill
+ *  and "new" is the brand-yellow pill; with `siblings: true` a parent with up
+ *  to three leaf children shows them as chips on one line. The library's
+ *  rows are untouched: twist, icon, name, count, and no chip anywhere.
+ *
+ *  Mutation: drop 'g-pill' from the count's class in folderRow() and G1 goes
+ *  red; drop the `sibs` branch from render() and G3 goes red.
+ */
+
+console.log( '\nG  pills on every count, chips for a small parent\'s children\n' );
+
+await page.evaluate( () => window.harness.withDraft() );
+await page.click( '#folders .vgml-tv-state[data-mode="all"]' );
+const pillClasses = await page.$$eval( '#folders .vgml-count', ( els ) => els.map( ( e ) => e.className ) );
+check( 'G1 every count on the Folders surface is a .g-pill', pillClasses.length > 0 && pillClasses.every( ( c ) => /\bg-pill\b/.test( c ) ), `${ pillClasses.length } counts, ${ pillClasses.filter( ( c ) => ! /\bg-pill\b/.test( c ) ).length } bare` );
+const tagClass = await page.evaluate( () => {
+	const h = window.harness;
+	const root = document.createElement( 'div' );
+	document.body.appendChild( root );
+	const v = h.tv.create( { surface: 'folders', root, nodes: h.nodes } );
+	v.setDraft( h.tv.applyEdit( h.tv.fromLive( h.nodes ), { type: 'add', name: 'Diagrams', parent: '' } ) );
+	const tag = root.querySelector( '.vgml-node.is-new .vgml-tag' );
+	const out = { cls: tag ? tag.className : '', inName: !! ( tag && tag.closest( '.vgml-name' ) ), text: tag ? tag.textContent : '' };
+	root.remove();
+	return out;
+} );
+check( 'G2 "new" is the yellow pill beside the name, not inside it', /\bg-pill\b/.test( tagClass.cls ) && /\bis-new\b/.test( tagClass.cls ) && ! tagClass.inName && 'new' === tagClass.text, JSON.stringify( tagClass ) );
+
+const sibs = await page.evaluate( () => {
+	const h = window.harness;
+	const small = h.nodes.filter( ( n ) => [ 13, 14, 15, 26, 27, 28 ].includes( n.id ) ); // Architecture (2 leaves), Objects (2 leaves)
+	const root = document.createElement( 'div' );
+	document.body.appendChild( root );
+	const v = h.tv.create( { surface: 'folders', root, nodes: small, siblings: true, openAll: true } );
+	v.setDraft( h.tv.fromLive( small ) );
+	const out = {
+		attr: root.getAttribute( 'data-siblings' ),
+		rows: Array.from( root.querySelectorAll( '.vgml-node[data-key]' ) ).map( ( r ) => r.getAttribute( 'data-key' ) ),
+		chips: Array.from( root.querySelectorAll( '.vgml-tv-sibs .vgml-sib' ) ).map( ( c ) => c.textContent.trim() ),
+		chipPills: Array.from( root.querySelectorAll( '.vgml-sib .vgml-count' ) ).map( ( c ) => c.className ),
+		parentCount: root.querySelector( '.vgml-node[data-key="t13"] .vgml-count' ).textContent,
+		ariaOnChips: root.querySelectorAll( '.vgml-tv-sibs [role="treeitem"], .vgml-tv-sibs [aria-level]' ).length,
+	};
+	root.remove();
+	// The same tree without the option: rows, no chips.
+	const root2 = document.createElement( 'div' );
+	document.body.appendChild( root2 );
+	const v2 = h.tv.create( { surface: 'folders', root: root2, nodes: small, openAll: true } );
+	v2.setDraft( h.tv.fromLive( small ) );
+	out.plainRows = root2.querySelectorAll( '.vgml-node[data-key]' ).length;
+	out.plainChips = root2.querySelectorAll( '.vgml-tv-sibs' ).length;
+	root2.remove();
+	return out;
+} );
+check( 'G3 with siblings on, a parent of two leaves shows them as chips and not as rows',
+	'row' === sibs.attr && sibs.rows.join() === 't13,t26' && sibs.chips.slice().sort().join( '|' ) === 'City architecture details31|Edison bulb lighting14|Manhattan skyline11|Phones and gadgets10', JSON.stringify( sibs ) );
+check( 'G4 each chip carries its count as a pill, and the parent reads for the branch', sibs.chipPills.length === 4 && sibs.chipPills.every( ( c ) => /\bg-pill\b/.test( c ) ) && '68' === sibs.parentCount, JSON.stringify( { pills: sibs.chipPills, parent: sibs.parentCount } ) );
+check( 'G5 a chip is not a row: no treeitem, no aria-level on it', 0 === sibs.ariaOnChips );
+check( 'G6 without the option the same tree is six rows and no chips', 6 === sibs.plainRows && 0 === sibs.plainChips, `${ sibs.plainRows } rows, ${ sibs.plainChips } chip rows` );
+const libAfter = await page.$$eval( '#library > li.vgml-node', ( lis ) => lis.map( ( li ) => Array.from( li.querySelector( '.vgml-row' ).children ).map( ( c ) => c.className ).join() ) );
+check( 'G7 the library\'s rows are as they were: twist, icon, name, count -- no pill class, no chip', libAfter.every( ( r ) => /^vgml-twist[^,]*,vgml-icon[^,]*,vgml-name,vgml-count$/.test( r ) ), libAfter[ 0 ] );
+
 check( 'no JavaScript errors on the page', 0 === errors.length, errors.join( ' / ' ) );
 
 await browser.close();
