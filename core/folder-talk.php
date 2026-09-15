@@ -1060,12 +1060,18 @@ function vergeml_talk_refile_run( $deadline ) {
 	do {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
 		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by
+			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by,
+			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr
+			            JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+			            JOIN {$wpdb->termmeta} tm ON tm.term_id = tt.term_id AND tm.meta_key = %s AND tm.meta_value = '1'
+			           WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s ) AS in_locked
 			   FROM {$wpdb->vergeml_ai_index} i
 			   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
 			  WHERE i.error = '' AND i.embedding IS NOT NULL AND i.attachment_id > %d
 		   ORDER BY i.attachment_id ASC
 			  LIMIT %d",
+			VERGEML_FILING_LOCKED,
+			$taxonomy,
 			VERGEML_FILING_PLACED_BY,
 			(int) $state['after'],
 			$slice
@@ -1138,9 +1144,30 @@ function vergeml_talk_refile_run( $deadline ) {
 			$facts = vergeml_filing_facts( $row );
 			$pick  = $picks['picks'][ $attachment ];
 
-			// Placed by hand: not the fill's to move, evict or ask about. Looked at, kept, no row.
-			if ( 'placed' === $pick['why'] ) {
+			// Placed by hand, or in a locked folder: not the fill's to move, evict or ask about. Looked at, kept, no row.
+			if ( vergeml_filing_kept( $pick ) ) {
 				vergeml_filing_tally( $state['tally'], $pick );
+				/*
+				 *  The one way a hand-placed picture could still lose its folder:
+				 *  the folder itself goes with this Move. It follows that folder's
+				 *  pictures to the one that absorbed it, still the user's, rather
+				 *  than dropping out of every folder when the term is deleted.
+				 */
+				if ( 'placed' === $pick['why'] && ! empty( $state['fallback'] ) ) {
+					$in = wp_get_object_terms( $attachment, $taxonomy, array( 'fields' => 'ids' ) );
+					$in = is_wp_error( $in ) ? array() : array_map( 'intval', $in );
+					foreach ( $in as $tid ) {
+						if ( isset( $state['fallback'][ $tid ] ) ) {
+							$to = (int) $state['fallback'][ $tid ];
+							$undo[ $attachment ] = $in;
+							wp_set_object_terms( $attachment, array( $to ), $taxonomy, false );
+							$state['by_term'][ $to ] = isset( $state['by_term'][ $to ] ) ? (int) $state['by_term'][ $to ] + 1 : 1;
+							$state['moved'] = (int) $state['moved'] + 1;
+							$trail[]        = array( $attachment, $to, vergeml_talk_reason( array( 'placed', 0.0, 0, 0.0, 0 ), $row ) );
+							break;
+						}
+					}
+				}
 				continue;
 			}
 

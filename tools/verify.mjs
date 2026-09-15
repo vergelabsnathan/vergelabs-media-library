@@ -148,6 +148,21 @@ const SUITES = [
 	 */
 	{ name: 'filing', files: [ 'tests/filing/pick.php', 'tests/filing/residue.php' ], env: 'local', php: 'wasm' },
 	/*
+	 *  Confirm, lock, sticky (A.3): a hand move survives a fill, a locked
+	 *  folder keeps its pictures and gains none, a confirmed tree answers 409.
+	 *  The box: it stores a packed embedding and drives a real pass over its
+	 *  own six pictures. Every service call is answered in the suite; nothing
+	 *  is spent. Makes and removes its own pictures and folders.
+	 */
+	{ name: 'sticky', file: 'tests/filing/sticky.php', env: 'box', php: true },
+	/*
+	 *  The walk, by script (A.4): confirm -> fill -> every question answered
+	 *  -> 0 in no folder, then undone. The box, and the whole library: the
+	 *  matcher needs the real index. Spends nothing (a fixture of the last
+	 *  tree; the group names are metered). The library is as it was after.
+	 */
+	{ name: 'fill-walk', file: 'tools/box-fill-walk.php', env: 'box', php: true },
+	/*
 	 *  The Delete All Data button opens its confirmation and Cancel closes it.
 	 *  Playground, never the box: the button deletes everything if the dialog is
 	 *  ever answered yes, and a test that can only do that to a throwaway site is

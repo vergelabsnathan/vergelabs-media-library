@@ -342,7 +342,18 @@ function vergeml_guide_fresh() {
         // What vergeml_filing_pick() says about the draft as it now stands.
         // Null until a turn has settled one; never the model's arithmetic.
         'fit'             => null,
+        /*
+         *  Step 2's state: 'editing' until "This is my tree", 'confirmed'
+         *  after. Confirmed, the tree refuses every edit (a turn, a rule, a
+         *  draft) until unconfirmed, and the fill runs against exactly it.
+         */
+        'tree'            => 'editing',
     );
+}
+
+/** The one line a confirmed tree answers an edit with: a fact and its consequence. */
+function vergeml_guide_confirmed_refusal() {
+    return new WP_Error( 'confirmed', __( 'The tree is confirmed. Unconfirm it to change it.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
 }
 
 function vergeml_guide_session() {
@@ -367,6 +378,7 @@ function vergeml_guide_session_out( $s ) {
         'cap'             => VERGEML_GUIDE_TURN_CAP,
         'apply'           => $s['apply'],
         'fit'             => $s['fit'],
+        'tree'            => isset( $s['tree'] ) && 'confirmed' === $s['tree'] ? 'confirmed' : 'editing',
     );
 }
 
@@ -747,6 +759,17 @@ function vergeml_guide_routes() {
         'callback'            => 'vergeml_guide_rest_undo',
         'permission_callback' => $may,
     ) );
+    // "This is my tree": the profiles stored, the planner asked once about folders the draft gives no classes, edits refused after.
+    register_rest_route( VERGEML_REST_NS, '/guide/confirm', array(
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'vergeml_guide_rest_confirm',
+        'permission_callback' => $may,
+    ) );
+    register_rest_route( VERGEML_REST_NS, '/guide/unconfirm', array(
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'vergeml_guide_rest_unconfirm',
+        'permission_callback' => $may,
+    ) );
     // The questions the fill left, and where the step stands. Read-only and cheap.
     register_rest_route( VERGEML_REST_NS, '/guide/questions', array(
         'methods'             => WP_REST_Server::READABLE,
@@ -792,6 +815,153 @@ function vergeml_guide_rest_answer( WP_REST_Request $request ) {
     ) );
 }
 
+/* ------------------------------------------------------------- confirming */
+
+/**
+ *  "This is my tree."
+ *
+ *  Three things, in this order, and then the tree is locked:
+ *
+ *    1. A draft, if there is none: the library's own tree, folder by folder,
+ *       so a person who never proposed anything can still confirm what they
+ *       have and fill it.
+ *    2. The planner, once, and only about the folders the draft gives no
+ *       classes for and that carry no plan already -- a pasted tree, a folder
+ *       made by hand. Its answer goes into the draft (classes, kinds,
+ *       audience, matches), which is the same place a proposal's come from;
+ *       a folder the proposal described is never re-profiled. Until
+ *       2026-09-14 this call ran at the start of every fill, over every
+ *       folder, and the number on the button was not the number that
+ *       happened. It is Step 2's, here, and never the fill's.
+ *    3. The profiles, stored on every folder that exists and that the draft
+ *       describes (vergeml_talk_seed_profile, what the Move seeds); a folder
+ *       the Move will make is seeded when it is made, from the same draft.
+ *
+ *  @return array|WP_Error 'profiled' (folders the planner described).
+ */
+function vergeml_guide_confirm( &$s ) {
+
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+    if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+        return new WP_Error( 'no_taxonomy', __( 'No folders are set up on this site.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+    }
+
+    if ( ! is_array( $s['draft'] ) || empty( $s['draft']['folders'] ) ) {
+        $folders = array();
+        foreach ( vergeml_folders_nodes( $taxonomy ) as $node ) {
+            $folders[] = array( 'key' => 't' . (int) $node['id'], 'term_id' => (int) $node['id'], 'name' => (string) $node['name'], 'parent' => $node['parent'] ? 't' . (int) $node['parent'] : '' );
+        }
+        if ( ! $folders ) {
+            return new WP_Error( 'empty', __( 'There are no folders to confirm.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+        }
+        $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders ) );
+    }
+
+    $by_key = array();
+    foreach ( $s['draft']['folders'] as $f ) {
+        $by_key[ (string) $f['key'] ] = $f;
+    }
+    $path = function ( $key ) use ( $by_key ) {
+        $out   = array();
+        $guard = 0;
+        while ( isset( $by_key[ $key ] ) && $guard++ < 64 ) {
+            array_unshift( $out, (string) $by_key[ $key ]['name'] );
+            $key = (string) $by_key[ $key ]['parent'];
+        }
+        return $out;
+    };
+
+    // Which folders the planner is asked about: no classes in the draft, and no plan stored on the term.
+    $current = array();
+    $want    = array();
+    foreach ( $s['draft']['folders'] as $i => $f ) {
+        $p         = $path( (string) $f['key'] );
+        $parent    = implode( ' / ', array_slice( $p, 0, -1 ) );
+        $current[] = array( 'name' => (string) $f['name'], 'parent' => $parent, 'count' => (int) $f['count'] );
+        if ( ! empty( $f['classes'] ) ) {
+            continue;
+        }
+        $stored = ! empty( $f['term_id'] ) ? get_term_meta( (int) $f['term_id'], VERGEML_FILING_META, true ) : null;
+        if ( is_array( $stored ) && 'plan' === $stored['source'] ) {
+            continue; // The draft says nothing about it; it keeps the profile it has.
+        }
+        $want[ mb_strtolower( $parent . ' / ' . (string) $f['name'] ) ] = $i;
+    }
+
+    $profiled = 0;
+    if ( $want ) {
+        $seeds = vergeml_filing_profile_ask( $current );
+        if ( is_wp_error( $seeds ) ) {
+            return new WP_Error( $seeds->get_error_code(), $seeds->get_error_message(), array( 'status' => 502 ) );
+        }
+        foreach ( $seeds as $key => $seed ) {
+            if ( ! isset( $want[ $key ] ) ) {
+                continue; // The planner may describe every folder; only the ones asked about take the answer.
+            }
+            $i = $want[ $key ];
+            $s['draft']['folders'][ $i ]['classes']  = $seed['classes'];
+            $s['draft']['folders'][ $i ]['kinds']    = $seed['kinds'];
+            $s['draft']['folders'][ $i ]['audience'] = $seed['audience'];
+            $s['draft']['folders'][ $i ]['matches']  = $seed['matches'];
+            $profiled++;
+        }
+    }
+
+    // Stored on the terms that exist, from the draft -- what the Move seeds, so the preview and the run score one profile.
+    foreach ( $s['draft']['folders'] as $f ) {
+        if ( ! empty( $f['term_id'] ) && ! empty( $f['classes'] ) && function_exists( 'vergeml_talk_seed_profile' ) ) {
+            vergeml_talk_seed_profile( (int) $f['term_id'], $taxonomy, $f, array() );
+        }
+    }
+
+    // The planner changed the draft, so the count beside it is about a tree that is no longer on screen.
+    if ( $profiled ) {
+        $fit = vergeml_guide_draft_fit( $s['draft'], $taxonomy );
+        foreach ( $s['draft']['folders'] as &$f ) {
+            $f['count'] = $fit && isset( $fit['counts'][ $f['key'] ] ) ? (int) $fit['counts'][ $f['key'] ] : null;
+        }
+        unset( $f );
+        $s['fit'] = $fit ? $fit : vergeml_guide_fit_unknown();
+    }
+
+    $s['tree']         = 'confirmed';
+    $s['confirmed_at'] = time();
+
+    return array( 'profiled' => $profiled );
+}
+
+function vergeml_guide_rest_confirm( WP_REST_Request $request ) {
+
+    $s = vergeml_guide_session();
+    $r = vergeml_guide_confirm( $s );
+    if ( is_wp_error( $r ) ) {
+        return $r;
+    }
+    vergeml_guide_save( $s );
+
+    return rest_ensure_response( array(
+        'session'  => vergeml_guide_session_out( $s ),
+        'profiled' => (int) $r['profiled'],
+        'version'  => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
+    ) );
+}
+
+/** Back to editing. Not while a fill is running against the tree. */
+function vergeml_guide_rest_unconfirm( WP_REST_Request $request ) {
+
+    $s = vergeml_guide_session();
+    if ( ! empty( vergeml_talk_progress()['running'] ) ) {
+        return new WP_Error( 'running', __( 'The fill is still running.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
+    }
+    $s['tree'] = 'editing';
+    vergeml_guide_save( $s );
+
+    return rest_ensure_response( array(
+        'session' => vergeml_guide_session_out( $s ),
+        'version' => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
+    ) );
+}
+
 function vergeml_guide_rest_session( WP_REST_Request $request ) {
 
     if ( 'POST' === $request->get_method() ) {
@@ -801,6 +971,9 @@ function vergeml_guide_rest_session( WP_REST_Request $request ) {
         }
         $s = vergeml_guide_session();
         if ( null !== $request->get_param( 'draft' ) ) {
+            if ( 'confirmed' === $s['tree'] ) {
+                return vergeml_guide_confirmed_refusal();
+            }
             $s['draft'] = vergeml_guide_clean_draft( $request->get_param( 'draft' ) );
             // A different draft, so the dry run's answer is about a tree that
             // is no longer on screen. It is dropped rather than shown stale;
@@ -834,7 +1007,10 @@ function vergeml_guide_rest_token( WP_REST_Request $request ) {
  */
 function vergeml_guide_rest_turn( WP_REST_Request $request ) {
 
-    $s     = vergeml_guide_session();
+    $s = vergeml_guide_session();
+    if ( 'confirmed' === $s['tree'] ) {
+        return vergeml_guide_confirmed_refusal();
+    }
     $turns = $request->get_param( 'turns' );
     $turns = is_array( $turns ) && $turns
         ? array_values( array_filter( $turns, 'is_array' ) )
@@ -1048,10 +1224,15 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
      *  and the Move's are one number. What follows only turns picks into
      *  counts per draft key and "does it change hands".
      */
+    // A picture in a locked folder is kept, in the run and so here (the run reads it off the row in SQL).
+    $locked = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids', 'meta_key' => VERGEML_FILING_LOCKED, 'meta_value' => '1' ) );
+    $locked = is_wp_error( $locked ) ? array() : array_map( 'intval', (array) $locked );
+
     $index = array();
     foreach ( $rows as $r ) {
-        $id      = (int) $r['attachment_id'];
-        $index[] = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '', 'placed_by' => '' ) );
+        $id = (int) $r['attachment_id'];
+        $in = empty( $r['in_terms'] ) ? array() : array_map( 'intval', explode( ',', (string) $r['in_terms'] ) );
+        $index[] = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '', 'placed_by' => '' ), array( 'in_locked' => (bool) array_intersect( $in, $locked ) ) );
     }
     $counted = vergeml_filing_count( $profiles, $index, $deadline );
     if ( null === $counted ) {
@@ -2280,6 +2461,10 @@ function vergeml_guide_rest_rules( WP_REST_Request $request ) {
  *  Move recomputes them from the rule and its options.
  */
 function vergeml_guide_rest_rule( WP_REST_Request $request ) {
+
+    if ( 'confirmed' === vergeml_guide_session()['tree'] ) {
+        return vergeml_guide_confirmed_refusal();
+    }
 
     $r = vergeml_guide_rule( (string) $request->get_param( 'rule' ), (array) $request->get_param( 'options' ) );
     if ( is_wp_error( $r ) ) {

@@ -1,39 +1,42 @@
 {
-  "phase": "Every picture a home — Phase A, S1: A.1 one filing path + A.2 the residue, grouped and named",
+  "phase": "Every picture a home — Phase A, S2: A.3 confirm, lock, sticky + A.4 the walk, by script",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md",
   "spec": "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
   "scope": [
+    "core/guide.php",
     "core/filing.php",
     "core/folder-talk.php",
-    "core/guide.php",
+    "core/rest-folders.php",
     "tests/filing/**",
+    "tools/box-fill-walk.php",
+    "tools/box-fill-walk.sh",
     "tools/verify.mjs",
-    "../service/app/api/ai/name-group/**",
-    "../service/lib/anthropic.ts",
-    "../service/lib/name-group.test.ts",
     "docs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-14-box-as-a-user.md",
-    "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
+    "docs/handoffs/2026-09-15-phase-a-s1-one-path-and-questions.md",
     "plans/every-picture-a-home.md",
+    "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
     "core/filing.php",
     "core/folder-talk.php",
-    "tools/box-refile-all.php"
+    "core/guide.php",
+    "tests/filing/residue.php",
+    "tools/box-why-walk.php"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "The floor and margin values do not change; the outcomes around them do",
-    "Residue naming is metered (free to the licence) unless Nathan says a credit",
-    "Nothing on the box is filed by this session; A.4 is the walk, next session",
-    "No screen work: js/ and css/ are Phase B"
+    "The walk starts by undoing Nathan's Move on the box (487 / 513) and ends with the library as it was; nothing stays filed by script",
+    "Confirm stores the draft's own classes as the profiles (what apply seeds today); the planner is asked only for folders the tree gives no classes for (a pasted tree) — never to re-profile a folder the proposal described",
+    "The floor, margin and sure values do not change",
+    "No screen work: js/ and css/ are Phase B",
+    "A propose costs ~10 credits; use a fixture of the last tree where one exists, and say the cost when it does not"
   ],
   "gates": [
-    "node tools/verify.mjs filing → 12/12 (pick) and green (residue); each mutation named in the plan turns its own row red",
-    "../service: pnpm test green with lib/name-group.test.ts; typecheck clean",
-    "node tools/verify.mjs surface roles escaping → still green (escaping 9/10)",
-    "tools/box-refile-all.php dry run on the box prints outcomes, not just stays: fits / siblings / nothing counts sum to the described total"
+    "node tools/verify.mjs filing → still 12/12 and 18/18",
+    "tests/filing/sticky.php on the box: a hand move survives a fill that would have moved it; a locked folder keeps its 3 and gains none; confirm → /guide/rule and /guide/turn answer 409; makes and removes its own pictures and folders; mutation: the placed_by check removed from vergeml_filing_pick → the first row red",
+    "node tools/verify.mjs fill-walk on the box: undo → propose or fixture → confirm → fill → every question answered by script (keep-parent for siblings, new-folder for residue groups ≥ 20, leave for the rest) → 0 in no folder, To sort holds exactly the leftovers, preview tally = run tally, a trail row per picture; undo at the end; mutation: the sibling branch removed on the box copy → '0 in no folder' red",
+    "node tools/verify.mjs surface roles escaping → green (escaping 9/10; roles counts 76 + whatever S2 registers)"
   ]
 }

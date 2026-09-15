@@ -372,8 +372,9 @@ function vergeml_filing_class_match( $a, $b ) {
 /**
  *  The picture's side of the match, as the caller reads it off the index row.
  *
- *  @param array $row An index row: 'filing' (json), 'kind', 'embedding'; 'placed_by' when the caller joined it.
- *  @return array 'classes', 'kind', 'audience', 'vector', 'placed_by'.
+ *  @param array $row An index row: 'filing' (json), 'kind', 'embedding'; 'placed_by' and
+ *                    'in_locked' (sits in a locked folder) when the caller joined them.
+ *  @return array 'classes', 'kind', 'audience', 'vector', 'placed_by', 'in_locked'.
  */
 function vergeml_filing_facts( $row ) {
     $filing = isset( $row['filing'] ) ? json_decode( (string) $row['filing'], true ) : null;
@@ -385,6 +386,7 @@ function vergeml_filing_facts( $row ) {
         'audience'  => vergeml_filing_audience_of_picture( isset( $filing['audience'] ) ? $filing['audience'] : '' ),
         'vector'    => isset( $row['embedding'] ) && function_exists( 'vergeml_index_vector_out' ) ? vergeml_index_vector_out( $row['embedding'] ) : null,
         'placed_by' => isset( $row['placed_by'] ) ? (string) $row['placed_by'] : '',
+        'in_locked' => ! empty( $row['in_locked'] ),
     );
 }
 
@@ -405,16 +407,17 @@ function vergeml_filing_facts( $row ) {
  *  on Server racks and Cooling and going nowhere. The parent is the honest
  *  answer to "which of these two", and it is a folder.
  *
- *  Two things are never picked: a locked folder (VERGEML_FILING_LOCKED), and
- *  a new folder for a picture the user placed by hand -- that comes back as
- *  'nothing' with why 'placed', and every fill leaves it exactly where it is.
+ *  Three things are never picked. A locked folder (VERGEML_FILING_LOCKED) is
+ *  never filed into; a picture sitting in one is never filed out of it ('nothing',
+ *  why 'locked'); and a picture the user placed by hand gets no new folder
+ *  ('nothing', why 'placed'). Every fill leaves those two exactly where they are.
  *
  *  @param array $facts    From vergeml_filing_facts().
  *  @param array $profiles From vergeml_filing_profiles(), keyed by term id.
  *  @return array 'outcome', 'term_id' (0 for none; the parent for siblings),
  *                'parent_id', 'score', 'runner_up', 'runner_score',
  *                'confidence' ('sure' | 'likely' | ''), 'why' ('ok' |
- *                'siblings' | 'floor' | 'margin' | 'gated' | 'placed'),
+ *                'siblings' | 'floor' | 'margin' | 'gated' | 'placed' | 'locked'),
  *                'children' (siblings: the two), 'nearest' (nothing: the
  *                folder it came closest to), 'scores' (term id => score),
  *                'gated' (term id => 'kind' | 'audience' | 'locked').
@@ -423,6 +426,9 @@ function vergeml_filing_pick( $facts, $profiles ) {
 
     if ( isset( $facts['placed_by'] ) && 'user' === $facts['placed_by'] ) {
         return vergeml_filing_outcome( 'nothing', 'placed', array( 'scores' => array(), 'gated' => array() ) );
+    }
+    if ( ! empty( $facts['in_locked'] ) ) {
+        return vergeml_filing_outcome( 'nothing', 'locked', array( 'scores' => array(), 'gated' => array() ) );
     }
 
     $scores = array();
@@ -625,7 +631,7 @@ function vergeml_filing_tally_fresh() {
         'fits'     => 0,
         'siblings' => 0,
         'nothing'  => 0,
-        'kept'     => 0, // Placed by the user: looked at, left alone, not asked about.
+        'kept'     => 0, // Placed by the user, or sitting in a locked folder: looked at, left alone, not asked about.
         'sure'     => 0,
         'likely'   => 0,
         'why'      => array( 'floor' => 0, 'margin' => 0, 'gated' => 0 ),
@@ -636,7 +642,7 @@ function vergeml_filing_tally_fresh() {
 /** One pick into the tally. */
 function vergeml_filing_tally( &$counts, $pick ) {
     $counts['looked']++;
-    if ( 'placed' === $pick['why'] ) {
+    if ( vergeml_filing_kept( $pick ) ) {
         $counts['kept']++;
         return;
     }
@@ -649,6 +655,11 @@ function vergeml_filing_tally( &$counts, $pick ) {
     } elseif ( isset( $counts['why'][ $pick['why'] ] ) ) {
         $counts['why'][ $pick['why'] ]++;
     }
+}
+
+/** A pick the fill acts on in no way: placed by the user, or in a locked folder. Looked at, kept, no row. */
+function vergeml_filing_kept( $pick ) {
+    return isset( $pick['why'] ) && ( 'placed' === $pick['why'] || 'locked' === $pick['why'] );
 }
 
 /** Two tallies into one: the run adds each slice's to the state's. */
@@ -964,15 +975,6 @@ function vergeml_filing_answer_plan( $q, $answer ) {
  */
 function vergeml_filing_profile_existing( $taxonomy, $force = false ) {
 
-    if ( ! function_exists( 'vergeml_ai_settings' ) ) {
-        return new WP_Error( 'no_ai', 'AI not loaded.' );
-    }
-    $settings = vergeml_ai_settings();
-    $licence  = vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
-    if ( '' === $licence ) {
-        return new WP_Error( 'no_licence', __( 'No licence key.', 'vergelabs-media-library' ) );
-    }
-
     $terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) );
     if ( is_wp_error( $terms ) ) {
         return $terms;
@@ -1002,6 +1004,43 @@ function vergeml_filing_profile_existing( $taxonomy, $force = false ) {
         return 0;
     }
 
+    $seeds = vergeml_filing_profile_ask( $current );
+    if ( is_wp_error( $seeds ) ) {
+        return $seeds;
+    }
+
+    $done = 0;
+    foreach ( $seeds as $key => $seed ) {
+        if ( isset( $want[ $key ], $by_id[ $want[ $key ] ] ) && is_array( vergeml_filing_profile_build( $by_id[ $want[ $key ] ], $taxonomy, $seed ) ) ) {
+            $done++;
+        }
+    }
+    return $done;
+}
+
+/**
+ *  The planner's one profiling call, over a tree given as names.
+ *
+ *  Shared by the folders that exist (above) and by confirm (core/guide.php),
+ *  which asks about a draft's folders before some of them exist -- a pasted
+ *  tree -- and keeps the answer in the draft for the Move to seed. Metered on
+ *  the service like an embed, never a credit.
+ *
+ *  @param array $current [ { name, parent (a path, "A / B"), count } ] -- the whole tree, so the planner sees the shape.
+ *  @return array|WP_Error lowercase "parent / name" => seed { classes, kinds, audience, matches }; folders the
+ *                         planner gave no classes are left out.
+ */
+function vergeml_filing_profile_ask( $current ) {
+
+    if ( ! function_exists( 'vergeml_ai_settings' ) ) {
+        return new WP_Error( 'no_ai', 'AI not loaded.' );
+    }
+    $settings = vergeml_ai_settings();
+    $licence  = vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
+    if ( '' === $licence ) {
+        return new WP_Error( 'no_licence', __( 'No licence key.', 'vergelabs-media-library' ) );
+    }
+
     $response = wp_remote_post(
         vergeml_ai_service_url() . '/folders',
         array(
@@ -1013,7 +1052,7 @@ function vergeml_filing_profile_existing( $taxonomy, $force = false ) {
                 'site'        => home_url(),
                 'mode'        => 'profile',
                 'instruction' => 'profile',
-                'current'     => $current,
+                'current'     => array_values( (array) $current ),
                 'samples'     => function_exists( 'vergeml_talk_samples' ) ? vergeml_talk_samples() : array(),
             ) ),
         )
@@ -1027,13 +1066,9 @@ function vergeml_filing_profile_existing( $taxonomy, $force = false ) {
         return new WP_Error( 'vergeml_ai_service_' . $code, is_array( $data ) && isset( $data['error'] ) ? (string) $data['error'] : 'HTTP ' . $code );
     }
 
-    $done = 0;
+    $out = array();
     foreach ( (array) $data['folders'] as $f ) {
         if ( ! is_array( $f ) || empty( $f['name'] ) ) {
-            continue;
-        }
-        $key = mb_strtolower( ( isset( $f['parent'] ) ? (string) $f['parent'] : '' ) . ' / ' . (string) $f['name'] );
-        if ( ! isset( $want[ $key ], $by_id[ $want[ $key ] ] ) ) {
             continue;
         }
         $seed = array(
@@ -1045,9 +1080,7 @@ function vergeml_filing_profile_existing( $taxonomy, $force = false ) {
         if ( ! $seed['classes'] ) {
             continue; // Nothing worth keeping over the name.
         }
-        if ( is_array( vergeml_filing_profile_build( $by_id[ $want[ $key ] ], $taxonomy, $seed ) ) ) {
-            $done++;
-        }
+        $out[ mb_strtolower( ( isset( $f['parent'] ) ? (string) $f['parent'] : '' ) . ' / ' . (string) $f['name'] ) ] = $seed;
     }
-    return $done;
+    return $out;
 }

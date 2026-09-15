@@ -665,6 +665,17 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
         }
 
         /*
+         *  A folder a person chose is sticky: every fill leaves the picture
+         *  where they put it and never evicts it (core/filing.php reads this).
+         *  Only a gain marks it -- taking a picture out of a folder chooses
+         *  nothing for it -- and only in the librarian's taxonomy, the one
+         *  the fill files into.
+         */
+        if ( ! empty( $gained ) && defined( 'VERGEML_FILING_PLACED_BY' ) && function_exists( 'vergeml_librarian_taxonomy' ) && $taxonomy === vergeml_librarian_taxonomy() ) {
+            update_post_meta( $attachment_id, VERGEML_FILING_PLACED_BY, 'user' );
+        }
+
+        /*
          *  Grouped by identical delta. A drag of forty files usually produces one
          *  or two distinct ones, so the undo stays a short payload rather than a
          *  per-file list.
