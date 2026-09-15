@@ -915,7 +915,13 @@
 			noChanges: __( 'No changes yet', 'vergelabs-media-library' ),
 			nothingFound: __( 'No folder matches', 'vergelabs-media-library' ),
 			rename: __( 'Rename', 'vergelabs-media-library' ),
-			remove: __( 'Remove from the draft', 'vergelabs-media-library' )
+			remove: __( 'Remove from the draft', 'vergelabs-media-library' ),
+			/* translators: %s: a folder name */
+			addIn: __( 'Add a folder inside %s', 'vergelabs-media-library' ),
+			addTop: __( 'New folder', 'vergelabs-media-library' ),
+			addName: __( 'Name, or Solar > Rooftop', 'vergelabs-media-library' ),
+			/* translators: %s: a folder name */
+			removeOne: __( 'Remove %s from the draft', 'vergelabs-media-library' )
 		};
 	}
 

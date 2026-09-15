@@ -270,6 +270,69 @@ await page.keyboard.press( 'Escape' );
 const escaped = await page.evaluate( () => ( { editors: document.querySelectorAll( '#folders .vgml-editor' ).length, edits: window.harness.edits.length, foot: !! document.querySelector( '#folders .vgml-tv-add .vgml-add-top' ) } ) );
 check( 'New folder at the foot opens a top-level editor; Escape drops it and emits nothing', 1 === footOpened.editors && '1' === footOpened.level && 0 === escaped.editors && escaped.foot && escaped.edits === editsBefore, JSON.stringify( { footOpened, escaped, editsBefore } ) );
 
+// A chip is a folder too (the Folders screen's `siblings: true`): + on it goes one deeper and the chip becomes a row with its child; × on a row or a chip removes.
+await page.evaluate( () => {
+	const h = window.harness;
+	const small = h.nodes.filter( ( n ) => [ 13, 14, 15, 16, 26, 27, 28 ].includes( n.id ) );
+	const root = document.createElement( 'div' );
+	root.id = 'chips';
+	document.body.appendChild( root );
+	h.chipEdits = [];
+	h.chipView = h.tv.create( { surface: 'folders', root, nodes: small, siblings: true, openAll: true, editable: true, onEdit: ( edit ) => { h.chipEdits.push( edit ); h.chipView.setDraft( h.tv.applyEdit( h.chipView.getDraft(), edit ) ); } } );
+	h.chipView.setMode( 'all', true );
+	h.chipView.setDraft( h.tv.fromLive( small ) );
+} );
+const chipBefore = await page.evaluate( () => {
+	const chip = document.querySelector( '#chips .vgml-sib[data-key="t14"]' );
+	return { isChip: !! chip, hasAdd: !! ( chip && chip.querySelector( '.vgml-add' ) ), hasRemove: !! ( chip && chip.querySelector( '.vgml-remove' ) ) };
+} );
+await page.hover( '#chips .vgml-sib[data-key="t14"]' );
+await page.click( '#chips .vgml-sib[data-key="t14"] .vgml-add' );
+const chipEditor = await page.evaluate( () => {
+	const ed = document.querySelector( '#chips .vgml-node.is-adding' );
+	return { there: !! ed, level: ed ? ed.getAttribute( 'aria-level' ) : '', afterSibs: !! ( ed && ed.previousElementSibling && ed.previousElementSibling.classList.contains( 'vgml-tv-sibs' ) ) };
+} );
+await page.fill( '#chips .vgml-node.is-adding .vgml-editor', 'Facades' );
+await page.keyboard.press( 'Enter' );
+const deeper = await page.evaluate( () => {
+	const h = window.harness;
+	const last = h.chipEdits[ h.chipEdits.length - 1 ];
+	const t14 = document.querySelector( '#chips .vgml-node[data-key="t14"]' );
+	const fac = h.chipView.getDraft().folders.find( ( f ) => 'Facades' === f.name );
+	return { edit: last, t14IsRow: !! t14, t14Level: t14 ? t14.getAttribute( 'aria-level' ) : '', facadesUnder: fac ? fac.parent : '', facadesShown: [ ...document.querySelectorAll( '#chips .vgml-name, #chips .vgml-sib' ) ].some( ( n ) => /^Facades/.test( n.textContent ) ) };
+} );
+check( 'the + on a chip opens an editor after the chips line, one level deeper; Enter makes the folder under the chip, which becomes a row', chipBefore.isChip && chipBefore.hasAdd && chipBefore.hasRemove && chipEditor.there && '3' === chipEditor.level && chipEditor.afterSibs && 'add' === deeper.edit.type && 't14' === deeper.edit.parent && deeper.t14IsRow && '2' === deeper.t14Level && 't14' === deeper.facadesUnder && deeper.facadesShown, JSON.stringify( { chipBefore, chipEditor, deeper } ) );
+await page.hover( '#chips .vgml-sib[data-key="t27"]' );
+await page.click( '#chips .vgml-sib[data-key="t27"] .vgml-remove' );
+const chipRemoved = await page.evaluate( () => {
+	const h = window.harness;
+	const last = h.chipEdits[ h.chipEdits.length - 1 ];
+	return { edit: last, gone: ! h.chipView.getDraft().folders.some( ( f ) => 't27' === f.key ) };
+} );
+check( 'the × on a chip emits one remove edit for that folder', 'remove' === chipRemoved.edit.type && 't27' === chipRemoved.edit.key && chipRemoved.gone, JSON.stringify( chipRemoved ) );
+await page.evaluate( () => document.getElementById( 'chips' ).remove() );
+await page.evaluate( () => window.harness.withDraft() );
+
+const editsBeforeRemove = await page.evaluate( () => window.harness.edits.length );
+await page.hover( '#folders .vgml-node[data-key="t16"] .vgml-row' );
+await page.click( '#folders .vgml-node[data-key="t16"] .vgml-remove' );
+const removed = await page.evaluate( () => {
+	const h = window.harness;
+	const last = h.edits[ h.edits.length - 1 ];
+	return { edits: h.edits.length, edit: last, gone: !! h.view.getDraft().gone[ 16 ] || ! h.view.getDraft().folders.some( ( f ) => 't16' === f.key ), label: ( document.querySelector( '#folders .vgml-node[data-key="t13"] .vgml-remove' ) || {} ).getAttribute( 'aria-label' ) };
+} );
+check( 'the × on a row emits one remove edit for that folder, and says which', removed.edits === editsBeforeRemove + 1 && 'remove' === removed.edit.type && 't16' === removed.edit.key && removed.gone && 'Remove Architecture from the draft' === removed.label, JSON.stringify( removed ) );
+
+// Core's rule from wp-admin/css/common.css, which the harness page does not load: the component has to beat it.
+await page.addStyleTag( { content: '[role="treeitem"] span[aria-hidden] { position: absolute; }' } );
+const handle = await page.evaluate( () => {
+	const row = document.querySelector( '#folders .vgml-node[aria-expanded] .vgml-row' );
+	const h = row.querySelector( '.vgml-handle' ), t = row.querySelector( '.vgml-twist' );
+	const hb = h.getBoundingClientRect(), tb = t.getBoundingClientRect();
+	return { handlePos: getComputedStyle( h ).position, overlap: hb.left < tb.right && tb.left < hb.right, handleRight: hb.left >= tb.right };
+} );
+check( 'the drag handle sits in the flow after the chevron, not on top of it (core\'s span[aria-hidden] rule countered)', 'static' === handle.handlePos && ! handle.overlap && handle.handleRight, JSON.stringify( handle ) );
+
 await page.evaluate( () => window.harness.withDraft() );
 await page.dblclick( '#folders .vgml-node[data-key="t29"] .vgml-name' );
 await page.fill( '#folders .vgml-editor', 'People' );

@@ -103,7 +103,8 @@
 		remove: 'Remove from the draft',
 		addIn: 'Add a folder inside %s',
 		addTop: 'New folder',
-		addName: 'Name, or Solar > Rooftop'
+		addName: 'Name, or Solar > Rooftop',
+		removeOne: 'Remove %s from the draft'
 	};
 
 	/* --------------------------------------------------------------- glyphs */
@@ -1173,13 +1174,8 @@
 		}
 
 		if ( folders && this.editable && 'removed' !== status ) {
-			// The one visible action on a row: a folder inside this one. Rename and nesting stay as they are (double-click, drag).
-			var add = el( 'button', { type: 'button', class: 'vgml-add', tabindex: '-1', 'aria-label': sprintf( l10n.addIn, entry.name ), title: sprintf( l10n.addIn, entry.name ) }, '+' );
-			add.addEventListener( 'click', function ( e ) {
-				e.stopPropagation();
-				self.startAdd( item, entry );
-			} );
-			row.appendChild( add );
+			// The two visible actions on a row: a folder inside this one, and this one out of the draft. Rename and nesting stay as they are (double-click, drag).
+			this.actions( row, entry, function () { self.startAdd( item, entry ); } );
 		}
 
 		item.appendChild( row );
@@ -1191,11 +1187,32 @@
 		return { item: item, row: row, name: name, count: count };
 	};
 
+	/** + and × after a row's or a chip's name: `entry` carries key and name; `onAdd` opens the editor in the right place. */
+	TreeView.prototype.actions = function ( into, entry, onAdd ) {
+		var self = this;
+		var add = el( 'button', { type: 'button', class: 'vgml-add', tabindex: '-1', 'aria-label': sprintf( this.l10n.addIn, entry.name ), title: sprintf( this.l10n.addIn, entry.name ) }, '+' );
+		add.addEventListener( 'click', function ( e ) {
+			e.stopPropagation();
+			onAdd();
+		} );
+		into.appendChild( add );
+		var remove = el( 'button', { type: 'button', class: 'vgml-remove', tabindex: '-1', 'aria-label': sprintf( this.l10n.removeOne, entry.name ), title: sprintf( this.l10n.removeOne, entry.name ) }, '×' );
+		remove.addEventListener( 'click', function ( e ) {
+			e.stopPropagation();
+			if ( ! self.editing ) {
+				self.onEdit( { type: 'remove', key: entry.key, by: 'you' } );
+			}
+		} );
+		into.appendChild( remove );
+	};
+
 	/*
 	 *  A new folder, typed in place: an empty row under the parent (or at the
 	 *  foot of the tree for a top-level one) with the same editor a rename uses.
 	 *  Enter makes it -- as an `add` edit, so the screen treats it like any
 	 *  hand edit; Escape, or leaving it empty, drops the row and nothing changes.
+	 *  `item` is the li the editor follows: the parent's row, or the chips line
+	 *  a chip parent sits on; `entry.depth` is the parent's own depth.
 	 */
 	TreeView.prototype.startAdd = function ( item, entry ) {
 		var self = this;
@@ -1243,7 +1260,7 @@
 
 		if ( item ) {
 			// After the parent's own rows: its lines and chips, and every deeper row.
-			var level = Number( item.getAttribute( 'aria-level' ) ) || 1;
+			var level = entry.depth + 1;
 			var after = item.nextSibling;
 			while ( after && ( ! after.hasAttribute( 'aria-level' ) || Number( after.getAttribute( 'aria-level' ) ) > level ) && ! after.classList.contains( 'vgml-tv-add' ) ) {
 				after = after.nextSibling;
@@ -1675,6 +1692,12 @@
 					}
 					if ( kid.count !== null ) {
 						chip.appendChild( el( 'span', { class: 'vgml-count g-pill' }, fmt( kid.count ) ) );
+					}
+					if ( self.editable ) {
+						// A chip is a folder too: a folder inside it turns it back into a row, with its child under it.
+						( function ( sibsLi, kidEntry ) {
+							self.actions( chip, kidEntry, function () { self.startAdd( sibsLi, kidEntry ); } );
+						}( li, { key: kid.key, name: kid.name, depth: entry.depth } ) );
 					}
 					li.appendChild( chip );
 				} );

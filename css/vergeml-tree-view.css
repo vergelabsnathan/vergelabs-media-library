@@ -179,6 +179,17 @@
 	cursor: default;
 }
 
+/*
+ *  Core's [role="treeitem"] span[aria-hidden] { position: absolute } (0,2,1)
+ *  lifts the handle and the marks out of the flow and stacks them on the
+ *  chevron; back in the flow at 0,3,1 (see vergeml-tree.css for the story).
+ */
+.vgml-tv[data-surface="folders"] .vgml-row span.vgml-handle,
+.vgml-tv[data-surface="folders"] .vgml-row span.vgml-twist,
+.vgml-tv[data-surface="folders"] .vgml-row span.vgml-icon {
+	position: static;
+}
+
 .vgml-tv[data-surface="folders"] .vgml-handle {
 	flex: 0 0 16px;
 	color: #b3bcd2;
@@ -384,15 +395,16 @@
 	color: var( --vgml-tv-ink );
 }
 
-/* Add a folder inside this one: shown when the row is hovered or focused, kept in the flow so pills stay put. */
-.vgml-tv[data-surface="folders"] .vgml-add {
+/* Add a folder inside this one, remove this one: shown when the row or chip is hovered or focused, kept in the flow so pills stay put. */
+.vgml-tv[data-surface="folders"] .vgml-add,
+.vgml-tv[data-surface="folders"] .vgml-remove {
 	display: inline-flex;
 	flex: 0 0 20px;
 	align-items: center;
 	justify-content: center;
 	width: 20px;
 	height: 20px;
-	margin: 0 0 0 6px;
+	margin: 0 0 0 4px;
 	padding: 0;
 	border: 1px solid transparent;
 	border-radius: 4px;
@@ -406,9 +418,20 @@
 	transition: opacity 120ms ease;
 }
 
+.vgml-tv[data-surface="folders"] .vgml-row .vgml-add {
+	margin-left: 6px;
+}
+
 .vgml-tv[data-surface="folders"] .vgml-row:hover .vgml-add,
+.vgml-tv[data-surface="folders"] .vgml-row:hover .vgml-remove,
 .vgml-tv[data-surface="folders"] .vgml-node:focus > .vgml-row .vgml-add,
-.vgml-tv[data-surface="folders"] .vgml-node:focus-within > .vgml-row .vgml-add {
+.vgml-tv[data-surface="folders"] .vgml-node:focus > .vgml-row .vgml-remove,
+.vgml-tv[data-surface="folders"] .vgml-node:focus-within > .vgml-row .vgml-add,
+.vgml-tv[data-surface="folders"] .vgml-node:focus-within > .vgml-row .vgml-remove,
+.vgml-tv[data-surface="folders"] .vgml-sib:hover .vgml-add,
+.vgml-tv[data-surface="folders"] .vgml-sib:hover .vgml-remove,
+.vgml-tv[data-surface="folders"] .vgml-sib:focus-within .vgml-add,
+.vgml-tv[data-surface="folders"] .vgml-sib:focus-within .vgml-remove {
 	opacity: 1;
 }
 
@@ -418,6 +441,35 @@
 	color: var( --vgml-tv-accent );
 	opacity: 1;
 	outline: none;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-remove:hover,
+.vgml-tv[data-surface="folders"] .vgml-remove:focus-visible {
+	border-color: #c0392b;
+	color: #c0392b;
+	opacity: 1;
+	outline: none;
+}
+
+/* On a chip the two sit inside it, small, and take no room until the chip is hovered. */
+.vgml-tv[data-surface="folders"] .vgml-sib .vgml-add,
+.vgml-tv[data-surface="folders"] .vgml-sib .vgml-remove {
+	flex: 0 0 auto;
+	width: 0;
+	height: 16px;
+	margin: 0 0 0 -8px; /* the chip's gap, cancelled while it is nothing */
+	overflow: hidden;
+	font-size: 13px;
+	vertical-align: middle;
+	transition: width 120ms ease, margin 120ms ease, opacity 120ms ease;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-sib:hover .vgml-add,
+.vgml-tv[data-surface="folders"] .vgml-sib:hover .vgml-remove,
+.vgml-tv[data-surface="folders"] .vgml-sib:focus-within .vgml-add,
+.vgml-tv[data-surface="folders"] .vgml-sib:focus-within .vgml-remove {
+	width: 16px;
+	margin-left: -4px;
 }
 
 .vgml-tv[data-surface="folders"] .vgml-tv-add {
