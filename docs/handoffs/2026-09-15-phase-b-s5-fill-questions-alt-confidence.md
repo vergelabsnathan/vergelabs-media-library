@@ -150,8 +150,10 @@ the box's real data.
 
 ## Next — S6: A.5, the walk by Nathan, from a fresh session
 
-Model: Opus. Nathan does the walk; the session prepares, watches and takes
-the quality sample. Card, to `plugin/.harness/active.json` before anything:
+Model: Opus (Fable is available again as of 2026-09-15 evening — keep it
+for B.6, the AI screen and Dashboard, a rendering task; the walk wants
+judgment on real data). Nathan does the walk; the session prepares, watches
+and takes the quality sample. Card, to `plugin/.harness/active.json` before anything:
 
 ```json
 {
