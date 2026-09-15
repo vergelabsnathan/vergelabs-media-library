@@ -11,8 +11,24 @@
       "affects": [],
       "workaround": null,
       "status": "open",
-      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/18",
-      "found": "2026-09-14"
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/20",
+      "found": "2026-09-15"
+    },
+    {
+      "dependency": "wordpress-seo",
+      "name": "Yoast SEO (Premium follows the same numbering)",
+      "slug": "wordpress-seo",
+      "version": "28.5",
+      "severity": "red",
+      "summary": "2 symbol(s) gone: _yoast_wpseo_focuskw, _yoast_wpseo_metadesc",
+      "affects": [
+        "core/seo-context.php:49",
+        "core/seo-context.php:50"
+      ],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/19",
+      "found": "2026-09-15"
     },
     {
       "dependency": "advanced-custom-fields",
