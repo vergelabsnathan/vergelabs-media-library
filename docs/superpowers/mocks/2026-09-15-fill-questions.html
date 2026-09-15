@@ -1,0 +1,392 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Folders — Step 3, Fill: the questions, and done</title>
+
+<!--
+	2026-09-15. Step 3 of the spec (§2 Step 3, §3), in two states, over the
+	grammar of the rail mock approved today (2026-09-15-step-rail.html): the
+	tree is the screen, every fact a pill, no title that has to be explained.
+
+	  asking -- the run is over. The tree carries its counts; the card head is
+	           the pill row (placed · sure · likely · questions · to sort); on
+	           the right, the questions as cards: the sentence, the group's
+	           pictures, the answers as buttons. Three of 38 are shown; the
+	           rest follow as these are answered, so no card is ever below the
+	           fold.
+	  done   -- no open question, 0 pictures in no folder. The pill row is the
+	           spec's line, "1,000 in folders · 0 to sort", the tree shows what
+	           the answers made (brand-yellow "new"), Undo covers the step.
+
+	Real data: the box's fill walk of 2026-09-15 (handoff phase-a-s2):
+	  looked 1000 = fits 510 (sure 444, likely 76) + siblings 10 + nothing 480
+	  38 questions: 4 sibling (Components/Phones 4, Conference talks/Interviews
+	  1, Server racks/Cooling 4, Solar/Wind 1); 34 residue, of which 8 groups
+	  >= 20 were made folders (3D Printers 46, Data Center 44, Infrastructure
+	  37, Renewable Energy 27, Office Spaces 26, EV Charging 26, Trade Show 20,
+	  E-Waste 20), 25 groups < 20 and 45 unreadable went to To sort (234).
+	The per-folder counts in the tree are proportioned to that total (520
+	placed): the walk did not print report.tally.by_term. The sentences are
+	vergeml_talk_question_text() verbatim; the answers are the keys a question
+	of that kind offers (vergeml_filing_questions). The thumbnails are the
+	box's own (thumbs/), the sibling card shows four because the group has
+	four.
+
+	Word budget: 80 a state, counted by the shoot with and without the tree.
+
+	?state=asking / ?state=done shows one board alone (the shoot uses it).
+-->
+<link rel="stylesheet" href="../../../css/vergeml-shell.css">
+<link rel="stylesheet" href="../../../css/vergeml-tree-view.css">
+<link rel="stylesheet" href="../../../css/vergeml-folders.css">
+
+<style>
+html, body { margin: 0; }
+body { background: var(--vgml-ground, #f7f9fc); font-family: var(--vgml-font, Inter, system-ui, sans-serif); color: var(--vgml-ink, #101d40); }
+
+/* ------------------------------------------------------------ the pills */
+.g-pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+
+.g-pill {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 5px;
+	padding: 4px 11px;
+	border-radius: 999px;
+	background: var(--vgml-n200, #e8ecf5);
+	color: var(--vgml-ink, #101d40);
+	font-size: 13px;
+	line-height: 1.3;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.g-pill b { font-weight: 600; }
+
+.g-pill.is-accent { background: var(--vgml-accent-100, #e9edfc); color: var(--vgml-accent-700, #1e2f9d); }
+.g-pill.is-quiet  { background: transparent; color: var(--vgml-muted, #6f7891); padding-inline: 2px; }
+.g-pill.is-new { background: var(--vgml-highlight, #ffd84d); color: var(--vgml-ink); font-size: 11.5px; padding: 2px 8px; font-weight: 600; }
+
+/*  The one fact that is a question: the same yellow as "new", because both
+    mean "this needs you".  */
+.g-pill.is-ask { background: var(--vgml-highlight, #ffd84d); }
+
+/* ------------------------------------------------------------- the rail */
+.g-rail { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+
+.g-step {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 14px;
+	border-radius: 999px;
+	border: 1px solid var(--vgml-rule, #d5dbe9);
+	background: transparent;
+	color: var(--vgml-muted, #6f7891);
+	font: inherit;
+	font-size: 13px;
+	line-height: 1.3;
+	cursor: pointer;
+}
+.g-step:not(.is-current):hover { border-color: var(--vgml-accent-300, #b7c5f4); color: var(--vgml-ink, #101d40); }
+
+.g-step.is-done {
+	border-color: var(--vgml-n200, #e8ecf5);
+	background: var(--vgml-n200, #e8ecf5);
+	color: var(--vgml-ink, #101d40);
+	cursor: pointer;
+}
+.g-step.is-done::before { content: "✓"; font-size: 12px; color: var(--vgml-accent-700, #1e2f9d); }
+
+.g-step.is-current {
+	border-color: var(--vgml-accent, #2b46d8);
+	background: var(--vgml-accent, #2b46d8);
+	color: #fff;
+	font-weight: 600;
+}
+.g-step.is-current.is-done::before { color: #fff; }
+
+/* --------------------------------------------------------------- layout */
+.g-shell { padding: 22px 24px 24px; max-width: 1180px; }
+
+.g-head { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+.g-head h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+
+/*  Asking: the tree keeps its width from Step 2; the questions take the
+    room to its right. Done: the one column again.  */
+.g-cols { display: grid; grid-template-columns: minmax(0, 760px) minmax(300px, 1fr); gap: 24px; margin-top: 18px; align-items: start; }
+.g-cols.is-one { display: block; max-width: 760px; }
+/*  A done tree is a list of totals: tighter rows, so the row of actions
+    under nineteen folders is still on screen at 1280×800.  */
+.g-cols.is-one .g-tree .vgml-row { padding-block: 4px; }
+.g-cols.is-one .g-move { margin-top: 10px; padding-top: 10px; }
+
+@media (max-width: 1000px) { .g-cols { grid-template-columns: 1fr; } }
+
+.g-card {
+	background: var(--vgml-pane, #fff);
+	border: 1px solid var(--vgml-rule, #d5dbe9);
+	border-radius: 10px;
+	padding: 14px 16px 16px;
+}
+
+.g-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.g-card-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+
+/* ---------------------------------------------------------------- tree */
+.g-tree .vgml-row { padding-block: 7px; }
+.g-tree .vgml-name { font-size: 14px; }
+.g-tree .is-parent .vgml-name { font-weight: 600; }
+.g-tree .vgml-count { display: none; }
+.g-tree .g-count { margin-inline-start: auto; }
+.g-tree .g-pill.is-new { margin-inline-start: 8px; }
+.g-tree .vgml-twisty.is-leaf { visibility: hidden; }
+
+.g-siblings { display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 2px 0 8px 34px; }
+.g-sib {
+	display: inline-flex; align-items: center; gap: 8px;
+	padding: 6px 6px 6px 12px;
+	border: 1px solid var(--vgml-rule, #d5dbe9);
+	border-radius: 999px;
+	font-size: 13.5px;
+	background: var(--vgml-pane, #fff);
+}
+.g-sib .g-pill { padding: 2px 9px; font-size: 12.5px; }
+
+.g-move { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--vgml-rule, #d5dbe9); }
+.g-move .vgml-btn { font-size: 14px; padding: 9px 16px; }
+.g-quiet, .g-move .g-quiet {
+	border: 0; background: transparent; padding: 9px 10px;
+	font: inherit; font-size: 13.5px; color: var(--vgml-muted, #6f7891); cursor: pointer;
+}
+.g-quiet:hover { color: var(--vgml-ink); }
+
+/* ----------------------------------------------------------- questions */
+/*
+ *  One card a group. The sentence is the engine's; under it the group's
+ *  pictures (eight at most, the group's size when smaller); under those the
+ *  answers as buttons. Nothing else -- no "question 1 of 38", no heading.
+ */
+.g-qs { display: grid; gap: 12px; }
+
+.g-q { padding: 14px 16px 14px; }
+.g-q-text { margin: 0 0 10px; font-size: 14px; font-weight: 600; line-height: 1.4; }
+
+.g-q-strip { display: flex; gap: 4px; }
+.g-q-strip img { width: 42px; height: 42px; border-radius: 6px; object-fit: cover; background: var(--vgml-n200); display: block; }
+
+.g-q-answers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.g-answer {
+	border: 1px solid var(--vgml-rule, #d5dbe9);
+	background: var(--vgml-n100, #f4f6fb);
+	border-radius: 999px;
+	padding: 6px 12px;
+	font-size: 13px;
+	color: inherit;
+	cursor: pointer;
+	font-family: inherit;
+}
+.g-answer:hover { border-color: var(--vgml-accent-300, #b7c5f4); background: var(--vgml-accent-100, #e9edfc); }
+
+/*  The answer the engine would give, first and tinted; the rest plain.  */
+.g-answer.is-first { background: var(--vgml-accent-100, #e9edfc); border-color: var(--vgml-accent-300, #b7c5f4); color: var(--vgml-accent-700, #1e2f9d); font-weight: 500; }
+
+.g-qs .g-pills { margin: 2px 0 0 4px; }
+
+/* -------------------------------------------------------- mock only */
+.mk-label { max-width: 1180px; padding: 28px 24px 0; font-size: 12px; color: var(--vgml-muted); }
+.mk-label b { color: var(--vgml-ink); font-weight: 600; margin-inline-end: 8px; }
+</style>
+
+<!-- ============================================================ board 1: asking -->
+<p class="mk-label"><b>asking</b> the run is over, 38 questions, three on screen</p>
+<div class="vgml-shell g-shell" data-shot="asking">
+
+	<div class="g-head">
+		<h1>Folders</h1>
+		<div class="g-pills" style="margin:0">
+			<span class="g-pill"><b>1,000</b> pictures</span>
+			<span class="g-pill"><b>1,000</b> described</span>
+			<span class="g-pill"><b>10</b> folders</span>
+		</div>
+	</div>
+
+	<div class="g-rail">
+		<button class="g-step is-done">Describe</button>
+		<button class="g-step is-done">Tree</button>
+		<button class="g-step is-current" aria-current="step">Fill</button>
+		<button class="g-step">Alt text</button>
+		<button class="g-step">Rename</button>
+	</div>
+
+	<div class="g-cols">
+
+		<!-- ============================================================ the tree, filled -->
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>Your tree</h2>
+				<div class="g-pills" style="margin:0">
+					<span class="g-pill is-accent"><b>520</b> placed</span>
+					<span class="g-pill"><b>444</b> sure</span>
+					<span class="g-pill"><b>76</b> likely</span>
+					<span class="g-pill is-ask"><b>38</b> questions</span>
+					<span class="g-pill"><b>480</b> to sort</span>
+				</div>
+			</div>
+
+			<div class="vgml-tv g-tree" data-surface="folders">
+
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Data centres</span><span class="g-pill g-count"><b>137</b></span></div></div>
+				<div class="g-siblings">
+					<span class="g-sib">Server racks <span class="g-pill"><b>71</b></span></span>
+					<span class="g-sib">Cooling <span class="g-pill"><b>62</b></span></span>
+				</div>
+
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Energy</span><span class="g-pill g-count"><b>194</b></span></div></div>
+				<div class="g-siblings">
+					<span class="g-sib">Solar <span class="g-pill"><b>68</b></span></span>
+					<span class="g-sib">Wind <span class="g-pill"><b>59</b></span></span>
+					<span class="g-sib">Batteries <span class="g-pill"><b>66</b></span></span>
+				</div>
+
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Hardware</span><span class="g-pill g-count"><b>155</b></span></div></div>
+				<div class="g-siblings">
+					<span class="g-sib">Components <span class="g-pill"><b>47</b></span></span>
+					<span class="g-sib">Phones <span class="g-pill"><b>44</b></span></span>
+					<span class="g-sib">Laptops <span class="g-pill"><b>60</b></span></span>
+				</div>
+
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">People</span><span class="g-pill g-count"><b>34</b></span></div></div>
+				<div class="g-siblings">
+					<span class="g-sib">Conference talks <span class="g-pill"><b>16</b></span></span>
+					<span class="g-sib">Interviews <span class="g-pill"><b>17</b></span></span>
+				</div>
+
+			</div>
+		</div>
+
+		<!-- ============================================================= the questions -->
+		<div class="g-qs">
+
+			<!-- siblings: id s:<parent>, answers keep-parent · split · show-me -->
+			<div class="g-card g-q">
+				<p class="g-q-text">4 pictures fit both Server racks and Cooling.</p>
+				<div class="g-q-strip">
+					<img src="thumbs/105815.jpg" alt=""><img src="thumbs/105819.jpg" alt=""><img src="thumbs/105823.jpg" alt=""><img src="thumbs/105836.jpg" alt="">
+				</div>
+				<div class="g-q-answers">
+					<button class="g-answer is-first">Keep them in Data centres</button>
+					<button class="g-answer">Split them by best score</button>
+					<button class="g-answer">Let me look</button>
+				</div>
+			</div>
+
+			<!-- residue, named: id r:<i>, answers new-folder · put-in:<near> · leave · show-me -->
+			<div class="g-card g-q">
+				<p class="g-q-text">46 look like 3d printers</p>
+				<div class="g-q-strip">
+					<img src="thumbs/106690.jpg" alt=""><img src="thumbs/106691.jpg" alt=""><img src="thumbs/106694.png" alt=""><img src="thumbs/106695.jpg" alt=""><img src="thumbs/106698.jpg" alt=""><img src="thumbs/106699.jpg" alt=""><img src="thumbs/106711.jpg" alt=""><img src="thumbs/106712.jpg" alt="">
+				</div>
+				<div class="g-q-answers">
+					<button class="g-answer is-first">New folder 3D Printers</button>
+					<button class="g-answer">Put in Hardware</button>
+					<button class="g-answer">Leave them</button>
+					<button class="g-answer">Show me</button>
+				</div>
+			</div>
+
+			<!-- residue, unreadable: answers leave · show-me -->
+			<div class="g-card g-q">
+				<p class="g-q-text">45 I can't read</p>
+				<div class="g-q-strip">
+					<img src="thumbs/106138.png" alt=""><img src="thumbs/106144.png" alt=""><img src="thumbs/106510.png" alt=""><img src="thumbs/106526.jpg" alt=""><img src="thumbs/106543.jpg" alt=""><img src="thumbs/106640.png" alt=""><img src="thumbs/106675.png" alt=""><img src="thumbs/106686.jpg" alt="">
+				</div>
+				<div class="g-q-answers">
+					<button class="g-answer is-first">Leave them</button>
+					<button class="g-answer">Show me</button>
+				</div>
+			</div>
+
+			<div class="g-pills" style="align-items:center">
+				<span class="g-pill is-quiet"><b>35</b> more</span>
+				<button class="g-quiet" style="margin-inline-start:auto">Leave the rest</button>
+			</div>
+
+		</div>
+	</div>
+</div>
+
+<!-- ============================================================== board 2: done -->
+<p class="mk-label"><b>done</b> no open question, 0 in no folder</p>
+<div class="vgml-shell g-shell" data-shot="done">
+
+	<div class="g-head">
+		<h1>Folders</h1>
+		<div class="g-pills" style="margin:0">
+			<span class="g-pill"><b>1,000</b> pictures</span>
+			<span class="g-pill"><b>1,000</b> described</span>
+			<span class="g-pill"><b>19</b> folders</span>
+		</div>
+	</div>
+
+	<div class="g-rail">
+		<button class="g-step is-done">Describe</button>
+		<button class="g-step is-done">Tree</button>
+		<button class="g-step is-current is-done" aria-current="step">Fill</button>
+		<button class="g-step">Alt text</button>
+		<button class="g-step">Rename</button>
+	</div>
+
+	<div class="g-cols is-one">
+
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>Your tree</h2>
+				<div class="g-pills" style="margin:0">
+					<span class="g-pill is-accent"><b>1,000</b> in folders</span>
+					<span class="g-pill is-accent"><b>0</b> to sort</span>
+				</div>
+			</div>
+
+			<!--
+				The four parents closed: a done tree is read as totals. What the
+				answers made is top-level and marked new, as the engine makes it
+				(vergeml_filing_answer_plan: 'make' is a folder with no parent);
+				To sort is where "Leave them" put 234.
+			-->
+			<div class="vgml-tv g-tree" data-surface="folders">
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">Data centres</span><span class="g-pill g-count"><b>137</b></span></div></div>
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">Energy</span><span class="g-pill g-count"><b>194</b></span></div></div>
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">Hardware</span><span class="g-pill g-count"><b>155</b></span></div></div>
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▸</span><span class="vgml-name">People</span><span class="g-pill g-count"><b>34</b></span></div></div>
+				<div class="vgml-node"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty is-leaf" aria-hidden="true">▸</span><span class="vgml-name">3D Printers</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>46</b></span></div></div>
+				<div class="vgml-node"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty is-leaf" aria-hidden="true">▸</span><span class="vgml-name">Data Center</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>44</b></span></div></div>
+				<div class="vgml-node"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty is-leaf" aria-hidden="true">▸</span><span class="vgml-name">Infrastructure</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>37</b></span></div></div>
+				<div class="vgml-node"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty is-leaf" aria-hidden="true">▸</span><span class="vgml-name">Renewable Energy</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>27</b></span></div></div>
+				<div class="vgml-node"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty is-leaf" aria-hidden="true">▸</span><span class="vgml-name">Office Spaces</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>26</b></span></div></div>
+				<div class="vgml-node"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty is-leaf" aria-hidden="true">▸</span><span class="vgml-name">EV Charging</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>26</b></span></div></div>
+				<div class="vgml-node"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty is-leaf" aria-hidden="true">▸</span><span class="vgml-name">Trade Show</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>20</b></span></div></div>
+				<div class="vgml-node"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty is-leaf" aria-hidden="true">▸</span><span class="vgml-name">E-Waste</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>20</b></span></div></div>
+				<div class="vgml-node"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty is-leaf" aria-hidden="true">▸</span><span class="vgml-name">To sort</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>234</b></span></div></div>
+			</div>
+
+			<div class="g-move">
+				<button class="vgml-btn vgml-btn-primary">Next: Alt text</button>
+				<button class="g-quiet">Undo</button>
+			</div>
+		</div>
+
+	</div>
+</div>
+
+<script>
+	// ?state=<name> shows that board alone; without it both stack.
+	var want = new URLSearchParams( location.search ).get( 'state' );
+	if ( want ) {
+		document.querySelectorAll( '[data-shot]' ).forEach( function ( b ) {
+			var mine = b.dataset.shot === want;
+			b.hidden = ! mine;
+			b.previousElementSibling.hidden = true;
+		} );
+		document.body.style.height = '100%';
+	}
+</script>

@@ -1,42 +1,35 @@
 {
-  "phase": "Every picture a home — Phase A, S2: A.3 confirm, lock, sticky + A.4 the walk, by script",
+  "phase": "Every picture a home — Phase B, S3: B.1 two mocks, approved",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md",
   "spec": "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
   "scope": [
-    "core/guide.php",
-    "core/filing.php",
-    "core/folder-talk.php",
-    "core/rest-folders.php",
-    "tests/filing/**",
-    "tools/box-fill-walk.php",
-    "tools/box-fill-walk.sh",
-    "tools/verify.mjs",
-    "docs/**",
-    "plans/**"
+    "docs/superpowers/mocks/2026-09-15-fill-questions.html",
+    "docs/superpowers/mocks/2026-09-15-step-rail.html",
+    "docs/superpowers/mocks/shots/**",
+    "docs/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-15-phase-a-s1-one-path-and-questions.md",
+    "docs/handoffs/2026-09-15-phase-a-s2-confirm-lock-sticky-and-the-walk.md",
     "plans/every-picture-a-home.md",
     "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
-    "core/filing.php",
-    "core/folder-talk.php",
-    "core/guide.php",
-    "tests/filing/residue.php",
-    "tools/box-why-walk.php"
+    "docs/superpowers/mocks/2026-09-14-folders-glance.html",
+    "docs/superpowers/mocks/2026-09-06-ai-screen.html",
+    "core/folder-talk.php (vergeml_talk_question_text, vergeml_talk_questions)",
+    "tools/shoot-mock.mjs"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "The walk starts by undoing Nathan's Move on the box (487 / 513) and ends with the library as it was; nothing stays filed by script",
-    "Confirm stores the draft's own classes as the profiles (what apply seeds today); the planner is asked only for folders the tree gives no classes for (a pasted tree) — never to re-profile a folder the proposal described",
-    "The floor, margin and sure values do not change",
-    "No screen work: js/ and css/ are Phase B",
-    "A propose costs ~10 credits; use a fixture of the last tree where one exists, and say the cost when it does not"
+    "Both mocks approved by Nathan in the conversation, screenshots posted, before the handoff; the word 'approved' quoted",
+    "No js/ or core/ change; nothing deployed",
+    "Real numbers from the box's walk (this handoff): 4 sibling questions (Components/Phones 4, Server racks/Cooling 4 …), 46 look like 3d printers, 45 I can't read; the spec's sentences verbatim",
+    "No eyebrow, no middot string, no paragraph; ≤ 80 words a state, counted in the handoff",
+    "Banned visuals stand: no numbered-circle step flow with connecting lines for the rail — five pills"
   ],
   "gates": [
-    "node tools/verify.mjs filing → still 12/12 and 18/18",
-    "tests/filing/sticky.php on the box: a hand move survives a fill that would have moved it; a locked folder keeps its 3 and gains none; confirm → /guide/rule and /guide/turn answer 409; makes and removes its own pictures and folders; mutation: the placed_by check removed from vergeml_filing_pick → the first row red",
-    "node tools/verify.mjs fill-walk on the box: undo → propose or fixture → confirm → fill → every question answered by script (keep-parent for siblings, new-folder for residue groups ≥ 20, leave for the rest) → 0 in no folder, To sort holds exactly the leftovers, preview tally = run tally, a trail row per picture; undo at the end; mutation: the sibling branch removed on the box copy → '0 in no folder' red",
-    "node tools/verify.mjs surface roles escaping → green (escaping 9/10; roles counts 76 + whatever S2 registers)"
+    "docs/superpowers/mocks/2026-09-15-step-rail.html: the glance mock with the rail (Describe ticked, Tree current, Fill/Alt text/Rename quiet), 'This is my tree' primary; screenshot at 1600×1000 and 1280×800",
+    "docs/superpowers/mocks/2026-09-15-fill-questions.html: asking state (tree filling, pill row placed · sure · likely · questions · to sort, three question cards with eight thumbnails and their answer buttons) and done state ('1,000 in folders · 0 to sort', Undo); screenshots",
+    "Word counts ≤ 80 per state, printed by the shoot script or counted by hand and written in the handoff",
+    "Nathan: 'approved' for each, quoted"
   ]
 }

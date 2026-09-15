@@ -1,0 +1,270 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Folders — Step 2, the tree, with the step rail</title>
+
+<!--
+	2026-09-15. The approved glance mock (2026-09-14-folders-glance.html) with
+	the step rail of the spec's §3 over it: five pills, Describe ticked, Tree
+	current, the rest quiet. The primary button is the confirm --
+	"This is my tree" -- because in the new order the making and moving is
+	Step 3's, not this one's. Nothing else on the glance moved.
+
+	Word budget: 80 on screen. Counted by the shoot: tokens of innerText that
+	carry a letter or digit, once with the tree and once without it (the tree
+	is the person's own data and grows with their library).
+
+	Real data: the same 2026-09-14 proposal for the box, 996 described, 10
+	folders under 4 parents, 816 placed.
+-->
+<link rel="stylesheet" href="../../../css/vergeml-shell.css">
+<link rel="stylesheet" href="../../../css/vergeml-tree-view.css">
+<link rel="stylesheet" href="../../../css/vergeml-folders.css">
+
+<style>
+html, body { margin: 0; height: 100%; }
+body { background: var(--vgml-ground, #f7f9fc); font-family: var(--vgml-font, Inter, system-ui, sans-serif); color: var(--vgml-ink, #101d40); }
+
+/* ------------------------------------------------------------ the pills */
+.g-pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+
+.g-pill {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 5px;
+	padding: 4px 11px;
+	border-radius: 999px;
+	background: var(--vgml-n200, #e8ecf5);
+	color: var(--vgml-ink, #101d40);
+	font-size: 13px;
+	line-height: 1.3;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.g-pill b { font-weight: 600; }
+
+.g-pill.is-accent { background: var(--vgml-accent-100, #e9edfc); color: var(--vgml-accent-700, #1e2f9d); }
+.g-pill.is-quiet  { background: transparent; color: var(--vgml-muted, #6f7891); padding-inline: 2px; }
+.g-pill.is-new { background: var(--vgml-highlight, #ffd84d); color: var(--vgml-ink); font-size: 11.5px; padding: 2px 8px; font-weight: 600; }
+
+/* ------------------------------------------------------------- the rail */
+/*
+ *  Five pills, one row. The step you are on is the one filled pill on the
+ *  page; a done step carries a tick and is a button back to it; a step not
+ *  yet reached is hollow. No numbers, no lines between them: the order is
+ *  the row.
+ */
+.g-rail { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+
+.g-step {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 14px;
+	border-radius: 999px;
+	border: 1px solid var(--vgml-rule, #d5dbe9);
+	background: transparent;
+	color: var(--vgml-muted, #6f7891);
+	font: inherit;
+	font-size: 13px;
+	line-height: 1.3;
+	cursor: pointer;
+}
+.g-step:not(.is-current):hover { border-color: var(--vgml-accent-300, #b7c5f4); color: var(--vgml-ink, #101d40); }
+
+.g-step.is-done {
+	border-color: var(--vgml-n200, #e8ecf5);
+	background: var(--vgml-n200, #e8ecf5);
+	color: var(--vgml-ink, #101d40);
+	cursor: pointer;
+}
+.g-step.is-done::before { content: "✓"; font-size: 12px; color: var(--vgml-accent-700, #1e2f9d); }
+
+.g-step.is-current {
+	border-color: var(--vgml-accent, #2b46d8);
+	background: var(--vgml-accent, #2b46d8);
+	color: #fff;
+	font-weight: 600;
+}
+
+/* --------------------------------------------------------------- layout */
+.g-shell { padding: 22px 24px 24px; max-width: 1180px; }
+
+.g-head { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+.g-head h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+
+/*  One column: the tree is the screen, and what edits it sits under it.  */
+.g-cols { max-width: 760px; margin-top: 18px; }
+
+.g-card {
+	background: var(--vgml-pane, #fff);
+	border: 1px solid var(--vgml-rule, #d5dbe9);
+	border-radius: 10px;
+	padding: 14px 16px 16px;
+}
+
+.g-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.g-card-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+
+/* ---------------------------------------------------------------- tree */
+.g-tree .vgml-row { padding-block: 7px; }
+.g-tree .vgml-name { font-size: 14px; }
+.g-tree .is-parent .vgml-name { font-weight: 600; }
+.g-tree .vgml-count { display: none; }
+.g-tree .g-count { margin-inline-start: auto; }
+.g-tree .g-pill.is-new { margin-inline-start: 8px; }
+
+.g-siblings { display: flex; flex-wrap: wrap; gap: 6px 10px; padding: 2px 0 8px 34px; }
+.g-sib {
+	display: inline-flex; align-items: center; gap: 8px;
+	padding: 6px 6px 6px 12px;
+	border: 1px solid var(--vgml-rule, #d5dbe9);
+	border-radius: 999px;
+	font-size: 13.5px;
+	background: var(--vgml-pane, #fff);
+}
+.g-sib .g-pill { padding: 2px 9px; font-size: 12.5px; }
+
+.g-move { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--vgml-rule, #d5dbe9); }
+.g-move .vgml-btn { font-size: 14px; padding: 9px 16px; }
+.g-move .g-quiet { border: 0; background: transparent; padding: 9px 10px; font: inherit; font-size: 13.5px; color: var(--vgml-muted, #6f7891); cursor: pointer; }
+.g-move .g-quiet:hover { color: var(--vgml-ink); }
+
+/* ------------------------------------------------------ change the tree */
+.g-change { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--vgml-rule, #d5dbe9); }
+.g-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+/*  The other way in: a button like the chips, set apart on the right and in
+    the accent tint so it reads as a way in rather than one more change.  */
+.g-chip.is-way-in { margin-inline-start: auto; background: var(--vgml-pane, #fff); border-color: var(--vgml-accent-300, #b7c5f4); color: var(--vgml-accent-700, #1e2f9d); font-weight: 500; }
+.g-chip {
+	border: 1px solid var(--vgml-rule, #d5dbe9);
+	background: var(--vgml-n100, #f4f6fb);
+	border-radius: 999px;
+	padding: 6px 12px;
+	font-size: 13px;
+	color: inherit;
+	cursor: pointer;
+	font-family: inherit;
+}
+.g-chip:hover { border-color: var(--vgml-accent-300, #b7c5f4); background: var(--vgml-accent-100, #e9edfc); }
+
+.g-ask { position: relative; }
+.g-ask input {
+	width: 100%; box-sizing: border-box;
+	padding: 11px 44px 11px 14px;
+	border: 1px solid var(--vgml-rule, #d5dbe9);
+	border-radius: 999px;
+	font: inherit; font-size: 14px;
+	background: var(--vgml-pane, #fff);
+	color: inherit;
+}
+.g-ask input::placeholder { color: var(--vgml-muted); }
+.g-ask button {
+	position: absolute; inset-inline-end: 6px; top: 50%; transform: translateY(-50%);
+	width: 30px; height: 30px; border-radius: 50%; border: 0;
+	background: var(--vgml-accent, #2b46d8); color: #fff; font-size: 16px; cursor: pointer;
+}
+
+.g-alt { margin: 12px 0 0; font-size: 13px; color: var(--vgml-muted); }
+.g-alt a { color: var(--vgml-accent-700, #1e2f9d); }
+
+.g-left { margin-top: 18px; }
+.g-left .g-pills { margin-top: 8px; }
+</style>
+
+<div class="vgml-shell g-shell" data-shot="tree-step">
+
+	<div class="g-head">
+		<h1>Folders</h1>
+		<div class="g-pills" style="margin:0">
+			<span class="g-pill"><b>1,000</b> pictures</span>
+			<span class="g-pill"><b>996</b> described</span>
+			<span class="g-pill"><b>0</b> folders</span>
+		</div>
+	</div>
+
+	<!-- ================================================================ the rail -->
+	<div class="g-rail">
+		<button class="g-step is-done">Describe</button>
+		<button class="g-step is-current" aria-current="step">Tree</button>
+		<button class="g-step">Fill</button>
+		<button class="g-step">Alt text</button>
+		<button class="g-step">Rename</button>
+	</div>
+
+	<div class="g-cols">
+
+		<!-- ================================================= the proposal, as the tree -->
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>What the pictures show</h2>
+				<div class="g-pills" style="margin:0">
+					<span class="g-pill is-accent"><b>10</b> folders</span>
+					<span class="g-pill is-accent"><b>816</b> placed</span>
+					<span class="g-pill"><b>184</b> stay unfiled</span>
+				</div>
+			</div>
+
+			<div class="vgml-tv g-tree" data-surface="folders">
+
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Data centres</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>165</b></span></div></div>
+				<div class="g-siblings">
+					<span class="g-sib">Server racks <span class="g-pill"><b>86</b></span></span>
+					<span class="g-sib">Cooling <span class="g-pill"><b>79</b></span></span>
+				</div>
+
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Energy</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>243</b></span></div></div>
+				<div class="g-siblings">
+					<span class="g-sib">Solar <span class="g-pill"><b>84</b></span></span>
+					<span class="g-sib">Wind <span class="g-pill"><b>80</b></span></span>
+					<span class="g-sib">Batteries <span class="g-pill"><b>79</b></span></span>
+				</div>
+
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">Hardware</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>245</b></span></div></div>
+				<div class="g-siblings">
+					<span class="g-sib">Components <span class="g-pill"><b>82</b></span></span>
+					<span class="g-sib">Phones <span class="g-pill"><b>82</b></span></span>
+					<span class="g-sib">Laptops <span class="g-pill"><b>81</b></span></span>
+				</div>
+
+				<div class="vgml-node is-parent"><div class="vgml-row" style="--vgml-indent:8px"><span class="vgml-twisty" aria-hidden="true">▾</span><span class="vgml-name">People</span><span class="g-pill is-new">new</span><span class="g-pill g-count"><b>163</b></span></div></div>
+				<div class="g-siblings">
+					<span class="g-sib">Conference talks <span class="g-pill"><b>82</b></span></span>
+					<span class="g-sib">Interviews <span class="g-pill"><b>81</b></span></span>
+				</div>
+
+			</div>
+
+			<!-- ============================================ change the tree, in one line -->
+			<!--
+				No card, no title. The line sits under the tree it edits and says
+				what it is for by what it asks. The placeholder is not fixed text:
+				it is built from the tree on screen -- the largest parent's name
+				("split Hardware by brand") and, when the dry run left a residue
+				group, its class word ("add 3D printers"). The chips are three
+				changes people ask for most; "Paste or upload a list" is a button,
+				the other way in (.txt / .csv read in the browser into the paste
+				parser). The confirm comes after: change what you want, then say
+				it is yours.
+			-->
+			<div class="g-change">
+				<div class="g-ask">
+					<input type="text" placeholder="Change the tree: split Hardware by brand, add 3D printers…" data-placeholder-from="tree">
+					<button aria-label="Send">↑</button>
+				</div>
+				<div class="g-chips">
+					<button class="g-chip">Fewer folders</button>
+					<button class="g-chip">Split by kind</button>
+					<button class="g-chip">By year first</button>
+					<button class="g-chip is-way-in">Paste or upload a list</button>
+				</div>
+			</div>
+
+			<div class="g-move">
+				<button class="vgml-btn vgml-btn-primary">This is my tree</button>
+				<button class="g-quiet">Skip</button>
+			</div>
+		</div>
+
+	</div>
+</div>
