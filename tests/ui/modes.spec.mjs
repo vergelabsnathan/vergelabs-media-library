@@ -941,6 +941,8 @@ test( 'the grid modal says why a picture is here, and the listing still does not
 	expect( answer.id, 'the route answers for the picture it was asked about' ).toBe( subject );
 	expect( Array.isArray( answer.lines ), 'and answers in lines' ).toBe( true );
 	expect( answer.label, 'under the same label the attachment screen uses' ).toBeTruthy();
+	// The word on the picture (spec §3): one of the three, or nothing to claim.
+	expect( [ '', 'sure', 'likely', 'by you' ], `confidence is a word the pill knows, got "${ answer.confidence }"` ).toContain( answer.confidence );
 
 	// Counted from here on, so the question this suite just asked itself is
 	// not mistaken for one the screen asked.
@@ -978,7 +980,7 @@ test( 'the grid modal says why a picture is here, and the listing still does not
 	await page.route( `**/librarian-why/${ subject }**`, ( route ) => route.fulfill( {
 		status: 200,
 		contentType: 'application/json',
-		body: JSON.stringify( { id: subject, label: answer.label, lines: LINES } ),
+		body: JSON.stringify( { id: subject, label: answer.label, lines: LINES, confidence: 'sure', word: 'sure', term: 'Architecture' } ),
 	} ) );
 
 	await page.goto( `/wp-admin/upload.php?item=${ subject }`, { waitUntil: 'domcontentloaded' } );
@@ -988,8 +990,11 @@ test( 'the grid modal says why a picture is here, and the listing still does not
 	await expect( frame.locator( '.vgml-why .vgml-why-facts li' ).first() ).toBeVisible( { timeout: 30000 } );
 
 	expect( asked.length, 'and asks for the one picture it opened' ).toBeGreaterThan( 0 );
-	expect( await frame.locator( '.vgml-why .name' ).innerText() ).toBe( answer.label );
+	expect( ( await frame.locator( '.vgml-why .name' ).innerText() ).startsWith( answer.label ), 'the label first' ).toBe( true );
 	expect( await frame.locator( '.vgml-why-facts li' ).allInnerTexts(), 'line for line, what the record said' ).toEqual( LINES );
+	// The word beside the label, as a pill (B.5): sure here, tinted as the Folders screen tints it.
+	await expect( frame.locator( '.vgml-why .vgml-why-word' ) ).toHaveText( 'sure' );
+	await expect( frame.locator( '.vgml-why .vgml-why-word' ) ).toHaveClass( /is-sure/ );
 
 	// The modal, with the answer scrolled to. A full-page shot of this screen
 	// photographs the panel's first screenful and calls it evidence.

@@ -21,22 +21,41 @@
 	var cfg = window.vergemlList || {};
 	var meta = cfg.rows || {};
 	var columns = cfg.columns || [];
+	var words = cfg.words || {};
 
+	/*
+	 *  The line, and after the folder the word on the picture as a pill --
+	 *  sure, likely, by you -- when the record has one (spec §3). The pill is
+	 *  on the same line: nothing of ours makes a row taller.
+	 */
 	function line( row ) {
 
-		var text = meta[ row.id.replace( 'post-', '' ) ];
+		var entry = meta[ row.id.replace( 'post-', '' ) ];
 		var cell = row.querySelector( '.column-title .filename' );
 
-		if ( ! text || ! cell ) {
+		if ( ! entry || ! cell ) {
 			return;
 		}
 
+		var text = 'string' === typeof entry ? entry : entry.text;
+		var word = 'string' === typeof entry ? '' : ( entry.word || '' );
 		var label = cell.querySelector( '.screen-reader-text' );
 
 		cell.textContent = '';
 
 		if ( label ) {
 			cell.appendChild( label );
+		}
+
+		if ( word && entry.folder && text.indexOf( ' · ' + entry.folder ) !== -1 ) {
+			var at = text.indexOf( ' · ' + entry.folder ) + entry.folder.length + 3;
+			cell.appendChild( document.createTextNode( text.slice( 0, at ) + ' ' ) );
+			var pill = document.createElement( 'span' );
+			pill.className = 'vgml-word g-pill is-' + word.replace( ' ', '-' );
+			pill.textContent = words[ word ] || word;
+			cell.appendChild( pill );
+			cell.appendChild( document.createTextNode( text.slice( at ) ) );
+			return;
 		}
 
 		cell.appendChild( document.createTextNode( text ) );

@@ -84,14 +84,32 @@
 
 		list.className = 'vgml-why-facts';
 
+		// The word on the picture -- sure, likely, by you -- as a pill over the
+		// facts, beside the label (spec §3): the first fact names the folder.
+		var pill = null;
+		if ( answer.confidence ) {
+			pill = document.createElement( 'span' );
+			pill.className = 'vgml-why-word vgml-word is-' + answer.confidence.replace( ' ', '-' );
+			pill.textContent = answer.word || answer.confidence;
+		}
+
 		answer.lines.forEach( function ( line ) {
 			var item = document.createElement( 'li' );
 			item.textContent = line;
 			list.appendChild( item );
 		} );
 
+		// The facts column beside the label: core floats a setting's inputs
+		// right at 65%, and a bare span after the label is styled as a label.
+		var body = document.createElement( 'div' );
+		body.className = 'vgml-why-body';
+		if ( pill ) {
+			body.appendChild( pill );
+		}
+		body.appendChild( list );
+
 		wrap.appendChild( name );
-		wrap.appendChild( list );
+		wrap.appendChild( body );
 
 		return wrap;
 	}
@@ -132,6 +150,8 @@
 			answers[ id ] = {
 				label: answer.label || '',
 				lines: answer.lines || [],
+				confidence: answer.confidence || '',
+				word: answer.word || '',
 			};
 			/*
 			 *  Only if this view is still on that picture. The arrows walk

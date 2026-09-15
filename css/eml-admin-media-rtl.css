@@ -765,3 +765,39 @@ a.vgml-used-pill:focus-visible {
     border-radius: 1.5px;
     background: #2b46d8;
 }
+
+/* The word on the picture beside the label (spec §3); mirrors eml-admin-media.css. */
+/* The facts column, where core puts a setting's input: floated left at 65%. */
+.vgml-why .vgml-why-body {
+    float: left;
+    width: 65%;
+}
+
+/* Three classes: core styles every span in a setting as a label (float, 30%, right-aligned). */
+.vgml-why .vgml-why-body .vgml-why-word {
+    display: inline-block;
+    float: none;
+    min-width: 0;
+    max-width: none;
+    text-align: center;
+    margin: 0 0 4px;
+    padding: 1px 9px;
+    border-radius: 999px;
+    background: #e8ecf5;
+    color: #101d40;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.5;
+    text-transform: none;
+    vertical-align: 1px;
+}
+
+.vgml-why .vgml-why-body .vgml-why-word.is-sure {
+    background: #e9edfc;
+    color: #1e2f9d;
+}
+
+.vgml-why .vgml-why-body .vgml-why-word.is-by-you {
+    background: #ffd84d;
+    color: #101d40;
+}

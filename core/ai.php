@@ -1728,25 +1728,43 @@ function vergeml_ai_index_store( $id, $described, $apply_alt ) {
  *  It is its own scope because it is its own price: free.
  */
 
+/**
+ *  The one condition both readers share: a catalogue alt written, and none
+ *  on the file. Never overwrites -- the file's own alt, however it got there,
+ *  keeps the picture out of this set (spec §2 Step 4).
+ */
+function vergeml_ai_alt_pending_from() {
+
+    global $wpdb;
+
+    return "FROM {$wpdb->vergeml_ai_index} i
+      LEFT JOIN {$wpdb->postmeta} alt
+             ON alt.post_id = i.attachment_id AND alt.meta_key = '_wp_attachment_image_alt'
+          WHERE i.error = '' AND i.alt <> ''
+            AND ( alt.meta_id IS NULL OR alt.meta_value = '' )";
+}
+
 function vergeml_ai_alt_pending( $limit = 0 ) {
 
     global $wpdb;
 
     $cap = $limit > 0 ? (int) $limit : PHP_INT_MAX;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-        "SELECT i.attachment_id
-           FROM {$wpdb->vergeml_ai_index} i
-      LEFT JOIN {$wpdb->postmeta} alt
-             ON alt.post_id = i.attachment_id AND alt.meta_key = '_wp_attachment_image_alt'
-          WHERE i.error = '' AND i.alt <> ''
-            AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
-       ORDER BY i.attachment_id ASC
-          LIMIT %d",
+        'SELECT i.attachment_id ' . vergeml_ai_alt_pending_from() . ' ORDER BY i.attachment_id ASC LIMIT %d',
         $cap
     ) ) );
     // phpcs:enable
+}
+
+/** How many, without the list: the number on the Folders screen's Alt text step. */
+function vergeml_ai_alt_pending_count() {
+
+    global $wpdb;
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+    return (int) $wpdb->get_var( 'SELECT COUNT(*) ' . vergeml_ai_alt_pending_from() );
 }
 
 

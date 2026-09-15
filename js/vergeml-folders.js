@@ -75,7 +75,18 @@
 		pastePending: false,
 		pasteSeq: 0,
 		moving: null,
-		step: ''
+		step: '',
+		// The questions the fill left (/guide/questions), the folders the answers
+		// made, the card just answered (shown with its result line until the
+		// next answer), and the pictures "Show me" opened, by question id.
+		questions: [],
+		made: cfg.made || [],
+		lastAnswered: '',
+		showing: {},
+		answering: false,
+		// Step 4 while it writes: how many are left.
+		altWriting: false,
+		altLeft: 0
 	};
 	var described = ( cfg.described || 0 ) > 0;
 	var licensed = !! cfg.licensed;
@@ -87,6 +98,22 @@
 
 	function running() {
 		return !! ( state.applying || ( state.session.apply && state.session.apply.running ) );
+	}
+
+	/** Questions the fill left and nobody has answered. */
+	function openQuestions() {
+		return state.questions.filter( function ( q ) {
+			return ! q.answered;
+		} );
+	}
+
+	/*
+	 *  Step 3 is done when there is no open question and 0 pictures in no
+	 *  folder (spec §2 Step 3) -- both at zero, and nothing less, and never
+	 *  while a run goes.
+	 */
+	function fillDone() {
+		return described && ! running() && 0 === ( Number( state.fill.open ) || 0 ) && 0 === ( Number( state.fill.unfiled ) || 0 );
 	}
 
 	/** Writes to the session go one after another, in the order they happened. */
@@ -152,7 +179,7 @@
 		if ( ! described ) {
 			return 'describe';
 		}
-		if ( confirmed() || running() ) {
+		if ( confirmed() || running() || ( Number( state.fill.open ) || 0 ) > 0 ) {
 			return 'fill';
 		}
 		return 'tree';
@@ -167,7 +194,7 @@
 			return confirmed();
 		}
 		if ( 'fill' === step ) {
-			return described && confirmed() && !! state.fill.done;
+			return fillDone();
 		}
 		if ( 'alt' === step ) {
 			return f.images > 0 && ! ( f.alt_missing > 0 );
@@ -217,6 +244,7 @@
 
 	function build() {
 		var cols = el( 'div', { class: 'g-cols' } );
+		dom.cols = cols;
 
 		// Step 1 · Describe: what the AI screen runs, here as the first step.
 		var describe = card( 'describe', __( 'What each picture shows', 'vergelabs-media-library' ) );
@@ -247,6 +275,10 @@
 		dom.undo.addEventListener( 'click', onUndo );
 		fill.appendChild( dom.fillMove );
 		cols.appendChild( fill );
+
+		// The questions, to the tree's right at 1600 and under it below 1000px (the approved fill mock): one card a group.
+		dom.qs = el( 'div', { class: 'g-qs', hidden: 'hidden' } );
+		cols.appendChild( dom.qs );
 
 		// Step 4 · Alt text (B.5 wires the route; the step is on the rail now).
 		var alt = card( 'alt', __( 'Alt text from the descriptions', 'vergelabs-media-library' ) );
@@ -464,30 +496,102 @@
 
 	/* ---------------------------------------------------- Step 3 · Fill */
 
+	/*
+	 *  Step 3 in its states (the approved fill mock, 2026-09-15-fill-questions.html):
+	 *
+	 *    running  the counts climb on the rows (view.setProgress) and in the
+	 *             pill row -- placed · sure · likely · to sort from the run's
+	 *             own tally; no question until it ends.
+	 *    asking   the pill row with the questions' count in yellow; the cards
+	 *             to the tree's right, three at a time, Leave the rest under
+	 *             them.
+	 *    done     no open question, 0 in no folder: "N in folders · 0 to
+	 *             sort", the parents closed, what the answers made marked new,
+	 *             Next: Alt text, Undo.
+	 *    else     the run's button (B.2), or the confirm when the tree is not.
+	 */
 	function renderFill() {
 		var c = dom.cards.fill;
 		c.pills.innerHTML = '';
 		var tally = state.fit && state.fit.tally;
+		var open = openQuestions().length;
+		var asking = ! running() && open > 0;
+		var done = fillDone();
+		var unfiled = Number( state.fill.unfiled ) || 0;
+
 		if ( running() ) {
 			var r = state.moving || {};
+			var t = r.tally || {};
 			c.pills.appendChild( pill( Number( r.moved ) || 0, __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
-		} else if ( tally && view.getDraft() ) {
+			c.pills.appendChild( pill( Number( t.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
+			c.pills.appendChild( pill( Number( t.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
+			c.pills.appendChild( pill( Number( t.nothing ) || 0, __( 'to sort', 'vergelabs-media-library' ) ) );
+		} else if ( asking && state.moving ) {
+			// The run just ended: its tally, and the questions it left.
+			var m = state.moving.tally || {};
+			c.pills.appendChild( pill( Number( state.moving.moved ) || 0, __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
+			c.pills.appendChild( pill( Number( m.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
+			c.pills.appendChild( pill( Number( m.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
+			c.pills.appendChild( pill( open, _n( 'question', 'questions', open, 'vergelabs-media-library' ), 'ask' ) );
+			c.pills.appendChild( pill( unfiled, __( 'to sort', 'vergelabs-media-library' ) ) );
+		} else if ( asking ) {
+			// A reload after the run: the library's own counts, and the questions.
+			c.pills.appendChild( pill( Math.max( 0, ( Number( state.facts.pictures ) || 0 ) - unfiled ), __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
+			c.pills.appendChild( pill( open, _n( 'question', 'questions', open, 'vergelabs-media-library' ), 'ask' ) );
+			c.pills.appendChild( pill( unfiled, __( 'to sort', 'vergelabs-media-library' ) ) );
+		} else if ( tally && view.getDraft() && ! done ) {
 			// The dry run's answer about the confirmed tree, as the run will count it.
 			c.pills.appendChild( pill( ( Number( tally.fits ) || 0 ) + ( Number( tally.siblings ) || 0 ), __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
 			c.pills.appendChild( pill( Number( tally.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
 			c.pills.appendChild( pill( Number( tally.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
 			c.pills.appendChild( pill( Number( tally.nothing ) || 0, __( 'to sort', 'vergelabs-media-library' ) ) );
 		} else {
-			var inFolders = Math.max( 0, ( Number( state.facts.pictures ) || 0 ) - ( Number( state.fill.unfiled ) || 0 ) );
+			var inFolders = Math.max( 0, ( Number( state.facts.pictures ) || 0 ) - unfiled );
 			c.pills.appendChild( pill( inFolders, __( 'in folders', 'vergelabs-media-library' ), 'accent' ) );
-			c.pills.appendChild( pill( Number( state.fill.unfiled ) || 0, __( 'to sort', 'vergelabs-media-library' ), 'accent' ) );
+			c.pills.appendChild( pill( unfiled, __( 'to sort', 'vergelabs-media-library' ), 'accent' ) );
 		}
 
 		if ( 'fill' === state.step ) {
 			dom.slots.fill.appendChild( dom.tree );
 		}
 
+		// The grid with the questions beside the tree; the tighter rows of a done tree.
+		dom.cols.classList.toggle( 'is-asking', asking && 'fill' === state.step );
+		dom.cols.classList.toggle( 'is-done', done && 'fill' === state.step );
+		dom.qs.hidden = ! ( asking && 'fill' === state.step );
+		renderQuestions();
+
+		// A done tree is read as totals: the parents closed. Open again the moment it is not done.
+		var openAll = ! ( done && 'fill' === state.step );
+		if ( view && view.openAll !== openAll ) {
+			view.openAll = openAll;
+			view.openOverride = {};
+			view.render();
+		}
+		// What the answers made reads "new" on this step, as the answered card says it was made.
+		if ( view ) {
+			view.setNewIds( 'fill' === state.step ? state.made : [] );
+		}
+
 		dom.fillMove.innerHTML = '';
+		if ( done ) {
+			var next = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary' }, __( 'Next: Alt text', 'vergelabs-media-library' ) );
+			next.addEventListener( 'click', function () { setStep( 'alt' ); } );
+			dom.fillMove.appendChild( next );
+			dom.fillMove.appendChild( dom.undo );
+			syncCounted();
+			root.setAttribute( 'data-state', 'done' );
+			renderUndo();
+			return;
+		}
+		if ( asking ) {
+			// The answers are the step now; Undo covers the run and every answer.
+			dom.fillMove.appendChild( dom.undo );
+			syncCounted();
+			root.setAttribute( 'data-state', 'asking' );
+			renderUndo();
+			return;
+		}
 		if ( ! confirmed() && ! running() ) {
 			// Skipped here with the tree unconfirmed: the fill runs against a confirmed tree and nothing else, so that is the one button.
 			var confirmBtn = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary vgml-confirm-btn' }, __( 'This is my tree', 'vergelabs-media-library' ) );
@@ -508,28 +612,264 @@
 		renderMove();
 	}
 
+	/* ------------------------------------------------- the questions */
+
+	/*
+	 *  One card a group (the approved mock): the engine's sentence, the group's
+	 *  pictures -- eight at most -- and the answers as buttons, the engine's own
+	 *  first and tinted. Three cards at a time; the rest follow as these are
+	 *  answered, so no card is ever below the fold. The card just answered
+	 *  stays, with its result line, until the next answer.
+	 */
+	function nodeName( id ) {
+		var name = '';
+		state.nodes.forEach( function ( n ) {
+			if ( n.id === Number( id ) ) {
+				name = n.name;
+			}
+		} );
+		return name;
+	}
+
+	function resultLine( q ) {
+		var r = q.result || {};
+		var moved = fmt( Number( r.moved ) || 0 );
+		if ( 'new-folder' === q.answered ) {
+			/* translators: 1: the folder made, 2: pictures moved into it */
+			return sprintf( __( '%1$s made · %2$s moved', 'vergelabs-media-library' ), nodeName( r.made ) || q.name, moved );
+		}
+		if ( 'keep-parent' === q.answered ) {
+			/* translators: %s: the parent folder */
+			return sprintf( __( 'Kept in %s', 'vergelabs-media-library' ), nodeName( q.term_id ) );
+		}
+		if ( 'split' === q.answered ) {
+			/* translators: %s: pictures */
+			return sprintf( __( '%s moved by best score', 'vergelabs-media-library' ), moved );
+		}
+		/* translators: 1: pictures, 2: the folder they went to */
+		return sprintf( __( '%1$s moved to %2$s', 'vergelabs-media-library' ), moved, nodeName( r.term_id ) || __( 'To sort', 'vergelabs-media-library' ) );
+	}
+
+	function questionCard( q ) {
+		var c = el( 'div', { class: 'g-card g-q' + ( q.answered ? ' is-answered' : '' ), 'data-q': q.id, 'data-kind': q.kind } );
+		c.appendChild( el( 'p', { class: 'g-q-text' }, q.text ) );
+
+		var shown = state.showing[ q.id ];
+		var strip = el( 'div', { class: 'g-q-strip' + ( shown ? ' is-open' : '' ) } );
+		( shown || q.sample || [] ).forEach( function ( s ) {
+			if ( ! s.thumb ) {
+				return;
+			}
+			var img = el( 'img', { src: s.thumb, alt: '', loading: 'lazy' } );
+			if ( shown ) {
+				// Opened: each picture is a way to its own modal, where "Why is it here" answers for it.
+				var a = el( 'a', { href: ( cfg.libraryUrl || 'upload.php' ) + '?item=' + s.id } );
+				a.appendChild( img );
+				strip.appendChild( a );
+			} else {
+				strip.appendChild( img );
+			}
+		} );
+		c.appendChild( strip );
+
+		if ( q.answered ) {
+			c.appendChild( el( 'p', { class: 'g-q-result' }, resultLine( q ) ) );
+			return c;
+		}
+		var answers = el( 'div', { class: 'g-q-answers' } );
+		var first = true;
+		Object.keys( q.answers || {} ).forEach( function ( key ) {
+			var b = el( 'button', { type: 'button', class: 'g-answer' + ( first ? ' is-first' : '' ), 'data-answer': key }, q.answers[ key ] );
+			first = false;
+			b.disabled = state.answering;
+			b.addEventListener( 'click', function () { onAnswer( q, key ); } );
+			answers.appendChild( b );
+		} );
+		c.appendChild( answers );
+		return c;
+	}
+
+	function renderQuestions() {
+		if ( dom.qs.hidden ) {
+			dom.qs.innerHTML = '';
+			return;
+		}
+		dom.qs.innerHTML = '';
+		var open = openQuestions();
+		var last = null;
+		state.questions.forEach( function ( q ) {
+			if ( q.id === state.lastAnswered && q.answered ) {
+				last = q;
+			}
+		} );
+		var room = last ? 2 : 3;
+		if ( last ) {
+			dom.qs.appendChild( questionCard( last ) );
+		}
+		open.slice( 0, room ).forEach( function ( q ) {
+			dom.qs.appendChild( questionCard( q ) );
+		} );
+
+		var foot = el( 'div', { class: 'g-pills g-qs-foot' } );
+		var more = open.length - Math.min( open.length, room );
+		if ( more > 0 ) {
+			foot.appendChild( pill( more, __( 'more', 'vergelabs-media-library' ), 'quiet' ) );
+		}
+		var leave = quiet( __( 'Leave the rest', 'vergelabs-media-library' ), onLeaveRest );
+		leave.classList.add( 'g-leave-rest' );
+		leave.disabled = state.answering;
+		foot.appendChild( leave );
+		dom.qs.appendChild( foot );
+	}
+
+	/** What an answer route hands back: the questions, the fill's state, the folders made, undo. */
+	function tookAnswer( r ) {
+		if ( ! r ) {
+			return;
+		}
+		state.questions = r.questions || [];
+		state.fill = r.status || state.fill;
+		state.made = r.made || [];
+		state.undo = r.undo || state.undo;
+		if ( r.version ) {
+			state.version = r.version;
+			if ( watcher ) {
+				watcher.known( r.version );
+			}
+		}
+	}
+
+	function onAnswer( q, key ) {
+		if ( state.answering ) {
+			return;
+		}
+		state.answering = true;
+		renderQuestions();
+		api( 'POST', 'guide/answer', { id: q.id, answer: key } ).then( function ( r ) {
+			state.answering = false;
+			if ( 'show-me' === key ) {
+				// Answers nothing: the card opens on the group's pictures.
+				state.showing[ q.id ] = ( r && r.result && r.result.show ) || [];
+				renderQuestions();
+				return;
+			}
+			state.lastAnswered = q.id;
+			tookAnswer( r );
+			// The tree gains the folder the answer made, and the counts it moved.
+			return refreshTree();
+		} ).catch( function ( err ) {
+			state.answering = false;
+			talk.note( ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' ) );
+			renderCards();
+		} );
+	}
+
+	/** Every open question answered with leave: the pictures land in To sort, never in nothing. */
+	function onLeaveRest() {
+		if ( state.answering ) {
+			return;
+		}
+		state.answering = true;
+		state.lastAnswered = '';
+		renderQuestions();
+		api( 'POST', 'guide/answer', { id: 'rest', answer: 'leave' } ).then( function ( r ) {
+			state.answering = false;
+			tookAnswer( r );
+			return refreshTree();
+		} ).catch( function ( err ) {
+			state.answering = false;
+			talk.note( ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' ) );
+			renderCards();
+		} );
+	}
+
+	/** The questions and the fill's state, read once the run has ended or the page opened on them. */
+	function loadQuestions() {
+		return api( 'GET', 'guide/questions' ).then( function ( q ) {
+			state.questions = ( q && q.questions ) || [];
+			state.made = ( q && q.made ) || [];
+			if ( q && q.status ) {
+				state.fill = q.status;
+			}
+		} ).catch( function () {} );
+	}
+
 	/* ------------------------------------------------ Step 4 · Alt text */
 
+	/*
+	 *  Step 4: the catalogue's alt onto every picture that has none, and never
+	 *  onto one that has (vergeml_ai_alt_pending: the file's alt is empty). The
+	 *  pill is every picture without alt text; the button is the ones the
+	 *  catalogue can fill -- the rest are not described yet, which is Step 1's.
+	 *  No credit: the alt was written with the description.
+	 */
 	function renderAlt() {
 		var f = state.facts;
 		var c = dom.cards.alt;
 		var missing = Number( f.alt_missing ) || 0;
+		var pending = Number( f.alt_pending ) || 0;
 		c.pills.innerHTML = '';
 		if ( missing ) {
 			c.pills.appendChild( pill( missing, __( 'without alt text', 'vergelabs-media-library' ), 'ask' ) );
 		}
 		c.pills.appendChild( pill( Number( f.alt_have ) || 0, __( 'have one', 'vergelabs-media-library' ) ) );
 		dom.altMove.innerHTML = '';
-		if ( missing ) {
+		if ( state.altWriting ) {
+			/* translators: %s: pictures still to write */
+			var busy = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary vgml-alt-btn', disabled: 'disabled' }, sprintf( __( 'Writing · %s left', 'vergelabs-media-library' ), fmt( state.altLeft ) ) );
+			dom.altMove.appendChild( busy );
+			return;
+		}
+		if ( pending ) {
 			/* translators: %s: pictures */
-			dom.altMove.appendChild( el( 'a', { class: 'vgml-btn vgml-btn-primary', href: cfg.aiUrl || '#' }, sprintf( __( 'Write alt text for %s', 'vergelabs-media-library' ), fmt( missing ) ) ) );
+			var write = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary vgml-alt-btn' }, sprintf( __( 'Write alt text for %s', 'vergelabs-media-library' ), fmt( pending ) ) );
+			write.addEventListener( 'click', onAlt );
+			dom.altMove.appendChild( write );
 			dom.altMove.appendChild( pill( 0, __( 'credits', 'vergelabs-media-library' ) ) );
 			dom.altMove.appendChild( quiet( __( 'Skip', 'vergelabs-media-library' ), function () { setStep( 'rename' ); } ) );
 		} else {
 			var next = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary' }, __( 'Next: Rename', 'vergelabs-media-library' ) );
 			next.addEventListener( 'click', function () { setStep( 'rename' ); } );
 			dom.altMove.appendChild( next );
+			if ( missing ) {
+				// Without a description there is no alt to copy: the pictures left are Step 1's.
+				dom.altMove.appendChild( quiet( __( 'Describe the rest first', 'vergelabs-media-library' ), function () { setStep( 'describe' ); } ) );
+			}
 		}
+	}
+
+	/** Two hundred a request until none is left; every write is a copy from the catalogue, none a model call. */
+	function onAlt() {
+		if ( state.altWriting ) {
+			return;
+		}
+		state.altWriting = true;
+		state.altLeft = Number( state.facts.alt_pending ) || 0;
+		renderAlt();
+		var wrote = 0;
+		function step() {
+			var before = state.altLeft;
+			return api( 'POST', 'ai-alt', { limit: 200 } ).then( function ( r ) {
+				wrote += Number( r.wrote ) || 0;
+				state.altLeft = Number( r.remaining ) || 0;
+				renderAlt();
+				// On while every request brings the number down; a write that leaves it where it was is not repeated.
+				if ( state.altLeft > 0 && ( Number( r.wrote ) || 0 ) > 0 && state.altLeft < before ) {
+					return step();
+				}
+			} );
+		}
+		step().then( function () {
+			state.altWriting = false;
+			state.facts.alt_pending = state.altLeft;
+			state.facts.alt_missing = Math.max( 0, ( Number( state.facts.alt_missing ) || 0 ) - wrote );
+			state.facts.alt_have = ( Number( state.facts.alt_have ) || 0 ) + wrote;
+			renderCards();
+		} ).catch( function ( err ) {
+			state.altWriting = false;
+			renderCards();
+			dom.altMove.appendChild( el( 'span', { class: 'g-pill is-quiet' }, ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' ) ) );
+		} );
 	}
 
 	/* ------------------------------------------------------------ the tree */
@@ -1311,7 +1651,11 @@
 		dom.move.textContent = sprintf( _n( 'Fill %s picture', 'Fill %s pictures', n, 'vergelabs-media-library' ), fmt( n ) );
 		dom.move.disabled = ! described || state.pastePending || ! confirmed();
 		dom.move.hidden = false;
+		renderUndo();
+	}
 
+	/** Undo covers the whole step -- the run and every answer -- for a day. */
+	function renderUndo() {
 		if ( state.undo.available ) {
 			dom.undo.textContent = state.undo.until
 				/* translators: %s: when undo ends */
@@ -1381,11 +1725,9 @@
 		state.fit = null;
 		state.pasteSeq++;
 		state.pastePending = false;
-		api( 'GET', 'guide/questions' ).then( function ( q ) {
-			if ( q && q.status ) {
-				state.fill = q.status;
-			}
-		} ).catch( function () {} ).then( function () {
+		state.lastAnswered = '';
+		state.showing = {};
+		loadQuestions().then( function () {
 			return refreshTree();
 		} ).then( function () {
 			renderRail();
@@ -1424,9 +1766,12 @@
 	// A run still going from before this page loaded carries on being watched.
 	if ( running() ) {
 		api( 'GET', 'guide/progress' ).then( took ).catch( function () {} );
+	} else if ( ( Number( state.fill.open ) || 0 ) > 0 ) {
+		// Questions left open: read once the page has painted. Read-only, no model.
+		loadQuestions().then( renderCards );
 	}
 
 	// Nothing opens by itself: no turn, no proposal, no model route until a button is pressed.
 
-	window.vgmlFoldersApp = { state: state, view: function () { return view; }, preview: function () { return previewView; }, stop: stop, setStep: setStep };
+	window.vgmlFoldersApp = { state: state, view: function () { return view; }, preview: function () { return previewView; }, stop: stop, setStep: setStep, render: renderCards };
 }() );

@@ -1,4 +1,5 @@
 import { test, expect, open, SCREEN } from './fixtures.mjs';
+import { boxFor, boxPhp } from './box.mjs';
 
 /*
  *  Folders: five steps, one tree, one primary.
@@ -44,6 +45,38 @@ const BUDGET = 80;
 const SIZES = [ [ 1600, 1000 ], [ 1280, 800 ] ];
 
 const NS = '/vergeml/v1';
+
+/*
+ *  The Fill step's questions live in the talk state option, which no route
+ *  writes; Step 4 needs pictures whose file alt is empty and one whose alt
+ *  is its own. Both are planted by tests/ui/fill-fixture.php over SSH and
+ *  put back the same way (afterEach, whatever the test did). Only on a box
+ *  tests/ui/box.mjs knows; on Playground those tests skip.
+ */
+const BASE = process.env.UI_BASE ?? 'http://46.225.66.194';
+const FIXTURE = 'tests/ui/fill-fixture.php';
+let planted = false;
+
+function plantOnBox( env ) {
+	const out = boxPhp( BASE, FIXTURE, { VGML_MODE: 'plant', ...env } );
+	planted = true;
+	const line = out.trim().split( '\n' ).reverse().find( ( l ) => l.startsWith( '{' ) );
+	if ( ! line ) {
+		throw new Error( `the fixture said nothing usable:\n${ out }` );
+	}
+	return JSON.parse( line );
+}
+
+function restoreBox() {
+	if ( ! planted ) {
+		return;
+	}
+	planted = false;
+	const out = boxPhp( BASE, FIXTURE, { VGML_MODE: 'restore' } );
+	if ( ! /restored/.test( out ) ) {
+		throw new Error( `the fixture did not restore:\n${ out }` );
+	}
+}
 
 let found = null;
 
@@ -144,6 +177,9 @@ test.describe( 'the Folders screen', () => {
 
 	test.afterEach( async ( { page } ) => {
 		await restore( page );
+		// The page first: a screen still writing (a press mid-loop) would write over what the fixture puts back.
+		await page.close();
+		restoreBox();
 	} );
 
 	/*
@@ -495,6 +531,267 @@ test.describe( 'the Folders screen', () => {
 		await plant( page, false );
 		await page.goto( '/wp-admin/admin.php?page=media-guide', { waitUntil: 'domcontentloaded' } );
 		await expect( page ).toHaveURL( /page=media-librarian/ );
+	} );
+
+	/*
+	 *  Step 3 asking, and done (B.4, the approved fill mock). Two questions
+	 *  planted on eight real unfiled pictures, every other unfiled picture
+	 *  parked in To sort: the page opens on Fill with the two cards to the
+	 *  tree's right; New folder makes the folder in the tree and the card says
+	 *  so; Leave the rest answers what is left with leave -- 0 open, 0 in no
+	 *  folder, the done state. Every number asserted is the fixture's.
+	 *
+	 *  Mutation: drop `unfiled === 0` from fillDone() in js/vergeml-folders.js
+	 *  and the next test (three left unparked) goes red.
+	 */
+	test( 'the Fill step asks; an answer makes the folder; Leave the rest ends it done', async ( { page } ) => {
+		test.skip( ! boxFor( BASE ), 'the questions are planted on the box over SSH' );
+		test.setTimeout( 300_000 );
+		await remember( page );
+		await plant( page, false );
+		const f = plantOnBox( { VGML_LEFT: 0 } );
+		expect( f.open, 'two questions planted' ).toBe( 2 );
+		expect( f.unfiled, 'the questions\' eight pictures are the only ones in no folder' ).toBe( 8 );
+
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open( page, SCREEN.folders );
+		await ready( page );
+
+		// Opens on Fill: the questions are the step. The cards arrive after the paint (one read-only request).
+		await expect( page.locator( '#vgml-folders' ) ).toHaveAttribute( 'data-step', 'fill' );
+		await expect( page.locator( '.g-qs .g-q' ) ).toHaveCount( 2 );
+		await expect( page.locator( '.g-cols' ) ).toHaveClass( /is-asking/ );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* placed$/, '2 questions', '8 to sort' ] );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill.is-ask' ) ).toHaveText( '2 questions' );
+
+		// The cards: the sentence, the group's pictures, the answers as buttons with the engine's first and tinted.
+		const cards = page.locator( '.g-qs .g-q' );
+		await expect( cards.nth( 0 ).locator( '.g-q-text' ) ).toHaveText( '5 look like spec probes' );
+		await expect( cards.nth( 0 ).locator( '.g-q-strip img' ) ).toHaveCount( 5 );
+		await expect( cards.nth( 0 ).locator( '.g-answer' ) ).toHaveText( [ 'New folder Spec probe', 'Leave them', 'Show me' ] );
+		await expect( cards.nth( 0 ).locator( '.g-answer' ).first() ).toHaveClass( /is-first/ );
+		await expect( cards.nth( 1 ).locator( '.g-q-text' ) ).toHaveText( '3 I can\'t read' );
+		await expect( cards.nth( 1 ).locator( '.g-q-strip img' ) ).toHaveCount( 3 );
+		await expect( cards.nth( 1 ).locator( '.g-answer' ) ).toHaveText( [ 'Leave them', 'Show me' ] );
+		await expect( page.locator( '.g-qs .g-leave-rest' ) ).toHaveText( 'Leave the rest' );
+		// No thumbnail is a broken image.
+		expect( await page.$$eval( '.g-qs .g-q-strip img', ( imgs ) => imgs.every( ( i ) => i.complete && i.naturalWidth > 0 ) ), 'every thumbnail loaded' ).toBe( true );
+
+		// The tree left, the questions right at 1600; one column under 1000px.
+		const side = await page.evaluate( () => ( {
+			tree: document.querySelector( '.g-card[data-card="fill"]' ).getBoundingClientRect(),
+			qs: document.querySelector( '.g-qs' ).getBoundingClientRect(),
+		} ) );
+		expect( side.qs.left, 'the questions sit to the tree\'s right' ).toBeGreaterThan( side.tree.right );
+
+		for ( const [ width, height ] of SIZES ) {
+			await page.setViewportSize( { width, height } );
+			await page.waitForTimeout( 300 );
+			const words = await page.$eval( '.wrap.vgml-librarian', WORDS );
+			console.log( `      asking at ${ width }×${ height }: ${ words.without } words without the tree, ${ words.with } with it` );
+			expect( words.without, `asking at ${ width }×${ height }: ${ words.without } words without the tree` ).toBeLessThanOrEqual( BUDGET );
+			const doc = await page.evaluate( () => ( { w: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth } ) );
+			expect( doc.w, 'no horizontal scroll' ).toBeLessThanOrEqual( doc.cw );
+			await page.screenshot( { path: `tests/ui/shots/folders-fill-asking-${ width }x${ height }.png` } );
+		}
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+
+		// New folder: the tree gains Spec probe, marked new, and the card says what the answer did.
+		const a = await Promise.all( [
+			page.waitForResponse( ( res ) => /\/guide\/answer/.test( res.url() ) ),
+			cards.nth( 0 ).locator( '.g-answer[data-answer="new-folder"]' ).click(),
+		] );
+		expect( a[ 0 ].status(), 'the answer went through' ).toBe( 200 );
+		const answered = await a[ 0 ].json();
+		expect( answered.result.moved ).toBe( 5 );
+		expect( answered.result.made ).toBeGreaterThan( 0 );
+		await expect( page.locator( '.g-qs .g-q.is-answered .g-q-result' ) ).toHaveText( 'Spec probe made · 5 moved' );
+		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
+		await expect( page.locator( '.g-tree .vgml-node.is-new' ).filter( { hasText: 'Spec probe' } ).locator( '.vgml-tag' ) ).toHaveText( 'new' );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill.is-ask' ) ).toHaveText( '1 question' );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ).last() ).toHaveText( '3 to sort' );
+		await expect( page.locator( '.g-qs .g-q:not(.is-answered)' ) ).toHaveCount( 1 );
+
+		// Leave the rest: the three land in To sort, never in nothing -- and the step is done.
+		const l = await Promise.all( [
+			page.waitForResponse( ( res ) => /\/guide\/answer/.test( res.url() ) ),
+			page.locator( '.g-qs .g-leave-rest' ).click(),
+		] );
+		expect( l[ 0 ].status() ).toBe( 200 );
+		const left = await l[ 0 ].json();
+		expect( left.result.answered ).toBe( 1 );
+		expect( left.result.moved ).toBe( 3 );
+		expect( left.status.open ).toBe( 0 );
+		expect( left.status.unfiled, '0 in no folder' ).toBe( 0 );
+
+		await expect( page.locator( '.g-cols' ) ).toHaveClass( /is-done/ );
+		await expect( page.locator( '.g-qs' ) ).toBeHidden();
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* in folders$/, '0 to sort' ] );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-move .vgml-btn-primary' ) ).toHaveText( 'Next: Alt text' );
+		await expect( page.locator( '.g-step[data-step="fill"]' ) ).toHaveClass( /is-done/ );
+		await expect( page.locator( '.g-step[data-step="fill"]' ) ).toHaveClass( /is-current/ );
+		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
+		// A done tree is read as totals: every parent closed.
+		expect( await page.locator( '.g-tree .vgml-node[aria-expanded="true"]' ).count(), 'no parent open' ).toBe( 0 );
+		expect( await page.locator( '.g-tree .vgml-node[aria-expanded="false"]' ).count(), 'the parents are there, closed' ).toBeGreaterThan( 0 );
+
+		for ( const [ width, height ] of SIZES ) {
+			await page.setViewportSize( { width, height } );
+			await page.waitForTimeout( 300 );
+			const words = await page.$eval( '.wrap.vgml-librarian', WORDS );
+			console.log( `      done at ${ width }×${ height }: ${ words.without } words without the tree, ${ words.with } with it` );
+			expect( words.without, `done at ${ width }×${ height }: ${ words.without } words without the tree` ).toBeLessThanOrEqual( BUDGET );
+			await page.screenshot( { path: `tests/ui/shots/folders-fill-done-${ width }x${ height }.png` } );
+		}
+
+		// A reload reads the same done state from the page's own data (the tree is not confirmed here, so the page lands on Tree; Fill is one press).
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await page.reload( { waitUntil: 'domcontentloaded' } );
+		await ready( page );
+		await expect( page.locator( '.g-step[data-step="fill"]' ) ).toHaveClass( /is-done/ );
+		await page.locator( '.g-step[data-step="fill"]' ).click();
+		await expect( page.locator( '.g-cols' ) ).toHaveClass( /is-done/ );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* in folders$/, '0 to sort' ] );
+		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
+	} );
+
+	test( 'no open question and three pictures in no folder is not done', async ( { page } ) => {
+		test.skip( ! boxFor( BASE ), 'planted on the box over SSH' );
+		test.setTimeout( 300_000 );
+		await remember( page );
+		await plant( page, false );
+		const f = plantOnBox( { VGML_LEFT: 3 } );
+		expect( f.unfiled ).toBe( 11 );
+
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open( page, SCREEN.folders );
+		await ready( page );
+		await expect( page.locator( '.g-qs .g-q' ) ).toHaveCount( 2 );
+
+		const l = await Promise.all( [
+			page.waitForResponse( ( res ) => /\/guide\/answer/.test( res.url() ) ),
+			page.locator( '.g-qs .g-leave-rest' ).click(),
+		] );
+		const left = await l[ 0 ].json();
+		expect( left.status.open ).toBe( 0 );
+		expect( left.status.unfiled ).toBe( 3 );
+		expect( left.status.done ).toBe( false );
+
+		await expect( page.locator( '.g-qs' ) ).toBeHidden();
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ).last() ).toHaveText( '3 to sort' );
+		await expect( page.locator( '.g-cols' ) ).not.toHaveClass( /is-done/ );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-move .vgml-btn-primary' ) ).not.toHaveText( 'Next: Alt text' );
+		await expect( page.locator( '.g-step[data-step="fill"]' ) ).not.toHaveClass( /is-done/ );
+	} );
+
+	/*
+	 *  Step 4 (B.5): the catalogue's alt onto every picture that has none, and
+	 *  never onto one that has. Three described pictures with their file alt
+	 *  cleared and a fourth given an alt of its own, by the fixture; the press
+	 *  writes the three and leaves the fourth word for word. Step 5 is on the
+	 *  rail, says Not available yet, and its button is disabled.
+	 *
+	 *  Mutation: drop `AND ( alt.meta_id IS NULL OR alt.meta_value = '' )` from
+	 *  vergeml_ai_alt_pending_from() in core/ai.php -> the fourth's assertion red.
+	 */
+	test( 'Step 4 writes the catalogue\'s alt onto pictures with none and never overwrites; Step 5 is gated', async ( { page } ) => {
+		test.skip( ! boxFor( BASE ), 'planted on the box over SSH' );
+		test.setTimeout( 300_000 );
+		await remember( page );
+		await plant( page, false );
+		const f = plantOnBox( { VGML_LEFT: 0, VGML_ALT: 1 } );
+		expect( f.alt.cleared.length ).toBe( 3 );
+		expect( f.alt.kept ).toBeGreaterThan( 0 );
+
+		const alt = ( id ) => page.evaluate( ( i ) => wp.apiFetch( { path: `/wp/v2/media/${ i }?context=edit` } ).then( ( m ) => m.alt_text ), id );
+		const remaining = () => page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/ai-alt` } ).then( ( r ) => r.remaining ), NS );
+
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open( page, SCREEN.folders );
+		await ready( page );
+		const before = await remaining();
+		expect( before, 'the three cleared pictures are pending' ).toBeGreaterThanOrEqual( 3 );
+		for ( const id of f.alt.cleared ) {
+			expect( await alt( id ) ).toBe( '' );
+		}
+		expect( await alt( f.alt.kept ) ).toBe( f.alt.kept_alt );
+
+		await page.evaluate( () => window.vgmlFoldersApp.setStep( 'alt' ) );
+		await expect( page.locator( '#vgml-folders' ) ).toHaveAttribute( 'data-step', 'alt' );
+		await expect( page.locator( '.g-card[data-card="alt"] .g-card-head .g-pill' ).first() ).toHaveText( /^\d[\d,.]* without alt text$/ );
+		await expect( page.locator( '.g-card[data-card="alt"] .g-line' ) ).toHaveText( 'Never replaces one you have.' );
+		const button = page.locator( '.g-card[data-card="alt"] .vgml-alt-btn' );
+		await expect( button ).toHaveText( `Write alt text for ${ before.toLocaleString( 'en-US' ) }` );
+		await expect( page.locator( '.g-card[data-card="alt"] .g-move .g-pill' ) ).toHaveText( '0 credits' );
+		await page.screenshot( { path: 'tests/ui/shots/folders-alt-planted.png' } );
+
+		const model = [];
+		page.on( 'request', ( r ) => {
+			if ( 'POST' === r.method() && /\/(ai-index|ai-run|guide\/(turn|token|stream))(\?|$)/.test( r.url() ) ) {
+				model.push( r.url() );
+			}
+		} );
+		const w = await Promise.all( [
+			page.waitForResponse( ( res ) => /\/ai-alt/.test( res.url() ) && 'POST' === res.request().method() ),
+			button.click(),
+		] );
+		expect( w[ 0 ].status() ).toBe( 200 );
+		await expect( page.locator( '.g-card[data-card="alt"] .vgml-alt-btn' ) ).not.toHaveText( /^Write/, { timeout: 60000 } ).catch( () => null );
+		await page.waitForFunction( () => ! window.vgmlFoldersApp.state.altWriting, null, { timeout: 90000 } );
+
+		// First the one thing the step must never do: the alt somebody wrote, word for word.
+		expect( await alt( f.alt.kept ), 'the alt somebody wrote is untouched' ).toBe( f.alt.kept_alt );
+		for ( const id of f.alt.cleared ) {
+			expect( await alt( id ), `${ id } carries an alt now` ).not.toBe( '' );
+		}
+		expect( await remaining(), '0 left to write' ).toBe( 0 );
+		expect( model, 'no describe and no model route: a copy from the catalogue' ).toEqual( [] );
+		await expect( page.locator( '.g-card[data-card="alt"] .vgml-alt-btn' ) ).toHaveCount( 0 );
+		await expect( page.locator( '.g-card[data-card="alt"] .g-move .vgml-btn-primary' ) ).toHaveText( 'Next: Rename' );
+		await page.screenshot( { path: 'tests/ui/shots/folders-alt-written.png' } );
+
+		// Step 5: on the rail, gated, and says so.
+		await page.locator( '.g-step[data-step="rename"]' ).click();
+		await expect( page.locator( '#vgml-folders' ) ).toHaveAttribute( 'data-step', 'rename' );
+		await expect( page.locator( '.g-card[data-card="rename"] .g-card-head .g-pill' ) ).toHaveText( 'Not available yet' );
+		await expect( page.locator( '.g-card[data-card="rename"] .g-line' ) ).toHaveText( 'Renames a file to what it shows and keeps every link to it working. Coming after the folders.' );
+		await expect( page.locator( '.g-card[data-card="rename"] .vgml-btn-primary' ) ).toHaveText( 'Rename files' );
+		await expect( page.locator( '.g-card[data-card="rename"] .vgml-btn-primary' ) ).toBeDisabled();
+	} );
+
+	/*
+	 *  The word on a picture (B.5, spec §3): a pill next to the folder on the
+	 *  media list's row, and beside "Why is it here" in the modal. The box
+	 *  holds no fill that was not undone, so the fixture marks one filed
+	 *  picture as placed by hand: "by you" on its row and from the route.
+	 *  (sure / likely come from a fill's own moves rows: proved in
+	 *  tests/tree/filing-trail.php's outcomes and the modal test in
+	 *  modes.spec.mjs, which fulfils the route with "sure".)
+	 */
+	test( 'the word on a picture: by you on the list row and from the why route', async ( { page } ) => {
+		test.skip( ! boxFor( BASE ), 'planted on the box over SSH' );
+		test.setTimeout( 300_000 );
+		await remember( page );
+		const f = plantOnBox( { VGML_LEFT: 0 } );
+		expect( f.word.id, 'a filed picture to mark' ).toBeGreaterThan( 0 );
+
+		const answer = await page.evaluate( ( [ ns, id ] ) => wp.apiFetch( { path: `${ ns }/librarian-why/${ id }` } ), [ NS, f.word.id ] );
+		expect( answer.confidence, 'the route says by you' ).toBe( 'by you' );
+		expect( answer.word ).toBe( 'by you' );
+
+		await page.setViewportSize( { width: 1600, height: 900 } );
+		await page.goto( `/wp-admin/upload.php?mode=list&media_category=${ encodeURIComponent( f.word.folder ) }`, { waitUntil: 'domcontentloaded' } );
+		await page.waitForSelector( '#the-list', { timeout: 30000 } );
+		const row = page.locator( `#the-list tr#post-${ f.word.id }` );
+		await expect( row ).toHaveCount( 1 );
+		await expect( row.locator( '.filename .vgml-word' ) ).toHaveText( 'by you' );
+		await expect( row.locator( '.filename .vgml-word' ) ).toHaveClass( /is-by-you/ );
+		// After the folder, on the one line.
+		const line = await row.locator( '.filename' ).innerText();
+		expect( line.indexOf( 'by you' ) ).toBeGreaterThan( line.indexOf( ' · ' ) );
+		const heights = await row.evaluate( ( tr ) => ( { row: tr.getBoundingClientRect().height, line: tr.querySelector( '.filename' ).getBoundingClientRect().height } ) );
+		expect( heights.line, 'the pill adds no second line' ).toBeLessThan( 40 );
+		await row.screenshot( { path: 'tests/ui/shots/list-row-by-you.png' } );
 	} );
 
 	test( 'walk: Propose folders streams a proposal, and Stop stops it', async ( { page } ) => {

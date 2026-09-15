@@ -71,6 +71,34 @@ const VERGEML_FILING_CLASS_WEIGHT = 0.75;
  */
 const VERGEML_FILING_MISFIT = 0.40;
 
+/**
+ *  The word on a picture: 'by you', 'sure', 'likely', or '' (spec §3, the
+ *  confidence pill). A folder the person chose -- a drag, a spoken command,
+ *  an answer that named a folder -- is theirs whatever the matcher scored;
+ *  otherwise the word is the fill's own, read back off the move that put the
+ *  picture where it is ('ok' by score, 'siblings' always likely).
+ *
+ *  @param int        $attachment_id
+ *  @param array|null $move  The moves row (why, score) that speaks for the folder, or null.
+ */
+function vergeml_filing_confidence( $attachment_id, $move ) {
+
+    if ( 'user' === (string) get_post_meta( (int) $attachment_id, VERGEML_FILING_PLACED_BY, true ) ) {
+        return 'by you';
+    }
+    $why = is_array( $move ) && isset( $move['why'] ) ? (string) $move['why'] : '';
+    if ( 'by hand' === $why || 'user' === $why ) {
+        return 'by you';
+    }
+    if ( 'siblings' === $why ) {
+        return 'likely';
+    }
+    if ( 'ok' === $why ) {
+        return ( isset( $move['score'] ) && (float) $move['score'] >= VERGEML_FILING_SURE ) ? 'sure' : 'likely';
+    }
+    return '';
+}
+
 
 /* ------------------------------------------------------------ vocabulary */
 

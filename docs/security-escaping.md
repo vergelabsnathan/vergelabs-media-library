@@ -16,11 +16,11 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 | PHP output sites with a non-literal argument | 182 |
 | · of those, read by hand with the reason | 7 |
 | · of those, **nothing accounted for them** | **0** |
-| JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 57 |
+| JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 59 |
 | · of those, given anything but a literal | 18 |
 | · of those, read by hand with the reason | 18 |
 | · of those, **still unread** | **0** |
-| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 220 |
+| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 226 |
 
 Over 66 PHP files and 35 JavaScript files that ship.
 
@@ -41,7 +41,7 @@ table below is what it rests on rather than a recollection.
 
 ## JavaScript HTML sinks
 
-All 57 are given a literal — an empty string, an inline SVG, or an
+All 59 are given a literal — an empty string, an inline SVG, or an
 HTML entity. Not one is given a variable, a template literal with a substitution,
 or a concatenation. Every dynamic string in this plugin goes to `textContent`,
 jQuery `.text()`, `createTextNode` or `setAttribute` instead.
@@ -64,7 +64,7 @@ what it is given, so changing any of them expires its reason.
 | js/vergeml-media-views.js:914 | `0531e42831` | `jQuery .html()` | l10n.noMedia, one of our own translated strings |
 | js/vergeml-taxonomies-options.js:299 | `ed5afe42cb` | `jQuery .html()` | a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow |
 | js/vergeml-tree-view.js:132 | `be95315174` | `innerHTML` | an inline SVG assembled from literal path strings chosen by a boolean |
-| js/vergeml-tree-view.js:1045 | `7524bab4c0` | `innerHTML` | chevron() or an empty string, and chevron() returns a literal SVG |
+| js/vergeml-tree-view.js:1067 | `7524bab4c0` | `innerHTML` | chevron() or an empty string, and chevron() returns a literal SVG |
 | js/vergeml-tree.js:473 | `120a036696` | `innerHTML` | shard() returns a literal SVG |
 | js/vergeml-tree.js:853 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
 | js/vergeml-tree.js:885 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
@@ -86,7 +86,7 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 `eml`- or `vergeml`-prefixed name that no script defines. Every caller passes a
 `vergeml.l10n` string, which is the only thing that may go into these two.
 
-<details><summary>All 57 JavaScript HTML sinks</summary>
+<details><summary>All 59 JavaScript HTML sinks</summary>
 
 | where | sink | given | what |
 |---|---|---|---|
@@ -98,17 +98,19 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-autofile.js:43 | `innerHTML` | a literal | `''` |
 | js/vergeml-autofile.js:156 | `innerHTML` | a literal | `''` |
 | js/vergeml-brief.js:206 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:329 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:334 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:365 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:383 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:469 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:490 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:517 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:522 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1141 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1184 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1194 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:361 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:366 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:397 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:415 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:515 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:576 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:694 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:697 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:811 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:816 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1479 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1522 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1532 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |
@@ -130,8 +132,8 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-talk.js:275 | `innerHTML` | a literal | `''` |
 | js/vergeml-taxonomies-options.js:299 | `jQuery .html()` | **not a literal** | `function (e, t) { return t == vergeml.l10n.edit + ' ↓' ? vergeml.l10n.` |
 | js/vergeml-tree-view.js:132 | `innerHTML` | **not a literal** | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<path class="vgm` |
-| js/vergeml-tree-view.js:1045 | `innerHTML` | **not a literal** | `entry.kids ? chevron() : ''` |
-| js/vergeml-tree-view.js:1534 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree-view.js:1067 | `innerHTML` | **not a literal** | `entry.kids ? chevron() : ''` |
+| js/vergeml-tree-view.js:1556 | `innerHTML` | a literal | `''` |
 | js/vergeml-tree.js:213 | `innerHTML` | a literal | `''` |
 | js/vergeml-tree.js:473 | `innerHTML` | **not a literal** | `shard()` |
 | js/vergeml-tree.js:559 | `innerHTML` | a literal | `''` |

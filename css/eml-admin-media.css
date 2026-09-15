@@ -800,3 +800,43 @@ a.vgml-used-pill:focus-visible {
     border-radius: 1.5px;
     background: #2b46d8;
 }
+
+/*
+ *  The word on the picture beside the label -- sure, likely, by you -- as the
+ *  Folders screen's pill (spec §3), in the literal values that sheet's tokens
+ *  hold. "by you" wears the brand yellow: it is the person's own placement.
+ */
+/* The facts column, where core puts a setting's input: floated right at 65%. */
+.vgml-why .vgml-why-body {
+    float: right;
+    width: 65%;
+}
+
+/* Three classes: core styles every span in a setting as a label (float, 30%, right-aligned). */
+.vgml-why .vgml-why-body .vgml-why-word {
+    display: inline-block;
+    float: none;
+    min-width: 0;
+    max-width: none;
+    text-align: center;
+    margin: 0 0 4px;
+    padding: 1px 9px;
+    border-radius: 999px;
+    background: #e8ecf5;
+    color: #101d40;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.5;
+    text-transform: none;
+    vertical-align: 1px;
+}
+
+.vgml-why .vgml-why-body .vgml-why-word.is-sure {
+    background: #e9edfc;
+    color: #1e2f9d;
+}
+
+.vgml-why .vgml-why-body .vgml-why-word.is-by-you {
+    background: #ffd84d;
+    color: #101d40;
+}

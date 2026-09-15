@@ -56,8 +56,8 @@ global $wpdb;
 $g_before = $wpdb->num_queries;
 $g_boot   = vergeml_folders_boot();
 $g_cost   = $wpdb->num_queries - $g_before;
-// Nine on 2026-09-05 (render 1 + the request 1 + the tree 7); eleven measured on 2026-09-15 with the rail's steps (images, not described, without alt, the fill's state and its unfiled count).
-g_check( 'A1 the boot data costs at most eleven queries (as measured on 2026-09-15, with the rail\'s steps)', $g_cost <= 11, $g_cost . ' queries' );
+// Nine on 2026-09-05 (render 1 + the request 1 + the tree 7); eleven measured on 2026-09-15 with the rail's steps (images, not described, without alt, the fill's state and its unfiled count); twelve with Step 4's own count (the pictures whose catalogue alt the button writes).
+g_check( 'A1 the boot data costs at most twelve queries (as measured on 2026-09-15, with the rail\'s steps and Step 4\'s count)', $g_cost <= 12, $g_cost . ' queries' );
 g_check( 'A2 it carries the tree, the session and the stamp', isset( $g_boot['nodes'], $g_boot['session'], $g_boot['version'], $g_boot['facts'] ) && is_array( $g_boot['nodes'] ) );
 $g_before = $wpdb->num_queries;
 ob_start();

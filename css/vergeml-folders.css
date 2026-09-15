@@ -198,6 +198,140 @@
 	padding-block: 4px;
 }
 
+.vgml-shell .g-cols.is-done .g-move {
+	margin-top: 10px;
+	padding-top: 10px;
+}
+
+/* --- Step 3 asking: the tree left, the questions right ---------------------- */
+
+/*
+ *  The approved fill mock: the tree keeps its width from Step 2 and the
+ *  questions take the room to its right; one column under 1000px. A hidden
+ *  card takes no cell, so the grid holds the Fill card and the questions.
+ */
+.vgml-shell .g-cols.is-asking {
+	display: grid;
+	grid-template-columns: minmax(0, 760px) minmax(300px, 1fr);
+	gap: 24px;
+	align-items: start;
+	max-width: 1180px;
+}
+
+@media (max-width: 1000px) {
+	.vgml-shell .g-cols.is-asking {
+		grid-template-columns: 1fr;
+	}
+}
+
+/*
+ *  One card a group. The sentence is the engine's; under it the group's
+ *  pictures (eight at most); under those the answers as buttons. Nothing
+ *  else -- no "question 1 of 38", no heading.
+ */
+.vgml-shell .g-qs {
+	display: grid;
+	gap: 12px;
+}
+
+.vgml-shell .g-q {
+	padding: 14px 16px 14px;
+}
+
+.vgml-shell .g-q-text {
+	margin: 0 0 10px;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.4;
+	color: var(--vgml-ink);
+}
+
+.vgml-shell .g-q-strip {
+	display: flex;
+	gap: 4px;
+}
+
+.vgml-shell .g-q-strip img {
+	display: block;
+	width: 42px;
+	height: 42px;
+	border-radius: 6px;
+	object-fit: cover;
+	background: var(--vgml-n200);
+}
+
+/* "Show me": the strip opens on the group's pictures, each a way to its own modal. */
+.vgml-shell .g-q-strip.is-open {
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.vgml-shell .g-q-strip.is-open img {
+	width: 64px;
+	height: 64px;
+}
+
+.vgml-shell .g-q-strip a:focus-visible img {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+}
+
+.vgml-shell .g-q-answers {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 12px;
+}
+
+.vgml-shell .g-answer {
+	margin: 0;
+	border: 1px solid var(--vgml-rule);
+	background: var(--vgml-n100);
+	border-radius: 999px;
+	padding: 6px 12px;
+	font: inherit;
+	font-size: 13px;
+	color: var(--vgml-ink);
+	cursor: pointer;
+}
+
+.vgml-shell .g-answer:hover {
+	border-color: var(--vgml-accent-300);
+	background: var(--vgml-accent-100);
+}
+
+.vgml-shell .g-answer:disabled {
+	opacity: .5;
+	cursor: default;
+}
+
+/* The answer the engine would give, first and tinted; the rest plain. */
+.vgml-shell .g-answer.is-first {
+	background: var(--vgml-accent-100);
+	border-color: var(--vgml-accent-300);
+	color: var(--vgml-accent-700);
+	font-weight: 500;
+}
+
+/* Answered: the card stays until the next answer, with what the answer did as one line. */
+.vgml-shell .g-q.is-answered {
+	background: var(--vgml-n100);
+}
+
+.vgml-shell .g-q-result {
+	margin: 10px 0 0;
+	font-size: 13.5px;
+	color: var(--vgml-accent-700);
+}
+
+.vgml-shell .g-qs-foot {
+	margin: 2px 0 0 4px;
+}
+
+.vgml-shell .g-qs-foot .g-leave-rest {
+	margin-inline-start: auto;
+}
+
 /* --- change the tree, in one line ----------------------------------------- */
 
 /*

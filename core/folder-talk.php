@@ -1858,6 +1858,18 @@ function vergeml_talk_undo() {
 
 	delete_option( VERGEML_TALK_UNDO );
 
+	/*
+	 *  The questions were about a fill that is now put back: an answer to one
+	 *  would move pictures the undo just restored. Closed with the Move, and
+	 *  the folders the answers made are no longer "new".
+	 */
+	$state = get_option( VERGEML_TALK_STATE );
+	if ( is_array( $state ) && ( ! empty( $state['questions'] ) || ! empty( $state['made_by_answer'] ) ) ) {
+		$state['questions']      = array();
+		$state['made_by_answer'] = array();
+		update_option( VERGEML_TALK_STATE, $state, false );
+	}
+
 	if ( function_exists( 'vergeml_folders_moved' ) ) {
 		vergeml_folders_moved( 'undo' );
 	}
@@ -2092,11 +2104,23 @@ function vergeml_talk_plural( $word ) {
 /** The open and answered questions, as the screen reads them: sentence, labelled answers, a sample with thumbnails. */
 function vergeml_talk_questions() {
 
-	$state    = get_option( VERGEML_TALK_STATE );
-	$taxonomy = is_array( $state ) && isset( $state['taxonomy'] ) ? (string) $state['taxonomy'] : '';
-	$out      = array();
+	$state     = get_option( VERGEML_TALK_STATE );
+	$taxonomy  = is_array( $state ) && isset( $state['taxonomy'] ) ? (string) $state['taxonomy'] : '';
+	$questions = is_array( $state ) && isset( $state['questions'] ) ? (array) $state['questions'] : array();
+	$out       = array();
 
-	foreach ( is_array( $state ) && isset( $state['questions'] ) ? (array) $state['questions'] : array() as $q ) {
+	// Every sample's post and meta in two queries, not two per thumbnail: 38 questions carry 300 of them.
+	$ids = array();
+	foreach ( $questions as $q ) {
+		foreach ( (array) $q['sample'] as $id ) {
+			$ids[] = (int) $id;
+		}
+	}
+	if ( $ids ) {
+		_prime_post_caches( array_values( array_unique( $ids ) ), false, true );
+	}
+
+	foreach ( $questions as $q ) {
 		$words  = vergeml_talk_question_text( $q, $taxonomy );
 		$sample = array();
 		foreach ( (array) $q['sample'] as $id ) {
@@ -2117,6 +2141,18 @@ function vergeml_talk_questions() {
 	}
 
 	return $out;
+}
+
+/** The folders the answers made, by term id -- the ones the done tree marks new. Only the ones that still exist. */
+function vergeml_talk_made_by_answer() {
+
+	$state = get_option( VERGEML_TALK_STATE );
+	$made  = is_array( $state ) && isset( $state['made_by_answer'] ) ? array_map( 'intval', (array) $state['made_by_answer'] ) : array();
+	$tax   = is_array( $state ) && isset( $state['taxonomy'] ) ? (string) $state['taxonomy'] : '';
+
+	return array_values( array_filter( array_unique( $made ), function ( $tid ) use ( $tax ) {
+		return $tid > 0 && '' !== $tax && get_term( $tid, $tax ) instanceof WP_Term;
+	} ) );
 }
 
 /**
@@ -2232,9 +2268,14 @@ function vergeml_talk_answer( $id, $answer ) {
 		}
 	}
 	if ( in_array( 'to-sort', array_values( (array) $plan['moves'] ), true ) ) {
+		$had     = get_term_by( 'slug', VERGEML_FILING_TO_SORT_SLUG, $taxonomy ) instanceof WP_Term;
 		$to_sort = vergeml_talk_to_sort( $taxonomy );
 		if ( ! $to_sort ) {
 			return new WP_Error( 'no_folder', __( 'The To sort folder could not be made.', 'vergelabs-media-library' ), array( 'status' => 500 ) );
+		}
+		// Made by this answer: the tree marks it new with the folders the other answers made. Never unmade by undo -- it is where leave puts things.
+		if ( ! $had ) {
+			$state['made_by_answer'][] = $to_sort;
 		}
 	}
 	foreach ( (array) $plan['moves'] as $tid ) {

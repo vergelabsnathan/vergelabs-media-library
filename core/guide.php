@@ -105,9 +105,13 @@ function vergeml_folders_assets( $hook ) {
         'version'   => (int) $boot['version'],
         'facts'     => $boot['facts'],
         'fill'      => $boot['fill'],
+        // The folders the fill's answers made: the done tree marks them new.
+        'made'      => function_exists( 'vergeml_talk_made_by_answer' ) ? vergeml_talk_made_by_answer() : array(),
         'undo'      => $boot['undo'],
         'aiUrl'     => admin_url( 'admin.php?page=media-ai' ),
         'licenceUrl'=> admin_url( 'admin.php?page=media-licence' ),
+        // "Show me" opens a picture in the library's own modal, where Why is it here answers for it.
+        'libraryUrl'=> admin_url( 'upload.php' ),
         'proposeCredits' => VERGEML_GUIDE_PROPOSE_CREDITS,
         'walk'      => (bool) apply_filters( 'vergeml_folders_walk', false ),
     ) );
@@ -201,7 +205,7 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
 
     global $wpdb;
 
-    $out = array( 'pictures' => 0, 'folders' => (int) $folders, 'unfiled' => 0, 'described_at' => '', 'images' => 0, 'not_described' => 0, 'alt_missing' => 0, 'alt_have' => 0 );
+    $out = array( 'pictures' => 0, 'folders' => (int) $folders, 'unfiled' => 0, 'described_at' => '', 'images' => 0, 'not_described' => 0, 'alt_missing' => 0, 'alt_have' => 0, 'alt_pending' => 0 );
 
     /*
      *  The rail's steps, as counts: every image in the library, the ones not
@@ -213,6 +217,10 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
     if ( function_exists( 'vergeml_ai_pending_count' ) ) {
         $out['not_described'] = (int) vergeml_ai_pending_count( 'unindexed' );
         $out['alt_missing']   = (int) vergeml_ai_pending_count( 'missing-alt' );
+    }
+    // What Step 4's button writes: the pictures whose catalogue alt is written and whose file has none.
+    if ( function_exists( 'vergeml_ai_alt_pending_count' ) ) {
+        $out['alt_pending'] = vergeml_ai_alt_pending_count();
     }
     $out['alt_have'] = max( 0, $out['images'] - $out['alt_missing'] );
 
@@ -798,24 +806,56 @@ function vergeml_guide_rest_questions( WP_REST_Request $request ) {
     return rest_ensure_response( array(
         'questions' => vergeml_talk_questions(),
         'status'    => vergeml_talk_fill_status(),
+        // The folders the answers made, by term id: the tree marks them new (the approved done state).
+        'made'      => vergeml_talk_made_by_answer(),
         'version'   => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
     ) );
 }
 
+/**
+ *  One answer -- or, with id "rest", every open question at once: "Leave the
+ *  rest" under the cards. A residue question is answered leave (To sort); a
+ *  sibling question keep-parent, since those pictures are in the parent
+ *  already and leave is not an answer it offers.
+ */
 function vergeml_guide_rest_answer( WP_REST_Request $request ) {
 
-    $r = vergeml_talk_answer(
-        sanitize_text_field( (string) $request->get_param( 'id' ) ),
-        sanitize_text_field( (string) $request->get_param( 'answer' ) )
-    );
-    if ( is_wp_error( $r ) ) {
-        return $r;
+    $id     = sanitize_text_field( (string) $request->get_param( 'id' ) );
+    $answer = sanitize_text_field( (string) $request->get_param( 'answer' ) );
+
+    if ( 'rest' === $id ) {
+        $r = array( 'id' => 'rest', 'answer' => 'leave', 'moved' => 0, 'made' => 0, 'term_id' => 0, 'show' => null, 'answered' => 0 );
+        foreach ( vergeml_talk_questions() as $q ) {
+            if ( '' !== $q['answered'] ) {
+                continue;
+            }
+            $one = vergeml_talk_answer( $q['id'], 'siblings' === $q['kind'] ? 'keep-parent' : 'leave' );
+            if ( is_wp_error( $one ) ) {
+                return $one;
+            }
+            $r['moved'] += (int) $one['moved'];
+            $r['answered']++;
+        }
+    } else {
+        $r = vergeml_talk_answer( $id, $answer );
+        if ( is_wp_error( $r ) ) {
+            return $r;
+        }
+        // "Show me": the group's pictures, with thumbnails, for the card to open. Capped: a strip, not a library.
+        if ( is_array( $r['show'] ) ) {
+            $ids = array_slice( array_map( 'intval', $r['show'] ), 0, 48 );
+            _prime_post_caches( $ids, false, true );
+            $r['show'] = array_map( function ( $pid ) {
+                return array( 'id' => $pid, 'thumb' => (string) wp_get_attachment_image_url( $pid, 'thumbnail' ) );
+            }, $ids );
+        }
     }
 
     return rest_ensure_response( array(
         'result'    => $r,
         'questions' => vergeml_talk_questions(),
         'status'    => vergeml_talk_fill_status(),
+        'made'      => vergeml_talk_made_by_answer(),
         'undo'      => vergeml_talk_undo_available(),
         'version'   => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
     ) );

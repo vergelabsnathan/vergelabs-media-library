@@ -682,6 +682,8 @@
 		this.seen = null;
 		this.overlay = null;
 		this.progress = null;
+		// Live folders to mark new without a draft: what the fill's answers made (the approved done state).
+		this.newIds = {};
 		// Whether the draft's counts are known. False only when the caller's
 		// dry run gave no answer: the rows then carry no count at all rather
 		// than the fallback, which for a folder the draft makes is a zero.
@@ -783,6 +785,20 @@
 	 */
 	TreeView.prototype.setProgress = function ( byTerm ) {
 		this.progress = byTerm && typeof byTerm === 'object' ? byTerm : null;
+		this.render();
+		return this;
+	};
+
+	/** Live folders by term id that read "new" on the Folders surface: the ones the fill's answers made. */
+	TreeView.prototype.setNewIds = function ( ids ) {
+		var map = {};
+		( ids || [] ).forEach( function ( id ) {
+			map[ Number( id ) ] = true;
+		} );
+		if ( Object.keys( map ).sort().join( ',' ) === Object.keys( this.newIds ).sort().join( ',' ) ) {
+			return this;
+		}
+		this.newIds = map;
 		this.render();
 		return this;
 	};
@@ -900,11 +916,15 @@
 		var out = [];
 
 		if ( ! o ) {
+			// No draft: the live tree, every branch open when the view asks for that (the Folders screen), a twist's choice over it.
 			var openMap = {};
+			if ( this.openAll ) {
+				this.model.nodes.forEach( function ( n ) {
+					openMap[ n.id ] = true;
+				} );
+			}
 			Object.keys( this.openOverride ).forEach( function ( key ) {
-				if ( self.openOverride[ key ] ) {
-					openMap[ key.replace( /^t/, '' ) ] = true;
-				}
+				openMap[ key.replace( /^t/, '' ) ] = !! self.openOverride[ key ];
 			} );
 			return this.model.entries( { open: openMap, filter: this.filter } );
 		}
@@ -1013,11 +1033,13 @@
 		var folders = 'folders' === this.surface;
 		var status = entry.status || 'same';
 		hooks = hooks || {};
+		// New: the draft adds it, or the fill's answers made it (a live folder, no draft).
+		var isNew = 'added' === status || ( folders && 'same' === status && !! ( entry.id && this.newIds[ entry.id ] ) );
 
 		var item = el( 'li', {
 			class: 'vgml-node'
 				+ ( hooks.selected ? ' is-selected' : '' )
-				+ ( 'added' === status ? ' is-change is-new' : '' )
+				+ ( 'added' === status ? ' is-change is-new' : ( isNew ? ' is-new' : '' ) )
 				+ ( 'changed' === status ? ' is-change' : '' )
 				+ ( 'removed' === status ? ' is-gone' : '' ),
 			role: 'treeitem',
@@ -1068,7 +1090,7 @@
 		// "new" is a pill beside the name, not inside it: the name clips on
 		// overflow and the pill must not go with it (the approved mock's
 		// .g-pill.is-new; every count below is .g-pill too).
-		if ( folders && 'added' === status ) {
+		if ( folders && isNew ) {
 			row.appendChild( el( 'span', { class: 'vgml-tag g-pill is-new' }, l10n.newTag ) );
 		}
 

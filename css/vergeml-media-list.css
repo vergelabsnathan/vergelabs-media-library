@@ -169,6 +169,33 @@
 }
 
 /*
+ *  The word on the picture, after its folder: sure, likely, by you. A pill
+ *  in the Folders screen's grammar (css/vergeml-folders.css .g-pill), sized
+ *  to the line so it adds nothing to the row's height.
+ */
+.wp-list-table.media .filename .vgml-word {
+	display: inline-block;
+	margin: 0 2px;
+	padding: 0 8px;
+	border-radius: 999px;
+	background: #E8ECF5;
+	color: #16233D;
+	font-size: 11px;
+	line-height: 17px;
+	vertical-align: 1px;
+}
+
+.wp-list-table.media .filename .vgml-word.is-sure {
+	background: #E9EDFC;
+	color: #1E2F9D;
+}
+
+.wp-list-table.media .filename .vgml-word.is-by-you {
+	background: #FFD84D;
+	color: #16233D;
+}
+
+/*
  *  A line that never wraps is only safe in a fixed-layout table, which is
  *  what core's `.fixed` makes this one. On 2026-09-14 the table had been
  *  given `display: block` to scroll sideways under the panel, which took the

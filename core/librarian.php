@@ -2982,7 +2982,19 @@ function vergeml_librarian_why( $attachment_id ) {
         $attachment_id
     ), ARRAY_A );
 
+    /*
+     *  No record, but the person's own mark (a drag, VERGEML_FILING_PLACED_BY):
+     *  that is one true thing to say, and the word beside it is "by you".
+     */
     if ( ! $rows ) {
+        if ( defined( 'VERGEML_FILING_PLACED_BY' ) && 'user' === (string) get_post_meta( $attachment_id, VERGEML_FILING_PLACED_BY, true ) ) {
+            return array(
+                'why' => 'by hand', 'term_id' => 0, 'term' => '', 'score' => null, 'runner_up' => 0, 'runner' => '', 'runner_score' => null,
+                'nearest' => 0, 'near' => '', 'prompt_hash' => '', 'model_version' => '', 'batch_id' => 0, 'filed_at' => '',
+                'confidence' => 'by you',
+                'lines'      => array( __( 'Put here by hand · nothing scored it', 'vergelabs-media-library' ) ),
+            );
+        }
         return null;
     }
 
@@ -3062,6 +3074,8 @@ function vergeml_librarian_why( $attachment_id ) {
         'model_version' => (string) $row['model_version'],
         'batch_id'      => (int) $row['batch_id'],
         'filed_at'      => $filed,
+        // The pill beside the folder: by you / sure / likely, or nothing to claim.
+        'confidence'    => function_exists( 'vergeml_filing_confidence' ) ? vergeml_filing_confidence( $attachment_id, $row ) : '',
         'lines'         => array(),
     );
 
@@ -3229,10 +3243,24 @@ function vergeml_librarian_rest_why( WP_REST_Request $request ) {
     // A picture with no record answers with no lines, and the view shows no
     // section -- exactly what the field does with the same nothing.
     return array(
-        'id'    => $id,
-        'label' => __( 'Why is it here', 'vergelabs-media-library' ),
-        'lines' => ( $why && ! empty( $why['lines'] ) ) ? array_values( $why['lines'] ) : array(),
+        'id'         => $id,
+        'label'      => __( 'Why is it here', 'vergelabs-media-library' ),
+        'lines'      => ( $why && ! empty( $why['lines'] ) ) ? array_values( $why['lines'] ) : array(),
+        // The word beside the folder (spec §3): 'by you' | 'sure' | 'likely' | '', and how the pill says it.
+        'confidence' => $why ? (string) $why['confidence'] : '',
+        'word'       => $why ? vergeml_librarian_word( (string) $why['confidence'] ) : '',
+        'term'       => $why ? (string) $why['term'] : '',
     );
+}
+
+/** The confidence word as the pill says it. */
+function vergeml_librarian_word( $confidence ) {
+    $words = array(
+        'sure'   => __( 'sure', 'vergelabs-media-library' ),
+        'likely' => __( 'likely', 'vergelabs-media-library' ),
+        'by you' => __( 'by you', 'vergelabs-media-library' ),
+    );
+    return isset( $words[ $confidence ] ) ? $words[ $confidence ] : '';
 }
 
 

@@ -108,6 +108,23 @@ function vergeml_list_row_meta() {
     $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
     $meta     = array();
 
+    /*
+     *  The word beside the folder -- by you / sure / likely -- from the move
+     *  that put the picture there: one query for the page, the newest row per
+     *  picture that names the folder on screen (the same choice
+     *  vergeml_librarian_why() makes for one picture).
+     */
+    $moves = array();
+    if ( isset( $GLOBALS['wpdb']->vergeml_librarian_moves ) && function_exists( 'vergeml_filing_confidence' ) ) {
+        $ids = array_map( 'intval', wp_list_pluck( $posts, 'ID' ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
+        foreach ( (array) $GLOBALS['wpdb']->get_results( "SELECT attachment_id, term_id, why, score FROM {$GLOBALS['wpdb']->vergeml_librarian_moves} WHERE undone = 0 AND attachment_id IN (" . implode( ',', $ids ) . ') ORDER BY move_id DESC', ARRAY_A ) as $row ) {
+            if ( ! isset( $moves[ (int) $row['attachment_id'] ][ (int) $row['term_id'] ] ) ) {
+                $moves[ (int) $row['attachment_id'] ][ (int) $row['term_id'] ] = $row;
+            }
+        }
+    }
+
     foreach ( $posts as $post ) {
 
         $id   = (int) $post->ID;
@@ -128,6 +145,7 @@ function vergeml_list_row_meta() {
 
         $size   = size_format( $bytes );
         $folder = '';
+        $word   = '';
 
         if ( $taxonomy ) {
 
@@ -135,14 +153,22 @@ function vergeml_list_row_meta() {
 
             if ( $terms && ! is_wp_error( $terms ) ) {
                 $folder = vergeml_list_folder_name( $terms[0]->name );
+                if ( function_exists( 'vergeml_filing_confidence' ) ) {
+                    $word = vergeml_filing_confidence( $id, isset( $moves[ $id ][ (int) $terms[0]->term_id ] ) ? $moves[ $id ][ (int) $terms[0]->term_id ] : null );
+                }
             }
         }
 
-        $meta[ (string) $id ] = '' !== $folder
-            /* translators: 1: file name, 2: folder name, 3: file size. */
-            ? sprintf( __( '%1$s · %2$s · %3$s', 'vergelabs-media-library' ), $name, $folder, $size )
-            /* translators: 1: file name, 2: file size. */
-            : sprintf( __( '%1$s · %2$s', 'vergelabs-media-library' ), $name, $size );
+        // The line as one string, and the word as its own value: the script draws it as a pill after the folder.
+        $meta[ (string) $id ] = array(
+            'text' => '' !== $folder
+                /* translators: 1: file name, 2: folder name, 3: file size. */
+                ? sprintf( __( '%1$s · %2$s · %3$s', 'vergelabs-media-library' ), $name, $folder, $size )
+                /* translators: 1: file name, 2: file size. */
+                : sprintf( __( '%1$s · %2$s', 'vergelabs-media-library' ), $name, $size ),
+            'folder' => $folder,
+            'word'   => $word,
+        );
     }
 
     return $meta;
@@ -271,6 +297,12 @@ function vergeml_list_assets( $hook ) {
     wp_localize_script( 'vergeml-media-list', 'vergemlList', array(
         'rows'    => vergeml_list_row_meta(),
         'columns' => vergeml_list_our_columns(),
+        // The word on a picture, as the pill says it (spec §3; vergeml_filing_confidence).
+        'words'   => array(
+            'sure'   => __( 'sure', 'vergelabs-media-library' ),
+            'likely' => __( 'likely', 'vergelabs-media-library' ),
+            'by you' => __( 'by you', 'vergelabs-media-library' ),
+        ),
     ) );
 }
 
