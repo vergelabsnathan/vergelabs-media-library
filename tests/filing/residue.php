@@ -196,6 +196,11 @@ $plan = vergeml_filing_answer_plan( $questions[1], 'show-me' );
 $m    = f_apply( $map, $plan );
 f_check( '16 show-me: not answered, nothing moves, the ids come back', empty( $plan['answered'] ) && array() === $plan['moves'] && $questions[1]['ids'] === $plan['show'] && $map === $m, json_encode( array( $plan['answered'], count( $plan['show'] ) ) ) );
 
+// A sibling question's ids are a map picture => best child; "Let me look" must hand back the pictures, not the children
+// (on the box, 2026-09-15, it handed back term ids and the strip opened empty).
+$plan = vergeml_filing_answer_plan( $questions[0], 'show-me' );
+f_check( '16b show-me on a sibling question: the pictures, not their best children', empty( $plan['answered'] ) && array_map( 'intval', array_keys( $siblings[1]['ids'] ) ) === $plan['show'] && ! in_array( 2, $plan['show'], true ) && ! in_array( 3, $plan['show'], true ), json_encode( $plan['show'] ) );
+
 f_check( '17 an answer the question does not offer is refused', null === vergeml_filing_answer_plan( $questions[4], 'new-folder' ) && null === vergeml_filing_answer_plan( $questions[0], 'leave' ) && null === vergeml_filing_answer_plan( $questions[1], 'put-in:5' ) && null === vergeml_filing_answer_plan( $questions[1], 'delete' ), '' );
 
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );

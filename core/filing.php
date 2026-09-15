@@ -947,7 +947,8 @@ function vergeml_filing_answer_plan( $q, $answer ) {
     $plan = array( 'answer' => $answer, 'moves' => array(), 'make' => null, 'placed_by' => false, 'show' => null, 'answered' => true );
 
     if ( 'show-me' === $answer ) {
-        $plan['show']     = array_values( (array) $q['ids'] );
+        // A sibling question's ids are a map picture => best child (split reads it); the pictures are its keys.
+        $plan['show']     = 'siblings' === $q['kind'] ? array_map( 'intval', array_keys( (array) $q['ids'] ) ) : array_values( (array) $q['ids'] );
         $plan['answered'] = false;
         return $plan;
     }
