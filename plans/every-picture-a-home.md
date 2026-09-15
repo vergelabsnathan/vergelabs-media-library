@@ -221,20 +221,23 @@ pill will do.
 
 # Phase B — the screens
 
-## B.1 · Two mocks, approved — Opus
+## B.1 · The mocks, approved — Opus (done 2026-09-15, S3: three mocks, six states)
 
-- **Files:** `docs/superpowers/mocks/2026-09-15-fill-questions.html`,
-  `docs/superpowers/mocks/2026-09-15-step-rail.html`, their shots in
+- **Files:** `docs/superpowers/mocks/2026-09-15-step-rail.html`,
+  `2026-09-15-fill-questions.html`, `2026-09-15-other-steps.html` (Nathan
+  asked for the rest of the rail), their shots in
   `docs/superpowers/mocks/shots/`; the glance mock as the base.
-- **Behaviour:** (1) the step rail over the glance mock — five pills,
-  Describe ticked, Tree current, the rest quiet; *This is my tree* as the
-  primary button; (2) Step 3 in its asking state — the tree filling on the
-  left with counts climbing, the pill row (placed · sure · likely ·
-  questions · to sort), three question cards with the box's real numbers
-  (232 siblings Server racks/Cooling; 61 robot arms; 18 can't read), each
-  with its answers as buttons and eight real thumbnails; and its done state.
-  Real data from the box's trail (`tools/box-refile-all.php` dry run gives
-  the groups). ≤ 80 words on each, counted.
+- **Behaviour:** (1) the step rail over the glance mock — five pills, every
+  one a button, Describe ticked, Tree current, the rest hollow; one column,
+  the change line under the tree, *This is my tree* the primary with *Skip*
+  beside it; (2) Step 3 in its asking state — the tree with counts, the pill
+  row (placed · sure · likely · questions · to sort), three question cards
+  with the box's real numbers from the 2026-09-15 walk (4 fit both Server
+  racks and Cooling; 46 look like 3d printers; 45 can't read), each with its
+  answers as buttons and eight real thumbnails, *Leave the rest* under them;
+  and its done state; (3) Describe, Alt text and Rename in the same grammar.
+  ≤ 80 words on each without the tree, counted (`tools/shoot-mock.mjs
+  --words`).
 - **Proof:** screenshots posted into the conversation; Nathan's "approved"
   quoted in the handoff; the word counts in the handoff.
 - **Mirror:** `2026-09-14-folders-glance.html` (approved) for the grammar
@@ -244,7 +247,7 @@ pill will do.
 - **Do not:** build in `js/` or `core/`; add a fourth question kind; use an
   eyebrow, a middot string, or a paragraph.
 
-## B.2 · The step rail, the confirm state, and no more talking first — Opus
+## B.2 · The step rail, the confirm state, and no more talking first — Opus (done 2026-09-15, S4)
 
 - **Files:** `core/guide.php` (page markup: the rail; no auto-propose on
   load), `js/vergeml-folders.js` (steps as states; `state.step`), `css/vergeml-folders.css`,
@@ -264,9 +267,17 @@ pill will do.
 - **Copy:** the rail's five words; "Propose folders · 10 credits"; "This is
   my tree"; "Unconfirm".
 - **Do not:** keep the 25-turn thread as the opener; leave the "Paste
-  folders" tab — paste is a link under the input now.
+  folders" tab — paste is a button under the input now (*Paste or upload a
+  list*, `.txt` / `.csv` read in the browser, no PDF).
+- **As built (S4):** the page opens on the session's step and fires no model
+  route; the rail is `.g-rail > button.g-step` from `core/guide.php`; the
+  cards are drawn by `js/vergeml-folders.js` from the page's data; the fit
+  carries `residue` (the biggest class the dry run would not place) for the
+  placeholder; Skip on Describe / Tree / Alt text, no step a gate. Fill in
+  B.2 is the run's button ("Fill 1,000 pictures", `/guide/apply`) with
+  Unconfirm beside it; B.4 adds the live counts and the questions.
 
-## B.3 · The tree with pills — Fable if available, else Opus
+## B.3 · The tree with pills — Opus (done 2026-09-15, S4, in B.2's session; Fable was at ~8 % per the S3 handoff and was not switched to)
 
 - **Files:** `js/vergeml-tree-view.js` (count as a pill, `new`/`changed`
   as pills, confidence pill on a row when asked), `css/vergeml-tree-view.css`,

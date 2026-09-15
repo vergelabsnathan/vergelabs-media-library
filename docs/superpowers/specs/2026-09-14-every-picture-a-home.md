@@ -36,8 +36,12 @@ wrong as an *outcome*.
 
 ## 2. The flow — five steps, in the user's order
 
-The screen walks these in order. Each step is a state; the next is disabled
-until the previous is done. A returning user lands on the step they are at.
+The screen walks these in order. Each step is a state, and **no step is a
+gate** (Nathan, 2026-09-15: "it must be apparent the process or any step can
+be abandoned, it's not that it must be done"): every pill on the rail is a
+button, and each step has a quiet way past it — *Skip* beside the primary on
+Describe, Tree and Alt text; *Leave the rest* under the questions on Fill. A
+returning user lands on the step they are at.
 
 ### Step 1 · Describe
 The catalogue, nothing on the pictures. Required for everything after; a
@@ -128,15 +132,24 @@ one line plus chips, never the opener.
 
 - **Step rail** at the top: five pills — Describe · Tree · Fill · Alt text ·
   Rename — the current one filled, the done ones ticked, the not-yet ones
-  quiet. Clicking a done step goes back to it.
-- **Step 2 screen** = the glance mock: the tree as the screen, counts as
-  pills, `new` in brand yellow, one primary button (*This is my tree*), the
-  input and chips at the side, *Or paste a list*.
-- **Step 3 screen**: the same tree filling live (counts climbing), a pill
-  row — placed · sure · likely · questions · to sort — then the questions as
-  cards, one per group, each with its answers as buttons and a strip of
-  eight thumbnails from the group. Done state: *1,000 in folders · 0 to
-  sort*, Undo.
+  hollow. Every one is a button: any step can be gone to, done, or left.
+- **Step 2 screen** (`2026-09-15-step-rail.html`, approved): one column. The
+  tree as the screen, every count a pill, `new` in brand yellow, a small
+  parent's children as chips on one line. Under the tree one line to change
+  it: an input whose placeholder is built from the tree on screen (the
+  largest parent, the dry run's biggest residue class), three chips, and
+  *Paste or upload a list* — a button; the upload reads `.txt` / `.csv` in
+  the browser, no PDF. Then the primary, *This is my tree*, with *Skip*
+  beside it; *Propose folders* with its cost beside those, never automatic.
+- **Step 3 screen** (`2026-09-15-fill-questions.html`, approved): the same
+  tree filling live (counts climbing), a pill row — placed · sure · likely ·
+  questions · to sort — then the questions as cards, one per group, each
+  with its answers as buttons and a strip of eight thumbnails from the group;
+  *Leave the rest* under them answers every open question with `leave`. Done
+  state: *1,000 in folders · 0 to sort*, Undo.
+- **Steps 1, 4, 5** (`2026-09-15-other-steps.html`, approved): the step's
+  facts as pills, one line, the primary with its cost as a pill and *Skip*;
+  Rename says *Not available yet* with its button disabled.
 - **Confidence on a picture**: a pill in the grid modal and the list row
   (`sure` / `likely` / `by you`), with *Why is it here* (exists).
 
