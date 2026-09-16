@@ -1040,12 +1040,7 @@ function vergeml_guide_confirm( &$s ) {
 
     // The planner changed the draft, so the count beside it is about a tree that is no longer on screen.
     if ( $profiled ) {
-        $fit = vergeml_guide_draft_fit( $s['draft'], $taxonomy );
-        foreach ( $s['draft']['folders'] as &$f ) {
-            $f['count'] = $fit && isset( $fit['counts'][ $f['key'] ] ) ? (int) $fit['counts'][ $f['key'] ] : null;
-        }
-        unset( $f );
-        $s['fit'] = $fit ? $fit : vergeml_guide_fit_unknown();
+        vergeml_guide_fit_take( $s, $taxonomy );
     }
 
     $s['tree']         = 'confirmed';
@@ -1310,22 +1305,7 @@ function vergeml_guide_rest_turn( WP_REST_Request $request ) {
     $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
 
     if ( is_array( $s['draft'] ) && '' !== $taxonomy && 'rule' !== $s['draft']['origin'] ) {
-        $fit = vergeml_guide_draft_fit( $s['draft'], $taxonomy );
-        foreach ( $s['draft']['folders'] as &$f ) {
-            $f['count'] = $fit && isset( $fit['counts'][ $f['key'] ] ) ? (int) $fit['counts'][ $f['key'] ] : null;
-        }
-        unset( $f );
-        /*
-         *  A run that answered nothing says so.
-         *
-         *  Until here it wrote null, which is the same value a draft with
-         *  nothing to answer about gets, and the screen drew nothing at all --
-         *  no counts, no lines. Silence beside a draft reads as "these folders
-         *  are unchanged", and that is a claim nobody computed. The counts stay
-         *  null; what arrives instead is the sentence saying they are missing,
-         *  in the same list the counts themselves use.
-         */
-        $s['fit'] = $fit ? $fit : vergeml_guide_fit_unknown();
+        vergeml_guide_fit_take( $s, $taxonomy );
     } else {
         // A rule's draft carries its own counts, computed against this same
         // matcher when the rule was built. Anything else has no draft to
@@ -1371,6 +1351,153 @@ function vergeml_guide_turn_apply( &$s, $said, $say ) {
 
 /* ------------------------------------------------------------ the dry run */
 
+/*
+ *  The dry run at any shape (S10.3). What it costs is pairs, pictures ×
+ *  folders: measured on the box's shop site on 2026-09-16, 626 × 319 =
+ *  199,694 pairs took 15 s warm (every vector in one /embed, the pick's
+ *  memo), so the twenty-second budget a request is given buys some 250,000.
+ *  Below that the fit runs in the request as it always has; above, the turn
+ *  answers at once -- counted false, pending true, the two numbers -- and
+ *  the fit runs as a background job the screen's poll reads. The paste's own
+ *  cap (500 folders × 1,000 pictures) projects to 45 s, past the budget and
+ *  the proxy's sixty seconds alike.
+ */
+const VERGEML_GUIDE_FIT_PAIRS  = 250000;
+const VERGEML_GUIDE_FIT_HOOK   = 'vergeml_guide_fit_event';
+const VERGEML_GUIDE_FIT_LOCK   = 'vergeml_guide_fitting';
+const VERGEML_GUIDE_FIT_BUDGET = 240;
+
+/** Pure: does this shape go to a background job? */
+function vergeml_guide_fit_defers( $pictures, $folders ) {
+    return (int) $pictures * (int) $folders > VERGEML_GUIDE_FIT_PAIRS;
+}
+
+/** What of a draft the fit answers about: the same draft, whatever the counts on it say. */
+function vergeml_guide_draft_hash( $draft ) {
+    $rows = array();
+    foreach ( (array) ( is_array( $draft ) && isset( $draft['folders'] ) ? $draft['folders'] : array() ) as $f ) {
+        $rows[] = array( $f['key'], $f['name'], $f['parent'], $f['classes'], $f['kinds'], $f['audience'], $f['matches'] );
+    }
+    return md5( wp_json_encode( array( $rows, isset( $draft['gone'] ) ? $draft['gone'] : array() ) ) );
+}
+
+/**
+ *  The one place a session's fit is worked out from its draft: in the
+ *  request when the shape allows, booked as a job when it does not. Writes
+ *  the fit and the folders' counts into $s; the caller saves.
+ */
+function vergeml_guide_fit_take( &$s, $taxonomy ) {
+
+    $pictures = vergeml_guide_described_count();
+    $folders  = count( (array) $s['draft']['folders'] );
+
+    if ( vergeml_guide_fit_defers( $pictures, $folders ) ) {
+        foreach ( $s['draft']['folders'] as &$f ) {
+            $f['count'] = null;
+        }
+        unset( $f );
+        $s['fit'] = vergeml_guide_fit_pending( $pictures, $folders, vergeml_guide_draft_hash( $s['draft'] ) );
+        vergeml_guide_fit_schedule();
+        return;
+    }
+
+    $fit = vergeml_guide_draft_fit( $s['draft'], $taxonomy );
+    foreach ( $s['draft']['folders'] as &$f ) {
+        $f['count'] = $fit && isset( $fit['counts'][ $f['key'] ] ) ? (int) $fit['counts'][ $f['key'] ] : null;
+    }
+    unset( $f );
+    /*
+     *  A run that answered nothing says so.
+     *
+     *  Until 2026-09-14 it wrote null, which is the same value a draft with
+     *  nothing to answer about gets, and the screen drew nothing at all --
+     *  no counts, no lines. Silence beside a draft reads as "these folders
+     *  are unchanged", and that is a claim nobody computed. The counts stay
+     *  null; what arrives instead is the sentence saying they are missing,
+     *  in the same list the counts themselves use.
+     */
+    $s['fit'] = $fit ? $fit : vergeml_guide_fit_unknown();
+}
+
+/** The fit's shape while a job works it out: nothing counted, and the two numbers the screen says it is counting. */
+function vergeml_guide_fit_pending( $pictures, $folders, $hash ) {
+    $fit             = vergeml_guide_fit_unknown();
+    $fit['pending']  = true;
+    $fit['pictures'] = (int) $pictures;
+    $fit['folders']  = (int) $folders;
+    $fit['draft']    = (string) $hash;
+    $fit['since']    = time();
+    $fit['preview']  = array(
+        /* translators: 1: pictures, 2: folders */
+        array( 'text' => sprintf( __( 'Counting %1$s pictures against %2$s folders', 'vergelabs-media-library' ), number_format_i18n( (int) $pictures ), number_format_i18n( (int) $folders ) ), 'strong' => true ),
+    );
+    return $fit;
+}
+
+/** Book the job, due now, and ask the site to run it without waiting for a visitor (core's spawn_cron takes the lock and posts). */
+function vergeml_guide_fit_schedule() {
+    if ( ! wp_next_scheduled( VERGEML_GUIDE_FIT_HOOK ) ) {
+        wp_schedule_single_event( time(), VERGEML_GUIDE_FIT_HOOK );
+    }
+    if ( ! defined( 'DOING_CRON' ) ) {
+        spawn_cron();
+    }
+}
+
+add_action( VERGEML_GUIDE_FIT_HOOK, 'vergeml_guide_fit_event' );
+
+/**
+ *  The job: the pending fit worked out with a job's budget, written back
+ *  only if the draft is still the one it was asked about -- a person who
+ *  kept editing gets the answer to their newest draft from its own turn,
+ *  never an older answer over a newer tree.
+ */
+function vergeml_guide_fit_event() {
+
+    $s = vergeml_guide_session();
+    if ( ! is_array( $s['fit'] ) || empty( $s['fit']['pending'] ) || ! is_array( $s['draft'] ) || get_transient( VERGEML_GUIDE_FIT_LOCK ) ) {
+        return;
+    }
+    set_transient( VERGEML_GUIDE_FIT_LOCK, time(), VERGEML_GUIDE_FIT_BUDGET + 60 );
+    if ( function_exists( 'set_time_limit' ) ) {
+        @set_time_limit( VERGEML_GUIDE_FIT_BUDGET + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
+    }
+
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+    $hash     = (string) $s['fit']['draft'];
+    $fit      = '' !== $taxonomy ? vergeml_guide_draft_fit( $s['draft'], $taxonomy, VERGEML_GUIDE_FIT_BUDGET ) : null;
+
+    // Re-read: the draft may have moved on while this ran.
+    $s = vergeml_guide_session();
+    if ( is_array( $s['fit'] ) && ! empty( $s['fit']['pending'] ) && is_array( $s['draft'] ) && vergeml_guide_draft_hash( $s['draft'] ) === $hash ) {
+        foreach ( $s['draft']['folders'] as &$f ) {
+            $f['count'] = $fit && isset( $fit['counts'][ $f['key'] ] ) ? (int) $fit['counts'][ $f['key'] ] : null;
+        }
+        unset( $f );
+        $s['fit'] = $fit ? $fit : vergeml_guide_fit_unknown();
+        vergeml_guide_save( $s );
+    }
+
+    delete_transient( VERGEML_GUIDE_FIT_LOCK );
+}
+
+/**
+ *  From the poll: a pending fit whose job cron has not run is booked again
+ *  and nudged. No pass runs inside the poll here -- the shape that defers is
+ *  by definition the one a request cannot hold -- but the booking never
+ *  depends on the one spawn that was posted when the paste settled.
+ */
+function vergeml_guide_fit_revive( $s ) {
+    if ( ! is_array( $s['fit'] ) || empty( $s['fit']['pending'] ) || get_transient( VERGEML_GUIDE_FIT_LOCK ) ) {
+        return;
+    }
+    $next = wp_next_scheduled( VERGEML_GUIDE_FIT_HOOK );
+    if ( false === $next || $next <= time() - 10 ) {
+        wp_clear_scheduled_hook( VERGEML_GUIDE_FIT_HOOK );
+        vergeml_guide_fit_schedule();
+    }
+}
+
 /**
  *  The draft, run dry: what the matcher would do with the library if this
  *  draft were filed, and what it would leave alone.
@@ -1393,14 +1520,15 @@ function vergeml_guide_turn_apply( &$s, $said, $say ) {
  *  question an owner has before pressing Move and until now could not ask:
  *  what does this draft do to my library, and what does it leave alone.
  *
- *  @param array  $draft    A cleaned draft (vergeml_guide_clean_draft()).
- *  @param string $taxonomy The folder taxonomy.
+ *  @param array    $draft    A cleaned draft (vergeml_guide_clean_draft()).
+ *  @param string   $taxonomy The folder taxonomy.
+ *  @param int|null $budget   Seconds; a request's twenty by default, a job's own when the shape deferred (S10.3).
  *  @return array|null 'counts' (draft key => pictures in it after Move),
  *                     'unfiled' (why => pictures), 'move', 'looked',
  *                     'preview' (the lines, in the rules' own words); null
  *                     when the matcher cannot answer at all.
  */
-function vergeml_guide_draft_fit( $draft, $taxonomy ) {
+function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
 
     if ( ! is_array( $draft ) || empty( $draft['folders'] ) || ! function_exists( 'vergeml_filing_pick' ) ) {
         return null;
@@ -1519,7 +1647,7 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
      *  phase exists to remove. What the attempt did fetch stays cached for the
      *  next one, and the phrases are now kept for a week rather than an hour.
      */
-    $deadline = microtime( true ) + max( 1, (int) apply_filters( 'vergeml_guide_fit_budget', 20 ) );
+    $deadline = microtime( true ) + max( 1, (int) ( null === $budget ? apply_filters( 'vergeml_guide_fit_budget', 20 ) : $budget ) );
 
     /*
      *  The picks and the tally come from the function the run itself uses,
@@ -2140,6 +2268,8 @@ function vergeml_guide_landed_by_key( $draft, $by_term ) {
 
 function vergeml_guide_rest_progress( WP_REST_Request $request ) {
     $s = vergeml_guide_session();
+    // The screen polls this while a fit is being counted in the background too (S10.3): a job cron left standing is booked again.
+    vergeml_guide_fit_revive( $s );
     return rest_ensure_response( vergeml_guide_progress_out( $s ) );
 }
 

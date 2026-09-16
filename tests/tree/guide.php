@@ -169,6 +169,83 @@ $g_res = rest_do_request( $g_req );
 $g_turns = $g_res->get_data()['turns'];
 g_check( 'E4 a rule applied over the same rule\'s line replaces it', 2 === count( $g_turns ) && 'By kind: 4 folders, 641 pictures' === end( $g_turns )['text'], count( $g_turns ) . ' turns' );
 
+/* ------------------------------------------------ F  the dry run at any shape */
+
+/*
+ *  S10.3. pairs = pictures × folders; above 250,000 the turn answers at once
+ *  with a pending fit and books a job; the job writes the fit back only if
+ *  the draft is still the one asked about. Driven here with a draft of 260
+ *  folders over this site's described pictures (1,000 on the box: 260,000
+ *  pairs, over the cap). The service is answered by a stub -- a one-hot
+ *  vector per folder text -- so the job spends nothing and the vectors it
+ *  caches are removed after. Mutation: the deferral removed
+ *  (vergeml_guide_fit_defers always false) -> F2 red: the turn works the
+ *  fit in the request, and answers counted or unknown, never pending.
+ */
+echo "\nF  the dry run at any shape (S10.3)\n\n";
+
+g_check( 'F1 the rule, pure: 1,000 × 500 defers, 626 × 319 does not (the shop\'s 199,694 in 15 s), 500 × 500 sits on the cap and does not', vergeml_guide_fit_defers( 1000, 500 ) && ! vergeml_guide_fit_defers( 626, 319 ) && ! vergeml_guide_fit_defers( 500, 500 ) );
+
+$GLOBALS['g_texts'] = array();
+function g_answer( $pre, $args, $url ) {
+    if ( false === strpos( $url, '/embed' ) ) {
+        return $pre;
+    }
+    $body  = isset( $args['body'] ) ? json_decode( (string) $args['body'], true ) : array();
+    $texts = isset( $body['texts'] ) ? (array) $body['texts'] : ( isset( $body['text'] ) ? array( $body['text'] ) : array() );
+    $out   = array();
+    foreach ( $texts as $t ) {
+        $t = strtolower( trim( (string) $t ) );
+        if ( ! isset( $GLOBALS['g_texts'][ $t ] ) ) {
+            $GLOBALS['g_texts'][ $t ] = count( $GLOBALS['g_texts'] ) + 1;
+        }
+        $v = array_fill( 0, 64, 0.0 );
+        $v[ $GLOBALS['g_texts'][ $t ] % 64 ] = 1.0;
+        $out[] = $v;
+    }
+    $data = isset( $body['texts'] ) ? array( 'embeddings' => $out ) : array( 'embedding' => $out[0] );
+    return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( $data ), 'headers' => array() );
+}
+add_filter( 'pre_http_request', 'g_answer', 1, 3 );
+
+$g_described = vergeml_guide_described_count();
+$g_big = array( 'folders' => array(), 'gone' => array(), 'origin' => 'talk', 'rule' => null );
+for ( $i = 1; $i <= 260; $i++ ) {
+    $g_big['folders'][] = array( 'key' => 'zzfit' . $i, 'term_id' => null, 'name' => 'zzFit ' . $i, 'parent' => '', 'count' => 7, 'classes' => array( 'zzfitword' . $i ), 'kinds' => array( 'photo' ) );
+}
+vergeml_guide_save( vergeml_guide_fresh() );
+wp_clear_scheduled_hook( VERGEML_GUIDE_FIT_HOOK );
+$g_t0  = microtime( true );
+$g_req = new WP_REST_Request( 'POST', '/vergeml/v1/guide/turn' );
+$g_req->set_body_params( array( 'draft' => $g_big ) );
+$g_res = rest_do_request( $g_req );
+$g_ms  = ( microtime( true ) - $g_t0 ) * 1000;
+$g_fit = $g_res->get_data()['fit'] ?? null;
+$g_row = $g_res->get_data()['draft']['folders'][0];
+$g_cnt = array_key_exists( 'count', $g_row ) ? $g_row['count'] : 'unset';
+g_check( sprintf( 'F2 a turn with %d × 260 pairs answers at once: counted false, pending true, the two numbers, no count on a folder, the job booked (%.0f ms)', $g_described, $g_ms ), 200 === $g_res->get_status() && is_array( $g_fit ) && false === $g_fit['counted'] && ! empty( $g_fit['pending'] ) && 260 === (int) $g_fit['folders'] && $g_described === (int) $g_fit['pictures'] && null === $g_cnt && false !== wp_next_scheduled( VERGEML_GUIDE_FIT_HOOK ) && $g_ms < 5000, json_encode( array( 'status' => $g_res->get_status(), 'fit' => is_array( $g_fit ) ? array_intersect_key( $g_fit, array_flip( array( 'counted', 'pending', 'pictures', 'folders' ) ) ) : $g_fit, 'count' => $g_cnt, 'booked' => wp_next_scheduled( VERGEML_GUIDE_FIT_HOOK ) ) ) );
+g_check( 'F3 the pending fit\'s one line says what is being counted', is_array( $g_fit ) && isset( $g_fit['preview'][0]['text'] ) && 0 === strpos( $g_fit['preview'][0]['text'], 'Counting ' ) && false !== strpos( $g_fit['preview'][0]['text'], '260 folders' ), is_array( $g_fit ) && isset( $g_fit['preview'][0]['text'] ) ? $g_fit['preview'][0]['text'] : '-' );
+
+$g_t0 = microtime( true );
+vergeml_guide_fit_event();
+$g_s   = ( microtime( true ) - $g_t0 );
+$g_now = vergeml_guide_session();
+$g_fit = $g_now['fit'];
+g_check( sprintf( 'F4 the job counts it: counted true, looked = the described count, every folder carries a count (%.1f s, %d queries so far)', $g_s, $wpdb->num_queries ), is_array( $g_fit ) && ! empty( $g_fit['counted'] ) && empty( $g_fit['pending'] ) && $g_described === (int) $g_fit['looked'] && 260 === count( $g_fit['counts'] ) && null !== $g_now['draft']['folders'][0]['count'], json_encode( is_array( $g_fit ) ? array_intersect_key( $g_fit, array_flip( array( 'counted', 'pending', 'looked', 'move' ) ) ) : $g_fit ) );
+
+// The draft moved on while a job ran: its answer is not written over the newer tree.
+$g_now['fit'] = vergeml_guide_fit_pending( $g_described, 260, 'not-this-draft' );
+vergeml_guide_save( $g_now );
+vergeml_guide_fit_event();
+g_check( 'F5 a job whose draft has moved on writes nothing: the fit stays pending for the newer draft\'s own turn', ! empty( vergeml_guide_session()['fit']['pending'] ) );
+
+remove_filter( 'pre_http_request', 'g_answer', 1 );
+foreach ( array_keys( $GLOBALS['g_texts'] ) as $g_text ) {
+    delete_transient( vergeml_meaning_slot( $g_text ) );
+}
+wp_clear_scheduled_hook( VERGEML_GUIDE_FIT_HOOK );
+delete_transient( VERGEML_GUIDE_FIT_LOCK );
+
 /* ------------------------------------------------------------------ put back */
 
 if ( false === $g_was ) {

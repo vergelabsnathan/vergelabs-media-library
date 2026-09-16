@@ -429,7 +429,8 @@ function ssh( box, script ) {
 			`root@${ BOX_HOST }`, 'bash -s',
 		], { input: script, stdio: 'pipe', maxBuffer: 32 * 1024 * 1024 } ).toString();
 	} catch ( err ) {
-		const said = ( err.stderr || err.stdout || '' ).toString().trim();
+		// Both streams: php -l's complaint is on stdout, and a "Command failed: ssh …" line says nothing (2026-09-16).
+		const said = [ err.stdout, err.stderr ].map( ( s ) => ( s || '' ).toString().trim() ).filter( Boolean ).join( '\n' );
 		throw new Error( said || err.message );
 	}
 }
