@@ -792,13 +792,25 @@
 
 		dom.fillMove.innerHTML = '';
 		if ( done ) {
-			var next = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary' }, __( 'Next: Alt text', 'vergelabs-media-library' ) );
-			next.addEventListener( 'click', function () { setStep( 'alt' ); } );
-			dom.fillMove.appendChild( next );
+			/*
+			 *  Done is not closed (Nathan, 2026-09-16: "alt text should be
+			 *  optional"). A tree just confirmed again wants filling again, so
+			 *  the fill's own button stays the primary on a confirmed tree;
+			 *  Alt text is the quiet way on, like Skip elsewhere.
+			 */
+			if ( confirmed() ) {
+				dom.fillMove.appendChild( dom.move );
+				dom.fillMove.appendChild( dom.stop );
+			}
+			dom.fillMove.appendChild( quiet( __( 'Next: Alt text', 'vergelabs-media-library' ), function () { setStep( 'alt' ); } ) );
 			dom.fillMove.appendChild( dom.undo );
 			syncCounted();
-			root.setAttribute( 'data-state', 'done' );
-			renderUndo();
+			if ( confirmed() ) {
+				renderMove();
+			} else {
+				root.setAttribute( 'data-state', 'done' );
+				renderUndo();
+			}
 			return;
 		}
 		if ( asking ) {

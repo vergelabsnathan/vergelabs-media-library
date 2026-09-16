@@ -787,7 +787,8 @@ test.describe( 'the Folders screen', () => {
 		await expect( page.locator( '.g-cols' ) ).toHaveClass( /is-done/ );
 		await expect( page.locator( '.g-qs' ) ).toBeHidden();
 		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* in folders$/, '0 to sort' ] );
-		await expect( page.locator( '.g-card[data-card="fill"] .g-move .vgml-btn-primary' ) ).toHaveText( 'Next: Alt text' );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-move .g-quiet' ).filter( { hasText: 'Next: Alt text' } ), 'alt text is the quiet way on, not the only button' ).toBeVisible();
+		await expect( page.locator( '.g-card[data-card="fill"] .g-move .vgml-btn-primary' ), 'a confirmed tree can be filled again' ).toHaveText( /^Fill [d,.]+ pictures$/ );
 		await expect( page.locator( '.g-step[data-step="fill"]' ) ).toHaveClass( /is-done/ );
 		await expect( page.locator( '.g-step[data-step="fill"]' ) ).toHaveClass( /is-current/ );
 		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
