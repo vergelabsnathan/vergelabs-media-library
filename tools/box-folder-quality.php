@@ -112,7 +112,7 @@ foreach ( $sample as $s ) {
     }
     $runner  = (int) $r['runner_up'] ? bfq_path( (int) $r['runner_up'], $tax ) : '';
     $cards[] = sprintf(
-        '<figure class="c %1$s" data-n="%2$d" data-id="%3$d" data-word="%1$s"><img src="%4$s" alt="" loading="lazy"><figcaption><b>%5$s</b><span class="pill %1$s">%1$s</span><small>%6$s</small><small class="t">#%2$d · <a href="%7$s" target="_blank" rel="noopener">%8$s</a></small></figcaption><div class="mark"><button data-v="right">right</button><button data-v="wrong">wrong</button></div></figure>',
+        '<figure class="c %1$s" data-n="%2$d" data-id="%3$d" data-word="%1$s"><img src="%4$s" alt="" loading="lazy"><figcaption><b>%5$s</b><span class="pill %1$s">%1$s</span><small>%6$s</small><small class="t">#%2$d · <a href="%7$s" target="_blank" rel="noopener">%8$s</a></small></figcaption><div class="mark"><button data-v="right">right</button><button data-v="broad">too broad</button><button data-v="wrong">wrong</button></div></figure>',
         $s['word'],
         $n,
         $s['id'],
@@ -153,6 +153,8 @@ figcaption .t a{color:#555}
 .mark button+button{border-left:1px solid #eee}
 figure.is-right .mark [data-v=right]{background:#cfe9d1;font-weight:600}
 figure.is-wrong .mark [data-v=wrong]{background:#f3c5c5;font-weight:600}
+figure.is-broad .mark [data-v=broad]{background:#fbeccb;font-weight:600}
+figure.is-broad{outline:2px solid #d9a441}
 figure.is-wrong{outline:2px solid #d66}
 </style>
 <header>
@@ -169,12 +171,12 @@ figure.is-wrong{outline:2px solid #d66}
   try{marks=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
   var figs=[].slice.call(document.querySelectorAll('figure.c'));
   function paint(){
-    var t={sure:{r:0,w:0},likely:{r:0,w:0}},left=0;
+    var t={sure:{r:0,b:0,w:0},likely:{r:0,b:0,w:0}},left=0;
     figs.forEach(function(f){
-      var v=marks[f.dataset.n];f.classList.toggle('is-right',v==='right');f.classList.toggle('is-wrong',v==='wrong');
-      if(!v){left++}else{t[f.dataset.word][v==='right'?'r':'w']++}
+      var v=marks[f.dataset.n];f.classList.toggle('is-right',v==='right');f.classList.toggle('is-wrong',v==='wrong');f.classList.toggle('is-broad',v==='broad');
+      if(!v){left++}else{t[f.dataset.word][v==='right'?'r':(v==='broad'?'b':'w')]++}
     });
-    function line(w,el,bar){var n=t[w].r+t[w].w,p=n?Math.round(100*t[w].r/n):0;el.textContent=w+' '+t[w].r+'/'+n+' right'+(n?' · '+p+'%':'');el.className=n?(p>=bar?'good':'bad'):''}
+    function line(w,el,bar){var n=t[w].r+t[w].b+t[w].w,p=n?Math.round(100*t[w].r/n):0;el.textContent=w+' '+t[w].r+'/'+n+' right'+(t[w].b?' · '+t[w].b+' too broad':'')+(n?' · '+p+'%':'');el.className=n?(p>=bar?'good':'bad'):''}
     line('sure',document.getElementById('s'),95);line('likely',document.getElementById('l'),80);
     document.getElementById('left').textContent=left?left+' to mark':'all marked';
     try{localStorage.setItem(KEY,JSON.stringify(marks))}catch(e){}
@@ -185,9 +187,9 @@ figure.is-wrong{outline:2px solid #d66}
   });
   document.getElementById('copy').addEventListener('click',function(){
     var out=['sure','likely'].map(function(w){
-      var wrong=figs.filter(function(f){return f.dataset.word===w&&marks[f.dataset.n]==='wrong'}).map(function(f){return '#'+f.dataset.n+' (id '+f.dataset.id+')'});
+      var wrong=figs.filter(function(f){return f.dataset.word===w&&marks[f.dataset.n]==='wrong'}).map(function(f){return '#'+f.dataset.n+' (id '+f.dataset.id+')'});var broad=figs.filter(function(f){return f.dataset.word===w&&marks[f.dataset.n]==='broad'}).map(function(f){return '#'+f.dataset.n+' (id '+f.dataset.id+')'});
       var n=figs.filter(function(f){return f.dataset.word===w&&marks[f.dataset.n]}).length;
-      return w+': '+(n-wrong.length)+'/'+n+' right'+(wrong.length?' · wrong '+wrong.join(', '):'');
+      return w+': '+(n-wrong.length-broad.length)+'/'+n+' right'+(broad.length?' · too broad '+broad.join(', '):'')+(wrong.length?' · wrong '+wrong.join(', '):'');
     }).join('\n');
     navigator.clipboard.writeText(out).then(function(){document.getElementById('copy').textContent='Copied'});
   });
