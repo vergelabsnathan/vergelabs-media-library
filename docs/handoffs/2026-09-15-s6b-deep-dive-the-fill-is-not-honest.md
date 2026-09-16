@@ -33,11 +33,42 @@ end:      0 in no folder · 0 open · done · undo available · To sort 327
 Preview = run was not measurable this time: the spec's restore had
 dropped the fit tally from the session (the earlier handoff says so).
 
-**The 60-picture sample is taken and waiting for Nathan's marks:**
-`docs/superpowers/mocks/shots/2026-09-15-quality-sample.html` (30 sure of
-499, 30 likely of 113, batch 133; opened on his screen). The precision
-numbers go into the next handoff when he pastes the verdict line. Given
-the profiles below, expect `likely` to miss 80.
+**The 60-picture sample — Nathan's verdict, 2026-09-16** (sheet
+, 30 sure of 499,
+30 likely of 113, batch 133; a third mark, *too broad*, added at his ask):
+
+\
+Both thresholds fail. Read against the fill's own rows, the 16 wrong
+ are four kinds, none a threshold:
+
+- **A kind word as a class (3):** the planner gave Satellites the class
+  ; every diagram in the library (keyboard layout, speaker-tracking
+  schematic, controller test guide) went to Space / Satellites at 0.76–0.84
+  with no runner-up. C.4 (a class is never a kind word) and C.1 (kind out).
+- **Parent instead of child, or the wrong child, through a shared class (6):**
+  solar panel → Energy 0.84 (Solar next); rocket launch → Space 0.73 (not
+  Launches); graphics cards → Hardware 0.85 and Laptops 0.81; conference
+  attendees → Interviews 0.86 over Conference talks 0.77; Ethernet switch →
+  Server racks 0.77. The shared word outscored the folder's own name. C.1.
+- **The profile means something Nathan does not (7):** Components took
+  loose ICs and e-waste piles at 0.77–0.89 (); Conference talks took attendee and venue shots
+  (). The matcher did what the profile says. C.4: the
+  planner writes the folder in the describer's words *and* the owner's
+  intent, and the owner sees the classes on the tree before confirming.
+
+The 11  are one pattern: eight wind turbines in *Energy* because
+Solar and Wind tie at 0.85 ( rank 0 on
+Energy, Solar and Wind; Wind's own name rank 1) and the sibling rule keeps
+the parent; two PC towers in *Hardware* the same way (Components vs
+Laptops). C.1's leaf-name-at-1.0 and 1/k on the shared word, exactly. The
+seven  wrong: phones in Hardware (Phones vs Components tie), a
+rack hallway in Data centres, a wafer, a factory in Cooling, a shop in
+Batteries — shared classes and vector noise below 0.70.
+
+**So the tuning card is Phase C, not a number:** C.1 fixes the 11 broad and
+the 6 shared-class misses; C.4 fixes the 3 diagrams and the 7 profile
+misreadings. The sample is re-taken after S7 and again after S8 (same
+batch seed if the fill is not redone; a new fill re-seeds).
 
 ## What the box says about the 61
 
