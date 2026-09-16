@@ -400,13 +400,32 @@ every error and rebuilds everything twice per press. Four tasks. **FLOOR,
 MARGIN and SURE do not move**: what changes is what a class hit is worth,
 what a tie means, how a group is formed and named, and what one press costs.
 
-**Sessions.** S7: C.1 + C.2. S8: C.3 + C.4. Then the Folders polish card,
-then B.6.
+**Sessions.** S7: C.1 + C.2. S8: C.3 + C.4. S9: C.5 (the second library,
+if Nathan buys it). Then the Folders polish card, then B.6.
 
-**Stop points (Nathan).** The sample's verdict (the 60-picture sheet of
-2026-09-15, his marks). The box after his walk stays his (61 in Server
+**The sample's verdict, 2026-09-16** (the sheet, Nathan's marks): sure
+14/30 = 47 % against 95; likely 12/30 = 40 % against 80, 11 too broad. Of
+the 34 misses: 17 shared-class ties (C.1), 3 a kind word as a class and 7
+a profile that means something Nathan does not (C.4), the rest vector
+noise under 0.70. Handoff `2026-09-15-s6b-deep-dive-the-fill-is-not-honest.md`.
+
+**Stop points (Nathan).** The box after his walk stays his (61 in Server
 racks by hand, 327 in To sort) unless he says undo. K = 8 questions asked
-at most, the rest one card — his number to change.
+at most, the rest one card — his number to change. C.5 costs real
+describes on a second library — his call and his cost.
+
+**Where fragility persists, and what in this phase answers it** (the
+2026-09-16 review; every item below is a task line, not a hope):
+
+| fragile seam | why it stays fragile after C.1–C.4 | answered by |
+|---|---|---|
+| three free-text models must agree (describer words, planner classes, group names) | C.4 makes them tolerant, not deterministic; a model update or a Dutch library shifts the words and nothing notices | **the baseline gate** (C.1, gate 5): the dry run's tally per library stored and compared on every engine, prompt or planner change |
+| a profile is a guess about the owner's intent (Components ≠ "PC internals") | a better planner is still a guess | **classes on the tree** and **profile undo** (C.4) |
+| one library, one shape (1,000 tech photos, 20 folders) | every constant and the cap were calibrated there | **C.5**, a second real library, before launch |
+| a hand placement is law forever (`placed_by = user`) | the majority rule shrinks the trap; a person can still be wrong | **"placed by hand" review** on the media list (C.3) |
+| kinds have no home (screenshots, diagrams, documents) | C.2 asks about them; nobody can file them well | known hole for launch; the planner's `kinds` stays a stop point |
+| the screen is judged on a 36-plugin box (2.9 s a round trip) | C.3's win is measurable only on Playground | C.3 measures both; the box's plugin load is Nathan's to trim |
+| the tests prove fixtures, not the field (A.1–A.4 were green while the box was wrong) | a mutation check cannot see reality | **the sheet is a gate**: every C task ends with the 60-picture sample re-taken on the same seed and its two numbers in the handoff |
 
 ## C.1 · The matcher tells folders apart — Opus
 
@@ -432,9 +451,20 @@ at most, the rest one card — his number to change.
   weight removed → the four-folder row red; the second-phrase weight
   removed → the Hardware row red; the cross-parent branch removed → the
   `either` row red. `tools/box-refile-all.php` dry run: margin well under
-  109, printed beside today's line.
+  109, printed beside today's line. **The baseline gate (new):**
+  `tools/filing-baseline-check.mjs` grows a second band — the dry run's
+  outcome tally (fits / sure / likely / siblings / nothing by floor,
+  margin, gated) per library, stored in `tests/tree/filing-baseline.txt`
+  beside the score band; a change of more than 3 % in any outcome fails
+  the check and prints both lines. Re-taken deliberately after C.1 (the
+  point is that C.1 moves it), then frozen: C.2–C.4, every prompt change
+  in the service and every describer change must leave it green or
+  re-take it on purpose with the reason in the handoff. **The sheet (new
+  gate):** `tools/box-folder-quality.php` re-run on the same batch seed
+  after C.1 — the two precision numbers beside 47 % / 40 % in the handoff.
 - **Mirror:** A.1; the S1 handoff's line that all 202 margins were
-  shared-word ties.
+  shared-word ties; `tools/filing-baseline-check.mjs` (the score band it
+  already keeps, and why a band and not a value).
 - **Copy:** the `either` sentence: "%1$s pictures: %2$s or %3$s?" — pills,
   no prose.
 - **Do not:** move the three constants; re-profile the box's folders to
@@ -472,6 +502,8 @@ at most, the rest one card — his number to change.
 - **Do not:** call the namer for a group the cap will fold (spend);
   let a group's name be an existing folder's name without offering
   `put-in` for that folder under the majority rule.
+- **Gates carried from C.1:** the baseline check green (or re-taken with
+  the reason); the sheet re-run on the same seed, numbers in the handoff.
 
 ## C.3 · One press, one honest answer — Opus (Fable for the JS if it has budget)
 
@@ -487,14 +519,23 @@ at most, the rest one card — his number to change.
   answered locally, appends the next card without rebuilding the grid,
   rebuilds the tree once (`setNewIds` before `setTree`, no re-append of
   the tree node); the strip shows a count when capped at 48; keyboard:
-  1–4 answer the focused card, Enter opens the strip.
+  1–4 answer the focused card, Enter opens the strip. **Placed by hand,
+  reviewable (new):** the media list's folder filter gains *Placed by hand*
+  (the `_vergeml_placed_by = user` rows — the 61 towers-in-Server-racks
+  case), the word `by you` already on the row; a picture dragged out of
+  that folder by the owner clears the mark, so the next fill may judge it
+  again. An answer's result line says how many it placed by hand ("61
+  placed by you — review them" linking to that filter).
 - **Proof:** `folders.spec`: 30 planted questions; a 409 intercepted →
   its text on the card; `guide/answer` response has no `questions[].sample`;
   one `MutationObserver` childList batch on `.vgml-list` per answer; the
-  answered card is the same DOM node after; a timing row printed (answer
-  round trip on the box, and the same on Playground for the plugin's own
-  cost). Mutations: the defer removed → the query-count row red; the
-  re-append restored → the observer row red.
+  answered card is the same DOM node after; a timing row printed **on both
+  sites** — the box (the customer's worst case, 36 plugins) and Playground
+  (the plugin's own cost) — with the plugin's own answer round trip under
+  400 ms at 30 questions. `modes.spec`: the filter lists exactly the
+  placed-by-hand rows; a drag out clears the mark (`filing-trail` row).
+  Mutations: the defer removed → the query-count row red; the re-append
+  restored → the observer row red; the mark not cleared → the drag row red.
 - **Mirror:** S5's questions view; `tests/ui/folders.spec.mjs` "the Fill
   step asks".
 - **Copy:** none new.
@@ -516,15 +557,61 @@ at most, the rest one card — his number to change.
   returned seed any class already rank-0 on a stored profile and logs it;
   the describer's schema description matches its prompt ("specific;
   class"); `class_match` folds British/American spellings and irregular
-  plurals from a small table and floors the cosine path at 0.6.
+  plurals from a small table and floors the cosine path at 0.6; a class
+  that is a kind word (`diagram`, `screenshot`, `illustration`, `photo`,
+  `document`, `logo`) is never accepted as a class — it moves to `kinds`.
+  **Classes on the tree (new):** on the Tree step, a folder's row carries
+  its classes as quiet pills after the name (`vgml-meta` grammar, three at
+  most, "+2"), so *Components · electronics component · semiconductor
+  component* is read before it is confirmed; a pill is removable (`×`, the
+  class leaves the profile, `by: you`) and a class can be typed in the
+  row's `+` editor with a leading `#` (`#pc internals`). **Profile undo
+  (new):** the previous profile is kept in term meta
+  (`_vergeml_filing_profile_prev`); Unconfirm offers *Restore the earlier
+  classes* when one exists; a confirm's planner answer that replaced a
+  profile is undoable for a day like a Move.
 - **Proof:** vitest: the prompt text carries the terms and the one-folder
   rule; `describe.test.ts` asserts the schema description contains ";";
   `pick.php`: `class_match('data centre','data center') === 1.0`; a
-  planner answer with a neighbour's class → dropped, logged. Mutations:
+  planner answer with a neighbour's class → dropped, logged; a planner
+  answer with `diagram` as a class → `kinds` gains it, `classes` does not.
+  `folders.spec`: the class pills on a confirmed-tree row match the stored
+  profile; `×` on one removes it from the draft's classes and the fit
+  re-runs; `#word` in the add editor lands in classes; Unconfirm → Restore
+  puts the previous profile back (the `sticky` suite's shape). Mutations:
   the rule line removed → the prompt test red; the fold table emptied →
-  the pick row red.
+  the pick row red; the kind-word guard removed → the `diagram` row red;
+  the previous profile not written → the Restore row red.
 - **Mirror:** `core/guide.php:513-528` (the summary's top terms);
   `lib/name-group.test.ts` for the prompt-test shape.
 - **Copy:** none on screen.
 - **Do not:** re-profile the box's folders by script to prove it (a
   planner call, metered; Nathan's call, through the screen).
+
+## C.5 · A second library, a different shape — Opus prepares, Nathan pays and judges
+
+- **Files:** `tools/box-seed-*.php` (a new seed script for the second
+  library, in the shape of `tools/box-seed-technews.php`),
+  `tests/tree/filing-baseline.txt` (a second band, keyed by library),
+  `docs/handoffs/` for the numbers.
+- **Behaviour:** a second real library on the box's network site
+  (`/var/www/ms2`, so the tech library is untouched): a different shape on
+  purpose — a shop's catalogue (300+ folders, few pictures each, `photo;
+  product` everywhere) or a portrait photographer's (`photo; person` on
+  every row, folders by client and year). Describe it (say the cost first:
+  ≈ €0.0048 a picture, so 500 pictures ≈ €2.40), propose, confirm, fill
+  through the screen — Nathan presses, as A.5 — and take the sheet. The
+  cap K, the grouping thresholds and 1/k are judged there, not moved by
+  feel: if one fails on the second shape, the handoff names which and the
+  fix is a rule that reads the shape (folder count, pictures per folder),
+  never a new constant.
+- **Proof:** the second library's line in `filing-baseline.txt`; the
+  sheet's two numbers for it in the handoff beside the tech library's;
+  `folders.spec` green on the second site at 1600 and 1280 (the word
+  budget holds at 300 folders because the parents are closed).
+- **Mirror:** A.5 (the walk), this phase's sheet gate, `hetzner-box-fixtures`
+  memory for the network site.
+- **Copy:** none.
+- **Do not:** describe the whole of a large second library to prove a
+  point (a subset of 500 says the same); run it on the tech library's site
+  (the baseline there is the reference).
