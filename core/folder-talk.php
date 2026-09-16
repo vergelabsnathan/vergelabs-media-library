@@ -64,6 +64,9 @@ const VERGEML_TALK_KICK_SLICE = 50;
 const VERGEML_TALK_KICK_BUDGET = 10.0;
 const VERGEML_TALK_PASS_LOCK  = 'vergeml_talk_passing';
 
+/** The counts so far, written every two seconds inside a pass, read by the poll (S10.0). */
+const VERGEML_TALK_BEAT = 'vergeml_talk_beat';
+
 /** Where a re-filing job remembers what it has done. */
 const VERGEML_TALK_STATE = 'vergeml_talk_refile';
 
@@ -998,6 +1001,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		'ticked'   => time(),
 	);
 
+	delete_transient( VERGEML_TALK_BEAT ); // An older run's heartbeat never reads as this one's.
 	update_option( VERGEML_TALK_STATE, $state, false );
 
 	// The answer is "running, nothing seen yet"; the passes are cron's, and
@@ -1061,6 +1065,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 	 */
 	$undo = array();
 	$pass = 0;
+	$beat = microtime( true );
 
 	/*
 	 *  What this pass did and why, for the librarian's own record.
@@ -1135,6 +1140,18 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			// place to carry on from rather than a sample to take again.
 			$state['after'] = $attachment;
 			$state['seen']  = (int) $state['seen'] + 1;
+
+			/*
+			 *  A heartbeat every two seconds (S10.0). The state is written once
+			 *  a pass, and on the shop a pass is the whole fill -- 626 pictures
+			 *  in 27 s -- so the screen polled a zero for half a minute, said
+			 *  "nothing moved", and then was done (Nathan, 2026-09-16). What
+			 *  the poll reads while a pass runs is this: the counts so far.
+			 */
+			if ( microtime( true ) - $beat >= 2 ) {
+				$beat = microtime( true );
+				set_transient( VERGEML_TALK_BEAT, array( 'seen' => (int) $state['seen'], 'moved' => (int) $state['moved'], 'by_term' => $state['by_term'], 'tally' => $state['tally'], 'ticked' => time() ), 300 );
+			}
 
 			// The second axis: terms whose value the record names, added, never replacing what is there.
 			if ( ! empty( $state['tags'] ) ) {
@@ -1351,6 +1368,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 	$state['ticked'] = time();
 	update_option( VERGEML_TALK_STATE, $state, false );
 	delete_transient( VERGEML_TALK_PASS_LOCK );
+	delete_transient( VERGEML_TALK_BEAT );
 
 	vergeml_talk_trail_write( $trail );
 
@@ -1635,6 +1653,14 @@ function vergeml_talk_refile_event() {
  */
 function vergeml_talk_report( $state ) {
 
+	// The counts a running pass has reached since the state was last written (the heartbeat, S10.0).
+	if ( ! empty( $state['active'] ) ) {
+		$beat = get_transient( VERGEML_TALK_BEAT );
+		if ( is_array( $beat ) && (int) $beat['seen'] > (int) ( isset( $state['seen'] ) ? $state['seen'] : 0 ) ) {
+			$state = array_merge( $state, $beat );
+		}
+	}
+
 	$moved   = isset( $state['moved'] ) ? (int) $state['moved'] : 0;
 	$counts  = isset( $state['counts'] ) ? (array) $state['counts'] : array();
 	$total   = isset( $state['total'] ) ? (int) $state['total'] : 0;
@@ -1710,6 +1736,7 @@ function vergeml_talk_refile_stop() {
 		$state['stopped'] = true;
 		$state['remove']  = array();
 		update_option( VERGEML_TALK_STATE, $state, false );
+		delete_transient( VERGEML_TALK_BEAT );
 		wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
 
 		if ( function_exists( 'vergeml_folders_moved' ) ) {

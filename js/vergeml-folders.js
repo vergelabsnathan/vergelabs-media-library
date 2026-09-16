@@ -778,8 +778,10 @@
 		dom.qs.hidden = ! ( asking && 'fill' === state.step );
 		renderQuestions();
 
-		// The parents open only while the fill paints its bars (every row landed of total, the approved running mock); closed otherwise.
-		var openAll = running() && 'fill' === state.step;
+		// The parents open only while the fill paints its bars (every row landed of total, the approved running mock) -- and only
+		// when the whole tree fits on a screen. At 322 folders (the shop, 2026-09-16) opening every parent pushed the button the
+		// person had just pressed off the page; a closed parent carries its branch total and climbs the same.
+		var openAll = running() && 'fill' === state.step && state.nodes.length <= 40;
 		if ( view && view.openAll !== openAll ) {
 			view.openAll = openAll;
 			view.openOverride = {};
