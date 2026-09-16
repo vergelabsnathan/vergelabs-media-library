@@ -203,5 +203,30 @@ f_check( '16b show-me on a sibling question: the pictures, not their best childr
 
 f_check( '17 an answer the question does not offer is refused', null === vergeml_filing_answer_plan( $questions[4], 'new-folder' ) && null === vergeml_filing_answer_plan( $questions[0], 'leave' ) && null === vergeml_filing_answer_plan( $questions[1], 'put-in:5' ) && null === vergeml_filing_answer_plan( $questions[1], 'delete' ), '' );
 
+echo "\n== either/or: two folders that are not siblings, too close to call (C.1)\n";
+
+/*
+ *  Three pictures tied between Hardware (4) and Server racks (2) -- different
+ *  parents, so the sibling rule never fired and, until 2026-09-15, they fell
+ *  into the residue by their object word. Two were nearer Server racks.
+ */
+$either = array(
+    '2:4' => array( 'ids' => array( 301 => 2, 302 => 4, 303 => 2 ), 'children' => array( 2 => 2, 4 => 1 ) ),
+);
+$with   = vergeml_filing_questions( $groups, $siblings, $names, $nearest, $either );
+f_check( '18 the either question sits after the sibling one and before the residue', 6 === count( $with ) && array( 'siblings', 'either', 'residue', 'residue', 'residue', 'residue' ) === array_column( $with, 'kind' ), json_encode( array_column( $with, 'id' ) ) );
+$q = $with[1];
+f_check( '19 its shape: id e:2:4, no term, children by how often best (2, 4), count 3, put-in:2 / put-in:4 / split / leave / show-me', 'e:2:4' === $q['id'] && 0 === $q['term_id'] && array( 2, 4 ) === $q['children'] && 3 === $q['count'] && array( 301, 302, 303 ) === $q['sample'] && array( 'put-in:2', 'put-in:4', 'split', 'leave', 'show-me' ) === $q['answers'], json_encode( array( $q['id'], $q['term_id'], $q['children'], $q['count'], $q['sample'], $q['answers'] ) ) );
+
+$map3 = array( 301 => 0, 302 => 0, 303 => 0 );
+$plan = vergeml_filing_answer_plan( $q, 'split' );
+f_check( '20 split: each to its own best of the two, not by hand', ! empty( $plan['answered'] ) && array( 301 => 2, 302 => 4, 303 => 2 ) === f_apply( $map3, $plan ) && empty( $plan['placed_by'] ), json_encode( f_apply( $map3, $plan ) ) );
+$plan = vergeml_filing_answer_plan( $q, 'put-in:4' );
+f_check( '21 put-in:4: all three into Hardware, by hand', ! empty( $plan['answered'] ) && array( 4, 4, 4 ) === array_values( f_apply( $map3, $plan ) ) && ! empty( $plan['placed_by'] ) && null === $plan['make'], json_encode( f_apply( $map3, $plan ) ) );
+$plan = vergeml_filing_answer_plan( $q, 'leave' );
+f_check( '22 leave: all three into To sort', ! empty( $plan['answered'] ) && array( 98, 98, 98 ) === array_values( f_apply( $map3, $plan ) ), json_encode( f_apply( $map3, $plan ) ) );
+$plan = vergeml_filing_answer_plan( $q, 'show-me' );
+f_check( '23 show-me: the pictures, not their folders; keep-parent and new-folder refused', empty( $plan['answered'] ) && array( 301, 302, 303 ) === $plan['show'] && null === vergeml_filing_answer_plan( $q, 'keep-parent' ) && null === vergeml_filing_answer_plan( $q, 'new-folder' ), json_encode( $plan['show'] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

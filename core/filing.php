@@ -348,6 +348,24 @@ function vergeml_filing_settle_claims( $profiles ) {
             $profiles[ $loser ]['classes'] = $classes;
         }
     }
+
+    /*
+     *  How many folders hold each word, plural folded, counted once for the
+     *  set and carried on every profile. On the box (2026-09-15) the planner
+     *  put `infrastructure` on five folders and `people` on three; a hit on
+     *  such a word scored the same on every one of them, so the matcher tied
+     *  and abstained -- 109 of 388 residue. In the pick a class on k folders
+     *  is worth 1/k: a word everyone holds tells nobody apart.
+     */
+    $shared = array();
+    foreach ( $profiles as $p ) {
+        foreach ( array_unique( array_map( 'vergeml_filing_group_key', (array) $p['classes'] ) ) as $key ) {
+            $shared[ $key ] = isset( $shared[ $key ] ) ? $shared[ $key ] + 1 : 1;
+        }
+    }
+    foreach ( $profiles as $tid => $p ) {
+        $profiles[ $tid ]['shared'] = $shared;
+    }
     return $profiles;
 }
 
@@ -428,7 +446,9 @@ function vergeml_filing_facts( $row ) {
  *              and the parent is asked about once for the whole group.
  *    nothing   below the floor, every folder gated, or too close to call
  *              between two folders that are not siblings. Not placed; the
- *              run groups these and asks.
+ *              run groups these and asks -- the last kind as one either/or
+ *              question per pair of folders ('children' => the two), the
+ *              rest as residue by what they look like.
  *
  *  Abstaining between two siblings was the largest hole in the 2026-09-14
  *  Move: 232 of 513 unfiled pictures were a data-centre photo scoring close
@@ -446,9 +466,10 @@ function vergeml_filing_facts( $row ) {
  *                'parent_id', 'score', 'runner_up', 'runner_score',
  *                'confidence' ('sure' | 'likely' | ''), 'why' ('ok' |
  *                'siblings' | 'floor' | 'margin' | 'gated' | 'placed' | 'locked'),
- *                'children' (siblings: the two), 'nearest' (nothing: the
- *                folder it came closest to), 'scores' (term id => score),
- *                'gated' (term id => 'kind' | 'audience' | 'locked').
+ *                'children' (siblings, and a margin between non-siblings: the
+ *                two), 'nearest' (nothing: the folder it came closest to),
+ *                'kind' (gated everywhere: the picture's kind), 'scores'
+ *                (term id => score), 'gated' (term id => 'kind' | 'audience' | 'locked').
  */
 function vergeml_filing_pick( $facts, $profiles ) {
 
@@ -486,12 +507,26 @@ function vergeml_filing_pick( $facts, $profiles ) {
          *  (object, bicycle, gadget) both claimed a road bike outright and the
          *  picture was too close to call. The folder that is *for* bicycles
          *  wins by the weight a secondary class does not carry.
+         *
+         *  Three more weights, from the box (2026-09-15, S6b): the picture's
+         *  first phrase is the object, the second its class, so the second
+         *  weighs 0.85 -- "server rack; computer hardware" is a server rack
+         *  before it is hardware; the folder's own name is what it is for
+         *  wherever the planner ranked it, so an exact hit on it weighs 1.0;
+         *  and a class held by k folders is worth 1/k on each, so a word
+         *  everyone holds cannot outscore the folder named for the object.
          */
-        $class = 0.0;
-        foreach ( (array) $facts['classes'] as $pc ) {
+        $class  = 0.0;
+        $leaf   = vergeml_filing_group_key( vergeml_filing_name_class( isset( $p['path'] ) && $p['path'] ? end( $p['path'] ) : '' ) );
+        $shared = isset( $p['shared'] ) ? (array) $p['shared'] : array();
+        foreach ( array_values( (array) $facts['classes'] ) as $pi => $pc ) {
+            $phrase = 0 === $pi ? 1.0 : 0.85;
             foreach ( array_values( (array) $p['classes'] ) as $rank => $fc ) {
-                $weight = 0 === $rank ? 1.0 : 0.85;
-                $class  = max( $class, $weight * vergeml_filing_class_match( $pc, $fc ) );
+                $match   = vergeml_filing_class_match( $pc, $fc );
+                $is_leaf = '' !== $leaf && vergeml_filing_group_key( $fc ) === $leaf;
+                $weight  = ( 0 === $rank || ( $is_leaf && $match >= 1.0 ) ) ? 1.0 : 0.85;
+                $k       = $is_leaf ? 1 : max( 1, (int) ( isset( $shared[ vergeml_filing_group_key( $fc ) ] ) ? $shared[ vergeml_filing_group_key( $fc ) ] : 1 ) );
+                $class   = max( $class, $phrase * $weight * $match / $k );
                 if ( $class >= 1.0 ) {
                     break 2;
                 }
@@ -511,7 +546,8 @@ function vergeml_filing_pick( $facts, $profiles ) {
     }
 
     if ( ! $scores ) {
-        return vergeml_filing_outcome( 'nothing', 'gated', array( 'scores' => array(), 'gated' => $gated ) );
+        // Gated everywhere, most often by kind: the kind rides out, so the residue can group screenshots with screenshots.
+        return vergeml_filing_outcome( 'nothing', 'gated', array( 'scores' => array(), 'gated' => $gated, 'kind' => (string) $facts['kind'] ) );
     }
 
     arsort( $scores );
@@ -571,7 +607,14 @@ function vergeml_filing_pick( $facts, $profiles ) {
                 'children'   => array( $best, $runner ),
             ) );
         }
-        return vergeml_filing_outcome( 'nothing', 'margin', $common + array( 'nearest' => $best ) );
+        /*
+         *  Two folders that are not siblings under a folder, too close to
+         *  call: not placed, and not residue either. "Hardware or Server
+         *  racks?" is a question a person answers in one press, and until
+         *  2026-09-15 it was never asked -- the picture fell into the residue
+         *  by its object word and was named after something else.
+         */
+        return vergeml_filing_outcome( 'nothing', 'margin', $common + array( 'nearest' => $best, 'children' => array( $best, $runner ) ) );
     }
 
     return vergeml_filing_outcome( 'fits', 'ok', $common + array(
@@ -660,6 +703,7 @@ function vergeml_filing_tally_fresh() {
         'siblings' => 0,
         'nothing'  => 0,
         'kept'     => 0, // Placed by the user, or sitting in a locked folder: looked at, left alone, not asked about.
+        'either'   => 0, // Of 'nothing': too close to call between two folders that are not siblings; asked as either/or, not residue.
         'sure'     => 0,
         'likely'   => 0,
         'why'      => array( 'floor' => 0, 'margin' => 0, 'gated' => 0 ),
@@ -683,6 +727,14 @@ function vergeml_filing_tally( &$counts, $pick ) {
     } elseif ( isset( $counts['why'][ $pick['why'] ] ) ) {
         $counts['why'][ $pick['why'] ]++;
     }
+    if ( vergeml_filing_is_either( $pick ) ) {
+        $counts['either'] = ( isset( $counts['either'] ) ? (int) $counts['either'] : 0 ) + 1;
+    }
+}
+
+/** A pick that is an either/or question: not placed, two folders too close to call, not siblings under a folder. */
+function vergeml_filing_is_either( $pick ) {
+    return isset( $pick['outcome'], $pick['children'] ) && 'nothing' === $pick['outcome'] && 'margin' === $pick['why'] && 2 === count( (array) $pick['children'] );
 }
 
 /** A pick the fill acts on in no way: placed by the user, or in a locked folder. Looked at, kept, no row. */
@@ -692,7 +744,7 @@ function vergeml_filing_kept( $pick ) {
 
 /** Two tallies into one: the run adds each slice's to the state's. */
 function vergeml_filing_tally_add( $a, $b ) {
-    foreach ( array( 'looked', 'fits', 'siblings', 'nothing', 'kept', 'sure', 'likely' ) as $k ) {
+    foreach ( array( 'looked', 'fits', 'siblings', 'nothing', 'kept', 'either', 'sure', 'likely' ) as $k ) {
         $a[ $k ] = (int) ( isset( $a[ $k ] ) ? $a[ $k ] : 0 ) + (int) ( isset( $b[ $k ] ) ? $b[ $k ] : 0 );
     }
     foreach ( array( 'why', 'by_term' ) as $map ) {
@@ -857,10 +909,11 @@ function vergeml_filing_centroid( $vectors ) {
  *  The questions, from the groups and the sibling tally.
  *
  *  One per parent that took pictures two of its children tied over, first;
- *  then one per residue group, by size; the unreadable one last. The shape
- *  is what /guide/questions serves and /guide/answer takes:
+ *  then one per pair of folders that are not siblings and tied ("Hardware or
+ *  Server racks?"); then one per residue group, by size; the unreadable one
+ *  last. The shape is what /guide/questions serves and /guide/answer takes:
  *
- *    { id, kind: 'siblings'|'residue', term_id, children, count, sample,
+ *    { id, kind: 'siblings'|'either'|'residue', term_id, children, count, sample,
  *      ids, name, class, unreadable, answers: [...] }
  *
  *  The answers are the words a question offers, and vergeml_filing_answer_plan()
@@ -871,8 +924,9 @@ function vergeml_filing_centroid( $vectors ) {
  *  @param array $siblings parent term id => [ 'ids' => attachment => best child, 'children' => child => n ].
  *  @param array $names    group index => name from the naming call; missing = the class word.
  *  @param array $nearest  group index => nearest folder term id, 0 for none.
+ *  @param array $either   "a:b" (the two term ids, lower first) => [ 'ids' => attachment => its best of the two, 'children' => term => n ].
  */
-function vergeml_filing_questions( $groups, $siblings, $names = array(), $nearest = array() ) {
+function vergeml_filing_questions( $groups, $siblings, $names = array(), $nearest = array(), $either = array() ) {
 
     $out = array();
 
@@ -892,6 +946,32 @@ function vergeml_filing_questions( $groups, $siblings, $names = array(), $neares
             'class'      => '',
             'unreadable' => false,
             'answers'    => array( 'keep-parent', 'split', 'show-me' ),
+        );
+    }
+
+    // Either/or: the folder more often best is named first and offered first. Largest pairs first.
+    $pairs = (array) $either;
+    uasort( $pairs, function ( $a, $b ) { return count( (array) $b['ids'] ) <=> count( (array) $a['ids'] ); } );
+    foreach ( $pairs as $key => $e ) {
+        $ids      = isset( $e['ids'] ) ? (array) $e['ids'] : array();
+        $children = isset( $e['children'] ) ? (array) $e['children'] : array();
+        arsort( $children );
+        $two = array_map( 'intval', array_slice( array_keys( $children ), 0, 2 ) );
+        if ( 2 !== count( $two ) || ! $ids ) {
+            continue;
+        }
+        $out[] = array(
+            'id'         => 'e:' . (string) $key,
+            'kind'       => 'either',
+            'term_id'    => 0,
+            'children'   => $two,
+            'count'      => count( $ids ),
+            'sample'     => array_map( 'intval', array_slice( array_keys( $ids ), 0, VERGEML_FILING_SAMPLE ) ),
+            'ids'        => array_map( 'intval', $ids ),
+            'name'       => '',
+            'class'      => '',
+            'unreadable' => false,
+            'answers'    => array( 'put-in:' . $two[0], 'put-in:' . $two[1], 'split', 'leave', 'show-me' ),
         );
     }
 
@@ -946,23 +1026,27 @@ function vergeml_filing_answer_plan( $q, $answer ) {
 
     $plan = array( 'answer' => $answer, 'moves' => array(), 'make' => null, 'placed_by' => false, 'show' => null, 'answered' => true );
 
+    // A sibling or either/or question's ids are a map picture => its best folder (split reads it); the pictures are its keys.
+    $mapped = in_array( $q['kind'], array( 'siblings', 'either' ), true );
+
     if ( 'show-me' === $answer ) {
-        // A sibling question's ids are a map picture => best child (split reads it); the pictures are its keys.
-        $plan['show']     = 'siblings' === $q['kind'] ? array_map( 'intval', array_keys( (array) $q['ids'] ) ) : array_values( (array) $q['ids'] );
+        $plan['show']     = $mapped ? array_map( 'intval', array_keys( (array) $q['ids'] ) ) : array_values( (array) $q['ids'] );
         $plan['answered'] = false;
         return $plan;
     }
 
-    if ( 'siblings' === $q['kind'] ) {
-        if ( 'split' === $answer ) {
-            foreach ( (array) $q['ids'] as $id => $best ) {
-                $plan['moves'][ (int) $id ] = (int) $best;
-            }
+    if ( $mapped && 'split' === $answer ) {
+        // The matcher's own best of the two, so the word on each stays the fill's, not the user's.
+        foreach ( (array) $q['ids'] as $id => $best ) {
+            $plan['moves'][ (int) $id ] = (int) $best;
         }
+        return $plan;
+    }
+    if ( 'siblings' === $q['kind'] ) {
         return $plan; // keep-parent: they are in the parent already.
     }
 
-    $ids = array_values( (array) $q['ids'] );
+    $ids = $mapped ? array_map( 'intval', array_keys( (array) $q['ids'] ) ) : array_values( (array) $q['ids'] );
 
     if ( 'new-folder' === $answer ) {
         $plan['make']      = (string) $q['name'];

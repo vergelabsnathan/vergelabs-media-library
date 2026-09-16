@@ -280,7 +280,7 @@ $fw_report = vergeml_talk_report( $fw_state );
 fw_check( 'E2 the run ended and looked at every described picture', empty( $fw_state['active'] ) && count( $fw_described ) === (int) $fw_report['seen'], sprintf( '%d seen in %d passes, %.1fs', (int) $fw_report['seen'], $fw_passes, microtime( true ) - $fw_t2 ) );
 echo '  run:     ' . fw_tally_line( $fw_report['tally'] ) . "\n";
 
-$fw_same = array( 'looked', 'fits', 'siblings', 'nothing', 'kept', 'sure', 'likely' );
+$fw_same = array( 'looked', 'fits', 'siblings', 'nothing', 'kept', 'either', 'sure', 'likely' );
 $fw_diff = array();
 foreach ( $fw_same as $fw_k ) {
     if ( (int) $fw_fit['tally'][ $fw_k ] !== (int) $fw_report['tally'][ $fw_k ] ) {

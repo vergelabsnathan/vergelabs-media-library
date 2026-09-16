@@ -957,6 +957,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		// What the fill could not place, and what it placed in a parent because two children tied: the questions are made from these when the run ends.
 		'residue'  => array(),
 		'siblings' => array(),
+		'either'   => array(),
 		'questions' => array(),
 		'names'    => array(),
 		'after'    => 0,
@@ -1015,7 +1016,7 @@ function vergeml_talk_refile_run( $deadline ) {
 	}
 
 	// A Move already in flight across the deploy that added these.
-	foreach ( array( 'residue' => array(), 'siblings' => array(), 'questions' => array(), 'names' => array(), 'tally' => vergeml_filing_tally_fresh() ) as $k => $fresh ) {
+	foreach ( array( 'residue' => array(), 'siblings' => array(), 'either' => array(), 'questions' => array(), 'names' => array(), 'tally' => vergeml_filing_tally_fresh() ) as $k => $fresh ) {
 		if ( ! isset( $state[ $k ] ) || ! is_array( $state[ $k ] ) ) {
 			$state[ $k ] = $fresh;
 		}
@@ -1194,8 +1195,21 @@ function vergeml_talk_refile_run( $deadline ) {
 				$state['skipped'] = (int) $state['skipped'] + 1;
 				$why              = isset( $pick['why'] ) ? $pick['why'] : 'floor';
 				$state['unfiled'][ $why ] = isset( $state['unfiled'][ $why ] ) ? (int) $state['unfiled'][ $why ] + 1 : 1;
-				// The residue: grouped and asked about when the run ends, never left in no folder.
-				$state['residue'][] = $attachment;
+				if ( vergeml_filing_is_either( $pick ) ) {
+					/*
+					 *  Too close to call between two folders that are not siblings:
+					 *  one either/or question per pair, each picture remembered with
+					 *  its own best of the two so "split" can file it there.
+					 */
+					$two = array_map( 'intval', (array) $pick['children'] );
+					$key = min( $two ) . ':' . max( $two );
+					$state['either'][ $key ]['ids'][ $attachment ] = $two[0];
+					$state['either'][ $key ]['children'][ $two[0] ] = isset( $state['either'][ $key ]['children'][ $two[0] ] ) ? $state['either'][ $key ]['children'][ $two[0] ] + 1 : 1;
+					$state['either'][ $key ]['children'][ $two[1] ] = isset( $state['either'][ $key ]['children'][ $two[1] ] ) ? $state['either'][ $key ]['children'][ $two[1] ] : 0;
+				} else {
+					// The residue: grouped and asked about when the run ends, never left in no folder.
+					$state['residue'][] = $attachment;
+				}
 
 				// Left alone, and now on the record as left alone: the word,
 				// the score it did reach, and the folder it could not beat.
@@ -1934,6 +1948,7 @@ function vergeml_talk_questions_build( &$state ) {
 	$taxonomy = (string) $state['taxonomy'];
 	$residue  = array_values( array_unique( array_map( 'intval', (array) ( isset( $state['residue'] ) ? $state['residue'] : array() ) ) ) );
 	$siblings = isset( $state['siblings'] ) ? (array) $state['siblings'] : array();
+	$either   = isset( $state['either'] ) ? (array) $state['either'] : array();
 
 	$facts    = array();
 	$captions = array();
@@ -1980,7 +1995,7 @@ function vergeml_talk_questions_build( &$state ) {
 		}
 	}
 
-	return vergeml_filing_questions( $groups, $siblings, $names, $nearest );
+	return vergeml_filing_questions( $groups, $siblings, $names, $nearest, $either );
 }
 
 /** The folder whose profile vector is nearest a group's centroid; 0 when none is near enough to offer, or the nearest is locked. */
@@ -2058,7 +2073,7 @@ function vergeml_talk_question_text( $q, $taxonomy ) {
 		'split'       => __( 'Split them by best score', 'vergelabs-media-library' ),
 		'new-folder'  => sprintf( /* translators: %s: the folder to make */ __( 'New folder %s', 'vergelabs-media-library' ), (string) $q['name'] ),
 		'leave'       => __( 'Leave them', 'vergelabs-media-library' ),
-		'show-me'     => 'siblings' === $q['kind'] ? __( 'Let me look', 'vergelabs-media-library' ) : __( 'Show me', 'vergelabs-media-library' ),
+		'show-me'     => in_array( $q['kind'], array( 'siblings', 'either' ), true ) ? __( 'Let me look', 'vergelabs-media-library' ) : __( 'Show me', 'vergelabs-media-library' ),
 	);
 
 	$answers = array();
@@ -2075,6 +2090,10 @@ function vergeml_talk_question_text( $q, $taxonomy ) {
 		$kids = array_map( $name, (array) $q['children'] );
 		/* translators: 1: pictures, 2: one folder, 3: its sibling */
 		$text = sprintf( _n( '%1$s picture fits both %2$s and %3$s.', '%1$s pictures fit both %2$s and %3$s.', (int) $q['count'], 'vergelabs-media-library' ), $n, isset( $kids[0] ) ? $kids[0] : '', isset( $kids[1] ) ? $kids[1] : '' );
+	} elseif ( 'either' === $q['kind'] ) {
+		$kids = array_map( $name, (array) $q['children'] );
+		/* translators: 1: pictures, 2: one folder, 3: another folder, not its sibling */
+		$text = sprintf( _n( '%1$s picture: %2$s or %3$s?', '%1$s pictures: %2$s or %3$s?', (int) $q['count'], 'vergelabs-media-library' ), $n, isset( $kids[0] ) ? $kids[0] : '', isset( $kids[1] ) ? $kids[1] : '' );
 	} elseif ( ! empty( $q['unreadable'] ) ) {
 		/* translators: %s: pictures */
 		$text = sprintf( __( '%s I can\'t read', 'vergelabs-media-library' ), $n );
