@@ -166,7 +166,14 @@ function vergeml_seed_get( $url, $tries = 4 ) {
 }
 
 $api  = 'https://commons.wikimedia.org/w/api.php';
-$per  = (int) ceil( $want / count( $subjects ) ) + 6;
+/*
+ *  How many a subject may take, and how many the search asks for. Without
+ *  the cap the first run took eleven a subject and reached 500 at the 48th
+ *  of 88: eight departments with nothing in them. VGML_SEED_PER overrides,
+ *  for a top-up over the subjects the first run never reached.
+ */
+$cap  = max( 1, (int) ( getenv( 'VGML_SEED_PER' ) ? getenv( 'VGML_SEED_PER' ) : ceil( $want / count( $subjects ) ) ) );
+$per  = $cap + 6;
 $seen = array();
 $made = 0;
 
@@ -175,7 +182,7 @@ foreach ( (array) $wpdb->get_col( "SELECT guid FROM {$wpdb->posts} WHERE post_ty
     $seen[ strtolower( basename( (string) $guid ) ) ] = true;
 }
 
-printf( "seeding up to %d pictures across %d subjects, %d each, on %s\n\n", $want, count( $subjects ), $per, home_url() );
+printf( "seeding up to %d pictures across %d subjects, at most %d each, on %s\n\n", $want, count( $subjects ), $cap, home_url() );
 
 foreach ( $subjects as $query => $leaf ) {
 
@@ -224,7 +231,7 @@ foreach ( $subjects as $query => $leaf ) {
 
     foreach ( $pages as $page ) {
 
-        if ( $made >= $want ) {
+        if ( $made >= $want || $took >= $cap ) {
             break;
         }
 
