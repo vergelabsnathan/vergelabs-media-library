@@ -34,15 +34,21 @@ Preview = run was not measurable this time: the spec's restore had
 dropped the fit tally from the session (the earlier handoff says so).
 
 **The 60-picture sample — Nathan's verdict, 2026-09-16** (sheet
-, 30 sure of 499,
+`docs/superpowers/mocks/shots/2026-09-15-quality-sample.html`, 30 sure of 499,
 30 likely of 113, batch 133; a third mark, *too broad*, added at his ask):
 
-\
+```
+sure:   14/30 right (47 %)  ·  bar 95  ·  wrong #2 106603, #3 106029, #4 106468, #6 106027, #9 106224, #11 106798, #14 106075,
+                                          #17 106729, #19 106535, #20 106728, #21 106209, #23 106441, #24 106074, #26 106203, #27 106061, #30 105969
+likely: 12/30 right (40 %)  ·  bar 80  ·  too broad 11: 106102, 106631, 106609, 106622, 106611, 106627, 105932, 106633, 106002, 106623, 106614
+                                          wrong 7: 106238, 106079, 106085, 105826, 105883, 105875, 105888
+```
+
 Both thresholds fail. Read against the fill's own rows, the 16 wrong
- are four kinds, none a threshold:
+`sure` are four kinds, none a threshold:
 
 - **A kind word as a class (3):** the planner gave Satellites the class
-  ; every diagram in the library (keyboard layout, speaker-tracking
+  `diagram`; every diagram in the library (keyboard layout, speaker-tracking
   schematic, controller test guide) went to Space / Satellites at 0.76–0.84
   with no runner-up. C.4 (a class is never a kind word) and C.1 (kind out).
 - **Parent instead of child, or the wrong child, through a shared class (6):**
@@ -51,17 +57,18 @@ Both thresholds fail. Read against the fill's own rows, the 16 wrong
   attendees → Interviews 0.86 over Conference talks 0.77; Ethernet switch →
   Server racks 0.77. The shared word outscored the folder's own name. C.1.
 - **The profile means something Nathan does not (7):** Components took
-  loose ICs and e-waste piles at 0.77–0.89 (); Conference talks took attendee and venue shots
-  (). The matcher did what the profile says. C.4: the
+  loose ICs and e-waste piles at 0.77–0.89 (`electronics component,
+  semiconductor component`); Conference talks took attendee and venue shots
+  (`event, people`). The matcher did what the profile says. C.4: the
   planner writes the folder in the describer's words *and* the owner's
   intent, and the owner sees the classes on the tree before confirming.
 
-The 11  are one pattern: eight wind turbines in *Energy* because
-Solar and Wind tie at 0.85 ( rank 0 on
+The 11 `too broad` are one pattern: eight wind turbines in *Energy* because
+Solar and Wind tie at 0.85 (`renewable energy infrastructure` rank 0 on
 Energy, Solar and Wind; Wind's own name rank 1) and the sibling rule keeps
 the parent; two PC towers in *Hardware* the same way (Components vs
 Laptops). C.1's leaf-name-at-1.0 and 1/k on the shared word, exactly. The
-seven  wrong: phones in Hardware (Phones vs Components tie), a
+seven `likely` wrong: phones in Hardware (Phones vs Components tie), a
 rack hallway in Data centres, a wafer, a factory in Cooling, a shop in
 Batteries — shared classes and vector noise below 0.70.
 
