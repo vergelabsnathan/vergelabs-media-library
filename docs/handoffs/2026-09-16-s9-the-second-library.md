@@ -68,9 +68,21 @@ the second shape. The fill's own tally (what Nathan's screen did, with the
 
 **The sheet:** `docs/superpowers/mocks/shots/2026-09-16-quality-sample-shop.html`,
 30 sure of 481, 30 likely of 32, fill batch 1; each card carries *fetched
-for* (the seed's leaf). **Nathan's marks are not in yet** — S10.5. Beside the
-tech library's C.4 sheet (sure 87 %, likely 57 %) it is the second pair the
-card asked for.
+for* (the seed's leaf). **Nathan's verdict (2026-09-16, after his answers):**
+
+```ntech (C.4 dry): sure 26/30 = 87 %  ·  likely 17/30 = 57 %  (bars 95 / 80)
+shop (fill 1):  sure 25/30 = 83 %  ·  likely 11/30 = 37 %, 11 too broad  ·  too broad 30, 348 · wrong 432, 239, 229 · likely wrong 178, 473, 242, 442, 478, 185, 476, 318
+```n
+His marks, read by folder: the five sure misses are single pictures (a
+bookcase in Books, an earring, a seeded perfume that is not one). **Six of
+the eight likely wrongs landed in Garden at 0.58–0.64** — mirrors, a table
+lamp, headphones, sandals — because Garden's planner profile is "power
+tool, architecture": batches that cannot see each other hung leftover
+words on a parent and made it a catch-all (S10.1's rule, S10.7's member
+profiles). Three of the broads are laptops in Electronics / Computers by
+the siblings rule (Keyboards and Laptops tie at 0.89/0.83). The table is in
+`tools/box-folder-quality.php` as `\` so the next shop sheet
+carries the marks.
 
 **Timings** (ms2, the paste's dry run, 626 × 319): cold 392 s → unknown
 (batches refused by the burst cap; one call each); warm 21–28 s → unknown

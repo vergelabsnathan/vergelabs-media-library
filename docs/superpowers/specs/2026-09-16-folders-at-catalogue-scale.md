@@ -54,7 +54,7 @@ Each story: one acceptance test written first, one mutation named, measured on *
 - Test: `tree-view.mjs` — hover on a closed parent renders N chips, leaves the tree's open state alone; `folders.spec` at 1600 and 1280 on ms2.
 
 ### S10.5 · The sheet's verdict on the second shape, and the constants
-- Nathan marks `2026-09-16-quality-sample-shop.html` (30 sure of 481, 30 likely of 32) and says what the 45 questions felt like: K = 8, the either/or cards (64 on the dry run), the small-groups card.
+- **Marked (2026-09-16): sure 25/30 = 83 %, likely 11/30 = 37 % with 11 too broad** (tech after C.4: 87 % / 57 %). The sure misses are single pictures; six of eight likely wrongs sit in *Garden* (planner profile "power tool, architecture" — batch noise on a parent: S10.1, S10.7), three broads are laptops in *Electronics / Computers* by the siblings rule. So the likely band on this shape is a profile finding before it is a threshold finding; no constant moves on this sheet.
 - If a constant fails here, the story is a rule that reads the shape (folder count, pictures per folder), never a new number — as the C.5 card says.
 - **What the 45 questions already said (read off the box, 2026-09-16):** 3 siblings, 41 either/or, 4 residue cards (6 illustrations, 5 diagrams, 37 in small groups, 1 with nothing).
   1. **A question that names two folders of the same name is unanswerable** — "10 pictures: Backpacks or Backpacks?", also Helmets, Jackets ×2, Furniture, Wheels: the seeded collisions, worded by leaf. Defect: `vergeml_talk_question_text()` carries the path whenever two named folders share a leaf ("Bags & Luggage › Backpacks or Camping › Backpacks?"). Test in `residue.php`; mutation: the path dropped → red.

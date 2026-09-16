@@ -596,7 +596,7 @@ describes on a second library — his call and his cost.
 - **Do not:** re-profile the box's folders by script to prove it (a
   planner call, metered; Nathan's call, through the screen).
 
-## C.5 · A second library, a different shape — Opus prepares, Nathan pays and judges (walked 2026-09-16, S9: 626 product photos under a 318-folder catalogue on /var/www/ms2, €3.00 of describes + €0.23 of profiling; dry band fits 507/626, sure 482, either 64; five findings, none the matcher's, became the epic `docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md`; the sheet's verdict and the constants' judgement are S10.5; handoff 2026-09-16-s9-the-second-library.md)
+## C.5 · A second library, a different shape — Opus prepares, Nathan pays and judges (walked 2026-09-16, S9: 626 product photos under a 318-folder catalogue on /var/www/ms2, €3.00 of describes + €0.23 of profiling; dry band fits 507/626, sure 482, either 64; five findings, none the matcher's, became the epic `docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md`; the sheet: sure 25/30 = 83 %, likely 11/30 = 37 % (six likely wrongs in a planner-noised Garden), the constants unmoved — S10.5; handoff 2026-09-16-s9-the-second-library.md)
 
 - **Files:** `tools/box-seed-*.php` (a new seed script for the second
   library, in the shape of `tools/box-seed-technews.php`),

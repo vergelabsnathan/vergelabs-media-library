@@ -195,6 +195,76 @@ $bfq_c4 = array(
     105983 => array( 'likely', 'right', 'Hardware' ),
 );
 
+/*
+ *  The 2026-09-16 verdict on the shop library's fill sheet (C.5, batch 1;
+ *  Nathan): sure 25/30, likely 11/30 with 11 too broad. His reading held
+ *  by the handoff: six likely wrongs in Garden (planner profile "power
+ *  tool, architecture"), three laptops in Electronics / Computers by the
+ *  siblings rule. The site is /var/www/ms2 (VGML_SITE=shop); ids are its own.
+ */
+$bfq_shop = array(
+    367 => array( 'sure', 'right', 'Electronics / Cameras / Tripods' ),
+    375 => array( 'sure', 'right', 'Electronics / Cameras / Tripods' ),
+    114 => array( 'sure', 'right', 'Clothing / Accessories / Scarves' ),
+    382 => array( 'sure', 'right', 'Electronics / Gaming / Controllers' ),
+    372 => array( 'sure', 'right', 'Electronics / Cameras' ),
+    353 => array( 'sure', 'right', 'Electronics / Cameras / Digital cameras' ),
+    321 => array( 'sure', 'right', 'Electronics / Audio' ),
+    45 => array( 'sure', 'right', 'Clothing / Women / Heels' ),
+    53 => array( 'sure', 'right', 'Clothing / Men / Sandals' ),
+    516 => array( 'sure', 'right', 'Kitchen / Appliances / Kettles' ),
+    432 => array( 'sure', 'wrong', 'Books & Music / Books' ),
+    239 => array( 'sure', 'wrong', 'Beauty / Fragrance / Perfume' ),
+    413 => array( 'sure', 'right', 'Home / Furniture / Dining tables' ),
+    143 => array( 'sure', 'right', 'Bags & Luggage / Handbags' ),
+    102 => array( 'sure', 'right', 'Clothing' ),
+    510 => array( 'sure', 'right', 'Kitchen / Knives & Boards / Cutting boards' ),
+    323 => array( 'sure', 'right', 'Cars & Bikes / Motorbikes' ),
+    244 => array( 'sure', 'right', 'Beauty / Make-up / Lipstick' ),
+    509 => array( 'sure', 'right', 'Electronics / Gaming / Controllers' ),
+    566 => array( 'sure', 'right', 'Sports & Outdoors / Water sports / Surfboards' ),
+    99 => array( 'sure', 'right', 'Clothing / Accessories / Hats' ),
+    270 => array( 'sure', 'right', 'Bags & Luggage' ),
+    345 => array( 'sure', 'right', 'Electronics / Cameras / Digital cameras' ),
+    30 => array( 'sure', 'broad', 'Shoes' ),
+    128 => array( 'sure', 'right', 'Clothing / Accessories / Sunglasses' ),
+    348 => array( 'sure', 'broad', 'Electronics / Cameras / Digital cameras' ),
+    229 => array( 'sure', 'wrong', 'Jewellery & Watches / Earrings' ),
+    513 => array( 'sure', 'right', 'Kitchen / Appliances / Coffee machines' ),
+    309 => array( 'sure', 'right', 'Electronics / Computers / Keyboards' ),
+    335 => array( 'sure', 'right', 'Electronics / Audio' ),
+    178 => array( 'likely', 'wrong', 'Home / Decoration / Wall art' ),
+    473 => array( 'likely', 'wrong', 'Garden' ),
+    521 => array( 'likely', 'broad', 'Kitchen / Tableware' ),
+    242 => array( 'likely', 'wrong', 'Beauty / Fragrance / Perfume' ),
+    181 => array( 'likely', 'right', 'Jewellery & Watches / Watches' ),
+    442 => array( 'likely', 'wrong', 'Garden' ),
+    107 => array( 'likely', 'broad', 'Clothing / Accessories' ),
+    58 => array( 'likely', 'broad', 'Garden' ),
+    478 => array( 'likely', 'wrong', 'Garden' ),
+    185 => array( 'likely', 'wrong', 'Jewellery & Watches / Watches / Smart watches' ),
+    106 => array( 'likely', 'right', 'Clothing / Accessories / Ties' ),
+    357 => array( 'likely', 'broad', 'Electronics / Cameras' ),
+    212 => array( 'likely', 'broad', 'Home / Decoration / Wall art' ),
+    291 => array( 'likely', 'broad', 'Electronics / Computers' ),
+    248 => array( 'likely', 'right', 'Beauty / Make-up' ),
+    476 => array( 'likely', 'wrong', 'Garden' ),
+    89 => array( 'likely', 'broad', 'Clothing / Women / Sweaters' ),
+    290 => array( 'likely', 'broad', 'Electronics / Computers' ),
+    539 => array( 'likely', 'broad', 'Food & Drink' ),
+    188 => array( 'likely', 'right', 'Jewellery & Watches / Watches' ),
+    288 => array( 'likely', 'broad', 'Electronics / Computers' ),
+    187 => array( 'likely', 'right', 'Jewellery & Watches / Watches' ),
+    184 => array( 'likely', 'right', 'Jewellery & Watches / Watches' ),
+    318 => array( 'likely', 'wrong', 'Garden' ),
+    526 => array( 'likely', 'right', 'Food & Drink / Wine & Spirits' ),
+    527 => array( 'likely', 'right', 'Food & Drink / Wine & Spirits' ),
+    260 => array( 'likely', 'right', 'Beauty' ),
+    277 => array( 'likely', 'right', 'Electronics / Phones' ),
+    523 => array( 'likely', 'broad', 'Food & Drink' ),
+    157 => array( 'likely', 'right', 'Bags & Luggage' ),
+);
+
 // The newest live row per picture that names a folder the picture is in now: the row that speaks for the placement.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 $rows = $wpdb->get_results( $wpdb->prepare(
@@ -327,6 +397,8 @@ foreach ( array( 'sure', 'likely' ) as $word ) {
             $prefill[ count( $sample ) ] = $bfq_c4[ $id ][1];
         } elseif ( $dry && isset( $bfq_dry[ $id ] ) && $bfq_dry[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
             $prefill[ count( $sample ) ] = $bfq_dry[ $id ][1];
+        } elseif ( $dry && isset( $bfq_shop[ $id ] ) && $bfq_shop[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
+            $prefill[ count( $sample ) ] = $bfq_shop[ $id ][1];
         }
     }
 }
