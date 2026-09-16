@@ -107,6 +107,12 @@ const SUITES = [
 	 */
 	{ name: 'copy', file: 'tests/tree/copy.mjs', env: 'local' },
 	/*
+	 *  The second library's seed against its catalogue (every-picture-a-home
+	 *  C.5): every subject names a leaf of the shop tree, the tree keeps its
+	 *  shape and its shared leaf names. Two files read from disk; env 'local'.
+	 */
+	{ name: 'seed-shop', file: 'tests/tree/seed-shop.mjs', env: 'local' },
+	/*
 	 *  The security surface, regenerated from the source and compared with the
 	 *  committed docs/security-surface.md. env 'local': it reads PHP as text and
 	 *  reaches nothing. Phase 5.1 asked for a list that cannot drift, and a list

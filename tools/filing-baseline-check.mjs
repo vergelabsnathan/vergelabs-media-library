@@ -4,6 +4,7 @@
  *      node tools/filing-baseline-check.mjs
  *      node tools/filing-baseline-check.mjs --file run.txt   (a run already taken)
  *      node tools/filing-baseline-check.mjs --box 46.225.66.194
+ *      node tools/filing-baseline-check.mjs --library shop         (the second library, C.5)
  *
  *  This is the gate `plans/traces.md` ends on: run the same filing pass over
  *  the same pictures before and after the work, and the placements must be
@@ -48,6 +49,14 @@
  *  when any outcome moves by more than OUTCOME_BAND of the pictures. A prompt
  *  change in the service, a planner change, a describer change: each must
  *  leave this green or re-take it with the reason.
+ *
+ *  Two libraries since C.5 (2026-09-16). `--library shop` reads the shop
+ *  library on the box's second network (/var/www/ms2) against
+ *  tests/tree/filing-baseline-shop.txt; without the flag it is the tech
+ *  library against filing-baseline.txt, as before. Each library keeps its own
+ *  file because attachment ids start over on the second site, and each keeps
+ *  its own band: the tech library's is frozen, the shop's is the second shape
+ *  the engine is judged on.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -57,10 +66,29 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname( fileURLToPath( import.meta.url ) );
-const BASELINE = path.join( HERE, '..', 'tests', 'tree', 'filing-baseline.txt' );
+
+const flag = ( name, fallback = null ) => {
+	const i = process.argv.indexOf( name );
+	return i > -1 && process.argv[ i + 1 ] ? process.argv[ i + 1 ] : fallback;
+};
+
+/** The library: which file holds its baseline, and where on the box it lives. */
+const LIBRARIES = {
+	tech: { file: 'filing-baseline.txt', wp: '/var/www/wp', url: '', as: '' },
+	shop: { file: 'filing-baseline-shop.txt', wp: '/var/www/ms2', url: 'http://ms2.46.225.66.194.nip.io', as: 'www-data' },
+};
+
+const LIBRARY = flag( '--library', 'tech' );
+
+if ( ! LIBRARIES[ LIBRARY ] ) {
+	console.log( `\n  no library called "${ LIBRARY }": one of ${ Object.keys( LIBRARIES ).join( ', ' ) }\n` );
+	process.exit( 1 );
+}
+
+const BASELINE = path.join( HERE, '..', 'tests', 'tree', LIBRARIES[ LIBRARY ].file );
 
 const BOXES = {
-	'46.225.66.194': { key: '~/.ssh/hetzner_vgml', wp: '/var/www/wp' },
+	'46.225.66.194': { key: '~/.ssh/hetzner_vgml' },
 };
 
 /*
@@ -76,11 +104,6 @@ const SCORE_BAND = 0.001;
 
 /** How far an outcome's count may move, as a share of the pictures, before the fill is doing something else. */
 const OUTCOME_BAND = 0.03;
-
-const flag = ( name, fallback = null ) => {
-	const i = process.argv.indexOf( name );
-	return i > -1 && process.argv[ i + 1 ] ? process.argv[ i + 1 ] : fallback;
-};
 
 const BOX_HOST = flag( '--box', '46.225.66.194' );
 const RETAKE = flag( '--retake' );
@@ -116,12 +139,15 @@ function runOnBox() {
 		throw new Error( `no key on file for ${ BOX_HOST }` );
 	}
 
+	const lib = LIBRARIES[ LIBRARY ];
+	const wp = ( lib.as ? `sudo -u ${ lib.as } wp` : 'wp' ) + ( lib.url ? ` --url=${ lib.url }` : '' );
+
 	scp( box, path.join( HERE, 'box-filing-baseline.php' ), '/tmp/vgml-filing-baseline.php' );
 
 	return ssh( box, `
 		set -e
-		cd ${ box.wp }
-		wp eval-file /tmp/vgml-filing-baseline.php --allow-root --skip-themes 2>&1 | grep -v "^Deprecated:" || true
+		cd ${ lib.wp }
+		${ wp } eval-file /tmp/vgml-filing-baseline.php --allow-root --skip-themes 2>&1 | grep -v "^Deprecated:" || true
 		rm -f /tmp/vgml-filing-baseline.php
 	` );
 }
@@ -173,16 +199,22 @@ function tally( text ) {
 	return out.looked ? out : null;
 }
 
-const wasText = fs.readFileSync( BASELINE, 'utf8' );
+// A library with no baseline yet has nothing to compare: its first take is a --retake with the reason.
+if ( ! fs.existsSync( BASELINE ) && ! RETAKE ) {
+	console.log( `\n  no baseline for the ${ LIBRARY } library yet (${ path.basename( BASELINE ) }) — take it with --retake "<reason>"\n` );
+	process.exit( 1 );
+}
+
+const wasText = RETAKE && ! fs.existsSync( BASELINE ) ? '' : fs.readFileSync( BASELINE, 'utf8' );
 const nowText = flag( '--file' ) ? fs.readFileSync( flag( '--file' ), 'utf8' ) : runOnBox();
 
 if ( RETAKE ) {
 	const stamp = new Date().toISOString().slice( 0, 10 );
 	const lines = nowText.split( /\r?\n/ );
-	lines.splice( 1, 0, `# re-taken ${ stamp }: ${ RETAKE }` );
+	lines.splice( 1, 0, `# ${ '' === wasText ? 'taken' : 're-taken' } ${ stamp }: ${ RETAKE }` );
 	fs.writeFileSync( BASELINE, lines.join( '\n' ) );
 	const t = tally( nowText );
-	console.log( `\n  filing baseline re-taken (${ stamp }): ${ RETAKE }` );
+	console.log( `\n  filing baseline (${ LIBRARY }) ${ '' === wasText ? 'taken' : 're-taken' } (${ stamp }): ${ RETAKE }` );
 	console.log( `  ${ t ? Object.entries( t ).map( ( [ k, v ] ) => `${ k } ${ v }` ).join( ' · ' ) : 'no tally line in the run' }\n` );
 	process.exit( 0 );
 }
@@ -228,7 +260,7 @@ for ( const [ id, a ] of was ) {
 
 const n = was.size;
 
-console.log( `\n  filing baseline · ${ n } pictures · ${ flag( '--file' ) ? flag( '--file' ) : BOX_HOST }\n` );
+console.log( `\n  filing baseline (${ LIBRARY }) · ${ n } pictures · ${ flag( '--file' ) ? flag( '--file' ) : BOX_HOST }\n` );
 console.log( `  rows whose numbers moved at all            ${ moved }` );
 console.log( `  largest move in a winning score            ${ worstScore.toExponential( 3 ) }` );
 console.log( `  largest move in a runner-up's score        ${ worstRunner.toExponential( 3 ) }` );

@@ -13,8 +13,14 @@ import { fileURLToPath } from 'node:url';
  *  listed box gets `null`, and the spec that needs one skips.
  */
 
+/*
+ *  Two sites on the one box. The second is a network of its own
+ *  (/var/www/ms2) holding the shop library of every-picture-a-home C.5; its
+ *  WP-CLI needs `--url` to know which site, and its files are www-data's.
+ */
 const BOXES = {
 	'46.225.66.194': { key: '~/.ssh/hetzner_vgml', wp: '/var/www/wp' },
+	'ms2.46.225.66.194.nip.io': { key: '~/.ssh/hetzner_vgml', wp: '/var/www/ms2', url: 'http://ms2.46.225.66.194.nip.io', as: 'www-data' },
 };
 
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..', '..' );
@@ -37,7 +43,8 @@ export function boxPhp( baseURL, file, env = {} ) {
 		throw new Error( `could not copy ${ file } to the box: ${ copy.stderr }` );
 	}
 	const vars = Object.entries( env ).map( ( [ k, v ] ) => `${ k }=${ JSON.stringify( String( v ) ) }` ).join( ' ' );
-	const run = spawnSync( 'ssh', [ ...ssh, `root@${ box.host }`, `cd ${ box.wp } && ${ vars } wp eval-file ${ remote } --allow-root --skip-themes 2>&1 | grep -vE '^Deprecated:|zion'; exit \${PIPESTATUS[0]}` ], { encoding: 'utf8' } );
+	const wp = ( box.as ? `sudo -u ${ box.as } env ${ vars } wp` : `${ vars } wp` ) + ( box.url ? ` --url=${ box.url }` : '' );
+	const run = spawnSync( 'ssh', [ ...ssh, `root@${ box.host }`, `cd ${ box.wp } && ${ wp } eval-file ${ remote } --allow-root --skip-themes 2>&1 | grep -vE '^Deprecated:|zion'; exit \${PIPESTATUS[0]}` ], { encoding: 'utf8' } );
 	if ( run.status !== 0 ) {
 		throw new Error( `${ file } exited ${ run.status }: ${ run.stdout }${ run.stderr }` );
 	}

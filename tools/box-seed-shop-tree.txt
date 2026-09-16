@@ -1,0 +1,318 @@
+Clothing
+Clothing > Men
+Clothing > Men > T-shirts
+Clothing > Men > Shirts
+Clothing > Men > Jeans
+Clothing > Men > Trousers
+Clothing > Men > Jackets
+Clothing > Men > Coats
+Clothing > Men > Suits
+Clothing > Men > Sweaters
+Clothing > Men > Shorts
+Clothing > Men > Underwear
+Clothing > Women
+Clothing > Women > Dresses
+Clothing > Women > Tops
+Clothing > Women > Blouses
+Clothing > Women > Skirts
+Clothing > Women > Jeans
+Clothing > Women > Trousers
+Clothing > Women > Jackets
+Clothing > Women > Coats
+Clothing > Women > Sweaters
+Clothing > Women > Lingerie
+Clothing > Kids
+Clothing > Kids > Baby
+Clothing > Kids > Boys
+Clothing > Kids > Girls
+Clothing > Kids > School uniforms
+Clothing > Accessories
+Clothing > Accessories > Hats
+Clothing > Accessories > Scarves
+Clothing > Accessories > Gloves
+Clothing > Accessories > Belts
+Clothing > Accessories > Ties
+Clothing > Accessories > Sunglasses
+Shoes
+Shoes > Men
+Shoes > Men > Sneakers
+Shoes > Men > Boots
+Shoes > Men > Dress shoes
+Shoes > Men > Sandals
+Shoes > Women
+Shoes > Women > Sneakers
+Shoes > Women > Boots
+Shoes > Women > Heels
+Shoes > Women > Flats
+Shoes > Women > Sandals
+Shoes > Kids
+Shoes > Kids > Sneakers
+Shoes > Kids > Boots
+Shoes > Kids > Sandals
+Shoes > Sports
+Shoes > Sports > Running
+Shoes > Sports > Football boots
+Shoes > Sports > Hiking boots
+Shoes > Sports > Cycling shoes
+Bags & Luggage
+Bags & Luggage > Handbags
+Bags & Luggage > Backpacks
+Bags & Luggage > Suitcases
+Bags & Luggage > Wallets
+Bags & Luggage > Briefcases
+Bags & Luggage > Travel accessories
+Jewellery & Watches
+Jewellery & Watches > Watches
+Jewellery & Watches > Watches > Men
+Jewellery & Watches > Watches > Women
+Jewellery & Watches > Watches > Smart watches
+Jewellery & Watches > Rings
+Jewellery & Watches > Necklaces
+Jewellery & Watches > Earrings
+Jewellery & Watches > Bracelets
+Beauty
+Beauty > Skincare
+Beauty > Skincare > Moisturisers
+Beauty > Skincare > Cleansers
+Beauty > Skincare > Sunscreen
+Beauty > Make-up
+Beauty > Make-up > Lipstick
+Beauty > Make-up > Mascara
+Beauty > Make-up > Foundation
+Beauty > Make-up > Nail polish
+Beauty > Fragrance
+Beauty > Fragrance > Perfume
+Beauty > Fragrance > Aftershave
+Beauty > Hair
+Beauty > Hair > Shampoo
+Beauty > Hair > Hair dryers
+Beauty > Hair > Brushes
+Electronics
+Electronics > Phones
+Electronics > Phones > Smartphones
+Electronics > Phones > Cases
+Electronics > Phones > Chargers
+Electronics > Computers
+Electronics > Computers > Laptops
+Electronics > Computers > Tablets
+Electronics > Computers > Monitors
+Electronics > Computers > Keyboards
+Electronics > Computers > Mice
+Electronics > Audio
+Electronics > Audio > Headphones
+Electronics > Audio > Speakers
+Electronics > Audio > Turntables
+Electronics > Audio > Microphones
+Electronics > Cameras
+Electronics > Cameras > Digital cameras
+Electronics > Cameras > Lenses
+Electronics > Cameras > Tripods
+Electronics > Cameras > Action cameras
+Electronics > TV & Video
+Electronics > TV & Video > Televisions
+Electronics > TV & Video > Projectors
+Electronics > TV & Video > Streaming devices
+Electronics > Gaming
+Electronics > Gaming > Consoles
+Electronics > Gaming > Controllers
+Electronics > Gaming > Gaming chairs
+Home
+Home > Furniture
+Home > Furniture > Sofas
+Home > Furniture > Armchairs
+Home > Furniture > Dining tables
+Home > Furniture > Chairs
+Home > Furniture > Beds
+Home > Furniture > Wardrobes
+Home > Furniture > Bookcases
+Home > Furniture > Desks
+Home > Lighting
+Home > Lighting > Table lamps
+Home > Lighting > Floor lamps
+Home > Lighting > Ceiling lights
+Home > Lighting > Candles
+Home > Textiles
+Home > Textiles > Bedding
+Home > Textiles > Curtains
+Home > Textiles > Rugs
+Home > Textiles > Cushions
+Home > Textiles > Towels
+Home > Decoration
+Home > Decoration > Mirrors
+Home > Decoration > Vases
+Home > Decoration > Wall art
+Home > Decoration > Clocks
+Home > Decoration > Picture frames
+Home > Storage
+Home > Storage > Boxes
+Home > Storage > Baskets
+Home > Storage > Shelving
+Kitchen
+Kitchen > Cookware
+Kitchen > Cookware > Frying pans
+Kitchen > Cookware > Saucepans
+Kitchen > Cookware > Casseroles
+Kitchen > Cookware > Woks
+Kitchen > Knives & Boards
+Kitchen > Knives & Boards > Kitchen knives
+Kitchen > Knives & Boards > Cutting boards
+Kitchen > Knives & Boards > Knife sharpeners
+Kitchen > Appliances
+Kitchen > Appliances > Coffee machines
+Kitchen > Appliances > Kettles
+Kitchen > Appliances > Toasters
+Kitchen > Appliances > Blenders
+Kitchen > Appliances > Mixers
+Kitchen > Appliances > Microwaves
+Kitchen > Tableware
+Kitchen > Tableware > Plates
+Kitchen > Tableware > Bowls
+Kitchen > Tableware > Glasses
+Kitchen > Tableware > Cutlery
+Kitchen > Tableware > Mugs
+Kitchen > Bakeware
+Kitchen > Bakeware > Baking tins
+Kitchen > Bakeware > Rolling pins
+Food & Drink
+Food & Drink > Coffee & Tea
+Food & Drink > Coffee & Tea > Coffee beans
+Food & Drink > Coffee & Tea > Tea
+Food & Drink > Coffee & Tea > Hot chocolate
+Food & Drink > Wine & Spirits
+Food & Drink > Wine & Spirits > Red wine
+Food & Drink > Wine & Spirits > White wine
+Food & Drink > Wine & Spirits > Sparkling
+Food & Drink > Wine & Spirits > Whisky
+Food & Drink > Wine & Spirits > Gin
+Food & Drink > Wine & Spirits > Beer
+Food & Drink > Pantry
+Food & Drink > Pantry > Pasta
+Food & Drink > Pantry > Olive oil
+Food & Drink > Pantry > Spices
+Food & Drink > Pantry > Honey
+Food & Drink > Pantry > Jam
+Food & Drink > Sweets
+Food & Drink > Sweets > Chocolate
+Food & Drink > Sweets > Biscuits
+Food & Drink > Sweets > Candy
+Food & Drink > Cheese & Deli
+Food & Drink > Cheese & Deli > Cheese
+Food & Drink > Cheese & Deli > Cured meats
+Food & Drink > Cheese & Deli > Olives
+Sports & Outdoors
+Sports & Outdoors > Cycling
+Sports & Outdoors > Cycling > Bicycles
+Sports & Outdoors > Cycling > Helmets
+Sports & Outdoors > Cycling > Bike lights
+Sports & Outdoors > Cycling > Locks
+Sports & Outdoors > Fitness
+Sports & Outdoors > Fitness > Dumbbells
+Sports & Outdoors > Fitness > Yoga mats
+Sports & Outdoors > Fitness > Treadmills
+Sports & Outdoors > Fitness > Kettlebells
+Sports & Outdoors > Ball sports
+Sports & Outdoors > Ball sports > Footballs
+Sports & Outdoors > Ball sports > Basketballs
+Sports & Outdoors > Ball sports > Tennis rackets
+Sports & Outdoors > Ball sports > Golf clubs
+Sports & Outdoors > Water sports
+Sports & Outdoors > Water sports > Surfboards
+Sports & Outdoors > Water sports > Wetsuits
+Sports & Outdoors > Water sports > Kayaks
+Sports & Outdoors > Water sports > Swimwear
+Sports & Outdoors > Winter sports
+Sports & Outdoors > Winter sports > Skis
+Sports & Outdoors > Winter sports > Snowboards
+Sports & Outdoors > Winter sports > Ski goggles
+Sports & Outdoors > Camping
+Sports & Outdoors > Camping > Tents
+Sports & Outdoors > Camping > Sleeping bags
+Sports & Outdoors > Camping > Backpacks
+Sports & Outdoors > Camping > Camping stoves
+Sports & Outdoors > Skateboarding
+Sports & Outdoors > Skateboarding > Decks
+Sports & Outdoors > Skateboarding > Trucks
+Sports & Outdoors > Skateboarding > Wheels
+Toys & Games
+Toys & Games > Toys
+Toys & Games > Toys > Teddy bears
+Toys & Games > Toys > Dolls
+Toys & Games > Toys > Building bricks
+Toys & Games > Toys > Toy cars
+Toys & Games > Toys > Puzzles
+Toys & Games > Games
+Toys & Games > Games > Board games
+Toys & Games > Games > Card games
+Toys & Games > Games > Chess sets
+Toys & Games > Outdoor play
+Toys & Games > Outdoor play > Scooters
+Toys & Games > Outdoor play > Kites
+Toys & Games > Outdoor play > Trampolines
+Garden
+Garden > Tools
+Garden > Tools > Spades
+Garden > Tools > Pruning shears
+Garden > Tools > Lawn mowers
+Garden > Tools > Hoses
+Garden > Plants
+Garden > Plants > Houseplants
+Garden > Plants > Flower bulbs
+Garden > Plants > Seeds
+Garden > Furniture
+Garden > Furniture > Garden chairs
+Garden > Furniture > Parasols
+Garden > Furniture > Barbecues
+Garden > Pots & Planters
+Books & Music
+Books & Music > Books
+Books & Music > Books > Fiction
+Books & Music > Books > Cookbooks
+Books & Music > Books > Children's books
+Books & Music > Vinyl records
+Books & Music > Instruments
+Books & Music > Instruments > Acoustic guitars
+Books & Music > Instruments > Electric guitars
+Books & Music > Instruments > Pianos
+Books & Music > Instruments > Drums
+Books & Music > Instruments > Violins
+Books & Music > Instruments > Ukuleles
+Pets
+Pets > Dogs
+Pets > Dogs > Dog beds
+Pets > Dogs > Leads and collars
+Pets > Dogs > Dog toys
+Pets > Dogs > Dog food
+Pets > Cats
+Pets > Cats > Cat trees
+Pets > Cats > Litter boxes
+Pets > Cats > Cat food
+Pets > Aquarium
+Pets > Aquarium > Fish tanks
+Pets > Aquarium > Filters
+Pets > Birds
+Pets > Birds > Bird cages
+Tools & DIY
+Tools & DIY > Power tools
+Tools & DIY > Power tools > Drills
+Tools & DIY > Power tools > Saws
+Tools & DIY > Power tools > Sanders
+Tools & DIY > Hand tools
+Tools & DIY > Hand tools > Hammers
+Tools & DIY > Hand tools > Screwdrivers
+Tools & DIY > Hand tools > Wrenches
+Tools & DIY > Hand tools > Toolboxes
+Tools & DIY > Paint
+Tools & DIY > Paint > Paint
+Tools & DIY > Paint > Brushes
+Tools & DIY > Paint > Rollers
+Cars & Bikes
+Cars & Bikes > Car parts
+Cars & Bikes > Car parts > Tyres
+Cars & Bikes > Car parts > Wheels
+Cars & Bikes > Car parts > Car batteries
+Cars & Bikes > Motorbikes
+Cars & Bikes > Motorbikes > Helmets
+Cars & Bikes > Motorbikes > Jackets
+Cars & Bikes > Car care
+Cars & Bikes > Car care > Wax
+Cars & Bikes > Car care > Cleaning kits

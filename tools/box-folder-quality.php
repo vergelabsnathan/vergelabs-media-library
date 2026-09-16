@@ -369,10 +369,15 @@ foreach ( $sample as $s ) {
     }
     $runner  = (int) $r['runner_up'] ? bfq_path( (int) $r['runner_up'], $tax ) : '';
     $wasline = '';
+    // The second library (C.5): the leaf the seed fetched the picture for, the shop's own answer beside the engine's.
+    $leaf = (string) get_post_meta( $s['id'], '_vergeml_seed_leaf', true );
+    if ( '' !== $leaf ) {
+        $wasline = sprintf( '<small class="was %s">%s</small>', str_replace( ' > ', ' / ', $leaf ) === bfq_path( (int) $r['term_id'], $tax ) ? 'same' : 'diff', esc_html( 'fetched for: ' . str_replace( ' > ', ' / ', $leaf ) ) );
+    }
     if ( $dry ) {
         $old     = isset( $was[ $s['id'] ] ) ? (int) $was[ $s['id'] ]['term_id'] : 0;
         $same    = $old && $old === (int) $r['term_id'];
-        $wasline = sprintf( '<small class="was %s">%s</small>', $same ? 'same' : 'diff', esc_html( $old ? ( $same ? 'same folder as the last fill' : 'last fill: ' . bfq_path( $old, $tax ) ) : 'last fill: not placed' ) );
+        $wasline .= sprintf( '<small class="was %s">%s</small>', $same ? 'same' : 'diff', esc_html( $old ? ( $same ? 'same folder as the last fill' : 'last fill: ' . bfq_path( $old, $tax ) ) : 'last fill: not placed' ) );
     }
     $cards[] = sprintf(
         '<figure class="c %1$s" data-n="%2$d" data-id="%3$d" data-word="%1$s"><img src="%4$s" alt="" loading="lazy"><figcaption><b>%5$s</b><span class="pill %1$s">%1$s</span><small>%6$s</small>%9$s<small class="t">#%2$d · <a href="%7$s" target="_blank" rel="noopener">%8$s</a></small></figcaption><div class="mark"><button data-v="right">right</button><button data-v="broad">too broad</button><button data-v="wrong">wrong</button></div></figure>',
