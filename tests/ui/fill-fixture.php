@@ -12,7 +12,7 @@
  *      VGML_MODE=restore                            wp eval-file fill-fixture.php
  *
  *  plant   two questions on eight real unfiled pictures -- "5 look like spec
- *          probes" (new-folder · leave · show-me) and "3 I can't read" (leave ·
+ *          probes" (new-folder · leave · show-me) and "3 with nothing to go on" (leave ·
  *          show-me) -- and every other unfiled picture parked in To sort, so
  *          that answering both leaves 0 in no folder: the done state. VGML_LEFT
  *          leaves that many unparked (the mutation gate: unfiled 3 is not

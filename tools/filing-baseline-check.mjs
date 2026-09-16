@@ -35,8 +35,19 @@
  *  rather than tolerated, because a placement that changes is the thing this
  *  gate exists to catch.
  *
- *  It writes nothing. It never re-takes the baseline: the baseline is a
- *  record, and a gate that rewrites its own expectation is not a gate.
+ *  It writes nothing, with one exception. `--retake "<reason>"` replaces the
+ *  baseline with today's run and writes the reason into it as a comment --
+ *  the engine changed on purpose (every-picture-a-home C.1, 2026-09-16) and
+ *  the old expectation is no longer the truth. A gate that rewrites its own
+ *  expectation silently is not a gate; one that does so with a stated reason
+ *  in the record is how the record stays honest.
+ *
+ *  Two bands since 2026-09-16. The score band above, per picture. And the
+ *  outcome band: the tally of a first fill over the library (fits, sure,
+ *  likely, siblings, nothing by floor / margin / either / gated), which fails
+ *  when any outcome moves by more than OUTCOME_BAND of the pictures. A prompt
+ *  change in the service, a planner change, a describer change: each must
+ *  leave this green or re-take it with the reason.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -63,12 +74,16 @@ const BOXES = {
  */
 const SCORE_BAND = 0.001;
 
+/** How far an outcome's count may move, as a share of the pictures, before the fill is doing something else. */
+const OUTCOME_BAND = 0.03;
+
 const flag = ( name, fallback = null ) => {
 	const i = process.argv.indexOf( name );
 	return i > -1 && process.argv[ i + 1 ] ? process.argv[ i + 1 ] : fallback;
 };
 
 const BOX_HOST = flag( '--box', '46.225.66.194' );
+const RETAKE = flag( '--retake' );
 
 function ssh( box, script ) {
 	try {
@@ -144,8 +159,35 @@ function parse( text, what ) {
 	return rows;
 }
 
-const was = parse( fs.readFileSync( BASELINE, 'utf8' ), 'the baseline' );
+/** The "# tally looked N fits N …" line as { looked, fits, … }, or null when the file predates it. */
+function tally( text ) {
+	const line = text.split( /\r?\n/ ).find( ( l ) => l.startsWith( '# tally ' ) );
+	if ( ! line ) {
+		return null;
+	}
+	const out = {};
+	const parts = line.slice( '# tally '.length ).trim().split( /\s+/ );
+	for ( let i = 0; i + 1 < parts.length; i += 2 ) {
+		out[ parts[ i ] ] = Number( parts[ i + 1 ] );
+	}
+	return out.looked ? out : null;
+}
+
+const wasText = fs.readFileSync( BASELINE, 'utf8' );
 const nowText = flag( '--file' ) ? fs.readFileSync( flag( '--file' ), 'utf8' ) : runOnBox();
+
+if ( RETAKE ) {
+	const stamp = new Date().toISOString().slice( 0, 10 );
+	const lines = nowText.split( /\r?\n/ );
+	lines.splice( 1, 0, `# re-taken ${ stamp }: ${ RETAKE }` );
+	fs.writeFileSync( BASELINE, lines.join( '\n' ) );
+	const t = tally( nowText );
+	console.log( `\n  filing baseline re-taken (${ stamp }): ${ RETAKE }` );
+	console.log( `  ${ t ? Object.entries( t ).map( ( [ k, v ] ) => `${ k } ${ v }` ).join( ' · ' ) : 'no tally line in the run' }\n` );
+	process.exit( 0 );
+}
+
+const was = parse( wasText, 'the baseline' );
 const now = parse( nowText, 'the run' );
 
 const missing = [ ...was.keys() ].filter( ( id ) => ! now.has( id ) );
@@ -234,11 +276,31 @@ if ( overBand.length ) {
 	console.log( `  ok    every score is within ${ SCORE_BAND } of the baseline` );
 }
 
+// The outcome band: what the fill does, in counts.
+const tWas = tally( wasText );
+const tNow = tally( nowText );
+const KEYS = [ 'fits', 'sure', 'likely', 'siblings', 'nothing', 'floor', 'margin', 'either', 'gated', 'kept' ];
+if ( ! tWas || ! tNow ) {
+	bad++;
+	console.log( `\n  FAIL  ${ ! tWas ? 'the baseline' : 'the run' } has no outcome tally — re-take it with a reason (--retake "…")` );
+} else {
+	const moved = KEYS.filter( ( k ) => Math.abs( ( tNow[ k ] || 0 ) - ( tWas[ k ] || 0 ) ) > OUTCOME_BAND * tWas.looked );
+	const line = ( t ) => KEYS.map( ( k ) => `${ k } ${ t[ k ] || 0 }` ).join( ' · ' );
+	if ( moved.length ) {
+		bad++;
+		console.log( `\n  FAIL  the fill does something else now: ${ moved.join( ', ' ) } moved by more than ${ OUTCOME_BAND * 100 } % of ${ tWas.looked }` );
+	} else {
+		console.log( `\n  ok    every outcome within ${ OUTCOME_BAND * 100 } % of the baseline's count` );
+	}
+	console.log( `        was  ${ line( tWas ) }` );
+	console.log( `        now  ${ line( tNow ) }` );
+}
+
 console.log( '' );
 
 if ( bad ) {
-	console.log( `  ${ bad } of 3 checks failed\n` );
+	console.log( `  ${ bad } of 4 checks failed\n` );
 	process.exit( 1 );
 }
 
-console.log( `  3 of 3 checks passed — the placements are identical\n` );
+console.log( `  4 of 4 checks passed — the placements are identical and the fill does the same\n` );

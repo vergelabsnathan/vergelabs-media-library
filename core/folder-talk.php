@@ -1207,8 +1207,8 @@ function vergeml_talk_refile_run( $deadline ) {
 					$state['either'][ $key ]['children'][ $two[0] ] = isset( $state['either'][ $key ]['children'][ $two[0] ] ) ? $state['either'][ $key ]['children'][ $two[0] ] + 1 : 1;
 					$state['either'][ $key ]['children'][ $two[1] ] = isset( $state['either'][ $key ]['children'][ $two[1] ] ) ? $state['either'][ $key ]['children'][ $two[1] ] : 0;
 				} else {
-					// The residue: grouped and asked about when the run ends, never left in no folder.
-					$state['residue'][] = $attachment;
+					// The residue: grouped and asked about when the run ends, never left in no folder. With the folder it came closest to, for "Put in X".
+					$state['residue'][ $attachment ] = isset( $pick['nearest'] ) ? (int) $pick['nearest'] : 0;
 				}
 
 				// Left alone, and now on the record as left alone: the word,
@@ -1928,27 +1928,45 @@ function vergeml_talk_undo_available() {
  *  A Move used to end with "513 in no folder" and a sentence about why. Now
  *  it ends with questions: one per parent that took pictures two of its
  *  children tied over ("232 fit both Server racks and Cooling"), one per
- *  group of the residue ("61 look like robot arms"), and one for whatever is
- *  left that no group holds ("18 I can't read"). Every answer is a click,
+ *  pair of folders that are not siblings and tied ("12 pictures: Hardware or
+ *  Server racks?"), one per group of the residue ("17 look like robot arms",
+ *  "7 mixed, mostly coffee machines"), one for the small groups together and
+ *  one for whatever has no class ("18 with nothing to go on"). Every answer is a click,
  *  and every answer leaves the pictures in a folder: "leave them" is To
  *  sort, a real folder, never nothing.
  */
 
 /**
  *  Built once, when the run ends (vergeml_talk_refile_finish). The residue's
- *  facts are read back off the index; each group of five or more gets a name
- *  from one metered call, cached in the state by its members so the same
- *  group is never named twice; the folder nearest a group's centroid is what
- *  "put in" offers.
+ *  facts are read back off the index; each photo group asked about gets a
+ *  name from one metered call, cached in the state by its members so the same
+ *  group is never named twice; a kind group (screenshots, diagrams) is named
+ *  for its kind; "put in" offers the folder most of a group came closest to.
  */
 function vergeml_talk_questions_build( &$state ) {
 
 	global $wpdb;
 
 	$taxonomy = (string) $state['taxonomy'];
-	$residue  = array_values( array_unique( array_map( 'intval', (array) ( isset( $state['residue'] ) ? $state['residue'] : array() ) ) ) );
 	$siblings = isset( $state['siblings'] ) ? (array) $state['siblings'] : array();
 	$either   = isset( $state['either'] ) ? (array) $state['either'] : array();
+
+	/*
+	 *  attachment => the folder it came closest to. A run in flight across
+	 *  the deploy that added the nearest kept a plain list of ids; read as
+	 *  such, with no folder near any of them.
+	 */
+	$raw     = isset( $state['residue'] ) ? (array) $state['residue'] : array();
+	$is_list = array_keys( $raw ) === range( 0, count( $raw ) - 1 );
+	$near_by = array();
+	foreach ( $raw as $k => $v ) {
+		if ( $is_list ) {
+			$near_by[ (int) $v ] = 0;
+		} else {
+			$near_by[ (int) $k ] = (int) $v;
+		}
+	}
+	$residue = array_keys( $near_by );
 
 	$facts    = array();
 	$captions = array();
@@ -1970,12 +1988,13 @@ function vergeml_talk_questions_build( &$state ) {
 	}
 
 	foreach ( $groups as $i => $g ) {
-		if ( ! empty( $g['unreadable'] ) ) {
+		if ( ! empty( $g['unreadable'] ) || ! empty( $g['more'] ) ) {
 			continue;
 		}
-		$nearest[ $i ] = vergeml_talk_nearest_folder( $g['centroid'], $profiles );
-		if ( $g['count'] < VERGEML_FILING_GROUP_MIN ) {
-			continue; // The class word names it; a call is for a group worth a folder.
+		$nearest[ $i ] = vergeml_filing_group_nearest( $g, $near_by, $profiles, $facts );
+		if ( 'photo' !== $g['kind'] ) {
+			$names[ $i ] = vergeml_filing_class_name( vergeml_talk_plural( $g['kind'] ) ); // "Screenshots": the kind is the name, no call.
+			continue;
 		}
 		$key = md5( implode( ',', $g['ids'] ) );
 		if ( ! isset( $state['names'][ $key ] ) ) {
@@ -1996,26 +2015,6 @@ function vergeml_talk_questions_build( &$state ) {
 	}
 
 	return vergeml_filing_questions( $groups, $siblings, $names, $nearest, $either );
-}
-
-/** The folder whose profile vector is nearest a group's centroid; 0 when none is near enough to offer, or the nearest is locked. */
-function vergeml_talk_nearest_folder( $centroid, $profiles ) {
-	if ( ! is_array( $centroid ) || ! function_exists( 'vergeml_meaning_similarity' ) ) {
-		return 0;
-	}
-	$best  = 0;
-	$score = VERGEML_FILING_GROUP_NEAR;
-	foreach ( (array) $profiles as $tid => $p ) {
-		if ( ! empty( $p['locked'] ) || ! is_array( $p['vector'] ) ) {
-			continue;
-		}
-		$s = (float) vergeml_meaning_similarity( $p['vector'], $centroid );
-		if ( $s >= $score ) {
-			$score = $s;
-			$best  = (int) $tid;
-		}
-	}
-	return $best;
 }
 
 /**
@@ -2096,7 +2095,13 @@ function vergeml_talk_question_text( $q, $taxonomy ) {
 		$text = sprintf( _n( '%1$s picture: %2$s or %3$s?', '%1$s pictures: %2$s or %3$s?', (int) $q['count'], 'vergelabs-media-library' ), $n, isset( $kids[0] ) ? $kids[0] : '', isset( $kids[1] ) ? $kids[1] : '' );
 	} elseif ( ! empty( $q['unreadable'] ) ) {
 		/* translators: %s: pictures */
-		$text = sprintf( __( '%s I can\'t read', 'vergelabs-media-library' ), $n );
+		$text = sprintf( __( '%s with nothing to go on', 'vergelabs-media-library' ), $n );
+	} elseif ( ! empty( $q['more'] ) ) {
+		/* translators: %s: pictures */
+		$text = sprintf( __( '%s more, in small groups', 'vergelabs-media-library' ), $n );
+	} elseif ( isset( $q['share'] ) && (float) $q['share'] < VERGEML_FILING_GROUP_PURE ) {
+		/* translators: 1: pictures, 2: what most of them look like, plural ("robot arms") */
+		$text = sprintf( __( '%1$s mixed, mostly %2$s', 'vergelabs-media-library' ), $n, vergeml_talk_plural( (string) $q['class'] ) );
 	} else {
 		/* translators: 1: pictures, 2: what they look like, plural ("robot arms") */
 		$text = sprintf( __( '%1$s look like %2$s', 'vergelabs-media-library' ), $n, vergeml_talk_plural( (string) $q['class'] ) );

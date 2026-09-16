@@ -74,6 +74,12 @@ const STRUCK = [
 	[ 'Undo this import', 'a button without the number it removes' ],
 	[ 'Undone. The folders we made are gone', 'a reassurance where the two numbers belong' ],
 	[ 'A file, instead of another plugin', 'a heading defined by what it is not' ],
+	/*
+	 *  Every picture a home, C.2 (plans/every-picture-a-home.md): the residue
+	 *  card said "I can't read" of pictures that had a class and a vector and
+	 *  simply came in small groups.
+	 */
+	[ "%s I can't read", 'a confession where the fact is "nothing to go on", and said of pictures it could read' ],
 ];
 
 /*
@@ -127,6 +133,12 @@ const KEPT = [
 	[ 'core/health.php', 'Keep both · not shown again' ],
 	[ 'core/health.php', 'held by the extra copies' ],
 	[ 'core/health-keep.php', 'could not be rewritten' ],
+	// The residue's four sentences and the either/or (every-picture-a-home C.1, C.2): pills, no prose, eight words at most.
+	[ 'core/folder-talk.php', '%1$s look like %2$s' ],
+	[ 'core/folder-talk.php', '%1$s mixed, mostly %2$s' ],
+	[ 'core/folder-talk.php', '%s more, in small groups' ],
+	[ 'core/folder-talk.php', '%s with nothing to go on' ],
+	[ 'core/folder-talk.php', '%1$s pictures: %2$s or %3$s?' ],
 ];
 
 for ( const [ file, text ] of KEPT ) {

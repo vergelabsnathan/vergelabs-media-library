@@ -63,8 +63,8 @@ what it is given, so changing any of them expires its reason.
 | js/vergeml-media-views.js:385 | `56d3889526` | `jQuery .html()` | this.text comes from options.text, and the only construction of this view passes a vergeml.l10n string |
 | js/vergeml-media-views.js:914 | `0531e42831` | `jQuery .html()` | l10n.noMedia, one of our own translated strings |
 | js/vergeml-taxonomies-options.js:299 | `ed5afe42cb` | `jQuery .html()` | a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow |
-| js/vergeml-tree-view.js:132 | `be95315174` | `innerHTML` | an inline SVG assembled from literal path strings chosen by a boolean |
-| js/vergeml-tree-view.js:1067 | `7524bab4c0` | `innerHTML` | chevron() or an empty string, and chevron() returns a literal SVG |
+| js/vergeml-tree-view.js:136 | `be95315174` | `innerHTML` | an inline SVG assembled from literal path strings chosen by a boolean |
+| js/vergeml-tree-view.js:1127 | `7524bab4c0` | `innerHTML` | chevron() or an empty string, and chevron() returns a literal SVG |
 | js/vergeml-tree.js:473 | `120a036696` | `innerHTML` | shard() returns a literal SVG |
 | js/vergeml-tree.js:853 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
 | js/vergeml-tree.js:885 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
@@ -108,9 +108,9 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-folders.js:697 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:811 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:816 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1479 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1522 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1532 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1504 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1547 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1557 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |
@@ -131,9 +131,9 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-talk.js:240 | `innerHTML` | a literal | `''` |
 | js/vergeml-talk.js:275 | `innerHTML` | a literal | `''` |
 | js/vergeml-taxonomies-options.js:299 | `jQuery .html()` | **not a literal** | `function (e, t) { return t == vergeml.l10n.edit + ' ↓' ? vergeml.l10n.` |
-| js/vergeml-tree-view.js:132 | `innerHTML` | **not a literal** | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<path class="vgm` |
-| js/vergeml-tree-view.js:1067 | `innerHTML` | **not a literal** | `entry.kids ? chevron() : ''` |
-| js/vergeml-tree-view.js:1556 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree-view.js:136 | `innerHTML` | **not a literal** | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<path class="vgm` |
+| js/vergeml-tree-view.js:1127 | `innerHTML` | **not a literal** | `entry.kids ? chevron() : ''` |
+| js/vergeml-tree-view.js:1709 | `innerHTML` | a literal | `''` |
 | js/vergeml-tree.js:213 | `innerHTML` | a literal | `''` |
 | js/vergeml-tree.js:473 | `innerHTML` | **not a literal** | `shard()` |
 | js/vergeml-tree.js:559 | `innerHTML` | a literal | `''` |

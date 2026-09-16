@@ -777,15 +777,29 @@ function vergeml_filing_is_descendant( $child, $ancestor, $profiles ) {
 
 /*
  *  A group of residue is asked about as one question, so it has to be worth
- *  a question: five pictures. Under that it joins the nearest group it looks
- *  like (cosine of centroids over NEAR); still under three after that, it is
- *  one of the pictures the fill "can't read", asked about together. Eight
- *  pictures is what a question shows.
+ *  a question: five pictures. Under that it joins a standing group only when
+ *  the two are near-identical -- the phrases match (class_match over
+ *  GROUP_SAME) or the centroids do (cosine over GROUP_NEAR) -- and still
+ *  under five after that, it is one of the small groups, asked about together
+ *  on one card. The GROUP_ASK largest groups are asked; the rest join that
+ *  card. Eight pictures is what a question shows.
+ *
+ *  NEAR was 0.5 until 2026-09-15. On the box that pulled sixteen telecom
+ *  towers, three robots, a barn and a walnut tree onto a seed of nine server
+ *  racks, and the card said "61 look like server racks".
  */
 const VERGEML_FILING_GROUP_MIN  = 5;
-const VERGEML_FILING_GROUP_TINY = 3;
-const VERGEML_FILING_GROUP_NEAR = 0.5;
+const VERGEML_FILING_GROUP_TINY = 5;
+const VERGEML_FILING_GROUP_NEAR = 0.8;
+const VERGEML_FILING_GROUP_SAME = 0.95;
+const VERGEML_FILING_GROUP_ASK  = 8;
 const VERGEML_FILING_SAMPLE     = 8;
+
+/** Under this share of the majority phrase, the sentence says "mixed, mostly X" rather than "look like X". */
+const VERGEML_FILING_GROUP_PURE = 0.7;
+
+/** Offered "Put in X" only when X is the nearest folder for this share of the group. */
+const VERGEML_FILING_GROUP_MAJORITY = 0.6;
 
 /** Term meta and slug of the one folder "leave them" leaves things in. Locked: the fill never files into or out of it. */
 const VERGEML_FILING_TO_SORT_SLUG = 'to-sort';
@@ -793,15 +807,22 @@ const VERGEML_FILING_TO_SORT_SLUG = 'to-sort';
 /**
  *  The residue, grouped.
  *
- *  By the specific phrase the describer wrote first ("robot arm" of "robot
- *  arm; machinery"), plural folded; then every group under GROUP_MIN joins
- *  the nearest group by centroid when it is near enough, largest first;
- *  then everything still under GROUP_TINY, with the pictures that have no
- *  class or no vector, is the one unreadable group, last.
+ *  Kind first: a screenshot, an illustration, a diagram, a document, a logo
+ *  goes with its own kind and never with a photograph of the same thing.
+ *  Photographs group by the specific phrase the describer wrote first ("robot
+ *  arm" of "robot arm; machinery"), plural folded. Then every group under
+ *  GROUP_MIN joins a standing group when the two are near-identical --
+ *  phrases over GROUP_SAME or centroids over GROUP_NEAR -- largest first, the
+ *  centroid recomputed over the merged vectors; after merging, the class is
+ *  the majority phrase and 'share' says how much of the group it is. The
+ *  GROUP_ASK largest groups of GROUP_TINY or more are asked about one by one;
+ *  everything still readable but small or beyond the cap is one group
+ *  ('more'); the pictures with no class at all are the last ('unreadable').
  *
  *  @param array $facts attachment id => vergeml_filing_facts().
  *  @return array[] Each: 'class', 'classes' (class => n, biggest first),
- *                  'ids', 'count', 'centroid' (vector|null), 'unreadable'.
+ *                  'share' (of the class), 'kind', 'ids', 'count', 'centroid'
+ *                  (vector|null), 'more', 'unreadable'.
  */
 function vergeml_filing_residue_groups( $facts ) {
 
@@ -809,42 +830,55 @@ function vergeml_filing_residue_groups( $facts ) {
     $pool   = array();
 
     foreach ( (array) $facts as $id => $f ) {
+        $kind  = isset( $f['kind'] ) && '' !== (string) $f['kind'] ? (string) $f['kind'] : 'photo';
         $class = isset( $f['classes'][0] ) ? vergeml_filing_group_key( $f['classes'][0] ) : '';
-        if ( '' === $class ) {
+        if ( 'photo' !== $kind ) {
+            $key   = 'kind:' . $kind;
+            $class = $kind;
+        } elseif ( '' === $class ) {
             $pool[] = (int) $id;
             continue;
+        } else {
+            $key = 'class:' . $class;
         }
-        if ( ! isset( $groups[ $class ] ) ) {
-            $groups[ $class ] = array( 'class' => $class, 'classes' => array( $class => 0 ), 'ids' => array(), 'vectors' => array() );
+        if ( ! isset( $groups[ $key ] ) ) {
+            $groups[ $key ] = array( 'class' => $class, 'classes' => array( $class => 0 ), 'kind' => $kind, 'ids' => array(), 'vectors' => array() );
         }
-        $groups[ $class ]['ids'][] = (int) $id;
-        $groups[ $class ]['classes'][ $class ]++;
+        $groups[ $key ]['ids'][] = (int) $id;
+        $groups[ $key ]['classes'][ $class ]++;
         if ( is_array( $f['vector'] ) && $f['vector'] ) {
-            $groups[ $class ]['vectors'][] = $f['vector'];
+            $groups[ $key ]['vectors'][] = $f['vector'];
         }
     }
 
     foreach ( $groups as $k => $g ) {
         $groups[ $k ]['centroid'] = vergeml_filing_centroid( $g['vectors'] );
-        unset( $groups[ $k ]['vectors'] );
     }
 
-    // Small groups, largest first, each into the nearest group still standing.
-    $small = array_filter( array_keys( $groups ), function ( $k ) use ( $groups ) { return count( $groups[ $k ]['ids'] ) < VERGEML_FILING_GROUP_MIN; } );
+    // Small photo groups, largest first, each into the standing photo group it is near-identical to, if any.
+    $small = array_filter( array_keys( $groups ), function ( $k ) use ( $groups ) { return 'photo' === $groups[ $k ]['kind'] && count( $groups[ $k ]['ids'] ) < VERGEML_FILING_GROUP_MIN; } );
     usort( $small, function ( $a, $b ) use ( $groups ) { return count( $groups[ $b ]['ids'] ) <=> count( $groups[ $a ]['ids'] ) ?: min( $groups[ $a ]['ids'] ) <=> min( $groups[ $b ]['ids'] ); } );
 
     foreach ( $small as $k ) {
-        if ( ! isset( $groups[ $k ] ) || ! is_array( $groups[ $k ]['centroid'] ) ) {
+        if ( ! isset( $groups[ $k ] ) ) {
             continue;
         }
         $best  = '';
-        $score = VERGEML_FILING_GROUP_NEAR;
+        $score = 0.0;
         foreach ( $groups as $other => $g ) {
-            if ( $other === $k || ! is_array( $g['centroid'] ) ) {
+            if ( $other === $k || 'photo' !== $g['kind'] ) {
                 continue;
             }
-            $s = (float) vergeml_meaning_similarity( $g['centroid'], $groups[ $k ]['centroid'] );
-            if ( $s >= $score ) {
+            $s = 0.0;
+            if ( is_array( $g['centroid'] ) && is_array( $groups[ $k ]['centroid'] ) ) {
+                $c = (float) vergeml_meaning_similarity( $g['centroid'], $groups[ $k ]['centroid'] );
+                $s = $c >= VERGEML_FILING_GROUP_NEAR ? $c : 0.0;
+            }
+            $m = vergeml_filing_class_match( $g['class'], $groups[ $k ]['class'] );
+            if ( $m >= VERGEML_FILING_GROUP_SAME ) {
+                $s = max( $s, $m );
+            }
+            if ( $s > $score ) {
                 $score = $s;
                 $best  = $other;
             }
@@ -852,38 +886,107 @@ function vergeml_filing_residue_groups( $facts ) {
         if ( '' === $best ) {
             continue;
         }
-        $groups[ $best ]['ids'] = array_merge( $groups[ $best ]['ids'], $groups[ $k ]['ids'] );
+        $groups[ $best ]['ids']     = array_merge( $groups[ $best ]['ids'], $groups[ $k ]['ids'] );
+        $groups[ $best ]['vectors'] = array_merge( $groups[ $best ]['vectors'], $groups[ $k ]['vectors'] );
         foreach ( $groups[ $k ]['classes'] as $class => $n ) {
             $groups[ $best ]['classes'][ $class ] = ( isset( $groups[ $best ]['classes'][ $class ] ) ? $groups[ $best ]['classes'][ $class ] : 0 ) + $n;
         }
+        $groups[ $best ]['centroid'] = vergeml_filing_centroid( $groups[ $best ]['vectors'] );
         unset( $groups[ $k ] );
     }
 
-    // What is still too small to ask about on its own.
-    $out = array();
+    // The label is the majority, said with its share; a seed of nine racks does not name sixteen towers.
+    $readable = array();
+    $more     = array();
     foreach ( $groups as $g ) {
-        if ( count( $g['ids'] ) < VERGEML_FILING_GROUP_TINY ) {
-            $pool = array_merge( $pool, $g['ids'] );
+        unset( $g['vectors'] );
+        arsort( $g['classes'] );
+        $g['count']      = count( $g['ids'] );
+        $g['class']      = (string) array_key_first( $g['classes'] );
+        $g['share']      = $g['count'] ? reset( $g['classes'] ) / $g['count'] : 0.0;
+        $g['more']       = false;
+        $g['unreadable'] = false;
+        if ( $g['count'] < VERGEML_FILING_GROUP_TINY ) {
+            $more = array_merge( $more, $g['ids'] );
             continue;
         }
-        arsort( $g['classes'] );
-        $g['count'] = count( $g['ids'] );
-        $g['unreadable'] = false;
-        $out[] = $g;
+        $readable[] = $g;
     }
-    usort( $out, function ( $a, $b ) { return $b['count'] <=> $a['count'] ?: min( $a['ids'] ) <=> min( $b['ids'] ); } );
+    usort( $readable, function ( $a, $b ) { return $b['count'] <=> $a['count'] ?: min( $a['ids'] ) <=> min( $b['ids'] ); } );
 
+    // The cap: eight questions is what a person answers; the rest is one card.
+    foreach ( array_slice( $readable, VERGEML_FILING_GROUP_ASK ) as $g ) {
+        $more = array_merge( $more, $g['ids'] );
+    }
+    $out = array_slice( $readable, 0, VERGEML_FILING_GROUP_ASK );
+
+    if ( $more ) {
+        sort( $more );
+        $out[] = array( 'class' => '', 'classes' => array(), 'share' => 0.0, 'kind' => '', 'ids' => array_values( $more ), 'count' => count( $more ), 'centroid' => null, 'more' => true, 'unreadable' => false );
+    }
     if ( $pool ) {
         sort( $pool );
-        $out[] = array( 'class' => '', 'classes' => array(), 'ids' => array_values( $pool ), 'count' => count( $pool ), 'centroid' => null, 'unreadable' => true );
+        $out[] = array( 'class' => '', 'classes' => array(), 'share' => 0.0, 'kind' => '', 'ids' => array_values( $pool ), 'count' => count( $pool ), 'centroid' => null, 'more' => false, 'unreadable' => true );
     }
 
     return $out;
 }
 
-/** "Robot arms" and "robot arm" are one group. */
+/**
+ *  The folder "Put in X" may offer for a group: the one that is the nearest
+ *  folder for GROUP_MAJORITY of its pictures, and takes the group's kind, is
+ *  not locked and is not for an audience the group does not name. 0 when
+ *  there is no such folder -- on the box (2026-09-15) the folder nearest a
+ *  61-picture group's centroid was Server racks, nearest for 9 of them, and
+ *  the press put all 61 there.
+ *
+ *  @param array $group    A group from vergeml_filing_residue_groups() ('ids', 'count', 'kind').
+ *  @param array $nearest  attachment id => the folder the pick came closest to (0 for none).
+ *  @param array $profiles term id => profile ('kinds', 'audience', 'locked').
+ *  @param array $facts    attachment id => facts, for the audience; optional.
+ */
+function vergeml_filing_group_nearest( $group, $nearest, $profiles, $facts = array() ) {
+
+    $ids = array_map( 'intval', (array) $group['ids'] );
+    if ( ! $ids ) {
+        return 0;
+    }
+    $votes = array();
+    foreach ( $ids as $id ) {
+        $tid = isset( $nearest[ $id ] ) ? (int) $nearest[ $id ] : 0;
+        if ( $tid ) {
+            $votes[ $tid ] = isset( $votes[ $tid ] ) ? $votes[ $tid ] + 1 : 1;
+        }
+    }
+    if ( ! $votes ) {
+        return 0;
+    }
+    arsort( $votes );
+    $tid = (int) array_key_first( $votes );
+    if ( reset( $votes ) < VERGEML_FILING_GROUP_MAJORITY * count( $ids ) || ! isset( $profiles[ $tid ] ) ) {
+        return 0;
+    }
+    $p    = $profiles[ $tid ];
+    $kind = isset( $group['kind'] ) && '' !== (string) $group['kind'] ? (string) $group['kind'] : 'photo';
+    if ( ! empty( $p['locked'] ) || ! in_array( $kind, (array) $p['kinds'], true ) ) {
+        return 0;
+    }
+    if ( isset( $p['audience'] ) && '' !== (string) $p['audience'] ) {
+        foreach ( $ids as $id ) {
+            if ( ! isset( $facts[ $id ]['audience'] ) || $facts[ $id ]['audience'] !== $p['audience'] ) {
+                return 0;
+            }
+        }
+    }
+    return $tid;
+}
+
+/** "Robot arms" and "robot arm" are one group; so are "network switches" and "network switch". */
 function vergeml_filing_group_key( $phrase ) {
     $p = trim( mb_strtolower( (string) $phrase ) );
+    if ( preg_match( '/(ch|sh|x|z)es$/u', $p ) ) {
+        return mb_substr( $p, 0, -2 );
+    }
     return mb_strlen( $p ) > 3 && 's' === mb_substr( $p, -1 ) && 's' !== mb_substr( $p, -2, 1 ) ? mb_substr( $p, 0, -1 ) : $p;
 }
 
@@ -977,7 +1080,7 @@ function vergeml_filing_questions( $groups, $siblings, $names = array(), $neares
 
     foreach ( (array) $groups as $i => $g ) {
         $near = isset( $nearest[ $i ] ) ? (int) $nearest[ $i ] : 0;
-        if ( ! empty( $g['unreadable'] ) ) {
+        if ( ! empty( $g['unreadable'] ) || ! empty( $g['more'] ) ) {
             $name    = '';
             $answers = array( 'leave', 'show-me' );
         } else {
@@ -994,6 +1097,9 @@ function vergeml_filing_questions( $groups, $siblings, $names = array(), $neares
             'ids'        => array_map( 'intval', (array) $g['ids'] ),
             'name'       => $name,
             'class'      => (string) $g['class'],
+            'share'      => isset( $g['share'] ) ? (float) $g['share'] : 1.0,
+            'group_kind' => isset( $g['kind'] ) ? (string) $g['kind'] : 'photo',
+            'more'       => ! empty( $g['more'] ),
             'unreadable' => ! empty( $g['unreadable'] ),
             'answers'    => $answers,
         );

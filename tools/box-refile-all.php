@@ -78,9 +78,8 @@ foreach ( $rows as $r ) {
         $either[ $key ]['children'][ $two[0] ] = ( $either[ $key ]['children'][ $two[0] ] ?? 0 ) + 1;
         $either[ $key ]['children'][ $two[1] ] = $either[ $key ]['children'][ $two[1] ] ?? 0;
     } else {
-        $facts = vergeml_filing_facts( $r );
-        $facts['pick'] = $pick;
-        $residue[ (int) $r['attachment_id'] ] = $facts;
+        $residue[ (int) $r['attachment_id'] ] = vergeml_filing_facts( $r );
+        $near_by[ (int) $r['attachment_id'] ] = isset( $pick['nearest'] ) ? (int) $pick['nearest'] : 0;
     }
 }
 uasort( $either, function ( $a, $b ) { return count( $b['ids'] ) <=> count( $a['ids'] ); } );
@@ -90,14 +89,20 @@ foreach ( array_slice( $either, 0, 15, true ) as $key => $e ) {
     $two = array_keys( $e['children'] );
     printf( "  %4d  %s (%d) or %s (%d)\n", count( $e['ids'] ), $name( $two[0] ), $e['children'][ $two[0] ], $name( $two[1] ), $e['children'][ $two[1] ] );
 }
-$groups = vergeml_filing_residue_groups( $residue );
-printf( "\n=== residue groups (%d) over %d pictures\n", count( $groups ), count( $residue ) );
+$near_by = $near_by ?? array();
+$groups  = vergeml_filing_residue_groups( $residue );
+printf( "\n=== residue groups (%d cards) over %d pictures\n", count( $groups ), count( $residue ) );
 foreach ( $groups as $g ) {
-    $top = array_slice( $g['classes'], 0, 4, true );
-    printf( "  %4d  %-28s %s%s%s  classes: %s\n", $g['count'], ! empty( $g['unreadable'] ) ? '(nothing to go on)' : $g['class'],
-        isset( $g['kind'] ) && '' !== $g['kind'] ? '[' . $g['kind'] . '] ' : '',
-        isset( $g['share'] ) ? sprintf( 'share %.2f ', $g['share'] ) : '',
-        isset( $g['nearest'] ) && $g['nearest'] ? 'nearest ' . $name( $g['nearest'] ) . ' ' : '',
+    $top  = array_slice( $g['classes'], 0, 4, true );
+    $near = empty( $g['more'] ) && empty( $g['unreadable'] ) ? vergeml_filing_group_nearest( $g, $near_by, $profiles, $residue ) : 0;
+    $votes = array();
+    foreach ( $g['ids'] as $id ) { $t = $near_by[ $id ] ?? 0; if ( $t ) { $votes[ $t ] = ( $votes[ $t ] ?? 0 ) + 1; } }
+    arsort( $votes );
+    printf( "  %4d  %-30s %s%s%s  classes: %s\n", $g['count'],
+        ! empty( $g['unreadable'] ) ? '(nothing to go on)' : ( ! empty( $g['more'] ) ? '(more, in small groups)' : $g['class'] ),
+        ! empty( $g['kind'] ) ? '[' . $g['kind'] . '] ' : '',
+        empty( $g['more'] ) && empty( $g['unreadable'] ) ? sprintf( 'share %.2f ', $g['share'] ) : '',
+        $near ? 'put-in ' . $name( $near ) . ' ' : ( $votes ? sprintf( 'nearest %s %d/%d (no put-in) ', $name( array_key_first( $votes ) ), reset( $votes ), $g['count'] ) : '' ),
         implode( ', ', array_map( function ( $c, $n ) { return $c . ' ' . $n; }, array_keys( $top ), $top ) ) );
 }
 

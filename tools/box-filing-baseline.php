@@ -62,17 +62,17 @@ printf( "# filing baseline, taxonomy %s\n", $taxonomy );
 printf( "# folders %d, pictures %d\n", count( $profiles ), count( $rows ) );
 echo "# attachment\tterm_id\twhy\tscore\trunner_up\trunner_score\n";
 
-$tally = array( 'ok' => 0, 'floor' => 0, 'margin' => 0, 'gated' => 0 );
+// A first fill's picks: a hand placement is picked like any other, so the tally is the engine's and not the owner's.
+foreach ( $rows as $k => $r ) {
+    $rows[ $k ]['placed_by'] = '';
+}
+$counted = vergeml_filing_count( $profiles, $rows );
+$t       = $counted['counts'];
 
 foreach ( $rows as $r ) {
 
-    $pick = vergeml_filing_pick( vergeml_filing_facts( $r ), $profiles );
-
-    $why = isset( $pick['why'] ) ? (string) $pick['why'] : 'floor';
-
-    if ( isset( $tally[ $why ] ) ) {
-        $tally[ $why ]++;
-    }
+    $pick = $counted['picks'][ (int) $r['attachment_id'] ];
+    $why  = isset( $pick['why'] ) ? (string) $pick['why'] : 'floor';
 
     printf(
         "%d\t%d\t%s\t%.6f\t%d\t%.6f\n",
@@ -85,5 +85,12 @@ foreach ( $rows as $r ) {
     );
 }
 
-printf( "# ok %d, floor %d, margin %d, gated %d\n",
-    $tally['ok'], $tally['floor'], $tally['margin'], $tally['gated'] );
+/*
+ *  The second band (every-picture-a-home C.1): the outcome tally of a first
+ *  fill over this library. tools/filing-baseline-check.mjs fails when any
+ *  outcome moves more than 3 % of the pictures -- an engine, prompt or
+ *  planner change that shifts what the fill does is news, whatever it does
+ *  to a single score.
+ */
+printf( "# tally looked %d fits %d sure %d likely %d siblings %d nothing %d floor %d margin %d either %d gated %d kept %d\n",
+    $t['looked'], $t['fits'], $t['sure'], $t['likely'], $t['siblings'], $t['nothing'], $t['why']['floor'], $t['why']['margin'], (int) $t['either'], $t['why']['gated'], $t['kept'] );
