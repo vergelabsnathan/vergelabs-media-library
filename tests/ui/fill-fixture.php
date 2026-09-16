@@ -8,24 +8,37 @@
  *  over SSH (tests/ui/box.mjs) and runs it twice, the way tools/verify.mjs
  *  runs every PHP suite:
  *
- *      VGML_MODE=plant [VGML_LEFT=n] [VGML_ALT=1] wp eval-file fill-fixture.php
- *      VGML_MODE=restore                            wp eval-file fill-fixture.php
+ *      VGML_MODE=plant [VGML_LEFT=n] [VGML_ALT=1] [VGML_COUNT=n] [VGML_Q1=n] wp eval-file fill-fixture.php
+ *      VGML_MODE=restore                                                       wp eval-file fill-fixture.php
  *
- *  plant   two questions on eight real unfiled pictures -- "5 look like spec
- *          probes" (new-folder · leave · show-me) and "3 with nothing to go on" (leave ·
+ *  plant   two questions on eight real pictures -- "5 look like spec probes"
+ *          (new-folder · leave · show-me) and "3 with nothing to go on" (leave ·
  *          show-me) -- and every other unfiled picture parked in To sort, so
- *          that answering both leaves 0 in no folder: the done state. VGML_LEFT
- *          leaves that many unparked (the mutation gate: unfiled 3 is not
- *          done). VGML_ALT=1 also clears the file alt of three described
- *          pictures and gives a fourth an alt of its own that the catalogue's
- *          differs from -- inside the writing flag, so nothing is locked.
- *  restore the eight pictures out of every folder and their placed-by mark
- *          gone; Spec probe deleted; the parked pictures out of To sort, and
- *          To sort gone if it did not exist; the state and undo options put
- *          back; the moves rows the answers wrote deleted; the alts put back.
+ *          that answering both leaves 0 in no folder: the done state. The
+ *          pictures are taken from the unfiled ones first and then out of To
+ *          sort (after Nathan's walk the box has 0 unfiled and 327 there);
+ *          each one's folders are snapshotted by literal SQL and put back.
+ *          VGML_LEFT leaves that many unparked (the mutation gate: unfiled 3
+ *          is not done). VGML_COUNT=n plants n questions: the two above, an
+ *          either/or card ("4 pictures: A or B?"), a small-groups card ("3
+ *          more, in small groups") and residue cards of eight pictures each
+ *          to n -- the 30 the box's own fill left, for timing an answer.
+ *          VGML_Q1=n gives the first question n pictures (the 61 case).
+ *          VGML_ALT=1 also clears the file alt of three described pictures
+ *          and gives a fourth an alt of its own that the catalogue's differs
+ *          from -- inside the writing flag, so nothing is locked.
+ *          VGML_SEED_FAKE=1 (Playground, which has no described library) makes
+ *          fake described attachments first: index rows written by this file,
+ *          not through the plugin's writer, with an 8-float embedding.
+ *  restore every question picture back in the folders it had and its placed-by
+ *          mark gone; Spec probe deleted; the parked pictures out of To sort,
+ *          and To sort gone if it did not exist; the state and undo options put
+ *          back; the moves rows the answers wrote deleted; the alts put back;
+ *          the fake attachments deleted.
  *
  *  Spends nothing: no model, no describe, no embed. Idempotent: a plant over
- *  a plant restores first. Written 2026-09-15 (every-picture-a-home B.4).
+ *  a plant restores first. Written 2026-09-15 (every-picture-a-home B.4);
+ *  the To sort pool, the count and the fakes 2026-09-16 (C.3).
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -49,8 +62,10 @@ $ff_restore = function () use ( $wpdb, $ff_tax, $ff_opt ) {
     }
     wp_defer_term_counting( true );
 
+    // Every question picture back where it was: the folders it had (none, or To sort), and no mark.
     foreach ( (array) $snap['question_ids'] as $id ) {
-        wp_set_object_terms( (int) $id, array(), $ff_tax, false );
+        $was = isset( $snap['question_terms'][ $id ] ) ? array_map( 'intval', (array) $snap['question_terms'][ $id ] ) : array();
+        wp_set_object_terms( (int) $id, $was, $ff_tax, false );
         delete_post_meta( (int) $id, VERGEML_FILING_PLACED_BY );
     }
     foreach ( (array) get_terms( array( 'taxonomy' => $ff_tax, 'name' => 'Spec probe', 'hide_empty' => false ) ) as $t ) {
@@ -63,6 +78,13 @@ $ff_restore = function () use ( $wpdb, $ff_tax, $ff_opt ) {
         foreach ( (array) $snap['parked'] as $id ) {
             wp_remove_object_terms( (int) $id, array( (int) $to_sort->term_id ), $ff_tax );
         }
+    }
+    // The picture marked "by you" for the media list: its folders as they were, mark gone.
+    if ( ! empty( $snap['word_id'] ) ) {
+        if ( isset( $snap['word_terms'] ) ) {
+            wp_set_object_terms( (int) $snap['word_id'], array_map( 'intval', (array) $snap['word_terms'] ), $ff_tax, false );
+        }
+        delete_post_meta( (int) $snap['word_id'], VERGEML_FILING_PLACED_BY );
     }
     wp_defer_term_counting( false );
     if ( $to_sort instanceof WP_Term && empty( $snap['had_to_sort'] ) ) {
@@ -103,8 +125,10 @@ $ff_restore = function () use ( $wpdb, $ff_tax, $ff_opt ) {
     }
     vergeml_index_writing( false );
 
-    if ( ! empty( $snap['word_id'] ) ) {
-        delete_post_meta( (int) $snap['word_id'], VERGEML_FILING_PLACED_BY );
+    foreach ( (array) ( isset( $snap['fake'] ) ? $snap['fake'] : array() ) as $id ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $wpdb->delete( $wpdb->vergeml_ai_index, array( 'attachment_id' => (int) $id ) );
+        wp_delete_post( (int) $id, true );
     }
 
     delete_option( $ff_opt );
@@ -128,7 +152,84 @@ if ( is_array( $ff_snap ) ) {
     $ff_restore();
 }
 
-$ff_left = max( 0, (int) getenv( 'VGML_LEFT' ) );
+$ff_left  = max( 0, (int) getenv( 'VGML_LEFT' ) );
+// VGML_COUNT=0 is a Fill step with no open question at all; unset means the two of B.4.
+$ff_count = false === getenv( 'VGML_COUNT' ) || '' === getenv( 'VGML_COUNT' ) ? 2 : max( 0, (int) getenv( 'VGML_COUNT' ) );
+$ff_q1n   = max( 1, (int) getenv( 'VGML_Q1' ) ?: 5 );
+
+// The pictures the questions take: q1, q2 (3), then either (4), more (3), and eight a residue card.
+$ff_need = 0;
+if ( $ff_count >= 1 ) {
+    $ff_need += $ff_q1n;
+}
+if ( $ff_count >= 2 ) {
+    $ff_need += 3;
+}
+if ( $ff_count >= 3 ) {
+    $ff_need += 4;
+}
+if ( $ff_count >= 4 ) {
+    $ff_need += 3;
+}
+if ( $ff_count > 4 ) {
+    $ff_need += 8 * ( $ff_count - 4 );
+}
+
+$ff_snap = array(
+    'state'          => get_option( VERGEML_TALK_STATE ),
+    'undo'           => get_option( VERGEML_TALK_UNDO ),
+    'had_to_sort'    => get_term_by( 'slug', VERGEML_FILING_TO_SORT_SLUG, $ff_tax ) instanceof WP_Term,
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    'move_id'        => isset( $wpdb->vergeml_librarian_moves ) ? (int) $wpdb->get_var( "SELECT COALESCE(MAX(move_id),0) FROM {$wpdb->vergeml_librarian_moves}" ) : 0,
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    'batch_id'       => isset( $wpdb->vergeml_librarian_batches ) ? (int) $wpdb->get_var( "SELECT COALESCE(MAX(batch_id),0) FROM {$wpdb->vergeml_librarian_batches}" ) : 0,
+    'question_ids'   => array(),
+    'question_terms' => array(),
+    'parked'         => array(),
+    'alts'           => array(),
+    'fake'           => array(),
+);
+
+// Written before anything moves, so a plant that dies half-way can still be restored.
+update_option( $ff_opt, $ff_snap, false );
+
+/*
+ *  Playground has no described library: fake ones, as index rows this file
+ *  writes itself (never through the plugin's writer, which is not under test
+ *  here and might be under mutation), each with a short embedding so the
+ *  status route counts them as described.
+ */
+if ( getenv( 'VGML_SEED_FAKE' ) ) {
+    if ( function_exists( 'vergeml_index_install' ) ) {
+        vergeml_index_install();
+    }
+    for ( $i = 0; $i < $ff_need + $ff_left; $i++ ) {
+        $id = wp_insert_post( array( 'post_title' => 'spec fake ' . $i, 'post_type' => 'attachment', 'post_status' => 'inherit', 'post_mime_type' => 'image/png' ) );
+        if ( ! $id || is_wp_error( $id ) ) {
+            continue;
+        }
+        // Not a packed vector: Playground's SQLite layer throws on the bytes. Eight ASCII bytes are "an embedding" to every count that asks IS NOT NULL, and unpack to two harmless floats.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $ok = $wpdb->insert( $wpdb->vergeml_ai_index, array(
+            'attachment_id'  => (int) $id,
+            'caption'        => 'spec fake',
+            'kind'           => 'photo',
+            'filing'         => wp_json_encode( array( 'object' => 'spec probe; probe' ) ),
+            'embedding'      => 'ABCDEFGH',
+            'embedding_dims' => 2,
+            'error'          => '',
+            'described_at'   => gmdate( 'Y-m-d H:i:s' ),
+            'updated_at'     => gmdate( 'Y-m-d H:i:s' ),
+        ) );
+        if ( false === $ok ) {
+            printf( "fake index row refused: %s\n", $wpdb->last_error );
+        }
+        $ff_snap['fake'][] = (int) $id;
+    }
+    update_option( $ff_opt, $ff_snap, false );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    printf( "fakes: %d made · index rows %d · with embedding %d · error '' %d\n", count( $ff_snap['fake'] ), (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}" ), (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE embedding IS NOT NULL" ), (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = ''" ) );
+}
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 $ff_unfiled = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
@@ -140,31 +241,59 @@ $ff_unfiled = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
     $ff_tax
 ) ) );
 
-if ( count( $ff_unfiled ) < 8 + $ff_left ) {
-    printf( "only %d unfiled described pictures; 8 + %d needed\n", count( $ff_unfiled ), $ff_left );
+/*
+ *  The pool: the unfiled pictures, then -- when those run short -- pictures
+ *  out of To sort, which the questions take out of it for the test. Their
+ *  folders are read here by literal SQL and put back by the restore.
+ */
+$ff_pool  = $ff_unfiled;
+$ff_terms = array();
+if ( count( $ff_pool ) < $ff_need + $ff_left ) {
+    $ff_ts = get_term_by( 'slug', VERGEML_FILING_TO_SORT_SLUG, $ff_tax );
+    if ( $ff_ts instanceof WP_Term ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $ff_in_ts = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+            "SELECT i.attachment_id FROM {$wpdb->vergeml_ai_index} i
+               JOIN {$wpdb->term_relationships} tr ON tr.object_id = i.attachment_id
+              WHERE i.error = '' AND i.embedding IS NOT NULL AND tr.term_taxonomy_id = %d
+              ORDER BY i.attachment_id ASC LIMIT %d",
+            (int) $ff_ts->term_taxonomy_id,
+            $ff_need + $ff_left - count( $ff_pool )
+        ) ) );
+        foreach ( $ff_in_ts as $id ) {
+            $ff_terms[ $id ] = array( (int) $ff_ts->term_id );
+        }
+        $ff_pool = array_merge( $ff_pool, $ff_in_ts );
+    }
+}
+
+if ( count( $ff_pool ) < $ff_need + $ff_left ) {
+    printf( "only %d described pictures unfiled or in To sort; %d + %d needed\n", count( $ff_pool ), $ff_need, $ff_left );
+    $ff_restore();
     exit( 1 );
 }
 
-$ff_state = get_option( VERGEML_TALK_STATE );
-$ff_snap  = array(
-    'state'        => $ff_state,
-    'undo'         => get_option( VERGEML_TALK_UNDO ),
-    'had_to_sort'  => get_term_by( 'slug', VERGEML_FILING_TO_SORT_SLUG, $ff_tax ) instanceof WP_Term,
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    'move_id'      => isset( $wpdb->vergeml_librarian_moves ) ? (int) $wpdb->get_var( "SELECT COALESCE(MAX(move_id),0) FROM {$wpdb->vergeml_librarian_moves}" ) : 0,
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    'batch_id'     => isset( $wpdb->vergeml_librarian_batches ) ? (int) $wpdb->get_var( "SELECT COALESCE(MAX(batch_id),0) FROM {$wpdb->vergeml_librarian_batches}" ) : 0,
-    'question_ids' => array_slice( $ff_unfiled, 0, 8 ),
-    'parked'       => array(),
-    'alts'         => array(),
-);
-
-$ff_q1 = array_slice( $ff_unfiled, 0, 5 );
-$ff_q2 = array_slice( $ff_unfiled, 5, 3 );
-$ff_park = array_slice( $ff_unfiled, 8, max( 0, count( $ff_unfiled ) - 8 - $ff_left ) );
-
-// Written before anything moves, so a plant that dies half-way can still be restored.
+// Taken: the questions' pictures and the VGML_LEFT ones, all out of whatever folder they had.
+$ff_taken = array_slice( $ff_pool, 0, $ff_need + $ff_left );
+$ff_qids  = array_slice( $ff_taken, 0, $ff_need );
+$ff_snap['question_ids'] = $ff_taken;
+foreach ( $ff_taken as $id ) {
+    $ff_snap['question_terms'][ $id ] = isset( $ff_terms[ $id ] ) ? $ff_terms[ $id ] : array();
+}
 update_option( $ff_opt, $ff_snap, false );
+
+wp_defer_term_counting( true );
+foreach ( $ff_taken as $id ) {
+    if ( isset( $ff_terms[ $id ] ) ) {
+        wp_set_object_terms( $id, array(), $ff_tax, false );
+    }
+}
+wp_defer_term_counting( false );
+
+$ff_q1   = array_slice( $ff_qids, 0, $ff_q1n );
+$ff_q2   = array_slice( $ff_qids, $ff_q1n, 3 );
+$ff_at   = $ff_q1n + 3;
+$ff_park = array_slice( $ff_unfiled, $ff_need, max( 0, count( $ff_unfiled ) - $ff_need - $ff_left ) );
 
 if ( $ff_park ) {
     $ff_to_sort = vergeml_talk_to_sort( $ff_tax );
@@ -177,11 +306,38 @@ if ( $ff_park ) {
     update_option( $ff_opt, $ff_snap, false );
 }
 
-$ff_questions = array(
-    array( 'id' => 'r:0', 'kind' => 'residue', 'term_id' => 0, 'children' => array(), 'count' => 5, 'sample' => $ff_q1, 'ids' => $ff_q1, 'name' => 'Spec probe', 'class' => 'spec probe', 'unreadable' => false, 'answers' => array( 'new-folder', 'leave', 'show-me' ) ),
-    array( 'id' => 'r:1', 'kind' => 'residue', 'term_id' => 0, 'children' => array(), 'count' => 3, 'sample' => $ff_q2, 'ids' => $ff_q2, 'name' => '', 'class' => '', 'unreadable' => true, 'answers' => array( 'leave', 'show-me' ) ),
-);
-$ff_new = is_array( $ff_state ) ? $ff_state : array();
+$ff_questions = array();
+if ( $ff_count >= 1 ) {
+    $ff_questions[] = array( 'id' => 'r:0', 'kind' => 'residue', 'term_id' => 0, 'children' => array(), 'count' => count( $ff_q1 ), 'sample' => array_slice( $ff_q1, 0, 8 ), 'ids' => $ff_q1, 'name' => 'Spec probe', 'class' => 'spec probe', 'unreadable' => false, 'answers' => array( 'new-folder', 'leave', 'show-me' ) );
+}
+if ( $ff_count >= 2 ) {
+    $ff_questions[] = array( 'id' => 'r:1', 'kind' => 'residue', 'term_id' => 0, 'children' => array(), 'count' => 3, 'sample' => $ff_q2, 'ids' => $ff_q2, 'name' => '', 'class' => '', 'unreadable' => true, 'answers' => array( 'leave', 'show-me' ) );
+}
+$ff_either = array();
+if ( $ff_count >= 3 ) {
+    // Either/or: two top-level folders that are not To sort, the pictures mapped to the first.
+    $ff_ts_term = get_term_by( 'slug', VERGEML_FILING_TO_SORT_SLUG, $ff_tax );
+    $ff_tops    = get_terms( array( 'taxonomy' => $ff_tax, 'parent' => 0, 'hide_empty' => false, 'exclude' => $ff_ts_term instanceof WP_Term ? array( (int) $ff_ts_term->term_id ) : array(), 'number' => 2, 'orderby' => 'name' ) );
+    if ( ! is_wp_error( $ff_tops ) && 2 === count( $ff_tops ) ) {
+        $ff_e = array_slice( $ff_qids, $ff_at, 4 );
+        $ff_either = array( (int) $ff_tops[0]->term_id, (int) $ff_tops[1]->term_id );
+        $ff_questions[] = array( 'id' => 'e:' . $ff_either[0] . ':' . $ff_either[1], 'kind' => 'either', 'term_id' => 0, 'children' => $ff_either, 'count' => 4, 'sample' => $ff_e, 'ids' => array_fill_keys( $ff_e, $ff_either[0] ), 'name' => '', 'class' => '', 'unreadable' => false, 'answers' => array( 'put-in:' . $ff_either[0], 'put-in:' . $ff_either[1], 'split', 'leave', 'show-me' ) );
+    }
+    $ff_at += 4;
+}
+if ( $ff_count >= 4 ) {
+    $ff_m = array_slice( $ff_qids, $ff_at, 3 );
+    $ff_questions[] = array( 'id' => 'r:2', 'kind' => 'residue', 'term_id' => 0, 'children' => array(), 'count' => 3, 'sample' => $ff_m, 'ids' => $ff_m, 'name' => '', 'class' => '', 'share' => 1.0, 'group_kind' => 'photo', 'more' => true, 'unreadable' => false, 'answers' => array( 'leave', 'show-me' ) );
+    $ff_at += 3;
+}
+for ( $i = 4; $i < $ff_count; $i++ ) {
+    $ff_r = array_slice( $ff_qids, $ff_at, 8 );
+    $ff_at += 8;
+    $ff_questions[] = array( 'id' => 'r:' . ( $i - 1 ), 'kind' => 'residue', 'term_id' => 0, 'children' => array(), 'count' => count( $ff_r ), 'sample' => $ff_r, 'ids' => $ff_r, 'name' => 'Spec group ' . $i, 'class' => 'spec group ' . $i, 'share' => 1.0, 'group_kind' => 'photo', 'more' => false, 'unreadable' => false, 'answers' => array( 'new-folder', 'leave', 'show-me' ) );
+}
+
+$ff_state = $ff_snap['state'];
+$ff_new   = is_array( $ff_state ) ? $ff_state : array();
 $ff_new['taxonomy']       = $ff_tax;
 $ff_new['active']         = false;
 $ff_new['questions']      = $ff_questions;
@@ -238,13 +394,14 @@ if ( getenv( 'VGML_ALT' ) ) {
 
 /*
  *  The word on a picture (B.5): one filed picture marked as placed by hand,
- *  so the media list's row and the modal have a "by you" to show. The box
- *  holds no fill that was not undone, so nothing there carries a word today.
+ *  so the media list's row, the modal and the Placed by hand filter have a
+ *  "by you" to show. Its folders are snapshotted: the C.3 spec drags it out
+ *  through the assign route, which must clear the mark.
  */
-$ff_word = array( 'id' => 0, 'folder' => '' );
+$ff_word = array( 'id' => 0, 'folder' => '', 'term_id' => 0 );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 $ff_row = $wpdb->get_row( $wpdb->prepare(
-    "SELECT tr.object_id AS id, t.slug FROM {$wpdb->term_relationships} tr
+    "SELECT tr.object_id AS id, t.slug, t.term_id FROM {$wpdb->term_relationships} tr
        JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
        JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
        JOIN {$wpdb->posts} p ON p.ID = tr.object_id AND p.post_type = 'attachment' AND p.post_mime_type LIKE %s
@@ -256,10 +413,16 @@ $ff_row = $wpdb->get_row( $wpdb->prepare(
     VERGEML_FILING_PLACED_BY
 ), ARRAY_A );
 if ( is_array( $ff_row ) ) {
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    $ff_snap['word_terms'] = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare(
+        "SELECT tt.term_id FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tr.object_id = %d AND tt.taxonomy = %s",
+        (int) $ff_row['id'],
+        $ff_tax
+    ) ) );
     update_post_meta( (int) $ff_row['id'], VERGEML_FILING_PLACED_BY, 'user' );
     $ff_snap['word_id'] = (int) $ff_row['id'];
     update_option( $ff_opt, $ff_snap, false );
-    $ff_word = array( 'id' => (int) $ff_row['id'], 'folder' => (string) $ff_row['slug'] );
+    $ff_word = array( 'id' => (int) $ff_row['id'], 'folder' => (string) $ff_row['slug'], 'term_id' => (int) $ff_row['term_id'] );
 }
 
 if ( function_exists( 'vergeml_folders_moved' ) ) {
@@ -268,10 +431,16 @@ if ( function_exists( 'vergeml_folders_moved' ) ) {
 
 echo wp_json_encode( array(
     'word'     => $ff_word,
+    // Every picture that carries the mark, by this file's own SQL: what the Placed by hand filter must list, exactly.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    'placed'   => array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT pm.post_id FROM {$wpdb->postmeta} pm JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'attachment' WHERE pm.meta_key = %s AND pm.meta_value = 'user' ORDER BY pm.post_id", VERGEML_FILING_PLACED_BY ) ) ),
     'planted'  => true,
     'q1'       => $ff_q1,
     'q2'       => $ff_q2,
+    'either'   => $ff_either,
+    'count'    => count( $ff_questions ),
     'parked'   => count( $ff_park ),
+    'from_to_sort' => count( $ff_terms ),
     'left'     => $ff_left,
     'unfiled'  => vergeml_talk_fill_status()['unfiled'],
     'open'     => vergeml_talk_fill_status()['open'],

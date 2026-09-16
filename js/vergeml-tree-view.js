@@ -344,6 +344,7 @@
 	/** Every live folder, kept as it is. */
 	function fromLive( nodes ) {
 		return {
+			// No classes copied: a draft folder that says nothing about them keeps the profile it has (the overlay shows the live one), and the confirm leaves it alone.
 			folders: ( nodes || [] ).map( function ( n ) {
 				return { key: 't' + n.id, term_id: n.id, name: n.name, parent: n.parent ? 't' + n.parent : '' };
 			} ),
@@ -390,6 +391,14 @@
 			case 'reparent':
 				if ( f && edit.parent !== f.key && ! ( edit.parent && isUnder( next, edit.parent, f.key ) ) ) {
 					f.parent = edit.parent || '';
+					f.by = edit.by || f.by;
+				}
+				break;
+
+			case 'classes':
+				// The words the folder takes, as the tree's × and #word leave them (C.4). The confirm seeds the profile from these.
+				if ( f && Array.isArray( edit.classes ) ) {
+					f.classes = edit.classes.map( function ( c ) { return String( c ).trim().toLowerCase(); } ).filter( Boolean );
 					f.by = edit.by || f.by;
 				}
 				break;
@@ -531,6 +540,8 @@
 				by: f.by || '',
 				from: f.from || [],
 				samples: f.samples || [],
+				// What the folder takes: the draft's word on it, else the profile the live folder already has.
+				classes: Array.isArray( f.classes ) ? f.classes : ( live && Array.isArray( live.classes ) ? live.classes : [] ),
 				order: live ? live.order || 0 : 0
 			};
 			if ( live ) {
@@ -561,6 +572,7 @@
 				by: '',
 				from: [],
 				samples: [],
+				classes: Array.isArray( n.classes ) ? n.classes : [],
 				order: n.order || 0
 			};
 			order.push( key );
@@ -838,8 +850,8 @@
 		return this;
 	};
 
-	/** Live folders by term id that read "new" on the Folders surface: the ones the fill's answers made. */
-	TreeView.prototype.setNewIds = function ( ids ) {
+	/** Live folders by term id that read "new" on the Folders surface: the ones the fill's answers made. `quietly` leaves the render to a setTree that follows. */
+	TreeView.prototype.setNewIds = function ( ids, quietly ) {
 		var map = {};
 		( ids || [] ).forEach( function ( id ) {
 			map[ Number( id ) ] = true;
@@ -848,7 +860,9 @@
 			return this;
 		}
 		this.newIds = map;
-		this.render();
+		if ( ! quietly ) {
+			this.render();
+		}
 		return this;
 	};
 
@@ -953,6 +967,7 @@
 			posinset: i + 1,
 			setsize: n,
 			status: row.status,
+			classes: row.classes || [],
 			meta: kids.length && ! open ? plural( this.l10n, 'folder1', 'folderN', row.foldersBelow ) : '',
 			mark: kids.length && ! open && under > 0 ? plural( this.l10n, 'change1', 'changeN', under ) : '',
 			sub: this.subFor( row )
@@ -1161,6 +1176,37 @@
 			row.appendChild( el( 'span', { class: 'vgml-mark' }, entry.mark ) );
 		}
 
+		/*
+		 *  What the folder takes (C.4): its classes as quiet pills after the
+		 *  name, three at most and "+n" for the rest, so "Components ·
+		 *  electronics component · semiconductor component" is read before it
+		 *  is confirmed. While the tree is open each pill has its ×: the word
+		 *  leaves the draft's classes, by you. A word is added in the row's +
+		 *  editor with a leading # (startAdd).
+		 */
+		var classes = entry.classes || ( entry.node && Array.isArray( entry.node.classes ) ? entry.node.classes : [] );
+		if ( folders && classes.length && 'removed' !== status ) {
+			var list = el( 'span', { class: 'vgml-classes' } );
+			classes.slice( 0, 3 ).forEach( function ( word ) {
+				var p = el( 'span', { class: 'vgml-class g-pill is-quiet', 'data-class': word }, word );
+				if ( self.editable ) {
+					var x = el( 'button', { type: 'button', class: 'vgml-unclass', tabindex: '-1', 'aria-label': sprintf( l10n.removeWord, word ), title: sprintf( l10n.removeWord, word ) }, '×' );
+					x.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						if ( ! self.editing ) {
+							self.onEdit( { type: 'classes', key: entry.key, classes: classes.filter( function ( c ) { return c !== word; } ), removed: word, by: 'you' } );
+						}
+					} );
+					p.appendChild( x );
+				}
+				list.appendChild( p );
+			} );
+			if ( classes.length > 3 ) {
+				list.appendChild( el( 'span', { class: 'vgml-class vgml-class-more g-pill is-quiet', title: classes.slice( 3 ).join( ' · ' ) }, '+' + fmt( classes.length - 3 ) ) );
+			}
+			row.appendChild( list );
+		}
+
 		var count = null;
 		if ( folders ) {
 			var shown = entry.shown !== undefined ? entry.shown : entry.total;
@@ -1272,7 +1318,17 @@
 			done = true;
 			self.editing = '';
 			var name = input.value.trim();
-			if ( commit && name ) {
+			if ( commit && name && '#' === name.charAt( 0 ) && entry ) {
+				// "#pc internals" in a row's editor: a word the folder takes, not a folder inside it (C.4).
+				var word = name.slice( 1 ).trim().toLowerCase();
+				// The row's classes as the overlay holds them (a chip's entry is only key, name, depth).
+				var have = ( self.overlay && self.overlay.rows[ entry.key ] && self.overlay.rows[ entry.key ].classes ) || entry.classes || ( entry.node && Array.isArray( entry.node.classes ) ? entry.node.classes : [] );
+				if ( word && have.indexOf( word ) === -1 ) {
+					self.onEdit( { type: 'classes', key: entry.key, classes: have.concat( [ word ] ), added: word, by: 'you' } );
+				} else {
+					self.render();
+				}
+			} else if ( commit && name ) {
 				if ( entry && ! self.isOpen( entry.key ) ) {
 					self.openOverride[ entry.key ] = true;
 				}

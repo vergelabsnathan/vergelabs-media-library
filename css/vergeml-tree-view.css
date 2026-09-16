@@ -261,6 +261,45 @@
 	color: var( --vgml-tv-muted );
 }
 
+/* What the folder takes (C.4): quiet pills after the name, three at most; × on each while the tree is open. */
+.vgml-tv[data-surface="folders"] .vgml-classes {
+	display: inline-flex;
+	flex: 0 1 auto;
+	gap: 4px;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-class {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 1px 8px;
+	font-size: 11.5px;
+	font-weight: 400;
+	white-space: nowrap;
+	color: var( --vgml-tv-muted );
+	background: var( --vgml-n100, #f4f6fb );
+}
+
+.vgml-tv[data-surface="folders"] .vgml-unclass {
+	margin: 0 -4px 0 0;
+	padding: 0 2px;
+	border: 0;
+	background: none;
+	font: inherit;
+	font-size: 13px;
+	line-height: 1;
+	color: inherit;
+	cursor: pointer;
+	opacity: .55;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-unclass:hover {
+	opacity: 1;
+	color: #b32d2e;
+}
+
 .vgml-tv[data-surface="folders"] .vgml-mark {
 	flex: 0 0 auto;
 	font-size: 11px;

@@ -13,14 +13,14 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 
 | | count |
 |---|---|
-| PHP output sites with a non-literal argument | 182 |
-| · of those, read by hand with the reason | 7 |
+| PHP output sites with a non-literal argument | 183 |
+| · of those, read by hand with the reason | 8 |
 | · of those, **nothing accounted for them** | **0** |
 | JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 59 |
 | · of those, given anything but a literal | 18 |
 | · of those, read by hand with the reason | 18 |
 | · of those, **still unread** | **0** |
-| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 226 |
+| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 230 |
 
 Over 66 PHP files and 35 JavaScript files that ship.
 
@@ -64,13 +64,13 @@ what it is given, so changing any of them expires its reason.
 | js/vergeml-media-views.js:914 | `0531e42831` | `jQuery .html()` | l10n.noMedia, one of our own translated strings |
 | js/vergeml-taxonomies-options.js:299 | `ed5afe42cb` | `jQuery .html()` | a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow |
 | js/vergeml-tree-view.js:136 | `be95315174` | `innerHTML` | an inline SVG assembled from literal path strings chosen by a boolean |
-| js/vergeml-tree-view.js:1127 | `7524bab4c0` | `innerHTML` | chevron() or an empty string, and chevron() returns a literal SVG |
+| js/vergeml-tree-view.js:1142 | `7524bab4c0` | `innerHTML` | chevron() or an empty string, and chevron() returns a literal SVG |
 | js/vergeml-tree.js:473 | `120a036696` | `innerHTML` | shard() returns a literal SVG |
 | js/vergeml-tree.js:853 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
 | js/vergeml-tree.js:885 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
-| js/vergeml-tree.js:3688 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
-| js/vergeml-tree.js:4770 | `a85ef70f6b` | `innerHTML` | an HTML entity chosen by a boolean, inside literal markup |
-| js/vergeml-tree.js:4776 | `379ac53d9c` | `innerHTML` | one of two HTML entities |
+| js/vergeml-tree.js:3693 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
+| js/vergeml-tree.js:4775 | `a85ef70f6b` | `innerHTML` | an HTML entity chosen by a boolean, inside literal markup |
+| js/vergeml-tree.js:4781 | `379ac53d9c` | `innerHTML` | one of two HTML entities |
 
 #### Two dialog helpers that had no callers
 
@@ -98,19 +98,19 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-autofile.js:43 | `innerHTML` | a literal | `''` |
 | js/vergeml-autofile.js:156 | `innerHTML` | a literal | `''` |
 | js/vergeml-brief.js:206 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:361 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:366 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:397 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:415 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:515 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:576 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:694 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:697 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:811 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:816 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1504 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1547 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1557 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:363 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:368 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:399 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:417 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:539 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:601 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:788 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:839 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:956 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:961 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1663 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1706 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1716 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |
@@ -132,8 +132,8 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-talk.js:275 | `innerHTML` | a literal | `''` |
 | js/vergeml-taxonomies-options.js:299 | `jQuery .html()` | **not a literal** | `function (e, t) { return t == vergeml.l10n.edit + ' ↓' ? vergeml.l10n.` |
 | js/vergeml-tree-view.js:136 | `innerHTML` | **not a literal** | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<path class="vgm` |
-| js/vergeml-tree-view.js:1127 | `innerHTML` | **not a literal** | `entry.kids ? chevron() : ''` |
-| js/vergeml-tree-view.js:1709 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree-view.js:1142 | `innerHTML` | **not a literal** | `entry.kids ? chevron() : ''` |
+| js/vergeml-tree-view.js:1765 | `innerHTML` | a literal | `''` |
 | js/vergeml-tree.js:213 | `innerHTML` | a literal | `''` |
 | js/vergeml-tree.js:473 | `innerHTML` | **not a literal** | `shard()` |
 | js/vergeml-tree.js:559 | `innerHTML` | a literal | `''` |
@@ -142,13 +142,13 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-tree.js:853 | `innerHTML` | **not a literal** | `chevron()` |
 | js/vergeml-tree.js:885 | `innerHTML` | **not a literal** | `chevron()` |
 | js/vergeml-tree.js:954 | `innerHTML` | a literal | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<path d="M1.5 1h` |
-| js/vergeml-tree.js:2464 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:2668 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:2941 | `innerHTML` | a literal | `'&#8943;'` |
-| js/vergeml-tree.js:3688 | `innerHTML` | **not a literal** | `chevron()` |
-| js/vergeml-tree.js:4620 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:4770 | `innerHTML` | **not a literal** | `'<span aria-hidden="true">' + ( collapsed ? '&#9656;' : '&#9666;' ) + ` |
-| js/vergeml-tree.js:4776 | `innerHTML` | **not a literal** | `now ? '&#9656;' : '&#9666;'` |
+| js/vergeml-tree.js:2469 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:2673 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:2946 | `innerHTML` | a literal | `'&#8943;'` |
+| js/vergeml-tree.js:3693 | `innerHTML` | **not a literal** | `chevron()` |
+| js/vergeml-tree.js:4625 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:4775 | `innerHTML` | **not a literal** | `'<span aria-hidden="true">' + ( collapsed ? '&#9656;' : '&#9666;' ) + ` |
+| js/vergeml-tree.js:4781 | `innerHTML` | **not a literal** | `now ? '&#9656;' : '&#9666;'` |
 
 </details>
 
@@ -176,6 +176,7 @@ single quote, and to teach the importer to strip one leading `'` back off.
 | core/gallery-widgets.php:396 | `e60edee9bb` | `$html` | vergeml_render_gallery_block() builds every part with wp_get_attachment_image(), esc_url(), esc_attr() and an (int) cast, and puts the caption through wp_kses_post(). The front-end path, so the one that matters most |
 | core/import-csv.php:192 | `7700958a44` | `vergeml_csv_line( $row )` | a CSV download, not markup: text/csv with Content-Disposition attachment, quoted per RFC 4180. Not an XSS sink -- but see "The CSV export, and spreadsheet formulas", which is a separate finding |
 | core/licence-page.php:151 | `fbcf74ab5e` | `'<div class="vgml-status-band">' . $band . '</div>'` | $band is assembled on three branches, each from esc_html__() or esc_html() plus literal markup |
+| core/media-list.php:497 | `0ad7967fe8` | `preg_replace( '/(<option[^>]*value=[\'"]not_in[\'"][^>]*>.*?` | wp_dropdown_categories( echo => false ) -- core's own escaped markup -- with one option of ours spliced in after Unfiled, whose text is esc_html() of a translated string with number_format_i18n() (the Placed by hand filter, C.3) |
 | core/options-pages.php:1593 | `cd9e4aee76` | `json_encode( $settings )` | json_encode() into a download: application/json with Content-Disposition attachment, so not an HTML context. wp_json_encode() would be the house style |
 | core/options-pages.php:2918 | `e60edee9bb` | `$html` | assembled from __() translations and literal form markup; no value out of the request or the database is interpolated unescaped. Two sites, the media and non-media post-type branches, with the same expression |
 | core/options-pages.php:3021 | `e60edee9bb` | `$html` | assembled from __() translations and literal form markup; no value out of the request or the database is interpolated unescaped. Two sites, the media and non-media post-type branches, with the same expression |

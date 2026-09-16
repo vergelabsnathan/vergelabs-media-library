@@ -838,6 +838,20 @@ function vergeml_backend_parse_tax_query( $query ) {
             continue;
         }
 
+        // "Placed by hand": not a folder but a mark on the picture (core/filing.php), so a meta query, and no term.
+        if ( 'by_you' === $raw && defined( 'VERGEML_FILING_PLACED_BY' ) ) {
+
+            $meta = $query->get( 'meta_query' );
+            $meta = is_array( $meta ) ? $meta : array();
+            $meta[] = array( 'key' => VERGEML_FILING_PLACED_BY, 'value' => 'user' );
+            $query->set( 'meta_query', $meta ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- one indexed key on a list screen.
+
+            unset( $query->query[ $taxonomy ] );
+            unset( $query->query_vars[ $taxonomy ] );
+
+            continue;
+        }
+
         $term = get_term_by( 'slug', $raw, $taxonomy );
 
         if ( ! $term && is_numeric( $raw ) ) {

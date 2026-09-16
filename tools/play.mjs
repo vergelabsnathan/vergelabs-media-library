@@ -3,6 +3,7 @@
  *
  *      node tools/play.mjs              # boot, mounted on this checkout
  *      node tools/play.mjs --port 8899
+ *      node tools/play.mjs --plant 30 --perf   # the Fill step's questions planted, REST timing headers on
  *
  *  There are two ways to put this plugin into Playground and they are not
  *  interchangeable.
@@ -70,10 +71,40 @@ blueprint.steps = blueprint.steps.map( ( step ) =>
 		: step
 );
 
+/*
+ *  --plant [n]: the Fill step's questions, planted at boot the way
+ *  tests/ui/fill-fixture.php plants them on the box over SSH -- Playground
+ *  has no SSH, and no described library, so the fixture makes fake described
+ *  pictures first (VGML_SEED_FAKE). n questions, the first with 50 pictures:
+ *  what folders.spec times on this site, the plugin's own cost of an answer.
+ */
+const PLANT = argv.includes( '--plant' ) ? Number( flag( '--plant', '30' ) ) || 30 : 0;
+if ( PLANT ) {
+	blueprint.steps.push( {
+		step: 'runPHP',
+		code: `<?php require_once '/wordpress/wp-load.php'; putenv( 'VGML_MODE=plant' ); putenv( 'VGML_COUNT=${ PLANT }' ); putenv( 'VGML_Q1=50' ); putenv( 'VGML_SEED_FAKE=1' ); require '${ MOUNT }/tests/ui/fill-fixture.php';`,
+	} );
+}
+
+/*
+ *  --perf: tests/perf/mu-perf.php as a must-use plugin, so every REST answer
+ *  carries X-Vgml-Queries and X-Vgml-Handler-Ms here as it does on the box.
+ *  Alone in a folder of its own: the other mu-*.php beside it change what
+ *  the plugin does.
+ */
+const muDir = path.join( os.tmpdir(), `vgml-mu-${ process.pid }` );
+if ( argv.includes( '--perf' ) ) {
+	fs.mkdirSync( muDir, { recursive: true } );
+	fs.copyFileSync( path.join( ROOT, 'tests', 'perf', 'mu-perf.php' ), path.join( muDir, 'mu-perf.php' ) );
+}
+
 const tmp = path.join( os.tmpdir(), `vgml-blueprint-${ process.pid }.json` );
 fs.writeFileSync( tmp, JSON.stringify( blueprint, null, '\t' ) );
 
 console.log( `\n  mounting ${ ROOT }` );
+if ( PLANT ) {
+	console.log( `  planting ${ PLANT } questions on fake described pictures` );
+}
 console.log( `  open http://127.0.0.1:${ PORT }  -- not localhost\n` );
 
 /*
@@ -85,13 +116,15 @@ const child = spawn(
 	[ '@wp-playground/cli', 'server',
 		'--port', PORT,
 		'--blueprint', tmp,
-		'--mount-dir', ROOT, MOUNT ],
+		'--mount-dir', ROOT, MOUNT,
+		...( argv.includes( '--perf' ) ? [ '--mount-dir', muDir, '/wordpress/wp-content/mu-plugins' ] : [] ) ],
 	{ stdio: 'inherit', shell: true, env: { ...process.env, MSYS_NO_PATHCONV: '1' } }
 );
 
 const clean = () => {
 	try {
 		fs.rmSync( tmp, { force: true } );
+		fs.rmSync( muDir, { recursive: true, force: true } );
 	} catch {}
 };
 

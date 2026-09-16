@@ -3106,6 +3106,22 @@ function vergeml_librarian_why( $attachment_id ) {
             $out['lines'][] = sprintf( __( 'Ahead of %1$s at %2$s · by %3$s', 'vergelabs-media-library' ), $runner, $n( $rscore ), $n( $score - $rscore ) );
         }
 
+        /*
+         *  Why "likely" and not a child: the word mostly means "the parent,
+         *  because no folder inside it claims the picture" (11 of 14 likely
+         *  marked too broad on 2026-09-16 were Hardware at 0.60-0.63). The
+         *  matcher descends to a child within 0.03 of the parent, so a parent
+         *  that stands is one no child came near -- or two children tied for.
+         */
+        if ( 'siblings' === $why ) {
+            $out['lines'][] = __( 'Two folders inside it tie for it', 'vergelabs-media-library' );
+        } elseif ( 'likely' === $out['confidence'] && $out['term_id'] ) {
+            $kids = get_term_children( $out['term_id'], $taxonomy );
+            if ( ! is_wp_error( $kids ) && $kids ) {
+                $out['lines'][] = __( 'No folder inside it fits better', 'vergelabs-media-library' );
+            }
+        }
+
     } elseif ( 'floor' === $why ) {
 
         /* translators: 1: the best score any folder reached, 2: the floor a score has to clear */

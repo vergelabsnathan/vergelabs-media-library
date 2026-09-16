@@ -173,6 +173,12 @@ async function ready( page ) {
 	await expect( page.locator( '.vgml-folders.is-ready' ) ).toBeVisible( { timeout: 30000 } );
 }
 
+/** The Folders screen, opened and painted. */
+async function open_( page ) {
+	await open( page, SCREEN.folders );
+	await ready( page );
+}
+
 test.describe( 'the Folders screen', () => {
 
 	test.afterEach( async ( { page } ) => {
@@ -330,8 +336,13 @@ test.describe( 'the Folders screen', () => {
 	 *  seeds no profile onto a real folder (see the file's header).
 	 */
 	test( 'confirm advances the rail and locks the tree; Unconfirm opens it; Skip leaves it unconfirmed', async ( { page } ) => {
+		test.setTimeout( 240_000 );
 		await remember( page );
 		await plant( page, false );
+		if ( boxFor( BASE ) ) {
+			// A Fill step with no open question and three pictures to sort: the box carries the walk's thirty questions since 2026-09-16, and with questions open the fill's button is not the confirm.
+			plantOnBox( { VGML_COUNT: 0, VGML_LEFT: 3 } );
+		}
 		const draft = {
 			folders: [
 				{ key: 'c1', term_id: null, name: 'Confirm probe', parent: '', classes: [ 'probe' ], kinds: [ 'photo' ], audience: '', matches: 'a probe' },
@@ -641,7 +652,7 @@ test.describe( 'the Folders screen', () => {
 		await expect( cards.nth( 0 ).locator( '.g-q-strip img' ) ).toHaveCount( 5 );
 		await expect( cards.nth( 0 ).locator( '.g-answer' ) ).toHaveText( [ 'New folder Spec probe', 'Leave them', 'Show me' ] );
 		await expect( cards.nth( 0 ).locator( '.g-answer' ).first() ).toHaveClass( /is-first/ );
-		await expect( cards.nth( 1 ).locator( '.g-q-text' ) ).toHaveText( '3 I can\'t read' );
+		await expect( cards.nth( 1 ).locator( '.g-q-text' ) ).toHaveText( '3 with nothing to go on' );
 		await expect( cards.nth( 1 ).locator( '.g-q-strip img' ) ).toHaveCount( 3 );
 		await expect( cards.nth( 1 ).locator( '.g-answer' ) ).toHaveText( [ 'Leave them', 'Show me' ] );
 		await expect( page.locator( '.g-qs .g-leave-rest' ) ).toHaveText( 'Leave the rest' );
@@ -676,7 +687,9 @@ test.describe( 'the Folders screen', () => {
 		const answered = await a[ 0 ].json();
 		expect( answered.result.moved ).toBe( 5 );
 		expect( answered.result.made ).toBeGreaterThan( 0 );
-		await expect( page.locator( '.g-qs .g-q.is-answered .g-q-result' ) ).toHaveText( 'Spec probe made · 5 moved' );
+		// The result line, and -- the person chose the folder -- the way to review those five (C.3).
+		await expect( page.locator( '.g-qs .g-q.is-answered .g-q-result' ) ).toHaveText( 'Spec probe made · 5 moved · 5 by you · review' );
+		expect( await page.locator( '.g-qs .g-q.is-answered .g-q-review' ).getAttribute( 'href' ) ).toMatch( /upload\.php\?mode=list&media_category=by_you$/ );
 		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
 		await expect( page.locator( '.g-tree .vgml-node.is-new' ).filter( { hasText: 'Spec probe' } ).locator( '.vgml-tag' ) ).toHaveText( 'new' );
 		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill.is-ask' ) ).toHaveText( '1 question' );
@@ -863,6 +876,337 @@ test.describe( 'the Folders screen', () => {
 		const heights = await row.evaluate( ( tr ) => ( { row: tr.getBoundingClientRect().height, line: tr.querySelector( '.filename' ).getBoundingClientRect().height } ) );
 		expect( heights.line, 'the pill adds no second line' ).toBeLessThan( 40 );
 		await row.screenshot( { path: 'tests/ui/shots/list-row-by-you.png' } );
+	} );
+
+	/*
+	 *  One press, one honest answer (C.3). Thirty questions -- planted on the
+	 *  box by the fixture, or at boot on Playground (tools/play.mjs --plant 30)
+	 *  -- with an either/or card and a small-groups card among them, the
+	 *  first on fifty pictures (Nathan's 61 towers). Then:
+	 *
+	 *    - a 409 from guide/answer lands on the card, not in the hidden change
+	 *      line; the buttons come back; the card is the same node;
+	 *    - the answer response carries no questions (the screen holds them);
+	 *    - the answered card is patched in place, the next card appended, the
+	 *      tree rendered once (the rows added to .vgml-list equal the rows on
+	 *      it) and its node not re-appended into the slot;
+	 *    - "Show me" on fifty pictures shows 48 and says "2 more";
+	 *    - the keys: Enter opens the strip, 1 answers;
+	 *    - a timing row for this site: the answer's handler ms and queries from
+	 *      tests/perf/mu-perf.php (on the box; on Playground with --perf), and
+	 *      the wall clock. The box's wall clock is the box's (2.9 s, 36
+	 *      plugins); Playground's handler ms is the plugin's own cost.
+	 *
+	 *  Mutations: put `'questions' => vergeml_talk_questions()` back into the
+	 *  answer route -> the no-questions row red; put `dom.slots.fill.appendChild(
+	 *  dom.tree )` back unguarded in renderFill -> the re-append row red; drop
+	 *  the `quietly` from setNewIds in refreshTree -> the one-render row red;
+	 *  drop wp_defer_term_counting from vergeml_talk_answer -> the query row red.
+	 */
+	test( 'one press, one honest answer: a 409 on the card, a slim response, one tree render, the keys, a timing row', async ( { page } ) => {
+		test.setTimeout( 300_000 );
+		const box = boxFor( BASE );
+		await remember( page );
+		await plant( page, false );
+		if ( box ) {
+			const f = plantOnBox( { VGML_COUNT: 30, VGML_Q1: 50 } );
+			expect( f.open, 'thirty questions planted' ).toBe( 30 );
+			expect( f.either.length, 'an either/or card among them' ).toBe( 2 );
+		}
+		const qs = await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/questions` } ), NS );
+		const open = ( qs.questions || [] ).filter( ( q ) => ! q.answered );
+		test.skip( ! box && open.length !== 30, `Playground: boot it with tools/play.mjs --plant 30 --perf (${ open.length } open questions found)` );
+		expect( open.length ).toBe( 30 );
+		expect( open[ 0 ].count, 'the first question is the fifty-picture one' ).toBe( 50 );
+		const either = open.find( ( q ) => 'either' === q.kind );
+		const more = open.find( ( q ) => /more, in small groups$/.test( q.text ) );
+		expect( either, 'an either/or question' ).toBeTruthy();
+		expect( more, 'a small-groups card' ).toBeTruthy();
+		expect( either.text ).toMatch( /^4 pictures: .+ or .+\?$/ );
+		expect( Object.values( either.answers ) ).toEqual( [ expect.stringMatching( /^Put in / ), expect.stringMatching( /^Put in / ), 'Split them by best score', 'Leave them', 'Let me look' ] );
+
+		const problems = [];
+		page.on( 'pageerror', ( e ) => problems.push( `javascript: ${ e.message }` ) );
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open_( page );
+
+		const cards = page.locator( '.g-qs .g-q' );
+		await expect( cards ).toHaveCount( 3 );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill.is-ask' ) ).toHaveText( '30 questions' );
+		await expect( page.locator( '.g-qs .g-qs-foot .g-pill' ) ).toHaveText( '27 more' );
+		const firstCard = await cards.nth( 0 ).elementHandle();
+
+		// A 409, intercepted: its text on the card, the buttons back, the change line still hidden.
+		await page.route( '**/guide/answer**', ( route ) => route.fulfill( { status: 409, contentType: 'application/json', body: JSON.stringify( { code: 'running', message: 'The fill is still running.', data: { status: 409 } } ) } ) );
+		await cards.nth( 0 ).locator( '.g-answer[data-answer="new-folder"]' ).click();
+		await expect( cards.nth( 0 ).locator( '.g-q-error' ) ).toHaveText( 'The fill is still running.' );
+		await expect( cards.nth( 0 ).locator( '.g-answer' ).first() ).toBeEnabled();
+		await expect( page.locator( '.g-change' ) ).toBeHidden();
+		expect( await page.evaluate( ( n ) => n.isConnected, firstCard ), 'the card that took the error is the same node' ).toBe( true );
+		await page.unroute( '**/guide/answer**' );
+		await page.screenshot( { path: 'tests/ui/shots/folders-answer-409.png' } );
+
+		// Watched: the tree's list (rows added must equal rows on it: one render) and the fill slot (no re-append of the tree node).
+		await page.evaluate( () => {
+			const list = document.querySelector( '.g-tree .vgml-list' );
+			const slot = document.querySelector( '.g-card[data-card="fill"] .g-tree' ).parentNode;
+			window.__vgmlWatch = { added: 0, removed: 0, reappended: 0, batches: 0 };
+			new MutationObserver( ( records ) => {
+				window.__vgmlWatch.batches++;
+				records.forEach( ( r ) => {
+					window.__vgmlWatch.added += r.addedNodes.length;
+					window.__vgmlWatch.removed += r.removedNodes.length;
+				} );
+			} ).observe( list, { childList: true } );
+			new MutationObserver( ( records ) => {
+				records.forEach( ( r ) => {
+					Array.prototype.forEach.call( r.addedNodes, ( n ) => {
+						if ( n.classList && n.classList.contains( 'g-tree' ) ) {
+							window.__vgmlWatch.reappended++;
+						}
+					} );
+				} );
+			} ).observe( slot, { childList: true } );
+		} );
+
+		// The real answer: fifty pictures into a new folder.
+		const [ answered, tree ] = await Promise.all( [
+			page.waitForResponse( ( res ) => /\/guide\/answer/.test( res.url() ) ),
+			page.waitForResponse( ( res ) => /\/tree\?/.test( res.url() ) && 'GET' === res.request().method() ),
+			cards.nth( 0 ).locator( '.g-answer[data-answer="new-folder"]' ).click(),
+		] );
+		expect( answered.status() ).toBe( 200 );
+		const a = await answered.json();
+		expect( a.result.moved ).toBe( 50 );
+		expect( a.result.placed, 'the person chose the folder: fifty by you' ).toBe( 50 );
+		expect( a.questions, 'the answer carries no questions' ).toBeUndefined();
+		expect( JSON.stringify( a ) ).not.toContain( '"sample"' );
+
+		await expect( page.locator( '.g-qs .g-q.is-answered .g-q-result' ) ).toContainText( 'Spec probe made · 50 moved' );
+		await expect( page.locator( '.g-qs .g-q.is-answered .g-q-review' ) ).toHaveText( '50 by you · review' );
+		expect( await page.locator( '.g-qs .g-q.is-answered .g-q-review' ).getAttribute( 'href' ) ).toContain( '=by_you' );
+		expect( await page.evaluate( ( n ) => n.isConnected && n.classList.contains( 'is-answered' ), firstCard ), 'the answered card is the same node' ).toBe( true );
+		await expect( cards ).toHaveCount( 3 );
+		await expect( page.locator( '.g-qs .g-q:not(.is-answered)' ) ).toHaveCount( 2 );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill.is-ask' ) ).toHaveText( '29 questions' );
+		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
+		await page.waitForTimeout( 800 );
+		const watch = await page.evaluate( () => ( { ...window.__vgmlWatch, rows: document.querySelector( '.g-tree .vgml-list' ).children.length } ) );
+		expect( watch.reappended, 'the tree node is not re-appended into the slot' ).toBe( 0 );
+		expect( watch.added, `one render: rows added (${ watch.added }) equal rows on the list (${ watch.rows })` ).toBe( watch.rows );
+		expect( watch.batches, 'one childList batch on .vgml-list' ).toBe( 1 );
+
+		// The timing row for this site.
+		const h = ( r, k ) => r.headers()[ k.toLowerCase() ];
+		const wall = ( r ) => { const t = r.request().timing(); return t && t.responseEnd > 0 ? Math.round( t.responseEnd - Math.max( 0, t.requestStart ) ) : null; };
+		const row = `${ box ? 'box' : 'playground' } · answer (50 pictures, 30 questions): handler ${ h( answered, 'X-Vgml-Handler-Ms' ) ?? '?' } ms · ${ h( answered, 'X-Vgml-Queries' ) ?? '?' } queries · wall ${ wall( answered ) ?? '?' } ms · tree GET: handler ${ h( tree, 'X-Vgml-Handler-Ms' ) ?? '?' } ms · wall ${ wall( tree ) ?? '?' } ms`;
+		console.log( `      ${ row }` );
+		if ( h( answered, 'X-Vgml-Queries' ) ) {
+			/*
+			 *  Measured 2026-09-16 on fifty pictures: the plugin's own loop is
+			 *  seven queries a picture (term_exists, the terms read, the
+			 *  relationship's check and insert, the mark's two), and the box's
+			 *  other plugins add four (Jetpack's sync queue, a termmeta read).
+			 *  With term counting deferred: 533 in PHP, 593 through REST;
+			 *  without it: 729 in PHP. The budget sits between.
+			 */
+			expect( Number( h( answered, 'X-Vgml-Queries' ) ), 'queries for fifty moves' ).toBeLessThanOrEqual( box ? 50 * 12 + 80 : 50 * 9 + 60 );
+		}
+		if ( ! box ) {
+			/*
+			 *  The plugin's own number on Playground is the query count, held
+			 *  above; the milliseconds are PHP-wasm's (2026-09-16: 435 queries
+			 *  in 2.6 s here, ~6 ms a query, against 591 in 620 ms on the box's
+			 *  MySQL). tests/perf/mu-perf.php says the same in its header. The
+			 *  plan's 400 ms is a real-database number; it is the box's row
+			 *  that answers it, minus the box's own plugins.
+			 */
+			expect( h( answered, 'X-Vgml-Queries' ), 'Playground boots without --perf: no query count to hold' ).toBeTruthy();
+		}
+
+		// "Show me" on the either card from the keyboard: Enter opens the strip; then 1 answers the next card with its first answer.
+		const eitherCard = page.locator( `.g-qs .g-q[data-q="${ either.id }"]` );
+		if ( await eitherCard.count() ) {
+			await eitherCard.focus();
+			await page.keyboard.press( 'Enter' );
+			await expect( eitherCard.locator( '.g-q-strip' ) ).toHaveClass( /is-open/ );
+		}
+		const next = page.locator( '.g-qs .g-q:not(.is-answered)' ).first();
+		const nextId = await next.getAttribute( 'data-q' );
+		const firstAnswer = await next.locator( '.g-answer' ).first().getAttribute( 'data-answer' );
+		await next.focus();
+		const [ byKey ] = await Promise.all( [
+			page.waitForResponse( ( res ) => /\/guide\/answer/.test( res.url() ) ),
+			page.keyboard.press( '1' ),
+		] );
+		expect( ( await byKey.request().postDataJSON() ) ).toMatchObject( { id: nextId, answer: firstAnswer } );
+		await expect( page.locator( `.g-qs .g-q[data-q="${ nextId }"]` ) ).toHaveClass( /is-answered/ );
+
+		await page.screenshot( { path: 'tests/ui/shots/folders-answered-in-place.png' } );
+		expect( problems, problems.join( '\n' ) ).toEqual( [] );
+	} );
+
+	/*
+	 *  The strip's cap (C.3): "Show me" on a group over 48 shows 48 and says
+	 *  how many it left out. Its own test, so the fifty-picture question is
+	 *  still open when the strip is asked for.
+	 */
+	test( 'Show me on fifty pictures shows 48 and says 2 more', async ( { page } ) => {
+		test.skip( ! boxFor( BASE ), 'planted on the box over SSH' );
+		test.setTimeout( 300_000 );
+		await remember( page );
+		await plant( page, false );
+		plantOnBox( { VGML_COUNT: 4, VGML_Q1: 50 } );
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open_( page );
+		const first = page.locator( '.g-qs .g-q' ).first();
+		await expect( first.locator( '.g-q-text' ) ).toHaveText( '50 look like spec probes' );
+		await expect( first.locator( '.g-q-strip img' ) ).toHaveCount( 8 );
+		await first.locator( '.g-answer[data-answer="show-me"]' ).click();
+		await expect( first.locator( '.g-q-strip' ) ).toHaveClass( /is-open/ );
+		await expect( first.locator( '.g-q-strip img' ) ).toHaveCount( 48 );
+		await expect( first.locator( '.g-q-strip .g-q-strip-more' ) ).toHaveText( '2 more' );
+		await page.screenshot( { path: 'tests/ui/shots/folders-show-me-capped.png' } );
+	} );
+
+	/*
+	 *  Placed by hand, reviewable (C.3): the media list's folder filter lists
+	 *  exactly the pictures that carry the mark -- the fixture's own SQL says
+	 *  which, 61 of Nathan's plus the one it marks -- and a picture dragged
+	 *  out of its folder (the Unfiled drop's request through /assign) loses
+	 *  the mark, so the next fill may judge it again.
+	 *
+	 *  Mutation: drop the `delete_post_meta` branch in core/rest-tree.php's
+	 *  assign -> the cleared-mark row red.
+	 */
+	test( 'Placed by hand lists exactly the marked pictures; a drag out clears the mark', async ( { page } ) => {
+		test.skip( ! boxFor( BASE ), 'planted on the box over SSH' );
+		test.setTimeout( 300_000 );
+		await remember( page );
+		const f = plantOnBox( { VGML_LEFT: 0 } );
+		expect( f.word.id, 'a filed picture to mark' ).toBeGreaterThan( 0 );
+		expect( f.placed, 'the marked one is among the marked' ).toContain( f.word.id );
+		const tax = 'media_category';
+
+		const filtered = async () => {
+			await page.goto( `/wp-admin/upload.php?mode=list&${ tax }=by_you`, { waitUntil: 'domcontentloaded' } );
+			await page.waitForSelector( '.wp-list-table', { timeout: 30000 } );
+			return page.evaluate( ( t ) => ( {
+				url: location.href,
+				selected: document.querySelector( `select[name="${ t }"]` ).value,
+				option: Array.from( document.querySelectorAll( `select[name="${ t }"] option` ) ).map( ( o ) => o.textContent.trim() ),
+				items: ( document.querySelector( '.displaying-num' ) || {} ).textContent || '',
+				rows: Array.from( document.querySelectorAll( '#the-list tr[id^="post-"]' ) ).map( ( tr ) => ( { id: Number( tr.id.replace( 'post-', '' ) ), word: ( tr.querySelector( '.filename .vgml-word' ) || {} ).textContent || '' } ) ),
+			} ), tax );
+		};
+
+		await page.setViewportSize( { width: 1600, height: 900 } );
+		let seen = await filtered();
+		expect( seen.selected, `${ seen.url } · options: ${ seen.option.slice( 0, 4 ).join( ' | ' ) }` ).toBe( 'by_you' );
+		expect( seen.option[ 2 ], 'third in the dropdown, after Unfiled' ).toBe( `Placed by hand (${ f.placed.length })` );
+		expect( seen.items.replace( /\D/g, '' ), 'the list counts exactly the marked pictures' ).toBe( String( f.placed.length ) );
+		expect( seen.rows.length ).toBeGreaterThan( 0 );
+		for ( const r of seen.rows ) {
+			expect( f.placed, `row ${ r.id } is one the fixture's SQL lists` ).toContain( r.id );
+			expect( r.word, `row ${ r.id } wears the word` ).toBe( 'by you' );
+		}
+		await page.screenshot( { path: 'tests/ui/shots/list-placed-by-hand.png' } );
+
+		// Dragged out: the Unfiled drop's request, and the mark is gone.
+		const out = await page.evaluate( ( [ ns, id, t ] ) => wp.apiFetch( { path: `${ ns }/assign`, method: 'POST', data: { taxonomy: t, attachments: [ id ], add: [], mode: 'move' } } ), [ NS, f.word.id, tax ] );
+		expect( out ).toBeTruthy();
+		const why = await page.evaluate( ( [ ns, id ] ) => wp.apiFetch( { path: `${ ns }/librarian-why/${ id }` } ), [ NS, f.word.id ] );
+		expect( why.confidence, 'no longer by you' ).not.toBe( 'by you' );
+		seen = await filtered();
+		expect( seen.items.replace( /\D/g, '' ), 'one fewer in the filter' ).toBe( String( f.placed.length - 1 ) );
+		expect( seen.rows.map( ( r ) => r.id ) ).not.toContain( f.word.id );
+	} );
+
+	/*
+	 *  The words a folder takes, on the tree (C.4): quiet pills after the name
+	 *  (three, then "+n"); × takes a word out of the draft's classes and the
+	 *  fit re-runs; "#word" in the row's + editor adds one; the confirm seeds
+	 *  the profile from them, and a confirmed row's pills are the stored
+	 *  profile's; a confirm that replaced a planned profile keeps the earlier
+	 *  one for a day, and Unconfirm offers Restore. On one real folder made
+	 *  for the test and deleted after (its profile goes with it).
+	 *
+	 *  Mutations: drop `f.classes = ...` from applyEdit's 'classes' case ->
+	 *  the × row red; drop the VERGEML_FILING_META_PREV write from
+	 *  vergeml_filing_profile_build -> the Restore row red.
+	 */
+	test( 'the words a folder takes: pills from the profile, × removes, #word adds, Unconfirm offers Restore', async ( { page } ) => {
+		test.skip( ! boxFor( BASE ), 'seeds a profile onto a real folder (one embed, cached a week) on the box' );
+		test.setTimeout( 300_000 );
+		await remember( page );
+		await plant( page, false );
+		const tax = 'media_category';
+		const made = Number( ( await page.evaluate( ( [ ns, t ] ) => wp.apiFetch( { path: `${ ns }/folder`, method: 'POST', data: { taxonomy: t, action: 'create', name: 'Class probe' } } ), [ NS, tax ] ) ).id );
+		expect( made ).toBeGreaterThan( 0 );
+		const draftWith = ( classes ) => page.evaluate( ( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/session`, method: 'POST', data: { draft } } ), [ NS, {
+			folders: [ { key: 't' + made, term_id: made, name: 'Class probe', parent: '', classes, kinds: [ 'photo' ], audience: '', matches: 'a probe' } ],
+			gone: {}, tags: [], origin: 'talk', rule: null,
+		} ] );
+		const nodeClasses = async () => ( ( await page.evaluate( ( [ ns, t ] ) => wp.apiFetch( { path: `${ ns }/tree?taxonomy=${ t }` } ), [ NS, tax ] ) ).nodes.find( ( n ) => n.id === made ) || {} ).classes;
+		const draftClasses = async () => ( ( await getSession( page ) ).session.draft.folders.find( ( f ) => f.term_id === made ) || {} ).classes;
+		const row = () => page.locator( '.g-tree .vgml-node[data-key="t' + made + '"]' );
+		const pills = () => row().locator( '.vgml-classes .vgml-class' );
+
+		try {
+			await draftWith( [ 'probe', 'probe two', 'probe three', 'probe four' ] );
+			await page.setViewportSize( { width: 1600, height: 1000 } );
+			await open_( page );
+			await expect( pills() ).toHaveText( [ 'probe×', 'probe two×', 'probe three×', '+1' ] );
+
+			// × on a word: out of the draft, the line says so, the fit re-runs (the confirm waits for it).
+			await row().locator( '.vgml-class[data-class="probe two"] .vgml-unclass' ).click();
+			await expect( pills() ).toHaveText( [ 'probe×', 'probe three×', 'probe four×' ] );
+			await expect( page.locator( '.g-change .vgml-msg.is-edit' ).last() ).toContainText( 'Removed the word probe two from Class probe' );
+			await expect.poll( draftClasses, { timeout: 20000 } ).toEqual( [ 'probe', 'probe three', 'probe four' ] );
+			await expect( page.locator( '.g-card[data-card="tree"] .vgml-confirm-btn' ) ).toBeEnabled( { timeout: 90000 } );
+
+			// #word in the row's + editor: a word, not a folder.
+			await row().locator( '.vgml-row' ).hover();
+			await row().locator( '.vgml-add' ).click();
+			await page.locator( '.g-tree .vgml-node.is-adding .vgml-editor' ).fill( '#Probe Five' );
+			await page.keyboard.press( 'Enter' );
+			await expect( pills() ).toHaveText( [ 'probe×', 'probe three×', 'probe four×', '+1' ] );
+			await expect( page.locator( '.g-change .vgml-msg.is-edit' ).last() ).toContainText( 'Added the word probe five to Class probe' );
+			await expect.poll( draftClasses, { timeout: 20000 } ).toEqual( [ 'probe', 'probe three', 'probe four', 'probe five' ] );
+			expect( ( await getSession( page ) ).session.draft.folders.length, 'no folder was added' ).toBe( 1 );
+			await page.screenshot( { path: 'tests/ui/shots/folders-class-pills.png' } );
+
+			// Confirm: the profile is seeded from the draft; the row's pills are the stored profile's, with no ×.
+			await expect( page.locator( '.g-card[data-card="tree"] .vgml-confirm-btn' ) ).toBeEnabled( { timeout: 90000 } );
+			const c1 = await Promise.all( [ page.waitForResponse( ( res ) => /\/guide\/confirm/.test( res.url() ) ), page.locator( '.g-card[data-card="tree"] .vgml-confirm-btn' ).click() ] );
+			expect( c1[ 0 ].status() ).toBe( 200 );
+			await expect.poll( nodeClasses, { timeout: 20000 } ).toEqual( [ 'probe', 'probe three', 'probe four', 'probe five' ] );
+			await page.locator( '.g-step[data-step="tree"]' ).click();
+			await expect( pills() ).toHaveText( [ 'probe', 'probe three', 'probe four', '+1' ] );
+			expect( await row().locator( '.vgml-unclass' ).count(), 'a confirmed row has no ×' ).toBe( 0 );
+
+			// A second confirm with other words replaces the profile and keeps the earlier one; Unconfirm offers Restore, which puts it back.
+			const u1 = await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/unconfirm`, method: 'POST' } ), NS );
+			expect( u1.prev, 'no earlier profile before the second confirm' ).toBe( 0 );
+			await draftWith( [ 'probe six' ] );
+			await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/confirm`, method: 'POST' } ), NS );
+			await expect.poll( nodeClasses, { timeout: 20000 } ).toEqual( [ 'probe six' ] );
+			await page.reload( { waitUntil: 'domcontentloaded' } );
+			await ready( page );
+			await page.locator( '.g-step[data-step="tree"]' ).click();
+			await page.locator( '.g-card[data-card="tree"] .g-quiet' ).filter( { hasText: 'Unconfirm' } ).click();
+			const restore = page.locator( '.g-card[data-card="tree"] .vgml-restore-profiles' );
+			await expect( restore ).toHaveText( 'Restore the earlier classes' );
+			const r = await Promise.all( [ page.waitForResponse( ( res ) => /\/guide\/profiles-restore/.test( res.url() ) ), restore.click() ] );
+			expect( ( await r[ 0 ].json() ).restored ).toBe( 1 );
+			await expect.poll( nodeClasses, { timeout: 20000 } ).toEqual( [ 'probe', 'probe three', 'probe four', 'probe five' ] );
+			expect( await draftClasses(), 'the draft carries the restored words, so the next confirm keeps them' ).toEqual( [ 'probe', 'probe three', 'probe four', 'probe five' ] );
+			await expect( pills() ).toHaveText( [ 'probe×', 'probe three×', 'probe four×', '+1' ] );
+			await page.screenshot( { path: 'tests/ui/shots/folders-class-restore.png' } );
+		} finally {
+			await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/unconfirm`, method: 'POST' } ).catch( () => null ), NS );
+			await page.evaluate( ( [ ns, t, id ] ) => wp.apiFetch( { path: `${ ns }/folder`, method: 'POST', data: { taxonomy: t, action: 'delete', id } } ).catch( () => null ), [ NS, tax, made ] );
+		}
 	} );
 
 	test( 'walk: Propose folders streams a proposal, and Stop stops it', async ( { page } ) => {

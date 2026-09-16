@@ -326,6 +326,31 @@
 	color: var(--vgml-accent-700);
 }
 
+/* The way to review what the answer put in a folder by the person's choice: the media list's Placed by hand filter. */
+.vgml-shell .g-q-review {
+	color: inherit;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+/* An answer that did not go through says so on its card, under the buttons it re-enabled. */
+.vgml-shell .g-q-error {
+	margin: 8px 0 0;
+	font-size: 13px;
+	color: #b32d2e;
+}
+
+/* The strip's cap: what "Show me" could not fit, as a count at the end. */
+.vgml-shell .g-q-strip-more {
+	align-self: center;
+}
+
+/* A card takes focus so its answers are on the keys: 1-4 answer, Enter opens the strip. */
+.vgml-shell .g-q:focus-visible {
+	outline: 2px solid var(--vgml-accent);
+	outline-offset: 2px;
+}
+
 .vgml-shell .g-qs-foot {
 	margin: 2px 0 0 4px;
 }

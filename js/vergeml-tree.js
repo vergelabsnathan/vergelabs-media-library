@@ -1445,7 +1445,12 @@
 		}
 		var tax = form.querySelector( 'select[name="' + state.taxonomy + '"]' );
 		if ( tax ) {
-			tax.value = state.selected > 0 ? String( state.selected ) : '0';
+			if ( state.selected > 0 ) {
+				tax.value = String( state.selected );
+			} else if ( /^\d+$/.test( tax.value ) ) {
+				// A folder the tree no longer shows; the bar's own options (Unfiled, Placed by hand) are the URL's and stay.
+				tax.value = '0';
+			}
 		}
 		var kind = form.querySelector( 'select[name="attachment-filter"]' );
 		if ( kind ) {
@@ -1492,8 +1497,8 @@
 		return null;
 	}
 
-	// The vars that mean the URL was chosen, not merely arrived at.
-	var URL_VARS = [ 's', 'paged', 'orderby', 'order', 'attachment-filter', 'm', 'author', 'filter_action', 'post_mime_type', 'detached', 'vgml_meaning', 'vgml_smart' ];
+	// The vars that mean the URL was chosen, not merely arrived at. `item` is core's deep link to one picture's modal: restoring a remembered folder over it navigated away and the modal never opened (2026-09-16).
+	var URL_VARS = [ 's', 'paged', 'orderby', 'order', 'attachment-filter', 'm', 'author', 'filter_action', 'post_mime_type', 'detached', 'vgml_meaning', 'vgml_smart', 'item' ];
 
 	function urlIsBare() {
 		var params = new URL( window.location.href ).searchParams;
@@ -4847,7 +4852,8 @@
 		 */
 		if ( document.querySelector( '.wp-list-table' ) ) {
 			listArrival();
-		} else if ( state.selected > 0 && window.wp && wp.media ) {
+		} else if ( state.selected > 0 && window.wp && wp.media && urlIsBare() ) {
+			// A bare arrival only: a deep link to one picture (`?item=`) is core's modal to open, and re-selecting the remembered folder under it closed the modal (2026-09-16).
 			setTimeout( function () { select( state.selected ); }, 500 );
 		}
 	}

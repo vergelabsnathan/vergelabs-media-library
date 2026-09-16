@@ -451,9 +451,12 @@ function vergeml_list_folder_filter( $post_type, $which ) {
         || ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] )
         || ! empty( $_REQUEST['uncategorized'] );
 
+    // Placed by hand: the pictures a person chose a folder for (a drag, an answer's Put in) -- the ones a fill never re-judges, so the ones to review.
+    $by_you = isset( $_REQUEST[ $taxonomy ] ) && 'by_you' === $_REQUEST[ $taxonomy ];
+
     $selected = $unfiled
         ? 'not_in'
-        : ( isset( $wp_query->query[ $taxonomy ] ) ? $wp_query->query[ $taxonomy ] : 0 );
+        : ( $by_you ? 'by_you' : ( isset( $wp_query->query[ $taxonomy ] ) ? $wp_query->query[ $taxonomy ] : 0 ) );
 
     printf(
         '<label for="%1$s" class="screen-reader-text">%2$s</label>',
@@ -461,7 +464,16 @@ function vergeml_list_folder_filter( $post_type, $which ) {
         esc_html__( 'All folders', 'vergelabs-media-library' )
     );
 
-    wp_dropdown_categories( array(
+    $placed = defined( 'VERGEML_FILING_PLACED_BY' ) ? vergeml_list_placed_count() : 0;
+    $option = $placed ? sprintf(
+        '<option value="by_you"%s>%s</option>',
+        $by_you ? ' selected="selected"' : '',
+        /* translators: %s: how many pictures a person put in a folder themselves. */
+        esc_html( sprintf( __( 'Placed by hand (%s)', 'vergelabs-media-library' ), number_format_i18n( $placed ) ) )
+    ) : '';
+
+    $dropdown = wp_dropdown_categories( array(
+        'echo'              => false,
         'show_option_all'   => __( 'All folders', 'vergelabs-media-library' ),
         'show_option_none'  => sprintf(
             /* translators: %s: how many files are in no folder. */
@@ -480,9 +492,35 @@ function vergeml_list_folder_filter( $post_type, $which ) {
         'class'             => 'attachment-filters vgml-folder-filter',
         'walker'            => new vergeml_Walker_FolderDropdown(),
     ) );
+
+    // Third, after Unfiled: core's dropdown has two fixed options and no third.
+    echo preg_replace( '/(<option[^>]*value=[\'"]not_in[\'"][^>]*>.*?<\/option>)/s', '$1' . str_replace( '$', '\\$', $option ), $dropdown, 1 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core's own markup, plus one option escaped above.
 }
 
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+
+/**
+ *  How many pictures a person put in a folder themselves (VERGEML_FILING_PLACED_BY):
+ *  the count on the "Placed by hand" option. One query, once a request.
+ */
+function vergeml_list_placed_count() {
+
+    global $wpdb;
+
+    static $count = null;
+
+    if ( null === $count ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one count a request, on a list screen.
+        $count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->postmeta} pm JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'attachment'
+              WHERE pm.meta_key = %s AND pm.meta_value = 'user'",
+            VERGEML_FILING_PLACED_BY
+        ) );
+    }
+
+    return $count;
+}
 
 
 /* ------------------------------------------------------------ moving files */

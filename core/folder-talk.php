@@ -166,20 +166,23 @@ function vergeml_talk_samples( $limit = 40 ) {
 
 	$every = max( 1, (int) floor( $total / max( 1, (int) $limit ) ) );
 
-	$rows = $wpdb->get_col( $wpdb->prepare(
-		"SELECT caption FROM {$wpdb->vergeml_ai_index}
+	$rows = $wpdb->get_results( $wpdb->prepare(
+		"SELECT caption, filing FROM {$wpdb->vergeml_ai_index}
 		  WHERE error = '' AND caption != ''
 	   ORDER BY attachment_id ASC
 		  LIMIT %d",
 		VERGEML_TALK_SCAN
-	) );
+	), ARRAY_A );
 	// phpcs:enable
 
 	$out = array();
 
-	foreach ( (array) $rows as $i => $caption ) {
+	foreach ( (array) $rows as $i => $row ) {
 		if ( 0 === $i % $every ) {
-			$out[] = mb_substr( (string) $caption, 0, 160 );
+			// The caption, and the describer's object beside it ("server rack; computer hardware"): the words the planner must answer in (C.4).
+			$f      = json_decode( (string) $row['filing'], true );
+			$object = is_array( $f ) && isset( $f['object'] ) ? trim( (string) $f['object'] ) : '';
+			$out[]  = mb_substr( (string) $row['caption'], 0, 130 ) . ( '' !== $object ? ' [object: ' . mb_substr( $object, 0, 60 ) . ']' : '' );
 		}
 		if ( count( $out ) >= (int) $limit ) {
 			break;
@@ -439,6 +442,8 @@ function vergeml_talk_propose( $instruction, $history = array(), $mode = 'litera
 				'history'     => $history,
 				'current'     => $current,
 				'samples'     => vergeml_talk_samples(),
+				// The describer's own words with counts: what the plan's classes must be spelled in (C.4).
+				'terms'       => function_exists( 'vergeml_filing_vocabulary' ) ? vergeml_filing_vocabulary() : array(),
 				'groups'      => vergeml_talk_groups(),
 				'audience_share' => vergeml_talk_audience_share(),
 				'mode'        => 'suggested' === $mode ? 'suggested' : 'literal',
@@ -2308,22 +2313,44 @@ function vergeml_talk_answer( $id, $answer ) {
 		}
 	}
 
+	/*
+	 *  The moves, as one batch: the pictures' folders read in one query, term
+	 *  counting deferred to the end and the count caches flushed once after
+	 *  it. Until 2026-09-16 every picture counted its terms and flushed the
+	 *  caches on its own -- ~600 queries for the 61 towers (S6b, seam 3).
+	 */
 	$undo   = array();
 	$trail  = array();
 	$moved  = 0;
 	$landed = 0;
+	$ids    = array_map( 'intval', array_keys( (array) $plan['moves'] ) );
+	$before = array_fill_keys( $ids, array() );
+	if ( $ids ) {
+		$rel = wp_get_object_terms( $ids, $taxonomy, array( 'fields' => 'all_with_object_id' ) );
+		foreach ( is_wp_error( $rel ) ? array() : $rel as $t ) {
+			$before[ (int) $t->object_id ][] = (int) $t->term_id;
+		}
+	}
+	wp_defer_term_counting( true );
+	remove_action( 'set_object_terms', 'vergeml_folder_flush_counts', 10 );
+	remove_action( 'deleted_term_relationships', 'vergeml_folder_flush_counts', 10 );
 	foreach ( (array) $plan['moves'] as $attachment => $to ) {
 		$attachment = (int) $attachment;
 		$to         = 'new' === $to ? $made : ( 'to-sort' === $to ? $to_sort : (int) $to );
 		$landed     = $to;
-		$was        = wp_get_object_terms( $attachment, $taxonomy, array( 'fields' => 'ids' ) );
-		$undo[ $attachment ] = is_wp_error( $was ) ? array() : array_map( 'intval', $was );
+		$undo[ $attachment ] = $before[ $attachment ];
 		wp_set_object_terms( $attachment, array( $to ), $taxonomy, false );
 		if ( $plan['placed_by'] ) {
 			update_post_meta( $attachment, VERGEML_FILING_PLACED_BY, 'user' );
 		}
 		$moved++;
 		$trail[] = array( $attachment, $to, array( 'why' => $plan['placed_by'] ? 'user' : 'answer', 'prompt_hash' => '', 'model_version' => '' ) );
+	}
+	add_action( 'set_object_terms', 'vergeml_folder_flush_counts', 10, 0 );
+	add_action( 'deleted_term_relationships', 'vergeml_folder_flush_counts', 10, 0 );
+	wp_defer_term_counting( false );
+	if ( $moved && function_exists( 'vergeml_folder_flush_counts' ) ) {
+		vergeml_folder_flush_counts();
 	}
 
 	if ( $undo ) {
@@ -2341,7 +2368,8 @@ function vergeml_talk_answer( $id, $answer ) {
 		vergeml_talk_trail_write( $trail );
 	}
 
-	$result = array( 'moved' => $moved, 'term_id' => $landed, 'made' => $made );
+	// 'placed': how many are the person's own after this answer (the "by you" word), for the card's result line.
+	$result = array( 'moved' => $moved, 'term_id' => $landed, 'made' => $made, 'placed' => $plan['placed_by'] ? $moved : 0 );
 	if ( $plan['answered'] ) {
 		$state['questions'][ $at ]['answered'] = (string) $answer;
 		$state['questions'][ $at ]['result']   = $result;
@@ -2353,12 +2381,13 @@ function vergeml_talk_answer( $id, $answer ) {
 	}
 
 	return array(
-		'id'     => (string) $q['id'],
-		'answer' => (string) $answer,
-		'moved'  => $moved,
-		'made'   => $made,
+		'id'      => (string) $q['id'],
+		'answer'  => (string) $answer,
+		'moved'   => $moved,
+		'made'    => $made,
 		'term_id' => $landed,
-		'show'   => $plan['show'],
+		'placed'  => $result['placed'],
+		'show'    => $plan['show'],
 	);
 }
 

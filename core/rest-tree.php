@@ -302,6 +302,9 @@ function vergeml_rest_tree( WP_REST_Request $request ) {
              *  core/private-folders.php for why that decided the storage.
              */
             'private' => function_exists( 'vergeml_private_node' ) ? vergeml_private_node( $term->term_id ) : null,
+            // What the folder takes, as the Folders screen reads it (C.4): term meta get_terms already primed, so no query.
+            'classes' => function_exists( 'vergeml_folders_node_classes' ) ? vergeml_folders_node_classes( (int) $term->term_id ) : array(),
+            'prev'    => function_exists( 'vergeml_folders_node_prev' ) ? (bool) vergeml_folders_node_prev( (int) $term->term_id ) : false,
         );
     }
 
@@ -671,8 +674,13 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
          *  nothing for it -- and only in the librarian's taxonomy, the one
          *  the fill files into.
          */
-        if ( ! empty( $gained ) && defined( 'VERGEML_FILING_PLACED_BY' ) && function_exists( 'vergeml_librarian_taxonomy' ) && $taxonomy === vergeml_librarian_taxonomy() ) {
-            update_post_meta( $attachment_id, VERGEML_FILING_PLACED_BY, 'user' );
+        if ( defined( 'VERGEML_FILING_PLACED_BY' ) && function_exists( 'vergeml_librarian_taxonomy' ) && $taxonomy === vergeml_librarian_taxonomy() ) {
+            if ( ! empty( $gained ) ) {
+                update_post_meta( $attachment_id, VERGEML_FILING_PLACED_BY, 'user' );
+            } elseif ( ! empty( $lost ) ) {
+                // Dragged out and put nowhere: the choice is withdrawn, and the next fill may judge the picture again.
+                delete_post_meta( $attachment_id, VERGEML_FILING_PLACED_BY );
+            }
         }
 
         /*

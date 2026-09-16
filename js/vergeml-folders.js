@@ -86,7 +86,9 @@
 		answering: false,
 		// Step 4 while it writes: how many are left.
 		altWriting: false,
-		altLeft: 0
+		altLeft: 0,
+		// After an Unconfirm: folders whose classes that confirm replaced, so Restore can be offered (C.4).
+		prevProfiles: 0
 	};
 	var described = ( cfg.described || 0 ) > 0;
 	var licensed = !! cfg.licensed;
@@ -404,7 +406,7 @@
 			c.pills.appendChild( el( 'span', { class: 'g-pill is-quiet' }, __( 'counts not worked out yet', 'vergelabs-media-library' ) ) );
 		}
 
-		if ( 'tree' === state.step ) {
+		if ( 'tree' === state.step && dom.tree.parentNode !== dom.slots.tree ) {
 			dom.slots.tree.appendChild( dom.tree );
 		}
 		syncCounted();
@@ -426,6 +428,11 @@
 			dom.confirm.addEventListener( 'click', onConfirm );
 			dom.confirm.disabled = state.pastePending || running();
 			dom.treeMove.appendChild( dom.confirm );
+		}
+		if ( state.prevProfiles > 0 ) {
+			var restore = quiet( __( 'Restore the earlier classes', 'vergelabs-media-library' ), onRestoreProfiles );
+			restore.classList.add( 'vgml-restore-profiles' );
+			dom.treeMove.appendChild( restore );
 		}
 		if ( described && licensed && ! capped() ) {
 			// Never automatic: a proposal is a planner call, and its cost is on the button.
@@ -459,6 +466,23 @@
 
 	function onUnconfirm() {
 		api( 'POST', 'guide/unconfirm' ).then( function ( r ) {
+			tookSession( r );
+			// Folders whose classes the confirm replaced within the day: Restore is offered beside the confirm (C.4).
+			state.prevProfiles = ( r && Number( r.prev ) ) || 0;
+			renderCards();
+		} ).catch( function ( err ) {
+			talk.note( ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' ) );
+		} );
+	}
+
+	/** The earlier classes back on every folder a confirm re-profiled: the tree re-read with them, the draft carrying them, the fit dropped. */
+	function onRestoreProfiles() {
+		api( 'POST', 'guide/profiles-restore' ).then( function ( r ) {
+			state.prevProfiles = ( r && Number( r.restored ) ) || 0;
+			if ( r && r.nodes ) {
+				state.nodes = r.nodes;
+				view.setTree( state.nodes );
+			}
 			tookSession( r );
 			renderCards();
 		} ).catch( function ( err ) {
@@ -551,7 +575,8 @@
 			c.pills.appendChild( pill( unfiled, __( 'to sort', 'vergelabs-media-library' ), 'accent' ) );
 		}
 
-		if ( 'fill' === state.step ) {
+		// Moved into this step's slot once: re-appending the node it is already in restarts every row's entering animation.
+		if ( 'fill' === state.step && dom.tree.parentNode !== dom.slots.fill ) {
 			dom.slots.fill.appendChild( dom.tree );
 		}
 
@@ -650,10 +675,21 @@
 		return sprintf( __( '%1$s moved to %2$s', 'vergelabs-media-library' ), moved, nodeName( r.term_id ) || __( 'To sort', 'vergelabs-media-library' ) );
 	}
 
-	function questionCard( q ) {
-		var c = el( 'div', { class: 'g-card g-q' + ( q.answered ? ' is-answered' : '' ), 'data-q': q.id, 'data-kind': q.kind } );
-		c.appendChild( el( 'p', { class: 'g-q-text' }, q.text ) );
+	/** The line under an answered card: what the answer did, and -- when the person chose the folder -- the way to review those pictures. */
+	function resultNode( q ) {
+		var p = el( 'p', { class: 'g-q-result' }, resultLine( q ) );
+		var placed = Number( q.result && q.result.placed ) || 0;
+		if ( placed > 0 ) {
+			p.appendChild( document.createTextNode( ' · ' ) );
+			var url = ( cfg.libraryUrl || 'upload.php' ) + '?mode=list&' + encodeURIComponent( cfg.taxonomy || 'media_category' ) + '=by_you';
+			/* translators: %s: pictures the person put in a folder themselves */
+			p.appendChild( el( 'a', { class: 'g-q-review', href: url }, sprintf( __( '%s by you · review', 'vergelabs-media-library' ), fmt( placed ) ) ) );
+		}
+		return p;
+	}
 
+	/** The strip under the sentence: eight thumbnails, or -- opened by "Show me" -- every picture, each a way to its own modal, and a count for what the cap of 48 left out. */
+	function stripNode( q ) {
 		var shown = state.showing[ q.id ];
 		var strip = el( 'div', { class: 'g-q-strip' + ( shown ? ' is-open' : '' ) } );
 		( shown || q.sample || [] ).forEach( function ( s ) {
@@ -662,7 +698,6 @@
 			}
 			var img = el( 'img', { src: s.thumb, alt: '', loading: 'lazy' } );
 			if ( shown ) {
-				// Opened: each picture is a way to its own modal, where "Why is it here" answers for it.
 				var a = el( 'a', { href: ( cfg.libraryUrl || 'upload.php' ) + '?item=' + s.id } );
 				a.appendChild( img );
 				strip.appendChild( a );
@@ -670,10 +705,39 @@
 				strip.appendChild( img );
 			}
 		} );
-		c.appendChild( strip );
+		if ( shown && Number( q.count ) > shown.length ) {
+			var rest = pill( Number( q.count ) - shown.length, __( 'more', 'vergelabs-media-library' ), 'quiet' );
+			rest.classList.add( 'g-q-strip-more' );
+			strip.appendChild( rest );
+		}
+		return strip;
+	}
 
+	/*
+	 *  The card's lower half, in place: the answers while it is open, the
+	 *  result line once answered, the error line when the answer did not go
+	 *  through -- on the card, never in the hidden change line (S6b, seam 3).
+	 *  The card node itself is kept: an answer patches it, never rebuilds it.
+	 */
+	function patchCard( c, q ) {
+		c.classList.toggle( 'is-answered', !! q.answered );
+		var old = c.querySelector( '.g-q-strip' );
+		var shown = state.showing[ q.id ] ? '1' : '';
+		if ( ! old || c.getAttribute( 'data-shown' ) !== shown ) {
+			// The thumbnails are left alone unless the strip opened: a result line does not reload eight pictures.
+			var strip = stripNode( q );
+			if ( old ) {
+				c.replaceChild( strip, old );
+			} else {
+				c.appendChild( strip );
+			}
+			c.setAttribute( 'data-shown', shown );
+		}
+		Array.prototype.forEach.call( c.querySelectorAll( '.g-q-answers, .g-q-result, .g-q-error' ), function ( n ) {
+			c.removeChild( n );
+		} );
 		if ( q.answered ) {
-			c.appendChild( el( 'p', { class: 'g-q-result' }, resultLine( q ) ) );
+			c.appendChild( resultNode( q ) );
 			return c;
 		}
 		var answers = el( 'div', { class: 'g-q-answers' } );
@@ -686,15 +750,44 @@
 			answers.appendChild( b );
 		} );
 		c.appendChild( answers );
+		if ( q.error ) {
+			c.appendChild( el( 'p', { class: 'g-q-error', role: 'alert' }, q.error ) );
+		}
 		return c;
 	}
 
+	function questionCard( q ) {
+		var c = el( 'div', { class: 'g-card g-q', 'data-q': q.id, 'data-kind': q.kind, tabindex: '0' } );
+		c.appendChild( el( 'p', { class: 'g-q-text' }, q.text ) );
+		// From the keyboard, with the card focused: 1-4 press its answers in order, Enter opens the strip.
+		c.addEventListener( 'keydown', function ( e ) {
+			if ( e.target !== c || q.answered || state.answering ) {
+				return;
+			}
+			var keys = Object.keys( q.answers || {} );
+			var n = parseInt( e.key, 10 );
+			if ( n >= 1 && n <= 4 && keys[ n - 1 ] ) {
+				e.preventDefault();
+				onAnswer( q, keys[ n - 1 ] );
+			} else if ( 'Enter' === e.key && keys.indexOf( 'show-me' ) >= 0 && ! state.showing[ q.id ] ) {
+				e.preventDefault();
+				onAnswer( q, 'show-me' );
+			}
+		} );
+		return patchCard( c, q );
+	}
+
+	/*
+	 *  The grid is reconciled, not rebuilt: the card just answered stays the
+	 *  same node with its result line, the next card is appended, a card that
+	 *  scrolled out of the three is removed. Rebuilding every card on every
+	 *  answer lost the focus and made the next card pop (S6b, seam 3).
+	 */
 	function renderQuestions() {
 		if ( dom.qs.hidden ) {
 			dom.qs.innerHTML = '';
 			return;
 		}
-		dom.qs.innerHTML = '';
 		var open = openQuestions();
 		var last = null;
 		state.questions.forEach( function ( q ) {
@@ -703,14 +796,47 @@
 			}
 		} );
 		var room = last ? 2 : 3;
-		if ( last ) {
-			dom.qs.appendChild( questionCard( last ) );
+		var want = ( last ? [ last ] : [] ).concat( open.slice( 0, room ) );
+
+		var have = {};
+		Array.prototype.forEach.call( dom.qs.querySelectorAll( '.g-q' ), function ( c ) {
+			have[ c.getAttribute( 'data-q' ) ] = c;
+		} );
+		var foot = dom.qs.querySelector( '.g-qs-foot' );
+		if ( ! foot ) {
+			foot = el( 'div', { class: 'g-pills g-qs-foot' } );
+			dom.qs.appendChild( foot );
 		}
-		open.slice( 0, room ).forEach( function ( q ) {
-			dom.qs.appendChild( questionCard( q ) );
+
+		var keep = {};
+		var before = dom.qs.firstChild;
+		want.forEach( function ( q ) {
+			var c = have[ q.id ];
+			if ( c ) {
+				var was = c.getAttribute( 'data-answered' ) || '';
+				var now = ( q.answered || '' ) + '|' + ( q.error || '' ) + '|' + ( state.showing[ q.id ] ? 'shown' : '' ) + '|' + ( state.answering ? 'busy' : '' );
+				if ( was !== now ) {
+					patchCard( c, q );
+					c.setAttribute( 'data-answered', now );
+				}
+			} else {
+				c = questionCard( q );
+				c.setAttribute( 'data-answered', ( q.answered || '' ) + '|' + ( q.error || '' ) + '||' + ( state.answering ? 'busy' : '' ) );
+			}
+			keep[ q.id ] = true;
+			if ( c !== before ) {
+				dom.qs.insertBefore( c, before );
+			} else {
+				before = c.nextSibling;
+			}
+		} );
+		Object.keys( have ).forEach( function ( id ) {
+			if ( ! keep[ id ] ) {
+				dom.qs.removeChild( have[ id ] );
+			}
 		} );
 
-		var foot = el( 'div', { class: 'g-pills g-qs-foot' } );
+		foot.innerHTML = '';
 		var more = open.length - Math.min( open.length, room );
 		if ( more > 0 ) {
 			foot.appendChild( pill( more, __( 'more', 'vergelabs-media-library' ), 'quiet' ) );
@@ -719,15 +845,16 @@
 		leave.classList.add( 'g-leave-rest' );
 		leave.disabled = state.answering;
 		foot.appendChild( leave );
-		dom.qs.appendChild( foot );
+		if ( foot !== dom.qs.lastChild ) {
+			dom.qs.appendChild( foot );
+		}
 	}
 
-	/** What an answer route hands back: the questions, the fill's state, the folders made, undo. */
+	/** What an answer route hands back: the fill's state, the folders made, undo, the version. The questions are the screen's own. */
 	function tookAnswer( r ) {
 		if ( ! r ) {
 			return;
 		}
-		state.questions = r.questions || [];
 		state.fill = r.status || state.fill;
 		state.made = r.made || [];
 		state.undo = r.undo || state.undo;
@@ -739,28 +866,39 @@
 		}
 	}
 
+	/** The buttons while an answer is in flight, without touching the cards. */
+	function setAnswering( busy ) {
+		state.answering = busy;
+		Array.prototype.forEach.call( dom.qs.querySelectorAll( '.g-answer, .g-leave-rest' ), function ( b ) {
+			b.disabled = busy;
+		} );
+	}
+
 	function onAnswer( q, key ) {
 		if ( state.answering ) {
 			return;
 		}
-		state.answering = true;
-		renderQuestions();
+		q.error = '';
+		setAnswering( true );
 		api( 'POST', 'guide/answer', { id: q.id, answer: key } ).then( function ( r ) {
-			state.answering = false;
+			setAnswering( false );
 			if ( 'show-me' === key ) {
 				// Answers nothing: the card opens on the group's pictures.
 				state.showing[ q.id ] = ( r && r.result && r.result.show ) || [];
 				renderQuestions();
 				return;
 			}
+			q.answered = key;
+			q.result = ( r && r.result ) || {};
 			state.lastAnswered = q.id;
 			tookAnswer( r );
-			// The tree gains the folder the answer made, and the counts it moved.
+			renderQuestions();
+			// The tree gains the folder the answer made, and the counts it moved: one read, one render.
 			return refreshTree();
 		} ).catch( function ( err ) {
-			state.answering = false;
-			talk.note( ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' ) );
-			renderCards();
+			setAnswering( false );
+			q.error = ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' );
+			renderQuestions();
 		} );
 	}
 
@@ -769,17 +907,24 @@
 		if ( state.answering ) {
 			return;
 		}
-		state.answering = true;
+		setAnswering( true );
 		state.lastAnswered = '';
-		renderQuestions();
 		api( 'POST', 'guide/answer', { id: 'rest', answer: 'leave' } ).then( function ( r ) {
-			state.answering = false;
+			setAnswering( false );
+			// As the route answered them: keep-parent for a sibling question, leave for the rest.
+			openQuestions().forEach( function ( q ) {
+				q.answered = 'siblings' === q.kind ? 'keep-parent' : 'leave';
+				q.result = { moved: q.count, term_id: 0, made: 0, placed: 0 };
+			} );
 			tookAnswer( r );
 			return refreshTree();
 		} ).catch( function ( err ) {
-			state.answering = false;
-			talk.note( ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' ) );
-			renderCards();
+			setAnswering( false );
+			var first = openQuestions()[ 0 ];
+			if ( first ) {
+				first.error = ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' );
+			}
+			renderQuestions();
 		} );
 	}
 
@@ -885,6 +1030,8 @@
 			find: __( 'Find a folder', 'vergelabs-media-library' ),
 			topLevel: __( 'Top level', 'vergelabs-media-library' ),
 			newTag: __( 'new', 'vergelabs-media-library' ),
+			/* translators: %s: a word the folder takes ("semiconductor component") */
+			removeWord: __( 'Remove the word %s', 'vergelabs-media-library' ),
 			/* translators: %s: a number of pictures */
 			was: __( 'was %s', 'vergelabs-media-library' ),
 			/* translators: 1: pictures, 2: a folder name */
@@ -969,6 +1116,8 @@
 		return api( 'GET', 'tree?taxonomy=' + encodeURIComponent( cfg.taxonomy || 'media_category' ) ).then( function ( r ) {
 			state.nodes = ( r && r.nodes ) || [];
 			state.facts.folders = state.nodes.length;
+			// The folders the answers made are marked before the tree is set, so the tree renders once, not twice (S6b, seam 3).
+			view.setNewIds( 'fill' === state.step ? state.made : [], true );
 			view.setTree( state.nodes );
 			var draft = view.getDraft();
 			if ( draft && state.session.draft && ! confirmed() ) {
@@ -1402,6 +1551,16 @@
 				? sprintf( __( 'Added %1$s under %2$s', 'vergelabs-media-library' ), last, nameOf( draft, edit.parent ) )
 				/* translators: %s: a folder name */
 				: sprintf( __( 'Added %s', 'vergelabs-media-library' ), last );
+			talk.pushUser( { kind: 'edit', text: line } );
+			pasteDraft( withOrigin( TV.applyEdit( draft, edit ), state.session.draft ) );
+			return;
+		} else if ( 'classes' === edit.type ) {
+			// The words a folder takes, from the tree's × and #word (C.4): the paste's path too -- the fit re-runs, no model is asked, the confirm seeds the profile from them.
+			line = edit.added
+				/* translators: 1: the word, 2: a folder name */
+				? sprintf( __( 'Added the word %1$s to %2$s', 'vergelabs-media-library' ), edit.added, nameOf( draft, edit.key ) )
+				/* translators: 1: the word, 2: a folder name */
+				: sprintf( __( 'Removed the word %1$s from %2$s', 'vergelabs-media-library' ), edit.removed || '', nameOf( draft, edit.key ) );
 			talk.pushUser( { kind: 'edit', text: line } );
 			pasteDraft( withOrigin( TV.applyEdit( draft, edit ), state.session.draft ) );
 			return;

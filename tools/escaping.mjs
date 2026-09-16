@@ -119,6 +119,10 @@ const REVIEWED = {
 		[ 'fbcf74ab5e', '$band is assembled on three branches, each from esc_html__() or esc_html() plus literal markup' ],
 	],
 
+	'core/media-list.php': [
+		[ '0ad7967fe8', "wp_dropdown_categories( echo => false ) -- core's own escaped markup -- with one option of ours spliced in after Unfiled, whose text is esc_html() of a translated string with number_format_i18n() (the Placed by hand filter, C.3)" ],
+	],
+
 	'core/options-pages.php': [
 		[ 'cd9e4aee76', 'json_encode() into a download: application/json with Content-Disposition attachment, so not an HTML context. wp_json_encode() would be the house style' ],
 		[ 'e60edee9bb', 'assembled from __() translations and literal form markup; no value out of the request or the database is interpolated unescaped. Two sites, the media and non-media post-type branches, with the same expression' ],

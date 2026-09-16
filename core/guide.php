@@ -190,10 +190,44 @@ function vergeml_folders_nodes( $taxonomy ) {
             'count'  => (int) $term->count,
             'color'  => defined( 'VERGEML_TERM_COLOR' ) ? (string) get_term_meta( $term->term_id, VERGEML_TERM_COLOR, true ) : '',
             'order'  => '' === $order ? 0 : (int) $order,
+            // What the folder takes, as the planner said and the plugin kept it (C.4): read on the Tree step as pills.
+            'classes' => vergeml_folders_node_classes( (int) $term->term_id ),
+            'prev'    => (bool) vergeml_folders_node_prev( (int) $term->term_id ),
         );
     }
 
     return $nodes;
+}
+
+/** A folder's planned classes -- the profile's, without the leaf name the build appends; nothing for a profile derived from the name alone. */
+function vergeml_folders_node_classes( $term_id ) {
+    if ( ! defined( 'VERGEML_FILING_META' ) ) {
+        return array();
+    }
+    $meta = get_term_meta( $term_id, VERGEML_FILING_META, true );
+    if ( ! is_array( $meta ) || empty( $meta['plan']['classes'] ) || empty( $meta['classes'] ) ) {
+        return array();
+    }
+    $leaf = isset( $meta['path'] ) && is_array( $meta['path'] ) && $meta['path'] ? mb_strtolower( (string) end( $meta['path'] ) ) : '';
+    $out  = array();
+    foreach ( (array) $meta['classes'] as $c ) {
+        if ( (string) $c !== $leaf || in_array( $c, (array) $meta['plan']['classes'], true ) ) {
+            $out[] = (string) $c;
+        }
+    }
+    return array_values( array_unique( $out ) );
+}
+
+/** The profile a re-profiling replaced, if it is less than a day old (the Restore window, like a Move's undo). */
+function vergeml_folders_node_prev( $term_id ) {
+    if ( ! defined( 'VERGEML_FILING_META_PREV' ) ) {
+        return null;
+    }
+    $prev = get_term_meta( $term_id, VERGEML_FILING_META_PREV, true );
+    if ( ! is_array( $prev ) || empty( $prev['profile'] ) || ! isset( $prev['at'] ) || time() - (int) $prev['at'] > DAY_IN_SECONDS ) {
+        return null;
+    }
+    return $prev;
 }
 
 /**
@@ -784,6 +818,12 @@ function vergeml_guide_routes() {
         'callback'            => 'vergeml_guide_rest_unconfirm',
         'permission_callback' => $may,
     ) );
+    // The earlier classes back on every folder a confirm re-profiled within the day (C.4).
+    register_rest_route( VERGEML_REST_NS, '/guide/profiles-restore', array(
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'vergeml_guide_rest_profiles_restore',
+        'permission_callback' => $may,
+    ) );
     // The questions the fill left, and where the step stands. Read-only and cheap.
     register_rest_route( VERGEML_REST_NS, '/guide/questions', array(
         'methods'             => WP_REST_Server::READABLE,
@@ -824,12 +864,14 @@ function vergeml_guide_rest_answer( WP_REST_Request $request ) {
     $answer = sanitize_text_field( (string) $request->get_param( 'answer' ) );
 
     if ( 'rest' === $id ) {
-        $r = array( 'id' => 'rest', 'answer' => 'leave', 'moved' => 0, 'made' => 0, 'term_id' => 0, 'show' => null, 'answered' => 0 );
-        foreach ( vergeml_talk_questions() as $q ) {
-            if ( '' !== $q['answered'] ) {
+        $r = array( 'id' => 'rest', 'answer' => 'leave', 'moved' => 0, 'made' => 0, 'term_id' => 0, 'placed' => 0, 'show' => null, 'answered' => 0 );
+        // The raw questions, not the rendered ones: no sentence and no thumbnail is needed to answer them all leave.
+        $state = get_option( VERGEML_TALK_STATE );
+        foreach ( is_array( $state ) && isset( $state['questions'] ) ? (array) $state['questions'] : array() as $q ) {
+            if ( ! empty( $q['answered'] ) ) {
                 continue;
             }
-            $one = vergeml_talk_answer( $q['id'], 'siblings' === $q['kind'] ? 'keep-parent' : 'leave' );
+            $one = vergeml_talk_answer( (string) $q['id'], 'siblings' === $q['kind'] ? 'keep-parent' : 'leave' );
             if ( is_wp_error( $one ) ) {
                 return $one;
             }
@@ -851,13 +893,17 @@ function vergeml_guide_rest_answer( WP_REST_Request $request ) {
         }
     }
 
+    /*
+     *  The answer, what it made, where the step stands, undo -- and not the
+     *  thirty questions with their 240 thumbnails (S6b, seam 3): the screen
+     *  already holds them and marks the one it answered.
+     */
     return rest_ensure_response( array(
-        'result'    => $r,
-        'questions' => vergeml_talk_questions(),
-        'status'    => vergeml_talk_fill_status(),
-        'made'      => vergeml_talk_made_by_answer(),
-        'undo'      => vergeml_talk_undo_available(),
-        'version'   => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
+        'result'  => $r,
+        'status'  => vergeml_talk_fill_status(),
+        'made'    => vergeml_talk_made_by_answer(),
+        'undo'    => vergeml_talk_undo_available(),
+        'version' => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
     ) );
 }
 
@@ -956,6 +1002,15 @@ function vergeml_guide_confirm( &$s ) {
     // Stored on the terms that exist, from the draft -- what the Move seeds, so the preview and the run score one profile.
     foreach ( $s['draft']['folders'] as $f ) {
         if ( ! empty( $f['term_id'] ) && ! empty( $f['classes'] ) && function_exists( 'vergeml_talk_seed_profile' ) ) {
+            /*
+             *  A draft that only changed the words (the tree's × and #word,
+             *  C.4) says nothing about kinds, audience or the matching phrase:
+             *  those stay as the stored plan had them, under the new classes.
+             */
+            $stored = get_term_meta( (int) $f['term_id'], VERGEML_FILING_META, true );
+            if ( is_array( $stored ) && ! empty( $stored['plan'] ) ) {
+                $f = array_merge( (array) $stored['plan'], array_filter( $f, function ( $v ) { return null !== $v && '' !== $v && array() !== $v; } ) );
+            }
             vergeml_talk_seed_profile( (int) $f['term_id'], $taxonomy, $f, array() );
         }
     }
@@ -1005,6 +1060,81 @@ function vergeml_guide_rest_unconfirm( WP_REST_Request $request ) {
     return rest_ensure_response( array(
         'session' => vergeml_guide_session_out( $s ),
         'version' => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
+        // Folders whose profile a confirm replaced within the day: the screen offers Restore for them (C.4).
+        'prev'    => vergeml_guide_prev_count(),
+    ) );
+}
+
+/** How many folders hold an earlier profile a Restore could put back. */
+function vergeml_guide_prev_count() {
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+    if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+        return 0;
+    }
+    $n = 0;
+    foreach ( (array) get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids' ) ) as $tid ) {
+        if ( vergeml_folders_node_prev( (int) $tid ) ) {
+            $n++;
+        }
+    }
+    return $n;
+}
+
+/**
+ *  Restore the earlier classes: every folder whose profile a confirm replaced
+ *  within the day gets that profile back, and the draft's classes for it are
+ *  the restored ones, so the next confirm does not write the same thing over
+ *  it again. Undoable for a day like a Move: the replaced profile is the one
+ *  kept, and Restore swaps the two.
+ */
+function vergeml_guide_rest_profiles_restore( WP_REST_Request $request ) {
+
+    $s = vergeml_guide_session();
+    if ( 'confirmed' === $s['tree'] ) {
+        return vergeml_guide_confirmed_refusal();
+    }
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+    if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+        return new WP_Error( 'no_taxonomy', __( 'No folders are set up on this site.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+    }
+
+    $restored = array();
+    foreach ( (array) get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids' ) ) as $tid ) {
+        $tid  = (int) $tid;
+        $prev = vergeml_folders_node_prev( $tid );
+        if ( ! $prev ) {
+            continue;
+        }
+        $now = get_term_meta( $tid, VERGEML_FILING_META, true );
+        update_term_meta( $tid, VERGEML_FILING_META, $prev['profile'] );
+        if ( is_array( $now ) && ! empty( $now['plan'] ) ) {
+            update_term_meta( $tid, VERGEML_FILING_META_PREV, array( 'profile' => $now, 'at' => time() ) );
+        } else {
+            delete_term_meta( $tid, VERGEML_FILING_META_PREV );
+        }
+        $restored[ $tid ] = vergeml_folders_node_classes( $tid );
+    }
+
+    // The draft says the restored classes too, or the next confirm seeds the replaced ones straight back.
+    if ( $restored && is_array( $s['draft'] ) && ! empty( $s['draft']['folders'] ) ) {
+        foreach ( $s['draft']['folders'] as $i => $f ) {
+            if ( ! empty( $f['term_id'] ) && isset( $restored[ (int) $f['term_id'] ] ) ) {
+                $s['draft']['folders'][ $i ]['classes'] = $restored[ (int) $f['term_id'] ];
+            }
+        }
+        $s['fit'] = null;
+        vergeml_guide_save( $s );
+    }
+
+    if ( $restored && function_exists( 'vergeml_folders_moved' ) ) {
+        vergeml_folders_moved( 'profiles' );
+    }
+
+    return rest_ensure_response( array(
+        'restored' => count( $restored ),
+        'session'  => vergeml_guide_session_out( $s ),
+        'nodes'    => vergeml_folders_nodes( $taxonomy ),
+        'version'  => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
     ) );
 }
 
