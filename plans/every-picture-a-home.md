@@ -511,7 +511,7 @@ describes on a second library — his call and his cost.
 - **Gates carried from C.1:** the baseline check green (or re-taken with
   the reason); the sheet re-run on the same seed, numbers in the handoff.
 
-## C.3 · One press, one honest answer — Opus (Fable for the JS if it has budget)
+## C.3 · One press, one honest answer — Opus (done 2026-09-16, S8: the error on the card, the moves under deferred counting with one flush (box 50 pictures: 593 → 729 queries with the defer removed), the answer response without the questions, the card patched in place and the tree rendered once, the strip's "2 more" at 48, keys 1–4 / Enter, Placed by hand in the list's folder filter with the drag-out clearing the mark, the why card's "No folder inside it fits better"; timed on both sites — see the S8 handoff)
 
 - **Files:** `js/vergeml-folders.js` (`onAnswer`, `tookAnswer`,
   `refreshTree`, `renderQuestions`, `renderFill`), `core/guide.php`
@@ -548,7 +548,7 @@ describes on a second library — his call and his cost.
 - **Do not:** measure on the box alone — its REST round trip is 2.9 s
   with 36 plugins; Playground gives the plugin's own number.
 
-## C.4 · The planner speaks the describer's words — Opus
+## C.4 · The planner speaks the describer's words — Opus (done 2026-09-16, S8: both prompts carry the library's top terms with counts and the one-folder rule (service 954a84b, live on ai.vergelabs.nl); the plugin sends the vocabulary and the samples' object; canon fold (spelling, irregular and -ies/-es plurals, the object's head noun), cosine floor 0.6, kind words to kinds, a neighbour's first class dropped and recorded; class pills on the tree with × and #word, the earlier profile kept a day and Unconfirm → Restore; baseline re-taken: sure 264 → 340, likely 262 → 220; the dry sheet on seed 133 awaits Nathan's marks — the C.1 sheet's sure marks re-read unchanged, so the eight sure misses are the profiles' and need his re-profiling through the screen)
 
 - **Files:** service `lib/anthropic.ts` (`profileFolders`, `planFolders`
   prompts), `lib/describe.ts` (schema `.describe` for `object`),
