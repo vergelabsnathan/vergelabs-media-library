@@ -536,9 +536,9 @@ test.describe( 'the Folders screen', () => {
 		await open( page, SCREEN.folders );
 		await ready( page );
 
-		// The head: folders, placed, stay unfiled -- the run's numbers, as pills.
+		// The head: folders, would be placed, would stay unfiled -- the dry run's numbers, said as a prediction, as pills.
 		const head = page.locator( '.g-card[data-card="tree"] .g-card-head .g-pill' );
-		await expect( head ).toHaveText( [ `${ r.draft.folders.length } folders`, `${ ( r.fit.looked - unplaced ).toLocaleString( 'en-US' ) } placed`, `${ unplaced.toLocaleString( 'en-US' ) } stay unfiled` ] );
+		await expect( head ).toHaveText( [ `${ r.draft.folders.length } folders`, `${ ( r.fit.looked - unplaced ).toLocaleString( 'en-US' ) } would be placed`, `${ unplaced.toLocaleString( 'en-US' ) } would stay unfiled` ] );
 
 		// The placeholder: the largest parent, and the biggest group the run would not place.
 		const built = await page.evaluate( () => document.querySelector( '.g-change .vgml-composer-text' ).getAttribute( 'aria-label' ) );
@@ -720,7 +720,7 @@ test.describe( 'the Folders screen', () => {
 		await expect( page.locator( '#vgml-folders' ) ).toHaveAttribute( 'data-step', 'fill' );
 		await expect( page.locator( '.g-qs .g-q' ) ).toHaveCount( 2 );
 		await expect( page.locator( '.g-cols' ) ).toHaveClass( /is-asking/ );
-		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* placed$/, '2 questions', '8 to sort' ] );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* placed$/, '2 questions', '8 in no folder' ] );
 		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill.is-ask' ) ).toHaveText( '2 questions' );
 
 		// The cards: the sentence, the group's pictures, the answers as buttons with the engine's first and tinted.
@@ -770,7 +770,7 @@ test.describe( 'the Folders screen', () => {
 		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
 		await expect( page.locator( '.g-tree .vgml-node.is-new' ).filter( { hasText: 'Spec probe' } ).locator( '.vgml-tag' ) ).toHaveText( 'new' );
 		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill.is-ask' ) ).toHaveText( '1 question' );
-		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ).last() ).toHaveText( '3 to sort' );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ).last() ).toHaveText( '3 in no folder' );
 		await expect( page.locator( '.g-qs .g-q:not(.is-answered)' ) ).toHaveCount( 1 );
 
 		// Leave the rest: the three land in To sort, never in nothing -- and the step is done.
@@ -787,7 +787,7 @@ test.describe( 'the Folders screen', () => {
 
 		await expect( page.locator( '.g-cols' ) ).toHaveClass( /is-done/ );
 		await expect( page.locator( '.g-qs' ) ).toBeHidden();
-		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* in folders$/, '0 to sort' ] );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* in folders$/, '0 in no folder' ] );
 		await expect( page.locator( '.g-card[data-card="fill"] .g-move .g-quiet' ).filter( { hasText: 'Next: Alt text' } ), 'alt text is the quiet way on, not the only button' ).toBeVisible();
 		await expect( page.locator( '.g-card[data-card="fill"] .g-move .vgml-btn-primary' ), 'a confirmed tree can be filled again' ).toHaveText( /^Fill [d,.]+ pictures$/ );
 		await expect( page.locator( '.g-step[data-step="fill"]' ) ).toHaveClass( /is-done/ );
@@ -813,7 +813,7 @@ test.describe( 'the Folders screen', () => {
 		await expect( page.locator( '.g-step[data-step="fill"]' ) ).toHaveClass( /is-done/ );
 		await page.locator( '.g-step[data-step="fill"]' ).click();
 		await expect( page.locator( '.g-cols' ) ).toHaveClass( /is-done/ );
-		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* in folders$/, '0 to sort' ] );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* in folders$/, '0 in no folder' ] );
 		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
 	} );
 
@@ -840,7 +840,7 @@ test.describe( 'the Folders screen', () => {
 		expect( left.status.done ).toBe( false );
 
 		await expect( page.locator( '.g-qs' ) ).toBeHidden();
-		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ).last() ).toHaveText( '3 to sort' );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ).last() ).toHaveText( '3 in no folder' );
 		await expect( page.locator( '.g-cols' ) ).not.toHaveClass( /is-done/ );
 		await expect( page.locator( '.g-card[data-card="fill"] .g-move .vgml-btn-primary' ) ).not.toHaveText( 'Next: Alt text' );
 		await expect( page.locator( '.g-step[data-step="fill"]' ) ).not.toHaveClass( /is-done/ );

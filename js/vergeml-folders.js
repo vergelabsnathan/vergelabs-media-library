@@ -554,8 +554,8 @@
 		c.pills.appendChild( pill( folders, _n( 'folder', 'folders', folders, 'vergelabs-media-library' ), 'accent' ) );
 		var counts = fitCounts();
 		if ( counts && view && view.getDraft() ) {
-			c.pills.appendChild( pill( counts.placed, __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
-			c.pills.appendChild( pill( counts.unfiled, __( 'stay unfiled', 'vergelabs-media-library' ) ) );
+			c.pills.appendChild( pill( counts.placed, __( 'would be placed', 'vergelabs-media-library' ), 'accent' ) );
+			c.pills.appendChild( pill( counts.unfiled, __( 'would stay unfiled', 'vergelabs-media-library' ) ) );
 		} else if ( fitUnknown() && ! state.pastePending && ! ( state.fit && state.fit.pending ) ) {
 			// Looked and could not answer; while it is still counting, the row under the button says so instead.
 			c.pills.appendChild( el( 'span', { class: 'g-pill is-quiet' }, __( 'counts not worked out yet', 'vergelabs-media-library' ) ) );
@@ -764,7 +764,7 @@
 			c.pills.appendChild( pill( Number( r.moved ) || 0, __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
 			c.pills.appendChild( pill( Number( t.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
 			c.pills.appendChild( pill( Number( t.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
-			c.pills.appendChild( pill( Number( t.nothing ) || 0, __( 'to sort', 'vergelabs-media-library' ) ) );
+			c.pills.appendChild( pill( Number( t.nothing ) || 0, __( 'not placed', 'vergelabs-media-library' ) ) );
 		} else if ( asking && state.moving ) {
 			// The run just ended: its tally, and the questions it left.
 			var m = state.moving.tally || {};
@@ -772,22 +772,22 @@
 			c.pills.appendChild( pill( Number( m.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
 			c.pills.appendChild( pill( Number( m.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
 			c.pills.appendChild( pill( open, _n( 'question', 'questions', open, 'vergelabs-media-library' ), 'ask' ) );
-			c.pills.appendChild( pill( unfiled, __( 'to sort', 'vergelabs-media-library' ) ) );
+			c.pills.appendChild( pill( unfiled, __( 'in no folder', 'vergelabs-media-library' ) ) );
 		} else if ( asking ) {
 			// A reload after the run: the library's own counts, and the questions.
 			c.pills.appendChild( pill( Math.max( 0, ( Number( state.facts.pictures ) || 0 ) - unfiled ), __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
 			c.pills.appendChild( pill( open, _n( 'question', 'questions', open, 'vergelabs-media-library' ), 'ask' ) );
-			c.pills.appendChild( pill( unfiled, __( 'to sort', 'vergelabs-media-library' ) ) );
+			c.pills.appendChild( pill( unfiled, __( 'in no folder', 'vergelabs-media-library' ) ) );
 		} else if ( tally && view.getDraft() && ! done ) {
 			// The dry run's answer about the confirmed tree, as the run will count it.
-			c.pills.appendChild( pill( ( Number( tally.fits ) || 0 ) + ( Number( tally.siblings ) || 0 ), __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
+			c.pills.appendChild( pill( ( Number( tally.fits ) || 0 ) + ( Number( tally.siblings ) || 0 ), __( 'would be placed', 'vergelabs-media-library' ), 'accent' ) );
 			c.pills.appendChild( pill( Number( tally.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
 			c.pills.appendChild( pill( Number( tally.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
-			c.pills.appendChild( pill( Number( tally.nothing ) || 0, __( 'to sort', 'vergelabs-media-library' ) ) );
+			c.pills.appendChild( pill( Number( tally.nothing ) || 0, __( 'not placed', 'vergelabs-media-library' ) ) );
 		} else {
 			var inFolders = Math.max( 0, ( Number( state.facts.pictures ) || 0 ) - unfiled );
 			c.pills.appendChild( pill( inFolders, __( 'in folders', 'vergelabs-media-library' ), 'accent' ) );
-			c.pills.appendChild( pill( unfiled, __( 'to sort', 'vergelabs-media-library' ), 'accent' ) );
+			c.pills.appendChild( pill( unfiled, __( 'in no folder', 'vergelabs-media-library' ), 'accent' ) );
 		}
 
 		// Moved into this step's slot once: re-appending the node it is already in restarts every row's entering animation.
