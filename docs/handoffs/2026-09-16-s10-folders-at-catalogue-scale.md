@@ -77,6 +77,54 @@ the shop band re-taken, the registers. Service: untouched.
 - Deploy tool: `deploy.mjs` said "unreachable" when php -l refused a file;
   it prints the complaint now.
 
+## The bug hunt after the run (Nathan on ms2, 17:00–18:30; `9fe2e7a` … `b88ff00`)
+
+Nathan used the screen as an owner does -- back to the tree, confirm again,
+fill again -- and every turn found a state the design assumed would not
+recur. Each fixed the same hour, deployed, seen on the screen or in a walk:
+
+- **The tree read as if 270 profiles were gone.** A draft row with an empty
+  word list drew nothing where the confirm would keep the stored profile.
+  Fixed in `vergeml-tree-view.js` (tree-view C7). Open: × on a folder's
+  last word cannot mean "no words" -- the empty list means "keep".
+- **"Reading folders 0 of 1 batches" stood still for fifty seconds**, then
+  "nothing moved". Three things: no seconds shown when no estimate exists;
+  the bar at zero before the first batch; and the fit after the planner call
+  ran out of its budget in the same request and answered "unknown". Fixed:
+  the sliver before the first unit, the seconds always, a creep between
+  units; a fit that runs out books the job (guide.php F6).
+- **Alt text was the only way on from a done Fill step.** Now the Fill
+  button stays on a confirmed tree, "This is my tree" on an open one, Alt
+  text a quiet link.
+- **Fill after Fill was refused** ("Nothing moved."): the run's end clears
+  the draft and the next press handed it empty. A confirmed tree with no
+  draft fills the live folders now.
+- **The fill's counts jumped and lagged.** The whole 626-picture fill was one
+  27 s pass and the pass wrote progress only at its end; then, measured on
+  the tech site, the pass took 5 s and every REST request on the box boots
+  for ~2.8 s (handler 40 ms), so the screen sampled every five seconds.
+  Fixed: a heartbeat transient every two seconds inside the pass
+  (`vergeml_talk_beat`, merged by the report), the slice 500 → 100, the poll
+  two seconds apart counted from the request, and the bar *and the count*
+  creeping at the measured rate, never backwards (Nathan: "show the actual
+  count even if that means estimating"). Watched: 0 → 823 → 949 → 969 → done.
+- **Fill on 322 folders opened every parent** and pushed the button off the
+  page. Parents open on Fill only when the tree has ≤ 40 folders.
+- **Confirm with nothing to ask showed nothing** for the dry run's thirty
+  seconds; now "Confirming · 626 pictures against 322 folders · 12 s".
+- **Words:** pictures in no folder are "in no folder" (the *To sort* folder
+  kept its name and the pill said "to sort"); a running fill says "not
+  placed"; the Tree step's dry run says "would be placed / would stay
+  unfiled" instead of the same "placed" the Fill step uses for a fact.
+
+Two rules broken by me this afternoon, for the record: a suite ran on ms2
+while Nathan was on it and its restore undid his confirm; a walk script
+pressed Unconfirm on his tree. Both told him at once. The walks that
+proved the fill ran on the tech site through `fill-fixture.php` and were
+restored; the walk scripts themselves were temporary and are not kept.
+The full `folders.spec` run on ms2 after these fixes is still to do -- when
+Nathan is off the site.
+
 ## Not done, and why
 
 - **The real Unconfirm → confirm on ms2** (the S10.1 gate as a press): the
@@ -91,7 +139,7 @@ the shop band re-taken, the registers. Service: untouched.
   the fit needs packed embeddings Playground refuses; the box row (F4)
   prints the queries instead.
 - S10.4, S10.6 (mock-first, one canvas), S10.5's three rules, S10.5b — S11.
-- `vgmls10` (a session admin on the tech site) was deleted at the end;
+- `vgmls10` (a session admin on the tech site) was made and deleted twice;
   `vgmls9`'s password was reset this session and lives in this session's
   scratchpad only — delete the user when C.5 closes.
 
