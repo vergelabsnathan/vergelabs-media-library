@@ -52,6 +52,18 @@ const VERGEML_TALK_PASS = 5000;
 /** Seconds a background pass may spend before handing back to cron. */
 const VERGEML_TALK_BUDGET = 15.0;
 
+/*
+ *  A fill that cannot stall (S10.2). Cron's tick is the run's engine; the
+ *  screen's poll is its guarantee: an active run whose event is this many
+ *  seconds past due is run for one short pass inside the poll's own request,
+ *  a slice small enough to answer inside the request, and booked again. The
+ *  pass lock keeps a tick that does arrive from working the same slice.
+ */
+const VERGEML_TALK_STALL      = 10;
+const VERGEML_TALK_KICK_SLICE = 50;
+const VERGEML_TALK_KICK_BUDGET = 10.0;
+const VERGEML_TALK_PASS_LOCK  = 'vergeml_talk_passing';
+
 /** Where a re-filing job remembers what it has done. */
 const VERGEML_TALK_STATE = 'vergeml_talk_refile';
 
@@ -983,6 +995,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		 */
 		'remove'   => $remove,
 		'started'  => time(),
+		'ticked'   => time(),
 	);
 
 	update_option( VERGEML_TALK_STATE, $state, false );
@@ -999,10 +1012,11 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 /**
  *  Work through as much of the re-filing as the time allows.
  *
- * @param float $deadline When to stop and leave the rest to the next pass.
+ * @param float    $deadline  When to stop and leave the rest to the next pass.
+ * @param int|null $slice_cap A smaller slice than the filter's, for a pass run inside a poll (S10.2).
  * @return array The state as it now stands.
  */
-function vergeml_talk_refile_run( $deadline ) {
+function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 
 	global $wpdb;
 
@@ -1019,6 +1033,18 @@ function vergeml_talk_refile_run( $deadline ) {
 		update_option( VERGEML_TALK_STATE, $state, false );
 		return $state;
 	}
+
+	/*
+	 *  One pass at a time. A tick and a poll's pass (S10.2) that both read
+	 *  `after` would both work the same slice and count it twice. The lock
+	 *  outlives the longest pass (a slice of 500 at the box's five a second)
+	 *  and is dropped as the pass ends, so a pass php-fpm killed holds
+	 *  nothing up for more than two minutes.
+	 */
+	if ( get_transient( VERGEML_TALK_PASS_LOCK ) ) {
+		return $state;
+	}
+	set_transient( VERGEML_TALK_PASS_LOCK, time(), 120 );
 
 	// A Move already in flight across the deploy that added these.
 	foreach ( array( 'residue' => array(), 'siblings' => array(), 'either' => array(), 'questions' => array(), 'names' => array(), 'tally' => vergeml_filing_tally_fresh() ) as $k => $fresh ) {
@@ -1062,6 +1088,10 @@ function vergeml_talk_refile_run( $deadline ) {
 	 */
 	$slice  = max( 1, (int) apply_filters( 'vergeml_talk_slice', VERGEML_TALK_SLICE ) );
 	$budget = max( 1, (int) apply_filters( 'vergeml_talk_pass', VERGEML_TALK_PASS ) );
+	if ( $slice_cap ) {
+		$slice  = min( $slice, max( 1, (int) $slice_cap ) );
+		$budget = min( $budget, $slice );
+	}
 
 	do {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
@@ -1317,7 +1347,10 @@ function vergeml_talk_refile_run( $deadline ) {
 		}
 	}
 
+	// When this pass last wrote: the screen reads "nothing moved for 48 s" off it, and the poll's kick reads a stall (S10.0, S10.2).
+	$state['ticked'] = time();
 	update_option( VERGEML_TALK_STATE, $state, false );
+	delete_transient( VERGEML_TALK_PASS_LOCK );
 
 	vergeml_talk_trail_write( $trail );
 
@@ -1517,17 +1550,68 @@ function vergeml_talk_refile_schedule() {
 	/*
 	 *  WP-Cron fires on page loads, so on a site nobody is browsing a job that
 	 *  says it is still going simply stops. The describe run learned that the
-	 *  hard way; re-filing makes the same promise and needs the same nudge.
+	 *  hard way; re-filing makes the same promise and needs the same nudge --
+	 *  and, since 2026-09-16, the same nudge exactly (core/ai-background.php,
+	 *  vergeml_ai_run_nudge). Until then this posted a fresh key without
+	 *  taking cron's lock, which wp-cron.php refuses on line one of its lock
+	 *  check: on the box's shop site the first tick's own spawn held the lock
+	 *  under a key no arriving request carried, every later post was turned
+	 *  away, and the fill stood for four minutes (C.5, S10.2).
+	 *
+	 *  Outside a cron run core's spawn_cron() takes the lock and posts; inside
+	 *  a tick it refuses outright, so the next request is chained the way
+	 *  core's own is: the lock re-taken under a new key, and that key posted.
 	 */
-	$url = add_query_arg( 'doing_wp_cron', sprintf( '%.22F', microtime( true ) ), site_url( 'wp-cron.php' ) );
+	if ( ! defined( 'DOING_CRON' ) ) {
+		spawn_cron();
+		return;
+	}
+
+	$key = sprintf( '%.22F', microtime( true ) );
+	set_transient( 'doing_cron', $key );
 
 	// A loopback to this site's own wp-cron.php, on the rule core's spawn_cron()
 	// uses: unverified unless the owner turns https_local_ssl_verify on.
-	wp_remote_post( $url, array(
+	wp_remote_post( add_query_arg( 'doing_wp_cron', $key, site_url( 'wp-cron.php' ) ), array(
 		'timeout'   => 0.01,
 		'blocking'  => false,
 		'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
+		'headers'   => array( 'Cache-Control' => 'no-cache' ),
 	) );
+}
+
+
+/**
+ *  The poll's guarantee (S10.2): an active run whose event cron has not
+ *  honoured for VERGEML_TALK_STALL seconds is run here, one short pass, and
+ *  booked again. The run's progress never depends on a chained spawn
+ *  arriving; a cron that works is never second-guessed, because its event
+ *  is taken off the schedule the moment it fires.
+ *
+ * @param array $state The run as the poll found it.
+ * @return array The state after the pass, or as it was.
+ */
+function vergeml_talk_refile_kick( $state ) {
+
+	$next = wp_next_scheduled( VERGEML_TALK_HOOK );
+	if ( false === $next || $next > time() - VERGEML_TALK_STALL || get_transient( VERGEML_TALK_PASS_LOCK ) ) {
+		return $state;
+	}
+
+	$state = vergeml_talk_refile_run( microtime( true ) + VERGEML_TALK_KICK_BUDGET, VERGEML_TALK_KICK_SLICE );
+
+	if ( ! empty( $state['active'] ) ) {
+		/*
+		 *  Booked again, already late: a cron that has come back takes it on
+		 *  the nudge, and the next poll takes it if cron has not -- the run
+		 *  goes on at the poll's pace, never at a stuck lock's.
+		 */
+		wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+		wp_schedule_single_event( time() - VERGEML_TALK_STALL, VERGEML_TALK_HOOK );
+		vergeml_talk_refile_schedule();
+	}
+
+	return $state;
 }
 
 
@@ -1597,6 +1681,8 @@ function vergeml_talk_report( $state ) {
 		'questions' => isset( $state['questions'] ) ? count( array_filter( (array) $state['questions'], function ( $q ) { return empty( $q['answered'] ); } ) ) : 0,
 		'until'     => isset( $state['until'] ) ? (int) $state['until'] : 0,
 		'started'   => isset( $state['started'] ) ? (int) $state['started'] : 0,
+		// When a pass last wrote: the screen's stall line counts from here (S10.0).
+		'ticked'    => isset( $state['ticked'] ) ? (int) $state['ticked'] : ( isset( $state['started'] ) ? (int) $state['started'] : 0 ),
 		'message'   => $message,
 	);
 }
@@ -1692,6 +1778,11 @@ function vergeml_talk_progress() {
 	 */
 	if ( ! empty( $state['active'] ) && ! wp_next_scheduled( VERGEML_TALK_HOOK ) ) {
 		vergeml_talk_refile_schedule();
+	}
+
+	// And a job whose event cron has left standing is run here, one pass (S10.2).
+	if ( ! empty( $state['active'] ) ) {
+		$state = vergeml_talk_refile_kick( $state );
 	}
 
 	return vergeml_talk_report( $state );

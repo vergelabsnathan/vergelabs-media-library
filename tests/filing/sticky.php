@@ -95,9 +95,15 @@ function sk_answer( $pre, $args, $url ) {
             array( 'name' => 'zzStickyA', 'parent' => '', 'classes' => array( 'hijack' ), 'kinds' => array( 'photo' ), 'audience' => '', 'matches' => '' ),
         ) ) ), 'headers' => array() );
     }
+    // The nudge to this site's own wp-cron.php (S10.2): answered, counted, and its key kept for E3.
+    if ( false !== strpos( $url, 'wp-cron.php' ) ) {
+        $GLOBALS['sk_cron'][] = (string) $url;
+        return array( 'response' => array( 'code' => 200 ), 'body' => '', 'headers' => array() );
+    }
     return $pre;
 }
 add_filter( 'pre_http_request', 'sk_answer', 1, 3 );
+$GLOBALS['sk_cron'] = array();
 
 /* ------------------------------------------------------------- the fixture */
 
@@ -302,6 +308,77 @@ if ( 6 === $sk_reach ) {
     sort( $sk_expect );
     sk_check( 'D6 the trail has a row for the two the fill judged and none for the four it kept', $sk_expect === $sk_rows, json_encode( $sk_rows ) );
     sk_check( 'D7 the hand-moved picture is still the user\'s', 'user' === get_post_meta( $sk_files['hand'], VERGEML_FILING_PLACED_BY, true ) );
+
+    /* ------------------------------------------------------ E  a fill that cannot stall */
+
+    /*
+     *  S10.2. On the box's shop site (C.5, 2026-09-16) the first tick took
+     *  cron's lock with a key no arriving request carried, every later
+     *  wp-cron.php was refused as not its own, and nothing moved for four
+     *  minutes. Planted here as it was: an active run, its event past due, a
+     *  lock twenty seconds old that core's spawn_cron() declines to replace,
+     *  and no tick for two minutes. One poll must move the picture itself.
+     *  The run assigns outright, so the pass touches only this suite's
+     *  picture and builds no profile. Mutation: the poll's kick removed ->
+     *  E1 red (moved 0: the poll only re-books the event and waits).
+     */
+    echo "\nE  a fill that cannot stall behind a cron lock (S10.2)\n\n";
+
+    $sk_hook_was = wp_next_scheduled( VERGEML_TALK_HOOK );
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    wp_schedule_single_event( time() - 90, VERGEML_TALK_HOOK );
+    $sk_lock_was = get_transient( 'doing_cron' );
+    set_transient( 'doing_cron', sprintf( '%.22F', microtime( true ) - 20 ) );
+    $GLOBALS['sk_cron'] = array();
+
+    update_option( VERGEML_TALK_STATE, array(
+        'active'   => true,
+        'taxonomy' => $sk_tax,
+        'ids'      => array( 'a' => $sk_terms['zzStickyA'], 'b' => $sk_terms['zzStickyB'] ),
+        'vectors'  => array(),
+        'assign'   => array( $sk_files['free'] => $sk_terms['zzStickyB'] ),
+        'fallback' => array(),
+        'reasons'  => array(),
+        'after'    => $sk_after,
+        'moved'    => 0,
+        'skipped'  => 0,
+        'seen'     => 0,
+        'total'    => 6,
+        'counts'   => array(),
+        'by_term'  => array(),
+        'unfiled'  => array(),
+        'tags'     => array(),
+        'tagged'   => 0,
+        'until'    => time() + DAY_IN_SECONDS,
+        'remove'   => array(),
+        'started'  => time() - 120,
+        'ticked'   => time() - 120,
+    ), false );
+
+    $sk_poll = vergeml_talk_progress();
+    sk_check( 'E1 one poll on the stalled run moves the picture itself: moved 1, the picture in B, the run over', 1 === (int) $sk_poll['moved'] && array( $sk_terms['zzStickyB'] ) === $sk_where( $sk_files['free'] ) && empty( $sk_poll['running'] ), json_encode( array( 'moved' => $sk_poll['moved'], 'running' => $sk_poll['running'], 'in' => $sk_where( $sk_files['free'] ) ) ) );
+    sk_check( 'E2 the report says when it last moved (ticked, within this second)', isset( $sk_poll['ticked'] ) && time() - (int) $sk_poll['ticked'] <= 2, isset( $sk_poll['ticked'] ) ? ( time() - (int) $sk_poll['ticked'] ) . ' s ago' : 'no ticked' );
+
+    // The lock free and a run just booked: the schedule takes the lock with its own key and posts that key (core's spawn_cron), and the poll leaves the run to cron.
+    update_option( VERGEML_TALK_STATE, array_merge( get_option( VERGEML_TALK_STATE ), array( 'active' => true, 'after' => $sk_after, 'moved' => 0, 'seen' => 0, 'started' => time(), 'ticked' => time() ) ), false );
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    delete_transient( 'doing_cron' );
+    $GLOBALS['sk_cron'] = array();
+    vergeml_talk_refile_schedule();
+    $sk_key = get_transient( 'doing_cron' );
+    sk_check( 'E3 the nudge takes cron\'s lock with a new key and posts that key, never a key no request carries', 1 === count( $GLOBALS['sk_cron'] ) && is_string( $sk_key ) && false !== strpos( $GLOBALS['sk_cron'][0], 'doing_wp_cron=' . rawurlencode( $sk_key ) ), json_encode( array( 'posts' => count( $GLOBALS['sk_cron'] ), 'key' => $sk_key, 'url' => isset( $GLOBALS['sk_cron'][0] ) ? $GLOBALS['sk_cron'][0] : null ) ) );
+    $sk_poll = vergeml_talk_progress();
+    sk_check( 'E4 a run just booked is not run by the poll: moved stays 0', 0 === (int) $sk_poll['moved'] && ! empty( $sk_poll['running'] ), json_encode( array( 'moved' => $sk_poll['moved'], 'running' => $sk_poll['running'] ) ) );
+
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    if ( false !== $sk_hook_was ) {
+        wp_schedule_single_event( (int) $sk_hook_was, VERGEML_TALK_HOOK );
+    }
+    if ( false === $sk_lock_was ) {
+        delete_transient( 'doing_cron' );
+    } else {
+        set_transient( 'doing_cron', $sk_lock_was );
+    }
 
     // Put the screen's own state back before anything else reads it.
     if ( false === $sk_state_was ) {
