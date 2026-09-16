@@ -70,6 +70,49 @@ const VERGEML_FILING_CLASS_COSINE_FLOOR = 0.6;
 const VERGEML_FILING_META_PREV = '_vergeml_filing_profile_prev';
 
 /*
+ *  The profile ask, in batches (C.5). The service answers at most this many
+ *  folders a call (its PROFILE_BATCH: the planner returns every folder it
+ *  is given and sixty fill the output budget), and until 2026-09-16 it took
+ *  the first sixty of a bigger ask and said nothing -- a 318-folder catalogue
+ *  came back with 258 folders unprofiled. The three numbers mirror
+ *  service/lib/profile-price.ts and are what the button says before the
+ *  press: the first hundred folders of an ask are free, the rest one credit
+ *  per six, rounded up per batch.
+ */
+const VERGEML_FILING_PROFILE_BATCH      = 60;
+const VERGEML_FILING_PROFILE_FREE       = 100;
+const VERGEML_FILING_PROFILE_PER_CREDIT = 6;
+
+/** The ask cut into what the service takes at once: [ ['offset', 'total', 'current'], ... ]. */
+function vergeml_filing_profile_batches( $current ) {
+    $current = array_values( (array) $current );
+    $total   = count( $current );
+    $out     = array();
+    foreach ( array_chunk( $current, VERGEML_FILING_PROFILE_BATCH ) as $i => $chunk ) {
+        $out[] = array( 'offset' => $i * VERGEML_FILING_PROFILE_BATCH, 'total' => $total, 'current' => $chunk );
+    }
+    return $out;
+}
+
+/** Credits one batch costs: its folders past the free hundred of the whole ask (the service's own arithmetic). */
+function vergeml_filing_profile_charge( $offset, $count, $total ) {
+    $start = max( 0, (int) $offset );
+    $end   = min( max( 0, (int) $total ), $start + max( 0, (int) $count ) );
+    $paid  = max( 0, $end - max( $start, VERGEML_FILING_PROFILE_FREE ) );
+    return (int) ceil( $paid / VERGEML_FILING_PROFILE_PER_CREDIT );
+}
+
+/** What an ask about this many folders costs, batch by batch. */
+function vergeml_filing_profile_credits( $folders ) {
+    $folders = max( 0, (int) $folders );
+    $credits = 0;
+    for ( $offset = 0; $offset < $folders; $offset += VERGEML_FILING_PROFILE_BATCH ) {
+        $credits += vergeml_filing_profile_charge( $offset, min( VERGEML_FILING_PROFILE_BATCH, $folders - $offset ), $folders );
+    }
+    return $credits;
+}
+
+/*
  *  Below this, a picture plainly does not match the folder it is sitting in,
  *  and "nothing else fits either" is no reason to leave it there. Out it comes,
  *  to unfiled, which is the truthful place. Between this and the floor the
@@ -1470,7 +1513,7 @@ function vergeml_filing_profile_existing( $taxonomy, $force = false ) {
  *  @return array|WP_Error lowercase "parent / name" => seed { classes, kinds, audience, matches }; folders the
  *                         planner gave no classes are left out.
  */
-function vergeml_filing_profile_ask( $current ) {
+function vergeml_filing_profile_ask( $current, &$charged = 0 ) {
 
     if ( ! function_exists( 'vergeml_ai_settings' ) ) {
         return new WP_Error( 'no_ai', 'AI not loaded.' );
@@ -1481,48 +1524,58 @@ function vergeml_filing_profile_ask( $current ) {
         return new WP_Error( 'no_licence', __( 'No licence key.', 'vergelabs-media-library' ) );
     }
 
-    $response = wp_remote_post(
-        vergeml_ai_service_url() . '/folders',
-        array(
-            'timeout'   => 60,
-            'headers'   => array( 'Content-Type' => 'application/json' ),
-            'sslverify' => true,
-            'body'      => wp_json_encode( array(
-                'license_key' => $licence,
-                'site'        => home_url(),
-                'mode'        => 'profile',
-                'instruction' => 'profile',
-                'current'     => array_values( (array) $current ),
-                'samples'     => function_exists( 'vergeml_talk_samples' ) ? vergeml_talk_samples() : array(),
-                // The library's own words, with counts: the profile's classes must be these (C.4).
-                'terms'       => vergeml_filing_vocabulary(),
-            ) ),
-        )
-    );
-    if ( is_wp_error( $response ) ) {
-        return $response;
-    }
-    $code = (int) wp_remote_retrieve_response_code( $response );
-    $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
-    if ( 200 !== $code || ! is_array( $data ) || empty( $data['folders'] ) ) {
-        return new WP_Error( 'vergeml_ai_service_' . $code, is_array( $data ) && isset( $data['error'] ) ? (string) $data['error'] : 'HTTP ' . $code );
-    }
+    $samples = function_exists( 'vergeml_talk_samples' ) ? vergeml_talk_samples() : array();
+    // The library's own words, with counts: the profile's classes must be these (C.4).
+    $terms   = vergeml_filing_vocabulary();
+    $out     = array();
+    $charged = 0;
 
-    $out = array();
-    foreach ( (array) $data['folders'] as $f ) {
-        if ( ! is_array( $f ) || empty( $f['name'] ) ) {
-            continue;
-        }
-        $seed = array(
-            'classes'  => isset( $f['classes'] ) && is_array( $f['classes'] ) ? array_values( array_filter( array_map( 'sanitize_text_field', $f['classes'] ) ) ) : array(),
-            'kinds'    => isset( $f['kinds'] ) && is_array( $f['kinds'] ) ? array_values( array_filter( array_map( 'sanitize_key', $f['kinds'] ) ) ) : array(),
-            'audience' => isset( $f['audience'] ) ? sanitize_text_field( (string) $f['audience'] ) : '',
-            'matches'  => isset( $f['matches'] ) ? sanitize_text_field( (string) $f['matches'] ) : '',
+    // One call per batch, each with its place in the whole ask so the service charges the right folders.
+    foreach ( vergeml_filing_profile_batches( $current ) as $batch ) {
+        $response = wp_remote_post(
+            vergeml_ai_service_url() . '/folders',
+            array(
+                'timeout'   => 60,
+                'headers'   => array( 'Content-Type' => 'application/json' ),
+                'sslverify' => true,
+                'body'      => wp_json_encode( array(
+                    'license_key' => $licence,
+                    'site'        => home_url(),
+                    'mode'        => 'profile',
+                    'instruction' => 'profile',
+                    'current'     => $batch['current'],
+                    'offset'      => $batch['offset'],
+                    'total'       => $batch['total'],
+                    'samples'     => $samples,
+                    'terms'       => $terms,
+                ) ),
+            )
         );
-        if ( ! $seed['classes'] ) {
-            continue; // Nothing worth keeping over the name.
+        if ( is_wp_error( $response ) ) {
+            return $response;
         }
-        $out[ mb_strtolower( ( isset( $f['parent'] ) ? (string) $f['parent'] : '' ) . ' / ' . (string) $f['name'] ) ] = $seed;
+        $code = (int) wp_remote_retrieve_response_code( $response );
+        $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+        if ( 200 !== $code || ! is_array( $data ) || empty( $data['folders'] ) ) {
+            return new WP_Error( 'vergeml_ai_service_' . $code, is_array( $data ) && isset( $data['error'] ) ? (string) $data['error'] : 'HTTP ' . $code );
+        }
+        $charged += isset( $data['charged'] ) ? (int) $data['charged'] : 0;
+
+        foreach ( (array) $data['folders'] as $f ) {
+            if ( ! is_array( $f ) || empty( $f['name'] ) ) {
+                continue;
+            }
+            $seed = array(
+                'classes'  => isset( $f['classes'] ) && is_array( $f['classes'] ) ? array_values( array_filter( array_map( 'sanitize_text_field', $f['classes'] ) ) ) : array(),
+                'kinds'    => isset( $f['kinds'] ) && is_array( $f['kinds'] ) ? array_values( array_filter( array_map( 'sanitize_key', $f['kinds'] ) ) ) : array(),
+                'audience' => isset( $f['audience'] ) ? sanitize_text_field( (string) $f['audience'] ) : '',
+                'matches'  => isset( $f['matches'] ) ? sanitize_text_field( (string) $f['matches'] ) : '',
+            );
+            if ( ! $seed['classes'] ) {
+                continue; // Nothing worth keeping over the name.
+            }
+            $out[ mb_strtolower( ( isset( $f['parent'] ) ? (string) $f['parent'] : '' ) . ' / ' . (string) $f['name'] ) ] = $seed;
+        }
     }
     return $out;
 }

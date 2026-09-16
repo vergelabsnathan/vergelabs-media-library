@@ -69,9 +69,102 @@ const VERGEML_MEANING_FLOOR = 0.22;
  *  hundred times.
  */
 
-function vergeml_meaning_vector( $text ) {
+/** The transient a phrase's vector lives in; "qv2" is the embedder's version and changes with it. */
+function vergeml_meaning_slot( $text ) {
+    return 'vergeml_qv2_' . md5( strtolower( trim( (string) $text ) ) );
+}
 
-    static $seen_here = array();
+/** This request's own copy of the vectors it has seen, by slot; set with a vector, read without. */
+function vergeml_meaning_known( $slot, $vector = null ) {
+    static $seen = array();
+    if ( is_array( $vector ) ) {
+        $seen[ $slot ] = $vector;
+    }
+    return isset( $seen[ $slot ] ) ? $seen[ $slot ] : null;
+}
+
+/**
+ *  Many phrases at once, into the same cache the single ask fills.
+ *
+ *  A dry run over a pasted tree wants a vector for every new folder path and
+ *  every picture phrase it has not seen: 318 paths and some 600 phrases on
+ *  the box's shop site (every-picture-a-home C.5, 2026-09-16), one request
+ *  each through vergeml_meaning_vector(), and nginx gave up on the request
+ *  at sixty seconds while PHP was still asking. The service takes a batch
+ *  (`texts`, up to a paste's 500); this sends the ones not cached yet and
+ *  stores each answer where the single ask would have.
+ *
+ *  @param  string[] $texts
+ *  @return int|null How many were fetched; null when the service did not answer a batch.
+ */
+function vergeml_meaning_prefetch( $texts ) {
+
+    $want = array();
+    foreach ( (array) $texts as $text ) {
+        $text = trim( (string) $text );
+        if ( '' === $text ) {
+            continue;
+        }
+        $slot = vergeml_meaning_slot( $text );
+        if ( isset( $want[ $slot ] ) || is_array( vergeml_meaning_known( $slot ) ) ) {
+            continue;
+        }
+        $seen = get_transient( $slot );
+        if ( is_array( $seen ) ) {
+            vergeml_meaning_known( $slot, $seen );
+            continue;
+        }
+        $want[ $slot ] = mb_substr( $text, 0, 200 );
+    }
+
+    if ( ! $want || ! function_exists( 'vergeml_ai_settings' ) ) {
+        return 0;
+    }
+
+    $settings = vergeml_ai_settings();
+    $licence  = vergeml_ai_unseal( $settings['license_key'] );
+    if ( '' === $licence ) {
+        return null;
+    }
+
+    $fetched = 0;
+    foreach ( array_chunk( $want, 500, true ) as $chunk ) {
+        $response = wp_remote_post(
+            vergeml_ai_service_url() . '/embed',
+            array(
+                'timeout'   => 30,
+                'headers'   => array( 'Content-Type' => 'application/json' ),
+                'sslverify' => true,
+                'body'      => wp_json_encode( array(
+                    'license_key' => $licence,
+                    'site'        => home_url(),
+                    'texts'       => array_values( $chunk ),
+                ) ),
+            )
+        );
+        if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+            return null;
+        }
+        $data = json_decode( wp_remote_retrieve_body( $response ), true );
+        if ( ! is_array( $data ) || empty( $data['embeddings'] ) || ! is_array( $data['embeddings'] ) || count( $data['embeddings'] ) !== count( $chunk ) ) {
+            return null;
+        }
+        $slots = array_keys( $chunk );
+        foreach ( array_values( $data['embeddings'] ) as $i => $vector ) {
+            if ( ! is_array( $vector ) || ! $vector ) {
+                continue;
+            }
+            $vector = array_map( 'floatval', $vector );
+            set_transient( $slots[ $i ], $vector, WEEK_IN_SECONDS );
+            vergeml_meaning_known( $slots[ $i ], $vector );
+            $fetched++;
+        }
+    }
+
+    return $fetched;
+}
+
+function vergeml_meaning_vector( $text ) {
 
     $text = trim( (string) $text );
 
@@ -79,16 +172,17 @@ function vergeml_meaning_vector( $text ) {
         return null;
     }
 
-    $slot = 'vergeml_qv2_' . md5( strtolower( $text ) );
+    $slot = vergeml_meaning_slot( $text );
 
-    if ( isset( $seen_here[ $slot ] ) ) {
-        return $seen_here[ $slot ];
+    $known = vergeml_meaning_known( $slot );
+    if ( is_array( $known ) ) {
+        return $known;
     }
 
     $seen = get_transient( $slot );
 
     if ( is_array( $seen ) ) {
-        $seen_here[ $slot ] = $seen;
+        vergeml_meaning_known( $slot, $seen );
         return $seen;
     }
 
@@ -158,7 +252,7 @@ function vergeml_meaning_vector( $text ) {
      *  each other.
      */
     set_transient( $slot, $vector, WEEK_IN_SECONDS );
-    $seen_here[ $slot ] = $vector;
+    vergeml_meaning_known( $slot, $vector );
 
     return $vector;
 }

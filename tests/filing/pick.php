@@ -273,5 +273,26 @@ f_check( '19 a planner answer with "diagram" as a class: kinds gains it, classes
 $seed = vergeml_filing_clean_seed( array( 'classes' => array( 'electronics component', 'computer hardware', 'semiconductor' ) ), array( 'computer hardware' => 4 ) );
 f_check( '20 a class another folder holds first is dropped and recorded: computer hardware -> Hardware (4)', array( 'electronics component', 'semiconductor' ) === $seed['classes'] && array( 'computer hardware' => 4 ) === $seed['dropped'], json_encode( $seed ) );
 
+/*
+ *  The profile ask in batches (C.5). The service answers at most
+ *  VERGEML_FILING_PROFILE_BATCH folders a call and charges the folders past
+ *  the first VERGEML_FILING_PROFILE_FREE of an ask, one credit per
+ *  VERGEML_FILING_PROFILE_PER_CREDIT rounded up per batch
+ *  (service/lib/profile-price.ts: the same three numbers, the same sum).
+ *  Mutation: the batch made 500 -> row 21 red (one batch, and the service
+ *  would answer the first sixty of it); the round-up per batch made one
+ *  round-up over the whole -> row 22 red on the 161-folder ask.
+ */
+echo "\n== the profile ask, in batches (C.5)\n";
+
+$ask = array();
+for ( $i = 0; $i < 318; $i++ ) {
+    $ask[] = array( 'name' => 'F' . $i, 'parent' => '', 'count' => 0 );
+}
+$batches = vergeml_filing_profile_batches( $ask );
+f_check( '21 318 folders go as six batches of at most 60, offsets 0..300, each carrying the total', 6 === count( $batches ) && 60 === count( $batches[0]['current'] ) && 18 === count( $batches[5]['current'] ) && array( 0, 60, 120, 180, 240, 300 ) === array_column( $batches, 'offset' ) && 318 === $batches[3]['total'] && 'F300' === $batches[5]['current'][0]['name'], json_encode( array_column( $batches, 'offset' ) ) );
+
+f_check( '22 the charge: 21 folders free; 318 cost 37 (4 + 10 + 10 + 10 + 3); 161 cost 11, rounded up per batch', 0 === vergeml_filing_profile_credits( 21 ) && 0 === vergeml_filing_profile_credits( 100 ) && 37 === vergeml_filing_profile_credits( 318 ) && 11 === vergeml_filing_profile_credits( 161 ) && 4 === vergeml_filing_profile_charge( 60, 60, 318 ) && 0 === vergeml_filing_profile_charge( 0, 60, 318 ), sprintf( '%d %d %d %d', vergeml_filing_profile_credits( 21 ), vergeml_filing_profile_credits( 318 ), vergeml_filing_profile_credits( 161 ), vergeml_filing_profile_charge( 60, 60, 318 ) ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

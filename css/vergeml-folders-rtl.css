@@ -700,6 +700,22 @@
 	cursor: not-allowed;
 }
 
+/* A button that is doing what it says (the confirm reading its folders): full colour, the wait cursor, a slow breath. */
+.vgml-shell .g-move .vgml-btn.is-working:disabled {
+	opacity: 1;
+	cursor: progress;
+	animation: vgml-working 1.6s ease-in-out infinite;
+}
+
+@keyframes vgml-working {
+	0%, 100% { opacity: 1; }
+	50% { opacity: .6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vgml-shell .g-move .vgml-btn.is-working:disabled { animation: none; opacity: .8; }
+}
+
 .vgml-shell .g-quiet {
 	margin: 0;
 	border: 0;

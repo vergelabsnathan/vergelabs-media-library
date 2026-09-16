@@ -428,6 +428,19 @@
 			dom.confirm.addEventListener( 'click', onConfirm );
 			dom.confirm.disabled = state.pastePending || running();
 			dom.treeMove.appendChild( dom.confirm );
+			/*
+			 *  What the press costs and why it waits (C.5). The confirm profiles
+			 *  the folders the draft says nothing about; past the first hundred
+			 *  they are credits, said here like the proposal's. While a paste's
+			 *  counts are still being worked out the button is off, and the pill
+			 *  says so instead of leaving a grey button to be wondered at.
+			 */
+			var profile = ( state.session && state.session.profile ) || {};
+			if ( state.pastePending ) {
+				dom.treeMove.appendChild( el( 'span', { class: 'g-pill is-quiet vgml-confirm-wait' }, __( 'counting the pictures', 'vergelabs-media-library' ) ) );
+			} else if ( Number( profile.credits ) > 0 ) {
+				dom.treeMove.appendChild( pill( Number( profile.credits ), __( 'credits', 'vergelabs-media-library' ) ) );
+			}
 		}
 		if ( state.prevProfiles > 0 ) {
 			var restore = quiet( __( 'Restore the earlier classes', 'vergelabs-media-library' ), onRestoreProfiles );
@@ -448,6 +461,11 @@
 	function onConfirm() {
 		if ( dom.confirm ) {
 			dom.confirm.disabled = true;
+			// The press is a planner call per sixty folders, twenty seconds each: the button says what it is doing (Nathan, 2026-09-16).
+			var n = Number( state.session && state.session.profile && state.session.profile.folders ) || 0;
+			dom.confirm.classList.add( 'is-working' );
+			/* translators: %s: folders */
+			dom.confirm.textContent = n > 0 ? sprintf( _n( 'Reading %s folder', 'Reading %s folders', n, 'vergelabs-media-library' ), fmt( n ) ) : __( 'Confirming', 'vergelabs-media-library' );
 		}
 		if ( talk.streaming() ) {
 			talk.stop();
@@ -1028,6 +1046,8 @@
 			all: __( 'All', 'vergelabs-media-library' ),
 			states: __( 'Which folders to show', 'vergelabs-media-library' ),
 			find: __( 'Find a folder', 'vergelabs-media-library' ),
+			expandAll: __( 'Open every folder', 'vergelabs-media-library' ),
+			collapseAll: __( 'Close every folder', 'vergelabs-media-library' ),
 			topLevel: __( 'Top level', 'vergelabs-media-library' ),
 			newTag: __( 'new', 'vergelabs-media-library' ),
 			/* translators: %s: a word the folder takes ("semiconductor component") */

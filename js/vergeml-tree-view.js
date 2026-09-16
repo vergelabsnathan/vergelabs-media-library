@@ -78,6 +78,8 @@
 		all: 'All',
 		states: 'Which folders to show',
 		find: 'Find a folder',
+		expandAll: 'Open every folder',
+		collapseAll: 'Close every folder',
 		topLevel: 'Top level',
 		newTag: 'new',
 		was: 'was %s',
@@ -1639,10 +1641,25 @@
 		find.appendChild( input );
 		head.appendChild( find );
 
+		// Every parent open or every parent closed, one press (Nathan, 2026-09-16, on a 318-folder catalogue).
+		var fold = el( 'button', { type: 'button', class: 'vgml-tv-fold g-chip' } );
+		fold.addEventListener( 'click', function () {
+			self.openEvery( ! self.openAll );
+		} );
+		head.appendChild( fold );
+
 		this.switchEl = sw;
 		this.findEl = find;
 		this.findInput = input;
+		this.foldEl = fold;
 		return head;
+	};
+
+	/** Every parent open (true) or closed (false), forgetting the ones toggled by hand. */
+	TreeView.prototype.openEvery = function ( open ) {
+		this.openAll = !! open;
+		this.openOverride = {};
+		this.render();
 	};
 
 	TreeView.prototype.paintHead = function () {
@@ -1660,6 +1677,11 @@
 
 		// A search from ten folders: with the parents closed by default, finding is how a big tree is read (Nathan, 2026-09-15: "say 300 categories").
 		this.findEl.hidden = this.model.nodes.length < 10 && ! this.filter;
+
+		// The fold, from the same ten: it says what the press does.
+		var parents = this.model.nodes.some( function ( n ) { return self.model.nodes.some( function ( k ) { return k.parent === n.id && n.id; } ); } );
+		this.foldEl.hidden = this.model.nodes.length < 10 || ! parents || !! this.filter;
+		this.foldEl.textContent = this.openAll ? l10n.collapseAll : l10n.expandAll;
 	};
 
 

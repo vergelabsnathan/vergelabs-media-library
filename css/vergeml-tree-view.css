@@ -73,6 +73,28 @@
 	max-width: 260px;
 }
 
+/* Every folder open or closed, one press: the same quiet chip as the state switch, at the head's end. */
+.vgml-tv[data-surface="folders"] .vgml-tv-fold {
+	margin: 0;
+	padding: 4px 10px;
+	border: 1px solid var( --vgml-tv-divider );
+	border-radius: 6px;
+	background: #fff;
+	font: inherit;
+	font-size: 12px;
+	font-weight: 500;
+	line-height: 1.4;
+	color: var( --vgml-tv-muted );
+	cursor: pointer;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-fold:hover,
+.vgml-tv[data-surface="folders"] .vgml-tv-fold:focus-visible {
+	color: var( --vgml-tv-ink );
+	outline: 2px solid var( --vgml-tv-accent );
+	outline-offset: 1px;
+}
+
 .vgml-tv[data-surface="folders"] .vgml-tv-search {
 	width: 100%;
 	box-sizing: border-box;

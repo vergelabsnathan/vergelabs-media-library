@@ -427,7 +427,18 @@ function vergeml_guide_session_out( $s ) {
         'apply'           => $s['apply'],
         'fit'             => $s['fit'],
         'tree'            => isset( $s['tree'] ) && 'confirmed' === $s['tree'] ? 'confirmed' : 'editing',
+        // What "This is my tree" would ask the planner about, and its credits past the free hundred (C.5): the button says it.
+        'profile'         => vergeml_guide_profile_facts( $s['draft'] ),
     );
+}
+
+/** The confirm's ask, as two numbers for the screen: folders it would profile, credits that costs. */
+function vergeml_guide_profile_facts( $draft ) {
+    if ( ! is_array( $draft ) || empty( $draft['folders'] ) ) {
+        return array( 'folders' => 0, 'credits' => 0 );
+    }
+    $ask = vergeml_guide_profile_ask( $draft );
+    return array( 'folders' => count( $ask['current'] ), 'credits' => (int) $ask['credits'] );
 }
 
 function vergeml_guide_turn_add( &$s, $role, $kind, $text, $extra = array() ) {
@@ -949,42 +960,22 @@ function vergeml_guide_confirm( &$s ) {
         $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders ) );
     }
 
-    $by_key = array();
-    foreach ( $s['draft']['folders'] as $f ) {
-        $by_key[ (string) $f['key'] ] = $f;
-    }
-    $path = function ( $key ) use ( $by_key ) {
-        $out   = array();
-        $guard = 0;
-        while ( isset( $by_key[ $key ] ) && $guard++ < 64 ) {
-            array_unshift( $out, (string) $by_key[ $key ]['name'] );
-            $key = (string) $by_key[ $key ]['parent'];
-        }
-        return $out;
-    };
-
-    // Which folders the planner is asked about: no classes in the draft, and no plan stored on the term.
-    $current = array();
-    $want    = array();
-    foreach ( $s['draft']['folders'] as $i => $f ) {
-        $p         = $path( (string) $f['key'] );
-        $parent    = implode( ' / ', array_slice( $p, 0, -1 ) );
-        $current[] = array( 'name' => (string) $f['name'], 'parent' => $parent, 'count' => (int) $f['count'] );
-        if ( ! empty( $f['classes'] ) ) {
-            continue;
-        }
-        $stored = ! empty( $f['term_id'] ) ? get_term_meta( (int) $f['term_id'], VERGEML_FILING_META, true ) : null;
-        if ( is_array( $stored ) && 'plan' === $stored['source'] ) {
-            continue; // The draft says nothing about it; it keeps the profile it has.
-        }
-        $want[ mb_strtolower( $parent . ' / ' . (string) $f['name'] ) ] = $i;
-    }
+    /*
+     *  Which folders the planner is asked about: no classes in the draft, and
+     *  no plan stored on the term. Only those go (C.5): the ask is charged by
+     *  the folder past the first hundred, and a folder that keeps its profile
+     *  is not worth paying to hear about again; each carries its parent path,
+     *  so the planner still sees where it hangs.
+     */
+    $ask  = vergeml_guide_profile_ask( $s['draft'] );
+    $want = $ask['want'];
 
     $profiled = 0;
+    $charged  = 0;
     if ( $want ) {
-        $seeds = vergeml_filing_profile_ask( $current );
+        $seeds = vergeml_filing_profile_ask( $ask['current'], $charged );
         if ( is_wp_error( $seeds ) ) {
-            return new WP_Error( $seeds->get_error_code(), $seeds->get_error_message(), array( 'status' => 502 ) );
+            return new WP_Error( $seeds->get_error_code(), $seeds->get_error_message(), array( 'status' => 402 === (int) substr( $seeds->get_error_code(), -3 ) ? 402 : 502 ) );
         }
         foreach ( $seeds as $key => $seed ) {
             if ( ! isset( $want[ $key ] ) ) {
@@ -1028,7 +1019,56 @@ function vergeml_guide_confirm( &$s ) {
     $s['tree']         = 'confirmed';
     $s['confirmed_at'] = time();
 
-    return array( 'profiled' => $profiled );
+    return array( 'profiled' => $profiled, 'charged' => $charged );
+}
+
+/**
+ *  What a confirm would ask the planner about, and what that costs: the
+ *  draft's folders with no classes and no stored plan, each with its parent
+ *  path. The button says the credits before the press (C.5); the confirm
+ *  sends exactly this list.
+ *
+ *  @return array 'current' (the folders, for the ask), 'want' (path key => draft index), 'credits'.
+ */
+function vergeml_guide_profile_ask( $draft ) {
+    $by_key = array();
+    $ids    = array();
+    foreach ( (array) ( is_array( $draft ) ? $draft['folders'] : array() ) as $f ) {
+        $by_key[ (string) $f['key'] ] = $f;
+        if ( ! empty( $f['term_id'] ) && empty( $f['classes'] ) ) {
+            $ids[] = (int) $f['term_id'];
+        }
+    }
+    // The stored plans in one query, not one per folder: this runs on every session answer.
+    if ( $ids && function_exists( 'update_termmeta_cache' ) ) {
+        update_termmeta_cache( $ids );
+    }
+    $current = array();
+    $want    = array();
+    foreach ( (array) ( is_array( $draft ) ? $draft['folders'] : array() ) as $i => $f ) {
+        if ( ! empty( $f['classes'] ) ) {
+            continue;
+        }
+        $stored = ! empty( $f['term_id'] ) ? get_term_meta( (int) $f['term_id'], VERGEML_FILING_META, true ) : null;
+        if ( is_array( $stored ) && 'plan' === $stored['source'] ) {
+            continue; // The draft says nothing about it; it keeps the profile it has.
+        }
+        $path  = array();
+        $key   = (string) $f['key'];
+        $guard = 0;
+        while ( isset( $by_key[ $key ] ) && $guard++ < 64 ) {
+            array_unshift( $path, (string) $by_key[ $key ]['name'] );
+            $key = (string) $by_key[ $key ]['parent'];
+        }
+        $parent    = implode( ' / ', array_slice( $path, 0, -1 ) );
+        $current[] = array( 'name' => (string) $f['name'], 'parent' => $parent, 'count' => (int) $f['count'] );
+        $want[ mb_strtolower( $parent . ' / ' . (string) $f['name'] ) ] = $i;
+    }
+    return array(
+        'current' => $current,
+        'want'    => $want,
+        'credits' => function_exists( 'vergeml_filing_profile_credits' ) ? vergeml_filing_profile_credits( count( $current ) ) : 0,
+    );
 }
 
 function vergeml_guide_rest_confirm( WP_REST_Request $request ) {
@@ -1043,6 +1083,7 @@ function vergeml_guide_rest_confirm( WP_REST_Request $request ) {
     return rest_ensure_response( array(
         'session'  => vergeml_guide_session_out( $s ),
         'profiled' => (int) $r['profiled'],
+        'charged'  => (int) $r['charged'],
         'version'  => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
     ) );
 }
@@ -1332,6 +1373,7 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
     $profiles = array();
     $order    = array();
     $n        = 0;
+    $paths    = array();
 
     foreach ( $draft['folders'] as $f ) {
         $path = array();
@@ -1341,6 +1383,44 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
             array_unshift( $path, (string) $by_key[ $walk ]['name'] );
             $walk = (string) $by_key[ $walk ]['parent'];
         }
+        $paths[ (string) $f['key'] ] = $path;
+    }
+
+    // Every described picture, because a draft's Move re-files every one of them.
+    $rows = vergeml_guide_rule_rows( $taxonomy, 'all', array( 'filing', 'terms' ) );
+    if ( ! $rows ) {
+        return null;
+    }
+
+    /*
+     *  Every phrase this run will want a vector for, fetched in one request
+     *  before anything is scored: the text of each draft folder, its classes,
+     *  and every picture's object phrases. Cold, the run below asked for them
+     *  one HTTP call each -- 318 folders and some 600 phrases on the box's
+     *  shop site, and the request died at the proxy's sixty seconds while PHP
+     *  was still asking (C.5, 2026-09-16). Warm, the loop reads what this put
+     *  in the cache and the budget below is never reached.
+     */
+    if ( function_exists( 'vergeml_meaning_prefetch' ) ) {
+        $texts = array();
+        foreach ( $draft['folders'] as $f ) {
+            $w       = vergeml_guide_draft_words( $f, $paths[ (string) $f['key'] ] );
+            $texts[] = $w['text'];
+            foreach ( $w['classes'] as $c ) {
+                $texts[] = $c;
+            }
+        }
+        foreach ( $rows as $r ) {
+            $filing = isset( $r['filing'] ) ? json_decode( (string) $r['filing'], true ) : null;
+            foreach ( vergeml_filing_classes_of_object( is_array( $filing ) && isset( $filing['object'] ) ? $filing['object'] : '' ) as $phrase ) {
+                $texts[] = $phrase;
+            }
+        }
+        vergeml_meaning_prefetch( array_unique( $texts ) );
+    }
+
+    foreach ( $draft['folders'] as $f ) {
+        $path = $paths[ (string) $f['key'] ];
         $p = vergeml_guide_draft_profile( $f, $path, $live, $taxonomy );
         if ( ! is_array( $p ) ) {
             continue;
@@ -1358,12 +1438,6 @@ function vergeml_guide_draft_fit( $draft, $taxonomy ) {
 
     // The same last step vergeml_filing_profiles() takes: one folder per first class.
     $profiles = vergeml_filing_settle_claims( $profiles );
-
-    // Every described picture, because a draft's Move re-files every one of them.
-    $rows = vergeml_guide_rule_rows( $taxonomy, 'all', array( 'filing', 'terms' ) );
-    if ( ! $rows ) {
-        return null;
-    }
 
     $vectors = array();
     foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
@@ -1589,6 +1663,30 @@ function vergeml_guide_draft_profile( $f, $path, $live, $taxonomy ) {
         }
     }
 
+    $w = vergeml_guide_draft_words( $f, $path );
+
+    $vector = function_exists( 'vergeml_meaning_vector' ) ? vergeml_meaning_vector( $w['text'] ) : null;
+    if ( ! is_array( $vector ) || ! $vector ) {
+        return null;
+    }
+
+    return array(
+        'version'  => VERGEML_FILING_VERSION,
+        'source'   => $w['matches'] || $f['classes'] ? 'plan' : 'name',
+        'plan'     => array(),
+        'path'     => $path,
+        'classes'  => $w['classes'],
+        'kinds'    => $w['kinds'],
+        'audience' => $w['audience'],
+        'matches'  => $w['matches'],
+        'text'     => $w['text'],
+        'vector'   => $vector,
+        'built_at' => time(),
+    );
+}
+
+/** The words a draft folder's profile is made of: classes, kinds, audience, matches, and the text its vector comes from. */
+function vergeml_guide_draft_words( $f, $path ) {
     $leaf    = $path ? (string) end( $path ) : (string) $f['name'];
     $classes = array_values( array_filter( array_map( 'vergeml_filing_name_class', (array) $f['classes'] ) ) );
     if ( ! in_array( vergeml_filing_name_class( $leaf ), $classes, true ) ) {
@@ -1606,24 +1704,7 @@ function vergeml_guide_draft_profile( $f, $path, $live, $taxonomy ) {
         . ' | object: ' . implode( '; ', $classes )
         . ( '' !== $audience ? ' | audience: ' . $audience : '' );
 
-    $vector = function_exists( 'vergeml_meaning_vector' ) ? vergeml_meaning_vector( $text ) : null;
-    if ( ! is_array( $vector ) || ! $vector ) {
-        return null;
-    }
-
-    return array(
-        'version'  => VERGEML_FILING_VERSION,
-        'source'   => $matches || $f['classes'] ? 'plan' : 'name',
-        'plan'     => array(),
-        'path'     => $path,
-        'classes'  => $classes,
-        'kinds'    => $kinds,
-        'audience' => $audience,
-        'matches'  => $matches,
-        'text'     => $text,
-        'vector'   => $vector,
-        'built_at' => time(),
-    );
+    return array( 'classes' => $classes, 'kinds' => $kinds, 'audience' => $audience, 'matches' => $matches, 'text' => $text );
 }
 
 
