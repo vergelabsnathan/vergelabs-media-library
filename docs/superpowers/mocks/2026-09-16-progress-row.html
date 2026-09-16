@@ -1,0 +1,286 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Folders — one progress row for every long step</title>
+
+<!--
+	2026-09-16, S10.0. Nathan: "it is very important to communicate progress
+	to the user at all times … loading, and not nothing, minus 60 — in a
+	UX-friendly, best-practice way."
+
+	One component, one row, under the button that started the work, in the
+	.g-move row's own place: the step's words and its count on the left, the
+	shell's import bar (6 px, the accent, the 44 px radius it already has on
+	the AI screen) filling to the right, an estimate from what is already done
+	when the total is known, and a yellow pill the moment nothing has moved
+	for 30 s -- so a stall reads as a stall and never as a bar that is slow.
+	No spinner, no dots. The button keeps its verb and goes to work (the
+	is-working breath it has today); the countdown that was on the button
+	("Reading 248 folders") moves into the row and is not kept beside it.
+
+	  confirm   -- Step 2, the confirm pressed: 2 of 6 batches read, the
+	               estimate from the two that took 35 s each.
+	  counting  -- Step 2, a paste of 500 folders on 1,000 pictures: the fit
+	               runs as a job (S10.3); no total the bar can fill against, so
+	               the sliver slides and the row carries the elapsed time; the
+	               confirm is off and the row says why.
+	  fill      -- Step 3, the fill half way: pictures looked at of total, the
+	               pills as today.
+	  stalled   -- Step 3, nothing moved for 48 s: the bar where it was, the
+	               pill in the ask yellow.
+
+	Word budget: 80 a state, counted by the shoot (--words).
+	?state=<name> shows one board alone.
+-->
+<link rel="stylesheet" href="../../../css/vergeml-shell.css">
+<link rel="stylesheet" href="../../../css/vergeml-tree-view.css">
+<link rel="stylesheet" href="../../../css/vergeml-folders.css">
+
+<style>
+html, body { margin: 0; }
+body { background: var(--vgml-ground, #f7f9fc); font-family: var(--vgml-font, Inter, system-ui, sans-serif); color: var(--vgml-ink, #101d40); }
+
+.g-pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.g-pill {
+	display: inline-flex; align-items: baseline; gap: 5px;
+	padding: 4px 11px; border-radius: 999px;
+	background: var(--vgml-n200, #e8ecf5); color: var(--vgml-ink, #101d40);
+	font-size: 13px; line-height: 1.3; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.g-pill b { font-weight: 600; }
+.g-pill.is-accent { background: var(--vgml-accent-100, #e9edfc); color: var(--vgml-accent-700, #1e2f9d); }
+.g-pill.is-quiet  { background: transparent; color: var(--vgml-muted, #6f7891); padding-inline: 2px; }
+.g-pill.is-ask { background: var(--vgml-highlight, #ffd84d); }
+
+.g-rail { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.g-step {
+	display: inline-flex; align-items: center; gap: 6px;
+	padding: 6px 14px; border-radius: 999px;
+	border: 1px solid var(--vgml-rule, #d5dbe9); background: transparent;
+	color: var(--vgml-muted, #6f7891); font: inherit; font-size: 13px; line-height: 1.3; cursor: pointer;
+}
+.g-step.is-done { border-color: var(--vgml-n200, #e8ecf5); background: var(--vgml-n200, #e8ecf5); color: var(--vgml-ink, #101d40); }
+.g-step.is-done::before { content: "✓"; font-size: 12px; color: var(--vgml-accent-700, #1e2f9d); }
+.g-step.is-current { border-color: var(--vgml-accent, #2b46d8); background: var(--vgml-accent, #2b46d8); color: #fff; font-weight: 600; }
+
+.g-shell { padding: 22px 24px 24px; max-width: 1180px; }
+.g-head { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+.g-head h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.g-cols { max-width: 760px; margin-top: 18px; }
+.g-card { background: var(--vgml-pane, #fff); border: 1px solid var(--vgml-rule, #d5dbe9); border-radius: 10px; padding: 14px 16px 16px; }
+.g-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.g-card-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.g-line { margin: 12px 0 0; font-size: 13.5px; color: var(--vgml-muted, #6f7891); }
+
+/* A stand-in for the tree card, so the row sits where it will on the screen. */
+.mk-tree { margin-top: 12px; border: 1px dashed var(--vgml-rule, #d5dbe9); border-radius: 8px; padding: 12px 14px; color: var(--vgml-muted); font-size: 13px; }
+.mk-tree span { display: inline-block; margin-inline-end: 14px; }
+
+.g-move { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--vgml-rule, #d5dbe9); flex-wrap: wrap; }
+.g-move .vgml-btn { font-size: 14px; padding: 9px 16px; font-variant-numeric: tabular-nums; }
+.g-move .vgml-btn[disabled] { opacity: .45; cursor: not-allowed; }
+.g-move .vgml-btn.is-working[disabled] { opacity: 1; cursor: progress; animation: vgml-working 1.6s ease-in-out infinite; }
+.g-move .g-quiet { border: 0; background: transparent; padding: 9px 10px; font: inherit; font-size: 13.5px; color: var(--vgml-muted, #6f7891); cursor: pointer; }
+
+/*  The row (S10.0). One line: the words and the count, then the bar filling
+    to the right edge; the estimate or the stall pill after the count. The bar
+    is the shell's import bar -- 6 px, the accent, radius 44 -- so a run here
+    and a run on the AI screen look like the same thing happening.  */
+.g-progress {
+	display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+	margin-top: 12px; font-size: 13.5px; color: var(--vgml-muted, #6f7891);
+	font-variant-numeric: tabular-nums;
+}
+.g-progress-text { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.g-progress-text b { color: var(--vgml-ink, #101d40); font-weight: 600; }
+.g-progress-bar { flex: 1 1 220px; height: 6px; border-radius: 44px; background: var(--vgml-rule, #d5dbe9); overflow: hidden; }
+.g-progress-fill { height: 100%; border-radius: 44px; background: var(--vgml-accent, #2b46d8); transition: width .3s ease; }
+/*  No total: a sliver that slides, and the elapsed time in the text says it is alive.  */
+.g-progress.is-open .g-progress-fill { width: 28%; animation: vgml-slide 1.4s ease-in-out infinite; }
+@keyframes vgml-slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(360%); } }
+/*  Stalled: the bar stays where it got to and the pill says for how long.  */
+.g-progress.is-stalled .g-progress-fill { background: var(--vgml-accent-300, #b7c5f4); }
+.g-progress .g-pill { font-size: 12.5px; padding: 3px 10px; }
+@keyframes vgml-working { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+@media (prefers-reduced-motion: reduce) {
+	.g-progress.is-open .g-progress-fill { animation: none; width: 100%; opacity: .35; }
+	.g-move .vgml-btn.is-working[disabled] { animation: none; opacity: .8; }
+}
+
+.mk-label { max-width: 1180px; padding: 28px 24px 0; font-size: 12px; color: var(--vgml-muted); }
+.mk-label b { color: var(--vgml-ink); font-weight: 600; margin-inline-end: 8px; }
+</style>
+
+<!-- ============================================================ board 1: confirm -->
+<p class="mk-label"><b>confirm</b> Step 2, the confirm reading its folders, 2 of 6 batches</p>
+<div class="vgml-shell g-shell" data-shot="confirm">
+	<div class="g-head">
+		<h1>Folders</h1>
+		<div class="g-pills" style="margin:0">
+			<span class="g-pill"><b>626</b> pictures</span>
+			<span class="g-pill"><b>626</b> described</span>
+			<span class="g-pill"><b>318</b> folders</span>
+		</div>
+	</div>
+	<div class="g-rail">
+		<button class="g-step is-done">Describe</button>
+		<button class="g-step is-current" aria-current="step">Tree</button>
+		<button class="g-step">Fill</button>
+		<button class="g-step">Alt text</button>
+		<button class="g-step">Rename</button>
+	</div>
+	<div class="g-cols">
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>Your tree</h2>
+				<div class="g-pills" style="margin:0">
+					<span class="g-pill is-accent"><b>318</b> folders</span>
+					<span class="g-pill is-accent"><b>507</b> placed</span>
+					<span class="g-pill"><b>113</b> stay unfiled</span>
+				</div>
+			</div>
+			<div class="mk-tree"><span>Clothing</span><span>Electronics</span><span>Home &amp; Garden</span><span>Sports &amp; Outdoors</span><span>…</span></div>
+			<div class="g-move">
+				<button class="vgml-btn vgml-btn-primary is-working" disabled>This is my tree</button>
+				<button class="g-quiet">Skip</button>
+			</div>
+			<div class="g-progress" role="progressbar" aria-valuemin="0" aria-valuemax="6" aria-valuenow="2">
+				<span class="g-progress-text"><b>Reading folders</b> 2 of 6 batches · about 2 min left</span>
+				<div class="g-progress-bar"><div class="g-progress-fill" style="width:33%"></div></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- =========================================================== board 2: counting -->
+<p class="mk-label"><b>counting</b> Step 2, a paste of 500 folders on 1,000 pictures: the counts run as a job, no total to fill against</p>
+<div class="vgml-shell g-shell" data-shot="counting">
+	<div class="g-head">
+		<h1>Folders</h1>
+		<div class="g-pills" style="margin:0">
+			<span class="g-pill"><b>1,000</b> pictures</span>
+			<span class="g-pill"><b>1,000</b> described</span>
+			<span class="g-pill"><b>0</b> folders</span>
+		</div>
+	</div>
+	<div class="g-rail">
+		<button class="g-step is-done">Describe</button>
+		<button class="g-step is-current" aria-current="step">Tree</button>
+		<button class="g-step">Fill</button>
+		<button class="g-step">Alt text</button>
+		<button class="g-step">Rename</button>
+	</div>
+	<div class="g-cols">
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>Your tree</h2>
+				<div class="g-pills" style="margin:0">
+					<span class="g-pill is-accent"><b>500</b> folders</span>
+				</div>
+			</div>
+			<div class="mk-tree"><span>New in</span><span>Women</span><span>Men</span><span>Kids</span><span>Home</span><span>…</span></div>
+			<div class="g-move">
+				<button class="vgml-btn vgml-btn-primary" disabled>This is my tree</button>
+				<button class="g-quiet">Skip</button>
+			</div>
+			<div class="g-progress is-open" role="progressbar" aria-busy="true">
+				<span class="g-progress-text"><b>Counting</b> 1,000 pictures against 500 folders · 12 s</span>
+				<div class="g-progress-bar"><div class="g-progress-fill"></div></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- =============================================================== board 3: fill -->
+<p class="mk-label"><b>fill</b> Step 3, the fill half way</p>
+<div class="vgml-shell g-shell" data-shot="fill">
+	<div class="g-head">
+		<h1>Folders</h1>
+		<div class="g-pills" style="margin:0">
+			<span class="g-pill"><b>626</b> pictures</span>
+			<span class="g-pill"><b>626</b> described</span>
+			<span class="g-pill"><b>318</b> folders</span>
+		</div>
+	</div>
+	<div class="g-rail">
+		<button class="g-step is-done">Describe</button>
+		<button class="g-step is-done">Tree</button>
+		<button class="g-step is-current" aria-current="step">Fill</button>
+		<button class="g-step">Alt text</button>
+		<button class="g-step">Rename</button>
+	</div>
+	<div class="g-cols">
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>Every picture a home</h2>
+				<div class="g-pills" style="margin:0">
+					<span class="g-pill is-accent"><b>261</b> placed</span>
+					<span class="g-pill"><b>240</b> sure</span>
+					<span class="g-pill"><b>21</b> likely</span>
+					<span class="g-pill"><b>52</b> to sort</span>
+				</div>
+			</div>
+			<div class="mk-tree"><span>Clothing 118</span><span>Electronics 64</span><span>Home &amp; Garden 41</span><span>Sports &amp; Outdoors 38</span><span>…</span></div>
+			<div class="g-move">
+				<button class="vgml-btn vgml-btn-primary is-working" disabled>Fill 626 pictures</button>
+				<button class="g-quiet">Stop</button>
+			</div>
+			<div class="g-progress" role="progressbar" aria-valuemin="0" aria-valuemax="626" aria-valuenow="313">
+				<span class="g-progress-text"><b>Filling</b> 313 of 626 pictures · about 1 min left</span>
+				<div class="g-progress-bar"><div class="g-progress-fill" style="width:50%"></div></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- ============================================================ board 4: stalled -->
+<p class="mk-label"><b>stalled</b> Step 3, nothing moved for 48 s</p>
+<div class="vgml-shell g-shell" data-shot="stalled">
+	<div class="g-head">
+		<h1>Folders</h1>
+		<div class="g-pills" style="margin:0">
+			<span class="g-pill"><b>626</b> pictures</span>
+			<span class="g-pill"><b>626</b> described</span>
+			<span class="g-pill"><b>318</b> folders</span>
+		</div>
+	</div>
+	<div class="g-rail">
+		<button class="g-step is-done">Describe</button>
+		<button class="g-step is-done">Tree</button>
+		<button class="g-step is-current" aria-current="step">Fill</button>
+		<button class="g-step">Alt text</button>
+		<button class="g-step">Rename</button>
+	</div>
+	<div class="g-cols">
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>Every picture a home</h2>
+				<div class="g-pills" style="margin:0">
+					<span class="g-pill is-accent"><b>80</b> placed</span>
+					<span class="g-pill"><b>74</b> sure</span>
+					<span class="g-pill"><b>6</b> likely</span>
+					<span class="g-pill"><b>16</b> to sort</span>
+				</div>
+			</div>
+			<div class="mk-tree"><span>Clothing 41</span><span>Electronics 22</span><span>Home &amp; Garden 9</span><span>Sports &amp; Outdoors 8</span><span>…</span></div>
+			<div class="g-move">
+				<button class="vgml-btn vgml-btn-primary is-working" disabled>Fill 626 pictures</button>
+				<button class="g-quiet">Stop</button>
+			</div>
+			<div class="g-progress is-stalled" role="progressbar" aria-valuemin="0" aria-valuemax="626" aria-valuenow="96">
+				<span class="g-progress-text"><b>Filling</b> 96 of 626 pictures</span>
+				<span class="g-pill is-ask">nothing moved for 48 s</span>
+				<div class="g-progress-bar"><div class="g-progress-fill" style="width:15%"></div></div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	var want = new URLSearchParams( location.search ).get( 'state' );
+	if ( want ) {
+		document.querySelectorAll( '[data-shot]' ).forEach( function ( b ) {
+			b.hidden = b.dataset.shot !== want;
+			b.previousElementSibling.hidden = true;
+		} );
+	}
+</script>

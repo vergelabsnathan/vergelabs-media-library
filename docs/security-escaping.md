@@ -16,11 +16,11 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 | PHP output sites with a non-literal argument | 183 |
 | · of those, read by hand with the reason | 8 |
 | · of those, **nothing accounted for them** | **0** |
-| JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 59 |
+| JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 61 |
 | · of those, given anything but a literal | 18 |
 | · of those, read by hand with the reason | 18 |
 | · of those, **still unread** | **0** |
-| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 233 |
+| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 237 |
 
 Over 66 PHP files and 35 JavaScript files that ship.
 
@@ -41,7 +41,7 @@ table below is what it rests on rather than a recollection.
 
 ## JavaScript HTML sinks
 
-All 59 are given a literal — an empty string, an inline SVG, or an
+All 61 are given a literal — an empty string, an inline SVG, or an
 HTML entity. Not one is given a variable, a template literal with a substitution,
 or a concatenation. Every dynamic string in this plugin goes to `textContent`,
 jQuery `.text()`, `createTextNode` or `setAttribute` instead.
@@ -86,7 +86,7 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 `eml`- or `vergeml`-prefixed name that no script defines. Every caller passes a
 `vergeml.l10n` string, which is the only thing that may go into these two.
 
-<details><summary>All 59 JavaScript HTML sinks</summary>
+<details><summary>All 61 JavaScript HTML sinks</summary>
 
 | where | sink | given | what |
 |---|---|---|---|
@@ -98,19 +98,21 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-autofile.js:43 | `innerHTML` | a literal | `''` |
 | js/vergeml-autofile.js:156 | `innerHTML` | a literal | `''` |
 | js/vergeml-brief.js:206 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:363 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:368 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:399 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:417 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:573 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:635 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:822 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:873 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:990 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:995 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1699 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1742 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1752 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:274 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:284 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:489 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:494 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:525 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:544 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:715 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:777 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:964 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1015 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1132 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1137 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1841 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1884 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1894 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |

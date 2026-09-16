@@ -254,6 +254,73 @@ test.describe( 'the Folders screen', () => {
 	} );
 
 	/*
+	 *  The progress row (S10.0; the approved mock 2026-09-16-progress-row.html):
+	 *  one row under the button, the count and the bar, an estimate from what
+	 *  is done, the elapsed time when there is no total, a yellow pill once
+	 *  nothing has moved for 30 s. Driven two ways: the confirm pressed for
+	 *  real, its route answered here (three batches of sixty, nothing reaches
+	 *  the server, no planner call); then the renderer with models of its
+	 *  own for the fill's bar, the stall and the open row. Mutations: the
+	 *  batch count not passed in onConfirm (total dropped from reading()) ->
+	 *  the bar stays open, the width assertion red; STALL_MS made an hour ->
+	 *  the stall row red.
+	 */
+	test( 'the progress row: the confirm counts its batches, the fill its pictures, a stall its seconds', async ( { page } ) => {
+		await remember( page );
+		await reset( page );
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open_( page );
+
+		const boot = await getSession( page );
+		let left = 180;
+		await page.route( /\/guide\/confirm/, async ( route ) => {
+			left -= 60;
+			await new Promise( ( r ) => setTimeout( r, 700 ) );
+			await route.fulfill( { status: 200, contentType: 'application/json', body: JSON.stringify( { session: boot.session, profiled: 0, charged: 0, left: Math.max( 0, left ), version: boot.version } ) } );
+		} );
+		await page.evaluate( () => { window.vgmlFoldersApp.state.session.profile = { folders: 180, credits: 0 }; } );
+
+		const confirm = page.locator( '.g-card[data-card="tree"] .vgml-confirm-btn' );
+		await expect( confirm ).toHaveText( 'This is my tree' );
+		await confirm.click();
+		const row = page.locator( '.g-progress[data-row="tree"]' );
+		await expect( row ).toBeVisible();
+		await expect( confirm, 'the button keeps its verb and goes to work' ).toHaveText( 'This is my tree' );
+		await expect( confirm ).toHaveClass( /is-working/ );
+		await expect( row.locator( '.g-progress-text' ) ).toHaveText( 'Reading folders 0 of 3 batches' );
+		await expect( row.locator( '.g-progress-text' ) ).toHaveText( /^Reading folders 1 of 3 batches · about \d+ s left$/, { timeout: 5000 } );
+		expect( await row.locator( '.g-progress-fill' ).evaluate( ( e ) => e.style.width ), 'the bar at 1 of 3' ).toBe( '33.3%' );
+		await expect( row ).toHaveAttribute( 'aria-valuenow', '1' );
+		await expect( row.locator( '.g-progress-text' ) ).toHaveText( /^Reading folders 2 of 3 batches/, { timeout: 5000 } );
+		await expect( row, 'hidden when the last batch is read' ).toBeHidden( { timeout: 5000 } );
+		await page.unroute( /\/guide\/confirm/ );
+
+		// The renderer with models of its own: the fill's bar, the stall, the open row.
+		await page.evaluate( () => window.vgmlFoldersApp.setStep( 'fill' ) );
+		const fill = page.locator( '.g-card[data-card="fill"] .g-progress' );
+		await page.evaluate( () => window.vgmlFoldersApp.progress( 'fill', { verb: 'Filling', count: '313 of 626 pictures', done: 313, total: 626, since: Date.now() - 60000, ticked: Date.now() } ) );
+		await expect( fill ).toBeVisible();
+		await expect( fill.locator( '.g-progress-text' ) ).toHaveText( 'Filling 313 of 626 pictures · about 1 min left' );
+		expect( await fill.locator( '.g-progress-fill' ).evaluate( ( e ) => e.style.width ) ).toBe( '50%' );
+		expect( await fill.evaluate( ( e ) => e.className ) ).toBe( 'g-progress' );
+
+		await page.evaluate( () => window.vgmlFoldersApp.progress( 'fill', { verb: 'Filling', count: '96 of 626 pictures', done: 96, total: 626, since: Date.now() - 90000, ticked: Date.now() - 48000 } ) );
+		await expect( fill ).toHaveClass( /is-stalled/ );
+		await expect( fill.locator( '.g-pill.is-ask' ) ).toHaveText( 'nothing moved for 48 s' );
+		await expect( fill.locator( '.g-pill.is-ask' ), 'the seconds move by themselves' ).toHaveText( 'nothing moved for 49 s', { timeout: 3000 } );
+		await expect( fill.locator( '.g-progress-text' ), 'no estimate on a stall' ).toHaveText( 'Filling 96 of 626 pictures' );
+
+		await page.evaluate( () => window.vgmlFoldersApp.progress( 'fill', { verb: 'Counting', count: '1,000 pictures against 500 folders', done: 0, total: 0, since: Date.now() - 12000 } ) );
+		await expect( fill ).toHaveClass( /is-open/ );
+		await expect( fill ).toHaveAttribute( 'aria-busy', 'true' );
+		await expect( fill.locator( '.g-progress-text' ) ).toHaveText( /^Counting 1,000 pictures against 500 folders · 1[23] s$/ );
+		await page.screenshot( { path: 'tests/ui/shots/folders-progress-row.png' } );
+
+		await page.evaluate( () => window.vgmlFoldersApp.progress( 'fill', null ) );
+		await expect( fill ).toBeHidden();
+	} );
+
+	/*
 	 *  The change line. Its placeholder is built from the tree on screen,
 	 *  never fixed text; "Paste or upload a list" is a button, and the upload
 	 *  is read here in the browser -- a .txt as the paste, a .csv row as one

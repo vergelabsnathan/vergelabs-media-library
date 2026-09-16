@@ -113,6 +113,8 @@ function vergeml_folders_assets( $hook ) {
         // "Show me" opens a picture in the library's own modal, where Why is it here answers for it.
         'libraryUrl'=> admin_url( 'upload.php' ),
         'proposeCredits' => VERGEML_GUIDE_PROPOSE_CREDITS,
+        // Folders a confirm reads per request: the progress row counts batches by it (S10.0).
+        'profileBatch'   => defined( 'VERGEML_FILING_PROFILE_BATCH' ) ? VERGEML_FILING_PROFILE_BATCH : 60,
         'walk'      => (bool) apply_filters( 'vergeml_folders_walk', false ),
     ) );
 }

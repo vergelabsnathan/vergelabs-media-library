@@ -1683,6 +1683,7 @@ function vergeml_talk_report( $state ) {
 		'started'   => isset( $state['started'] ) ? (int) $state['started'] : 0,
 		// When a pass last wrote: the screen's stall line counts from here (S10.0).
 		'ticked'    => isset( $state['ticked'] ) ? (int) $state['ticked'] : ( isset( $state['started'] ) ? (int) $state['started'] : 0 ),
+		'now'       => time(),
 		'message'   => $message,
 	);
 }

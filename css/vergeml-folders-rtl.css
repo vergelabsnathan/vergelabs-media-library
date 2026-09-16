@@ -716,6 +716,78 @@
 	.vgml-shell .g-move .vgml-btn.is-working:disabled { animation: none; opacity: .8; }
 }
 
+/*
+ *  The progress row (S10.0; the approved mock, 2026-09-16-progress-row.html).
+ *
+ *  One row under the button that started the work: the step's word and its
+ *  count, then the shell's import bar -- 6 px, the accent, radius 44, the
+ *  AI screen's own -- filling to the right edge. An estimate rides in the
+ *  text when the total is known; with no total (.is-open) a sliver slides
+ *  and the text carries the elapsed time; when nothing has moved for
+ *  thirty seconds (.is-stalled) the bar stays where it got to, paler, and
+ *  a yellow pill says for how long. No spinner, no dots.
+ */
+.vgml-shell .g-progress {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 14px;
+	margin-top: 12px;
+	font-size: 13.5px;
+	color: var(--vgml-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.vgml-shell .g-progress-text {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 6px;
+	white-space: nowrap;
+}
+
+.vgml-shell .g-progress-text b {
+	color: var(--vgml-ink);
+	font-weight: 600;
+}
+
+.vgml-shell .g-progress-bar {
+	flex: 1 1 220px;
+	height: 6px;
+	border-radius: 44px;
+	background: var(--vgml-rule);
+	overflow: hidden;
+}
+
+.vgml-shell .g-progress-fill {
+	height: 100%;
+	border-radius: 44px;
+	background: var(--vgml-accent);
+	transition: width .3s ease;
+}
+
+.vgml-shell .g-progress.is-open .g-progress-fill {
+	width: 28%;
+	animation: vgml-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes vgml-slide {
+	0% { transform: translateX(100%); }
+	100% { transform: translateX(-360%); }
+}
+
+.vgml-shell .g-progress.is-stalled .g-progress-fill {
+	background: var(--vgml-accent-300);
+}
+
+.vgml-shell .g-progress .g-pill {
+	font-size: 12.5px;
+	padding: 3px 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vgml-shell .g-progress.is-open .g-progress-fill { animation: none; width: 100%; opacity: .35; }
+}
+
 .vgml-shell .g-quiet {
 	margin: 0;
 	border: 0;

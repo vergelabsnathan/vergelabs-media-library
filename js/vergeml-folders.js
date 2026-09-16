@@ -216,8 +216,127 @@
 		return;
 	}
 
-	var dom = { cards: {}, slots: {} };
+	var dom = { cards: {}, slots: {}, progress: {} };
 	var rail = root.parentNode.querySelector( '.g-rail' );
+
+	/* -------------------------------------------------- progress (S10.0) */
+
+	/*
+	 *  One row for every long step (the approved mock, 2026-09-16-progress-row.html):
+	 *  the step's word and its count, then a bar filling to the right; an
+	 *  estimate from what is already done when the total is known; the elapsed
+	 *  time when it is not; and, once nothing has moved for STALL_MS, a yellow
+	 *  pill saying for how long -- so a stall reads as a stall and never as a
+	 *  bar that is slow. The confirm's batches, the paste's counting and the
+	 *  fill all render through this, and through nothing else.
+	 *
+	 *  A model: { verb, count (the text after the verb), done, total, since,
+	 *  ticked } -- since and ticked in ms on this clock (a server time is
+	 *  turned into one by serverMs()); total 0 means unknown. Null hides it.
+	 */
+	var STALL_MS = 30000;
+	var shown = {};
+	var ticker = null;
+
+	function progressRow( key ) {
+		return el( 'div', { class: 'g-progress', 'data-row': key, hidden: 'hidden' } );
+	}
+
+	/** Seconds as a person reads them: "48 s", "2 min", "1 h 10 min". */
+	function dur( ms ) {
+		var s = Math.max( 0, Math.round( ms / 1000 ) );
+		if ( s < 60 ) {
+			/* translators: %s: seconds */
+			return sprintf( __( '%s s', 'vergelabs-media-library' ), fmt( s ) );
+		}
+		var m = Math.round( s / 60 );
+		if ( m < 60 ) {
+			/* translators: %s: minutes */
+			return sprintf( __( '%s min', 'vergelabs-media-library' ), fmt( m ) );
+		}
+		/* translators: 1: hours, 2: minutes */
+		return sprintf( __( '%1$s h %2$s min', 'vergelabs-media-library' ), fmt( Math.floor( m / 60 ) ), fmt( m % 60 ) );
+	}
+
+	/** A server timestamp (seconds) as ms on this clock, from the server's own `now` and when its answer arrived. */
+	function serverMs( ts, serverNow, arrivedAt ) {
+		if ( ! ts ) {
+			return 0;
+		}
+		return serverNow ? arrivedAt - ( serverNow - ts ) * 1000 : ts * 1000;
+	}
+
+	function renderProgress( key, m ) {
+		var row = dom.progress[ key ];
+		shown[ key ] = m || null;
+		if ( ! m ) {
+			row.hidden = true;
+			row.innerHTML = '';
+			row.className = 'g-progress';
+			tick();
+			return;
+		}
+		var now = Date.now();
+		var known = ( Number( m.total ) || 0 ) > 0;
+		var done = Math.min( Number( m.done ) || 0, known ? m.total : Infinity );
+		var idle = m.ticked ? now - m.ticked : 0;
+		var stalled = idle >= STALL_MS;
+		row.innerHTML = '';
+		row.className = 'g-progress' + ( known ? '' : ' is-open' ) + ( stalled ? ' is-stalled' : '' );
+		row.setAttribute( 'role', 'progressbar' );
+		if ( known ) {
+			row.setAttribute( 'aria-valuemin', '0' );
+			row.setAttribute( 'aria-valuemax', String( m.total ) );
+			row.setAttribute( 'aria-valuenow', String( done ) );
+			row.removeAttribute( 'aria-busy' );
+		} else {
+			row.setAttribute( 'aria-busy', 'true' );
+			row.removeAttribute( 'aria-valuenow' );
+		}
+		var parts = [ m.count ];
+		if ( known && ! stalled && done > 0 && done < m.total && m.since && now > m.since ) {
+			// From what is already done: the batches read so far say how long the rest takes.
+			var left = ( now - m.since ) / done * ( m.total - done );
+			/* translators: %s: a duration, e.g. "2 min" */
+			parts.push( sprintf( __( 'about %s left', 'vergelabs-media-library' ), dur( left ) ) );
+		} else if ( ! known && m.since && ! stalled ) {
+			parts.push( dur( now - m.since ) );
+		}
+		var text = el( 'span', { class: 'g-progress-text' } );
+		text.appendChild( el( 'b', null, m.verb ) );
+		text.appendChild( document.createTextNode( ' ' + parts.join( ' · ' ) ) );
+		row.appendChild( text );
+		if ( stalled ) {
+			/* translators: %s: a duration, e.g. "48 s" */
+			row.appendChild( el( 'span', { class: 'g-pill is-ask' }, sprintf( __( 'nothing moved for %s', 'vergelabs-media-library' ), dur( idle ) ) ) );
+		}
+		var bar = el( 'div', { class: 'g-progress-bar' } );
+		var fillEl = el( 'div', { class: 'g-progress-fill' } );
+		if ( known ) {
+			fillEl.style.width = ( 100 * done / m.total ).toFixed( 1 ) + '%';
+		}
+		bar.appendChild( fillEl );
+		row.appendChild( bar );
+		row.hidden = false;
+		tick();
+	}
+
+	/** The elapsed time and the stall pill move by themselves, once a second, while any row shows. */
+	function tick() {
+		var any = Object.keys( shown ).some( function ( k ) { return !! shown[ k ]; } );
+		if ( any && ! ticker ) {
+			ticker = window.setInterval( function () {
+				Object.keys( shown ).forEach( function ( k ) {
+					if ( shown[ k ] && ( shown[ k ].since || shown[ k ].ticked ) ) {
+						renderProgress( k, shown[ k ] );
+					}
+				} );
+			}, 1000 );
+		} else if ( ! any && ticker ) {
+			window.clearInterval( ticker );
+			ticker = null;
+		}
+	}
 
 	function pill( n, word, tone, attrs ) {
 		var p = el( 'span', attrs || {} );
@@ -262,6 +381,11 @@
 		tree.appendChild( buildChange() );
 		dom.treeMove = el( 'div', { class: 'g-move' } );
 		tree.appendChild( dom.treeMove );
+		dom.progress.tree = progressRow( 'tree' );
+		tree.appendChild( dom.progress.tree );
+		// The paste's counting has its own row: the confirm is off while it shows, so the two never show together.
+		dom.progress.count = progressRow( 'count' );
+		tree.appendChild( dom.progress.count );
 		cols.appendChild( tree );
 
 		// Step 3 · Fill: the run, its progress, and (B.4) the questions.
@@ -276,6 +400,8 @@
 		dom.stop.addEventListener( 'click', onStop );
 		dom.undo.addEventListener( 'click', onUndo );
 		fill.appendChild( dom.fillMove );
+		dom.progress.fill = progressRow( 'fill' );
+		fill.appendChild( dom.progress.fill );
 		cols.appendChild( fill );
 
 		// The questions, to the tree's right at 1600 and under it below 1000px (the approved fill mock): one card a group.
@@ -402,7 +528,8 @@
 		if ( counts && view && view.getDraft() ) {
 			c.pills.appendChild( pill( counts.placed, __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
 			c.pills.appendChild( pill( counts.unfiled, __( 'stay unfiled', 'vergelabs-media-library' ) ) );
-		} else if ( fitUnknown() ) {
+		} else if ( fitUnknown() && ! state.pastePending && ! ( state.fit && state.fit.pending ) ) {
+			// Looked and could not answer; while it is still counting, the row under the button says so instead.
 			c.pills.appendChild( el( 'span', { class: 'g-pill is-quiet' }, __( 'counts not worked out yet', 'vergelabs-media-library' ) ) );
 		}
 
@@ -436,12 +563,11 @@
 			 *  says so instead of leaving a grey button to be wondered at.
 			 */
 			var profile = ( state.session && state.session.profile ) || {};
-			if ( state.pastePending ) {
-				dom.treeMove.appendChild( el( 'span', { class: 'g-pill is-quiet vgml-confirm-wait' }, __( 'counting the pictures', 'vergelabs-media-library' ) ) );
-			} else if ( Number( profile.credits ) > 0 ) {
+			if ( ! fitUnknown() && Number( profile.credits ) > 0 ) {
 				dom.treeMove.appendChild( pill( Number( profile.credits ), __( 'credits', 'vergelabs-media-library' ) ) );
 			}
 		}
+		renderCounting();
 		if ( state.prevProfiles > 0 ) {
 			var restore = quiet( __( 'Restore the earlier classes', 'vergelabs-media-library' ), onRestoreProfiles );
 			restore.classList.add( 'vgml-restore-profiles' );
@@ -459,14 +585,31 @@
 	}
 
 	function onConfirm() {
+		// The press is a planner call per sixty folders, twenty seconds each: the row under the button counts the batches (S10.0).
+		var n = Number( state.session && state.session.profile && state.session.profile.folders ) || 0;
+		var batch = Number( cfg.profileBatch ) || 60;
+		var total = Math.ceil( n / batch );
+		var rowKey = 'fill' === state.step ? 'fill' : 'tree';
+		var since = Date.now();
+		var reading = function ( left ) {
+			if ( total < 1 ) {
+				return;
+			}
+			var done = total - Math.ceil( left / batch );
+			renderProgress( rowKey, {
+				verb: __( 'Reading folders', 'vergelabs-media-library' ),
+				/* translators: 1: batches read, 2: batches in all */
+				count: sprintf( __( '%1$s of %2$s batches', 'vergelabs-media-library' ), fmt( done ), fmt( total ) ),
+				done: done,
+				total: total,
+				since: since
+			} );
+		};
 		if ( dom.confirm ) {
 			dom.confirm.disabled = true;
-			// The press is a planner call per sixty folders, twenty seconds each: the button says what it is doing (Nathan, 2026-09-16).
-			var n = Number( state.session && state.session.profile && state.session.profile.folders ) || 0;
 			dom.confirm.classList.add( 'is-working' );
-			/* translators: %s: folders */
-			dom.confirm.textContent = n > 0 ? sprintf( _n( 'Reading %s folder', 'Reading %s folders', n, 'vergelabs-media-library' ), fmt( n ) ) : __( 'Confirming', 'vergelabs-media-library' );
 		}
+		reading( n );
 		if ( talk.streaming() ) {
 			talk.stop();
 		}
@@ -475,23 +618,22 @@
 			/*
 			 *  One batch of folders per request (C.5): the route answers how
 			 *  many are still to be read and this presses it again until none
-			 *  are, the button counting down. Six batches in one request would
+			 *  are, the row counting up. Six batches in one request would
 			 *  outlast what a proxy holds open.
 			 */
 			var step = function () {
 				return api( 'POST', 'guide/confirm' ).then( function ( r ) {
 					if ( r && Number( r.left ) > 0 ) {
-						if ( dom.confirm ) {
-							/* translators: %s: folders */
-							dom.confirm.textContent = sprintf( _n( 'Reading %s folder', 'Reading %s folders', Number( r.left ), 'vergelabs-media-library' ), fmt( Number( r.left ) ) );
-						}
+						reading( Number( r.left ) );
 						return step();
 					}
+					renderProgress( rowKey, null );
 					tookSession( r );
 					setStep( 'fill' );
 				} );
 			};
 			return step().catch( function ( err ) {
+				renderProgress( rowKey, null );
 				talk.note( ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' ) );
 				renderCards();
 			} );
@@ -1820,6 +1962,57 @@
 		}
 	}
 
+	/*
+	 *  The counts being worked out, as a row (S10.0): the paste's turn on the
+	 *  way (up to its twenty seconds), or a fit the shape sent to a job
+	 *  (S10.3), which the screen polls for until it lands. No total a bar can
+	 *  fill against, so the row is open and carries the elapsed time; the
+	 *  confirm is off meanwhile, and this is why.
+	 */
+	var fitTimer = null;
+
+	function renderCounting() {
+		var pending = !! ( state.fit && state.fit.pending );
+		if ( ! state.pastePending && ! pending ) {
+			state.countingSince = 0;
+			window.clearTimeout( fitTimer );
+			fitTimer = null;
+			renderProgress( 'count', null );
+			return;
+		}
+		if ( ! state.countingSince ) {
+			state.countingSince = Date.now();
+		}
+		var draft = state.session && state.session.draft;
+		var pictures = pending ? Number( state.fit.pictures ) : Number( state.facts.pictures ) || 0;
+		var folders = pending ? Number( state.fit.folders ) : ( draft && draft.folders ? draft.folders.length : 0 );
+		renderProgress( 'count', {
+			verb: __( 'Counting', 'vergelabs-media-library' ),
+			/* translators: 1: pictures, 2: folders */
+			count: sprintf( __( '%1$s pictures against %2$s folders', 'vergelabs-media-library' ), fmt( pictures ), fmt( folders ) ),
+			done: 0,
+			total: 0,
+			since: state.countingSince
+		} );
+		if ( pending && ! fitTimer ) {
+			fitTimer = window.setTimeout( function () {
+				fitTimer = null;
+				api( 'GET', 'guide/progress' ).then( function ( r ) {
+					var fit = r && r.session ? r.session.fit : null;
+					if ( fit && fit.pending ) {
+						renderCounting();
+						return;
+					}
+					// Landed, or dropped by a newer draft: the session is the answer either way.
+					tookSession( r );
+					renderCards();
+				} ).catch( function () {
+					renderCounting();
+				} );
+			}, 3000 );
+		}
+	}
+
 	/* ------------------------------------------------------------ the run */
 
 	function untilText( ts ) {
@@ -1851,17 +2044,31 @@
 		if ( moving ) {
 			var r = state.moving || {};
 			var seen = Number( r.seen ) || 0;
-			var total = Number( r.total ) || 0;
-			dom.move.textContent = total
-				/* translators: 1: pictures looked at so far, 2: pictures to look at */
-				? sprintf( __( 'Filling %1$s of %2$s', 'vergelabs-media-library' ), fmt( seen ), fmt( Math.max( seen, total ) ) )
-				/* translators: %s: pictures looked at so far */
-				: sprintf( __( 'Filling · %s so far', 'vergelabs-media-library' ), fmt( seen ) );
+			var total = Math.max( seen, Number( r.total ) || 0 );
+			// The button keeps its verb and goes to work; the row under it carries the count, the estimate and a stall (S10.0).
+			/* translators: %s: pictures */
+			dom.move.textContent = total ? sprintf( _n( 'Fill %s picture', 'Fill %s pictures', total, 'vergelabs-media-library' ), fmt( total ) ) : __( 'Filling', 'vergelabs-media-library' );
+			dom.move.classList.add( 'is-working' );
 			dom.move.disabled = true;
 			dom.move.hidden = false;
 			dom.undo.hidden = true;
+			var arrived = state.movingAt || Date.now();
+			renderProgress( 'fill', {
+				verb: __( 'Filling', 'vergelabs-media-library' ),
+				count: total
+					/* translators: 1: pictures looked at so far, 2: pictures to look at */
+					? sprintf( __( '%1$s of %2$s pictures', 'vergelabs-media-library' ), fmt( seen ), fmt( total ) )
+					/* translators: %s: pictures looked at so far */
+					: sprintf( __( '%s pictures so far', 'vergelabs-media-library' ), fmt( seen ) ),
+				done: seen,
+				total: total,
+				since: serverMs( r.started, r.now, arrived ),
+				ticked: serverMs( r.ticked || r.started, r.now, arrived )
+			} );
 			return;
 		}
+		dom.move.classList.remove( 'is-working' );
+		renderProgress( 'fill', null );
 
 		// Every described picture is scored against the confirmed tree: that is the number on the button.
 		var n = state.fit && state.fit.counted ? Number( state.fit.looked ) || 0 : Number( state.facts.pictures ) || 0;
@@ -1919,6 +2126,7 @@
 		talk.setSession( state.session );
 		state.undo = r.undo || state.undo;
 		state.moving = r.report || null;
+		state.movingAt = Date.now();
 		if ( r.version ) {
 			state.version = r.version;
 			if ( watcher ) {
@@ -1991,5 +2199,6 @@
 
 	// Nothing opens by itself: no turn, no proposal, no model route until a button is pressed.
 
-	window.vgmlFoldersApp = { state: state, view: function () { return view; }, preview: function () { return previewView; }, stop: stop, setStep: setStep, render: renderCards };
+	// progress: the one row every long step renders through (S10.0), driven by the suite with models of its own.
+	window.vgmlFoldersApp = { state: state, view: function () { return view; }, preview: function () { return previewView; }, stop: stop, setStep: setStep, render: renderCards, progress: renderProgress, rows: dom.progress };
 }() );
