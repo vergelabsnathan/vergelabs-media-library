@@ -43,8 +43,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** How many described files to sample when showing the model the library. */
 const VERGEML_TALK_SCAN = 5000;
 
-/** How many described files one slice of a re-filing job reads. */
-const VERGEML_TALK_SLICE = 500;
+/**
+ *  How many described files one slice of a re-filing job reads. A slice is
+ *  scored whole before any of it moves, and the heartbeat (S10.0) beats only
+ *  while it moves: at 500 the screen read 55, then 501, then done
+ *  (2026-09-16). A hundred steps every few seconds and costs one query more
+ *  per hundred pictures.
+ */
+const VERGEML_TALK_SLICE = 100;
 
 /** How many a single pass gets through before leaving the rest to the next. */
 const VERGEML_TALK_PASS = 5000;

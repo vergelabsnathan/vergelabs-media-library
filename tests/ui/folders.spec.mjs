@@ -280,6 +280,7 @@ test.describe( 'the Folders screen', () => {
 		} );
 		await page.evaluate( () => { window.vgmlFoldersApp.state.session.profile = { folders: 180, credits: 0 }; } );
 
+		await page.locator( '.g-step[data-step="tree"]' ).click();
 		const confirm = page.locator( '.g-card[data-card="tree"] .vgml-confirm-btn' );
 		await expect( confirm ).toHaveText( 'This is my tree' );
 		await confirm.click();

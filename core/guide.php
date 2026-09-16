@@ -2178,6 +2178,21 @@ function vergeml_guide_rest_apply( WP_REST_Request $request ) {
         return rest_ensure_response( vergeml_guide_progress_out( $s, $running ) );
     }
 
+    /*
+     *  A fill after a fill (2026-09-16): the run's end clears the draft --
+     *  the tree is the library now -- so a second press handed an empty
+     *  draft to the plan and was refused ("Nothing moved."). A confirmed
+     *  tree with no draft is the live folders, as the confirm reads them.
+     */
+    if ( 'confirmed' === $s['tree'] && ( ! is_array( $s['draft'] ) || empty( $s['draft']['folders'] ) ) ) {
+        $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+        $folders  = array();
+        foreach ( vergeml_folders_nodes( $taxonomy ) as $node ) {
+            $folders[] = array( 'key' => 't' . (int) $node['id'], 'term_id' => (int) $node['id'], 'name' => (string) $node['name'], 'parent' => $node['parent'] ? 't' . (int) $node['parent'] : '' );
+        }
+        $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders ) );
+    }
+
     $plan = vergeml_guide_apply_plan( $s['draft'] );
     if ( is_wp_error( $plan ) ) {
         return $plan;

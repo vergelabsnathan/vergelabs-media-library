@@ -268,6 +268,7 @@
 
 	function renderProgress( key, m ) {
 		var row = dom.progress[ key ];
+		var prev = shown[ key ];
 		shown[ key ] = m || null;
 		if ( ! m ) {
 			row.hidden = true;
@@ -291,9 +292,10 @@
 		var open = ! known || ( 0 === done && ! stalled );
 		var creep = 0;
 		if ( known && done > 0 && done < m.total && m.since && ! stalled ) {
-			var per = ( now - m.since ) / done;
+			// At the rate the units have landed so far, from the moment the last answer arrived; never past nine tenths of what is left.
+			var rate = done / Math.max( 1, now - m.since );
 			var last = m.lastAt || m.ticked || m.since;
-			creep = per > 0 ? Math.min( 0.9, Math.max( 0, ( now - last ) / per ) ) : 0;
+			creep = Math.min( 0.9 * ( m.total - done ), Math.max( 0, ( now - last ) * rate ) );
 		}
 		row.innerHTML = '';
 		row.className = 'g-progress' + ( open ? ' is-open' : '' ) + ( stalled ? ' is-stalled' : '' );
@@ -307,7 +309,13 @@
 			row.setAttribute( 'aria-busy', 'true' );
 			row.removeAttribute( 'aria-valuenow' );
 		}
-		var parts = [ m.count ];
+		var shownDone = done;
+		if ( known && ! open ) {
+			var prevDone = prev && prev !== m && prev.shownDone && prev.shownTotal === m.total && done < m.total ? prev.shownDone : ( prev === m && m.shownDone ? m.shownDone : 0 );
+			shownDone = Math.min( m.total, Math.max( Math.round( done + creep ), prevDone, done ) );
+			m.shownDone = shownDone;
+		}
+		var parts = [ 'function' === typeof m.count ? m.count( shownDone ) : m.count ];
 		if ( known && ! stalled && done > 0 && done < m.total && m.since && now > m.since ) {
 			// From what is already done: the batches read so far say how long the rest takes.
 			var left = ( now - m.since ) / done * ( m.total - done );
@@ -328,7 +336,12 @@
 		var bar = el( 'div', { class: 'g-progress-bar' } );
 		var fillEl = el( 'div', { class: 'g-progress-fill' } );
 		if ( known && ! open ) {
-			fillEl.style.width = ( 100 * ( done + creep ) / m.total ).toFixed( 1 ) + '%';
+			var pct = 100 * ( done + creep ) / m.total;
+			var floor = prev && prev !== m && prev.shownPct && prev.shownTotal === m.total && done < m.total ? prev.shownPct : ( prev === m && m.shownPct ? m.shownPct : 0 );
+			pct = Math.max( pct, floor );
+			m.shownPct = pct;
+			m.shownTotal = m.total;
+			fillEl.style.width = pct.toFixed( 1 ) + '%';
 		}
 		bar.appendChild( fillEl );
 		row.appendChild( bar );
@@ -606,8 +619,18 @@
 		var total = Math.ceil( n / batch );
 		var rowKey = 'fill' === state.step ? 'fill' : 'tree';
 		var since = Date.now();
+		var draftFolders = state.session && state.session.draft && state.session.draft.folders ? state.session.draft.folders.length : state.nodes.length;
 		var reading = function ( left ) {
 			if ( total < 1 ) {
+				// Nothing to ask the planner: what takes the time is the dry run over every picture and folder (Nathan, 2026-09-16: thirty seconds of nothing).
+				renderProgress( rowKey, {
+					verb: __( 'Confirming', 'vergelabs-media-library' ),
+					/* translators: 1: pictures, 2: folders */
+					count: sprintf( __( '%1$s pictures against %2$s folders', 'vergelabs-media-library' ), fmt( Number( state.facts.pictures ) || 0 ), fmt( draftFolders ) ),
+					done: 0,
+					total: 0,
+					since: since
+				} );
 				return;
 			}
 			var done = total - Math.ceil( left / batch );
@@ -803,6 +826,13 @@
 			if ( confirmed() ) {
 				dom.fillMove.appendChild( dom.move );
 				dom.fillMove.appendChild( dom.stop );
+			} else {
+				// Done, but the tree is open again: the way to fill is to confirm it, here as on the Tree step.
+				var again = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary vgml-confirm-btn' }, __( 'This is my tree', 'vergelabs-media-library' ) );
+				again.disabled = ! ( view.getDraft() || state.nodes.length ) || state.pastePending;
+				again.addEventListener( 'click', onConfirm );
+				dom.confirm = again; // The press breathes on the button pressed, whichever step it sits on.
+				dom.fillMove.appendChild( again );
 			}
 			dom.fillMove.appendChild( quiet( __( 'Next: Alt text', 'vergelabs-media-library' ), function () { setStep( 'alt' ); } ) );
 			dom.fillMove.appendChild( dom.undo );
@@ -828,6 +858,7 @@
 			var confirmBtn = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary vgml-confirm-btn' }, __( 'This is my tree', 'vergelabs-media-library' ) );
 			confirmBtn.disabled = ! ( view.getDraft() || state.nodes.length ) || state.pastePending;
 			confirmBtn.addEventListener( 'click', onConfirm );
+			dom.confirm = confirmBtn;
 			dom.fillMove.appendChild( confirmBtn );
 			dom.fillMove.appendChild( quiet( __( 'Back to the tree', 'vergelabs-media-library' ), function () { setStep( 'tree' ); } ) );
 			dom.fillMove.appendChild( dom.undo );
@@ -2087,7 +2118,7 @@
 				verb: __( 'Filling', 'vergelabs-media-library' ),
 				count: total
 					/* translators: 1: pictures looked at so far, 2: pictures to look at */
-					? sprintf( __( '%1$s of %2$s pictures', 'vergelabs-media-library' ), fmt( seen ), fmt( total ) )
+					? function ( n ) { return sprintf( __( '%1$s of %2$s pictures', 'vergelabs-media-library' ), fmt( n ), fmt( total ) ); }
 					/* translators: %s: pictures looked at so far */
 					: sprintf( __( '%s pictures so far', 'vergelabs-media-library' ), fmt( seen ) ),
 				done: seen,
@@ -2168,9 +2199,18 @@
 			renderRail();
 			renderFill();
 			window.clearTimeout( pollTimer );
+			/*
+			 *  Two seconds between polls, counted from the request: a site whose
+			 *  every request boots for three seconds (the box, 2026-09-16: handler
+			 *  40 ms, boot 2,800 ms) answered, waited two, answered -- one sample
+			 *  every five seconds of a fill that takes five.
+			 */
+			var wait = Math.max( 250, 2000 - ( Date.now() - ( state.polledAt || 0 ) ) );
+			window.clearTimeout( pollTimer );
 			pollTimer = window.setTimeout( function () {
+				state.polledAt = Date.now();
 				api( 'GET', 'guide/progress' ).then( took ).catch( function () {} );
-			}, 2000 );
+			}, wait );
 			return;
 		}
 		// Done, or stopped: the tree is the library now.
