@@ -112,14 +112,15 @@ with the prefetch. The confirm: six batches at ~35 s a request. The fill:
 - `node tools/verify.mjs filing seed-shop tree-view structure copy surface roles escaping` → 25/25 + 30/30, 8/8, 61/61, 31/31, 58/58, 26/26 (regenerated), 19/19 (roles: 79/81 endpoints — `/guide/profiles-restore` from S8 was never counted), 9/10 (the known ratio row).
 - Mutations run: seed leaf misspelled → seed-shop red; the shop pointed at the tech file → the gate passes wrongly (seen, restored); batch made 500 → pick 21 red; the decode removed → pick 23 red. The prefetch and the stall were watched going green from red on the box (the numbers above), not by a suite.
 - `filing-baseline-check.mjs` tech 4/4 after the perf work (identical); `--library shop` taken, then 4/4.
-- **`folders.spec` on ms2 at 1600 and 1280: NOT RUN** — it plants and restores the talk state, and Nathan was answering the 45 questions on that state. Run it when he says the answers are done; the word-budget row is the one this shape tests.
+- **`folders.spec` on ms2** (after Nathan's answers, UI_BASE=ms2, vgmls9): **12 passed, 1 skipped (GUIDE_WALK), 4 failed on fixture preconditions the site cannot meet**, none on the screen — three plants refused (only 0 described pictures carry an alt — auto-alt never on for the shop; only 44 unfiled or in To sort; 268 needed ×2 — his answers put every picture in a folder, no pool for the timing plant) and one state row (
+o earlier profile before the second confirm: today's second confirm left a prev on a folder). **The word budget, the row this shape tests: green with room — asking 48 / done 24 words without the tree at both sizes** (161 / 141 with it). The fixture restored the site (322 folders, 626/626, 1,244 moves, no probe). Same class as S8's Unfiled returns files: fixtures written for a library in a different state.
 - service: `vitest lib/profile-price.test.ts lib/folders-prompt.test.ts` 10/10; `tsc --noEmit` clean.
 
 ## Not done, and why
 
 - The sheet's marks and the constants' judgement (K = 8, GROUP_NEAR 0.8,
   the 60 % put-in, 1/k): Nathan's, on the sheet and the 45 questions.
-- `folders.spec` on ms2: see above.
+- `folders.spec`'s four state rows on ms2: fixtures, not the screen (above); S10 could give ill-fixture.php a pool from any folder when nothing is unfiled or in To sort.
 - S10.1–S10.4 as written in the epic; the cron stall is the one that bites a
   customer first.
 - The website's inner pages (Nathan, mid-session: "extremely boring, keep
@@ -154,7 +155,7 @@ Card, to `plugin/.harness/active.json`:
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "First: run folders.spec on ms2 at 1600×1000 and 1280×800 once Nathan says the questions are answered; then read his marks on the shop sheet and his verdict on K = 8 and the either/or cards — that verdict decides whether S10.5 changes a rule",
+    "First: read Nathan's marks on the shop sheet and his verdict on K = 8 and the either/or cards — that verdict decides whether S10.5 changes a rule",
     "S10.0 (one progress component, a bar with a number and an estimate, mocked and approved) goes first and every later story renders through it; S10.1 before S10.2: a confirm that asks about 60 folders instead of 308 is the cheaper and quieter walk, and the stall reproduces on ms2 either way",
     "S10.4 is mock-first: one line of concept, tools/shoot-mock.mjs, Nathan's yes, then the build",
     "Every change measured on both sites: the tech baseline 4/4 unchanged, the shop band within 3 % or re-taken with the reason",
