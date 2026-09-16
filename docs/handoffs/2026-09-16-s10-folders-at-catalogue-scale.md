@@ -7,9 +7,10 @@ handoff. Lean held: test first, one mutation run per story (each one seen
 red and the code put back), both sites measured, one question round
 (the S10.0 mock and the S10.1 rule — both yes).
 
-**Spend:** nothing described, nothing profiled, no planner call. The
-guide suite's job fit and the sticky suite's pass answer the service from
-a stub. Box licence unchanged at 24,208. The one press that would spend is
+**Spend:** nothing described; one planner call, 0 credits (folders.spec's
+confirm test on ms2, three planted folders, as in S9). The guide suite's
+job fit and the sticky suite's pass answer the service from a stub. Box
+licence unchanged at 24,208. The one press that would spend is
 listed under *Not done*.
 
 Commits, plugin (all on `main`, deployed to the box after each — the shop
