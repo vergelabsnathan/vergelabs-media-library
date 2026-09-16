@@ -500,6 +500,8 @@ function vergeml_guide_clean_draft( $in ) {
             'kinds'    => array_values( array_filter( array_map( 'sanitize_key', (array) ( isset( $f['kinds'] ) ? $f['kinds'] : array() ) ) ) ),
             'audience' => sanitize_text_field( (string) ( isset( $f['audience'] ) ? $f['audience'] : '' ) ),
             'by'       => isset( $f['by'] ) && 'you' === $f['by'] ? 'you' : '',
+            // The planner was asked about it and had no classes to give: not asked (and charged) again (C.5).
+            'asked'    => ! empty( $f['asked'] ),
         );
     }
     foreach ( $out['folders'] as &$f ) {
@@ -970,12 +972,32 @@ function vergeml_guide_confirm( &$s ) {
     $ask  = vergeml_guide_profile_ask( $s['draft'] );
     $want = $ask['want'];
 
+    /*
+     *  One batch a call (C.5). Six planner calls of twenty seconds inside
+     *  one request is longer than a proxy holds a request open, so the
+     *  screen presses this route once per batch: each call asks about the
+     *  next batch of the folders still wanting a profile, marks them asked,
+     *  and answers how many are left; the call that finds none left is the
+     *  one that confirms. The ask's size on the first call is kept in the
+     *  session so the service charges each batch by its place in the whole.
+     */
+    $batch    = defined( 'VERGEML_FILING_PROFILE_BATCH' ) ? VERGEML_FILING_PROFILE_BATCH : 60;
     $profiled = 0;
     $charged  = 0;
     if ( $want ) {
-        $seeds = vergeml_filing_profile_ask( $ask['current'], $charged );
+        if ( empty( $s['profile_run'] ) || ! is_array( $s['profile_run'] ) ) {
+            $s['profile_run'] = array( 'total' => count( $ask['current'] ), 'done' => 0 );
+        }
+        $run   = $s['profile_run'];
+        $slice = array_slice( $ask['current'], 0, $batch );
+        $keys  = array_slice( array_keys( $want ), 0, $batch );
+
+        $seeds = vergeml_filing_profile_ask( $slice, $charged, (int) $run['done'], max( (int) $run['total'], (int) $run['done'] + count( $slice ) ) );
         if ( is_wp_error( $seeds ) ) {
             return new WP_Error( $seeds->get_error_code(), $seeds->get_error_message(), array( 'status' => 402 === (int) substr( $seeds->get_error_code(), -3 ) ? 402 : 502 ) );
+        }
+        foreach ( $keys as $key ) {
+            $s['draft']['folders'][ $want[ $key ] ]['asked'] = true;
         }
         foreach ( $seeds as $key => $seed ) {
             if ( ! isset( $want[ $key ] ) ) {
@@ -988,7 +1010,17 @@ function vergeml_guide_confirm( &$s ) {
             $s['draft']['folders'][ $i ]['matches']  = $seed['matches'];
             $profiled++;
         }
+        $s['profile_run']['done']     = (int) $run['done'] + count( $slice );
+        $s['profile_run']['profiled'] = ( isset( $run['profiled'] ) ? (int) $run['profiled'] : 0 ) + $profiled;
+
+        $left = count( $want ) - count( $slice );
+        if ( $left > 0 ) {
+            return array( 'profiled' => $profiled, 'charged' => $charged, 'left' => $left );
+        }
+        // The whole run's count decides whether the counts beside the tree are re-taken below.
+        $profiled = (int) $s['profile_run']['profiled'];
     }
+    $s['profile_run'] = null;
 
     // Stored on the terms that exist, from the draft -- what the Move seeds, so the preview and the run score one profile.
     foreach ( $s['draft']['folders'] as $f ) {
@@ -1046,7 +1078,7 @@ function vergeml_guide_profile_ask( $draft ) {
     $current = array();
     $want    = array();
     foreach ( (array) ( is_array( $draft ) ? $draft['folders'] : array() ) as $i => $f ) {
-        if ( ! empty( $f['classes'] ) ) {
+        if ( ! empty( $f['classes'] ) || ! empty( $f['asked'] ) ) {
             continue;
         }
         $stored = ! empty( $f['term_id'] ) ? get_term_meta( (int) $f['term_id'], VERGEML_FILING_META, true ) : null;
@@ -1084,6 +1116,8 @@ function vergeml_guide_rest_confirm( WP_REST_Request $request ) {
         'session'  => vergeml_guide_session_out( $s ),
         'profiled' => (int) $r['profiled'],
         'charged'  => (int) $r['charged'],
+        // Folders still to be asked about: the screen presses again until this is 0 (C.5).
+        'left'     => isset( $r['left'] ) ? (int) $r['left'] : 0,
         'version'  => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
     ) );
 }
@@ -1095,7 +1129,8 @@ function vergeml_guide_rest_unconfirm( WP_REST_Request $request ) {
     if ( ! empty( vergeml_talk_progress()['running'] ) ) {
         return new WP_Error( 'running', __( 'The fill is still running.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
     }
-    $s['tree'] = 'editing';
+    $s['tree']        = 'editing';
+    $s['profile_run'] = null;
     vergeml_guide_save( $s );
 
     return rest_ensure_response( array(

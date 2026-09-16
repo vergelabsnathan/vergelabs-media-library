@@ -20,7 +20,7 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 | · of those, given anything but a literal | 18 |
 | · of those, read by hand with the reason | 18 |
 | · of those, **still unread** | **0** |
-| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 232 |
+| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 233 |
 
 Over 66 PHP files and 35 JavaScript files that ship.
 
@@ -102,15 +102,15 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-folders.js:368 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:399 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:417 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:557 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:619 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:806 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:857 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:974 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:979 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1683 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1726 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1736 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:573 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:635 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:822 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:873 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:990 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:995 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1699 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1742 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1752 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |

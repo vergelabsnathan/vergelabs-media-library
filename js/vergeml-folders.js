@@ -472,10 +472,26 @@
 		}
 		// A paste still settling, or a draft edit not yet written: the confirm reads the session, so it waits its turn.
 		queue = queue.then( function () {
-			return api( 'POST', 'guide/confirm' ).then( function ( r ) {
-				tookSession( r );
-				setStep( 'fill' );
-			} ).catch( function ( err ) {
+			/*
+			 *  One batch of folders per request (C.5): the route answers how
+			 *  many are still to be read and this presses it again until none
+			 *  are, the button counting down. Six batches in one request would
+			 *  outlast what a proxy holds open.
+			 */
+			var step = function () {
+				return api( 'POST', 'guide/confirm' ).then( function ( r ) {
+					if ( r && Number( r.left ) > 0 ) {
+						if ( dom.confirm ) {
+							/* translators: %s: folders */
+							dom.confirm.textContent = sprintf( _n( 'Reading %s folder', 'Reading %s folders', Number( r.left ), 'vergelabs-media-library' ), fmt( Number( r.left ) ) );
+						}
+						return step();
+					}
+					tookSession( r );
+					setStep( 'fill' );
+				} );
+			};
+			return step().catch( function ( err ) {
 				talk.note( ( err && err.message ) || __( 'That did not go through.', 'vergelabs-media-library' ) );
 				renderCards();
 			} );

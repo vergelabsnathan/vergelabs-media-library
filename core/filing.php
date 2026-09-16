@@ -83,13 +83,17 @@ const VERGEML_FILING_PROFILE_BATCH      = 60;
 const VERGEML_FILING_PROFILE_FREE       = 100;
 const VERGEML_FILING_PROFILE_PER_CREDIT = 6;
 
-/** The ask cut into what the service takes at once: [ ['offset', 'total', 'current'], ... ]. */
-function vergeml_filing_profile_batches( $current ) {
+/**
+ *  The ask cut into what the service takes at once: [ ['offset', 'total', 'current'], ... ].
+ *  $from and $total place a partial ask inside a bigger one (the confirm sends a batch a call).
+ */
+function vergeml_filing_profile_batches( $current, $from = 0, $total = null ) {
     $current = array_values( (array) $current );
-    $total   = count( $current );
+    $from    = max( 0, (int) $from );
+    $total   = null === $total ? $from + count( $current ) : max( (int) $total, $from + count( $current ) );
     $out     = array();
     foreach ( array_chunk( $current, VERGEML_FILING_PROFILE_BATCH ) as $i => $chunk ) {
-        $out[] = array( 'offset' => $i * VERGEML_FILING_PROFILE_BATCH, 'total' => $total, 'current' => $chunk );
+        $out[] = array( 'offset' => $from + $i * VERGEML_FILING_PROFILE_BATCH, 'total' => $total, 'current' => $chunk );
     }
     return $out;
 }
@@ -1598,7 +1602,7 @@ function vergeml_filing_profile_existing( $taxonomy, $force = false ) {
  *  @return array|WP_Error lowercase "parent / name" => seed { classes, kinds, audience, matches }; folders the
  *                         planner gave no classes are left out.
  */
-function vergeml_filing_profile_ask( $current, &$charged = 0 ) {
+function vergeml_filing_profile_ask( $current, &$charged = 0, $from = 0, $total = null ) {
 
     if ( ! function_exists( 'vergeml_ai_settings' ) ) {
         return new WP_Error( 'no_ai', 'AI not loaded.' );
@@ -1616,7 +1620,7 @@ function vergeml_filing_profile_ask( $current, &$charged = 0 ) {
     $charged = 0;
 
     // One call per batch, each with its place in the whole ask so the service charges the right folders.
-    foreach ( vergeml_filing_profile_batches( $current ) as $batch ) {
+    foreach ( vergeml_filing_profile_batches( $current, $from, $total ) as $batch ) {
         $response = wp_remote_post(
             vergeml_ai_service_url() . '/folders',
             array(
