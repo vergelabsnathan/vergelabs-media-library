@@ -239,6 +239,21 @@ vergeml_guide_save( $g_now );
 vergeml_guide_fit_event();
 g_check( 'F5 a job whose draft has moved on writes nothing: the fit stays pending for the newer draft\'s own turn', ! empty( vergeml_guide_session()['fit']['pending'] ) );
 
+// A shape the request may hold, but a request whose budget ran out (a planner call ahead of it, 2026-09-16): the job takes it, never "unknown".
+$g_mid = array( 'folders' => array_slice( $g_big['folders'], 0, 200 ), 'gone' => array(), 'origin' => 'talk', 'rule' => null );
+add_filter( 'vergeml_guide_fit_budget', 'g_tiny_budget' );
+function g_tiny_budget() {
+    return 1;
+}
+vergeml_guide_save( vergeml_guide_fresh() );
+wp_clear_scheduled_hook( VERGEML_GUIDE_FIT_HOOK );
+$g_req = new WP_REST_Request( 'POST', '/vergeml/v1/guide/turn' );
+$g_req->set_body_params( array( 'draft' => $g_mid ) );
+$g_res = rest_do_request( $g_req );
+$g_fit = $g_res->get_data()['fit'] ?? null;
+remove_filter( 'vergeml_guide_fit_budget', 'g_tiny_budget' );
+g_check( sprintf( 'F6 %d × 200 pairs (under the cap) with a one-second budget: the request gives up and books the job -- pending, never unknown', $g_described ), is_array( $g_fit ) && ! empty( $g_fit['pending'] ) && false !== wp_next_scheduled( VERGEML_GUIDE_FIT_HOOK ), json_encode( is_array( $g_fit ) ? array_intersect_key( $g_fit, array_flip( array( 'counted', 'pending' ) ) ) : $g_fit ) );
+
 remove_filter( 'pre_http_request', 'g_answer', 1 );
 foreach ( array_keys( $GLOBALS['g_texts'] ) as $g_text ) {
     delete_transient( vergeml_meaning_slot( $g_text ) );

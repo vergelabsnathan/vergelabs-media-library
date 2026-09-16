@@ -275,7 +275,7 @@ test.describe( 'the Folders screen', () => {
 		let left = 180;
 		await page.route( /\/guide\/confirm/, async ( route ) => {
 			left -= 60;
-			await new Promise( ( r ) => setTimeout( r, 700 ) );
+			await new Promise( ( r ) => setTimeout( r, 1500 ) );
 			await route.fulfill( { status: 200, contentType: 'application/json', body: JSON.stringify( { session: boot.session, profiled: 0, charged: 0, left: Math.max( 0, left ), version: boot.version } ) } );
 		} );
 		await page.evaluate( () => { window.vgmlFoldersApp.state.session.profile = { folders: 180, credits: 0 }; } );
@@ -287,12 +287,19 @@ test.describe( 'the Folders screen', () => {
 		await expect( row ).toBeVisible();
 		await expect( confirm, 'the button keeps its verb and goes to work' ).toHaveText( 'This is my tree' );
 		await expect( confirm ).toHaveClass( /is-working/ );
-		await expect( row.locator( '.g-progress-text' ) ).toHaveText( 'Reading folders 0 of 3 batches' );
+		await expect( row.locator( '.g-progress-text' ) ).toHaveText( /^Reading folders 0 of 3 batches · \d+ s$/ );
+		await expect( row, 'before the first batch the bar is the sliding sliver, not a bar at zero' ).toHaveClass( /is-open/ );
 		await expect( row.locator( '.g-progress-text' ) ).toHaveText( /^Reading folders 1 of 3 batches · about \d+ s left$/, { timeout: 5000 } );
-		expect( await row.locator( '.g-progress-fill' ).evaluate( ( e ) => e.style.width ), 'the bar at 1 of 3' ).toBe( '33.3%' );
 		await expect( row ).toHaveAttribute( 'aria-valuenow', '1' );
+		const w1 = parseFloat( await row.locator( '.g-progress-fill' ).evaluate( ( e ) => e.style.width ) );
+		expect( w1, 'the bar at 1 of 3, creeping towards 2' ).toBeGreaterThanOrEqual( 33.3 );
+		expect( w1 ).toBeLessThan( 63.4 );
+		await expect( row ).not.toHaveClass( /is-open/ );
+		await page.waitForTimeout( 1100 );
+		const w2 = parseFloat( await row.locator( '.g-progress-fill' ).evaluate( ( e ) => e.style.width ) );
+		expect( w2, 'the bar moves between batches' ).toBeGreaterThan( w1 );
 		await expect( row.locator( '.g-progress-text' ) ).toHaveText( /^Reading folders 2 of 3 batches/, { timeout: 5000 } );
-		await expect( row, 'hidden when the last batch is read' ).toBeHidden( { timeout: 5000 } );
+		await expect( row, 'hidden when the last batch is read' ).toBeHidden( { timeout: 8000 } );
 		await page.unroute( /\/guide\/confirm/ );
 
 		// The renderer with models of its own: the fill's bar, the stall, the open row.
@@ -301,7 +308,9 @@ test.describe( 'the Folders screen', () => {
 		await page.evaluate( () => window.vgmlFoldersApp.progress( 'fill', { verb: 'Filling', count: '313 of 626 pictures', done: 313, total: 626, since: Date.now() - 60000, ticked: Date.now() } ) );
 		await expect( fill ).toBeVisible();
 		await expect( fill.locator( '.g-progress-text' ) ).toHaveText( 'Filling 313 of 626 pictures · about 1 min left' );
-		expect( await fill.locator( '.g-progress-fill' ).evaluate( ( e ) => e.style.width ) ).toBe( '50%' );
+		const wf = parseFloat( await fill.locator( '.g-progress-fill' ).evaluate( ( e ) => e.style.width ) );
+		expect( wf ).toBeGreaterThanOrEqual( 50 );
+		expect( wf ).toBeLessThan( 50.3 );
 		expect( await fill.evaluate( ( e ) => e.className ) ).toBe( 'g-progress' );
 
 		await page.evaluate( () => window.vgmlFoldersApp.progress( 'fill', { verb: 'Filling', count: '96 of 626 pictures', done: 96, total: 626, since: Date.now() - 90000, ticked: Date.now() - 48000 } ) );

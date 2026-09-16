@@ -1409,16 +1409,24 @@ function vergeml_guide_fit_take( &$s, $taxonomy ) {
     }
     unset( $f );
     /*
-     *  A run that answered nothing says so.
+     *  A run that answered nothing does not give up: the shape said it fit
+     *  the request, but the request had other work in it too -- on the shop
+     *  (2026-09-16) the confirm's planner call took its thirty seconds and
+     *  the dry run after it ran out of its twenty, so the Fill step said
+     *  "counts not worked out yet" over 201,572 pairs a job counts in 15 s.
+     *  The job takes it (S10.3), and the row says it is counting.
      *
      *  Until 2026-09-14 it wrote null, which is the same value a draft with
      *  nothing to answer about gets, and the screen drew nothing at all --
      *  no counts, no lines. Silence beside a draft reads as "these folders
-     *  are unchanged", and that is a claim nobody computed. The counts stay
-     *  null; what arrives instead is the sentence saying they are missing,
-     *  in the same list the counts themselves use.
+     *  are unchanged", and that is a claim nobody computed.
      */
-    $s['fit'] = $fit ? $fit : vergeml_guide_fit_unknown();
+    if ( ! $fit ) {
+        $s['fit'] = vergeml_guide_fit_pending( $pictures, $folders, vergeml_guide_draft_hash( $s['draft'] ) );
+        vergeml_guide_fit_schedule();
+        return;
+    }
+    $s['fit'] = $fit;
 }
 
 /** The fit's shape while a job works it out: nothing counted, and the two numbers the screen says it is counting. */

@@ -281,8 +281,22 @@
 		var done = Math.min( Number( m.done ) || 0, known ? m.total : Infinity );
 		var idle = m.ticked ? now - m.ticked : 0;
 		var stalled = idle >= STALL_MS;
+		/*
+		 *  The bar moves every second or it reads as dead (Nathan, 2026-09-16:
+		 *  "0 of 1 batches" stood still for fifty seconds). Before the first
+		 *  unit lands there is no progress to draw, so the bar is the sliding
+		 *  sliver; after it, the bar creeps towards the next unit at the pace
+		 *  of the units so far, capped just short of it, and jumps when it lands.
+		 */
+		var open = ! known || ( 0 === done && ! stalled );
+		var creep = 0;
+		if ( known && done > 0 && done < m.total && m.since && ! stalled ) {
+			var per = ( now - m.since ) / done;
+			var last = m.lastAt || m.ticked || m.since;
+			creep = per > 0 ? Math.min( 0.9, Math.max( 0, ( now - last ) / per ) ) : 0;
+		}
 		row.innerHTML = '';
-		row.className = 'g-progress' + ( known ? '' : ' is-open' ) + ( stalled ? ' is-stalled' : '' );
+		row.className = 'g-progress' + ( open ? ' is-open' : '' ) + ( stalled ? ' is-stalled' : '' );
 		row.setAttribute( 'role', 'progressbar' );
 		if ( known ) {
 			row.setAttribute( 'aria-valuemin', '0' );
@@ -299,7 +313,8 @@
 			var left = ( now - m.since ) / done * ( m.total - done );
 			/* translators: %s: a duration, e.g. "2 min" */
 			parts.push( sprintf( __( 'about %s left', 'vergelabs-media-library' ), dur( left ) ) );
-		} else if ( ! known && m.since && ! stalled ) {
+		} else if ( m.since && ! stalled ) {
+			// No estimate yet (nothing done, or no total): the seconds move, so the row never stands still (Nathan, 2026-09-16: "0 of 1 batches" for fifty seconds).
 			parts.push( dur( now - m.since ) );
 		}
 		var text = el( 'span', { class: 'g-progress-text' } );
@@ -312,8 +327,8 @@
 		}
 		var bar = el( 'div', { class: 'g-progress-bar' } );
 		var fillEl = el( 'div', { class: 'g-progress-fill' } );
-		if ( known ) {
-			fillEl.style.width = ( 100 * done / m.total ).toFixed( 1 ) + '%';
+		if ( known && ! open ) {
+			fillEl.style.width = ( 100 * ( done + creep ) / m.total ).toFixed( 1 ) + '%';
 		}
 		bar.appendChild( fillEl );
 		row.appendChild( bar );
@@ -602,7 +617,8 @@
 				count: sprintf( __( '%1$s of %2$s batches', 'vergelabs-media-library' ), fmt( done ), fmt( total ) ),
 				done: done,
 				total: total,
-				since: since
+				since: since,
+				lastAt: Date.now()
 			} );
 		};
 		if ( dom.confirm ) {
