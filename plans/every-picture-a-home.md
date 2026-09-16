@@ -409,6 +409,12 @@ the 34 misses: 17 shared-class ties (C.1), 3 a kind word as a class and 7
 a profile that means something Nathan does not (C.4), the rest vector
 noise under 0.70. Handoff `2026-09-15-s6b-deep-dive-the-fill-is-not-honest.md`.
 
+**After C.1+C.2, same seed, dry (2026-09-16, S7):** sure 22/30 = 73 %; likely
+7/30 = 23 %, 14 too broad (11 of them Hardware at 0.60–0.63: no child for a
+desktop). The 8 sure misses: 3 Satellites `diagram`, 3 Components profile
+(both C.4), 106552 launches (a canon fold bug, C.4), 106405 attendees in
+People. Handoff `2026-09-16-s7-the-engine-honest.md`.
+
 **Stop points (Nathan).** The box after his walk stays his (61 in Server
 racks by hand, 327 in To sort) unless he says undo. K = 8 questions asked
 at most, the rest one card — his number to change. C.5 costs real

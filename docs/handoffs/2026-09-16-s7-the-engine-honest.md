@@ -125,9 +125,41 @@ picks, pools from the picks, the same seed, each card with "same folder as
 the last fill" or "last fill: X", Nathan's 2026-09-16 marks carried over
 where the folder is unchanged (the verdict table is in the tool). Sheet:
 `docs/superpowers/mocks/shots/2026-09-16-quality-sample-c1-dry.html` —
-30 sure of 264, 30 likely of 262, **only 3 marks carry over** (the pools
-changed), so **the new sample's two percentages are Nathan's to give: 57
-cards await a mark.** Until then, the honest pair on the *same 60 he marked*:
+30 sure of 264, 30 likely of 262, only 3 marks carried over (the pools
+changed); Nathan marked the other 57 the same morning.
+
+**The verdict, 2026-09-16 (Nathan, on the dry sheet):**
+
+```
+sure:   22/30 right (73 %, was 47 %)  ·  bar 95  ·  too broad #2 106552, #13 106405, #16 106516, #28 106074
+                                                     wrong #3 105861, #5 106798, #9 106099, #27 106675
+likely:  7/30 right (23 %, was 40 %)  ·  bar 80  ·  too broad 14: 105893, 106029, 106349, 105948, 106068, 106022, 105906, 106018, 105985, 105911, 106036, 106065, 106054, 105944
+                                                     wrong 9: 106158, 106367, 106422, 106360, 106676, 106079, 106704, 106696, 105886
+```
+
+- **Sure, the 8 misses**: Satellites 3 (106798, 106675 wrong; 106516
+  broad — the `diagram` class, C.4); Components 3 (105861, 106099 wrong;
+  106074 broad — the profile, C.4); and two C.1 made too broad by lifting
+  the picture to the parent: 106552 a launch in *Space* not *Launches*,
+  106405 attendees in *People* not *Interviews*. 106552 is a canon bug:
+  `class_match('rocket launch', 'launches')` is 0 — the matcher's plural
+  fold strips one `s` (`launches` → `launche`), so the folder's own name
+  never matches its pictures. C.4's canon fold, with this as its row.
+- **Likely, 14 too broad — 11 of them *Hardware* at 0.60–0.63**: desktop
+  PCs, workstations, a classroom, a chassis. Four were in *Laptops*
+  yesterday (wrong → the parent). The tree has no folder for a desktop, so
+  the parent is the honest place, and by the sheet's rule it is not right.
+  The likely band is now a different population: 262 pictures (was 113),
+  most of them a parent because no child claims the picture.
+- **Likely, 9 wrong**: all at 0.55–0.70, the bottom of the band; Satellites
+  2, Cooling 2, Batteries 2, Phones, Space, Energy one each.
+
+**So**: C.1 moved *sure* by 26 points and every remaining sure miss is a
+profile or canon fault (C.4). *Likely* fell because the word now mostly
+means "the parent, because no child claims it" — which is true, and is
+what the fill should say out loud: the S8 card asks C.3 to show the likely
+pill with the reason ("Hardware · no child fits") and C.4 to give the
+children their words. The earlier 60 under this engine, for the record:
 
 | | sure (was 14/30 = 47 %) | likely (was 12/30 = 40 %, 11 too broad) |
 |---|---|---|
@@ -211,7 +243,9 @@ Card, to `plugin/.harness/active.json` before anything:
     "Time C.3 on both sites — the box (36 plugins, 2.9 s a round trip) and Playground (the plugin's own cost) — and print both rows; the plugin's answer round trip under 400 ms at 30 questions on Playground",
     "C.4 touches the service: say the cost before any planner or describer call; re-profiling the box's folders is a planner call and Nathan's to press through the screen, not a script",
     "The baseline gate is frozen: node tools/filing-baseline-check.mjs green after every change, or re-taken with --retake and the reason in the handoff",
-    "The 60-picture sample: Nathan marks the dry sheet (57 cards), the two numbers go in S8's handoff beside 47 % / 40 %; after C.4 the sheet is re-taken dry on seed 133 again",
+    "The 60-picture sample after C.1+C.2: sure 73 %, likely 23 % (bars 95 / 80). After C.4 the sheet is re-taken dry on seed 133 and the two numbers go beside these; the eight sure misses are the rows to watch (3 Satellites diagram, 3 Components profile, 106552 launches canon, 106405 attendees)",
+    "class_match('rocket launch', 'launches') must be 1.0 after C.4's canon fold (the fold strips one s today); a pick.php row",
+    "The likely word is mostly 'the parent, no child fits' now (11 of 14 too-broad likely are Hardware at 0.60-0.63): C.3 shows the reason on the pill or the card, C.4 gives the children their words; do not move SURE for it",
     "The 280 in one card is K = 8 on a 435 residue: Nathan's number; propose, do not move it"
   ],
   "gates": [
@@ -238,7 +272,6 @@ End with a handoff carrying the S9 card (C.5 the second library, or the
 Folders polish card if Nathan does not buy C.5).
 ```
 
-Held behind S8: **the new sample's verdict** (Nathan marks the dry sheet;
-the two numbers into S8's handoff), the K question (280 in one card), the
-date folders, then **C.5** (a second library, Nathan pays), the Folders
-polish card, B.6.
+Held behind S8: the K question (280 in one card), the date folders, a
+folder for desktops (11 likely pictures have no child to go to), then
+**C.5** (a second library, Nathan pays), the Folders polish card, B.6.
