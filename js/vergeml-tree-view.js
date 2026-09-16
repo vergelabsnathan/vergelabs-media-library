@@ -542,8 +542,10 @@
 				by: f.by || '',
 				from: f.from || [],
 				samples: f.samples || [],
-				// What the folder takes: the draft's word on it, else the profile the live folder already has.
-				classes: Array.isArray( f.classes ) ? f.classes : ( live && Array.isArray( live.classes ) ? live.classes : [] ),
+				// What the folder takes: the draft's words on it, else the profile the live folder already has. An empty
+				// list is "the draft says nothing" -- the confirm keeps the stored profile then (core/guide.php) -- not "no
+				// words": on 2026-09-16 a restored draft naming 322 folders with words on 52 read as 270 profiles lost.
+				classes: Array.isArray( f.classes ) && f.classes.length ? f.classes : ( live && Array.isArray( live.classes ) ? live.classes : [] ),
 				order: live ? live.order || 0 : 0
 			};
 			if ( live ) {

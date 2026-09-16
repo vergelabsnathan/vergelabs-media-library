@@ -159,6 +159,47 @@ const fewer = await page.evaluate( () => {
 } );
 check( 'and not under ten', 9 === fewer.rows && true === fewer.hidden, JSON.stringify( fewer ) );
 
+/*
+ *  The words a folder takes while a draft is open (C.4, and the 2026-09-16
+ *  scare): a draft row whose list is empty says nothing about the words, so
+ *  the row shows the profile the folder already has -- a confirm keeps it.
+ *  On the shop a restored draft named 322 folders with words on 52, and the
+ *  other 270 read as if their profiles were gone. A draft that names words
+ *  shows those; × on a folder's last word leaves an empty list, which the
+ *  confirm reads as 'says nothing' -- so the stored word shows again, as it
+ *  will be kept.
+ *  Mutation: `f.classes.length` dropped from the row's rule -> C7 red.
+ */
+const words = await page.evaluate( () => {
+	const h = window.harness;
+	const small = h.clone().filter( ( n ) => n.id <= 3 );
+	small[ 0 ].classes = [ 'apparel', 'garment' ];
+	small[ 1 ].classes = [ 'menswear' ];
+	small[ 2 ].classes = [ 'footwear' ];
+	const root = document.createElement( 'div' );
+	document.body.appendChild( root );
+	const v = h.tv.create( { surface: 'folders', root, nodes: small, openAll: true } );
+	const d = h.tv.fromLive( small );
+	d.folders[ 0 ].classes = [];                  // says nothing: the stored words show
+	d.folders[ 1 ].classes = [ 'suit', 'jacket' ]; // says its own
+	d.folders[ 2 ].classes = [];
+	v.setDraft( d );
+	const read = ( id ) => Array.from( root.querySelectorAll( '.vgml-node[data-key="t' + id + '"] .vgml-class' ) ).map( ( e ) => e.getAttribute( 'data-class' ) || e.textContent.trim() );
+	const out = { stored: read( 1 ), own: read( 2 ) };
+	v.onEdit = () => {};
+	const x = root.querySelector( '.vgml-node[data-key="t3"] .vgml-unclass' );
+	if ( x ) {
+		x.click();
+	}
+	out.after = read( 3 );
+	out.draft = v.getDraft().folders.find( ( f ) => 3 === f.term_id ).classes;
+	root.remove();
+	return out;
+} );
+check( 'C7 a draft row with no words shows the folder\'s stored words; one with words shows its own; × on the last stored word leaves the draft empty and the stored word showing (the confirm keeps it)',
+	'apparel,garment' === words.stored.join() && 'suit,jacket' === words.own.join() && 'footwear' === words.after.join() && Array.isArray( words.draft ) && 0 === words.draft.length,
+	JSON.stringify( words ) );
+
 /* ---------------------------------------- D  the draft carried by term id */
 
 console.log( '\nD  the draft survives the library changing under it\n' );
