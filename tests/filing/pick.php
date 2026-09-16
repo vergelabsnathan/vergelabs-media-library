@@ -300,5 +300,28 @@ f_check( '22 the charge: 21 folders free; 318 cost 37 (4 + 10 + 10 + 10 + 3); 16
 // A term name as WordPress stores it (kses: "&" is "&amp;") read back as the person wrote it (C.5). Mutation: the decode removed -> red.
 f_check( '23 a stored "Bags &amp; Luggage" is the folder "Bags & Luggage"; a plain name is itself', 'Bags & Luggage' === vergeml_term_name( (object) array( 'name' => 'Bags &amp; Luggage' ) ) && 'Shoes' === vergeml_term_name( (object) array( 'name' => 'Shoes' ) ) && "Children's books" === vergeml_term_name( 'Children&#039;s books' ), vergeml_term_name( (object) array( 'name' => 'Bags &amp; Luggage' ) ) );
 
+/*
+ *  The confirm asks only what a planner can add (S10.1). A folder whose leaf
+ *  name is one of the library's own words -- spelled the one way, or by its
+ *  head noun either way round -- is profiled from its name and never sent:
+ *  on the shop's 318-folder tree 259 of 308 answers were "nothing". The
+ *  vocabulary here is what the describer wrote for a shop: "platform sneaker"
+ *  and "headphones" are its words, "bag", "luggage" and "kid" are not.
+ *  Mutation: the head-noun match removed -> row 24 red (Sneakers goes).
+ */
+echo "\n== the confirm's ask over the vocabulary (S10.1)\n";
+
+$vocab = array( array( 'term' => 'platform sneaker', 'n' => 40 ), array( 'term' => 'footwear', 'n' => 60 ), array( 'term' => 'headphones', 'n' => 12 ), array( 'term' => 'running shoe', 'n' => 9 ), array( 'term' => 'garden chair', 'n' => 3 ) );
+$home  = array();
+$goes  = array();
+foreach ( array( 'Sneakers', 'Headphones', 'Shoes', 'Bags & Luggage', 'Kids', 'Garden' ) as $name ) {
+    if ( vergeml_filing_name_in_vocabulary( $name, $vocab ) ) {
+        $home[] = $name;
+    } else {
+        $goes[] = $name;
+    }
+}
+f_check( '24 {Sneakers (head noun of "platform sneaker"), Headphones (the word), Shoes (head noun of "running shoe")} stay home; {Bags & Luggage, Kids, Garden} go to the planner', array( 'Sneakers', 'Headphones', 'Shoes' ) === $home && array( 'Bags & Luggage', 'Kids', 'Garden' ) === $goes, 'home ' . json_encode( $home ) . ' goes ' . json_encode( $goes ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

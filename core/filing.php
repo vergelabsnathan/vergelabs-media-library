@@ -473,6 +473,11 @@ function vergeml_filing_vocabulary( $limit = 80 ) {
     if ( ! isset( $wpdb->vergeml_ai_index ) ) {
         return array();
     }
+    // Read once a request: the confirm's ask is worked out on every session answer (S10.1).
+    static $known = array();
+    if ( isset( $known[ (int) $limit ] ) ) {
+        return $known[ (int) $limit ];
+    }
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
     $rows  = (array) $wpdb->get_col( "SELECT filing FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND filing IS NOT NULL AND filing <> '' ORDER BY described_at DESC LIMIT 5000" );
     $count = array();
@@ -492,10 +497,47 @@ function vergeml_filing_vocabulary( $limit = 80 ) {
     }
     arsort( $count );
     $out = array();
-    foreach ( array_slice( $count, 0, max( 1, (int) $limit ), true ) as $key => $n ) {
+    // 0: the whole vocabulary, for the ask's split; the planner's prompt takes the top eighty.
+    foreach ( ( (int) $limit > 0 ? array_slice( $count, 0, (int) $limit, true ) : $count ) as $key => $n ) {
         $out[] = array( 'term' => (string) $seen[ $key ], 'n' => (int) $n );
     }
-    return $out;
+    return $known[ (int) $limit ] = $out;
+}
+
+/**
+ *  Whether a folder's name is already one of the library's words (S10.1):
+ *  its leaf, spelled the one way, equals a vocabulary term -- or the two
+ *  meet at a head noun, either way round: "Shoes" is the describer's
+ *  "running shoe", "Sneakers" its "platform sneaker", "Running shoes" its
+ *  "shoe". Such a folder is profiled from its name and never sent to the
+ *  planner: on the shop's 318-folder tree (C.5) 259 of 308 answers were
+ *  "nothing", and batches that could not see each other hung leftover
+ *  words on the parents ("Garden = power tool, architecture").
+ *
+ *  @param string $name       The folder's name, as the person wrote it.
+ *  @param array  $vocabulary vergeml_filing_vocabulary()'s rows, or plain terms.
+ */
+function vergeml_filing_name_in_vocabulary( $name, $vocabulary ) {
+    $canon = vergeml_filing_canon( vergeml_filing_name_class( vergeml_term_name( $name ) ) );
+    if ( '' === $canon ) {
+        return false;
+    }
+    $words = explode( ' ', $canon );
+    $head  = end( $words );
+    foreach ( (array) $vocabulary as $term ) {
+        $t = vergeml_filing_canon( is_array( $term ) ? ( isset( $term['term'] ) ? $term['term'] : '' ) : $term );
+        if ( '' === $t ) {
+            continue;
+        }
+        if ( $t === $canon ) {
+            return true;
+        }
+        $tw = explode( ' ', $t );
+        if ( ( count( $words ) > 1 && $head === $t ) || ( count( $tw ) > 1 && end( $tw ) === $canon ) ) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /** Profiles for a set of terms, keyed by term id. Terms without one are left out. */

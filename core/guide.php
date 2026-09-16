@@ -1075,8 +1075,9 @@ function vergeml_guide_profile_ask( $draft ) {
     if ( $ids && function_exists( 'update_termmeta_cache' ) ) {
         update_termmeta_cache( $ids );
     }
-    $current = array();
-    $want    = array();
+    $current    = array();
+    $want       = array();
+    $vocabulary = null;
     foreach ( (array) ( is_array( $draft ) ? $draft['folders'] : array() ) as $i => $f ) {
         if ( ! empty( $f['classes'] ) || ! empty( $f['asked'] ) ) {
             continue;
@@ -1084,6 +1085,19 @@ function vergeml_guide_profile_ask( $draft ) {
         $stored = ! empty( $f['term_id'] ) ? get_term_meta( (int) $f['term_id'], VERGEML_FILING_META, true ) : null;
         if ( is_array( $stored ) && 'plan' === $stored['source'] ) {
             continue; // The draft says nothing about it; it keeps the profile it has.
+        }
+        /*
+         *  A folder named for one of the library's own words is profiled
+         *  from its name and never sent (S10.1): the planner can add nothing
+         *  to "Sneakers" on a site whose pictures say "platform sneaker",
+         *  and on the shop's 318 folders it answered "nothing" 259 times.
+         *  The vocabulary is read only once a folder gets this far.
+         */
+        if ( null === $vocabulary ) {
+            $vocabulary = function_exists( 'vergeml_filing_vocabulary' ) ? vergeml_filing_vocabulary( 0 ) : array();
+        }
+        if ( vergeml_filing_name_in_vocabulary( $f['name'], $vocabulary ) ) {
+            continue;
         }
         $path  = array();
         $key   = (string) $f['key'];

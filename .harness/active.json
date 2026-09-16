@@ -1,35 +1,37 @@
 {
-  "phase": "Every picture a home — Phase C, S9: C.5 a second library, a different shape (Opus prepares, Nathan pays and judges)",
+  "phase": "Every picture a home — S10: folders at catalogue scale (the epic's stories S10.1–S10.5, in order)",
   "model": "opus",
-  "plan": "plans/every-picture-a-home.md (Phase C: C.5)",
-  "spec": "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
+  "plan": "plans/every-picture-a-home.md (Phase D: the sessions S10–S14 and their gates)",
+  "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "tools/box-seed-*.php (a seed for the second library, in the shape of tools/box-seed-technews.php)",
-    "tests/tree/filing-baseline.txt (a second band keyed by library)",
-    "tools/filing-baseline-check.mjs (--library)",
-    "tests/ui/folders.spec.mjs (the second site at 1600 and 1280)",
+    "core/guide.php (the confirm's ask, the poll's kick, the background fit)",
+    "core/filing.php (profile_ask over the vocabulary)",
+    "core/folder-talk.php (the run's pass from a poll)",
+    "js/vergeml-folders.js, js/vergeml-tree-view.js (S10.4 after the mock is approved)",
+    "js/vergeml-tree.js, css/vergeml-tree.css, core/media-list.php (S10.6 after the mock is approved: the list opens on the pictures, the sidebar full height, the tree first)",
+    "tests/filing/pick.php, tests/tree/guide.php, tests/tree/tree-view.mjs, tests/ui/folders.spec.mjs",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-16-s8-one-press-the-describers-words.md (this: the numbers, the sheet that waits, the 400 ms reading)",
-    "plans/every-picture-a-home.md (C.5 and its proof; A.5 the walk)",
-    "memory: hetzner-box-fixtures (the network site /var/www/ms, the walk's state), model-spend-discipline, playground-counts-queries-not-ms",
-    "tools/box-seed-technews.php (how the first library was seeded)"
+    "docs/handoffs/2026-09-16-s9-the-second-library.md (this: the numbers, the five findings, what is not run)",
+    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (the stories and their tests)",
+    "memory: hetzner-box-fixtures (ms2, vgmls9), tests-never-touch-live-state, playground-counts-queries-not-ms"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "Say the cost before describing: ≈ €0.0048 a picture, 500 ≈ €2.40; a subset of 500 says the same as the whole",
-    "The second library on the network site (/var/www/ms2 or the ms site), never on the tech library's site: its baseline is the reference",
-    "Nathan presses propose, confirm and fill through the screen (A.5); the session takes the sheet on the fill's batch",
-    "The cap K = 8, GROUP_NEAR 0.8, the 60 % put-in and 1/k are judged on the second shape, not moved by feel: if one fails, name which and propose a rule that reads the shape (folder count, pictures per folder), never a new constant",
-    "The tech library's sheet after C.4: sure 87 %, likely 57 % (bars 95 / 80); the misses are the profiles (Components, Launches) and a missing Watches folder — Nathan's re-profiling and his folder, not the engine",
-    "The baseline gate stays frozen for the tech library; the second library gets its own band"
+    "First: read Nathan's marks on the shop sheet and his verdict on K = 8 and the either/or cards — that verdict decides whether S10.5 changes a rule",
+    "S10.0 (one progress component, a bar with a number and an estimate, mocked and approved) goes first and every later story renders through it; S10.1 before S10.2: a confirm that asks about 60 folders instead of 308 is the cheaper and quieter walk, and the stall reproduces on ms2 either way",
+    "S10.4 is mock-first: one line of concept, tools/shoot-mock.mjs, Nathan's yes, then the build",
+    "Every change measured on both sites: the tech baseline 4/4 unchanged, the shop band within 3 % or re-taken with the reason",
+    "Nothing describes; profiling costs credits — say the number before a confirm on ms2; delete vgmls9 when C.5 closes",
+    "The tech library's site is never seeded or filled for this"
   ],
   "gates": [
-    "tests/tree/filing-baseline.txt carries a second band keyed by library, and filing-baseline-check.mjs runs either",
-    "The second library's sheet: 30 sure + 30 likely on the fill's batch, the two numbers in the handoff beside the tech library's",
-    "folders.spec green on the second site at 1600×1000 and 1280×800 (the word budget holds at 300 folders because the parents are closed)",
-    "node tools/verify.mjs filing surface roles escaping copy tree-view → green (escaping 9/10 known)"
+    "folders.spec green on ms2 at both sizes",
+    "S10.1: confirm on the 318-folder tree asks ≤ 60 folders, 0 credits; pick.php row with its mutation",
+    "S10.2: a planted stale lock + past-due event moves pictures on one poll (tests/tree/guide.php), and a Fill on ms2 moves within 30 s of the press",
+    "S10.3: the paste of the 318-folder file settles with counts within 30 s on ms2; the query-count row on Playground",
+    "node tools/verify.mjs filing surface roles escaping copy tree-view seed-shop → green (escaping 9/10 known); both baselines 4/4"
   ]
 }
