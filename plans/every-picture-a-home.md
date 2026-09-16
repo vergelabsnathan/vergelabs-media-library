@@ -660,9 +660,10 @@ mock-first, first in every session).
 - **S13** — S10.8 file by the product (WooCommerce) and the flipped order
   of the steps for structured libraries (the rail mocked); S10.11 the
   opt-in model pass on what is left.
-- **S14** — S10.10 the proposal from the pictures: groups to name and nest,
-  the proposal drawn as thumbnails, the pack's own signals, the tree's size
-  from the shape. Gate: the tech library re-proposed from groups, the sheet
+- **S14** — S10.10 the proposal from the pictures: groups to name and nest
+  (per kind first, so a pack's documents get their own branch — the
+  "kinds have no home" hole closed for bare packs), the proposal drawn as
+  thumbnails, the pack's own signals, the tree's size from the shape. Gate: the tech library re-proposed from groups, the sheet
   re-taken on round 1 — the number beside 34 %.
 
 **Stop points (Nathan).** Every mock before its build; every credit said
