@@ -288,7 +288,7 @@ function vergeml_rest_tree( WP_REST_Request $request ) {
         $nodes[] = array(
             'id'     => (int) $term->term_id,
             'parent' => (int) $term->parent,
-            'name'   => $term->name,
+            'name'   => function_exists( 'vergeml_term_name' ) ? vergeml_term_name( $term ) : $term->name,
             'slug'   => $term->slug,
             'count'  => ( null === $counts )
                 ? (int) $term->count

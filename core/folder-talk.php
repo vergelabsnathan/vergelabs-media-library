@@ -121,12 +121,12 @@ function vergeml_talk_current() {
 		$parent = '';
 
 		if ( $term->parent && isset( $by_id[ (int) $term->parent ] ) ) {
-			$parent = (string) $by_id[ (int) $term->parent ]->name;
+			$parent = vergeml_term_name( $by_id[ (int) $term->parent ] );
 		}
 
 		$out[] = array(
 			'term_id' => (int) $term->term_id,
-			'name'    => (string) $term->name,
+			'name'    => vergeml_term_name( $term ),
 			'parent'  => $parent,
 			'count'   => (int) $term->count,
 		);
@@ -732,7 +732,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 
 		if ( $live instanceof WP_Term ) {
 			$patch = array();
-			if ( (string) $live->name !== (string) $f['name'] ) {
+			if ( vergeml_term_name( $live ) !== (string) $f['name'] ) {
 				$patch['name'] = (string) $f['name'];
 			}
 			if ( (int) $live->parent !== (int) $parent_id && (int) $live->term_id !== (int) $parent_id ) {
@@ -1767,7 +1767,7 @@ function vergeml_talk_undo() {
 		$still = get_term( (int) $term['term_id'], $taxonomy );
 		if ( $still instanceof WP_Term ) {
 			$patch = array();
-			if ( (string) $still->name !== (string) $term['name'] ) {
+			if ( vergeml_term_name( $still ) !== (string) $term['name'] ) {
 				$patch['name'] = (string) $term['name'];
 			}
 			if ( (int) $still->parent !== (int) $parent_id && (int) $still->term_id !== (int) $parent_id ) {
@@ -2068,7 +2068,7 @@ function vergeml_talk_question_text( $q, $taxonomy ) {
 
 	$name = function ( $tid ) use ( $taxonomy ) {
 		$t = $tid ? get_term( (int) $tid, $taxonomy ) : null;
-		return $t instanceof WP_Term ? (string) $t->name : '';
+		return $t instanceof WP_Term ? vergeml_term_name( $t ) : '';
 	};
 	$n = number_format_i18n( (int) $q['count'] );
 

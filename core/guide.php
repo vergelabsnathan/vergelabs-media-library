@@ -185,7 +185,7 @@ function vergeml_folders_nodes( $taxonomy ) {
         $nodes[] = array(
             'id'     => (int) $term->term_id,
             'parent' => (int) $term->parent,
-            'name'   => (string) $term->name,
+            'name'   => vergeml_term_name( $term ),
             'slug'   => (string) $term->slug,
             'count'  => (int) $term->count,
             'color'  => defined( 'VERGEML_TERM_COLOR' ) ? (string) get_term_meta( $term->term_id, VERGEML_TERM_COLOR, true ) : '',

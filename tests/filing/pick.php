@@ -29,6 +29,9 @@ function sanitize_key( $k ) {
 function sanitize_text_field( $t ) {
     return trim( strip_tags( (string) $t ) );
 }
+function wp_specialchars_decode( $t, $q = 0 ) {
+    return html_entity_decode( (string) $t, ENT_QUOTES, 'UTF-8' );
+}
 // The index row's vector, as the fixture stores it: already an array.
 function vergeml_index_vector_out( $packed ) {
     return is_array( $packed ) ? $packed : null;
@@ -293,6 +296,9 @@ $batches = vergeml_filing_profile_batches( $ask );
 f_check( '21 318 folders go as six batches of at most 60, offsets 0..300, each carrying the total', 6 === count( $batches ) && 60 === count( $batches[0]['current'] ) && 18 === count( $batches[5]['current'] ) && array( 0, 60, 120, 180, 240, 300 ) === array_column( $batches, 'offset' ) && 318 === $batches[3]['total'] && 'F300' === $batches[5]['current'][0]['name'], json_encode( array_column( $batches, 'offset' ) ) );
 
 f_check( '22 the charge: 21 folders free; 318 cost 37 (4 + 10 + 10 + 10 + 3); 161 cost 11, rounded up per batch', 0 === vergeml_filing_profile_credits( 21 ) && 0 === vergeml_filing_profile_credits( 100 ) && 37 === vergeml_filing_profile_credits( 318 ) && 11 === vergeml_filing_profile_credits( 161 ) && 4 === vergeml_filing_profile_charge( 60, 60, 318 ) && 0 === vergeml_filing_profile_charge( 0, 60, 318 ), sprintf( '%d %d %d %d', vergeml_filing_profile_credits( 21 ), vergeml_filing_profile_credits( 318 ), vergeml_filing_profile_credits( 161 ), vergeml_filing_profile_charge( 60, 60, 318 ) ) );
+
+// A term name as WordPress stores it (kses: "&" is "&amp;") read back as the person wrote it (C.5). Mutation: the decode removed -> red.
+f_check( '23 a stored "Bags &amp; Luggage" is the folder "Bags & Luggage"; a plain name is itself', 'Bags & Luggage' === vergeml_term_name( (object) array( 'name' => 'Bags &amp; Luggage' ) ) && 'Shoes' === vergeml_term_name( (object) array( 'name' => 'Shoes' ) ) && "Children's books" === vergeml_term_name( 'Children&#039;s books' ), vergeml_term_name( (object) array( 'name' => 'Bags &amp; Luggage' ) ) );
 
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

@@ -69,6 +69,19 @@ const VERGEML_FILING_CLASS_COSINE_FLOOR = 0.6;
 /** Term meta: the profile a re-profiling replaced, for a day's Restore (C.4). */
 const VERGEML_FILING_META_PREV = '_vergeml_filing_profile_prev';
 
+/**
+ *  A folder's name as a person wrote it. WordPress stores an ampersand in a
+ *  term name as "&amp;" (kses on the way in), and every reader here took
+ *  the stored form as the name: on the box's shop catalogue (C.5,
+ *  2026-09-16) "Bags & Luggage" and its thirteen "&" siblings showed as
+ *  "Bags &amp; Luggage" on the tree, never matched their draft rows by
+ *  name, and were profiled from a text that differed from the draft's.
+ */
+function vergeml_term_name( $term ) {
+    $name = is_object( $term ) ? ( isset( $term->name ) ? $term->name : '' ) : $term;
+    return wp_specialchars_decode( (string) $name, ENT_QUOTES );
+}
+
 /*
  *  The profile ask, in batches (C.5). The service answers at most this many
  *  folders a call (its PROFILE_BATCH: the planner returns every folder it
@@ -286,12 +299,12 @@ function vergeml_filing_profile_build( $term, $taxonomy, $seed = array() ) {
     $walk  = $term;
     $guard = 0;
     while ( $walk && ! is_wp_error( $walk ) && $guard++ < 10 ) {
-        $segments = preg_split( '/\s*\/\s*/u', (string) $walk->name );
+        $segments = preg_split( '/\s*\/\s*/u', vergeml_term_name( $walk ) );
         $segments = array_values( array_filter( array_map( 'trim', (array) $segments ), 'strlen' ) );
-        $path     = array_merge( $segments ? $segments : array( (string) $walk->name ), $path );
+        $path     = array_merge( $segments ? $segments : array( vergeml_term_name( $walk ) ), $path );
         $walk     = $walk->parent ? get_term( $walk->parent, $taxonomy ) : null;
     }
-    $leaf = $path ? (string) end( $path ) : (string) $term->name;
+    $leaf = $path ? (string) end( $path ) : vergeml_term_name( $term );
 
     /*
      *  The plan's first class is what the folder is for, so it stays first;
