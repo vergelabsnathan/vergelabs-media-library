@@ -154,11 +154,19 @@ re-reads them by folder path):
   screen (confirm re-profiles only folders without a plan; the way to a fresh
   profile today is Unconfirm → `×` the wrong words / `#` the right ones →
   confirm, or a proposal).
-- The new pools are a different population (sure 340, likely 220): **only 8
-  marks carry over**; the other 52 cards wait for Nathan. The sure 30 hold
+- **The verdict (Nathan, 2026-09-16, on the C.4 dry sheet):**
+
+  ```
+  sure:   26/30 right (87 %, was 73 %, was 47 %)  ·  bar 95  ·  too broad 106549 (a shuttle launch in Space, not Launches), 106489, 106492 (Components)  ·  wrong 106720 (Batteries)
+  likely: 17/30 right (57 %, was 23 %, was 40 %)  ·  bar 80  ·  too broad 106018, 106041, 106082, 106666, 105893 (Hardware as the parent), 106477 (Energy)  ·  wrong 106374, 106366, 106368, 106390 (smartwatches in Phones: no Watches folder), 106784, 105957 (Space), 106696 (Energy)
+  ```
+
+  His notes: the smartwatches have no folder and land in Phones (he reads that
+  as fair); motherboards and the like sit in Hardware where Components is
+  right; cables are too broad; the shuttle launch in Space belongs in
+  Launches. The tool carries these 60 marks (`$bfq_c4`) for the next take. The sure 30 hold
   Components 13, Batteries 5, Laptops 4, Robotics 3, Server racks 2, Phones 2,
-  Wind, Solar, Space; two are already marked wrong (106729, 106074 — the
-  Components profile). The two numbers beside 73 % / 23 % are his to give.
+  Wind, Solar, Space.
 
 ## Not done, and why
 
@@ -210,7 +218,7 @@ Card A — C.5, to `plugin/.harness/active.json`:
     "The second library on the network site (/var/www/ms2 or the ms site), never on the tech library's site: its baseline is the reference",
     "Nathan presses propose, confirm and fill through the screen (A.5); the session takes the sheet on the fill's batch",
     "The cap K = 8, GROUP_NEAR 0.8, the 60 % put-in and 1/k are judged on the second shape, not moved by feel: if one fails, name which and propose a rule that reads the shape (folder count, pictures per folder), never a new constant",
-    "The tech library's dry sheet (2026-09-16-quality-sample-c4-dry.html) has 52 unmarked cards: ask for the marks before anything, and put the two numbers beside 73 % / 23 %",
+    "The tech library's sheet after C.4: sure 87 %, likely 57 % (bars 95 / 80); the misses are the profiles (Components, Launches) and a missing Watches folder — Nathan's re-profiling and his folder, not the engine",
     "The baseline gate stays frozen for the tech library; the second library gets its own band"
   ],
   "gates": [
@@ -251,7 +259,7 @@ Card B — the Folders polish, if C.5 is not bought:
     "The date folders (2026 / September) take the illustrations by their name-derived kinds: whether they exist at all is his",
     "11 likely pictures are desktops with no child to go to: a Desktops folder is a proposal, not a script",
     "fill-walk runs a fill on the box: only with his yes, and the walk's state (61 by hand, 327 in To sort, 30 questions) put back after",
-    "The dry sheet's 52 unmarked cards first"
+    "A Watches folder and the Components/Launches re-profiling are Nathan's to press: propose, do not script"
   ],
   "gates": [
     "residue.php: the split or the picture cap has its row and its mutation",

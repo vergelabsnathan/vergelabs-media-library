@@ -125,6 +125,76 @@ $bfq_dry = array(
     106200 => array( 'likely', 'right', 'People / Conference talks' ),
 );
 
+/*
+ *  The 2026-09-16 verdict on the C.4 dry sheet (seed 133, no fill; Nathan):
+ *  sure 26/30, likely 17/30. His notes: the smartwatches have no folder and
+ *  land in Phones (the four likely wrong there); motherboards and the like sit
+ *  in Hardware where Components is right; cables are too broad; the shuttle
+ *  launch in Space belongs in Launches.
+ */
+$bfq_c4 = array(
+    105996 => array( 'sure', 'right', 'Hardware / Components' ),
+    106452 => array( 'sure', 'right', 'Hardware / Components' ),
+    106660 => array( 'sure', 'right', 'Energy / Batteries' ),
+    105834 => array( 'sure', 'right', 'Data centres / Server racks' ),
+    105926 => array( 'sure', 'right', 'Hardware / Laptops' ),
+    106051 => array( 'sure', 'right', 'Hardware / Components' ),
+    106729 => array( 'sure', 'right', 'Hardware / Components' ),
+    106720 => array( 'sure', 'wrong', 'Energy / Batteries' ),
+    105828 => array( 'sure', 'right', 'Data centres / Server racks' ),
+    106109 => array( 'sure', 'right', 'Hardware / Components' ),
+    106621 => array( 'sure', 'right', 'Energy / Wind' ),
+    106608 => array( 'sure', 'right', 'Energy / Solar' ),
+    106684 => array( 'sure', 'right', 'Robotics' ),
+    106637 => array( 'sure', 'right', 'Energy / Batteries' ),
+    105924 => array( 'sure', 'right', 'Hardware / Laptops' ),
+    106549 => array( 'sure', 'broad', 'Space' ),
+    106451 => array( 'sure', 'right', 'Hardware / Components' ),
+    106489 => array( 'sure', 'broad', 'Hardware / Components' ),
+    105915 => array( 'sure', 'right', 'Hardware / Laptops' ),
+    105887 => array( 'sure', 'right', 'Hardware / Phones' ),
+    106307 => array( 'sure', 'right', 'Robotics' ),
+    105883 => array( 'sure', 'right', 'Hardware / Phones' ),
+    106513 => array( 'sure', 'right', 'Hardware / Components' ),
+    106074 => array( 'sure', 'right', 'Hardware / Components' ),
+    106282 => array( 'sure', 'right', 'Robotics' ),
+    106010 => array( 'sure', 'right', 'Hardware / Components' ),
+    105904 => array( 'sure', 'right', 'Hardware / Laptops' ),
+    106492 => array( 'sure', 'broad', 'Hardware / Components' ),
+    106731 => array( 'sure', 'right', 'Energy / Batteries' ),
+    106025 => array( 'sure', 'right', 'Hardware / Components' ),
+    106497 => array( 'likely', 'right', 'Hardware / Components' ),
+    105999 => array( 'likely', 'right', 'Hardware' ),
+    106217 => array( 'likely', 'right', 'People / Conference talks' ),
+    106018 => array( 'likely', 'broad', 'Hardware' ),
+    106041 => array( 'likely', 'broad', 'Hardware' ),
+    106182 => array( 'likely', 'right', 'People / Conference talks' ),
+    106374 => array( 'likely', 'wrong', 'Hardware / Phones' ),
+    106082 => array( 'likely', 'broad', 'Hardware / Components' ),
+    106666 => array( 'likely', 'broad', 'Hardware' ),
+    106231 => array( 'likely', 'right', 'People / Conference talks' ),
+    106366 => array( 'likely', 'wrong', 'Hardware / Phones' ),
+    106784 => array( 'likely', 'wrong', 'Space' ),
+    105880 => array( 'likely', 'right', 'Hardware' ),
+    106368 => array( 'likely', 'wrong', 'Hardware / Phones' ),
+    106031 => array( 'likely', 'right', 'Hardware' ),
+    106477 => array( 'likely', 'broad', 'Energy' ),
+    106027 => array( 'likely', 'right', 'Hardware' ),
+    105957 => array( 'likely', 'wrong', 'Space' ),
+    105993 => array( 'likely', 'right', 'Hardware' ),
+    105973 => array( 'likely', 'right', 'Hardware' ),
+    105991 => array( 'likely', 'right', 'Hardware' ),
+    106457 => array( 'likely', 'right', 'Hardware' ),
+    106200 => array( 'likely', 'right', 'People / Conference talks' ),
+    106081 => array( 'likely', 'right', 'Hardware / Components' ),
+    105893 => array( 'likely', 'broad', 'Hardware' ),
+    106390 => array( 'likely', 'wrong', 'Hardware / Phones' ),
+    106696 => array( 'likely', 'wrong', 'Energy' ),
+    105916 => array( 'likely', 'right', 'Hardware / Laptops' ),
+    106120 => array( 'likely', 'right', 'Hardware' ),
+    105983 => array( 'likely', 'right', 'Hardware' ),
+);
+
 // The newest live row per picture that names a folder the picture is in now: the row that speaks for the placement.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 $rows = $wpdb->get_results( $wpdb->prepare(
@@ -253,6 +323,8 @@ foreach ( array( 'sure', 'likely' ) as $word ) {
         // Same folder as the fill Nathan marked, or as the C.1 dry sheet he marked: that mark stands. Anything else waits for one.
         if ( $dry && isset( $bfq_mark[ $id ], $was[ $id ] ) && (int) $was[ $id ]['term_id'] === (int) $speaks[ $id ]['term_id'] ) {
             $prefill[ count( $sample ) ] = $bfq_mark[ $id ];
+        } elseif ( $dry && isset( $bfq_c4[ $id ] ) && $bfq_c4[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
+            $prefill[ count( $sample ) ] = $bfq_c4[ $id ][1];
         } elseif ( $dry && isset( $bfq_dry[ $id ] ) && $bfq_dry[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
             $prefill[ count( $sample ) ] = $bfq_dry[ $id ][1];
         }
