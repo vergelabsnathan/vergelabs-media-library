@@ -623,3 +623,51 @@ describes on a second library — his call and his cost.
 - **Do not:** describe the whole of a large second library to prove a
   point (a subset of 500 says the same); run it on the tech library's site
   (the baseline there is the reference).
+
+# Phase D · Folders at catalogue scale, and the number pushed up (2026-09-16, from the C.5 walk)
+
+The spec: `docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md`
+(BMAD shape, stories S10.0–S10.11 with their tests and mutations). Two
+halves. The first is what the 318-folder shape broke or stalled on one
+walk — none of it the matcher's; the second is where the number comes from
+and how it rises on both kinds of library. The bounds today: **sure 34 %**
+where the folder names are not the pictures' words (the tech library) and
+**77 %** where they are (the shop — a fixture that flatters the name match,
+Nathan's point; S10.5b measures a tree the fixture's author did not write).
+
+**The rule of this phase (Nathan, 2026-09-16):** progress is always
+visible — every long step shows a working state with a moving number, a
+disabled button says why, a stalled run says so (S10.0, one component,
+mock-first, first in every session).
+
+**Sessions.**
+
+- **S10** — S10.0 progress everywhere (mock → yes → build); S10.1 the
+  confirm asks only what a planner can add; S10.2 a fill that cannot stall
+  behind a cron lock; S10.3 the dry run at any shape. Gates: `folders.spec`
+  on ms2 at both sizes (the S9 gate not run), both baselines 4/4, the
+  confirm on the 318-folder tree ≤ 1 batch and 0 credits, a Fill moving
+  within 30 s of the press.
+- **S11** — S10.4 the tree at 300 folders (fold, hover preview) and S10.6
+  the media list opens on the pictures (both mock-first, one canvas);
+  S10.5 Nathan's marks on the shop sheet and the verdict on K = 8 and the
+  either/or cards; S10.5b the foreign tree on the same pictures (~36
+  credits, no describes).
+- **S12** — S10.7 the fill learns from its own placements (profile from
+  members; rounds on a bare pack; the first profile on a structured one)
+  and S10.9 the picture's own words as evidence. Gate: the tech library's
+  round 2 ≥ round 1 by 10 points of sure, or the handoff says why.
+- **S13** — S10.8 file by the product (WooCommerce) and the flipped order
+  of the steps for structured libraries (the rail mocked); S10.11 the
+  opt-in model pass on what is left.
+- **S14** — S10.10 the proposal from the pictures: groups to name and nest,
+  the proposal drawn as thumbnails, the pack's own signals, the tree's size
+  from the shape. Gate: the tech library re-proposed from groups, the sheet
+  re-taken on round 1 — the number beside 34 %.
+
+**Stop points (Nathan).** Every mock before its build; every credit said
+before it is spent (the confirm on ms2 ≈ 36 credits today, 0 after S10.1;
+the opt-in pass a credit a picture); the tech library's baseline frozen
+except by re-take with the reason; the shop's band within 3 % or re-taken;
+`vgmls9` deleted when ms2's walk is over. Held behind, unchanged: B.6, the
+`filing-trail.php` row, the Folders polish card's date folders and desktops.

@@ -135,7 +135,7 @@ Card, to `plugin/.harness/active.json`:
 {
   "phase": "Every picture a home — S10: folders at catalogue scale (the epic's stories S10.1–S10.5, in order)",
   "model": "opus",
-  "plan": "plans/every-picture-a-home.md (C.5 walked; the epic docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md)",
+  "plan": "plans/every-picture-a-home.md (Phase D: the sessions S10–S14 and their gates)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
     "core/guide.php (the confirm's ask, the poll's kick, the background fit)",
