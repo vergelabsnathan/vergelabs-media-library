@@ -64,6 +64,11 @@ Each story: one acceptance test written first, one mutation named, measured on *
 - Design first: concept line → mock at 1600 and 1280 (`tools/shoot-mock.mjs --words`) → Nathan's yes → build; `modes.spec` and `shots.spec` cover the list.
 - Test: `modes.spec`: the first row's top ≤ 240 px at 1280×800 with no filter set; the sidebar's height ≥ the viewport's; the tree's first folder visible without scrolling. Mutation: the sticky removed → the height row red.
 
+### S10.5b · A tree the fixture's author did not write
+**Nathan, 2026-09-16:** "you made both the collection of images and the tree — how well would it have performed if you didn't?" Fair: the seed's subjects are product nouns and the leaves are named after them, so most name-only profiles match by construction; the tech library (a newsroom's beats, planner words needed) reads sure 34 % where the shop reads 77 %. A real shop's tree carries names no picture says ("New in", "Summer '26", "Gifts under €50", brands).
+- Rule: same 626 pictures, **no new describes**; a second catalogue lifted from a real retailer's sitemap or category export (marketing names kept, ~300 folders, ≤ 500), pasted on ms2 after Unconfirm + the folders removed (the undo, or a tree restore), confirmed (say the credits first), filled; a second band file (`filing-baseline-shop-b.txt`) and a second sheet. The pair of numbers beside the first shop sheet and the tech sheet is the honest range.
+- What to read from it: how many folders the planner can profile at all (S10.1's rule), how much the vector path carries when names say nothing, and whether the either/or cards still make sense to the owner.
+
 ### Out of this epic
 - The website's inner pages (illustrations, imagery like the homepage) — the site window, not the plugin.
 - B.6 (bulk `term_relationships` write), the `filing-trail.php` row for the reason line — held behind, unchanged.
