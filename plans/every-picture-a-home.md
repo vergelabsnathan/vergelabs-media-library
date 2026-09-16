@@ -401,7 +401,9 @@ MARGIN and SURE do not move**: what changes is what a class hit is worth,
 what a tie means, how a group is formed and named, and what one press costs.
 
 **Sessions.** S7: C.1 + C.2. S8: C.3 + C.4. S9: C.5 (the second library,
-if Nathan buys it). Then the Folders polish card, then B.6.
+walked). S10: the catalogue-scale epic's stories in order
+(`docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md`), then
+the Folders polish card, then B.6.
 
 **The sample's verdict, 2026-09-16** (the sheet, Nathan's marks): sure
 14/30 = 47 % against 95; likely 12/30 = 40 % against 80, 11 too broad. Of
@@ -594,7 +596,7 @@ describes on a second library — his call and his cost.
 - **Do not:** re-profile the box's folders by script to prove it (a
   planner call, metered; Nathan's call, through the screen).
 
-## C.5 · A second library, a different shape — Opus prepares, Nathan pays and judges
+## C.5 · A second library, a different shape — Opus prepares, Nathan pays and judges (walked 2026-09-16, S9: 626 product photos under a 318-folder catalogue on /var/www/ms2, €3.00 of describes + €0.23 of profiling; dry band fits 507/626, sure 482, either 64; five findings, none the matcher's, became the epic `docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md`; the sheet's verdict and the constants' judgement are S10.5; handoff 2026-09-16-s9-the-second-library.md)
 
 - **Files:** `tools/box-seed-*.php` (a new seed script for the second
   library, in the shape of `tools/box-seed-technews.php`),
