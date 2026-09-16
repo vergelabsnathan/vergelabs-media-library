@@ -642,12 +642,10 @@ mock-first, first in every session).
 
 **Sessions.**
 
-- **S10** — S10.0 progress everywhere (mock → yes → build); S10.1 the
-  confirm asks only what a planner can add; S10.2 a fill that cannot stall
-  behind a cron lock; S10.3 the dry run at any shape. Gates: `folders.spec`
-  on ms2 at both sizes (the S9 gate not run), both baselines 4/4, the
-  confirm on the 318-folder tree ≤ 1 batch and 0 credits, a Fill moving
-  within 30 s of the press.
+- **S10 (done 2026-09-16, `docs/handoffs/2026-09-16-s10-folders-at-catalogue-scale.md`)** — S10.0 progress everywhere (mock → yes → build: one row, the shell's bar, the stall pill); S10.1 the
+  confirm asks only what a planner can add — refined by the shape: leaves under a parent never go, parents and the top level go unless a library word (shop 308 → 37, one batch, 0 credits); S10.2 a fill that cannot stall
+  behind a cron lock — the cause was the nudge posting a key it never held; the poll's pass is the guarantee; S10.3 the dry run at any shape (250 k pairs, a job above it). Gates: both baselines 4/4 (the shop re-taken: Nathan's answers made Illustrations and Diagrams), the
+  confirm on the 322-folder tree 1 batch and 0 credits (measured read-only); `folders.spec` on ms2 — see the handoff.
 - **S11** — S10.4 the tree at 300 folders (fold, hover preview) and S10.6
   the media list opens on the pictures (both mock-first, one canvas);
   S10.5 Nathan's marks on the shop sheet and the verdict on K = 8 and the
