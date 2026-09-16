@@ -301,27 +301,34 @@ f_check( '22 the charge: 21 folders free; 318 cost 37 (4 + 10 + 10 + 10 + 3); 16
 f_check( '23 a stored "Bags &amp; Luggage" is the folder "Bags & Luggage"; a plain name is itself', 'Bags & Luggage' === vergeml_term_name( (object) array( 'name' => 'Bags &amp; Luggage' ) ) && 'Shoes' === vergeml_term_name( (object) array( 'name' => 'Shoes' ) ) && "Children's books" === vergeml_term_name( 'Children&#039;s books' ), vergeml_term_name( (object) array( 'name' => 'Bags &amp; Luggage' ) ) );
 
 /*
- *  The confirm asks only what a planner can add (S10.1). A folder whose leaf
- *  name is one of the library's own words -- spelled the one way, or by its
- *  head noun either way round -- is profiled from its name and never sent:
- *  on the shop's 318-folder tree 259 of 308 answers were "nothing". The
- *  vocabulary here is what the describer wrote for a shop: "platform sneaker"
- *  and "headphones" are its words, "bag", "luggage" and "kid" are not.
- *  Mutation: the head-noun match removed -> row 24 red (Sneakers goes).
+ *  The confirm asks only what a planner can add (S10.1). Two rules over the
+ *  shape: a leaf under a parent is profiled from its name whether or not a
+ *  picture says it yet; a parent or a top-level folder goes to the planner
+ *  unless its name is one of the library's own words -- spelled the one way,
+ *  or meeting one at a head noun either way round. On the shop's 322 folders
+ *  308 went before (259 answered "nothing"); 39 go now. The vocabulary here
+ *  is what a describer wrote for a shop: "platform sneaker", "headphones"
+ *  and "running shoe" are its words, "bag", "luggage" and "kid" are not.
+ *  Mutations: the head-noun match removed -> row 24 red (Sneakers and Shoes
+ *  go); the leaf rule removed -> row 24 red (Blouses goes).
  */
-echo "\n== the confirm's ask over the vocabulary (S10.1)\n";
+echo "\n== the confirm's ask over the shape and the vocabulary (S10.1)\n";
 
 $vocab = array( array( 'term' => 'platform sneaker', 'n' => 40 ), array( 'term' => 'footwear', 'n' => 60 ), array( 'term' => 'headphones', 'n' => 12 ), array( 'term' => 'running shoe', 'n' => 9 ), array( 'term' => 'garden chair', 'n' => 3 ) );
-$home  = array();
-$goes  = array();
-foreach ( array( 'Sneakers', 'Headphones', 'Shoes', 'Bags & Luggage', 'Kids', 'Garden' ) as $name ) {
-    if ( vergeml_filing_name_in_vocabulary( $name, $vocab ) ) {
-        $home[] = $name;
-    } else {
-        $goes[] = $name;
-    }
-}
-f_check( '24 {Sneakers (head noun of "platform sneaker"), Headphones (the word), Shoes (head noun of "running shoe")} stay home; {Bags & Luggage, Kids, Garden} go to the planner', array( 'Sneakers', 'Headphones', 'Shoes' ) === $home && array( 'Bags & Luggage', 'Kids', 'Garden' ) === $goes, 'home ' . json_encode( $home ) . ' goes ' . json_encode( $goes ) );
+$tree  = array(
+    array( 'key' => 'sneakers', 'name' => 'Sneakers', 'parent' => '' ),          // top level, the head noun of "platform sneaker": home
+    array( 'key' => 'shoes', 'name' => 'Shoes', 'parent' => '' ),                // top level, the head noun of "running shoe": home
+    array( 'key' => 'audio', 'name' => 'Audio', 'parent' => '' ),                // top level, no picture says it: goes
+    array( 'key' => 'headphones', 'name' => 'Headphones', 'parent' => 'audio' ), // a leaf, and the word itself: home
+    array( 'key' => 'bags', 'name' => 'Bags & Luggage', 'parent' => '' ),        // a parent, not a word: goes
+    array( 'key' => 'backpacks', 'name' => 'Backpacks', 'parent' => 'bags' ),    // a leaf no picture says yet: home, by the shape
+    array( 'key' => 'kids', 'name' => 'Kids', 'parent' => '' ),                  // a parent: goes
+    array( 'key' => 'women', 'name' => 'Women', 'parent' => 'kids' ),            // a parent under a parent, not a word: goes
+    array( 'key' => 'blouses', 'name' => 'Blouses', 'parent' => 'women' ),       // a leaf: home
+    array( 'key' => 'garden', 'name' => 'Garden', 'parent' => '' ),              // top level; "garden chair" ends in chair, not garden: goes
+);
+$goes = vergeml_filing_ask_split( $tree, $vocab );
+f_check( '24 of ten folders five go: Audio, Bags & Luggage, Kids, Women, Garden (parents and the top level no picture names); Sneakers and Shoes stay by a head noun, Headphones by the word, Backpacks and Blouses by being leaves', array( 'audio', 'bags', 'kids', 'women', 'garden' ) === $goes, json_encode( $goes ) );
 
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

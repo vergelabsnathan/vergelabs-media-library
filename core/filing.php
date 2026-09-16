@@ -540,6 +540,43 @@ function vergeml_filing_name_in_vocabulary( $name, $vocabulary ) {
     return false;
 }
 
+/**
+ *  Which folders of a tree a planner can add to (S10.1). Pure, over the
+ *  shape: a leaf under a parent is a concrete noun -- "Blouses", "Kettlebells"
+ *  -- and its name is its class, so it is profiled from the name whether or
+ *  not a picture says it yet (an empty catalogue leaf mostly has none: on the
+ *  shop's 322 folders 177 names were in no picture's words, and the planner
+ *  had answered "nothing" for 259 of the 308 it was asked). A parent, or a
+ *  folder at the top, is a category ("Home", "Sports & Outdoors", "Kids"):
+ *  its name says little, and the planner's classes are what the matcher has
+ *  -- unless the name is already a library word. On the shop that is 37 of
+ *  322: one batch, no credits.
+ *
+ *  @param array $folders    [ { key, name, parent } ], parent a key or ''.
+ *  @param array $vocabulary vergeml_filing_vocabulary()'s rows.
+ *  @return array The keys that go to the planner, in the tree's order.
+ */
+function vergeml_filing_ask_split( $folders, $vocabulary ) {
+    $children = array();
+    foreach ( (array) $folders as $f ) {
+        if ( '' !== (string) $f['parent'] ) {
+            $children[ (string) $f['parent'] ] = true;
+        }
+    }
+    $go = array();
+    foreach ( (array) $folders as $f ) {
+        $key = (string) $f['key'];
+        if ( '' !== (string) $f['parent'] && ! isset( $children[ $key ] ) ) {
+            continue; // A leaf under a parent: its name is its class.
+        }
+        if ( vergeml_filing_name_in_vocabulary( $f['name'], $vocabulary ) ) {
+            continue;
+        }
+        $go[] = $key;
+    }
+    return $go;
+}
+
 /** Profiles for a set of terms, keyed by term id. Terms without one are left out. */
 function vergeml_filing_profiles( $term_ids, $taxonomy ) {
     $out = array();

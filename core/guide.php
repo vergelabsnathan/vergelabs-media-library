@@ -1075,9 +1075,9 @@ function vergeml_guide_profile_ask( $draft ) {
     if ( $ids && function_exists( 'update_termmeta_cache' ) ) {
         update_termmeta_cache( $ids );
     }
-    $current    = array();
-    $want       = array();
-    $vocabulary = null;
+    $current = array();
+    $want    = array();
+    $planner = null;
     foreach ( (array) ( is_array( $draft ) ? $draft['folders'] : array() ) as $i => $f ) {
         if ( ! empty( $f['classes'] ) || ! empty( $f['asked'] ) ) {
             continue;
@@ -1087,16 +1087,17 @@ function vergeml_guide_profile_ask( $draft ) {
             continue; // The draft says nothing about it; it keeps the profile it has.
         }
         /*
-         *  A folder named for one of the library's own words is profiled
-         *  from its name and never sent (S10.1): the planner can add nothing
-         *  to "Sneakers" on a site whose pictures say "platform sneaker",
-         *  and on the shop's 318 folders it answered "nothing" 259 times.
-         *  The vocabulary is read only once a folder gets this far.
+         *  Only what a planner can add (S10.1, vergeml_filing_ask_split): a
+         *  leaf under a parent is profiled from its name, and so is a folder
+         *  named for one of the library's own words; the parents and the top
+         *  level go. On the shop's 322 folders that is 37, one batch, no
+         *  credits, where 308 went before and 259 came back "nothing". Worked
+         *  out once, and only once a folder gets this far.
          */
-        if ( null === $vocabulary ) {
-            $vocabulary = function_exists( 'vergeml_filing_vocabulary' ) ? vergeml_filing_vocabulary( 0 ) : array();
+        if ( null === $planner ) {
+            $planner = array_flip( vergeml_filing_ask_split( $draft['folders'], function_exists( 'vergeml_filing_vocabulary' ) ? vergeml_filing_vocabulary( 0 ) : array() ) );
         }
-        if ( vergeml_filing_name_in_vocabulary( $f['name'], $vocabulary ) ) {
+        if ( ! isset( $planner[ (string) $f['key'] ] ) ) {
             continue;
         }
         $path  = array();
