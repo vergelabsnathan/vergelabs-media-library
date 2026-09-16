@@ -57,6 +57,13 @@ Each story: one acceptance test written first, one mutation named, measured on *
 - Nathan marks `2026-09-16-quality-sample-shop.html` (30 sure of 481, 30 likely of 32) and says what the 45 questions felt like: K = 8, the either/or cards (64 on the dry run), the small-groups card.
 - If a constant fails here, the story is a rule that reads the shape (folder count, pictures per folder), never a new number — as the C.5 card says.
 
+### S10.6 · The media list opens on the pictures, with the folders beside them
+**Nathan, 2026-09-16, on ms2:** "if I open my media library I don't want to scroll past all kinds of filters — bad UX; and the sidebar is too short, make it cover the view at least."
+- Measured (Playwright, `upload.php?mode=list`): at 1280×800 the first row sits at **453 px** — core's filter bar is two rows (*All dates · Necklaces (9) · Term for bulk actions · Filter*, then *Reset all filters*), then the search row, then the bulk-actions row; at 1600×1000 the first row is at 377 px. The sidebar is **677 px tall in an 800 px viewport** (877 in 1000), ending above the page's foot, and the folder tree comes **after** the *Filters* and *AI folders* groups, so a 318-folder tree starts below the fold.
+- Rule: the pictures are the page. One row above the list: the folder pill (the current folder as a chip, the tree beside it), search, and a single *Filter* chip that opens the date/type/term choices only when pressed; *Reset* appears only when something is set. The sidebar is the viewport's full height, sticky, with its own scroll; the **tree first**, the *Filters* and *AI folders* groups collapsed below it (open by the person, remembered).
+- Design first: concept line → mock at 1600 and 1280 (`tools/shoot-mock.mjs --words`) → Nathan's yes → build; `modes.spec` and `shots.spec` cover the list.
+- Test: `modes.spec`: the first row's top ≤ 240 px at 1280×800 with no filter set; the sidebar's height ≥ the viewport's; the tree's first folder visible without scrolling. Mutation: the sticky removed → the height row red.
+
 ### Out of this epic
 - The website's inner pages (illustrations, imagery like the homepage) — the site window, not the plugin.
 - B.6 (bulk `term_relationships` write), the `filing-trail.php` row for the reason line — held behind, unchanged.

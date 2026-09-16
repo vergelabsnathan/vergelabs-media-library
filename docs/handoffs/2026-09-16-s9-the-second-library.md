@@ -142,6 +142,7 @@ Card, to `plugin/.harness/active.json`:
     "core/filing.php (profile_ask over the vocabulary)",
     "core/folder-talk.php (the run's pass from a poll)",
     "js/vergeml-folders.js, js/vergeml-tree-view.js (S10.4 after the mock is approved)",
+    "js/vergeml-tree.js, css/vergeml-tree.css, core/media-list.php (S10.6 after the mock is approved: the list opens on the pictures, the sidebar full height, the tree first)",
     "tests/filing/pick.php, tests/tree/guide.php, tests/tree/tree-view.mjs, tests/ui/folders.spec.mjs",
     "docs/handoffs/**",
     "plans/**"
