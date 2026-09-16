@@ -1,50 +1,35 @@
 {
-  "phase": "Every picture a home — Phase C, S8: C.3 one press, one honest answer (the screen) + C.4 the planner speaks the describer's words (the service seam)",
+  "phase": "Every picture a home — Phase C, S9: C.5 a second library, a different shape (Opus prepares, Nathan pays and judges)",
   "model": "opus",
-  "plan": "plans/every-picture-a-home.md (Phase C: C.3, C.4)",
+  "plan": "plans/every-picture-a-home.md (Phase C: C.5)",
   "spec": "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
   "scope": [
-    "js/vergeml-folders.js",
-    "js/vergeml-tree-view.js",
-    "css/vergeml-folders.css",
-    "core/guide.php",
-    "core/folder-talk.php",
-    "core/filing.php (profile_ask sends the vocabulary; class_match canon fold; the kind-word guard)",
-    "core/post-folders.php (deferred term counting)",
-    "tests/ui/folders.spec.mjs",
-    "tests/ui/fill-fixture.php",
-    "tests/filing/pick.php",
-    "../service/lib/anthropic.ts",
-    "../service/lib/describe.ts",
-    "../service/lib/*.test.ts",
+    "tools/box-seed-*.php (a seed for the second library, in the shape of tools/box-seed-technews.php)",
+    "tests/tree/filing-baseline.txt (a second band keyed by library)",
+    "tools/filing-baseline-check.mjs (--library)",
+    "tests/ui/folders.spec.mjs (the second site at 1600 and 1280)",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-16-s7-the-engine-honest.md (this: the numbers, the 280, the Conference talks cost)",
-    "docs/handoffs/2026-09-15-s6b-deep-dive-the-fill-is-not-honest.md (seams 3 and 4: the screen, the describer → planner)",
-    "plans/every-picture-a-home.md (C.3, C.4 and their proofs)",
-    "core/folder-talk.php vergeml_talk_answer, vergeml_talk_questions; core/guide.php vergeml_guide_rest_answer",
-    "js/vergeml-folders.js onAnswer / renderQuestions / refreshTree",
-    "memory: hooks-block-curl-and-key-paths, tests-never-touch-live-state, model-spend-discipline, ui-less-text-pills"
+    "docs/handoffs/2026-09-16-s8-one-press-the-describers-words.md (this: the numbers, the sheet that waits, the 400 ms reading)",
+    "plans/every-picture-a-home.md (C.5 and its proof; A.5 the walk)",
+    "memory: hetzner-box-fixtures (the network site /var/www/ms, the walk's state), model-spend-discipline, playground-counts-queries-not-ms",
+    "tools/box-seed-technews.php (how the first library was seeded)"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "The box is Nathan's after his walk (61 in Server racks by hand, 327 in To sort); no fill by script; folders.spec plants its own questions and restores",
-    "Time C.3 on both sites — the box (36 plugins, 2.9 s a round trip) and Playground (the plugin's own cost) — and print both rows; the plugin's answer round trip under 400 ms at 30 questions on Playground",
-    "C.4 touches the service: say the cost before any planner or describer call; re-profiling the box's folders is a planner call and Nathan's to press through the screen, not a script",
-    "The baseline gate is frozen: node tools/filing-baseline-check.mjs green after every change, or re-taken with --retake and the reason in the handoff",
-    "The 60-picture sample after C.1+C.2: sure 73 %, likely 23 % (bars 95 / 80). After C.4 the sheet is re-taken dry on seed 133 and the two numbers go beside these; the eight sure misses are the rows to watch (3 Satellites diagram, 3 Components profile, 106552 launches canon, 106405 attendees)",
-    "class_match('rocket launch', 'launches') must be 1.0 after C.4's canon fold (the fold strips one s today); a pick.php row",
-    "The likely word is mostly 'the parent, no child fits' now (11 of 14 too-broad likely are Hardware at 0.60-0.63): C.3 shows the reason on the pill or the card, C.4 gives the children their words; do not move SURE for it",
-    "The 280 in one card is K = 8 on a 435 residue: Nathan's number; propose, do not move it"
+    "Say the cost before describing: ≈ €0.0048 a picture, 500 ≈ €2.40; a subset of 500 says the same as the whole",
+    "The second library on the network site (/var/www/ms2 or the ms site), never on the tech library's site: its baseline is the reference",
+    "Nathan presses propose, confirm and fill through the screen (A.5); the session takes the sheet on the fill's batch",
+    "The cap K = 8, GROUP_NEAR 0.8, the 60 % put-in and 1/k are judged on the second shape, not moved by feel: if one fails, name which and propose a rule that reads the shape (folder count, pictures per folder), never a new constant",
+    "The tech library's sheet after C.4: sure 87 %, likely 57 % (bars 95 / 80); the misses are the profiles (Components, Launches) and a missing Watches folder — Nathan's re-profiling and his folder, not the engine",
+    "The baseline gate stays frozen for the tech library; the second library gets its own band"
   ],
   "gates": [
-    "folders.spec: 30 planted questions incl. one either and one more card; a 409 intercepted → its text on the card; the answer response has no questions[].sample; one childList batch on .vgml-list per answer; the answered card is the same DOM node; timing rows for both sites",
-    "modes.spec: the Placed by hand filter lists exactly the _vergeml_placed_by = user rows; a drag out clears the mark",
-    "vitest: the profile and plan prompts carry the top object terms and the one-folder rule; describe.test.ts: the schema description says 'specific; class'",
-    "tests/filing/pick.php: class_match('data centre','data center') === 1.0; a planner answer with a neighbour's class is dropped and logged; 'diagram' as a class moves to kinds",
-    "folders.spec: class pills on a confirmed-tree row match the stored profile; × removes; #word adds; Unconfirm → Restore puts the previous profile back",
-    "node tools/verify.mjs filing surface roles escaping copy tree-view → green (escaping 9/10 known); node tools/filing-baseline-check.mjs → 4/4 or re-taken with reason"
+    "tests/tree/filing-baseline.txt carries a second band keyed by library, and filing-baseline-check.mjs runs either",
+    "The second library's sheet: 30 sure + 30 likely on the fill's batch, the two numbers in the handoff beside the tech library's",
+    "folders.spec green on the second site at 1600×1000 and 1280×800 (the word budget holds at 300 folders because the parents are closed)",
+    "node tools/verify.mjs filing surface roles escaping copy tree-view → green (escaping 9/10 known)"
   ]
 }
