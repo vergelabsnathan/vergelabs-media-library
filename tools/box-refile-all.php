@@ -3,10 +3,16 @@
  *  Every described picture, filed by evidence against every folder on the
  *  site (core/filing.php). Dry run by default: prints what would move and
  *  what would stay unfiled, and why. VGML_APPLY=1 applies it.
+ *
+ *  VGML_FRESH=1 scores as a first fill would: a picture placed by hand is
+ *  picked like any other (read-only; nothing is unmarked), so the tally sits
+ *  beside a fill's own line. The residue is grouped and the either/or pairs
+ *  listed the way the run's questions would be, without a naming call.
  */
 
 global $wpdb;
 $apply = '1' === (string) getenv( 'VGML_APPLY' );
+$fresh = '1' === (string) getenv( 'VGML_FRESH' );
 $tax   = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
 
 $terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) );
@@ -45,15 +51,55 @@ foreach ( $profiles as $tid => $p ) {
 }
 
 $rows = $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.kind, i.filing, pm.meta_value AS placed_by FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s WHERE i.error = '' AND i.embedding IS NOT NULL ORDER BY i.attachment_id", VERGEML_FILING_PLACED_BY ), ARRAY_A );
+if ( $fresh ) {
+    foreach ( $rows as $k => $r ) { $rows[ $k ]['placed_by'] = ''; }
+}
 $t0 = microtime( true );
 $name = function ( $tid ) use ( $profiles ) { return isset( $profiles[ $tid ] ) ? implode( ' / ', $profiles[ $tid ]['path'] ) : '(none)'; };
 
 // The one function the preview and the run count with: every row picked, the outcomes tallied.
 $counted = vergeml_filing_count( $profiles, $rows );
 $tally   = $counted['counts'];
-printf( "\n=== outcomes (vergeml_filing_count): looked %d = fits %d (sure %d, likely %d) + siblings %d + nothing %d (floor %d, margin %d, gated %d) + kept %d  -> %s\n",
-    $tally['looked'], $tally['fits'], $tally['sure'], $tally['likely'], $tally['siblings'], $tally['nothing'], $tally['why']['floor'], $tally['why']['margin'], $tally['why']['gated'], $tally['kept'],
+printf( "\n=== outcomes (vergeml_filing_count%s): looked %d = fits %d (sure %d, likely %d) + siblings %d + nothing %d (floor %d, margin %d of which either %d, gated %d) + kept %d  -> %s\n",
+    $fresh ? ', fresh' : '',
+    $tally['looked'], $tally['fits'], $tally['sure'], $tally['likely'], $tally['siblings'], $tally['nothing'], $tally['why']['floor'], $tally['why']['margin'], (int) $tally['either'], $tally['why']['gated'], $tally['kept'],
     $tally['looked'] === $tally['fits'] + $tally['siblings'] + $tally['nothing'] + $tally['kept'] && $tally['looked'] === count( $rows ) ? 'they sum to the described total' : 'THEY DO NOT SUM' );
+
+// The questions the run would build from these picks: either/or pairs, then the residue grouped (no naming call).
+$either  = array();
+$residue = array();
+foreach ( $rows as $r ) {
+    $pick = $counted['picks'][ (int) $r['attachment_id'] ];
+    if ( $pick['term_id'] || vergeml_filing_kept( $pick ) ) { continue; }
+    if ( vergeml_filing_is_either( $pick ) ) {
+        $two = array_map( 'intval', $pick['children'] );
+        $key = min( $two ) . ':' . max( $two );
+        $either[ $key ]['ids'][ (int) $r['attachment_id'] ] = $two[0];
+        $either[ $key ]['children'][ $two[0] ] = ( $either[ $key ]['children'][ $two[0] ] ?? 0 ) + 1;
+        $either[ $key ]['children'][ $two[1] ] = $either[ $key ]['children'][ $two[1] ] ?? 0;
+    } else {
+        $facts = vergeml_filing_facts( $r );
+        $facts['pick'] = $pick;
+        $residue[ (int) $r['attachment_id'] ] = $facts;
+    }
+}
+uasort( $either, function ( $a, $b ) { return count( $b['ids'] ) <=> count( $a['ids'] ); } );
+printf( "\n=== either/or pairs (%d), %d pictures\n", count( $either ), array_sum( array_map( function ( $e ) { return count( $e['ids'] ); }, $either ) ) );
+foreach ( array_slice( $either, 0, 15, true ) as $key => $e ) {
+    arsort( $e['children'] );
+    $two = array_keys( $e['children'] );
+    printf( "  %4d  %s (%d) or %s (%d)\n", count( $e['ids'] ), $name( $two[0] ), $e['children'][ $two[0] ], $name( $two[1] ), $e['children'][ $two[1] ] );
+}
+$groups = vergeml_filing_residue_groups( $residue );
+printf( "\n=== residue groups (%d) over %d pictures\n", count( $groups ), count( $residue ) );
+foreach ( $groups as $g ) {
+    $top = array_slice( $g['classes'], 0, 4, true );
+    printf( "  %4d  %-28s %s%s%s  classes: %s\n", $g['count'], ! empty( $g['unreadable'] ) ? '(nothing to go on)' : $g['class'],
+        isset( $g['kind'] ) && '' !== $g['kind'] ? '[' . $g['kind'] . '] ' : '',
+        isset( $g['share'] ) ? sprintf( 'share %.2f ', $g['share'] ) : '',
+        isset( $g['nearest'] ) && $g['nearest'] ? 'nearest ' . $name( $g['nearest'] ) . ' ' : '',
+        implode( ', ', array_map( function ( $c, $n ) { return $c . ' ' . $n; }, array_keys( $top ), $top ) ) );
+}
 
 $into = array(); $why = array(); $moves = array(); $stay = array(); $named = array();
 $pat = '/bike|bicycle|phone|wallet|heart|logo|chart|sneaker|shoe|jeans|bag|tote/i';

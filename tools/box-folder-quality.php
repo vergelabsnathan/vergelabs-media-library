@@ -15,6 +15,16 @@
  *
  *      bash tools/box-folder-quality.sh > docs/superpowers/mocks/shots/<date>-quality-sample.html
  *
+ *  VGML_DRY=1 VGML_SEED=133: the sample the engine as deployed would give
+ *  without a fill -- every picture picked fresh (a hand placement picked like
+ *  any other, nothing written), the pools drawn from those picks on the given
+ *  seed, each card carrying where the last fill put it. A card whose folder
+ *  the new pick keeps carries the earlier verdict's mark (the table below,
+ *  from the 2026-09-16 sheet); one that moved or is newly placed waits for a
+ *  mark. Before the sheet, the earlier 60 are re-read under the new engine:
+ *  right kept, wrong dropped, right lost, moved -- the honest pair of numbers
+ *  for a re-take without a fill.
+ *
  *  Read-only. Nothing is moved, no folder is made, no model is reached.
  */
 
@@ -28,6 +38,23 @@ wp_set_current_user( 1 );
 $tax   = vergeml_librarian_taxonomy();
 $moves = $wpdb->vergeml_librarian_moves;
 $each  = 30;
+$dry   = '1' === (string) getenv( 'VGML_DRY' );
+
+/*
+ *  The 2026-09-16 verdict on batch 133's 60 (Nathan): sure 14/30, likely 12/30
+ *  with 11 too broad. Every id below was on the sheet; the ones not named
+ *  wrong or broad were marked right.
+ */
+$bfq_old = array(
+    'sure'   => array( 106032, 106603, 106029, 106468, 106524, 106027, 106590, 106178, 106224, 106189, 106798, 106724, 106235, 106075, 105857, 106226, 106729, 106280, 106535, 106728, 106209, 106177, 106441, 106074, 106628, 106203, 106061, 105841, 106128, 105969 ),
+    'likely' => array( 106238, 105871, 106467, 106079, 106278, 106102, 106006, 106085, 106631, 106540, 106609, 106461, 105826, 106622, 106611, 105883, 106627, 105932, 105831, 106633, 106003, 105941, 106002, 105875, 105888, 106623, 105846, 106533, 105836, 106614 ),
+    'wrong'  => array( 106603, 106029, 106468, 106027, 106224, 106798, 106075, 106729, 106535, 106728, 106209, 106441, 106074, 106203, 106061, 105969, 106238, 106079, 106085, 105826, 105883, 105875, 105888 ),
+    'broad'  => array( 106102, 106631, 106609, 106622, 106611, 106627, 105932, 106633, 106002, 106623, 106614 ),
+);
+$bfq_mark = array();
+foreach ( array_merge( $bfq_old['sure'], $bfq_old['likely'] ) as $bfq_id ) {
+    $bfq_mark[ $bfq_id ] = in_array( $bfq_id, $bfq_old['wrong'], true ) ? 'wrong' : ( in_array( $bfq_id, $bfq_old['broad'], true ) ? 'broad' : 'right' );
+}
 
 // The newest live row per picture that names a folder the picture is in now: the row that speaks for the placement.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -59,6 +86,65 @@ foreach ( $speaks as $id => $r ) {
     }
 }
 
+$was     = $speaks; // The last fill's placement per picture, for the dry sheet's "was" line.
+$reread  = '';
+$prefill = array();
+
+if ( $dry ) {
+    $terms    = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) );
+    $profiles = vergeml_filing_profiles( array_map( function ( $t ) { return (int) $t->term_id; }, $terms ), $tax );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    $index    = $wpdb->get_results( "SELECT attachment_id, embedding, kind, filing FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL ORDER BY attachment_id", ARRAY_A );
+    $counted  = vergeml_filing_count( $profiles, $index );
+    $picks    = $counted['picks'];
+    $t        = $counted['counts'];
+    $batch    = (int) ( getenv( 'VGML_SEED' ) ?: $batch );
+
+    // The pools, from the picks: the word the fill would put on each picture.
+    $pool   = array( 'sure' => array(), 'likely' => array() );
+    $speaks = array();
+    foreach ( $picks as $id => $pick ) {
+        if ( ! $pick['term_id'] ) {
+            continue;
+        }
+        $row = array( 'term_id' => $pick['term_id'], 'why' => $pick['why'], 'score' => $pick['score'], 'runner_up' => $pick['runner_up'], 'runner_score' => $pick['runner_score'], 'batch_id' => $batch );
+        $word = 'siblings' === $pick['why'] ? 'likely' : $pick['confidence'];
+        if ( isset( $pool[ $word ] ) ) {
+            $pool[ $word ][] = (int) $id;
+            $speaks[ (int) $id ] = $row;
+        }
+    }
+
+    // The earlier 60 under this engine.
+    $lines = array();
+    $sum   = array();
+    foreach ( array( 'sure', 'likely' ) as $word ) {
+        $sum[ $word ] = array( 'right kept' => 0, 'wrong dropped' => 0, 'right lost' => 0, 'wrong kept' => 0, 'moved' => 0, 'broad kept' => 0 );
+        foreach ( $bfq_old[ $word ] as $id ) {
+            $mark = $bfq_mark[ $id ];
+            $old  = isset( $was[ $id ] ) ? (int) $was[ $id ]['term_id'] : 0;
+            $pick = isset( $picks[ $id ] ) ? $picks[ $id ] : null;
+            $new  = $pick ? (int) $pick['term_id'] : 0;
+            if ( $new && $new === $old ) {
+                $fate = 'right' === $mark ? 'right kept' : ( 'broad' === $mark ? 'broad kept' : 'wrong kept' );
+            } elseif ( ! $new ) {
+                $fate = 'right' === $mark ? 'right lost' : 'wrong dropped';
+            } else {
+                $fate = 'moved';
+            }
+            $sum[ $word ][ $fate ]++;
+            $lines[] = sprintf( '%-6s %6d  %-5s  was %-32s  now %-48s  %s', $word, $id, $mark, bfq_path( $old, $tax ), $new ? sprintf( '%s (%s %.2f)', bfq_path( $new, $tax ), $pick['why'], $pick['score'] ) : sprintf( 'nothing (%s %.2f)', $pick ? $pick['why'] : '-', $pick ? $pick['score'] : 0 ), $fate );
+        }
+    }
+    $reread  = sprintf( "engine as deployed, fresh picks over %d: fits %d (sure %d, likely %d) + siblings %d + nothing %d (floor %d, margin %d, either %d, gated %d)\n", $t['looked'], $t['fits'], $t['sure'], $t['likely'], $t['siblings'], $t['nothing'], $t['why']['floor'], $t['why']['margin'], (int) $t['either'], $t['why']['gated'] );
+    $reread .= "the earlier 60 (batch 133, marked 2026-09-16) under this engine:\n";
+    foreach ( $sum as $word => $s ) {
+        $reread .= sprintf( "  %-6s  %s\n", $word, implode( ' · ', array_map( function ( $k, $n ) { return $k . ' ' . $n; }, array_keys( $s ), $s ) ) );
+    }
+    $reread .= implode( "\n", $lines ) . "\n";
+    echo "<!--\n", esc_html( $reread ), "-->\n";
+}
+
 if ( count( $pool['sure'] ) < $each || count( $pool['likely'] ) < $each ) {
     printf( "<!-- not enough to sample: %d sure, %d likely (need %d each) -->\n", count( $pool['sure'] ), count( $pool['likely'] ), $each );
 }
@@ -71,6 +157,10 @@ foreach ( array( 'sure', 'likely' ) as $word ) {
     shuffle( $ids );
     foreach ( array_slice( $ids, 0, $each ) as $id ) {
         $sample[] = array( 'word' => $word, 'id' => $id, 'row' => $speaks[ $id ] );
+        // Same folder as the fill Nathan marked: his mark stands. Anything else waits for one.
+        if ( $dry && isset( $bfq_mark[ $id ], $was[ $id ] ) && (int) $was[ $id ]['term_id'] === (int) $speaks[ $id ]['term_id'] ) {
+            $prefill[ count( $sample ) ] = $bfq_mark[ $id ];
+        }
     }
 }
 
@@ -111,8 +201,14 @@ foreach ( $sample as $s ) {
         $title = wp_basename( (string) get_attached_file( $s['id'] ) );
     }
     $runner  = (int) $r['runner_up'] ? bfq_path( (int) $r['runner_up'], $tax ) : '';
+    $wasline = '';
+    if ( $dry ) {
+        $old     = isset( $was[ $s['id'] ] ) ? (int) $was[ $s['id'] ]['term_id'] : 0;
+        $same    = $old && $old === (int) $r['term_id'];
+        $wasline = sprintf( '<small class="was %s">%s</small>', $same ? 'same' : 'diff', esc_html( $old ? ( $same ? 'same folder as the last fill' : 'last fill: ' . bfq_path( $old, $tax ) ) : 'last fill: not placed' ) );
+    }
     $cards[] = sprintf(
-        '<figure class="c %1$s" data-n="%2$d" data-id="%3$d" data-word="%1$s"><img src="%4$s" alt="" loading="lazy"><figcaption><b>%5$s</b><span class="pill %1$s">%1$s</span><small>%6$s</small><small class="t">#%2$d · <a href="%7$s" target="_blank" rel="noopener">%8$s</a></small></figcaption><div class="mark"><button data-v="right">right</button><button data-v="broad">too broad</button><button data-v="wrong">wrong</button></div></figure>',
+        '<figure class="c %1$s" data-n="%2$d" data-id="%3$d" data-word="%1$s"><img src="%4$s" alt="" loading="lazy"><figcaption><b>%5$s</b><span class="pill %1$s">%1$s</span><small>%6$s</small>%9$s<small class="t">#%2$d · <a href="%7$s" target="_blank" rel="noopener">%8$s</a></small></figcaption><div class="mark"><button data-v="right">right</button><button data-v="broad">too broad</button><button data-v="wrong">wrong</button></div></figure>',
         $s['word'],
         $n,
         $s['id'],
@@ -120,12 +216,13 @@ foreach ( $sample as $s ) {
         esc_html( bfq_path( (int) $r['term_id'], $tax ) ),
         esc_html( sprintf( '%s %.2f%s', $r['why'], (float) $r['score'], '' !== $runner ? sprintf( ' · next %s %.2f', $runner, (float) $r['runner_score'] ) : '' ) ),
         esc_url( admin_url( 'upload.php?item=' . $s['id'] ) ),
-        esc_html( mb_substr( (string) $title, 0, 40 ) )
+        esc_html( mb_substr( (string) $title, 0, 40 ) ),
+        $wasline
     );
 }
 
 $made = wp_date( 'Y-m-d H:i' );
-$head = sprintf( '%d sure of %d · %d likely of %d · fill batch %d · %s', $each, count( $pool['sure'] ), $each, count( $pool['likely'] ), $batch, $made );
+$head = sprintf( '%d sure of %d · %d likely of %d · %s %d · %s%s', $each, count( $pool['sure'] ), $each, count( $pool['likely'] ), $dry ? 'dry, seed' : 'fill batch', $batch, $made, $dry ? sprintf( ' · %d marks carried over', count( $prefill ) ) : '' );
 ?>
 <!doctype html>
 <meta charset="utf-8">
@@ -156,6 +253,7 @@ figure.is-wrong .mark [data-v=wrong]{background:#f3c5c5;font-weight:600}
 figure.is-broad .mark [data-v=broad]{background:#fbeccb;font-weight:600}
 figure.is-broad{outline:2px solid #d9a441}
 figure.is-wrong{outline:2px solid #d66}
+small.was.same{color:#3a7d44}small.was.diff{color:#8a5a00}
 </style>
 <header>
   <h1>Quality sample · <?php echo esc_html( $head ); ?></h1>
@@ -167,8 +265,10 @@ figure.is-wrong{outline:2px solid #d66}
 <div class="grid"><?php echo implode( '', array_slice( $cards, $each ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
 <script>
 (function(){
-  var KEY='vgml-quality-<?php echo (int) $batch; ?>', marks={};
+  var KEY='vgml-quality-<?php echo $dry ? 'dry-' : ''; echo (int) $batch; ?>', marks={};
   try{marks=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+  var carried=<?php echo wp_json_encode( (object) $prefill ); ?>;
+  Object.keys(carried).forEach(function(n){if(!marks[n])marks[n]=carried[n]});
   var figs=[].slice.call(document.querySelectorAll('figure.c'));
   function paint(){
     var t={sure:{r:0,b:0,w:0},likely:{r:0,b:0,w:0}},left=0;
