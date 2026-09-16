@@ -427,7 +427,7 @@ describes on a second library — his call and his cost.
 | the screen is judged on a 36-plugin box (2.9 s a round trip) | C.3's win is measurable only on Playground | C.3 measures both; the box's plugin load is Nathan's to trim |
 | the tests prove fixtures, not the field (A.1–A.4 were green while the box was wrong) | a mutation check cannot see reality | **the sheet is a gate**: every C task ends with the 60-picture sample re-taken on the same seed and its two numbers in the handoff |
 
-## C.1 · The matcher tells folders apart — Opus
+## C.1 · The matcher tells folders apart — Opus (done 2026-09-16, S7: 1/k, second phrase 0.85, leaf name 1.0, either/or; box fresh dry run margin 109 → 39, sure 499 → 264; the baseline gate's outcome band re-taken; handoff 2026-09-16-s7-the-engine-honest.md)
 
 - **Files:** `core/filing.php` (`vergeml_filing_pick`, `_profiles`,
   `_settle_claims`, `_questions`), `core/folder-talk.php` (the run's tally
@@ -471,7 +471,7 @@ describes on a second library — his call and his cost.
   make the numbers look better (C.4 fixes the planner; until then the
   test is the fixture and the dry run).
 
-## C.2 · The residue, grouped and labelled honestly — Opus
+## C.2 · The residue, grouped and labelled honestly — Opus (done 2026-09-16, S7: kind first, 0.95 / 0.8, majority class with share, K = 8, 60 % put-in; the 61 is gone, but on today's residue of 435 the cap folds 280 into the small-groups card — see the handoff)
 
 - **Files:** `core/filing.php` (`vergeml_filing_residue_groups`,
   `_questions`, new `vergeml_filing_group_nearest`), `core/folder-talk.php`
