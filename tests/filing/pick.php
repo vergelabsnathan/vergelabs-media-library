@@ -41,7 +41,8 @@ function vergeml_index_vector_out( $packed ) {
  *  the three folder vectors the tie rows lean on.
  */
 function vergeml_meaning_vector( $text ) {
-    return null;
+    // Row 18 lends three phrase vectors for the floor; everywhere else, none.
+    return isset( $GLOBALS['f_vec'][ $text ] ) ? $GLOBALS['f_vec'][ $text ] : null;
 }
 function vergeml_meaning_similarity( $a, $b ) {
     $dot = 0.0;
@@ -247,6 +248,30 @@ f_check(
 function wp_json_encode_lite( $v ) {
     return json_encode( $v );
 }
+
+/*
+ *  C.4: the canon fold, the cosine floor, the kind-word guard and the
+ *  one-folder drop. Mutations: the spelling table emptied -> row 16 red; the
+ *  plural fold back to rtrim -> row 17 red; the cosine floor removed -> row
+ *  18 red; the kind-word guard removed -> row 19 red; the neighbour drop
+ *  removed -> row 20 red.
+ */
+echo "\n== the words, spelled the one way (C.4)\n";
+
+f_check( '16 class_match: "data centre" and "data center" are the same word', 1.0 === vergeml_filing_class_match( 'data centre', 'data center' ), sprintf( '%.2f', vergeml_filing_class_match( 'data centre', 'data center' ) ) );
+f_check( '17 class_match: "rocket launch" as the picture\'s object hits a folder named Launches in full, as its class half 0.95 (the fold strips "es", not one "s")', 1.0 === vergeml_filing_class_match( 'rocket launch', 'launches', true ) && 0.95 === vergeml_filing_class_match( 'rocket launch', 'launches' ) && 'launch' === vergeml_filing_canon( 'launches' ) && 'battery' === vergeml_filing_canon( 'batteries' ) && 'person' === vergeml_filing_canon( 'people' ) && 'glass' === vergeml_filing_canon( 'glasses' ) && 'server rack' === vergeml_filing_canon( 'Server Racks' ), sprintf( '%.2f · %s · %s · %s', vergeml_filing_class_match( 'rocket launch', 'launches', true ), vergeml_filing_canon( 'launches' ), vergeml_filing_canon( 'batteries' ), vergeml_filing_canon( 'glasses' ) ) );
+f_check( '17b class_match: a phrase whole inside the other is 0.95; the picture\'s head noun as the folder\'s word is 1.0, not the reverse ("rack" is 0.95 of a server rack); unrelated words are 0', 0.95 === vergeml_filing_class_match( 'phone case', 'phones' ) && 1.0 === vergeml_filing_class_match( 'network switches', 'switch', true ) && 0.95 === vergeml_filing_class_match( 'network switches', 'switch' ) && 0.95 === vergeml_filing_class_match( 'rack', 'server racks', true ) && 0.0 === vergeml_filing_class_match( 'banana', 'server rack' ), sprintf( '%.2f %.2f %.2f %.2f', vergeml_filing_class_match( 'phone case', 'phones' ), vergeml_filing_class_match( 'network switches', 'switch', true ), vergeml_filing_class_match( 'rack', 'server racks', true ), vergeml_filing_class_match( 'banana', 'server rack' ) ) );
+
+// The vector path, floored: two phrases at cosine 0.5 are not alike; at 0.7 they are, as 0.7.
+$GLOBALS['f_vec'] = array( 'sofa' => array( 1, 0 ), 'couch' => array( 0.7, 0.714 ), 'banana' => array( 0.5, 0.866 ) );
+f_check( '18 the cosine path is floored at 0.6: sofa/couch 0.70 counts, sofa/banana 0.50 is 0', abs( vergeml_filing_class_match( 'sofa', 'couch' ) - 0.7 ) < 0.01 && 0.0 === vergeml_filing_class_match( 'sofa', 'banana' ), sprintf( '%.3f %.3f', vergeml_filing_class_match( 'sofa', 'couch' ), vergeml_filing_class_match( 'sofa', 'banana' ) ) );
+$GLOBALS['f_vec'] = array();
+
+$seed = vergeml_filing_clean_seed( array( 'classes' => array( 'satellite', 'diagram', 'spacecraft' ), 'kinds' => array( 'photo' ) ), array() );
+f_check( '19 a planner answer with "diagram" as a class: kinds gains it, classes does not', array( 'satellite', 'spacecraft' ) === $seed['classes'] && array( 'photo', 'diagram' ) === $seed['kinds'], json_encode( $seed ) );
+
+$seed = vergeml_filing_clean_seed( array( 'classes' => array( 'electronics component', 'computer hardware', 'semiconductor' ) ), array( 'computer hardware' => 4 ) );
+f_check( '20 a class another folder holds first is dropped and recorded: computer hardware -> Hardware (4)', array( 'electronics component', 'semiconductor' ) === $seed['classes'] && array( 'computer hardware' => 4 ) === $seed['dropped'], json_encode( $seed ) );
 
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

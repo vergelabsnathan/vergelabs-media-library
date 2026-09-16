@@ -63,6 +63,12 @@ const VERGEML_FILING_PLACED_BY = '_vergeml_placed_by';
 /** How much the class match weighs against the vector. */
 const VERGEML_FILING_CLASS_WEIGHT = 0.75;
 
+/** A class match by phrase vectors alone counts from here up; below, two phrases are simply not alike (C.4). */
+const VERGEML_FILING_CLASS_COSINE_FLOOR = 0.6;
+
+/** Term meta: the profile a re-profiling replaced, for a day's Restore (C.4). */
+const VERGEML_FILING_META_PREV = '_vergeml_filing_profile_prev';
+
 /*
  *  Below this, a picture plainly does not match the folder it is sitting in,
  *  and "nothing else fits either" is no reason to leave it there. Out it comes,
@@ -246,6 +252,18 @@ function vergeml_filing_profile_build( $term, $taxonomy, $seed = array() ) {
      *  cycling" ranked bicycle second and tied with Objects, which also holds
      *  bicycles, and every road bike was too close to call.
      */
+    /*
+     *  The seed, cleaned before it is trusted (C.4): a kind word answered as
+     *  a class moves to kinds, and a class some other folder already holds
+     *  first is dropped -- a class belongs to one folder. What was dropped is
+     *  kept on the profile, so the tree can say so.
+     */
+    $taken = array();
+    if ( ! empty( $seed['classes'] ) ) {
+        $taken = vergeml_filing_claimed_classes( $taxonomy, (int) $term->term_id );
+    }
+    $seed = vergeml_filing_clean_seed( $seed, $taken );
+
     $classes = isset( $seed['classes'] ) && is_array( $seed['classes'] ) ? array_values( array_filter( array_map( 'vergeml_filing_name_class', $seed['classes'] ) ) ) : array();
     if ( ! in_array( vergeml_filing_name_class( $leaf ), $classes, true ) ) {
         $classes[] = vergeml_filing_name_class( $leaf );
@@ -287,14 +305,137 @@ function vergeml_filing_profile_build( $term, $taxonomy, $seed = array() ) {
         'kinds'    => $kinds,
         'audience' => $audience,
         'matches'  => $matches,
+        'dropped'  => isset( $seed['dropped'] ) ? (array) $seed['dropped'] : array(),
         'text'     => $text,
         'vector'   => $vector,
         'built_at' => time(),
     );
 
+    /*
+     *  A planned profile replacing a planned one is kept for a day, so a
+     *  confirm's re-profiling can be undone like a Move (Unconfirm -> Restore).
+     *  A rebuild from the name replaces nothing worth keeping.
+     */
+    $was = get_term_meta( $term->term_id, VERGEML_FILING_META, true );
+    if ( $plan && is_array( $was ) && ! empty( $was['plan'] ) && $was['plan'] !== $plan ) {
+        update_term_meta( $term->term_id, VERGEML_FILING_META_PREV, array( 'profile' => $was, 'at' => time() ) );
+    }
+
     update_term_meta( $term->term_id, VERGEML_FILING_META, $profile );
 
     return $profile;
+}
+
+/**
+ *  The first class of every other stored profile in the taxonomy, spelled the
+ *  one way: what a new seed may not claim. A first class is the claim a
+ *  folder makes (vergeml_filing_settle_claims), and a class belongs to one
+ *  folder (C.4); the planner is told so, and this is the plugin holding it to
+ *  that.
+ *
+ *  @return array canon class => term id that holds it first.
+ */
+function vergeml_filing_claimed_classes( $taxonomy, $except ) {
+    $taken = array();
+    $terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids' ) );
+    if ( is_wp_error( $terms ) ) {
+        return $taken;
+    }
+    foreach ( array_map( 'intval', (array) $terms ) as $tid ) {
+        if ( $tid === (int) $except ) {
+            continue;
+        }
+        $meta = get_term_meta( $tid, VERGEML_FILING_META, true );
+        if ( is_array( $meta ) && ! empty( $meta['plan']['classes'] ) ) {
+            $first = vergeml_filing_canon( (string) $meta['plan']['classes'][0] );
+            if ( '' !== $first && ! isset( $taken[ $first ] ) ) {
+                $taken[ $first ] = $tid;
+            }
+        }
+    }
+    return $taken;
+}
+
+/**
+ *  A planner's seed, made honest before it is stored. Pure, so a suite can
+ *  drive it: a class that is a kind word ("diagram") leaves 'classes' for
+ *  'kinds'; a class held first by another folder ($taken: canon class =>
+ *  term id) is dropped and recorded in 'dropped' (class => term id), so the
+ *  tree can say "held by Hardware". The leaf's own name is added afterwards
+ *  by the caller and is never subject to this.
+ */
+function vergeml_filing_clean_seed( $seed, $taken = array() ) {
+    $seed    = is_array( $seed ) ? $seed : array();
+    $classes = isset( $seed['classes'] ) && is_array( $seed['classes'] ) ? $seed['classes'] : array();
+    $kinds   = isset( $seed['kinds'] ) && is_array( $seed['kinds'] ) ? array_values( array_map( 'sanitize_key', $seed['kinds'] ) ) : array();
+    $kept    = array();
+    $dropped = isset( $seed['dropped'] ) && is_array( $seed['dropped'] ) ? $seed['dropped'] : array();
+    $words   = vergeml_filing_kind_words();
+    foreach ( $classes as $c ) {
+        $c     = vergeml_filing_name_class( $c );
+        $canon = vergeml_filing_canon( $c );
+        if ( '' === $c ) {
+            continue;
+        }
+        if ( in_array( $canon, $words, true ) ) {
+            $kind = 'photograph' === $canon ? 'photo' : ( in_array( $canon, array( 'picture', 'image' ), true ) ? '' : $canon );
+            if ( '' !== $kind && ! in_array( $kind, $kinds, true ) ) {
+                $kinds[] = $kind;
+            }
+            continue;
+        }
+        if ( isset( $taken[ $canon ] ) ) {
+            $dropped[ $c ] = (int) $taken[ $canon ];
+            continue;
+        }
+        if ( ! in_array( $c, $kept, true ) ) {
+            $kept[] = $c;
+        }
+    }
+    $seed['classes'] = $kept;
+    if ( $kinds ) {
+        $seed['kinds'] = $kinds;
+    }
+    $seed['dropped'] = $dropped;
+    return $seed;
+}
+
+/**
+ *  The library's own words for what its pictures show, with counts: both
+ *  phrases of every record's object ("server rack; computer hardware"),
+ *  spelled the one way, the most carried first. What the planner is told to
+ *  use and nothing else (C.4).
+ *
+ *  @return array [ { term, n } ], at most $limit.
+ */
+function vergeml_filing_vocabulary( $limit = 80 ) {
+    global $wpdb;
+    if ( ! isset( $wpdb->vergeml_ai_index ) ) {
+        return array();
+    }
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    $rows  = (array) $wpdb->get_col( "SELECT filing FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND filing IS NOT NULL AND filing <> '' ORDER BY described_at DESC LIMIT 5000" );
+    $count = array();
+    $seen  = array();
+    foreach ( $rows as $json ) {
+        $f = json_decode( (string) $json, true );
+        foreach ( vergeml_filing_classes_of_object( is_array( $f ) && isset( $f['object'] ) ? $f['object'] : '' ) as $phrase ) {
+            $key = vergeml_filing_canon( $phrase );
+            if ( '' === $key || in_array( $key, vergeml_filing_kind_words(), true ) ) {
+                continue;
+            }
+            $count[ $key ] = ( isset( $count[ $key ] ) ? $count[ $key ] : 0 ) + 1;
+            if ( ! isset( $seen[ $key ] ) ) {
+                $seen[ $key ] = $phrase; // The first spelling met, as the describer wrote it.
+            }
+        }
+    }
+    arsort( $count );
+    $out = array();
+    foreach ( array_slice( $count, 0, max( 1, (int) $limit ), true ) as $key => $n ) {
+        $out[] = array( 'term' => (string) $seen[ $key ], 'n' => (int) $n );
+    }
+    return $out;
 }
 
 /** Profiles for a set of terms, keyed by term id. Terms without one are left out. */
@@ -388,20 +529,99 @@ function vergeml_filing_on_term_change( $term_id, $tt_id, $taxonomy ) {
 /* ------------------------------------------------------------- matching */
 
 /**
- *  How alike two class phrases are: 1 for the same word, a substring, or a
- *  plural of the other; otherwise the cosine of their short-phrase vectors,
- *  which for "footwear" against "shoes" is high and against "logo" is low.
+ *  One spelling for a class phrase: lowercase, British folded onto American,
+ *  every word singular -- irregulars from a table, then the regular endings
+ *  in the right order ("batteries" -> "battery", "launches" -> "launch",
+ *  "glasses" -> "glass", "racks" -> "rack"). Until 2026-09-16 the match
+ *  stripped one trailing "s" from the whole phrase, so "launches" became
+ *  "launche" and the Launches folder's own name never matched its pictures.
  */
-function vergeml_filing_class_match( $a, $b ) {
+function vergeml_filing_canon( $phrase ) {
+    static $spelling = array(
+        'centre' => 'center', 'centres' => 'centers', 'colour' => 'color', 'colours' => 'colors', 'catalogue' => 'catalog',
+        'catalogues' => 'catalogs', 'organisation' => 'organization', 'organisations' => 'organizations', 'fibre' => 'fiber',
+        'fibres' => 'fibers', 'metre' => 'meter', 'metres' => 'meters', 'theatre' => 'theater', 'theatres' => 'theaters',
+        'tyre' => 'tire', 'tyres' => 'tires', 'aluminium' => 'aluminum', 'grey' => 'gray', 'jewellery' => 'jewelry',
+        'programme' => 'program', 'programmes' => 'programs', 'litre' => 'liter', 'litres' => 'liters', 'mould' => 'mold',
+        'moulds' => 'molds', 'armour' => 'armor', 'harbour' => 'harbor', 'harbours' => 'harbors', 'labour' => 'labor',
+        'favourite' => 'favorite', 'analogue' => 'analog', 'dialogue' => 'dialog', 'defence' => 'defense', 'licence' => 'license',
+        'licences' => 'licenses', 'storey' => 'story', 'storeys' => 'stories', 'cheque' => 'check', 'cheques' => 'checks',
+        'pyjamas' => 'pajamas', 'kerb' => 'curb', 'kerbs' => 'curbs', 'plough' => 'plow', 'ploughs' => 'plows',
+        'sceptical' => 'skeptical', 'travelling' => 'traveling', 'modelling' => 'modeling', 'cancelled' => 'canceled',
+    );
+    static $irregular = array(
+        'people' => 'person', 'men' => 'man', 'women' => 'woman', 'children' => 'child', 'feet' => 'foot', 'teeth' => 'tooth',
+        'mice' => 'mouse', 'geese' => 'goose', 'oxen' => 'ox', 'leaves' => 'leaf', 'shelves' => 'shelf', 'knives' => 'knife',
+        'wolves' => 'wolf', 'halves' => 'half', 'lives' => 'life', 'wives' => 'wife', 'calves' => 'calf', 'loaves' => 'loaf',
+        'scarves' => 'scarf', 'lenses' => 'lens', 'buses' => 'bus', 'cacti' => 'cactus', 'fungi' => 'fungus', 'antennae' => 'antenna',
+        'media' => 'medium', 'data' => 'data', 'series' => 'series', 'species' => 'species', 'glasses' => 'glass',
+        'chassis' => 'chassis', 'analyses' => 'analysis', 'axes' => 'axis', 'indices' => 'index', 'matrices' => 'matrix',
+    );
+    $words = preg_split( '/\s+/u', trim( mb_strtolower( (string) $phrase ) ) );
+    $out   = array();
+    foreach ( (array) $words as $w ) {
+        if ( '' === $w ) {
+            continue;
+        }
+        if ( isset( $spelling[ $w ] ) ) {
+            $w = $spelling[ $w ];
+        }
+        if ( isset( $irregular[ $w ] ) ) {
+            $w = $irregular[ $w ];
+        } elseif ( mb_strlen( $w ) > 3 && preg_match( '/[^aeiou]ies$/u', $w ) ) {
+            $w = mb_substr( $w, 0, -3 ) . 'y';
+        } elseif ( mb_strlen( $w ) > 4 && preg_match( '/(ch|sh|ss|x|z)es$/u', $w ) ) {
+            $w = mb_substr( $w, 0, -2 );
+        } elseif ( mb_strlen( $w ) > 3 && 's' === mb_substr( $w, -1 ) && ! preg_match( '/(ss|us|is)$/u', $w ) ) {
+            $w = mb_substr( $w, 0, -1 );
+        }
+        $out[] = $w;
+    }
+    return implode( ' ', $out );
+}
+
+/** The kind words a describer writes; never a class, whatever a planner answers. */
+function vergeml_filing_kind_words() {
+    return array( 'photo', 'photograph', 'illustration', 'screenshot', 'document', 'diagram', 'logo', 'picture', 'image' );
+}
+
+/**
+ *  How alike two class phrases are: 1 for the same phrase once both are
+ *  spelled the one way (singular, American), or when one is the other's
+ *  head noun ("rocket launch" is a launch); 0.95 when one phrase sits whole
+ *  inside the other; otherwise the cosine of their short-phrase vectors,
+ *  floored at 0.6 -- below that two phrases are not alike at all, and the
+ *  matcher used to add 0.4 for "banana" against "server rack".
+ */
+function vergeml_filing_class_match( $a, $b, $head = false ) {
     $a = trim( mb_strtolower( $a ) );
     $b = trim( mb_strtolower( $b ) );
     if ( '' === $a || '' === $b ) {
         return 0.0;
     }
-    if ( $a === $b || rtrim( $a, 's' ) === rtrim( $b, 's' ) ) {
+    if ( $a === $b ) {
         return 1.0;
     }
-    if ( false !== mb_strpos( ' ' . $a . ' ', ' ' . $b . ' ' ) || false !== mb_strpos( ' ' . $b . ' ', ' ' . $a . ' ' ) ) {
+    $ca = vergeml_filing_canon( $a );
+    $cb = vergeml_filing_canon( $b );
+    if ( $ca === $cb ) {
+        return 1.0;
+    }
+    /*
+     *  The head noun, only when the caller says $a is the picture's object
+     *  (its first phrase): "rocket launch" is the folder's one-word class
+     *  "launch" in full -- a rocket launch is a launch. Not for the picture's
+     *  class half: "desktop pc; computer hardware" against the parent named
+     *  Hardware is 0.95, as it was -- on 2026-09-16 the full hit there lifted
+     *  every too-broad likely in Hardware to sure. And not the reverse: a
+     *  picture that says only "rack" is 0.95 of a server rack.
+     */
+    $wa = explode( ' ', $ca );
+    $wb = explode( ' ', $cb );
+    if ( $head && count( $wa ) > 1 && 1 === count( $wb ) && end( $wa ) === $wb[0] ) {
+        return 1.0;
+    }
+    if ( false !== mb_strpos( ' ' . $ca . ' ', ' ' . $cb . ' ' ) || false !== mb_strpos( ' ' . $cb . ' ', ' ' . $ca . ' ' ) ) {
         return 0.95;
     }
     if ( ! function_exists( 'vergeml_meaning_vector' ) ) {
@@ -412,7 +632,8 @@ function vergeml_filing_class_match( $a, $b ) {
     if ( ! is_array( $va ) || ! is_array( $vb ) ) {
         return 0.0;
     }
-    return max( 0.0, (float) vergeml_meaning_similarity( $va, $vb ) );
+    $cos = (float) vergeml_meaning_similarity( $va, $vb );
+    return $cos >= VERGEML_FILING_CLASS_COSINE_FLOOR ? $cos : 0.0;
 }
 
 /**
@@ -522,7 +743,7 @@ function vergeml_filing_pick( $facts, $profiles ) {
         foreach ( array_values( (array) $facts['classes'] ) as $pi => $pc ) {
             $phrase = 0 === $pi ? 1.0 : 0.85;
             foreach ( array_values( (array) $p['classes'] ) as $rank => $fc ) {
-                $match   = vergeml_filing_class_match( $pc, $fc );
+                $match   = vergeml_filing_class_match( $pc, $fc, 0 === $pi );
                 $is_leaf = '' !== $leaf && vergeml_filing_group_key( $fc ) === $leaf;
                 $weight  = ( 0 === $rank || ( $is_leaf && $match >= 1.0 ) ) ? 1.0 : 0.85;
                 $k       = $is_leaf ? 1 : max( 1, (int) ( isset( $shared[ vergeml_filing_group_key( $fc ) ] ) ? $shared[ vergeml_filing_group_key( $fc ) ] : 1 ) );
@@ -1273,6 +1494,8 @@ function vergeml_filing_profile_ask( $current ) {
                 'instruction' => 'profile',
                 'current'     => array_values( (array) $current ),
                 'samples'     => function_exists( 'vergeml_talk_samples' ) ? vergeml_talk_samples() : array(),
+                // The library's own words, with counts: the profile's classes must be these (C.4).
+                'terms'       => vergeml_filing_vocabulary(),
             ) ),
         )
     );
