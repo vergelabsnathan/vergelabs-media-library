@@ -600,7 +600,16 @@ function vergeml_filing_canon( $phrase ) {
         'media' => 'medium', 'data' => 'data', 'series' => 'series', 'species' => 'species', 'glasses' => 'glass',
         'chassis' => 'chassis', 'analyses' => 'analysis', 'axes' => 'axis', 'indices' => 'index', 'matrices' => 'matrix',
     );
-    $words = preg_split( '/\s+/u', trim( mb_strtolower( (string) $phrase ) ) );
+    // Spelled once per phrase per request: a dry run asks about a few thousand phrases half a million times.
+    static $spelled = array();
+    $phrase = (string) $phrase;
+    if ( isset( $spelled[ $phrase ] ) ) {
+        return $spelled[ $phrase ];
+    }
+    if ( count( $spelled ) > 50000 ) {
+        $spelled = array();
+    }
+    $words = preg_split( '/\s+/u', trim( mb_strtolower( $phrase ) ) );
     $out   = array();
     foreach ( (array) $words as $w ) {
         if ( '' === $w ) {
@@ -620,7 +629,7 @@ function vergeml_filing_canon( $phrase ) {
         }
         $out[] = $w;
     }
-    return implode( ' ', $out );
+    return $spelled[ $phrase ] = implode( ' ', $out );
 }
 
 /** The kind words a describer writes; never a class, whatever a planner answers. */
@@ -637,6 +646,26 @@ function vergeml_filing_kind_words() {
  *  matcher used to add 0.4 for "banana" against "server rack".
  */
 function vergeml_filing_class_match( $a, $b, $head = false ) {
+    /*
+     *  Remembered per pair for the request. A dry run asks this once per
+     *  picture phrase per folder class: 626 pictures against 319 folders on
+     *  the box's shop site (C.5) is some 800,000 asks about a few thousand
+     *  distinct pairs, and spelling the same two phrases the one way each
+     *  time put the run past its twenty-second budget with every vector
+     *  already in hand (21-28 s warm, 2026-09-16).
+     */
+    static $seen = array();
+    $slot = $a . "\0" . $b . "\0" . ( $head ? 1 : 0 );
+    if ( isset( $seen[ $slot ] ) ) {
+        return $seen[ $slot ];
+    }
+    if ( count( $seen ) > 200000 ) {
+        $seen = array();
+    }
+    return $seen[ $slot ] = vergeml_filing_class_match_( $a, $b, $head );
+}
+
+function vergeml_filing_class_match_( $a, $b, $head ) {
     $a = trim( mb_strtolower( $a ) );
     $b = trim( mb_strtolower( $b ) );
     if ( '' === $a || '' === $b ) {
@@ -670,13 +699,26 @@ function vergeml_filing_class_match( $a, $b, $head = false ) {
     if ( ! function_exists( 'vergeml_meaning_vector' ) ) {
         return 0.0;
     }
-    $va = vergeml_meaning_vector( $a );
-    $vb = vergeml_meaning_vector( $b );
-    if ( ! is_array( $va ) || ! is_array( $vb ) ) {
+    $va = vergeml_filing_phrase_vector( $a );
+    $vb = vergeml_filing_phrase_vector( $b );
+    if ( null === $va || null === $vb ) {
         return 0.0;
     }
-    $cos = (float) vergeml_meaning_similarity( $va, $vb );
+    $cos = vergeml_filing_cosine( $va['v'], $va['n'], $vb['v'], $vb['n'] );
     return $cos >= VERGEML_FILING_CLASS_COSINE_FLOOR ? $cos : 0.0;
+}
+
+/** A phrase's vector and its length, asked of the cache once per request: ['v', 'n'], or null when there is none. */
+function vergeml_filing_phrase_vector( $text ) {
+    static $known = array();
+    if ( array_key_exists( $text, $known ) ) {
+        return $known[ $text ];
+    }
+    if ( count( $known ) > 20000 ) {
+        $known = array();
+    }
+    $v = vergeml_meaning_vector( $text );
+    return $known[ $text ] = is_array( $v ) && $v ? array( 'v' => $v, 'n' => vergeml_filing_norm( $v ) ) : null;
 }
 
 /**
@@ -746,6 +788,8 @@ function vergeml_filing_pick( $facts, $profiles ) {
 
     $scores = array();
     $gated  = array();
+    // The picture's vector length once, not once per folder.
+    $pnorm  = is_array( $facts['vector'] ) ? vergeml_filing_norm( $facts['vector'] ) : 0.0;
 
     foreach ( $profiles as $tid => $p ) {
 
@@ -802,8 +846,8 @@ function vergeml_filing_pick( $facts, $profiles ) {
         }
 
         $embed = 0.0;
-        if ( is_array( $facts['vector'] ) && is_array( $p['vector'] ) && function_exists( 'vergeml_meaning_similarity' ) ) {
-            $embed = max( 0.0, (float) vergeml_meaning_similarity( $p['vector'], $facts['vector'] ) );
+        if ( is_array( $facts['vector'] ) && is_array( $p['vector'] ) ) {
+            $embed = max( 0.0, vergeml_filing_cosine( $p['vector'], vergeml_filing_norm( $p['vector'], $tid . ':' . ( isset( $p['built_at'] ) ? $p['built_at'] : 0 ) ), $facts['vector'], $pnorm ) );
         }
 
         $scores[ $tid ] = VERGEML_FILING_CLASS_WEIGHT * $class + ( 1 - VERGEML_FILING_CLASS_WEIGHT ) * $embed;
@@ -886,6 +930,47 @@ function vergeml_filing_pick( $facts, $profiles ) {
         'parent_id'  => vergeml_filing_parent_of( $best, $profiles ),
         'confidence' => $score >= VERGEML_FILING_SURE ? 'sure' : 'likely',
     ) );
+}
+
+/**
+ *  A vector's length, remembered by key when one is given (a folder's, the
+ *  same across every picture of a run); the picture's is asked without a
+ *  key, once per pick. The pair loop below was three products a dimension
+ *  for every picture-folder pair -- 626 pictures against 319 folders on the
+ *  box's shop site (C.5) is 100 million of them -- and two of the three
+ *  never changed between pairs.
+ */
+function vergeml_filing_norm( $v, $key = '' ) {
+    static $known = array();
+    if ( '' !== $key && isset( $known[ $key ] ) ) {
+        return $known[ $key ];
+    }
+    $sum = 0.0;
+    foreach ( $v as $x ) {
+        $sum += $x * $x;
+    }
+    $norm = sqrt( $sum );
+    if ( '' !== $key ) {
+        if ( count( $known ) > 5000 ) {
+            $known = array();
+        }
+        $known[ $key ] = $norm;
+    }
+    return $norm;
+}
+
+/** The cosine of two vectors whose lengths are known: one product a dimension. The same number vergeml_meaning_similarity() gives. */
+function vergeml_filing_cosine( $a, $na, $b, $nb ) {
+    if ( $na <= 0.0 || $nb <= 0.0 ) {
+        return 0.0;
+    }
+    $dot = 0.0;
+    foreach ( $a as $i => $x ) {
+        if ( isset( $b[ $i ] ) ) {
+            $dot += $x * $b[ $i ];
+        }
+    }
+    return $dot / ( $na * $nb );
 }
 
 /** The pick's answer in one shape, whatever it is. */
