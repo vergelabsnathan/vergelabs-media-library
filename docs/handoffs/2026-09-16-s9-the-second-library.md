@@ -154,7 +154,7 @@ Card, to `plugin/.harness/active.json`:
   "handoffDir": "docs/handoffs",
   "stopPoints": [
     "First: run folders.spec on ms2 at 1600×1000 and 1280×800 once Nathan says the questions are answered; then read his marks on the shop sheet and his verdict on K = 8 and the either/or cards — that verdict decides whether S10.5 changes a rule",
-    "S10.1 before S10.2: a confirm that asks about 60 folders instead of 308 is the cheaper and quieter walk, and the stall reproduces on ms2 either way",
+    "S10.0 (one progress component, a bar with a number and an estimate, mocked and approved) goes first and every later story renders through it; S10.1 before S10.2: a confirm that asks about 60 folders instead of 308 is the cheaper and quieter walk, and the stall reproduces on ms2 either way",
     "S10.4 is mock-first: one line of concept, tools/shoot-mock.mjs, Nathan's yes, then the build",
     "Every change measured on both sites: the tech baseline 4/4 unchanged, the shop band within 3 % or re-taken with the reason",
     "Nothing describes; profiling costs credits — say the number before a confirm on ms2; delete vgmls9 when C.5 closes",

@@ -21,6 +21,14 @@ What the second shape proved about the engine (dry, nothing moved): **626 = fits
 
 Each story: one acceptance test written first, one mutation named, measured on **both** sites (the tech library's baseline stays 4/4 throughout).
 
+### S10.0 · Progress, always, the same way everywhere (cross-cutting; first)
+**Nathan, 2026-09-16:** "it is very important to communicate progress to the user at all times … loading, and not nothing, minus 60 — in a UX-friendly, best-practice way."
+- One progress component for the Folders screen (and later the AI screen): a bar with a percentage, the step's own words ("Reading folders · 3 of 6 batches"), an honest estimate when one is known ("about 40 s left", from the batches already done), and an *elapsed since anything moved* line so a stall reads as a stall. Determinate when the total is known (batches, pictures), indeterminate with the elapsed time when it is not. The word budget holds: the bar is one row.
+- Where it goes: the confirm (batches), the paste's dry run (pictures × folders counted), the fill (pictures moved of total), the describe step (already a run with numbers — reads the same component), a disabled button's reason.
+- The interim countdown on the confirm button ("Reading 248 folders") is replaced by this, not kept beside it.
+- Design first: one line of concept, `tools/shoot-mock.mjs`, Nathan's yes. No default spinner, no dots.
+- Test: `tree-view.mjs`/`folders.spec`: the confirm shows the bar at 1/6 after the first batch and hides it at 6/6; the fill's bar moves with `moved`; a run with no tick for 30 s shows the stall line. Mutation: the batch count not passed → the bar stays at 0.
+
 ### S10.1 · The confirm asks only what a planner can add
 **As** a shop owner with a catalogue, **I want** the confirm to profile only the folders whose name is not already one of my pictures' words, **so that** a 318-folder tree costs seconds and cents, not two minutes and 36 credits to hear "nothing" 259 times.
 - Rule that reads the shape: a folder whose leaf name (canon-spelled, plural folded) equals a term in `vergeml_filing_vocabulary()` — or whose head noun does — is profiled from its name (`source: name`), never sent. The planner sees only the rest, with the whole tree's paths as context.
