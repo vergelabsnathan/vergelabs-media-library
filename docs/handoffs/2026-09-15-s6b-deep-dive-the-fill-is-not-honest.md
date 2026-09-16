@@ -222,14 +222,14 @@ each with the test that proves it and the mutation that reddens it.
   live state — its restore rewrites the session).
 - `node tools/deploy.mjs --check` → box up to date after `910748b`.
 
-## Next — S7: Phase C.1 + C.2 (the engine, honest), Opus, fresh session
+## Next — S7: Phase C.1 + C.2 (the engine, honest), Fable 5.1 (fully available 2026-09-16), fresh session
 
 Card, to `plugin/.harness/active.json` before anything:
 
 ```json
 {
   "phase": "Every picture a home — Phase C, S7: C.1 the matcher tells folders apart + C.2 the residue grouped and labelled honestly",
-  "model": "opus",
+  "model": "fable",
   "plan": "plans/every-picture-a-home.md (Phase C)",
   "spec": "docs/superpowers/specs/2026-09-14-every-picture-a-home.md",
   "scope": [
