@@ -73,6 +73,7 @@ the shop band re-taken, the registers. Service: untouched.
   confirm's row → folders.spec width assertion.
 - **`folders.spec` on ms2** (vgmls9, both sizes inside the suite):
   **13 passed** (S9: 12 — the progress row is the new one), 1 skipped (GUIDE_WALK), **4 failed on the same fixture preconditions as S9**, none on the screen: three plants refused (no picture on the shop carries an alt; only 44 described pictures unfiled or in To sort where 60 and 268 are needed) and the profile row (no earlier profile before the second confirm). Test 4 pressed a real confirm on ms2 through the fixture, as S9 did (three planted folders, 0 credits, one planner call). The fixture restored the site. Same class as S8/S9: fixtures written for a library in another state — S11 could give fill-fixture.php a pool from any folder.
+- **After the run, a scare (`9fe2e7a`):** Nathan's tree showed no words on 270 of 322 folders. Nothing was lost — the profiles were intact on the terms — but the tree drew a draft's *empty* word list instead of the stored words, while the confirm reads an empty list as "says nothing" and keeps the profile. Fixed in `vergeml-tree-view.js` (an empty draft list shows the stored words); `tree-view.mjs` C7, red before the fix. Known and open: × on a folder's last word cannot express "no words" — the empty list means "keep"; S11 if it matters.
 - Deploy tool: `deploy.mjs` said "unreachable" when php -l refused a file;
   it prints the complaint now.
 
