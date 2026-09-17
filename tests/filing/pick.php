@@ -471,6 +471,12 @@ $p = vergeml_filing_pick( f_facts( 'cheese wheel; cheese' ), $shop );
 f_check( '30 "cheese wheel; cheese": Cheese 0.7125 outranks Wheels, now 0.675 -- too close to file, so an either/or with Cheese first, never Wheels sure', 'nothing' === $p['outcome'] && 'margin' === $p['why'] && isset( $p['children'] ) && array( 31, 32 ) === array_values( array_map( 'intval', (array) $p['children'] ) ) && abs( $p['scores'][32] - 0.675 ) < 1e-9 && abs( $p['scores'][31] - 0.7125 ) < 1e-9, sprintf( '%s why %s children %s Cheese @%.4f Wheels @%.4f', $p['outcome'], $p['why'], wp_json_encode_lite( isset( $p['children'] ) ? $p['children'] : null ), $p['scores'][31], $p['scores'][32] ) );
 $p = vergeml_filing_pick( f_facts( 'rocket launch; launch' ), $shop );
 f_check( '30b "rocket launch; launch" is still a launch in full: Launches, sure, 0.75', 'fits' === $p['outcome'] && 33 === $p['term_id'] && 'sure' === $p['confidence'] && abs( $p['score'] - 0.75 ) < 1e-9, sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+$home = vergeml_filing_settle_claims( array(
+    34 => f_profile( 34, 0, array( 'Garden', 'Furniture' ), array( 'furniture' ), array( 'source' => 'name' ) ),
+    35 => f_profile( 35, 0, array( 'Home', 'Furniture', 'Sofas' ), array( 'sofas' ), array( 'source' => 'name' ) ),
+) );
+$p = vergeml_filing_pick( f_facts( 'klippan sofa; furniture' ), $home );
+f_check( '30d "klippan sofa; furniture": the class half is the category, not the modifier -- the head noun stands and Sofas takes it, sure (the shop, 2026-09-17: a cap on every class half made this a tie with Garden › Furniture)', 'fits' === $p['outcome'] && 35 === $p['term_id'] && 'sure' === $p['confidence'] && abs( $p['score'] - 0.75 ) < 1e-9, sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
 $p = vergeml_filing_pick( f_facts( 'cheese wheel' ), $shop );
 f_check( '30c "cheese wheel" with no class half: nothing says otherwise, so the head noun stands -- Wheels 0.75 over Cheese 0.7125, a margin either/or as before', 'nothing' === $p['outcome'] && 'margin' === $p['why'] && abs( $p['scores'][32] - 0.75 ) < 1e-9, sprintf( '%s why %s Wheels @%.4f', $p['outcome'], $p['why'], $p['scores'][32] ) );
 

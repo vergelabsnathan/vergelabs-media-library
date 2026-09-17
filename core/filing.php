@@ -1218,13 +1218,22 @@ function vergeml_filing_pick( $facts, $profiles ) {
      *  full means what the folder is for -- its first class or its own name:
      *  on the tech library (2026-09-17) "mobile phone; electronics" lost its
      *  1.0 on Phones because the planner had put "electronics" fourth on
-     *  Batteries, and a right sure placement became a question.
+     *  Batteries, and a right sure placement became a question. And the
+     *  class half must be the phrase's own modifier -- "cheese" of "cheese
+     *  wheel" -- because that is the describer saying the thing is the
+     *  modifier's kind; "klippan sofa; furniture" on the shop names the
+     *  category, the head noun is right, and Sofas lost a sure to Garden ›
+     *  Furniture when the cap read every class half.
      */
     $head  = '';
     $full2 = array();
     if ( isset( $facts['classes'][1] ) ) {
         $words = explode( ' ', vergeml_filing_canon( $facts['classes'][0] ) );
         $head  = count( $words ) > 1 ? (string) end( $words ) : '';
+        $mod   = ' ' . implode( ' ', array_slice( $words, 0, -1 ) ) . ' ';
+        if ( '' !== $head && false === mb_strpos( $mod, ' ' . vergeml_filing_canon( $facts['classes'][1] ) . ' ' ) ) {
+            $head = ''; // The class half is not the modifier: nothing contradicts the head noun.
+        }
         if ( '' !== $head ) {
             foreach ( $profiles as $tid => $p ) {
                 // Only a folder the picture could land in names it: a locked or gated one is nowhere.
