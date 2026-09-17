@@ -573,5 +573,45 @@ f_check( '32c a folder\'s own leaf keeps the hit: "toaster; appliance" under Kit
 $p = vergeml_filing_pick( f_facts( 'soyuz; launch event', array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ) ) ), $gen );
 f_check( '32d the other way round stands: "soyuz; launch event" -- Launches\' "launch" is the head of the half -- Launches, sure', 'fits' === $p['outcome'] && 64 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
 
+/*
+ *  A view of the tree owns nothing (S15, HEMA's first and third findings).
+ *  HEMA repeats its departments under "sale" and "nieuwe collectie": 10 of
+ *  sale's 11 children and 11 of nieuwe collectie's 12 are the tree's own
+ *  top-level names, where a department repeats one in twelve (baby under
+ *  wonen en slapen). The planner, asked what "nieuwe collectie" holds,
+ *  answered with the library's vocabulary -- 24 classes, every other
+ *  parent 3 to 11 -- and the folder took 201 of 626 on round 1. A folder
+ *  more than half of whose children repeat names held outside its own
+ *  subtree is a view: it and everything under it own nothing by words or
+ *  vector, learn nothing from members, and the copy of a name under it is
+ *  never filed into -- the folder of that name elsewhere is the one. A
+ *  class-count rule was judged first and not built: past eight classes
+ *  read from the name alone took HEMA's round 1 from fits 422 to 140 (it
+ *  took buiten en onderweg's 95 with nieuwe collectie's 201). Mutations:
+ *  the view pass removed -> rows 33 and 33a red (a tie with Sale ›
+ *  Electronics); the majority made "any child" -> 33b red.
+ */
+echo "\n== a view of the tree owns nothing (S15)\n";
+
+$store = array(
+    71 => f_profile( 71, 0, array( 'Electronics' ), array( 'electronics' ), array( 'source' => 'name', 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ),
+    72 => f_profile( 72, 0, array( 'Home' ), array( 'home' ), array( 'source' => 'name' ) ),
+    73 => f_profile( 73, 72, array( 'Home', 'Baby' ), array( 'baby' ), array( 'source' => 'name' ) ),
+    74 => f_profile( 74, 72, array( 'Home', 'Furniture' ), array( 'furniture' ), array( 'source' => 'name' ) ),
+    75 => f_profile( 75, 72, array( 'Home', 'Lighting' ), array( 'lighting' ), array( 'source' => 'name' ) ),
+    76 => f_profile( 76, 0, array( 'Baby' ), array( 'baby' ), array( 'source' => 'name' ) ),
+    77 => f_profile( 77, 0, array( 'Sale' ), array( 'electronics', 'furniture', 'lighting', 'baby' ), array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ),
+    78 => f_profile( 78, 77, array( 'Sale', 'Electronics' ), array( 'electronics' ), array( 'source' => 'name', 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ),
+    79 => f_profile( 79, 77, array( 'Sale', 'Home' ), array( 'home' ), array( 'source' => 'name' ) ),
+    80 => f_profile( 80, 77, array( 'Sale', 'Gifts' ), array( 'gifts' ), array( 'source' => 'name' ) ),
+    81 => f_profile( 81, 79, array( 'Sale', 'Home', 'Furniture' ), array( 'furniture' ), array( 'source' => 'name' ) ),
+);
+$views = vergeml_filing_views( $store );
+f_check( '33 Sale (two of three children repeat Electronics and Home) is a view, and so is everything under it: 77, 78, 79, 80, 81 own nothing; Home (Baby is one of three) is not, nor are Electronics and Baby', array( 77, 78, 79, 80, 81 ) === array_keys( array_filter( $views, function ( $p ) { return ! empty( $p['view'] ); } ) ) && array() === $views[77]['classes'] && array() === $views[78]['classes'] && null === $views[78]['vector'] && 77 === $views[81]['view'] && array( 'home' ) === $views[72]['classes'] && array( 'furniture' ) === $views[74]['classes'], json_encode( array( array_keys( array_filter( $views, function ( $p ) { return ! empty( $p['view'] ); } ) ), $views[77]['classes'], $views[72]['classes'] ) ) );
+$p = vergeml_filing_pick( f_facts( 'smart speaker; electronics', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), vergeml_filing_settle_claims( $views ) );
+f_check( '33a "smart speaker; electronics" is the top-level Electronics\', sure, not a tie with Sale › Electronics or Sale (the three held the word at 1/3 each before)', 'fits' === $p['outcome'] && 71 === $p['term_id'] && ( 0 === $p['runner_up'] || $p['runner_score'] < 0.3 ), sprintf( '%s %d @%.4f %s next %d @%.4f', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'], $p['runner_up'], $p['runner_score'] ) );
+$p = vergeml_filing_pick( f_facts( 'crib; baby' ), vergeml_filing_settle_claims( $views ) );
+f_check( '33b Home is not a view: Home › Baby and the top-level Baby still share "baby" (k 2) and tie -- a question, as before', 'nothing' === $p['outcome'] && 'margin' === $p['why'], sprintf( '%s why %s', $p['outcome'], $p['why'] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

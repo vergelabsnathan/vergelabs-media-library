@@ -591,10 +591,86 @@ function vergeml_filing_profiles( $term_ids, $taxonomy ) {
             $out[ (int) $id ] = $p;
         }
     }
-    foreach ( vergeml_filing_members_settle( vergeml_filing_members_layers( array_keys( $out ), $taxonomy ) ) as $id => $layer ) {
+    $out   = vergeml_filing_views( $out );
+    $learn = array_keys( array_filter( $out, function ( $p ) { return empty( $p['view'] ); } ) ); // A view learns nothing from what a person put in it.
+    foreach ( vergeml_filing_members_settle( vergeml_filing_members_layers( $learn, $taxonomy ) ) as $id => $layer ) {
         $out[ $id ] = vergeml_filing_members_apply( $out[ $id ], $layer );
     }
     return vergeml_filing_settle_claims( $out );
+}
+
+/**
+ *  A view of the tree owns nothing (S15, HEMA's tree). A shop repeats its
+ *  departments under "sale" and "nieuwe collectie": ten of sale's eleven
+ *  children and eleven of nieuwe collectie's twelve were the tree's own
+ *  top-level names, where a real department repeats one in twelve ("baby"
+ *  under wonen en slapen). Asked what "nieuwe collectie" holds, the planner
+ *  answered with the library's vocabulary -- 24 classes against 3 to 11 on
+ *  every other parent -- and the folder took 201 of 626 pictures on the
+ *  first round, every one of them some department's. A folder more than
+ *  half of whose children repeat names held higher in the tree is a view,
+ *  not a folder for a kind of thing (higher, because the view's own copy
+ *  of a department repeats that department's children in turn -- sale ›
+ *  home › furniture is deeper than home › furniture, and the department is
+ *  no view for it): it and everything under it keep
+ *  no class and no vector, so nothing lands there by words or by likeness,
+ *  and the copy of a name under it is never filed into -- the folder of
+ *  that name elsewhere is the one. What a person puts there stays (the
+ *  pick never files out of anything but a fill's own placement), and is
+ *  not learned from: a sale is curated, not a kind. Pure; 'view' carries
+ *  the view's own term id on it and on each descendant.
+ *
+ *  Judged first and not built: reading a planner profile past eight
+ *  classes from its name alone took HEMA's round 1 from fits 422 to 140,
+ *  because buiten en onderweg (bicycle, hiking boot, footwear, luggage,
+ *  sport: eleven) is a department.
+ */
+function vergeml_filing_views( $profiles ) {
+    $children = array();
+    $holders  = array();
+    foreach ( $profiles as $tid => $p ) {
+        $children[ (int) ( isset( $p['parent_id'] ) ? $p['parent_id'] : 0 ) ][] = (int) $tid;
+        $holders[ vergeml_filing_canon( isset( $p['path'] ) && $p['path'] ? end( $p['path'] ) : '' ) ][] = (int) $tid;
+    }
+    $under = function ( $tid, $top ) use ( $profiles ) {
+        for ( $steps = 0; $tid && $steps < 32; $steps++ ) {
+            if ( $tid === $top ) {
+                return true;
+            }
+            $tid = isset( $profiles[ $tid ]['parent_id'] ) ? (int) $profiles[ $tid ]['parent_id'] : 0;
+        }
+        return false;
+    };
+    $views = array();
+    foreach ( $children as $pid => $kids ) {
+        if ( ! $pid || ! isset( $profiles[ $pid ] ) ) {
+            continue;
+        }
+        $repeat = 0;
+        foreach ( $kids as $kid ) {
+            $name  = vergeml_filing_canon( end( $profiles[ $kid ]['path'] ) );
+            $depth = count( (array) $profiles[ $kid ]['path'] );
+            foreach ( isset( $holders[ $name ] ) ? $holders[ $name ] : array() as $other ) {
+                if ( $other !== $kid && count( (array) $profiles[ $other ]['path'] ) < $depth ) {
+                    $repeat++;
+                    break;
+                }
+            }
+        }
+        if ( $repeat * 2 > count( $kids ) ) {
+            $views[] = $pid;
+        }
+    }
+    foreach ( $views as $view ) {
+        foreach ( $profiles as $tid => $p ) {
+            if ( empty( $p['view'] ) && $under( (int) $tid, $view ) ) {
+                $profiles[ $tid ]['view']    = $view;
+                $profiles[ $tid ]['classes'] = array();
+                $profiles[ $tid ]['vector']  = null;
+            }
+        }
+    }
+    return $profiles;
 }
 
 
