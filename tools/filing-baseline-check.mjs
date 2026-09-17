@@ -76,6 +76,9 @@ const flag = ( name, fallback = null ) => {
 const LIBRARIES = {
 	tech: { file: 'filing-baseline.txt', wp: '/var/www/wp', url: '', as: '' },
 	shop: { file: 'filing-baseline-shop.txt', wp: '/var/www/ms2', url: 'http://ms2.46.225.66.194.nip.io', as: 'www-data' },
+	// The same 626 pictures under a tree the fixture's author did not write (S10.5b, HEMA's): the site holds one tree at a time,
+	// so this reads whichever is up -- tools/box-tree-snapshot.php puts the C.5 tree back with its ids.
+	'shop-b': { file: 'filing-baseline-shop-b.txt', wp: '/var/www/ms2', url: 'http://ms2.46.225.66.194.nip.io', as: 'www-data' },
 };
 
 const LIBRARY = flag( '--library', 'tech' );
