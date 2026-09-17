@@ -186,11 +186,13 @@ echo "\nF  the dry run at any shape (S10.3)\n\n";
 
 g_check( 'F1 the rule, pure: 1,000 × 500 defers, 626 × 319 does not (the shop\'s 199,694 in 15 s), 500 × 500 sits on the cap and does not', vergeml_guide_fit_defers( 1000, 500 ) && ! vergeml_guide_fit_defers( 626, 319 ) && ! vergeml_guide_fit_defers( 500, 500 ) );
 
-$GLOBALS['g_texts'] = array();
+$GLOBALS['g_texts']  = array();
+$GLOBALS['g_embeds'] = 0; // Every /embed request answered here, counted: the apply must not make one per folder (S15).
 function g_answer( $pre, $args, $url ) {
     if ( false === strpos( $url, '/embed' ) ) {
         return $pre;
     }
+    $GLOBALS['g_embeds']++;
     $body  = isset( $args['body'] ) ? json_decode( (string) $args['body'], true ) : array();
     $texts = isset( $body['texts'] ) ? (array) $body['texts'] : ( isset( $body['text'] ) ? array( $body['text'] ) : array() );
     $out   = array();
@@ -321,7 +323,14 @@ $g_s         = vergeml_guide_fresh();
 $g_s['tree'] = 'confirmed';
 $g_s['draft'] = null;
 vergeml_guide_save( $g_s );
+// The second text's cache emptied for every live folder, so a loop that still asks has to ask (the transients live a week; an earlier apply had warmed them).
+foreach ( get_terms( array( 'taxonomy' => vergeml_librarian_taxonomy(), 'hide_empty' => false ) ) as $g_t ) {
+    $g_p = vergeml_filing_profile( (int) $g_t->term_id, vergeml_librarian_taxonomy() );
+    delete_transient( vergeml_meaning_slot( trim( vergeml_term_name( $g_t ) . '. ' . ( is_array( $g_p ) ? $g_p['matches'] : '' ) ) ) );
+}
+$GLOBALS['g_embeds'] = 0;
 $g_res   = rest_do_request( new WP_REST_Request( 'POST', '/vergeml/v1/guide/apply' ) );
+$g_embeds = (int) $GLOBALS['g_embeds'];
 $g_data  = $g_res->get_data();
 $g_state = get_option( VERGEML_TALK_STATE );
 $g_live  = count( vergeml_folders_nodes( vergeml_librarian_taxonomy() ) );
@@ -341,6 +350,16 @@ foreach ( array( VERGEML_TALK_STATE => $g_state_was, VERGEML_TALK_UNDO => $g_und
 }
 remove_filter( 'pre_http_request', 'g_answer_cron', 1 );
 g_check( sprintf( 'G1 apply on a confirmed tree with no draft starts a run over the %d live folders (200, running, nothing made), never "Nothing moved"', $g_live ), 200 === $g_res->get_status() && isset( $g_data['report']['running'] ) && true === $g_data['report']['running'] && is_array( $g_state ) && $g_live === count( (array) $g_state['ids'] ) && empty( $g_state['remove'] ) && 0 === (int) $g_state['seen'], json_encode( array( 'status' => $g_res->get_status(), 'message' => isset( $g_data['message'] ) ? $g_data['message'] : null, 'running' => isset( $g_data['report']['running'] ) ? $g_data['report']['running'] : null, 'ids' => is_array( $g_state ) ? count( (array) $g_state['ids'] ) : null, 'seen' => is_array( $g_state ) ? $g_state['seen'] : null ) ) );
+
+/*
+ *  The apply asked the service for one vector per folder -- "name. matches",
+ *  a text the paste's dry run never prefetched -- for a state field nothing
+ *  reads (S15): on HEMA's 292 folders that was ~150 of the request's 188 s
+ *  with the button saying "Filling" and no number. The profiles the seed
+ *  builds carry the vector the run files by, already cached by the dry run.
+ *  Mutation: the per-folder vector loop put back -> G2 red (one request a folder).
+ */
+g_check( sprintf( 'G2 the apply makes no /embed request of its own: %d during the apply over %d folders (one a folder before)', $g_embeds, $g_live ), 0 === $g_embeds, (string) $g_embeds );
 
 remove_filter( 'pre_http_request', 'g_answer', 1 );
 foreach ( array_keys( $GLOBALS['g_texts'] ) as $g_text ) {

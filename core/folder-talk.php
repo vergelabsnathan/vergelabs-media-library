@@ -571,27 +571,6 @@ function vergeml_talk_diff( $folders ) {
 
 
 /**
- *  A vector for a folder, from its name and what belongs in it.
- *
- *  One embedding per folder, not per picture. This is the whole reason
- *  re-filing is free.
- *
- * @param array $folder name and matches.
- * @return array|null The projected vector.
- */
-function vergeml_talk_vector( $folder ) {
-
-	if ( ! function_exists( 'vergeml_meaning_vector' ) ) {
-		return null;
-	}
-
-	$text = trim( $folder['name'] . '. ' . $folder['matches'] );
-
-	return vergeml_meaning_vector( $text );
-}
-
-
-/**
  *  The profile a folder is filed against, from what the tree says about it.
  *
  *  The same seed for a folder the Move makes, renames or keeps by name: the
@@ -831,32 +810,31 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 	// -------------------------------------------------------- the vectors
 
 	/*
-	 *  Only the evidence path needs them. A rule says outright which picture
-	 *  goes where, and a folder called "2026 / August" has no meaning a
-	 *  vector could carry.
+	 *  The run files by the profiles the seed just built (vergeml_filing_profiles),
+	 *  each with the vector of its path and classes -- the text the paste's dry
+	 *  run prefetched in one request. Until 2026-09-17 this also asked the
+	 *  service for a second vector per folder ("name. matches", never
+	 *  prefetched) into a state field nothing read: on HEMA's 292 folders that
+	 *  was ~150 of the apply's 188 s, the button saying "Filling" and no number
+	 *  (S15). What is kept is the answer when the service could not be reached
+	 *  at all: a folder whose profile has no vector is not filed into, so a
+	 *  tree with none would fill nothing and say it had.
 	 */
-	$vectors = array();
-
-	foreach ( $assign ? array() : $folders as $f ) {
-
-		$key = vergeml_talk_key( $f['parent'], $f['name'] );
-
-		if ( ! isset( $ids[ $key ] ) ) {
-			continue;
+	if ( ! $assign ) {
+		$profiled = false;
+		foreach ( $ids as $tid ) {
+			$p = function_exists( 'vergeml_filing_profile' ) ? vergeml_filing_profile( (int) $tid, $taxonomy ) : null;
+			if ( is_array( $p ) && ! empty( $p['vector'] ) ) {
+				$profiled = true;
+				break;
+			}
 		}
-
-		$vector = vergeml_talk_vector( $f );
-
-		if ( is_array( $vector ) && $vector ) {
-			$vectors[ $key ] = $vector;
+		if ( ! $profiled ) {
+			return new WP_Error(
+				'no_vectors',
+				__( 'The folders were created, but we could not reach the service to work out what goes in them. Try again in a moment.', 'vergelabs-media-library' )
+			);
 		}
-	}
-
-	if ( ! $vectors && ! $assign ) {
-		return new WP_Error(
-			'no_vectors',
-			__( 'The folders were created, but we could not reach the service to work out what goes in them. Try again in a moment.', 'vergelabs-media-library' )
-		);
 	}
 
 	// ------------------------------------------------------- the re-filing
@@ -967,7 +945,6 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		'active'   => true,
 		'taxonomy' => $taxonomy,
 		'ids'      => $ids,
-		'vectors'  => $vectors,
 		'assign'   => $assign_ids,
 		'fallback' => $fallback_ids,
 		'reasons'  => $reasons,
