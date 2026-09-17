@@ -1,0 +1,325 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Folders — the tree at 300 folders: the fold where the eye starts, a closed parent's children on hover</title>
+
+<!--
+	2026-09-17, S10.4. Nathan, 2026-09-16, on the 318-folder catalogue: "I do
+	not see the expand and collapse button" and "hovering a collapsed folder
+	should reveal the underlying folders from a mini folder".
+
+	Concept, one line: the fold becomes an icon pair at the head's LEFT --
+	the row's own twist glyph, open and closed, in the state switch's box --
+	and a closed parent shows its children as the tree's existing sibling
+	chips in a card under the row while the pointer rests on it (or the row
+	has focus): a preview, the tree's open state untouched.
+
+	Nothing new is drawn: the chevron is the one every row carries, the box
+	is the Changes | All switch's, the chips are .vgml-sib (a small parent's
+	children today), the card is the shell's card (pane, rule, 10 px).
+
+	  head    -- Step 2 on the shop, no draft: the pair first, then the find
+	             box; "Open every folder" was a text chip at the far right.
+	  hover   -- the pointer on Bags & Luggage (closed, 9 folders): the card
+	             under its row, the first ten children as chips with counts,
+	             "+n" for the rest, the row still closed.
+	  draft   -- with a draft open: the pair, then Changes | All, then find.
+
+	Word budget: the pair carries no words (-3 against today), the card is the
+	person's own folder names. ?state=<name> shows one board alone.
+-->
+<link rel="stylesheet" href="../../../css/vergeml-shell.css">
+<link rel="stylesheet" href="../../../css/vergeml-tree-view.css">
+<link rel="stylesheet" href="../../../css/vergeml-folders.css">
+
+<style>
+html, body { margin: 0; }
+body { background: var(--vgml-ground, #f7f9fc); font-family: var(--vgml-font, Inter, system-ui, sans-serif); color: var(--vgml-ink, #101d40); }
+
+.g-pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.g-pill {
+	display: inline-flex; align-items: baseline; gap: 5px;
+	padding: 4px 11px; border-radius: 999px;
+	background: var(--vgml-n200, #e8ecf5); color: var(--vgml-ink, #101d40);
+	font-size: 13px; line-height: 1.3; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.g-pill b { font-weight: 600; }
+.g-pill.is-accent { background: var(--vgml-accent-100, #e9edfc); color: var(--vgml-accent-700, #1e2f9d); }
+
+.g-rail { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.g-step {
+	display: inline-flex; align-items: center; gap: 6px;
+	padding: 6px 14px; border-radius: 999px;
+	border: 1px solid var(--vgml-rule, #d5dbe9); background: transparent;
+	color: var(--vgml-muted, #6f7891); font: inherit; font-size: 13px; line-height: 1.3; cursor: pointer;
+}
+.g-step.is-done { border-color: var(--vgml-n200, #e8ecf5); background: var(--vgml-n200, #e8ecf5); color: var(--vgml-ink, #101d40); }
+.g-step.is-done::before { content: "✓"; font-size: 12px; color: var(--vgml-accent-700, #1e2f9d); }
+.g-step.is-current { border-color: var(--vgml-accent, #2b46d8); background: var(--vgml-accent, #2b46d8); color: #fff; font-weight: 600; }
+
+.g-shell { padding: 22px 24px 24px; max-width: 1180px; }
+.g-head { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+.g-head h1 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.g-cols { max-width: 760px; margin-top: 18px; }
+.g-card { background: var(--vgml-pane, #fff); border: 1px solid var(--vgml-rule, #d5dbe9); border-radius: 10px; padding: 14px 16px 16px; }
+.g-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.g-card-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.g-move { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--vgml-rule, #d5dbe9); flex-wrap: wrap; }
+.g-move .vgml-btn { font-size: 14px; padding: 9px 16px; }
+.g-move .g-quiet { border: 0; background: transparent; padding: 9px 10px; font: inherit; font-size: 13.5px; color: var(--vgml-muted, #6f7891); cursor: pointer; }
+.g-move .g-pill { margin-inline-start: -6px; }
+
+/*  The head, re-ordered (S10.4): the fold pair first, at the left where the
+    eye starts; the state switch beside it while a draft is open; the find
+    box fills what is left. The pair is the switch's box holding two twists:
+    the open one (rotated, as an open row's) and the closed one. The pressed
+    half is the state the tree is in.  */
+.vgml-tv[data-surface="folders"] .vgml-tv-head { justify-content: flex-start; }
+.vgml-tv[data-surface="folders"] .vgml-tv-find { flex: 1 1 200px; max-width: 320px; margin-inline-start: auto; }
+.vgml-tv-foldpair {
+	display: inline-flex; gap: 2px; padding: 2px;
+	border: 1px solid var(--vgml-tv-divider, rgba(16,29,64,.22)); border-radius: 6px; background: #fff;
+}
+.vgml-tv-foldpair button {
+	display: inline-flex; align-items: center; justify-content: center;
+	width: 30px; height: 24px; margin: 0; padding: 0; border: 0; border-radius: 4px;
+	background: none; color: var(--vgml-tv-muted, #6f7891); cursor: pointer;
+}
+.vgml-tv-foldpair button svg { display: block; }
+.vgml-tv-foldpair button.is-open svg { transform: rotate(90deg); }
+.vgml-tv-foldpair button[aria-pressed="true"] { background: var(--vgml-tv-ink, #101d40); color: #fff; }
+.vgml-tv-foldpair button:hover:not([aria-pressed="true"]) { color: var(--vgml-tv-ink, #101d40); background: rgba(16,29,64,.05); }
+
+/*  The hover card: the shell's card under the row, indented to the name,
+    holding the tree's own sibling chips. On the screen it appears after
+    ~250 ms of the pointer resting on a closed parent's row (or on focus),
+    and goes when the pointer leaves the row or the card; the twist still
+    opens the row. Never on an open parent, never on a leaf.  */
+.vgml-tv[data-surface="folders"] .vgml-node.is-peeking > .vgml-row { background: rgba(16,29,64,.03); }
+.vgml-tv-peek {
+	position: absolute; z-index: 4; left: calc(var(--vgml-indent, 0px) + 36px); right: 0; top: 100%; margin-top: -4px;
+	padding: 10px 12px; background: var(--vgml-pane, #fff);
+	border: 1px solid var(--vgml-rule, #d5dbe9); border-radius: 10px;
+	box-shadow: 0 6px 22px rgba(16,29,64,.12);
+	display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center;
+}
+.vgml-tv-peek .vgml-sib { font-size: 13px; padding: 5px 6px 5px 11px; }
+.vgml-tv-peek .vgml-sib.is-empty { color: var(--vgml-tv-muted, #6f7891); }
+.vgml-tv-peek .vgml-sib .vgml-count { padding: 1px 8px; font-size: 12px; margin-inline-start: 0; }
+.vgml-tv-peek .vgml-tv-more { font-size: 12.5px; color: var(--vgml-tv-muted, #6f7891); padding-inline: 2px; }
+
+.mk-label { max-width: 1180px; padding: 28px 24px 0; font-size: 12px; color: var(--vgml-muted); }
+.mk-label b { color: var(--vgml-ink); font-weight: 600; margin-inline-end: 8px; }
+</style>
+
+<template id="chev"><svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M4.2 2.4 L8 6 L4.2 9.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></template>
+
+<!-- ============================================================ board 1: head -->
+<p class="mk-label"><b>head</b> Step 2 on the shop, no draft: the fold pair first, where the eye starts; the find box fills the rest</p>
+<div class="vgml-shell g-shell" data-shot="head">
+	<div class="g-head">
+		<h1>Folders</h1>
+		<div class="g-pills" style="margin:0">
+			<span class="g-pill"><b>626</b> pictures</span>
+			<span class="g-pill"><b>626</b> described</span>
+			<span class="g-pill"><b>318</b> folders</span>
+		</div>
+	</div>
+	<div class="g-rail">
+		<button class="g-step is-done">Describe</button>
+		<button class="g-step is-current" aria-current="step">Tree</button>
+		<button class="g-step">Fill</button>
+		<button class="g-step">Alt text</button>
+		<button class="g-step">Rename</button>
+	</div>
+	<div class="g-cols">
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>Your folders</h2>
+				<div class="g-pills" style="margin:0"><span class="g-pill is-accent"><b>318</b> folders</span></div>
+			</div>
+			<div class="vgml-tv" data-surface="folders" data-tree="shop"></div>
+			<div class="g-move">
+				<button class="vgml-btn vgml-btn-primary">This is my tree</button>
+				<button class="vgml-btn">Propose folders</button>
+				<span class="g-pill"><b>10</b> credits</span>
+				<button class="g-quiet">Skip</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- =========================================================== board 2: hover -->
+<p class="mk-label"><b>hover</b> the pointer resting on Bags &amp; Luggage, closed: its nine folders as chips under the row, the row still closed</p>
+<div class="vgml-shell g-shell" data-shot="hover">
+	<div class="g-head">
+		<h1>Folders</h1>
+		<div class="g-pills" style="margin:0">
+			<span class="g-pill"><b>626</b> pictures</span>
+			<span class="g-pill"><b>626</b> described</span>
+			<span class="g-pill"><b>318</b> folders</span>
+		</div>
+	</div>
+	<div class="g-rail">
+		<button class="g-step is-done">Describe</button>
+		<button class="g-step is-current" aria-current="step">Tree</button>
+		<button class="g-step">Fill</button>
+		<button class="g-step">Alt text</button>
+		<button class="g-step">Rename</button>
+	</div>
+	<div class="g-cols">
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>Your folders</h2>
+				<div class="g-pills" style="margin:0"><span class="g-pill is-accent"><b>318</b> folders</span></div>
+			</div>
+			<div class="vgml-tv" data-surface="folders" data-tree="shop" data-peek="Bags &amp; Luggage"></div>
+			<div class="g-move">
+				<button class="vgml-btn vgml-btn-primary">This is my tree</button>
+				<button class="vgml-btn">Propose folders</button>
+				<span class="g-pill"><b>10</b> credits</span>
+				<button class="g-quiet">Skip</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- =========================================================== board 3: draft -->
+<p class="mk-label"><b>draft</b> a draft open (the tech library after "split Hardware by brand"): the pair, then Changes | All, then find</p>
+<div class="vgml-shell g-shell" data-shot="draft">
+	<div class="g-head">
+		<h1>Folders</h1>
+		<div class="g-pills" style="margin:0">
+			<span class="g-pill"><b>1,000</b> pictures</span>
+			<span class="g-pill"><b>1,000</b> described</span>
+			<span class="g-pill"><b>21</b> folders</span>
+		</div>
+	</div>
+	<div class="g-rail">
+		<button class="g-step is-done">Describe</button>
+		<button class="g-step is-current" aria-current="step">Tree</button>
+		<button class="g-step">Fill</button>
+		<button class="g-step">Alt text</button>
+		<button class="g-step">Rename</button>
+	</div>
+	<div class="g-cols">
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>What the pictures show</h2>
+				<div class="g-pills" style="margin:0"><span class="g-pill is-accent"><b>24</b> folders</span><span class="g-pill"><b>3</b> new</span></div>
+			</div>
+			<div class="vgml-tv" data-surface="folders" data-tree="tech" data-draft="1"></div>
+			<div class="g-move">
+				<button class="vgml-btn vgml-btn-primary">Move 1,000 pictures</button>
+				<button class="g-quiet">Discard</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	var CHEV = document.getElementById( 'chev' ).innerHTML;
+	var TREES = {
+		shop: [
+			[ 'Audio', 6, 28, [ 'headphones', 'speaker' ] ],
+			[ 'Bags & Luggage', 9, 31, [ 'bag', 'luggage' ], [ [ 'Backpacks', 9 ], [ 'Suitcases', 6 ], [ 'Handbags', 8 ], [ 'Wallets', 3 ], [ 'Travel accessories', 2 ], [ 'Duffel bags', 3 ], [ 'Briefcases', 0 ], [ 'Laptop bags', 0 ], [ 'Belt bags', 0 ] ] ],
+			[ 'Beauty', 12, 35, [ 'cosmetics', 'skincare product' ] ],
+			[ 'Books & Music', 8, 12, [ 'book', 'record' ] ],
+			[ 'Cars & Bikes', 11, 11, [ 'car part', 'bicycle' ] ],
+			[ 'Clothing', 38, 50, [ 'garment', 'apparel' ] ],
+			[ 'Electronics', 41, 64, [ 'electronic device', 'gadget' ] ],
+			[ 'Garden', 14, 22, [ 'garden tool', 'plant' ] ],
+			[ 'Home', 52, 88, [ 'furniture', 'homeware' ] ],
+			[ 'Kids', 19, 26, [ 'toy', 'children\'s clothing' ] ],
+			[ 'Sports & Outdoors', 44, 71, [ 'sports equipment', 'outdoor gear' ] ],
+			[ 'Tools', 18, 39, [ 'hand tool', 'power tool' ] ]
+		],
+		tech: [
+			[ '2026', 1, 0, [] ],
+			[ 'Data centres', 2, 108, [ 'infrastructure', 'networking equipment' ] ],
+			[ 'Energy', 3, 59, [ 'renewable energy infrastructure', 'renewable energy equipment' ] ],
+			[ 'Hardware', 6, 318, [ 'computer hardware', 'computer', 'computer peripheral' ], null, 'change' ],
+			[ 'People', 2, 67, [ 'people', 'event' ] ],
+			[ 'Robotics', 0, 37, [ 'robotics', 'machinery' ] ],
+			[ 'Space', 2, 59, [ 'spacecraft', 'infrastructure' ] ],
+			[ 'To sort', 0, 352, [] ]
+		]
+	};
+	function fmt( n ) { return String( n ).replace( /\B(?=(\d{3})+(?!\d))/g, ',' ); }
+	function pill( cls, text ) { var s = document.createElement( 'span' ); s.className = cls; s.textContent = text; return s; }
+
+	document.querySelectorAll( '.vgml-tv[data-tree]' ).forEach( function ( tv ) {
+		var rows = TREES[ tv.dataset.tree ];
+		var draft = !! tv.dataset.draft;
+		var peek = tv.dataset.peek || '';
+
+		var head = document.createElement( 'div' );
+		head.className = 'vgml-tv-head';
+		head.innerHTML =
+			'<div class="vgml-tv-foldpair" role="group" aria-label="Open or close every folder">'
+			+ '<button type="button" class="is-open" aria-pressed="false" aria-label="Open every folder" title="Open every folder">' + CHEV + '</button>'
+			+ '<button type="button" aria-pressed="true" aria-label="Close every folder" title="Close every folder">' + CHEV + '</button>'
+			+ '</div>'
+			+ ( draft ? '<div class="vgml-tv-switch" role="group" aria-label="Which folders to show"><button type="button" class="vgml-tv-state" aria-pressed="true">Changes 8</button><button type="button" class="vgml-tv-state" aria-pressed="false">All 24</button></div>' : '' )
+			+ '<div class="vgml-tv-find"><input type="search" class="vgml-tv-search" placeholder="Find a folder" aria-label="Find a folder"></div>';
+		tv.appendChild( head );
+
+		var list = document.createElement( 'ul' );
+		list.className = 'vgml-list';
+		list.setAttribute( 'role', 'tree' );
+		rows.forEach( function ( r ) {
+			var li = document.createElement( 'li' );
+			li.className = 'vgml-node' + ( 'change' === r[ 5 ] ? ' is-change' : '' ) + ( peek === r[ 0 ] ? ' is-peeking' : '' );
+			li.setAttribute( 'role', 'treeitem' );
+			li.setAttribute( 'aria-level', '1' );
+			if ( r[ 1 ] ) { li.setAttribute( 'aria-expanded', 'false' ); }
+			var row = document.createElement( 'div' );
+			row.className = 'vgml-row';
+			row.style.setProperty( '--vgml-indent', '0px' );
+			row.innerHTML = '<button class="vgml-twist' + ( r[ 1 ] ? '' : ' is-leaf' ) + '" type="button" tabindex="-1" aria-hidden="true">' + ( r[ 1 ] ? CHEV : '' ) + '</button><span class="vgml-handle" aria-hidden="true">⋮⋮</span>';
+			row.appendChild( pill( 'vgml-name', r[ 0 ] ) );
+			if ( r[ 1 ] ) { row.appendChild( pill( 'vgml-meta', r[ 1 ] + ( 1 === r[ 1 ] ? ' folder' : ' folders' ) ) ); }
+			if ( r[ 3 ].length ) {
+				var cl = document.createElement( 'span' );
+				cl.className = 'vgml-classes';
+				r[ 3 ].slice( 0, 3 ).forEach( function ( w ) {
+					var p = pill( 'vgml-class g-pill is-quiet', w );
+					var x = document.createElement( 'button' ); x.type = 'button'; x.className = 'vgml-unclass'; x.tabIndex = -1; x.textContent = '×'; x.setAttribute( 'aria-label', 'Remove the word ' + w );
+					p.appendChild( x );
+					cl.appendChild( p );
+				} );
+				row.appendChild( cl );
+			}
+			if ( r[ 2 ] ) { row.appendChild( pill( 'vgml-count g-pill', fmt( r[ 2 ] ) ) ); }
+			li.appendChild( row );
+			if ( peek === r[ 0 ] && r[ 4 ] ) {
+				var card = document.createElement( 'div' );
+				card.className = 'vgml-tv-peek';
+				card.setAttribute( 'role', 'group' );
+				card.setAttribute( 'aria-label', 'Folders inside ' + r[ 0 ] );
+				r[ 4 ].slice( 0, 10 ).forEach( function ( k ) {
+					var s = pill( 'vgml-sib' + ( k[ 1 ] ? '' : ' is-empty' ), k[ 0 ] );
+					if ( k[ 1 ] ) { s.appendChild( pill( 'vgml-count g-pill', fmt( k[ 1 ] ) ) ); }
+					card.appendChild( s );
+				} );
+				if ( r[ 4 ].length > 10 ) { card.appendChild( pill( 'vgml-tv-more', '+' + ( r[ 4 ].length - 10 ) + ' more' ) ); }
+				li.appendChild( card );
+			}
+			list.appendChild( li );
+		} );
+		tv.appendChild( list );
+		if ( ! draft ) {
+			var foot = document.createElement( 'div' );
+			foot.style.cssText = 'margin-top:10px';
+			foot.innerHTML = '<button type="button" class="vgml-btn" style="font-size:13.5px;padding:7px 12px">+ New folder</button>';
+			tv.appendChild( foot );
+		}
+	} );
+
+	var want = new URLSearchParams( location.search ).get( 'state' );
+	if ( want ) {
+		document.querySelectorAll( '[data-shot]' ).forEach( function ( b ) {
+			b.hidden = b.dataset.shot !== want;
+			b.previousElementSibling.hidden = true;
+		} );
+	}
+</script>

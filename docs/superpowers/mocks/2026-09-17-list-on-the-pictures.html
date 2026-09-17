@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The media list opens on the pictures, the folders beside them</title>
+<!--
+	2026-09-17, S10.6. Nathan, 2026-09-16, on ms2: "if I open my media library
+	I don't want to scroll past all kinds of filters — bad UX; and the sidebar
+	is too short, make it cover the view at least."
+
+	Measured (S10.6 in the spec): at 1280×800 the first row sits at 453 px --
+	core's two filter rows, the search row, the bulk-actions row -- and the
+	sidebar is 677 px tall in an 800 px viewport, the tree after the Filters
+	and AI folders groups.
+
+	Concept, one line: the pictures are the page -- ONE row above the list
+	(the current folder as a chip, search, a single Filter chip that opens
+	core's date / type / term choices only when pressed, Reset only when
+	something is set, the list|grid switch and the count at the right); the
+	sidebar the viewport's full height, sticky, its own scroll, the tree
+	first and the Filters and AI folders groups collapsed below it.
+
+	Nothing new is drawn: the chips are the shell's pills, the popover is the
+	shell's card, the sidebar is today's panel with its groups re-ordered.
+	Core's controls keep their names; they move into the popover.
+
+	  list        -- 1280×800, no filter set, Clothing › Men open in the tree:
+	                 the first row at ~190 px, the sidebar to the foot.
+	  filter-open -- the Filter chip pressed: core's four choices in a card.
+	  selected    -- two rows checked: Move to folder… and Delete appear in
+	                 the row, in place of the folder chip, until unchecked.
+
+	The list is core's table; the word budget is the plugin's row: 9 words.
+	?state=<name> shows one board alone; --viewports shoots each at size.
+-->
+<style>
+:root {
+	--mk-ink: #101d40; --mk-muted: #6f7891; --mk-accent: #2b46d8; --mk-accent-100: #e9edfc; --mk-accent-700: #1e2f9d;
+	--mk-rule: #d5dbe9; --mk-n100: #f4f6fb; --mk-n200: #e8ecf5; --mk-n700: #545d75; --mk-pane: #fff;
+	--mk-wp: #1d2327; --mk-wp-text: #c3c4c7; --mk-wp-cur: #2271b1; --mk-wp-bg: #f0f0f1;
+	--mk-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--mk-wp-bg); color: var(--mk-ink); font-family: var(--mk-font); font-size: 13px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+.mk-label { padding: 10px 16px 6px; font-size: 12px; color: var(--mk-muted); }
+.mk-label b { color: var(--mk-ink); font-weight: 600; margin-right: 8px; }
+
+/* The WordPress frame, full viewport. */
+.wp { display: flex; flex-direction: column; height: 100vh; min-height: 640px; }
+.adminbar { flex: none; height: 32px; background: var(--mk-wp); color: var(--mk-wp-text); display: flex; align-items: center; gap: 22px; padding: 0 12px; font-size: 13px; }
+.adminbar b { color: #fff; font-weight: 500; }
+.wpbody { flex: 1; display: flex; min-height: 0; }
+.wpmenu { flex: none; width: 160px; background: var(--mk-wp); color: #f0f0f1; padding: 8px 0; font-size: 13.5px; }
+.wpmenu div { padding: 7px 12px; }
+.wpmenu .cur { background: var(--mk-wp-cur); color: #fff; }
+.wpmenu .sub { padding-left: 22px; font-size: 12.5px; color: #c3c4c7; }
+.wpmenu .sub.on { color: #fff; font-weight: 600; }
+.wpcontent { flex: 1; min-width: 0; display: flex; align-items: stretch; }
+
+/* The sidebar: today's panel, the viewport's height, its own scroll, the tree first. */
+.side {
+	flex: none; width: 300px; margin: 20px 0 0 20px; align-self: stretch;
+	display: flex; flex-direction: column; min-height: 0;
+	background: var(--mk-pane); border: 1px solid var(--mk-rule); border-bottom: 0; border-radius: 10px 10px 0 0;
+	position: sticky; top: 0;
+}
+.side-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 12px 12px 10px; }
+.side-head .back { width: 30px; height: 30px; border-radius: 999px; background: var(--mk-n200); display: grid; place-items: center; color: var(--mk-n700); font-size: 12px; }
+.side-head h2 { margin: 0; font-size: 14px; font-weight: 600; flex: 1; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 6px; border: 1px solid var(--mk-rule); background: #fff; color: var(--mk-ink); font: inherit; font-size: 13px; cursor: default; white-space: nowrap; }
+.btn.primary { background: var(--mk-accent); border-color: var(--mk-accent); color: #fff; font-weight: 600; }
+.btn.quiet { border-color: transparent; color: var(--mk-muted); background: transparent; }
+.side-find { flex: none; padding: 0 12px 10px; }
+.side-find input { width: 100%; padding: 7px 10px; border: 1px solid var(--mk-rule); border-radius: 6px; font: inherit; font-size: 13px; }
+.side-note { flex: none; margin: 0 12px 6px; padding: 6px 10px; border-radius: 6px; background: var(--mk-accent-100); color: var(--mk-accent-700); font-size: 12.5px; display: flex; justify-content: space-between; }
+.tree { flex: 1; min-height: 0; overflow: auto; padding: 0 6px 6px; }
+.node { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; color: var(--mk-n700); font-size: 13.5px; }
+.node .tw { width: 12px; color: var(--mk-muted); font-size: 11px; text-align: center; flex: none; }
+.node .fo { width: 16px; height: 12px; border-radius: 2px; background: #9aa6c4; flex: none; }
+.node .fo.open { background: #6f7fb0; }
+.node .fo.empty { background: transparent; border: 1px solid #9aa6c4; }
+.node .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node .n { font-size: 12px; color: var(--mk-muted); background: var(--mk-n200); padding: 1px 8px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.node.on { background: var(--mk-accent-100); color: var(--mk-accent-700); font-weight: 600; }
+.node.on .n { background: rgba(43,70,216,.12); color: var(--mk-accent-700); }
+.node.d1 { padding-left: 28px; } .node.d2 { padding-left: 48px; }
+.groups { flex: none; border-top: 1px solid var(--mk-rule); padding: 6px 12px 10px; }
+.group { display: flex; align-items: center; gap: 8px; padding: 7px 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted); font-weight: 600; }
+.group .tw { font-size: 11px; }
+
+/* The pictures. */
+.main { flex: 1; min-width: 0; padding: 20px 20px 0 20px; display: flex; flex-direction: column; }
+.title { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; }
+.title h1 { margin: 0; font-size: 22px; font-weight: 500; letter-spacing: -.01em; }
+.title .btn { font-size: 13px; color: var(--mk-wp-cur); border-color: var(--mk-wp-cur); }
+
+/*  The one row: the folder chip, search, Filter, then the switch and the
+    count at the right. Every chip is the shell's pill.  */
+.bar { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--mk-n200); color: var(--mk-ink); font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chip b { font-weight: 600; }
+.chip.is-accent { background: var(--mk-accent-100); color: var(--mk-accent-700); }
+.chip .x { color: var(--mk-muted); font-size: 12px; margin-left: 2px; }
+.chip.is-btn { background: #fff; border: 1px solid var(--mk-rule); }
+.chip.is-btn.on { border-color: var(--mk-accent); color: var(--mk-accent-700); }
+.chip.is-quiet { background: transparent; color: var(--mk-muted); padding-inline: 4px; }
+.search { flex: 1 1 200px; max-width: 320px; padding: 7px 12px; border: 1px solid var(--mk-rule); border-radius: 999px; font: inherit; font-size: 13px; background: #fff; }
+.right { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; }
+.switch { display: inline-flex; border: 1px solid var(--mk-rule); border-radius: 6px; overflow: hidden; background: #fff; }
+.switch span { padding: 5px 10px; color: var(--mk-muted); font-size: 12.5px; }
+.switch span.on { background: var(--mk-ink); color: #fff; }
+.pages { color: var(--mk-muted); font-variant-numeric: tabular-nums; font-size: 12.5px; display: inline-flex; gap: 8px; align-items: center; }
+.pages i { font-style: normal; padding: 0 5px; }
+
+/* The popover: the shell's card under the Filter chip, core's four choices. */
+.pop-wrap { position: relative; }
+.pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 3; width: 300px; padding: 12px 14px 14px; background: var(--mk-pane); border: 1px solid var(--mk-rule); border-radius: 10px; box-shadow: 0 6px 22px rgba(16,29,64,.12); }
+.pop label { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--mk-muted); font-weight: 600; margin: 8px 0 4px; }
+.pop label:first-child { margin-top: 0; }
+.sel { display: flex; justify-content: space-between; padding: 6px 10px; border: 1px solid #8c8f94; border-radius: 4px; background: #fff; color: var(--mk-n700); font-size: 13px; }
+.sel i { font-style: normal; color: #646970; font-size: 11px; }
+.pop .foot { display: flex; gap: 8px; margin-top: 12px; }
+
+/* Core's table, untouched but for its top: the header row is the first line. */
+.table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #c3c4c7; font-size: 13px; table-layout: fixed; }
+.table th { text-align: left; font-weight: 400; color: var(--mk-wp-cur); padding: 9px 10px; border-bottom: 1px solid #c3c4c7; }
+.table td { padding: 10px 10px; border-bottom: 1px solid #f0f0f1; vertical-align: middle; }
+.table .cb { width: 36px; } .table .cb input { margin: 0; }
+.table .thumb { width: 74px; } .table .thumb i { display: block; width: 60px; height: 60px; border-radius: 4px; background: linear-gradient(135deg,#c8d2e8,#9fb0d4); }
+.file b { display: block; font-weight: 600; color: var(--mk-wp-cur); }
+.file .meta { color: var(--mk-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.file .meta .you { display: inline-block; padding: 0 8px; border-radius: 999px; background: #ffd84d; color: var(--mk-ink); font-size: 11.5px; margin: 0 2px; }
+.table .who { width: 90px; color: var(--mk-muted); } .table .when { width: 110px; color: var(--mk-muted); }
+tr.sel td { background: var(--mk-n100); }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ board 1: list -->
+<p class="mk-label"><b>list</b> 1280×800, nothing set, Clothing › Men open: one row above the pictures, the sidebar to the foot</p>
+<div class="wp" data-shot="list">
+	<div class="adminbar"><b>ms2</b><span>Ctrl+K</span><span>+ New</span><span style="margin-left:auto">Howdy, vgmls9</span></div>
+	<div class="wpbody">
+		<div class="wpmenu"><div>Dashboard</div><div>Posts</div><div class="cur">Media</div><div class="sub on">Library</div><div class="sub">Add Media File</div><div class="sub">Media Categories</div><div>Pages</div><div>Comments</div><div>VergeLabs Library</div><div>Appearance</div><div>Plugins</div><div>Users</div><div>Tools</div><div>Settings</div></div>
+		<div class="wpcontent">
+			<div class="side" data-side>
+				<div class="side-head"><span class="back">‹</span><h2>Media Categories</h2><span class="btn primary">New folder</span><span class="btn">Upload</span></div>
+				<div class="side-find"><input type="search" placeholder="Search folders"></div>
+				<div class="side-note"><span>8 files are not in a folder</span><span>Sort them</span></div>
+				<div class="tree" data-tree></div>
+				<div class="groups">
+					<div class="group"><span class="tw">›</span>Filters</div>
+					<div class="group"><span class="tw">›</span>AI folders</div>
+				</div>
+			</div>
+			<div class="main">
+				<div class="title"><h1>Media Library</h1><span class="btn">Add Media File</span></div>
+				<div class="bar" data-bar>
+					<span class="chip is-accent"><b>Clothing › Men</b> 5 <span class="x">×</span></span>
+					<input class="search" type="search" placeholder="Search media">
+					<span class="chip is-btn">Filter</span>
+					<span class="right">
+						<span class="switch"><span class="on">List</span><span>Grid</span></span>
+						<span class="pages">5 items</span>
+					</span>
+				</div>
+				<table class="table" data-table></table>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- ===================================================== board 2: filter-open -->
+<p class="mk-label"><b>filter-open</b> the Filter chip pressed: core's four choices in a card, Reset only once one is set</p>
+<div class="wp" data-shot="filter-open">
+	<div class="adminbar"><b>ms2</b><span>Ctrl+K</span><span>+ New</span><span style="margin-left:auto">Howdy, vgmls9</span></div>
+	<div class="wpbody">
+		<div class="wpmenu"><div>Dashboard</div><div>Posts</div><div class="cur">Media</div><div class="sub on">Library</div><div class="sub">Add Media File</div><div class="sub">Media Categories</div><div>Pages</div><div>Comments</div><div>VergeLabs Library</div><div>Appearance</div><div>Plugins</div><div>Users</div><div>Tools</div><div>Settings</div></div>
+		<div class="wpcontent">
+			<div class="side" data-side>
+				<div class="side-head"><span class="back">‹</span><h2>Media Categories</h2><span class="btn primary">New folder</span><span class="btn">Upload</span></div>
+				<div class="side-find"><input type="search" placeholder="Search folders"></div>
+				<div class="side-note"><span>8 files are not in a folder</span><span>Sort them</span></div>
+				<div class="tree" data-tree="all"></div>
+				<div class="groups">
+					<div class="group"><span class="tw">›</span>Filters</div>
+					<div class="group"><span class="tw">›</span>AI folders</div>
+				</div>
+			</div>
+			<div class="main">
+				<div class="title"><h1>Media Library</h1><span class="btn">Add Media File</span></div>
+				<div class="bar" data-bar>
+					<span class="chip"><b>All files</b> 626</span>
+					<input class="search" type="search" placeholder="Search media">
+					<span class="pop-wrap">
+						<span class="chip is-btn on">Filter · 1</span>
+						<div class="pop">
+							<label>Date</label><div class="sel">All dates <i>▾</i></div>
+							<label>Type</label><div class="sel">All media items <i>▾</i></div>
+							<label>Placed</label><div class="sel">Placed by hand (32) <i>▾</i></div>
+							<label>Term for bulk actions</label><div class="sel">— <i>▾</i></div>
+							<div class="foot"><span class="btn primary">Apply</span><span class="btn quiet">Reset</span></div>
+						</div>
+					</span>
+					<span class="right">
+						<span class="switch"><span class="on">List</span><span>Grid</span></span>
+						<span class="pages">626 items <i>«</i><i>‹</i> 1 of 32 <i>›</i><i>»</i></span>
+					</span>
+				</div>
+				<table class="table" data-table="all"></table>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- ======================================================== board 3: selected -->
+<p class="mk-label"><b>selected</b> two rows checked: the two bulk actions take the folder chip's place until nothing is checked</p>
+<div class="wp" data-shot="selected">
+	<div class="adminbar"><b>ms2</b><span>Ctrl+K</span><span>+ New</span><span style="margin-left:auto">Howdy, vgmls9</span></div>
+	<div class="wpbody">
+		<div class="wpmenu"><div>Dashboard</div><div>Posts</div><div class="cur">Media</div><div class="sub on">Library</div><div class="sub">Add Media File</div><div class="sub">Media Categories</div><div>Pages</div><div>Comments</div><div>VergeLabs Library</div><div>Appearance</div><div>Plugins</div><div>Users</div><div>Tools</div><div>Settings</div></div>
+		<div class="wpcontent">
+			<div class="side" data-side>
+				<div class="side-head"><span class="back">‹</span><h2>Media Categories</h2><span class="btn primary">New folder</span><span class="btn">Upload</span></div>
+				<div class="side-find"><input type="search" placeholder="Search folders"></div>
+				<div class="side-note"><span>8 files are not in a folder</span><span>Sort them</span></div>
+				<div class="tree" data-tree></div>
+				<div class="groups">
+					<div class="group"><span class="tw">›</span>Filters</div>
+					<div class="group"><span class="tw">›</span>AI folders</div>
+				</div>
+			</div>
+			<div class="main">
+				<div class="title"><h1>Media Library</h1><span class="btn">Add Media File</span></div>
+				<div class="bar" data-bar>
+					<span class="chip is-quiet"><b>2</b> selected</span>
+					<span class="btn primary">Move to folder…</span>
+					<span class="btn">Delete</span>
+					<span class="right">
+						<span class="switch"><span class="on">List</span><span>Grid</span></span>
+						<span class="pages">5 items</span>
+					</span>
+				</div>
+				<table class="table" data-table data-selected="2"></table>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	var TREE = [
+		[ 'All files', 626, 0, 'all', false ], [ 'Unfiled', 8, 0, 'empty', false ],
+		[ 'Bags & Luggage', 31, 0 ], [ 'Beauty', 35, 0 ], [ 'Books & Music', 12, 0 ], [ 'Cars & Bikes', 11, 0 ],
+		[ 'Clothing', 50, 0, 'open' ], [ 'Accessories', 26, 1 ], [ 'Kids', 0, 1 ], [ 'Men', 5, 1, 'open', 'on' ], [ 'Boots', 1, 2 ], [ 'Coats', 0, 2 ], [ 'Dress shoes', 0, 2 ], [ 'Jackets', 2, 2 ], [ 'Jeans', 1, 2 ], [ 'Shirts', 1, 2 ], [ 'Women', 19, 1 ],
+		[ 'Electronics', 64, 0 ], [ 'Garden', 22, 0 ], [ 'Home', 88, 0 ], [ 'Kids', 26, 0 ], [ 'Sports & Outdoors', 71, 0 ], [ 'Tools', 39, 0 ], [ 'Audio', 28, 0 ]
+	];
+	var ROWS = [
+		[ 'Brown leather ankle boots', 'Brown_leather_ankle_boots.jpg', 'Boots', true, '412 KB' ],
+		[ 'Navy wool overcoat on a hanger', 'Navy_wool_overcoat.jpg', 'Jackets', false, '388 KB' ],
+		[ 'Waxed cotton field jacket', 'Waxed_cotton_field_jacket.jpg', 'Jackets', true, '501 KB' ],
+		[ 'Selvedge denim jeans folded', 'Selvedge_denim_jeans.jpg', 'Jeans', false, '276 KB' ],
+		[ 'White oxford shirt front', 'White_oxford_shirt.jpg', 'Shirts', false, '241 KB' ]
+	];
+	var ALL = [
+		[ 'Full Face Helmet 9274', 'Full-Face_Helmet_9274.jpg', 'Helmets', true, '231 KB' ],
+		[ 'Five children on a motorcycle', 'Five_children_on_a_motorcycle.jpg', 'Scooters', true, '475 KB' ],
+		[ 'Socket set with two ratchets in metal box', 'Socket_set_with_two_ratchets.jpeg', 'Tools', true, '770 KB' ],
+		[ 'JOBOX tool box Huntington Station', 'JOBOX_tool_box.jpg', 'Tools', true, '485 KB' ],
+		[ 'Electric guitar Superstrat with hint lines', 'Electric_Guitar_Superstrat.png', 'Diagrams', false, '1.2 MB' ],
+		[ 'Beer garden barbecue grill, Boreham', 'Beer_garden_barbecue_grill.jpg', 'Barbecues', true, '833 KB' ],
+		[ 'Suede desert boots, sand', 'Suede_desert_boots.jpg', 'Boots', false, '344 KB' ]
+	];
+	document.querySelectorAll( '[data-tree]' ).forEach( function ( t ) {
+		var all = 'all' === t.dataset.tree;
+		TREE.forEach( function ( r ) {
+			var open = 'open' === r[ 3 ], on = all ? 'all' === r[ 3 ] : 'on' === r[ 4 ];
+			var d = document.createElement( 'div' );
+			d.className = 'node d' + r[ 2 ] + ( on ? ' on' : '' );
+			d.innerHTML = '<span class="tw">' + ( open ? '⌄' : ( r[ 2 ] < 2 && 'all' !== r[ 3 ] && 'empty' !== r[ 3 ] && ! ( r[ 2 ] === 1 && [ 'Accessories', 'Kids', 'Women' ].indexOf( r[ 0 ] ) < 0 ) ? '›' : '' ) ) + '</span>'
+				+ '<span class="fo' + ( open ? ' open' : '' ) + ( r[ 1 ] ? '' : ' empty' ) + '"></span><span class="nm">' + r[ 0 ] + '</span>' + ( r[ 1 ] ? '<span class="n">' + r[ 1 ] + '</span>' : '' );
+			t.appendChild( d );
+		} );
+	} );
+	document.querySelectorAll( '[data-table]' ).forEach( function ( t ) {
+		var rows = 'all' === t.dataset.table ? ALL : ROWS;
+		var sel = Number( t.dataset.selected || 0 );
+		var html = '<tr><th class="cb"><input type="checkbox"></th><th class="thumb"></th><th>File ⇅</th><th class="who">Author ⇅</th><th class="when">Date ⇅</th></tr>';
+		rows.forEach( function ( r, i ) {
+			html += '<tr' + ( i < sel ? ' class="sel"' : '' ) + '><td class="cb"><input type="checkbox"' + ( i < sel ? ' checked' : '' ) + '></td><td class="thumb"><i></i></td><td class="file"><b>' + r[ 0 ] + '</b><span class="meta">' + r[ 1 ] + ' · ' + r[ 2 ] + ( r[ 3 ] ? ' <span class="you">by you</span>' : '' ) + ' · ' + r[ 4 ] + '</span></td><td class="who">—</td><td class="when">7 hours ago</td></tr>';
+		} );
+		t.innerHTML = html;
+	} );
+	var want = new URLSearchParams( location.search ).get( 'state' );
+	if ( want ) {
+		document.querySelectorAll( '[data-shot]' ).forEach( function ( b ) {
+			b.hidden = b.dataset.shot !== want;
+			b.previousElementSibling.hidden = true;
+		} );
+	}
+</script>
+</body>
+</html>
