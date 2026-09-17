@@ -491,6 +491,7 @@ function vergeml_guide_clean_draft( $in ) {
             continue;
         }
         $keys[ $k ]       = true;
+        $classes          = array_values( array_filter( array_map( 'sanitize_text_field', (array) ( isset( $f['classes'] ) ? $f['classes'] : array() ) ) ) );
         $out['folders'][] = array(
             'key'      => $k,
             'term_id'  => ! empty( $f['term_id'] ) ? (int) $f['term_id'] : null,
@@ -498,7 +499,10 @@ function vergeml_guide_clean_draft( $in ) {
             'parent'   => $key( isset( $f['parent'] ) ? $f['parent'] : '' ),
             'count'    => isset( $f['count'] ) && null !== $f['count'] && '' !== $f['count'] ? max( 0, (int) $f['count'] ) : null,
             'matches'  => sanitize_text_field( (string) ( isset( $f['matches'] ) ? $f['matches'] : '' ) ),
-            'classes'  => array_values( array_filter( array_map( 'sanitize_text_field', (array) ( isset( $f['classes'] ) ? $f['classes'] : array() ) ) ) ),
+            'classes'  => $classes,
+            // × on the folder's last word (S12): an explicit "no words", not "the draft says nothing". The confirm
+            // profiles the folder from its name alone and the planner is never asked about it.
+            'nowords'  => ! $classes && ! empty( $f['nowords'] ),
             'kinds'    => array_values( array_filter( array_map( 'sanitize_key', (array) ( isset( $f['kinds'] ) ? $f['kinds'] : array() ) ) ) ),
             'audience' => sanitize_text_field( (string) ( isset( $f['audience'] ) ? $f['audience'] : '' ) ),
             'by'       => isset( $f['by'] ) && 'you' === $f['by'] ? 'you' : '',
@@ -1033,6 +1037,14 @@ function vergeml_guide_confirm( &$s ) {
 
     // Stored on the terms that exist, from the draft -- what the Move seeds, so the preview and the run score one profile.
     foreach ( $s['draft']['folders'] as $f ) {
+        if ( ! empty( $f['term_id'] ) && ! empty( $f['nowords'] ) && function_exists( 'vergeml_filing_profile_build' ) ) {
+            // × on the last word: the folder profiles from its name alone, whatever plan it carried; kept a day, like a plan.
+            $term = get_term( (int) $f['term_id'], $taxonomy );
+            if ( $term && ! is_wp_error( $term ) ) {
+                vergeml_filing_profile_build( $term, $taxonomy, array( 'nowords' => true ) );
+            }
+            continue;
+        }
         if ( ! empty( $f['term_id'] ) && ! empty( $f['classes'] ) && function_exists( 'vergeml_talk_seed_profile' ) ) {
             /*
              *  A draft that only changed the words (the tree's × and #word,
@@ -1083,7 +1095,7 @@ function vergeml_guide_profile_ask( $draft ) {
     $want    = array();
     $planner = null;
     foreach ( (array) ( is_array( $draft ) ? $draft['folders'] : array() ) as $i => $f ) {
-        if ( ! empty( $f['classes'] ) || ! empty( $f['asked'] ) ) {
+        if ( ! empty( $f['classes'] ) || ! empty( $f['asked'] ) || ! empty( $f['nowords'] ) ) {
             continue;
         }
         $stored = ! empty( $f['term_id'] ) ? get_term_meta( (int) $f['term_id'], VERGEML_FILING_META, true ) : null;
@@ -1215,6 +1227,7 @@ function vergeml_guide_rest_profiles_restore( WP_REST_Request $request ) {
         foreach ( $s['draft']['folders'] as $i => $f ) {
             if ( ! empty( $f['term_id'] ) && isset( $restored[ (int) $f['term_id'] ] ) ) {
                 $s['draft']['folders'][ $i ]['classes'] = $restored[ (int) $f['term_id'] ];
+                $s['draft']['folders'][ $i ]['nowords'] = false;
             }
         }
         $s['fit'] = null;
@@ -1872,7 +1885,9 @@ function vergeml_guide_draft_profile( $f, $path, $live, $taxonomy ) {
 
     $tid = (int) $f['term_id'];
 
-    if ( $tid && isset( $live['by_id'][ $tid ] ) && empty( $f['classes'] ) ) {
+    // A folder the draft says nothing about keeps its stored profile; one whose last word was ×'d (nowords) is
+    // scored from its name below, as the confirm will write it.
+    if ( $tid && isset( $live['by_id'][ $tid ] ) && empty( $f['classes'] ) && empty( $f['nowords'] ) ) {
         $names = array();
         $walk  = $tid;
         $guard = 0;

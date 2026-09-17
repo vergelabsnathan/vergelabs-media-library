@@ -374,10 +374,12 @@ function vergeml_filing_profile_build( $term, $taxonomy, $seed = array() ) {
     /*
      *  A planned profile replacing a planned one is kept for a day, so a
      *  confirm's re-profiling can be undone like a Move (Unconfirm -> Restore).
-     *  A rebuild from the name replaces nothing worth keeping.
+     *  A rebuild from the name replaces nothing worth keeping -- unless a
+     *  person asked for it (× on the folder's last word, `nowords`, S12):
+     *  that is a choice, and undoable like the others.
      */
     $was = get_term_meta( $term->term_id, VERGEML_FILING_META, true );
-    if ( $plan && is_array( $was ) && ! empty( $was['plan'] ) && $was['plan'] !== $plan ) {
+    if ( ( $plan || ! empty( $seed['nowords'] ) ) && is_array( $was ) && ! empty( $was['plan'] ) && $was['plan'] !== $plan ) {
         update_term_meta( $term->term_id, VERGEML_FILING_META_PREV, array( 'profile' => $was, 'at' => time() ) );
     }
 

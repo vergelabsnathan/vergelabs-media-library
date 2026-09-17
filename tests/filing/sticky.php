@@ -249,6 +249,61 @@ $sk_req = new WP_REST_Request( 'POST', '/' . VERGEML_REST_NS . '/guide/confirm' 
 $sk_res = rest_do_request( $sk_req );
 sk_check( 'C10 confirmed again, the planner is not asked twice: every folder has classes now', 200 === $sk_res->get_status() && 1 === $GLOBALS['sk_planner'], $sk_res->get_status() . ' / ' . $GLOBALS['sk_planner'] . ' calls' );
 
+/*
+ *  × on a folder's last word (S12): the draft carries an explicit empty
+ *  (`nowords`), which is not "the draft says nothing". The confirm writes a
+ *  name-only profile over A's plan, asks the planner nothing about it, and
+ *  keeps the plan a day so Restore brings the words back. Mutation: the
+ *  `nowords` branch dropped from the confirm's seeding -> C11 red (A keeps
+ *  zzstickything, `empty( classes )` reads as nothing said).
+ */
+$sk_req = new WP_REST_Request( 'POST', '/' . VERGEML_REST_NS . '/guide/unconfirm' );
+rest_do_request( $sk_req );
+$sk_s = vergeml_guide_session();
+foreach ( $sk_s['draft']['folders'] as $sk_i => $sk_f ) {
+    if ( (int) $sk_f['term_id'] === $sk_terms['zzStickyA'] ) {
+        $sk_s['draft']['folders'][ $sk_i ]['classes'] = array();
+        $sk_s['draft']['folders'][ $sk_i ]['nowords'] = true;
+    }
+}
+$sk_s['draft'] = vergeml_guide_clean_draft( $sk_s['draft'] );
+vergeml_guide_save( $sk_s );
+$sk_req = new WP_REST_Request( 'POST', '/' . VERGEML_REST_NS . '/guide/confirm' );
+$sk_res = rest_do_request( $sk_req );
+$sk_pa  = get_term_meta( $sk_terms['zzStickyA'], VERGEML_FILING_META, true );
+$sk_pv  = get_term_meta( $sk_terms['zzStickyA'], VERGEML_FILING_META_PREV, true );
+sk_check(
+    'C11 × on A\'s last word: the confirm writes a name-only profile (one class, from the name, no plan), asks the planner nothing, and keeps the plan for Restore',
+    200 === $sk_res->get_status() && 1 === $GLOBALS['sk_planner']
+        && is_array( $sk_pa ) && 'name' === $sk_pa['source'] && empty( $sk_pa['plan'] ) && 1 === count( $sk_pa['classes'] ) && 'zzstickything' !== $sk_pa['classes'][0]
+        && is_array( $sk_pv ) && isset( $sk_pv['profile']['classes'][0] ) && 'zzstickything' === $sk_pv['profile']['classes'][0],
+    json_encode( array( 'status' => $sk_res->get_status(), 'planner' => $GLOBALS['sk_planner'], 'source' => is_array( $sk_pa ) ? $sk_pa['source'] : null, 'classes' => is_array( $sk_pa ) ? $sk_pa['classes'] : null, 'prev' => is_array( $sk_pv ) && isset( $sk_pv['profile']['classes'] ) ? $sk_pv['profile']['classes'] : null ) )
+);
+
+$sk_req = new WP_REST_Request( 'POST', '/' . VERGEML_REST_NS . '/guide/unconfirm' );
+rest_do_request( $sk_req );
+$sk_req = new WP_REST_Request( 'POST', '/' . VERGEML_REST_NS . '/guide/profiles-restore' );
+$sk_res = rest_do_request( $sk_req );
+$sk_pa  = get_term_meta( $sk_terms['zzStickyA'], VERGEML_FILING_META, true );
+$sk_s   = vergeml_guide_session();
+$sk_fa  = null;
+foreach ( (array) $sk_s['draft']['folders'] as $sk_f ) {
+    if ( (int) $sk_f['term_id'] === $sk_terms['zzStickyA'] ) {
+        $sk_fa = $sk_f;
+    }
+}
+sk_check(
+    'C12 Restore brings A\'s words back, on the folder and in the draft, and the explicit empty is gone',
+    200 === $sk_res->get_status() && is_array( $sk_pa ) && 'plan' === $sk_pa['source'] && 'zzstickything' === $sk_pa['classes'][0]
+        && is_array( $sk_fa ) && array( 'zzstickything' ) === array_values( (array) $sk_fa['classes'] ) && empty( $sk_fa['nowords'] ),
+    json_encode( array( 'status' => $sk_res->get_status(), 'classes' => is_array( $sk_pa ) ? $sk_pa['classes'] : null, 'draft' => $sk_fa ? array( $sk_fa['classes'], ! empty( $sk_fa['nowords'] ) ) : null ) )
+);
+
+$sk_req = new WP_REST_Request( 'POST', '/' . VERGEML_REST_NS . '/guide/confirm' );
+$sk_res = rest_do_request( $sk_req );
+$sk_pa  = get_term_meta( $sk_terms['zzStickyA'], VERGEML_FILING_META, true );
+sk_check( 'C13 confirmed once more on the restored words: A is for zzstickything again, the planner still asked once', 200 === $sk_res->get_status() && 1 === $GLOBALS['sk_planner'] && is_array( $sk_pa ) && 'plan' === $sk_pa['source'] && 'zzstickything' === $sk_pa['classes'][0], $sk_res->get_status() . ' / ' . $GLOBALS['sk_planner'] . ' calls / ' . json_encode( is_array( $sk_pa ) ? $sk_pa['classes'] : null ) );
+
 /* ----------------------------------------------------------------- D  the fill */
 
 echo "\nD  the fill: a hand move survives, a locked folder keeps its three and gains none\n\n";

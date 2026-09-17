@@ -1281,6 +1281,7 @@
 			newTag: __( 'new', 'vergelabs-media-library' ),
 			/* translators: %s: a word the folder takes ("semiconductor component") */
 			removeWord: __( 'Remove the word %s', 'vergelabs-media-library' ),
+			noWords: __( 'no words', 'vergelabs-media-library' ),
 			/* translators: %s: a number of pictures */
 			was: __( 'was %s', 'vergelabs-media-library' ),
 			/* translators: 1: pictures, 2: a folder name */

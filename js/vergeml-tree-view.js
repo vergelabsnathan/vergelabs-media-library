@@ -106,7 +106,9 @@
 		addIn: 'Add a folder inside %s',
 		addTop: 'New folder',
 		addName: 'Name, or Solar > Rooftop',
-		removeOne: 'Remove %s from the draft'
+		removeOne: 'Remove %s from the draft',
+		removeWord: 'Remove the word %s',
+		noWords: 'no words'
 	};
 
 	/* --------------------------------------------------------------- glyphs */
@@ -399,8 +401,15 @@
 
 			case 'classes':
 				// The words the folder takes, as the tree's × and #word leave them (C.4). The confirm seeds the profile from these.
+				// × on the last word is an explicit empty (`nowords`, S12): the folder profiles from its name alone. A bare
+				// [] stays "the draft says nothing", which a restored draft carries on every folder.
 				if ( f && Array.isArray( edit.classes ) ) {
 					f.classes = edit.classes.map( function ( c ) { return String( c ).trim().toLowerCase(); } ).filter( Boolean );
+					if ( f.classes.length ) {
+						delete f.nowords;
+					} else if ( edit.removed ) {
+						f.nowords = true;
+					}
 					f.by = edit.by || f.by;
 				}
 				break;
@@ -545,7 +554,10 @@
 				// What the folder takes: the draft's words on it, else the profile the live folder already has. An empty
 				// list is "the draft says nothing" -- the confirm keeps the stored profile then (core/guide.php) -- not "no
 				// words": on 2026-09-16 a restored draft naming 322 folders with words on 52 read as 270 profiles lost.
-				classes: Array.isArray( f.classes ) && f.classes.length ? f.classes : ( live && Array.isArray( live.classes ) ? live.classes : [] ),
+				// "No words" is the explicit empty the × on a last word leaves (`nowords`): nothing shows, the confirm
+				// writes a name-only profile.
+				classes: f.nowords ? [] : ( Array.isArray( f.classes ) && f.classes.length ? f.classes : ( live && Array.isArray( live.classes ) ? live.classes : [] ) ),
+				nowords: !! f.nowords,
 				order: live ? live.order || 0 : 0
 			};
 			if ( live ) {
@@ -972,6 +984,7 @@
 			setsize: n,
 			status: row.status,
 			classes: row.classes || [],
+			nowords: !! row.nowords,
 			meta: kids.length && ! open ? plural( this.l10n, 'folder1', 'folderN', row.foldersBelow ) : '',
 			mark: kids.length && ! open && under > 0 ? plural( this.l10n, 'change1', 'changeN', under ) : '',
 			sub: this.subFor( row )
@@ -1188,7 +1201,13 @@
 		 *  leaves the draft's classes, by you. A word is added in the row's +
 		 *  editor with a leading # (startAdd).
 		 */
-		var classes = entry.classes || ( entry.node && Array.isArray( entry.node.classes ) ? entry.node.classes : [] );
+		var classes = entry.nowords ? [] : ( entry.classes || ( entry.node && Array.isArray( entry.node.classes ) ? entry.node.classes : [] ) );
+		if ( folders && entry.nowords && 'removed' !== status ) {
+			// The explicit empty the × on a last word leaves: said, so it is not read as a folder nobody profiled.
+			var none = el( 'span', { class: 'vgml-classes' } );
+			none.appendChild( el( 'span', { class: 'vgml-nowords g-pill is-quiet' }, l10n.noWords ) );
+			row.appendChild( none );
+		}
 		if ( folders && classes.length && 'removed' !== status ) {
 			var list = el( 'span', { class: 'vgml-classes' } );
 			classes.slice( 0, 3 ).forEach( function ( word ) {

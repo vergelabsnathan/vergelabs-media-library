@@ -160,15 +160,17 @@ const fewer = await page.evaluate( () => {
 check( 'and not under ten', 9 === fewer.rows && true === fewer.hidden, JSON.stringify( fewer ) );
 
 /*
- *  The words a folder takes while a draft is open (C.4, and the 2026-09-16
- *  scare): a draft row whose list is empty says nothing about the words, so
- *  the row shows the profile the folder already has -- a confirm keeps it.
- *  On the shop a restored draft named 322 folders with words on 52, and the
- *  other 270 read as if their profiles were gone. A draft that names words
- *  shows those; × on a folder's last word leaves an empty list, which the
- *  confirm reads as 'says nothing' -- so the stored word shows again, as it
- *  will be kept.
- *  Mutation: `f.classes.length` dropped from the row's rule -> C7 red.
+ *  The words a folder takes while a draft is open (C.4, the 2026-09-16
+ *  scare, and S12's last word): a draft row whose list is empty and says
+ *  nothing else shows the profile the folder already has -- a confirm keeps
+ *  it. On the shop a restored draft named 322 folders with words on 52, and
+ *  the other 270 read as if their profiles were gone. A draft that names
+ *  words shows those. × on a folder's last word is not "says nothing": the
+ *  draft carries an explicit empty (`nowords`), the row reads "no words",
+ *  and the confirm writes a name-only profile. A word added back (#word)
+ *  clears it. A restored draft's bare [] still means nothing said.
+ *  Mutations: `f.classes.length` dropped from the row's rule -> C7 red;
+ *  `nowords` not set by the × -> C7 red (the stored word shows again).
  */
 const words = await page.evaluate( () => {
 	const h = window.harness;
@@ -178,26 +180,40 @@ const words = await page.evaluate( () => {
 	small[ 2 ].classes = [ 'footwear' ];
 	const root = document.createElement( 'div' );
 	document.body.appendChild( root );
-	const v = h.tv.create( { surface: 'folders', root, nodes: small, openAll: true } );
+	// Editable, and every edit applied: until S12 this view had no × to click and a no-op onEdit, so the
+	// "× leaves the draft empty" clause held because the draft was set empty by hand.
+	const v = h.tv.create( { surface: 'folders', root, nodes: small, openAll: true, editable: true, onEdit: ( edit ) => v.setDraft( h.tv.applyEdit( v.getDraft(), edit ) ) } );
 	const d = h.tv.fromLive( small );
 	d.folders[ 0 ].classes = [];                  // says nothing: the stored words show
 	d.folders[ 1 ].classes = [ 'suit', 'jacket' ]; // says its own
 	d.folders[ 2 ].classes = [];
 	v.setDraft( d );
 	const read = ( id ) => Array.from( root.querySelectorAll( '.vgml-node[data-key="t' + id + '"] .vgml-class' ) ).map( ( e ) => e.getAttribute( 'data-class' ) || e.textContent.trim() );
+	const noWords = ( id ) => !! root.querySelector( '.vgml-node[data-key="t' + id + '"] .vgml-nowords' );
 	const out = { stored: read( 1 ), own: read( 2 ) };
-	v.onEdit = () => {};
 	const x = root.querySelector( '.vgml-node[data-key="t3"] .vgml-unclass' );
+	out.hadX = !! x;
 	if ( x ) {
 		x.click();
 	}
 	out.after = read( 3 );
-	out.draft = v.getDraft().folders.find( ( f ) => 3 === f.term_id ).classes;
+	out.afterSays = noWords( 3 );
+	const f3 = v.getDraft().folders.find( ( f ) => 3 === f.term_id );
+	out.draft = { classes: f3.classes, nowords: !! f3.nowords };
+	// A word added back clears the explicit empty.
+	v.setDraft( h.tv.applyEdit( v.getDraft(), { type: 'classes', key: 't3', classes: [ 'trainer' ], by: 'you' } ) );
+	const f3b = v.getDraft().folders.find( ( f ) => 3 === f.term_id );
+	out.back = { shown: read( 3 ), nowords: !! f3b.nowords, says: noWords( 3 ) };
+	// A restored draft: [] with no flag still means nothing said.
+	out.restored = { shown: read( 1 ), says: noWords( 1 ) };
 	root.remove();
 	return out;
 } );
-check( 'C7 a draft row with no words shows the folder\'s stored words; one with words shows its own; × on the last stored word leaves the draft empty and the stored word showing (the confirm keeps it)',
-	'apparel,garment' === words.stored.join() && 'suit,jacket' === words.own.join() && 'footwear' === words.after.join() && Array.isArray( words.draft ) && 0 === words.draft.length,
+check( 'C7 a draft row with no words shows the folder\'s stored words; one with words shows its own; × on the last stored word says "no words" and the draft carries the explicit empty; a word added back clears it; a bare [] still shows the stored words',
+	'apparel,garment' === words.stored.join() && 'suit,jacket' === words.own.join() && words.hadX
+		&& 0 === words.after.length && words.afterSays && 0 === words.draft.classes.length && words.draft.nowords
+		&& 'trainer' === words.back.shown.join() && ! words.back.nowords && ! words.back.says
+		&& 'apparel,garment' === words.restored.shown.join() && ! words.restored.says,
 	JSON.stringify( words ) );
 
 /* ---------------------------------------- D  the draft carried by term id */
