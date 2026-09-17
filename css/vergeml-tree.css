@@ -252,10 +252,28 @@ body.vgml-mode-list .vgml-folder-chip-count {
 	opacity: .8;
 }
 
+body.vgml-mode-list .vgml-folder-chip-up,
+body.vgml-mode-list .vgml-folder-chip-x {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+}
+
+body.vgml-mode-list .vgml-folder-chip-up:hover,
+body.vgml-mode-list .vgml-folder-chip-up:focus-visible {
+	text-decoration: underline;
+}
+
+body.vgml-mode-list .vgml-folder-chip-sep {
+	opacity: .6;
+}
+
 body.vgml-mode-list .vgml-folder-chip-x {
 	margin-inline-start: 2px;
-	color: inherit;
-	text-decoration: none;
 	opacity: .7;
 }
 

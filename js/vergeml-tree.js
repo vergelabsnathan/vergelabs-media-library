@@ -1273,24 +1273,16 @@
 
 		var bar = document.querySelector( '.vgml-crumbs' );
 
-		var trail = [];
-
-		if ( state.smartSelected ) {
-			var sf = ( state.smart || [] ).filter( function ( x ) {
-				return x.key === state.smartSelected;
-			} )[ 0 ];
-			trail.push( { label: sf ? sf.label : state.smartSelected, id: null } );
-		} else if ( -1 === state.selected ) {
-			trail.push( { label: l10n.unfiled || 'Unfiled', id: null } );
-		} else if ( state.selected > 0 ) {
-			var walk = state.byId[ state.selected ];
-			var hops = 0;
-			while ( walk && hops < 20 ) {
-				trail.unshift( { label: walk.name, id: walk.id } );
-				walk = walk.parent ? state.byId[ walk.parent ] : null;
-				hops++;
+		// The list's row carries the trail in its folder chip (S10.6): no second row of it above.
+		if ( listBar ) {
+			if ( bar ) {
+				bar.remove();
 			}
+			paintListFolder();
+			return;
 		}
+
+		var trail = crumbTrail();
 
 		if ( ! trail.length ) {
 			if ( bar ) {
@@ -1315,7 +1307,7 @@
 		bar.appendChild( rootBtn );
 
 		trail.forEach( function ( step, i ) {
-			bar.appendChild( el( 'span', { class: 'vgml-crumb-sep', 'aria-hidden': 'true' }, '\u203a' ) );
+			bar.appendChild( el( 'span', { class: 'vgml-crumb-sep', 'aria-hidden': 'true' }, '›' ) );
 			if ( i === trail.length - 1 || ! step.id ) {
 				bar.appendChild( el( 'span', { class: 'vgml-crumb is-current', 'aria-current': 'location' }, step.label ) );
 			} else {
@@ -1326,6 +1318,30 @@
 				bar.appendChild( b );
 			}
 		} );
+	}
+
+	/** Where you are, as steps from the top: a smart folder, Unfiled, or the folder and its parents. */
+	function crumbTrail() {
+		var trail = [];
+
+		if ( state.smartSelected ) {
+			var sf = ( state.smart || [] ).filter( function ( x ) {
+				return x.key === state.smartSelected;
+			} )[ 0 ];
+			trail.push( { label: sf ? sf.label : state.smartSelected, id: null } );
+		} else if ( -1 === state.selected ) {
+			trail.push( { label: l10n.unfiled || 'Unfiled', id: null } );
+		} else if ( state.selected > 0 ) {
+			var walk = state.byId[ state.selected ];
+			var hops = 0;
+			while ( walk && hops < 20 ) {
+				trail.unshift( { label: walk.name, id: walk.id } );
+				walk = walk.parent ? state.byId[ walk.parent ] : null;
+				hops++;
+			}
+		}
+
+		return trail;
 	}
 
 	function select( id ) {
@@ -1600,6 +1616,8 @@
 				for ( var i = 0; i < navs.length && i < freshNavs.length; i++ ) {
 					navs[ i ].parentNode.replaceChild( freshNavs[ i ], navs[ i ] );
 				}
+				// The row above the pictures holds the top nav's parts (S10.6): the fresh ones take their place.
+				refreshListBar();
 
 				if ( false !== push ) {
 					window.history.pushState( {}, '', href );
@@ -4118,21 +4136,8 @@
 		var left = el( 'div', { class: 'vgml-listbar-left' } );
 		var right = el( 'div', { class: 'vgml-listbar-right' } );
 
-		// Bulk actions, shown while a row is checked (CSS on form.vgml-has-checked) -- with the term
-		// select core/bulk-terms.php puts among the filters, which is a bulk action's, not a filter.
-		var bulk = form.querySelector( '.tablenav.top .bulkactions' );
-		if ( bulk ) {
-			var term = form.querySelector( '#vergeml_bulk_term' );
-			if ( term ) {
-				var termLabel = form.querySelector( 'label[for="vergeml_bulk_term"]' );
-				if ( termLabel ) {
-					bulk.appendChild( termLabel );
-				}
-				bulk.appendChild( term );
-			}
-			left.appendChild( bulk );
-		}
-
+		// Bulk actions, shown while a row is checked (CSS on form.vgml-has-checked): takeNav() below puts them here.
+		left.appendChild( el( 'span', { class: 'vgml-listbar-bulk' } ) );
 		left.appendChild( el( 'span', { class: 'vgml-listbar-folder' } ) );
 
 		var search = form.querySelector( '.wp-filter .search-form' ) || form.querySelector( '.search-box' );
@@ -4174,10 +4179,7 @@
 			reset.hidden = ! set;
 		}
 
-		var pages = form.querySelector( '.tablenav.top .tablenav-pages' );
-		if ( pages ) {
-			right.appendChild( pages );
-		}
+		right.appendChild( el( 'span', { class: 'vgml-listbar-pages' } ) );
 
 		bar.appendChild( left );
 		bar.appendChild( right );
@@ -4188,10 +4190,7 @@
 		if ( emptied ) {
 			emptied.classList.add( 'vgml-emptied' );
 		}
-		var nav = form.querySelector( '.tablenav.top' );
-		if ( nav ) {
-			nav.classList.add( 'vgml-emptied' );
-		}
+		takeNav( form );
 
 		// Core's select-all sets the row boxes without a change event, so both clicks and changes are read, a tick later.
 		var checked = function () {
@@ -4204,6 +4203,50 @@
 		checked();
 
 		paintListFolder();
+	}
+
+	/*
+	 *  The top nav's two parts into the row: the bulk actions (with the term
+	 *  select core/bulk-terms.php puts among the filters, which is a bulk
+	 *  action's, not a filter) and the pages. A folder click swaps the navs
+	 *  for fresh ones (swapTable), so this runs again then and the fresh
+	 *  parts take the old ones' place; the old nav is hidden either way.
+	 */
+	function takeNav( form ) {
+		var nav = form.querySelector( '.tablenav.top' );
+		if ( ! nav || ! listBar ) {
+			return;
+		}
+		var bulkSlot = listBar.querySelector( '.vgml-listbar-bulk' );
+		var pagesSlot = listBar.querySelector( '.vgml-listbar-pages' );
+		var bulk = nav.querySelector( '.bulkactions' );
+		if ( bulk && bulkSlot ) {
+			var term = form.querySelector( '#vergeml_bulk_term' );
+			if ( term ) {
+				var termLabel = form.querySelector( 'label[for="vergeml_bulk_term"]' );
+				if ( termLabel ) {
+					bulk.appendChild( termLabel );
+				}
+				bulk.appendChild( term );
+			}
+			bulkSlot.innerHTML = '';
+			bulkSlot.appendChild( bulk );
+		}
+		var pages = nav.querySelector( '.tablenav-pages' );
+		if ( pages && pagesSlot ) {
+			pagesSlot.innerHTML = '';
+			pagesSlot.appendChild( pages );
+		}
+		nav.classList.add( 'vgml-emptied' );
+	}
+
+	function refreshListBar() {
+		var form = document.getElementById( 'posts-filter' );
+		if ( form && listBar ) {
+			takeNav( form );
+			form.classList.remove( 'vgml-has-checked' );
+			paintListFolder();
+		}
 	}
 
 	/** How many of core's selects in the card say something other than their first choice. */
@@ -4224,32 +4267,52 @@
 		return m ? url + '&' + m[ 1 ] + '=' + m[ 2 ] : url;
 	}
 
-	/** The folder that is showing, as a chip with its count; × shows every file. Painted again whenever the tree is. */
+	/*
+	 *  The folder that is showing, as a chip: the trail the crumbs drew
+	 *  (parents clickable, the current one in bold), its count, and × back
+	 *  to every file -- the tree's own select(), so the list swaps as a
+	 *  folder click does. Painted again whenever the tree is.
+	 */
 	function paintListFolder() {
 		var slot = listBar && listBar.querySelector( '.vgml-listbar-folder' );
 		if ( ! slot ) {
 			return;
 		}
-		var name = l10n.all || 'All files';
+		var trail = crumbTrail();
 		var count = null;
-		var narrowed = false;
 		if ( -1 === state.selected ) {
-			name = l10n.unassigned || 'Unfiled';
 			count = state.unassigned;
-			narrowed = true;
 		} else if ( state.selected > 0 && model.byId[ state.selected ] ) {
-			name = model.byId[ state.selected ].name;
 			count = model.totals()[ state.selected ];
-			narrowed = true;
 		}
 		slot.innerHTML = '';
-		var chip = el( 'span', { class: 'vgml-folder-chip' + ( narrowed ? ' is-narrowed' : '' ) } );
-		chip.appendChild( el( 'b', null, name ) );
+		var chip = el( 'span', { class: 'vgml-folder-chip' + ( trail.length ? ' is-narrowed' : '' ) } );
+		if ( ! trail.length ) {
+			chip.appendChild( el( 'b', null, l10n.all || 'All files' ) );
+		}
+		trail.forEach( function ( step, i ) {
+			if ( i > 0 ) {
+				chip.appendChild( el( 'span', { class: 'vgml-folder-chip-sep', 'aria-hidden': 'true' }, '›' ) );
+			}
+			if ( i === trail.length - 1 || ! step.id ) {
+				chip.appendChild( el( 'b', null, step.label ) );
+			} else {
+				var up = el( 'button', { type: 'button', class: 'vgml-folder-chip-up' }, step.label );
+				up.addEventListener( 'click', function () {
+					select( step.id );
+				} );
+				chip.appendChild( up );
+			}
+		} );
 		if ( null !== count && undefined !== count ) {
 			chip.appendChild( el( 'span', { class: 'vgml-folder-chip-count' }, String( count ) ) );
 		}
-		if ( narrowed ) {
-			chip.appendChild( el( 'a', { class: 'vgml-folder-chip-x', href: 'upload.php?mode=list', 'aria-label': l10n.showAll || 'Show every file', title: l10n.showAll || 'Show every file' }, '×' ) );
+		if ( trail.length ) {
+			var x = el( 'button', { type: 'button', class: 'vgml-folder-chip-x', 'aria-label': l10n.showAll || 'Show every file', title: l10n.showAll || 'Show every file' }, '×' );
+			x.addEventListener( 'click', function () {
+				select( 0 );
+			} );
+			chip.appendChild( x );
 		}
 		slot.appendChild( chip );
 	}
