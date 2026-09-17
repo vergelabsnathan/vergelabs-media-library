@@ -612,7 +612,15 @@
 		dom.treeMove.appendChild( quiet( __( 'Skip', 'vergelabs-media-library' ), function () { setStep( 'fill' ); } ) );
 	}
 
-	function onConfirm() {
+	function onConfirm( ev ) {
+		/*
+		 *  The button pressed goes to work -- not dom.confirm, which is the
+		 *  confirm rendered last: with the tree unconfirmed the Fill card
+		 *  renders its own "This is my tree" after the Tree card's, so the
+		 *  press on the Tree step dimmed a hidden button and left its own
+		 *  standing (folders.spec, the progress row, 2026-09-17).
+		 */
+		var pressed = ev && ev.currentTarget && ev.currentTarget.classList ? ev.currentTarget : dom.confirm;
 		// The press is a planner call per sixty folders, twenty seconds each: the row under the button counts the batches (S10.0).
 		var n = Number( state.session && state.session.profile && state.session.profile.folders ) || 0;
 		var batch = Number( cfg.profileBatch ) || 60;
@@ -644,9 +652,9 @@
 				lastAt: Date.now()
 			} );
 		};
-		if ( dom.confirm ) {
-			dom.confirm.disabled = true;
-			dom.confirm.classList.add( 'is-working' );
+		if ( pressed ) {
+			pressed.disabled = true;
+			pressed.classList.add( 'is-working' );
 		}
 		reading( n );
 		if ( talk.streaming() ) {

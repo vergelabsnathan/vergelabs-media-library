@@ -93,18 +93,43 @@ async function restore( page ) {
 	if ( found === null ) {
 		return;
 	}
-	if ( ! /wp-admin/.test( page.url() ) ) {
-		await open( page, SCREEN.dashboard );
-	}
+	/*
+	 *  Off the Folders screen first, always (every screen is under wp-admin,
+	 *  so the old "unless on wp-admin" never left it): the app left open
+	 *  polls /guide/progress, and a poll that revives a pending fit reads the
+	 *  session, counts for seconds, then saves what it read -- the old turns
+	 *  back over the reset below, so the turns posted after it were refused
+	 *  at the cap (the upload test, 2026-09-17).
+	 */
+	await open( page, SCREEN.dashboard );
 	// A tree the tests confirmed is opened again before anything is written over it.
 	await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/unconfirm`, method: 'POST' } ).catch( () => null ), NS );
 	await reset( page );
 	const s = found.session;
-	const turns = ( s.turns || [] ).map( ( t ) => t.role === 'assistant'
-		? { say: { text: t.text, choices: t.choices || [], kind: t.kind } }
-		: { said: { kind: t.kind, text: t.text, rule: t.rule } } );
+	/*
+	 *  The route takes at most the cap's assistant turns in one write; a
+	 *  session found past the cap is a test's own leftover (a restore that
+	 *  failed before this one), and posting it back is refused with "Every
+	 *  turn of this conversation is used" -- which failed every test after
+	 *  it on 2026-09-17. What fits under the cap goes back; the rest is said.
+	 */
+	const cap = Number( s.cap ) || Infinity;
+	let assistant = 0;
+	const turns = [];
+	for ( const t of s.turns || [] ) {
+		if ( t.role === 'assistant' && ++assistant > cap ) {
+			break;
+		}
+		turns.push( t.role === 'assistant'
+			? { say: { text: t.text, choices: t.choices || [], kind: t.kind } }
+			: { said: { kind: t.kind, text: t.text, rule: t.rule } } );
+	}
+	if ( turns.length < ( s.turns || [] ).length ) {
+		console.log( `      restore: the session found had ${ ( s.turns || [] ).length } turns, past the cap of ${ cap }; ${ turns.length } put back` );
+	}
 	if ( turns.length ) {
-		await page.evaluate( ( [ ns, turns ] ) => wp.apiFetch( { path: `${ ns }/guide/turn`, method: 'POST', data: { turns } } ), [ NS, turns ] );
+		// A refusal says why (the route's code and message), not "Object".
+		await page.evaluate( ( [ ns, turns ] ) => wp.apiFetch( { path: `${ ns }/guide/turn`, method: 'POST', data: { turns } } ).catch( ( e ) => { throw new Error( `restore: ${ turns.length } turns refused: ${ e && e.code } ${ e && e.message }` ); } ), [ NS, turns ] );
 	}
 	if ( s.draft ) {
 		await page.evaluate( ( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/session`, method: 'POST', data: { draft } } ), [ NS, s.draft ] );
@@ -431,7 +456,8 @@ test.describe( 'the Folders screen', () => {
 		expect( s.session.draft.folders.filter( ( f ) => ! f.term_id ).map( ( f ) => f.name ).sort() ).toEqual( [ 'Alpha', 'Beta', 'Upload probe' ] );
 		expect( s.session.fit, 'the turn route ran the dry run over the upload' ).not.toBeNull();
 		if ( s.session.fit.counted ) {
-			await expect( page.locator( '.g-card[data-card="tree"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d+ folders$/, /^\d[\d,.]* placed$/, /^\d[\d,.]* stay unfiled$/ ] );
+			// The Tree step's dry run speaks in the conditional (b88ff00): what a fill of this draft would do.
+			await expect( page.locator( '.g-card[data-card="tree"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d+ folders$/, /^\d[\d,.]* would be placed$/, /^\d[\d,.]* would stay unfiled$/ ] );
 		}
 		await page.screenshot( { path: 'tests/ui/shots/folders-upload.png' } );
 
@@ -858,7 +884,10 @@ test.describe( 'the Folders screen', () => {
 		await expect( page.locator( '.g-qs' ) ).toBeHidden();
 		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill' ) ).toHaveText( [ /^\d[\d,.]* in folders$/, '0 in no folder' ] );
 		await expect( page.locator( '.g-card[data-card="fill"] .g-move .g-quiet' ).filter( { hasText: 'Next: Alt text' } ), 'alt text is the quiet way on, not the only button' ).toBeVisible();
-		await expect( page.locator( '.g-card[data-card="fill"] .g-move .vgml-btn-primary' ), 'a confirmed tree can be filled again' ).toHaveText( /^Fill [d,.]+ pictures$/ );
+		// The fixture plants the questions on a tree nobody confirmed: done, the step's one primary is the confirm (a fill runs against a confirmed tree and nothing else), and the fill button is not offered.
+		await expect( page.locator( '.g-card[data-card="fill"] .g-move .vgml-btn-primary' ), 'an unconfirmed tree offers its confirm, not a second fill' ).toHaveText( 'This is my tree' );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-move .vgml-confirm-btn' ) ).toBeEnabled();
+		await expect( page.locator( '.g-card[data-card="fill"] .g-move .vgml-move-btn' ) ).toHaveCount( 0 );
 		await expect( page.locator( '.g-step[data-step="fill"]' ) ).toHaveClass( /is-done/ );
 		await expect( page.locator( '.g-step[data-step="fill"]' ) ).toHaveClass( /is-current/ );
 		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
