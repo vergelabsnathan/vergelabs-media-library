@@ -37,8 +37,7 @@ tree is up: **when the C.5 tree goes back it will read red** — re-read its
 marks by path first (`VGML_SITE=shop VGML_DRY=1` through the sheet tool),
 then re-take with the reason. `folders.spec` + `modes.spec` on the tech
 site: the progress-row test green with the branch in, red with it out; the
-full run was started as `vgmls15` at the session's end (its line is in
-"For Nathan" if it finished before this was written).
+full run as vgmls15: **24 passed, 3 skipped, 0 failed (25.7 min)**, the same three skips as S14.
 
 ## The probe first: 93 pictures say *electronics*, none of them in Batteries
 
