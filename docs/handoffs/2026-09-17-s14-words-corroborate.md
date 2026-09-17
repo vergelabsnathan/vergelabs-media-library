@@ -217,6 +217,16 @@ folders, 0 credits** — confirmed, filled.
   Sheet: `docs/superpowers/mocks/shots/2026-09-17-quality-sample-shop-b.html`;
   screens `shop-b-pasted.png`, `shop-b-confirmed.png`, `shop-b-filled.png`
   beside it.
+- **Nathan's look at ms2 (18:5x):** "buiten en onderweg is empty and has no
+  subfolders." Two facts behind it: HEMA repeats its departments under
+  *sale* and *nieuwe collectie*, so there are three folders of that name
+  (#339 top level with 91 pictures and 10 children; #467 under *sale* and
+  #479 under *nieuwe collectie*, both empty and childless); and in #339
+  the 91 sit in the parent itself — its 10 children hold one picture
+  between them (*strand*), because no Dutch leaf name meets an English
+  describer word. A third finding for S15: a name repeated under a
+  marketing parent is the same folder, and the fill should read it as one
+  (rule 1 already names such pairs by path in the questions).
 - **Found:** the apply request took 188 s, ~150 s of it making 292
   folders and seeding their profiles with the button reading "Filling"
   and no number — a row for S10.0. (My walk script then hung 33 minutes
@@ -241,7 +251,7 @@ Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S15: the class-half hits (the 7 wrong likelies left), the marketing folder that owns nothing and the foreign-language leaf (HEMA's findings), the apply's progress row, then file by the product (S10.8)",
+  "phase": "Every picture a home — S15: the class-half hits (the 7 wrong likelies left), HEMA's three findings (the marketing folder that owns nothing, the foreign-language leaf, the department repeated under sale / nieuwe collectie), the apply's progress row, then file by the product (S10.8)",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S15)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
@@ -286,7 +296,7 @@ which model you are and follow that profile in
 ~/.claude/harness/model-profiles.md. This session is S15 of
 every-picture-a-home. Write the card from the handoff to
 .harness/active.json before anything else. The class-half hits first,
-judged dry on all three sheets before they move; then HEMA's two
+judged dry on all three sheets before they move; then HEMA's three
 findings; the apply's progress row; then S10.8.
 Test first, one mutation per story, both sites measured, say every cost
 before it is spent, never touch ms2 while Nathan is on it. Talk plainly.
