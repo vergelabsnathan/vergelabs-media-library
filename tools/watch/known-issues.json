@@ -11,8 +11,8 @@
       "affects": [],
       "workaround": null,
       "status": "open",
-      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/21",
-      "found": "2026-09-16"
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/22",
+      "found": "2026-09-17"
     },
     {
       "dependency": "wordpress-seo",
