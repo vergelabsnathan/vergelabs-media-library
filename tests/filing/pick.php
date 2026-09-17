@@ -29,6 +29,9 @@ function sanitize_key( $k ) {
 function sanitize_text_field( $t ) {
     return trim( strip_tags( (string) $t ) );
 }
+function get_post_meta( $id, $key = '', $single = false ) {
+    return '';
+}
 function wp_specialchars_decode( $t, $q = 0 ) {
     return html_entity_decode( (string) $t, ENT_QUOTES, 'UTF-8' );
 }
@@ -329,6 +332,31 @@ $tree  = array(
 );
 $goes = vergeml_filing_ask_split( $tree, $vocab );
 f_check( '24 of ten folders five go: Audio, Bags & Luggage, Kids, Women, Garden (parents and the top level no picture names); Sneakers and Shoes stay by a head noun, Headphones by the word, Backpacks and Blouses by being leaves', array( 'audio', 'bags', 'kids', 'women', 'garden' ) === $goes, json_encode( $goes ) );
+
+/*
+ *  An answer is a decision (2026-09-17, Nathan on the shop: "every fill
+ *  results in the same images being asked again"). "Split them by best
+ *  score" moved the pictures with no mark, "Keep them in Phones" moved and
+ *  marked nothing, so the next fill scored the same tie and asked the same
+ *  question. Both now mark the pictures `answer` -- kept by the fill like
+ *  `user`, but the word on the picture stays the fill's ("likely"), not "by
+ *  you". Mutations: 'answer' dropped from the pick's kept test -> row 25 red;
+ *  the split's placed_by -> row 26 red.
+ */
+echo "\n== an answer is a decision (S10 hunt)\n";
+
+$p = vergeml_filing_pick( f_facts( 'charger', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ), 'placed_by' => 'answer' ) ), $profiles );
+f_check( '25 a picture an answer placed is kept by the next fill, like one the user placed: nothing, placed', 'nothing' === $p['outcome'] && 'placed' === $p['why'], sprintf( '%s why %s', $p['outcome'], $p['why'] ) );
+f_check( '25b its word stays the fill\'s: "likely" on a split, never "by you"', 'likely' === vergeml_filing_confidence( 0, array( 'why' => 'answer', 'score' => 0.6 ) ) && '' === vergeml_filing_confidence( 0, array( 'why' => 'floor' ) ), vergeml_filing_confidence( 0, array( 'why' => 'answer', 'score' => 0.6 ) ) );
+
+$q = array( 'id' => 'e:5:3', 'kind' => 'either', 'term_id' => 0, 'ids' => array( 301 => 5, 302 => 3 ), 'answers' => array( 'put-in:5', 'put-in:3', 'split', 'leave', 'show-me' ), 'name' => '' );
+$plan = vergeml_filing_answer_plan( $q, 'split' );
+f_check( '26 split: each to its best of the two, and marked as answered', array( 301 => 5, 302 => 3 ) === $plan['moves'] && 'answer' === $plan['placed_by'], json_encode( array( $plan['moves'], $plan['placed_by'] ) ) );
+$q = array( 'id' => 's:1', 'kind' => 'siblings', 'term_id' => 1, 'ids' => array( 303 => 2, 304 => 3 ), 'answers' => array( 'keep-parent', 'split', 'show-me' ), 'name' => '' );
+$plan = vergeml_filing_answer_plan( $q, 'keep-parent' );
+f_check( '26b keep-parent: the pictures stay in the parent, and are marked as answered so the next fill leaves them', array( 303 => 1, 304 => 1 ) === $plan['moves'] && 'answer' === $plan['placed_by'], json_encode( array( $plan['moves'], $plan['placed_by'] ) ) );
+$plan = vergeml_filing_answer_plan( $q, 'split' );
+f_check( '26c a siblings split is marked too', array( 303 => 2, 304 => 3 ) === $plan['moves'] && 'answer' === $plan['placed_by'], json_encode( $plan['placed_by'] ) );
 
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

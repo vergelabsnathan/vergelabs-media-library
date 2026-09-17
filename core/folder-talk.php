@@ -2466,10 +2466,10 @@ function vergeml_talk_answer( $id, $answer ) {
 		$undo[ $attachment ] = $before[ $attachment ];
 		wp_set_object_terms( $attachment, array( $to ), $taxonomy, false );
 		if ( $plan['placed_by'] ) {
-			update_post_meta( $attachment, VERGEML_FILING_PLACED_BY, 'user' );
+			update_post_meta( $attachment, VERGEML_FILING_PLACED_BY, true === $plan['placed_by'] ? 'user' : (string) $plan['placed_by'] );
 		}
 		$moved++;
-		$trail[] = array( $attachment, $to, array( 'why' => $plan['placed_by'] ? 'user' : 'answer', 'prompt_hash' => '', 'model_version' => '' ) );
+		$trail[] = array( $attachment, $to, array( 'why' => true === $plan['placed_by'] ? 'user' : 'answer', 'prompt_hash' => '', 'model_version' => '' ) );
 	}
 	add_action( 'set_object_terms', 'vergeml_folder_flush_counts', 10, 0 );
 	add_action( 'deleted_term_relationships', 'vergeml_folder_flush_counts', 10, 0 );
@@ -2494,7 +2494,7 @@ function vergeml_talk_answer( $id, $answer ) {
 	}
 
 	// 'placed': how many are the person's own after this answer (the "by you" word), for the card's result line.
-	$result = array( 'moved' => $moved, 'term_id' => $landed, 'made' => $made, 'placed' => $plan['placed_by'] ? $moved : 0 );
+	$result = array( 'moved' => $moved, 'term_id' => $landed, 'made' => $made, 'placed' => true === $plan['placed_by'] ? $moved : 0 );
 	if ( $plan['answered'] ) {
 		$state['questions'][ $at ]['answered'] = (string) $answer;
 		$state['questions'][ $at ]['result']   = $result;

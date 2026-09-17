@@ -205,11 +205,11 @@ foreach ( $siblings[1]['ids'] as $id => $best ) {
 
 $plan = vergeml_filing_answer_plan( $questions[0], 'keep-parent' );
 $m    = f_apply( $map, $plan );
-f_check( '11 keep-parent: answered, nothing moves, the six stay in 1', ! empty( $plan['answered'] ) && array() === $plan['moves'] && array( 1, 1, 1, 1, 1, 1 ) === array_values( array_intersect_key( $m, $siblings[1]['ids'] ) ), json_encode( $plan ) );
+f_check( '11 keep-parent: answered, the six stay in 1 and are marked answered, so the next fill leaves them (2026-09-17)', ! empty( $plan['answered'] ) && array_fill_keys( array_keys( $siblings[1]['ids'] ), 1 ) === $plan['moves'] && 'answer' === $plan['placed_by'] && array( 1, 1, 1, 1, 1, 1 ) === array_values( array_intersect_key( $m, $siblings[1]['ids'] ) ), json_encode( $plan ) );
 
 $plan = vergeml_filing_answer_plan( $questions[0], 'split' );
 $m    = f_apply( $map, $plan );
-f_check( '12 split: each of the six goes to its own best child, not by hand', ! empty( $plan['answered'] ) && $siblings[1]['ids'] === array_intersect_key( $m, $siblings[1]['ids'] ) && empty( $plan['placed_by'] ), json_encode( array_intersect_key( $m, $siblings[1]['ids'] ) ) );
+f_check( '12 split: each of the six goes to its own best child, marked answered, not by hand', ! empty( $plan['answered'] ) && $siblings[1]['ids'] === array_intersect_key( $m, $siblings[1]['ids'] ) && 'answer' === $plan['placed_by'], json_encode( array_intersect_key( $m, $siblings[1]['ids'] ) ) );
 
 $plan = vergeml_filing_answer_plan( $questions[1], 'new-folder' );
 $m    = f_apply( $map, $plan );
@@ -254,7 +254,7 @@ f_check( '19 its shape: id e:2:4, no term, children by how often best (2, 4), co
 
 $map3 = array( 301 => 0, 302 => 0, 303 => 0 );
 $plan = vergeml_filing_answer_plan( $q, 'split' );
-f_check( '20 split: each to its own best of the two, not by hand', ! empty( $plan['answered'] ) && array( 301 => 2, 302 => 4, 303 => 2 ) === f_apply( $map3, $plan ) && empty( $plan['placed_by'] ), json_encode( f_apply( $map3, $plan ) ) );
+f_check( '20 split: each to its own best of the two, marked answered, not by hand', ! empty( $plan['answered'] ) && array( 301 => 2, 302 => 4, 303 => 2 ) === f_apply( $map3, $plan ) && 'answer' === $plan['placed_by'], json_encode( f_apply( $map3, $plan ) ) );
 $plan = vergeml_filing_answer_plan( $q, 'put-in:4' );
 f_check( '21 put-in:4: all three into Hardware, by hand', ! empty( $plan['answered'] ) && array( 4, 4, 4 ) === array_values( f_apply( $map3, $plan ) ) && ! empty( $plan['placed_by'] ) && null === $plan['make'], json_encode( f_apply( $map3, $plan ) ) );
 $plan = vergeml_filing_answer_plan( $q, 'leave' );

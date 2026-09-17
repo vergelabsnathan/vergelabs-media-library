@@ -156,7 +156,7 @@ function vergeml_filing_confidence( $attachment_id, $move ) {
     if ( 'by hand' === $why || 'user' === $why ) {
         return 'by you';
     }
-    if ( 'siblings' === $why ) {
+    if ( 'siblings' === $why || 'answer' === $why ) {
         return 'likely';
     }
     if ( 'ok' === $why ) {
@@ -875,7 +875,8 @@ function vergeml_filing_facts( $row ) {
  */
 function vergeml_filing_pick( $facts, $profiles ) {
 
-    if ( isset( $facts['placed_by'] ) && 'user' === $facts['placed_by'] ) {
+    // Placed by the person, or by their answer to a question (2026-09-17): decided, and not asked again.
+    if ( isset( $facts['placed_by'] ) && in_array( (string) $facts['placed_by'], array( 'user', 'answer' ), true ) ) {
         return vergeml_filing_outcome( 'nothing', 'placed', array( 'scores' => array(), 'gated' => array() ) );
     }
     if ( ! empty( $facts['in_locked'] ) ) {
@@ -1586,15 +1587,27 @@ function vergeml_filing_answer_plan( $q, $answer ) {
         return $plan;
     }
 
+    /*
+     *  Split and keep-parent are decisions too (2026-09-17: on the shop every
+     *  fill asked the same questions again, because these two left no mark
+     *  and the next fill scored the same tie). Marked 'answer': kept by the
+     *  fill like 'user', while the word on each picture stays the fill's own
+     *  ("likely"), not "by you".
+     */
     if ( $mapped && 'split' === $answer ) {
-        // The matcher's own best of the two, so the word on each stays the fill's, not the user's.
+        $plan['placed_by'] = 'answer';
         foreach ( (array) $q['ids'] as $id => $best ) {
             $plan['moves'][ (int) $id ] = (int) $best;
         }
         return $plan;
     }
     if ( 'siblings' === $q['kind'] ) {
-        return $plan; // keep-parent: they are in the parent already.
+        // keep-parent: they are in the parent already; the move is a no-op that carries the mark.
+        $plan['placed_by'] = 'answer';
+        foreach ( array_keys( (array) $q['ids'] ) as $id ) {
+            $plan['moves'][ (int) $id ] = (int) $q['term_id'];
+        }
+        return $plan;
     }
 
     $ids = $mapped ? array_map( 'intval', array_keys( (array) $q['ids'] ) ) : array_values( (array) $q['ids'] );
