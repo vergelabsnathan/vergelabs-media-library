@@ -351,6 +351,33 @@ test.describe( 'the Folders screen', () => {
 		await expect( fill.locator( '.g-progress-text' ) ).toHaveText( /^Counting 1,000 pictures against 500 folders · 1[23] s$/ );
 		await page.screenshot( { path: 'tests/ui/shots/folders-progress-row.png' } );
 
+		/*
+		 *  The apply's own request (S15): the folders are being made and seeded
+		 *  before the first pass, and until 2026-09-17 the row under the button
+		 *  read "Filling 0 pictures so far" for as long as that took (188 s on
+		 *  HEMA's 292). Pressed and not yet answered, the row says what the
+		 *  request is doing, in the spec's words, with the clock; the pictures'
+		 *  count takes over when the first report arrives. Mutation: the
+		 *  applying branch removed from renderMove -> red ("Filling 0 pictures").
+		 */
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.session.draft = { folders: Array.from( { length: 292 }, ( _, i ) => ( { key: 'k' + i, name: 'f' + i, parent: '' } ) ) };
+			app.state.applying = true;
+			app.state.applyingAt = Date.now() - 4000;
+			app.state.moving = null;
+			app.render();
+		} );
+		await expect( fill.locator( '.g-progress-text' ), 'the apply pressed, no report yet: making the folders' ).toHaveText( /^Making 292 folders · [45] s$/ );
+		await expect( fill ).toHaveClass( /is-open/ );
+		await expect( page.locator( '.g-card[data-card="fill"] .vgml-move-btn' ) ).toHaveClass( /is-working/ );
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.applying = false;
+			app.state.session.draft = null;
+			app.render();
+		} );
+
 		await page.evaluate( () => window.vgmlFoldersApp.progress( 'fill', null ) );
 		await expect( fill ).toBeHidden();
 

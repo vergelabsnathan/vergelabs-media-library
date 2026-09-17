@@ -2147,6 +2147,30 @@
 		dom.stop.hidden = ! moving;
 		root.setAttribute( 'data-state', moving ? 'moving' : ( state.undo.available && ! view.getDraft() ? 'done' : 'resting' ) );
 
+		if ( moving && state.applying && ! state.moving ) {
+			/*
+			 *  Pressed and not yet answered: the request is making the folders
+			 *  and seeding their profiles before the first pass, and the row
+			 *  said "Filling 0 pictures so far" for as long as that took (S15,
+			 *  HEMA's 292: 188 s). The count is the pictures' once the first
+			 *  report arrives; here the row says what the request is doing.
+			 */
+			var making = state.session && state.session.draft && state.session.draft.folders ? state.session.draft.folders.length : state.nodes.length;
+			dom.move.textContent = __( 'Filling', 'vergelabs-media-library' );
+			dom.move.classList.add( 'is-working' );
+			dom.move.disabled = true;
+			dom.move.hidden = false;
+			dom.undo.hidden = true;
+			renderProgress( 'fill', {
+				verb: __( 'Making', 'vergelabs-media-library' ),
+				/* translators: %s: folders */
+				count: sprintf( _n( '%s folder', '%s folders', making, 'vergelabs-media-library' ), fmt( making ) ),
+				done: 0,
+				total: 0,
+				since: state.applyingAt || Date.now()
+			} );
+			return;
+		}
 		if ( moving ) {
 			var r = state.moving || {};
 			var seen = Number( r.seen ) || 0;
@@ -2209,6 +2233,7 @@
 		// Pressed, not yet answered: the button reads as running from here, so
 		// nothing that redraws it in between can hand it back.
 		state.applying = true;
+		state.applyingAt = Date.now();
 		state.moving = null;
 		renderFill();
 		api( 'POST', 'guide/apply' ).then( function ( r ) {
