@@ -448,5 +448,31 @@ f_check( '29c a filename word never outranks the describer\'s object: "phone; de
 $fx = vergeml_filing_facts( array( 'filing' => json_encode( array( 'object' => 'footwear' ) ), 'kind' => 'photo', 'file' => '2026/09/mens-sneakers-white.jpg', 'title' => 'mens-sneakers-white', 'alt' => '' ) );
 f_check( '29d facts: the row\'s file, title and alt become the words (the upload path\'s folders dropped)', array( 'mens', 'sneakers', 'white' ) === $fx['words'], json_encode( $fx['words'] ) );
 
+/*
+ *  The head noun against its own class (S10.5 rule 3). "cheese wheel;
+ *  cheese" hit Cheese at 0.95 (the phrase inside) and Wheels at 1.0 (the
+ *  head noun), and a wheel of cheese went to Wheels, sure. The describer's
+ *  class half says what it is: when that half names another folder in
+ *  full, a first-phrase hit on a class that is only the phrase's head noun
+ *  is worth 0.9, whichever path scored it -- so Cheese outranks Wheels,
+ *  and inside the margin the fill asks rather than files wrongly. "rocket
+ *  launch; launch" keeps its 1.0 on Launches: its class half names
+ *  Launches itself, not another folder. Mutation: the cap removed -> row
+ *  30 red (Wheels, sure).
+ */
+echo "\n== the head noun against its own class (S10.5 rule 3)\n";
+
+$shop = vergeml_filing_settle_claims( array(
+    31 => f_profile( 31, 0, array( 'Cheese' ), array( 'cheese' ), array( 'source' => 'name' ) ),
+    32 => f_profile( 32, 0, array( 'Wheels' ), array( 'wheels' ), array( 'source' => 'name' ) ),
+    33 => f_profile( 33, 0, array( 'Launches' ), array( 'launches' ), array( 'source' => 'name' ) ),
+) );
+$p = vergeml_filing_pick( f_facts( 'cheese wheel; cheese' ), $shop );
+f_check( '30 "cheese wheel; cheese": Cheese 0.7125 outranks Wheels, now 0.675 -- too close to file, so an either/or with Cheese first, never Wheels sure', 'nothing' === $p['outcome'] && 'margin' === $p['why'] && isset( $p['children'] ) && array( 31, 32 ) === array_values( array_map( 'intval', (array) $p['children'] ) ) && abs( $p['scores'][32] - 0.675 ) < 1e-9 && abs( $p['scores'][31] - 0.7125 ) < 1e-9, sprintf( '%s why %s children %s Cheese @%.4f Wheels @%.4f', $p['outcome'], $p['why'], wp_json_encode_lite( isset( $p['children'] ) ? $p['children'] : null ), $p['scores'][31], $p['scores'][32] ) );
+$p = vergeml_filing_pick( f_facts( 'rocket launch; launch' ), $shop );
+f_check( '30b "rocket launch; launch" is still a launch in full: Launches, sure, 0.75', 'fits' === $p['outcome'] && 33 === $p['term_id'] && 'sure' === $p['confidence'] && abs( $p['score'] - 0.75 ) < 1e-9, sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+$p = vergeml_filing_pick( f_facts( 'cheese wheel' ), $shop );
+f_check( '30c "cheese wheel" with no class half: nothing says otherwise, so the head noun stands -- Wheels 0.75 over Cheese 0.7125, a margin either/or as before', 'nothing' === $p['outcome'] && 'margin' === $p['why'] && abs( $p['scores'][32] - 0.75 ) < 1e-9, sprintf( '%s why %s Wheels @%.4f', $p['outcome'], $p['why'], $p['scores'][32] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

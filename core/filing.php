@@ -1206,6 +1206,42 @@ function vergeml_filing_pick( $facts, $profiles ) {
     // The picture's vector length once, not once per folder.
     $pnorm  = is_array( $facts['vector'] ) ? vergeml_filing_norm( $facts['vector'] ) : 0.0;
 
+    /*
+     *  The head noun against its own class (S10.5 rule 3). "cheese wheel;
+     *  cheese" hit Wheels in full by its head noun and Cheese by the phrase
+     *  inside, and a wheel of cheese was a wheel; "hair dryer" was a chair's.
+     *  The describer's class half says what the thing is: where that half
+     *  names some folder in full, a first-phrase hit on a class that is only
+     *  the phrase's head noun is capped at 0.9 on every other folder, so the
+     *  folder the class half names outranks it. "rocket launch; launch" keeps
+     *  its 1.0 on Launches: the class half names Launches itself. Named in
+     *  full means what the folder is for -- its first class or its own name:
+     *  on the tech library (2026-09-17) "mobile phone; electronics" lost its
+     *  1.0 on Phones because the planner had put "electronics" fourth on
+     *  Batteries, and a right sure placement became a question.
+     */
+    $head  = '';
+    $full2 = array();
+    if ( isset( $facts['classes'][1] ) ) {
+        $words = explode( ' ', vergeml_filing_canon( $facts['classes'][0] ) );
+        $head  = count( $words ) > 1 ? (string) end( $words ) : '';
+        if ( '' !== $head ) {
+            foreach ( $profiles as $tid => $p ) {
+                // Only a folder the picture could land in names it: a locked or gated one is nowhere.
+                if ( ! empty( $p['locked'] ) || ! in_array( $facts['kind'], (array) $p['kinds'], true ) || ( '' !== $p['audience'] && $facts['audience'] !== $p['audience'] ) ) {
+                    continue;
+                }
+                $own = vergeml_filing_group_key( vergeml_filing_name_class( isset( $p['path'] ) && $p['path'] ? end( $p['path'] ) : '' ) );
+                foreach ( array_values( (array) $p['classes'] ) as $rank => $fc ) {
+                    if ( ( 0 === $rank || vergeml_filing_group_key( $fc ) === $own ) && vergeml_filing_class_match( $facts['classes'][1], $fc ) >= 1.0 ) {
+                        $full2[ (int) $tid ] = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     foreach ( $profiles as $tid => $p ) {
 
         // Locked: the fill stays out of it.
@@ -1242,10 +1278,15 @@ function vergeml_filing_pick( $facts, $profiles ) {
         $class  = 0.0;
         $leaf   = vergeml_filing_group_key( vergeml_filing_name_class( isset( $p['path'] ) && $p['path'] ? end( $p['path'] ) : '' ) );
         $shared = isset( $p['shared'] ) ? (array) $p['shared'] : array();
+        // The class half names a folder in full, and not this one: this folder's head-noun hits are capped (rule 3).
+        $capped = '' !== $head && $full2 && ! ( 1 === count( $full2 ) && isset( $full2[ (int) $tid ] ) );
         foreach ( array_values( (array) $facts['classes'] ) as $pi => $pc ) {
             $phrase = 0 === $pi ? 1.0 : 0.85;
             foreach ( array_values( (array) $p['classes'] ) as $rank => $fc ) {
-                $match   = vergeml_filing_class_match( $pc, $fc, 0 === $pi );
+                $match = vergeml_filing_class_match( $pc, $fc, 0 === $pi );
+                if ( 0 === $pi && $capped && $match > 0.9 && vergeml_filing_canon( $fc ) === $head ) {
+                    $match = 0.9;
+                }
                 $is_leaf = '' !== $leaf && vergeml_filing_group_key( $fc ) === $leaf;
                 $weight  = ( 0 === $rank || ( $is_leaf && $match >= 1.0 ) ) ? 1.0 : 0.85;
                 $k       = $is_leaf ? 1 : max( 1, (int) ( isset( $shared[ vergeml_filing_group_key( $fc ) ] ) ? $shared[ vergeml_filing_group_key( $fc ) ] : 1 ) );
