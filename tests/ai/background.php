@@ -341,6 +341,67 @@ bg_check( 'a stopped run stays stopped', false === vergeml_ai_run_revive() && fa
 delete_transient( 'doing_cron' );
 
 
+/*
+ *  G  the sweep gate (S11). A model change describes nothing by itself: the
+ *  library is stale on the prompt hash alone (core/ai.php, vergeml_ai_pending
+ *  'stale'), never on the model, so a describer switched in the service --
+ *  or one picture escalated to a stronger model -- leaves every row where it
+ *  is, and the only way to re-describe them is the dashboard's button with
+ *  its credit count. Planted: two rows on another model and version, the
+ *  newest in the library, on the current prompt -- so the stamp reads the
+ *  other model and every real row differs from it. Mutation: judge the
+ *  stale set on the model too (pass the stamp's model to vergeml_index_stale
+ *  in vergeml_ai_pending) -> G1 red (the whole library pending, a run
+ *  started).
+ */
+bg_say( "\nG  a model change sweeps nothing by itself\n" );
+
+/*
+ *  The nudge a started run posts to wp-cron.php is answered here and never
+ *  sent: under the mutation this section exists for, the sweep starts a run
+ *  over the whole library, and on 2026-09-17 one tick got in before the stop
+ *  below and wrote a mock row over a real picture's description. A suite
+ *  that can start a run holds the wire.
+ */
+function bg_no_cron( $pre, $args, $url ) {
+    return false !== strpos( (string) $url, 'wp-cron.php' ) ? array( 'response' => array( 'code' => 200 ), 'body' => '', 'headers' => array() ) : $pre;
+}
+add_filter( 'pre_http_request', 'bg_no_cron', 1, 3 );
+
+$bg_stamp_real = vergeml_index_current_stamp();
+$bg_model_made = bg_seed( 2, 'm' );
+$bg_made       = array_merge( $bg_made, $bg_model_made );
+foreach ( $bg_model_made as $bg_id ) {
+    vergeml_index_set( (int) $bg_id, array(
+        'caption'       => 'seeded on another model',
+        'kind'          => 'photo',
+        'filing'        => wp_json_encode( array( 'object' => 'zzbgthing', 'audience' => '' ) ),
+        'embedding'     => array( 1.0, 0.0, 0.0, 0.0 ),
+        'model'         => 'zz-other-model',
+        'model_version' => 'zz-other-v9',
+        'prompt_hash'   => (string) $bg_stamp_real['prompt_hash'],
+        'error'         => '',
+        'described_at'  => gmdate( 'Y-m-d H:i:s', time() + 5 ),
+    ) );
+}
+$bg_stamp_now = vergeml_index_current_stamp();
+$bg_stale     = (int) vergeml_ai_pending_count( 'stale' );
+vergeml_ai_run_stop( '' );
+delete_option( 'vergeml_ai_run' );
+wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+vergeml_ai_run_sweep_stale( array( 'scope' => 'unindexed', 'apply_alt' => false ) );
+$bg_swept = vergeml_ai_run_state();
+bg_check(
+    sprintf( 'G1 the newest row is on another model (%s) and the same prompt: nothing is stale, and a finished run starts no sweep', $bg_stamp_now['model'] ),
+    '' !== (string) $bg_stamp_real['prompt_hash'] && 'zz-other-model' === (string) $bg_stamp_now['model'] && 0 === $bg_stale && empty( $bg_swept['active'] ) && false === wp_next_scheduled( 'vergeml_ai_run_tick' ),
+    json_encode( array( 'stamp' => $bg_stamp_now['model'], 'stale' => $bg_stale, 'active' => ! empty( $bg_swept['active'] ), 'booked' => false !== wp_next_scheduled( 'vergeml_ai_run_tick' ) ) )
+);
+vergeml_ai_run_stop( '' );
+delete_option( 'vergeml_ai_run' );
+wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+remove_filter( 'pre_http_request', 'bg_no_cron', 1 );
+
+
 bg_say( "\ntidying up\n" );
 
 vergeml_ai_run_stop( '' );
