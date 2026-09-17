@@ -237,10 +237,10 @@ card below in the Opus shape.
 
 ## Late in the session, on Nathan's "anything else?": k by lines, the C.5 tree back
 
-**k by lines ().** In  a folder whose
+**k by lines (`1ee7a56`).** In `vergeml_filing_settle_claims` a folder whose
 ancestor holds the same word is that ancestor's line, not a second holder
-(, for the holders and the sayers alike); between
-parent and child the depth rule chooses.  rows 0 and 15 restated
+(`vergeml_filing_lines`, for the holders and the sayers alike); between
+parent and child the depth rule chooses. `pick.php` rows 0 and 15 restated
 with the reason (infrastructure: Data centres' line and Space, 2 not 4);
 the ancestor walk removed → row 0 red. Tech: the three sheets identical,
 645/594 → 647/593, five placements move — a modem to Server racks (right),
@@ -251,20 +251,21 @@ station to Server racks likely (*infrastructure* on 3 lines, not 5) and
 *people* first). HEMA round 1: sure 152 → 195, likely 52 → 54; as it
 stood: fits 244 → 292, sure 180 → 227 (36 %). Both bands re-taken.
 
-**The C.5 tree back ().** HEMA's tree snapshotted first with its
-named leaves and profiles — (292 terms, 303 termmeta, 440 relationships; restoring it costs no
+**The C.5 tree back (`da07996`).** HEMA's tree snapshotted first with its
+named leaves and profiles — `/var/www/ms2/wp-content/vgml-shop-tree-hema.json`
+(292 terms, 303 termmeta, 440 relationships; restoring it costs no
 credits) — then the C.5 tree restored with its ids. Its band read red and
 the sheet showed why: **Watches read as a view** (its children Men, Women,
 Smart watches; Men and Women sit at the top too) and 14 watch sures fell.
 A child named for an audience is a split, never a repeat, and never a vote
-( 33c, the exception removed → red). Then: no views on C.5, the
+(`pick.php` 33c, the exception removed → red). Then: no views on C.5, the
 sheet as S14 read it (sure 23 · 1 · 2 · 4; likely 8 right kept, 248 lost,
 7 wrong, 6 broad, 7 moved), the band 510/488 → 495/479 with the tree's own
 ambiguities left: 8 digital cameras to a Cameras-or-TV & Video tie (the
 planner put *camera lens* first on TV & Video — S12's finding, C.4's kind)
 and 5 sandals and boots out of Shoes (*footwear* on four lines: Shoes and
 the seeded Sneakers under Men, Women, Kids). Re-taken with the reason.
-**ms2 shows the C.5 tree now** (site language still ); the shop-b
+**ms2 shows the C.5 tree now** (site language still `nl_NL`); the shop-b
 band reads whichever tree is up, so it reads red until HEMA is restored.
 
 
