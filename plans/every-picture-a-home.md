@@ -646,19 +646,18 @@ mock-first, first in every session).
   confirm asks only what a planner can add — refined by the shape: leaves under a parent never go, parents and the top level go unless a library word (shop 308 → 37, one batch, 0 credits); S10.2 a fill that cannot stall
   behind a cron lock — the cause was the nudge posting a key it never held; the poll's pass is the guarantee; S10.3 the dry run at any shape (250 k pairs, a job above it). Gates: both baselines 4/4 (the shop re-taken: Nathan's answers made Illustrations and Diagrams), the
   confirm on the 322-folder tree 1 batch and 0 credits (measured read-only); `folders.spec` on ms2 — see the handoff.
-- **S11** — S10.4 the tree at 300 folders (fold, hover preview) and S10.6
-  the media list opens on the pictures (both mock-first, one canvas);
-  S10.5 Nathan's marks on the shop sheet and the verdict on K = 8 and the
-  either/or cards; S10.5b the foreign tree on the same pictures (~36
-  credits, no describes).
-- **S12** — S10.7 the fill learns from its own placements (profile from
+- **S11 (done 2026-09-17, `docs/handoffs/2026-09-17-s11-the-method-back.md`)** — the method as found (BMAD never here; the profiles in the home tar), `/code-review` of S10 (four fixes, each a story), the owner's round (`round.spec`, the progress-row bug), S10.5 rules 1 and 2 (the path names, the either/or fold), the sweep premise corrected (stale is prompt-hash only), the describer eval (no switch).
+- **S12 (done 2026-09-17, `docs/handoffs/2026-09-17-s12-the-tree-and-the-list.md`)** — Nathan's three answers (profiles file back, BMAD a pilot later, the prompt sweep the button only: both auto-starts gone, `background.php` G2–G3); × on a folder's last word is an explicit empty (`nowords`, a name-only profile, Restore brings the words back); S10.4 the fold pair first in the head and a closed parent's children as chips on hover (mock → yes → build); S10.6 the media list opens on the pictures (one row, the panel the viewport's height, the tree first; ms2 first row 453 → 180 px). Gates: tech 4/4, the shop re-taken (Nathan's confirm of 09-16 17:23 UTC re-profiled 66 folders; Cameras' plan class ties its name-only child — a profile finding for S10.7).
+- **S13** — S10.7 the fill learns from its own placements (profile from
   members; rounds on a bare pack; the first profile on a structured one)
-  and S10.9 the picture's own words as evidence. Gate: the tech library's
-  round 2 ≥ round 1 by 10 points of sure, or the handoff says why.
-- **S13** — S10.8 file by the product (WooCommerce) and the flipped order
+  and S10.9 the picture's own words as evidence; S10.5 rule 3 (the head
+  noun, both sheets) and S10.5b the foreign tree on the same pictures (~36
+  credits, no describes). Gate: the tech library's round 2 ≥ round 1 by 10
+  points of sure, or the handoff says why.
+- **S14** — S10.8 file by the product (WooCommerce) and the flipped order
   of the steps for structured libraries (the rail mocked); S10.11 the
   opt-in model pass on what is left.
-- **S14** — S10.10 the proposal from the pictures: groups to name and nest
+- **S15** — S10.10 the proposal from the pictures: groups to name and nest
   (per kind first, so a pack's documents get their own branch — the
   "kinds have no home" hole closed for bare packs), the proposal drawn as
   thumbnails, the pack's own signals, the tree's size from the shape. Gate: the tech library re-proposed from groups, the sheet
