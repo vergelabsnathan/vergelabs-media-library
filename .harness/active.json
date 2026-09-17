@@ -1,37 +1,38 @@
 {
-  "phase": "Every picture a home — S10: folders at catalogue scale (the epic's stories S10.1–S10.5, in order)",
+  "phase": "Every picture a home — S11: the method back, the owner's round as the gate, then the questions' grain and the model eval",
   "model": "opus",
-  "plan": "plans/every-picture-a-home.md (Phase D: the sessions S10–S14 and their gates)",
+  "plan": "plans/every-picture-a-home.md (Phase D: S11)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "core/guide.php (the confirm's ask, the poll's kick, the background fit)",
-    "core/filing.php (profile_ask over the vocabulary)",
-    "core/folder-talk.php (the run's pass from a poll)",
-    "js/vergeml-folders.js, js/vergeml-tree-view.js (S10.4 after the mock is approved)",
-    "js/vergeml-tree.js, css/vergeml-tree.css, core/media-list.php (S10.6 after the mock is approved: the list opens on the pictures, the sidebar full height, the tree first)",
-    "tests/filing/pick.php, tests/tree/guide.php, tests/tree/tree-view.mjs, tests/ui/folders.spec.mjs",
+    "tests/ui/round.spec.mjs (new: the owner's round on the tech site through fill-fixture.php — confirm → fill → answer → fill again → unconfirm → edit a word → confirm → fill; a shot at every state; restored after)",
+    "core/folder-talk.php, core/filing.php (S10.5: one card per folder pair for either/ors of one picture; the path in a question when two folders share a leaf)",
+    "core/guide.php, tests/tree/guide.php (a test row for Fill after Fill: a confirmed tree with no draft fills the live folders)",
+    "js/vergeml-tree-view.js (a folder that takes no words: × on the last word must mean it)",
+    "core/ai-*.php (the sweep gate: a model change is a button with a credit count, never automatic)",
+    "service/ or tools/ (the describer eval: 100 pictures, three models through OpenRouter, Braintrust)",
+    "js/vergeml-tree-view.js, css, core/media-list.php (S10.4, S10.6 — mock-first, only after the above)",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-16-s9-the-second-library.md (this: the numbers, the five findings, what is not run)",
-    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (the stories and their tests)",
-    "memory: hetzner-box-fixtures (ms2, vgmls9), tests-never-touch-live-state, playground-counts-queries-not-ms"
+    "docs/handoffs/2026-09-16-s10-folders-at-catalogue-scale.md (this: what S10 built, the afternoon's bug hunt, the loop, the method as it stands)",
+    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (the Built paragraphs; S10.5, S10.4, S10.6, S10.5b)",
+    "memory: hetzner-box-fixtures (ms2, vgmls9; box-eval.mjs, box-ui-admin.php), tests-never-touch-live-state, model-spend-discipline, braintrust-eval-stack, openrouter-always"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "First: read Nathan's marks on the shop sheet and his verdict on K = 8 and the either/or cards — that verdict decides whether S10.5 changes a rule",
-    "S10.0 (one progress component, a bar with a number and an estimate, mocked and approved) goes first and every later story renders through it; S10.1 before S10.2: a confirm that asks about 60 folders instead of 308 is the cheaper and quieter walk, and the stall reproduces on ms2 either way",
-    "S10.4 is mock-first: one line of concept, tools/shoot-mock.mjs, Nathan's yes, then the build",
-    "Every change measured on both sites: the tech baseline 4/4 unchanged, the shop band within 3 % or re-taken with the reason",
-    "Nothing describes; profiling costs credits — say the number before a confirm on ms2; delete vgmls9 when C.5 closes",
-    "The tech library's site is never seeded or filled for this"
+    "First: the method. Look in Desktop/🟢 Claude Projects/_reset-2026-09-14/ for the BMAD skills and the harness profiles; say what is there and what installing means; Nathan decides. Then /code-review on the S10 commits (3727f6a..64c9e7a) and fix what it finds before any new work",
+    "Never run a suite or a walk on ms2 while Nathan is on it; ask first. The owner's round runs on the tech site through the fixture",
+    "Every bug from a walk is a story: test first, one mutation, then the fix",
+    "The model eval spends < €3 and describes nothing in any library; say the number before it runs; no default changes without the sweep gate and Nathan's yes on the table",
+    "S10.4 and S10.6 are mock-first: one concept line each, tools/shoot-mock.mjs, Nathan's yes",
+    "Every change measured on both sites: tech 4/4 unchanged, the shop within 3 % or re-taken with the reason"
   ],
   "gates": [
-    "folders.spec green on ms2 at both sizes",
-    "S10.1: confirm on the 318-folder tree asks ≤ 60 folders, 0 credits; pick.php row with its mutation",
-    "S10.2: a planted stale lock + past-due event moves pictures on one poll (tests/tree/guide.php), and a Fill on ms2 moves within 30 s of the press",
-    "S10.3: the paste of the 318-folder file settles with counts within 30 s on ms2; the query-count row on Playground",
-    "node tools/verify.mjs filing surface roles escaping copy tree-view seed-shop → green (escaping 9/10 known); both baselines 4/4"
+    "The owner's round green on the tech site with shots; a fill after a fill runs; a second fill asks no question about a picture an answer placed",
+    "S10.5: residue.php — either/ors of one picture fold into one card per folder pair; a question naming two same-leaf folders carries their paths (mutations: the fold removed, the path dropped)",
+    "The sweep gate: a model change describes nothing until a button with its credit count is pressed (tests/ai/background.php row with its mutation)",
+    "The eval table in the handoff: three models × (phrase match, JSON failures, latency, cost) on 100 pictures",
+    "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop → green (escaping 9/10 known); both baselines 4/4; folders.spec on ms2 when Nathan is off it"
   ]
 }

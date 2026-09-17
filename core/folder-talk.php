@@ -986,6 +986,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		'either'   => array(),
 		'questions' => array(),
 		'names'    => array(),
+		'asked'    => array(),
 		'after'    => 0,
 		'moved'    => 0,
 		'skipped'  => 0,
@@ -1057,7 +1058,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 	set_transient( VERGEML_TALK_PASS_LOCK, time(), 120 );
 
 	// A Move already in flight across the deploy that added these.
-	foreach ( array( 'residue' => array(), 'siblings' => array(), 'either' => array(), 'questions' => array(), 'names' => array(), 'tally' => vergeml_filing_tally_fresh() ) as $k => $fresh ) {
+	foreach ( array( 'residue' => array(), 'siblings' => array(), 'either' => array(), 'questions' => array(), 'names' => array(), 'asked' => array(), 'tally' => vergeml_filing_tally_fresh() ) as $k => $fresh ) {
 		if ( ! isset( $state[ $k ] ) || ! is_array( $state[ $k ] ) ) {
 			$state[ $k ] = $fresh;
 		}
@@ -1344,7 +1345,8 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 		$pass += count( (array) $rows );
 
 		if ( count( (array) $rows ) < $slice ) {
-			vergeml_talk_refile_finish( $state );
+			// Unfinished here means out of time for the names: the run stays active and the next pass finds no rows and finishes.
+			vergeml_talk_refile_finish( $state, $deadline );
 			break;
 		}
 	} while ( $pass < $budget && microtime( true ) < $deadline );
@@ -1533,11 +1535,28 @@ function vergeml_talk_tag_row( $row, $tags ) {
 /**
  *  The folders that go, once every picture has been looked at.
  *
- * @param array $state Taken by reference so the caller writes it once.
+ *  The questions first, then the deletes (S11 review): naming a residue
+ *  group is a 20 s service call each, and the pass that reaches the end can
+ *  be a poll's kick inside the browser's request. Names are asked in the
+ *  time the pass has left; a finish that runs out returns false with the run
+ *  still active, and the next pass -- cron's or the next poll's -- carries
+ *  on from the names already kept. The terms go only once the questions are
+ *  built, so a request killed mid-way has deleted nothing.
+ *
+ * @param array $state    Taken by reference so the caller writes it once.
+ * @param float $deadline The pass's own; the naming stops at it.
+ * @return bool Whether the run is finished.
  */
-function vergeml_talk_refile_finish( &$state ) {
+function vergeml_talk_refile_finish( &$state, $deadline = null ) {
 
 	$taxonomy = (string) $state['taxonomy'];
+
+	// What the fill could not decide, as questions -- few, grouped, named.
+	$questions = vergeml_talk_questions_build( $state, $deadline );
+	if ( null === $questions ) {
+		return false;
+	}
+	$state['questions'] = $questions;
 
 	foreach ( (array) $state['remove'] as $term_id ) {
 
@@ -1554,13 +1573,11 @@ function vergeml_talk_refile_finish( &$state ) {
 	$state['remove']  = array();
 	$state['active']  = false;
 
-	// What the fill could not decide, as questions -- few, grouped, named.
-	$state['questions'] = vergeml_talk_questions_build( $state );
-
 	// The Move is complete: every open surface re-reads the tree and its counts.
 	if ( function_exists( 'vergeml_folders_moved' ) ) {
 		vergeml_folders_moved( 'refile' );
 	}
+	return true;
 }
 
 
@@ -1642,6 +1659,19 @@ function vergeml_talk_refile_kick( $state ) {
 add_action( VERGEML_TALK_HOOK, 'vergeml_talk_refile_event' );
 
 function vergeml_talk_refile_event() {
+
+	/*
+	 *  Another pass holds the slice (a poll's kick, S10.2). Booked a stall's
+	 *  length out and not posted: booked at time() and chained, this tick met
+	 *  the lock again at once and spun a loopback a second for as long as the
+	 *  lock stood -- ten seconds behind a kick, two minutes behind a pass
+	 *  php-fpm killed (S11 review). The pass that holds the lock books the
+	 *  run on when it ends; this booking is for the case it never does.
+	 */
+	if ( get_transient( VERGEML_TALK_PASS_LOCK ) ) {
+		wp_schedule_single_event( time() + VERGEML_TALK_STALL, VERGEML_TALK_HOOK );
+		return;
+	}
 
 	$state = vergeml_talk_refile_run( microtime( true ) + VERGEML_TALK_BUDGET );
 
@@ -2072,8 +2102,17 @@ function vergeml_talk_undo_available() {
  *  name from one metered call, cached in the state by its members so the same
  *  group is never named twice; a kind group (screenshots, diagrams) is named
  *  for its kind; "put in" offers the folder most of a group came closest to.
+ *
+ *  Each group is asked once a run ('asked', written into the state before
+ *  the call, so a request killed mid-call does not ask again either), and
+ *  only while the pass has time: past the deadline the questions are not
+ *  built and null comes back, the names so far kept for the next pass.
+ *
+ * @param array      $state
+ * @param float|null $deadline
+ * @return array|null The questions, or null when the pass ran out of time before every name was asked.
  */
-function vergeml_talk_questions_build( &$state ) {
+function vergeml_talk_questions_build( &$state, $deadline = null ) {
 
 	global $wpdb;
 
@@ -2116,6 +2155,9 @@ function vergeml_talk_questions_build( &$state ) {
 	if ( ! isset( $state['names'] ) || ! is_array( $state['names'] ) ) {
 		$state['names'] = array();
 	}
+	if ( ! isset( $state['asked'] ) || ! is_array( $state['asked'] ) ) {
+		$state['asked'] = array();
+	}
 
 	foreach ( $groups as $i => $g ) {
 		if ( ! empty( $g['unreadable'] ) || ! empty( $g['more'] ) ) {
@@ -2127,7 +2169,12 @@ function vergeml_talk_questions_build( &$state ) {
 			continue;
 		}
 		$key = md5( implode( ',', $g['ids'] ) );
-		if ( ! isset( $state['names'][ $key ] ) ) {
+		if ( ! isset( $state['names'][ $key ] ) && empty( $state['asked'][ $key ] ) ) {
+			if ( null !== $deadline && microtime( true ) > $deadline ) {
+				return null;
+			}
+			$state['asked'][ $key ] = true;
+			update_option( VERGEML_TALK_STATE, $state, false );
 			$sample = array();
 			foreach ( array_slice( $g['ids'], 0, VERGEML_FILING_SAMPLE ) as $id ) {
 				if ( isset( $captions[ $id ] ) && '' !== $captions[ $id ] ) {
@@ -2402,6 +2449,21 @@ function vergeml_talk_answer( $id, $answer ) {
 	$plan = vergeml_filing_answer_plan( $q, $answer );
 	if ( null === $plan ) {
 		return new WP_Error( 'bad_answer', __( 'That is not one of the answers.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+	}
+
+	/*
+	 *  The fill's own word never outranks the person's (S11 review). Split
+	 *  and keep-parent move by the question's map, drawn when the run ended;
+	 *  a picture they dragged into a folder since (placed_by = user) stays
+	 *  where they put it and keeps "by you". Put-in and a new folder are
+	 *  their own choice over the same pictures, and move them.
+	 */
+	if ( 'answer' === $plan['placed_by'] ) {
+		foreach ( array_keys( (array) $plan['moves'] ) as $id ) {
+			if ( 'user' === get_post_meta( (int) $id, VERGEML_FILING_PLACED_BY, true ) ) {
+				unset( $plan['moves'][ $id ] );
+			}
+		}
 	}
 
 	$taxonomy = (string) $state['taxonomy'];

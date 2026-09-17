@@ -254,6 +254,39 @@ $g_fit = $g_res->get_data()['fit'] ?? null;
 remove_filter( 'vergeml_guide_fit_budget', 'g_tiny_budget' );
 g_check( sprintf( 'F6 %d × 200 pairs (under the cap) with a one-second budget: the request gives up and books the job -- pending, never unknown', $g_described ), is_array( $g_fit ) && ! empty( $g_fit['pending'] ) && false !== wp_next_scheduled( VERGEML_GUIDE_FIT_HOOK ), json_encode( is_array( $g_fit ) ? array_intersect_key( $g_fit, array_flip( array( 'counted', 'pending' ) ) ) : $g_fit ) );
 
+/*
+ *  S11 review. A host whose cron never runs (DISABLE_WP_CRON, a blocked
+ *  loopback) left a pending fit pending for ever: the poll re-booked the
+ *  job and the row said "Counting" until the page was closed. Now the poll
+ *  counts its revives; on the third with no job started it takes the fit
+ *  itself when the shape fits a request, and settles it as unknown -- the
+ *  honest line the screen showed before S10.3 -- when it does not.
+ *  Mutation: the give-up removed (the revive only ever re-books) -> F7 red.
+ */
+$g_small = array( 'folders' => array_slice( $g_big['folders'], 0, 50 ), 'gone' => array(), 'origin' => 'talk', 'rule' => null );
+$g_s          = vergeml_guide_fresh();
+$g_s['draft'] = vergeml_guide_clean_draft( $g_small );
+$g_s['fit']   = vergeml_guide_fit_pending( $g_described, 50, vergeml_guide_draft_hash( $g_s['draft'] ) );
+$g_s['fit']['revived'] = 2;
+vergeml_guide_save( $g_s );
+wp_clear_scheduled_hook( VERGEML_GUIDE_FIT_HOOK );
+wp_schedule_single_event( time() - 30, VERGEML_GUIDE_FIT_HOOK );
+delete_transient( VERGEML_GUIDE_FIT_LOCK );
+$g_res = rest_do_request( new WP_REST_Request( 'GET', '/vergeml/v1/guide/progress' ) );
+$g_fit = vergeml_guide_session()['fit'];
+g_check( sprintf( 'F7 the third poll on a job cron never started takes it: %d × 50 counted in the poll\'s request, no job left booked', $g_described ), 200 === $g_res->get_status() && is_array( $g_fit ) && ! empty( $g_fit['counted'] ) && empty( $g_fit['pending'] ) && 50 === count( $g_fit['counts'] ) && false === wp_next_scheduled( VERGEML_GUIDE_FIT_HOOK ), json_encode( is_array( $g_fit ) ? array_intersect_key( $g_fit, array_flip( array( 'counted', 'pending', 'revived' ) ) ) : $g_fit ) );
+
+$g_s          = vergeml_guide_fresh();
+$g_s['draft'] = vergeml_guide_clean_draft( $g_big );
+$g_s['fit']   = vergeml_guide_fit_pending( $g_described, 260, vergeml_guide_draft_hash( $g_s['draft'] ) );
+$g_s['fit']['revived'] = 2;
+vergeml_guide_save( $g_s );
+wp_clear_scheduled_hook( VERGEML_GUIDE_FIT_HOOK );
+wp_schedule_single_event( time() - 30, VERGEML_GUIDE_FIT_HOOK );
+rest_do_request( new WP_REST_Request( 'GET', '/vergeml/v1/guide/progress' ) );
+$g_fit = vergeml_guide_session()['fit'];
+g_check( 'F8 the same on a shape no request holds settles as unknown: counted false, not pending, the "not worked out" line', is_array( $g_fit ) && empty( $g_fit['counted'] ) && empty( $g_fit['pending'] ) && isset( $g_fit['preview'][0]['text'] ) && 'The counts are not worked out yet' === $g_fit['preview'][0]['text'], json_encode( is_array( $g_fit ) ? array( 'counted' => $g_fit['counted'], 'pending' => ! empty( $g_fit['pending'] ), 'line' => isset( $g_fit['preview'][0]['text'] ) ? $g_fit['preview'][0]['text'] : null ) : $g_fit ) );
+
 remove_filter( 'pre_http_request', 'g_answer', 1 );
 foreach ( array_keys( $GLOBALS['g_texts'] ) as $g_text ) {
     delete_transient( vergeml_meaning_slot( $g_text ) );

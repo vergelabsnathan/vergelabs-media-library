@@ -1491,21 +1491,51 @@ function vergeml_guide_fit_event() {
     delete_transient( VERGEML_GUIDE_FIT_LOCK );
 }
 
+/** Polls that may find the job unstarted before the poll stops waiting for cron. Three: thirty seconds of "Counting". */
+const VERGEML_GUIDE_FIT_REVIVES = 3;
+
 /**
  *  From the poll: a pending fit whose job cron has not run is booked again
- *  and nudged. No pass runs inside the poll here -- the shape that defers is
- *  by definition the one a request cannot hold -- but the booking never
- *  depends on the one spawn that was posted when the paste settled.
+ *  and nudged -- the booking never depends on the one spawn that was posted
+ *  when the paste settled. On the third poll that finds no job started, cron
+ *  is not running on this site (DISABLE_WP_CRON, a loopback the host blocks)
+ *  and the poll stops waiting: a shape a request can hold is worked out in
+ *  the poll's own request; one it cannot hold settles as unknown, the line
+ *  the screen showed before S10.3 -- never "Counting" for ever (S11 review).
+ *
+ * @param array $s The session, by reference; saved when the fit settles.
  */
-function vergeml_guide_fit_revive( $s ) {
+function vergeml_guide_fit_revive( &$s ) {
     if ( ! is_array( $s['fit'] ) || empty( $s['fit']['pending'] ) || get_transient( VERGEML_GUIDE_FIT_LOCK ) ) {
         return;
     }
     $next = wp_next_scheduled( VERGEML_GUIDE_FIT_HOOK );
-    if ( false === $next || $next <= time() - 10 ) {
-        wp_clear_scheduled_hook( VERGEML_GUIDE_FIT_HOOK );
-        vergeml_guide_fit_schedule();
+    if ( false !== $next && $next > time() - 10 ) {
+        return;
     }
+    wp_clear_scheduled_hook( VERGEML_GUIDE_FIT_HOOK );
+
+    $revived = ( isset( $s['fit']['revived'] ) ? (int) $s['fit']['revived'] : 0 ) + 1;
+    if ( $revived < VERGEML_GUIDE_FIT_REVIVES ) {
+        $s['fit']['revived'] = $revived;
+        vergeml_guide_save( $s );
+        vergeml_guide_fit_schedule();
+        return;
+    }
+
+    $fit = null;
+    if ( is_array( $s['draft'] ) && ! vergeml_guide_fit_defers( $s['fit']['pictures'], $s['fit']['folders'] ) ) {
+        $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+        $fit      = '' !== $taxonomy ? vergeml_guide_draft_fit( $s['draft'], $taxonomy ) : null;
+    }
+    if ( is_array( $s['draft'] ) ) {
+        foreach ( $s['draft']['folders'] as &$f ) {
+            $f['count'] = $fit && isset( $fit['counts'][ $f['key'] ] ) ? (int) $fit['counts'][ $f['key'] ] : null;
+        }
+        unset( $f );
+    }
+    $s['fit'] = $fit ? $fit : vergeml_guide_fit_unknown();
+    vergeml_guide_save( $s );
 }
 
 /**

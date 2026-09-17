@@ -100,10 +100,16 @@ function sk_answer( $pre, $args, $url ) {
         $GLOBALS['sk_cron'][] = (string) $url;
         return array( 'response' => array( 'code' => 200 ), 'body' => '', 'headers' => array() );
     }
+    // The group name the run's end asks for (F): counted, so the suite can say it was asked once.
+    if ( false !== strpos( $url, '/name-group' ) ) {
+        $GLOBALS['sk_named']++;
+        return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( array( 'name' => 'zzNamed' ) ), 'headers' => array() );
+    }
     return $pre;
 }
 add_filter( 'pre_http_request', 'sk_answer', 1, 3 );
-$GLOBALS['sk_cron'] = array();
+$GLOBALS['sk_cron']  = array();
+$GLOBALS['sk_named'] = 0;
 
 /* ------------------------------------------------------------- the fixture */
 
@@ -369,6 +375,121 @@ if ( 6 === $sk_reach ) {
     sk_check( 'E3 the nudge takes cron\'s lock with a new key and posts that key, never a key no request carries', 1 === count( $GLOBALS['sk_cron'] ) && is_string( $sk_key ) && false !== strpos( $GLOBALS['sk_cron'][0], 'doing_wp_cron=' . rawurlencode( $sk_key ) ), json_encode( array( 'posts' => count( $GLOBALS['sk_cron'] ), 'key' => $sk_key, 'url' => isset( $GLOBALS['sk_cron'][0] ) ? $GLOBALS['sk_cron'][0] : null ) ) );
     $sk_poll = vergeml_talk_progress();
     sk_check( 'E4 a run just booked is not run by the poll: moved stays 0', 0 === (int) $sk_poll['moved'] && ! empty( $sk_poll['running'] ), json_encode( array( 'moved' => $sk_poll['moved'], 'running' => $sk_poll['running'] ) ) );
+
+    /*
+     *  S11 review. A tick that meets the pass lock (a poll's kick holds the
+     *  slice) used to book the event at time() and post a chained request,
+     *  which met the lock again at once: a loopback a second for as long as
+     *  the lock stood. Now it is booked a stall's length out and not posted.
+     *  Mutation: the lock check removed from the event -> E5 red (booked now,
+     *  and posted).
+     */
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    delete_transient( 'doing_cron' );
+    set_transient( VERGEML_TALK_PASS_LOCK, time(), 120 );
+    $GLOBALS['sk_cron'] = array();
+    vergeml_talk_refile_event();
+    $sk_next = wp_next_scheduled( VERGEML_TALK_HOOK );
+    sk_check( 'E5 a tick that meets the pass lock books the event a stall out and posts nothing', false !== $sk_next && $sk_next >= time() + VERGEML_TALK_STALL - 1 && 0 === count( $GLOBALS['sk_cron'] ), json_encode( array( 'in' => false === $sk_next ? null : $sk_next - time(), 'posts' => count( $GLOBALS['sk_cron'] ) ) ) );
+    delete_transient( VERGEML_TALK_PASS_LOCK );
+
+    /* ------------------------------------------------------ F  the finish is bounded */
+
+    /*
+     *  S11 review. The run's end names each residue group through the
+     *  service (a 20 s call each) and then deletes the folders it was asked to
+     *  remove -- and a poll's kick can be the pass that reaches it, inside
+     *  the browser's request. Now the naming happens before the deletes,
+     *  each group is asked once per run, the name is written into the state
+     *  before the next call, and a finish that runs out of its pass's time
+     *  leaves the rest to the next pass with the run still active. Five
+     *  pictures of one class make the one group a name is asked for.
+     *  Mutation: the deadline check removed from the naming -> F1 red (the
+     *  folder gone, the name asked, on a pass with no time left).
+     */
+    echo "\nF  the finish is bounded: names first, once, in the time the pass has\n\n";
+
+    $sk_files['in4'] = sk_file( 'in4', 'zzstickylocked' );
+    $sk_in           = implode( ',', array_map( 'intval', array_values( $sk_files ) ) );
+    $sk_residue      = array();
+    foreach ( array( 'in1', 'in2', 'in3', 'in4', 'wants' ) as $sk_k ) {
+        $sk_residue[ $sk_files[ $sk_k ] ] = 0;
+    }
+    $sk_finish = function () use ( $sk_tax, $sk_terms, $sk_files, $sk_residue ) {
+        return array(
+            'active'   => true,
+            'taxonomy' => $sk_tax,
+            'ids'      => array( 'a' => $sk_terms['zzStickyA'], 'b' => $sk_terms['zzStickyB'] ),
+            'vectors'  => array(),
+            'assign'   => array(),
+            'fallback' => array(),
+            'reasons'  => array(),
+            'after'    => max( array_values( $sk_files ) ),
+            'moved'    => 0,
+            'skipped'  => 0,
+            'seen'     => 6,
+            'total'    => 6,
+            'counts'   => array(),
+            'by_term'  => array(),
+            'unfiled'  => array(),
+            'tags'     => array(),
+            'tagged'   => 0,
+            'until'    => time() + DAY_IN_SECONDS,
+            'remove'   => array( $sk_terms['zzStickyN'] ),
+            'residue'  => $sk_residue,
+            'started'  => time(),
+            'ticked'   => time(),
+        );
+    };
+    $GLOBALS['sk_named'] = 0;
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    update_option( VERGEML_TALK_STATE, $sk_finish(), false );
+    $sk_done = vergeml_talk_refile_run( microtime( true ) - 1.0 );
+    sk_check( 'F1 a pass with no time left leaves the finish to the next: the folder still there, the run active, no name asked', get_term( $sk_terms['zzStickyN'], $sk_tax ) instanceof WP_Term && ! empty( $sk_done['active'] ) && 0 === $GLOBALS['sk_named'] && empty( $sk_done['questions'] ), json_encode( array( 'folder' => get_term( $sk_terms['zzStickyN'], $sk_tax ) instanceof WP_Term, 'active' => ! empty( $sk_done['active'] ), 'named' => $GLOBALS['sk_named'] ) ) );
+    $sk_done = vergeml_talk_refile_run( microtime( true ) + 30.0 );
+    $sk_q    = isset( $sk_done['questions'][0] ) ? $sk_done['questions'][0] : array();
+    sk_check( 'F2 the next pass finishes it: the folder gone, the run over, one name asked, the card carries it over the five', ! ( get_term( $sk_terms['zzStickyN'], $sk_tax ) instanceof WP_Term ) && empty( $sk_done['active'] ) && 1 === $GLOBALS['sk_named'] && isset( $sk_q['name'], $sk_q['count'] ) && 'zzNamed' === $sk_q['name'] && 5 === (int) $sk_q['count'], json_encode( array( 'folder' => get_term( $sk_terms['zzStickyN'], $sk_tax ) instanceof WP_Term, 'active' => ! empty( $sk_done['active'] ), 'named' => $GLOBALS['sk_named'], 'card' => isset( $sk_q['name'] ) ? $sk_q['name'] . ' ' . $sk_q['count'] : null ) ) );
+    // Asked once per run: a state that says the group was asked, and has no name for it, is not asked again -- the class word stands in.
+    $sk_again           = $sk_finish();
+    $sk_again['remove'] = array();
+    $sk_again['asked']  = array( (string) key( (array) $sk_done['names'] ) => true ); // The group's key as F2 cached it.
+    update_option( VERGEML_TALK_STATE, $sk_again, false );
+    $sk_done = vergeml_talk_refile_run( microtime( true ) + 30.0 );
+    $sk_q    = isset( $sk_done['questions'][0] ) ? $sk_done['questions'][0] : array();
+    sk_check( 'F3 a group the run already asked about is not asked again: the class word stands in', 1 === $GLOBALS['sk_named'] && isset( $sk_q['name'] ) && 'Zzstickylocked' === $sk_q['name'], json_encode( array( 'named' => $GLOBALS['sk_named'], 'name' => isset( $sk_q['name'] ) ? $sk_q['name'] : null ) ) );
+
+    /* ------------------------------------------------------ G  an answer yields to the person */
+
+    /*
+     *  S11 review. Since 2026-09-17 keep-parent and split move every picture
+     *  of the question and mark them 'answer'. A picture the person dragged
+     *  into a child after the fill (placed_by = user) was pulled back to the
+     *  parent and its mark downgraded. Now an 'answer' move skips a picture
+     *  that is the person's. `hand` is theirs and in B; `free` is nobody's
+     *  and in B. Mutation: the skip removed -> G1 red (hand in A, 'answer').
+     */
+    echo "\nG  an answer never outranks a hand move\n\n";
+
+    update_option( VERGEML_TALK_STATE, array_merge( $sk_finish(), array(
+        'active'    => false,
+        'residue'   => array(),
+        'remove'    => array(),
+        'questions' => array( array(
+            'id'         => 's:' . $sk_terms['zzStickyA'],
+            'kind'       => 'siblings',
+            'term_id'    => $sk_terms['zzStickyA'],
+            'children'   => array( $sk_terms['zzStickyB'], $sk_terms['zzStickyN'] ),
+            'count'      => 2,
+            'sample'     => array( $sk_files['hand'], $sk_files['free'] ),
+            'ids'        => array( $sk_files['hand'] => $sk_terms['zzStickyB'], $sk_files['free'] => $sk_terms['zzStickyB'] ),
+            'name'       => '',
+            'class'      => '',
+            'unreadable' => false,
+            'answers'    => array( 'keep-parent', 'split', 'show-me' ),
+        ) ),
+    ) ), false );
+    $sk_ans = vergeml_talk_answer( 's:' . $sk_terms['zzStickyA'], 'keep-parent' );
+    sk_check( 'G1 keep-parent moves the free picture to the parent and marks it answer; the hand-moved one stays in B, still the user\'s', ! is_wp_error( $sk_ans ) && 1 === (int) $sk_ans['moved'] && array( $sk_terms['zzStickyA'] ) === $sk_where( $sk_files['free'] ) && 'answer' === get_post_meta( $sk_files['free'], VERGEML_FILING_PLACED_BY, true ) && array( $sk_terms['zzStickyB'] ) === $sk_where( $sk_files['hand'] ) && 'user' === get_post_meta( $sk_files['hand'], VERGEML_FILING_PLACED_BY, true ), json_encode( array( 'moved' => is_wp_error( $sk_ans ) ? $sk_ans->get_error_message() : $sk_ans['moved'], 'free' => $sk_where( $sk_files['free'] ), 'free_by' => get_post_meta( $sk_files['free'], VERGEML_FILING_PLACED_BY, true ), 'hand' => $sk_where( $sk_files['hand'] ), 'hand_by' => get_post_meta( $sk_files['hand'], VERGEML_FILING_PLACED_BY, true ) ) ) );
 
     wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
     if ( false !== $sk_hook_was ) {
