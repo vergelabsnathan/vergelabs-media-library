@@ -521,6 +521,31 @@ test.describe( 'the Folders screen', () => {
 				const doc = await page.evaluate( () => ( { w: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth } ) );
 				expect( doc.w, `${ step } at ${ width }×${ height }: no horizontal scroll` ).toBeLessThanOrEqual( doc.cw );
 				await page.screenshot( { path: `tests/ui/shots/folders-${ step }-${ width }x${ height }.png` } );
+
+				/*
+				 *  S10.4 (2026-09-17): the fold is an icon pair first in the tree's
+				 *  head, in the viewport at either size without scrolling; a closed
+				 *  parent under the pointer shows its children as chips in the
+				 *  viewport, and stays closed.
+				 */
+				if ( 'tree' === step ) {
+					const pair = page.locator( '#vgml-folders .vgml-tv-head > :first-child' );
+					await expect( pair ).toHaveClass( /vgml-tv-foldpair/ );
+					const box = await pair.boundingBox();
+					expect( box && box.y >= 0 && box.y + box.height <= height, `${ width }×${ height }: the fold pair in the viewport (${ JSON.stringify( box ) })` ).toBe( true );
+					const closed = page.locator( '#vgml-folders .vgml-node[aria-expanded="false"]' ).first();
+					await closed.locator( '> .vgml-row' ).hover();
+					const peek = closed.locator( '.vgml-tv-peek .vgml-sib' );
+					await expect( peek.first() ).toBeVisible( { timeout: 2000 } );
+					const chips = await peek.count();
+					const under = await closed.getAttribute( 'aria-expanded' );
+					const card = await closed.locator( '.vgml-tv-hover' ).boundingBox();
+					expect( chips, `${ width }×${ height }: the closed parent's children as chips` ).toBeGreaterThan( 0 );
+					expect( under, 'the row stays closed under the pointer' ).toBe( 'false' );
+					expect( card && card.y + card.height <= height, `${ width }×${ height }: the card in the viewport (${ JSON.stringify( card ) })` ).toBe( true );
+					await page.screenshot( { path: `tests/ui/shots/folders-tree-peek-${ width }x${ height }.png` } );
+					await page.mouse.move( 0, 0 );
+				}
 			}
 		}
 	} );

@@ -24,12 +24,13 @@
 	color: var( --vgml-tv-body );
 }
 
-/* --- the head: the two states, the find box ----------------------------- */
+/* --- the head: the fold pair, the two states, the find box -------------- */
 
+/* Left to right, the fold pair first (S10.4, the mock of 2026-09-17): where the eye starts. */
 .vgml-tv[data-surface="folders"] .vgml-tv-head {
 	display: flex;
 	flex-wrap: wrap;
-	justify-content: flex-end;
+	justify-content: flex-start;
 	align-items: center;
 	gap: 12px;
 }
@@ -69,28 +70,60 @@
 }
 
 .vgml-tv[data-surface="folders"] .vgml-tv-find {
-	flex: 1 1 100%;
-	max-width: 260px;
+	flex: 1 1 200px;
+	max-width: 320px;
+	margin-inline-start: auto;
 }
 
-/* Every folder open or closed, one press: the same quiet chip as the state switch, at the head's end. */
-.vgml-tv[data-surface="folders"] .vgml-tv-fold {
-	margin: 0;
-	padding: 4px 10px;
+/*
+ *  Every folder open or every folder closed, one press: the state switch's
+ *  box holding the row's twist twice -- the open one rotated, as an open
+ *  row's is -- and the pressed half is the state the tree is in. Words only
+ *  in the tooltips.
+ */
+.vgml-tv[data-surface="folders"] .vgml-tv-foldpair {
+	display: inline-flex;
+	gap: 2px;
+	padding: 2px;
 	border: 1px solid var( --vgml-tv-divider );
 	border-radius: 6px;
 	background: #fff;
-	font: inherit;
-	font-size: 12px;
-	font-weight: 500;
-	line-height: 1.4;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-foldpair button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 24px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: none;
 	color: var( --vgml-tv-muted );
 	cursor: pointer;
 }
 
-.vgml-tv[data-surface="folders"] .vgml-tv-fold:hover,
-.vgml-tv[data-surface="folders"] .vgml-tv-fold:focus-visible {
+.vgml-tv[data-surface="folders"] .vgml-tv-foldpair button svg {
+	display: block;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-foldpair button.is-open svg {
+	transform: rotate( 90deg );
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-foldpair button[aria-pressed="true"] {
+	background: var( --vgml-tv-ink );
+	color: #fff;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-foldpair button:hover:not( [aria-pressed="true"] ) {
 	color: var( --vgml-tv-ink );
+	background: rgba( 16, 29, 64, .05 );
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-foldpair button:focus-visible {
 	outline: 2px solid var( --vgml-tv-accent );
 	outline-offset: 1px;
 }
@@ -630,6 +663,51 @@
 	object-fit: cover;
 	border-radius: 4px;
 	background: #e9eef8;
+}
+
+/*
+ *  A closed parent's children in the card (S10.4): the tree's sibling chips,
+ *  a preview of what the twist would open. The card takes the row's width
+ *  from the name, so ten chips read as a line or two.
+ */
+.vgml-tv[data-surface="folders"] .vgml-tv-hover.has-peek {
+	inset-inline-start: calc( var( --vgml-indent, 0px ) + 36px );
+	inset-inline-end: 0;
+	max-width: none;
+	margin-top: -4px;
+	border-radius: 10px;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-peek {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+	align-items: center;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-facts + .vgml-tv-peek,
+.vgml-tv[data-surface="folders"] .vgml-tv-thumbs + .vgml-tv-peek {
+	margin-top: 10px;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-peek .vgml-sib {
+	padding: 5px 6px 5px 11px;
+	font-size: 13px;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-peek .vgml-sib.is-empty {
+	color: var( --vgml-tv-muted );
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-peek .vgml-sib .vgml-count {
+	padding: 1px 8px;
+	font-size: 12px;
+}
+
+.vgml-tv[data-surface="folders"] .vgml-tv-peek-more {
+	padding-inline: 2px;
+	font-size: 12.5px;
+	color: var( --vgml-tv-muted );
 }
 
 /* --- a folder the reply names slides in ---------------------------------- */

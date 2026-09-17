@@ -108,7 +108,10 @@
 		addName: 'Name, or Solar > Rooftop',
 		removeOne: 'Remove %s from the draft',
 		removeWord: 'Remove the word %s',
-		noWords: 'no words'
+		noWords: 'no words',
+		foldEvery: 'Open or close every folder',
+		peekLabel: 'Folders inside %s',
+		peekMore: '+%s more'
 	};
 
 	/* --------------------------------------------------------------- glyphs */
@@ -1448,11 +1451,28 @@
 			}
 		}
 
-		if ( 'same' !== status || ( entry.row && entry.row.samples && entry.row.samples.length ) ) {
-			row.addEventListener( 'mouseenter', function () { self.showHover( item, entry ); } );
-			row.addEventListener( 'mouseleave', function () { self.hideHover( item ); } );
-			item.addEventListener( 'focus', function () { self.showHover( item, entry ); } );
-			item.addEventListener( 'blur', function () { self.hideHover( item ); } );
+		// The card: a changed row's facts and samples, and (S10.4) a closed parent's children as chips. Whether a
+		// parent gets the chips is showHover's call alone (closed, never open); here every parent is wired.
+		if ( 'same' !== status || ( entry.row && entry.row.samples && entry.row.samples.length ) || entry.kids ) {
+			// A closed parent's peek waits a beat, so a pointer crossing the tree does not open a card on every row.
+			var wait = entry.kids && 'same' === status ? 250 : 0;
+			var timer = null;
+			var show = function () {
+				timer = null;
+				self.showHover( item, entry );
+			};
+			var open = function () {
+				if ( timer ) { return; }
+				timer = wait ? setTimeout( show, wait ) : ( show(), null );
+			};
+			var close = function () {
+				if ( timer ) { clearTimeout( timer ); timer = null; }
+				self.hideHover( item );
+			};
+			row.addEventListener( 'mouseenter', open );
+			row.addEventListener( 'mouseleave', close );
+			item.addEventListener( 'focus', open );
+			item.addEventListener( 'blur', close );
 		}
 	};
 
@@ -1511,16 +1531,19 @@
 		var self = this;
 		var l10n = this.l10n;
 		var row = entry.row;
-		if ( ! row || item.querySelector( '.vgml-tv-hover' ) ) {
+		var peeks = entry.kids && ! entry.open;
+		if ( ( ! row && ! peeks ) || item.querySelector( '.vgml-tv-hover' ) ) {
 			return;
 		}
 		if ( this.onHover && false === this.onHover( entry ) ) {
 			return;
 		}
-		var card = el( 'div', { class: 'vgml-tv-hover', role: 'tooltip' } );
+		var card = el( 'div', { class: 'vgml-tv-hover' + ( peeks ? ' has-peek' : '' ), role: 'tooltip' } );
 		var facts = el( 'ul', { class: 'vgml-facts' } );
 
-		if ( 'removed' === row.status ) {
+		if ( ! row ) {
+			// The live tree, no draft: the card is the peek alone.
+		} else if ( 'removed' === row.status ) {
 			facts.appendChild( el( 'li', null, entry.sub ) );
 		} else {
 			// Same rule as the row's own count: an after-Move number nobody
@@ -1548,12 +1571,34 @@
 			card.appendChild( facts );
 		}
 
-		if ( row.samples && row.samples.length ) {
+		if ( row && row.samples && row.samples.length ) {
 			var thumbs = el( 'div', { class: 'vgml-tv-thumbs' } );
 			row.samples.slice( 0, 3 ).forEach( function ( src ) {
 				thumbs.appendChild( el( 'img', { src: src, alt: '', loading: 'lazy' } ) );
 			} );
 			card.appendChild( thumbs );
+		}
+
+		/*
+		 *  A closed parent's children as the tree's sibling chips (S10.4): a
+		 *  preview of what the twist would open, the first ten with their
+		 *  counts and "+n" for the rest. Never on an open parent -- its rows
+		 *  are on screen -- and never a row: nothing here is a treeitem.
+		 */
+		if ( peeks ) {
+			var kids = this.kidsOf( entry );
+			var peek = el( 'div', { class: 'vgml-tv-peek', role: 'group', 'aria-label': sprintf( l10n.peekLabel, entry.name ) } );
+			kids.slice( 0, 10 ).forEach( function ( kid ) {
+				var chip = el( 'span', { class: 'vgml-sib' + ( 'added' === kid.status ? ' is-new' : '' ) + ( kid.count ? '' : ' is-empty' ) }, kid.name );
+				if ( kid.count !== null && kid.count !== undefined && ( kid.count || 'same' !== kid.status ) ) {
+					chip.appendChild( el( 'span', { class: 'vgml-count g-pill' }, fmt( kid.count ) ) );
+				}
+				peek.appendChild( chip );
+			} );
+			if ( kids.length > 10 ) {
+				peek.appendChild( el( 'span', { class: 'vgml-tv-peek-more' }, sprintf( l10n.peekMore, fmt( kids.length - 10 ) ) ) );
+			}
+			card.appendChild( peek );
 		}
 
 		item.appendChild( card );
@@ -1644,6 +1689,26 @@
 		var l10n = this.l10n;
 		var head = el( 'div', { class: 'vgml-tv-head' } );
 
+		/*
+		 *  Every parent open or every parent closed, one press -- first in the
+		 *  head, where the eye starts (S10.4; Nathan, 2026-09-16, on a 318-folder
+		 *  catalogue: "I do not see the expand and collapse button", a text chip
+		 *  at the far right then). The pair is the state switch's box holding
+		 *  the row's own twist twice, open and closed; the pressed half is the
+		 *  state the tree is in. No words: the labels are the tooltips.
+		 */
+		var fold = el( 'div', { class: 'vgml-tv-foldpair', role: 'group', 'aria-label': l10n.foldEvery } );
+		[ true, false ].forEach( function ( open ) {
+			var half = el( 'button', { type: 'button', class: open ? 'is-open' : '', 'data-open': open ? '1' : '0', 'aria-pressed': 'false',
+				'aria-label': open ? l10n.expandAll : l10n.collapseAll, title: open ? l10n.expandAll : l10n.collapseAll } );
+			half.innerHTML = chevron();
+			half.addEventListener( 'click', function () {
+				self.openEvery( open );
+			} );
+			fold.appendChild( half );
+		} );
+		head.appendChild( fold );
+
 		var sw = el( 'div', { class: 'vgml-tv-switch', role: 'group', 'aria-label': l10n.states } );
 		[ 'changes', 'all' ].forEach( function ( mode ) {
 			var b = el( 'button', { type: 'button', class: 'vgml-tv-state', 'data-mode': mode, 'aria-pressed': 'false' } );
@@ -1661,13 +1726,6 @@
 		} );
 		find.appendChild( input );
 		head.appendChild( find );
-
-		// Every parent open or every parent closed, one press (Nathan, 2026-09-16, on a 318-folder catalogue).
-		var fold = el( 'button', { type: 'button', class: 'vgml-tv-fold g-chip' } );
-		fold.addEventListener( 'click', function () {
-			self.openEvery( ! self.openAll );
-		} );
-		head.appendChild( fold );
 
 		this.switchEl = sw;
 		this.findEl = find;
@@ -1699,10 +1757,32 @@
 		// A search from ten folders: with the parents closed by default, finding is how a big tree is read (Nathan, 2026-09-15: "say 300 categories").
 		this.findEl.hidden = this.model.nodes.length < 10 && ! this.filter;
 
-		// The fold, from the same ten: it says what the press does.
+		// The fold, from the same ten: the pressed half says which state the tree is in.
 		var parents = this.model.nodes.some( function ( n ) { return self.model.nodes.some( function ( k ) { return k.parent === n.id && n.id; } ); } );
 		this.foldEl.hidden = this.model.nodes.length < 10 || ! parents || !! this.filter;
-		this.foldEl.textContent = this.openAll ? l10n.collapseAll : l10n.expandAll;
+		Array.prototype.forEach.call( this.foldEl.querySelectorAll( 'button' ), function ( half ) {
+			half.setAttribute( 'aria-pressed', ( '1' === half.getAttribute( 'data-open' ) ) === self.openAll ? 'true' : 'false' );
+		} );
+	};
+
+	/**
+	 *  A closed parent's children, for the peek (S10.4): name, count and status,
+	 *  in the tree's own order. From the draft's rows while one is open (the
+	 *  after-Move count, or none while nothing is counted), else from the live
+	 *  tree (the branch total, as the rows read).
+	 */
+	TreeView.prototype.kidsOf = function ( entry ) {
+		var self = this;
+		if ( this.overlay ) {
+			return ( this.overlay.children[ entry.key ] || [] ).map( function ( r ) {
+				var shown = 'removed' === r.status ? r.liveTotal : r.after;
+				return { key: r.key, name: r.name, status: r.status, count: self.counted ? shown : null };
+			} );
+		}
+		var totals = this.model.totals();
+		return ( this.model.children[ entry.id ] || [] ).map( function ( n ) {
+			return { key: 't' + n.id, name: n.name, status: 'same', count: totals[ n.id ] };
+		} );
 	};
 
 

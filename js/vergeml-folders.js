@@ -1277,6 +1277,11 @@
 			find: __( 'Find a folder', 'vergelabs-media-library' ),
 			expandAll: __( 'Open every folder', 'vergelabs-media-library' ),
 			collapseAll: __( 'Close every folder', 'vergelabs-media-library' ),
+			foldEvery: __( 'Open or close every folder', 'vergelabs-media-library' ),
+			/* translators: %s: a folder name */
+			peekLabel: __( 'Folders inside %s', 'vergelabs-media-library' ),
+			/* translators: %s: folders not shown */
+			peekMore: __( '+%s more', 'vergelabs-media-library' ),
 			topLevel: __( 'Top level', 'vergelabs-media-library' ),
 			newTag: __( 'new', 'vergelabs-media-library' ),
 			/* translators: %s: a word the folder takes ("semiconductor component") */

@@ -530,6 +530,79 @@ check( 'G6 without the option the same tree is six rows and no chips', 6 === sib
 const libAfter = await page.$$eval( '#library > li.vgml-node', ( lis ) => lis.map( ( li ) => Array.from( li.querySelector( '.vgml-row' ).children ).map( ( c ) => c.className ).join() ) );
 check( 'G7 the library\'s rows are as they were: twist, icon, name, count -- no pill class, no chip', libAfter.every( ( r ) => /^vgml-twist[^,]*,vgml-icon[^,]*,vgml-name,vgml-count$/.test( r ) ), libAfter[ 0 ] );
 
+/* ------------------------------------ H  the tree at 300 folders (S10.4) */
+
+console.log( '\nH  the fold where the eye starts, a closed parent\'s children on hover\n' );
+
+/*
+ *  Nathan, 2026-09-16: "I do not see the expand and collapse button" and
+ *  "hovering a collapsed folder should reveal the underlying folders". The
+ *  mock of 2026-09-17 (tree-fold-hover): the fold is an icon pair FIRST in
+ *  the head -- the row's twist, open and closed, in the switch's box, the
+ *  pressed half the state the tree is in; a closed parent under the pointer
+ *  shows its children as the tree's sibling chips in the hover card, a
+ *  preview that leaves the tree's open state alone; an open parent shows no
+ *  such chips. Mutations: the `! entry.open` guard on the peek dropped ->
+ *  H2 red (an open parent shows chips); the pair not first in the head ->
+ *  H1 red.
+ */
+const fold = await page.evaluate( () => {
+	const h = window.harness;
+	const root = document.createElement( 'div' );
+	document.body.appendChild( root );
+	const v = h.tv.create( { surface: 'folders', root, nodes: h.nodes } );
+	v.setDraft( h.tv.fromLive( h.nodes ) );
+	const head = root.querySelector( '.vgml-tv-head' );
+	const pair = head && head.firstElementChild;
+	const halves = pair ? Array.from( pair.querySelectorAll( 'button' ) ) : [];
+	const pressed = () => halves.map( ( b ) => b.getAttribute( 'aria-pressed' ) ).join();
+	const parents = () => Array.from( root.querySelectorAll( '.vgml-node[aria-expanded]' ) ).map( ( n ) => n.getAttribute( 'aria-expanded' ) );
+	const out = { first: pair ? pair.className : null, halves: halves.length, labels: halves.map( ( b ) => b.getAttribute( 'aria-label' ) ), words: pair ? pair.textContent.trim() : null, closedPressed: pressed(), closedRows: parents().join() };
+	if ( halves[ 0 ] ) { halves[ 0 ].click(); }
+	out.openPressed = pressed();
+	out.openRows = Array.from( new Set( parents() ) ).join();
+	if ( halves[ 1 ] ) { halves[ 1 ].click(); }
+	out.closedAgain = Array.from( new Set( parents() ) ).join();
+	h.foldRoot = root;
+	h.foldView = v;
+	return out;
+} );
+check( 'H1 the fold is an icon pair first in the head: two halves, no words, "Open every folder" / "Close every folder"; closed pressed at rest, the open half opens every parent and is pressed, the closed half closes them again',
+	'vgml-tv-foldpair' === fold.first && 2 === fold.halves && '' === fold.words && 'Open every folder,Close every folder' === fold.labels.join()
+		&& 'false,true' === fold.closedPressed && /^(false,?)+$/.test( fold.closedRows ) && 'true,false' === fold.openPressed && 'true' === fold.openRows && 'false' === fold.closedAgain,
+	JSON.stringify( fold ) );
+
+const peekClosed = await page.evaluate( async () => {
+	const h = window.harness;
+	const root = h.foldRoot;
+	const row = root.querySelector( '.vgml-node[data-key="t20"] > .vgml-row' ); // Landscape and nature, four children, closed
+	row.dispatchEvent( new MouseEvent( 'mouseenter', { bubbles: false } ) );
+	await new Promise( ( r ) => setTimeout( r, 400 ) );
+	const chips = Array.from( root.querySelectorAll( '.vgml-node[data-key="t20"] .vgml-tv-hover .vgml-tv-peek .vgml-sib' ) ).map( ( c ) => c.textContent.trim() );
+	const out = { chips, expanded: root.querySelector( '.vgml-node[data-key="t20"]' ).getAttribute( 'aria-expanded' ), rows: root.querySelectorAll( '.vgml-node[data-key]' ).length };
+	row.dispatchEvent( new MouseEvent( 'mouseleave', { bubbles: false } ) );
+	out.gone = 0 === root.querySelectorAll( '.vgml-tv-hover' ).length;
+	return out;
+} );
+check( 'H2 hover on a closed parent: its four children as chips with counts in the hover card, the row still closed, no row added; leaving takes the card away',
+	'Meadow and blossom9|Mountains and mist39|Piers and sunsets8|Rural farmland5' === peekClosed.chips.slice().sort().join( '|' ) && 'false' === peekClosed.expanded && peekClosed.gone,
+	JSON.stringify( peekClosed ) );
+
+const peekOpen = await page.evaluate( async () => {
+	const h = window.harness;
+	const root = h.foldRoot;
+	const v = h.foldView;
+	v.toggle( 't20' );
+	const row = root.querySelector( '.vgml-node[data-key="t20"] > .vgml-row' );
+	row.dispatchEvent( new MouseEvent( 'mouseenter', { bubbles: false } ) );
+	await new Promise( ( r ) => setTimeout( r, 400 ) );
+	const out = { expanded: root.querySelector( '.vgml-node[data-key="t20"]' ).getAttribute( 'aria-expanded' ), peekChips: root.querySelectorAll( '.vgml-node[data-key="t20"] .vgml-tv-peek .vgml-sib' ).length };
+	row.dispatchEvent( new MouseEvent( 'mouseleave', { bubbles: false } ) );
+	root.remove();
+	return out;
+} );
+check( 'H3 an open parent shows no children chips on hover (its rows are on screen)', 'true' === peekOpen.expanded && 0 === peekOpen.peekChips, JSON.stringify( peekOpen ) );
+
 check( 'no JavaScript errors on the page', 0 === errors.length, errors.join( ' / ' ) );
 
 await browser.close();
