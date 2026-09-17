@@ -194,9 +194,10 @@ then fixed); the second full run, on `de71999`: **24 passed, 3 skipped,
 
 ## For Nathan
 
-1. **S10.5b's yes is still open:** `tools/box-seed-shop-tree-b.txt`,
-   HEMA's tree, 292 folders, 34 sent, 0 credits. Say yes (or another
-   retailer) and when ms2 is free.
+1. **S10.5b: Nathan's yes is in (2026-09-17, "very good yes hema").**
+   `tools/box-seed-shop-tree-b.txt`, HEMA's tree, 292 folders, 34 sent,
+   0 credits. What is still needed is a free ms2: the paste, the fill,
+   the second band and the sheet are the first hour once it is.
 2. The tech and shop bands are re-taken on marks re-read by path, not on
    a fresh sheet: a fresh S14 sheet (`VGML_DRY=1 VGML_SEED=133`) is saved
    in the session scratchpad if you want to mark it; the pre-fills carry
