@@ -262,8 +262,9 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
      *  gets one from its name.
      */
     global $wpdb;
-    $row = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
-        "SELECT attachment_id, embedding, kind, filing, prompt_hash, model_version FROM {$wpdb->vergeml_ai_index} WHERE attachment_id = %d AND error = '' AND embedding IS NOT NULL",
+    $words = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
+    $row   = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+        "SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.prompt_hash, i.model_version, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id = %d AND i.error = '' AND i.embedding IS NOT NULL",
         (int) $attachment_id
     ), ARRAY_A );
     if ( ! $row || ! function_exists( 'vergeml_filing_pick' ) ) {

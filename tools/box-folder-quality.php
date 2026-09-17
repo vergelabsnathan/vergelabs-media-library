@@ -303,7 +303,8 @@ if ( $dry ) {
     $terms    = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) );
     $profiles = vergeml_filing_profiles( array_map( function ( $t ) { return (int) $t->term_id; }, $terms ), $tax );
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    $index    = $wpdb->get_results( "SELECT attachment_id, embedding, kind, filing FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL ORDER BY attachment_id", ARRAY_A );
+    $words    = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9), as the fill reads them.
+    $index    = $wpdb->get_results( "SELECT i.attachment_id, i.embedding, i.kind, i.filing, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.error = '' AND i.embedding IS NOT NULL ORDER BY i.attachment_id", ARRAY_A );
     $counted  = vergeml_filing_count( $profiles, $index );
     $picks    = $counted['picks'];
     $t        = $counted['counts'];

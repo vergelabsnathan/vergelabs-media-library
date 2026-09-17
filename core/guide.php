@@ -1689,9 +1689,10 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
     $profiles = vergeml_filing_settle_claims( $profiles );
 
     $vectors = array();
+    $words   = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9), as the fill reads them.
     foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
-        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s WHERE i.attachment_id IN (" . implode( ',', $chunk ) . ')', VERGEML_FILING_PLACED_BY ), ARRAY_A ) as $v ) {
+        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by, {$words['select']} FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s {$words['join']} WHERE i.attachment_id IN (" . implode( ',', $chunk ) . ')', VERGEML_FILING_PLACED_BY ), ARRAY_A ) as $v ) {
             $vectors[ (int) $v['attachment_id'] ] = $v;
         }
     }
@@ -2902,9 +2903,10 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
         // The matcher wants the vector too; read it for the unfiled rows only.
         $vectors  = array();
         $chunks   = array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 );
+        $words    = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
         foreach ( $chunks as $chunk ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
-            foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, tags FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', $chunk ) . ')', ARRAY_A ) as $v ) {
+            foreach ( (array) $wpdb->get_results( "SELECT i.attachment_id, i.embedding, i.tags, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id IN (" . implode( ',', $chunk ) . ')', ARRAY_A ) as $v ) {
                 $vectors[ (int) $v['attachment_id'] ] = $v;
             }
         }

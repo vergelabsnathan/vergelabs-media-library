@@ -114,8 +114,8 @@ $profiles = array(
     7  => f_profile( 7, 0, array( 'Women' ), array( 'woman' ), array( 'audience' => 'women' ) ),
     8  => f_profile( 8, 0, array( 'Archive' ), array( 'archive' ), array( 'locked' => true ) ),
     // Two slash-named orphans: siblings by path, with no folder at their parent's path.
-    9  => f_profile( 9, 0, array( 'Apparel', 'Men', 'Sneakers' ), array( 'footwear' ), array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ) ) ),
-    10 => f_profile( 10, 0, array( 'Apparel', 'Men', 'Boots' ), array( 'footwear' ), array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ) ) ),
+    9  => f_profile( 9, 0, array( 'Apparel', 'Men', 'Sneakers' ), array( 'footwear', 'sneakers' ), array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ) ) ),
+    10 => f_profile( 10, 0, array( 'Apparel', 'Men', 'Boots' ), array( 'footwear', 'boots' ), array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ) ) ),
     11 => f_profile( 11, 0, array( 'Space' ), array( 'infrastructure', 'spacecraft' ) ),
 );
 // The last step every real caller takes: claims settled, shared words counted.
@@ -420,6 +420,33 @@ $p = vergeml_filing_pick( $desk, vergeml_filing_settle_claims( array( 12 => $mp 
 f_check( '28a on the member profile it fits, sure: desktop pc is the first class (0.75) and the centroid agrees', 'fits' === $p['outcome'] && 12 === $p['term_id'] && 'sure' === $p['confidence'] && $p['score'] > 0.9, sprintf( '%s %d @%.3f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
 $p = vergeml_filing_pick( $desk, vergeml_filing_settle_claims( array( 4 => $hw, 12 => $mp ) ) );
 f_check( '28b beside Hardware (computer hardware first: 0.6375, likely) the member profile outranks it: Workstations, sure, clear of the margin', 'fits' === $p['outcome'] && 12 === $p['term_id'] && 'sure' === $p['confidence'] && 4 === $p['runner_up'] && $p['score'] - $p['runner_score'] >= VERGEML_FILING_MARGIN, sprintf( '%s %d @%.3f %s next %d @%.3f', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'], $p['runner_up'], $p['runner_score'] ) );
+
+/*
+ *  The picture's own words as evidence (S10.9): a third phrase list from
+ *  the filename (split on -_. and space), the title and the alt, and a hit
+ *  there counts like the describer's second phrase (0.85). Words only: a
+ *  word is a class when it is the class spelled the one way, or its head
+ *  noun ("dress" is a summer dress); never a modifier ("keyboard" is not a
+ *  keyboard layout diagram) and never by vector -- a filename's "red" and
+ *  "front" would otherwise ask the service about every folder. Mutations:
+ *  the third list dropped from the pick -> row 29 red (margin); the head
+ *  noun made "inside anywhere" -> row 29b red (keyboard hits the diagram).
+ */
+echo "\n== the picture's own words (S10.9)\n";
+
+f_check( '29a words: "summer-dress-red-front.jpg" + "Summer dress" + "A red summer dress, front view" -> summer, dress, red, front, view (the extension, short words and numbers dropped, each word once); a camera\'s IMG_4021.HEIC leaves img, which no folder is called', array( 'summer', 'dress', 'red', 'front', 'view' ) === vergeml_filing_words_of( 'summer-dress-red-front.jpg', 'Summer dress', 'A red summer dress, front view' ) && array( 'smith', 'wedding' ) === vergeml_filing_words_of( '2024-06-smith-wedding-012.jpg', '', '' ) && array( 'img' ) === vergeml_filing_words_of( 'IMG_4021.HEIC', 'IMG_4021', '' ), json_encode( array( vergeml_filing_words_of( 'summer-dress-red-front.jpg', 'Summer dress', 'A red summer dress, front view' ), vergeml_filing_words_of( '2024-06-smith-wedding-012.jpg', '', '' ), vergeml_filing_words_of( 'IMG_4021.HEIC', 'IMG_4021', '' ) ) ) );
+
+f_check( '29b word_match: dress = dresses 1.0; dress is the head of summer dress 0.95; keyboard is not a keyboard layout diagram; red is nothing, and nothing asks the service', 1.0 === vergeml_filing_word_match( 'dress', 'dresses' ) && 0.95 === vergeml_filing_word_match( 'dress', 'summer dress' ) && 0.0 === vergeml_filing_word_match( 'keyboard', 'keyboard layout diagram' ) && 0.0 === vergeml_filing_word_match( 'red', 'sneakers' ) && 0.0 === vergeml_filing_word_match( 'sofa', 'couch' ), sprintf( '%.2f %.2f %.2f %.2f %.2f', vergeml_filing_word_match( 'dress', 'dresses' ), vergeml_filing_word_match( 'dress', 'summer dress' ), vergeml_filing_word_match( 'keyboard', 'keyboard layout diagram' ), vergeml_filing_word_match( 'red', 'sneakers' ), vergeml_filing_word_match( 'sofa', 'couch' ) ) );
+
+// Row 11's shape: footwear on Sneakers and Boots at 1/2, the vectors equal -> margin. The filename says which.
+$p = vergeml_filing_pick( f_facts( 'footwear', array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ), 'words' => array( 'mens', 'sneakers', 'white' ) ) ), $profiles );
+f_check( '29 "footwear" that tied Sneakers and Boots is settled by its filename word: Sneakers (0.85 on its own name = 0.6375, plus the vector 0.25)', 'fits' === $p['outcome'] && 9 === $p['term_id'] && 10 === $p['runner_up'] && abs( $p['score'] - 0.8875 ) < 1e-9, sprintf( '%s %d @%.4f %s next %d @%.4f', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'], $p['runner_up'], $p['runner_score'] ) );
+// The words never outrank the describer: "phone; device" named "boots.jpg" is still a phone.
+$p = vergeml_filing_pick( f_facts( 'phone; device', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ), 'words' => array( 'boots' ) ) ), $profiles );
+f_check( '29c a filename word never outranks the describer\'s object: "phone; device" named boots.jpg stays in Phones, sure', 'fits' === $p['outcome'] && 5 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.3f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+// facts() reads the row's title, file and alt into the list.
+$fx = vergeml_filing_facts( array( 'filing' => json_encode( array( 'object' => 'footwear' ) ), 'kind' => 'photo', 'file' => '2026/09/mens-sneakers-white.jpg', 'title' => 'mens-sneakers-white', 'alt' => '' ) );
+f_check( '29d facts: the row\'s file, title and alt become the words (the upload path\'s folders dropped)', array( 'mens', 'sneakers', 'white' ) === $fx['words'], json_encode( $fx['words'] ) );
 
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

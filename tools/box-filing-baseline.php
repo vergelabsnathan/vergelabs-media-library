@@ -50,11 +50,13 @@ sort( $terms );
 $profiles = $terms ? vergeml_filing_profiles( $terms, $taxonomy ) : array();
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
-$rows = (array) $wpdb->get_results(
-    "SELECT attachment_id, embedding, kind, filing
-       FROM {$wpdb->vergeml_ai_index}
-      WHERE error = '' AND embedding IS NOT NULL
-   ORDER BY attachment_id ASC",
+$words = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9), as the fill reads them.
+$rows  = (array) $wpdb->get_results(
+    "SELECT i.attachment_id, i.embedding, i.kind, i.filing, {$words['select']}
+       FROM {$wpdb->vergeml_ai_index} i
+       {$words['join']}
+      WHERE i.error = '' AND i.embedding IS NOT NULL
+   ORDER BY i.attachment_id ASC",
     ARRAY_A
 );
 

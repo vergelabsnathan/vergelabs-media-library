@@ -1110,15 +1110,17 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 		$only = ! empty( $state['round_ids'] )
 			? ' AND i.attachment_id IN (' . implode( ',', array_map( 'intval', (array) $state['round_ids'] ) ) . ')'
 			: '';
+		$words = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; the ids are cast to int.
 		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by,
+			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']},
 			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr
 			            JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
 			            JOIN {$wpdb->termmeta} tm ON tm.term_id = tt.term_id AND tm.meta_key = %s AND tm.meta_value = '1'
 			           WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s ) AS in_locked
 			   FROM {$wpdb->vergeml_ai_index} i
 			   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
+			   {$words['join']}
 			  WHERE i.error = '' AND i.embedding IS NOT NULL AND i.attachment_id > %d{$only}
 		   ORDER BY i.attachment_id ASC
 			  LIMIT %d",

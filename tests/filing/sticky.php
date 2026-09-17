@@ -614,7 +614,7 @@ if ( 6 === $sk_reach ) {
     sk_check( 'H2 the tally counts each picture once across the rounds: looked 4, fits 2, kept 2', 4 === (int) $sk_tally['looked'] && 2 === (int) $sk_tally['fits'] && 2 === (int) $sk_tally['kept'], json_encode( array_intersect_key( $sk_tally, array_flip( array( 'looked', 'fits', 'siblings', 'nothing', 'kept' ) ) ) ) );
     $sk_layers = vergeml_filing_members_layers( array( $sk_terms['zzStickyR'] ), $sk_tax );
     $sk_layer  = isset( $sk_layers[ $sk_terms['zzStickyR'] ] ) ? $sk_layers[ $sk_terms['zzStickyR'] ] : array();
-    sk_check( 'H3 R\'s layer after the fill: four members, zzstickymember 3 and zzstickyround 1, the stamp kept in term meta', isset( $sk_layer['n'] ) && 4 === (int) $sk_layer['n'] && array( 'zzstickymember' => 3, 'zzstickyround' => 1 ) === $sk_layer['words'] && is_array( get_term_meta( $sk_terms['zzStickyR'], VERGEML_FILING_META_MEMBERS, true ) ), json_encode( isset( $sk_layer['words'] ) ? $sk_layer['words'] : $sk_layers ) );
+    sk_check( 'H3 R\'s layer after the fill: four members, zzstickymember 3 (zzstickyround, said once, is that picture), the stamp kept in term meta', isset( $sk_layer['n'] ) && 4 === (int) $sk_layer['n'] && array( 'zzstickymember' => 3 ) === $sk_layer['words'] && is_array( get_term_meta( $sk_terms['zzStickyR'], VERGEML_FILING_META_MEMBERS, true ) ), json_encode( isset( $sk_layer['words'] ) ? $sk_layer['words'] : $sk_layers ) );
     $sk_report = vergeml_talk_report( $sk_done );
     sk_check( 'H4 the report carries the rounds', isset( $sk_report['rounds'] ) && array( 1 => 1, 2 => 2 ) === array_map( 'intval', (array) $sk_report['rounds'] ), json_encode( isset( $sk_report['rounds'] ) ? $sk_report['rounds'] : null ) );
 

@@ -16,7 +16,7 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 | PHP output sites with a non-literal argument | 183 |
 | · of those, read by hand with the reason | 8 |
 | · of those, **nothing accounted for them** | **0** |
-| JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 63 |
+| JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 65 |
 | · of those, given anything but a literal | 19 |
 | · of those, read by hand with the reason | 19 |
 | · of those, **still unread** | **0** |
@@ -41,7 +41,7 @@ table below is what it rests on rather than a recollection.
 
 ## JavaScript HTML sinks
 
-All 63 are given a literal — an empty string, an inline SVG, or an
+All 65 are given a literal — an empty string, an inline SVG, or an
 HTML entity. Not one is given a variable, a template literal with a substitution,
 or a concatenation. Every dynamic string in this plugin goes to `textContent`,
 jQuery `.text()`, `createTextNode` or `setAttribute` instead.
@@ -69,9 +69,9 @@ what it is given, so changing any of them expires its reason.
 | js/vergeml-tree.js:483 | `120a036696` | `innerHTML` | shard() returns a literal SVG |
 | js/vergeml-tree.js:864 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
 | js/vergeml-tree.js:896 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
-| js/vergeml-tree.js:3704 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
-| js/vergeml-tree.js:4973 | `a85ef70f6b` | `innerHTML` | an HTML entity chosen by a boolean, inside literal markup |
-| js/vergeml-tree.js:4979 | `379ac53d9c` | `innerHTML` | one of two HTML entities |
+| js/vergeml-tree.js:3722 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
+| js/vergeml-tree.js:5036 | `a85ef70f6b` | `innerHTML` | an HTML entity chosen by a boolean, inside literal markup |
+| js/vergeml-tree.js:5042 | `379ac53d9c` | `innerHTML` | one of two HTML entities |
 
 #### Two dialog helpers that had no callers
 
@@ -87,7 +87,7 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 `eml`- or `vergeml`-prefixed name that no script defines. Every caller passes a
 `vergeml.l10n` string, which is the only thing that may go into these two.
 
-<details><summary>All 63 JavaScript HTML sinks</summary>
+<details><summary>All 65 JavaScript HTML sinks</summary>
 
 | where | sink | given | what |
 |---|---|---|---|
@@ -105,15 +105,15 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-folders.js:522 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:553 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:572 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:754 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:823 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1035 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1086 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1203 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1208 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1918 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1961 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1971 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:773 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:844 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1056 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1107 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1224 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1229 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1939 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1982 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1992 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |
@@ -146,14 +146,16 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-tree.js:864 | `innerHTML` | **not a literal** | `chevron()` |
 | js/vergeml-tree.js:896 | `innerHTML` | **not a literal** | `chevron()` |
 | js/vergeml-tree.js:965 | `innerHTML` | a literal | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<path d="M1.5 1h` |
-| js/vergeml-tree.js:2480 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:2684 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:2957 | `innerHTML` | a literal | `'&#8943;'` |
-| js/vergeml-tree.js:3704 | `innerHTML` | **not a literal** | `chevron()` |
-| js/vergeml-tree.js:4245 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:4823 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:4973 | `innerHTML` | **not a literal** | `'<span aria-hidden="true">' + ( collapsed ? '&#9656;' : '&#9666;' ) + ` |
-| js/vergeml-tree.js:4979 | `innerHTML` | **not a literal** | `now ? '&#9656;' : '&#9666;'` |
+| js/vergeml-tree.js:2498 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:2702 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:2975 | `innerHTML` | a literal | `'&#8943;'` |
+| js/vergeml-tree.js:3722 | `innerHTML` | **not a literal** | `chevron()` |
+| js/vergeml-tree.js:4232 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:4237 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:4288 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:4886 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:5036 | `innerHTML` | **not a literal** | `'<span aria-hidden="true">' + ( collapsed ? '&#9656;' : '&#9666;' ) + ` |
+| js/vergeml-tree.js:5042 | `innerHTML` | **not a literal** | `now ? '&#9656;' : '&#9666;'` |
 
 </details>
 

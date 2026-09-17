@@ -1069,11 +1069,77 @@ function vergeml_filing_phrase_vector( $text ) {
 }
 
 /**
+ *  The picture's own words (S10.9): the filename split on -_. and space,
+ *  the title and the alt, lowercased, each word once, in the order met. The
+ *  extension goes, so do words under three letters and numbers -- a shop's
+ *  "summer-dress-red-front.jpg" says summer, dress, red, front; a
+ *  photographer's "2024-06-smith-wedding-012.jpg" says smith, wedding; a
+ *  camera's "IMG_4021.HEIC" says nothing.
+ *
+ *  @return string[]
+ */
+function vergeml_filing_words_of( $file, $title, $alt ) {
+    $name = (string) $file;
+    $name = '' === $name ? '' : preg_replace( '/\.[a-z0-9]{2,5}$/iu', '', basename( str_replace( '\\', '/', $name ) ) );
+    $out  = array();
+    foreach ( array( $name, (string) $title, (string) $alt ) as $text ) {
+        foreach ( (array) preg_split( '/[\s\-_.,;:\/()\[\]"\'!?]+/u', mb_strtolower( $text ) ) as $w ) {
+            if ( mb_strlen( $w ) < 3 || preg_match( '/^\d+$/u', $w ) || in_array( $w, $out, true ) ) {
+                continue;
+            }
+            $out[] = $w;
+        }
+    }
+    return $out;
+}
+
+/**
+ *  One of the picture's words against a folder class, by words alone: 1
+ *  when it is the class spelled the one way ("dress" is dresses), 0.95 when
+ *  it is the class's head noun ("dress" is a summer dress), else 0 -- never
+ *  a modifier (a keyboard is not a keyboard layout diagram), never by
+ *  vector: a filename's "red" and "front" against every folder would ask
+ *  the service a question per pair.
+ */
+function vergeml_filing_word_match( $word, $class ) {
+    $w = vergeml_filing_canon( $word );
+    $c = vergeml_filing_canon( $class );
+    if ( '' === $w || '' === $c ) {
+        return 0.0;
+    }
+    if ( $w === $c ) {
+        return 1.0;
+    }
+    $cw = explode( ' ', $c );
+    return count( $cw ) > 1 && end( $cw ) === $w ? 0.95 : 0.0;
+}
+
+/**
+ *  The SELECT and JOIN fragments a reader adds so a row carries the picture's
+ *  file, title and alt (S10.9); $i is the index table's alias. The alt counts
+ *  only when a person wrote it: the describer's own alt (the index keeps it,
+ *  and the AI screen counts "alt equals the model's" the same way) is a
+ *  sentence naming everything in the scene, and on the tech library, where
+ *  every alt is the model's, it doubled the ties (margin 62 -> 162 against
+ *  104 from the file and title alone, 2026-09-17).
+ */
+function vergeml_filing_words_sql( $i = 'i' ) {
+    global $wpdb;
+    return array(
+        'select' => "wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = {$i}.alt THEN '' ELSE wp_a.meta_value END AS alt",
+        'join'   => "LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = {$i}.attachment_id
+           LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = {$i}.attachment_id AND wp_f.meta_key = '_wp_attached_file'
+           LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = {$i}.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'",
+    );
+}
+
+/**
  *  The picture's side of the match, as the caller reads it off the index row.
  *
  *  @param array $row An index row: 'filing' (json), 'kind', 'embedding'; 'placed_by' and
- *                    'in_locked' (sits in a locked folder) when the caller joined them.
- *  @return array 'classes', 'kind', 'audience', 'vector', 'placed_by', 'in_locked'.
+ *                    'in_locked' (sits in a locked folder) when the caller joined them;
+ *                    'file', 'title', 'alt' (vergeml_filing_words_sql) or 'words' ready-made.
+ *  @return array 'classes', 'kind', 'audience', 'vector', 'placed_by', 'in_locked', 'words'.
  */
 function vergeml_filing_facts( $row ) {
     $filing = isset( $row['filing'] ) ? json_decode( (string) $row['filing'], true ) : null;
@@ -1086,6 +1152,7 @@ function vergeml_filing_facts( $row ) {
         'vector'    => isset( $row['embedding'] ) && function_exists( 'vergeml_index_vector_out' ) ? vergeml_index_vector_out( $row['embedding'] ) : null,
         'placed_by' => isset( $row['placed_by'] ) ? (string) $row['placed_by'] : '',
         'in_locked' => ! empty( $row['in_locked'] ),
+        'words'     => isset( $row['words'] ) && is_array( $row['words'] ) ? $row['words'] : vergeml_filing_words_of( isset( $row['file'] ) ? $row['file'] : '', isset( $row['title'] ) ? $row['title'] : '', isset( $row['alt'] ) ? $row['alt'] : '' ),
     );
 }
 
@@ -1191,6 +1258,28 @@ function vergeml_filing_pick( $facts, $profiles ) {
         // The specific phrase against the folder's descriptive phrase, when there is one.
         if ( $class < 0.95 && '' !== $p['matches'] && ! empty( $facts['classes'] ) ) {
             $class = max( $class, 0.9 * vergeml_filing_class_match( $facts['classes'][0], $p['matches'] ) );
+        }
+        /*
+         *  The picture's own words (S10.9): its filename, title and alt as a
+         *  third list, a hit there worth what the describer's second phrase
+         *  is (0.85) -- "summer-dress-red-front.jpg" says dress where no
+         *  describer word need. By words alone (vergeml_filing_word_match):
+         *  no vector, no modifier. Read only when the describer's phrases
+         *  left room: a word never outranks the object.
+         */
+        if ( $class < 0.85 && ! empty( $facts['words'] ) ) {
+            foreach ( (array) $facts['words'] as $word ) {
+                foreach ( array_values( (array) $p['classes'] ) as $rank => $fc ) {
+                    $match = vergeml_filing_word_match( $word, $fc );
+                    if ( $match <= 0.0 ) {
+                        continue;
+                    }
+                    $is_leaf = '' !== $leaf && vergeml_filing_group_key( $fc ) === $leaf;
+                    $weight  = ( 0 === $rank || ( $is_leaf && $match >= 1.0 ) ) ? 1.0 : 0.85;
+                    $k       = $is_leaf ? 1 : max( 1, (int) ( isset( $shared[ vergeml_filing_group_key( $fc ) ] ) ? $shared[ vergeml_filing_group_key( $fc ) ] : 1 ) );
+                    $class   = max( $class, 0.85 * $weight * $match / $k );
+                }
+            }
         }
 
         $embed = 0.0;
