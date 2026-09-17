@@ -661,8 +661,15 @@ function vergeml_filing_views( $profiles ) {
             continue;
         }
         $repeat = 0;
+        $named  = 0;
         foreach ( $kids as $kid ) {
-            $name  = vergeml_filing_canon( end( $profiles[ $kid ]['path'] ) );
+            $leaf = (string) end( $profiles[ $kid ]['path'] );
+            // A child named for an audience (Watches › Men, Women) is a split, never a repeat and never a vote: on the C.5 tree Men and Women sit at the top too (2026-09-17).
+            if ( '' !== vergeml_filing_audience_of( $leaf ) ) {
+                continue;
+            }
+            $named++;
+            $name  = vergeml_filing_canon( $leaf );
             $depth = count( (array) $profiles[ $kid ]['path'] );
             foreach ( isset( $holders[ $name ] ) ? $holders[ $name ] : array() as $other ) {
                 if ( $other !== $kid && count( (array) $profiles[ $other ]['path'] ) < $depth ) {
@@ -671,7 +678,7 @@ function vergeml_filing_views( $profiles ) {
                 }
             }
         }
-        if ( $repeat * 2 > count( $kids ) ) {
+        if ( $repeat * 2 > $named ) {
             $views[] = $pid;
         }
     }

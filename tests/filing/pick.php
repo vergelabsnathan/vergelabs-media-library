@@ -633,6 +633,23 @@ $p = vergeml_filing_pick( f_facts( 'smart speaker; electronics', array( 'vector'
 f_check( '33a "smart speaker; electronics" is the top-level Electronics\', sure, not a tie with Sale › Electronics or Sale (the three held the word at 1/3 each before)', 'fits' === $p['outcome'] && 71 === $p['term_id'] && ( 0 === $p['runner_up'] || $p['runner_score'] < 0.3 ), sprintf( '%s %d @%.4f %s next %d @%.4f', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'], $p['runner_up'], $p['runner_score'] ) );
 $p = vergeml_filing_pick( f_facts( 'crib; baby' ), vergeml_filing_settle_claims( $views ) );
 f_check( '33b Home is not a view: Home › Baby and the top-level Baby still share "baby" (k 2) and tie -- a question, as before', 'nothing' === $p['outcome'] && 'margin' === $p['why'], sprintf( '%s why %s', $p['outcome'], $p['why'] ) );
+/*
+ *  A department split by audience is not a view (the C.5 tree, 2026-09-17):
+ *  Watches › Men, Women, Smart watches, with Men and Women at the top of the
+ *  tree too, read as two of three repeating a name held higher, and Watches
+ *  owned nothing -- eight smartwatch sures and six wristwatch sures fell to
+ *  the parent or a margin. A child named for an audience is a split, never
+ *  a repeat. Mutation: the audience exception removed -> 33c red.
+ */
+$split = vergeml_filing_views( array(
+    91 => f_profile( 91, 0, array( 'Men' ), array( 'men' ), array( 'source' => 'name', 'audience' => 'men' ) ),
+    92 => f_profile( 92, 0, array( 'Women' ), array( 'women' ), array( 'source' => 'name', 'audience' => 'women' ) ),
+    93 => f_profile( 93, 0, array( 'Watches' ), array( 'watches' ), array( 'source' => 'name' ) ),
+    94 => f_profile( 94, 93, array( 'Watches', 'Men' ), array( 'men' ), array( 'source' => 'name', 'audience' => 'men' ) ),
+    95 => f_profile( 95, 93, array( 'Watches', 'Women' ), array( 'women' ), array( 'source' => 'name', 'audience' => 'women' ) ),
+    96 => f_profile( 96, 93, array( 'Watches', 'Smart watches' ), array( 'smart watches' ), array( 'source' => 'name' ) ),
+) );
+f_check( '33c Watches › Men, Women, Smart watches under a tree with Men and Women at the top is a split by audience, not a view: Watches keeps its word', empty( $split[93]['view'] ) && array( 'watches' ) === $split[93]['classes'] && empty( $split[96]['view'] ), json_encode( array( isset( $split[93]['view'] ), $split[93]['classes'] ) ) );
 
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );
