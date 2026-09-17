@@ -15,11 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *  file mints), and the brief stays a draft until it is used.
  *
  *  Using a brief is re-describing the library with it: the describe prompt
- *  carries the brief, so a changed brief is a changed prompt, and the stale
- *  sweep (core/ai-background.php) re-describes everything on the old one.
- *  The control says so, with the number. "Test on 5 pictures" describes five
- *  with the draft and holds the answers in the session, writing nothing:
- *  written, they would stamp the library and start that sweep by themselves.
+ *  carries the brief, so a changed brief is a changed prompt, and every row
+ *  on the old one counts as stale. The control says so, with the number, and
+ *  the adopt below starts the 'stale' run itself -- the one press that does;
+ *  since 17 September 2026 nothing re-describes a library without one.
+ *  "Test on 5 pictures" describes five with the draft and holds the answers
+ *  in the session, writing nothing: written, they would stamp the library
+ *  and the count on the dashboard's button would jump before anyone chose.
  *
  *  The opener costs nothing: it is built here from the catalogue -- which
  *  words of the brief the tags carry, what is tagged most -- and the first
@@ -531,9 +533,9 @@ function vergeml_brief_test() {
 /**
  *  Use the draft: the brief is saved as the site profile, the answers the
  *  test held are written (they were paid for), and the library is
- *  re-described on the new brief in the background -- the stale sweep,
- *  started here rather than left to the next run, because the control the
- *  person pressed said it would.
+ *  re-described on the new brief in the background -- a 'stale' run started
+ *  here, because the control the person pressed said it would. No run's end
+ *  and no describe step starts one on its own any more (S12).
  *
  *  @param array $args 'start' false leaves the run unstarted (a suite).
  *  @return array|WP_Error { session, run }

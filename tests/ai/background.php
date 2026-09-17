@@ -342,63 +342,163 @@ delete_transient( 'doing_cron' );
 
 
 /*
- *  G  the sweep gate (S11). A model change describes nothing by itself: the
- *  library is stale on the prompt hash alone (core/ai.php, vergeml_ai_pending
- *  'stale'), never on the model, so a describer switched in the service --
- *  or one picture escalated to a stronger model -- leaves every row where it
- *  is, and the only way to re-describe them is the dashboard's button with
- *  its credit count. Planted: two rows on another model and version, the
- *  newest in the library, on the current prompt -- so the stamp reads the
- *  other model and every real row differs from it. Mutation: judge the
- *  stale set on the model too (pass the stamp's model to vergeml_index_stale
- *  in vergeml_ai_pending) -> G1 red (the whole library pending, a run
- *  started).
+ *  G  the sweep gate (S11, S12). Nothing re-describes a library by itself:
+ *  the only way is the dashboard's button with its credit count.
+ *
+ *  G1 (S11): a model change describes nothing. The library is stale on the
+ *  prompt hash alone (core/ai.php, vergeml_ai_pending 'stale'), never on the
+ *  model, so a describer switched in the service -- or one picture escalated
+ *  to a stronger model -- leaves every row where it is. Planted: two rows on
+ *  another model and version, the newest in the library, on the current
+ *  prompt. Mutation: judge the stale set on the model too (pass the stamp's
+ *  model to vergeml_index_stale in vergeml_ai_pending) -> G1 red (the whole
+ *  library pending, a run started).
+ *
+ *  G2, G3 (S12, Nathan 2026-09-17): a prompt change describes nothing either.
+ *  Until S12 a run's end, and a describe step that landed under a new hash,
+ *  started a 'stale' run over the whole library on their own (reason
+ *  'prompt_changed') -- every customer's credits, no press. Now the count
+ *  sits on the button and waits. Planted: the newest row on another prompt
+ *  hash, so every real row is stale. G2 drives a run to its end; G3 drives
+ *  one describe step with the hash moving underneath it (the row planted
+ *  from the alt-text write, which sits between the step's two stamp reads).
+ *  Mutations: the run's-end sweep back (core/ai-background.php) -> G2 red;
+ *  the step's auto-start back (core/ai.php) -> G3 red.
  */
-bg_say( "\nG  a model change sweeps nothing by itself\n" );
+bg_say( "\nG  neither a model change nor a prompt change sweeps by itself\n" );
 
 /*
  *  The nudge a started run posts to wp-cron.php is answered here and never
- *  sent: under the mutation this section exists for, the sweep starts a run
+ *  sent: under the mutations this section exists for, the sweep starts a run
  *  over the whole library, and on 2026-09-17 one tick got in before the stop
  *  below and wrote a mock row over a real picture's description. A suite
- *  that can start a run holds the wire.
+ *  that can start a run holds the wire -- twice: the nudge is declined, and
+ *  whatever core's spawn_cron() still posts is answered here.
  */
 function bg_no_cron( $pre, $args, $url ) {
     return false !== strpos( (string) $url, 'wp-cron.php' ) ? array( 'response' => array( 'code' => 200 ), 'body' => '', 'headers' => array() ) : $pre;
 }
 add_filter( 'pre_http_request', 'bg_no_cron', 1, 3 );
+add_filter( 'vergeml_ai_run_should_nudge', '__return_false' );
 
-$bg_stamp_real = vergeml_index_current_stamp();
-$bg_model_made = bg_seed( 2, 'm' );
-$bg_made       = array_merge( $bg_made, $bg_model_made );
-foreach ( $bg_model_made as $bg_id ) {
-    vergeml_index_set( (int) $bg_id, array(
+/** A row on another model, and optionally another prompt, newer than every
+ *  real row -- so the stamp reads it. Never 'mock': the stamp skips those. */
+function bg_plant_newest( $id, $prompt_hash, $ahead ) {
+    vergeml_index_set( (int) $id, array(
         'caption'       => 'seeded on another model',
         'kind'          => 'photo',
         'filing'        => wp_json_encode( array( 'object' => 'zzbgthing', 'audience' => '' ) ),
         'embedding'     => array( 1.0, 0.0, 0.0, 0.0 ),
         'model'         => 'zz-other-model',
         'model_version' => 'zz-other-v9',
-        'prompt_hash'   => (string) $bg_stamp_real['prompt_hash'],
+        'prompt_hash'   => (string) $prompt_hash,
         'error'         => '',
-        'described_at'  => gmdate( 'Y-m-d H:i:s', time() + 5 ),
+        'described_at'  => gmdate( 'Y-m-d H:i:s', time() + (int) $ahead ),
     ) );
+}
+
+/** Seeds files, runs a whole run over them and reads what it left behind:
+ *  the state and the booking the moment it ended, then stops everything
+ *  before a stray tick could find it. */
+function bg_run_to_end( &$made, $tag ) {
+    $seeded = bg_seed( 2, $tag );
+    $made   = array_merge( $made, $seeded );
+    vergeml_ai_run_stop( '' );
+    delete_option( 'vergeml_ai_run' );
+    wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+    $started = vergeml_ai_run_start( 'unindexed', false );
+    $rounds  = 0;
+    // Only the run this started is ticked. A 'stale' run the end of it
+    // starts on its own (the defect under test) is left where it is, or a
+    // tick would mock over the real library -- the 2026-09-17 accident.
+    while ( $rounds < 30 && ! is_wp_error( $started ) ) {
+        $now = vergeml_ai_run_state();
+        if ( empty( $now['active'] ) || 'unindexed' !== (string) $now['scope'] ) {
+            break;
+        }
+        vergeml_ai_run_tick();
+        $rounds++;
+    }
+    $after = vergeml_ai_run_state();
+    $found = array(
+        'started' => ! is_wp_error( $started ),
+        'rounds'  => $rounds,
+        'active'  => ! empty( $after['active'] ),
+        'scope'   => (string) $after['scope'],
+        'reason'  => isset( $after['reason'] ) ? (string) $after['reason'] : '',
+        'booked'  => false !== wp_next_scheduled( 'vergeml_ai_run_tick' ),
+    );
+    set_transient( 'vergeml_ai_run_lock', 1, MINUTE_IN_SECONDS );
+    vergeml_ai_run_stop( '' );
+    delete_option( 'vergeml_ai_run' );
+    wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+    delete_transient( 'vergeml_ai_run_lock' );
+    return $found;
+}
+
+$bg_stamp_real = vergeml_index_current_stamp();
+$bg_model_made = bg_seed( 2, 'm' );
+$bg_made       = array_merge( $bg_made, $bg_model_made );
+foreach ( $bg_model_made as $bg_id ) {
+    bg_plant_newest( $bg_id, $bg_stamp_real['prompt_hash'], 5 );
 }
 $bg_stamp_now = vergeml_index_current_stamp();
 $bg_stale     = (int) vergeml_ai_pending_count( 'stale' );
-vergeml_ai_run_stop( '' );
-delete_option( 'vergeml_ai_run' );
-wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
-vergeml_ai_run_sweep_stale( array( 'scope' => 'unindexed', 'apply_alt' => false ) );
-$bg_swept = vergeml_ai_run_state();
+$bg_g1        = bg_run_to_end( $bg_made, 'g1' );
 bg_check(
     sprintf( 'G1 the newest row is on another model (%s) and the same prompt: nothing is stale, and a finished run starts no sweep', $bg_stamp_now['model'] ),
-    '' !== (string) $bg_stamp_real['prompt_hash'] && 'zz-other-model' === (string) $bg_stamp_now['model'] && 0 === $bg_stale && empty( $bg_swept['active'] ) && false === wp_next_scheduled( 'vergeml_ai_run_tick' ),
-    json_encode( array( 'stamp' => $bg_stamp_now['model'], 'stale' => $bg_stale, 'active' => ! empty( $bg_swept['active'] ), 'booked' => false !== wp_next_scheduled( 'vergeml_ai_run_tick' ) ) )
+    '' !== (string) $bg_stamp_real['prompt_hash'] && 'zz-other-model' === (string) $bg_stamp_now['model'] && 0 === $bg_stale && $bg_g1['started'] && ! $bg_g1['active'] && ! $bg_g1['booked'],
+    json_encode( array( 'stamp' => $bg_stamp_now['model'], 'stale' => $bg_stale, 'run' => $bg_g1 ) )
 );
+
+// The newest row on another prompt: every real row is stale now, which is
+// the number the dashboard's button carries.
+$bg_prompt_made = bg_seed( 1, 'p' );
+$bg_made        = array_merge( $bg_made, $bg_prompt_made );
+bg_plant_newest( $bg_prompt_made[0], 'zz-other-prompt-1', 10 );
+$bg_stale_before = (int) vergeml_ai_pending_count( 'stale' );
+$bg_g2           = bg_run_to_end( $bg_made, 'g2' );
+$bg_stale_after  = (int) vergeml_ai_pending_count( 'stale' );
+bg_check(
+    'G2 the newest row is on another prompt: the library is stale, and a finished run still starts no sweep -- the count waits on the button',
+    $bg_stale_before > 0 && $bg_g2['started'] && ! $bg_g2['active'] && ! $bg_g2['booked'] && $bg_stale_after >= $bg_stale_before,
+    json_encode( array( 'stale' => array( $bg_stale_before, $bg_stale_after ), 'run' => $bg_g2 ) )
+);
+
+// The hash moves under a describe step: the alt-text write of the first
+// described file plants a newer row on yet another prompt, between the
+// step's stamp before and its stamp after.
+$bg_step_made = bg_seed( 1, 's' );
+$bg_hash_made = bg_seed( 1, 'h' );
+$bg_made      = array_merge( $bg_made, $bg_step_made, $bg_hash_made );
+$bg_hash_id   = $bg_hash_made[0];
+$bg_step_hook = function ( $meta_id, $object_id, $meta_key ) use ( $bg_hash_id ) {
+    if ( '_wp_attachment_image_alt' === $meta_key ) {
+        bg_plant_newest( $bg_hash_id, 'zz-other-prompt-2', 15 );
+    }
+};
+add_action( 'added_post_meta', $bg_step_hook, 10, 3 );
 vergeml_ai_run_stop( '' );
 delete_option( 'vergeml_ai_run' );
 wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+set_transient( 'vergeml_ai_run_lock', 1, MINUTE_IN_SECONDS );
+$bg_hash_before = vergeml_index_current_stamp();
+$bg_step        = vergeml_ai_index_step( 'unindexed', 1, true );
+$bg_hash_after  = vergeml_index_current_stamp();
+$bg_g3          = vergeml_ai_run_state();
+$bg_g3_booked   = false !== wp_next_scheduled( 'vergeml_ai_run_tick' );
+remove_action( 'added_post_meta', $bg_step_hook, 10 );
+vergeml_ai_run_stop( '' );
+delete_option( 'vergeml_ai_run' );
+wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+delete_transient( 'vergeml_ai_run_lock' );
+bg_check(
+    'G3 the prompt hash moves under a describe step: the step starts no sweep either',
+    'zz-other-prompt-1' === (string) $bg_hash_before['prompt_hash'] && 'zz-other-prompt-2' === (string) $bg_hash_after['prompt_hash'] && 1 === count( $bg_step['described'] ) && empty( $bg_g3['active'] ) && ! $bg_g3_booked,
+    json_encode( array( 'hash' => array( $bg_hash_before['prompt_hash'], $bg_hash_after['prompt_hash'] ), 'described' => count( $bg_step['described'] ), 'active' => ! empty( $bg_g3['active'] ), 'reason' => isset( $bg_g3['reason'] ) ? $bg_g3['reason'] : '', 'booked' => $bg_g3_booked ) )
+);
+
+remove_filter( 'vergeml_ai_run_should_nudge', '__return_false' );
 remove_filter( 'pre_http_request', 'bg_no_cron', 1 );
 
 

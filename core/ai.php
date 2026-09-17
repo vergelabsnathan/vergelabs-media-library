@@ -1419,7 +1419,6 @@ function vergeml_ai_recently_described( $ids = null, $record = false ) {
 function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
 
     $ids    = vergeml_ai_pending( $scope, max( 1, min( VERGEML_AI_STEP_MAX, $limit ) ) );
-    $stamp_before = vergeml_index_current_stamp();
     $done   = array();
     $errors = array();
 
@@ -1620,29 +1619,14 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
     vergeml_ai_recently_described( array_map( function ( $d ) { return (int) $d['id']; }, $done ), true );
 
     /*
-     *  A library half on one prompt and half on another looks broken.
-     *
-     *  Search ranked the wrong pictures first for exactly as long as the
-     *  library was partly re-described: pictures still on the old prompt
-     *  carried thin embeddings and lost to everything already done. It
-     *  righted itself only when the last of them went through. Left to a
-     *  person to notice, that state lasts as long as nobody notices.
-     *
-     *  So the moment a description lands under a prompt the stamp has not
-     *  seen, and nothing else is running, a 'stale' run starts on its own and
-     *  says why. The screen shows it like any other run.
+     *  A description that lands under a prompt the stamp has not seen makes
+     *  every other row stale. Until 17 September 2026 that started a 'stale'
+     *  run over the whole library from here, by itself (a library half on
+     *  one prompt ranks searches wrong until the last picture goes through).
+     *  It also spent every customer's credits without a press, so now the
+     *  count waits on the dashboard's button -- core/ai-background.php, the
+     *  run's end, says the same.
      */
-    if ( $done && 'stale' !== $scope && function_exists( 'vergeml_ai_run_start' ) ) {
-        $stamp_after = vergeml_index_current_stamp();
-        $run         = function_exists( 'vergeml_ai_run_state' ) ? vergeml_ai_run_state() : array();
-        if ( '' !== (string) $stamp_before['prompt_hash']
-            && $stamp_after['prompt_hash'] !== $stamp_before['prompt_hash']
-            && empty( $run['active'] )
-            && vergeml_ai_pending_count( 'stale' ) > 0 ) {
-            vergeml_ai_run_start( 'stale', $apply_alt, 'prompt_changed' );
-        }
-    }
-
     return array(
         'described' => $done,
         'errors'    => $errors,

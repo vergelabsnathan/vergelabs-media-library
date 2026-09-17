@@ -399,10 +399,19 @@ function vergeml_ai_run_tick() {
      */
     $state['remaining'] = (int) vergeml_ai_pending_count( $state['scope'] );
 
+    /*
+     *  Finished. Anything still filed under an older prompt is stale, and
+     *  until 17 September 2026 a finishing run started a 'stale' run over it
+     *  on its own -- a prompt change on the service re-described every
+     *  customer's library without a press. Now the count sits on the
+     *  dashboard's button ("Re-describe N images · Costs N credits") and
+     *  waits; a library half on the old prompt ranks a little wrong until
+     *  the owner presses, with the number in front of them. Nothing spends
+     *  credits by itself.
+     */
     if ( $state['remaining'] < 1 ) {
         vergeml_ai_run_save( $state );
         vergeml_ai_run_stop( '' );
-        vergeml_ai_run_sweep_stale( $state );
         return;
     }
 
@@ -419,29 +428,6 @@ function vergeml_ai_run_tick() {
         wp_schedule_single_event( time(), VERGEML_AI_RUN_HOOK );
     }
     vergeml_ai_run_nudge();
-}
-
-
-/**
- *  A run has just finished on the current prompt. Anything still filed under
- *  an older one is stale and, left alone, loses every search to the pictures
- *  already redone (the note above vergeml_ai_index_step's own trigger says
- *  why). That trigger cannot fire from inside a background run, because it
- *  waits for no run to be active and the run that just described under the
- *  new prompt still is. So a finishing run hands over here.
- */
-function vergeml_ai_run_sweep_stale( $state ) {
-    if ( 'stale' === $state['scope'] ) {
-        return;
-    }
-    $stamp = vergeml_index_current_stamp();
-    if ( '' === (string) $stamp['prompt_hash'] ) {
-        return;
-    }
-    if ( vergeml_ai_pending_count( 'stale' ) < 1 ) {
-        return;
-    }
-    vergeml_ai_run_start( 'stale', ! empty( $state['apply_alt'] ), 'prompt_changed' );
 }
 
 
