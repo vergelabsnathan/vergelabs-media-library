@@ -127,9 +127,16 @@ Not re-taken: the sheets first.
 tree-view seed-shop ai-background` → green after S10.9 (guide 40/40, sticky
 44/44, escaping 9/10 the known ratio row); the registers regenerated (two
 tree sinks from `ffe3edd`, read as literals). Rule 3 touched only the pick;
-`filing tree-view copy` green after it. `folders.spec`/`modes.spec` not run
-this session (ms2 the stop point; the tech run is 14 min — S14's first gate
-after the deploy check). **Both baselines 3/4 by design** until Nathan marks
+`filing tree-view copy` green after it. `folders.spec` + `modes.spec` on the tech site
+(as `vgmls13`, made and deleted): **21 passed, 3 skipped, 3 failed** — one
+("opens on the session's step") was two runs overlapping and is green alone
+on HEAD; the other two ("a .txt or .csv uploads into the draft; a .pdf is
+refused" — *Start over* hidden, the screen not on Tree — and the Fill step's
+last assertion "a confirmed tree can be filled again", whose own comment
+says the tree is not confirmed there) **fail the same way on S12's code**
+(`a1960bc` deployed to the box for that run, then HEAD back, verified).
+Not S13's; a story for S14 (test first: the assertion or the screen).
+Not run on ms2 (the stop point). **Both baselines 3/4 by design** until Nathan marks
 the sheet; the runs are saved in the session scratchpad and the check has
 `--save`.
 
@@ -190,7 +197,7 @@ Card, to `plugin/.harness/active.json`:
   ],
   "gates": [
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background → green (escaping 9/10 known)",
-    "folders.spec and modes.spec green on the tech site after the first deploy; on ms2 once Nathan says it is free",
+    "folders.spec and modes.spec on the tech site: the two pre-S13 reds (the .pdf test's Start over, the Fill step's 'filled again' button) made a story and green; on ms2 once Nathan says it is free",
     "both baselines 4/4 or re-taken with the reason; the shop-b band and sheet taken"
   ]
 }
