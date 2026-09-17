@@ -208,6 +208,11 @@ if ( ! fs.existsSync( BASELINE ) && ! RETAKE ) {
 const wasText = RETAKE && ! fs.existsSync( BASELINE ) ? '' : fs.readFileSync( BASELINE, 'utf8' );
 const nowText = flag( '--file' ) ? fs.readFileSync( flag( '--file' ), 'utf8' ) : runOnBox();
 
+// --save <file>: keep the run as taken, so a moved band can be read row by row before it is judged (S13).
+if ( flag( '--save' ) ) {
+	fs.writeFileSync( flag( '--save' ), nowText );
+}
+
 if ( RETAKE ) {
 	const stamp = new Date().toISOString().slice( 0, 10 );
 	const lines = nowText.split( /\r?\n/ );

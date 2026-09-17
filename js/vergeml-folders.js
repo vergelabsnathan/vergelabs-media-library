@@ -749,6 +749,25 @@
 	 *             Next: Alt text, Undo.
 	 *    else     the run's button (B.2), or the confirm when the tree is not.
 	 */
+	/*
+	 *  The rounds (S10.7), only when there were two: round 1 placed from
+	 *  the tree as confirmed, round 2 from what the folders held by then.
+	 *  "round 1: 553 placed · round 2: 640 · 113 to sort" once the run is
+	 *  over; while round 2 runs, its count climbs and the tail waits.
+	 */
+	function appendRounds( pills, r, done ) {
+		var rounds = ( r && r.rounds ) || {};
+		if ( Number( r && r.round ) < 2 || rounds[ 1 ] === undefined ) {
+			return;
+		}
+		var two = rounds[ 2 ] !== undefined ? rounds[ 2 ] : ( Number( r.moved ) || 0 );
+		var text = sprintf( __( 'round 1: %1$s placed · round 2: %2$s', 'vergelabs-media-library' ), fmt( rounds[ 1 ] ), fmt( two ) );
+		if ( done ) {
+			text += sprintf( __( ' · %s to sort', 'vergelabs-media-library' ), fmt( Number( r.tally && r.tally.nothing ) || 0 ) );
+		}
+		pills.appendChild( el( 'span', { class: 'g-pill is-quiet', 'data-rounds': '' }, text ) );
+	}
+
 	function renderFill() {
 		var c = dom.cards.fill;
 		c.pills.innerHTML = '';
@@ -765,6 +784,7 @@
 			c.pills.appendChild( pill( Number( t.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
 			c.pills.appendChild( pill( Number( t.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
 			c.pills.appendChild( pill( Number( t.nothing ) || 0, __( 'not placed', 'vergelabs-media-library' ) ) );
+			appendRounds( c.pills, r, false );
 		} else if ( asking && state.moving ) {
 			// The run just ended: its tally, and the questions it left.
 			var m = state.moving.tally || {};
@@ -773,6 +793,7 @@
 			c.pills.appendChild( pill( Number( m.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
 			c.pills.appendChild( pill( open, _n( 'question', 'questions', open, 'vergelabs-media-library' ), 'ask' ) );
 			c.pills.appendChild( pill( unfiled, __( 'in no folder', 'vergelabs-media-library' ) ) );
+			appendRounds( c.pills, state.moving, true );
 		} else if ( asking ) {
 			// A reload after the run: the library's own counts, and the questions.
 			c.pills.appendChild( pill( Math.max( 0, ( Number( state.facts.pictures ) || 0 ) - unfiled ), __( 'placed', 'vergelabs-media-library' ), 'accent' ) );

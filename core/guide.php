@@ -1674,6 +1674,17 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
         return null;
     }
 
+    // A draft folder that exists is read over what it holds, as the fill will read it (S10.7).
+    $real = array();
+    foreach ( $order as $n => $key ) {
+        if ( ! empty( $by_key[ $key ]['term_id'] ) ) {
+            $real[ (int) $by_key[ $key ]['term_id'] ] = $n;
+        }
+    }
+    foreach ( vergeml_filing_members_settle( vergeml_filing_members_layers( array_keys( $real ), $taxonomy ) ) as $tid => $layer ) {
+        $profiles[ $real[ $tid ] ] = vergeml_filing_members_apply( $profiles[ $real[ $tid ] ], $layer );
+    }
+
     // The same last step vergeml_filing_profiles() takes: one folder per first class.
     $profiles = vergeml_filing_settle_claims( $profiles );
 

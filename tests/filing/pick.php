@@ -358,5 +358,68 @@ f_check( '26b keep-parent: the pictures stay in the parent, and are marked as an
 $plan = vergeml_filing_answer_plan( $q, 'split' );
 f_check( '26c a siblings split is marked too', array( 303 => 2, 304 => 3 ) === $plan['moves'] && 'answer' === $plan['placed_by'], json_encode( $plan['placed_by'] ) );
 
+/*
+ *  The fill learns from its own placements (S10.7). A folder holding three
+ *  or more described pictures is profiled from them: its classes their
+ *  object words (the first phrase of each, never the class half -- every
+ *  folder under Clothing says "clothing" there, and a word all folders hold
+ *  is worth 1/k on each), most carried first, the plan's own words after
+ *  them and the leaf kept; its vector their centroid; source 'members'. A
+ *  word one member says is that picture, not the folder (the tech library's
+ *  folders each held a few of the fill's misses, and every miss became a
+ *  class): two members must say it, and members that agree on nothing leave
+ *  the profile as it was. Mutations: the layer's classes not put before the
+ *  base's -> row 28a red; the centroid not taken -> row 27 red; the
+ *  three-member floor removed -> row 27b red; the two-member word rule
+ *  removed -> row 27 red (workstation kept) and 27d red.
+ */
+echo "\n== a folder profiled from what it holds (S10.7)\n";
+
+$ws      = f_profile( 12, 0, array( 'Workstations' ), array( 'workstations' ), array( 'source' => 'name', 'vector' => array( 0.0, 0.0, 1.0, 0.0 ) ) );
+$members = array();
+for ( $i = 0; $i < 5; $i++ ) {
+    $members[] = f_facts( 'desktop pc; computer hardware', array( 'vector' => array( 0.0, 1.0, 1.0, 0.0 ) ) );
+}
+$members[] = f_facts( 'tower case; computer hardware', array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) );
+$members[] = f_facts( 'tower case; computer hardware', array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) );
+$members[] = f_facts( 'workstation; computer hardware', array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) );
+
+$layer = vergeml_filing_members_layer( $members );
+$mp    = vergeml_filing_members_apply( $ws, $layer );
+f_check( '27 eight members {desktop pc x5, tower case x2, workstation x1}: the words two or more say, most carried first, the leaf kept by name, the class half left out; the vector their centroid, source members, 8 counted', array( 'desktop pc', 'tower case', 'workstations' ) === $mp['classes'] && 'members' === $mp['source'] && 8 === $mp['members'] && 'name' === $mp['base_source'] && abs( $mp['vector'][1] - 1.0 ) < 1e-9 && abs( $mp['vector'][2] - 0.625 ) < 1e-9 && array( 'desktop pc' => 5, 'tower case' => 2 ) === $layer['words'], json_encode( array( $mp['classes'], $mp['source'], $mp['members'], $mp['vector'], $layer['words'] ) ) );
+
+$two = vergeml_filing_members_apply( $ws, vergeml_filing_members_layer( array_slice( $members, 0, 2 ) ) );
+f_check( '27b two members are not enough: the profile stays the name\'s', array( 'workstations' ) === $two['classes'] && 'name' === $two['source'] && ! isset( $two['members'] ) && null === vergeml_filing_members_layer( array_slice( $members, 0, 2 ) ), json_encode( array( $two['classes'], $two['source'] ) ) );
+
+$hw    = f_profile( 4, 0, array( 'Hardware' ), array( 'computer hardware', 'computer', 'hardware', 'device' ) );
+$hwm   = vergeml_filing_members_apply( $hw, vergeml_filing_members_layer( array( f_facts( 'gpu; computer hardware' ), f_facts( 'gpu; computer hardware' ), f_facts( 'motherboard; computer hardware' ) ) ) );
+f_check( '27c a planned folder keeps the plan\'s words after its members\' and the leaf: gpu, then computer hardware, computer, hardware, device (motherboard, said once, is not the folder\'s)', array( 'gpu', 'computer hardware', 'computer', 'hardware', 'device' ) === $hwm['classes'] && 'plan' === $hwm['base_source'], json_encode( $hwm['classes'] ) );
+$none = vergeml_filing_members_layer( array( f_facts( 'cable reel; cable' ), f_facts( 'brewery production line; industry' ), f_facts( 'laboratory cleanroom; laboratory' ) ) );
+f_check( '27d three members that agree on nothing make no layer: the folder keeps the profile it had', null === $none, json_encode( $none ) );
+
+/*
+ *  A member word belongs to the folder holding most of the pictures that say
+ *  it (as a planner class belongs to one folder): on the tech library the
+ *  fill had put two smart speakers in Batteries and eight in Components,
+ *  both folders learned the word, and 34 pictures tied between them. Equal
+ *  counts keep it on both -- an honest tie, worth 1/k. Mutation: the settle
+ *  skipped in vergeml_filing_profiles -> not seen here; the cede made to
+ *  keep the word -> row 27e red.
+ */
+$settled = vergeml_filing_members_settle( array(
+    21 => array( 'n' => 20, 'classes' => array( 'lithium-ion battery', 'smart speaker', 'charger' ), 'words' => array( 'lithium-ion battery' => 9, 'smart speaker' => 2, 'charger' => 2 ), 'vector' => null, 'built_at' => 1 ),
+    22 => array( 'n' => 132, 'classes' => array( 'circuit board', 'smart speaker', 'chargers' ), 'words' => array( 'circuit board' => 40, 'smart speaker' => 8, 'chargers' => 2 ), 'vector' => null, 'built_at' => 1 ),
+    23 => array( 'n' => 3, 'classes' => array( 'smart speaker' ), 'words' => array( 'smart speaker' => 3 ), 'vector' => null, 'built_at' => 1 ),
+) );
+f_check( '27e smart speaker goes to the folder with eight (Batteries cedes it, and so does the folder of three); charger at two each stays on both; the folder left with no word has no layer', array( 'lithium-ion battery', 'charger' ) === $settled[21]['classes'] && array( 'circuit board', 'smart speaker', 'chargers' ) === $settled[22]['classes'] && ! isset( $settled[23] ) && array( 'smart speaker' => 22 ) === $settled[21]['ceded'], json_encode( array( $settled[21]['classes'], $settled[22]['classes'], isset( $settled[23] ), $settled[21]['ceded'] ) ) );
+
+$desk = f_facts( 'desktop pc; computer hardware', array( 'vector' => array( 0.0, 1.0, 1.0, 0.0 ) ) );
+$p    = vergeml_filing_pick( $desk, vergeml_filing_settle_claims( array( 12 => $ws ) ) );
+f_check( '28 against Workstations by its name alone, "desktop pc; computer hardware" is below the floor', 'nothing' === $p['outcome'] && 'floor' === $p['why'], sprintf( '%s why %s @%.3f', $p['outcome'], $p['why'], $p['score'] ) );
+$p = vergeml_filing_pick( $desk, vergeml_filing_settle_claims( array( 12 => $mp ) ) );
+f_check( '28a on the member profile it fits, sure: desktop pc is the first class (0.75) and the centroid agrees', 'fits' === $p['outcome'] && 12 === $p['term_id'] && 'sure' === $p['confidence'] && $p['score'] > 0.9, sprintf( '%s %d @%.3f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+$p = vergeml_filing_pick( $desk, vergeml_filing_settle_claims( array( 4 => $hw, 12 => $mp ) ) );
+f_check( '28b beside Hardware (computer hardware first: 0.6375, likely) the member profile outranks it: Workstations, sure, clear of the margin', 'fits' === $p['outcome'] && 12 === $p['term_id'] && 'sure' === $p['confidence'] && 4 === $p['runner_up'] && $p['score'] - $p['runner_score'] >= VERGEML_FILING_MARGIN, sprintf( '%s %d @%.3f %s next %d @%.3f', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'], $p['runner_up'], $p['runner_score'] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

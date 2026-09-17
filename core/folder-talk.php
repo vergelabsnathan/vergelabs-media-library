@@ -1106,7 +1106,11 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 	}
 
 	do {
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+		// Round 2 (S10.7) looks only at what round 1 left unplaced.
+		$only = ! empty( $state['round_ids'] )
+			? ' AND i.attachment_id IN (' . implode( ',', array_map( 'intval', (array) $state['round_ids'] ) ) . ')'
+			: '';
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; the ids are cast to int.
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by,
 			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr
@@ -1115,7 +1119,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			           WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s ) AS in_locked
 			   FROM {$wpdb->vergeml_ai_index} i
 			   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
-			  WHERE i.error = '' AND i.embedding IS NOT NULL AND i.attachment_id > %d
+			  WHERE i.error = '' AND i.embedding IS NOT NULL AND i.attachment_id > %d{$only}
 		   ORDER BY i.attachment_id ASC
 			  LIMIT %d",
 			VERGEML_FILING_LOCKED,
@@ -1254,6 +1258,8 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 				$state['skipped'] = (int) $state['skipped'] + 1;
 				$why              = isset( $pick['why'] ) ? $pick['why'] : 'floor';
 				$state['unfiled'][ $why ] = isset( $state['unfiled'][ $why ] ) ? (int) $state['unfiled'][ $why ] + 1 : 1;
+				// What this round left: round 2 looks at these again, over what the folders hold by then (S10.7).
+				$state['leftover'][] = $attachment;
 				if ( vergeml_filing_is_either( $pick ) ) {
 					/*
 					 *  Too close to call between two folders that are not siblings:
@@ -1272,11 +1278,14 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 
 				// Left alone, and now on the record as left alone: the word,
 				// the score it did reach, and the folder it could not beat.
-				$trail[] = array(
-					$attachment,
-					0,
-					vergeml_talk_reason( array( $why, $pick['score'], $pick['runner_up'], $pick['runner_score'], isset( $pick['nearest'] ) ? $pick['nearest'] : 0 ), $row ),
-				);
+				// Round 2 looks at a leftover again and writes only when it places it (S10.7): "still nothing" is round 1's row.
+				if ( empty( $state['round'] ) || 2 !== (int) $state['round'] ) {
+					$trail[] = array(
+						$attachment,
+						0,
+						vergeml_talk_reason( array( $why, $pick['score'], $pick['runner_up'], $pick['runner_score'], isset( $pick['nearest'] ) ? $pick['nearest'] : 0 ), $row ),
+					);
+				}
 				/*
 				 *  Nothing fits well enough, so it is left where it is -- unless
 				 *  where it is fails a gate. A logo sitting in Men is not "no
@@ -1345,6 +1354,40 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 		$pass += count( (array) $rows );
 
 		if ( count( (array) $rows ) < $slice ) {
+			/*
+			 *  The fill learns from its own placements (S10.7). A round that
+			 *  moved pictures and left others unplaced is followed by one more:
+			 *  the folders now hold what round 1 put there, a folder of three
+			 *  or more is read over its members (vergeml_filing_profiles), and
+			 *  the leftovers get a second look against that. Only the
+			 *  leftovers -- what round 1 placed stays placed -- and only once:
+			 *  a third round would read the same folders. Nothing is
+			 *  re-described between rounds. The tally gives the leftovers back
+			 *  before round 2 counts them again, so a picture is counted once.
+			 */
+			$round = isset( $state['round'] ) ? (int) $state['round'] : 1;
+			$state['rounds'][ $round ] = (int) $state['moved'];
+			if ( 1 === $round && empty( $state['assign'] ) && (int) $state['moved'] > 0 && ! empty( $state['leftover'] ) ) {
+				$left = array_values( array_unique( array_map( 'intval', (array) $state['leftover'] ) ) );
+				$n    = count( $left );
+				$state['round']     = 2;
+				$state['round_ids'] = $left;
+				$state['leftover']  = array();
+				$state['after']     = 0;
+				$state['seen']      = max( 0, (int) $state['seen'] - $n );
+				$state['skipped']   = max( 0, (int) $state['skipped'] - $n );
+				$state['residue']   = array();
+				$state['either']    = array();
+				foreach ( array( 'floor', 'margin', 'gated' ) as $why ) {
+					unset( $state['unfiled'][ $why ] );
+				}
+				$state['tally']['looked']  = max( 0, (int) $state['tally']['looked'] - $n );
+				$state['tally']['nothing'] = max( 0, (int) $state['tally']['nothing'] - $n );
+				$state['tally']['either']  = 0;
+				$state['tally']['why']     = array( 'floor' => 0, 'margin' => 0, 'gated' => 0 );
+				unset( $profiles ); // Read again over what the folders hold now.
+				continue;
+			}
 			// Unfinished here means out of time for the names: the run stays active and the next pass finds no rows and finishes.
 			vergeml_talk_refile_finish( $state, $deadline );
 			break;
@@ -1742,6 +1785,9 @@ function vergeml_talk_report( $state ) {
 		// How many questions the run left open; the questions themselves are /guide/questions.
 		'questions' => isset( $state['questions'] ) ? count( array_filter( (array) $state['questions'], function ( $q ) { return empty( $q['answered'] ); } ) ) : 0,
 		'until'     => isset( $state['until'] ) ? (int) $state['until'] : 0,
+		// The rounds (S10.7): round => pictures placed by its end; round 2 re-reads the folders over what round 1 put in them.
+		'round'     => isset( $state['round'] ) ? (int) $state['round'] : 1,
+		'rounds'    => isset( $state['rounds'] ) && is_array( $state['rounds'] ) ? array_map( 'intval', $state['rounds'] ) : array(),
 		'started'   => isset( $state['started'] ) ? (int) $state['started'] : 0,
 		// When a pass last wrote: the screen's stall line counts from here (S10.0).
 		'ticked'    => isset( $state['ticked'] ) ? (int) $state['ticked'] : ( isset( $state['started'] ) ? (int) $state['started'] : 0 ),

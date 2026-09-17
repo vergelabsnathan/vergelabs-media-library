@@ -579,7 +579,7 @@ function vergeml_filing_ask_split( $folders, $vocabulary ) {
     return $go;
 }
 
-/** Profiles for a set of terms, keyed by term id. Terms without one are left out. */
+/** Profiles for a set of terms, keyed by term id, each read over what the folder holds (S10.7). Terms without one are left out. */
 function vergeml_filing_profiles( $term_ids, $taxonomy ) {
     $out = array();
     foreach ( (array) $term_ids as $id ) {
@@ -591,7 +591,256 @@ function vergeml_filing_profiles( $term_ids, $taxonomy ) {
             $out[ (int) $id ] = $p;
         }
     }
+    foreach ( vergeml_filing_members_settle( vergeml_filing_members_layers( array_keys( $out ), $taxonomy ) ) as $id => $layer ) {
+        $out[ $id ] = vergeml_filing_members_apply( $out[ $id ], $layer );
+    }
     return vergeml_filing_settle_claims( $out );
+}
+
+
+/* ------------------------------------------------- profiles from members */
+
+/*
+ *  The fill learns from its own placements (S10.7). A folder holding this
+ *  many described pictures is profiled from them, and that profile outranks
+ *  the planner's and the name's: what a folder holds is better evidence of
+ *  what it is for than what a planner guessed from its name -- on the shop
+ *  (2026-09-16) the planner gave Garden "power tool, architecture" and six of
+ *  eight wrong likelies sat there; on the tech library the folder names are
+ *  not the pictures' words at all (sure 34 %). Two is a coincidence; three
+ *  is a folder.
+ */
+const VERGEML_FILING_MEMBERS_MIN = 3;
+
+/*
+ *  How many of the members' words a profile carries. The pick matches every
+ *  picture phrase against every folder class, memoised per pair, and a dry
+ *  run of 626 pictures against 319 folders (C.5) is inside its twenty
+ *  seconds at three or four classes a folder; eight keeps a folder of many
+ *  things under that, and the words past the eighth most carried are the
+ *  odd pictures, not the folder.
+ */
+const VERGEML_FILING_MEMBERS_WORDS = 8;
+
+/*
+ *  A word is the folder's when this many members say it. On the tech library
+ *  (2026-09-17, the first read) every folder held a few of the fill's own
+ *  misses -- Space held "conference venue, computer lab, hallway", Cooling
+ *  "cable reels, brewery production line" -- and each became a class of the
+ *  folder that held it, so "smart speaker" was a word on Batteries and on
+ *  Components at once and 32 pictures tied between them (margin 36 -> 104).
+ *  A word one picture says is that picture, not the folder; a folder whose
+ *  members agree on nothing keeps the profile it had.
+ */
+const VERGEML_FILING_MEMBERS_AGREE = 2;
+
+/** Term meta: the layer a folder's members make, with the stamp of the members it was built from. */
+const VERGEML_FILING_META_MEMBERS = '_vergeml_profile_members';
+
+/**
+ *  The layer a folder's members make. Pure: the members are facts
+ *  (vergeml_filing_facts()), and the answer is their object words -- the
+ *  first phrase of each, never the class half: every folder under Clothing
+ *  would hold "clothing" and a word every folder holds is worth 1/k on each
+ *  (vergeml_filing_settle_claims) -- spelled the one way, most carried
+ *  first, and the centroid of their vectors. Null under MEMBERS_MIN.
+ *
+ *  @return array|null 'n', 'classes', 'words' (class => members carrying it), 'vector', 'built_at'.
+ */
+function vergeml_filing_members_layer( $members ) {
+    $members = array_values( (array) $members );
+    if ( count( $members ) < VERGEML_FILING_MEMBERS_MIN ) {
+        return null;
+    }
+    $count   = array();
+    $seen    = array();
+    $vectors = array();
+    foreach ( $members as $m ) {
+        $object = isset( $m['classes'][0] ) ? vergeml_filing_name_class( $m['classes'][0] ) : '';
+        $key    = vergeml_filing_canon( $object );
+        if ( '' !== $key && ! in_array( $key, vergeml_filing_kind_words(), true ) ) {
+            $count[ $key ] = ( isset( $count[ $key ] ) ? $count[ $key ] : 0 ) + 1;
+            if ( ! isset( $seen[ $key ] ) ) {
+                $seen[ $key ] = $object; // The first spelling met, as the describer wrote it.
+            }
+        }
+        if ( isset( $m['vector'] ) && is_array( $m['vector'] ) && $m['vector'] ) {
+            $vectors[] = $m['vector'];
+        }
+    }
+    arsort( $count ); // Stable: ties keep the order met, which is the members' own.
+    $classes = array();
+    $words   = array();
+    foreach ( array_slice( $count, 0, VERGEML_FILING_MEMBERS_WORDS, true ) as $key => $n ) {
+        if ( $n < VERGEML_FILING_MEMBERS_AGREE ) {
+            break;
+        }
+        $classes[]                  = $seen[ $key ];
+        $words[ (string) $seen[ $key ] ] = (int) $n;
+    }
+    if ( ! $classes ) {
+        return null; // Members that agree on nothing say nothing about the folder.
+    }
+    return array(
+        'n'        => count( $members ),
+        'classes'  => $classes,
+        'words'    => $words,
+        'vector'   => vergeml_filing_centroid( $vectors ),
+        'built_at' => time(),
+    );
+}
+
+/**
+ *  One folder per member word. A word belongs to the folder holding most of
+ *  the pictures that say it, as a planner's class belongs to one folder
+ *  (vergeml_filing_clean_seed): on the tech library (2026-09-17) the fill
+ *  had put two smart speakers in Batteries and eight in Components, both
+ *  folders learned the word, and 34 pictures tied between them. The others
+ *  cede it and say so ('ceded', word => the folder); equal counts keep it
+ *  on both, an honest tie worth 1/k. A layer left with no word is no layer.
+ *  Pure, over the layers of one read.
+ */
+function vergeml_filing_members_settle( $layers ) {
+    $holders = array();
+    foreach ( (array) $layers as $tid => $l ) {
+        foreach ( (array) $l['words'] as $w => $n ) {
+            $holders[ vergeml_filing_canon( $w ) ][ (int) $tid ] = (int) $n;
+        }
+    }
+    foreach ( (array) $layers as $tid => $l ) {
+        $keep  = array();
+        $words = array();
+        $ceded = array();
+        foreach ( (array) $l['classes'] as $c ) {
+            $key = vergeml_filing_canon( $c );
+            $n   = isset( $l['words'][ $c ] ) ? (int) $l['words'][ $c ] : 0;
+            $most = isset( $holders[ $key ] ) ? max( $holders[ $key ] ) : $n;
+            if ( $most > $n ) {
+                $ceded[ $c ] = (int) array_search( $most, $holders[ $key ], true );
+                continue;
+            }
+            $keep[]      = $c;
+            $words[ $c ] = $n;
+        }
+        if ( ! $keep ) {
+            unset( $layers[ $tid ] );
+            continue;
+        }
+        $layers[ $tid ]['classes'] = $keep;
+        $layers[ $tid ]['words']   = $words;
+        $layers[ $tid ]['ceded']   = $ceded;
+    }
+    return $layers;
+}
+
+/**
+ *  A profile read over its members' layer: the members' words first, the
+ *  base's own (a plan's, or the name) after them so what the planner said
+ *  a folder also takes still reaches it, the leaf kept, the vector the
+ *  centroid. 'source' says members and 'base_source' what it was; the plan
+ *  stays as it was for the next rebuild. Pure; a null layer changes nothing.
+ */
+function vergeml_filing_members_apply( $profile, $layer ) {
+    if ( ! is_array( $layer ) || empty( $layer['classes'] ) ) {
+        return $profile;
+    }
+    $classes = array();
+    $canons  = array();
+    foreach ( array_merge( (array) $layer['classes'], (array) $profile['classes'] ) as $c ) {
+        $key = vergeml_filing_canon( $c );
+        if ( '' !== $key && ! isset( $canons[ $key ] ) ) {
+            $canons[ $key ] = true;
+            $classes[]      = $c;
+        }
+    }
+    $profile['base_source'] = isset( $profile['base_source'] ) ? $profile['base_source'] : $profile['source'];
+    $profile['source']      = 'members';
+    $profile['members']     = (int) $layer['n'];
+    $profile['words']       = (array) $layer['words'];
+    $profile['classes']     = $classes;
+    if ( is_array( $layer['vector'] ) && $layer['vector'] ) {
+        $profile['vector']   = $layer['vector'];
+        $profile['built_at'] = (int) $layer['built_at']; // The norm cache keys on it: a new vector, a new key.
+    }
+    return $profile;
+}
+
+/**
+ *  The members' layers for a set of folders, keyed by term id; folders under
+ *  MEMBERS_MIN are left out. Kept in term meta with a stamp of the members
+ *  it was built from -- how many, which (their ids summed and squared), and
+ *  when the last was described -- and rebuilt when the stamp moves: a fill,
+ *  a hand placement, an undo, a re-describe all move it, and no hook has to
+ *  know (vergeml_talk_answer takes the term hooks off around its write).
+ *  One light query reads every stamp; one more reads the rows of the
+ *  folders whose layer is stale.
+ */
+function vergeml_filing_members_layers( $term_ids, $taxonomy ) {
+    global $wpdb;
+    $term_ids = array_values( array_unique( array_map( 'intval', (array) $term_ids ) ) );
+    if ( ! $term_ids || ! isset( $wpdb->vergeml_ai_index ) ) {
+        return array();
+    }
+    $in = implode( ',', $term_ids );
+    // A locked folder is never a candidate, so it has no layer and owns no word: on the tech library To sort held seven
+    // smart speakers, won the word, and Batteries and Components both ceded it (2026-09-17).
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
+    $stamps = $wpdb->get_results( $wpdb->prepare(
+        "SELECT tt.term_id, COUNT(*) AS n, SUM(i.attachment_id) AS ids, SUM(i.attachment_id * i.attachment_id) AS sq, MAX(i.described_at) AS last
+           FROM {$wpdb->term_relationships} tr
+           JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+           JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = tr.object_id
+           LEFT JOIN {$wpdb->termmeta} lk ON lk.term_id = tt.term_id AND lk.meta_key = %s AND lk.meta_value = '1'
+          WHERE tt.taxonomy = %s AND tt.term_id IN ({$in}) AND lk.term_id IS NULL AND i.error = '' AND i.filing IS NOT NULL AND i.filing <> ''
+       GROUP BY tt.term_id",
+        VERGEML_FILING_LOCKED,
+        $taxonomy
+    ), ARRAY_A );
+    $out   = array();
+    $stale = array();
+    foreach ( (array) $stamps as $s ) {
+        if ( (int) $s['n'] < VERGEML_FILING_MEMBERS_MIN ) {
+            continue;
+        }
+        $tid   = (int) $s['term_id'];
+        // The rule's own numbers are in the stamp: a changed rule rebuilds every layer, the members unchanged.
+        $stamp = VERGEML_FILING_MEMBERS_MIN . '/' . VERGEML_FILING_MEMBERS_AGREE . '/' . VERGEML_FILING_MEMBERS_WORDS . ':' . $s['n'] . ':' . $s['ids'] . ':' . $s['sq'] . ':' . $s['last'];
+        $meta  = get_term_meta( $tid, VERGEML_FILING_META_MEMBERS, true );
+        if ( is_array( $meta ) && isset( $meta['stamp'] ) && $meta['stamp'] === $stamp && ! empty( $meta['classes'] ) ) {
+            $out[ $tid ] = $meta;
+        } else {
+            $stale[ $tid ] = $stamp;
+        }
+    }
+    if ( ! $stale ) {
+        return $out;
+    }
+    $in   = implode( ',', array_keys( $stale ) );
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT tt.term_id, i.attachment_id, i.filing, i.kind, i.embedding
+           FROM {$wpdb->term_relationships} tr
+           JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+           JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = tr.object_id
+          WHERE tt.taxonomy = %s AND tt.term_id IN ({$in}) AND i.error = '' AND i.filing IS NOT NULL AND i.filing <> ''
+       ORDER BY tt.term_id, i.attachment_id",
+        $taxonomy
+    ), ARRAY_A );
+    // phpcs:enable
+    $members = array();
+    foreach ( (array) $rows as $row ) {
+        $members[ (int) $row['term_id'] ][] = vergeml_filing_facts( $row );
+    }
+    foreach ( $stale as $tid => $stamp ) {
+        $layer = vergeml_filing_members_layer( isset( $members[ $tid ] ) ? $members[ $tid ] : array() );
+        if ( ! is_array( $layer ) ) {
+            delete_term_meta( $tid, VERGEML_FILING_META_MEMBERS );
+            continue;
+        }
+        $layer['stamp'] = $stamp;
+        update_term_meta( $tid, VERGEML_FILING_META_MEMBERS, $layer );
+        $out[ $tid ] = $layer;
+    }
+    return $out;
 }
 
 /**
@@ -946,7 +1195,8 @@ function vergeml_filing_pick( $facts, $profiles ) {
 
         $embed = 0.0;
         if ( is_array( $facts['vector'] ) && is_array( $p['vector'] ) ) {
-            $embed = max( 0.0, vergeml_filing_cosine( $p['vector'], vergeml_filing_norm( $p['vector'], $tid . ':' . ( isset( $p['built_at'] ) ? $p['built_at'] : 0 ) ), $facts['vector'], $pnorm ) );
+            // Keyed by source too: a folder's base vector and its members' centroid can be built in the same second (S10.7).
+            $embed = max( 0.0, vergeml_filing_cosine( $p['vector'], vergeml_filing_norm( $p['vector'], $tid . ':' . $p['source'] . ':' . ( isset( $p['built_at'] ) ? $p['built_at'] : 0 ) ), $facts['vector'], $pnorm ) );
         }
 
         $scores[ $tid ] = VERGEML_FILING_CLASS_WEIGHT * $class + ( 1 - VERGEML_FILING_CLASS_WEIGHT ) * $embed;

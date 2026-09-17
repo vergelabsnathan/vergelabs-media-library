@@ -68,9 +68,11 @@ vergeml_librarian_maybe_install();
 
 /*
  *  Every request the plugin would make is answered here. The embed answers a
- *  one-hot vector per distinct phrase, in 64 dimensions from index 1, so the
+ *  one-hot vector per distinct phrase, in 4096 dimensions from index 1, so the
  *  pictures' own vector ([1,0,0,0]) is orthogonal to every folder and the
- *  class match alone decides a score. The planner answers a profile for the
+ *  class match alone decides a score. (64 until S13: by section H the suite
+ *  had embedded more than sixty-four phrases, two unrelated ones shared a
+ *  slot and matched at 1.0, and a picture landed in the wrong folder.) The planner answers a profile for the
  *  folder the draft gave no classes and, deliberately, one for a folder the
  *  draft did describe -- which confirm must not take.
  */
@@ -84,8 +86,8 @@ function sk_answer( $pre, $args, $url ) {
         if ( ! isset( $GLOBALS['sk_texts'][ $text ] ) ) {
             $GLOBALS['sk_texts'][ $text ] = count( $GLOBALS['sk_texts'] ) + 1;
         }
-        $v = array_fill( 0, 64, 0.0 );
-        $v[ $GLOBALS['sk_texts'][ $text ] % 64 ] = 1.0;
+        $v = array_fill( 0, 4096, 0.0 );
+        $v[ $GLOBALS['sk_texts'][ $text ] % 4096 ] = 1.0;
         return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( array( 'embedding' => $v ) ), 'headers' => array() );
     }
     if ( false !== strpos( $url, '/folders' ) ) {
@@ -545,6 +547,76 @@ if ( 6 === $sk_reach ) {
     ) ), false );
     $sk_ans = vergeml_talk_answer( 's:' . $sk_terms['zzStickyA'], 'keep-parent' );
     sk_check( 'G1 keep-parent moves the free picture to the parent and marks it answer; the hand-moved one stays in B, still the user\'s', ! is_wp_error( $sk_ans ) && 1 === (int) $sk_ans['moved'] && array( $sk_terms['zzStickyA'] ) === $sk_where( $sk_files['free'] ) && 'answer' === get_post_meta( $sk_files['free'], VERGEML_FILING_PLACED_BY, true ) && array( $sk_terms['zzStickyB'] ) === $sk_where( $sk_files['hand'] ) && 'user' === get_post_meta( $sk_files['hand'], VERGEML_FILING_PLACED_BY, true ), json_encode( array( 'moved' => is_wp_error( $sk_ans ) ? $sk_ans->get_error_message() : $sk_ans['moved'], 'free' => $sk_where( $sk_files['free'] ), 'free_by' => get_post_meta( $sk_files['free'], VERGEML_FILING_PLACED_BY, true ), 'hand' => $sk_where( $sk_files['hand'] ), 'hand_by' => get_post_meta( $sk_files['hand'], VERGEML_FILING_PLACED_BY, true ) ) ) );
+
+    /* ------------------------------------------------------ H  the fill learns from its own placements */
+
+    /*
+     *  S10.7. A folder holding three described pictures is profiled from
+     *  them, and a fill runs a second round when its first left pictures
+     *  unplaced and moved others: the folders now hold pictures, their
+     *  members' words are read, and the leftovers get a second look. R is
+     *  planned for "zzstickyround" and holds two pictures the person put
+     *  there that say "zzstickymember" (two is not a folder). Round 1 places
+     *  the "zzstickyround" picture in R and leaves the "zzstickymember" one
+     *  (nothing says it); R now holds three, its members say "zzstickymember"
+     *  twice, and round 2 places the leftover there. Mutation: the second
+     *  round removed -> H1 red (the leftover in no folder, one round).
+     */
+    echo "\nH  the fill learns from its own placements (S10.7)\n\n";
+
+    $sk_r = wp_insert_term( 'zzStickyR', $sk_tax );
+    $sk_terms['zzStickyR'] = is_wp_error( $sk_r ) ? (int) get_term_by( 'name', 'zzStickyR', $sk_tax )->term_id : (int) $sk_r['term_id'];
+    $sk_rp = vergeml_filing_profile_build( get_term( $sk_terms['zzStickyR'], $sk_tax ), $sk_tax, array( 'classes' => array( 'zzstickyround' ), 'kinds' => array( 'photo' ) ) );
+    sk_check( 'H0 R is planned for zzstickyround', is_array( $sk_rp ) && 'plan' === $sk_rp['source'] && 'zzstickyround' === $sk_rp['classes'][0], json_encode( is_array( $sk_rp ) ? $sk_rp['classes'] : null ) );
+
+    $sk_files['m1']    = sk_file( 'm1', 'zzstickymember; zzthing' );
+    $sk_files['m2']    = sk_file( 'm2', 'zzstickymember; zzthing' );
+    $sk_files['round'] = sk_file( 'round', 'zzstickyround; zzthing' );
+    $sk_files['other'] = sk_file( 'other', 'zzstickymember; zzthing' );
+    $sk_in             = implode( ',', array_map( 'intval', array_values( $sk_files ) ) );
+    foreach ( array( 'm1', 'm2' ) as $sk_k ) {
+        wp_set_object_terms( $sk_files[ $sk_k ], array( $sk_terms['zzStickyR'] ), $sk_tax, false );
+        update_post_meta( $sk_files[ $sk_k ], VERGEML_FILING_PLACED_BY, 'user' );
+    }
+    wp_set_object_terms( $sk_files['round'], array(), $sk_tax, false );
+    wp_set_object_terms( $sk_files['other'], array(), $sk_tax, false );
+
+    $sk_layers = vergeml_filing_members_layers( array( $sk_terms['zzStickyR'] ), $sk_tax );
+    sk_check( 'H0b two members make no layer', array() === $sk_layers, json_encode( $sk_layers ) );
+
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    update_option( VERGEML_TALK_STATE, array(
+        'active'   => true,
+        'taxonomy' => $sk_tax,
+        'ids'      => array( 'r' => $sk_terms['zzStickyR'], 'b' => $sk_terms['zzStickyB'] ),
+        'vectors'  => array(),
+        'assign'   => array(),
+        'fallback' => array(),
+        'reasons'  => array(),
+        'after'    => $sk_files['m1'] - 1,
+        'moved'    => 0,
+        'skipped'  => 0,
+        'seen'     => 0,
+        'total'    => 4,
+        'counts'   => array(),
+        'by_term'  => array(),
+        'unfiled'  => array(),
+        'tags'     => array(),
+        'tagged'   => 0,
+        'until'    => time() + DAY_IN_SECONDS,
+        'remove'   => array(),
+        'started'  => time(),
+        'ticked'   => time(),
+    ), false );
+    $sk_done = vergeml_talk_refile_run( microtime( true ) + 30.0 );
+    $sk_tally = isset( $sk_done['tally'] ) ? $sk_done['tally'] : array();
+    sk_check( 'H1 two rounds: the round picture lands in R in round 1, the other in round 2 -- both in R, moved 2, rounds 1 then 2, nothing 0', array( $sk_terms['zzStickyR'] ) === $sk_where( $sk_files['round'] ) && array( $sk_terms['zzStickyR'] ) === $sk_where( $sk_files['other'] ) && 2 === (int) $sk_done['moved'] && isset( $sk_done['rounds'] ) && array( 1 => 1, 2 => 2 ) === array_map( 'intval', (array) $sk_done['rounds'] ) && 0 === (int) $sk_tally['nothing'] && empty( $sk_done['active'] ), json_encode( array( 'round' => $sk_where( $sk_files['round'] ), 'other' => $sk_where( $sk_files['other'] ), 'moved' => $sk_done['moved'], 'rounds' => isset( $sk_done['rounds'] ) ? $sk_done['rounds'] : null, 'tally' => array_intersect_key( $sk_tally, array_flip( array( 'looked', 'fits', 'nothing', 'kept' ) ) ) ) ) );
+    sk_check( 'H2 the tally counts each picture once across the rounds: looked 4, fits 2, kept 2', 4 === (int) $sk_tally['looked'] && 2 === (int) $sk_tally['fits'] && 2 === (int) $sk_tally['kept'], json_encode( array_intersect_key( $sk_tally, array_flip( array( 'looked', 'fits', 'siblings', 'nothing', 'kept' ) ) ) ) );
+    $sk_layers = vergeml_filing_members_layers( array( $sk_terms['zzStickyR'] ), $sk_tax );
+    $sk_layer  = isset( $sk_layers[ $sk_terms['zzStickyR'] ] ) ? $sk_layers[ $sk_terms['zzStickyR'] ] : array();
+    sk_check( 'H3 R\'s layer after the fill: four members, zzstickymember 3 and zzstickyround 1, the stamp kept in term meta', isset( $sk_layer['n'] ) && 4 === (int) $sk_layer['n'] && array( 'zzstickymember' => 3, 'zzstickyround' => 1 ) === $sk_layer['words'] && is_array( get_term_meta( $sk_terms['zzStickyR'], VERGEML_FILING_META_MEMBERS, true ) ), json_encode( isset( $sk_layer['words'] ) ? $sk_layer['words'] : $sk_layers ) );
+    $sk_report = vergeml_talk_report( $sk_done );
+    sk_check( 'H4 the report carries the rounds', isset( $sk_report['rounds'] ) && array( 1 => 1, 2 => 2 ) === array_map( 'intval', (array) $sk_report['rounds'] ), json_encode( isset( $sk_report['rounds'] ) ? $sk_report['rounds'] : null ) );
 
     wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
     if ( false !== $sk_hook_was ) {

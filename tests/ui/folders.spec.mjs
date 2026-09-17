@@ -347,7 +347,31 @@ test.describe( 'the Folders screen', () => {
 		} );
 		await expect( page.locator( '.g-cols' ) ).toHaveClass( /is-asking/ );
 		await expect( fill, 'a run that ended into questions has no progress row' ).toBeHidden();
-		await page.evaluate( () => { window.vgmlFoldersApp.state.questions = []; window.vgmlFoldersApp.state.moving = null; window.vgmlFoldersApp.render(); } );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-pill[data-rounds]' ), 'one round: no rounds pill' ).toHaveCount( 0 );
+
+		// The rounds (S10.7): a run that went twice says so, in the spec's own words; while round 2 runs the tail waits.
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.moving = { running: false, moved: 640, seen: 1000, total: 1000, round: 2, rounds: { 1: 553, 2: 640 }, tally: { sure: 400, likely: 240, nothing: 113 } };
+			app.render();
+		} );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-pill[data-rounds]' ) ).toHaveText( 'round 1: 553 placed · round 2: 640 · 113 to sort' );
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.moving = { running: true, moved: 590, seen: 700, total: 1000, round: 2, rounds: { 1: 553 }, tally: { sure: 380, likely: 210, nothing: 60 } };
+			app.state.session.applyWas = app.state.session.apply;
+			app.state.session.apply = app.state.moving;
+			app.render();
+		} );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-pill[data-rounds]' ) ).toHaveText( 'round 1: 553 placed · round 2: 590' );
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.session.apply = app.state.session.applyWas;
+			delete app.state.session.applyWas;
+			app.state.questions = [];
+			app.state.moving = null;
+			app.render();
+		} );
 	} );
 
 	/*
