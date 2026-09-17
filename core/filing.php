@@ -645,6 +645,14 @@ const VERGEML_FILING_META_MEMBERS = '_vergeml_profile_members';
  *  (vergeml_filing_settle_claims) -- spelled the one way, most carried
  *  first, and the centroid of their vectors. Null under MEMBERS_MIN.
  *
+ *  Every member counts, whatever the fill scored it (S14, judged dry on
+ *  both sheets): counting only sure and hand placements moved 3 of the S13
+ *  sheet's 17 wrong likelies on the tech library -- its misses were taught
+ *  by sure members -- and on the shop took Watches' and Laptops' right,
+ *  likely members out of their layers, so Smart watches and Keyboards took
+ *  their pictures, sure. A placement's confidence does not say whether the
+ *  word it teaches is true.
+ *
  *  @return array|null 'n', 'classes', 'words' (class => members carrying it), 'vector', 'built_at'.
  */
 function vergeml_filing_members_layer( $members ) {
@@ -1316,8 +1324,20 @@ function vergeml_filing_pick( $facts, $profiles ) {
          *  describer word need. By words alone (vergeml_filing_word_match):
          *  no vector, no modifier. Read only when the describer's phrases
          *  left room: a word never outranks the object.
+         *
+         *  And corroboration, never evidence on its own (S14): read only
+         *  where the describer's phrases already hit this folder. On the
+         *  tech library (2026-09-17) ten of the S13 sheet's seventeen wrong
+         *  likelies stood on one filename word where the describer hit the
+         *  folder not at all -- "farm" of a 3D-printer farm was Wind's "wind
+         *  farm", "switch" of a smart plug was Server racks' "network
+         *  switches" -- a likely with a runner-up at 0.13; and a title that
+         *  says "phone" put an office desk in Phones, sure, when the folder's
+         *  own name was let count alone. A folder named for a shoot
+         *  ("smith-wedding-012.jpg" in Smith wedding) is a signal about the
+         *  pack, and S10.10 hands those to the planner.
          */
-        if ( $class < 0.85 && ! empty( $facts['words'] ) ) {
+        if ( $class < 0.85 && $class > 0.0 && ! empty( $facts['words'] ) ) {
             foreach ( (array) $facts['words'] as $word ) {
                 foreach ( array_values( (array) $p['classes'] ) as $rank => $fc ) {
                     $match = vergeml_filing_word_match( $word, $fc );

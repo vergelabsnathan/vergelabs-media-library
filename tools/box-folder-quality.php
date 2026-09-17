@@ -447,6 +447,56 @@ if ( $dry ) {
         $reread .= sprintf( "  %-6s  %s\n", $word, implode( ' · ', array_map( function ( $k, $n ) { return $k . ' ' . $n; }, array_keys( $s ), $s ) ) );
     }
     $reread .= implode( "\n", $dlines ) . "\n";
+
+    // The S13 dry sheet's 60 under this engine, the same way: the judge of the member refinement (S14).
+    $ssum   = array( 'sure' => array( 'right kept' => 0, 'wrong dropped' => 0, 'right lost' => 0, 'wrong kept' => 0, 'broad kept' => 0, 'moved' => 0 ), 'likely' => array( 'right kept' => 0, 'wrong dropped' => 0, 'right lost' => 0, 'wrong kept' => 0, 'broad kept' => 0, 'moved' => 0 ) );
+    $slines = array();
+    foreach ( $bfq_s13 as $id => $d ) {
+        list( $word, $mark, $path ) = $d;
+        $pick = isset( $picks[ $id ] ) ? $picks[ $id ] : null;
+        $new  = $pick ? (int) $pick['term_id'] : 0;
+        $now  = $new ? bfq_path( $new, $tax ) : '';
+        if ( $new && $now === $path ) {
+            $fate = 'right' === $mark ? 'right kept' : ( 'broad' === $mark ? 'broad kept' : 'wrong kept' );
+        } elseif ( ! $new ) {
+            $fate = 'right' === $mark ? 'right lost' : 'wrong dropped';
+        } else {
+            $fate = 'moved';
+        }
+        $ssum[ $word ][ $fate ]++;
+        $slines[] = sprintf( '%-6s %6d  %-5s  was %-32s  now %-48s  %s', $word, $id, $mark, $path, $new ? sprintf( '%s (%s %.2f %s)', $now, $pick['why'], $pick['score'], 'siblings' === $pick['why'] ? 'likely' : $pick['confidence'] ) : sprintf( 'nothing (%s %.2f)', $pick ? $pick['why'] : '-', $pick ? $pick['score'] : 0 ), $fate );
+    }
+    $reread .= "the S13 dry sheet's 60 (seed 133, marked 2026-09-17: sure 25/30, likely 6/30 with 7 broad) under this engine, by folder path:\n";
+    foreach ( $ssum as $word => $s ) {
+        $reread .= sprintf( "  %-6s  %s\n", $word, implode( ' · ', array_map( function ( $k, $n ) { return $k . ' ' . $n; }, array_keys( $s ), $s ) ) );
+    }
+    $reread .= implode( "\n", $slines ) . "\n";
+
+    // The shop's fill sheet under this engine (VGML_SITE=shop): its ids are the second site's, so only where they are this library's.
+    if ( count( array_intersect_key( $bfq_shop, $picks ) ) >= 30 ) {
+        $hsum   = array( 'sure' => array( 'right kept' => 0, 'wrong dropped' => 0, 'right lost' => 0, 'wrong kept' => 0, 'broad kept' => 0, 'moved' => 0 ), 'likely' => array( 'right kept' => 0, 'wrong dropped' => 0, 'right lost' => 0, 'wrong kept' => 0, 'broad kept' => 0, 'moved' => 0 ) );
+        $hlines = array();
+        foreach ( $bfq_shop as $id => $d ) {
+            list( $word, $mark, $path ) = $d;
+            $pick = isset( $picks[ $id ] ) ? $picks[ $id ] : null;
+            $new  = $pick ? (int) $pick['term_id'] : 0;
+            $now  = $new ? bfq_path( $new, $tax ) : '';
+            if ( $new && $now === $path ) {
+                $fate = 'right' === $mark ? 'right kept' : ( 'broad' === $mark ? 'broad kept' : 'wrong kept' );
+            } elseif ( ! $new ) {
+                $fate = 'right' === $mark ? 'right lost' : 'wrong dropped';
+            } else {
+                $fate = 'moved';
+            }
+            $hsum[ $word ][ $fate ]++;
+            $hlines[] = sprintf( '%-6s %6d  %-5s  was %-48s  now %-56s  %s', $word, $id, $mark, $path, $new ? sprintf( '%s (%s %.2f %s)', $now, $pick['why'], $pick['score'], 'siblings' === $pick['why'] ? 'likely' : $pick['confidence'] ) : sprintf( 'nothing (%s %.2f)', $pick ? $pick['why'] : '-', $pick ? $pick['score'] : 0 ), $fate );
+        }
+        $reread .= "the shop's fill sheet's 60 (C.5 batch 1, marked 2026-09-16: sure 25/30, likely 11/30 with 11 broad) under this engine, by folder path:\n";
+        foreach ( $hsum as $word => $s ) {
+            $reread .= sprintf( "  %-6s  %s\n", $word, implode( ' · ', array_map( function ( $k, $n ) { return $k . ' ' . $n; }, array_keys( $s ), $s ) ) );
+        }
+        $reread .= implode( "\n", $hlines ) . "\n";
+    }
     echo "<!--\n", esc_html( $reread ), "-->\n";
 }
 
@@ -481,7 +531,7 @@ function bfq_path( $term_id, $tax ) {
     $out = array();
     $t   = get_term( (int) $term_id, $tax );
     while ( $t instanceof WP_Term ) {
-        array_unshift( $out, $t->name );
+        array_unshift( $out, vergeml_term_name( $t ) ); // "Bags & Luggage" as the marks say it, not the stored "&amp;".
         $t = $t->parent ? get_term( (int) $t->parent, $tax ) : null;
     }
     return implode( ' / ', $out );

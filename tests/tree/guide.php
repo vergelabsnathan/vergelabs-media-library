@@ -208,6 +208,19 @@ function g_answer( $pre, $args, $url ) {
 }
 add_filter( 'pre_http_request', 'g_answer', 1, 3 );
 
+/*
+ *  The site's own wp-cron.php, answered here and never sent (S14). F6 books
+ *  a fit job and spawns cron; sent for real, the box ran that job -- 1,000
+ *  pictures against 200 folders, up to 240 s -- beside F7's own fit in the
+ *  poll, which starved past its 20 s budget and settled unknown (48 s where
+ *  4 s alone). Section G leans on the same answer for the fill's spawn.
+ *  Mutation: this filter added only at G, as before -> F7 red.
+ */
+function g_answer_cron( $pre, $args, $url ) {
+    return false !== strpos( $url, 'wp-cron.php' ) ? array( 'response' => array( 'code' => 200 ), 'body' => '', 'headers' => array() ) : $pre;
+}
+add_filter( 'pre_http_request', 'g_answer_cron', 1, 3 );
+
 $g_described = vergeml_guide_described_count();
 $g_big = array( 'folders' => array(), 'gone' => array(), 'origin' => 'talk', 'rule' => null );
 for ( $i = 1; $i <= 260; $i++ ) {
@@ -301,10 +314,6 @@ g_check( 'F8 the same on a shape no request holds settles as unknown: counted fa
  */
 echo "\nG  a fill after a fill: a confirmed tree with no draft fills the live folders\n\n";
 
-function g_answer_cron( $pre, $args, $url ) {
-    return false !== strpos( $url, 'wp-cron.php' ) ? array( 'response' => array( 'code' => 200 ), 'body' => '', 'headers' => array() ) : $pre;
-}
-add_filter( 'pre_http_request', 'g_answer_cron', 1, 3 );
 $g_state_was = get_option( VERGEML_TALK_STATE );
 $g_undo_was  = get_option( VERGEML_TALK_UNDO );
 $g_hook_was  = wp_next_scheduled( VERGEML_TALK_HOOK );

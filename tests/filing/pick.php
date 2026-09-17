@@ -444,6 +444,32 @@ f_check( '29 "footwear" that tied Sneakers and Boots is settled by its filename 
 // The words never outrank the describer: "phone; device" named "boots.jpg" is still a phone.
 $p = vergeml_filing_pick( f_facts( 'phone; device', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ), 'words' => array( 'boots' ) ) ), $profiles );
 f_check( '29c a filename word never outranks the describer\'s object: "phone; device" named boots.jpg stays in Phones, sure', 'fits' === $p['outcome'] && 5 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.3f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+/*
+ *  A picture's own word is corroboration, not evidence on its own (S14). On
+ *  the tech library (2026-09-17) ten of the S13 sheet's seventeen wrong
+ *  likelies stood on one filename word where the describer's phrases hit
+ *  the folder not at all: "farm" of a 3D-printer farm was Wind's "wind
+ *  farm", "switch" of a smart plug was Server racks' "network switches",
+ *  "technology" of a conference award was Phones' "wearable technology" --
+ *  a likely at 0.57-0.70 with a runner-up at 0.13. So the words are read
+ *  only where the describer's phrases already hit the folder -- the
+ *  folder's own name included: a title saying "phone" put an office desk
+ *  in Phones, sure, when the name was let count alone (a shoot's folder,
+ *  "smith-wedding-012.jpg" in Smith wedding, is S10.10's signal to the
+ *  planner, not the pick's). Mutation: the words read wherever the class
+ *  is under 0.85 -> row 29e red (Wind, sure).
+ */
+$farm = vergeml_filing_settle_claims( array(
+    40 => f_profile( 40, 0, array( 'Energy', 'Wind' ), array( 'wind turbine', 'wind farm', 'wind' ), array( 'vector' => array( 0.0, 0.0, 1.0, 0.0 ) ) ),
+    41 => f_profile( 41, 0, array( 'Hardware', 'Phones' ), array( 'smartphone', 'phones' ), array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) ),
+) );
+$p = vergeml_filing_pick( f_facts( '3d printer farm; workshop equipment', array( 'vector' => array( 0.0, 0.0, 0.5, 0.0 ), 'words' => array( 'printer', 'farm', 'hackerspace' ) ) ), $farm );
+f_check( '29e "3d printer farm; workshop equipment" named printer-farm.jpg: the describer hits Wind not at all, and "farm" alone (the head of wind farm) is not evidence -- nothing, floor', 'nothing' === $p['outcome'] && 'floor' === $p['why'] && $p['score'] < 0.3, sprintf( '%s why %s @%.4f', $p['outcome'], $p['why'], $p['score'] ) );
+$p = vergeml_filing_pick( f_facts( 'office desk; furniture', array( 'vector' => array( 0.0, 0.4, 0.0, 0.0 ), 'words' => array( 'office', 'desk', 'with', 'computer', 'phone' ) ) ), $farm );
+f_check( '29f "office desk; furniture" whose title says phone: the folder\'s own name alone is no evidence either -- nothing, floor (the tech library, 2026-09-17: Phones, sure 0.74)', 'nothing' === $p['outcome'] && 'floor' === $p['why'] && $p['score'] < 0.3, sprintf( '%s why %s @%.4f', $p['outcome'], $p['why'], $p['score'] ) );
+$p = vergeml_filing_pick( f_facts( 'wind turbine; energy infrastructure', array( 'vector' => array( 0.0, 0.0, 0.5, 0.0 ), 'words' => array( 'farm' ) ) ), $farm );
+f_check( '29g where the describer hits the folder, the word still corroborates: "wind turbine" named farm.jpg is Wind, sure', 'fits' === $p['outcome'] && 40 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+
 // facts() reads the row's title, file and alt into the list.
 $fx = vergeml_filing_facts( array( 'filing' => json_encode( array( 'object' => 'footwear' ) ), 'kind' => 'photo', 'file' => '2026/09/mens-sneakers-white.jpg', 'title' => 'mens-sneakers-white', 'alt' => '' ) );
 f_check( '29d facts: the row\'s file, title and alt become the words (the upload path\'s folders dropped)', array( 'mens', 'sneakers', 'white' ) === $fx['words'], json_encode( $fx['words'] ) );
