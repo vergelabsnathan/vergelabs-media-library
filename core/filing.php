@@ -653,7 +653,13 @@ const VERGEML_FILING_META_MEMBERS = '_vergeml_profile_members';
  *  their pictures, sure. A placement's confidence does not say whether the
  *  word it teaches is true.
  *
- *  @return array|null 'n', 'classes', 'words' (class => members carrying it), 'vector', 'built_at'.
+ *  The class halves ride along as 'halves' -- spelled the one way, the ones
+ *  AGREE members say -- not as the folder's words but as what the library
+ *  says (S15): a planner class that the pictures of other folders say as
+ *  their class half is a library word, and vergeml_filing_settle_claims
+ *  counts those folders into its k.
+ *
+ *  @return array|null 'n', 'classes', 'words' (class => members carrying it), 'halves' (canon half => members), 'vector', 'built_at'.
  */
 function vergeml_filing_members_layer( $members ) {
     $members = array_values( (array) $members );
@@ -662,6 +668,7 @@ function vergeml_filing_members_layer( $members ) {
     }
     $count   = array();
     $seen    = array();
+    $halves  = array();
     $vectors = array();
     foreach ( $members as $m ) {
         $object = isset( $m['classes'][0] ) ? vergeml_filing_name_class( $m['classes'][0] ) : '';
@@ -672,10 +679,15 @@ function vergeml_filing_members_layer( $members ) {
                 $seen[ $key ] = $object; // The first spelling met, as the describer wrote it.
             }
         }
+        $half = isset( $m['classes'][1] ) ? vergeml_filing_canon( $m['classes'][1] ) : '';
+        if ( '' !== $half && ! in_array( $half, vergeml_filing_kind_words(), true ) ) {
+            $halves[ $half ] = ( isset( $halves[ $half ] ) ? $halves[ $half ] : 0 ) + 1;
+        }
         if ( isset( $m['vector'] ) && is_array( $m['vector'] ) && $m['vector'] ) {
             $vectors[] = $m['vector'];
         }
     }
+    $halves = array_filter( $halves, function ( $n ) { return $n >= VERGEML_FILING_MEMBERS_AGREE; } );
     arsort( $count ); // Stable: ties keep the order met, which is the members' own.
     $classes = array();
     $words   = array();
@@ -693,6 +705,7 @@ function vergeml_filing_members_layer( $members ) {
         'n'        => count( $members ),
         'classes'  => $classes,
         'words'    => $words,
+        'halves'   => $halves,
         'vector'   => vergeml_filing_centroid( $vectors ),
         'built_at' => time(),
     );
@@ -765,6 +778,7 @@ function vergeml_filing_members_apply( $profile, $layer ) {
     $profile['source']      = 'members';
     $profile['members']     = (int) $layer['n'];
     $profile['words']       = (array) $layer['words'];
+    $profile['halves']      = isset( $layer['halves'] ) ? (array) $layer['halves'] : array();
     $profile['classes']     = $classes;
     if ( is_array( $layer['vector'] ) && $layer['vector'] ) {
         $profile['vector']   = $layer['vector'];
@@ -811,8 +825,8 @@ function vergeml_filing_members_layers( $term_ids, $taxonomy ) {
             continue;
         }
         $tid   = (int) $s['term_id'];
-        // The rule's own numbers are in the stamp: a changed rule rebuilds every layer, the members unchanged.
-        $stamp = VERGEML_FILING_MEMBERS_MIN . '/' . VERGEML_FILING_MEMBERS_AGREE . '/' . VERGEML_FILING_MEMBERS_WORDS . ':' . $s['n'] . ':' . $s['ids'] . ':' . $s['sq'] . ':' . $s['last'];
+        // The rule's own numbers are in the stamp: a changed rule rebuilds every layer, the members unchanged ('h': the layer carries the class halves, S15).
+        $stamp = VERGEML_FILING_MEMBERS_MIN . '/' . VERGEML_FILING_MEMBERS_AGREE . '/' . VERGEML_FILING_MEMBERS_WORDS . '/h:' . $s['n'] . ':' . $s['ids'] . ':' . $s['sq'] . ':' . $s['last'];
         $meta  = get_term_meta( $tid, VERGEML_FILING_META_MEMBERS, true );
         if ( is_array( $meta ) && isset( $meta['stamp'] ) && $meta['stamp'] === $stamp && ! empty( $meta['classes'] ) ) {
             $out[ $tid ] = $meta;
@@ -902,6 +916,49 @@ function vergeml_filing_settle_claims( $profiles ) {
             $shared[ $key ] = isset( $shared[ $key ] ) ? $shared[ $key ] + 1 : 1;
         }
     }
+
+    /*
+     *  And the folders whose pictures say the word (S15). The planner put
+     *  "electronics" on Batteries alone, so it was worth 1.0 there; on the
+     *  tech library (2026-09-17) 93 pictures said "electronics" as their
+     *  class half and sat in Components, Phones and Hardware -- none in
+     *  Batteries -- and "vr headset; electronics" went to Batteries, likely,
+     *  on a word its own pictures never say. A class half the members of
+     *  several folders say is the library's word, not the one folder's: k
+     *  counts those folders too. The class is the library's when it is what
+     *  they say, or sits inside it ("electronics" in "consumer electronics")
+     *  -- never when it contains it: "desktop computer interior", four
+     *  Hardware members' own object, is not the library's word "computer",
+     *  and read that way it took Hardware's sure placements down (the first
+     *  cut, 2026-09-17: sure 599 -> 580). A word one folder's pictures say
+     *  keeps k 1 and still places alone; a word two say cannot -- 0.85 x
+     *  0.85 / 2 is under the floor -- and the pick falls to the object and
+     *  the vector.
+     */
+    $says = array();
+    foreach ( $profiles as $tid => $p ) {
+        foreach ( array_keys( isset( $p['halves'] ) ? (array) $p['halves'] : array() ) as $half ) {
+            $says[ $half ][ (int) $tid ] = true;
+        }
+    }
+    if ( $says ) {
+        foreach ( $profiles as $p ) {
+            foreach ( (array) $p['classes'] as $fc ) {
+                $key  = vergeml_filing_group_key( $fc );
+                $cf   = ' ' . vergeml_filing_canon( $fc ) . ' ';
+                $said = array();
+                foreach ( $says as $half => $tids ) {
+                    if ( $cf === ' ' . $half . ' ' || vergeml_filing_inside( $fc, $half ) ) {
+                        $said += $tids;
+                    }
+                }
+                if ( count( $said ) > $shared[ $key ] ) {
+                    $shared[ $key ] = count( $said );
+                }
+            }
+        }
+    }
+
     foreach ( $profiles as $tid => $p ) {
         $profiles[ $tid ]['shared'] = $shared;
     }
@@ -1061,6 +1118,13 @@ function vergeml_filing_class_match_( $a, $b, $head ) {
     }
     $cos = vergeml_filing_cosine( $va['v'], $va['n'], $vb['v'], $vb['n'] );
     return $cos >= VERGEML_FILING_CLASS_COSINE_FLOOR ? $cos : 0.0;
+}
+
+/** Whether phrase $a sits whole inside phrase $b, both spelled the one way, and is not $b: "electronics" inside "consumer electronics". */
+function vergeml_filing_inside( $a, $b ) {
+    $ca = vergeml_filing_canon( $a );
+    $cb = vergeml_filing_canon( $b );
+    return '' !== $ca && $ca !== $cb && false !== mb_strpos( ' ' . $cb . ' ', ' ' . $ca . ' ' );
 }
 
 /** A phrase's vector and its length, asked of the cache once per request: ['v', 'n'], or null when there is none. */
@@ -1300,11 +1364,26 @@ function vergeml_filing_pick( $facts, $profiles ) {
         foreach ( array_values( (array) $facts['classes'] ) as $pi => $pc ) {
             $phrase = 0 === $pi ? 1.0 : 0.85;
             foreach ( array_values( (array) $p['classes'] ) as $rank => $fc ) {
-                $match = vergeml_filing_class_match( $pc, $fc, 0 === $pi );
+                $is_leaf = '' !== $leaf && vergeml_filing_group_key( $fc ) === $leaf;
+                $match   = vergeml_filing_class_match( $pc, $fc, 0 === $pi );
                 if ( 0 === $pi && $capped && $match > 0.9 && vergeml_filing_canon( $fc ) === $head ) {
                     $match = 0.9;
                 }
-                $is_leaf = '' !== $leaf && vergeml_filing_group_key( $fc ) === $leaf;
+                /*
+                 *  The class half is the generic word; sitting whole inside a
+                 *  folder's specific phrase it is not that phrase (S15):
+                 *  "drone; electronics" is not Components' "electronics
+                 *  component", "3d printer; equipment" not Energy's
+                 *  "renewable energy equipment" -- on the tech library
+                 *  (2026-09-17) 22 pictures with no folder of their own went
+                 *  there, likely, by that 0.95. The other way round the
+                 *  folder's word is what the picture is ("launch" of "launch
+                 *  event") and stands; so does a folder's first class or its
+                 *  own leaf ("appliance" under Kitchen appliances).
+                 */
+                if ( 1 === $pi && 0 !== $rank && ! $is_leaf && vergeml_filing_inside( $pc, $fc ) ) {
+                    $match = 0.0;
+                }
                 $weight  = ( 0 === $rank || ( $is_leaf && $match >= 1.0 ) ) ? 1.0 : 0.85;
                 $k       = $is_leaf ? 1 : max( 1, (int) ( isset( $shared[ vergeml_filing_group_key( $fc ) ] ) ? $shared[ vergeml_filing_group_key( $fc ) ] : 1 ) );
                 $class   = max( $class, $phrase * $weight * $match / $k );

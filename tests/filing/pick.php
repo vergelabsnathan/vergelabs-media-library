@@ -506,5 +506,72 @@ f_check( '30d "klippan sofa; furniture": the class half is the category, not the
 $p = vergeml_filing_pick( f_facts( 'cheese wheel' ), $shop );
 f_check( '30c "cheese wheel" with no class half: nothing says otherwise, so the head noun stands -- Wheels 0.75 over Cheese 0.7125, a margin either/or as before', 'nothing' === $p['outcome'] && 'margin' === $p['why'] && abs( $p['scores'][32] - 0.75 ) < 1e-9, sprintf( '%s why %s Wheels @%.4f', $p['outcome'], $p['why'], $p['scores'][32] ) );
 
+/*
+ *  A class half the library says is a library word (S15). The planner put
+ *  "electronics" on Batteries; on the tech library (2026-09-17) 93 pictures
+ *  said "electronics" as their class half and they sat in Components,
+ *  Phones and Hardware -- none in Batteries -- so "vr headset; electronics"
+ *  was Batteries', likely, on a word Batteries' own pictures never say. The
+ *  members' layer carries the class halves two or more members say, and a
+ *  folder class is worth 1/k over the folders whose members say it (whole,
+ *  or one inside the other), as it already is over the folders that hold
+ *  it. A word one folder's pictures say keeps k 1 and still places alone.
+ *  Mutations: the halves not counted into the shared words -> rows 31a and
+ *  31b red (Batteries, sure); the halves dropped from the layer -> 31 red.
+ */
+echo "\n== a class half the library says (S15)\n";
+
+$lay = vergeml_filing_members_settle( array(
+    51 => vergeml_filing_members_layer( array( f_facts( 'lithium-ion battery; power source' ), f_facts( 'lithium-ion battery; power source' ), f_facts( 'battery charger; power source' ) ) ),
+    52 => vergeml_filing_members_layer( array( f_facts( 'circuit board; electronics' ), f_facts( 'circuit board; electronics' ), f_facts( 'silicon wafer; electronic component' ) ) ),
+    53 => vergeml_filing_members_layer( array( f_facts( 'smartphone; electronics' ), f_facts( 'smartphone; electronics' ), f_facts( 'smartwatch; wearable technology' ) ) ),
+) );
+f_check( '31 the layer carries the class halves two or more members say, spelled the one way: Components {electronic 2}, Phones {electronic 2}, Batteries {power source 3}; a half one member says is not the folder\'s', isset( $lay[52]['halves'], $lay[53]['halves'], $lay[51]['halves'] ) && array( 'electronic' => 2 ) === $lay[52]['halves'] && array( 'electronic' => 2 ) === $lay[53]['halves'] && array( 'power source' => 3 ) === $lay[51]['halves'], json_encode( array( isset( $lay[52]['halves'] ) ? $lay[52]['halves'] : null, isset( $lay[53]['halves'] ) ? $lay[53]['halves'] : null, isset( $lay[51]['halves'] ) ? $lay[51]['halves'] : null ) ) );
+
+$lib = vergeml_filing_settle_claims( array(
+    51 => vergeml_filing_members_apply( f_profile( 51, 0, array( 'Energy', 'Batteries' ), array( 'battery', 'electronics', 'power source' ), array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), $lay[51] ),
+    52 => vergeml_filing_members_apply( f_profile( 52, 0, array( 'Hardware', 'Components' ), array( 'circuit board', 'electronics component', 'components' ), array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) ), $lay[52] ),
+    53 => vergeml_filing_members_apply( f_profile( 53, 0, array( 'Hardware', 'Phones' ), array( 'smartphone', 'phones' ), array( 'vector' => array( 0.0, 0.0, 1.0, 0.0 ) ) ), $lay[53] ),
+) );
+f_check( '31a shared: electronics is held by one folder and said by two, so k 2; electronics component contains the library word and is not one, k 1; power source, said by Batteries alone, k 1; battery k 1', isset( $lib[51]['shared'] ) && 2 === $lib[51]['shared']['electronic'] && 1 === $lib[52]['shared']['electronics component'] && 1 === $lib[51]['shared']['power source'] && 1 === $lib[51]['shared']['battery'], json_encode( isset( $lib[51]['shared'] ) ? $lib[51]['shared'] : null ) );
+$p = vergeml_filing_pick( f_facts( 'vr headset; electronics', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), $lib );
+f_check( '31b "vr headset; electronics" whose vector is Batteries\' own: the word is the library\'s (0.85 x 0.85 / 2 = 0.36), and no folder clears the floor -- nothing (Batteries, sure 0.79, before)', 'nothing' === $p['outcome'] && 'floor' === $p['why'] && $p['scores'][51] < 0.55, sprintf( '%s why %s Batteries @%.4f Components @%.4f', $p['outcome'], $p['why'], $p['scores'][51], $p['scores'][52] ) );
+$p = vergeml_filing_pick( f_facts( 'solar charger; power source', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), $lib );
+f_check( '31c "solar charger; power source": a class half only Batteries\' pictures say still places alone -- Batteries, sure (0.85 x 0.85 x 0.75 + 0.25)', 'fits' === $p['outcome'] && 51 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+$p = vergeml_filing_pick( f_facts( 'smartphone; electronics', array( 'vector' => array( 0.0, 0.0, 1.0, 0.0 ) ) ), $lib );
+f_check( '31d the object word is untouched: "smartphone; electronics" is Phones, sure', 'fits' === $p['outcome'] && 53 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+
+/*
+ *  The class half inside a folder's specific phrase (S15, the second story).
+ *  "drone; electronics" hit Components' planner class "electronics
+ *  component" at 0.95 -- the picture's generic half sitting whole inside the
+ *  folder's specific phrase -- and "3d printer; equipment" hit Energy's
+ *  "renewable energy equipment" the same way: on the tech library
+ *  (2026-09-17) 22 pictures with no folder of their own went to Components
+ *  or Energy, likely, once the library-word rule took Batteries' hold off
+ *  them. A generic half inside a specific class is not that class; the
+ *  other way round ("launch" is the head of "launch event") the folder's
+ *  word is what the picture is, and stands; and a folder's own leaf keeps
+ *  the hit ("appliance" under Kitchen appliances), as does a first class.
+ *  Mutation: the inside test removed from the pick -> rows 32 and 32b red
+ *  (Components sure, Energy likely).
+ */
+echo "\n== the class half inside a folder's specific phrase (S15)\n";
+
+$gen = vergeml_filing_settle_claims( array(
+    61 => f_profile( 61, 0, array( 'Hardware', 'Components' ), array( 'circuit board', 'electronics component', 'components' ), array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ),
+    62 => f_profile( 62, 0, array( 'Energy' ), array( 'renewable energy infrastructure', 'renewable energy equipment', 'energy' ), array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) ),
+    63 => f_profile( 63, 0, array( 'Kitchen appliances' ), array( 'kitchen appliances' ), array( 'source' => 'name', 'vector' => array( 0.0, 0.0, 1.0, 0.0 ) ) ),
+    64 => f_profile( 64, 0, array( 'Space', 'Launches' ), array( 'rocket launch', 'launch' ), array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ) ) ),
+) );
+$p = vergeml_filing_pick( f_facts( 'drone; electronics', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), $gen );
+f_check( '32 "drone; electronics" whose vector is Components\' own: electronics inside "electronics component" (rank 1, not the leaf) is no hit -- nothing, floor (Components, sure 0.76, before)', 'nothing' === $p['outcome'] && 'floor' === $p['why'] && $p['scores'][61] < 0.3, sprintf( '%s why %s Components @%.4f', $p['outcome'], $p['why'], $p['scores'][61] ) );
+$p = vergeml_filing_pick( f_facts( '3d printer; equipment', array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) ), $gen );
+f_check( '32b "3d printer; equipment": equipment inside "renewable energy equipment" is no hit either -- nothing, floor', 'nothing' === $p['outcome'] && 'floor' === $p['why'] && $p['scores'][62] < 0.3, sprintf( '%s why %s Energy @%.4f', $p['outcome'], $p['why'], $p['scores'][62] ) );
+$p = vergeml_filing_pick( f_facts( 'toaster; appliance', array( 'vector' => array( 0.0, 0.0, 1.0, 0.0 ) ) ), $gen );
+f_check( '32c a folder\'s own leaf keeps the hit: "toaster; appliance" under Kitchen appliances fits (0.85 x 0.95 x 0.75 + 0.25 = 0.86, sure)', 'fits' === $p['outcome'] && 63 === $p['term_id'] && abs( $p['score'] - 0.855625 ) < 1e-6, sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+$p = vergeml_filing_pick( f_facts( 'soyuz; launch event', array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ) ) ), $gen );
+f_check( '32d the other way round stands: "soyuz; launch event" -- Launches\' "launch" is the head of the half -- Launches, sure', 'fits' === $p['outcome'] && 64 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );
