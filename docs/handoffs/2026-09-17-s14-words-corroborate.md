@@ -1,13 +1,12 @@
-# Handover — 2026-09-17, S14: the words corroborate, never place alone; the trust rule judged and not built (Opus 5)
+# Handover — 2026-09-17, S14: the words corroborate, never place alone; the trust rule judged and not built; HEMA's tree on the shop (Opus 5)
 
 Card: `.harness/active.json` (S14, as S13 wrote it). Plan:
 `plans/every-picture-a-home.md` Phase D (S14 line written, S15 and S16
 lines moved). Spec: `docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md`
 (S10.7 and S10.9 carry S14 paragraphs). Evidence before: S13's handoff.
 Lean held: test first, one mutation per story (each seen red), both sites
-measured dry, ms2 read only (the deploy lands there; no suite, no walk —
-the stop point says ask, and Nathan was not asked because nothing on ms2
-needed running).
+measured dry; ms2 read only until Nathan's yes on HEMA's tree, then the
+S10.5b walk there (below).
 
 **Spend:** 0 credits on either library. Every number is a dry read
 (`tools/filing-baseline-check.mjs`, `tools/box-folder-quality.php` with
@@ -19,8 +18,9 @@ the end; the sticky and guide suites' own fixtures, restored.
 
 Commits, plugin (`main`, deployed to the box after each; ms2 runs the same
 copy): `74e407c` the word rule, both bands, the sheet tool, guide F7;
-`de71999` the confirm pressed goes to work, the UI specs; then the plan,
-the spec and this handoff.
+`de71999` the confirm pressed goes to work, the UI specs; `4fa76c3`
+HEMA's tree on the shop, the shop-b band, the snapshot tool; then the
+plan, the spec and this handoff.
 
 ## The gates
 
@@ -28,8 +28,7 @@ the spec and this handoff.
 tree-view seed-shop ai-background` → green (filing 51/51 + 34/34, sticky
 44/44, guide 40/40, escaping 9/10 the known ratio row). `folders.spec` +
 `modes.spec` on the tech site 24 passed, 3 skipped, 0 failed. Both bands
-re-taken with the reason; the shop-b band not taken (S10.5b waits on the
-yes).
+re-taken with the reason; the shop-b band taken (below).
 
 ## The first story, judged: a member counts only when sure or the person's — no
 
@@ -192,17 +191,49 @@ then fixed); the second full run, on `de71999`: **24 passed, 3 skipped,
   (e-waste in Batteries) still teach. No rule reads that; the fix is the
   person's: a hand move out re-profiles the folder on the next read.
 
+## S10.5b — HEMA's tree on the shop (`4fa76c3`, Nathan's yes: "very good yes hema")
+
+The C.5 tree frozen first (`tools/box-tree-snapshot.php`, literal SQL,
+restores with the same ids; round-tripped before the paste: the tree read
+identical, the shop band 4/4; the file is
+`/var/www/ms2/wp-content/vgml-shop-tree-c5.json`, and a copy sits in this
+session's scratchpad). Then the 323 folders taken down (pictures kept),
+HEMA's 292 pasted through the Folders screen as `vgmls14` (made and
+deleted), the confirm's ask read off the session before the press — **34
+folders, 0 credits** — confirmed, filled.
+
+- **The fill:** 440 placed (round 1: 415, round 2: 440), 196 sure, 244
+  likely, 10 questions (1 siblings, 4 either/or, 5 residue of 141
+  groups), 186 in no folder; the passes took 39 s.
+- **Dry, the shop-b band (`tests/tree/filing-baseline-shop-b.txt`):
+  fits 449, sure 255, likely 194, nothing 177** — the C.5 tree on the same
+  626 reads 510 / 488 / 31 / 107. The honest range for sure: **41 % to
+  78 %**, the tech library at 60 %.
+- **What the sheet shows before a mark:** every sure is a top-level
+  folder (boots in *buiten en onderweg*, an armchair in *nieuwe
+  collectie*, lenses in *fotoservice*); the Dutch leaves hit no English
+  describer word, so the 34 profiled parents take everything, and *nieuwe
+  collectie* (profiled "furniture, jewellery, electronics +20") took 212.
+  Sheet: `docs/superpowers/mocks/shots/2026-09-17-quality-sample-shop-b.html`;
+  screens `shop-b-pasted.png`, `shop-b-confirmed.png`, `shop-b-filled.png`
+  beside it.
+- **Found:** the apply request took 188 s, ~150 s of it making 292
+  folders and seeding their profiles with the button reading "Filling"
+  and no number — a row for S10.0. (My walk script then hung 33 minutes
+  on a removed progress row: `innerText()` has no timeout; the screen
+  itself showed *asking* at +312 s, the trace says.)
+- **ms2 now shows HEMA's tree**, 440 pictures filed into it, 10 questions
+  open. To put the C.5 tree back with its ids: `VGML_MODE=restore
+  VGML_FILE=/var/www/ms2/wp-content/vgml-shop-tree-c5.json` through
+  `tools/box-tree-snapshot.php` on ms2 (as www-data, with `--url`).
+
 ## For Nathan
 
-1. **S10.5b: Nathan's yes is in (2026-09-17, "very good yes hema").**
-   `tools/box-seed-shop-tree-b.txt`, HEMA's tree, 292 folders, 34 sent,
-   0 credits. What is still needed is a free ms2: the paste, the fill,
-   the second band and the sheet are the first hour once it is.
-2. The tech and shop bands are re-taken on marks re-read by path, not on
-   a fresh sheet: a fresh S14 sheet (`VGML_DRY=1 VGML_SEED=133`) is saved
-   in the session scratchpad if you want to mark it; the pre-fills carry
-   every earlier mark whose folder is the same.
-3. `vgmls14` is deleted; ms2 was not run on.
+1. **Mark the HEMA sheet** if you want its number beside the others; the
+   verdict it will give is already legible (the top-level folders).
+2. **Look at ms2** — HEMA's tree is up with the fill's questions open. Say
+   when you want the C.5 tree back; the restore is one command (above).
+3. `vgmls14` is deleted on both sites.
 
 ## Next — S15
 
@@ -210,12 +241,13 @@ Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S15: the foreign tree (S10.5b) on Nathan's yes, the class-half hits (the 7 wrong likelies left), then file by the product (S10.8)",
+  "phase": "Every picture a home — S15: the class-half hits (the 7 wrong likelies left), the marketing folder that owns nothing and the foreign-language leaf (HEMA's findings), the apply's progress row, then file by the product (S10.8)",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S15)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "tools/box-seed-shop-tree-b.txt (S10.5b: written, HEMA's tree, 292 folders; pasted on ms2 after Unconfirm and the folders removed; tests/tree/filing-baseline-shop-b.txt and its sheet)",
+    "core/filing.php, core/guide.php (HEMA's findings: a planner profile of everything is a folder that owns nothing; a leaf in another language than the describer's — judged dry on the shop-b band before it moves)",
+    "js/vergeml-folders.js, core/folder-talk.php (the apply's progress row: making N folders, S10.0)",
     "core/filing.php (the class-half hit by containment on a non-first, non-leaf word: 'technical diagram' → diagram, 'gaming hardware' → hardware; judged dry on both sheets before it moves; pick.php row, one mutation)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (re-taken only with the reason, on a marked sheet re-read by path)",
     "core/filing.php, core/folder-talk.php, core/integrations/** (S10.8: a picture attached to a product goes where the product's categories say, sure, 'by the product', before any matching; tests/integrations/live.php)",
@@ -224,14 +256,14 @@ Card, to `plugin/.harness/active.json`:
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-17-s14-words-corroborate.md (this: why the trust rule is out, the word rule and its cost, the 7 class-half hits, the sheet tool's &amp; fix, the UI reds as they really were)",
+    "docs/handoffs/2026-09-17-s14-words-corroborate.md (this: why the trust rule is out, the word rule and its cost, the 7 class-half hits, HEMA's numbers and what the sheet shows, the snapshot tool)",
     "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.5b, S10.8; the S10.7/S10.9 S14 paragraphs)",
     "memory: hetzner-box-fixtures (ms2, vgmls9), tests-never-touch-live-state, model-spend-discipline, shared-classes-break-the-matcher"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
     "Never run a suite or a walk on ms2 while Nathan is on it; ask first",
-    "S10.5b's catalogue and its confirm (0 credits after S10.1's split — say the number) are Nathan's yes before the paste",
+    "ms2 shows HEMA's tree; the C.5 tree goes back only on Nathan's word (tools/box-tree-snapshot.php restore)",
     "A band is re-taken only on a marked sheet re-read by path, and the re-take carries the reason",
     "Every bug from a walk is a story: test first, one mutation, then the fix; a mutation of anything that can start a run holds the cron wire",
     "S10.8 touches products: every write measured on the box's Woo fixture, never on ms2's live catalogue without Nathan's word",
@@ -240,7 +272,7 @@ Card, to `plugin/.harness/active.json`:
   "gates": [
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background → green (escaping 9/10 known)",
     "folders.spec and modes.spec on the tech site green; on ms2 once Nathan says it is free",
-    "both baselines 4/4 or re-taken with the reason; the shop-b band and sheet taken"
+    "all three bands 4/4 or re-taken with the reason (shop-b reads whichever tree is up)"
   ]
 }
 ```
@@ -253,9 +285,9 @@ docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md. State
 which model you are and follow that profile in
 ~/.claude/harness/model-profiles.md. This session is S15 of
 every-picture-a-home. Write the card from the handoff to
-.harness/active.json before anything else. S10.5b first if Nathan's yes
-is in (the paste, the fill, the second band and sheet); the class-half
-hits judged dry on both sheets before they move; then S10.8.
+.harness/active.json before anything else. The class-half hits first,
+judged dry on all three sheets before they move; then HEMA's two
+findings; the apply's progress row; then S10.8.
 Test first, one mutation per story, both sites measured, say every cost
 before it is spent, never touch ms2 while Nathan is on it. Talk plainly.
 End with a handoff carrying the S16 card.
