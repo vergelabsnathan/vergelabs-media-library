@@ -491,10 +491,11 @@ function vergeml_tree_state( $taxonomy ) {
         'selected' => $selected,
         'width'    => isset( $mine['width'] ) ? (int) $mine['width'] : 0,
         'collapsed' => ! empty( $mine['collapsed'] ) ? 1 : 0,
-        'filtersOpen' => isset( $mine['filtersOpen'] ) ? (int) $mine['filtersOpen'] : 1,
-        // The AI group, open by default like the filters group. It only
-        // appears at all once there is something to open.
-        'aiOpen'      => isset( $mine['aiOpen'] ) ? (int) $mine['aiOpen'] : 1,
+        // Both groups closed until the person opens them, and remembered (S10.6,
+        // 2026-09-17): they follow the folders now, and the tree is what the
+        // panel is for. Open by default until then.
+        'filtersOpen' => isset( $mine['filtersOpen'] ) ? (int) $mine['filtersOpen'] : 0,
+        'aiOpen'      => isset( $mine['aiOpen'] ) ? (int) $mine['aiOpen'] : 0,
         /*
          *  'native' derives its accent from whichever admin colour scheme this
          *  user already chose, so the tree looks like part of the admin rather

@@ -68,8 +68,9 @@
 		state.open[ id ] = true;
 	} );
 	state.selected = ( cfg.state && cfg.state.selected ) || 0;
-	state.filtersOpen = ! cfg.state || undefined === cfg.state.filtersOpen || !! cfg.state.filtersOpen;
-	state.aiOpen = ! cfg.state || undefined === cfg.state.aiOpen || !! cfg.state.aiOpen;
+	// Closed until the person opens them, and remembered (S10.6): the tree is what the panel is for.
+	state.filtersOpen = !! ( cfg.state && cfg.state.filtersOpen );
+	state.aiOpen = !! ( cfg.state && cfg.state.aiOpen );
 
 	var root = null;
 	var listEl = null;
@@ -327,6 +328,14 @@
 			// mid-drag; merely hidden when empty and not the current view
 			hide: ! ( state.unassigned > 0 || -1 === state.selected ) } );
 
+		// The folders themselves, flattened by the shared component: the same
+		// rows, in the same order, that the Folders screen draws. While
+		// searching, every branch on the way to a match is open.
+		model.entries( { open: state.open, filter: state.filter } ).forEach( function ( entry ) {
+			out.push( entry );
+		} );
+
+		// The tree first (S10.6): the two groups of filters follow the folders, closed until opened.
 		/*
 		 *  The smart folders: rows whose contents are a question. They live in
 		 *  the same top group because all of them are views of the library
@@ -399,19 +408,20 @@
 			}
 		}
 
-		// The folders themselves, flattened by the shared component: the same
-		// rows, in the same order, that the Folders screen draws. While
-		// searching, every branch on the way to a match is open.
-		model.entries( { open: state.open, filter: state.filter } ).forEach( function ( entry ) {
-			out.push( entry );
-		} );
-
 		// The row being typed into sits where the folder will end up, so the name
 		// is entered in the position it will occupy rather than in a dialog with no
 		// relationship to the tree.
 		if ( creatingUnder >= 0 ) {
 			var at = out.length;
 			var depth = 0;
+
+			// A new top-level folder goes after the last folder, before the groups that follow them.
+			for ( var g = 0; g < out.length; g++ ) {
+				if ( 'filters' === out[ g ].pseudo || 'ai-group' === out[ g ].pseudo ) {
+					at = g;
+					break;
+				}
+			}
 
 			if ( creatingUnder > 0 ) {
 				for ( var k = 0; k < out.length; k++ ) {
@@ -562,6 +572,7 @@
 		}
 
 		painted.key = key;
+		paintListFolder();
 
 		if ( painted.first === -1 ) {
 			fillWindow( r );
@@ -3977,6 +3988,8 @@
 		if ( ! frame && isMediaList() ) {
 			document.body.classList.add( 'vgml-mode-list' );
 			wrapListForScrolling( host );
+			buildListBar();
+			placeListPanel( wrap );
 		}
 
 		if ( frame ) {
@@ -4075,6 +4088,191 @@
 		strip.className = 'vgml-list-scroll';
 		table.parentNode.insertBefore( strip, table );
 		strip.appendChild( table );
+	}
+
+	/*
+	 *  The list opens on the pictures (S10.6; Nathan, 2026-09-16: "I don't
+	 *  want to scroll past all kinds of filters"). Core's list mode stacks
+	 *  three rows above the table -- the filter selects, the search box, the
+	 *  bulk actions with the pages -- and at 1280×800 the first picture sat
+	 *  at 453 px. Now one row at the form's top: the folder that is showing
+	 *  as a chip, core's search form, a Filter chip whose card holds core's
+	 *  selects (the same controls, the same GET), the view switch and the
+	 *  pages at the right. Bulk actions take the chip's place while a row is
+	 *  checked.
+	 *
+	 *  Core's controls are moved, not rebuilt: they stay inside #posts-filter,
+	 *  so a select still submits and a page link still pages, and a node keeps
+	 *  its listeners when it is reparented (the strip above says the same).
+	 *  The mock: docs/superpowers/mocks/2026-09-17-list-on-the-pictures.html.
+	 */
+	var listBar = null;
+
+	function buildListBar() {
+		var form = document.getElementById( 'posts-filter' );
+		if ( ! form || form.querySelector( '.vgml-listbar' ) ) {
+			return;
+		}
+
+		var bar = el( 'div', { class: 'vgml-listbar' } );
+		var left = el( 'div', { class: 'vgml-listbar-left' } );
+		var right = el( 'div', { class: 'vgml-listbar-right' } );
+
+		// Bulk actions, shown while a row is checked (CSS on form.vgml-has-checked) -- with the term
+		// select core/bulk-terms.php puts among the filters, which is a bulk action's, not a filter.
+		var bulk = form.querySelector( '.tablenav.top .bulkactions' );
+		if ( bulk ) {
+			var term = form.querySelector( '#vergeml_bulk_term' );
+			if ( term ) {
+				var termLabel = form.querySelector( 'label[for="vergeml_bulk_term"]' );
+				if ( termLabel ) {
+					bulk.appendChild( termLabel );
+				}
+				bulk.appendChild( term );
+			}
+			left.appendChild( bulk );
+		}
+
+		left.appendChild( el( 'span', { class: 'vgml-listbar-folder' } ) );
+
+		var search = form.querySelector( '.wp-filter .search-form' ) || form.querySelector( '.search-box' );
+		if ( search ) {
+			left.appendChild( search );
+		}
+
+		var items = form.querySelector( '.wp-filter .filter-items' );
+		if ( items ) {
+			var chip = el( 'button', { type: 'button', class: 'vgml-filter-chip', 'aria-expanded': 'false' } );
+			var card = el( 'div', { class: 'vgml-filter-card', hidden: 'hidden' } );
+			var sw = items.querySelector( '.view-switch' );
+			if ( sw ) {
+				right.appendChild( sw );
+			}
+			card.appendChild( items );
+			var submit = items.querySelector( '#post-query-submit' );
+			if ( submit ) {
+				submit.value = l10n.apply || 'Apply';
+			}
+			var reset = el( 'a', { class: 'vgml-filter-reset', href: listUrlWithFolder() }, l10n.reset || 'Reset' );
+			card.appendChild( reset );
+			chip.addEventListener( 'click', function () {
+				var open = card.hidden;
+				card.hidden = ! open;
+				chip.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+			} );
+			document.addEventListener( 'click', function ( e ) {
+				if ( ! card.hidden && ! card.contains( e.target ) && e.target !== chip ) {
+					card.hidden = true;
+					chip.setAttribute( 'aria-expanded', 'false' );
+				}
+			} );
+			left.appendChild( chip );
+			left.appendChild( card );
+			var set = filtersSet( items );
+			chip.textContent = set ? ( l10n.filterN || 'Filter · %s' ).replace( '%s', set ) : ( l10n.filter || 'Filter' );
+			chip.classList.toggle( 'is-set', set > 0 );
+			reset.hidden = ! set;
+		}
+
+		var pages = form.querySelector( '.tablenav.top .tablenav-pages' );
+		if ( pages ) {
+			right.appendChild( pages );
+		}
+
+		bar.appendChild( left );
+		bar.appendChild( right );
+		form.insertBefore( bar, form.firstChild );
+		listBar = bar;
+
+		var emptied = form.querySelector( '.wp-filter' );
+		if ( emptied ) {
+			emptied.classList.add( 'vgml-emptied' );
+		}
+		var nav = form.querySelector( '.tablenav.top' );
+		if ( nav ) {
+			nav.classList.add( 'vgml-emptied' );
+		}
+
+		// Core's select-all sets the row boxes without a change event, so both clicks and changes are read, a tick later.
+		var checked = function () {
+			setTimeout( function () {
+				form.classList.toggle( 'vgml-has-checked', !! form.querySelector( '#the-list input[name="media[]"]:checked' ) );
+			}, 0 );
+		};
+		form.addEventListener( 'change', checked );
+		form.addEventListener( 'click', checked );
+		checked();
+
+		paintListFolder();
+	}
+
+	/** How many of core's selects in the card say something other than their first choice. */
+	function filtersSet( items ) {
+		var n = 0;
+		Array.prototype.forEach.call( items.querySelectorAll( 'select' ), function ( s ) {
+			if ( s.selectedIndex > 0 && '' !== s.value && '0' !== s.value && '-1' !== s.value ) {
+				n++;
+			}
+		} );
+		return n;
+	}
+
+	/** The list with nothing set but the folder that is showing. */
+	function listUrlWithFolder() {
+		var url = 'upload.php?mode=list';
+		var m = window.location.search.match( new RegExp( '[?&](' + ( state.taxonomy || 'media_category' ) + ')=([^&]+)' ) );
+		return m ? url + '&' + m[ 1 ] + '=' + m[ 2 ] : url;
+	}
+
+	/** The folder that is showing, as a chip with its count; × shows every file. Painted again whenever the tree is. */
+	function paintListFolder() {
+		var slot = listBar && listBar.querySelector( '.vgml-listbar-folder' );
+		if ( ! slot ) {
+			return;
+		}
+		var name = l10n.all || 'All files';
+		var count = null;
+		var narrowed = false;
+		if ( -1 === state.selected ) {
+			name = l10n.unassigned || 'Unfiled';
+			count = state.unassigned;
+			narrowed = true;
+		} else if ( state.selected > 0 && model.byId[ state.selected ] ) {
+			name = model.byId[ state.selected ].name;
+			count = model.totals()[ state.selected ];
+			narrowed = true;
+		}
+		slot.innerHTML = '';
+		var chip = el( 'span', { class: 'vgml-folder-chip' + ( narrowed ? ' is-narrowed' : '' ) } );
+		chip.appendChild( el( 'b', null, name ) );
+		if ( null !== count && undefined !== count ) {
+			chip.appendChild( el( 'span', { class: 'vgml-folder-chip-count' }, String( count ) ) );
+		}
+		if ( narrowed ) {
+			chip.appendChild( el( 'a', { class: 'vgml-folder-chip-x', href: 'upload.php?mode=list', 'aria-label': l10n.showAll || 'Show every file', title: l10n.showAll || 'Show every file' }, '×' ) );
+		}
+		slot.appendChild( chip );
+	}
+
+	/*
+	 *  The panel the viewport's height, beside the list, wherever the page
+	 *  is scrolled (S10.6: "the sidebar is too short, make it cover the view
+	 *  at least"). Fixed against the viewport and set against the wrap's
+	 *  edge, because the admin menu's width is not ours to know; measured
+	 *  again whenever the wrap moves (the menu folds, the window resizes).
+	 */
+	function placeListPanel( wrap ) {
+		var place = function () {
+			var r = wrap.getBoundingClientRect();
+			var rtl = 'rtl' === document.documentElement.dir || document.body.classList.contains( 'rtl' );
+			document.body.style.setProperty( '--vgml-panel-inline-start', Math.round( rtl ? window.innerWidth - r.right : r.left ) + 'px' );
+		};
+		place();
+		window.addEventListener( 'resize', place );
+		if ( window.ResizeObserver ) {
+			new ResizeObserver( place ).observe( wrap );
+		}
+		setTimeout( place, 800 );
 	}
 
 	function hostSelector() {

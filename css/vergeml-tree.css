@@ -156,6 +156,265 @@ body.vgml-mode-list.vgml-panel-collapsed .wrap {
 	padding-inline-start: 60px;
 }
 
+/*
+ *  The list opens on the pictures (S10.6, the mock of 2026-09-17).
+ *
+ *  The panel is the viewport's height and stays beside the list however far
+ *  the page is scrolled: fixed against the viewport, its edge set from the
+ *  wrap's by js/vergeml-tree.js placeListPanel() (the admin menu's width is
+ *  not ours to know). The list inside it scrolls; nothing else does. Below
+ *  782px the narrow-screen rules above put it back in the flow.
+ */
+body.vgml-mode-list.vgml-has-tree .vgml-tree {
+	position: fixed;
+	top: calc( var( --wp-admin--admin-bar--height, 32px ) + 10px );
+	height: calc( 100vh - var( --wp-admin--admin-bar--height, 32px ) - 20px );
+	inset-inline-start: var( --vgml-panel-inline-start, 182px );
+	z-index: 3;
+}
+
+body.vgml-mode-list.vgml-has-tree .vgml-tree .vgml-list {
+	max-height: none;
+}
+
+/*
+ *  One row above the pictures: the folder that is showing as a chip, core's
+ *  search, a Filter chip whose card holds core's selects, then the view
+ *  switch and the pages at the right. Core's own two rows are emptied by the
+ *  script and hidden here; bulk actions take the chip's place while a row
+ *  is checked.
+ */
+body.vgml-mode-list .wp-filter.vgml-emptied,
+body.vgml-mode-list .tablenav.top.vgml-emptied {
+	display: none;
+}
+
+body.vgml-mode-list .vgml-listbar {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	gap: 10px;
+	margin: 6px 0 12px;
+}
+
+body.vgml-mode-list .vgml-listbar-left {
+	position: relative;
+	display: flex;
+	flex: 1 1 0;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+body.vgml-mode-list .vgml-listbar-right {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 12px;
+	margin-inline-start: auto;
+}
+
+@media screen and ( max-width: 900px ) {
+	body.vgml-mode-list .vgml-listbar {
+		flex-wrap: wrap;
+	}
+}
+
+body.vgml-mode-list .vgml-folder-chip,
+body.vgml-mode-list .vgml-filter-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	padding: 6px 12px;
+	border: 0;
+	border-radius: 999px;
+	background: rgba( 0, 0, 0, 0.06 );
+	color: var( --vgml-fg, #1d2327 );
+	font: inherit;
+	font-size: 13px;
+	line-height: 1.3;
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+body.vgml-mode-list .vgml-folder-chip b {
+	font-weight: 600;
+}
+
+body.vgml-mode-list .vgml-folder-chip.is-narrowed {
+	background: rgba( 56, 88, 233, 0.12 );
+	color: #1e2f9d;
+}
+
+body.vgml-mode-list .vgml-folder-chip-count {
+	color: inherit;
+	opacity: .8;
+}
+
+body.vgml-mode-list .vgml-folder-chip-x {
+	margin-inline-start: 2px;
+	color: inherit;
+	text-decoration: none;
+	opacity: .7;
+}
+
+body.vgml-mode-list .vgml-folder-chip-x:hover,
+body.vgml-mode-list .vgml-folder-chip-x:focus {
+	opacity: 1;
+}
+
+body.vgml-mode-list .vgml-filter-chip {
+	background: #fff;
+	border: 1px solid var( --vgml-line, #dcdcde );
+	cursor: pointer;
+}
+
+body.vgml-mode-list .vgml-filter-chip.is-set,
+body.vgml-mode-list .vgml-filter-chip[aria-expanded="true"] {
+	border-color: var( --vgml-accent, #3858e9 );
+	color: #1e2f9d;
+}
+
+body.vgml-mode-list .vgml-filter-chip:focus-visible {
+	outline: 2px solid var( --vgml-accent, #3858e9 );
+	outline-offset: 1px;
+}
+
+/* Core's search form, in the row: the input rounded like the chips, its button quiet. */
+body.vgml-mode-list .vgml-listbar .search-form,
+body.vgml-mode-list .vgml-listbar .search-box {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	float: none;
+	margin: 0;
+	padding: 0;
+	flex: 1 1 200px;
+	max-width: 340px;
+}
+
+/* Core wraps the box's button under its input when the box is narrow; here the two stay on the line. */
+body.vgml-mode-list .vgml-listbar .search-form .search-box {
+	flex: 1 1 auto;
+	flex-wrap: nowrap;
+	width: 100%;
+	max-width: none;
+}
+
+body.vgml-mode-list .vgml-listbar .search-form {
+	flex: 1 1 200px;
+	min-width: 150px;
+}
+
+body.vgml-mode-list .vgml-listbar .vgml-folder-chip,
+body.vgml-mode-list .vgml-listbar .vgml-filter-chip {
+	flex: 0 0 auto;
+}
+
+body.vgml-mode-list .vgml-listbar .search-form input[type="search"],
+body.vgml-mode-list .vgml-listbar .search-box input[type="search"] {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	border-radius: 999px;
+	padding-inline: 12px;
+}
+
+/* The card under the Filter chip: core's selects, one under the other, Apply and Reset at the foot. */
+body.vgml-mode-list .vgml-filter-card {
+	position: absolute;
+	top: calc( 100% + 6px );
+	inset-inline-start: 0;
+	z-index: 20;
+	width: 320px;
+	max-width: calc( 100vw - 40px );
+	padding: 12px 14px 14px;
+	background: #fff;
+	border: 1px solid var( --vgml-line, #dcdcde );
+	border-radius: 10px;
+	box-shadow: 0 6px 22px rgba( 16, 29, 64, 0.12 );
+}
+
+body.vgml-mode-list .vgml-filter-card .filter-items {
+	display: grid;
+	gap: 8px;
+	float: none;
+	margin: 0;
+	padding: 0;
+}
+
+body.vgml-mode-list .vgml-filter-card .filter-items select {
+	width: 100%;
+	max-width: none;
+	margin: 0;
+}
+
+body.vgml-mode-list .vgml-filter-card .filter-items #post-query-submit {
+	justify-self: start;
+	margin: 4px 0 0;
+}
+
+body.vgml-mode-list .vgml-filter-reset {
+	display: inline-block;
+	margin-block-start: 10px;
+	margin-inline-start: 4px;
+	font-size: 13px;
+}
+
+body.vgml-mode-list .vgml-filter-reset[hidden] {
+	display: none;
+}
+
+/* Bulk actions: in the row's first place while a row is checked, else out of the way. */
+body.vgml-mode-list .vgml-listbar .bulkactions {
+	display: none;
+	float: none;
+	margin: 0;
+	padding: 0;
+	gap: 6px;
+}
+
+body.vgml-mode-list #posts-filter.vgml-has-checked .vgml-listbar .bulkactions {
+	display: flex;
+	align-items: center;
+}
+
+/* While rows are checked the row is the bulk row: the chip, the search and the Filter step aside. */
+body.vgml-mode-list #posts-filter.vgml-has-checked .vgml-listbar-folder,
+body.vgml-mode-list #posts-filter.vgml-has-checked .vgml-listbar .search-form,
+body.vgml-mode-list #posts-filter.vgml-has-checked .vgml-listbar .search-box,
+body.vgml-mode-list #posts-filter.vgml-has-checked .vgml-filter-chip,
+body.vgml-mode-list #posts-filter.vgml-has-checked .vgml-filter-card {
+	display: none;
+}
+
+body.vgml-mode-list .vgml-listbar .bulkactions select {
+	max-width: 220px;
+	margin: 0;
+}
+
+/* The bulk row is wider than the chip it replaces: the pages may drop under it while rows are checked. */
+body.vgml-mode-list #posts-filter.vgml-has-checked .vgml-listbar {
+	flex-wrap: wrap;
+}
+
+body.vgml-mode-list #posts-filter.vgml-has-checked .vgml-listbar-left {
+	flex: 1 1 auto;
+}
+
+/* The view switch and the pages, at the right, out of their floats. */
+body.vgml-mode-list .vgml-listbar .view-switch,
+body.vgml-mode-list .vgml-listbar .tablenav-pages {
+	float: none;
+	margin: 0;
+	padding: 0;
+}
+
+body.vgml-mode-list .vgml-listbar .tablenav-pages .displaying-num {
+	margin-inline-end: 8px;
+}
+
 /* --- header ------------------------------------------------------------- */
 
 .vgml-head {
@@ -975,6 +1234,7 @@ body.vgml-mode-grid .vgml-list {
 	}
 
 	body.vgml-has-tree .vgml-tree,
+	body.vgml-mode-list.vgml-has-tree .vgml-tree,
 	body.vgml-mode-grid .vgml-tree {
 		position: static;
 		width: auto !important;

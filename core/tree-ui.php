@@ -308,6 +308,13 @@ function vergeml_tree_assets( $hook ) {
             'foldersHide'    => __( 'Hide folders', 'vergelabs-media-library' ),
             'filters'        => __( 'Filters', 'vergelabs-media-library' ),
             'aiFolders'      => __( 'AI folders', 'vergelabs-media-library' ),
+            // The list's one row (S10.6): the Filter chip, the card's Apply and Reset, the folder chip's ×.
+            'filter'         => __( 'Filter', 'vergelabs-media-library' ),
+            /* translators: %s: how many filters are set. */
+            'filterN'        => __( 'Filter · %s', 'vergelabs-media-library' ),
+            'apply'          => __( 'Apply', 'vergelabs-media-library' ),
+            'reset'          => __( 'Reset', 'vergelabs-media-library' ),
+            'showAll'        => __( 'Show every file', 'vergelabs-media-library' ),
             'aiLadder'       => __( 'Nothing described yet — describe your library', 'vergelabs-media-library' ),
             'expand'         => __( 'Expand panel', 'vergelabs-media-library' ),
             'uploadHere'     => __( 'Upload to this folder', 'vergelabs-media-library' ),

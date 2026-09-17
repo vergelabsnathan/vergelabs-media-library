@@ -521,6 +521,14 @@ const openList = async ( page ) => {
 	await clearNotices( page );
 };
 
+/** Core's filter choices wait behind the Filter chip (S10.6); a test that picks one opens the card first. */
+const openFilters = async ( page ) => {
+	const chip = page.locator( '.vgml-listbar .vgml-filter-chip' );
+	if ( await chip.count() && ! await page.locator( '.vgml-filter-card select.vgml-folder-filter' ).isVisible() ) {
+		await chip.click();
+	}
+};
+
 for ( const mode of [ 'grid', 'list' ] ) {
 
 	test( `the rows on the media list, arriving in ${ mode }`, async ( { page } ) => {
@@ -654,6 +662,7 @@ test( 'the folder filter: Unfiled and every folder with its count, and the count
 
 	expect( pick, 'there is a folder with files in it to filter for' ).toBeTruthy();
 
+	await openFilters( page );
 	await page.selectOption( 'select.vgml-folder-filter', pick.value );
 	await Promise.all( [ page.waitForNavigation( { waitUntil: 'domcontentloaded' } ), page.click( '#post-query-submit' ) ] );
 	await page.waitForTimeout( 1500 );
@@ -692,6 +701,7 @@ test( 'the folder filter: Unfiled and every folder with its count, and the count
 
 	/* Unfiled, and its count. */
 	await openList( page );
+	await openFilters( page );
 	await page.selectOption( 'select.vgml-folder-filter', 'not_in' );
 	await Promise.all( [ page.waitForNavigation( { waitUntil: 'domcontentloaded' } ), page.click( '#post-query-submit' ) ] );
 	await page.waitForTimeout( 1500 );
@@ -703,7 +713,10 @@ test( 'the folder filter: Unfiled and every folder with its count, and the count
 	} ) );
 
 	expect( unfiled.chosen, 'the dropdown still reads Unfiled' ).toBe( 'not_in' );
-	expect( unfiled.items, 'Unfiled returns files, and never more than it offers' ).toBeGreaterThan( 0 );
+	// Held to whichever answer the library gives: a fully filed library offers Unfiled (0) and returns nothing (the tech site, 2026-09-17).
+	if ( count( bar[ 1 ] ) > 0 ) {
+		expect( unfiled.items, 'Unfiled returns files, and never more than it offers' ).toBeGreaterThan( 0 );
+	}
 	expect( unfiled.items ).toBeLessThanOrEqual( count( bar[ 1 ] ) );
 
 	if ( ! shown.foreign ) {
@@ -720,6 +733,96 @@ test( 'the folder filter: Unfiled and every folder with its count, and the count
 
 	expect( back.url, 'Back leaves the filter behind' ).not.toContain( `${ TAX }=not_in` );
 	expect( back.items, 'and the whole library is on screen again' ).toBeGreaterThan( unfiled.items );
+} );
+
+
+/*
+ *  The list opens on the pictures (S10.6; Nathan, 2026-09-16, on ms2: "I
+ *  don't want to scroll past all kinds of filters -- bad UX; and the sidebar
+ *  is too short"). Measured before: at 1280×800 the first row sat at 453 px
+ *  under core's two filter rows, the search row and the bulk-actions row; the
+ *  panel was 677 px in an 800 px viewport, the folders after the Filters and
+ *  AI folders groups. The mock of 2026-09-17 (list-on-the-pictures): one row
+ *  above the pictures -- the folder chip, search, a Filter chip whose card
+ *  holds core's choices -- the view switch and the pages at its right; the
+ *  panel the viewport's height, sticky, the tree first, the two groups
+ *  closed below it; bulk actions only while a row is checked.
+ *
+ *  The box carries other plugins' notices above the form (a torture site),
+ *  so the first row is measured with the notices' height taken off: what a
+ *  site without them would show. Mutation: the panel's sticky rule dropped
+ *  (css/vergeml-tree.css, body.vgml-mode-list.vgml-has-tree .vgml-tree) ->
+ *  the height row red.
+ */
+
+test( 'the list opens on the pictures: one row above them, the panel the viewport\'s height with the tree first', async ( { page } ) => {
+
+	test.setTimeout( 180000 );
+	await page.setViewportSize( { width: 1280, height: 800 } );
+	await page.goto( '/wp-admin/upload.php?mode=list', { waitUntil: 'domcontentloaded' } );
+	await page.waitForSelector( '#the-list tr[id^="post-"]', { timeout: 30000 } );
+	await page.waitForTimeout( 1500 );
+	await unfold( page );
+	await page.waitForTimeout( 500 );
+
+	const geometry = await page.evaluate( () => {
+		const box = ( el ) => el ? el.getBoundingClientRect() : null;
+		const form = document.querySelector( '#posts-filter' );
+		const firstRow = box( document.querySelector( '#the-list tr[id^="post-"]' ) );
+		// Every notice above the form, whoever printed it: taken off the first row's height.
+		let notices = 0;
+		document.querySelectorAll( '#wpbody-content .notice, #wpbody-content .updated, #wpbody-content .error' ).forEach( ( n ) => {
+			const b = n.getBoundingClientRect();
+			if ( b.height && form && b.top < form.getBoundingClientRect().top ) {
+				notices += b.height + parseFloat( getComputedStyle( n ).marginTop || 0 ) + parseFloat( getComputedStyle( n ).marginBottom || 0 );
+			}
+		} );
+		const panel = document.querySelector( '.vgml-tree' );
+		const list = panel && panel.querySelector( '.vgml-list' );
+		const rows = list ? Array.from( list.querySelectorAll( '.vgml-node' ) ).filter( ( n ) => n.offsetHeight ) : [];
+		const cls = ( n ) => ( n.classList.contains( 'vgml-filters-head' ) ? ( n.classList.contains( 'vgml-ai-head' ) ? 'ai' : 'filters' ) : ( n.classList.contains( 'vgml-pseudo' ) ? ( n.classList.contains( 'vgml-smart' ) ? 'smart' : 'pseudo' ) : 'folder' ) );
+		const order = rows.map( cls );
+		const firstFolder = rows.find( ( n ) => 'folder' === cls( n ) );
+		const bar = document.querySelector( '#posts-filter .vgml-listbar' );
+		const barRows = bar ? Math.round( bar.getBoundingClientRect().height ) : null;
+		const filterItems = document.querySelector( '.wp-filter .filter-items, .vgml-filter-card .filter-items' );
+		return {
+			firstRowTop: firstRow ? Math.round( firstRow.top - notices ) : null,
+			notices: Math.round( notices ),
+			panel: panel ? { top: Math.round( box( panel ).top ), h: Math.round( box( panel ).height ), position: getComputedStyle( panel ).position } : null,
+			viewport: innerHeight,
+			order: order.join( ',' ),
+			firstFolderVisible: !! ( firstFolder && list && box( firstFolder ).top >= box( list ).top && box( firstFolder ).bottom <= box( list ).bottom ),
+			groupsClosed: 0 === rows.filter( ( n ) => 'smart' === cls( n ) ).length,
+			bar: barRows,
+			filtersHidden: !! filterItems && ! filterItems.offsetHeight,
+			bulkHidden: ! document.querySelector( '#bulk-action-selector-top' ) || ! document.querySelector( '#bulk-action-selector-top' ).offsetHeight,
+			pagesInBar: !! ( bar && bar.querySelector( '.tablenav-pages' ) ),
+			searchInBar: !! ( bar && bar.querySelector( '.search-form, .search-box, input[type="search"]' ) ),
+		};
+	} );
+	console.log( `      list at 1280×800: first row at ${ geometry.firstRowTop }px (${ geometry.notices }px of notices taken off), panel ${ geometry.panel && geometry.panel.h }px ${ geometry.panel && geometry.panel.position } in ${ geometry.viewport }, rows ${ geometry.order }` );
+
+	expect( geometry.firstRowTop, 'the first picture within 240 px of the top with nothing set' ).toBeLessThanOrEqual( 240 );
+	expect( [ 'sticky', 'fixed' ].includes( geometry.panel && geometry.panel.position ), `the panel stays beside the list as the page scrolls (${ geometry.panel && geometry.panel.position })` ).toBe( true );
+	expect( geometry.panel && geometry.panel.top + geometry.panel.h, 'the panel reaches the viewport\'s foot' ).toBeGreaterThanOrEqual( geometry.viewport - 24 );
+	expect( geometry.order, 'the tree first: pseudo rows, then folders, then the two groups' ).toMatch( /^(pseudo,)+(folder,)+filters(,ai)?$/ );
+	expect( geometry.groupsClosed, 'Filters and AI folders closed' ).toBe( true );
+	expect( geometry.firstFolderVisible, 'the first folder is on screen without scrolling' ).toBe( true );
+	expect( geometry.searchInBar && geometry.pagesInBar, 'search and the pages are in the one row' ).toBe( true );
+	expect( geometry.filtersHidden, 'core\'s filter choices wait behind the Filter chip' ).toBe( true );
+	expect( geometry.bulkHidden, 'bulk actions wait for a checked row' ).toBe( true );
+
+	// The Filter chip opens the card with core's choices; a checked row brings the bulk actions.
+	await page.click( '.vgml-listbar .vgml-filter-chip' );
+	await expect( page.locator( '.vgml-filter-card select.vgml-folder-filter' ) ).toBeVisible();
+	await page.click( '.vgml-listbar .vgml-filter-chip' );
+	await expect( page.locator( '.vgml-filter-card' ) ).toBeHidden();
+	await page.check( '#the-list tr[id^="post-"] input[name="media[]"] >> nth=0' );
+	await expect( page.locator( '#bulk-action-selector-top' ) ).toBeVisible();
+	await page.uncheck( '#the-list tr[id^="post-"] input[name="media[]"] >> nth=0' );
+	await expect( page.locator( '#bulk-action-selector-top' ) ).toBeHidden();
+	await page.screenshot( { path: 'tests/ui/shots/list-on-the-pictures-1280x800.png' } );
 } );
 
 
