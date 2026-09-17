@@ -23,7 +23,7 @@ Commits, plugin (`main`, deployed to the box after each): `aa30779` the
 library-word rule and the class half inside a phrase; `b2f9c5f` both bands
 re-taken; then the S15 dry sheet; `1b01b9a` a view of the tree owns nothing
 (shop-b re-taken again); `5d31260` the apply's per-folder round trips
-removed; `f366116` the apply's row; the security docs; `e54fe50` the foreign leaves to the planner (shop-b re-taken); then the spec, the plan and this handoff.
+removed; `f366116` the apply's row; the security docs; `e54fe50` the foreign leaves to the planner (shop-b re-taken); `1ee7a56` k by lines (both bands re-taken); `da07996` the audience split and the C.5 tree back (its band re-taken); then the spec, the plan and this handoff.
 
 ## The gates
 
@@ -235,12 +235,45 @@ card below in the Opus shape.
 - **The C.5 shop band** reads red when its tree returns until its marks are
   re-read by path and the band re-taken.
 
+## Late in the session, on Nathan's "anything else?": k by lines, the C.5 tree back
+
+**k by lines ().** In  a folder whose
+ancestor holds the same word is that ancestor's line, not a second holder
+(, for the holders and the sayers alike); between
+parent and child the depth rule chooses.  rows 0 and 15 restated
+with the reason (infrastructure: Data centres' line and Space, 2 not 4);
+the ancestor walk removed → row 0 red. Tech: the three sheets identical,
+645/594 → 647/593, five placements move — a modem to Server racks (right),
+a keynote to a People siblings tie, a game controller to Hardware likely
+(broad), and two the wrong way that are profile findings: a car charging
+station to Server racks likely (*infrastructure* on 3 lines, not 5) and
+"figure; person" from People to *Interviews* sure (Interviews' plan claims
+*people* first). HEMA round 1: sure 152 → 195, likely 52 → 54; as it
+stood: fits 244 → 292, sure 180 → 227 (36 %). Both bands re-taken.
+
+**The C.5 tree back ().** HEMA's tree snapshotted first with its
+named leaves and profiles — (292 terms, 303 termmeta, 440 relationships; restoring it costs no
+credits) — then the C.5 tree restored with its ids. Its band read red and
+the sheet showed why: **Watches read as a view** (its children Men, Women,
+Smart watches; Men and Women sit at the top too) and 14 watch sures fell.
+A child named for an audience is a split, never a repeat, and never a vote
+( 33c, the exception removed → red). Then: no views on C.5, the
+sheet as S14 read it (sure 23 · 1 · 2 · 4; likely 8 right kept, 248 lost,
+7 wrong, 6 broad, 7 moved), the band 510/488 → 495/479 with the tree's own
+ambiguities left: 8 digital cameras to a Cameras-or-TV & Video tie (the
+planner put *camera lens* first on TV & Video — S12's finding, C.4's kind)
+and 5 sandals and boots out of Shoes (*footwear* on four lines: Shoes and
+the seeded Sneakers under Men, Women, Kids). Re-taken with the reason.
+**ms2 shows the C.5 tree now** (site language still ); the shop-b
+band reads whichever tree is up, so it reads red until HEMA is restored.
+
+
 ## For Nathan
 
 1. **Mark the S15 sheet** if you want its number beside S13's; the two
    Batteries likelies and the e-waste sures are gone from it.
 2. **Finding 2 is spent and measured** (27 credits): the leaves have English words; ms2's site language is now `nl_NL` (the pack installed) and stays so — it is the HEMA fixture's honest setting.
-3. **ms2 shows HEMA's tree** with S14's fill in place; Nathan left the C.5 restore to me — it stays up until S16 has judged k by lines on it, then goes back and its band is re-read and re-taken.
+3. **ms2 shows the C.5 tree again**; HEMA's is a snapshot away (see above), no credits.
 4. `vgmls15` on the tech site: deleted at the end of the full UI run if it
    reached this handoff; otherwise `node tools/box-eval.mjs
    tools/box-ui-admin.php --env VGML_ACTION=delete --env VGML_USER=vgmls15`.
@@ -251,7 +284,7 @@ Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S16: k by lines and the audience words in the site's language (judged on the tech sheets, then HEMA round 1), S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the class floor for vector-only class-half matches",
+  "phase": "Every picture a home — S16: the audience words in the site's language and the two profile findings (Interviews claims people first; TV & Video camera lens), S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the class floor for vector-only class-half matches",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S16)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
@@ -260,8 +293,8 @@ Card, to `plugin/.harness/active.json`:
     "core/filing.php, core/folder-talk.php (S10.8 task 2 — the fact: a row's product folder from _thumbnail_id, _product_image_gallery and post_parent (vergeml_filing_product_sql, the shape of vergeml_filing_words_sql); the pick answers fits / sure / why 'product' before any matching and treats placed_by 'product' like 'user'; the run records placed_by = product and the reason line 'by the product'; sticky.php rows on the suite's own product, mutation: the product path removed -> the matcher)",
     "tests/integrations/live.php (S10.8 task 3 — 'woo': its own product in a category, a folder of that name, two pictures as featured and gallery -> both by product, sure; a second count -> unchanged; everything put back; on the tech site, never ms2)",
     "js/vergeml-folders.js (S10.8 task 4 — the Fill step's rail: 'placed by product N · by evidence N · to sort N' from the report's tally; the flipped order for structured libraries mocked first, Nathan's yes)",
-    "core/filing.php (k by lines: in vergeml_filing_settle_claims a folder whose ancestor holds the same word is that line, not a second holder; pick.php row on a parent and child holding one word, mutation: the ancestor walk removed; judged dry on the three tech sheets, then HEMA round 1 — expected sure 152 -> 195)",
-    "core/filing.php (vergeml_filing_audience_of reads the site's language too: dames, heren, kinderen, kind, baby, meisjes, jongens; pick.php row; judged on HEMA round 1)",
+    "core/filing.php (vergeml_filing_audience_of reads the site's language too: dames, heren, kinderen, kind, baby, meisjes, jongens; pick.php row; judged on HEMA round 1 — restore vgml-shop-tree-hema.json first, 0 credits)",
+    "core/filing.php (a leaf whose plan claims its parent's members' word first — Interviews: people; TV & Video: camera lens — is the planner's noise: judged dry on both sheets before any rule)",
     "core/filing.php (the class floor: a class half's vector-only match corroborates, never places alone; probe first, judged dry on all three sheets)",
     "core/filing.php (vergeml_filing_ask_split leaves a view home)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt, tests/tree/filing-baseline-shop-b.txt (re-taken only with the reason, on a marked sheet re-read by path)",
@@ -277,7 +310,7 @@ Card, to `plugin/.harness/active.json`:
   "handoffDir": "docs/handoffs",
   "stopPoints": [
     "Never run a suite or a walk on ms2 while Nathan is on it; ask first",
-    "ms2 shows HEMA's tree (site language nl_NL, the leaves planner-named); Nathan left the C.5 restore to the session: after k by lines is judged on HEMA, put it back (tools/box-tree-snapshot.php restore) and re-read its band by path before re-taking it",
+    "ms2 shows the C.5 tree (site language nl_NL); HEMA's tree is /var/www/ms2/wp-content/vgml-shop-tree-hema.json — swap with tools/box-tree-snapshot.php (snapshot the one up first), never while Nathan is on ms2",
     "S10.8 touches products: the live test makes and removes its own product on the tech site; Woo on ms2 and products from the seed leaves only on Nathan's word",
     "The rail's flipped order is a mock before a build",
     "A band is re-taken only on a marked sheet re-read by path, and the re-take carries the reason",
@@ -301,7 +334,7 @@ docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md. State
 which model you are and follow that profile in
 ~/.claude/harness/model-profiles.md. This session is S16 of
 every-picture-a-home; the card is already in .harness/active.json —
-read it before anything else. k by lines first (test, mutation, the three tech sheets dry, then HEMA's round 1), the audience words after it; then S10.8 task by task as the
+read it before anything else. the audience words first (HEMA restored from its snapshot, round 1 dry), the two profile findings probed; then S10.8 task by task as the
 card writes them (the map pure and tested before any row is read); the
 rail mocked before built; then the class floor probe. Test first, one mutation per story, both sites measured,
 say every cost before it is spent, never touch ms2 while Nathan is on it.
