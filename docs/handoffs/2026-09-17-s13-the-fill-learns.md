@@ -71,8 +71,19 @@ right and wrong; a member profile learns both. The engine's own C.4 dry sheet
 reads better (sure: right kept 21 · wrong dropped 2 · wrong kept 2 · broad
 kept 4). The refinement this points at, not built: **a member counts only
 when its own placement was sure or the person's** (the moves trail knows the
-score each placement had). Nathan's marks decide; the band is not re-taken
-until then (the stop point).
+score each placement had). **Nathan's marks, later the same day: sure 25/30
+(83 %), likely 6/30 (20 %) with 7 too broad** — against C.4's 26/30 and
+17/30. The sure band held; the likely band collapsed. The wrong sures are
+the learned misses made sure (e-waste in Batteries, a flowchart and a
+keyboard-layout diagram in Satellites, smartwatches in Phones); the 17
+wrong likelies were mostly "not placed" before and sit at 0.57–0.70 with
+the runner-up at 0.13–0.19. A read with the centroid swapped for the text
+vector keeps 14 of the 17 wrong — **it is the words the folders learned,
+not the vector**. The tech band is re-taken with that reason (4/4). The
+S14 story: a member counts only when its own placement was sure or the
+person's (`vergeml_filing_members_layers` reads the moves trail); judged
+on the same sheet, the marks now in `tools/box-folder-quality.php`
+(`$bfq_s13`).
 
 ## S10.9 — the picture's own words (`3fa8e13`)
 
@@ -142,9 +153,9 @@ the sheet; the runs are saved in the session scratchpad and the check has
 
 ## For Nathan
 
-1. **Mark the sheet:** `docs/superpowers/mocks/shots/2026-09-17-quality-sample-s13-dry.html`
-   — 30 sure of 637, 30 likely of 78, 9 marks carried; the verdict line at
-   the bottom. That number beside 87 % / 57 % is S10.7 + S10.9 + rule 3.
+1. The S13 sheet is marked (sure 25/30, likely 6/30) and the tech band
+   re-taken; the shop's sheet is not marked, so its band stays as it was
+   (3/4 by design) until it is.
 2. **S10.5b's yes:** the catalogue is ready — `tools/box-seed-shop-tree-b.txt`,
    HEMA's public tree, 292 folders, Dutch, marketing folders kept (the .md
    beside it says how). The confirm sends **34 folders, one batch, 0
@@ -157,9 +168,9 @@ the sheet; the runs are saved in the session scratchpad and the check has
 ## Not done, and why
 
 - S10.5b — the catalogue is written and costed (34 go, 0 credits); the paste waits on Nathan's yes and a free ms2 (stop points).
-- Both bands re-taken — the sheets are judged first (stop point).
-- The member refinement (count only sure or user placements) — a finding,
-  one story for S14 if the marks say the wrong-kept 13 matter.
+- The shop band re-taken — its sheet is not marked (stop point).
+- The member refinement (count only sure or user placements) — the marks
+  say it matters (likely 57 % → 20 %): S14's first story.
 - The fill's progress row at 1600×1000 with every parent open — not reached
   (S11's "seen, not fixed").
 
@@ -169,14 +180,14 @@ Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S14: the foreign tree (S10.5b), the bands re-taken on the marks, the member profile trusts only sure placements (if the marks say so), then file by the product (S10.8)",
+  "phase": "Every picture a home — S14: the member profile trusts only sure and hand placements (the marks: likely 57 % → 20 %), the two pre-S13 UI reds, the foreign tree (S10.5b), the shop band on its marks, then file by the product (S10.8)",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S14)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
     "tools/box-seed-shop-tree-b.txt (S10.5b: written, HEMA's tree, 292 folders; pasted on ms2 after Unconfirm and the folders removed; tests/tree/filing-baseline-shop-b.txt and its sheet)",
-    "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (re-taken with the reason once Nathan has marked the S13 sheet)",
-    "core/filing.php (if the marks say the wrong-kept 13 matter: a member counts only when its placement was sure or the person's — vergeml_filing_members_layers reads the moves trail; pick.php row, one mutation)",
+    "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (the tech band re-taken again after the member refinement, with the reason and a dry sheet; the shop band on its marks)",
+    "core/filing.php (first: a member counts only when its placement was sure or the person's — vergeml_filing_members_layers reads the moves trail; pick.php row, one mutation; the S13 sheet re-read through $bfq_s13 before and after)",
     "core/filing.php, core/folder-talk.php, core/integrations/** (S10.8: a picture attached to a product goes where the product's categories say, sure, 'by the product', before any matching; tests/integrations/live.php)",
     "js/vergeml-folders.js (the rail's Fill step: 'placed by product N · by evidence N · to sort N'; the flipped order for structured libraries, mocked)",
     "docs/handoffs/**",
@@ -191,7 +202,7 @@ Card, to `plugin/.harness/active.json`:
   "stopPoints": [
     "Never run a suite or a walk on ms2 while Nathan is on it; ask first",
     "S10.5b's catalogue and its confirm (0 credits after S10.1's split — say the number) are Nathan's yes before the paste",
-    "The bands are re-taken only after Nathan's marks on the S13 sheet, and the re-take carries the reason",
+    "A band is re-taken only on a marked sheet, and the re-take carries the reason (the shop's sheet is unmarked)",
     "Every bug from a walk is a story: test first, one mutation, then the fix; a mutation of anything that can start a run holds the cron wire",
     "S10.8 touches products: every write measured on the box's Woo fixture, never on ms2's live catalogue without Nathan's word"
   ],
@@ -211,9 +222,10 @@ docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md. State
 which model you are and follow that profile in
 ~/.claude/harness/model-profiles.md. This session is S14 of
 every-picture-a-home. Write the card from the handoff to
-.harness/active.json before anything else. Take Nathan's marks on the S13
-sheet and re-take both bands with the reason; S10.5b with his yes on the
-catalogue; the member refinement only if the marks say so; then S10.8.
+.harness/active.json before anything else. The member refinement first
+(the marks: likely 57 % → 20 %), judged on the S13 sheet re-read; then the
+two pre-S13 UI reds as stories; S10.5b with his yes on the catalogue; the
+shop band on its marks; then S10.8.
 Test first, one mutation per story, both sites measured, say every cost
 before it is spent, never touch ms2 while Nathan is on it. Talk plainly.
 End with a handoff carrying the S15 card.

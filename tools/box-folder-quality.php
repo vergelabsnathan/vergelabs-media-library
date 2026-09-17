@@ -126,6 +126,77 @@ $bfq_dry = array(
 );
 
 /*
+ *  The 2026-09-17 verdict on the S13 dry sheet (seed 133, no fill; Nathan):
+ *  sure 25/30, likely 6/30 with 7 too broad. The engine: S10.7 (profiles
+ *  from members), S10.9 (the picture's own words), S10.5 rule 3. Read
+ *  against C.4's 26/30 and 17/30: the sure band held, the likely band
+ *  collapsed -- the folders had learned the fill's own misses, and a read
+ *  with the centroid off kept 14 of the 17 wrong (the words, not the vector).
+ */
+$bfq_s13 = array(
+    106196 => array( 'sure', 'right', 'People / Conference talks' ),
+    105847 => array( 'sure', 'right', 'Data centres / Server racks' ),
+    106042 => array( 'sure', 'right', 'Hardware' ),
+    106032 => array( 'sure', 'right', 'Hardware' ),
+    106176 => array( 'sure', 'right', 'People / Conference talks' ),
+    106619 => array( 'sure', 'right', 'Energy / Wind' ),
+    106511 => array( 'sure', 'right', 'Space / Satellites' ),
+    105922 => array( 'sure', 'right', 'Hardware / Laptops' ),
+    106013 => array( 'sure', 'right', 'Hardware' ),
+    106658 => array( 'sure', 'right', 'Energy / Batteries' ),
+    106069 => array( 'sure', 'right', 'Hardware / Components' ),
+    106449 => array( 'sure', 'right', 'Data centres / Server racks' ),
+    105871 => array( 'sure', 'right', 'Hardware / Phones' ),
+    106370 => array( 'sure', 'wrong', 'Hardware / Phones' ),
+    105823 => array( 'sure', 'right', 'Data centres / Server racks' ),
+    106181 => array( 'sure', 'right', 'People / Conference talks' ),
+    106319 => array( 'sure', 'right', 'Energy / Solar' ),
+    106587 => array( 'sure', 'right', 'Energy / Solar' ),
+    106743 => array( 'sure', 'wrong', 'Space / Satellites' ),
+    106272 => array( 'sure', 'right', 'Robotics' ),
+    106254 => array( 'sure', 'right', 'People / Conference talks' ),
+    106604 => array( 'sure', 'right', 'Energy / Solar' ),
+    106117 => array( 'sure', 'right', 'Hardware / Components' ),
+    106723 => array( 'sure', 'wrong', 'Energy / Batteries' ),
+    106529 => array( 'sure', 'right', 'Space / Launches' ),
+    106211 => array( 'sure', 'right', 'People' ),
+    106496 => array( 'sure', 'wrong', 'Data centres / Server racks' ),
+    106220 => array( 'sure', 'right', 'People' ),
+    105969 => array( 'sure', 'wrong', 'Space / Satellites' ),
+    105831 => array( 'sure', 'right', 'Data centres / Server racks' ),
+    106364 => array( 'likely', 'broad', 'Hardware' ),
+    106704 => array( 'likely', 'wrong', 'Space / Satellites' ),
+    106475 => array( 'likely', 'broad', 'Data centres' ),
+    106666 => array( 'likely', 'right', 'Hardware' ),
+    106487 => array( 'likely', 'broad', 'Data centres' ),
+    106455 => array( 'likely', 'right', 'Data centres / Server racks' ),
+    106757 => array( 'likely', 'right', 'Hardware' ),
+    106768 => array( 'likely', 'wrong', 'Hardware' ),
+    106365 => array( 'likely', 'right', 'Hardware' ),
+    106717 => array( 'likely', 'wrong', 'Energy / Batteries' ),
+    106412 => array( 'likely', 'broad', 'Hardware' ),
+    106716 => array( 'likely', 'wrong', 'Energy / Batteries' ),
+    106234 => array( 'likely', 'wrong', 'Hardware / Phones' ),
+    106756 => array( 'likely', 'wrong', 'Hardware' ),
+    106481 => array( 'likely', 'broad', 'Data centres' ),
+    106469 => array( 'likely', 'wrong', 'Data centres / Server racks' ),
+    106102 => array( 'likely', 'right', 'Hardware / Components' ),
+    106164 => array( 'likely', 'wrong', 'Hardware / Laptops' ),
+    105850 => array( 'likely', 'wrong', 'Hardware / Phones' ),
+    106162 => array( 'likely', 'wrong', 'Hardware' ),
+    106699 => array( 'likely', 'wrong', 'Energy / Wind' ),
+    106214 => array( 'likely', 'wrong', 'Hardware / Phones' ),
+    106448 => array( 'likely', 'right', 'Hardware' ),
+    106442 => array( 'likely', 'wrong', 'Data centres / Server racks' ),
+    106399 => array( 'likely', 'wrong', 'Energy / Batteries' ),
+    106140 => array( 'likely', 'wrong', 'Hardware' ),
+    106152 => array( 'likely', 'wrong', 'Space' ),
+    106676 => array( 'likely', 'broad', 'Data centres / Cooling' ),
+    105936 => array( 'likely', 'broad', 'Hardware' ),
+    106165 => array( 'likely', 'wrong', 'Energy / Batteries' ),
+);
+
+/*
  *  The 2026-09-16 verdict on the C.4 dry sheet (seed 133, no fill; Nathan):
  *  sure 26/30, likely 17/30. His notes: the smartwatches have no folder and
  *  land in Phones (the four likely wrong there); motherboards and the like sit
@@ -396,6 +467,8 @@ foreach ( array( 'sure', 'likely' ) as $word ) {
             $prefill[ count( $sample ) ] = $bfq_mark[ $id ];
         } elseif ( $dry && isset( $bfq_c4[ $id ] ) && $bfq_c4[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
             $prefill[ count( $sample ) ] = $bfq_c4[ $id ][1];
+        } elseif ( $dry && isset( $bfq_s13[ $id ] ) && $bfq_s13[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
+            $prefill[ count( $sample ) ] = $bfq_s13[ $id ][1];
         } elseif ( $dry && isset( $bfq_dry[ $id ] ) && $bfq_dry[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
             $prefill[ count( $sample ) ] = $bfq_dry[ $id ][1];
         } elseif ( $dry && isset( $bfq_shop[ $id ] ) && $bfq_shop[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
