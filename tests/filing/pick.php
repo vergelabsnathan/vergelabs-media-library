@@ -332,6 +332,16 @@ $tree  = array(
 );
 $goes = vergeml_filing_ask_split( $tree, $vocab );
 f_check( '24 of ten folders five go: Audio, Bags & Luggage, Kids, Women, Garden (parents and the top level no picture names); Sneakers and Shoes stay by a head noun, Headphones by the word, Backpacks and Blouses by being leaves', array( 'audio', 'bags', 'kids', 'women', 'garden' ) === $goes, json_encode( $goes ) );
+/*
+ *  A tree in another language than the describer's (S15, HEMA's second
+ *  finding, Nathan's yes on the credits): "wandelschoenen" hits no English
+ *  word and never will, so on a site whose language is not the describer's
+ *  a leaf whose name no picture says goes to the planner too, for a class
+ *  in the describer's words; a leaf that is already a library word stays
+ *  home as before. Mutation: the foreign branch removed -> row 24b red.
+ */
+$goes = vergeml_filing_ask_split( $tree, $vocab, true );
+f_check( '24b the same tree on a site in another language: the leaves no picture names go too (Backpacks, Blouses), Headphones still stays', array( 'audio', 'bags', 'backpacks', 'kids', 'women', 'blouses', 'garden' ) === $goes, json_encode( $goes ) );
 
 /*
  *  An answer is a decision (2026-09-17, Nathan on the shop: "every fill

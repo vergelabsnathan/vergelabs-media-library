@@ -1111,7 +1111,7 @@ function vergeml_guide_profile_ask( $draft ) {
          *  out once, and only once a folder gets this far.
          */
         if ( null === $planner ) {
-            $planner = array_flip( vergeml_filing_ask_split( $draft['folders'], function_exists( 'vergeml_filing_vocabulary' ) ? vergeml_filing_vocabulary( 0 ) : array() ) );
+            $planner = array_flip( vergeml_filing_ask_split( $draft['folders'], function_exists( 'vergeml_filing_vocabulary' ) ? vergeml_filing_vocabulary( 0 ) : array(), vergeml_filing_tree_is_foreign() ) );
         }
         if ( ! isset( $planner[ (string) $f['key'] ] ) ) {
             continue;

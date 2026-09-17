@@ -23,7 +23,7 @@ foreach ( $nodes as $n ) {
     $folders[] = array( 'key' => 't' . (int) $n['id'], 'name' => (string) $n['name'], 'parent' => $n['parent'] ? 't' . (int) $n['parent'] : '' );
     $names[ 't' . (int) $n['id'] ] = (string) $n['name'];
 }
-$goes  = vergeml_filing_ask_split( $folders, $vocab );
+$goes  = vergeml_filing_ask_split( $folders, $vocab, '1' === (string) getenv( 'VGML_FOREIGN' ) || vergeml_filing_tree_is_foreign() ); // VGML_FOREIGN=1: as a site in another language (S15)
 $batch = VERGEML_FILING_PROFILE_BATCH;
 printf( "folders %d · vocabulary %d words · stay home %d · go to the planner %d · batches %d · credits %d\n", count( $nodes ), count( $vocab ), count( $nodes ) - count( $goes ), count( $goes ), (int) ceil( count( $goes ) / $batch ), vergeml_filing_profile_credits( count( $goes ) ) );
 printf( "go: %s\n", implode( ', ', array_map( function ( $k ) use ( $names ) { return $names[ $k ]; }, $goes ) ) );

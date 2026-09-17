@@ -554,11 +554,20 @@ function vergeml_filing_name_in_vocabulary( $name, $vocabulary ) {
  *  -- unless the name is already a library word. On the shop that is 37 of
  *  322: one batch, no credits.
  *
+ *  A tree in another language than the describer's (S15, HEMA's tree on
+ *  the shop: 292 Dutch folders over English descriptions, every sure a
+ *  top-level parent because "wandelschoenen" meets no English word and
+ *  never will): when $foreign, a leaf whose name no picture says goes too,
+ *  for a class in the describer's words -- on HEMA that is 283 leaves,
+ *  five batches, ~36 credits once, said on the button. The caller reads
+ *  the site's language (vergeml_filing_tree_is_foreign).
+ *
  *  @param array $folders    [ { key, name, parent } ], parent a key or ''.
  *  @param array $vocabulary vergeml_filing_vocabulary()'s rows.
+ *  @param bool  $foreign    The site's language is not the describer's.
  *  @return array The keys that go to the planner, in the tree's order.
  */
-function vergeml_filing_ask_split( $folders, $vocabulary ) {
+function vergeml_filing_ask_split( $folders, $vocabulary, $foreign = false ) {
     $children = array();
     foreach ( (array) $folders as $f ) {
         if ( '' !== (string) $f['parent'] ) {
@@ -568,7 +577,7 @@ function vergeml_filing_ask_split( $folders, $vocabulary ) {
     $go = array();
     foreach ( (array) $folders as $f ) {
         $key = (string) $f['key'];
-        if ( '' !== (string) $f['parent'] && ! isset( $children[ $key ] ) ) {
+        if ( ! $foreign && '' !== (string) $f['parent'] && ! isset( $children[ $key ] ) ) {
             continue; // A leaf under a parent: its name is its class.
         }
         if ( vergeml_filing_name_in_vocabulary( $f['name'], $vocabulary ) ) {
@@ -577,6 +586,11 @@ function vergeml_filing_ask_split( $folders, $vocabulary ) {
         $go[] = $key;
     }
     return $go;
+}
+
+/** The site's language is not the describer's (English): its folder names will not be the pictures' words. */
+function vergeml_filing_tree_is_foreign() {
+    return 'en' !== substr( (string) get_locale(), 0, 2 );
 }
 
 /** Profiles for a set of terms, keyed by term id, each read over what the folder holds (S10.7). Terms without one are left out. */
