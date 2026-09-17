@@ -96,6 +96,7 @@ const REVIEWED = {
 	'js/vergeml-tree-view.js': [
 		[ 'be95315174', 'an inline SVG assembled from literal path strings chosen by a boolean' ],
 		[ '7524bab4c0', 'chevron() or an empty string, and chevron() returns a literal SVG' ],
+		[ 'b757a8c8a1', 'chevron() returns a literal SVG -- the fold pair, S10.4' ],
 	],
 
 	'js/vergeml-tree.js': [
