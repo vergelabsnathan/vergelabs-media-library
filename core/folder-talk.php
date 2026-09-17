@@ -2263,11 +2263,15 @@ function vergeml_talk_question_text( $q, $taxonomy ) {
 	}
 
 	if ( 'siblings' === $q['kind'] ) {
-		$kids = array_map( $name, (array) $q['children'] );
+		$kids = vergeml_talk_folder_names( (array) $q['children'], $taxonomy );
 		/* translators: 1: pictures, 2: one folder, 3: its sibling */
 		$text = sprintf( _n( '%1$s picture fits both %2$s and %3$s.', '%1$s pictures fit both %2$s and %3$s.', (int) $q['count'], 'vergelabs-media-library' ), $n, isset( $kids[0] ) ? $kids[0] : '', isset( $kids[1] ) ? $kids[1] : '' );
+	} elseif ( 'either' === $q['kind'] && ! empty( $q['pairs'] ) ) {
+		// The folded card (S10.5): every picture on it has its own two folders, said on its thumbnail.
+		/* translators: %s: pictures */
+		$text = sprintf( __( '%s pictures each fit two folders.', 'vergelabs-media-library' ), $n );
 	} elseif ( 'either' === $q['kind'] ) {
-		$kids = array_map( $name, (array) $q['children'] );
+		$kids = vergeml_talk_folder_names( (array) $q['children'], $taxonomy );
 		/* translators: 1: pictures, 2: one folder, 3: another folder, not its sibling */
 		$text = sprintf( _n( '%1$s picture: %2$s or %3$s?', '%1$s pictures: %2$s or %3$s?', (int) $q['count'], 'vergelabs-media-library' ), $n, isset( $kids[0] ) ? $kids[0] : '', isset( $kids[1] ) ? $kids[1] : '' );
 	} elseif ( ! empty( $q['unreadable'] ) ) {
@@ -2285,6 +2289,41 @@ function vergeml_talk_question_text( $q, $taxonomy ) {
 	}
 
 	return array( 'text' => $text, 'answers' => $answers );
+}
+
+/**
+ *  Two folders as a question names them: the leaf, or the path when the two
+ *  share a leaf (vergeml_filing_question_names, S10.5).
+ *
+ * @param int[]  $term_ids
+ * @param string $taxonomy
+ * @return string[]
+ */
+function vergeml_talk_folder_names( $term_ids, $taxonomy ) {
+	$folders = array();
+	foreach ( (array) $term_ids as $tid ) {
+		$t = $tid ? get_term( (int) $tid, $taxonomy ) : null;
+		if ( ! ( $t instanceof WP_Term ) ) {
+			$folders[] = array( 'name' => '', 'path' => '' );
+			continue;
+		}
+		$path = array( vergeml_term_name( $t ) );
+		foreach ( get_ancestors( (int) $t->term_id, $taxonomy, 'taxonomy' ) as $aid ) {
+			$a = get_term( (int) $aid, $taxonomy );
+			if ( $a instanceof WP_Term ) {
+				array_unshift( $path, vergeml_term_name( $a ) );
+			}
+		}
+		$folders[] = array( 'name' => vergeml_term_name( $t ), 'path' => implode( ' › ', $path ) );
+	}
+	return vergeml_filing_question_names( $folders );
+}
+
+/** "A or B" for one picture on the folded either/or card: its own two folders, told apart by their paths when they share a leaf. */
+function vergeml_talk_pair_label( $pair, $taxonomy ) {
+	$two = vergeml_talk_folder_names( array_slice( (array) $pair, 0, 2 ), $taxonomy );
+	/* translators: 1: one folder, 2: another folder */
+	return sprintf( __( '%1$s or %2$s', 'vergelabs-media-library' ), isset( $two[0] ) ? $two[0] : '', isset( $two[1] ) ? $two[1] : '' );
 }
 
 /** "robot arm" -> "robot arms"; good enough for a class word, which is a noun. */
@@ -2325,7 +2364,11 @@ function vergeml_talk_questions() {
 		$words  = vergeml_talk_question_text( $q, $taxonomy );
 		$sample = array();
 		foreach ( (array) $q['sample'] as $id ) {
-			$sample[] = array( 'id' => (int) $id, 'thumb' => (string) wp_get_attachment_image_url( (int) $id, 'thumbnail' ) );
+			$one = array( 'id' => (int) $id, 'thumb' => (string) wp_get_attachment_image_url( (int) $id, 'thumbnail' ) );
+			if ( isset( $q['pairs'][ (int) $id ] ) ) {
+				$one['pair'] = vergeml_talk_pair_label( $q['pairs'][ (int) $id ], $taxonomy );
+			}
+			$sample[] = $one;
 		}
 		$out[] = array(
 			'id'       => (string) $q['id'],
@@ -2575,6 +2618,8 @@ function vergeml_talk_answer( $id, $answer ) {
 		'term_id' => $landed,
 		'placed'  => $result['placed'],
 		'show'    => $plan['show'],
+		// The folded either/or card's pictures each carry their own two folders (S10.5), for the strip "Show me" opens.
+		'pairs'   => isset( $q['pairs'] ) && is_array( $q['pairs'] ) ? $q['pairs'] : null,
 	);
 }
 

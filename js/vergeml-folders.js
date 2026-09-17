@@ -939,6 +939,11 @@
 				return;
 			}
 			var img = el( 'img', { src: s.thumb, alt: '', loading: 'lazy' } );
+			if ( s.pair ) {
+				// The folded either/or card (S10.5): each picture's own two folders, on its thumbnail.
+				img.title = s.pair;
+				img.alt = s.pair;
+			}
 			if ( shown ) {
 				var a = el( 'a', { href: ( cfg.libraryUrl || 'upload.php' ) + '?item=' + s.id } );
 				a.appendChild( img );

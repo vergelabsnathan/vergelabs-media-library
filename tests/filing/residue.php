@@ -262,5 +262,46 @@ f_check( '22 leave: all three into To sort', ! empty( $plan['answered'] ) && arr
 $plan = vergeml_filing_answer_plan( $q, 'show-me' );
 f_check( '23 show-me: the pictures, not their folders; keep-parent and new-folder refused', empty( $plan['answered'] ) && array( 301, 302, 303 ) === $plan['show'] && null === vergeml_filing_answer_plan( $q, 'keep-parent' ) && null === vergeml_filing_answer_plan( $q, 'new-folder' ), json_encode( $plan['show'] ) );
 
+echo "\n== the questions' grain (S10.5): either/ors of one picture fold into one card; two folders of one name are told apart by their paths\n";
+
+/*
+ *  The shop (2026-09-16): 41 either/or cards, 38 of them about one picture --
+ *  "1 picture: Backpacks or Backpacks?" thirty-eight times, and Nathan: "very
+ *  tedious". The pairs with two or more pictures keep their own card, with
+ *  both folders as put-in answers; every pair with one picture folds into one
+ *  card, its pictures each remembering their own two folders, and the answers
+ *  are the ones that fit them all: split (each to its own best), leave, look.
+ *  Mutation: the fold removed -> 24 red (five either cards).
+ */
+$many = array(
+    '2:4'   => array( 'ids' => array( 301 => 2, 302 => 4, 303 => 2 ), 'children' => array( 2 => 2, 4 => 1 ) ),
+    '5:7'   => array( 'ids' => array( 311 => 5, 312 => 7 ), 'children' => array( 5 => 1, 7 => 1 ) ),
+    '8:9'   => array( 'ids' => array( 321 => 9 ), 'children' => array( 9 => 1, 8 => 0 ) ),
+    '10:11' => array( 'ids' => array( 322 => 10 ), 'children' => array( 10 => 1, 11 => 0 ) ),
+    '12:13' => array( 'ids' => array( 323 => 13 ), 'children' => array( 13 => 1, 12 => 0 ) ),
+);
+$folded = array_values( array_filter( vergeml_filing_questions( array(), array(), array(), array(), $many ), function ( $q ) { return 'either' === $q['kind']; } ) );
+$one    = end( $folded );
+f_check( '24 five pairs, three of one picture: two pair cards (largest first) and one folded card of the three, e:one, ids by best, each picture with its own two folders, split / leave / show-me', 3 === count( $folded ) && 'e:2:4' === $folded[0]['id'] && 'e:5:7' === $folded[1]['id'] && 'e:one' === $one['id'] && 'either' === $one['kind'] && 3 === $one['count'] && array( 321 => 9, 322 => 10, 323 => 13 ) === $one['ids'] && array( 321 => array( 9, 8 ), 322 => array( 10, 11 ), 323 => array( 13, 12 ) ) === $one['pairs'] && array( 321, 322, 323 ) === $one['sample'] && array( 'split', 'leave', 'show-me' ) === $one['answers'], json_encode( array( array_column( $folded, 'id' ), isset( $one['ids'] ) ? $one['ids'] : null, isset( $one['pairs'] ) ? $one['pairs'] : null, isset( $one['answers'] ) ? $one['answers'] : null ) ) );
+$mapo = array( 321 => 0, 322 => 0, 323 => 0 );
+$plan = vergeml_filing_answer_plan( $one, 'split' );
+$plan2 = vergeml_filing_answer_plan( $one, 'leave' );
+$plan3 = vergeml_filing_answer_plan( $one, 'show-me' );
+f_check( '25 on the folded card: split files each to its own best (answer), leave parks all three, show-me lists them, put-in is refused', is_array( $plan ) && array( 321 => 9, 322 => 10, 323 => 13 ) === f_apply( $mapo, $plan ) && 'answer' === $plan['placed_by'] && array( 98, 98, 98 ) === array_values( f_apply( $mapo, $plan2 ) ) && array( 321, 322, 323 ) === $plan3['show'] && null === vergeml_filing_answer_plan( $one, 'put-in:9' ), json_encode( array( is_array( $plan ) ? f_apply( $mapo, $plan ) : null ) ) );
+$single = array_values( array_filter( vergeml_filing_questions( array(), array(), array(), array(), array( '8:9' => $many['8:9'] ) ), function ( $q ) { return 'either' === $q['kind']; } ) );
+f_check( '25b one pair of one picture alone stays its own card, with its put-ins', 1 === count( $single ) && 'e:8:9' === $single[0]['id'] && array( 'put-in:9', 'put-in:8', 'split', 'leave', 'show-me' ) === $single[0]['answers'], json_encode( array_column( $single, 'id' ) ) );
+
+/*
+ *  "10 pictures: Backpacks or Backpacks?" -- the seeded collisions worded by
+ *  leaf (Backpacks under Bags & Luggage and under Camping). Two folders that
+ *  share a leaf name are named by their paths; folders whose leaves differ
+ *  keep the leaf. Pure, over the names and paths the question text is given.
+ *  Mutation: the path dropped -> 26 red.
+ */
+$same = vergeml_filing_question_names( array( array( 'name' => 'Backpacks', 'path' => 'Bags & Luggage › Backpacks' ), array( 'name' => 'Backpacks', 'path' => 'Camping › Backpacks' ) ) );
+$diff = vergeml_filing_question_names( array( array( 'name' => 'Backpacks', 'path' => 'Bags & Luggage › Backpacks' ), array( 'name' => 'Helmets', 'path' => 'Cycling › Helmets' ) ) );
+$case = vergeml_filing_question_names( array( array( 'name' => 'Jackets', 'path' => 'Men › Jackets' ), array( 'name' => 'jackets', 'path' => 'Women › jackets' ) ) );
+f_check( '26 two folders of one name are named by their paths; two of different names by their leaves; the match ignores case', array( 'Bags & Luggage › Backpacks', 'Camping › Backpacks' ) === $same && array( 'Backpacks', 'Helmets' ) === $diff && array( 'Men › Jackets', 'Women › jackets' ) === $case, json_encode( array( $same, $diff, $case ) ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

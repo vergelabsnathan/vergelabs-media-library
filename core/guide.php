@@ -900,12 +900,19 @@ function vergeml_guide_rest_answer( WP_REST_Request $request ) {
         }
         // "Show me": the group's pictures, with thumbnails, for the card to open. Capped: a strip, not a library.
         if ( is_array( $r['show'] ) ) {
-            $ids = array_slice( array_map( 'intval', $r['show'] ), 0, 48 );
+            $ids   = array_slice( array_map( 'intval', $r['show'] ), 0, 48 );
+            $pairs = isset( $r['pairs'] ) && is_array( $r['pairs'] ) ? $r['pairs'] : array();
+            $tax   = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
             _prime_post_caches( $ids, false, true );
-            $r['show'] = array_map( function ( $pid ) {
-                return array( 'id' => $pid, 'thumb' => (string) wp_get_attachment_image_url( $pid, 'thumbnail' ) );
+            $r['show'] = array_map( function ( $pid ) use ( $pairs, $tax ) {
+                $one = array( 'id' => $pid, 'thumb' => (string) wp_get_attachment_image_url( $pid, 'thumbnail' ) );
+                if ( isset( $pairs[ $pid ] ) ) {
+                    $one['pair'] = vergeml_talk_pair_label( $pairs[ $pid ], $tax );
+                }
+                return $one;
             }, $ids );
         }
+        unset( $r['pairs'] );
     }
 
     /*

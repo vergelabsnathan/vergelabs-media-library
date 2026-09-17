@@ -1498,15 +1498,29 @@ function vergeml_filing_questions( $groups, $siblings, $names = array(), $neares
         );
     }
 
-    // Either/or: the folder more often best is named first and offered first. Largest pairs first.
+    /*
+     *  Either/or: the folder more often best is named first and offered
+     *  first. Largest pairs first. The pairs with one picture fold into one
+     *  card (S10.5): on the shop, 38 of 41 either/or cards were about one
+     *  picture each -- "1 picture: Backpacks or Backpacks?" thirty-eight times
+     *  -- and the grain, not the cap, was what made them tedious. The folded
+     *  card keeps each picture's own two folders ('pairs', best first) so the
+     *  strip can say them, and offers what fits them all: split, leave, look.
+     *  One such pair alone stays its own card, with its put-ins.
+     */
     $pairs = (array) $either;
     uasort( $pairs, function ( $a, $b ) { return count( (array) $b['ids'] ) <=> count( (array) $a['ids'] ); } );
+    $singles = array();
     foreach ( $pairs as $key => $e ) {
         $ids      = isset( $e['ids'] ) ? (array) $e['ids'] : array();
         $children = isset( $e['children'] ) ? (array) $e['children'] : array();
         arsort( $children );
         $two = array_map( 'intval', array_slice( array_keys( $children ), 0, 2 ) );
         if ( 2 !== count( $two ) || ! $ids ) {
+            continue;
+        }
+        if ( 1 === count( $ids ) ) {
+            $singles[ (int) key( $ids ) ] = $two;
             continue;
         }
         $out[] = array(
@@ -1521,6 +1535,43 @@ function vergeml_filing_questions( $groups, $siblings, $names = array(), $neares
             'class'      => '',
             'unreadable' => false,
             'answers'    => array( 'put-in:' . $two[0], 'put-in:' . $two[1], 'split', 'leave', 'show-me' ),
+        );
+    }
+    if ( 1 === count( $singles ) ) {
+        // Alone, a pair of one picture is still a pair: its own card, its own put-ins.
+        $pid = (int) key( $singles );
+        $two = $singles[ $pid ];
+        $out[] = array(
+            'id'         => 'e:' . min( $two ) . ':' . max( $two ),
+            'kind'       => 'either',
+            'term_id'    => 0,
+            'children'   => $two,
+            'count'      => 1,
+            'sample'     => array( $pid ),
+            'ids'        => array( $pid => $two[0] ),
+            'name'       => '',
+            'class'      => '',
+            'unreadable' => false,
+            'answers'    => array( 'put-in:' . $two[0], 'put-in:' . $two[1], 'split', 'leave', 'show-me' ),
+        );
+    } elseif ( $singles ) {
+        $best = array();
+        foreach ( $singles as $pid => $two ) {
+            $best[ $pid ] = $two[0];
+        }
+        $out[] = array(
+            'id'         => 'e:one',
+            'kind'       => 'either',
+            'term_id'    => 0,
+            'children'   => array(),
+            'count'      => count( $singles ),
+            'sample'     => array_slice( array_keys( $singles ), 0, VERGEML_FILING_SAMPLE ),
+            'ids'        => $best,
+            'pairs'      => $singles,
+            'name'       => '',
+            'class'      => '',
+            'unreadable' => false,
+            'answers'    => array( 'split', 'leave', 'show-me' ),
         );
     }
 
@@ -1551,6 +1602,29 @@ function vergeml_filing_questions( $groups, $siblings, $names = array(), $neares
         );
     }
 
+    return $out;
+}
+
+/**
+ *  The names a question calls two folders by: the leaf, unless another
+ *  folder in the question has the same leaf -- then the path (S10.5: "10
+ *  pictures: Backpacks or Backpacks?" was the shop's Bags & Luggage ›
+ *  Backpacks against Camping › Backpacks, and unanswerable as worded).
+ *
+ * @param array $folders Each: 'name' (the leaf), 'path' ("Parent › Leaf").
+ * @return string[] One name per folder, in order.
+ */
+function vergeml_filing_question_names( $folders ) {
+    $seen = array();
+    foreach ( (array) $folders as $f ) {
+        $k          = mb_strtolower( trim( (string) $f['name'] ) );
+        $seen[ $k ] = isset( $seen[ $k ] ) ? $seen[ $k ] + 1 : 1;
+    }
+    $out = array();
+    foreach ( (array) $folders as $f ) {
+        $k     = mb_strtolower( trim( (string) $f['name'] ) );
+        $out[] = $seen[ $k ] > 1 && '' !== (string) $f['path'] ? (string) $f['path'] : (string) $f['name'];
+    }
     return $out;
 }
 
