@@ -1,5 +1,5 @@
 {
-  "phase": "Every picture a home — S16: S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the foreign leaf's planner ask on Nathan's yes, the class floor for vector-only class-half matches",
+  "phase": "Every picture a home — S16: k by lines and the audience words in the site's language (judged on the tech sheets, then HEMA round 1), S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the class floor for vector-only class-half matches",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S16)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
@@ -8,7 +8,8 @@
     "core/filing.php, core/folder-talk.php (S10.8 task 2 — the fact: a row's product folder from _thumbnail_id, _product_image_gallery and post_parent (vergeml_filing_product_sql, the shape of vergeml_filing_words_sql); the pick answers fits / sure / why 'product' before any matching and treats placed_by 'product' like 'user'; the run records placed_by = product and the reason line 'by the product'; sticky.php rows on the suite's own product, mutation: the product path removed -> the matcher)",
     "tests/integrations/live.php (S10.8 task 3 — 'woo': its own product in a category, a folder of that name, two pictures as featured and gallery -> both by product, sure; a second count -> unchanged; everything put back; on the tech site, never ms2)",
     "js/vergeml-folders.js (S10.8 task 4 — the Fill step's rail: 'placed by product N · by evidence N · to sort N' from the report's tally; the flipped order for structured libraries mocked first, Nathan's yes)",
-    "core/filing.php, core/guide.php (the foreign leaf: S10.1's split sends a leaf not in the vocabulary on a site whose locale is not the describer's; only on Nathan's yes, the credits said first)",
+    "core/filing.php (k by lines: in vergeml_filing_settle_claims a folder whose ancestor holds the same word is that line, not a second holder; pick.php row on a parent and child holding one word, mutation: the ancestor walk removed; judged dry on the three tech sheets, then HEMA round 1 — expected sure 152 -> 195)",
+    "core/filing.php (vergeml_filing_audience_of reads the site's language too: dames, heren, kinderen, kind, baby, meisjes, jongens; pick.php row; judged on HEMA round 1)",
     "core/filing.php (the class floor: a class half's vector-only match corroborates, never places alone; probe first, judged dry on all three sheets)",
     "core/filing.php (vergeml_filing_ask_split leaves a view home)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt, tests/tree/filing-baseline-shop-b.txt (re-taken only with the reason, on a marked sheet re-read by path)",
@@ -24,10 +25,9 @@
   "handoffDir": "docs/handoffs",
   "stopPoints": [
     "Never run a suite or a walk on ms2 while Nathan is on it; ask first",
-    "ms2 shows HEMA's tree; the C.5 tree goes back only on Nathan's word (tools/box-tree-snapshot.php restore), and its band is re-read by path before it is re-taken",
+    "ms2 shows HEMA's tree (site language nl_NL, the leaves planner-named); Nathan left the C.5 restore to the session: after k by lines is judged on HEMA, put it back (tools/box-tree-snapshot.php restore) and re-read its band by path before re-taking it",
     "S10.8 touches products: the live test makes and removes its own product on the tech site; Woo on ms2 and products from the seed leaves only on Nathan's word",
     "The rail's flipped order is a mock before a build",
-    "The foreign leaf's planner ask spends ~30 credits on HEMA: Nathan's yes first",
     "A band is re-taken only on a marked sheet re-read by path, and the re-take carries the reason",
     "Every bug from a walk is a story: test first, one mutation, then the fix; a mutation of anything that can start a run holds the cron wire",
     "Never git checkout a file carrying uncommitted work: restore a mutation by the same string edit that made it"
