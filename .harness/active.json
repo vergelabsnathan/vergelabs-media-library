@@ -1,33 +1,35 @@
 {
-  "phase": "Every picture a home — S14: the member profile trusts only sure and hand placements (the marks: likely 57 % → 20 %), the two pre-S13 UI reds, the foreign tree (S10.5b), the shop band on its marks, then file by the product (S10.8)",
+  "phase": "Every picture a home — S15: the class-half hits (the 7 wrong likelies left), HEMA's three findings (the marketing folder that owns nothing, the foreign-language leaf, the department repeated under sale / nieuwe collectie), the apply's progress row, then file by the product (S10.8)",
   "model": "opus",
-  "plan": "plans/every-picture-a-home.md (Phase D: S14)",
+  "plan": "plans/every-picture-a-home.md (Phase D: S15)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "tools/box-seed-shop-tree-b.txt (S10.5b: written, HEMA's tree, 292 folders; pasted on ms2 after Unconfirm and the folders removed; tests/tree/filing-baseline-shop-b.txt and its sheet)",
-    "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (the tech band re-taken again after the member refinement, with the reason and a dry sheet; the shop band on its marks)",
-    "core/filing.php (first: a member counts only when its placement was sure or the person's — vergeml_filing_members_layers reads the moves trail; pick.php row, one mutation; the S13 sheet re-read through $bfq_s13 before and after)",
+    "core/filing.php, core/guide.php (HEMA's findings: a planner profile of everything is a folder that owns nothing; a leaf in another language than the describer's — judged dry on the shop-b band before it moves)",
+    "js/vergeml-folders.js, core/folder-talk.php (the apply's progress row: making N folders, S10.0)",
+    "core/filing.php (the class-half hit by containment on a non-first, non-leaf word: 'technical diagram' → diagram, 'gaming hardware' → hardware; judged dry on both sheets before it moves; pick.php row, one mutation)",
+    "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (re-taken only with the reason, on a marked sheet re-read by path)",
     "core/filing.php, core/folder-talk.php, core/integrations/** (S10.8: a picture attached to a product goes where the product's categories say, sure, 'by the product', before any matching; tests/integrations/live.php)",
     "js/vergeml-folders.js (the rail's Fill step: 'placed by product N · by evidence N · to sort N'; the flipped order for structured libraries, mocked)",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-17-s13-the-fill-learns.md (this: the three member rules, why the tech number is not the verdict, the alt, rule 3's two overreaches)",
-    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.5b, S10.8; the S10.7/S10.9/rule 3 Built paragraphs)",
+    "docs/handoffs/2026-09-17-s14-words-corroborate.md (this: why the trust rule is out, the word rule and its cost, the 7 class-half hits, HEMA's numbers and what the sheet shows, the snapshot tool)",
+    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.5b, S10.8; the S10.7/S10.9 S14 paragraphs)",
     "memory: hetzner-box-fixtures (ms2, vgmls9), tests-never-touch-live-state, model-spend-discipline, shared-classes-break-the-matcher"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
     "Never run a suite or a walk on ms2 while Nathan is on it; ask first",
-    "S10.5b's catalogue and its confirm (0 credits after S10.1's split — say the number) are Nathan's yes before the paste",
-    "A band is re-taken only on a marked sheet, and the re-take carries the reason (the shop's sheet is unmarked)",
+    "ms2 shows HEMA's tree; the C.5 tree goes back only on Nathan's word (tools/box-tree-snapshot.php restore)",
+    "A band is re-taken only on a marked sheet re-read by path, and the re-take carries the reason",
     "Every bug from a walk is a story: test first, one mutation, then the fix; a mutation of anything that can start a run holds the cron wire",
-    "S10.8 touches products: every write measured on the box's Woo fixture, never on ms2's live catalogue without Nathan's word"
+    "S10.8 touches products: every write measured on the box's Woo fixture, never on ms2's live catalogue without Nathan's word",
+    "Never git checkout a file carrying uncommitted work: restore a mutation by the same string edit that made it"
   ],
   "gates": [
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background → green (escaping 9/10 known)",
-    "folders.spec and modes.spec on the tech site: the two pre-S13 reds (the .pdf test's Start over, the Fill step's 'filled again' button) made a story and green; on ms2 once Nathan says it is free",
-    "both baselines 4/4 or re-taken with the reason; the shop-b band and sheet taken"
+    "folders.spec and modes.spec on the tech site green; on ms2 once Nathan says it is free",
+    "all three bands 4/4 or re-taken with the reason (shop-b reads whichever tree is up)"
   ]
 }

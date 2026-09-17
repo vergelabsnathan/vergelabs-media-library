@@ -103,6 +103,24 @@ computer interior*, "gaming hardware" → *hardware*, "electronic test
 equipment" → *electronics*, "computer equipment" → *computer* — 0.63–0.69
 with the runner-up far below. The next cause; a story of its own.
 
+**Tried at the session's end and taken out (not committed):** "the class
+half's modifier is not what the thing is" — containment on the second
+phrase counting only where the folder's word is the phrase's head noun
+(`vergeml_filing_class_match`, `$head` false). Dry on tech: the S13
+sheet's wrong likelies dropped 12 of 17 (+2), sure unchanged — but likely
+71 → 88 and margin 64 → 33, and 14 of the 22 pictures that left a tie
+were "vr headset / drone / e-reader; electronics" landing in **Energy /
+Batteries**, likely: the planner had put *electronics* fourth on
+Batteries, Components' *electronics component* had tied it by
+containment, and the tie was the right answer. So the real cause is a
+**generic class-half word whole-matching a minor planner class on one
+folder** (*electronics* on Batteries), which 1/k cannot see because only
+one folder holds it. A rule to judge: a planner class that is the class
+half of many pictures across many folders is a library word, not this
+folder's (S10.1's vocabulary rule read the other way), worth 1/k over
+the folders whose pictures say it. Probe first: how many pictures say
+*electronics*, and in which folders they sit.
+
 **The shop, read only:** S13 read it at fits 510 / sure 491 and never
 re-took (its band file still said 493/467 from `2037294`). Under the word
 rule: fits 510, sure 488, likely 31, siblings 9, nothing 107 (floor 44,
