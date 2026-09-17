@@ -143,45 +143,76 @@ Nathan is off the site.
   `vgmls9`'s password was reset this session and lives in this session's
   scratchpad only — delete the user when C.5 closes.
 
+## 2026-09-17, morning: the loop (`64c9e7a`)
+
+Nathan: "every fill results in the same images being asked to be confirmed
+again". Two answers left no mark -- *Split them by best score* (on purpose,
+"so the word stays the fill's") and *Keep them in the parent* (moved
+nothing) -- so the next fill scored the same tie and asked again. Every
+answer now marks its pictures `answer`: kept by the fill like `user`, the
+word on them "likely", not "by you". pick.php 25–26c, residue.php 11/12/20.
+The 25 questions open on ms2 at the time were re-asked by the old code; once
+answered under the new one they stay answered.
+
+**The method, honestly:** the BMAD skills are not installed on this machine
+(no `bmad-*` skill, none under `~/.claude/skills`, no `.claude/skills` in
+the repo, no `~/.claude/harness/model-profiles.md`) -- since the 09-14 reset
+the method has run by hand: the card, the story shape, test-first, the
+handoff. Not run: a build gate, a code review on any of today's 16 commits;
+the afternoon's fixes were not stories, and *Fill after Fill* has no test
+row. S11 starts by putting that back.
+
+**The model question (Nathan, 09-17):** Haiku 4.5 is the describer; a pasted
+comparison names Gemini 3.8 Flash at 97.9 on identification and cheaper --
+claims past this model's knowledge, unverified. Agreed course: a 100-picture
+eval (the 60 marked + 40 from the shop's To sort), three models through
+OpenRouter on the real prompt, scored in Braintrust on phrase-match-to-the-
+marked-folder, JSON failures, latency, ledger cost; < €3. Before any switch:
+a model change must not sweep every customer's library by itself (it does
+today) -- a button with a credit count. Switch only on 5+ points at equal or
+lower cost; both baselines re-taken with the reason.
+
 ## Next — S11
 
 Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S11: the tree at 300 folders, the media list opens on the pictures, the sheet's rules (S10.4, S10.6, S10.5, S10.5b)",
+  "phase": "Every picture a home — S11: the method back, the owner's round as the gate, then the questions' grain and the model eval",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S11)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "js/vergeml-tree-view.js, css/vergeml-tree-view.css (S10.4: the fold control where the eye starts, a hover card on a closed parent)",
-    "js/vergeml-tree.js, css/vergeml-tree.css, core/media-list.php (S10.6: one row above the list, the sidebar full height and sticky, the tree first)",
-    "core/folder-talk.php (S10.5: vergeml_talk_question_text carries the path when two named folders share a leaf; either/ors of one picture fold into one card per folder pair)",
-    "core/filing.php (S10.5 candidate: a head-noun hit never outranks a full hit of the second phrase — judged on both sheets before it moves)",
-    "tests/filing/residue.php, tests/filing/pick.php, tests/tree/tree-view.mjs, tests/ui/modes.spec.mjs, tests/ui/folders.spec.mjs",
-    "tools/box-seed-shop-tree-b.txt (S10.5b: a retailer's own catalogue, marketing names kept)",
+    "tests/ui/round.spec.mjs (new: the owner's round on the tech site through fill-fixture.php — confirm → fill → answer → fill again → unconfirm → edit a word → confirm → fill; a shot at every state; restored after)",
+    "core/folder-talk.php, core/filing.php (S10.5: one card per folder pair for either/ors of one picture; the path in a question when two folders share a leaf)",
+    "core/guide.php, tests/tree/guide.php (a test row for Fill after Fill: a confirmed tree with no draft fills the live folders)",
+    "js/vergeml-tree-view.js (a folder that takes no words: × on the last word must mean it)",
+    "core/ai-*.php (the sweep gate: a model change is a button with a credit count, never automatic)",
+    "service/ or tools/ (the describer eval: 100 pictures, three models through OpenRouter, Braintrust)",
+    "js/vergeml-tree-view.js, css, core/media-list.php (S10.4, S10.6 — mock-first, only after the above)",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-16-s10-folders-at-catalogue-scale.md (this: what S10 built, the re-taken band, the press not made)",
-    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.4, S10.5, S10.5b, S10.6 and the Built paragraphs above them)",
-    "memory: hetzner-box-fixtures (ms2, vgmls9; box-eval.mjs and box-ui-admin.php), tests-never-touch-live-state, no-pills-brand-square-marks, ui-less-text-pills"
+    "docs/handoffs/2026-09-16-s10-folders-at-catalogue-scale.md (this: what S10 built, the afternoon's bug hunt, the loop, the method as it stands)",
+    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (the Built paragraphs; S10.5, S10.4, S10.6, S10.5b)",
+    "memory: hetzner-box-fixtures (ms2, vgmls9; box-eval.mjs, box-ui-admin.php), tests-never-touch-live-state, model-spend-discipline, braintrust-eval-stack, openrouter-always"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "S10.4 and S10.6 are mock-first on one canvas: one concept line each, tools/shoot-mock.mjs at 1600 and 1280 with --words, Nathan's yes, then the build; every long step in them renders through S10.0's row",
-    "S10.5: the path-in-the-question and the per-pair fold change no constant; the head-noun candidate touches the tech baseline — judged on both sheets, and a re-take carries the reason",
-    "S10.5b: say the credits before the confirm (parents only now: expect one batch, 0 credits) and before any describe (none: the same 626 pictures); a second band file and a second sheet",
-    "Every change measured on both sites: tech 4/4 unchanged, the shop within 3 % or re-taken with the reason",
-    "Delete vgmls9 when C.5 closes; make a session admin with tools/box-ui-admin.php and delete it at the end"
+    "First: the method. Look in Desktop/🟢 Claude Projects/_reset-2026-09-14/ for the BMAD skills and the harness profiles; say what is there and what installing means; Nathan decides. Then /code-review on the S10 commits (3727f6a..64c9e7a) and fix what it finds before any new work",
+    "Never run a suite or a walk on ms2 while Nathan is on it; ask first. The owner's round runs on the tech site through the fixture",
+    "Every bug from a walk is a story: test first, one mutation, then the fix",
+    "The model eval spends < €3 and describes nothing in any library; say the number before it runs; no default changes without the sweep gate and Nathan's yes on the table",
+    "S10.4 and S10.6 are mock-first: one concept line each, tools/shoot-mock.mjs, Nathan's yes",
+    "Every change measured on both sites: tech 4/4 unchanged, the shop within 3 % or re-taken with the reason"
   ],
   "gates": [
-    "S10.4: tree-view.mjs — hover on a closed parent renders its children as chips with counts and leaves the open state alone; folders.spec at 1600 and 1280 on ms2, the word budget ≤ 80 without the tree",
-    "S10.6: modes.spec — the first row's top ≤ 240 px at 1280×800 with no filter set; the sidebar's height ≥ the viewport's; the tree's first folder visible without scrolling; mutation: the sticky removed → red",
-    "S10.5: residue.php — a question naming two same-leaf folders carries their paths (mutation: the path dropped → red); the either/or cards of one picture fold per folder pair, the cap counting pairs",
-    "S10.5b: filing-baseline-shop-b.txt taken, the second sheet marked by Nathan, the pair of numbers beside the first shop sheet and the tech sheet",
-    "node tools/verify.mjs filing surface roles escaping copy tree-view seed-shop → green (escaping 9/10 known); both baselines 4/4"
+    "The owner's round green on the tech site with shots; a fill after a fill runs; a second fill asks no question about a picture an answer placed",
+    "S10.5: residue.php — either/ors of one picture fold into one card per folder pair; a question naming two same-leaf folders carries their paths (mutations: the fold removed, the path dropped)",
+    "The sweep gate: a model change describes nothing until a button with its credit count is pressed (tests/ai/background.php row with its mutation)",
+    "The eval table in the handoff: three models × (phrase match, JSON failures, latency, cost) on 100 pictures",
+    "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop → green (escaping 9/10 known); both baselines 4/4; folders.spec on ms2 when Nathan is off it"
   ]
 }
 ```
@@ -190,11 +221,13 @@ Opener, cwd `plugin`:
 
 ```
 Read docs/handoffs/2026-09-16-s10-folders-at-catalogue-scale.md, then
-docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.4,
-S10.5, S10.5b, S10.6). State which model you are. This session is S11 of
-every-picture-a-home: the tree at 300 folders and the media list, mock-first
-on one canvas, then the sheet's rules and the foreign tree. Write the card
-from the handoff to .harness/active.json before anything else. Lean: test
-first, one mutation check per story, both sites measured, say every cost
-before it is spent. End with a handoff carrying the S12 card.
+docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md. State
+which model you are. This session is S11 of every-picture-a-home. Write the
+card from the handoff to .harness/active.json before anything else. First
+the method: find the BMAD skills and the harness profiles in the reset
+archive, report, then /code-review the S10 commits and fix what it finds.
+Then the owner's round as a suite, the questions' grain, the sweep gate and
+the model eval, in that order. Test first, one mutation per story, both sites
+measured, say every cost before it is spent, never touch ms2 while Nathan is
+on it. Talk plainly. End with a handoff carrying the S12 card.
 ```
