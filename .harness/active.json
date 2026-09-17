@@ -1,35 +1,41 @@
 {
-  "phase": "Every picture a home — S15: the class-half hits (the 7 wrong likelies left), HEMA's three findings (the marketing folder that owns nothing, the foreign-language leaf, the department repeated under sale / nieuwe collectie), the apply's progress row, then file by the product (S10.8)",
+  "phase": "Every picture a home — S16: S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the foreign leaf's planner ask on Nathan's yes, the class floor for vector-only class-half matches",
   "model": "opus",
-  "plan": "plans/every-picture-a-home.md (Phase D: S15)",
+  "plan": "plans/every-picture-a-home.md (Phase D: S16)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "core/filing.php, core/guide.php (HEMA's findings: a planner profile of everything is a folder that owns nothing; a leaf in another language than the describer's — judged dry on the shop-b band before it moves)",
-    "js/vergeml-folders.js, core/folder-talk.php (the apply's progress row: making N folders, S10.0)",
-    "core/filing.php (the class-half hit by containment on a non-first, non-leaf word: 'technical diagram' → diagram, 'gaming hardware' → hardware; judged dry on both sheets before it moves; pick.php row, one mutation)",
-    "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (re-taken only with the reason, on a marked sheet re-read by path)",
-    "core/filing.php, core/folder-talk.php, core/integrations/** (S10.8: a picture attached to a product goes where the product's categories say, sure, 'by the product', before any matching; tests/integrations/live.php)",
-    "js/vergeml-folders.js (the rail's Fill step: 'placed by product N · by evidence N · to sort N'; the flipped order for structured libraries, mocked)",
+    "core/filing.php (S10.8 task 1 — the map, pure: vergeml_filing_product_folder( $cat_path, $profiles ): a product_cat's path to the folder whose path equals it by canon names, else the folder whose leaf equals the category's name when exactly one does, else 0; pick.php rows, mutation: the leaf fallback removed)",
+    "core/filing.php, core/folder-talk.php (S10.8 task 2 — the fact: a row's product folder from _thumbnail_id, _product_image_gallery and post_parent (vergeml_filing_product_sql, the shape of vergeml_filing_words_sql); the pick answers fits / sure / why 'product' before any matching and treats placed_by 'product' like 'user'; the run records placed_by = product and the reason line 'by the product'; sticky.php rows on the suite's own product, mutation: the product path removed -> the matcher)",
+    "tests/integrations/live.php (S10.8 task 3 — 'woo': its own product in a category, a folder of that name, two pictures as featured and gallery -> both by product, sure; a second count -> unchanged; everything put back; on the tech site, never ms2)",
+    "js/vergeml-folders.js (S10.8 task 4 — the Fill step's rail: 'placed by product N · by evidence N · to sort N' from the report's tally; the flipped order for structured libraries mocked first, Nathan's yes)",
+    "core/filing.php, core/guide.php (the foreign leaf: S10.1's split sends a leaf not in the vocabulary on a site whose locale is not the describer's; only on Nathan's yes, the credits said first)",
+    "core/filing.php (the class floor: a class half's vector-only match corroborates, never places alone; probe first, judged dry on all three sheets)",
+    "core/filing.php (vergeml_filing_ask_split leaves a view home)",
+    "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt, tests/tree/filing-baseline-shop-b.txt (re-taken only with the reason, on a marked sheet re-read by path)",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-17-s14-words-corroborate.md (this: why the trust rule is out, the word rule and its cost, the 7 class-half hits, HEMA's numbers and what the sheet shows, the snapshot tool)",
-    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.5b, S10.8; the S10.7/S10.9 S14 paragraphs)",
-    "memory: hetzner-box-fixtures (ms2, vgmls9), tests-never-touch-live-state, model-spend-discipline, shared-classes-break-the-matcher"
+    "docs/handoffs/2026-09-17-s15-library-words-and-views.md (this: the probe, the two word rules and their sheets, the view rule and HEMA's honest 30 %, the apply's dead round trips, S10.8's premise)",
+    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.8 and its S15 paragraph; S10.5b's; the order of the steps by library)",
+    "core/ai.php vergeml_ai_context (the one place a product is read today) and tests/integrations/live.php 'woo' (the fixture's shape: a product, a category, 1778 and 1775)",
+    "memory: hetzner-box-fixtures (Woo active on the tech site, ms2 has none), tests-never-touch-live-state, model-spend-discipline, probe-the-premise-before-the-build"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
     "Never run a suite or a walk on ms2 while Nathan is on it; ask first",
-    "ms2 shows HEMA's tree; the C.5 tree goes back only on Nathan's word (tools/box-tree-snapshot.php restore)",
+    "ms2 shows HEMA's tree; the C.5 tree goes back only on Nathan's word (tools/box-tree-snapshot.php restore), and its band is re-read by path before it is re-taken",
+    "S10.8 touches products: the live test makes and removes its own product on the tech site; Woo on ms2 and products from the seed leaves only on Nathan's word",
+    "The rail's flipped order is a mock before a build",
+    "The foreign leaf's planner ask spends ~30 credits on HEMA: Nathan's yes first",
     "A band is re-taken only on a marked sheet re-read by path, and the re-take carries the reason",
     "Every bug from a walk is a story: test first, one mutation, then the fix; a mutation of anything that can start a run holds the cron wire",
-    "S10.8 touches products: every write measured on the box's Woo fixture, never on ms2's live catalogue without Nathan's word",
     "Never git checkout a file carrying uncommitted work: restore a mutation by the same string edit that made it"
   ],
   "gates": [
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background → green (escaping 9/10 known)",
+    "tests/integrations/live.php woo on the tech site green, red with the product path removed",
     "folders.spec and modes.spec on the tech site green; on ms2 once Nathan says it is free",
-    "all three bands 4/4 or re-taken with the reason (shop-b reads whichever tree is up)"
+    "the tech and shop-b bands 4/4 or re-taken with the reason; the C.5 band re-read and re-taken when its tree is back"
   ]
 }
