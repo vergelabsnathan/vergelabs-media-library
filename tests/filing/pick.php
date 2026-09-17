@@ -121,7 +121,18 @@ $profiles = array(
 // The last step every real caller takes: claims settled, shared words counted.
 $profiles = vergeml_filing_settle_claims( $profiles );
 
-f_check( '0 shared words counted once for the set: infrastructure 4, server 3, device 2, phone 1', isset( $profiles[1]['shared'] ) && 4 === $profiles[1]['shared']['infrastructure'] && 3 === $profiles[2]['shared']['server'] && 2 === $profiles[5]['shared']['device'] && 1 === $profiles[5]['shared']['phone'], json_encode( isset( $profiles[1]['shared'] ) ? $profiles[1]['shared'] : null ) );
+/*
+ *  Counted by lines (S16, from HEMA's round 1, 2026-09-17): a folder whose
+ *  ancestor holds the same word is that ancestor's line, not a second
+ *  holder -- the department holds "hiking boot" because its leaf does, and
+ *  halving both left the boots on the floor once the leaf was named (fits
+ *  297 -> 203; by lines 247 with sure 159 -> 195). Between a parent and its
+ *  child the depth rule chooses. Infrastructure: Data centres' line (with
+ *  Server racks and Cooling under it) and Space -- 2, not 4; server, on the
+ *  three of one line, 1; device on Hardware and Phones under it, 1.
+ *  Mutation: the ancestor walk removed -> row 0 red (4, 3, 2).
+ */
+f_check( '0 shared words counted by lines: infrastructure 2 (Data centres\' line, Space), server 1, device 1, phone 1', isset( $profiles[1]['shared'] ) && 2 === $profiles[1]['shared']['infrastructure'] && 1 === $profiles[2]['shared']['server'] && 1 === $profiles[5]['shared']['device'] && 1 === $profiles[5]['shared']['phone'], json_encode( isset( $profiles[1]['shared'] ) ? $profiles[1]['shared'] : null ) );
 
 function f_facts( $object, $extra = array() ) {
     return array_merge( array(
@@ -221,7 +232,7 @@ $p = $pick[14];
 f_check( '14 "server rack; infrastructure" among four folders sharing infrastructure: Server racks, sure, no margin', 'fits' === $p['outcome'] && 2 === $p['term_id'] && 'sure' === $p['confidence'] && $p['score'] - $p['runner_score'] >= VERGEML_FILING_MARGIN, sprintf( '%s %d @%.4f %s next %d @%.4f', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'], $p['runner_up'], $p['runner_score'] ) );
 
 $p = $pick[15];
-f_check( '15 a word on four folders is worth at most 0.25 x 0.75 on any of them: nothing, floor', 'nothing' === $p['outcome'] && 'floor' === $p['why'] && max( $p['scores'] ) <= 0.25 * VERGEML_FILING_CLASS_WEIGHT + 1e-9, sprintf( '%s why %s best @%.4f', $p['outcome'], $p['why'], $p['scores'] ? max( $p['scores'] ) : 0 ) );
+f_check( '15 a word on two lines (four folders) is worth at most 0.5 x 0.75 on any of them: nothing, floor', 'nothing' === $p['outcome'] && 'floor' === $p['why'] && max( $p['scores'] ) <= 0.5 * VERGEML_FILING_CLASS_WEIGHT + 1e-9, sprintf( '%s why %s best @%.4f', $p['outcome'], $p['why'], $p['scores'] ? max( $p['scores'] ) : 0 ) );
 
 echo "\n== the count, over the first twelve as index rows\n";
 

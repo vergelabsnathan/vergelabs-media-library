@@ -1000,11 +1000,24 @@ function vergeml_filing_settle_claims( $profiles ) {
      *  and abstained -- 109 of 388 residue. In the pick a class on k folders
      *  is worth 1/k: a word everyone holds tells nobody apart.
      */
-    $shared = array();
-    foreach ( $profiles as $p ) {
+    /*
+     *  Counted by lines (S16, 2026-09-17): a folder whose ancestor holds the
+     *  same word is that ancestor's line, not a second holder. On HEMA's
+     *  tree, once the planner named the Dutch leaves, buiten en onderweg
+     *  and its leaf both held "hiking boot" and 1/k halved it on each --
+     *  the boots went to the floor (round 1 fits 297 -> 203; by lines 247,
+     *  sure 159 -> 195). A department holds the word because its leaf
+     *  does; between the two the depth rule chooses.
+     */
+    $holders = array();
+    foreach ( $profiles as $tid => $p ) {
         foreach ( array_unique( array_map( 'vergeml_filing_group_key', (array) $p['classes'] ) ) as $key ) {
-            $shared[ $key ] = isset( $shared[ $key ] ) ? $shared[ $key ] + 1 : 1;
+            $holders[ $key ][ (int) $tid ] = true;
         }
+    }
+    $shared = array();
+    foreach ( $holders as $key => $tids ) {
+        $shared[ $key ] = vergeml_filing_lines( $tids, $profiles );
     }
 
     /*
@@ -1042,8 +1055,9 @@ function vergeml_filing_settle_claims( $profiles ) {
                         $said += $tids;
                     }
                 }
-                if ( count( $said ) > $shared[ $key ] ) {
-                    $shared[ $key ] = count( $said );
+                $lines = vergeml_filing_lines( $said, $profiles );
+                if ( $lines > $shared[ $key ] ) {
+                    $shared[ $key ] = $lines;
                 }
             }
         }
@@ -1053,6 +1067,26 @@ function vergeml_filing_settle_claims( $profiles ) {
         $profiles[ $tid ]['shared'] = $shared;
     }
     return $profiles;
+}
+
+/** How many lines a set of folders (term id => true) is: one per folder with no ancestor in the set. */
+function vergeml_filing_lines( $tids, $profiles ) {
+    $n = 0;
+    foreach ( array_keys( (array) $tids ) as $tid ) {
+        $anc = isset( $profiles[ $tid ]['parent_id'] ) ? (int) $profiles[ $tid ]['parent_id'] : 0;
+        $up  = false;
+        for ( $g = 0; $anc && $g < 32; $g++ ) {
+            if ( isset( $tids[ $anc ] ) ) {
+                $up = true;
+                break;
+            }
+            $anc = isset( $profiles[ $anc ]['parent_id'] ) ? (int) $profiles[ $anc ]['parent_id'] : 0;
+        }
+        if ( ! $up ) {
+            $n++;
+        }
+    }
+    return max( 1, $n );
 }
 
 /** Forget a folder's profile, so the next ask rebuilds it (renamed, moved, re-planned). */
