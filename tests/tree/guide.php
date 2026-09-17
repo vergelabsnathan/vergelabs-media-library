@@ -287,6 +287,52 @@ rest_do_request( new WP_REST_Request( 'GET', '/vergeml/v1/guide/progress' ) );
 $g_fit = vergeml_guide_session()['fit'];
 g_check( 'F8 the same on a shape no request holds settles as unknown: counted false, not pending, the "not worked out" line', is_array( $g_fit ) && empty( $g_fit['counted'] ) && empty( $g_fit['pending'] ) && isset( $g_fit['preview'][0]['text'] ) && 'The counts are not worked out yet' === $g_fit['preview'][0]['text'], json_encode( is_array( $g_fit ) ? array( 'counted' => $g_fit['counted'], 'pending' => ! empty( $g_fit['pending'] ), 'line' => isset( $g_fit['preview'][0]['text'] ) ? $g_fit['preview'][0]['text'] : null ) : $g_fit ) );
 
+/* ------------------------------------------------ G  a fill after a fill */
+
+/*
+ *  The run's end clears the draft (the tree is the library now), and until
+ *  2026-09-16 the next press handed that empty draft to the plan and was
+ *  refused ("Nothing moved."). A confirmed tree with no draft fills the live
+ *  folders. Driven through the route on a confirmed session with no draft;
+ *  the run it starts is stopped in the same breath, its event cleared, its
+ *  spawn answered here (never sent), and the fill's options put back -- no
+ *  pass runs and nothing moves. Mutation: the live-folders block removed from
+ *  vergeml_guide_rest_apply -> G1 red (400, "Nothing moved").
+ */
+echo "\nG  a fill after a fill: a confirmed tree with no draft fills the live folders\n\n";
+
+function g_answer_cron( $pre, $args, $url ) {
+    return false !== strpos( $url, 'wp-cron.php' ) ? array( 'response' => array( 'code' => 200 ), 'body' => '', 'headers' => array() ) : $pre;
+}
+add_filter( 'pre_http_request', 'g_answer_cron', 1, 3 );
+$g_state_was = get_option( VERGEML_TALK_STATE );
+$g_undo_was  = get_option( VERGEML_TALK_UNDO );
+$g_hook_was  = wp_next_scheduled( VERGEML_TALK_HOOK );
+$g_s         = vergeml_guide_fresh();
+$g_s['tree'] = 'confirmed';
+$g_s['draft'] = null;
+vergeml_guide_save( $g_s );
+$g_res   = rest_do_request( new WP_REST_Request( 'POST', '/vergeml/v1/guide/apply' ) );
+$g_data  = $g_res->get_data();
+$g_state = get_option( VERGEML_TALK_STATE );
+$g_live  = count( vergeml_folders_nodes( vergeml_librarian_taxonomy() ) );
+vergeml_talk_refile_stop();
+wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+if ( false !== $g_hook_was ) {
+    wp_schedule_single_event( (int) $g_hook_was, VERGEML_TALK_HOOK );
+}
+delete_transient( VERGEML_TALK_PASS_LOCK );
+delete_transient( VERGEML_TALK_BEAT );
+foreach ( array( VERGEML_TALK_STATE => $g_state_was, VERGEML_TALK_UNDO => $g_undo_was ) as $g_opt => $g_v ) {
+    if ( false === $g_v ) {
+        delete_option( $g_opt );
+    } else {
+        update_option( $g_opt, $g_v, false );
+    }
+}
+remove_filter( 'pre_http_request', 'g_answer_cron', 1 );
+g_check( sprintf( 'G1 apply on a confirmed tree with no draft starts a run over the %d live folders (200, running, nothing made), never "Nothing moved"', $g_live ), 200 === $g_res->get_status() && isset( $g_data['report']['running'] ) && true === $g_data['report']['running'] && is_array( $g_state ) && $g_live === count( (array) $g_state['ids'] ) && empty( $g_state['remove'] ) && 0 === (int) $g_state['seen'], json_encode( array( 'status' => $g_res->get_status(), 'message' => isset( $g_data['message'] ) ? $g_data['message'] : null, 'running' => isset( $g_data['report']['running'] ) ? $g_data['report']['running'] : null, 'ids' => is_array( $g_state ) ? count( (array) $g_state['ids'] ) : null, 'seen' => is_array( $g_state ) ? $g_state['seen'] : null ) ) );
+
 remove_filter( 'pre_http_request', 'g_answer', 1 );
 foreach ( array_keys( $GLOBALS['g_texts'] ) as $g_text ) {
     delete_transient( vergeml_meaning_slot( $g_text ) );

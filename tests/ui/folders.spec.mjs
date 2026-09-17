@@ -328,6 +328,26 @@ test.describe( 'the Folders screen', () => {
 
 		await page.evaluate( () => window.vgmlFoldersApp.progress( 'fill', null ) );
 		await expect( fill ).toBeHidden();
+
+		/*
+		 *  The run's end into the asking state (S11, the owner's round): the row
+		 *  under the button is the run's, and a run that has ended and left
+		 *  questions has no row -- until 2026-09-17 renderFill returned before
+		 *  the one call that hides it, and "Filling 1,000 of 1,000 · nothing
+		 *  moved for 34 s" stood under a finished fill. Mutation: the hide
+		 *  removed from renderFill's not-running path -> red.
+		 */
+		await page.evaluate( () => window.vgmlFoldersApp.progress( 'fill', { verb: 'Filling', count: '1,000 of 1,000 pictures', done: 1000, total: 1000, since: Date.now() - 50000, ticked: Date.now() - 34000 } ) );
+		await expect( fill ).toBeVisible();
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.questions = [ { id: 'r:0', kind: 'residue', count: 5, name: 'Probes', term_id: 0, text: '5 look like probes', answers: { leave: 'Leave them', 'show-me': 'Show me' }, sample: [], answered: '', result: null } ];
+			app.state.moving = { running: false, moved: 500, seen: 1000, total: 1000, tally: { sure: 298, likely: 202 } };
+			app.render();
+		} );
+		await expect( page.locator( '.g-cols' ) ).toHaveClass( /is-asking/ );
+		await expect( fill, 'a run that ended into questions has no progress row' ).toBeHidden();
+		await page.evaluate( () => { window.vgmlFoldersApp.state.questions = []; window.vgmlFoldersApp.state.moving = null; window.vgmlFoldersApp.render(); } );
 	} );
 
 	/*

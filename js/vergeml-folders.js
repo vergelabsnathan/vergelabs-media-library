@@ -815,6 +815,11 @@
 			view.setNewIds( 'fill' === state.step ? state.made : [] );
 		}
 
+		// The row under the button is the run's: gone the moment the run is, whatever state the end lands in (asking, done, open again).
+		if ( ! running() ) {
+			renderProgress( 'fill', null );
+		}
+
 		dom.fillMove.innerHTML = '';
 		if ( done ) {
 			/*
