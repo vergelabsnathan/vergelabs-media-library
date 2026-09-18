@@ -1,10 +1,12 @@
 {
-  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6) and the walk is done (17 cards for 267 pictures, 143 sures to questions or doubts; ~60 cents, cached a week); the button's price once Nathan prices the call. fill-walk 22/22 with the model in. The six hardware pictures are settled (network switches; the tree lacks the folder; no rule; doubts stay as built). The road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
+  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6) and the walk is done (17 cards for 267 pictures, 143 sures to questions or doubts; ~60 cents, cached a week); the button's price once Nathan prices the call. fill-walk 22/22 with the model in. The six hardware pictures are settled (network switches; the tree lacks the folder; no rule; doubts stay as built). The road to complete: first the real WooCommerce shop built on the box (a new ms2 subsite with WooCommerce's own sample catalogue and its real product photos imported; then the plugin walked on it as a shop owner: Describe ~40 credits, Tree, Fill, the questions, Alt text, Rename, every screen shot, every finding a story), then a user's pass over every Folders screen, then Plugin Check and the archive.",
   "model": "opus",
   "plan": "plans/agree-or-ask.md (done: the six tasks); the S19 tasks as this card lists them, a plan file only if Nathan's calls open more than a copy pass and a walk",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
     "js/vergeml-folders.js, core/folder-talk.php, tests/ui/folders.spec.mjs (the button's price, once Nathan prices the call: his words)",
+    "tools/box-shop-real-*.sh, tools/box-shop-real-*.php (the real shop: a new ms2 subsite, WooCommerce, its sample catalogue with the photos fetched; snapshot before, never the C.5 site)",
+    "docs/superpowers/mocks/shots/** (the walk's screens)",
     "docs/ai-service.md (the /v1/file paragraph of the contract)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (rules-only, re-taken only with the reason)",
     "docs/handoffs/**",

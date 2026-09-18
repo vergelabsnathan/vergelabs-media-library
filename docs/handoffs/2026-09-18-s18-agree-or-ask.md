@@ -173,6 +173,20 @@ what leave left; an either/or card keys its pictures, which F5 had read on
 the wrong side since S10.5). **fill-walk 22/22**, 37 s on the cache. The live card with the walk's tally:
 `mocks/shots/2026-09-18-walk-fill-card.png`.
 
+## The real shop (Nathan, end of S18: "I do not have that, you may create one")
+
+No real WooCommerce shop exists to walk, so S19 builds one on the box:
+a new subsite of the ms2 multisite (never the C.5 site, never while
+Nathan is on ms2), WooCommerce active, its own sample catalogue imported
+(`sample_products.csv` ships with WooCommerce: ~30 products with real
+photos, categories, galleries, variations) plus the images fetched into
+the media library, so the pictures are real product photos with real
+product links. Then the walk as a shop owner: activate the plugin,
+Describe (~40 pictures, ~40 credits), Tree, Fill (by product first, the
+rules and the model on the rest), the questions, Alt text, Rename; every
+screen shot; anything found is a story. The snapshot tools
+(`box-tree-snapshot.php`) work per site with `--url`.
+
 ## Gates
 
 - `filing` 105/105 + 34/34 · `sticky` 61/61 · `guide` 42/42 · `filing-trail`
@@ -197,12 +211,14 @@ Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6) and the walk is done (17 cards for 267 pictures, 143 sures to questions or doubts; ~60 cents, cached a week); the button's price once Nathan prices the call. fill-walk 22/22 with the model in. The six hardware pictures are settled (network switches; the tree lacks the folder; no rule; doubts stay as built). The road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
+  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6) and the walk is done (17 cards for 267 pictures, 143 sures to questions or doubts; ~60 cents, cached a week); the button's price once Nathan prices the call. fill-walk 22/22 with the model in. The six hardware pictures are settled (network switches; the tree lacks the folder; no rule; doubts stay as built). The road to complete: first the real WooCommerce shop built on the box (a new ms2 subsite with WooCommerce's own sample catalogue and its real product photos imported; then the plugin walked on it as a shop owner: Describe ~40 credits, Tree, Fill, the questions, Alt text, Rename, every screen shot, every finding a story), then a user's pass over every Folders screen, then Plugin Check and the archive.",
   "model": "opus",
   "plan": "plans/agree-or-ask.md (done: the six tasks); the S19 tasks as this card lists them, a plan file only if Nathan's calls open more than a copy pass and a walk",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
     "js/vergeml-folders.js, core/folder-talk.php, tests/ui/folders.spec.mjs (the button's price, once Nathan prices the call: his words)",
+    "tools/box-shop-real-*.sh, tools/box-shop-real-*.php (the real shop: a new ms2 subsite, WooCommerce, its sample catalogue with the photos fetched; snapshot before, never the C.5 site)",
+    "docs/superpowers/mocks/shots/** (the walk's screens)",
     "docs/ai-service.md (the /v1/file paragraph of the contract)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (rules-only, re-taken only with the reason)",
     "docs/handoffs/**",
@@ -244,7 +260,10 @@ plans/agree-or-ask.md. State which model you are and follow that profile
 in ~/.claude/harness/model-profiles.md. This session is S19 of
 every-picture-a-home; the card is already in .harness/active.json — read
 it before anything else. Both rules-only SCORE lines first (shop 347 of
-581, tech 153 of 200); then the road to complete. Test first, one
+581, tech 153 of 200); then the real shop on the box (a new ms2
+subsite, WooCommerce's sample catalogue with its real photos; say every
+cost, never the C.5 site, never while Nathan is on ms2) and the walk on
+it as a shop owner, every screen shot; then the rest of the road. Test first, one
 mutation per story, both score lines after every task, every cost said
 before it is spent, never on ms2 while Nathan is on it. Talk plainly. End
 with a handoff carrying the S20 card.
