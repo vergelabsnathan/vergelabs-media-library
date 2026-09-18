@@ -97,25 +97,78 @@ switch ( $which ) {
 
     case 'woo':
         vgml_check( 'WooCommerce is the plugin that is loaded', class_exists( 'WooCommerce' ) );
+        /*
+         *  Its own pictures (S16): the library's 1778, 1775 and 1774 went
+         *  with the seed, so the case makes three attachments with index
+         *  rows -- a featured image, a gallery image, and a copy for the
+         *  repoint -- and deletes them at the end. vergeml_index_set is
+         *  what the describer writes; the vector is a fixture's.
+         */
+        $mk = function ( $title, $object ) {
+            $id = wp_insert_post( array( 'post_title' => 'VGML check ' . $title, 'post_type' => 'attachment', 'post_status' => 'inherit', 'post_mime_type' => 'image/png' ) );
+            vergeml_index_set( (int) $id, array( 'caption' => 'seeded', 'kind' => 'photo', 'filing' => wp_json_encode( array( 'object' => $object, 'audience' => '' ) ), 'embedding' => array( 1.0, 0.0, 0.0, 0.0 ), 'model' => 'zz-test', 'model_version' => 'zz-model-7', 'prompt_hash' => 'zzhash0123456789', 'error' => '', 'described_at' => gmdate( 'Y-m-d H:i:s' ) ) );
+            return (int) $id;
+        };
+        $feat = $mk( 'featured', 'vgmlcheckdeck; zzthing' );
+        $gal  = $mk( 'gallery', 'vgmlcheckdeck; zzthing' );
+        $copy = $mk( 'copy', 'vgmlcheckdeck; zzthing' );
+
         $product = wp_insert_post( array( 'post_type' => 'product', 'post_status' => 'publish', 'post_title' => 'VGML check deck' ) );
         $cat     = wp_insert_term( 'Skateboard decks', 'product_cat' );
         $cat_id  = is_wp_error( $cat ) ? (int) $cat->get_error_data( 'term_exists' ) : (int) $cat['term_id'];
         wp_set_object_terms( $product, array( $cat_id ), 'product_cat' );
-        update_post_meta( $product, '_product_image_gallery', '1778,1775' );
-        wp_update_post( array( 'ID' => 1778, 'post_parent' => $product ) );
-        clean_post_cache( 1778 );
+        update_post_meta( $product, '_thumbnail_id', (string) $feat );
+        update_post_meta( $product, '_product_image_gallery', $feat . ',' . $gal );
+        wp_update_post( array( 'ID' => $feat, 'post_parent' => $product ) );
+        clean_post_cache( $feat );
 
-        $ctx = vergeml_ai_context( 1778 );
+        $ctx = vergeml_ai_context( $feat );
         vgml_check( 'the product title reaches the describe context', isset( $ctx['post_title'] ) && 'VGML check deck' === $ctx['post_title'] );
         vgml_check( 'the product categories reach the describe context', isset( $ctx['product_categories'] ) && false !== strpos( $ctx['product_categories'], 'Skateboard decks' ), isset( $ctx['product_categories'] ) ? $ctx['product_categories'] : '(none)' );
 
-        $changed = vergeml_health_repoint( 1775, 1774 );
-        $gallery = get_post_meta( $product, '_product_image_gallery', true );
-        vgml_check( 'deleting a duplicate repoints the product gallery', '1778,1774' === $gallery, $gallery . ' / ' . wp_json_encode( $changed ) );
+        /*
+         *  File by the product (S10.8): a folder named like the category,
+         *  the featured image and the gallery image, the rows read as the
+         *  fill reads them, and the fill's own count -- dry, nothing moves
+         *  on this library -- puts both in that folder by the product, sure;
+         *  a second count says the same. The folder goes at the end.
+         *  Mutation: the product path removed (vergeml_filing_product_folders
+         *  returning its rows unchanged) -> both fall to the matcher, red.
+         */
+        $tax    = vergeml_librarian_taxonomy();
+        $folder = wp_insert_term( 'Skateboard decks', $tax );
+        $folder = is_wp_error( $folder ) ? (int) $folder->get_error_data( 'term_exists' ) : (int) $folder['term_id'];
+        $ids    = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'fields' => 'ids' ) );
+        $ids    = is_wp_error( $ids ) ? array( $folder ) : array_map( 'intval', $ids );
+        sort( $ids );
+        $profiles = vergeml_filing_profiles( $ids, $tax );
+        $words    = vergeml_filing_words_sql( 'i' );
+        $psql     = vergeml_filing_product_sql( 'i' );
+        $rows     = (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.kind, i.filing, {$words['select']}, {$psql['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} {$psql['join']} WHERE i.attachment_id IN (%d, %d, %d) AND i.error = '' AND i.embedding IS NOT NULL ORDER BY i.attachment_id", $feat, $gal, $copy ), ARRAY_A );
+        $by_id    = array();
+        foreach ( $rows as $r ) {
+            $by_id[ (int) $r['attachment_id'] ] = (int) $r['product_id'];
+        }
+        vgml_check( 'the rows carry the product: the featured (parent too) and the gallery image say it, the copy says none', 3 === count( $rows ) && $by_id[ $feat ] === (int) $product && $by_id[ $gal ] === (int) $product && 0 === $by_id[ $copy ], wp_json_encode( $by_id ) );
+        $rows  = vergeml_filing_product_folders( $rows, $profiles );
+        $first = vergeml_filing_count( $profiles, $rows )['picks'];
+        vgml_check( 'the count puts both in Skateboard decks by the product, sure; the copy, saying the same word, is nobody\'s and lands nowhere', isset( $first[ $feat ], $first[ $gal ], $first[ $copy ] ) && $folder === (int) $first[ $feat ]['term_id'] && $folder === (int) $first[ $gal ]['term_id'] && 'product' === $first[ $feat ]['why'] && 'product' === $first[ $gal ]['why'] && 'sure' === $first[ $feat ]['confidence'] && 0 === (int) $first[ $copy ]['term_id'], wp_json_encode( array( isset( $first[ $feat ] ) ? array( $first[ $feat ]['term_id'], $first[ $feat ]['why'] ) : null, isset( $first[ $gal ] ) ? array( $first[ $gal ]['term_id'], $first[ $gal ]['why'] ) : null, isset( $first[ $copy ] ) ? array( $first[ $copy ]['term_id'], $first[ $copy ]['why'] ) : null ) ) );
+        $again = vergeml_filing_count( $profiles, $rows )['picks'];
+        vgml_check( 'a second count says the same', isset( $again[ $feat ], $again[ $gal ] ) && $again[ $feat ]['term_id'] === $first[ $feat ]['term_id'] && $again[ $gal ]['term_id'] === $first[ $gal ]['term_id'] && $again[ $feat ]['why'] === $first[ $feat ]['why'] );
+        wp_delete_term( $folder, $tax );
+        vgml_check( 'the folder is gone again', null === get_term( $folder, $tax ) );
 
-        wp_update_post( array( 'ID' => 1778, 'post_parent' => 0 ) );
+        $changed = vergeml_health_repoint( $gal, $copy );
+        $gallery = get_post_meta( $product, '_product_image_gallery', true );
+        vgml_check( 'deleting a duplicate repoints the product gallery', $feat . ',' . $copy === $gallery, $gallery . ' / ' . wp_json_encode( $changed ) );
+
         wp_delete_post( $product, true );
         wp_delete_term( $cat_id, 'product_cat' );
+        foreach ( array( $feat, $gal, $copy ) as $id ) {
+            $wpdb->delete( $wpdb->vergeml_ai_index, array( 'attachment_id' => $id ), array( '%d' ) );
+            wp_delete_post( $id, true );
+        }
+        vgml_check( 'the pictures, the product and the category are gone', ! get_post( $feat ) && ! get_post( $gal ) && ! get_post( $copy ) && ! get_post( $product ) && null === get_term( $cat_id, 'product_cat' ) );
         break;
 
     case 'acf':
