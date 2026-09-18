@@ -484,6 +484,18 @@ foreach ( $ft_files as $ft_why => $ft_id ) {
         sprintf( 'row %d, pick %d', (int) $ft_row['nearest'], isset( $ft_pick['nearest'] ) ? (int) $ft_pick['nearest'] : 0 )
     );
 
+    /*
+     *  Where the hit came from (S16): the pick's own 'source' and 'hit'
+     *  ("picture phrase ~ folder word"), so "the wrong sures are learned
+     *  member words" is a query over the trail. A refusal carries the
+     *  nearest folder's; a placement the chosen folder's.
+     */
+    ft_check(
+        sprintf( 'the %s row carries the source of the hit and the pair, as the matcher said them', $ft_why ),
+        (string) $ft_row['source'] === (string) $ft_pick['source'] && (string) $ft_row['hit'] === (string) $ft_pick['hit'],
+        sprintf( 'row %s "%s", pick %s "%s"', (string) $ft_row['source'], (string) $ft_row['hit'], (string) $ft_pick['source'], (string) $ft_pick['hit'] )
+    );
+
     ft_check(
         sprintf( 'the %s row points back at the description it rests on', $ft_why ),
         'zzhash0123456789' === (string) $ft_row['prompt_hash'] && 'zz-model-7' === (string) $ft_row['model_version'],
@@ -1103,7 +1115,7 @@ if ( false === $ft_undo_before ) {
 
 ft_say( "\nan older site upgrades\n" );
 
-$ft_new_columns = array( 'why', 'score', 'runner_up', 'runner_score', 'prompt_hash', 'model_version', 'nearest' );
+$ft_new_columns = array( 'why', 'score', 'runner_up', 'runner_score', 'prompt_hash', 'model_version', 'nearest', 'source', 'hit' );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
 $ft_have = (array) $wpdb->get_col( "SHOW COLUMNS FROM {$ft_moves}" );

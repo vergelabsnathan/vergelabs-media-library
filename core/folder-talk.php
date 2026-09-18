@@ -1262,7 +1262,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 					$trail[] = array(
 						$attachment,
 						0,
-						vergeml_talk_reason( array( $why, $pick['score'], $pick['runner_up'], $pick['runner_score'], isset( $pick['nearest'] ) ? $pick['nearest'] : 0 ), $row ),
+						vergeml_talk_reason( array( $why, $pick['score'], $pick['runner_up'], $pick['runner_score'], isset( $pick['nearest'] ) ? $pick['nearest'] : 0, isset( $pick['source'] ) ? $pick['source'] : '', isset( $pick['hit'] ) ? $pick['hit'] : '' ), $row ),
 					);
 				}
 				/*
@@ -1326,7 +1326,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			$trail[] = array(
 				$attachment,
 				(int) $pick['term_id'],
-				vergeml_talk_reason( array( $pick['why'], $pick['score'], $pick['runner_up'], $pick['runner_score'], isset( $pick['nearest'] ) ? $pick['nearest'] : 0 ), $row ),
+				vergeml_talk_reason( array( $pick['why'], $pick['score'], $pick['runner_up'], $pick['runner_score'], isset( $pick['nearest'] ) ? $pick['nearest'] : 0, isset( $pick['source'] ) ? $pick['source'] : '', isset( $pick['hit'] ) ? $pick['hit'] : '' ), $row ),
 			);
 		}
 
@@ -1441,6 +1441,12 @@ function vergeml_talk_reason( $packed, $row ) {
 	// plan already in flight across a deploy has four entries and no fifth.
 	if ( isset( $packed[4] ) ) {
 		$reason['nearest'] = (int) $packed[4];
+	}
+
+	// Where the hit came from and the pair it was (S16); optional the same way.
+	if ( isset( $packed[5] ) ) {
+		$reason['source'] = (string) $packed[5];
+		$reason['hit']    = isset( $packed[6] ) ? (string) $packed[6] : '';
 	}
 
 	return $reason;

@@ -556,11 +556,16 @@ if ( 6 === $sk_reach ) {
      *  unplaced and moved others: the folders now hold pictures, their
      *  members' words are read, and the leftovers get a second look. R is
      *  planned for "zzstickyround" and holds two pictures the person put
-     *  there that say "zzstickymember" (two is not a folder). Round 1 places
-     *  the "zzstickyround" picture in R and leaves the "zzstickymember" one
-     *  (nothing says it); R now holds three, its members say "zzstickymember"
-     *  twice, and round 2 places the leftover there. Mutation: the second
-     *  round removed -> H1 red (the leftover in no folder, one round).
+     *  there that say "zzstickyround gear" (two is not a folder). Round 1
+     *  places the "zzstickyround" picture in R and leaves the one that says
+     *  only "gear" (the plan word does not contain it); R now holds three,
+     *  its members say "zzstickyround gear" twice -- a word alike to the
+     *  plan's, so R keeps it (S16: a member word only where alike to the
+     *  folder's own; the first fixture taught R "zzstickymember", a word
+     *  nothing about R is like, and that is what the rule refuses) -- and
+     *  round 2 places the leftover there: "gear" sits inside the learned
+     *  word at 0.95. Mutation: the second round removed -> H1 red (the
+     *  leftover in no folder, one round).
      */
     echo "\nH  the fill learns from its own placements (S10.7)\n\n";
 
@@ -569,10 +574,10 @@ if ( 6 === $sk_reach ) {
     $sk_rp = vergeml_filing_profile_build( get_term( $sk_terms['zzStickyR'], $sk_tax ), $sk_tax, array( 'classes' => array( 'zzstickyround' ), 'kinds' => array( 'photo' ) ) );
     sk_check( 'H0 R is planned for zzstickyround', is_array( $sk_rp ) && 'plan' === $sk_rp['source'] && 'zzstickyround' === $sk_rp['classes'][0], json_encode( is_array( $sk_rp ) ? $sk_rp['classes'] : null ) );
 
-    $sk_files['m1']    = sk_file( 'm1', 'zzstickymember; zzthing' );
-    $sk_files['m2']    = sk_file( 'm2', 'zzstickymember; zzthing' );
+    $sk_files['m1']    = sk_file( 'm1', 'zzstickyround gear; zzthing' );
+    $sk_files['m2']    = sk_file( 'm2', 'zzstickyround gear; zzthing' );
     $sk_files['round'] = sk_file( 'round', 'zzstickyround; zzthing' );
-    $sk_files['other'] = sk_file( 'other', 'zzstickymember; zzthing' );
+    $sk_files['other'] = sk_file( 'other', 'gear; zzthing' );
     $sk_in             = implode( ',', array_map( 'intval', array_values( $sk_files ) ) );
     foreach ( array( 'm1', 'm2' ) as $sk_k ) {
         wp_set_object_terms( $sk_files[ $sk_k ], array( $sk_terms['zzStickyR'] ), $sk_tax, false );
@@ -614,7 +619,7 @@ if ( 6 === $sk_reach ) {
     sk_check( 'H2 the tally counts each picture once across the rounds: looked 4, fits 2, kept 2', 4 === (int) $sk_tally['looked'] && 2 === (int) $sk_tally['fits'] && 2 === (int) $sk_tally['kept'], json_encode( array_intersect_key( $sk_tally, array_flip( array( 'looked', 'fits', 'siblings', 'nothing', 'kept' ) ) ) ) );
     $sk_layers = vergeml_filing_members_layers( array( $sk_terms['zzStickyR'] ), $sk_tax );
     $sk_layer  = isset( $sk_layers[ $sk_terms['zzStickyR'] ] ) ? $sk_layers[ $sk_terms['zzStickyR'] ] : array();
-    sk_check( 'H3 R\'s layer after the fill: four members, zzstickymember 3 (zzstickyround, said once, is that picture), the stamp kept in term meta', isset( $sk_layer['n'] ) && 4 === (int) $sk_layer['n'] && array( 'zzstickymember' => 3 ) === $sk_layer['words'] && is_array( get_term_meta( $sk_terms['zzStickyR'], VERGEML_FILING_META_MEMBERS, true ) ), json_encode( isset( $sk_layer['words'] ) ? $sk_layer['words'] : $sk_layers ) );
+    sk_check( 'H3 R\'s layer after the fill: four members, zzstickyround gear 2 (zzstickyround and gear, said once each, are those pictures), the stamp kept in term meta', isset( $sk_layer['n'] ) && 4 === (int) $sk_layer['n'] && array( 'zzstickyround gear' => 2 ) === $sk_layer['words'] && is_array( get_term_meta( $sk_terms['zzStickyR'], VERGEML_FILING_META_MEMBERS, true ) ), json_encode( isset( $sk_layer['words'] ) ? $sk_layer['words'] : $sk_layers ) );
     $sk_report = vergeml_talk_report( $sk_done );
     sk_check( 'H4 the report carries the rounds', isset( $sk_report['rounds'] ) && array( 1 => 1, 2 => 2 ) === array_map( 'intval', (array) $sk_report['rounds'] ), json_encode( isset( $sk_report['rounds'] ) ? $sk_report['rounds'] : null ) );
 

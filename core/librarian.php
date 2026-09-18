@@ -47,7 +47,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 const VERGEML_LIBRARIAN_BATCHES = 'vergeml_librarian_batches';
 const VERGEML_LIBRARIAN_MOVES   = 'vergeml_librarian_moves';
-const VERGEML_LIBRARIAN_VERSION = 3; // 3: a batch records who approved it, and a refusal the folder it nearly went to.
+const VERGEML_LIBRARIAN_VERSION = 4; // 3: a batch records who approved it, and a refusal the folder it nearly went to. 4: a move records the source of its hit (S16).
 const VERGEML_LIBRARIAN_OPTION  = 'vergeml_librarian';
 
 /*
@@ -226,6 +226,14 @@ function vergeml_librarian_install() {
      *  second, `nearest` the folder that came first and was not good enough.
      *  It is 0 on a placement, where the folder it went to is already the row.
      *
+     *  `source` and `hit` (S16) say where the winning folder's best class hit
+     *  came from -- plan, name, members, matches, word, or vector when no
+     *  class hit at all -- and the pair it was, "picture phrase ~ folder
+     *  word". Nathan's S15 verdict, "six of the seven wrong sures are words
+     *  the folders learned from the fill's own misses", took a probe to say;
+     *  with these two it is a query over the trail, and the why card can say
+     *  it of one picture.
+     *
      *  Additive and nullable, and nothing is backfilled: an empty `why` on an
      *  old row means the move happened before any of this shipped, and it has
      *  to stay readable as exactly that.
@@ -244,6 +252,8 @@ function vergeml_librarian_install() {
         prompt_hash varchar(64) NOT NULL DEFAULT '',
         model_version varchar(64) NOT NULL DEFAULT '',
         nearest bigint(20) unsigned NOT NULL DEFAULT 0,
+        source varchar(16) NOT NULL DEFAULT '',
+        hit varchar(160) NOT NULL DEFAULT '',
         PRIMARY KEY  (move_id),
         KEY batch_id (batch_id),
         KEY batch_undone (batch_id,undone),
@@ -1802,6 +1812,8 @@ function vergeml_librarian_move_reason( $reason ) {
         'prompt_hash'   => isset( $reason['prompt_hash'] ) ? mb_substr( (string) $reason['prompt_hash'], 0, 64 ) : '',
         'model_version' => isset( $reason['model_version'] ) ? mb_substr( (string) $reason['model_version'], 0, 64 ) : '',
         'nearest'       => isset( $reason['nearest'] ) ? (int) $reason['nearest'] : 0,
+        'source'        => isset( $reason['source'] ) ? mb_substr( (string) $reason['source'], 0, 16 ) : '',
+        'hit'           => isset( $reason['hit'] ) ? mb_substr( (string) $reason['hit'], 0, 160 ) : '',
     );
 }
 
@@ -1840,7 +1852,7 @@ function vergeml_librarian_moves_insert( $moves ) {
             . ( null === $reason['score'] ? 'NULL' : '%f' )
             . ', %d, '
             . ( null === $reason['runner_score'] ? 'NULL' : '%f' )
-            . ', %s, %s, %d)';
+            . ', %s, %s, %d, %s, %s)';
 
         $values[] = (int) $move[0];
         $values[] = (int) $move[1];
@@ -1861,6 +1873,8 @@ function vergeml_librarian_moves_insert( $moves ) {
         $values[] = $reason['prompt_hash'];
         $values[] = $reason['model_version'];
         $values[] = $reason['nearest'];
+        $values[] = $reason['source'];
+        $values[] = $reason['hit'];
     }
 
     /*
@@ -1879,7 +1893,7 @@ function vergeml_librarian_moves_insert( $moves ) {
         "INSERT INTO {$wpdb->vergeml_librarian_moves}
              ( batch_id, attachment_id, term_id, term_created, undone,
                why, score, runner_up, runner_score, prompt_hash, model_version,
-               nearest )
+               nearest, source, hit )
          VALUES {$placeholders}",
         $values
     ) );
@@ -3070,6 +3084,8 @@ function vergeml_librarian_why( $attachment_id ) {
         'runner_score'  => $rscore,
         'nearest'       => isset( $row['nearest'] ) ? (int) $row['nearest'] : 0,
         'near'          => $near,
+        'source'        => isset( $row['source'] ) ? (string) $row['source'] : '',
+        'hit'           => isset( $row['hit'] ) ? (string) $row['hit'] : '',
         'prompt_hash'   => (string) $row['prompt_hash'],
         'model_version' => (string) $row['model_version'],
         'batch_id'      => (int) $row['batch_id'],
@@ -3104,6 +3120,26 @@ function vergeml_librarian_why( $attachment_id ) {
         if ( '' !== $runner && null !== $rscore ) {
             /* translators: 1: a folder name, 2: that folder's score, 3: the difference between the two scores */
             $out['lines'][] = sprintf( __( 'Ahead of %1$s at %2$s · by %3$s', 'vergelabs-media-library' ), $runner, $n( $rscore ), $n( $score - $rscore ) );
+        }
+
+        /*
+         *  What the hit was, and whose word (S16). A row written before the
+         *  columns existed says nothing here rather than half a sentence.
+         */
+        if ( '' !== $out['source'] && '' !== $out['hit'] ) {
+            $whose = array(
+                'plan'    => __( 'a word the planner gave the folder', 'vergelabs-media-library' ),
+                'name'    => __( 'the folder\'s own name', 'vergelabs-media-library' ),
+                'members' => __( 'a word its pictures taught it', 'vergelabs-media-library' ),
+                'matches' => __( 'the planner\'s description of the folder', 'vergelabs-media-library' ),
+                'word'    => __( 'the picture\'s own filename or title', 'vergelabs-media-library' ),
+            );
+            if ( isset( $whose[ $out['source'] ] ) ) {
+                /* translators: 1: the pair "picture phrase ~ folder word", 2: whose word it was */
+                $out['lines'][] = sprintf( __( 'Matched %1$s · %2$s', 'vergelabs-media-library' ), $out['hit'], $whose[ $out['source'] ] );
+            }
+        } elseif ( 'vector' === $out['source'] ) {
+            $out['lines'][] = __( 'No word matched · placed by likeness alone', 'vergelabs-media-library' );
         }
 
         /*
