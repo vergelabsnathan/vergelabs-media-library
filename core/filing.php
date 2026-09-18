@@ -626,6 +626,42 @@ function vergeml_filing_profiles( $term_ids, $taxonomy ) {
 }
 
 /**
+ *  File by the product (S10.8): a product category's folder, pure. The
+ *  category's path (root to leaf, as names) maps to the folder whose path
+ *  is the same by canon names; failing that, to the folder whose leaf is
+ *  the category's leaf name when exactly one folder has it -- a shop's
+ *  "Dresses" product category and its Clothing › Women › Dresses folder
+ *  are one thing under two roots; two folders named Backpacks are a
+ *  question, not a guess. A view of the tree is never the folder. 0 when
+ *  nothing matches.
+ *
+ *  @param string[] $cat_path The category's ancestors and itself, names.
+ *  @param array    $profiles From vergeml_filing_profiles(), keyed by term id.
+ *  @return int A term id, or 0.
+ */
+function vergeml_filing_product_folder( $cat_path, $profiles ) {
+    $want = array_map( 'vergeml_filing_canon', array_values( array_filter( array_map( 'strval', (array) $cat_path ), 'strlen' ) ) );
+    if ( ! $want ) {
+        return 0;
+    }
+    $leaf    = end( $want );
+    $by_leaf = array();
+    foreach ( (array) $profiles as $tid => $p ) {
+        if ( ! empty( $p['view'] ) || empty( $p['path'] ) ) {
+            continue;
+        }
+        $path = array_map( 'vergeml_filing_canon', (array) $p['path'] );
+        if ( $path === $want ) {
+            return (int) $tid;
+        }
+        if ( end( $path ) === $leaf ) {
+            $by_leaf[] = (int) $tid;
+        }
+    }
+    return 1 === count( $by_leaf ) ? $by_leaf[0] : 0;
+}
+
+/**
  *  A folder's name claims the planner classes it names (S16). The planner
  *  put "camera lens" first on TV & Video beside a leaf named Lenses, and
  *  on the shop's truth score (2026-09-18) 11 of 12 lens pictures went to a

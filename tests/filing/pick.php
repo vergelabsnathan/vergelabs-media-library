@@ -791,5 +791,28 @@ f_check( '37b "mobile phone; electronics" on Phones: source name, hit "mobile ph
 $p = vergeml_filing_pick( f_facts( 'skyscraper; building', array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) ), $src );
 f_check( '37c "skyscraper; building" whose vector is Skylines\' own and no class hit: below the floor (0.25), the nearest\'s source is vector and the hit empty', 'nothing' === $p['outcome'] && 84 === $p['nearest'] && 'vector' === $p['source'] && '' === $p['hit'], sprintf( '%s nearest %d source %s hit "%s"', $p['outcome'], $p['nearest'], $p['source'], $p['hit'] ) );
 
+/*
+ *  File by the product (S10.8, task 1): the map from a product category to
+ *  a folder, pure. A product_cat's path (root to leaf) maps to the folder
+ *  whose path is the same by canon names; failing that, to the folder whose
+ *  leaf is the category's leaf name when exactly one folder has it; else 0.
+ *  A view is never the folder. Mutations: the leaf fallback removed -> 38a
+ *  red; the "exactly one" made "the first" -> 38b red.
+ */
+echo "\n== file by the product: the map (S10.8)\n";
+
+$shop_tree = array(
+    91 => f_profile( 91, 0, array( 'Clothing' ), array( 'clothing' ), array( 'source' => 'name' ) ),
+    92 => f_profile( 92, 91, array( 'Clothing', 'Women' ), array( 'women' ), array( 'source' => 'name', 'audience' => 'women' ) ),
+    93 => f_profile( 93, 92, array( 'Clothing', 'Women', 'Dresses' ), array( 'dresses' ), array( 'source' => 'name' ) ),
+    94 => f_profile( 94, 0, array( 'Bags & Luggage', 'Backpacks' ), array( 'backpacks' ), array( 'source' => 'name' ) ),
+    95 => f_profile( 95, 0, array( 'Sports & Outdoors', 'Camping', 'Backpacks' ), array( 'backpacks' ), array( 'source' => 'name' ) ),
+    96 => f_profile( 96, 0, array( 'Home', 'Lighting', 'Table lamps' ), array( 'table lamps' ), array( 'source' => 'name' ) ),
+    97 => f_profile( 97, 0, array( 'Sale', 'Table lamps' ), array(), array( 'source' => 'name', 'view' => 98 ) ),
+);
+f_check( '38 the path by canon names: "Clothing > Women > Dress" is Clothing › Women › Dresses (93); "clothing > women" the parent (92)', 93 === vergeml_filing_product_folder( array( 'Clothing', 'Women', 'Dress' ), $shop_tree ) && 92 === vergeml_filing_product_folder( array( 'clothing', 'women' ), $shop_tree ), sprintf( '%d %d', vergeml_filing_product_folder( array( 'Clothing', 'Women', 'Dress' ), $shop_tree ), vergeml_filing_product_folder( array( 'clothing', 'women' ), $shop_tree ) ) );
+f_check( '38a no path match: the leaf alone, when exactly one folder has it -- "Lighting > Table lamp" is Home › Lighting › Table lamps (96), the copy under the Sale view not counted', 96 === vergeml_filing_product_folder( array( 'Lighting', 'Table lamp' ), $shop_tree ), sprintf( '%d', vergeml_filing_product_folder( array( 'Lighting', 'Table lamp' ), $shop_tree ) ) );
+f_check( '38b two folders share the leaf and neither path matches: 0 -- "Gear > Backpacks" names no folder; and a category nothing has is 0', 0 === vergeml_filing_product_folder( array( 'Gear', 'Backpacks' ), $shop_tree ) && 0 === vergeml_filing_product_folder( array( 'Gift cards' ), $shop_tree ) && 0 === vergeml_filing_product_folder( array(), $shop_tree ), sprintf( '%d %d', vergeml_filing_product_folder( array( 'Gear', 'Backpacks' ), $shop_tree ), vergeml_filing_product_folder( array( 'Gift cards' ), $shop_tree ) ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );
