@@ -296,7 +296,16 @@ $fw_pv = array_values( (array) $fw_fit['tally']['by_term'] );
 $fw_rv = array_values( (array) $fw_report['tally']['by_term'] );
 sort( $fw_pv );
 sort( $fw_rv );
-fw_check( 'E3 preview tally = run tally, per outcome and per folder', ! $fw_diff && $fw_pv === $fw_rv, $fw_diff ? implode( ', ', $fw_diff ) : ( $fw_pv === $fw_rv ? 'identical' : 'per-folder counts differ' ) );
+/*
+ *  Since S18 the preview is the rules alone (an estimate, tally.rules_only)
+ *  and the run asks the text model as well, so the two tallies differ by
+ *  design: the model turns sures into questions and doubts, and the rules'
+ *  nothing into likelies. What must still hold: both looked at the same
+ *  pictures and kept the same ones, and the preview says it is rules-only.
+ *  The old equality is printed as a line, not asserted.
+ */
+printf( "  preview vs run: %s\n", $fw_diff ? implode( ', ', $fw_diff ) : ( $fw_pv === $fw_rv ? 'identical' : 'per-folder counts differ' ) );
+fw_check( 'E3 the preview is rules-only, and looked at and kept the same pictures as the run', ! empty( $fw_fit['tally']['rules_only'] ) && (int) $fw_fit['tally']['looked'] === (int) $fw_report['tally']['looked'] && (int) $fw_fit['tally']['kept'] === (int) $fw_report['tally']['kept'], sprintf( 'rules_only %s, looked %d/%d, kept %d/%d', empty( $fw_fit['tally']['rules_only'] ) ? 'no' : 'yes', (int) $fw_fit['tally']['looked'], (int) $fw_report['tally']['looked'], (int) $fw_fit['tally']['kept'], (int) $fw_report['tally']['kept'] ) );
 $fw_sum = (int) $fw_report['tally']['fits'] + (int) $fw_report['tally']['siblings'] + (int) $fw_report['tally']['nothing'] + (int) $fw_report['tally']['kept'];
 fw_check( 'E4 the outcomes sum to looked', $fw_sum === (int) $fw_report['tally']['looked'], $fw_sum . ' vs ' . (int) $fw_report['tally']['looked'] );
 
@@ -306,19 +315,25 @@ echo "\nF  the questions, answered by script\n\n";
 
 $fw_questions = vergeml_talk_questions();
 $fw_sib       = 0;
+$fw_either    = 0;
 $fw_res_q     = 0;
 foreach ( $fw_questions as $fw_q ) {
     if ( 'siblings' === $fw_q['kind'] ) {
         $fw_sib++;
+    } elseif ( 'either' === $fw_q['kind'] ) {
+        $fw_either++;
     } else {
         $fw_res_q++;
     }
 }
-printf( "  %d questions: %d sibling, %d residue\n", count( $fw_questions ), $fw_sib, $fw_res_q );
-fw_check( 'F1 at least one sibling question (two children of one folder tied)', $fw_sib >= 1, $fw_sib . ' sibling questions; siblings in the tally ' . (int) $fw_report['tally']['siblings'] );
+printf( "  %d questions: %d sibling, %d either/or, %d residue\n", count( $fw_questions ), $fw_sib, $fw_either, $fw_res_q );
+// A tie is a question either way: two siblings under a folder, or two folders the rules and the model could not agree on (S18: the model breaks most sibling ties).
+fw_check( 'F1 at least one tie asked as a question (siblings, or either/or)', $fw_sib + $fw_either >= 1, $fw_sib . ' sibling, ' . $fw_either . ' either/or; siblings in the tally ' . (int) $fw_report['tally']['siblings'] );
 fw_check( 'F2 the residue is asked about in groups, not per picture', $fw_res_q >= 1 && $fw_res_q < (int) $fw_report['tally']['nothing'], $fw_res_q . ' questions for ' . (int) $fw_report['tally']['nothing'] . ' pictures' );
 
-$fw_left     = array(); // What "leave" leaves: To sort must hold exactly these.
+$fw_left     = array(); // What "leave" leaves: To sort must hold exactly these, over what it held before the answers.
+$fw_sort_was = get_term_by( 'slug', VERGEML_FILING_TO_SORT_SLUG, $fw_tax );
+$fw_sort_was = $fw_sort_was instanceof WP_Term ? array_map( 'intval', (array) get_objects_in_term( (int) $fw_sort_was->term_id, $fw_tax ) ) : array();
 $fw_answered = 0;
 $fw_made     = array();
 foreach ( $fw_questions as $fw_q ) {
@@ -339,7 +354,8 @@ foreach ( $fw_questions as $fw_q ) {
         // The question's ids are not in the screen's shape; read them off the state.
         foreach ( (array) get_option( VERGEML_TALK_STATE )['questions'] as $fw_sq ) {
             if ( $fw_sq['id'] === $fw_q['id'] ) {
-                $fw_left = array_merge( $fw_left, array_map( 'intval', (array) $fw_sq['ids'] ) );
+                // A residue card lists its pictures; a sibling or either/or card keys them (picture => its best folder).
+                $fw_left = array_merge( $fw_left, array_map( 'intval', 'residue' === $fw_sq['kind'] ? array_values( (array) $fw_sq['ids'] ) : array_keys( (array) $fw_sq['ids'] ) ) );
             }
         }
     }
@@ -356,9 +372,9 @@ fw_check( 'F4 0 in no folder, 0 open questions: the step is done', 0 === (int) $
 $fw_to_sort = get_term_by( 'slug', VERGEML_FILING_TO_SORT_SLUG, $fw_tax );
 $fw_in_sort = $fw_to_sort instanceof WP_Term ? array_map( 'intval', (array) get_objects_in_term( (int) $fw_to_sort->term_id, $fw_tax ) ) : array();
 sort( $fw_in_sort );
-$fw_left = array_values( array_unique( $fw_left ) );
+$fw_left = array_values( array_unique( array_merge( $fw_sort_was, $fw_left ) ) );
 sort( $fw_left );
-fw_check( 'F5 To sort holds exactly what "leave" left, and is locked', $fw_left === $fw_in_sort && $fw_to_sort instanceof WP_Term && get_term_meta( (int) $fw_to_sort->term_id, VERGEML_FILING_LOCKED, true ), count( $fw_in_sort ) . ' in To sort, ' . count( $fw_left ) . ' left by answers' );
+fw_check( 'F5 To sort holds exactly what "leave" left over what it held, and is locked', $fw_left === $fw_in_sort && $fw_to_sort instanceof WP_Term && get_term_meta( (int) $fw_to_sort->term_id, VERGEML_FILING_LOCKED, true ), count( $fw_in_sort ) . ' in To sort, ' . count( $fw_left ) . ' left by answers' );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 $fw_trail = array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT attachment_id FROM {$fw_moves} WHERE move_id > %d", $fw_snap['move_id'] ) ) );
