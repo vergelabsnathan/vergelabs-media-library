@@ -660,5 +660,47 @@ $split = vergeml_filing_views( array(
 ) );
 f_check( '33c Watches › Men, Women, Smart watches under a tree with Men and Women at the top is a split by audience, not a view: Watches keeps its word', empty( $split[93]['view'] ) && array( 'watches' ) === $split[93]['classes'] && empty( $split[96]['view'] ), json_encode( array( isset( $split[93]['view'] ), $split[93]['classes'] ) ) );
 
+/*
+ *  A member word only where it is alike to the folder's own (S16, Nathan's
+ *  S15 verdict: 6 of the 7 wrong sures were words the folders had learned
+ *  from the fill's own earlier misses -- Cooling learned "cable reels" from
+ *  fibre reels the fill had put there, Server racks "network switches"; a
+ *  members layer built on a round that was 34 % right entrenches its misses
+ *  as sures). A member word counts only where it is alike to one of the
+ *  base profile's words -- the plan's or the name's -- spelled the one way,
+ *  by containment or the head noun, or by the phrase vector at the members'
+ *  own floor, 0.5 (VERGEML_FILING_MEMBERS_ALIKE) -- under the class match's
+ *  0.6, because on the tech library the rightful words sit at 0.51-0.58
+ *  (industrial robot ~ robotics 0.57, falcon 9 rocket ~ rocket launch 0.58,
+ *  graphics card ~ computer hardware 0.57) and the learned misses at
+ *  0.15-0.44 (cable reels ~ cooling 0.27, robotic arm ~ server racks 0.35,
+ *  smart speaker ~ electronics component 0.33). Judged before the settle,
+ *  so a word a folder cannot keep is not the one its rivals cede to.
+ *  Mutations: the likeness test removed -> 34, 34a, 34b red; the members'
+ *  floor made the class match's 0.6 -> 34 red (graphics card gone).
+ */
+echo "\n== a member word only where alike to the folder's own (S16)\n";
+
+// Base words the suite has not asked a vector for yet (the phrase cache keeps a miss for the run): pc hardware, electronic part, cooling plant.
+$GLOBALS['f_vec'] = array( 'graphics card' => array( 0.55, 0.835 ), 'pc hardware' => array( 1, 0 ), 'cable reel' => array( 1, 0 ), 'cooling plant' => array( 0.45, 0.893 ), 'smart loudspeaker' => array( 0, 1 ), 'electronic part' => array( 0.75, 0.661 ) );
+$base = array(
+    41 => f_profile( 41, 0, array( 'Data centres', 'Cooling' ), array( 'cooling plant', 'chiller', 'cooling' ) ),
+    42 => f_profile( 42, 0, array( 'Hardware' ), array( 'pc hardware', 'hardware' ) ),
+    43 => f_profile( 43, 0, array( 'Energy', 'Batteries' ), array( 'battery', 'batteries' ) ),
+    44 => f_profile( 44, 0, array( 'Hardware', 'Components' ), array( 'electronic part', 'components' ) ),
+);
+$alike = vergeml_filing_members_alike( array(
+    41 => array( 'n' => 5, 'classes' => array( 'cable reel', 'chiller' ), 'words' => array( 'cable reel' => 3, 'chiller' => 2 ), 'halves' => array(), 'vector' => null, 'built_at' => 1 ),
+    42 => array( 'n' => 30, 'classes' => array( 'graphics card', 'smart loudspeaker' ), 'words' => array( 'graphics card' => 19, 'smart loudspeaker' => 8 ), 'halves' => array(), 'vector' => null, 'built_at' => 1 ),
+    43 => array( 'n' => 9, 'classes' => array( 'lithium-ion battery' ), 'words' => array( 'lithium-ion battery' => 9 ), 'halves' => array(), 'vector' => null, 'built_at' => 1 ),
+    44 => array( 'n' => 3, 'classes' => array( 'smart loudspeaker' ), 'words' => array( 'smart loudspeaker' => 3 ), 'halves' => array(), 'vector' => null, 'built_at' => 1 ),
+), $base );
+f_check( '34 Cooling keeps chiller (its own word) and not cable reel (0.45 to cooling plant, under the members\' floor of 0.5); Hardware keeps graphics card (0.55 to pc hardware: under the class match\'s 0.6, over the members\' 0.5) and not smart loudspeaker; Batteries keeps lithium-ion battery (battery inside it)', array( 'chiller' ) === $alike[41]['classes'] && array( 'chiller' => 2 ) === $alike[41]['words'] && array( 'graphics card' ) === $alike[42]['classes'] && array( 'lithium-ion battery' ) === $alike[43]['classes'], json_encode( array( $alike[41]['classes'], isset( $alike[42] ) ? $alike[42]['classes'] : null, $alike[43]['classes'] ) ) );
+$gone = vergeml_filing_members_alike( array( 41 => array( 'n' => 5, 'classes' => array( 'cable reel' ), 'words' => array( 'cable reel' => 5 ), 'halves' => array(), 'vector' => null, 'built_at' => 1 ) ), $base );
+f_check( '34a a layer left with no word alike is no layer: Cooling with only cable reels keeps the plan\'s profile', ! isset( $gone[41] ), json_encode( $gone ) );
+$settled_alike = vergeml_filing_members_settle( $alike );
+f_check( '34b Components keeps smart loudspeaker (0.66 to electronic part, over the floor) with Hardware\'s eight out before the settle: the word is Components\' alone, not ceded to the folder that cannot keep it', array( 'smart loudspeaker' ) === $alike[44]['classes'] && ! isset( $alike[42]['words']['smart loudspeaker'] ) && array( 'smart loudspeaker' ) === $settled_alike[44]['classes'] && array() === $settled_alike[44]['ceded'], json_encode( array( $alike[44]['classes'], isset( $settled_alike[44] ) ? $settled_alike[44] : null ) ) );
+$GLOBALS['f_vec'] = array();
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

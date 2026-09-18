@@ -66,6 +66,18 @@ const VERGEML_FILING_CLASS_WEIGHT = 0.75;
 /** A class match by phrase vectors alone counts from here up; below, two phrases are simply not alike (C.4). */
 const VERGEML_FILING_CLASS_COSINE_FLOOR = 0.6;
 
+/**
+ *  A member word is alike to a folder's own word from here up (S16), under
+ *  the class match's floor: measured on the tech library (2026-09-18), the
+ *  words the members teach rightly sit at 0.51-0.58 against the base
+ *  (industrial robot ~ robotics 0.57, falcon 9 rocket ~ rocket launch 0.58,
+ *  graphics card ~ computer hardware 0.57, loudspeaker ~ audio equipment
+ *  0.56) and the fill's learned misses at 0.15-0.44 (cable reels ~ cooling
+ *  0.27, robotic arm ~ server racks 0.35, smart speaker ~ electronics
+ *  component 0.33, telecommunications mast ~ networking equipment 0.44).
+ */
+const VERGEML_FILING_MEMBERS_ALIKE = 0.5;
+
 /** Term meta: the profile a re-profiling replaced, for a day's Restore (C.4). */
 const VERGEML_FILING_META_PREV = '_vergeml_filing_profile_prev';
 
@@ -607,7 +619,7 @@ function vergeml_filing_profiles( $term_ids, $taxonomy ) {
     }
     $out   = vergeml_filing_views( $out );
     $learn = array_keys( array_filter( $out, function ( $p ) { return empty( $p['view'] ); } ) ); // A view learns nothing from what a person put in it.
-    foreach ( vergeml_filing_members_settle( vergeml_filing_members_layers( $learn, $taxonomy ) ) as $id => $layer ) {
+    foreach ( vergeml_filing_members_settle( vergeml_filing_members_alike( vergeml_filing_members_layers( $learn, $taxonomy ), $out ) ) as $id => $layer ) {
         $out[ $id ] = vergeml_filing_members_apply( $out[ $id ], $layer );
     }
     return vergeml_filing_settle_claims( $out );
@@ -806,6 +818,60 @@ function vergeml_filing_members_layer( $members ) {
         'vector'   => vergeml_filing_centroid( $vectors ),
         'built_at' => time(),
     );
+}
+
+/**
+ *  A member word only where it is alike to the folder's own (S16). Nathan's
+ *  S15 verdict on the tech library (2026-09-18): six of the seven wrong
+ *  sures stood on words the folders had learned from the fill's own earlier
+ *  misses -- Cooling learned "cable reels" from fibre reels the fill had put
+ *  there, Server racks "network switches", Components "smart speaker" -- a
+ *  members layer built on a round that was 34 % right entrenches its misses
+ *  as sures. So a member word counts only where it is alike to one of the
+ *  base profile's words, the plan's or the name's: spelled the one way, one
+ *  inside the other or its head noun (vergeml_filing_class_match), or the
+ *  phrase vector at the members' own floor, VERGEML_FILING_MEMBERS_ALIKE
+ *  (0.5, under the class match's 0.6: the rightful words sit at 0.51-0.58).
+ *  Hardware keeps "graphics card" (0.57 to computer hardware), Cooling does
+ *  not keep "cable reel" (0.27 to cooling). Judged before the settle, so a
+ *  word a folder cannot keep is not the one its rivals cede to; a layer
+ *  left with no word is no layer. The halves stay: they only count k. Pure.
+ */
+function vergeml_filing_members_alike( $layers, $profiles ) {
+    $alike = function ( $a, $b ) {
+        if ( vergeml_filing_class_match( $a, $b, true ) > 0.0 ) {
+            return true;
+        }
+        $va = vergeml_filing_phrase_vector( $a );
+        $vb = vergeml_filing_phrase_vector( $b );
+        return null !== $va && null !== $vb && vergeml_filing_cosine( $va['v'], $va['n'], $vb['v'], $vb['n'] ) >= VERGEML_FILING_MEMBERS_ALIKE;
+    };
+    foreach ( (array) $layers as $tid => $l ) {
+        $p    = isset( $profiles[ $tid ] ) ? $profiles[ $tid ] : array();
+        $own  = (array) ( isset( $p['classes'] ) ? $p['classes'] : array() );
+        $leaf = vergeml_filing_name_class( isset( $p['path'] ) && $p['path'] ? end( $p['path'] ) : '' );
+        if ( '' !== $leaf ) {
+            $own[] = $leaf;
+        }
+        $keep  = array();
+        $words = array();
+        foreach ( (array) $l['classes'] as $c ) {
+            foreach ( $own as $base ) {
+                if ( $alike( $c, $base ) ) {
+                    $keep[]      = $c;
+                    $words[ $c ] = isset( $l['words'][ $c ] ) ? (int) $l['words'][ $c ] : 0;
+                    break;
+                }
+            }
+        }
+        if ( ! $keep ) {
+            unset( $layers[ $tid ] );
+            continue;
+        }
+        $layers[ $tid ]['classes'] = $keep;
+        $layers[ $tid ]['words']   = $words;
+    }
+    return $layers;
 }
 
 /**
