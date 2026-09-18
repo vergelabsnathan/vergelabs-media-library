@@ -213,18 +213,19 @@
 			return __( 'You', 'vergelabs-media-library' );
 		}
 
-		function messageEl( turn, last ) {
-			var msg = el( 'div', { class: 'vgml-msg is-' + ( 'assistant' === turn.role ? 'assistant' : 'user' ) + ( turn.kind ? ' is-' + turn.kind : '' ) } );
-			msg.appendChild( el( 'span', { class: 'vgml-msg-who' }, who( turn ) ) );
-			var body = opts.renderTurn ? opts.renderTurn( turn ) : null;
+		// `t`, not `turn`: a parameter named turn shadowed the turn() below and the chips called the object (2026-09-18, the real shop's walk).
+		function messageEl( t, last ) {
+			var msg = el( 'div', { class: 'vgml-msg is-' + ( 'assistant' === t.role ? 'assistant' : 'user' ) + ( t.kind ? ' is-' + t.kind : '' ) } );
+			msg.appendChild( el( 'span', { class: 'vgml-msg-who' }, who( t ) ) );
+			var body = opts.renderTurn ? opts.renderTurn( t ) : null;
 			if ( ! body ) {
 				body = el( 'div', { class: 'vgml-msg-body' } );
-				renderSay( body, turn.text );
+				renderSay( body, t.text );
 			}
 			msg.appendChild( body );
-			if ( last && 'assistant' === turn.role && turn.choices && turn.choices.length && canTalk() ) {
+			if ( last && 'assistant' === t.role && t.choices && t.choices.length && canTalk() ) {
 				var chips = el( 'div', { class: 'vgml-chips' } );
-				turn.choices.slice( 0, 3 ).forEach( function ( c ) {
+				t.choices.slice( 0, 3 ).forEach( function ( c ) {
 					var b = el( 'button', { type: 'button', class: 'vgml-chip' }, c );
 					b.addEventListener( 'click', function () {
 						turn( { choice: c }, { kind: 'choice', text: c } );

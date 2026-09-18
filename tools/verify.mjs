@@ -95,6 +95,12 @@ const SUITES = [
 	 */
 	{ name: 'tree-view', file: 'tests/tree/tree-view.mjs', env: 'local' },
 	/*
+	 *  The conversation component's own chips (js/vergeml-talk.js), against
+	 *  a page loaded from disk: a choice the model offers sends a turn when
+	 *  pressed. Dead from 2026-09-06 to 09-18 with no suite loading the file.
+	 */
+	{ name: 'talk-chips', file: 'tests/tree/talk-chips.mjs', env: 'local' },
+	/*
 	 *  The paste reader (js/vergeml-structure.js) and the preview it feeds,
 	 *  against a page loaded from disk: one reading of a paste, the three
 	 *  refusals, reuse of what exists. env 'local'.

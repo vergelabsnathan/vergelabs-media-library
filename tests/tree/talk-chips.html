@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>talk-chips harness</title>
+<script>
+	/*
+	 *  The conversation component (js/vergeml-talk.js) from disk, with what
+	 *  the page gives it stood in for: wp.i18n, a token, a stream that ends at
+	 *  once, and the caller's hooks, each of which records what it was handed.
+	 *  tests/tree/talk-chips.mjs reads window.harness.
+	 */
+	window.wp = { i18n: {
+		__: function ( s ) { return s; },
+		_n: function ( a, b, n ) { return 1 === n ? a : b; },
+		sprintf: function ( s ) { var a = [].slice.call( arguments, 1 ); return s.replace( /%(\d+)\$s/g, function ( m, i ) { return a[ i - 1 ]; } ); }
+	} };
+	window.harness = { minted: 0, requests: [], persisted: [], fetched: [] };
+	window.fetch = function ( url, init ) {
+		window.harness.fetched.push( { url: url, body: JSON.parse( init.body ) } );
+		return Promise.resolve( new Response( 'event: done\ndata: {"choices":[]}\n\n', { status: 200, headers: { 'Content-Type': 'text/event-stream' } } ) );
+	};
+</script>
+<script src="../../js/vergeml-talk.js"></script>
+</head>
+<body>
+<div id="host"></div>
+<script>
+	var session = {
+		turns: [
+			{ role: 'user', kind: 'say', text: 'Propose folders', at: 1 },
+			{ role: 'assistant', kind: 'say', text: 'By kind, or by garment type?', choices: [ 'Split by kind', 'Split by garment type' ], at: 2 }
+		],
+		assistant_turns: 1,
+		cap: 25
+	};
+	var talk = window.vergemlTalk.create( {
+		session: session,
+		canTalk: function () { return true; },
+		mint: function () { window.harness.minted++; return Promise.resolve( { token: 't', expires_at: 4102444800, stream: 'https://service.invalid' } ); },
+		streamPath: '/guide/stream',
+		request: function ( token, input, history ) { window.harness.requests.push( input ); return { input: input, history: history }; },
+		persist: function ( body ) { window.harness.persisted.push( body ); return Promise.resolve( {} ); },
+		blocks: [ 'tree' ],
+		onBlock: function () {},
+		placeholder: 'Describe the folders you want',
+		why: { turn_cap: 'cap', bad_block: 'bad' }
+	} );
+	document.getElementById( 'host' ).appendChild( talk.conv );
+	document.getElementById( 'host' ).appendChild( talk.composer );
+	talk.render();
+	window.harness.talk = talk;
+	window.harness.session = session;
+</script>
+</body>
+</html>

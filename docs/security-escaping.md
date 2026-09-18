@@ -105,15 +105,15 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-folders.js:537 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:568 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:587 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:814 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:899 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1111 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1162 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1279 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1284 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1994 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2037 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2047 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:822 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:912 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1124 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1175 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1292 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1297 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2007 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2050 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2060 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |
@@ -131,8 +131,8 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-say.js:45 | `innerHTML` | a literal | `''` |
 | js/vergeml-talk.js:60 | `innerHTML` | a literal | `''` |
 | js/vergeml-talk.js:160 | `innerHTML` | a literal | `'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-` |
-| js/vergeml-talk.js:240 | `innerHTML` | a literal | `''` |
-| js/vergeml-talk.js:275 | `innerHTML` | a literal | `''` |
+| js/vergeml-talk.js:241 | `innerHTML` | a literal | `''` |
+| js/vergeml-talk.js:276 | `innerHTML` | a literal | `''` |
 | js/vergeml-taxonomies-options.js:299 | `jQuery .html()` | **not a literal** | `function (e, t) { return t == vergeml.l10n.edit + ' ↓' ? vergeml.l10n.` |
 | js/vergeml-tree-view.js:143 | `innerHTML` | **not a literal** | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<path class="vgm` |
 | js/vergeml-tree-view.js:1162 | `innerHTML` | **not a literal** | `entry.kids ? chevron() : ''` |
