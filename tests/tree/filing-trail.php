@@ -1004,21 +1004,20 @@ if ( ! function_exists( 'vergeml_librarian_why' ) ) {
     $ft_agree_read = vergeml_librarian_why( (int) $ft_agree_id );
     $ft_doubt_read = vergeml_librarian_why( (int) $ft_doubt_id );
 
+    // Nathan's words (2026-09-18, option A of the mock 2026-09-18-model-words): no "AI" on any screen.
     ft_check(
-        'an agree row reads as a filing in its folder, sure at 0.64, with the rules\' own matched word and no other sentence',
+        'an agree row reads "In zzTrailA · both matches agree", sure, then the rules\' own matched word, and no other sentence',
         is_array( $ft_agree_read ) && 'agree' === (string) $ft_agree_read['why'] && (int) $ft_agree_read['term_id'] === (int) $ft_terms['zzTrailA']
             && 'sure' === (string) $ft_agree_read['confidence']
-            && isset( $ft_agree_read['lines'][0] ) && 0 === strpos( $ft_agree_read['lines'][0], 'In zzTrailA · scored ' )
-            && (bool) preg_grep( '/^Matched /', $ft_agree_read['lines'] )
-            && 2 === count( $ft_agree_read['lines'] ),
+            && array( 'In zzTrailA · both matches agree', 'Matched ' . $ft_class . ' ~ ' . $ft_class . ' · the folder\'s own name' ) === array_values( $ft_agree_read['lines'] ),
         is_array( $ft_agree_read ) ? $ft_agree_read['confidence'] . ' / ' . implode( ' / ', $ft_agree_read['lines'] ) : 'nothing'
     );
 
     ft_check(
-        'a doubt row claims no folder, names the rules\' folder as the one it came nearest to, and says nothing more',
+        'a doubt row reads "Left where it was · matched zzTrailA, but in doubt", claims no folder, and says nothing more',
         is_array( $ft_doubt_read ) && 'doubt' === (string) $ft_doubt_read['why'] && 0 === (int) $ft_doubt_read['term_id']
             && 'zzTrailA' === (string) $ft_doubt_read['near'] && '' === (string) $ft_doubt_read['confidence']
-            && array() === $ft_doubt_read['lines'],
+            && array( 'Left where it was · matched zzTrailA, but in doubt' ) === array_values( $ft_doubt_read['lines'] ),
         is_array( $ft_doubt_read ) ? sprintf( 'near %s, %d lines: %s', (string) $ft_doubt_read['near'], count( $ft_doubt_read['lines'] ), implode( ' / ', $ft_doubt_read['lines'] ) ) : 'nothing'
     );
 

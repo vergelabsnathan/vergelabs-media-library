@@ -809,6 +809,14 @@
 		return true;
 	}
 
+	/** The pictures the rules would have placed and the text model doubted (S18): left for the person, said once. Nathan's words, 2026-09-18. */
+	function inDoubt( pills, t ) {
+		var doubt = Number( t && t.doubt ) || 0;
+		if ( doubt > 0 ) {
+			pills.appendChild( pill( doubt, __( 'in doubt', 'vergelabs-media-library' ) ) );
+		}
+	}
+
 	function renderFill() {
 		var c = dom.cards.fill;
 		c.pills.innerHTML = '';
@@ -835,12 +843,14 @@
 			var m = state.moving.tally || {};
 			if ( byProduct( c.pills, Number( state.moving.moved ) || 0, m ) ) {
 				c.pills.appendChild( pill( open, _n( 'question', 'questions', open, 'vergelabs-media-library' ), 'ask' ) );
+				inDoubt( c.pills, m );
 				c.pills.appendChild( pill( unfiled, __( 'to sort', 'vergelabs-media-library' ) ) );
 			} else {
 				c.pills.appendChild( pill( Number( state.moving.moved ) || 0, __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
 				c.pills.appendChild( pill( Number( m.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
 				c.pills.appendChild( pill( Number( m.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
 				c.pills.appendChild( pill( open, _n( 'question', 'questions', open, 'vergelabs-media-library' ), 'ask' ) );
+				inDoubt( c.pills, m );
 				c.pills.appendChild( pill( unfiled, __( 'in no folder', 'vergelabs-media-library' ) ) );
 			}
 			appendRounds( c.pills, state.moving, true );
@@ -851,7 +861,6 @@
 			c.pills.appendChild( pill( unfiled, __( 'in no folder', 'vergelabs-media-library' ) ) );
 		} else if ( tally && view.getDraft() && ! done ) {
 			// The dry run's answer about the confirmed tree, as the run will count it.
-			// tally.rules_only (S18): the count never asked the text model, the run will; its one quiet pill waits for the copy -- until then none.
 			if ( byProduct( c.pills, ( Number( tally.fits ) || 0 ) + ( Number( tally.siblings ) || 0 ), tally ) ) {
 				c.pills.appendChild( pill( Number( tally.nothing ) || 0, __( 'to sort', 'vergelabs-media-library' ) ) );
 			} else {
@@ -859,6 +868,10 @@
 				c.pills.appendChild( pill( Number( tally.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
 				c.pills.appendChild( pill( Number( tally.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
 				c.pills.appendChild( pill( Number( tally.nothing ) || 0, __( 'not placed', 'vergelabs-media-library' ) ) );
+			}
+			// tally.rules_only (S18): the count never asked the text model, the run will -- so these numbers are an estimate. Nathan's word, 2026-09-18.
+			if ( tally.rules_only ) {
+				c.pills.appendChild( el( 'span', { class: 'g-pill is-quiet' }, __( 'estimate', 'vergelabs-media-library' ) ) );
 			}
 		} else {
 			var inFolders = Math.max( 0, ( Number( state.facts.pictures ) || 0 ) - unfiled );

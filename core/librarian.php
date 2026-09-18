@@ -1792,9 +1792,9 @@ function vergeml_librarian_term_for( $key, &$params, $taxonomy ) {
  *  The words: 'ok', 'floor', 'margin' and 'gated' are the matcher's own, and
  *  come with numbers; so are 'agree' (the rules and the text model named the
  *  same folder, S18) and 'doubt' (the rules named one, the model said nothing
- *  fits -- left where it was, `nearest` the rules' folder). The why card
- *  says nothing new for those two until Nathan gives it the words: an agree
- *  row reads as a filing, a doubt row as looked at. 'plan' is a proposal's
+ *  fits -- left where it was, `nearest` the rules' folder). Their lines are
+ *  Nathan's words (2026-09-18): "In X · both matches agree", "Left where it
+ *  was · matched X, but in doubt". 'plan' is a proposal's
  *  placement a person approved, and
  *  'by hand' is a person naming the folder outright -- neither was scored, so
  *  both leave score and runner_score null. A null there says nobody computed
@@ -3122,12 +3122,26 @@ function vergeml_librarian_why( $attachment_id ) {
         /* translators: 1: a folder name */
         $out['lines'][] = sprintf( __( 'In %1$s · by the product it belongs to', 'vergelabs-media-library' ), $term );
 
+    } elseif ( 'doubt' === $why ) {
+
+        // The rules named a folder, the text model said nothing fits (S18): left where it was. Nathan's words, 2026-09-18.
+        if ( '' !== $near ) {
+            /* translators: %s: the folder the rules would have used */
+            $out['lines'][] = sprintf( __( 'Left where it was · matched %s, but in doubt', 'vergelabs-media-library' ), $near );
+        }
+
     } elseif ( $out['term_id'] ) {
 
-        /* translators: 1: a folder name, 2: a score, for example 0.81 */
-        $out['lines'][] = sprintf( __( 'In %1$s · scored %2$s', 'vergelabs-media-library' ), $term, $n( $score ) );
+        if ( 'agree' === $why ) {
+            // The rules and the text model named the same folder (S18): no score line, the two agreeing is the reason. Nathan's words, 2026-09-18.
+            /* translators: %s: a folder name */
+            $out['lines'][] = sprintf( __( 'In %s · both matches agree', 'vergelabs-media-library' ), $term );
+        } else {
+            /* translators: 1: a folder name, 2: a score, for example 0.81 */
+            $out['lines'][] = sprintf( __( 'In %1$s · scored %2$s', 'vergelabs-media-library' ), $term, $n( $score ) );
+        }
 
-        if ( '' !== $runner && null !== $rscore ) {
+        if ( 'agree' !== $why && '' !== $runner && null !== $rscore ) {
             /* translators: 1: a folder name, 2: that folder's score, 3: the difference between the two scores */
             $out['lines'][] = sprintf( __( 'Ahead of %1$s at %2$s · by %3$s', 'vergelabs-media-library' ), $runner, $n( $rscore ), $n( $score - $rscore ) );
         }

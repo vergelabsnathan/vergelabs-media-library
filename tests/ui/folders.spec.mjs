@@ -478,6 +478,67 @@ test.describe( 'the Folders screen', () => {
 	} );
 
 	/*
+	 *  The model's two pills (S18, Nathan's ok on the mock 2026-09-18-model-words,
+	 *  option A without the word AI, 2026-09-18): after a run, "N in doubt" from the tally's doubt,
+	 *  between the questions and the leftovers; before a run, the quiet word
+	 *  "estimate" at the end of the dry count's pills, because that count never
+	 *  asked the model (tally.rules_only). Neither pill when there is nothing to
+	 *  say. Mutation: the doubt pill removed from renderFill -> red.
+	 */
+	test( 'the Fill pills with the model in: in doubt after a run, estimate on the dry count', async ( { page } ) => {
+		await remember( page );
+		await reset( page );
+		await open_( page );
+		await page.evaluate( () => window.vgmlFoldersApp.setStep( 'fill' ) );
+		const pills = page.locator( '.g-card[data-card="fill"] .g-pills .g-pill' );
+
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.session.applyWas = app.state.session.apply;
+			app.state.questions = [ { id: 'r:0', kind: 'residue', count: 5, name: 'Probes', term_id: 0, text: '5 look like probes', answers: { leave: 'Leave them', 'show-me': 'Show me' }, sample: [], answered: '', result: null } ];
+			app.state.fill.unfiled = 61;
+			app.state.moving = { running: false, moved: 908, seen: 1000, total: 1000, tally: { product: 0, fits: 908, siblings: 0, nothing: 92, sure: 731, likely: 177, agree: 700, doubt: 31 } };
+			app.render();
+		} );
+		await expect( pills, 'ended: placed · sure · likely · question · in doubt · in no folder' ).toHaveText( [ '908 placed', '731 sure', '177 likely', '1 question', '31 in doubt', '61 in no folder' ] );
+
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.moving.tally.doubt = 0;
+			app.render();
+		} );
+		await expect( pills, 'no doubts: no pill for them' ).toHaveText( [ '908 placed', '731 sure', '177 likely', '1 question', '61 in no folder' ] );
+
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.session.apply = app.state.session.applyWas;
+			app.state.questions = [];
+			app.state.moving = null;
+			app.state.fill.unfiled = 0;
+			// The dry branch reads the tree view's draft: one folder of the draft's own, taken away below.
+			app.state.draftWas = app.state.session.draft;
+			app.state.session.draft = { folders: [ { key: 'zzpill', name: 'zzPill', parent: '', count: 0 } ] };
+			app.view().setDraft( app.state.session.draft );
+			app.state.fill.unfiled = 61; // Not done: a done fill shows the library's own counts, not the dry run's.
+			app.state.fit = { tally: { fits: 939, siblings: 0, nothing: 61, sure: 800, likely: 139, rules_only: true } };
+			app.render();
+		} );
+		await expect( pills, 'the dry count: would be placed · sure · likely · not placed · estimate' ).toHaveText( [ '939 would be placed', '800 sure', '139 likely', '61 not placed', 'estimate' ] );
+		await expect( pills.last() ).toHaveClass( /is-quiet/ );
+
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			delete app.state.session.applyWas;
+			app.state.fit = null;
+			app.state.fill.unfiled = 0;
+			app.state.session.draft = app.state.draftWas || null;
+			delete app.state.draftWas;
+			app.view().setDraft( app.state.session.draft );
+			app.render();
+		} );
+	} );
+
+	/*
 	 *  The rail turned round on a site that sells: Tree, Fill, Describe, Alt
 	 *  text, Rename, the one quiet line under it, and "on products" beside the
 	 *  title -- read off a product the fixture makes with one real picture as

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The model's words</title>
+<!--
+	S18, for Nathan's yes: the three places a word for the AI's part appears.
+	Option A, his ok on 2026-09-18: no "AI" on any screen. These are the
+	words that ship. Boards: why-agree, why-doubt, fill-dry, fill-done.
+-->
+<link rel="stylesheet" href="../../../css/vergeml-shell.css">
+<link rel="stylesheet" href="../../../css/vergeml-folders.css">
+<link rel="stylesheet" href="../../../css/eml-admin-media.css">
+<style>
+html, body { margin: 0; }
+body { background: #f0f0f1; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1d2327; padding: 24px; }
+.board { background: #fff; border: 1px solid #dcdcde; border-radius: 4px; padding: 20px 24px; margin: 0 0 24px; max-width: 760px; }
+.board h3 { margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: #646970; }
+.draft { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 3px; background: #fff3cd; color: #7a5b00; font-size: 11px; letter-spacing: 0; text-transform: none; font-weight: 600; }
+
+/* The attachment modal's field row, as WordPress lays it out. */
+.setting { display: flex; gap: 12px; align-items: flex-start; font-size: 13px; }
+.setting .name { width: 30%; text-align: right; color: #646970; padding-top: 2px; }
+.setting .value { flex: 1; }
+.vgml-why-pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e9edfc; color: #1e2f9d; font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+.vgml-why-facts li::before { background: #2b46d8; }
+.new { background: #fff3cd; border-radius: 3px; padding: 0 3px; }
+
+/* The Fill card's head, in the shell's own grammar. */
+.vgml-shell { background: transparent; padding: 0; }
+.g-card { background: #fff; border: 1px solid #dcdcde; border-radius: 12px; padding: 18px 20px; }
+.g-card-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.g-card-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.g-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.g-pill { display: inline-flex; align-items: baseline; gap: 5px; padding: 4px 11px; border-radius: 999px; background: #e8ecf5; color: #101d40; font-size: 13px; line-height: 1.3; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.g-pill b { font-weight: 600; }
+.g-pill.is-accent { background: #e9edfc; color: #1e2f9d; }
+.g-pill.is-quiet { background: transparent; color: #6f7891; padding-inline: 2px; }
+.g-pill.is-ask { background: #ffd84d; color: #101d40; }
+.g-move { margin-top: 16px; display: flex; gap: 14px; align-items: center; }
+.vgml-move-btn { background: #2b46d8; color: #fff; border: 0; border-radius: 8px; padding: 10px 18px; font-size: 14px; font-weight: 600; }
+.g-quiet { color: #6f7891; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="board" data-shot="why-agree">
+	<h3>1 · Why is it here — both matches chose the same folder <span class="draft">draft</span></h3>
+	<div class="setting">
+		<div class="name">Why is it here</div>
+		<div class="value">
+			<span class="vgml-why-pill">sure</span>
+			<ul class="vgml-why-facts">
+				<li><span class="new">In Jackets · both matches agree</span></li>
+				<li>Matched leather jacket ~ jackets · the folder's own name</li>
+				<li>Filed 18 September · batch 231</li>
+			</ul>
+		</div>
+	</div>
+</div>
+
+<div class="board" data-shot="why-doubt">
+	<h3>2 · Why is it here — matched a folder, but in doubt <span class="draft">draft</span></h3>
+	<div class="setting">
+		<div class="name">Why is it here</div>
+		<div class="value">
+			<ul class="vgml-why-facts">
+				<li><span class="new">Left where it was · matched Jackets, but in doubt</span></li>
+				<li>Looked at 18 September · batch 231</li>
+			</ul>
+		</div>
+	</div>
+</div>
+
+<div class="board" data-shot="fill-dry">
+	<h3>3 · The Fill card before you press Fill — the numbers are an estimate <span class="draft">draft</span></h3>
+	<div class="vgml-shell">
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>Fill the folders</h2>
+				<div class="g-pills">
+					<span class="g-pill is-accent"><b>939</b> would be placed</span>
+					<span class="g-pill"><b>800</b> sure</span>
+					<span class="g-pill"><b>139</b> likely</span>
+					<span class="g-pill"><b>61</b> not placed</span>
+					<span class="g-pill is-quiet"><span class="new">estimate</span></span>
+				</div>
+			</div>
+			<div class="g-move"><button class="vgml-move-btn">Fill 1,000 pictures</button><span class="g-quiet">Next: Alt text</span></div>
+		</div>
+	</div>
+</div>
+
+<div class="board" data-shot="fill-done">
+	<h3>4 · The Fill card after the run — the doubts as their own count <span class="draft">draft</span></h3>
+	<div class="vgml-shell">
+		<div class="g-card">
+			<div class="g-card-head">
+				<h2>Fill the folders</h2>
+				<div class="g-pills">
+					<span class="g-pill is-accent"><b>908</b> placed</span>
+					<span class="g-pill"><b>731</b> sure</span>
+					<span class="g-pill"><b>177</b> likely</span>
+					<span class="g-pill is-ask"><b>12</b> questions</span>
+					<span class="g-pill"><span class="new"><b>31</b> in doubt</span></span>
+					<span class="g-pill"><b>61</b> in no folder</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+</body>
+</html>
