@@ -1,46 +1,43 @@
 {
-  "phase": "Every picture a home — S16: the truth score first (tools/box-truth-score.php on the shop is the gate for every rule; the tech truth page for Nathan; the placement's source on the trail), then the S15 verdict — member words only where alike to the folder's own (6 of 7 wrong sures are learned misses), a one-word leaf as the head noun of a class half (interior space → Space); then the audience words and the two profile findings, S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the class floor for vector-only class-half matches",
+  "phase": "Every picture a home — S17: Nathan's five calls from S16 first (the audience gate as a runner-up so a gated folder makes a question, not a wrong sure — 44 of 581; the namesake tie broken by the class half naming one leaf's ancestor — 9 of 14; the class floor — 7 placements; the tech truth page's shape; the rail mock's yes), each built only on a yes and judged by the SCORE line; then the audience words in the site's language on HEMA (dames, heren, kinderen, kind, baby, meisjes, jongens — restore vgml-shop-tree-hema.json first, 0 credits, ms2 free); the tech truth page built and marked (~200 pictures, ~30 min of Nathan's, no credits) so the tech library scores too; the rail built from the mock; then S10.10 the proposal from the pictures (a Fable-sized phase: groups to name and nest, per kind first, thumbnails, the pack's own signals)",
   "model": "opus",
-  "plan": "plans/every-picture-a-home.md (Phase D: S16)",
+  "plan": "plans/every-picture-a-home.md (Phase D: S17)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "core/filing.php (S10.8 task 1 — the map, pure: vergeml_filing_product_folder( $cat_path, $profiles ): a product_cat's path to the folder whose path equals it by canon names, else the folder whose leaf equals the category's name when exactly one does, else 0; pick.php rows, mutation: the leaf fallback removed)",
-    "core/filing.php, core/folder-talk.php (S10.8 task 2 — the fact: a row's product folder from _thumbnail_id, _product_image_gallery and post_parent (vergeml_filing_product_sql, the shape of vergeml_filing_words_sql); the pick answers fits / sure / why 'product' before any matching and treats placed_by 'product' like 'user'; the run records placed_by = product and the reason line 'by the product'; sticky.php rows on the suite's own product, mutation: the product path removed -> the matcher)",
-    "tests/integrations/live.php (S10.8 task 3 — 'woo': its own product in a category, a folder of that name, two pictures as featured and gallery -> both by product, sure; a second count -> unchanged; everything put back; on the tech site, never ms2)",
-    "js/vergeml-folders.js (S10.8 task 4 — the Fill step's rail: 'placed by product N · by evidence N · to sort N' from the report's tally; the flipped order for structured libraries mocked first, Nathan's yes)",
-    "tools/box-truth-score.php, tools/truth-page.php (the tech truth page: ~200 pictures, the fill's pick pre-filled from the tree's folders, Nathan corrects in one sitting, saved as a JSON the scorer reads with VGML_TRUTH; the shop's 45 unmapped labels mapped by leaf under the same top)",
-    "core/folder-talk.php, core/filing.php (the placement's source on the trail: which phrase, which folder word, plan / name / members / word / vector — the why card and the scorer read it)",
-    "core/filing.php (vergeml_filing_members_layer / members_apply: a member word is the folder's only where it is alike to one of the base profile's words — containment or the class vector at the floor; pick.php row on Cooling learning cable reels, mutation: the likeness test removed; judged dry on the S15 and S13 sheets, the tech band re-taken with the reason)",
-    "core/filing.php (the pick: a one-word leaf as the head noun of the class half is no hit unless the half is the leaf whole or the leaf is the folder's first class — interior space → Space, skateboard component → Components; pick.php row; judged on the S15 sheet)",
-    "core/filing.php (vergeml_filing_audience_of reads the site's language too: dames, heren, kinderen, kind, baby, meisjes, jongens; pick.php row; judged on HEMA round 1 — restore vgml-shop-tree-hema.json first, 0 credits)",
-    "core/filing.php (a leaf whose plan claims its parent's members' word first — Interviews: people; TV & Video: camera lens — is the planner's noise: judged dry on both sheets before any rule)",
-    "core/filing.php (the class floor: a class half's vector-only match corroborates, never places alone; probe first, judged dry on all three sheets)",
-    "core/filing.php (vergeml_filing_ask_split leaves a view home)",
-    "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt, tests/tree/filing-baseline-shop-b.txt (re-taken only with the reason, on a marked sheet re-read by path)",
+    "core/filing.php (the audience gate as a runner-up, on Nathan's yes: a folder gated by audience alone keeps its score for the margin, never as the pick — pick.php row on a men's jacket with audience '' beside motorbikes › jackets: a margin, not a sure; mutation: the gated score dropped -> the sure is back; judged by the SCORE line: wrong sures fall, right does not)",
+    "core/filing.php (the namesake tie, on Nathan's yes: on a margin between two leaves of one name, the leaf whose ancestor the class half names wins — pick.php row on 'hiking backpack; luggage' between bags & luggage › backpacks and camping › backpacks; mutation: the ancestor test removed -> margin; judged by the SCORE line: backpacks 0 -> 8 of 11)",
+    "core/filing.php (the class floor, on Nathan's yes: a class-half hit by vector alone corroborates, never places alone — pick.php row; judged by the SCORE line and the S15 sheet; 7 placements today)",
+    "core/filing.php (vergeml_filing_audience_of reads the site's language: dames, heren, kinderen, kind, baby, meisjes, jongens; pick.php row; judged on HEMA round 1 with the tree restored, 0 credits)",
+    "tools/truth-page.php, tools/box-truth-score.php (the tech truth page on the shape Nathan approves: ~200 pictures picked fresh, the fill's folder pre-filled in a select of the tree's folders, wrong picture / no folder, a tally, Save -> a JSON the scorer reads with VGML_TRUTH; then the SCORE line for the tech library in every check-in too)",
+    "js/vergeml-folders.js, core/folder-talk.php (the rail from the mock 2026-09-18-fill-by-product.html on Nathan's yes: the pills by product · by evidence · to sort from tally.product, and the flipped order for a site that sells; folders.spec rows; the copy verbatim from the mock)",
+    "core/librarian.php (the why card's source line wording, Nathan's words)",
+    "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt, tests/tree/filing-baseline-shop-b.txt (re-taken only with the reason and the SCORE line)",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-17-s15-library-words-and-views.md (this: the probe, the two word rules and their sheets, the view rule and HEMA's honest 30 %, the apply's dead round trips, S10.8's premise)",
-    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.8 and its S15 paragraph; S10.5b's; the order of the steps by library)",
-    "core/ai.php vergeml_ai_context (the one place a product is read today) and tests/integrations/live.php 'woo' (the fixture's shape: a product, a category, 1778 and 1775)",
-    "memory: hetzner-box-fixtures (Woo active on the tech site, ms2 has none), tests-never-touch-live-state, model-spend-discipline, probe-the-premise-before-the-build"
+    "docs/handoffs/2026-09-18-s16-the-truth-score-first.md (this: the score table, the three probes, the five calls, the source on the trail, S10.8's four tasks)",
+    "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.7's S16 paragraph, S10.8's S16 paragraph, the order of the steps by library)",
+    "tools/box-truth-score.php (the gate: the SCORE line, the wrong pairs, the leaves that lose, placed by source)",
+    "docs/superpowers/mocks/2026-09-18-fill-by-product.html and its shot (the rail as mocked)",
+    "memory: hetzner-box-fixtures, tests-never-touch-live-state, model-spend-discipline, probe-the-premise-before-the-build, truth-score-not-sheets"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
     "Never run a suite or a walk on ms2 while Nathan is on it; ask first",
     "ms2 shows the C.5 tree (site language nl_NL); HEMA's tree is /var/www/ms2/wp-content/vgml-shop-tree-hema.json — swap with tools/box-tree-snapshot.php (snapshot the one up first), never while Nathan is on ms2",
-    "S10.8 touches products: the live test makes and removes its own product on the tech site; Woo on ms2 and products from the seed leaves only on Nathan's word",
-    "The rail's flipped order is a mock before a build",
-    "A band is re-taken only on a marked sheet re-read by path, and the re-take carries the reason",
+    "The audience gate, the namesake tie, the class floor: each only on Nathan's yes, each judged by the SCORE line before it stays",
+    "The truth page and the rail: a shape or a mock shown, Nathan's yes, then the build",
+    "The why card's copy is Nathan's: never write a user-facing string the plan did not supply",
+    "A band is re-taken only with the reason and the SCORE line",
     "Every bug from a walk is a story: test first, one mutation, then the fix; a mutation of anything that can start a run holds the cron wire",
     "Never git checkout a file carrying uncommitted work: restore a mutation by the same string edit that made it"
   ],
   "gates": [
-    "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background → green (escaping 9/10 known)",
-    "node tools/box-eval.mjs tools/box-truth-score.php --site shop: the SCORE line printed in every check-in; a rule moves only when right-of-placed does not fall (today 69 %, sure 72 %)",
-    "tests/integrations/live.php woo on the tech site green, red with the product path removed",
-    "folders.spec and modes.spec on the tech site green; on ms2 once Nathan says it is free",
-    "the tech and shop-b bands 4/4 or re-taken with the reason; the C.5 band re-read and re-taken when its tree is back"
+    "node tools/box-eval.mjs tools/box-truth-score.php --site shop: the SCORE line printed in every check-in; a rule stays only when right-of-placed does not fall (today 348 of 581, 60 %, right of placed 71 %)",
+    "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background filing-trail → green (escaping 9/10 known)",
+    "the live woo case 9/9 on the tech site (wp eval-file tests/integrations/live.php woo)",
+    "folders.spec and modes.spec on the tech site green when the rail is built",
+    "the tech and C.5 bands 4/4 or re-taken with the reason; the shop-b band re-read when HEMA's tree is up"
   ]
 }
