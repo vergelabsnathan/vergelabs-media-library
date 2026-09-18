@@ -268,6 +268,30 @@ centroid), just outside the 0.08 margin. Tech band identical (no gendered
 folder there); the shop band re-taken (`2269c53`). The class floor: left,
 on Nathan's word.
 
+## Later still, on Nathan's "go": the audience words on HEMA (`8a71687`, `3f2118a`)
+
+ms2 free: the C.5 tree snapshotted as it stood
+(`/var/www/ms2/wp-content/vgml-shop-tree-c5-2026-09-18.json`, 323 terms,
+31 placed_by), HEMA's restored, the work done, the C.5 tree put back (its
+band 4/4). The reader already knew *dames, heren, kinderen*; what HEMA
+carried unread were the **compounds** — dameskleding, herenkleding,
+kinderkleding, meisjeskleding, jongenskleding, babykleding, babyspeelgoed,
+kinderbestek, kinder tussendoortjes, and *kind* ×3 — 12 of 292 names.
+`vergeml_filing_audience_of` reads the Dutch prefixes, *kinder / meisjes /
+jongens* as words, and *kind* alone only on a Dutch site (English "kind"
+is a sort of thing). `pick.php` 41–41a, the prefixes off → red. On HEMA
+all 21 audience names read, none missed — and **no pick moved**: the
+twelve were placing nothing. The describer gives an audience for 38 of the
+626 (30 women, 8 men), so those folders are shadows for the rest. The
+shop-b band re-taken under S16–S17 as a whole: 14 of 626 moved (6 to a
+question by the shadow, 3 to the floor by the likeness rule, 5 to another
+folder by the name claims), fits 292 → 283, sure 227 → 221.
+
+**A slip of mine, no harm done:** one chained command ran `git checkout
+core/filing.php` and reverted my own uncommitted audience edit; nothing
+of anyone else's was in the file. Redone and committed before the next
+step; the stop point stands and I will not chain a checkout again.
+
 ## Next — S17
 
 Card, to `plugin/.harness/active.json`:
