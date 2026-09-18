@@ -1526,8 +1526,9 @@ function vergeml_filing_pick( $facts, $profiles ) {
         return vergeml_filing_outcome( 'nothing', 'locked', array( 'scores' => array(), 'gated' => array() ) );
     }
 
-    $scores = array();
-    $gated  = array();
+    $scores   = array();
+    $gated    = array();
+    $evidence = array(); // Per folder, where its best class hit came from (S16): the winner's rides out as 'source' and 'hit'.
     // The picture's vector length once, not once per folder.
     $pnorm  = is_array( $facts['vector'] ) ? vergeml_filing_norm( $facts['vector'] ) : 0.0;
 
@@ -1653,7 +1654,12 @@ function vergeml_filing_pick( $facts, $profiles ) {
                 }
                 $weight  = ( 0 === $rank || ( $is_leaf && $match >= 1.0 ) ) ? 1.0 : 0.85;
                 $k       = $is_leaf ? 1 : max( 1, (int) ( isset( $shared[ vergeml_filing_group_key( $fc ) ] ) ? $shared[ vergeml_filing_group_key( $fc ) ] : 1 ) );
-                $class   = max( $class, $phrase * $weight * $match / $k );
+                $this_hit = $phrase * $weight * $match / $k;
+                if ( $this_hit > $class ) {
+                    // Where the hit came from (S16): a word the members taught, the folder's own leaf, or the planner's.
+                    $ev = array( 'source' => isset( $p['words'][ $fc ] ) ? 'members' : ( $is_leaf || 'name' === ( isset( $p['base_source'] ) ? $p['base_source'] : $p['source'] ) ? 'name' : 'plan' ), 'hit' => $pc . ' ~ ' . $fc );
+                }
+                $class   = max( $class, $this_hit );
                 if ( $class >= 1.0 ) {
                     break 2;
                 }
@@ -1661,7 +1667,11 @@ function vergeml_filing_pick( $facts, $profiles ) {
         }
         // The specific phrase against the folder's descriptive phrase, when there is one.
         if ( $class < 0.95 && '' !== $p['matches'] && ! empty( $facts['classes'] ) ) {
-            $class = max( $class, 0.9 * vergeml_filing_class_match( $facts['classes'][0], $p['matches'] ) );
+            $this_hit = 0.9 * vergeml_filing_class_match( $facts['classes'][0], $p['matches'] );
+            if ( $this_hit > $class ) {
+                $ev = array( 'source' => 'matches', 'hit' => $facts['classes'][0] . ' ~ ' . $p['matches'] );
+            }
+            $class = max( $class, $this_hit );
         }
         /*
          *  The picture's own words (S10.9): its filename, title and alt as a
@@ -1693,7 +1703,11 @@ function vergeml_filing_pick( $facts, $profiles ) {
                     $is_leaf = '' !== $leaf && vergeml_filing_group_key( $fc ) === $leaf;
                     $weight  = ( 0 === $rank || ( $is_leaf && $match >= 1.0 ) ) ? 1.0 : 0.85;
                     $k       = $is_leaf ? 1 : max( 1, (int) ( isset( $shared[ vergeml_filing_group_key( $fc ) ] ) ? $shared[ vergeml_filing_group_key( $fc ) ] : 1 ) );
-                    $class   = max( $class, 0.85 * $weight * $match / $k );
+                    $this_hit = 0.85 * $weight * $match / $k;
+                    if ( $this_hit > $class ) {
+                        $ev = array( 'source' => 'word', 'hit' => $word . ' ~ ' . $fc );
+                    }
+                    $class   = max( $class, $this_hit );
                 }
             }
         }
@@ -1704,7 +1718,9 @@ function vergeml_filing_pick( $facts, $profiles ) {
             $embed = max( 0.0, vergeml_filing_cosine( $p['vector'], vergeml_filing_norm( $p['vector'], $tid . ':' . $p['source'] . ':' . ( isset( $p['built_at'] ) ? $p['built_at'] : 0 ) ), $facts['vector'], $pnorm ) );
         }
 
-        $scores[ $tid ] = VERGEML_FILING_CLASS_WEIGHT * $class + ( 1 - VERGEML_FILING_CLASS_WEIGHT ) * $embed;
+        $scores[ $tid ]   = VERGEML_FILING_CLASS_WEIGHT * $class + ( 1 - VERGEML_FILING_CLASS_WEIGHT ) * $embed;
+        $evidence[ $tid ] = $class > 0.0 && isset( $ev ) ? $ev : array( 'source' => 'vector', 'hit' => '' );
+        unset( $ev );
     }
 
     if ( ! $scores ) {
@@ -1746,7 +1762,7 @@ function vergeml_filing_pick( $facts, $profiles ) {
 
     $score  = (float) $scores[ $best ];
     $rscore = $runner ? (float) $scores[ $runner ] : 0.0;
-    $common = array( 'score' => $score, 'runner_up' => $runner, 'runner_score' => $rscore, 'scores' => $scores, 'gated' => $gated );
+    $common = array( 'score' => $score, 'runner_up' => $runner, 'runner_score' => $rscore, 'scores' => $scores, 'gated' => $gated, 'source' => $evidence[ $best ]['source'], 'hit' => $evidence[ $best ]['hit'] );
 
     if ( $score < VERGEML_FILING_FLOOR ) {
         return vergeml_filing_outcome( 'nothing', 'floor', $common + array( 'nearest' => $best ) );
@@ -1840,6 +1856,8 @@ function vergeml_filing_outcome( $outcome, $why, $extra = array() ) {
         'why'          => $why,
         'scores'       => array(),
         'gated'        => array(),
+        'source'       => '',
+        'hit'          => '',
     ), $extra );
 }
 

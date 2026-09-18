@@ -763,5 +763,33 @@ f_check( '36 Interviews loses "people" (People\'s name whole), TV & Video loses 
 $p = vergeml_filing_pick( f_facts( 'camera lens; photography equipment', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), vergeml_filing_settle_claims( $named ) );
 f_check( '36a "camera lens; photography equipment" is Lenses, sure, clear of TV & Video (a margin between them before)', 'fits' === $p['outcome'] && 74 === $p['term_id'] && 'sure' === $p['confidence'] && $p['score'] - $p['runner_score'] >= VERGEML_FILING_MARGIN, sprintf( '%s %d @%.4f %s next %d @%.4f', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'], $p['runner_up'], $p['runner_score'] ) );
 
+/*
+ *  The placement's source (S16). "6 of the 7 wrong sures are learned member
+ *  words" took a probe to say; the pick now says it: 'source' is where the
+ *  winning folder's best class hit came from -- 'plan' (the planner's word),
+ *  'name' (the folder's own leaf), 'members' (a word its pictures taught
+ *  it), 'matches' (the plan's descriptive phrase), 'word' (the picture's own
+ *  filename, title or alt) or 'vector' (no class hit at all) -- and 'hit' is
+ *  the pair, "picture phrase ~ folder word". The trail keeps both, the why
+ *  card and the truth score read them. Mutation: the source not tracked ->
+ *  rows 37 and 37a red.
+ */
+echo "\n== the placement's source (S16)\n";
+
+$src = vergeml_filing_settle_claims( array(
+    81 => f_profile( 81, 0, array( 'Data centres', 'Cooling' ), array( 'cooling unit', 'chiller' ) ),
+    82 => f_profile( 82, 0, array( 'Workstations' ), array( 'desktop pc', 'workstations' ), array( 'source' => 'members', 'base_source' => 'name', 'words' => array( 'desktop pc' => 5 ), 'members' => 8 ) ),
+    83 => f_profile( 83, 0, array( 'Phones' ), array( 'phones' ), array( 'source' => 'name', 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ),
+    84 => f_profile( 84, 0, array( 'Skylines' ), array( 'cityscape' ), array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) ),
+) );
+$p = vergeml_filing_pick( f_facts( 'chiller; cooling equipment' ), $src );
+f_check( '37 "chiller; cooling equipment" on Cooling: source plan, hit "chiller ~ chiller"', 'fits' === $p['outcome'] && 81 === $p['term_id'] && 'plan' === $p['source'] && 'chiller ~ chiller' === $p['hit'], sprintf( '%s %d source %s hit %s', $p['outcome'], $p['term_id'], $p['source'], $p['hit'] ) );
+$p = vergeml_filing_pick( f_facts( 'desktop pc; computer hardware' ), $src );
+f_check( '37a "desktop pc; computer hardware" on Workstations: source members (the folder learned the word), hit "desktop pc ~ desktop pc"', 'fits' === $p['outcome'] && 82 === $p['term_id'] && 'members' === $p['source'] && 'desktop pc ~ desktop pc' === $p['hit'], sprintf( '%s %d source %s hit %s', $p['outcome'], $p['term_id'], $p['source'], $p['hit'] ) );
+$p = vergeml_filing_pick( f_facts( 'mobile phone; electronics', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), $src );
+f_check( '37b "mobile phone; electronics" on Phones: source name, hit "mobile phone ~ phones"', 'fits' === $p['outcome'] && 83 === $p['term_id'] && 'name' === $p['source'] && 'mobile phone ~ phones' === $p['hit'], sprintf( '%s %d source %s hit %s', $p['outcome'], $p['term_id'], $p['source'], $p['hit'] ) );
+$p = vergeml_filing_pick( f_facts( 'skyscraper; building', array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) ), $src );
+f_check( '37c "skyscraper; building" whose vector is Skylines\' own and no class hit: below the floor (0.25), the nearest\'s source is vector and the hit empty', 'nothing' === $p['outcome'] && 84 === $p['nearest'] && 'vector' === $p['source'] && '' === $p['hit'], sprintf( '%s nearest %d source %s hit "%s"', $p['outcome'], $p['nearest'], $p['source'], $p['hit'] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

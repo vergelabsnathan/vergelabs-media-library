@@ -99,6 +99,7 @@ foreach ( $bands as $b => $_ ) {
 }
 $pairs   = array();
 $perleaf = array();
+$bysrc   = array();
 $looked  = 0;
 foreach ( $truth_tid as $id => $want ) {
     if ( ! isset( $picks[ $id ] ) ) {
@@ -112,6 +113,10 @@ foreach ( $truth_tid as $id => $want ) {
     $bands[ $band ]['n']++;
     if ( 'none' !== $fate ) {
         $bands[ $band ][ $fate ]++;
+        // The placement's source (S16): plan, name, members, matches, word or vector -- so "the wrong sures are learned words" is a line here, not a probe.
+        $src = isset( $pick['source'] ) && '' !== $pick['source'] ? $pick['source'] : '?';
+        $bysrc[ $src ][ $fate ] = ( $bysrc[ $src ][ $fate ] ?? 0 ) + 1;
+        $bysrc[ $src ]['n']     = ( $bysrc[ $src ]['n'] ?? 0 ) + 1;
     }
     $leafp = $path_of( $want );
     $perleaf[ $leafp ]['n']     = ( $perleaf[ $leafp ]['n'] ?? 0 ) + 1;
@@ -132,6 +137,12 @@ foreach ( array( 'sure', 'likely', 'siblings' ) as $b ) {
 }
 printf( "%-9s %4d\n", 'none', $bands['none']['n'] );
 printf( "SCORE right-and-placed %d of %d (%d%%) · right of placed %d%%\n", $right, $looked, $looked ? round( 100 * $right / $looked ) : 0, $placed ? round( 100 * $right / $placed ) : 0 );
+
+uasort( $bysrc, function ( $a, $b ) { return $b['n'] <=> $a['n']; } );
+echo "\nplaced, by the source of the hit (right / broad / wrong of n):\n";
+foreach ( $bysrc as $src => $x ) {
+    printf( "  %-8s %3d / %3d / %3d of %3d\n", $src, $x['right'] ?? 0, $x['broad'] ?? 0, $x['wrong'] ?? 0, $x['n'] );
+}
 
 arsort( $pairs );
 echo "\nwrong pairs, most first:\n";
