@@ -349,6 +349,17 @@ carries the file to the box. The page for Nathan:
 (with `MSYS_NO_PATHCONV=1` in Git Bash, or the `/tmp` path turns into a
 Windows one).
 
+**The page as published:** https://claude.ai/artifact/Bxuo8icBL9hMnTAr5QKRxJ
+— thumbnails embedded, the marks saved on the page's own store (`db`,
+doc `truth/tech-133`, `{ marks: { id: termId | 0 | 'skip' } }`); read
+them back with the ArtifactData tool, turn term ids into paths with the
+page's own folder list, write `tests/tree/truth-tech.json`. **Nathan,
+marking (2026-09-18): "the descriptions are almost always spot on."** The
+describer is not the weak link; the matching of a right description to
+the folders is — the days ahead are aimed there, and there is no case for
+a dearer model. His marking rule: the most specific folder that is right;
+the parent only when no child fits.
+
 ## Next — S17
 
 Card, to `plugin/.harness/active.json`:
