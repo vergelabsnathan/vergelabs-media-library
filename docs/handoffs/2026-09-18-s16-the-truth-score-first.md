@@ -320,6 +320,35 @@ of the session — its result is in the next check-in or not at all; **delete
 `vgmls16`** on the tech site either way (`node tools/box-eval.mjs
 tools/box-ui-admin.php --env VGML_ACTION=delete --env VGML_USER=vgmls16`).
 
+## The road to "complete", and the truth page (`a7a0566`)
+
+Nathan (2026-09-18): "how much more time until it's ready for market?" —
+wordpress.org is strict and he will not present an incomplete product. The
+answer given, in days of sessions like this one, with the bar for Folders
+being *a shop owner presses Tree → Fill → Describe and ends with every
+picture in a folder or in a one-click question, wrong sures under 5 %
+(today 12 %)*: the tech scoring page 0.5; **S10.10** (the tree proposed
+from the pictures — the lever on the number) 2; wrong-sures 12 → < 5 %
+(more questions, fewer guesses) 1–2; S10.11 0.5; a real WooCommerce shop
+with product photos walked end to end 1; a user's pass over every Folders
+screen (copy, undo, edge cases, the popup lines) 1; final Plugin Check,
+archive, changelog 0.5 — **7–8 days**. Nathan: "okay, let's move on."
+
+First row done: `tools/truth-page.php` prints one page of N seeded-random
+pictures (200, seed 133 — the same page every time), each with its
+thumbnail off the box, the description small underneath, and a select of
+the tree's folders pre-set to today's pick with the word beside it; *No
+folder* and *Wrong picture* as choices; choices kept in the browser; Save
+downloads `truth-tech.json` (id ⇒ path, `""` for no folder, wrong
+pictures left out). The scorer reads `""` as right-to-leave / wrong-to-
+place and folds it into the SCORE line; `box-eval.mjs --copy local:remote`
+carries the file to the box. The page for Nathan:
+`docs/truth/2026-09-18-tech-truth.html`; the file goes to
+`tests/tree/truth-tech.json`; then
+`node tools/box-eval.mjs tools/box-truth-score.php --copy tests/tree/truth-tech.json:/tmp/vgml-truth.json --env VGML_TRUTH=/tmp/vgml-truth.json`
+(with `MSYS_NO_PATHCONV=1` in Git Bash, or the `/tmp` path turns into a
+Windows one).
+
 ## Next — S17
 
 Card, to `plugin/.harness/active.json`:

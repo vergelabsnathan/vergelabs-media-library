@@ -1,16 +1,19 @@
 {
-  "phase": "Every picture a home — S17: Nathan's calls from S16 first (the audience gate as a runner-up: DONE 2026-09-18, 0aff174, right of placed 72 %; the class floor: LEFT on Nathan's word; the namesake tie: DROPPED on Nathan's word 2026-09-18; the rail: DONE 2026-09-18, 7d13048; the tech truth page's shape and the why-card wording: still open), each built only on a yes and judged by the SCORE line; (the audience words on HEMA: DONE 2026-09-18, 8a71687, no pick moved) the tech truth page built and marked (~200 pictures, ~30 min of Nathan's, no credits) so the tech library scores too; then S10.10 the proposal from the pictures (a Fable-sized phase: groups to name and nest, per kind first, thumbnails, the pack's own signals)",
+  "phase": "Every picture a home — S17: the road to complete (7-8 days, Nathan's okay 2026-09-18): the truth page is built (a7a0566) — Nathan marks docs/truth/2026-09-18-tech-truth.html, the JSON goes to tests/tree/truth-tech.json, then the tech SCORE line joins the shop's in every check-in; next S10.10 the tree proposed from the pictures (2 days: groups per kind first, the planner handed groups to name and nest, the proposal drawn as thumbnails, the pack's own signals; a plan in the Opus shape first, task by task); then wrong sures 12 % -> under 5 % (more questions, fewer guesses; 1-2 days); S10.11 the opt-in model pass (0.5); a real WooCommerce shop with product photos walked end to end (1); a user's pass over every Folders screen (1); Plugin Check, archive, changelog (0.5). Still open: the why-card wording (Nathan's words), the tech truth marks.",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S17)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "tools/truth-page.php, tools/box-truth-score.php (the tech truth page on the shape Nathan approves: ~200 pictures picked fresh, the fill's folder pre-filled in a select of the tree's folders, wrong picture / no folder, a tally, Save -> a JSON the scorer reads with VGML_TRUTH; then the SCORE line for the tech library in every check-in too)",
+    "plans/every-picture-a-home.md (S10.10 planned first, every task in the Opus shape: files, behaviour, proof, mirror, copy, do not)",
+    "service/lib/folders-prompt.ts, service/lib/folders-prompt.test.ts, core/filing.php, core/folder-talk.php, js/vergeml-folders.js (S10.10, task by task from the plan; the residue grouper vergeml_filing_residue_groups is the mirror for the groups; a mock of the proposal drawn as thumbnails before its build)",
+    "tests/tree/truth-tech.json (Nathan's marks, never edited by hand by the session)",
     "core/librarian.php (the why card's source line wording, Nathan's words)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt, tests/tree/filing-baseline-shop-b.txt (re-taken only with the reason and the SCORE line)",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
+    "docs/handoffs/2026-09-18-s16-the-truth-score-first.md, the last four sections (the road to complete, the rail, the audience words, the audience shadow)",
     "docs/handoffs/2026-09-18-s16-the-truth-score-first.md (this: the score table, the three probes, the five calls, the source on the trail, S10.8's four tasks)",
     "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.7's S16 paragraph, S10.8's S16 paragraph, the order of the steps by library)",
     "tools/box-truth-score.php (the gate: the SCORE line, the wrong pairs, the leaves that lose, placed by source)",
@@ -29,7 +32,7 @@
     "Never git checkout a file carrying uncommitted work: restore a mutation by the same string edit that made it"
   ],
   "gates": [
-    "node tools/box-eval.mjs tools/box-truth-score.php --site shop: the SCORE line printed in every check-in; a rule stays only when right-of-placed does not fall (today 347 of 581, 60 %, right of placed 72 %)",
+    "node tools/box-eval.mjs tools/box-truth-score.php --site shop (today 347 of 581, 60 %, right of placed 72 %) and, once tests/tree/truth-tech.json exists, the same on the tech library with --copy and VGML_TRUTH: both SCORE lines in every check-in; a rule stays only when right-of-placed does not fall on either",
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background filing-trail → green (escaping 9/10 known)",
     "the live woo case 9/9 on the tech site (wp eval-file tests/integrations/live.php woo)",
     "folders.spec and modes.spec on the tech site green (the rail is built; the run started at S16's end as vgmls16 — read its result, delete the user)",
