@@ -74,6 +74,10 @@
 		// shown are ones nobody has computed.
 		pastePending: false,
 		pasteSeq: 0,
+		// A tree the conversation brought, handed to the turn route with the
+		// finished turn and not yet answered: the same state as a paste, for
+		// the seconds the matcher takes (six on a 33-picture shop, 2026-09-18).
+		turnPending: false,
 		moving: null,
 		step: '',
 		// The questions the fill left (/guide/questions), the folders the answers
@@ -137,9 +141,17 @@
 				 *  pills rather than leaving an answer about an older tree.
 				 */
 				if ( r && undefined !== r.fit ) {
+					state.turnPending = false;
 					tookFit( r );
 				}
 				return r;
+			}, function ( err ) {
+				// The turn route did not answer: the draft stays, the rows say so no longer, and the confirm reads the session it has.
+				if ( state.turnPending ) {
+					state.turnPending = false;
+					renderCards();
+				}
+				throw err;
 			} );
 		}, function () {} );
 		return queue;
@@ -553,7 +565,7 @@
 	/** Pictures the dry run places, and the ones it leaves: the two facts beside the folder count. */
 	function fitCounts() {
 		var fit = state.fit;
-		if ( state.pastePending || ! fit || false === fit.counted ) {
+		if ( state.pastePending || state.turnPending || ! fit || false === fit.counted ) {
 			return null;
 		}
 		var why = fit.unfiled || {};
@@ -596,7 +608,7 @@
 		if ( hasTree ) {
 			dom.confirm = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary vgml-confirm-btn' }, __( 'This is my tree', 'vergelabs-media-library' ) );
 			dom.confirm.addEventListener( 'click', onConfirm );
-			dom.confirm.disabled = state.pastePending || running();
+			dom.confirm.disabled = state.pastePending || state.turnPending || running();
 			dom.treeMove.appendChild( dom.confirm );
 			/*
 			 *  What the press costs and why it waits (C.5). The confirm profiles
@@ -923,7 +935,7 @@
 			} else {
 				// Done, but the tree is open again: the way to fill is to confirm it, here as on the Tree step.
 				var again = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary vgml-confirm-btn' }, __( 'This is my tree', 'vergelabs-media-library' ) );
-				again.disabled = ! ( view.getDraft() || state.nodes.length ) || state.pastePending;
+				again.disabled = ! ( view.getDraft() || state.nodes.length ) || state.pastePending || state.turnPending;
 				again.addEventListener( 'click', onConfirm );
 				dom.confirm = again; // The press breathes on the button pressed, whichever step it sits on.
 				dom.fillMove.appendChild( again );
@@ -950,7 +962,7 @@
 		if ( ! confirmed() && ! running() ) {
 			// Skipped here with the tree unconfirmed: the fill runs against a confirmed tree and nothing else, so that is the one button.
 			var confirmBtn = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary vgml-confirm-btn' }, __( 'This is my tree', 'vergelabs-media-library' ) );
-			confirmBtn.disabled = ! ( view.getDraft() || state.nodes.length ) || state.pastePending;
+			confirmBtn.disabled = ! ( view.getDraft() || state.nodes.length ) || state.pastePending || state.turnPending;
 			confirmBtn.addEventListener( 'click', onConfirm );
 			dom.confirm = confirmBtn;
 			dom.fillMove.appendChild( confirmBtn );
@@ -1737,6 +1749,8 @@
 				if ( streamTree ) {
 					extra = { draft: streamTree };
 					state.session.draft = streamTree;
+					// The turn route counts this draft on the way back: until it answers the rows carry no number and the confirm waits, as after a paste.
+					state.turnPending = true;
 				}
 				streamTree = null;
 				renderTreeStep();
@@ -2119,7 +2133,7 @@
 	 *  finished looking.
 	 */
 	function fitUnknown() {
-		return state.pastePending || !! ( state.fit && false === state.fit.counted );
+		return state.pastePending || state.turnPending || !! ( state.fit && false === state.fit.counted );
 	}
 
 	function syncCounted() {
@@ -2139,7 +2153,7 @@
 
 	function renderCounting() {
 		var pending = !! ( state.fit && state.fit.pending );
-		if ( ! state.pastePending && ! pending ) {
+		if ( ! state.pastePending && ! state.turnPending && ! pending ) {
 			state.countingSince = 0;
 			window.clearTimeout( fitTimer );
 			fitTimer = null;

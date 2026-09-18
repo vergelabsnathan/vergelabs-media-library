@@ -427,6 +427,67 @@ test.describe( 'the Folders screen', () => {
 	} );
 
 	/*
+	 *  A tree the conversation brings is counted before it shows numbers
+	 *  (S19, the real shop's walk 2026-09-18). The block lands, the reply
+	 *  ends, and the turn route -- which runs the matcher over the draft --
+	 *  answers seconds later: six on the shop's 33 pictures. Until then the
+	 *  rows read 0 on every folder and the head had no pill, the very
+	 *  picture of "nothing fits". The paste path already has the state for
+	 *  this (Counting N pictures against M folders, the clock, the confirm
+	 *  off); a turn that brought a tree now sets the same. Nothing here
+	 *  reaches a model: the token and the stream are answered by the test,
+	 *  the turn route is the real one, held for three seconds.
+	 *  Mutation: onFinish no longer setting turnPending -> "counts while the
+	 *  turn route answers" red (rows at 0, no row under the button).
+	 */
+	test( 'a tree from the conversation counts before it shows numbers', async ( { page } ) => {
+		await remember( page );
+		await reset( page );
+		await page.setViewportSize( { width: 1600, height: 1000 } );
+		await open_( page );
+
+		await page.route( /\/guide\/token(\?|$)/, ( route ) => route.fulfill( { status: 200, contentType: 'application/json', body: JSON.stringify( { token: 't', expires_at: Math.floor( Date.now() / 1000 ) + 600, stream: 'https://stub.invalid', summary: '', current: [] } ) } ) );
+		await page.route( 'https://stub.invalid/guide/stream', ( route ) => route.fulfill( {
+			status: 200,
+			contentType: 'text/event-stream',
+			body: 'event: say\ndata: {"text":"Three folders, then."}\n\n' +
+				'event: tree\ndata: {"tree":{"folders":[{"name":"Spec Alpha","parent":""},{"name":"Spec Beta","parent":""},{"name":"Spec Gamma","parent":""}]}}\n\n' +
+				'event: done\ndata: {"choices":[]}\n\n',
+		} ) );
+		let held = 0;
+		await page.route( /\/guide\/turn(\?|$)/, async ( route ) => {
+			if ( /"draft"/.test( route.request().postData() || '' ) ) {
+				held++;
+				await new Promise( ( r ) => setTimeout( r, 3000 ) );
+			}
+			await route.continue();
+		} );
+
+		await page.locator( '.g-step[data-step="tree"]' ).click();
+		await page.locator( '.g-card[data-card="tree"] .vgml-propose-btn, .g-card[data-card="tree"] button:has-text("Propose folders")' ).first().click();
+
+		const tree = page.locator( '.g-card[data-card="tree"]' );
+		// The live folders the reply did not name stay as removed rows with their size today; the three it named are the draft's.
+		const made = tree.locator( '.vgml-node', { hasText: /Spec (Alpha|Beta|Gamma)/ } );
+		await expect( made, 'the draft is on screen' ).toHaveCount( 3, { timeout: 15000 } );
+		const row = page.locator( '.g-progress[data-row="count"]' );
+		await expect( row, 'counts while the turn route answers: the row under the button' ).toBeVisible();
+		await expect( row.locator( '.g-progress-text' ) ).toHaveText( /^Counting \d[\d,.]* pictures against 3 folders · \d+ s$/ );
+		await expect( made.locator( '.vgml-count' ), 'no count on a new row until the answer' ).toHaveCount( 0 );
+		await expect( tree.locator( '.g-pill' ), 'no "would be placed" pill before the answer' ).not.toContainText( [ /would be placed/ ] );
+		await expect( tree.locator( '.vgml-confirm-btn' ) ).toBeDisabled();
+
+		await expect( row, 'the answer lands: the row goes' ).toBeHidden( { timeout: 20000 } );
+		expect( held, 'the turn route was asked once, with the draft' ).toBe( 1 );
+		await expect( tree.locator( '.g-pill' ).filter( { hasText: /would be placed/ } ) ).toHaveCount( 1 );
+		await expect( made.locator( '.vgml-count' ) ).toHaveCount( 3 );
+		await expect( tree.locator( '.vgml-confirm-btn' ) ).toBeEnabled();
+		await page.unroute( /\/guide\/turn(\?|$)/ );
+		await page.unroute( /\/guide\/token(\?|$)/ );
+		await page.unroute( 'https://stub.invalid/guide/stream' );
+	} );
+
+	/*
 	 *  A site that sells (S10.8; the approved mock 2026-09-18-fill-by-product.html).
 	 *  The Fill step's pills read by product · by evidence · to sort from the
 	 *  report's own tally whenever it counted a product placement, in the
