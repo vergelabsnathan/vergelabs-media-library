@@ -197,6 +197,79 @@ $bfq_s13 = array(
 );
 
 /*
+ *  The 2026-09-18 verdict on the S15 dry sheet (seed 133, no fill; Nathan):
+ *  sure 19/30 (4 too broad, 7 wrong), likely 3/30 (14 too broad, 13 wrong).
+ *  Six of the seven wrong sures are words the folders learned from the
+ *  fill's own placements (Cooling: cable reels; Components: smart speaker,
+ *  desktop computer; Hardware: graphics card; Server racks: network
+ *  switches), the seventh Satellites' stale kind word; five wrong likelies
+ *  are a folder's leaf read as the head noun of the class half ("interior
+ *  space" -> Space, "skateboard component" -> Components).
+ */
+$bfq_s15 = array(
+    106550 => array( 'sure', 'right', 'Space / Launches' ),
+    106635 => array( 'sure', 'right', 'Energy / Wind' ),
+    106073 => array( 'sure', 'broad', 'Hardware / Components' ),
+    106075 => array( 'sure', 'broad', 'Hardware / Components' ),
+    106530 => array( 'sure', 'right', 'Space / Launches' ),
+    106470 => array( 'sure', 'right', 'Data centres / Server racks' ),
+    106473 => array( 'sure', 'wrong', 'Data centres / Cooling' ),
+    106303 => array( 'sure', 'right', 'Robotics' ),
+    106028 => array( 'sure', 'right', 'Hardware' ),
+    105911 => array( 'sure', 'broad', 'Hardware / Laptops' ),
+    105959 => array( 'sure', 'wrong', 'Hardware / Components' ),
+    106421 => array( 'sure', 'wrong', 'Hardware / Components' ),
+    106011 => array( 'sure', 'right', 'Hardware / Components' ),
+    106021 => array( 'sure', 'right', 'Hardware / Components' ),
+    106298 => array( 'sure', 'right', 'Robotics' ),
+    105945 => array( 'sure', 'right', 'Hardware' ),
+    106450 => array( 'sure', 'wrong', 'Data centres / Server racks' ),
+    106426 => array( 'sure', 'wrong', 'Hardware / Components' ),
+    106129 => array( 'sure', 'right', 'Hardware / Components' ),
+    106702 => array( 'sure', 'wrong', 'Space / Satellites' ),
+    106027 => array( 'sure', 'wrong', 'Hardware' ),
+    105999 => array( 'sure', 'broad', 'Hardware' ),
+    106297 => array( 'sure', 'right', 'Robotics' ),
+    106283 => array( 'sure', 'right', 'Robotics' ),
+    106292 => array( 'sure', 'right', 'Robotics' ),
+    105888 => array( 'sure', 'right', 'Hardware / Phones' ),
+    106596 => array( 'sure', 'right', 'Energy / Solar' ),
+    106003 => array( 'sure', 'right', 'Hardware / Components' ),
+    105899 => array( 'sure', 'right', 'Hardware / Phones' ),
+    105847 => array( 'sure', 'right', 'Data centres / Server racks' ),
+    105939 => array( 'likely', 'broad', 'Hardware' ),
+    106365 => array( 'likely', 'right', 'Hardware' ),
+    106076 => array( 'likely', 'broad', 'Hardware / Components' ),
+    106158 => array( 'likely', 'wrong', 'Space' ),
+    106782 => array( 'likely', 'wrong', 'Space' ),
+    106781 => array( 'likely', 'wrong', 'Space' ),
+    106404 => array( 'likely', 'broad', 'Hardware' ),
+    106502 => array( 'likely', 'wrong', 'Data centres / Server racks' ),
+    105940 => array( 'likely', 'broad', 'Hardware' ),
+    106666 => array( 'likely', 'broad', 'Hardware' ),
+    106046 => array( 'likely', 'broad', 'Hardware' ),
+    106087 => array( 'likely', 'wrong', 'Hardware / Components' ),
+    106412 => array( 'likely', 'broad', 'Hardware' ),
+    105944 => array( 'likely', 'broad', 'Hardware' ),
+    106499 => array( 'likely', 'wrong', 'Data centres / Cooling' ),
+    106472 => array( 'likely', 'wrong', 'Data centres / Server racks' ),
+    106704 => array( 'likely', 'wrong', 'Space / Satellites' ),
+    106082 => array( 'likely', 'wrong', 'Hardware / Components' ),
+    106164 => array( 'likely', 'wrong', 'Hardware / Laptops' ),
+    106481 => array( 'likely', 'broad', 'Data centres' ),
+    105934 => array( 'likely', 'right', 'Hardware' ),
+    106477 => array( 'likely', 'wrong', 'Data centres' ),
+    105936 => array( 'likely', 'broad', 'Hardware' ),
+    106773 => array( 'likely', 'wrong', 'Space' ),
+    106455 => array( 'likely', 'right', 'Data centres / Server racks' ),
+    106364 => array( 'likely', 'broad', 'Hardware' ),
+    106140 => array( 'likely', 'broad', 'Hardware' ),
+    105935 => array( 'likely', 'wrong', 'Hardware / Laptops' ),
+    106349 => array( 'likely', 'broad', 'Hardware' ),
+    105932 => array( 'likely', 'broad', 'Hardware' ),
+);
+
+/*
  *  The 2026-09-16 verdict on the C.4 dry sheet (seed 133, no fill; Nathan):
  *  sure 26/30, likely 17/30. His notes: the smartwatches have no folder and
  *  land in Phones (the four likely wrong there); motherboards and the like sit
@@ -448,6 +521,30 @@ if ( $dry ) {
     }
     $reread .= implode( "\n", $dlines ) . "\n";
 
+    // The S15 dry sheet's 60 under this engine, the same way (Nathan's marks of 2026-09-18).
+    $fsum   = array( 'sure' => array( 'right kept' => 0, 'wrong dropped' => 0, 'right lost' => 0, 'wrong kept' => 0, 'broad kept' => 0, 'moved' => 0 ), 'likely' => array( 'right kept' => 0, 'wrong dropped' => 0, 'right lost' => 0, 'wrong kept' => 0, 'broad kept' => 0, 'moved' => 0 ) );
+    $flines = array();
+    foreach ( $bfq_s15 as $id => $d ) {
+        list( $word, $mark, $path ) = $d;
+        $pick = isset( $picks[ $id ] ) ? $picks[ $id ] : null;
+        $new  = $pick ? (int) $pick['term_id'] : 0;
+        $now  = $new ? bfq_path( $new, $tax ) : '';
+        if ( $new && $now === $path ) {
+            $fate = 'right' === $mark ? 'right kept' : ( 'broad' === $mark ? 'broad kept' : 'wrong kept' );
+        } elseif ( ! $new ) {
+            $fate = 'right' === $mark ? 'right lost' : 'wrong dropped';
+        } else {
+            $fate = 'moved';
+        }
+        $fsum[ $word ][ $fate ]++;
+        $flines[] = sprintf( '%-6s %6d  %-5s  was %-32s  now %-48s  %s', $word, $id, $mark, $path, $new ? sprintf( '%s (%s %.2f %s)', $now, $pick['why'], $pick['score'], 'siblings' === $pick['why'] ? 'likely' : $pick['confidence'] ) : sprintf( 'nothing (%s %.2f)', $pick ? $pick['why'] : '-', $pick ? $pick['score'] : 0 ), $fate );
+    }
+    $reread .= "the S15 dry sheet's 60 (seed 133, marked 2026-09-18: sure 19/30 with 4 broad, likely 3/30 with 14 broad) under this engine, by folder path:\n";
+    foreach ( $fsum as $word => $s ) {
+        $reread .= sprintf( "  %-6s  %s\n", $word, implode( ' · ', array_map( function ( $k, $n ) { return $k . ' ' . $n; }, array_keys( $s ), $s ) ) );
+    }
+    $reread .= implode( "\n", $flines ) . "\n";
+
     // The S13 dry sheet's 60 under this engine, the same way: the judge of the member refinement (S14).
     $ssum   = array( 'sure' => array( 'right kept' => 0, 'wrong dropped' => 0, 'right lost' => 0, 'wrong kept' => 0, 'broad kept' => 0, 'moved' => 0 ), 'likely' => array( 'right kept' => 0, 'wrong dropped' => 0, 'right lost' => 0, 'wrong kept' => 0, 'broad kept' => 0, 'moved' => 0 ) );
     $slines = array();
@@ -517,6 +614,8 @@ foreach ( array( 'sure', 'likely' ) as $word ) {
             $prefill[ count( $sample ) ] = $bfq_mark[ $id ];
         } elseif ( $dry && isset( $bfq_c4[ $id ] ) && $bfq_c4[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
             $prefill[ count( $sample ) ] = $bfq_c4[ $id ][1];
+        } elseif ( $dry && isset( $bfq_s15[ $id ] ) && $bfq_s15[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
+            $prefill[ count( $sample ) ] = $bfq_s15[ $id ][1];
         } elseif ( $dry && isset( $bfq_s13[ $id ] ) && $bfq_s13[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
             $prefill[ count( $sample ) ] = $bfq_s13[ $id ][1];
         } elseif ( $dry && isset( $bfq_dry[ $id ] ) && $bfq_dry[ $id ][2] === bfq_path( (int) $speaks[ $id ]['term_id'], $tax ) ) {
