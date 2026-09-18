@@ -1833,13 +1833,83 @@ function vergeml_filing_facts( $row ) {
  *  @return array 'outcome', 'term_id' (0 for none; the parent for siblings),
  *                'parent_id', 'score', 'runner_up', 'runner_score',
  *                'confidence' ('sure' | 'likely' | ''), 'why' ('ok' |
- *                'siblings' | 'floor' | 'margin' | 'gated' | 'placed' | 'locked'),
+ *                'siblings' | 'floor' | 'margin' | 'gated' | 'placed' | 'locked' |
+ *                'agree' | 'doubt' -- the last two the model's, S18),
  *                'children' (siblings, and a margin between non-siblings: the
  *                two), 'nearest' (nothing: the folder it came closest to),
  *                'kind' (gated everywhere: the picture's kind), 'scores'
  *                (term id => score), 'gated' (term id => 'kind' | 'audience' | 'locked').
  */
 function vergeml_filing_pick( $facts, $profiles ) {
+    return vergeml_filing_pick_model( vergeml_filing_pick_rules( $facts, $profiles ), $facts, $profiles );
+}
+
+/**
+ *  The pick, three tiers (S18, plans/agree-or-ask.md). The rules place
+ *  first -- they know what the folders hold; the text model's word on the
+ *  row (facts['model']: a term id, 0 for nothing of this tree fits, -1 for
+ *  unasked) decides the band. Measured on both answer keys (2026-09-18):
+ *  neither alone wins both shapes; together, with the disagreements asked,
+ *  tech reads 86 % and the shop 76 % right, and the sure band goes from
+ *  24 % / 12 % wrong to 1 % / 9 %.
+ *
+ *    agree     rules X, model X            -> fits X, sure, why 'agree'
+ *    disagree  rules X, model Y            -> nothing, why 'margin', children [X, Y]: the either/or question
+ *    doubt     rules X, model nothing      -> nothing, why 'doubt', nearest X: the residue's "Put in X"
+ *    alone     rules nothing, model Y      -> fits Y, likely, why 'ok', source 'model'
+ *    siblings  rules P's children, model a child of P -> that child, sure, 'agree'; the parent itself, the same; elsewhere, the question
+ *
+ *  -1 changes nothing. A product placement, a hand placement and a locked
+ *  home are never overruled; a locked, gated, view or unknown folder the
+ *  model names counts as nothing.
+ */
+function vergeml_filing_pick_model( $pick, $facts, $profiles ) {
+    $m = isset( $facts['model'] ) ? (int) $facts['model'] : -1;
+    if ( -1 === $m || vergeml_filing_kept( $pick ) || 'product' === $pick['why'] ) {
+        return $pick;
+    }
+    if ( $m > 0 && ( ! isset( $profiles[ $m ] ) || ! empty( $profiles[ $m ]['locked'] ) || ! empty( $profiles[ $m ]['view'] ) || isset( $pick['gated'][ $m ] ) ) ) {
+        $m = 0;
+    }
+
+    if ( 'nothing' === $pick['outcome'] ) {
+        if ( 0 === $m ) {
+            return $pick;
+        }
+        return vergeml_filing_outcome( 'fits', 'ok', array(
+            'term_id'      => $m,
+            'parent_id'    => vergeml_filing_parent_of( $m, $profiles ),
+            'score'        => (float) $pick['score'],
+            'runner_up'    => (int) $pick['runner_up'],
+            'runner_score' => (float) $pick['runner_score'],
+            'confidence'   => 'likely',
+            'scores'       => $pick['scores'],
+            'gated'        => $pick['gated'],
+            'source'       => 'model',
+            'hit'          => '',
+        ) );
+    }
+
+    // The rules placed: X is the folder, or the parent the siblings share.
+    $x = (int) $pick['term_id'];
+    if ( $m === $x || ( 'siblings' === $pick['outcome'] && $m > 0 && vergeml_filing_parent_of( $m, $profiles ) === $x ) ) {
+        return array_merge( $pick, array(
+            'outcome'    => 'fits',
+            'term_id'    => $m,
+            'parent_id'  => vergeml_filing_parent_of( $m, $profiles ),
+            'confidence' => 'sure',
+            'why'        => 'agree',
+        ) );
+    }
+    $common = array_intersect_key( $pick, array_flip( array( 'score', 'runner_up', 'runner_score', 'scores', 'gated', 'source', 'hit' ) ) );
+    if ( 0 === $m ) {
+        return vergeml_filing_outcome( 'nothing', 'doubt', $common + array( 'nearest' => $x ) );
+    }
+    return vergeml_filing_outcome( 'nothing', 'margin', $common + array( 'nearest' => $x, 'children' => array( $x, $m ) ) );
+}
+
+/** The rules' own pick, before the model's word: see vergeml_filing_pick(). */
+function vergeml_filing_pick_rules( $facts, $profiles ) {
 
     // Placed by the person, by their answer to a question (2026-09-17), or by the product it belongs to (S10.8): decided, and not asked again.
     if ( isset( $facts['placed_by'] ) && in_array( (string) $facts['placed_by'], array( 'user', 'answer', 'product' ), true ) ) {

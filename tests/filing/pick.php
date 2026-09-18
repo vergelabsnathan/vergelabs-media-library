@@ -898,5 +898,47 @@ echo "\n== the audience words in the site's language (S17)\n";
 f_check( '41 Dutch compounds: dameskleding women; herenkleding men; kinderkleding, meisjeskleding, jongenskleding, babyspeelgoed, kinderbestek kids; "kind" alone not read here', 'women' === vergeml_filing_audience_of( 'Dameskleding' ) && 'men' === vergeml_filing_audience_of( 'herenkleding' ) && 'kids' === vergeml_filing_audience_of( 'kinderkleding' ) && 'kids' === vergeml_filing_audience_of( 'meisjeskleding' ) && 'kids' === vergeml_filing_audience_of( 'jongenskleding' ) && 'kids' === vergeml_filing_audience_of( 'babyspeelgoed' ) && 'kids' === vergeml_filing_audience_of( 'kinder tussendoortjes' ) && '' === vergeml_filing_audience_of( 'kind' ) && '' === vergeml_filing_audience_of( 'all kinds' ), sprintf( '%s %s %s %s "%s"', vergeml_filing_audience_of( 'Dameskleding' ), vergeml_filing_audience_of( 'herenkleding' ), vergeml_filing_audience_of( 'meisjeskleding' ), vergeml_filing_audience_of( 'babyspeelgoed' ), vergeml_filing_audience_of( 'kind' ) ) );
 f_check( '41a the English words as before: "Men", "Women\'s shoes", "Kids", "Mankind" (no word), "Germany" (no word)', 'men' === vergeml_filing_audience_of( 'Men' ) && 'women' === vergeml_filing_audience_of( "Women's shoes" ) && 'kids' === vergeml_filing_audience_of( 'Kids' ) && '' === vergeml_filing_audience_of( 'Mankind' ) && '' === vergeml_filing_audience_of( 'Germany' ), sprintf( '%s %s %s "%s" "%s"', vergeml_filing_audience_of( 'Men' ), vergeml_filing_audience_of( "Women's shoes" ), vergeml_filing_audience_of( 'Kids' ), vergeml_filing_audience_of( 'Mankind' ), vergeml_filing_audience_of( 'Germany' ) ) );
 
+/*
+ *  The pick, three tiers (S18, plans/agree-or-ask.md task 3). The rules
+ *  place first; the text model's word on the row (facts['model']: a term
+ *  id, 0 nothing fits, -1 unasked) decides the band. Agree -> sure, why
+ *  agree. Disagree -> the either/or question carrying both folders (nothing,
+ *  margin, children [rules, model]). The model's nothing against the rules'
+ *  folder -> nothing, why doubt, nearest the rules' folder (the residue's
+ *  "Put in X"). The rules' nothing and the model's folder -> that folder,
+ *  likely, source model. Siblings under P and the model naming a child of
+ *  P -> that child, sure. -1 changes nothing; a product or hand placement
+ *  is never overruled; a locked, gated or unknown folder the model names
+ *  counts as 0. Mutation: the tiers removed -> 42, 42a, 42b red.
+ */
+echo "\n== the pick, three tiers: agree, disagree, doubt (S18)\n";
+
+$p = vergeml_filing_pick( f_facts( 'smartphone; phone', array( 'model' => 5 ) ), $profiles );
+f_check( '42 rules Phones likely (0.6375), model Phones: fits Phones, sure, why agree, the rules\' source kept', 'fits' === $p['outcome'] && 5 === $p['term_id'] && 'sure' === $p['confidence'] && 'agree' === $p['why'] && 4 === $p['parent_id'] && abs( $p['score'] - 0.6375 ) < 1e-6 && 'model' !== $p['source'] && '' !== $p['source'], sprintf( '%s %d %s why %s source %s @%.4f', $p['outcome'], $p['term_id'], $p['confidence'], $p['why'], $p['source'], $p['score'] ) );
+$p = vergeml_filing_pick( f_facts( 'phone; device', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ), 'model' => 3 ) ), $profiles );
+f_check( '42a rules Phones sure, model Cooling: nothing, margin, the two as children [Phones, Cooling], nearest Phones -- an either/or', 'nothing' === $p['outcome'] && 0 === $p['term_id'] && 'margin' === $p['why'] && '' === $p['confidence'] && array( 5, 3 ) === array_values( array_map( 'intval', (array) $p['children'] ) ) && 5 === (int) $p['nearest'] && vergeml_filing_is_either( $p ), sprintf( '%s %d why %s children %s nearest %d', $p['outcome'], $p['term_id'], $p['why'], wp_json_encode_lite( isset( $p['children'] ) ? $p['children'] : null ), (int) $p['nearest'] ) );
+$p = vergeml_filing_pick( f_facts( 'phone; device', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ), 'model' => 0 ) ), $profiles );
+f_check( '42b rules Phones sure, model nothing: nothing, why doubt, nearest Phones, the score kept', 'nothing' === $p['outcome'] && 0 === $p['term_id'] && 'doubt' === $p['why'] && 5 === (int) $p['nearest'] && ! isset( $p['children'] ) && abs( $p['score'] - 1.0 ) < 1e-6, sprintf( '%s %d why %s nearest %d @%.3f', $p['outcome'], $p['term_id'], $p['why'], (int) $p['nearest'], $p['score'] ) );
+$p = vergeml_filing_pick( f_facts( 'banana; fruit', array( 'model' => 5 ) ), $profiles );
+f_check( '42c rules floor, model Phones: fits Phones, likely, why ok, source model, hit empty', 'fits' === $p['outcome'] && 5 === $p['term_id'] && 'likely' === $p['confidence'] && 'ok' === $p['why'] && 'model' === $p['source'] && '' === $p['hit'] && 4 === $p['parent_id'], sprintf( '%s %d %s why %s source %s hit "%s"', $p['outcome'], $p['term_id'], $p['confidence'], $p['why'], $p['source'], $p['hit'] ) );
+$p = vergeml_filing_pick( f_facts( 'charger', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ), 'model' => 3 ) ), $profiles );
+f_check( '42c2 rules a margin (Phones or Cooling), model Cooling: fits Cooling, likely, source model', 'fits' === $p['outcome'] && 3 === $p['term_id'] && 'likely' === $p['confidence'] && 'model' === $p['source'], sprintf( '%s %d %s source %s', $p['outcome'], $p['term_id'], $p['confidence'], $p['source'] ) );
+$p  = vergeml_filing_pick( f_facts( 'phone; device', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ), 'model' => -1 ) ), $profiles );
+$p0 = vergeml_filing_pick( f_facts( 'phone; device', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), $profiles );
+f_check( '42d unasked (-1): the pick is the rules\' own, identical in every key', $p === $p0 && 'fits' === $p['outcome'] && 'ok' === $p['why'] && 'sure' === $p['confidence'], sprintf( '%s %d %s why %s', $p['outcome'], $p['term_id'], $p['confidence'], $p['why'] ) );
+$p = vergeml_filing_pick( f_facts( 'phone; device', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ), 'model' => 8 ) ), $profiles );
+$q = vergeml_filing_pick( f_facts( 'banana; fruit', array( 'model' => 6 ) ), $profiles );
+$r = vergeml_filing_pick( f_facts( 'phone; device', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ), 'model' => 999 ) ), $profiles );
+f_check( '42e the model naming a locked folder (Archive) counts as nothing: doubt; a kind-gated one (Logos) on a floor picture: floor as today; a folder not in the tree: doubt', 'nothing' === $p['outcome'] && 'doubt' === $p['why'] && 5 === (int) $p['nearest'] && 'nothing' === $q['outcome'] && 'floor' === $q['why'] && 'nothing' === $r['outcome'] && 'doubt' === $r['why'], sprintf( 'locked: %s %s · gated: %s %s · unknown: %s %s', $p['outcome'], $p['why'], $q['outcome'], $q['why'], $r['outcome'], $r['why'] ) );
+$p = vergeml_filing_pick( f_facts( 'rack; chiller', array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ), 'model' => 3 ) ), $profiles );
+$q = vergeml_filing_pick( f_facts( 'rack; chiller', array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ), 'model' => 5 ) ), $profiles );
+$r = vergeml_filing_pick( f_facts( 'rack; chiller', array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ), 'model' => 1 ) ), $profiles );
+f_check( '42f siblings under Data centres: the model naming Cooling (a child) -> Cooling, sure, agree; naming Phones (elsewhere) -> a Data centres-or-Phones question; naming the parent -> Data centres, sure, agree', 'fits' === $p['outcome'] && 3 === $p['term_id'] && 'sure' === $p['confidence'] && 'agree' === $p['why'] && 1 === $p['parent_id'] && 'nothing' === $q['outcome'] && 'margin' === $q['why'] && array( 1, 5 ) === array_values( array_map( 'intval', (array) $q['children'] ) ) && 'fits' === $r['outcome'] && 1 === $r['term_id'] && 'agree' === $r['why'] && 'sure' === $r['confidence'], sprintf( 'child: %s %d %s %s · elsewhere: %s %s %s · parent: %s %d %s', $p['outcome'], $p['term_id'], $p['confidence'], $p['why'], $q['outcome'], $q['why'], wp_json_encode_lite( isset( $q['children'] ) ? $q['children'] : null ), $r['outcome'], $r['term_id'], $r['why'] ) );
+$p = vergeml_filing_pick( f_facts( 'summer dress; clothing', array( 'product' => 93, 'model' => 94 ) ), vergeml_filing_settle_claims( $shop_tree ) );
+$q = vergeml_filing_pick( f_facts( 'phone; device', array( 'placed_by' => 'user', 'model' => 3 ) ), $profiles );
+f_check( '42g the model never overrules a product placement (Dresses stays, why product) or a hand placement (nothing, placed)', 'fits' === $p['outcome'] && 93 === $p['term_id'] && 'product' === $p['why'] && 'nothing' === $q['outcome'] && 'placed' === $q['why'], sprintf( 'product: %s %d %s · hand: %s %s', $p['outcome'], $p['term_id'], $p['why'], $q['outcome'], $q['why'] ) );
+$f = vergeml_filing_facts( array( 'filing' => '{"object":"phone; device"}', 'model_folder' => 0 ) );
+f_check( '42h the facts read the model\'s word off the row (model_folder), -1 without one', 0 === $f['model'] && -1 === vergeml_filing_facts( array( 'filing' => '{}' ) )['model'] && 7 === vergeml_filing_facts( array( 'filing' => '{}', 'model_folder' => 7 ) )['model'], sprintf( '%d', $f['model'] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );
