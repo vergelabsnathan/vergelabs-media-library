@@ -35,7 +35,7 @@
     "node tools/box-eval.mjs tools/box-truth-score.php --site shop (today 347 of 581, 60 %, right of placed 72 %) and, once tests/tree/truth-tech.json exists, the same on the tech library with --copy and VGML_TRUTH: both SCORE lines in every check-in; a rule stays only when right-of-placed does not fall on either",
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background filing-trail → green (escaping 9/10 known)",
     "the live woo case 9/9 on the tech site (wp eval-file tests/integrations/live.php woo)",
-    "folders.spec and modes.spec on the tech site green (the rail is built; the run started at S16's end as vgmls16 — read its result, delete the user)",
+    "folders.spec and modes.spec on the tech site: 26 passed, 3 skipped, 0 failed on 2026-09-18 with the rail built; green again after any screen change",
     "the tech, C.5 and shop-b bands 4/4 or re-taken with the reason (all three re-taken 2026-09-18; the shop-b band reads only with HEMA's tree up)"
   ]
 }

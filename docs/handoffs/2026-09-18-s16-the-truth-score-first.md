@@ -315,10 +315,8 @@ picture (and deletes it); `folders.spec` two rows — the pills from the
 model, the rail on the planted product — each mutation red (byProduct
 false; the reorder off). The live shot beside the mock:
 `docs/superpowers/mocks/shots/2026-09-18-fill-by-product-live.png`. The
-full `folders.spec` + `modes.spec` run as `vgmls16` was started at the end
-of the session — its result is in the next check-in or not at all; **delete
-`vgmls16`** on the tech site either way (`node tools/box-eval.mjs
-tools/box-ui-admin.php --env VGML_ACTION=delete --env VGML_USER=vgmls16`).
+full `folders.spec` + `modes.spec` run as `vgmls16`: **26 passed, 3 skipped,
+0 failed (27.9 min)** — the same three skips as S15; `vgmls16` deleted.
 
 ## The road to "complete", and the truth page (`a7a0566`)
 
