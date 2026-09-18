@@ -143,10 +143,12 @@ right among the two, one press each). Nathan: "I agree with you."
 **The strings:** first drafted with "the AI" in them; Nathan: "rather no
 AI" — option A above, shipped.
 
-**One open call: the tech sure floor.** 90 % against 97 %: the six
-hardware pictures both matchers file under Server racks. Either the mark
-is the parent and both are wrong the same way, or those six are racks.
-His eye on the truth page before any rule is touched.
+**The tech sure floor, settled (Nathan, end of S18):** the six are all
+network switches (`tools/box-truth-wrong-sures.php` lists them with their
+thumbnails); the tree has no networking folder, so both matchers land on
+Server racks by its planner word "networking equipment". Nathan: "it is
+actually just the lack of folders, just move on" — no rule, no re-mark;
+90 % stands as the number for this tree, and the folder is S10.10's.
 
 **What the tiers cost in questions:** the shop reads 76 either/or + 71
 doubts = 147 questions on 581 pictures (S10.5 folds one-picture pairs
@@ -195,7 +197,7 @@ Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6) and the walk is done (17 cards for 267 pictures, 143 sures to questions or doubts; ~60 cents, cached a week); the button's price once Nathan prices the call. fill-walk 22/22 with the model in. First the six tech hardware pictures on the truth page (his eye, no rule; doubts stay as built, decided 2026-09-18); then the road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
+  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6) and the walk is done (17 cards for 267 pictures, 143 sures to questions or doubts; ~60 cents, cached a week); the button's price once Nathan prices the call. fill-walk 22/22 with the model in. The six hardware pictures are settled (network switches; the tree lacks the folder; no rule; doubts stay as built). The road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
   "model": "opus",
   "plan": "plans/agree-or-ask.md (done: the six tasks); the S19 tasks as this card lists them, a plan file only if Nathan's calls open more than a copy pass and a walk",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
@@ -217,7 +219,7 @@ Card, to `plugin/.harness/active.json`:
     "Never run a suite or a walk on ms2 while Nathan is on it; ask first",
     "The price of the model call is Nathan's; until priced it is metered, never debited",
     "Every user-facing string is Nathan's, verbatim; a placeholder is nothing",
-    "Doubts stay as built (decided 2026-09-18); the six hardware pictures are his eye, not a rule",
+    "Doubts stay as built and the six network switches are the tree's lack of a folder, not a rule (both decided 2026-09-18)",
     "The model never overrules a product placement, a hand placement, or files into a view or a locked folder",
     "A band is re-taken only rules-only and with the reason; the model's lines are never a band",
     "Say every cost before it is spent: a fill with the model over the tech library is ~60 cents a fresh tree; the suites use the stand-in, never the service",
@@ -242,8 +244,7 @@ plans/agree-or-ask.md. State which model you are and follow that profile
 in ~/.claude/harness/model-profiles.md. This session is S19 of
 every-picture-a-home; the card is already in .harness/active.json — read
 it before anything else. Both rules-only SCORE lines first (shop 347 of
-581, tech 153 of 200); then the six hardware pictures with Nathan on the truth page; then the road to
-complete. Test first, one
+581, tech 153 of 200); then the road to complete. Test first, one
 mutation per story, both score lines after every task, every cost said
 before it is spent, never on ms2 while Nathan is on it. Talk plainly. End
 with a handoff carrying the S20 card.
