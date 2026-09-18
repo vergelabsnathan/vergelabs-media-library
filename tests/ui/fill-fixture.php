@@ -131,6 +131,11 @@ $ff_restore = function () use ( $wpdb, $ff_tax, $ff_opt ) {
         wp_delete_post( (int) $id, true );
     }
 
+    // The fixture's own product (S10.8), gone with its meta; its picture was never moved.
+    if ( ! empty( $snap['product'] ) && get_post( (int) $snap['product'] ) ) {
+        wp_delete_post( (int) $snap['product'], true );
+    }
+
     delete_option( $ff_opt );
     if ( function_exists( 'vergeml_folders_moved' ) ) {
         vergeml_folders_moved( 'undo' );
@@ -192,6 +197,25 @@ $ff_snap = array(
 
 // Written before anything moves, so a plant that dies half-way can still be restored.
 update_option( $ff_opt, $ff_snap, false );
+
+/*
+ *  VGML_PRODUCT=1 (S10.8): a product of the fixture's own whose featured
+ *  image is one real picture, so the page reads as a site that sells --
+ *  the rail turned round, the line under it, the "on products" pill. Only
+ *  where WooCommerce's product type exists (the box's tech site); the
+ *  restore deletes the product, and the picture was never moved.
+ */
+$ff_product = 0;
+if ( '1' === (string) getenv( 'VGML_PRODUCT' ) && post_type_exists( 'product' ) ) {
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $ff_pic = (int) $wpdb->get_var( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type LIKE 'image/%' ORDER BY ID ASC LIMIT 1" );
+    if ( $ff_pic ) {
+        $ff_product = (int) wp_insert_post( array( 'post_title' => 'zz spec product', 'post_type' => 'product', 'post_status' => 'publish' ) );
+        update_post_meta( $ff_product, '_thumbnail_id', (string) $ff_pic );
+        $ff_snap['product'] = $ff_product;
+        update_option( $ff_opt, $ff_snap, false );
+    }
+}
 
 /*
  *  Playground has no described library: fake ones, as index rows this file
@@ -435,6 +459,7 @@ echo wp_json_encode( array(
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     'placed'   => array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT pm.post_id FROM {$wpdb->postmeta} pm JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'attachment' WHERE pm.meta_key = %s AND pm.meta_value = 'user' ORDER BY pm.post_id", VERGEML_FILING_PLACED_BY ) ) ),
     'planted'  => true,
+    'product'  => $ff_product,
     'q1'       => $ff_q1,
     'q2'       => $ff_q2,
     'either'   => $ff_either,

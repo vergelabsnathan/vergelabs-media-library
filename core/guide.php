@@ -260,6 +260,25 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
     }
     $out['alt_have'] = max( 0, $out['images'] - $out['alt_missing'] );
 
+    /*
+     *  A site that sells (S10.8): pictures a product owns -- its featured
+     *  image, the ones in its gallery -- go where the product's category
+     *  says, before anything is described. The count is the pill beside the
+     *  title and what turns the rail round (Tree, Fill, Describe): a shop
+     *  with products and no product pictures is a shop in name only, and
+     *  keeps the bare pack's order.
+     */
+    $out['on_products'] = 0;
+    if ( post_type_exists( 'product' ) ) {
+        // Counted from the product side, on the meta key's index: the featured images, plus the gallery entries (a comma-separated list, one more than its commas).
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- core's tables.
+        $out['on_products'] = (int) $wpdb->get_var(
+            "SELECT ( SELECT COUNT(DISTINCT m.meta_value) FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id AND p.post_type = 'product' WHERE m.meta_key = '_thumbnail_id' AND m.meta_value <> '' AND m.meta_value <> '0' )
+                  + ( SELECT COALESCE( SUM( LENGTH(m.meta_value) - LENGTH(REPLACE(m.meta_value, ',', '')) + 1 ), 0 ) FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id AND p.post_type = 'product' WHERE m.meta_key = '_product_image_gallery' AND m.meta_value <> '' )"
+        );
+    }
+    $out['sells'] = $out['on_products'] > 0;
+
     if ( ! isset( $wpdb->vergeml_ai_index ) ) {
         return $out;
     }
@@ -338,21 +357,40 @@ function vergeml_folders_page() {
         'alt'      => __( 'Alt text', 'vergelabs-media-library' ),
         'rename'   => __( 'Rename', 'vergelabs-media-library' ),
     );
+    /*
+     *  A site that sells turns the rail round (S10.8, the mock
+     *  2026-09-18-fill-by-product.html): Tree first (what the site has),
+     *  then Fill -- the products place their own pictures before anything is
+     *  described -- then Describe, only for what nothing placed. The one
+     *  quiet line under the rail says why, once. The script reads the order
+     *  off the rail.
+     */
+    $sells = ! empty( $facts['sells'] );
+    if ( $sells ) {
+        $steps = array( 'tree' => $steps['tree'], 'fill' => $steps['fill'], 'describe' => $steps['describe'], 'alt' => $steps['alt'], 'rename' => $steps['rename'] );
+    }
     ?>
     <div class="wrap vgml-home vgml-librarian">
         <div class="g-head">
             <h1 class="vgml-pg-title"><?php esc_html_e( 'Folders', 'vergelabs-media-library' ); ?></h1>
             <div class="g-pills vgml-folders-facts">
                 <span class="g-pill" data-fact="images"><b><?php echo esc_html( number_format_i18n( (int) $facts['images'] ) ); ?></b> <?php esc_html_e( 'pictures', 'vergelabs-media-library' ); ?></span>
-                <span class="g-pill" data-fact="described"><b><?php echo esc_html( number_format_i18n( (int) $facts['pictures'] ) ); ?></b> <?php esc_html_e( 'described', 'vergelabs-media-library' ); ?></span>
+                <?php if ( $sells ) : ?>
+                    <span class="g-pill" data-fact="on_products"><b><?php echo esc_html( number_format_i18n( (int) $facts['on_products'] ) ); ?></b> <?php esc_html_e( 'on products', 'vergelabs-media-library' ); ?></span>
+                <?php else : ?>
+                    <span class="g-pill" data-fact="described"><b><?php echo esc_html( number_format_i18n( (int) $facts['pictures'] ) ); ?></b> <?php esc_html_e( 'described', 'vergelabs-media-library' ); ?></span>
+                <?php endif; ?>
                 <span class="g-pill" data-fact="folders"><b><?php echo esc_html( number_format_i18n( (int) $facts['folders'] ) ); ?></b> <?php esc_html_e( 'folders', 'vergelabs-media-library' ); ?></span>
             </div>
         </div>
-        <div class="g-rail" role="group" aria-label="<?php esc_attr_e( 'Steps', 'vergelabs-media-library' ); ?>">
+        <div class="g-rail" role="group" aria-label="<?php esc_attr_e( 'Steps', 'vergelabs-media-library' ); ?>"<?php echo $sells ? ' data-sells="1"' : ''; ?>>
             <?php foreach ( $steps as $key => $label ) : ?>
                 <button type="button" class="g-step" data-step="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></button>
             <?php endforeach; ?>
         </div>
+        <?php if ( $sells ) : ?>
+            <p class="g-why"><?php esc_html_e( 'This site sells: the products place their pictures first. Describing is for what nothing placed.', 'vergelabs-media-library' ); ?></p>
+        <?php endif; ?>
         <div id="vgml-folders" class="vgml-folders" data-described="<?php echo esc_attr( (string) $facts['pictures'] ); ?>"></div>
     </div>
     <?php

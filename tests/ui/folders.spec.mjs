@@ -427,6 +427,78 @@ test.describe( 'the Folders screen', () => {
 	} );
 
 	/*
+	 *  A site that sells (S10.8; the approved mock 2026-09-18-fill-by-product.html).
+	 *  The Fill step's pills read by product · by evidence · to sort from the
+	 *  report's own tally whenever it counted a product placement, in the
+	 *  running state and in the asking state; a tally with none reads as
+	 *  before. Driven from the model, as the rounds are. Mutation: byProduct
+	 *  made to return false -> red ("312 by product" missing).
+	 */
+	test( 'the Fill pills on a site that sells: by product · by evidence · to sort, from the tally', async ( { page } ) => {
+		await remember( page );
+		await reset( page );
+		await open_( page );
+		await page.evaluate( () => window.vgmlFoldersApp.setStep( 'fill' ) );
+		const pills = page.locator( '.g-card[data-card="fill"] .g-pills .g-pill' );
+
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.session.applyWas = app.state.session.apply;
+			app.state.moving = { running: true, moved: 386, seen: 405, total: 626, tally: { product: 312, fits: 386, siblings: 0, nothing: 19, sure: 380, likely: 6 } };
+			app.state.session.apply = app.state.moving;
+			app.render();
+		} );
+		await expect( pills, 'running: three pills, the mock\'s' ).toHaveText( [ '312 by product', '74 by evidence', '19 to sort' ] );
+
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.session.apply = app.state.session.applyWas;
+			app.state.questions = [ { id: 'r:0', kind: 'residue', count: 5, name: 'Probes', term_id: 0, text: '5 look like probes', answers: { leave: 'Leave them', 'show-me': 'Show me' }, sample: [], answered: '', result: null } ];
+			app.state.fill.unfiled = 85;
+			app.state.moving = { running: false, moved: 541, seen: 626, total: 626, tally: { product: 412, fits: 541, siblings: 0, nothing: 85, sure: 500, likely: 41 } };
+			app.render();
+		} );
+		await expect( pills, 'ended into a question: by product · by evidence · the question · to sort' ).toHaveText( [ '412 by product', '129 by evidence', '1 question', '85 to sort' ] );
+
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			app.state.moving = { running: false, moved: 500, seen: 1000, total: 1000, tally: { product: 0, sure: 298, likely: 202 } };
+			app.render();
+		} );
+		await expect( pills.first(), 'no product placement: the pills as before' ).toHaveText( '500 placed' );
+
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
+			delete app.state.session.applyWas;
+			app.state.questions = [];
+			app.state.moving = null;
+			app.state.fill.unfiled = 0;
+			app.render();
+		} );
+	} );
+
+	/*
+	 *  The rail turned round on a site that sells: Tree, Fill, Describe, Alt
+	 *  text, Rename, the one quiet line under it, and "on products" beside the
+	 *  title -- read off a product the fixture makes with one real picture as
+	 *  its featured image, and gone with it. The box only: Playground has no
+	 *  product type. Mutation: the reorder removed from vergeml_folders_page
+	 *  -> red (Describe first).
+	 */
+	test( 'the rail on a site that sells: Tree first, the line under it, on products in the head', async ( { page } ) => {
+		test.skip( ! boxFor( BASE ), 'planted on the box over SSH' );
+		await remember( page );
+		await reset( page );
+		const f = plantOnBox( { VGML_COUNT: 0, VGML_LEFT: 0, VGML_PRODUCT: 1 } );
+		test.skip( ! f.product, 'no product type on this site' );
+		await open_( page );
+		await expect( page.locator( '.g-rail .g-step' ) ).toHaveText( [ 'Tree', 'Fill', 'Describe', 'Alt text', 'Rename' ] );
+		await expect( page.locator( '.g-why' ) ).toHaveText( 'This site sells: the products place their pictures first. Describing is for what nothing placed.' );
+		await expect( page.locator( '.vgml-folders-facts [data-fact="on_products"]' ) ).toHaveText( '1 on products' );
+		await expect( page.locator( '.g-step.is-current' ), 'lands on Tree, not Describe' ).toHaveText( /Tree|Fill/ );
+	} );
+
+	/*
 	 *  The change line. Its placeholder is built from the tree on screen,
 	 *  never fixed text; "Paste or upload a list" is a button, and the upload
 	 *  is read here in the browser -- a .txt as the paste, a .csv row as one

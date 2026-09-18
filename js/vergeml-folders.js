@@ -176,9 +176,24 @@
 
 	var STEPS = [ 'describe', 'tree', 'fill', 'alt', 'rename' ];
 
+	/*
+	 *  A site that sells (S10.8): the page turns the rail round -- Tree,
+	 *  Fill, Describe -- because the products place their own pictures
+	 *  before anything is described. The order is read off the rail the
+	 *  page drew, so the two agree by construction.
+	 */
+	var railEl = document.getElementById( 'vgml-folders' ) && document.getElementById( 'vgml-folders' ).parentNode.querySelector( '.g-rail' );
+	var sells = !! ( railEl && railEl.getAttribute( 'data-sells' ) );
+	if ( railEl ) {
+		var order = Array.prototype.map.call( railEl.querySelectorAll( '.g-step' ), function ( b ) { return b.getAttribute( 'data-step' ); } );
+		if ( 5 === order.length ) {
+			STEPS = order;
+		}
+	}
+
 	/** The step the session is at: what a returning person lands on. */
 	function stepAt() {
-		if ( ! described ) {
+		if ( ! described && ! sells ) {
 			return 'describe';
 		}
 		if ( confirmed() || running() || ( Number( state.fill.open ) || 0 ) > 0 ) {
@@ -776,6 +791,24 @@
 		pills.appendChild( el( 'span', { class: 'g-pill is-quiet', 'data-rounds': '' }, text ) );
 	}
 
+	/*
+	 *  A run on a site that sells (S10.8, the mock 2026-09-18-fill-by-product.html):
+	 *  the pills are by product (a fact: the product's category names the
+	 *  folder) · by evidence (the rest the matcher placed) · to sort, from
+	 *  the report's own tally. True when the tally counted a product
+	 *  placement; a shop whose fill placed nothing by product reads as any
+	 *  other library.
+	 */
+	function byProduct( pills, placed, t ) {
+		var product = Number( t && t.product ) || 0;
+		if ( product <= 0 ) {
+			return false;
+		}
+		pills.appendChild( pill( product, __( 'by product', 'vergelabs-media-library' ), 'accent' ) );
+		pills.appendChild( pill( Math.max( 0, placed - product ), __( 'by evidence', 'vergelabs-media-library' ) ) );
+		return true;
+	}
+
 	function renderFill() {
 		var c = dom.cards.fill;
 		c.pills.innerHTML = '';
@@ -788,19 +821,28 @@
 		if ( running() ) {
 			var r = state.moving || {};
 			var t = r.tally || {};
-			c.pills.appendChild( pill( Number( r.moved ) || 0, __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
-			c.pills.appendChild( pill( Number( t.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
-			c.pills.appendChild( pill( Number( t.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
-			c.pills.appendChild( pill( Number( t.nothing ) || 0, __( 'not placed', 'vergelabs-media-library' ) ) );
+			if ( byProduct( c.pills, Number( r.moved ) || 0, t ) ) {
+				c.pills.appendChild( pill( Number( t.nothing ) || 0, __( 'to sort', 'vergelabs-media-library' ) ) );
+			} else {
+				c.pills.appendChild( pill( Number( r.moved ) || 0, __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
+				c.pills.appendChild( pill( Number( t.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
+				c.pills.appendChild( pill( Number( t.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
+				c.pills.appendChild( pill( Number( t.nothing ) || 0, __( 'not placed', 'vergelabs-media-library' ) ) );
+			}
 			appendRounds( c.pills, r, false );
 		} else if ( asking && state.moving ) {
 			// The run just ended: its tally, and the questions it left.
 			var m = state.moving.tally || {};
-			c.pills.appendChild( pill( Number( state.moving.moved ) || 0, __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
-			c.pills.appendChild( pill( Number( m.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
-			c.pills.appendChild( pill( Number( m.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
-			c.pills.appendChild( pill( open, _n( 'question', 'questions', open, 'vergelabs-media-library' ), 'ask' ) );
-			c.pills.appendChild( pill( unfiled, __( 'in no folder', 'vergelabs-media-library' ) ) );
+			if ( byProduct( c.pills, Number( state.moving.moved ) || 0, m ) ) {
+				c.pills.appendChild( pill( open, _n( 'question', 'questions', open, 'vergelabs-media-library' ), 'ask' ) );
+				c.pills.appendChild( pill( unfiled, __( 'to sort', 'vergelabs-media-library' ) ) );
+			} else {
+				c.pills.appendChild( pill( Number( state.moving.moved ) || 0, __( 'placed', 'vergelabs-media-library' ), 'accent' ) );
+				c.pills.appendChild( pill( Number( m.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
+				c.pills.appendChild( pill( Number( m.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
+				c.pills.appendChild( pill( open, _n( 'question', 'questions', open, 'vergelabs-media-library' ), 'ask' ) );
+				c.pills.appendChild( pill( unfiled, __( 'in no folder', 'vergelabs-media-library' ) ) );
+			}
 			appendRounds( c.pills, state.moving, true );
 		} else if ( asking ) {
 			// A reload after the run: the library's own counts, and the questions.
@@ -809,10 +851,14 @@
 			c.pills.appendChild( pill( unfiled, __( 'in no folder', 'vergelabs-media-library' ) ) );
 		} else if ( tally && view.getDraft() && ! done ) {
 			// The dry run's answer about the confirmed tree, as the run will count it.
-			c.pills.appendChild( pill( ( Number( tally.fits ) || 0 ) + ( Number( tally.siblings ) || 0 ), __( 'would be placed', 'vergelabs-media-library' ), 'accent' ) );
-			c.pills.appendChild( pill( Number( tally.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
-			c.pills.appendChild( pill( Number( tally.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
-			c.pills.appendChild( pill( Number( tally.nothing ) || 0, __( 'not placed', 'vergelabs-media-library' ) ) );
+			if ( byProduct( c.pills, ( Number( tally.fits ) || 0 ) + ( Number( tally.siblings ) || 0 ), tally ) ) {
+				c.pills.appendChild( pill( Number( tally.nothing ) || 0, __( 'to sort', 'vergelabs-media-library' ) ) );
+			} else {
+				c.pills.appendChild( pill( ( Number( tally.fits ) || 0 ) + ( Number( tally.siblings ) || 0 ), __( 'would be placed', 'vergelabs-media-library' ), 'accent' ) );
+				c.pills.appendChild( pill( Number( tally.sure ) || 0, __( 'sure', 'vergelabs-media-library' ) ) );
+				c.pills.appendChild( pill( Number( tally.likely ) || 0, __( 'likely', 'vergelabs-media-library' ) ) );
+				c.pills.appendChild( pill( Number( tally.nothing ) || 0, __( 'not placed', 'vergelabs-media-library' ) ) );
+			}
 		} else {
 			var inFolders = Math.max( 0, ( Number( state.facts.pictures ) || 0 ) - unfiled );
 			c.pills.appendChild( pill( inFolders, __( 'in folders', 'vergelabs-media-library' ), 'accent' ) );
