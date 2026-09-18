@@ -253,6 +253,21 @@ and `modes.spec` not run this session (no screen changed).
    the live case runs by `wp eval-file /tmp/vgml-live.php woo` on the box
    as the file's header says.
 
+## Late in the session, on Nathan's yes: the audience gate as a runner-up (`0aff174`)
+
+Nathan's answers (2026-09-18): 1 yes, 3 leave, 2 / 4 / 5 / 6 explained
+and open. Built: when the picture says no audience, a folder gated by
+audience alone keeps its score as a shadow — never the pick, but the
+runner-up the margin is judged against; a picture the describer gave an
+audience stays out for good. `pick.php` 40–40c, the shadow dropped → red.
+**Shop: SCORE right-and-placed 347 of 581 (60 %) · right of placed 72 %**
+— wrong sures 60 → 55, wrong likelies 3 → 1, one right to a question, 9
+placements to questions in all. Fewer than the 17 estimated: *motorbikes ›
+jackets* beats the gated men's leaf by 0.09 on the rest (its members'
+centroid), just outside the 0.08 margin. Tech band identical (no gendered
+folder there); the shop band re-taken (`2269c53`). The class floor: left,
+on Nathan's word.
+
 ## Next — S17
 
 Card, to `plugin/.harness/active.json`:

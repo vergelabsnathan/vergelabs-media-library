@@ -1,12 +1,10 @@
 {
-  "phase": "Every picture a home — S17: Nathan's five calls from S16 first (the audience gate as a runner-up so a gated folder makes a question, not a wrong sure — 44 of 581; the namesake tie broken by the class half naming one leaf's ancestor — 9 of 14; the class floor — 7 placements; the tech truth page's shape; the rail mock's yes), each built only on a yes and judged by the SCORE line; then the audience words in the site's language on HEMA (dames, heren, kinderen, kind, baby, meisjes, jongens — restore vgml-shop-tree-hema.json first, 0 credits, ms2 free); the tech truth page built and marked (~200 pictures, ~30 min of Nathan's, no credits) so the tech library scores too; the rail built from the mock; then S10.10 the proposal from the pictures (a Fable-sized phase: groups to name and nest, per kind first, thumbnails, the pack's own signals)",
+  "phase": "Every picture a home — S17: Nathan's calls from S16 first (the audience gate as a runner-up: DONE 2026-09-18, 0aff174, right of placed 72 %; the class floor: LEFT on Nathan's word; the namesake tie broken by the class half naming one leaf's ancestor — 9 of 14; the tech truth page's shape; the rail mock's yes), each built only on a yes and judged by the SCORE line; then the audience words in the site's language on HEMA (dames, heren, kinderen, kind, baby, meisjes, jongens — restore vgml-shop-tree-hema.json first, 0 credits, ms2 free); the tech truth page built and marked (~200 pictures, ~30 min of Nathan's, no credits) so the tech library scores too; the rail built from the mock; then S10.10 the proposal from the pictures (a Fable-sized phase: groups to name and nest, per kind first, thumbnails, the pack's own signals)",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S17)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "core/filing.php (the audience gate as a runner-up, on Nathan's yes: a folder gated by audience alone keeps its score for the margin, never as the pick — pick.php row on a men's jacket with audience '' beside motorbikes › jackets: a margin, not a sure; mutation: the gated score dropped -> the sure is back; judged by the SCORE line: wrong sures fall, right does not)",
     "core/filing.php (the namesake tie, on Nathan's yes: on a margin between two leaves of one name, the leaf whose ancestor the class half names wins — pick.php row on 'hiking backpack; luggage' between bags & luggage › backpacks and camping › backpacks; mutation: the ancestor test removed -> margin; judged by the SCORE line: backpacks 0 -> 8 of 11)",
-    "core/filing.php (the class floor, on Nathan's yes: a class-half hit by vector alone corroborates, never places alone — pick.php row; judged by the SCORE line and the S15 sheet; 7 placements today)",
     "core/filing.php (vergeml_filing_audience_of reads the site's language: dames, heren, kinderen, kind, baby, meisjes, jongens; pick.php row; judged on HEMA round 1 with the tree restored, 0 credits)",
     "tools/truth-page.php, tools/box-truth-score.php (the tech truth page on the shape Nathan approves: ~200 pictures picked fresh, the fill's folder pre-filled in a select of the tree's folders, wrong picture / no folder, a tally, Save -> a JSON the scorer reads with VGML_TRUTH; then the SCORE line for the tech library in every check-in too)",
     "js/vergeml-folders.js, core/folder-talk.php (the rail from the mock 2026-09-18-fill-by-product.html on Nathan's yes: the pills by product · by evidence · to sort from tally.product, and the flipped order for a site that sells; folders.spec rows; the copy verbatim from the mock)",
@@ -34,7 +32,7 @@
     "Never git checkout a file carrying uncommitted work: restore a mutation by the same string edit that made it"
   ],
   "gates": [
-    "node tools/box-eval.mjs tools/box-truth-score.php --site shop: the SCORE line printed in every check-in; a rule stays only when right-of-placed does not fall (today 348 of 581, 60 %, right of placed 71 %)",
+    "node tools/box-eval.mjs tools/box-truth-score.php --site shop: the SCORE line printed in every check-in; a rule stays only when right-of-placed does not fall (today 347 of 581, 60 %, right of placed 72 %)",
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background filing-trail → green (escaping 9/10 known)",
     "the live woo case 9/9 on the tech site (wp eval-file tests/integrations/live.php woo)",
     "folders.spec and modes.spec on the tech site green when the rail is built",
