@@ -1654,6 +1654,132 @@ function vergeml_filing_product_folders( $rows, $profiles ) {
 }
 
 /**
+ *  The tree as the text model reads it (S18): every folder that is not a
+ *  view, as a path "Parent > Child", sorted, To sort never among them; the
+ *  term id behind each path by its canon spelling; and a hash of the paths,
+ *  so an answer is cached against the tree it was given for.
+ *
+ *  @return array 'paths' (string[]), 'by_path' (canon path => term id), 'hash'.
+ */
+function vergeml_filing_model_tree( $profiles ) {
+    $paths   = array();
+    $by_path = array();
+    foreach ( (array) $profiles as $tid => $p ) {
+        if ( ! empty( $p['view'] ) || empty( $p['path'] ) ) {
+            continue;
+        }
+        $path = implode( ' > ', array_map( 'strval', (array) $p['path'] ) );
+        if ( preg_match( '/^to sort$/i', $path ) ) {
+            continue;
+        }
+        $paths[]                                                          = $path;
+        $by_path[ implode( ' > ', array_map( 'vergeml_filing_canon', (array) $p['path'] ) ) ] = (int) $tid;
+    }
+    sort( $paths );
+    return array( 'paths' => $paths, 'by_path' => $by_path, 'hash' => md5( implode( "\n", $paths ) ) );
+}
+
+/** What a row says to the model: the describer's phrases, then its caption. */
+function vergeml_filing_model_says( $row ) {
+    $filing = isset( $row['filing'] ) ? json_decode( (string) $row['filing'], true ) : null;
+    $filing = is_array( $filing ) ? $filing : array();
+    return array(
+        'says'    => implode( '; ', vergeml_filing_classes_of_object( isset( $filing['object'] ) ? $filing['object'] : '' ) ),
+        'caption' => isset( $row['caption'] ) ? (string) $row['caption'] : '',
+    );
+}
+
+/** The cache key of one picture's answer: the tree's paths and the picture's description, a week. */
+function vergeml_filing_model_key( $tree_hash, $row ) {
+    $d = vergeml_filing_model_says( $row );
+    return 'vergeml_fm_' . $tree_hash . ':' . md5( $d['says'] . "\n" . $d['caption'] );
+}
+
+/**
+ *  The text model's word on each row (S18, plans/agree-or-ask.md): the
+ *  service's /file reads the tree as paths and forty descriptions a call
+ *  and names a folder or none for each. On the row as 'model_folder': a
+ *  term id, 0 for "nothing of this tree fits" (null, or a path the tree
+ *  does not hold), -1 for unasked -- placed already (by hand, by an answer,
+ *  by a product) or in a locked folder, so the pick decides before the
+ *  model; no licence; the service down. Asked once per picture per tree:
+ *  the answer sits in a transient keyed by the tree's paths and the
+ *  picture's description for a week, and a cached picture is not sent. A
+ *  failed call leaves the rest of the batch and the batches after it
+ *  unasked; the pick then runs rules-only, as before S18. Metered on the
+ *  service, not debited, until the call is priced.
+ */
+function vergeml_filing_ask_model( $rows, $profiles ) {
+    $rows = (array) $rows;
+    $tree = vergeml_filing_model_tree( $profiles );
+    foreach ( $rows as $k => $r ) {
+        $rows[ $k ]['model_folder'] = -1;
+    }
+    if ( ! $tree['paths'] ) {
+        return $rows;
+    }
+
+    $licence = '';
+    if ( function_exists( 'vergeml_ai_settings' ) && function_exists( 'vergeml_ai_unseal' ) ) {
+        $settings = vergeml_ai_settings();
+        $licence  = vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' );
+    }
+
+    $ask = array(); // row key => the picture as sent.
+    foreach ( $rows as $k => $r ) {
+        if ( in_array( (string) ( isset( $r['placed_by'] ) ? $r['placed_by'] : '' ), array( 'user', 'answer', 'product' ), true ) || ! empty( $r['in_locked'] ) || ! empty( $r['product_folder'] ) ) {
+            continue;
+        }
+        $d = vergeml_filing_model_says( $r );
+        if ( '' === $d['says'] && '' === $d['caption'] ) {
+            continue;
+        }
+        $cached = get_transient( vergeml_filing_model_key( $tree['hash'], $r ) );
+        if ( false !== $cached ) {
+            $rows[ $k ]['model_folder'] = (int) $cached;
+            continue;
+        }
+        $ask[ $k ] = array( 'id' => (int) $r['attachment_id'], 'says' => $d['says'], 'caption' => $d['caption'] );
+    }
+    if ( ! $ask || '' === $licence ) {
+        return $rows;
+    }
+
+    foreach ( array_chunk( array_keys( $ask ), 40 ) as $keys ) {
+        $response = wp_remote_post(
+            vergeml_ai_service_url() . '/file',
+            array(
+                'timeout'   => 30,
+                'headers'   => array( 'Content-Type' => 'application/json' ),
+                'sslverify' => true,
+                'body'      => wp_json_encode( array(
+                    'license_key' => $licence,
+                    'site'        => home_url(),
+                    'folders'     => $tree['paths'],
+                    'pictures'    => array_values( array_intersect_key( $ask, array_flip( $keys ) ) ),
+                ) ),
+            )
+        );
+        if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+            return $rows; // Unasked from here on: the pick runs rules-only for these.
+        }
+        $data    = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+        $answers = is_array( $data ) && isset( $data['answers'] ) && is_array( $data['answers'] ) ? $data['answers'] : array();
+        foreach ( $keys as $k ) {
+            $path = isset( $answers[ (string) $ask[ $k ]['id'] ] ) ? $answers[ (string) $ask[ $k ]['id'] ] : null;
+            $tid  = 0;
+            if ( is_string( $path ) && '' !== $path ) {
+                $canon = implode( ' > ', array_map( 'vergeml_filing_canon', preg_split( '/\s*>\s*/', $path ) ) );
+                $tid   = isset( $tree['by_path'][ $canon ] ) ? (int) $tree['by_path'][ $canon ] : 0;
+            }
+            $rows[ $k ]['model_folder'] = $tid;
+            set_transient( vergeml_filing_model_key( $tree['hash'], $rows[ $k ] ), $tid, WEEK_IN_SECONDS );
+        }
+    }
+    return $rows;
+}
+
+/**
  *  The picture's side of the match, as the caller reads it off the index row.
  *
  *  @param array $row An index row: 'filing' (json), 'kind', 'embedding'; 'placed_by' and
@@ -1674,6 +1800,7 @@ function vergeml_filing_facts( $row ) {
         'in_locked' => ! empty( $row['in_locked'] ),
         'words'     => isset( $row['words'] ) && is_array( $row['words'] ) ? $row['words'] : vergeml_filing_words_of( isset( $row['file'] ) ? $row['file'] : '', isset( $row['title'] ) ? $row['title'] : '', isset( $row['alt'] ) ? $row['alt'] : '' ),
         'product'   => isset( $row['product_folder'] ) ? (int) $row['product_folder'] : 0, // The folder its product's categories name (S10.8), resolved by the caller.
+        'model'     => isset( $row['model_folder'] ) ? (int) $row['model_folder'] : -1,   // The text model's word (S18): a term id, 0 nothing fits, -1 unasked.
     );
 }
 

@@ -107,11 +107,42 @@ function sk_answer( $pre, $args, $url ) {
         $GLOBALS['sk_named']++;
         return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( array( 'name' => 'zzNamed' ) ), 'headers' => array() );
     }
+    /*
+     *  The text model beside the rules (S18, J): a folder per described
+     *  picture, by the word the picture says. Counted, and what was sent is
+     *  kept, so the suite can say a picture was asked about once. A stray
+     *  path the tree does not hold stands for an answer the plugin must
+     *  read as nothing; sk_file_fail makes the service fall over.
+     */
+    if ( false !== strpos( $url, '/v1/file' ) ) {
+        $GLOBALS['sk_file_calls']++;
+        $GLOBALS['sk_file_sent'][] = $body;
+        if ( ! empty( $GLOBALS['sk_file_fail'] ) ) {
+            return array( 'response' => array( 'code' => 502 ), 'body' => wp_json_encode( array( 'error' => 'filing_unavailable' ) ), 'headers' => array() );
+        }
+        $answers = array();
+        foreach ( (array) ( isset( $body['pictures'] ) ? $body['pictures'] : array() ) as $p ) {
+            $says = strtolower( (string) $p['says'] );
+            if ( false !== strpos( $says, 'zzstickyghost' ) ) {
+                $answers[ (string) $p['id'] ] = 'zzNowhere > zzGhost';
+            } elseif ( false !== strpos( $says, 'zzstickyother' ) ) {
+                $answers[ (string) $p['id'] ] = 'zzStickyB';
+            } elseif ( false !== strpos( $says, 'zzstickything' ) ) {
+                $answers[ (string) $p['id'] ] = 'zzStickyA';
+            } else {
+                $answers[ (string) $p['id'] ] = null;
+            }
+        }
+        return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( array( 'answers' => $answers, 'model' => 'zz-model' ) ), 'headers' => array() );
+    }
     return $pre;
 }
 add_filter( 'pre_http_request', 'sk_answer', 1, 3 );
-$GLOBALS['sk_cron']  = array();
-$GLOBALS['sk_named'] = 0;
+$GLOBALS['sk_cron']       = array();
+$GLOBALS['sk_named']      = 0;
+$GLOBALS['sk_file_calls'] = 0;
+$GLOBALS['sk_file_sent']  = array();
+$GLOBALS['sk_file_fail']  = false;
 
 /* ------------------------------------------------------------- the fixture */
 
@@ -707,6 +738,82 @@ if ( 6 === $sk_reach ) {
 
         wp_delete_term( $sk_pc, 'product_cat' );
     }
+
+    /* ------------------------------------------------------ J  the model beside the rules */
+
+    /*
+     *  S18 (plans/agree-or-ask.md task 2). The fill asks the text model once
+     *  per picture per tree: the same description against the same folders
+     *  is never sent twice. vergeml_filing_ask_model puts the model's word
+     *  on each row as model_folder -- a term id, 0 for "nothing fits" (null,
+     *  or a path the tree does not hold), -1 for unasked (placed already, no
+     *  licence, the service down). The tree goes as paths, To sort never
+     *  among them. Mutation: the transient read removed -> J2 red (the
+     *  second ask calls again).
+     */
+    echo "\nJ  the model asked once per picture per tree (S18)\n\n";
+
+    $sk_files['mo']    = sk_file( 'mo',    'zzstickyother; zzthing' );
+    $sk_files['mn']    = sk_file( 'mn',    'zzstickynowhere; zzthing' );
+    $sk_files['mg']    = sk_file( 'mg',    'zzstickyghost; zzthing' );
+    $sk_in             = implode( ',', array_map( 'intval', array_values( $sk_files ) ) );
+    $sk_mrows_ids      = array( $sk_files['hand'], $sk_files['free'], $sk_files['mo'], $sk_files['mn'], $sk_files['mg'] );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids cast to int.
+    $sk_mrows = (array) $wpdb->get_results( 'SELECT attachment_id, embedding, kind, filing, caption FROM ' . $wpdb->vergeml_ai_index . ' WHERE attachment_id IN (' . implode( ',', array_map( 'intval', $sk_mrows_ids ) ) . ') ORDER BY attachment_id ASC', ARRAY_A );
+    foreach ( $sk_mrows as $sk_k => $sk_r ) {
+        $sk_mrows[ $sk_k ]['placed_by'] = (int) $sk_r['attachment_id'] === $sk_files['hand'] ? 'user' : '';
+    }
+    $sk_mprofiles = vergeml_filing_profiles( array( $sk_terms['zzStickyA'], $sk_terms['zzStickyB'], $sk_terms['zzStickyL'], $sk_terms['zzStickyN'] ), $sk_tax );
+    $sk_mby = function ( $rows ) {
+        $out = array();
+        foreach ( (array) $rows as $r ) {
+            $out[ (int) $r['attachment_id'] ] = isset( $r['model_folder'] ) ? (int) $r['model_folder'] : 'unset';
+        }
+        return $out;
+    };
+    // The suite's own cache rows, removed before and after: the key is the tree's paths and the picture's description.
+    $sk_mclear = function ( $rows ) use ( $sk_mprofiles ) {
+        $tree = vergeml_filing_model_tree( $sk_mprofiles );
+        foreach ( (array) $rows as $r ) {
+            delete_transient( vergeml_filing_model_key( $tree['hash'], $r ) );
+        }
+    };
+    $sk_mclear( $sk_mrows );
+    sk_check( 'J0 five pictures, four folders, no call yet', 5 === count( $sk_mrows ) && 0 === $GLOBALS['sk_file_calls'], count( $sk_mrows ) . ' rows, ' . $GLOBALS['sk_file_calls'] . ' calls' );
+
+    $sk_asked = vergeml_filing_ask_model( $sk_mrows, $sk_mprofiles );
+    $sk_got   = $sk_mby( $sk_asked );
+    $sk_want  = array( $sk_files['hand'] => -1, $sk_files['free'] => $sk_terms['zzStickyA'], $sk_files['mo'] => $sk_terms['zzStickyB'], $sk_files['mn'] => 0, $sk_files['mg'] => 0 );
+    sk_check( 'J1 one call: the hand-placed picture unasked (-1), thing -> A, other -> B, nowhere -> 0, a path the tree does not hold -> 0', 1 === $GLOBALS['sk_file_calls'] && $sk_want === $sk_got, json_encode( array( 'calls' => $GLOBALS['sk_file_calls'], 'got' => $sk_got ) ) );
+    $sk_sent = isset( $GLOBALS['sk_file_sent'][0] ) ? $GLOBALS['sk_file_sent'][0] : array();
+    $sk_sent_ids = array_map( 'intval', array_column( (array) ( isset( $sk_sent['pictures'] ) ? $sk_sent['pictures'] : array() ), 'id' ) );
+    sort( $sk_sent_ids );
+    $sk_sent_want = array( $sk_files['free'], $sk_files['mo'], $sk_files['mn'], $sk_files['mg'] );
+    sort( $sk_sent_want );
+    $sk_sent_folders = isset( $sk_sent['folders'] ) ? (array) $sk_sent['folders'] : array();
+    sk_check( 'J1b the request carried the four askable pictures with says and caption, and the tree as paths without To sort', $sk_sent_want === $sk_sent_ids && in_array( 'zzStickyA', $sk_sent_folders, true ) && in_array( 'zzStickyB', $sk_sent_folders, true ) && ! in_array( 'To sort', $sk_sent_folders, true ) && 'zzstickyother; zzthing' === (string) $sk_sent['pictures'][ array_search( $sk_files['mo'], array_map( 'intval', array_column( $sk_sent['pictures'], 'id' ) ), true ) ]['says'] && 'seeded' === (string) $sk_sent['pictures'][0]['caption'], json_encode( array( 'ids' => $sk_sent_ids, 'folders' => $sk_sent_folders, 'first' => isset( $sk_sent['pictures'][0] ) ? $sk_sent['pictures'][0] : null ) ) );
+
+    $sk_again = vergeml_filing_ask_model( $sk_mrows, $sk_mprofiles );
+    sk_check( 'J2 asked again on the same rows and tree: no call, the same answers from the cache', 1 === $GLOBALS['sk_file_calls'] && $sk_want === $sk_mby( $sk_again ), json_encode( array( 'calls' => $GLOBALS['sk_file_calls'], 'got' => $sk_mby( $sk_again ) ) ) );
+
+    $sk_files['mf'] = sk_file( 'mf', 'zzstickything; zzthing' );
+    $sk_in          = implode( ',', array_map( 'intval', array_values( $sk_files ) ) );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $sk_frow = (array) $wpdb->get_results( $wpdb->prepare( 'SELECT attachment_id, embedding, kind, filing, caption FROM ' . $wpdb->vergeml_ai_index . ' WHERE attachment_id = %d', $sk_files['mf'] ), ARRAY_A );
+    $sk_frow[0]['placed_by'] = '';
+    $GLOBALS['sk_file_fail'] = true;
+    $sk_failed = vergeml_filing_ask_model( array_merge( $sk_mrows, $sk_frow ), $sk_mprofiles );
+    $GLOBALS['sk_file_fail'] = false;
+    $sk_fgot = $sk_mby( $sk_failed );
+    sk_check( 'J3 the service down: the new picture is unasked (-1), the cached four keep their answers, one call made', 2 === $GLOBALS['sk_file_calls'] && -1 === $sk_fgot[ $sk_files['mf'] ] && $sk_terms['zzStickyA'] === $sk_fgot[ $sk_files['free'] ] && 0 === $sk_fgot[ $sk_files['mn'] ], json_encode( array( 'calls' => $GLOBALS['sk_file_calls'], 'got' => $sk_fgot ) ) );
+
+    $sk_no_licence = function ( $v ) { return array( 'license_key' => '' ); };
+    add_filter( 'option_vergeml_ai', $sk_no_licence );
+    $sk_unlicensed = vergeml_filing_ask_model( $sk_frow, $sk_mprofiles );
+    remove_filter( 'option_vergeml_ai', $sk_no_licence );
+    sk_check( 'J4 no licence: every row -1 and no call', 2 === $GLOBALS['sk_file_calls'] && array( $sk_files['mf'] => -1 ) === $sk_mby( $sk_unlicensed ), json_encode( array( 'calls' => $GLOBALS['sk_file_calls'], 'got' => $sk_mby( $sk_unlicensed ) ) ) );
+
+    $sk_mclear( array_merge( $sk_mrows, $sk_frow ) );
 
     wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
     if ( false !== $sk_hook_was ) {
