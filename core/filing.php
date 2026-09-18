@@ -1734,6 +1734,7 @@ function vergeml_filing_pick( $facts, $profiles ) {
 
     $scores   = array();
     $gated    = array();
+    $shadow   = array(); // Folders gated by audience while the picture says none (S17): never the pick, a runner-up at most.
     $evidence = array(); // Per folder, where its best class hit came from (S16): the winner's rides out as 'source' and 'hit'.
     // The picture's vector length once, not once per folder.
     $pnorm  = is_array( $facts['vector'] ) ? vergeml_filing_norm( $facts['vector'] ) : 0.0;
@@ -1795,10 +1796,25 @@ function vergeml_filing_pick( $facts, $profiles ) {
             $gated[ $tid ] = 'kind';
             continue;
         }
-        // Gate: audience. A gendered folder needs the picture to say so.
+        /*
+         *  Gate: audience. A gendered folder needs the picture to say so.
+         *  When the picture says nothing (S17, Nathan's yes): the folder is
+         *  still gated -- never the pick -- but its score is kept as a
+         *  shadow and stands as the runner-up the margin is judged against.
+         *  On the shop's truth (2026-09-18) 44 of 581 had their own men's or
+         *  women's folder gated because the describer did not say who a
+         *  jacket on a hanger is for, and the namesake took them: motorbikes ›
+         *  jackets four wrong sures. A question ("Men's jackets or Motorbike
+         *  jackets?") is the honest answer; a picture the describer called
+         *  women's stays out of a men's folder for good.
+         */
+        $shadowed = false;
         if ( '' !== $p['audience'] && $facts['audience'] !== $p['audience'] ) {
             $gated[ $tid ] = 'audience';
-            continue;
+            if ( '' !== (string) $facts['audience'] ) {
+                continue;
+            }
+            $shadowed = true;
         }
 
         /*
@@ -1924,9 +1940,13 @@ function vergeml_filing_pick( $facts, $profiles ) {
             $embed = max( 0.0, vergeml_filing_cosine( $p['vector'], vergeml_filing_norm( $p['vector'], $tid . ':' . $p['source'] . ':' . ( isset( $p['built_at'] ) ? $p['built_at'] : 0 ) ), $facts['vector'], $pnorm ) );
         }
 
-        $scores[ $tid ]   = VERGEML_FILING_CLASS_WEIGHT * $class + ( 1 - VERGEML_FILING_CLASS_WEIGHT ) * $embed;
         $evidence[ $tid ] = $class > 0.0 && isset( $ev ) ? $ev : array( 'source' => 'vector', 'hit' => '' );
         unset( $ev );
+        if ( $shadowed ) {
+            $shadow[ $tid ] = VERGEML_FILING_CLASS_WEIGHT * $class + ( 1 - VERGEML_FILING_CLASS_WEIGHT ) * $embed;
+            continue;
+        }
+        $scores[ $tid ] = VERGEML_FILING_CLASS_WEIGHT * $class + ( 1 - VERGEML_FILING_CLASS_WEIGHT ) * $embed;
     }
 
     if ( ! $scores ) {
@@ -1968,7 +1988,17 @@ function vergeml_filing_pick( $facts, $profiles ) {
 
     $score  = (float) $scores[ $best ];
     $rscore = $runner ? (float) $scores[ $runner ] : 0.0;
-    $common = array( 'score' => $score, 'runner_up' => $runner, 'runner_score' => $rscore, 'scores' => $scores, 'gated' => $gated, 'source' => $evidence[ $best ]['source'], 'hit' => $evidence[ $best ]['hit'] );
+
+    // A shadowed folder (gated by audience, the picture saying none) outscoring the runner-up is the runner-up: the margin is judged against it.
+    foreach ( $shadow as $cand => $s ) {
+        $cand = (int) $cand;
+        if ( (float) $s > $rscore && ! vergeml_filing_is_descendant( $cand, $best, $profiles ) && ! vergeml_filing_is_descendant( $best, $cand, $profiles ) ) {
+            $runner = $cand;
+            $rscore = (float) $s;
+        }
+    }
+
+    $common = array( 'score' => $score, 'runner_up' => $runner, 'runner_score' => $rscore, 'scores' => $scores + $shadow, 'gated' => $gated, 'source' => $evidence[ $best ]['source'], 'hit' => $evidence[ $best ]['hit'] );
 
     if ( $score < VERGEML_FILING_FLOOR ) {
         return vergeml_filing_outcome( 'nothing', 'floor', $common + array( 'nearest' => $best ) );

@@ -854,5 +854,34 @@ f_check( '39b placed by product last time: nothing, placed -- not filed again', 
 $f = vergeml_filing_facts( array( 'filing' => '{"object":"summer dress; clothing"}', 'product_folder' => 93 ) );
 f_check( '39c the facts read the product folder off the row (product_folder), 0 without one', 93 === $f['product'] && 0 === vergeml_filing_facts( array( 'filing' => '{}' ) )['product'], sprintf( '%d', $f['product'] ) );
 
+/*
+ *  The audience gate as a runner-up (S17, Nathan's yes on 2026-09-18). On
+ *  the shop's truth 44 of 581 pictures had their own folder gated by
+ *  audience -- the describer said nothing about who a jacket on a hanger
+ *  is for -- and the namesake or the parent took them: motorbikes › jackets
+ *  four wrong sures, scarves two. When the picture says no audience, a
+ *  folder gated by audience alone keeps its score as a shadow: never the
+ *  pick, but the runner-up the margin is judged against, so the answer is
+ *  a question, not a wrong sure. When the picture does say an audience the
+ *  gate stays hard: what the describer called women's is never a men's
+ *  folder's. Mutation: the shadow dropped -> row 40 red (the sure is back).
+ */
+echo "\n== the audience gate as a runner-up (S17)\n";
+
+$gated_tree = vergeml_filing_settle_claims( array(
+    101 => f_profile( 101, 0, array( 'Clothing' ), array( 'clothing' ), array( 'source' => 'name' ) ),
+    102 => f_profile( 102, 101, array( 'Clothing', 'Men' ), array( 'men' ), array( 'source' => 'name', 'audience' => 'men' ) ),
+    103 => f_profile( 103, 102, array( 'Clothing', 'Men', 'Jackets' ), array( 'leather jacket', 'jackets' ), array( 'audience' => 'men' ) ),
+    104 => f_profile( 104, 0, array( 'Cars & Bikes', 'Motorbikes', 'Jackets' ), array( 'leather jacket', 'jackets' ) ),
+) );
+$p = vergeml_filing_pick( f_facts( 'leather jacket; outerwear' ), $gated_tree );
+f_check( '40 "leather jacket; outerwear" with no audience said: Men › Jackets is gated and still the runner-up, so a Men › Jackets-or-Motorbike Jackets question, not a Motorbike Jackets sure', 'nothing' === $p['outcome'] && 'margin' === $p['why'] && 104 === $p['nearest'] && 103 === $p['runner_up'] && array( 104, 103 ) === array_map( 'intval', $p['children'] ) && 'audience' === $p['gated'][103], sprintf( '%s why %s nearest %d runner %d', $p['outcome'], $p['why'], (int) $p['nearest'], (int) $p['runner_up'] ) );
+$p = vergeml_filing_pick( f_facts( 'leather jacket; outerwear', array( 'audience' => 'women' ) ), $gated_tree );
+f_check( '40a the same picture said to be women\'s: the men\'s folder is gated for good, Motorbike Jackets sure', 'fits' === $p['outcome'] && 104 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d %s', $p['outcome'], $p['term_id'], $p['confidence'] ) );
+$p = vergeml_filing_pick( f_facts( 'leather jacket; outerwear', array( 'audience' => 'men' ) ), $gated_tree );
+f_check( '40b said to be men\'s: both folders open, an honest tie as before -- a question', 'nothing' === $p['outcome'] && 'margin' === $p['why'], sprintf( '%s why %s', $p['outcome'], $p['why'] ) );
+$p = vergeml_filing_pick( f_facts( 'wool sweater; clothing' ), $gated_tree );
+f_check( '40c a shadow far below the pick changes nothing: "wool sweater; clothing" is Clothing, likely (0.64), as without the shadow', 'fits' === $p['outcome'] && 101 === $p['term_id'] && 'likely' === $p['confidence'] && abs( $p['score'] - 0.6375 ) < 1e-6, sprintf( '%s %d %s @%.4f', $p['outcome'], $p['term_id'], $p['confidence'], $p['score'] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );
