@@ -11,8 +11,37 @@
       "affects": [],
       "workaround": null,
       "status": "open",
-      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/22",
-      "found": "2026-09-17"
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/25",
+      "found": "2026-09-18"
+    },
+    {
+      "dependency": "dokan-lite",
+      "name": "Dokan",
+      "slug": "dokan-lite",
+      "version": "5.1.2",
+      "severity": "yellow",
+      "summary": "changelog mentions removed (stage could not install this version; not proven either way)",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/24",
+      "found": "2026-09-18"
+    },
+    {
+      "dependency": "core",
+      "name": "WordPress",
+      "slug": "core",
+      "version": "7.1.1",
+      "severity": "red",
+      "summary": "2 symbol(s) gone: media.view.MediaFrame.EditAttachments, media.view.MediaFrame.Manage.Router",
+      "affects": [
+        "js/vergeml-media-views.js",
+        "js/eml-media-grid.js"
+      ],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/23",
+      "found": "2026-09-18"
     },
     {
       "dependency": "wordpress-seo",
