@@ -1163,6 +1163,8 @@ function vergeml_filing_canon( $phrase ) {
         }
         if ( isset( $irregular[ $w ] ) ) {
             $w = $irregular[ $w ];
+        } elseif ( in_array( $w, $irregular, true ) ) {
+            // Already the singular the table gives: "lens" is not "len" (S16).
         } elseif ( mb_strlen( $w ) > 3 && preg_match( '/[^aeiou]ies$/u', $w ) ) {
             $w = mb_substr( $w, 0, -3 ) . 'y';
         } elseif ( mb_strlen( $w ) > 4 && preg_match( '/(ch|sh|ss|x|z)es$/u', $w ) ) {
