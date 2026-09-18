@@ -292,6 +292,34 @@ core/filing.php` and reverted my own uncommitted audience edit; nothing
 of anyone else's was in the file. Redone and committed before the next
 step; the stop point stands and I will not chain a checkout again.
 
+## And then the rail, on Nathan's "okay" (`7d13048`)
+
+Nathan's answers on the four open calls: the namesake tie **dropped**
+("who cares"); the truth page and the why-card wording still open (he
+asked what they meant; explained in plain words, no answer yet); the shop
+Fill screen **okay** after "how is that possible?" — the answer being that
+WooCommerce already records which photo belongs to which product and which
+category the product is in, so the folder follows without looking at the
+picture, and describing is for the leftovers. Built from the mock:
+`vergeml_folders_facts` carries `sells` and `on_products` (counted from
+the product side: featured images plus gallery entries); the page turns
+the rail round — Tree · Fill · Describe · Alt text · Rename — with the one
+line under it ("This site sells: the products place their pictures first.
+Describing is for what nothing placed.") and "N on products" beside the
+title in place of "described"; the script reads the order off the rail and
+lands on Tree, not Describe, on a shop; the Fill pills read **by product ·
+by evidence · to sort** from `tally.product` in the running, the asking
+and the dry state, the old pills wherever no product placed anything.
+`fill-fixture.php` `VGML_PRODUCT=1` plants a product of its own on one real
+picture (and deletes it); `folders.spec` two rows — the pills from the
+model, the rail on the planted product — each mutation red (byProduct
+false; the reorder off). The live shot beside the mock:
+`docs/superpowers/mocks/shots/2026-09-18-fill-by-product-live.png`. The
+full `folders.spec` + `modes.spec` run as `vgmls16` was started at the end
+of the session — its result is in the next check-in or not at all; **delete
+`vgmls16`** on the tech site either way (`node tools/box-eval.mjs
+tools/box-ui-admin.php --env VGML_ACTION=delete --env VGML_USER=vgmls16`).
+
 ## Next — S17
 
 Card, to `plugin/.harness/active.json`:

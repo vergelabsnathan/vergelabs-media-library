@@ -1,11 +1,10 @@
 {
-  "phase": "Every picture a home — S17: Nathan's calls from S16 first (the audience gate as a runner-up: DONE 2026-09-18, 0aff174, right of placed 72 %; the class floor: LEFT on Nathan's word; the namesake tie: DROPPED on Nathan's word 2026-09-18; the tech truth page's shape; the rail mock's yes), each built only on a yes and judged by the SCORE line; (the audience words on HEMA: DONE 2026-09-18, 8a71687, no pick moved) the tech truth page built and marked (~200 pictures, ~30 min of Nathan's, no credits) so the tech library scores too; the rail built from the mock; then S10.10 the proposal from the pictures (a Fable-sized phase: groups to name and nest, per kind first, thumbnails, the pack's own signals)",
+  "phase": "Every picture a home — S17: Nathan's calls from S16 first (the audience gate as a runner-up: DONE 2026-09-18, 0aff174, right of placed 72 %; the class floor: LEFT on Nathan's word; the namesake tie: DROPPED on Nathan's word 2026-09-18; the rail: DONE 2026-09-18, 7d13048; the tech truth page's shape and the why-card wording: still open), each built only on a yes and judged by the SCORE line; (the audience words on HEMA: DONE 2026-09-18, 8a71687, no pick moved) the tech truth page built and marked (~200 pictures, ~30 min of Nathan's, no credits) so the tech library scores too; then S10.10 the proposal from the pictures (a Fable-sized phase: groups to name and nest, per kind first, thumbnails, the pack's own signals)",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S17)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
     "tools/truth-page.php, tools/box-truth-score.php (the tech truth page on the shape Nathan approves: ~200 pictures picked fresh, the fill's folder pre-filled in a select of the tree's folders, wrong picture / no folder, a tally, Save -> a JSON the scorer reads with VGML_TRUTH; then the SCORE line for the tech library in every check-in too)",
-    "js/vergeml-folders.js, core/folder-talk.php (the rail from the mock 2026-09-18-fill-by-product.html on Nathan's yes: the pills by product · by evidence · to sort from tally.product, and the flipped order for a site that sells; folders.spec rows; the copy verbatim from the mock)",
     "core/librarian.php (the why card's source line wording, Nathan's words)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt, tests/tree/filing-baseline-shop-b.txt (re-taken only with the reason and the SCORE line)",
     "docs/handoffs/**",
@@ -33,7 +32,7 @@
     "node tools/box-eval.mjs tools/box-truth-score.php --site shop: the SCORE line printed in every check-in; a rule stays only when right-of-placed does not fall (today 347 of 581, 60 %, right of placed 72 %)",
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background filing-trail → green (escaping 9/10 known)",
     "the live woo case 9/9 on the tech site (wp eval-file tests/integrations/live.php woo)",
-    "folders.spec and modes.spec on the tech site green when the rail is built",
+    "folders.spec and modes.spec on the tech site green (the rail is built; the run started at S16's end as vgmls16 — read its result, delete the user)",
     "the tech, C.5 and shop-b bands 4/4 or re-taken with the reason (all three re-taken 2026-09-18; the shop-b band reads only with HEMA's tree up)"
   ]
 }
