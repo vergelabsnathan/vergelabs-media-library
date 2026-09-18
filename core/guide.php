@@ -1872,7 +1872,8 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
         'looked'  => count( $rows ),
         'preview' => $lines,
         // The outcomes as the run will count them: fits / siblings / nothing, sure / likely, kept.
-        'tally'   => $counted['counts'],
+        // rules_only (S18): a dry count never asks the text model -- the run does, per slice -- so its sure and likely are the rules' alone.
+        'tally'   => $counted['counts'] + array( 'rules_only' => true ),
         // The biggest group the run would not place, by class word: what the screen's "add …" reads.
         'residue' => null === $top ? null : array( 'class' => (string) $residue_word[ $top ], 'count' => (int) $residue[ $top ] ),
     );

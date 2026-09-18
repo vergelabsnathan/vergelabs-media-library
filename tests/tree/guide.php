@@ -57,7 +57,7 @@ $g_before = $wpdb->num_queries;
 $g_boot   = vergeml_folders_boot();
 $g_cost   = $wpdb->num_queries - $g_before;
 // Nine on 2026-09-05 (render 1 + the request 1 + the tree 7); eleven measured on 2026-09-15 with the rail's steps (images, not described, without alt, the fill's state and its unfiled count); twelve with Step 4's own count (the pictures whose catalogue alt the button writes).
-g_check( 'A1 the boot data costs at most twelve queries (as measured on 2026-09-15, with the rail\'s steps and Step 4\'s count)', $g_cost <= 12, $g_cost . ' queries' );
+g_check( 'A1 the boot data costs at most thirteen queries (twelve as measured on 2026-09-15 with the rail\'s steps and Step 4\'s count; one more since S17\'s rail on a site that sells, 7d13048: the on_products count)', $g_cost <= 13, $g_cost . ' queries' );
 g_check( 'A2 it carries the tree, the session and the stamp', isset( $g_boot['nodes'], $g_boot['session'], $g_boot['version'], $g_boot['facts'] ) && is_array( $g_boot['nodes'] ) );
 $g_before = $wpdb->num_queries;
 ob_start();
@@ -189,6 +189,11 @@ g_check( 'F1 the rule, pure: 1,000 × 500 defers, 626 × 319 does not (the shop\
 $GLOBALS['g_texts']  = array();
 $GLOBALS['g_embeds'] = 0; // Every /embed request answered here, counted: the apply must not make one per folder (S15).
 function g_answer( $pre, $args, $url ) {
+    // The text model's service (S18): a dry count must never ask it. Counted, and down.
+    if ( false !== strpos( $url, '/v1/file' ) ) {
+        $GLOBALS['g_files']++;
+        return array( 'response' => array( 'code' => 502 ), 'body' => '', 'headers' => array() );
+    }
     if ( false === strpos( $url, '/embed' ) ) {
         return $pre;
     }
@@ -209,6 +214,7 @@ function g_answer( $pre, $args, $url ) {
     return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( $data ), 'headers' => array() );
 }
 add_filter( 'pre_http_request', 'g_answer', 1, 3 );
+$GLOBALS['g_files'] = 0;
 
 /*
  *  The site's own wp-cron.php, answered here and never sent (S14). F6 books
@@ -247,6 +253,8 @@ $g_s   = ( microtime( true ) - $g_t0 );
 $g_now = vergeml_guide_session();
 $g_fit = $g_now['fit'];
 g_check( sprintf( 'F4 the job counts it: counted true, looked = the described count, every folder carries a count (%.1f s, %d queries so far)', $g_s, $wpdb->num_queries ), is_array( $g_fit ) && ! empty( $g_fit['counted'] ) && empty( $g_fit['pending'] ) && $g_described === (int) $g_fit['looked'] && 260 === count( $g_fit['counts'] ) && null !== $g_now['draft']['folders'][0]['count'], json_encode( is_array( $g_fit ) ? array_intersect_key( $g_fit, array_flip( array( 'counted', 'pending', 'looked', 'move' ) ) ) : $g_fit ) );
+// The dry count is the rules' alone (S18 task 6): the model's service is never asked on a count, and the tally says so.
+g_check( 'F4b the count asked the text model nothing, and its tally says rules_only', 0 === $GLOBALS['g_files'] && is_array( $g_fit ) && isset( $g_fit['tally']['rules_only'] ) && true === $g_fit['tally']['rules_only'], json_encode( array( 'files' => $GLOBALS['g_files'], 'rules_only' => isset( $g_fit['tally']['rules_only'] ) ? $g_fit['tally']['rules_only'] : null ) ) );
 
 // The draft moved on while a job ran: its answer is not written over the newer tree.
 $g_now['fit'] = vergeml_guide_fit_pending( $g_described, 260, 'not-this-draft' );

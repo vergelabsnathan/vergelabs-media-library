@@ -725,6 +725,8 @@ test.describe( 'the Folders screen', () => {
 		}
 		const unplaced = r.fit.unfiled.floor + r.fit.unfiled.margin + r.fit.unfiled.gated;
 		expect( unplaced ).toBeLessThanOrEqual( r.fit.looked );
+		// The dry count is the rules' alone (S18): the tally says so, and the head carries no pill for it until the copy exists.
+		expect( r.fit.tally.rules_only, 'the dry count says it is rules-only' ).toBe( true );
 
 		await page.setViewportSize( { width: 1600, height: 1000 } );
 		await open( page, SCREEN.folders );

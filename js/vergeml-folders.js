@@ -851,6 +851,7 @@
 			c.pills.appendChild( pill( unfiled, __( 'in no folder', 'vergelabs-media-library' ) ) );
 		} else if ( tally && view.getDraft() && ! done ) {
 			// The dry run's answer about the confirmed tree, as the run will count it.
+			// tally.rules_only (S18): the count never asked the text model, the run will; its one quiet pill waits for the copy -- until then none.
 			if ( byProduct( c.pills, ( Number( tally.fits ) || 0 ) + ( Number( tally.siblings ) || 0 ), tally ) ) {
 				c.pills.appendChild( pill( Number( tally.nothing ) || 0, __( 'to sort', 'vergelabs-media-library' ) ) );
 			} else {
