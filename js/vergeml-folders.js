@@ -583,7 +583,7 @@
 		if ( counts && view && view.getDraft() ) {
 			c.pills.appendChild( pill( counts.placed, __( 'would be placed', 'vergelabs-media-library' ), 'accent' ) );
 			c.pills.appendChild( pill( counts.unfiled, __( 'would stay unfiled', 'vergelabs-media-library' ) ) );
-		} else if ( fitUnknown() && ! state.pastePending && ! ( state.fit && state.fit.pending ) ) {
+		} else if ( fitUnknown() && ! state.pastePending && ! state.turnPending && ! ( state.fit && state.fit.pending ) ) {
 			// Looked and could not answer; while it is still counting, the row under the button says so instead.
 			c.pills.appendChild( el( 'span', { class: 'g-pill is-quiet' }, __( 'counts not worked out yet', 'vergelabs-media-library' ) ) );
 		}

@@ -475,6 +475,7 @@ test.describe( 'the Folders screen', () => {
 		await expect( row.locator( '.g-progress-text' ) ).toHaveText( /^Counting \d[\d,.]* pictures against 3 folders · \d+ s$/ );
 		await expect( made.locator( '.vgml-count' ), 'no count on a new row until the answer' ).toHaveCount( 0 );
 		await expect( tree.locator( '.g-pill' ), 'no "would be placed" pill before the answer' ).not.toContainText( [ /would be placed/ ] );
+		await expect( tree.locator( '.g-pill.is-quiet' ), 'the row says it is counting; the quiet pill is for a count that came back unknown' ).toHaveCount( 0 );
 		await expect( tree.locator( '.vgml-confirm-btn' ) ).toBeDisabled();
 
 		await expect( row, 'the answer lands: the row goes' ).toBeHidden( { timeout: 20000 } );
