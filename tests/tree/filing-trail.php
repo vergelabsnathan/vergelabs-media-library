@@ -69,6 +69,23 @@ $GLOBALS['ft_fail'] = 0;
 $GLOBALS['ft_log']  = '';
 
 /*
+ *  The four fixtures were built for the rules alone (S18): the text model's
+ *  service is down for this suite, so the pass files by the rules and no
+ *  call leaves the box. The two words the model adds to the trail, 'agree'
+ *  and 'doubt', are proven on rows written directly, further down.
+ */
+function ft_no_model( $pre, $args, $url ) {
+    if ( false !== strpos( (string) $url, '/v1/file' ) ) {
+        return array( 'response' => array( 'code' => 502 ), 'body' => '', 'headers' => array() );
+    }
+    return $pre;
+}
+add_filter( 'pre_http_request', 'ft_no_model', 1, 3 );
+if ( defined( 'VERGEML_FILING_MODEL_DOWN' ) ) {
+    delete_transient( VERGEML_FILING_MODEL_DOWN );
+}
+
+/*
  *  $GLOBALS, not `global`. wp eval-file evaluates this file inside a function,
  *  so anything declared at the top of it is a local of that function and never
  *  a global at all -- `global` in the helpers below would bind to a second,
@@ -173,8 +190,11 @@ if ( ! $ft_terms['zzTrailA'] || ! $ft_terms['zzTrailC'] ) {
  *  A takes the class outright. C only describes it, which is worth 0.9 of a
  *  match rather than 1.0, and lands 0.075 below A: inside the 0.08 margin,
  *  which is what makes the third fixture too close to call. C is also for
- *  women, so it is gated out of every picture that does not say so, and the
- *  first two fixtures are decided by A alone.
+ *  women, so it is gated out of every picture that says it is for someone
+ *  else, and the first two fixtures are decided by A alone. The ok picture
+ *  says men: since S17 (the audience gate as a runner-up, 0aff174) a
+ *  gendered folder keeps its score as the runner-up for a picture that says
+ *  no audience at all, and an ok picture saying nothing read as a margin.
  */
 $ft_profile = array(
     'version'  => VERGEML_FILING_VERSION,
@@ -239,7 +259,7 @@ function ft_file( $title, $object, $kind, $audience ) {
 $GLOBALS['ft_vector_shared'] = $ft_vector;
 
 $ft_files = array(
-    'ok'     => ft_file( 'ok',     $ft_class, 'photo',   '' ),
+    'ok'     => ft_file( 'ok',     $ft_class, 'photo',   'men' ),
     'floor'  => ft_file( 'floor',  '',        'photo',   '' ),
     'gated'  => ft_file( 'gated',  $ft_class, 'zzlogo',  '' ),
     'margin' => ft_file( 'margin', $ft_class, 'photo',   'women' ),
@@ -927,6 +947,81 @@ if ( ! function_exists( 'vergeml_librarian_why' ) ) {
         is_array( $ft_blank_read ) ? sprintf( 'score %s', var_export( $ft_blank_read['score'], true ) ) : 'nothing'
     );
 
+    /*
+     *  The model's two words on the trail (S18). 'agree': the rules and the
+     *  text model named the same folder -- a filing, sure whatever the
+     *  score, read with the rules' own source. 'doubt': the rules named a
+     *  folder and the model said nothing fits -- left where it was, the
+     *  rules' folder as `nearest`. The why card has no sentence for either
+     *  until Nathan gives one: an agree row reads as any filing does, a
+     *  doubt row only as looked at. Mutation: 'agree' dropped from
+     *  vergeml_filing_confidence -> the agree row's pill goes red.
+     */
+    $ft_agree_id = ft_file( 'agree', $ft_class, 'photo', '' );
+    $ft_doubt_id = ft_file( 'doubt', $ft_class, 'photo', '' );
+
+    wp_set_object_terms( (int) $ft_agree_id, array( (int) $ft_terms['zzTrailA'] ), $ft_tax, false );
+
+    $wpdb->insert(
+        $ft_moves,
+        array(
+            'batch_id'      => 0,
+            'attachment_id' => (int) $ft_agree_id,
+            'term_id'       => (int) $ft_terms['zzTrailA'],
+            'term_created'  => 0,
+            'undone'        => 0,
+            'why'           => 'agree',
+            'score'         => 0.64,
+            'runner_up'     => 0,
+            'nearest'       => 0,
+            'source'        => 'name',
+            'hit'           => $ft_class . ' ~ ' . $ft_class,
+            'prompt_hash'   => '',
+            'model_version' => '',
+        ),
+        array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%d', '%d', '%s', '%s', '%s', '%s' )
+    );
+    $wpdb->insert(
+        $ft_moves,
+        array(
+            'batch_id'      => 0,
+            'attachment_id' => (int) $ft_doubt_id,
+            'term_id'       => 0,
+            'term_created'  => 0,
+            'undone'        => 0,
+            'why'           => 'doubt',
+            'score'         => 0.81,
+            'runner_up'     => 0,
+            'nearest'       => (int) $ft_terms['zzTrailA'],
+            'source'        => 'name',
+            'hit'           => $ft_class . ' ~ ' . $ft_class,
+            'prompt_hash'   => '',
+            'model_version' => '',
+        ),
+        array( '%d', '%d', '%d', '%d', '%d', '%s', '%f', '%d', '%d', '%s', '%s', '%s', '%s' )
+    );
+
+    $ft_agree_read = vergeml_librarian_why( (int) $ft_agree_id );
+    $ft_doubt_read = vergeml_librarian_why( (int) $ft_doubt_id );
+
+    ft_check(
+        'an agree row reads as a filing in its folder, sure at 0.64, with the rules\' own matched word and no other sentence',
+        is_array( $ft_agree_read ) && 'agree' === (string) $ft_agree_read['why'] && (int) $ft_agree_read['term_id'] === (int) $ft_terms['zzTrailA']
+            && 'sure' === (string) $ft_agree_read['confidence']
+            && isset( $ft_agree_read['lines'][0] ) && 0 === strpos( $ft_agree_read['lines'][0], 'In zzTrailA · scored ' )
+            && (bool) preg_grep( '/^Matched /', $ft_agree_read['lines'] )
+            && 2 === count( $ft_agree_read['lines'] ),
+        is_array( $ft_agree_read ) ? $ft_agree_read['confidence'] . ' / ' . implode( ' / ', $ft_agree_read['lines'] ) : 'nothing'
+    );
+
+    ft_check(
+        'a doubt row claims no folder, names the rules\' folder as the one it came nearest to, and says nothing more',
+        is_array( $ft_doubt_read ) && 'doubt' === (string) $ft_doubt_read['why'] && 0 === (int) $ft_doubt_read['term_id']
+            && 'zzTrailA' === (string) $ft_doubt_read['near'] && '' === (string) $ft_doubt_read['confidence']
+            && array() === $ft_doubt_read['lines'],
+        is_array( $ft_doubt_read ) ? sprintf( 'near %s, %d lines: %s', (string) $ft_doubt_read['near'], count( $ft_doubt_read['lines'] ), implode( ' / ', $ft_doubt_read['lines'] ) ) : 'nothing'
+    );
+
     // A picture the record has never heard of says nothing rather than something empty.
     $ft_unknown_id = ft_file( 'unknown', $ft_class, 'photo', '' );
 
@@ -1441,6 +1536,11 @@ ft_check( 'no move row is left pointing at a batch that is gone', 0 === $ft_orph
 $wpdb->delete( $ft_moves, array( 'batch_id' => $ft_bystander ), array( '%d' ) );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 $wpdb->delete( $ft_batches, array( 'batch_id' => $ft_bystander ), array( '%d' ) );
+
+remove_filter( 'pre_http_request', 'ft_no_model', 1 );
+if ( defined( 'VERGEML_FILING_MODEL_DOWN' ) ) {
+    delete_transient( VERGEML_FILING_MODEL_DOWN ); // The 502 above marked the service down; not this site's to keep.
+}
 
 ft_say( sprintf( "\n%d/%d passed\n", $GLOBALS['ft_pass'], $GLOBALS['ft_pass'] + $GLOBALS['ft_fail'] ) );
 

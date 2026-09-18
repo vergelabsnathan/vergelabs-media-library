@@ -60,6 +60,9 @@ const VERGEML_FILING_LOCKED = '_vergeml_locked';
 /** Post meta: who put the picture where it is. 'user' means every fill leaves it alone. */
 const VERGEML_FILING_PLACED_BY = '_vergeml_placed_by';
 
+/** Transient: the text model's service fell over; not asked again for a minute (S18). */
+const VERGEML_FILING_MODEL_DOWN = 'vergeml_fm_down';
+
 /** How much the class match weighs against the vector. */
 const VERGEML_FILING_CLASS_WEIGHT = 0.75;
 
@@ -169,6 +172,13 @@ function vergeml_filing_confidence( $attachment_id, $move ) {
         return 'by you';
     }
     if ( 'siblings' === $why || 'answer' === $why ) {
+        return 'likely';
+    }
+    // The model's tiers (S18): agree is sure whatever the score; the model alone is likely whatever the score.
+    if ( 'agree' === $why ) {
+        return 'sure';
+    }
+    if ( 'ok' === $why && isset( $move['source'] ) && 'model' === (string) $move['source'] ) {
         return 'likely';
     }
     if ( 'ok' === $why ) {
@@ -1703,8 +1713,9 @@ function vergeml_filing_model_key( $tree_hash, $row ) {
  *  does not hold), -1 for unasked -- placed already (by hand, by an answer,
  *  by a product) or in a locked folder, so the pick decides before the
  *  model; no licence; the service down. Asked once per picture per tree:
- *  the answer sits in a transient keyed by the tree's paths and the
- *  picture's description for a week, and a cached picture is not sent. A
+ *  the answer (the folder's canon path, '' for nothing) sits in a
+ *  transient keyed by the tree's paths and the picture's description for a
+ *  week, and a cached picture is not sent. A
  *  failed call leaves the rest of the batch and the batches after it
  *  unasked; the pick then runs rules-only, as before S18. Metered on the
  *  service, not debited, until the call is priced.
@@ -1734,14 +1745,16 @@ function vergeml_filing_ask_model( $rows, $profiles ) {
         if ( '' === $d['says'] && '' === $d['caption'] ) {
             continue;
         }
+        // Cached as the folder's canon path, not its id: a folder deleted and made again under the same name keeps its answers.
         $cached = get_transient( vergeml_filing_model_key( $tree['hash'], $r ) );
         if ( false !== $cached ) {
-            $rows[ $k ]['model_folder'] = (int) $cached;
+            $rows[ $k ]['model_folder'] = '' !== (string) $cached && isset( $tree['by_path'][ (string) $cached ] ) ? (int) $tree['by_path'][ (string) $cached ] : 0;
             continue;
         }
         $ask[ $k ] = array( 'id' => (int) $r['attachment_id'], 'says' => $d['says'], 'caption' => $d['caption'] );
     }
-    if ( ! $ask || '' === $licence ) {
+    // A service that fell over is left alone for a minute (VERGEML_FILING_MODEL_DOWN): a fill of thirty slices does not wait thirty timeouts on it.
+    if ( ! $ask || '' === $licence || false !== get_transient( VERGEML_FILING_MODEL_DOWN ) ) {
         return $rows;
     }
 
@@ -1761,19 +1774,20 @@ function vergeml_filing_ask_model( $rows, $profiles ) {
             )
         );
         if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+            set_transient( VERGEML_FILING_MODEL_DOWN, time(), MINUTE_IN_SECONDS );
             return $rows; // Unasked from here on: the pick runs rules-only for these.
         }
         $data    = json_decode( (string) wp_remote_retrieve_body( $response ), true );
         $answers = is_array( $data ) && isset( $data['answers'] ) && is_array( $data['answers'] ) ? $data['answers'] : array();
         foreach ( $keys as $k ) {
             $path = isset( $answers[ (string) $ask[ $k ]['id'] ] ) ? $answers[ (string) $ask[ $k ]['id'] ] : null;
-            $tid  = 0;
+            $canon = '';
             if ( is_string( $path ) && '' !== $path ) {
                 $canon = implode( ' > ', array_map( 'vergeml_filing_canon', preg_split( '/\s*>\s*/', $path ) ) );
-                $tid   = isset( $tree['by_path'][ $canon ] ) ? (int) $tree['by_path'][ $canon ] : 0;
+                $canon = isset( $tree['by_path'][ $canon ] ) ? $canon : '';
             }
-            $rows[ $k ]['model_folder'] = $tid;
-            set_transient( vergeml_filing_model_key( $tree['hash'], $rows[ $k ] ), $tid, WEEK_IN_SECONDS );
+            $rows[ $k ]['model_folder'] = '' !== $canon ? (int) $tree['by_path'][ $canon ] : 0;
+            set_transient( vergeml_filing_model_key( $tree['hash'], $rows[ $k ] ), $canon, WEEK_IN_SECONDS );
         }
     }
     return $rows;
@@ -2372,7 +2386,9 @@ function vergeml_filing_tally_fresh() {
         'sure'     => 0,
         'likely'   => 0,
         'product'  => 0, // Of 'fits': by the product the picture belongs to (S10.8), before any matching.
-        'why'      => array( 'floor' => 0, 'margin' => 0, 'gated' => 0 ),
+        'agree'    => 0, // Of 'sure': the rules and the text model named the same folder (S18).
+        'doubt'    => 0, // Of 'nothing': the rules named a folder and the model said nothing fits (S18); asked as "Put in X".
+        'why'      => array( 'floor' => 0, 'margin' => 0, 'gated' => 0, 'doubt' => 0 ),
         'by_term'  => array(),
     );
 }
@@ -2390,6 +2406,9 @@ function vergeml_filing_tally( &$counts, $pick ) {
     }
     if ( 'product' === $pick['why'] ) {
         $counts['product'] = ( isset( $counts['product'] ) ? (int) $counts['product'] : 0 ) + 1;
+    }
+    if ( 'agree' === $pick['why'] || 'doubt' === $pick['why'] ) {
+        $counts[ $pick['why'] ] = ( isset( $counts[ $pick['why'] ] ) ? (int) $counts[ $pick['why'] ] : 0 ) + 1;
     }
     if ( $pick['term_id'] ) {
         $counts['by_term'][ (int) $pick['term_id'] ] = isset( $counts['by_term'][ (int) $pick['term_id'] ] ) ? $counts['by_term'][ (int) $pick['term_id'] ] + 1 : 1;
@@ -2413,7 +2432,7 @@ function vergeml_filing_kept( $pick ) {
 
 /** Two tallies into one: the run adds each slice's to the state's. */
 function vergeml_filing_tally_add( $a, $b ) {
-    foreach ( array( 'looked', 'fits', 'siblings', 'nothing', 'kept', 'either', 'sure', 'likely', 'product' ) as $k ) {
+    foreach ( array( 'looked', 'fits', 'siblings', 'nothing', 'kept', 'either', 'sure', 'likely', 'product', 'agree', 'doubt' ) as $k ) {
         $a[ $k ] = (int) ( isset( $a[ $k ] ) ? $a[ $k ] : 0 ) + (int) ( isset( $b[ $k ] ) ? $b[ $k ] : 0 );
     }
     foreach ( array( 'why', 'by_term' ) as $map ) {

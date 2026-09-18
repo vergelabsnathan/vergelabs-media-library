@@ -112,9 +112,14 @@ function sk_answer( $pre, $args, $url ) {
      *  picture, by the word the picture says. Counted, and what was sent is
      *  kept, so the suite can say a picture was asked about once. A stray
      *  path the tree does not hold stands for an answer the plugin must
-     *  read as nothing; sk_file_fail makes the service fall over.
+     *  read as nothing; sk_file_fail makes the service fall over. Until J
+     *  turns it on (sk_file_on) the service is down: sections D to I were
+     *  written for the rules alone and stay that way.
      */
     if ( false !== strpos( $url, '/v1/file' ) ) {
+        if ( empty( $GLOBALS['sk_file_on'] ) ) {
+            return array( 'response' => array( 'code' => 502 ), 'body' => '', 'headers' => array() );
+        }
         $GLOBALS['sk_file_calls']++;
         $GLOBALS['sk_file_sent'][] = $body;
         if ( ! empty( $GLOBALS['sk_file_fail'] ) ) {
@@ -125,7 +130,9 @@ function sk_answer( $pre, $args, $url ) {
             $says = strtolower( (string) $p['says'] );
             if ( false !== strpos( $says, 'zzstickyghost' ) ) {
                 $answers[ (string) $p['id'] ] = 'zzNowhere > zzGhost';
-            } elseif ( false !== strpos( $says, 'zzstickyother' ) ) {
+            } elseif ( false !== strpos( $says, 'zzveto' ) ) {
+                $answers[ (string) $p['id'] ] = null; // The rules will place it; the model says nothing fits.
+            } elseif ( false !== strpos( $says, 'zzswap' ) || false !== strpos( $says, 'zzstickyother' ) || false !== strpos( $says, 'zzunknownword' ) ) {
                 $answers[ (string) $p['id'] ] = 'zzStickyB';
             } elseif ( false !== strpos( $says, 'zzstickything' ) ) {
                 $answers[ (string) $p['id'] ] = 'zzStickyA';
@@ -140,9 +147,11 @@ function sk_answer( $pre, $args, $url ) {
 add_filter( 'pre_http_request', 'sk_answer', 1, 3 );
 $GLOBALS['sk_cron']       = array();
 $GLOBALS['sk_named']      = 0;
+$GLOBALS['sk_file_on']    = false;
 $GLOBALS['sk_file_calls'] = 0;
 $GLOBALS['sk_file_sent']  = array();
 $GLOBALS['sk_file_fail']  = false;
+delete_transient( VERGEML_FILING_MODEL_DOWN );
 
 /* ------------------------------------------------------------- the fixture */
 
@@ -753,6 +762,9 @@ if ( 6 === $sk_reach ) {
      */
     echo "\nJ  the model asked once per picture per tree (S18)\n\n";
 
+    $GLOBALS['sk_file_on'] = true;
+    delete_transient( VERGEML_FILING_MODEL_DOWN );
+
     $sk_files['mo']    = sk_file( 'mo',    'zzstickyother; zzthing' );
     $sk_files['mn']    = sk_file( 'mn',    'zzstickynowhere; zzthing' );
     $sk_files['mg']    = sk_file( 'mg',    'zzstickyghost; zzthing' );
@@ -812,8 +824,101 @@ if ( 6 === $sk_reach ) {
     $sk_unlicensed = vergeml_filing_ask_model( $sk_frow, $sk_mprofiles );
     remove_filter( 'option_vergeml_ai', $sk_no_licence );
     sk_check( 'J4 no licence: every row -1 and no call', 2 === $GLOBALS['sk_file_calls'] && array( $sk_files['mf'] => -1 ) === $sk_mby( $sk_unlicensed ), json_encode( array( 'calls' => $GLOBALS['sk_file_calls'], 'got' => $sk_mby( $sk_unlicensed ) ) ) );
+    // J3's failure marked the service down for a minute; the run below must find it up.
+    sk_check( 'J4b a failed call marks the service down for a minute, so the next slice does not wait on it', false !== get_transient( VERGEML_FILING_MODEL_DOWN ), var_export( get_transient( VERGEML_FILING_MODEL_DOWN ), true ) );
+    delete_transient( VERGEML_FILING_MODEL_DOWN );
 
     $sk_mclear( array_merge( $sk_mrows, $sk_frow ) );
+
+    /*
+     *  The run and the trail (task 4). Four fresh pictures through a real
+     *  fill with the stand-in answering: the rules and the model agree on
+     *  one (A, sure, why agree); the model vetoes one the rules would place
+     *  (nothing, why doubt, the residue's "Put in A"); the model names B
+     *  where the rules say A (an A-or-B question); the model names B where
+     *  the rules have nothing (B, likely, source model). The why card says
+     *  nothing new for agree or doubt: no sentence Nathan has not given.
+     *  Mutation: the ask removed from the run -> J5 red (rules-only: two
+     *  sure in A, two nowhere, no agree).
+     */
+    $sk_files['ra'] = sk_file( 'ra', 'zzstickything; zzthing' );
+    $sk_files['rd'] = sk_file( 'rd', 'zzstickything zzveto; zzthing' );
+    // Five doubts of one class: a residue group under five folds into the 'more' card (S10.5) and offers no folder.
+    foreach ( array( 'rd2', 'rd3', 'rd4', 'rd5' ) as $sk_k ) {
+        $sk_files[ $sk_k ] = sk_file( $sk_k, 'zzstickything zzveto; zzthing' );
+    }
+    $sk_files['rm'] = sk_file( 'rm', 'zzstickything zzswap; zzthing' );
+    $sk_files['ro'] = sk_file( 'ro', 'zzunknownword; zzthing' );
+    $sk_in          = implode( ',', array_map( 'intval', array_values( $sk_files ) ) );
+    foreach ( array( 'ra', 'rd', 'rd2', 'rd3', 'rd4', 'rd5', 'rm', 'ro' ) as $sk_k ) {
+        wp_set_object_terms( $sk_files[ $sk_k ], array(), $sk_tax, false );
+    }
+    $sk_run_state = array(
+        'active'   => true,
+        'taxonomy' => $sk_tax,
+        'ids'      => array( 'a' => $sk_terms['zzStickyA'], 'b' => $sk_terms['zzStickyB'] ),
+        'vectors'  => array(),
+        'assign'   => array(),
+        'fallback' => array(),
+        'reasons'  => array(),
+        'after'    => $sk_files['ra'] - 1,
+        'moved'    => 0,
+        'skipped'  => 0,
+        'seen'     => 0,
+        'total'    => 8,
+        'counts'   => array(),
+        'by_term'  => array(),
+        'unfiled'  => array(),
+        'tags'     => array(),
+        'tagged'   => 0,
+        'until'    => time() + DAY_IN_SECONDS,
+        'remove'   => array(),
+        'started'  => time(),
+        'ticked'   => time(),
+    );
+    // The run's tree is A and B alone: its cache rows sit under that hash, cleared before and after (a previous run of this suite leaves them for a week).
+    $sk_run_tree  = vergeml_filing_model_tree( vergeml_filing_profiles( array( $sk_terms['zzStickyA'], $sk_terms['zzStickyB'] ), $sk_tax ) );
+    $sk_mclear_run = function ( $rows ) use ( $sk_run_tree ) {
+        foreach ( (array) $rows as $r ) {
+            delete_transient( vergeml_filing_model_key( $sk_run_tree['hash'], $r ) );
+        }
+    };
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $sk_rrows = (array) $wpdb->get_results( 'SELECT attachment_id, embedding, kind, filing, caption FROM ' . $wpdb->vergeml_ai_index . ' WHERE attachment_id IN (' . implode( ',', array_map( 'intval', array( $sk_files['ra'], $sk_files['rd'], $sk_files['rd2'], $sk_files['rd3'], $sk_files['rd4'], $sk_files['rd5'], $sk_files['rm'], $sk_files['ro'] ) ) ) . ')', ARRAY_A );
+    $sk_mclear_run( $sk_rrows );
+    $GLOBALS['sk_file_calls'] = 0;
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    update_option( VERGEML_TALK_STATE, $sk_run_state, false );
+    update_option( VERGEML_TALK_UNDO, array( 'terms' => array( array( 'term_id' => $sk_terms['zzStickyA'], 'name' => 'zzStickyA', 'parent' => '' ) ), 'files' => array(), 'placed' => array(), 'batches' => array(), 'until' => time() + DAY_IN_SECONDS ), false );
+    $sk_done  = vergeml_talk_refile_run( microtime( true ) + 30.0 );
+    $sk_tally = isset( $sk_done['tally'] ) ? $sk_done['tally'] : array();
+    sk_check( 'J5 the run asked once for the slice: agree in A, the model alone in B, the veto and the swap nowhere; moved 2; tally agree 1, doubt 5, either 1, sure 1, likely 1', 1 === $GLOBALS['sk_file_calls'] && array( $sk_terms['zzStickyA'] ) === $sk_where( $sk_files['ra'] ) && array( $sk_terms['zzStickyB'] ) === $sk_where( $sk_files['ro'] ) && array() === $sk_where( $sk_files['rd'] ) && array() === $sk_where( $sk_files['rm'] ) && 2 === (int) $sk_done['moved'] && 1 === (int) $sk_tally['agree'] && 5 === (int) $sk_tally['doubt'] && 1 === (int) $sk_tally['either'] && 1 === (int) $sk_tally['sure'] && 1 === (int) $sk_tally['likely'] && empty( $sk_done['active'] ), json_encode( array( 'calls' => $GLOBALS['sk_file_calls'], 'ra' => $sk_where( $sk_files['ra'] ), 'ro' => $sk_where( $sk_files['ro'] ), 'rd' => $sk_where( $sk_files['rd'] ), 'rm' => $sk_where( $sk_files['rm'] ), 'moved' => $sk_done['moved'], 'tally' => array_intersect_key( $sk_tally, array_flip( array( 'looked', 'fits', 'nothing', 'sure', 'likely', 'agree', 'doubt', 'either' ) ) ) ) ) );
+    $sk_trow = function ( $id ) use ( $wpdb, $sk_moves ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        return $wpdb->get_row( $wpdb->prepare( "SELECT term_id, why, nearest, source FROM {$sk_moves} WHERE attachment_id = %d ORDER BY move_id DESC LIMIT 1", $id ), ARRAY_A );
+    };
+    $sk_t = array( 'ra' => $sk_trow( $sk_files['ra'] ), 'rd' => $sk_trow( $sk_files['rd'] ), 'rm' => $sk_trow( $sk_files['rm'] ), 'ro' => $sk_trow( $sk_files['ro'] ) );
+    sk_check( 'J6 the trail says why: agree (in A, the rules\' source), doubt (nearest A, no folder), margin (the question), ok with source model', is_array( $sk_t['ra'] ) && 'agree' === $sk_t['ra']['why'] && $sk_terms['zzStickyA'] === (int) $sk_t['ra']['term_id'] && 'model' !== $sk_t['ra']['source'] && is_array( $sk_t['rd'] ) && 'doubt' === $sk_t['rd']['why'] && 0 === (int) $sk_t['rd']['term_id'] && $sk_terms['zzStickyA'] === (int) $sk_t['rd']['nearest'] && is_array( $sk_t['rm'] ) && 'margin' === $sk_t['rm']['why'] && is_array( $sk_t['ro'] ) && 'ok' === $sk_t['ro']['why'] && 'model' === $sk_t['ro']['source'] && $sk_terms['zzStickyB'] === (int) $sk_t['ro']['term_id'], json_encode( $sk_t ) );
+    $sk_why_a = vergeml_librarian_why( $sk_files['ra'] );
+    $sk_why_d = vergeml_librarian_why( $sk_files['rd'] );
+    $sk_why_o = vergeml_librarian_why( $sk_files['ro'] );
+    sk_check( 'J6b the why card invents nothing: the agree row reads as a filing in A (sure), the doubt row only as looked at, the model-alone row as likely with no matched-word line', is_array( $sk_why_a ) && 0 === strpos( (string) $sk_why_a['lines'][0], 'In zzStickyA · scored ' ) && 'sure' === $sk_why_a['confidence'] && is_array( $sk_why_d ) && (bool) preg_grep( '/^Looked at /u', $sk_why_d['lines'] ) && ! preg_grep( '/^(In |Left where|Put here|Matched |Filed )/', $sk_why_d['lines'] ) && is_array( $sk_why_o ) && 'likely' === $sk_why_o['confidence'] && ! preg_grep( '/^Matched /', $sk_why_o['lines'] ), json_encode( array( 'a' => is_array( $sk_why_a ) ? array( $sk_why_a['confidence'], $sk_why_a['lines'] ) : null, 'd' => is_array( $sk_why_d ) ? $sk_why_d['lines'] : null, 'o' => is_array( $sk_why_o ) ? array( $sk_why_o['confidence'], $sk_why_o['lines'] ) : null ) ) );
+    $sk_qs   = isset( $sk_done['questions'] ) ? (array) $sk_done['questions'] : array();
+    $sk_q_d  = null;
+    $sk_q_m  = null;
+    foreach ( $sk_qs as $sk_q ) {
+        if ( 'residue' === $sk_q['kind'] && in_array( $sk_files['rd'], array_map( 'intval', array_values( (array) $sk_q['ids'] ) ), true ) ) {
+            $sk_q_d = $sk_q;
+        }
+        if ( 'either' === $sk_q['kind'] && in_array( $sk_files['rm'], array_map( 'intval', array_keys( (array) $sk_q['ids'] ) ), true ) ) {
+            $sk_q_m = $sk_q;
+        }
+    }
+    sk_check( 'J7 the five doubts are one residue question offering "Put in A"; the swap is an A-or-B question', is_array( $sk_q_d ) && in_array( 'put-in:' . $sk_terms['zzStickyA'], (array) $sk_q_d['answers'], true ) && is_array( $sk_q_m ) && array( $sk_terms['zzStickyA'], $sk_terms['zzStickyB'] ) === array_map( 'intval', (array) $sk_q_m['children'] ), json_encode( array( 'doubt' => is_array( $sk_q_d ) ? $sk_q_d['answers'] : null, 'swap' => is_array( $sk_q_m ) ? $sk_q_m['children'] : null, 'n' => count( $sk_qs ) ) ) );
+    $sk_undone = vergeml_talk_undo();
+    sk_check( 'J8 undo puts both back in no folder', ! is_wp_error( $sk_undone ) && array() === $sk_where( $sk_files['ra'] ) && array() === $sk_where( $sk_files['ro'] ), json_encode( array( 'undo' => is_wp_error( $sk_undone ) ? $sk_undone->get_error_message() : 'ok', 'ra' => $sk_where( $sk_files['ra'] ), 'ro' => $sk_where( $sk_files['ro'] ) ) ) );
+    $sk_mclear_run( $sk_rrows );
+    $GLOBALS['sk_file_on'] = false;
 
     wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
     if ( false !== $sk_hook_was ) {

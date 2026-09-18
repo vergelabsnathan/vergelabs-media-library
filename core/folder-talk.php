@@ -1092,7 +1092,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 		$product = vergeml_filing_product_sql( 'i' ); // The product it belongs to, when the site sells (S10.8).
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; the ids are cast to int.
 		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']}, {$product['select']},
+			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.caption, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']}, {$product['select']},
 			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr
 			            JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
 			            JOIN {$wpdb->termmeta} tm ON tm.term_id = tt.term_id AND tm.meta_key = %s AND tm.meta_value = '1'
@@ -1124,7 +1124,25 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			$profiles = vergeml_filing_profiles( array_values( (array) $state['ids'] ), $taxonomy );
 		}
 		// File by the product (S10.8): the product's folder on the row, a fact the pick answers before any matching.
-		$rows  = empty( $state['assign'] ) ? vergeml_filing_product_folders( (array) $rows, $profiles ) : $rows;
+		$rows = empty( $state['assign'] ) ? vergeml_filing_product_folders( (array) $rows, $profiles ) : $rows;
+		/*
+		 *  The text model beside the rules (S18): its word on each row before
+		 *  the count, forty pictures a call, once per picture per tree. Asked
+		 *  a call at a time with a heartbeat between, so the screen's stall
+		 *  line (30 s) does not fire on a slice's three calls; a call that
+		 *  fails or times out leaves those rows unasked and the pick runs
+		 *  rules-only for them, as before S18. Never on a dry count.
+		 */
+		if ( empty( $state['assign'] ) && function_exists( 'vergeml_filing_ask_model' ) ) {
+			$asked = array();
+			foreach ( array_chunk( (array) $rows, 40, true ) as $chunk ) {
+				$asked += vergeml_filing_ask_model( $chunk, $profiles );
+				$beat   = microtime( true );
+				set_transient( VERGEML_TALK_BEAT, array( 'seen' => (int) $state['seen'], 'moved' => (int) $state['moved'], 'by_term' => $state['by_term'], 'tally' => $state['tally'], 'ticked' => time() ), 300 );
+			}
+			ksort( $asked );
+			$rows = array_values( $asked );
+		}
 		$picks = empty( $state['assign'] ) ? vergeml_filing_count( $profiles, (array) $rows ) : null;
 
 		foreach ( (array) $rows as $row ) {
@@ -1368,13 +1386,14 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 				$state['skipped']   = max( 0, (int) $state['skipped'] - $n );
 				$state['residue']   = array();
 				$state['either']    = array();
-				foreach ( array( 'floor', 'margin', 'gated' ) as $why ) {
+				foreach ( array( 'floor', 'margin', 'gated', 'doubt' ) as $why ) {
 					unset( $state['unfiled'][ $why ] );
 				}
 				$state['tally']['looked']  = max( 0, (int) $state['tally']['looked'] - $n );
 				$state['tally']['nothing'] = max( 0, (int) $state['tally']['nothing'] - $n );
 				$state['tally']['either']  = 0;
-				$state['tally']['why']     = array( 'floor' => 0, 'margin' => 0, 'gated' => 0 );
+				$state['tally']['doubt']   = 0;
+				$state['tally']['why']     = array( 'floor' => 0, 'margin' => 0, 'gated' => 0, 'doubt' => 0 );
 				unset( $profiles ); // Read again over what the folders hold now.
 				continue;
 			}

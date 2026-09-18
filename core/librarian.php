@@ -1790,7 +1790,12 @@ function vergeml_librarian_term_for( $key, &$params, $taxonomy ) {
  *  the index row the score was computed from, when the caller has it.
  *
  *  The words: 'ok', 'floor', 'margin' and 'gated' are the matcher's own, and
- *  come with numbers. 'plan' is a proposal's placement a person approved, and
+ *  come with numbers; so are 'agree' (the rules and the text model named the
+ *  same folder, S18) and 'doubt' (the rules named one, the model said nothing
+ *  fits -- left where it was, `nearest` the rules' folder). The why card
+ *  says nothing new for those two until Nathan gives it the words: an agree
+ *  row reads as a filing, a doubt row as looked at. 'plan' is a proposal's
+ *  placement a person approved, and
  *  'by hand' is a person naming the folder outright -- neither was scored, so
  *  both leave score and runner_score null. A null there says nobody computed
  *  one; a 0.0 would say the matcher looked and found nothing, which is a
