@@ -883,5 +883,20 @@ f_check( '40b said to be men\'s: both folders open, an honest tie as before -- a
 $p = vergeml_filing_pick( f_facts( 'wool sweater; clothing' ), $gated_tree );
 f_check( '40c a shadow far below the pick changes nothing: "wool sweater; clothing" is Clothing, likely (0.64), as without the shadow', 'fits' === $p['outcome'] && 101 === $p['term_id'] && 'likely' === $p['confidence'] && abs( $p['score'] - 0.6375 ) < 1e-6, sprintf( '%s %d %s @%.4f', $p['outcome'], $p['term_id'], $p['confidence'], $p['score'] ) );
 
+/*
+ *  The audience words in the site's language (S17, HEMA's tree). Dutch
+ *  says who a folder is for in a compound, not a word: dameskleding,
+ *  herenkleding, kinderkleding, meisjeskleding, jongenskleding,
+ *  babyspeelgoed -- 12 of HEMA's 292 names carried one unread (2026-09-18)
+ *  while "dames" and "heren" alone were read. The prefixes count; "kind"
+ *  alone is English for a sort of thing and is read only on a Dutch site
+ *  (not here, where there is no site). Mutation: the prefixes removed ->
+ *  row 41 red.
+ */
+echo "\n== the audience words in the site's language (S17)\n";
+
+f_check( '41 Dutch compounds: dameskleding women; herenkleding men; kinderkleding, meisjeskleding, jongenskleding, babyspeelgoed, kinderbestek kids; "kind" alone not read here', 'women' === vergeml_filing_audience_of( 'Dameskleding' ) && 'men' === vergeml_filing_audience_of( 'herenkleding' ) && 'kids' === vergeml_filing_audience_of( 'kinderkleding' ) && 'kids' === vergeml_filing_audience_of( 'meisjeskleding' ) && 'kids' === vergeml_filing_audience_of( 'jongenskleding' ) && 'kids' === vergeml_filing_audience_of( 'babyspeelgoed' ) && 'kids' === vergeml_filing_audience_of( 'kinder tussendoortjes' ) && '' === vergeml_filing_audience_of( 'kind' ) && '' === vergeml_filing_audience_of( 'all kinds' ), sprintf( '%s %s %s %s "%s"', vergeml_filing_audience_of( 'Dameskleding' ), vergeml_filing_audience_of( 'herenkleding' ), vergeml_filing_audience_of( 'meisjeskleding' ), vergeml_filing_audience_of( 'babyspeelgoed' ), vergeml_filing_audience_of( 'kind' ) ) );
+f_check( '41a the English words as before: "Men", "Women\'s shoes", "Kids", "Mankind" (no word), "Germany" (no word)', 'men' === vergeml_filing_audience_of( 'Men' ) && 'women' === vergeml_filing_audience_of( "Women's shoes" ) && 'kids' === vergeml_filing_audience_of( 'Kids' ) && '' === vergeml_filing_audience_of( 'Mankind' ) && '' === vergeml_filing_audience_of( 'Germany' ), sprintf( '%s %s %s "%s" "%s"', vergeml_filing_audience_of( 'Men' ), vergeml_filing_audience_of( "Women's shoes" ), vergeml_filing_audience_of( 'Kids' ), vergeml_filing_audience_of( 'Mankind' ), vergeml_filing_audience_of( 'Germany' ) ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

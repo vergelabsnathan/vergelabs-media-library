@@ -188,13 +188,24 @@ function vergeml_filing_confidence( $attachment_id, $move ) {
 function vergeml_filing_audience_of( $text ) {
     $t = ' ' . mb_strtolower( trim( (string) $text ) ) . ' ';
     $t = str_replace( array( "'", '’' ), '', $t );
-    if ( preg_match( '/ (men|mens|man|male|gents|gentlemen|heren|mannen) /u', $t ) ) {
+    /*
+     *  Dutch says it in a compound (S17, HEMA's tree): dameskleding,
+     *  herenkleding, kinderkleding, meisjeskleding, jongenskleding,
+     *  babyspeelgoed -- the audience is the word's start, so those count as
+     *  a prefix; the English words stay whole words ("mankind" is no one's).
+     *  "kind" alone is Dutch for a child and English for a sort of thing:
+     *  read only on a Dutch site.
+     */
+    if ( preg_match( '/ (men|mens|man|male|gents|gentlemen|heren|mannen) /u', $t ) || preg_match( '/ heren\S/u', $t ) ) {
         return 'men';
     }
-    if ( preg_match( '/ (women|womens|woman|female|ladies|lady|dames|vrouwen) /u', $t ) ) {
+    if ( preg_match( '/ (women|womens|woman|female|ladies|lady|dames|vrouwen) /u', $t ) || preg_match( '/ dames\S/u', $t ) ) {
         return 'women';
     }
-    if ( preg_match( '/ (kids|kid|children|child|baby|babies|boys|girls|toddler|toddlers|kinderen) /u', $t ) ) {
+    if ( preg_match( '/ (kids|kid|children|child|baby|babies|boys|girls|toddler|toddlers|kinderen|kinder|meisjes|jongens|peuters) /u', $t ) || preg_match( '/ (kinder|baby|meisjes|jongens|peuter)\S/u', $t ) ) {
+        return 'kids';
+    }
+    if ( preg_match( '/ kind /u', $t ) && function_exists( 'get_locale' ) && 'nl' === substr( (string) get_locale(), 0, 2 ) ) {
         return 'kids';
     }
     return '';
