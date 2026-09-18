@@ -306,6 +306,36 @@ one-word leaf as the head noun of a class half is no hit unless the leaf is
 also the folder's first class or the half is the leaf whole (judged the
 same way); then the audience words, the profile findings, S10.8.
 
+## 2026-09-18, Nathan: "why are results deteriorating?" and "improve the analysis capacity"
+
+**Why.** Sure on a fresh sheet: 22 (C.1) → 26 (C.4) → 25 (S13) → 19 (S15).
+The drop starts with S10.7: the members layer took the count of sures from
+340 to ~590 and the folders learned the first fill's misses with its hits
+— roughly 34 % sure at 87 % right became 60 % sure at 63 % right. The
+by-path re-reads (the way each rule was judged) improved the marked
+pictures every time while the quality of a fresh sample slid: they cannot
+see what a rule leaves untouched. And S15's cleaning of planner-word sures
+left the sample of sures drawn more from member words, the uncleaned kind.
+
+**The fix to the method (built, \`tools/box-truth-score.php\`).** The shop's
+626 pictures carry their truth already — \`_vergeml_seed_leaf\` is the full
+catalogue path each was fetched for — and no sheet ever used it. One run
+now scores the engine: on the C.5 tree today **sure 452 placed, 72 % right,
+16 % broad, 12 % wrong; likely 13, 31 % right; 100 in no folder; 57 % of
+all 581 mapped pictures in exactly the right folder.** It names the
+losses: backpacks 0 of 11 placed, bookcases 0 of 11, men's sweaters 8
+wrong of 11 (four to *dolls*), men's jackets to *motorbikes › jackets*,
+lenses to *TV & Video*, 45 labels naming no folder of the tree (the seed's
+paths vs the tree's — map by leaf under the same top, later). A rule is
+judged by this line first from now on; a sheet is for a library with no
+truth. Truth comes by construction: every library seeded from Commons
+categories carries its own, so the tech library is the one that needs a
+hand-marked set (~200 pictures, the fill's pick pre-filled, Nathan
+corrects, ~30 min, no credits) — and every later shape is seeded with
+truth attached. Also for S16: the placement's *source* (plan, name,
+members, word, vector) recorded on the trail, so "6 of 7 wrong sures are
+learned words" is a query.
+
 ## For Nathan
 
 1. The S15 sheet is marked (above); nothing more to mark.
@@ -321,7 +351,7 @@ Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S16: the S15 verdict first — member words only where alike to the folder's own (6 of 7 wrong sures are learned misses), a one-word leaf as the head noun of a class half (interior space → Space); then the audience words and the two profile findings, S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the class floor for vector-only class-half matches",
+  "phase": "Every picture a home — S16: the truth score first (tools/box-truth-score.php on the shop is the gate for every rule; the tech truth page for Nathan; the placement's source on the trail), then the S15 verdict — member words only where alike to the folder's own (6 of 7 wrong sures are learned misses), a one-word leaf as the head noun of a class half (interior space → Space); then the audience words and the two profile findings, S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the class floor for vector-only class-half matches",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S16)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
@@ -330,6 +360,8 @@ Card, to `plugin/.harness/active.json`:
     "core/filing.php, core/folder-talk.php (S10.8 task 2 — the fact: a row's product folder from _thumbnail_id, _product_image_gallery and post_parent (vergeml_filing_product_sql, the shape of vergeml_filing_words_sql); the pick answers fits / sure / why 'product' before any matching and treats placed_by 'product' like 'user'; the run records placed_by = product and the reason line 'by the product'; sticky.php rows on the suite's own product, mutation: the product path removed -> the matcher)",
     "tests/integrations/live.php (S10.8 task 3 — 'woo': its own product in a category, a folder of that name, two pictures as featured and gallery -> both by product, sure; a second count -> unchanged; everything put back; on the tech site, never ms2)",
     "js/vergeml-folders.js (S10.8 task 4 — the Fill step's rail: 'placed by product N · by evidence N · to sort N' from the report's tally; the flipped order for structured libraries mocked first, Nathan's yes)",
+    "tools/box-truth-score.php, tools/truth-page.php (the tech truth page: ~200 pictures, the fill's pick pre-filled from the tree's folders, Nathan corrects in one sitting, saved as a JSON the scorer reads with VGML_TRUTH; the shop's 45 unmapped labels mapped by leaf under the same top)",
+    "core/folder-talk.php, core/filing.php (the placement's source on the trail: which phrase, which folder word, plan / name / members / word / vector — the why card and the scorer read it)",
     "core/filing.php (vergeml_filing_members_layer / members_apply: a member word is the folder's only where it is alike to one of the base profile's words — containment or the class vector at the floor; pick.php row on Cooling learning cable reels, mutation: the likeness test removed; judged dry on the S15 and S13 sheets, the tech band re-taken with the reason)",
     "core/filing.php (the pick: a one-word leaf as the head noun of the class half is no hit unless the half is the leaf whole or the leaf is the folder's first class — interior space → Space, skateboard component → Components; pick.php row; judged on the S15 sheet)",
     "core/filing.php (vergeml_filing_audience_of reads the site's language too: dames, heren, kinderen, kind, baby, meisjes, jongens; pick.php row; judged on HEMA round 1 — restore vgml-shop-tree-hema.json first, 0 credits)",
@@ -358,6 +390,7 @@ Card, to `plugin/.harness/active.json`:
   ],
   "gates": [
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background → green (escaping 9/10 known)",
+    "node tools/box-eval.mjs tools/box-truth-score.php --site shop: the SCORE line printed in every check-in; a rule moves only when right-of-placed does not fall (today 69 %, sure 72 %)",
     "tests/integrations/live.php woo on the tech site green, red with the product path removed",
     "folders.spec and modes.spec on the tech site green; on ms2 once Nathan says it is free",
     "the tech and shop-b bands 4/4 or re-taken with the reason; the C.5 band re-read and re-taken when its tree is back"
@@ -373,7 +406,7 @@ docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md. State
 which model you are and follow that profile in
 ~/.claude/harness/model-profiles.md. This session is S16 of
 every-picture-a-home; the card is already in .harness/active.json —
-read it before anything else. the S15 verdict first — the member-word likeness rule, then the one-word leaf as head noun — each judged dry on the S15 and S13 sheets before it moves; then the audience words (HEMA restored from its snapshot, round 1 dry), the two profile findings probed; then S10.8 task by task as the
+read it before anything else. the truth score first (run it, read its wrong pairs and the leaves that lose, probe the top three before any rule); then the S15 verdict — the member-word rule, then the one-word leaf as head noun — each judged by the score line and the S15 and S13 sheets before it moves; then the audience words (HEMA restored from its snapshot, round 1 dry), the two profile findings probed; then S10.8 task by task as the
 card writes them (the map pure and tested before any row is read); the
 rail mocked before built; then the class floor probe. Test first, one mutation per story, both sites measured,
 say every cost before it is spent, never touch ms2 while Nathan is on it.

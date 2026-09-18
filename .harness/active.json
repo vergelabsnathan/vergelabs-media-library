@@ -1,5 +1,5 @@
 {
-  "phase": "Every picture a home — S16: the S15 verdict first — member words only where alike to the folder's own (6 of 7 wrong sures are learned misses), a one-word leaf as the head noun of a class half (interior space → Space); then the audience words and the two profile findings, S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the class floor for vector-only class-half matches",
+  "phase": "Every picture a home — S16: the truth score first (tools/box-truth-score.php on the shop is the gate for every rule; the tech truth page for Nathan; the placement's source on the trail), then the S15 verdict — member words only where alike to the folder's own (6 of 7 wrong sures are learned misses), a one-word leaf as the head noun of a class half (interior space → Space); then the audience words and the two profile findings, S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the class floor for vector-only class-half matches",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S16)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
@@ -8,6 +8,8 @@
     "core/filing.php, core/folder-talk.php (S10.8 task 2 — the fact: a row's product folder from _thumbnail_id, _product_image_gallery and post_parent (vergeml_filing_product_sql, the shape of vergeml_filing_words_sql); the pick answers fits / sure / why 'product' before any matching and treats placed_by 'product' like 'user'; the run records placed_by = product and the reason line 'by the product'; sticky.php rows on the suite's own product, mutation: the product path removed -> the matcher)",
     "tests/integrations/live.php (S10.8 task 3 — 'woo': its own product in a category, a folder of that name, two pictures as featured and gallery -> both by product, sure; a second count -> unchanged; everything put back; on the tech site, never ms2)",
     "js/vergeml-folders.js (S10.8 task 4 — the Fill step's rail: 'placed by product N · by evidence N · to sort N' from the report's tally; the flipped order for structured libraries mocked first, Nathan's yes)",
+    "tools/box-truth-score.php, tools/truth-page.php (the tech truth page: ~200 pictures, the fill's pick pre-filled from the tree's folders, Nathan corrects in one sitting, saved as a JSON the scorer reads with VGML_TRUTH; the shop's 45 unmapped labels mapped by leaf under the same top)",
+    "core/folder-talk.php, core/filing.php (the placement's source on the trail: which phrase, which folder word, plan / name / members / word / vector — the why card and the scorer read it)",
     "core/filing.php (vergeml_filing_members_layer / members_apply: a member word is the folder's only where it is alike to one of the base profile's words — containment or the class vector at the floor; pick.php row on Cooling learning cable reels, mutation: the likeness test removed; judged dry on the S15 and S13 sheets, the tech band re-taken with the reason)",
     "core/filing.php (the pick: a one-word leaf as the head noun of the class half is no hit unless the half is the leaf whole or the leaf is the folder's first class — interior space → Space, skateboard component → Components; pick.php row; judged on the S15 sheet)",
     "core/filing.php (vergeml_filing_audience_of reads the site's language too: dames, heren, kinderen, kind, baby, meisjes, jongens; pick.php row; judged on HEMA round 1 — restore vgml-shop-tree-hema.json first, 0 credits)",
@@ -36,6 +38,7 @@
   ],
   "gates": [
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background → green (escaping 9/10 known)",
+    "node tools/box-eval.mjs tools/box-truth-score.php --site shop: the SCORE line printed in every check-in; a rule moves only when right-of-placed does not fall (today 69 %, sure 72 %)",
     "tests/integrations/live.php woo on the tech site green, red with the product path removed",
     "folders.spec and modes.spec on the tech site green; on ms2 once Nathan says it is free",
     "the tech and shop-b bands 4/4 or re-taken with the reason; the C.5 band re-read and re-taken when its tree is back"
