@@ -77,7 +77,7 @@ foreach ( $keys as $k ) {
     $src  = '';
     $size = image_get_intermediate_size( $id, 'medium' );
     $path = is_array( $size ) && ! empty( $size['path'] ) ? trailingslashit( wp_get_upload_dir()['basedir'] ) . $size['path'] : get_attached_file( $id );
-    if ( $path && is_readable( $path ) && filesize( $path ) < 400000 ) {
+    if ( '0' !== (string) getenv( 'VGML_EMBED' ) && $path && is_readable( $path ) && filesize( $path ) < 400000 ) { // VGML_EMBED=0: the data block without pictures, for tools/truth-model.mjs.
         $type = wp_check_filetype( $path )['type'];
         $src  = 'data:' . ( $type ? $type : 'image/jpeg' ) . ';base64,' . base64_encode( (string) file_get_contents( $path ) );
     }
@@ -87,6 +87,7 @@ foreach ( $keys as $k ) {
         'says'    => implode( '; ', (array) $f['classes'] ),
         'caption' => (string) $r['caption'],
         'pick'    => (int) $pick['term_id'],
+        'truth'   => (string) get_post_meta( $id, '_vergeml_seed_leaf', true ), // A seeded library's own answer (the shop); '' elsewhere.
         'word'    => $pick['term_id'] ? ( 'siblings' === $pick['why'] ? 'likely' : (string) $pick['confidence'] ) : '',
     );
 }
