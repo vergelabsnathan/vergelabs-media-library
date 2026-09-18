@@ -814,5 +814,27 @@ f_check( '38 the path by canon names: "Clothing > Women > Dress" is Clothing ›
 f_check( '38a no path match: the leaf alone, when exactly one folder has it -- "Lighting > Table lamp" is Home › Lighting › Table lamps (96), the copy under the Sale view not counted', 96 === vergeml_filing_product_folder( array( 'Lighting', 'Table lamp' ), $shop_tree ), sprintf( '%d', vergeml_filing_product_folder( array( 'Lighting', 'Table lamp' ), $shop_tree ) ) );
 f_check( '38b two folders share the leaf and neither path matches: 0 -- "Gear > Backpacks" names no folder; and a category nothing has is 0', 0 === vergeml_filing_product_folder( array( 'Gear', 'Backpacks' ), $shop_tree ) && 0 === vergeml_filing_product_folder( array( 'Gift cards' ), $shop_tree ) && 0 === vergeml_filing_product_folder( array(), $shop_tree ), sprintf( '%d %d', vergeml_filing_product_folder( array( 'Gear', 'Backpacks' ), $shop_tree ), vergeml_filing_product_folder( array( 'Gift cards' ), $shop_tree ) ) );
 
+/*
+ *  File by the product (S10.8, task 2): the fact on the row. A picture that
+ *  is a product's featured image or in its gallery carries the product's
+ *  folder (the map above, resolved by the caller from the product's
+ *  categories) as 'product' in its facts, and the pick answers it before
+ *  any matching: fits, sure, why 'product', source 'product', no runner-up.
+ *  A picture the last fill placed by product (placed_by 'product') is
+ *  decided, like a hand placement, and not asked again. Mutations: the
+ *  product answer removed from the pick -> 39 red (Dresses by the matcher,
+ *  a different score); 'product' not read as placed -> 39b red.
+ */
+echo "\n== file by the product: the fact on the row (S10.8)\n";
+
+$p = vergeml_filing_pick( f_facts( 'summer dress; clothing', array( 'product' => 93 ) ), vergeml_filing_settle_claims( $shop_tree ) );
+f_check( '39 a picture whose product is in Dresses: fits Dresses, sure, why product, source product, score 1, no runner-up', 'fits' === $p['outcome'] && 93 === $p['term_id'] && 'sure' === $p['confidence'] && 'product' === $p['why'] && 'product' === $p['source'] && 1.0 === $p['score'] && 0 === $p['runner_up'] && 92 === $p['parent_id'], sprintf( '%s %d %s why %s source %s @%.2f', $p['outcome'], $p['term_id'], $p['confidence'], $p['why'], $p['source'], $p['score'] ) );
+$p = vergeml_filing_pick( f_facts( 'hiking backpack; luggage', array( 'product' => 94 ) ), vergeml_filing_settle_claims( $shop_tree ) );
+f_check( '39a the product decides where the words would tie: a backpack whose product is in Bags & Luggage › Backpacks goes there, not to a Backpacks-or-Backpacks question', 'fits' === $p['outcome'] && 94 === $p['term_id'] && 'product' === $p['why'], sprintf( '%s %d why %s', $p['outcome'], $p['term_id'], $p['why'] ) );
+$p = vergeml_filing_pick( f_facts( 'summer dress; clothing', array( 'placed_by' => 'product' ) ), vergeml_filing_settle_claims( $shop_tree ) );
+f_check( '39b placed by product last time: nothing, placed -- not filed again', 'nothing' === $p['outcome'] && 'placed' === $p['why'], sprintf( '%s why %s', $p['outcome'], $p['why'] ) );
+$f = vergeml_filing_facts( array( 'filing' => '{"object":"summer dress; clothing"}', 'product_folder' => 93 ) );
+f_check( '39c the facts read the product folder off the row (product_folder), 0 without one', 93 === $f['product'] && 0 === vergeml_filing_facts( array( 'filing' => '{}' ) )['product'], sprintf( '%d', $f['product'] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

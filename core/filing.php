@@ -1495,6 +1495,84 @@ function vergeml_filing_words_sql( $i = 'i' ) {
 }
 
 /**
+ *  The SELECT and JOIN fragments a reader adds so a row carries the product
+ *  the picture belongs to (S10.8): the product it is the featured image of
+ *  (_thumbnail_id), the one whose gallery lists it (_product_image_gallery),
+ *  or the one it was uploaded to (post_parent) -- the first that is a
+ *  product, as product_id, else NULL. Each is one correlated lookup that
+ *  narrows on the meta key first, so a picture in no shop costs three index
+ *  reads. Without WooCommerce's product type there is nothing to join: the
+ *  column is NULL and the join empty.
+ */
+function vergeml_filing_product_sql( $i = 'i' ) {
+    global $wpdb;
+    if ( ! function_exists( 'post_type_exists' ) || ! post_type_exists( 'product' ) ) {
+        return array( 'select' => 'NULL AS product_id', 'join' => '' );
+    }
+    return array(
+        'select' => "COALESCE(
+            ( SELECT vp1.ID FROM {$wpdb->postmeta} vm1 JOIN {$wpdb->posts} vp1 ON vp1.ID = vm1.post_id AND vp1.post_type = 'product'
+               WHERE vm1.meta_key = '_thumbnail_id' AND vm1.meta_value = CAST({$i}.attachment_id AS CHAR) LIMIT 1 ),
+            ( SELECT vp2.ID FROM {$wpdb->postmeta} vm2 JOIN {$wpdb->posts} vp2 ON vp2.ID = vm2.post_id AND vp2.post_type = 'product'
+               WHERE vm2.meta_key = '_product_image_gallery' AND FIND_IN_SET({$i}.attachment_id, vm2.meta_value) LIMIT 1 ),
+            ( SELECT vp3.ID FROM {$wpdb->posts} va3 JOIN {$wpdb->posts} vp3 ON vp3.ID = va3.post_parent AND vp3.post_type = 'product'
+               WHERE va3.ID = {$i}.attachment_id LIMIT 1 )
+          ) AS product_id",
+        'join'   => '',
+    );
+}
+
+/**
+ *  The product's folder on each row (S10.8): product_id -> the folder its
+ *  categories name, through vergeml_filing_product_folder, as
+ *  'product_folder'. One terms query for the slice's products; a product
+ *  in several categories takes the deepest path that names a folder. Rows
+ *  with no product, or whose product's categories name no folder, are left
+ *  as they are (the matcher's).
+ */
+function vergeml_filing_product_folders( $rows, $profiles ) {
+    $products = array();
+    foreach ( (array) $rows as $k => $r ) {
+        if ( ! empty( $r['product_id'] ) ) {
+            $products[ (int) $r['product_id'] ][] = $k;
+        }
+    }
+    if ( ! $products || ! function_exists( 'taxonomy_exists' ) || ! taxonomy_exists( 'product_cat' ) ) {
+        return $rows;
+    }
+    $terms = wp_get_object_terms( array_keys( $products ), 'product_cat', array( 'fields' => 'all_with_object_id' ) );
+    if ( is_wp_error( $terms ) ) {
+        return $rows;
+    }
+    $paths = array();
+    foreach ( (array) $terms as $t ) {
+        $path = array();
+        foreach ( array_reverse( get_ancestors( (int) $t->term_id, 'product_cat', 'taxonomy' ) ) as $anc ) {
+            $a      = get_term( (int) $anc, 'product_cat' );
+            $path[] = $a instanceof WP_Term ? vergeml_term_name( $a ) : '';
+        }
+        $path[] = vergeml_term_name( $t );
+        $paths[ (int) $t->object_id ][] = $path;
+    }
+    foreach ( $products as $pid => $keys ) {
+        if ( empty( $paths[ $pid ] ) ) {
+            continue;
+        }
+        usort( $paths[ $pid ], function ( $a, $b ) { return count( $b ) <=> count( $a ); } );
+        foreach ( $paths[ $pid ] as $path ) {
+            $tid = vergeml_filing_product_folder( $path, $profiles );
+            if ( $tid ) {
+                foreach ( $keys as $k ) {
+                    $rows[ $k ]['product_folder'] = $tid;
+                }
+                break;
+            }
+        }
+    }
+    return $rows;
+}
+
+/**
  *  The picture's side of the match, as the caller reads it off the index row.
  *
  *  @param array $row An index row: 'filing' (json), 'kind', 'embedding'; 'placed_by' and
@@ -1514,6 +1592,7 @@ function vergeml_filing_facts( $row ) {
         'placed_by' => isset( $row['placed_by'] ) ? (string) $row['placed_by'] : '',
         'in_locked' => ! empty( $row['in_locked'] ),
         'words'     => isset( $row['words'] ) && is_array( $row['words'] ) ? $row['words'] : vergeml_filing_words_of( isset( $row['file'] ) ? $row['file'] : '', isset( $row['title'] ) ? $row['title'] : '', isset( $row['alt'] ) ? $row['alt'] : '' ),
+        'product'   => isset( $row['product_folder'] ) ? (int) $row['product_folder'] : 0, // The folder its product's categories name (S10.8), resolved by the caller.
     );
 }
 
@@ -1554,12 +1633,33 @@ function vergeml_filing_facts( $row ) {
  */
 function vergeml_filing_pick( $facts, $profiles ) {
 
-    // Placed by the person, or by their answer to a question (2026-09-17): decided, and not asked again.
-    if ( isset( $facts['placed_by'] ) && in_array( (string) $facts['placed_by'], array( 'user', 'answer' ), true ) ) {
+    // Placed by the person, by their answer to a question (2026-09-17), or by the product it belongs to (S10.8): decided, and not asked again.
+    if ( isset( $facts['placed_by'] ) && in_array( (string) $facts['placed_by'], array( 'user', 'answer', 'product' ), true ) ) {
         return vergeml_filing_outcome( 'nothing', 'placed', array( 'scores' => array(), 'gated' => array() ) );
     }
     if ( ! empty( $facts['in_locked'] ) ) {
         return vergeml_filing_outcome( 'nothing', 'locked', array( 'scores' => array(), 'gated' => array() ) );
+    }
+    /*
+     *  File by the product (S10.8): a picture that is a product's featured
+     *  image or in its gallery goes where the product's categories say --
+     *  the folder the caller resolved through vergeml_filing_product_folder
+     *  -- sure, before any matching. A fact, not a guess: no model, no
+     *  score, no runner-up, and a locked or gated folder does not come into
+     *  it, because the product owns the picture whatever the folder is for.
+     */
+    if ( ! empty( $facts['product'] ) && isset( $profiles[ (int) $facts['product'] ] ) ) {
+        $tid = (int) $facts['product'];
+        return vergeml_filing_outcome( 'fits', 'product', array(
+            'term_id'    => $tid,
+            'parent_id'  => vergeml_filing_parent_of( $tid, $profiles ),
+            'score'      => 1.0,
+            'confidence' => 'sure',
+            'source'     => 'product',
+            'hit'        => 'product',
+            'scores'     => array( $tid => 1.0 ),
+            'gated'      => array(),
+        ) );
     }
 
     $scores   = array();
@@ -1963,6 +2063,7 @@ function vergeml_filing_tally_fresh() {
         'either'   => 0, // Of 'nothing': too close to call between two folders that are not siblings; asked as either/or, not residue.
         'sure'     => 0,
         'likely'   => 0,
+        'product'  => 0, // Of 'fits': by the product the picture belongs to (S10.8), before any matching.
         'why'      => array( 'floor' => 0, 'margin' => 0, 'gated' => 0 ),
         'by_term'  => array(),
     );
@@ -1978,6 +2079,9 @@ function vergeml_filing_tally( &$counts, $pick ) {
     $counts[ $pick['outcome'] ]++;
     if ( '' !== $pick['confidence'] ) {
         $counts[ $pick['confidence'] ]++;
+    }
+    if ( 'product' === $pick['why'] ) {
+        $counts['product'] = ( isset( $counts['product'] ) ? (int) $counts['product'] : 0 ) + 1;
     }
     if ( $pick['term_id'] ) {
         $counts['by_term'][ (int) $pick['term_id'] ] = isset( $counts['by_term'][ (int) $pick['term_id'] ] ) ? $counts['by_term'][ (int) $pick['term_id'] ] + 1 : 1;
@@ -2001,7 +2105,7 @@ function vergeml_filing_kept( $pick ) {
 
 /** Two tallies into one: the run adds each slice's to the state's. */
 function vergeml_filing_tally_add( $a, $b ) {
-    foreach ( array( 'looked', 'fits', 'siblings', 'nothing', 'kept', 'either', 'sure', 'likely' ) as $k ) {
+    foreach ( array( 'looked', 'fits', 'siblings', 'nothing', 'kept', 'either', 'sure', 'likely', 'product' ) as $k ) {
         $a[ $k ] = (int) ( isset( $a[ $k ] ) ? $a[ $k ] : 0 ) + (int) ( isset( $b[ $k ] ) ? $b[ $k ] : 0 );
     }
     foreach ( array( 'why', 'by_term' ) as $map ) {

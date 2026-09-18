@@ -3112,6 +3112,11 @@ function vergeml_librarian_why( $attachment_id ) {
 
         $out['lines'][] = __( 'Chosen in a draft you approved · nothing scored it', 'vergelabs-media-library' );
 
+    } elseif ( 'product' === $why ) {
+
+        /* translators: 1: a folder name */
+        $out['lines'][] = sprintf( __( 'In %1$s · by the product it belongs to', 'vergelabs-media-library' ), $term );
+
     } elseif ( $out['term_id'] ) {
 
         /* translators: 1: a folder name, 2: a score, for example 0.81 */

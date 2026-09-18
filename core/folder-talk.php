@@ -1047,9 +1047,10 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 	 *  option megabytes long a few hundred times over a large library, which
 	 *  costs more than the re-filing it is recording.
 	 */
-	$undo = array();
-	$pass = 0;
-	$beat = microtime( true );
+	$undo       = array();
+	$by_product = array(); // Marked placed by product this pass (S10.8): undo clears the mark with the move.
+	$pass       = 0;
+	$beat       = microtime( true );
 
 	/*
 	 *  What this pass did and why, for the librarian's own record.
@@ -1087,10 +1088,11 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 		$only = ! empty( $state['round_ids'] )
 			? ' AND i.attachment_id IN (' . implode( ',', array_map( 'intval', (array) $state['round_ids'] ) ) . ')'
 			: '';
-		$words = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
+		$words   = vergeml_filing_words_sql( 'i' );   // The picture's file, title and alt (S10.9).
+		$product = vergeml_filing_product_sql( 'i' ); // The product it belongs to, when the site sells (S10.8).
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; the ids are cast to int.
 		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']},
+			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']}, {$product['select']},
 			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr
 			            JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
 			            JOIN {$wpdb->termmeta} tm ON tm.term_id = tt.term_id AND tm.meta_key = %s AND tm.meta_value = '1'
@@ -1098,6 +1100,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			   FROM {$wpdb->vergeml_ai_index} i
 			   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
 			   {$words['join']}
+			   {$product['join']}
 			  WHERE i.error = '' AND i.embedding IS NOT NULL AND i.attachment_id > %d{$only}
 		   ORDER BY i.attachment_id ASC
 			  LIMIT %d",
@@ -1120,6 +1123,8 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 		if ( empty( $state['assign'] ) && ! isset( $profiles ) ) {
 			$profiles = vergeml_filing_profiles( array_values( (array) $state['ids'] ), $taxonomy );
 		}
+		// File by the product (S10.8): the product's folder on the row, a fact the pick answers before any matching.
+		$rows  = empty( $state['assign'] ) ? vergeml_filing_product_folders( (array) $rows, $profiles ) : $rows;
 		$picks = empty( $state['assign'] ) ? vergeml_filing_count( $profiles, (array) $rows ) : null;
 
 		foreach ( (array) $rows as $row ) {
@@ -1295,6 +1300,12 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 
 			wp_set_object_terms( $attachment, array( (int) $pick['term_id'] ), $taxonomy, false );
 
+			// By the product (S10.8): decided, like a hand placement -- no later round or fill files it again; undo clears the mark with the move.
+			if ( 'product' === $pick['why'] ) {
+				update_post_meta( $attachment, VERGEML_FILING_PLACED_BY, 'product' );
+				$by_product[] = $attachment;
+			}
+
 			$state['counts'][ $best ] = isset( $state['counts'][ $best ] )
 				? (int) $state['counts'][ $best ] + 1
 				: 1;
@@ -1390,6 +1401,9 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			 *  has to put it back to.
 			 */
 			$before['files'] = ( isset( $before['files'] ) ? (array) $before['files'] : array() ) + $undo;
+			if ( $by_product ) {
+				$before['placed'] = array_values( array_unique( array_merge( isset( $before['placed'] ) ? (array) $before['placed'] : array(), $by_product ) ) );
+			}
 			update_option( VERGEML_TALK_UNDO, $before, false );
 		}
 	}

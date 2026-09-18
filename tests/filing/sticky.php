@@ -623,6 +623,91 @@ if ( 6 === $sk_reach ) {
     $sk_report = vergeml_talk_report( $sk_done );
     sk_check( 'H4 the report carries the rounds', isset( $sk_report['rounds'] ) && array( 1 => 1, 2 => 2 ) === array_map( 'intval', (array) $sk_report['rounds'] ), json_encode( isset( $sk_report['rounds'] ) ? $sk_report['rounds'] : null ) );
 
+    /* ------------------------------------------------------ I  file by the product */
+
+    /*
+     *  S10.8. A picture that is a product's featured image or in its gallery
+     *  goes where the product's categories say -- sure, before any matching,
+     *  no model, no credits -- and is then the product's, not the fill's to
+     *  move again. The suite's own product sits in a product category named
+     *  like a folder of the tree; its featured picture and a gallery picture
+     *  say a word no folder has, and a third picture saying the same word is
+     *  nobody's product. Only where WooCommerce's product type exists (the
+     *  box's tech site). Mutation: the product path removed from the run
+     *  (vergeml_filing_product_folders made to return its rows unchanged)
+     *  -> I1 red (the two fall to the matcher and land nowhere).
+     */
+    echo "\nI  file by the product (S10.8)\n\n";
+
+    if ( ! post_type_exists( 'product' ) || ! taxonomy_exists( 'product_cat' ) ) {
+        echo "  skip  no product type on this site: WooCommerce is not active\n";
+    } else {
+        $sk_d = wp_insert_term( 'zzStickyDresses', $sk_tax );
+        $sk_terms['zzStickyDresses'] = is_wp_error( $sk_d ) ? (int) get_term_by( 'name', 'zzStickyDresses', $sk_tax )->term_id : (int) $sk_d['term_id'];
+        $sk_pc = wp_insert_term( 'zzStickyDresses', 'product_cat' );
+        $sk_pc = is_wp_error( $sk_pc ) ? (int) get_term_by( 'name', 'zzStickyDresses', 'product_cat' )->term_id : (int) $sk_pc['term_id'];
+        $sk_product = wp_insert_post( array( 'post_title' => 'zz sticky product', 'post_type' => 'product', 'post_status' => 'publish' ) );
+        $GLOBALS['sk_posts'][] = (int) $sk_product;
+        wp_set_object_terms( (int) $sk_product, array( $sk_pc ), 'product_cat', false );
+
+        $sk_files['feat']  = sk_file( 'feat', 'zzstickyfrock; zzthing' );
+        $sk_files['gal']   = sk_file( 'gal', 'zzstickyfrock; zzthing' );
+        $sk_files['stray'] = sk_file( 'stray', 'zzstickyfrock; zzthing' );
+        $sk_in             = implode( ',', array_map( 'intval', array_values( $sk_files ) ) );
+        update_post_meta( (int) $sk_product, '_thumbnail_id', (string) $sk_files['feat'] );
+        update_post_meta( (int) $sk_product, '_product_image_gallery', $sk_files['gal'] . ',999999999' );
+        foreach ( array( 'feat', 'gal', 'stray' ) as $sk_k ) {
+            wp_set_object_terms( $sk_files[ $sk_k ], array(), $sk_tax, false );
+        }
+
+        $sk_product_state = array(
+            'active'   => true,
+            'taxonomy' => $sk_tax,
+            'ids'      => array( 'd' => $sk_terms['zzStickyDresses'], 'b' => $sk_terms['zzStickyB'] ),
+            'vectors'  => array(),
+            'assign'   => array(),
+            'fallback' => array(),
+            'reasons'  => array(),
+            'after'    => $sk_files['feat'] - 1,
+            'moved'    => 0,
+            'skipped'  => 0,
+            'seen'     => 0,
+            'total'    => 3,
+            'counts'   => array(),
+            'by_term'  => array(),
+            'unfiled'  => array(),
+            'tags'     => array(),
+            'tagged'   => 0,
+            'until'    => time() + DAY_IN_SECONDS,
+            'remove'   => array(),
+            'started'  => time(),
+            'ticked'   => time(),
+        );
+        wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+        update_option( VERGEML_TALK_STATE, $sk_product_state, false );
+        update_option( VERGEML_TALK_UNDO, array( 'terms' => array( array( 'term_id' => $sk_terms['zzStickyDresses'], 'name' => 'zzStickyDresses', 'parent' => '' ) ), 'files' => array(), 'placed' => array(), 'batches' => array(), 'until' => time() + DAY_IN_SECONDS ), false );
+        $sk_done  = vergeml_talk_refile_run( microtime( true ) + 30.0 );
+        $sk_tally = isset( $sk_done['tally'] ) ? $sk_done['tally'] : array();
+        sk_check( 'I1 the featured and the gallery picture land in Dresses by the product, sure; the stray one, saying the same word, lands nowhere', array( $sk_terms['zzStickyDresses'] ) === $sk_where( $sk_files['feat'] ) && array( $sk_terms['zzStickyDresses'] ) === $sk_where( $sk_files['gal'] ) && array() === $sk_where( $sk_files['stray'] ) && 2 === (int) $sk_done['moved'], json_encode( array( 'feat' => $sk_where( $sk_files['feat'] ), 'gal' => $sk_where( $sk_files['gal'] ), 'stray' => $sk_where( $sk_files['stray'] ), 'moved' => $sk_done['moved'] ) ) );
+        sk_check( 'I2 both are marked placed by product, and the tally counts them: product 2, fits 2, nothing 1', 'product' === get_post_meta( $sk_files['feat'], VERGEML_FILING_PLACED_BY, true ) && 'product' === get_post_meta( $sk_files['gal'], VERGEML_FILING_PLACED_BY, true ) && '' === (string) get_post_meta( $sk_files['stray'], VERGEML_FILING_PLACED_BY, true ) && 2 === (int) $sk_tally['product'] && 2 === (int) $sk_tally['fits'] && 1 === (int) $sk_tally['nothing'], json_encode( array( 'feat_by' => get_post_meta( $sk_files['feat'], VERGEML_FILING_PLACED_BY, true ), 'tally' => array_intersect_key( $sk_tally, array_flip( array( 'looked', 'fits', 'nothing', 'product' ) ) ) ) ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $sk_prow = $wpdb->get_row( $wpdb->prepare( "SELECT why, score, source, hit FROM {$sk_moves} WHERE attachment_id = %d AND term_id = %d ORDER BY move_id DESC LIMIT 1", $sk_files['feat'], $sk_terms['zzStickyDresses'] ), ARRAY_A );
+        sk_check( 'I3 the trail row says why product, score 1, source product', is_array( $sk_prow ) && 'product' === $sk_prow['why'] && abs( (float) $sk_prow['score'] - 1.0 ) < 1e-6 && 'product' === $sk_prow['source'], json_encode( $sk_prow ) );
+
+        // A second count: the two are the product's now, looked at and kept, not moved or asked about.
+        wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+        update_option( VERGEML_TALK_STATE, array_merge( $sk_product_state, array( 'after' => $sk_files['feat'] - 1 ) ), false );
+        $sk_again = vergeml_talk_refile_run( microtime( true ) + 30.0 );
+        $sk_tally = isset( $sk_again['tally'] ) ? $sk_again['tally'] : array();
+        sk_check( 'I4 a second fill keeps them: moved 0, kept 2, still in Dresses', 0 === (int) $sk_again['moved'] && 2 === (int) $sk_tally['kept'] && array( $sk_terms['zzStickyDresses'] ) === $sk_where( $sk_files['feat'] ), json_encode( array( 'moved' => $sk_again['moved'], 'kept' => $sk_tally['kept'], 'feat' => $sk_where( $sk_files['feat'] ) ) ) );
+
+        // Undo puts the pictures back and clears the product's mark with them.
+        $sk_undone = vergeml_talk_undo();
+        sk_check( 'I5 undo takes both out of Dresses and clears the mark', ! is_wp_error( $sk_undone ) && array() === $sk_where( $sk_files['feat'] ) && '' === (string) get_post_meta( $sk_files['feat'], VERGEML_FILING_PLACED_BY, true ), json_encode( array( 'undo' => is_wp_error( $sk_undone ) ? $sk_undone->get_error_message() : 'ok', 'feat' => $sk_where( $sk_files['feat'] ), 'by' => get_post_meta( $sk_files['feat'], VERGEML_FILING_PLACED_BY, true ) ) ) );
+
+        wp_delete_term( $sk_pc, 'product_cat' );
+    }
+
     wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
     if ( false !== $sk_hook_was ) {
         wp_schedule_single_event( (int) $sk_hook_was, VERGEML_TALK_HOOK );
