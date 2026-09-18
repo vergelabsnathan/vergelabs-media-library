@@ -70,21 +70,21 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/folders-undo` | POST | $may | manage_categories | no | — | post/term write, delete, term assign, meta/option write, db query | no | core/folder-talk.php:2729 |
 | `/vergeml/v1/folders/version` | GET | vergeml_can_read_tree | upload_files | no | — | — | no | core/folders-version.php:102 |
 | `/vergeml/v1/gallery-folders` | GET | vergeml_can_read_tree | upload_files | no | `taxonomy`, $request | — | no | core/gallery-block.php:351 |
-| `/vergeml/v1/guide/answer` | POST | $may | manage_categories | no | `id*`, `answer*`, $request | post/term write, term assign, meta/option write, db write, db query | yes | core/guide.php:891 |
-| `/vergeml/v1/guide/apply` | POST | $may | manage_categories | no | — | outbound http, schedules cron, meta/option write, db query, post/term write, delete | no | core/guide.php:847 |
-| `/vergeml/v1/guide/confirm` | POST | $may | manage_categories | no | — | db query, outbound http, meta/option write, schedules cron | no | core/guide.php:868 |
-| `/vergeml/v1/guide/profiles-restore` | POST | $may | manage_categories | no | — | meta/option write | no | core/guide.php:879 |
-| `/vergeml/v1/guide/progress` | GET | $may | manage_categories | no | — | meta/option write, schedules cron, db query, outbound http | no | core/guide.php:852 |
-| `/vergeml/v1/guide/questions` | GET | $may | manage_categories | no | — | db query | no | core/guide.php:885 |
-| `/vergeml/v1/guide/rule` | POST | $may | manage_categories | no | `rule*`, `options`, $request | db query | no | core/guide.php:838 |
-| `/vergeml/v1/guide/rules` | GET | $may | manage_categories | no | — | db query | no | core/guide.php:833 |
-| `/vergeml/v1/guide/session` | GET | $may | manage_categories | no | $request | meta/option write, db query | no | core/guide.php:804 |
-| `/vergeml/v1/guide/session` | POST | $may | manage_categories | no | `draft`, `reset`, $request | meta/option write, db query | no | core/guide.php:804 |
-| `/vergeml/v1/guide/stop` | POST | $may | manage_categories | no | — | outbound http, schedules cron, meta/option write | no | core/guide.php:857 |
-| `/vergeml/v1/guide/token` | POST | $may | manage_categories | no | — | db query, meta/option write, outbound http | no | core/guide.php:816 |
-| `/vergeml/v1/guide/turn` | POST | $may | manage_categories | no | `said`, `say`, `draft`, `turns`, $request | meta/option write, db query, schedules cron, outbound http | yes | core/guide.php:821 |
-| `/vergeml/v1/guide/unconfirm` | POST | $may | manage_categories | no | — | outbound http, schedules cron, db query, term assign, meta/option write | no | core/guide.php:873 |
-| `/vergeml/v1/guide/undo` | POST | $may | manage_categories | no | — | post/term write, delete, term assign, meta/option write, db query | no | core/guide.php:862 |
+| `/vergeml/v1/guide/answer` | POST | $may | manage_categories | no | `id*`, `answer*`, $request | post/term write, term assign, meta/option write, db write, db query | yes | core/guide.php:911 |
+| `/vergeml/v1/guide/apply` | POST | $may | manage_categories | no | — | outbound http, schedules cron, meta/option write, db query, post/term write, delete | no | core/guide.php:867 |
+| `/vergeml/v1/guide/confirm` | POST | $may | manage_categories | no | — | db query, outbound http, meta/option write, schedules cron | no | core/guide.php:888 |
+| `/vergeml/v1/guide/profiles-restore` | POST | $may | manage_categories | no | — | meta/option write | no | core/guide.php:899 |
+| `/vergeml/v1/guide/progress` | GET | $may | manage_categories | no | — | meta/option write, schedules cron, db query, outbound http | no | core/guide.php:872 |
+| `/vergeml/v1/guide/questions` | GET | $may | manage_categories | no | — | db query | no | core/guide.php:905 |
+| `/vergeml/v1/guide/rule` | POST | $may | manage_categories | no | `rule*`, `options`, $request | db query | no | core/guide.php:858 |
+| `/vergeml/v1/guide/rules` | GET | $may | manage_categories | no | — | db query | no | core/guide.php:853 |
+| `/vergeml/v1/guide/session` | GET | $may | manage_categories | no | $request | meta/option write, db query | no | core/guide.php:824 |
+| `/vergeml/v1/guide/session` | POST | $may | manage_categories | no | `draft`, `reset`, $request | meta/option write, db query | no | core/guide.php:824 |
+| `/vergeml/v1/guide/stop` | POST | $may | manage_categories | no | — | outbound http, schedules cron, meta/option write | no | core/guide.php:877 |
+| `/vergeml/v1/guide/token` | POST | $may | manage_categories | no | — | db query, meta/option write, outbound http | no | core/guide.php:836 |
+| `/vergeml/v1/guide/turn` | POST | $may | manage_categories | no | `said`, `say`, `draft`, `turns`, $request | meta/option write, db query, schedules cron, outbound http | yes | core/guide.php:841 |
+| `/vergeml/v1/guide/unconfirm` | POST | $may | manage_categories | no | — | outbound http, schedules cron, db query, term assign, meta/option write | no | core/guide.php:893 |
+| `/vergeml/v1/guide/undo` | POST | $may | manage_categories | no | — | post/term write, delete, term assign, meta/option write, db query | no | core/guide.php:882 |
 | `/vergeml/v1/health-delete` | POST | closure | manage_options, delete_posts | no | `keep*`, `drop*`, $request | delete, db query, db write, meta/option write | no | core/health-delete.php:470 |
 | `/vergeml/v1/health-keep` | POST | $can | manage_options | no | `keep*`, `drop*`, $request | db write, db query, meta/option write | no | core/health-keep.php:824 |
 | `/vergeml/v1/health-keep-undo` | POST | $can | manage_options | no | `token*`, $request | db write, db query, meta/option write | no | core/health-keep.php:834 |
@@ -133,8 +133,8 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/autofile-act` | POST | unscoped capability on an id from the request | core/auto-file.php:646 |
 | `/vergeml/v1/brief/turn` | POST | unscoped capability on an id from the request | core/brief.php:649 |
 | `/vergeml/v1/folders-apply` | POST | unscoped capability on an id from the request | core/folder-talk.php:2719 |
-| `/vergeml/v1/guide/turn` | POST | unscoped capability on an id from the request | core/guide.php:821 |
-| `/vergeml/v1/guide/answer` | POST | unscoped capability on an id from the request | core/guide.php:891 |
+| `/vergeml/v1/guide/turn` | POST | unscoped capability on an id from the request | core/guide.php:841 |
+| `/vergeml/v1/guide/answer` | POST | unscoped capability on an id from the request | core/guide.php:911 |
 | `/vergeml/v1/health-retire` | POST | unscoped capability on an id from the request | core/health-keep.php:843 |
 | `/vergeml/v1/import` | POST | unscoped capability on an id from the request | core/import-ui.php:37 |
 | `/vergeml/v1/librarian-apply-step` | POST | unscoped capability on an id from the request | core/librarian.php:2554 |
@@ -188,7 +188,7 @@ anything it spends has to be decided before it is booked.
 |---|---|---|---|---|
 | `vergeml_ai_run_tick` | core/ai-background.php:428 | vergeml_ai_run_tick (core/ai-background.php:288) | schedules cron, db query, meta/option write, db write, outbound http | — |
 | `vergeml_talk_refile_event` | core/folder-talk.php:1733 | vergeml_talk_refile_event (core/folder-talk.php:1722) | schedules cron, db query, term assign, meta/option write, outbound http, delete, db write | — |
-| `vergeml_guide_fit_event` | core/guide.php:1508 | vergeml_guide_fit_event (core/guide.php:1523) | db query, outbound http, meta/option write | — |
+| `vergeml_guide_fit_event` | core/guide.php:1528 | vergeml_guide_fit_event (core/guide.php:1543) | db query, outbound http, meta/option write | — |
 | `vergeml_meaning_convert` | core/search-meaning.php:538 | vergeml_meaning_convert_tick (core/search-meaning.php:545) | db query, db write, schedules cron | — |
 | `vergeml_provision_site` | vergelabs-media-library.php:455 | vergeml_provision_site (vergelabs-media-library.php:260) | meta/option write | — |
 
@@ -207,7 +207,7 @@ whole of what WordPress checks before the callback runs. A screen that then read
 | `media-health` | add_submenu_page | manage_categories | vergeml_health_page (core/health.php:1411) | — | — | — | core/health.php:1247 |
 | `media-help` | add_submenu_page | manage_options | vergeml_help_page (core/get-help.php:250) | $_GET | outbound http | — | core/get-help.php:34 |
 | `media-import-folders` | add_submenu_page | manage_categories | vergeml_import_screen (core/import-ui.php:309) | — | — | — | core/import-ui.php:22 |
-| `media-librarian` | add_submenu_page | manage_categories | vergeml_folders_page (core/guide.php:338) | — | — | — | core/guide.php:59 |
+| `media-librarian` | add_submenu_page | manage_categories | vergeml_folders_page (core/guide.php:358) | — | — | — | core/guide.php:59 |
 | `media-library` | add_submenu_page | manage_options | vergeml_print_media_library_options (core/options-pages.php:2131) | — | — | — | core/options-pages.php:133 |
 | `media-licence` | add_submenu_page | manage_options | vergeml_licence_page (core/licence-page.php:85) | $_GET | meta/option write, outbound http | — | core/licence-page.php:20 |
 | `media-taxonomies` | add_submenu_page | manage_options | vergeml_print_taxonomies_options (core/options-pages.php:2647) | — | — | — | core/options-pages.php:142 |
@@ -280,7 +280,7 @@ capability gate belongs to whatever screen they fire on, not to them.
 | `ajax_query_attachments_args` | filter | vergeml_quarantine_hide_grid | $_POST | — | — | — | core/quarantine.php:229 |
 | `ajax_query_attachments_args` | filter | vergeml_smart_grid_query | $_POST | — | — | — | core/smart-folders.php:1158 |
 | `ajax_query_attachments_args` | filter | vergeml_ajax_query_attachments_args | $_REQUEST | — | — | — | core/taxonomies.php:333 |
-| `attachment_fields_to_edit` | filter | vergeml_why_here_field | $_REQUEST | db query | — | — | core/librarian.php:3240 |
+| `attachment_fields_to_edit` | filter | vergeml_why_here_field | $_REQUEST | db query | — | — | core/librarian.php:3254 |
 | `handle_bulk_actions-upload` | filter | vergeml_handle_bulk_terms | $_REQUEST | term assign | edit_post($post_id) | — | core/bulk-terms.php:142 |
 | `init` | action | vergeml_builder_register | $_GET | — | — | — | core/page-builders.php:178 |
 | `network_admin_menu` | action | vergeml_update_network_licence | $_POST | — | manage_network_options | wp_verify_nonce | core/options-pages.php:1374 |
