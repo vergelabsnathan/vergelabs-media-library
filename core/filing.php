@@ -1319,6 +1319,13 @@ function vergeml_filing_class_match_( $a, $b, $head ) {
     return $cos >= VERGEML_FILING_CLASS_COSINE_FLOOR ? $cos : 0.0;
 }
 
+/** Whether one-word phrase $a is the head noun (last word) of the longer phrase $b, both spelled the one way: "space" of "interior space". */
+function vergeml_filing_head_of( $a, $b ) {
+    $ca = vergeml_filing_canon( $a );
+    $wb = explode( ' ', vergeml_filing_canon( $b ) );
+    return '' !== $ca && false === mb_strpos( $ca, ' ' ) && count( $wb ) > 1 && end( $wb ) === $ca;
+}
+
 /** Whether phrase $a sits whole inside phrase $b, both spelled the one way, and is not $b: "electronics" inside "consumer electronics". */
 function vergeml_filing_inside( $a, $b ) {
     $ca = vergeml_filing_canon( $a );
@@ -1581,6 +1588,20 @@ function vergeml_filing_pick( $facts, $profiles ) {
                  *  own leaf ("appliance" under Kitchen appliances).
                  */
                 if ( 1 === $pi && 0 !== $rank && ! $is_leaf && vergeml_filing_inside( $pc, $fc ) ) {
+                    $match = 0.0;
+                }
+                /*
+                 *  And the other way round, for a one-word class as the
+                 *  half's head noun (S16, Nathan's S15 verdict): "hallway;
+                 *  interior space" went to Space, "garage; commercial space"
+                 *  to Space three times, "griptape; skateboard component" to
+                 *  Components -- five of the sheet's thirteen wrong likelies.
+                 *  The modifier direction ("launch" of "launch event") is
+                 *  what the picture is and stands; a polysemous one-word
+                 *  class as the head noun is not. A folder's first class
+                 *  keeps it: a name-only folder has nothing else.
+                 */
+                if ( 1 === $pi && 0 !== $rank && $match > 0.0 && $match < 1.0 && vergeml_filing_head_of( $fc, $pc ) ) {
                     $match = 0.0;
                 }
                 $weight  = ( 0 === $rank || ( $is_leaf && $match >= 1.0 ) ) ? 1.0 : 0.85;

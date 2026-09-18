@@ -702,5 +702,37 @@ $settled_alike = vergeml_filing_members_settle( $alike );
 f_check( '34b Components keeps smart loudspeaker (0.66 to electronic part, over the floor) with Hardware\'s eight out before the settle: the word is Components\' alone, not ceded to the folder that cannot keep it', array( 'smart loudspeaker' ) === $alike[44]['classes'] && ! isset( $alike[42]['words']['smart loudspeaker'] ) && array( 'smart loudspeaker' ) === $settled_alike[44]['classes'] && array() === $settled_alike[44]['ceded'], json_encode( array( $alike[44]['classes'], isset( $settled_alike[44] ) ? $settled_alike[44] : null ) ) );
 $GLOBALS['f_vec'] = array();
 
+/*
+ *  A one-word folder class as the head noun of the class half (S16, Nathan's
+ *  S15 verdict): "hallway; interior space" went to Space, "garage;
+ *  commercial space" to Space three times, "griptape; skateboard component"
+ *  to Components -- 5 of the sheet's 13 wrong likelies. The folder's word
+ *  sitting inside the half was kept on purpose in S15's second story for
+ *  the modifier ("launch" of "launch event" is what the picture is); as the
+ *  head noun of a polysemous one-word class it misfires. So a one-word
+ *  class that is the head noun of the picture's class half is no hit,
+ *  unless it is the folder's first class (a name-only folder has nothing
+ *  else) or the half is the word whole. Mutation: the head-noun test
+ *  removed from the pick -> rows 35 and 35a red.
+ */
+echo "\n== a one-word class as the head noun of the class half (S16)\n";
+
+$poly = vergeml_filing_settle_claims( array(
+    65 => f_profile( 65, 0, array( 'Space' ), array( 'spacecraft', 'infrastructure', 'space' ), array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ),
+    66 => f_profile( 66, 0, array( 'Hardware', 'Components' ), array( 'electronics component', 'semiconductor component', 'components' ), array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) ),
+    67 => f_profile( 67, 0, array( 'Venues' ), array( 'venues' ), array( 'source' => 'name', 'vector' => array( 0.0, 0.0, 1.0, 0.0 ) ) ),
+    68 => f_profile( 68, 0, array( 'Space', 'Launches' ), array( 'rocket launch', 'launch' ), array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ) ) ),
+) );
+$p = vergeml_filing_pick( f_facts( 'hallway; interior space', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), $poly );
+f_check( '35 "hallway; interior space" whose vector is Space\'s own: "space" (rank 2) as the head noun of the half is no hit -- nothing, floor (Space, sure 0.76, before)', 'nothing' === $p['outcome'] && 'floor' === $p['why'] && $p['scores'][65] < 0.3, sprintf( '%s why %s Space @%.4f', $p['outcome'], $p['why'], $p['scores'][65] ) );
+$p = vergeml_filing_pick( f_facts( 'griptape; skateboard component', array( 'vector' => array( 0.0, 1.0, 0.0, 0.0 ) ) ), $poly );
+f_check( '35a "griptape; skateboard component": "components" as the head noun is no hit either -- nothing, floor', 'nothing' === $p['outcome'] && 'floor' === $p['why'] && $p['scores'][66] < 0.3, sprintf( '%s why %s Components @%.4f', $p['outcome'], $p['why'], $p['scores'][66] ) );
+$p = vergeml_filing_pick( f_facts( 'satellite; space', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), $poly );
+f_check( '35b the half as the word whole stands: "satellite; space" is Space, sure', 'fits' === $p['outcome'] && 65 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+$p = vergeml_filing_pick( f_facts( 'hall; conference venue', array( 'vector' => array( 0.0, 0.0, 1.0, 0.0 ) ) ), $poly );
+f_check( '35c a name-only folder keeps the hit, its one word is its first class: "hall; conference venue" whose vector is Venues\' own fits Venues (venue, rank 0), sure', 'fits' === $p['outcome'] && 67 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+$p = vergeml_filing_pick( f_facts( 'soyuz; launch event', array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ) ) ), $poly );
+f_check( '35d the modifier direction stands, as S15 left it: "soyuz; launch event" is Launches, sure', 'fits' === $p['outcome'] && 68 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );
