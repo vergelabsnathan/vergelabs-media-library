@@ -270,12 +270,32 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
      */
     $out['on_products'] = 0;
     if ( post_type_exists( 'product' ) ) {
-        // Counted from the product side, on the meta key's index: the featured images, plus the gallery entries (a comma-separated list, one more than its commas).
+        /*
+         *  Pictures, not picture-product pairs (S19, the real shop: "36 on
+         *  products" beside 33 pictures). A picture is on a product when a
+         *  product's featured image names it or a product's gallery lists it;
+         *  WooCommerce's own importer puts the featured image in the gallery
+         *  too, and a variable product's photo sits in its variations'. One
+         *  query from the product side on the meta key's index -- the featured
+         *  ids and the gallery lists, as many rows as products have pictures --
+         *  and the set of ids made here: a gallery is a comma-separated list
+         *  SQL cannot split, and an attachment-side count would probe every
+         *  picture of the library against every product.
+         */
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- core's tables.
-        $out['on_products'] = (int) $wpdb->get_var(
-            "SELECT ( SELECT COUNT(DISTINCT m.meta_value) FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id AND p.post_type = 'product' WHERE m.meta_key = '_thumbnail_id' AND m.meta_value <> '' AND m.meta_value <> '0' )
-                  + ( SELECT COALESCE( SUM( LENGTH(m.meta_value) - LENGTH(REPLACE(m.meta_value, ',', '')) + 1 ), 0 ) FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id AND p.post_type = 'product' WHERE m.meta_key = '_product_image_gallery' AND m.meta_value <> '' )"
+        $lists = $wpdb->get_col(
+            "SELECT m.meta_value FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id AND p.post_type = 'product'
+              WHERE m.meta_key IN ( '_thumbnail_id', '_product_image_gallery' ) AND m.meta_value <> '' AND m.meta_value <> '0'"
         );
+        $ids = array();
+        foreach ( (array) $lists as $list ) {
+            foreach ( explode( ',', (string) $list ) as $id ) {
+                if ( (int) $id > 0 ) {
+                    $ids[ (int) $id ] = true;
+                }
+            }
+        }
+        $out['on_products'] = count( $ids );
     }
     $out['sells'] = $out['on_products'] > 0;
 

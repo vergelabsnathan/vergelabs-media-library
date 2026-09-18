@@ -112,6 +112,7 @@ switch ( $which ) {
         $feat = $mk( 'featured', 'vgmlcheckdeck; zzthing' );
         $gal  = $mk( 'gallery', 'vgmlcheckdeck; zzthing' );
         $copy = $mk( 'copy', 'vgmlcheckdeck; zzthing' );
+        $on_before = (int) vergeml_folders_facts( vergeml_librarian_taxonomy(), 0 )['on_products'];
 
         $product = wp_insert_post( array( 'post_type' => 'product', 'post_status' => 'publish', 'post_title' => 'VGML check deck' ) );
         $cat     = wp_insert_term( 'Skateboard decks', 'product_cat' );
@@ -121,6 +122,18 @@ switch ( $which ) {
         update_post_meta( $product, '_product_image_gallery', $feat . ',' . $gal );
         wp_update_post( array( 'ID' => $feat, 'post_parent' => $product ) );
         clean_post_cache( $feat );
+
+        /*
+         *  The "on products" pill counts pictures, not picture-product pairs
+         *  (S19, the real shop: 36 on products beside 33 pictures -- the
+         *  featured image of one product sat in another's gallery, and
+         *  WooCommerce's own importer puts a product's featured image in its
+         *  gallery too). Two pictures here, one of them featured and in the
+         *  gallery: two more, not three. Mutation: the count as the sum of
+         *  featured and gallery entries -> red.
+         */
+        $on_after = (int) vergeml_folders_facts( vergeml_librarian_taxonomy(), 0 )['on_products'];
+        vgml_check( 'the on-products count grows by the two pictures, not by the three places they sit', 2 === $on_after - $on_before, "$on_before -> $on_after" );
 
         $ctx = vergeml_ai_context( $feat );
         vgml_check( 'the product title reaches the describe context', isset( $ctx['post_title'] ) && 'VGML check deck' === $ctx['post_title'] );
