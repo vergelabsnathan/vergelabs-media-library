@@ -269,10 +269,46 @@ the seeded Sneakers under Men, Women, Kids). Re-taken with the reason.
 band reads whichever tree is up, so it reads red until HEMA is restored.
 
 
+## Nathan's marks on the S15 sheet (2026-09-18): sure 19/30, likely 3/30
+
+**The verdict** (in the sheet tool as \`$bfq_s15\`, re-read by path on every
+dry run): sure **19/30** right, 4 too broad, **7 wrong**; likely **3/30**
+right, 14 too broad, 13 wrong. S13's sheet read 25/30 and 6/30; the S15
+rules did not make this worse — the sample is a different 60 from the
+same seed — but they did not touch what is wrong either.
+
+**What is wrong, probed (\`scratchpad/s15-class-half-probe.php\`):**
+
+- **6 of the 7 wrong sures are member words the folders learned from the
+  fill's own earlier placements** (S10.7): Cooling learned *cable reels*
+  (fibre reels → Cooling, 0.92), Components learned *smart speaker* ×5 and
+  *desktop computer* ×7, Hardware learned *graphics card* ×19 (Nathan wants
+  those in Components), Server racks *network switches*. The seventh is
+  Satellites' stale kind word *diagram*. S13's own line — "the folders
+  hold what the fill did, right and wrong" — is now the sure band's
+  ceiling: a members layer built on a round-1 fill that was 34 % right
+  entrenches its misses as sures.
+- **5 of the 13 wrong likelies are a folder's leaf read as the head noun of
+  the picture's class half**: "hallway; *interior space*" → **Space**,
+  "garage; *commercial space*" → Space (×3), "griptape; *skateboard
+  component*" → Components. That direction (the folder's word as the head
+  of the half: "launch" in "launch event") was kept on purpose in story 2;
+  on a polysemous one-word leaf it misfires.
+- The rest: learned misses again (telecom tower, ribbon cable, cable drum
+  in the Data centres line), two vector-only matches (the class floor).
+
+**For S16, first:** (1) a member word counts only where it is alike to one
+of the folder's base words — the plan's or the name's — by containment or
+the class vector (Cooling's *cable reels* against *cooling unit*: no;
+Hardware's *graphics card* against *computer hardware*: yes, and that one
+is Nathan's taxonomy call), judged dry on the S15 and S13 sheets; (2) a
+one-word leaf as the head noun of a class half is no hit unless the leaf is
+also the folder's first class or the half is the leaf whole (judged the
+same way); then the audience words, the profile findings, S10.8.
+
 ## For Nathan
 
-1. **Mark the S15 sheet** if you want its number beside S13's; the two
-   Batteries likelies and the e-waste sures are gone from it.
+1. The S15 sheet is marked (above); nothing more to mark.
 2. **Finding 2 is spent and measured** (27 credits): the leaves have English words; ms2's site language is now `nl_NL` (the pack installed) and stays so — it is the HEMA fixture's honest setting.
 3. **ms2 shows the C.5 tree again**; HEMA's is a snapshot away (see above), no credits.
 4. `vgmls15` on the tech site: deleted at the end of the full UI run if it
@@ -285,7 +321,7 @@ Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S16: the audience words in the site's language and the two profile findings (Interviews claims people first; TV & Video camera lens), S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the class floor for vector-only class-half matches",
+  "phase": "Every picture a home — S16: the S15 verdict first — member words only where alike to the folder's own (6 of 7 wrong sures are learned misses), a one-word leaf as the head noun of a class half (interior space → Space); then the audience words and the two profile findings, S10.8 file by the product (the map, the fact, the pick, the live test; the rail's 'placed by product N'), the flipped order for structured libraries (mocked), the class floor for vector-only class-half matches",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S16)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
@@ -294,6 +330,8 @@ Card, to `plugin/.harness/active.json`:
     "core/filing.php, core/folder-talk.php (S10.8 task 2 — the fact: a row's product folder from _thumbnail_id, _product_image_gallery and post_parent (vergeml_filing_product_sql, the shape of vergeml_filing_words_sql); the pick answers fits / sure / why 'product' before any matching and treats placed_by 'product' like 'user'; the run records placed_by = product and the reason line 'by the product'; sticky.php rows on the suite's own product, mutation: the product path removed -> the matcher)",
     "tests/integrations/live.php (S10.8 task 3 — 'woo': its own product in a category, a folder of that name, two pictures as featured and gallery -> both by product, sure; a second count -> unchanged; everything put back; on the tech site, never ms2)",
     "js/vergeml-folders.js (S10.8 task 4 — the Fill step's rail: 'placed by product N · by evidence N · to sort N' from the report's tally; the flipped order for structured libraries mocked first, Nathan's yes)",
+    "core/filing.php (vergeml_filing_members_layer / members_apply: a member word is the folder's only where it is alike to one of the base profile's words — containment or the class vector at the floor; pick.php row on Cooling learning cable reels, mutation: the likeness test removed; judged dry on the S15 and S13 sheets, the tech band re-taken with the reason)",
+    "core/filing.php (the pick: a one-word leaf as the head noun of the class half is no hit unless the half is the leaf whole or the leaf is the folder's first class — interior space → Space, skateboard component → Components; pick.php row; judged on the S15 sheet)",
     "core/filing.php (vergeml_filing_audience_of reads the site's language too: dames, heren, kinderen, kind, baby, meisjes, jongens; pick.php row; judged on HEMA round 1 — restore vgml-shop-tree-hema.json first, 0 credits)",
     "core/filing.php (a leaf whose plan claims its parent's members' word first — Interviews: people; TV & Video: camera lens — is the planner's noise: judged dry on both sheets before any rule)",
     "core/filing.php (the class floor: a class half's vector-only match corroborates, never places alone; probe first, judged dry on all three sheets)",
@@ -335,7 +373,7 @@ docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md. State
 which model you are and follow that profile in
 ~/.claude/harness/model-profiles.md. This session is S16 of
 every-picture-a-home; the card is already in .harness/active.json —
-read it before anything else. the audience words first (HEMA restored from its snapshot, round 1 dry), the two profile findings probed; then S10.8 task by task as the
+read it before anything else. the S15 verdict first — the member-word likeness rule, then the one-word leaf as head noun — each judged dry on the S15 and S13 sheets before it moves; then the audience words (HEMA restored from its snapshot, round 1 dry), the two profile findings probed; then S10.8 task by task as the
 card writes them (the map pure and tested before any row is read); the
 rail mocked before built; then the class floor probe. Test first, one mutation per story, both sites measured,
 say every cost before it is spent, never touch ms2 while Nathan is on it.
