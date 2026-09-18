@@ -1,10 +1,9 @@
 {
-  "phase": "Every picture a home — S17: Nathan's calls from S16 first (the audience gate as a runner-up: DONE 2026-09-18, 0aff174, right of placed 72 %; the class floor: LEFT on Nathan's word; the namesake tie broken by the class half naming one leaf's ancestor — 9 of 14; the tech truth page's shape; the rail mock's yes), each built only on a yes and judged by the SCORE line; (the audience words on HEMA: DONE 2026-09-18, 8a71687, no pick moved) the tech truth page built and marked (~200 pictures, ~30 min of Nathan's, no credits) so the tech library scores too; the rail built from the mock; then S10.10 the proposal from the pictures (a Fable-sized phase: groups to name and nest, per kind first, thumbnails, the pack's own signals)",
+  "phase": "Every picture a home — S17: Nathan's calls from S16 first (the audience gate as a runner-up: DONE 2026-09-18, 0aff174, right of placed 72 %; the class floor: LEFT on Nathan's word; the namesake tie: DROPPED on Nathan's word 2026-09-18; the tech truth page's shape; the rail mock's yes), each built only on a yes and judged by the SCORE line; (the audience words on HEMA: DONE 2026-09-18, 8a71687, no pick moved) the tech truth page built and marked (~200 pictures, ~30 min of Nathan's, no credits) so the tech library scores too; the rail built from the mock; then S10.10 the proposal from the pictures (a Fable-sized phase: groups to name and nest, per kind first, thumbnails, the pack's own signals)",
   "model": "opus",
   "plan": "plans/every-picture-a-home.md (Phase D: S17)",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "core/filing.php (the namesake tie, on Nathan's yes: on a margin between two leaves of one name, the leaf whose ancestor the class half names wins — pick.php row on 'hiking backpack; luggage' between bags & luggage › backpacks and camping › backpacks; mutation: the ancestor test removed -> margin; judged by the SCORE line: backpacks 0 -> 8 of 11)",
     "tools/truth-page.php, tools/box-truth-score.php (the tech truth page on the shape Nathan approves: ~200 pictures picked fresh, the fill's folder pre-filled in a select of the tree's folders, wrong picture / no folder, a tally, Save -> a JSON the scorer reads with VGML_TRUTH; then the SCORE line for the tech library in every check-in too)",
     "js/vergeml-folders.js, core/folder-talk.php (the rail from the mock 2026-09-18-fill-by-product.html on Nathan's yes: the pills by product · by evidence · to sort from tally.product, and the flipped order for a site that sells; folders.spec rows; the copy verbatim from the mock)",
     "core/librarian.php (the why card's source line wording, Nathan's words)",
@@ -23,7 +22,7 @@
   "stopPoints": [
     "Never run a suite or a walk on ms2 while Nathan is on it; ask first",
     "ms2 shows the C.5 tree (site language nl_NL); HEMA's tree is /var/www/ms2/wp-content/vgml-shop-tree-hema.json — swap with tools/box-tree-snapshot.php (snapshot the one up first), never while Nathan is on ms2",
-    "The audience gate, the namesake tie, the class floor: each only on Nathan's yes, each judged by the SCORE line before it stays",
+    "The namesake tie and the class floor are dropped on Nathan's word (2026-09-18): do not build them",
     "The truth page and the rail: a shape or a mock shown, Nathan's yes, then the build",
     "The why card's copy is Nathan's: never write a user-facing string the plan did not supply",
     "A band is re-taken only with the reason and the SCORE line",
