@@ -154,6 +154,22 @@ into one card; residue by class). A walk of the Fill screen with the
 model in — never done this session; every suite used the stand-in — is
 the first thing to see before this ships.
 
+## The walk, with the model in (end of S18, ~60 cents)
+
+`node tools/verify.mjs fill-walk` on the tech site, the fixture tree, 612
+judged pictures, everything put back (G1-G9 green). Preview (rules only):
+fits 503 (sure 482 · likely 33), siblings 12, nothing 97. Run (the model
+in): fits 347 (sure 339 · likely 8), siblings 0, nothing 265 = floor 51 ·
+margin 91 · gated 32 · doubt 91. Questions: **17 cards for 267 pictures**
+("65 pictures: Hardware or Components?", "32 look like diagrams -> New
+folder", 84 in more). The model turns 143 sures into questions or doubts:
+that is the wrong-sure rate coming down and what a user will feel. The
+walk's three reds are its rules-only assumptions, to rewrite in S19: E3
+(preview = run; the preview is the estimate now), F1 (a sibling question
+must exist; the model breaks the tie), F5 (what leave leaves; doubts land
+in To sort too). The live card with the walk's tally:
+`mocks/shots/2026-09-18-walk-fill-card.png`.
+
 ## Gates
 
 - `filing` 105/105 + 34/34 · `sticky` 61/61 · `guide` 42/42 · `filing-trail`
@@ -178,13 +194,13 @@ Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6); the button's price once Nathan prices the call. First a walk of the Fill on the tech site with the model in (a fresh tree, ~1,000 pictures, ~60 cents, screenshots of the Fill card and the question cards, the trail read on ten pictures) — the first time a person sees agree / doubt / the questions; then the six tech hardware pictures on the truth page (his eye, no rule; doubts stay as built, decided 2026-09-18); then the road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
+  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6) and the walk is done (17 cards for 267 pictures, 143 sures to questions or doubts; ~60 cents, cached a week); the button's price once Nathan prices the call. First the walk's three assertions rewritten for the model in (E3 the preview is an estimate, F1 no sibling question is fine, F5 the doubts in To sort) so fill-walk is green again; then the six tech hardware pictures on the truth page (his eye, no rule; doubts stay as built, decided 2026-09-18); then the road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
   "model": "opus",
   "plan": "plans/agree-or-ask.md (done: the six tasks); the S19 tasks as this card lists them, a plan file only if Nathan's calls open more than a copy pass and a walk",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
     "js/vergeml-folders.js, core/folder-talk.php, tests/ui/folders.spec.mjs (the button's price, once Nathan prices the call: his words)",
-    "tools/box-fill-walk.php, docs/superpowers/mocks/shots/** (the walk with the model in: cost said first, undone after)",
+    "tools/box-fill-walk.php (E3, F1, F5 rewritten for the model in; a second walk is cached, 0 cost)",
     "docs/ai-service.md (the /v1/file paragraph of the contract)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (rules-only, re-taken only with the reason)",
     "docs/handoffs/**",
@@ -226,9 +242,9 @@ plans/agree-or-ask.md. State which model you are and follow that profile
 in ~/.claude/harness/model-profiles.md. This session is S19 of
 every-picture-a-home; the card is already in .harness/active.json — read
 it before anything else. Both rules-only SCORE lines first (shop 347 of
-581, tech 153 of 200); then the Fill walk with
-the model in on the tech site (say the cost, screenshots, undo); then the
-six hardware pictures with Nathan on the truth page; then the road to
+581, tech 153 of 200); then the walk's three
+assertions rewritten for the model in (fill-walk green, 0 cost: cached);
+then the six hardware pictures with Nathan on the truth page; then the road to
 complete. Test first, one
 mutation per story, both score lines after every task, every cost said
 before it is spent, never on ms2 while Nathan is on it. Talk plainly. End

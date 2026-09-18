@@ -1,11 +1,11 @@
 {
-  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6); the button's price once Nathan prices the call. First a walk of the Fill on the tech site with the model in (a fresh tree, ~1,000 pictures, ~60 cents, screenshots of the Fill card and the question cards, the trail read on ten pictures) — the first time a person sees agree / doubt / the questions; then the six tech hardware pictures on the truth page (his eye, no rule; doubts stay as built, decided 2026-09-18); then the road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
+  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6) and the walk is done (17 cards for 267 pictures, 143 sures to questions or doubts; ~60 cents, cached a week); the button's price once Nathan prices the call. First the walk's three assertions rewritten for the model in (E3 the preview is an estimate, F1 no sibling question is fine, F5 the doubts in To sort) so fill-walk is green again; then the six tech hardware pictures on the truth page (his eye, no rule; doubts stay as built, decided 2026-09-18); then the road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
   "model": "opus",
   "plan": "plans/agree-or-ask.md (done: the six tasks); the S19 tasks as this card lists them, a plan file only if Nathan's calls open more than a copy pass and a walk",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
     "js/vergeml-folders.js, core/folder-talk.php, tests/ui/folders.spec.mjs (the button's price, once Nathan prices the call: his words)",
-    "tools/box-fill-walk.php, docs/superpowers/mocks/shots/** (the walk with the model in: cost said first, undone after)",
+    "tools/box-fill-walk.php (E3, F1, F5 rewritten for the model in; a second walk is cached, 0 cost)",
     "docs/ai-service.md (the /v1/file paragraph of the contract)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (rules-only, re-taken only with the reason)",
     "docs/handoffs/**",
