@@ -734,5 +734,34 @@ f_check( '35c a name-only folder keeps the hit, its one word is its first class:
 $p = vergeml_filing_pick( f_facts( 'soyuz; launch event', array( 'vector' => array( 0.0, 0.0, 0.0, 1.0 ) ) ), $poly );
 f_check( '35d the modifier direction stands, as S15 left it: "soyuz; launch event" is Launches, sure', 'fits' === $p['outcome'] && 68 === $p['term_id'] && 'sure' === $p['confidence'], sprintf( '%s %d @%.4f %s', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'] ) );
 
+/*
+ *  A folder's name claims the planner classes it names (S16, the truth
+ *  score's second and third leaves, and the card's profile finding). The
+ *  planner put "camera lens" first on TV & Video beside a leaf named Lenses
+ *  (11 of 12 lens pictures to a margin or TV & Video), "public bookcase" on
+ *  Shelving beside Bookcases (11 of 11 to a margin), and "people" first on
+ *  Interviews beside People ("figure; person" an Interviews sure). A planner
+ *  class whose whole is another folder's leaf name, or whose head noun is
+ *  another folder's one-word leaf name, is that folder's: it comes off the
+ *  planner's folder. A member word stays (it passed the likeness test), and
+ *  so does the folder's own leaf. Pure, in vergeml_filing_profiles before
+ *  the claims are settled. Dry on the shop: right 333 -> 347 of 581, no
+ *  right lost; on the tech library 6 move, every one to People or
+ *  Conference talks. Mutation: the pass removed -> rows 36 and 36a red.
+ */
+echo "\n== a folder's name claims the planner classes it names (S16)\n";
+
+$named = vergeml_filing_name_claims( array(
+    71 => f_profile( 71, 0, array( 'People' ), array( 'people' ), array( 'source' => 'name' ) ),
+    72 => f_profile( 72, 71, array( 'People', 'Interviews' ), array( 'people', 'interview', 'interviews' ) ),
+    73 => f_profile( 73, 0, array( 'Electronics', 'TV & Video' ), array( 'camera lens', 'television', 'tv & video' ), array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ),
+    74 => f_profile( 74, 0, array( 'Electronics', 'Cameras', 'Lenses' ), array( 'lenses' ), array( 'source' => 'name', 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ),
+    75 => f_profile( 75, 0, array( 'Home', 'Storage', 'Shelving' ), array( 'public bookcase', 'shelving' ), array( 'source' => 'members', 'base_source' => 'plan', 'words' => array( 'public bookcase' => 4 ) ) ),
+    76 => f_profile( 76, 0, array( 'Home', 'Furniture', 'Bookcases' ), array( 'bookcases' ), array( 'source' => 'name' ) ),
+) );
+f_check( '36 Interviews loses "people" (People\'s name whole), TV & Video loses "camera lens" (its head noun is Lenses\' name); Shelving keeps "public bookcase" -- its members taught it; People, Lenses and Bookcases keep their own', array( 'interview', 'interviews' ) === $named[72]['classes'] && array( 'television', 'tv & video' ) === $named[73]['classes'] && array( 'public bookcase', 'shelving' ) === $named[75]['classes'] && array( 'people' ) === $named[71]['classes'] && array( 'lenses' ) === $named[74]['classes'], json_encode( array( $named[72]['classes'], $named[73]['classes'], $named[75]['classes'] ) ) );
+$p = vergeml_filing_pick( f_facts( 'camera lens; photography equipment', array( 'vector' => array( 1.0, 0.0, 0.0, 0.0 ) ) ), vergeml_filing_settle_claims( $named ) );
+f_check( '36a "camera lens; photography equipment" is Lenses, sure, clear of TV & Video (a margin between them before)', 'fits' === $p['outcome'] && 74 === $p['term_id'] && 'sure' === $p['confidence'] && $p['score'] - $p['runner_score'] >= VERGEML_FILING_MARGIN, sprintf( '%s %d @%.4f %s next %d @%.4f', $p['outcome'], $p['term_id'], $p['score'], $p['confidence'], $p['runner_up'], $p['runner_score'] ) );
+
 printf( "\n%d/%d passed\n", $GLOBALS['f_pass'], $GLOBALS['f_pass'] + $GLOBALS['f_fail'] );
 exit( $GLOBALS['f_fail'] > 0 ? 1 : 0 );

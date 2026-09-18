@@ -622,7 +622,54 @@ function vergeml_filing_profiles( $term_ids, $taxonomy ) {
     foreach ( vergeml_filing_members_settle( vergeml_filing_members_alike( vergeml_filing_members_layers( $learn, $taxonomy ), $out ) ) as $id => $layer ) {
         $out[ $id ] = vergeml_filing_members_apply( $out[ $id ], $layer );
     }
-    return vergeml_filing_settle_claims( $out );
+    return vergeml_filing_settle_claims( vergeml_filing_name_claims( $out ) );
+}
+
+/**
+ *  A folder's name claims the planner classes it names (S16). The planner
+ *  put "camera lens" first on TV & Video beside a leaf named Lenses, and
+ *  on the shop's truth score (2026-09-18) 11 of 12 lens pictures went to a
+ *  margin or to TV & Video; "public bookcase" on Shelving beside Bookcases
+ *  took 11 of 11 bookcases to a margin; "people" first on Interviews made
+ *  "figure; person" an Interviews sure on the tech library. A planner
+ *  class whose whole is another folder's leaf name, or whose head noun is
+ *  another folder's one-word leaf name, is that folder's and comes off the
+ *  planner's folder -- vergeml_filing_clean_seed does this at build time
+ *  against other plans, not against a name-only leaf, and a re-plan is
+ *  what it would take to reach a cached plan. A member word stays (it
+ *  passed the likeness test), the folder's own leaf stays, a view claims
+ *  nothing. Dry on the shop: right 333 -> 347 of 581, none lost. Pure.
+ */
+function vergeml_filing_name_claims( $profiles ) {
+    $named = array();
+    foreach ( (array) $profiles as $tid => $p ) {
+        if ( ! empty( $p['view'] ) ) {
+            continue;
+        }
+        $leaf = vergeml_filing_canon( vergeml_filing_name_class( isset( $p['path'] ) && $p['path'] ? end( $p['path'] ) : '' ) );
+        if ( '' !== $leaf ) {
+            $named[ $leaf ][ (int) $tid ] = true;
+        }
+    }
+    foreach ( (array) $profiles as $tid => $p ) {
+        if ( ! empty( $p['view'] ) || empty( $p['classes'] ) ) {
+            continue;
+        }
+        $own  = vergeml_filing_canon( vergeml_filing_name_class( isset( $p['path'] ) && $p['path'] ? end( $p['path'] ) : '' ) );
+        $keep = array();
+        foreach ( (array) $p['classes'] as $c ) {
+            $cc = vergeml_filing_canon( $c );
+            $wc = explode( ' ', $cc );
+            $hd = (string) end( $wc );
+            $by = isset( $named[ $cc ] ) ? $cc : ( count( $wc ) > 1 && isset( $named[ $hd ] ) ? $hd : '' );
+            if ( '' !== $by && $by !== $own && ! isset( $named[ $by ][ (int) $tid ] ) && ! isset( $p['words'][ $c ] ) ) {
+                continue;
+            }
+            $keep[] = $c;
+        }
+        $profiles[ $tid ]['classes'] = $keep;
+    }
+    return $profiles;
 }
 
 /**
