@@ -425,3 +425,40 @@ Test first, one mutation per story, both sites measured, say every cost
 before it is spent, never touch ms2 while Nathan is on it. Talk plainly.
 End with a handoff carrying the S18 card.
 ```
+
+## The last word of the day: the model beside the rules (`6da449a`), and S18
+
+Nathan's "1 then 2": the text-model matcher tested first.
+`tools/truth-model.mjs` (OpenRouter, Sonnet 5 and Haiku 4.5, 40
+descriptions a call, the tree as paths, *To sort* never offered, answers
+cached per model) over both answer keys, ~50 cents in all. Haiku: 60 % /
+54 % of placed — it forces the no-folder pictures in. Sonnet: tech 70 % /
+70 %, shop **73 % / 88 %** against the rules' 77 % / 76 % and 60 % / 72 %.
+Five combinations from the cached answers: on tech "rules place, the
+model's null vetoes" reads 79 % / **93 %** (5 wrong of 92); on the shop the
+model alone wins; "both must agree" reads 99 % / 91 % of placed right with
+the rest as questions. The three-tier design — agree = sure, disagree = a
+question carrying both, model alone = likely, rules alone = "X, or
+nowhere?" — reads **tech 61 % → 86 % with the questions answered (sure 99 %
+right), shop 65 % → 76 % (sure 91 %)**; the wrong-sure rate 24 % / 12 % →
+1 % / 9 %. Cost ~130 tokens a picture, ≈ 50 cents a thousand. Nathan:
+"okay" → **S18 is `plans/agree-or-ask.md`**, six tasks in the Opus shape;
+the card is written for it. S10.11 (the model seeing the pictures) is
+dropped by the finding: the descriptions are the pictures. Both answer keys
+are in the repo (`tests/tree/truth-tech.json`, `truth-shop.json`); the
+shop's descriptions without thumbnails in `docs/truth/2026-09-18-shop-descriptions.html`.
+
+Opener for S18, cwd `plugin`:
+
+```
+Read plans/agree-or-ask.md, then the last five sections of
+docs/handoffs/2026-09-18-s16-the-truth-score-first.md. State which model
+you are and follow that profile in ~/.claude/harness/model-profiles.md.
+This session is S18 of every-picture-a-home; the card is already in
+.harness/active.json — read it before anything else. Both SCORE lines
+first (rules-only: shop 347 of 581, tech 153 of 200); then the six tasks
+in order, one at a time, test first, one mutation per story, both score
+lines after every task, every cost said before it is spent, no
+user-facing string that the plan did not supply, never on ms2 while
+Nathan is on it. Talk plainly. End with a handoff carrying the S19 card.
+```
