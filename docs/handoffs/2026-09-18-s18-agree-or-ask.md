@@ -120,14 +120,14 @@ often than right (24 of 71 are X or nowhere). A doubt is a good question.
 
 ## For Nathan
 
-**Copy, three strings (placeholders are nothing today):**
-1. The why card's line for `agree` (a filing both the rules and the model
-   named) and for `doubt` (left where it was: the rules said X, the model
-   said nothing fits).
-2. The outcome sentence's part for doubts (`vergeml_talk_outcome_sentence`
-   says nothing about them now).
-3. The Fill card's quiet pill on a dry count ("rules only", or whatever the
-   words are).
+**Copy — done (`d661cf6`), Nathan's option A, no "AI" on any screen:**
+1. Why card, agree: "In X · both matches agree" (sure; no score line).
+2. Why card, doubt: "Left where it was · matched X, but in doubt".
+3. The Fill card after a run: "N in doubt" (only when N > 0).
+4. The Fill card before a run: "estimate", quiet, at the end of the dry
+   count's pills (the outcome sentence is not on the Folders screen, so
+   the pill is the place). Mock: `docs/superpowers/mocks/2026-09-18-model-words.html`;
+   the live card beside it in `mocks/shots/2026-09-18-model-words-*-live.png`.
 
 **Pricing:** the call is metered on `file` at cost 1 and never debited.
 ~130 tokens a picture ≈ 50 cents a thousand at Sonnet 5's rate; the
@@ -140,12 +140,8 @@ doubts, the rules' folder is right only 24 times in 71, so that button
 would be wrong two times in three. The either/or cards stay (66 of 76
 right among the two, one press each). Nathan: "I agree with you."
 
-**The strings, drafted for his yes (not shipped, not approved yet):**
-why card, agree: "In Jackets · the folder match and the AI agree"; why
-card, doubt: "Left where it was · the folder match said Jackets, the AI
-was not sure"; the fill's summary: "31 were doubted by the AI and left for
-you"; the preview pill: "estimate". Verbatim once he says ok; nothing
-until then.
+**The strings:** first drafted with "the AI" in them; Nathan: "rather no
+AI" — option A above, shipped.
 
 **One open call: the tech sure floor.** 90 % against 97 %: the six
 hardware pictures both matchers file under Server racks. Either the mark
@@ -182,12 +178,12 @@ Card, to `plugin/.harness/active.json`:
 
 ```json
 {
-  "phase": "Every picture a home — S19: the model in the room. First Nathan's three strings and the price (the why-card lines for agree and doubt, the outcome sentence's doubt part, the dry count's rules-only pill; the button's price once the call is priced) — each verbatim from him, a copy pass with its suite rows; then a walk of the Fill on the tech site with the model in (a fresh tree, ~1,000 pictures, ~60 cents, screenshots of the Fill card and the question cards, the trail read on ten pictures) — the first time a person sees agree / doubt / the questions; then the six tech hardware pictures on the truth page (his eye, no rule; doubts stay as built, decided 2026-09-18); then the road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
+  "phase": "Every picture a home — S19: the model in the room. The strings are in (d661cf6); the button's price once Nathan prices the call. First a walk of the Fill on the tech site with the model in (a fresh tree, ~1,000 pictures, ~60 cents, screenshots of the Fill card and the question cards, the trail read on ten pictures) — the first time a person sees agree / doubt / the questions; then the six tech hardware pictures on the truth page (his eye, no rule; doubts stay as built, decided 2026-09-18); then the road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
   "model": "opus",
   "plan": "plans/agree-or-ask.md (done: the six tasks); the S19 tasks as this card lists them, a plan file only if Nathan's calls open more than a copy pass and a walk",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "core/librarian.php, core/folder-talk.php, js/vergeml-folders.js, tests/tree/filing-trail.php, tests/filing/sticky.php, tests/ui/folders.spec.mjs (the copy pass: Nathan's strings verbatim, a row per string)",
+    "js/vergeml-folders.js, core/folder-talk.php, tests/ui/folders.spec.mjs (the button's price, once Nathan prices the call: his words)",
     "tools/box-fill-walk.php, docs/superpowers/mocks/shots/** (the walk with the model in: cost said first, undone after)",
     "docs/ai-service.md (the /v1/file paragraph of the contract)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (rules-only, re-taken only with the reason)",
@@ -230,8 +226,7 @@ plans/agree-or-ask.md. State which model you are and follow that profile
 in ~/.claude/harness/model-profiles.md. This session is S19 of
 every-picture-a-home; the card is already in .harness/active.json — read
 it before anything else. Both rules-only SCORE lines first (shop 347 of
-581, tech 153 of 200); then Nathan's three strings and the price as a copy
-pass (nothing invented, ask for what is missing); then the Fill walk with
+581, tech 153 of 200); then the Fill walk with
 the model in on the tech site (say the cost, screenshots, undo); then the
 six hardware pictures with Nathan on the truth page; then the road to
 complete. Test first, one
