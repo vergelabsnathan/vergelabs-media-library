@@ -74,7 +74,9 @@ $truth_tid = array();
 $unmapped  = array();
 foreach ( $truth as $id => $path ) {
     $key = mb_strtolower( trim( preg_replace( '/\s*[>\/]\s*/u', ' > ', $path ) ) );
-    if ( isset( $by_path[ $key ] ) ) {
+    if ( '' === $key ) {
+        $truth_tid[ $id ] = 0; // A hand-marked truth (tools/truth-page.php): this picture belongs in no folder; right is leaving it.
+    } elseif ( isset( $by_path[ $key ] ) ) {
         $truth_tid[ $id ] = $by_path[ $key ];
     } else {
         $unmapped[ $path ] = ( $unmapped[ $path ] ?? 0 ) + 1;
@@ -109,7 +111,12 @@ foreach ( $truth_tid as $id => $want ) {
     $pick = $picks[ $id ];
     $got  = (int) $pick['term_id'];
     $band = ! $got ? 'none' : ( 'siblings' === $pick['why'] ? 'siblings' : $pick['confidence'] );
-    $fate = ! $got ? 'none' : ( $got === $want ? 'right' : ( isset( $ancestors[ $want ][ $got ] ) ? 'broad' : 'wrong' ) );
+    if ( ! $want ) {
+        // Belongs in no folder: leaving it is right, placing it anywhere is wrong.
+        $fate = ! $got ? 'right' : 'wrong';
+    } else {
+        $fate = ! $got ? 'none' : ( $got === $want ? 'right' : ( isset( $ancestors[ $want ][ $got ] ) ? 'broad' : 'wrong' ) );
+    }
     $bands[ $band ]['n']++;
     if ( 'none' !== $fate ) {
         $bands[ $band ][ $fate ]++;
@@ -118,7 +125,7 @@ foreach ( $truth_tid as $id => $want ) {
         $bysrc[ $src ][ $fate ] = ( $bysrc[ $src ][ $fate ] ?? 0 ) + 1;
         $bysrc[ $src ]['n']     = ( $bysrc[ $src ]['n'] ?? 0 ) + 1;
     }
-    $leafp = $path_of( $want );
+    $leafp = $want ? $path_of( $want ) : '(no folder)';
     $perleaf[ $leafp ]['n']     = ( $perleaf[ $leafp ]['n'] ?? 0 ) + 1;
     $perleaf[ $leafp ][ $fate ] = ( $perleaf[ $leafp ][ $fate ] ?? 0 ) + 1;
     if ( 'wrong' === $fate ) {
@@ -135,8 +142,10 @@ foreach ( array( 'sure', 'likely', 'siblings' ) as $b ) {
     $right  += $x['right'];
     printf( "%-9s %4d placed · right %3d (%3d%%) · broad %3d (%3d%%) · wrong %3d (%3d%%)\n", $b, $x['n'], $x['right'], $x['n'] ? round( 100 * $x['right'] / $x['n'] ) : 0, $x['broad'], $x['n'] ? round( 100 * $x['broad'] / $x['n'] ) : 0, $x['wrong'], $x['n'] ? round( 100 * $x['wrong'] / $x['n'] ) : 0 );
 }
-printf( "%-9s %4d\n", 'none', $bands['none']['n'] );
-printf( "SCORE right-and-placed %d of %d (%d%%) · right of placed %d%%\n", $right, $looked, $looked ? round( 100 * $right / $looked ) : 0, $placed ? round( 100 * $right / $placed ) : 0 );
+printf( "%-9s %4d%s\n", 'none', $bands['none']['n'], $bands['none']['right'] ? sprintf( ' · right to leave %d', $bands['none']['right'] ) : '' );
+// A no-folder truth counts as right when left: "right" is the engine's answer being right, placed or not.
+$right += $bands['none']['right'];
+printf( "SCORE right-and-placed %d of %d (%d%%) · right of placed %d%%\n", $right, $looked, $looked ? round( 100 * $right / $looked ) : 0, $placed ? round( 100 * ( $right - $bands['none']['right'] ) / $placed ) : 0 );
 
 uasort( $bysrc, function ( $a, $b ) { return $b['n'] <=> $a['n']; } );
 echo "\nplaced, by the source of the hit (right / broad / wrong of n):\n";

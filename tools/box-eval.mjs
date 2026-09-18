@@ -6,6 +6,10 @@
  *
  *  The file is copied fresh, run, and removed. Environment for the script goes
  *  through --env NAME=value (repeatable). Prints what the script prints.
+ *  --copy local:remote (repeatable) puts another file on the box first and
+ *  removes it after -- a truth file for tools/box-truth-score.php:
+ *
+ *      node tools/box-eval.mjs tools/box-truth-score.php --copy tests/tree/truth-tech.json:/tmp/vgml-truth.json --env VGML_TRUTH=/tmp/vgml-truth.json
  */
 
 import { execFileSync } from 'node:child_process';
@@ -22,9 +26,13 @@ const args = process.argv.slice( 2 );
 const file = args.find( ( a ) => ! a.startsWith( '--' ) );
 const site = SITES[ args.includes( '--site' ) ? args[ args.indexOf( '--site' ) + 1 ] : 'tech' ];
 const env  = [];
+const copies = [];
 for ( let i = 0; i < args.length; i++ ) {
 	if ( '--env' === args[ i ] ) {
 		env.push( args[ ++i ] );
+	} else if ( '--copy' === args[ i ] ) {
+		const [ local, remoteTo ] = args[ ++i ].split( ':' );
+		copies.push( { local, remote: remoteTo } );
 	}
 }
 
@@ -37,13 +45,19 @@ const remote = `/tmp/vgml-eval-${ path.basename( file ) }`;
 const sshArgs = [ '-i', BOX.key, '-o', 'StrictHostKeyChecking=no', '-o', 'ConnectTimeout=15' ];
 
 execFileSync( 'scp', [ ...sshArgs, path.resolve( file ), `root@${ BOX.host }:${ remote }` ], { stdio: 'pipe' } );
+for ( const c of copies ) {
+	execFileSync( 'scp', [ ...sshArgs, path.resolve( c.local ), `root@${ BOX.host }:${ c.remote }` ], { stdio: 'pipe' } );
+	if ( site.as ) {
+		execFileSync( 'ssh', [ ...sshArgs, `root@${ BOX.host }`, `chmod a+r ${ c.remote }` ], { stdio: 'pipe' } );
+	}
+}
 
 const wp = ( site.as ? `sudo -u ${ site.as } env ${ env.join( ' ' ) } wp` : `env ${ env.join( ' ' ) } wp` ) + ( site.url ? ` --url=${ site.url }` : '' );
 const script = `
 	set -e
 	cd ${ site.wp }
 	${ wp } eval-file ${ remote } --user=1 --allow-root --skip-themes 2>&1 | grep -v "^Deprecated:" || true
-	rm -f ${ remote }
+	rm -f ${ remote } ${ copies.map( ( c ) => c.remote ).join( ' ' ) }
 `;
 
 try {
