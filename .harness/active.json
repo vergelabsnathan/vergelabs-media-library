@@ -1,40 +1,39 @@
 {
-  "phase": "Every picture a home — S18: agree or ask (plans/agree-or-ask.md, Nathan's go 2026-09-18): the text model beside the rules — the service route (task 1), the plugin asking once per picture per tree (2), the pick's three tiers: agree = sure, disagree = a question with both folders, model alone = likely, rules alone = 'X, or nowhere?' (3), the run and the trail (4), both SCORE lines with the model in (5), the preview saying it is rules-only (6). Measured floors: tech sure ≥ 97 % right and ≥ 84 % right with the questions; shop ≥ 90 % and ≥ 74 %. Then the road to complete continues: S10.11 dropped (the descriptions are the pictures), a real WooCommerce shop walked, a user's pass over every Folders screen, Plugin Check and the archive.",
+  "phase": "Every picture a home — S19: the model in the room. First Nathan's three strings and the price (the why-card lines for agree and doubt, the outcome sentence's doubt part, the dry count's rules-only pill; the button's price once the call is priced) — each verbatim from him, a copy pass with its suite rows; then a walk of the Fill on the tech site with the model in (a fresh tree, ~1,000 pictures, ~60 cents, screenshots of the Fill card and the question cards, the trail read on ten pictures) — the first time a person sees agree / doubt / the questions; then the six tech hardware pictures on the truth page (his eye, no rule; doubts stay as built, decided 2026-09-18); then the road to complete: a real WooCommerce shop walked end to end, a user's pass over every Folders screen, Plugin Check and the archive.",
   "model": "opus",
-  "plan": "plans/agree-or-ask.md (six tasks in the Opus shape; every task ends with both SCORE lines)",
+  "plan": "plans/agree-or-ask.md (done: the six tasks); the S19 tasks as this card lists them, a plan file only if Nathan's calls open more than a copy pass and a walk",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md",
   "scope": [
-    "service/app/api/ai/file/route.ts, service/lib/file-prompt.ts, service/lib/file-prompt.test.ts (task 1: 40 descriptions + the folder paths -> { answers }, Sonnet 5 through OpenRouter, the prompt of tools/truth-model.mjs verbatim, metered not debited, licence and limits as /name-group)",
-    "core/filing.php (task 2: vergeml_filing_ask_model — per row model_folder term id | 0 | -1, a week's transient per picture keyed by the tree's paths and the description, batches of 40, a failed call is -1 and rules-only; task 3: the three tiers after the rules' outcome, pick.php 42–42e, the tiers removed -> red)",
-    "core/folder-talk.php, core/librarian.php, tests/filing/sticky.php, tests/tree/filing-trail.php (task 4: the ask per slice before the count, why agree / doubt on the trail, the tally's agree and doubt, sticky J with the stand-in service counting its calls; no why-card sentence until Nathan's words)",
-    "tools/box-truth-score.php (task 5: VGML_MODEL=1 scores with the model's answers — both SCORE lines with agree · doubt · questions and the right among the two; ~30 cents a library once)",
-    "js/vergeml-folders.js, core/guide.php, tests/ui/folders.spec.mjs (task 6: the dry count stays rules-only; its pill only with Nathan's copy)",
+    "core/librarian.php, core/folder-talk.php, js/vergeml-folders.js, tests/tree/filing-trail.php, tests/filing/sticky.php, tests/ui/folders.spec.mjs (the copy pass: Nathan's strings verbatim, a row per string)",
+    "tools/box-fill-walk.php, docs/superpowers/mocks/shots/** (the walk with the model in: cost said first, undone after)",
+    "docs/ai-service.md (the /v1/file paragraph of the contract)",
     "tests/tree/filing-baseline.txt, tests/tree/filing-baseline-shop.txt (rules-only, re-taken only with the reason)",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
-    "plans/agree-or-ask.md (the six tasks, the decisions, the measured table)",
-    "docs/handoffs/2026-09-18-s16-the-truth-score-first.md, the last five sections (the truth page, Nathan's finding, the model test and the five combinations, the road to complete)",
-    "tools/truth-model.mjs (the prompt, verbatim, and the scoring), tools/truth-marks.mjs, tests/tree/truth-tech.json and truth-shop.json",
-    "service/app/api/ai/name-group/route.ts and core/folder-talk.php vergeml_talk_name_group (the route and the call to mirror)",
-    "memory: openrouter-always, model-spend-discipline, tests-never-touch-live-state, truth-score-not-sheets, hooks-block-curl-and-key-paths"
+    "docs/handoffs/2026-09-18-s18-agree-or-ask.md (this: the two model lines, the tech sure miss, the doubt grain, the three strings, the box's service copy)",
+    "plans/agree-or-ask.md (the decisions and the tiers as built)",
+    "core/filing.php vergeml_filing_pick_model and vergeml_filing_ask_model (the tiers and the cache), core/folder-talk.php the ask before the count",
+    "memory: openrouter-always, model-spend-discipline, tests-never-touch-live-state, truth-score-not-sheets, hooks-block-curl-and-key-paths, do-the-cli-work"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
     "Never run a suite or a walk on ms2 while Nathan is on it; ask first",
     "The price of the model call is Nathan's; until priced it is metered, never debited",
-    "Every user-facing string is Nathan's: the why-card lines for agree and doubt, the preview's pill — placeholders are nothing, not invented sentences",
+    "Every user-facing string is Nathan's, verbatim; a placeholder is nothing",
+    "Doubts stay as built (decided 2026-09-18); the six hardware pictures are his eye, not a rule",
     "The model never overrules a product placement, a hand placement, or files into a view or a locked folder",
-    "A band is re-taken only rules-only and with the reason; the model's score lines are task 5's, never a band",
-    "Say every cost before it is spent: a model run over a library is ~30 cents; the suites use the stand-in, never the service",
+    "A band is re-taken only rules-only and with the reason; the model's lines are never a band",
+    "Say every cost before it is spent: a fill with the model over the tech library is ~60 cents a fresh tree; the suites use the stand-in, never the service",
+    "A service push is not on the box until gh workflow run vps.yml --ref main has run and the box's copy answers the route",
     "Test first, one mutation per story; a mutation of anything that can start a run holds the cron wire",
     "Never git checkout a file carrying uncommitted work; never chain a checkout into a command"
   ],
   "gates": [
-    "node tools/box-eval.mjs tools/box-truth-score.php --site shop and the tech line with --copy tests/tree/truth-tech.json:/tmp/vgml-truth.json --env VGML_TRUTH=/tmp/vgml-truth.json (MSYS_NO_PATHCONV=1): both lines in every check-in, rules-only today shop 347 of 581 (60 %) · 72 %, tech 153 of 200 (77 %) · 76 %; with VGML_MODEL=1 after task 5: tech sure ≥ 97 %, right with questions ≥ 84 %; shop ≥ 90 %, ≥ 74 %",
+    "node tools/box-eval.mjs tools/box-truth-score.php --site shop and the tech line with --copy tests/tree/truth-tech.json:/tmp/vgml-truth.json --env VGML_TRUTH=/tmp/vgml-truth.json (MSYS_NO_PATHCONV=1): both rules-only lines in every check-in (shop 347 of 581 (60 %) · 72 %, tech 153 of 200 (77 %) · 76 %); with --env VGML_MODEL=1 after any tier change: shop 354 (61 %) · 89 % · answered 76 % · sure 90 %, tech 139 (70 %) · 84 % · answered 85 % · sure 90 % — neither line falls",
     "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view seed-shop ai-background filing-trail → green (escaping 9/10 known); service pnpm test green",
     "the tech and C.5 bands 4/4 rules-only or re-taken with the reason",
-    "folders.spec and modes.spec on the tech site green after task 6"
+    "folders.spec and modes.spec on the tech site green after any screen change"
   ]
 }
