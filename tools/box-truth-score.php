@@ -15,6 +15,14 @@
  *  VGML_TRUTH=/path/file.json: a truth of the same shape for a site with no
  *  stamp (attachment id => folder path with " > " or " / "), e.g. the tech
  *  library's hand-marked set. Read-only: nothing moves, nothing is spent.
+ *
+ *  VGML_MODEL=1 (S18): the picks carry the text model's word, asked through
+ *  vergeml_filing_ask_model for the labelled pictures only -- the service's
+ *  /file, forty a call, ~130 tokens a picture, about 25 cents a library,
+ *  and cached a week so a second run is free. The SCORE line then also
+ *  says agree · doubt · questions (right among the two) and what the
+ *  library reads with the questions answered. The bands stay rules-only
+ *  (tests/tree/filing-baseline*.txt); this line is never a band.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -88,9 +96,17 @@ $ids      = array_map( 'intval', array_keys( $by_id ) );
 sort( $ids );
 $profiles = vergeml_filing_profiles( $ids, $tax );
 $words    = vergeml_filing_words_sql( 'i' );
-$rows     = (array) $wpdb->get_results( "SELECT i.attachment_id, i.embedding, i.kind, i.filing, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.error = '' AND i.embedding IS NOT NULL ORDER BY i.attachment_id ASC", ARRAY_A );
+$rows     = (array) $wpdb->get_results( "SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.caption, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.error = '' AND i.embedding IS NOT NULL ORDER BY i.attachment_id ASC", ARRAY_A );
 foreach ( $rows as $k => $r ) {
     $rows[ $k ]['placed_by'] = '';
+}
+$with_model = '1' === (string) getenv( 'VGML_MODEL' );
+if ( $with_model ) {
+    // Only the labelled pictures are asked about: the score reads no others, and the tech box carries 900 mock rows nobody should pay for.
+    $rows = array_values( array_filter( $rows, function ( $r ) use ( $truth_tid ) { return isset( $truth_tid[ (int) $r['attachment_id'] ] ); } ) );
+    $rows = vergeml_filing_ask_model( $rows, $profiles );
+    $unasked = count( array_filter( $rows, function ( $r ) { return -1 === (int) $r['model_folder']; } ) );
+    printf( "model: %d pictures asked about, %d unasked (no licence, the service down, or nothing to say)\n", count( $rows ) - $unasked, $unasked );
 }
 $picks = vergeml_filing_count( $profiles, $rows )['picks'];
 
@@ -103,6 +119,8 @@ $pairs   = array();
 $perleaf = array();
 $bysrc   = array();
 $looked  = 0;
+// The model's tiers (S18): agree, doubt ("X, or nowhere?"), the either/or questions, and how many of those a person answering right would get.
+$tiers = array( 'agree' => 0, 'doubt' => 0, 'doubt_right' => 0, 'questions' => 0, 'questions_right' => 0 );
 foreach ( $truth_tid as $id => $want ) {
     if ( ! isset( $picks[ $id ] ) ) {
         continue;
@@ -111,6 +129,20 @@ foreach ( $truth_tid as $id => $want ) {
     $pick = $picks[ $id ];
     $got  = (int) $pick['term_id'];
     $band = ! $got ? 'none' : ( 'siblings' === $pick['why'] ? 'siblings' : $pick['confidence'] );
+    if ( 'agree' === $pick['why'] ) {
+        $tiers['agree']++;
+    } elseif ( 'doubt' === $pick['why'] ) {
+        $tiers['doubt']++;
+        // Answered right when the truth is the rules' folder, or no folder at all.
+        if ( $want === (int) $pick['nearest'] || ! $want ) {
+            $tiers['doubt_right']++;
+        }
+    } elseif ( vergeml_filing_is_either( $pick ) ) {
+        $tiers['questions']++;
+        if ( in_array( $want, array_map( 'intval', (array) $pick['children'] ), true ) ) {
+            $tiers['questions_right']++;
+        }
+    }
     if ( ! $want ) {
         // Belongs in no folder: leaving it is right, placing it anywhere is wrong.
         $fate = ! $got ? 'right' : 'wrong';
@@ -145,7 +177,19 @@ foreach ( array( 'sure', 'likely', 'siblings' ) as $b ) {
 printf( "%-9s %4d%s\n", 'none', $bands['none']['n'], $bands['none']['right'] ? sprintf( ' · right to leave %d', $bands['none']['right'] ) : '' );
 // A no-folder truth counts as right when left: "right" is the engine's answer being right, placed or not.
 $right += $bands['none']['right'];
-printf( "SCORE right-and-placed %d of %d (%d%%) · right of placed %d%%\n", $right, $looked, $looked ? round( 100 * $right / $looked ) : 0, $placed ? round( 100 * ( $right - $bands['none']['right'] ) / $placed ) : 0 );
+$line   = sprintf( 'SCORE right-and-placed %d of %d (%d%%) · right of placed %d%%', $right, $looked, $looked ? round( 100 * $right / $looked ) : 0, $placed ? round( 100 * ( $right - $bands['none']['right'] ) / $placed ) : 0 );
+if ( $with_model ) {
+    // A doubt answered right is a picture in the rules' folder or left alone; the none band already counts a doubt left alone on a no-folder truth as right, so only the placed half is added.
+    $doubt_placed_right = 0;
+    foreach ( $truth_tid as $id => $want ) {
+        if ( isset( $picks[ $id ] ) && 'doubt' === $picks[ $id ]['why'] && $want && $want === (int) $picks[ $id ]['nearest'] ) {
+            $doubt_placed_right++;
+        }
+    }
+    $answered = $right + $tiers['questions_right'] + $doubt_placed_right;
+    $line    .= sprintf( ' · agree %d · doubt %d (X or nowhere right %d) · questions %d (right among the two %d) · with the questions answered %d of %d (%d%%) · sure right %d%%', $tiers['agree'], $tiers['doubt'], $tiers['doubt_right'], $tiers['questions'], $tiers['questions_right'], $answered, $looked, $looked ? round( 100 * $answered / $looked ) : 0, $bands['sure']['n'] ? round( 100 * $bands['sure']['right'] / $bands['sure']['n'] ) : 0 );
+}
+echo $line . "\n";
 
 uasort( $bysrc, function ( $a, $b ) { return $b['n'] <=> $a['n']; } );
 echo "\nplaced, by the source of the hit (right / broad / wrong of n):\n";
