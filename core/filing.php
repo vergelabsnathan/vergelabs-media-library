@@ -586,9 +586,13 @@ function vergeml_filing_ask_split( $folders, $vocabulary, $foreign = false ) {
             $children[ (string) $f['parent'] ] = true;
         }
     }
-    $go = array();
+    $views = vergeml_filing_draft_views( $folders );
+    $go    = array();
     foreach ( (array) $folders as $f ) {
         $key = (string) $f['key'];
+        if ( isset( $views[ $key ] ) ) {
+            continue; // A view of the tree, or under one (S16): it owns nothing, so the planner's answer would be words it cannot use.
+        }
         if ( ! $foreign && '' !== (string) $f['parent'] && ! isset( $children[ $key ] ) ) {
             continue; // A leaf under a parent: its name is its class.
         }
@@ -598,6 +602,72 @@ function vergeml_filing_ask_split( $folders, $vocabulary, $foreign = false ) {
         $go[] = $key;
     }
     return $go;
+}
+
+/**
+ *  The views of a draft (S16): vergeml_filing_views' rule on the draft's own
+ *  shape -- { key, name, parent } -- before any term exists, so the ask can
+ *  leave a view and everything under it home. A folder more than half of
+ *  whose children (a child named for an audience not counted) repeat a name
+ *  held higher in the tree is a view. Pure.
+ *
+ *  @return array key => true, for every view and every folder under one.
+ */
+function vergeml_filing_draft_views( $folders ) {
+    $by_key   = array();
+    $children = array();
+    foreach ( (array) $folders as $f ) {
+        $by_key[ (string) $f['key'] ] = $f;
+        $children[ (string) $f['parent'] ][] = (string) $f['key'];
+    }
+    $depth_of = function ( $key ) use ( $by_key ) {
+        $d = 0;
+        for ( $g = 0; '' !== $key && isset( $by_key[ $key ] ) && $g < 32; $g++ ) {
+            $d++;
+            $key = (string) $by_key[ $key ]['parent'];
+        }
+        return $d;
+    };
+    $holders = array();
+    foreach ( $by_key as $key => $f ) {
+        $holders[ vergeml_filing_canon( (string) $f['name'] ) ][ $key ] = $depth_of( $key );
+    }
+    $views = array();
+    foreach ( $children as $pid => $kids ) {
+        if ( '' === $pid || ! isset( $by_key[ $pid ] ) ) {
+            continue;
+        }
+        $repeat = 0;
+        $named  = 0;
+        foreach ( $kids as $kid ) {
+            $name = (string) $by_key[ $kid ]['name'];
+            if ( '' !== vergeml_filing_audience_of( $name ) ) {
+                continue;
+            }
+            $named++;
+            $depth = $depth_of( $kid );
+            foreach ( $holders[ vergeml_filing_canon( $name ) ] as $other => $d ) {
+                if ( $other !== $kid && $d < $depth ) {
+                    $repeat++;
+                    break;
+                }
+            }
+        }
+        if ( $repeat * 2 > $named ) {
+            $views[ $pid ] = true;
+        }
+    }
+    $out = array();
+    foreach ( $by_key as $key => $f ) {
+        for ( $k = $key, $g = 0; '' !== $k && isset( $by_key[ $k ] ) && $g < 32; $g++ ) {
+            if ( isset( $views[ $k ] ) ) {
+                $out[ $key ] = true;
+                break;
+            }
+            $k = (string) $by_key[ $k ]['parent'];
+        }
+    }
+    return $out;
 }
 
 /** The site's language is not the describer's (English): its folder names will not be the pictures' words. */

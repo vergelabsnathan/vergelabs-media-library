@@ -362,6 +362,24 @@ f_check( '24 of ten folders five go: Audio, Bags & Luggage, Kids, Women, Garden 
  */
 $goes = vergeml_filing_ask_split( $tree, $vocab, true );
 f_check( '24b the same tree on a site in another language: the leaves no picture names go too (Backpacks, Blouses), Headphones still stays', array( 'audio', 'bags', 'backpacks', 'kids', 'women', 'blouses', 'garden' ) === $goes, json_encode( $goes ) );
+/*
+ *  A view stays home (S16, S15's follow-up): the ask sent "sale" and
+ *  "nieuwe collectie" to the planner and got the library's vocabulary back
+ *  as 24 classes the view then could not use (a view owns nothing). A
+ *  folder more than half of whose children repeat names held higher in the
+ *  tree, and everything under it, is left out of the ask -- on the draft's
+ *  own shape (key, name, parent), before any term exists. Mutation: the
+ *  view skip removed -> row 24c red (sale and its home go).
+ */
+$hema = array_merge( $tree, array(
+    array( 'key' => 'sale', 'name' => 'Sale', 'parent' => '' ),                 // 2 of 3 children repeat top-level names: a view, stays home
+    array( 'key' => 'sale-audio', 'name' => 'Audio', 'parent' => 'sale' ),      // under the view: home
+    array( 'key' => 'sale-garden', 'name' => 'Garden', 'parent' => 'sale' ),    // under the view: home
+    array( 'key' => 'sale-gifts', 'name' => 'Gifts', 'parent' => 'sale' ),      // under the view: home
+    array( 'key' => 'sale-garden-pots', 'name' => 'Pots', 'parent' => 'sale-garden' ), // under the view: home
+) );
+$goes = vergeml_filing_ask_split( $hema, $vocab );
+f_check( '24c a view and everything under it stay home: the five go as before, none of Sale\'s', array( 'audio', 'bags', 'kids', 'women', 'garden' ) === $goes, json_encode( $goes ) );
 
 /*
  *  An answer is a decision (2026-09-17, Nathan on the shop: "every fill
