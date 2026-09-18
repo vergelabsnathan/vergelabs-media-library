@@ -13,7 +13,7 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 
 | | count |
 |---|---|
-| PHP output sites with a non-literal argument | 183 |
+| PHP output sites with a non-literal argument | 185 |
 | · of those, read by hand with the reason | 8 |
 | · of those, **nothing accounted for them** | **0** |
 | JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 65 |
@@ -99,21 +99,21 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-autofile.js:43 | `innerHTML` | a literal | `''` |
 | js/vergeml-autofile.js:156 | `innerHTML` | a literal | `''` |
 | js/vergeml-brief.js:206 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:275 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:300 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:517 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:522 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:553 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:572 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:781 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:852 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1064 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1115 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1232 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1237 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1947 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1990 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2000 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:290 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:315 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:532 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:537 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:568 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:587 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:814 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:899 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1111 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1162 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1279 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1284 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1994 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2037 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2047 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |
