@@ -125,10 +125,13 @@ Both fully specified in `_bmad-output/planning-artifacts/epics.md` (Files,
 Behaviour, Proof, Mirror, Copy, Do not, Cost, Stop points); sprint status has
 them `backlog`. Run `bmad-build` on each; each opens on one of Nathan's:
 
-- **1.2** — a fresh WordPress on MySQL beside `/var/www/ms2`: does the box
-  have room and a **hostname** for it (DNS is Nathan's if it needs one)? Cost
-  ≤ €0.05 only if the twenty pictures are described; manual moves cost
-  nothing. Whether the fixture stays up afterwards.
+- **1.2** — a fresh WordPress on MySQL beside `/var/www/ms2`. Hostname
+  answered 2026-09-19 (Nathan: "just the box"): the box's sites are nip.io
+  names (`ms2.46.225.66.194.nip.io`, `ms.…`, `upd.…`), so the fixture is
+  `upg.46.225.66.194.nip.io` → `/var/www/upg`, database `wpupg`, an nginx
+  block copied from `upd`'s; 21 GB disk and 5.8 GB memory free, PHP 8.5.4,
+  wp-cli 2.12. Cost ≤ €0.05 only if the twenty pictures are described; manual
+  moves cost nothing. Whether the fixture stays up afterwards.
 - **1.3** — `VGMLPRO_SEATS_KEY` and `VGMLPRO_EXPIRED_KEY` in the environment
   for Pro's box suites (issued by `service/scripts/issue-box-licence.ts`, no
   money); the proof itself is the archive leg in Playground, no cost.
