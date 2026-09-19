@@ -69,6 +69,8 @@ context:
 
 ## Implementation Notes
 
+- After the code review (68fd127): fixture re-armed twice more. With a hand-shaped draft the Folders screen answered **500** (`TypeError … core/guide.php:1255`) — 3.16.1 never writes that shape, so the fixture now builds its draft through `vergeml_guide_clean_draft()`; 4.0.0 fatalling on a malformed draft is on the record. Frozen `alts 20 · postmeta 40 · index 20 (all columns)`; box **31/31 passed**, 0 differences, Folders screen 200 logged in; smoke **27/27** on PHP 8.5 against the tree; the ai.php fix reverted → smoke 26/27 red on the exact line, restored → green.
+
 - After review (8f9bf53): fixture re-armed from empty with `reset`; frozen `terms 3 · termmeta 0 · rels 6 · alts 20 · batches 1 · moves 6 · index 20 · posts 20 · debug.log 53 lines`; 4.0.0 in through `wp plugin install --force`; `node tools/verify.mjs upgrade-3161` **27/27 passed** with `every row the customer had reads the same (0 differences)` and `114 new lines, 8 known (4.0.0 implicit-nullable, fixed for 4.0.1)`; smoke **25/25, 0 differences** on PHP 8.5 against the tree's zip. Mutation: one alt text altered → `FAIL … alts gone: ["4","Mock alt for …"]`, restored → 27/27.
 
 - 2026-09-19 14:10–14:45Z. Fixture `upg.46.225.66.194.nip.io` created by `tools/box-upgrade-site.sh create` (`/var/www/upg`, `wpupg`, admin `vgmls22`, password in `/root/.upg-admin-pass` on the box, nginx block from `upd`'s). Kept up (Nathan).
@@ -109,6 +111,28 @@ context:
 | 21 | snap_rows casts a failed query to [] (gap) | low | 0 differences on both sides | patch: exit 1 on a failed query |
 | 22 | The new side should be the tree, not ../dist (gap) | — | same as 8 | — |
 | 23 | Deprecation fix has no changelog line (blind) | low | readme changelog is Nathan's copy | defer: the 4.0.1 changelog entry, with FR10 and FR12 |
+
+### Second pass (bmad-code-review, four layers)
+
+| # | Finding (layer) | Verdict | Evidence | Route |
+|---|---|---|---|---|
+| 24 | The known-deprecation allowance applied in the smoke: a revert of the ai.php fix shipped green (gap) | high | reverted, smoke stayed green | patch: allowance only off-smoke and only at 4.0.0; revert now red (26/27, the line) |
+| 25 | vars quoting "'''" is three quotes in JS (blind, edge, gap, acceptance) | low | dormant today | patch: POSIX idiom |
+| 26 | Snapshot provenance unasserted; a post-swap freeze compares 4.0.0 to itself (acceptance) | high | moving printed, never asserted | patch: frozen under 3.16.1 at schema 3, two checks |
+| 27 | Index frozen in 6 of 21 columns; posts in 5; termmeta without meta_id; attachment meta absent (blind, edge, acceptance) | high | descriptions and embeddings uncompared | patch: all columns, hashes for blobs, postmeta table added |
+| 28 | array_diff blind to a lost duplicate (edge, acceptance) | medium | set compare | patch: counted rows |
+| 29 | Draft hand-shaped, not 3.16.1's writer's (blind) | high — it also found a 4.0.0 500 | Folders screen 500 on a draft of strings, guide.php:1255 | patch: draft through vergeml_guide_clean_draft; 4.0.0's crash on a malformed draft on the record |
+| 30 | Folders screen load not in a registered path (acceptance) | medium | only upload.php unauthenticated | patch: logged-in request to the screen, 200 and not the login form |
+| 31 | Smoke pictures from a gitignored dir; 3.16.1 zip unpinned (blind, acceptance) | medium | fresh clone exits 2 | patch: twenty generated PNGs; sha256 pinned |
+| 32 | Smoke never asserts the swap; bail lines not red; no error handler; work dir kept (blind, edge) | low | — | patch |
+| 33 | create not idempotent after a failed nginx step; db_pass under set -e (blind, edge) | low | — | patch: symlink in the exists test; grep || true |
+| 34 | include $compare runs in the suite's scope (blind) | low | $p reused by coincidence | patch: closure |
+| 35 | $lib['schema'] / $s['tree'] without isset (blind, edge) | low | a notice would trip the log check | patch: ?? |
+| 36 | Fixture: get_posts order, described/filed short exits, taxonomy must be media_category, sideload errors (edge) | low | — | patch |
+| 37 | Box path: the suite's own CLI boot provisions before it checks the lock (acceptance) | medium | vergelabs-media-library.php:430 | defer: true; the admin load is by hand and the screen check covers the customer's path after it; a one-command walk is already deferred |
+| 38 | Matrix row "No session" untested (acceptance) | low | fixture always plants one | defer: a second smoke variant |
+| 39 | Stale header path /tmp (acceptance) | low | — | patch |
+| 40 | Changelog line for the fix (blind) | low | Nathan's copy | defer: already in deferred-work |
 
 
 ## Verification

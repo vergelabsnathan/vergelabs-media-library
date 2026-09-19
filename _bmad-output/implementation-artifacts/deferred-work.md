@@ -10,3 +10,9 @@
 - source_spec: `spec-1-2-a-3-16-1-site-upgrades-in-place.md`
   summary: the 4.0.1 changelog names the PHP 8.4+ deprecation fix (core/ai.php vergeml_ai_rest_status), beside FR10 and FR12.
   evidence: readme copy is Nathan's; the fix is in the tree since 6dc3223.
+- source_spec: `spec-1-2-a-3-16-1-site-upgrades-in-place.md`
+  summary: 4.0.0's Folders screen answers 500 on a stored draft whose folders are strings (core/guide.php:1255 reads $f['key'] on a string); a malformed session should be discarded, not fatal.
+  evidence: seen on the fixture with a hand-shaped draft on 2026-09-19; 3.16.1's own writer never produces that shape, so no customer path reaches it today.
+- source_spec: `spec-1-2-a-3-16-1-site-upgrades-in-place.md`
+  summary: a second smoke variant that swaps 4.0.0 over a site with no vergeml_guide_session (the matrix's "No session" row).
+  evidence: the fixture always plants a session; the row is asserted nowhere.
