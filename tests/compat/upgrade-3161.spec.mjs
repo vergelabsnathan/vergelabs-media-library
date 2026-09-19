@@ -22,6 +22,7 @@
  *  nothing a runPHP step says (pro/tools/verify.mjs learned that first).
  */
 import { execSync, spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -34,12 +35,25 @@ const OLD = path.join( DIST, 'vergelabs-media-library-3.16.1.zip' );
 // so a fix in the tree is what the smoke swaps in -- not a hand-cut archive.
 const NEW = path.join( ROOT, 'playground', 'vergelabs-media-library.zip' );
 
-execSync( 'node tools/deploy.mjs --zip', { cwd: ROOT, stdio: 'inherit' } );
+try {
+	execSync( 'node tools/deploy.mjs --zip', { cwd: ROOT, stdio: 'inherit' } );
+} catch ( e ) {
+	console.log( 'could not build the tree\'s zip' );
+	process.exit( 1 );
+}
+// The 3.16.1 side is the archive customers had, pinned by hash so a re-cut
+// or a different build cannot stand in for it silently.
+const OLD_SHA = '7f2a4fe9bee98b249243b4188252a628437d1b8d9059a18aa8807196984b389a';
 for ( const z of [ OLD, NEW ] ) {
 	if ( ! fs.existsSync( z ) ) {
 		console.log( `missing ${ z }` );
 		process.exit( 2 );
 	}
+}
+const oldSha = createHash( 'sha256' ).update( fs.readFileSync( OLD ) ).digest( 'hex' );
+if ( oldSha !== OLD_SHA ) {
+	console.log( `the 3.16.1 zip is not the served build: sha256 ${ oldSha.slice( 0, 12 ) }, expected ${ OLD_SHA.slice( 0, 12 ) }` );
+	process.exit( 2 );
 }
 
 // A scratch directory in plain ASCII: the repo's own path carries a character
@@ -51,16 +65,16 @@ fs.mkdirSync( out );
 fs.copyFileSync( OLD, path.join( work, 'old.zip' ) );
 fs.copyFileSync( NEW, path.join( work, 'new.zip' ) );
 
-// Twenty pictures: the repo's own screenshots, copied under plain names.
+// Twenty pictures, made here: a valid 1x1 PNG under twenty names, so the
+// smoke depends on nothing outside the repo (tests/**/shots is ignored). The
+// mock describer reads the file name, not the pixels, and names are what the
+// snapshot compares.
 const pics = path.join( work, 'pics' );
 fs.mkdirSync( pics );
-const shotsDir = path.join( ROOT, 'tests', 'tree', 'shots' );
-const shots = fs.existsSync( shotsDir ) ? fs.readdirSync( shotsDir ).filter( ( f ) => f.endsWith( '.png' ) ).slice( 0, 20 ) : [];
-if ( shots.length < 20 ) {
-	console.log( `need twenty .png in ${ shotsDir }, found ${ shots.length }` );
-	process.exit( 2 );
-}
-shots.forEach( ( f, i ) => fs.copyFileSync( path.join( ROOT, 'tests', 'tree', 'shots', f ), path.join( pics, `picture-${ String( i + 1 ).padStart( 2, '0' ) }.png` ) ) );
+const PNG = Buffer.from( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64' );
+const NAMES = [ 'red-hoodie', 'blue-jeans', 'summer-dress', 'leather-boots', 'wool-scarf', 'team-photo', 'portrait-anna', 'portrait-ben', 'crowd-market', 'family-picnic',
+	'harbour-dawn', 'mountain-pass', 'old-town-square', 'beach-evening', 'forest-path', 'invoice-scan', 'floor-plan', 'logo-mark', 'chart-q3', 'whiteboard-notes' ];
+NAMES.forEach( ( n, i ) => fs.writeFileSync( path.join( pics, `${ String( i + 1 ).padStart( 2, '0' ) }-${ n }.png` ), PNG ) );
 
 const compat = path.join( work, 'compat' );
 fs.mkdirSync( compat );
@@ -112,16 +126,28 @@ const p = spawn( 'npx', args, { stdio: [ 'ignore', 'pipe', 'pipe' ], shell: 'win
 let log = '';
 p.stdout.on( 'data', ( c ) => ( log += c ) );
 p.stderr.on( 'data', ( c ) => ( log += c ) );
+p.on( 'error', ( e ) => {
+	console.log( `  playground could not start: ${ e.message }` );
+	process.exit( 1 );
+} );
 p.on( 'close', ( code ) => {
 	fs.writeFileSync( path.join( work, 'playground.log' ), log );
 	console.log( `  playground exited ${ code } in ${ Math.round( ( Date.now() - started ) / 1000 ) }s` );
 	let ok = 0 === code;
+	// A stage that bailed says so in its own words; those words are red here.
+	const BAIL = /Fatal error|Uncaught|FAIL |LAST ERROR|fewer than twenty|no pictures at|described \d+ of 20|filed \d+ of 6|query failed|could not write|no usable snapshot|the folder taxonomy is/;
 	for ( const f of fs.readdirSync( out ).filter( ( f ) => f.endsWith( '.txt' ) ).sort() ) {
 		const text = fs.readFileSync( path.join( out, f ), 'utf8' );
 		console.log( `\n──── ${ f }\n${ text.trim() }` );
-		if ( /Fatal error|Uncaught|FAIL /.test( text ) ) {
+		if ( BAIL.test( text ) ) {
 			ok = false;
 		}
+	}
+	// The swap itself: the upgrader said true, the plugin stayed active, the header moved.
+	const inst = fs.existsSync( path.join( out, '3-install.txt' ) ) ? fs.readFileSync( path.join( out, '3-install.txt' ), 'utf8' ) : '';
+	if ( ! /install: true/.test( inst ) || ! /active after: yes/.test( inst ) || ! /header: 4\./.test( inst ) ) {
+		console.log( '  the swap did not report install: true / active after: yes / header: 4.x' );
+		ok = false;
 	}
 	const suite = fs.existsSync( path.join( out, '5-suite.txt' ) ) ? fs.readFileSync( path.join( out, '5-suite.txt' ), 'utf8' ) : '';
 	const m = suite.match( /(\d+)\/(\d+) passed/ );
@@ -133,5 +159,11 @@ p.on( 'close', ( code ) => {
 		ok = false;
 	}
 	console.log( `\n  ${ ok ? 'SMOKE GREEN' : 'SMOKE RED' } — ${ m ? m[ 0 ] : 'no passed line' }; ${ ( cmp.match( /\d+ differences/ ) || [ 'no compare line' ] )[ 0 ] }` );
+	// A green run leaves nothing behind; a red one keeps its work directory for reading.
+	if ( ok ) {
+		fs.rmSync( work, { recursive: true, force: true } );
+	} else {
+		console.log( `  kept: ${ work }` );
+	}
 	process.exit( ok ? 0 : 1 );
 } );

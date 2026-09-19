@@ -9,8 +9,10 @@
  *  under test deleted a hundred real alt texts on the box once
  *  (tools/box-shop-untree.php carries the same rule). Every column a customer
  *  could lose: the folders and their meta, every relationship, every alt text,
- *  both librarian tables in the columns 3.16.1 had, the index rows, the
- *  attachments, the Folders session and the two settings options. The compare
+ *  the attachment meta (file, sizes, placed-by, autonomy -- by hash), both
+ *  librarian tables in the columns 3.16.1 had, the index in all its columns
+ *  (embedding and projection by hash), the attachments, the Folders session
+ *  and the two settings options. The compare
  *  prints each difference and ends with `N differences`; upgrade-3161.php
  *  reads the same file and repeats the comparison as checks of its own.
  *
@@ -31,7 +33,9 @@ function snap_rows( $sql ) {
 	global $wpdb;
 	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 	$rows = $wpdb->get_results( $sql, ARRAY_A );
-	if ( ! is_array( $rows ) ) {
+	if ( ! is_array( $rows ) || '' !== (string) $wpdb->last_error ) {
+		echo '  ' . $wpdb->last_error . "
+";
 		echo "  query failed: $sql\n";
 		exit( 1 );
 	}
@@ -49,17 +53,18 @@ function snap_norm( $v ) {
 	return $v;
 }
 
-const VGML_SNAP_TABLES = array( 'terms', 'termmeta', 'rels', 'alts', 'batches', 'moves', 'index', 'posts' );
+const VGML_SNAP_TABLES = array( 'terms', 'termmeta', 'rels', 'alts', 'postmeta', 'batches', 'moves', 'index', 'posts' );
 
 $state = array(
 	'terms'    => snap_rows( "SELECT t.term_id, t.name, t.slug, tt.taxonomy, tt.parent, tt.description, tt.count FROM {$p}terms t JOIN {$p}term_taxonomy tt ON tt.term_id = t.term_id WHERE tt.taxonomy = 'media_category' ORDER BY t.term_id" ),
-	'termmeta' => snap_rows( "SELECT tm.term_id, tm.meta_key, tm.meta_value FROM {$p}termmeta tm JOIN {$p}term_taxonomy tt ON tt.term_id = tm.term_id WHERE tt.taxonomy = 'media_category' ORDER BY tm.term_id, tm.meta_key, tm.meta_id" ),
+	'termmeta' => snap_rows( "SELECT tm.meta_id, tm.term_id, tm.meta_key, tm.meta_value FROM {$p}termmeta tm JOIN {$p}term_taxonomy tt ON tt.term_id = tm.term_id WHERE tt.taxonomy = 'media_category' ORDER BY tm.term_id, tm.meta_key, tm.meta_id" ),
 	'rels'     => snap_rows( "SELECT tr.object_id, tt.term_id FROM {$p}term_relationships tr JOIN {$p}term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tt.taxonomy = 'media_category' ORDER BY tr.object_id, tt.term_id" ),
 	'alts'     => snap_rows( "SELECT post_id, meta_value FROM {$p}postmeta WHERE meta_key = '_wp_attachment_image_alt' ORDER BY post_id" ),
+	'postmeta' => snap_rows( "SELECT post_id, meta_key, MD5(meta_value) FROM {$p}postmeta WHERE meta_key IN ('_wp_attached_file', '_wp_attachment_metadata', '_vergeml_placed_by', '_vergeml_autonomy') ORDER BY post_id, meta_key" ),
 	'batches'  => snap_rows( "SELECT batch_id, run_id, scheme, status, step_cursor, done_n, skip_n, params, reason, user_id, approved_at, created_at FROM {$p}vergeml_librarian_batches ORDER BY batch_id" ),
 	'moves'    => snap_rows( "SELECT move_id, batch_id, attachment_id, term_id, term_created, undone, why, score, runner_up, runner_score, prompt_hash, model_version, nearest FROM {$p}vergeml_librarian_moves ORDER BY move_id" ),
-	'index'    => snap_rows( "SELECT attachment_id, model, alt, locked, error, described_at FROM {$p}vergeml_ai_index ORDER BY attachment_id" ),
-	'posts'    => snap_rows( "SELECT ID, post_title, post_name, post_mime_type, post_parent FROM {$p}posts WHERE post_type = 'attachment' ORDER BY ID" ),
+	'index'    => snap_rows( "SELECT attachment_id, caption, alt, title, tags, kind, has_people, has_text, document_type, filing, orientation, MD5(embedding), embedding_dims, MD5(projection), model, model_version, prompt_hash, locked, error, described_at FROM {$p}vergeml_ai_index ORDER BY attachment_id" ),
+	'posts'    => snap_rows( "SELECT ID, post_title, post_name, post_excerpt, post_content, guid, post_mime_type, post_parent, post_status FROM {$p}posts WHERE post_type = 'attachment' ORDER BY ID" ),
 	'options'  => array(
 		'guide'      => (array) get_option( 'vergeml_guide_session', array() ),
 		'ai'         => (array) get_option( 'vergeml_ai', array() ),
@@ -75,7 +80,11 @@ $state['moving'] = array(
 );
 
 if ( ! getenv( 'VGML_COMPARE' ) ) {
-	file_put_contents( $file, wp_json_encode( $state, JSON_PRETTY_PRINT ) );
+	if ( false === file_put_contents( $file, wp_json_encode( $state, JSON_PRETTY_PRINT ) ) ) {
+		echo "could not write $file
+";
+		exit( 1 );
+	}
 	foreach ( VGML_SNAP_TABLES as $k ) {
 		echo str_pad( $k, 10 ) . count( $state[ $k ] ) . "\n";
 	}
@@ -93,15 +102,20 @@ if ( ! is_array( $before ) || ! isset( $before['options'] ) ) {
 
 $diffs = 0;
 foreach ( VGML_SNAP_TABLES as $k ) {
-	$a = array_map( 'wp_json_encode', (array) ( $before[ $k ] ?? array() ) );
-	$b = array_map( 'wp_json_encode', $state[ $k ] );
-	foreach ( array_diff( $a, $b ) as $row ) {
-		echo "  $k gone:  $row\n";
-		$diffs++;
+	// Counted, not set-compared: a lost duplicate row is a difference too.
+	$a = array_count_values( array_map( 'wp_json_encode', (array) ( $before[ $k ] ?? array() ) ) );
+	$b = array_count_values( array_map( 'wp_json_encode', $state[ $k ] ) );
+	foreach ( $a as $row => $n ) {
+		if ( ( $b[ $row ] ?? 0 ) < $n ) {
+			echo "  $k gone:  $row\n";
+			$diffs += $n - ( $b[ $row ] ?? 0 );
+		}
 	}
-	foreach ( array_diff( $b, $a ) as $row ) {
-		echo "  $k new:   $row\n";
-		$diffs++;
+	foreach ( $b as $row => $n ) {
+		if ( ( $a[ $row ] ?? 0 ) < $n ) {
+			echo "  $k new:   $row\n";
+			$diffs += $n - ( $a[ $row ] ?? 0 );
+		}
 	}
 }
 // An option may gain keys on upgrade (4.0.0 merges the fresh shape into the

@@ -29,10 +29,10 @@ ADMIN=vgmls22
 NGINX=/etc/nginx/sites-available/$SITE
 MIRROR=/var/www/upd/wp-config.php
 
-db_pass() { grep "DB_PASSWORD" "$MIRROR" | sed -E "s/.*'DB_PASSWORD', *'([^']*)'.*/\1/"; }
+db_pass() { { grep "DB_PASSWORD" "$MIRROR" 2>/dev/null || true; } | sed -E "s/.*'DB_PASSWORD', *'([^']*)'.*/\1/"; }
 
 create() {
-  if wp core is-installed --path="$ROOT" --allow-root 2>/dev/null; then
+  if wp core is-installed --path="$ROOT" --allow-root 2>/dev/null && [ -L /etc/nginx/sites-enabled/$SITE ]; then
     echo "exists: $URL ($ROOT, $DB)"; return 0
   fi
   DBPASS=$(db_pass)
@@ -48,10 +48,12 @@ define( 'WP_DEBUG_LOG', true );
 define( 'WP_DEBUG_DISPLAY', false );
 PHP
   fi
+  if ! wp core is-installed --path="$ROOT" --allow-root 2>/dev/null; then
   PASS=$(openssl rand -hex 12)
   wp core install --path="$ROOT" --url="$URL" --title="Upgrade fixture" --admin_user="$ADMIN" --admin_password="$PASS" \
     --admin_email="$ADMIN@vergelabs.nl" --skip-email --allow-root --quiet
   echo "$PASS" > "/root/.$SITE-admin-pass"; chmod 600 "/root/.$SITE-admin-pass"
+  fi
   sed -e "s#upd.46.225.66.194.nip.io#$HOST#" -e "s#/var/www/upd#$ROOT#" /etc/nginx/sites-enabled/upd > "$NGINX"
   ln -sf "$NGINX" /etc/nginx/sites-enabled/$SITE
   nginx -t -q || { echo "nginx refused the $SITE block"; exit 1; }

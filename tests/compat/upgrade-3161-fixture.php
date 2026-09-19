@@ -41,12 +41,12 @@ fx( 'mock', vergeml_ai_ready() ? 'on, ready' : 'on, NOT ready' );
 
 $tax = vergeml_librarian_taxonomy();
 fx( 'taxonomy', $tax );
-if ( '' === $tax ) {
-	echo "no folder taxonomy\n";
+if ( 'media_category' !== $tax ) {
+	echo "the folder taxonomy is '$tax'; the snapshot and the suite read media_category\n";
 	exit( 1 );
 }
 
-$have = get_posts( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => -1, 'fields' => 'ids' ) );
+$have = get_posts( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => -1, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'ASC' ) );
 if ( count( $have ) < 20 ) {
 	$dir   = getenv( 'VGML_PICTURES' ) ?: '/tmp/vgml-upg-pics';
 	if ( ! is_dir( $dir ) ) {
@@ -68,10 +68,13 @@ if ( count( $have ) < 20 ) {
 		$id = media_handle_sideload( array( 'name' => basename( $f ), 'tmp_name' => $tmp ), 0 );
 		if ( ! is_wp_error( $id ) ) {
 			$have[] = (int) $id;
+		} else {
+			echo '  sideload: ' . $id->get_error_message() . "\n";
 		}
 	}
 }
 $have = array_map( 'intval', $have );
+sort( $have );
 fx( 'pictures', count( $have ) );
 if ( count( $have ) < 20 ) {
 	echo "fewer than twenty pictures\n";
@@ -101,6 +104,10 @@ foreach ( $out as $id => $d ) {
 	}
 }
 fx( 'described', $described );
+if ( 20 !== $described ) {
+	echo "described $described of 20\n";
+	exit( 1 );
+}
 
 $filed = 0;
 foreach ( array_slice( $have, 0, 6 ) as $i => $id ) {
@@ -117,10 +124,19 @@ foreach ( array_slice( $have, 0, 6 ) as $i => $id ) {
 	}
 }
 fx( 'filed', $filed );
+if ( 6 !== $filed ) {
+	echo "filed $filed of 6\n";
+	exit( 1 );
+}
 
 // A session with something in it, so the merge on the other side has
 // something to lose: two turns, a draft naming the fixture's folders, a
-// summary. The keys are 3.16.1's own (vergeml_guide_fresh at 348c841).
+// summary. The keys are 3.16.1's own (vergeml_guide_fresh at 348c841) and the
+// draft goes through 3.16.1's own cleaner, so its folders have the shape a
+// real session stores -- key, term_id, name, parent, classes, kinds. A draft
+// of bare strings is not something 3.16.1 ever writes (and 4.0.0's Folders
+// screen answers 500 on one, core/guide.php:1255 -- on the record, not this
+// story's).
 $session = vergeml_guide_fresh();
 $session['turns'] = array(
 	array( 'role' => 'user', 'text' => 'Products, People and Places' ),
@@ -129,7 +145,15 @@ $session['turns'] = array(
 $session['assistant_turns'] = 1;
 $session['summary']         = 'A small library: products, people, places.';
 $session['summary_key']     = 'fixture-3161';
-$session['draft']           = array( 'folders' => array( 'Products', 'People', 'Places' ), 'term_ids' => $folders );
+$draft_in = array( 'folders' => array() );
+foreach ( array( 'Products', 'People', 'Places' ) as $i => $name ) {
+	$draft_in['folders'][] = array( 'key' => 'f' . ( $i + 1 ), 'term_id' => $folders[ $i ], 'name' => $name, 'parent' => '', 'classes' => array( strtolower( $name ) ), 'kinds' => array( 'photo' ) );
+}
+$session['draft'] = vergeml_guide_clean_draft( $draft_in );
+if ( ! is_array( $session['draft'] ) || 3 !== count( $session['draft']['folders'] ) ) {
+	echo "the cleaner did not accept the draft\n";
+	exit( 1 );
+}
 vergeml_guide_save( $session );
 $s = get_option( VERGEML_GUIDE_OPTION );
 fx( 'session', is_array( $s ) ? 'v' . $s['version'] . ( isset( $s['tree'] ) ? ' with tree' : ' no tree key' ) : 'none' );

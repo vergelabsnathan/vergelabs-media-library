@@ -6,7 +6,7 @@
  *  site that upgrade-3161-fixture.php built under 3.16.1 and
  *  upgrade-3161-snapshot.php froze:
  *
- *      VGML_SNAP=/tmp/vgml-upg.json wp eval-file tests/compat/upgrade-3161.php --allow-root
+ *      VGML_SNAP=/root/vgml-upg.json wp eval-file tests/compat/upgrade-3161.php --allow-root
  *
  *  The librarian schema went 3 -> 4 (`source`, `hit` on moves); the guide
  *  session gained a `tree` key (4.0.0 merges a version-2 session with its
@@ -38,7 +38,7 @@ up( 'the plugin is a 4.x', 0 === strpos( VERGEML_VERSION, '4.' ), VERGEML_VERSIO
 up( 'vergeml_version moved to the running version', get_option( 'vergeml_version' ) === VERGEML_VERSION, (string) get_option( 'vergeml_version' ) );
 
 $lib = get_option( 'vergeml_librarian' );
-up( 'librarian schema is the code\'s', is_array( $lib ) && VERGEML_LIBRARIAN_VERSION === (int) $lib['schema'], is_array( $lib ) ? (string) $lib['schema'] : 'none' );
+up( 'librarian schema is the code\'s', is_array( $lib ) && VERGEML_LIBRARIAN_VERSION === (int) ( $lib['schema'] ?? 0 ), (string) ( $lib['schema'] ?? 'none' ) );
 up( 'and the code\'s is at least 4 (source, hit)', VERGEML_LIBRARIAN_VERSION >= 4, (string) VERGEML_LIBRARIAN_VERSION );
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery
@@ -53,6 +53,12 @@ up( 'the snapshot is there', is_array( $snap ) && isset( $snap['moves'], $snap['
 $old_moves = is_array( $snap ) && isset( $snap['moves'] ) ? count( $snap['moves'] ) : 0;
 up( 'the snapshot had at least five moves', $old_moves >= 5, (string) $old_moves );
 up( 'and at least one batch', is_array( $snap ) && isset( $snap['batches'] ) && count( $snap['batches'] ) >= 1 );
+// Provenance: the baseline must have been frozen under 3.16.1, before the swap.
+// A snapshot taken after would compare 4.0.0 with itself and say 0 differences.
+$frozen_v = (string) ( $snap['moving']['vergeml_version'] ?? '' );
+$frozen_s = (int) ( $snap['moving']['vergeml_librarian']['schema'] ?? 0 );
+up( 'the snapshot was frozen under 3.16.1', 0 === strpos( $frozen_v, '3.16.1' ), $frozen_v ?: 'none' );
+up( 'with the librarian at schema 3', 3 === $frozen_s, (string) $frozen_s );
 $now_moves = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}vergeml_librarian_moves" );
 up( 'every old move row is still there', $now_moves === $old_moves, "$now_moves of $old_moves" );
 $new_cols_empty = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}vergeml_librarian_moves WHERE source = '' AND hit = ''" );
@@ -73,7 +79,9 @@ if ( file_exists( $compare ) ) {
 	putenv( 'VGML_SNAP=' . $snap_file );
 	putenv( 'VGML_COMPARE=1' );
 	ob_start();
-	include $compare;
+	( function () use ( $compare ) {
+		include $compare;
+	} )();
 	$said = ob_get_clean();
 	putenv( 'VGML_COMPARE' );
 	$n = preg_match( '/(\d+) differences/', $said, $m ) ? (int) $m[1] : -1;
@@ -87,7 +95,7 @@ if ( ! getenv( 'VGML_SMOKE' ) ) {
 
 $s = vergeml_guide_session();
 up( 'the Folders session reads through 4.0.0', is_array( $s ) && 2 === (int) $s['version'] );
-up( 'and its tree is editing', is_array( $s ) && 'editing' === $s['tree'], is_array( $s ) ? (string) $s['tree'] : 'none' );
+up( 'and its tree is editing', is_array( $s ) && 'editing' === ( $s['tree'] ?? null ), (string) ( $s['tree'] ?? 'none' ) );
 $raw = get_option( 'vergeml_guide_session' );
 up( 'the stored session was 3.16.1\'s (no tree key of its own, or editing)', is_array( $raw ) && ( ! isset( $raw['tree'] ) || 'editing' === $raw['tree'] ) );
 
@@ -102,12 +110,14 @@ $all   = file_exists( $log ) ? file( $log ) : array();
 up( 'debug.log did not shrink since the snapshot', count( $all ) >= $since, count( $all ) . ' vs ' . $since );
 $lines = array_slice( $all, $since );
 $mine  = preg_grep( '#vergelabs-media-library/#', $lines );
-// The one line 4.0.0 is known to write on PHP 8.4+: the implicit-nullable
-// parameter of vergeml_ai_rest_status(), fixed in the tree on 2026-09-19 and
-// shipping with 4.0.1. The fixture runs the archive customers have, so it is
-// named here rather than hidden; anything else the plugin writes is a failure.
-// Remove this allowance once the fixture is on 4.0.1.
-$known = preg_grep( '#vergeml_ai_rest_status\(\): Implicitly marking parameter#', $mine );
+// The one line the 4.0.0 archive is known to write on PHP 8.4+: the
+// implicit-nullable parameter of vergeml_ai_rest_status(), fixed in the tree
+// on 2026-09-19 and shipping with 4.0.1. Named, not hidden, and only where
+// the archive runs: on the box fixture while it is on 4.0.0. The smoke runs
+// the tree's own zip, where the line must not appear at all -- a revert of
+// the fix turns the smoke red. Retires itself when the fixture moves on.
+$allow = ! getenv( 'VGML_SMOKE' ) && '4.0.0' === VERGEML_VERSION;
+$known = $allow ? preg_grep( '#vergeml_ai_rest_status\(\): Implicitly marking parameter#', $mine ) : array();
 $other = array_diff_key( $mine, $known );
 up( 'debug.log carries no unexpected line from the plugin since the snapshot', ! $other, $other ? trim( reset( $other ) ) : ( count( $lines ) . ' new lines' . ( $known ? ', ' . count( $known ) . ' known (4.0.0 implicit-nullable, fixed for 4.0.1)' : ', none ours' ) ) );
 
@@ -118,6 +128,22 @@ if ( ! getenv( 'VGML_SMOKE' ) ) {
 	$r = wp_remote_get( admin_url( 'upload.php' ), array( 'timeout' => 30, 'sslverify' => false ) );
 	$code = is_wp_error( $r ) ? $r->get_error_message() : (string) wp_remote_retrieve_response_code( $r );
 	up( 'wp-admin/upload.php answers (302 to login or 200)', in_array( $code, array( '200', '302' ), true ), $code );
+
+	// The Folders screen, logged in as the site's first administrator, through
+	// the front door: this is where a session 4.0.0 cannot read shows up as a
+	// 500 (a hand-shaped draft did exactly that on 2026-09-19).
+	$admin = get_users( array( 'role' => 'administrator', 'number' => 1, 'orderby' => 'ID', 'fields' => 'ID' ) );
+	$uid   = $admin ? (int) $admin[0] : 0;
+	$exp   = time() + 600;
+	$jar   = array(
+		new WP_Http_Cookie( array( 'name' => AUTH_COOKIE, 'value' => wp_generate_auth_cookie( $uid, $exp, 'auth' ) ) ),
+		new WP_Http_Cookie( array( 'name' => LOGGED_IN_COOKIE, 'value' => wp_generate_auth_cookie( $uid, $exp, 'logged_in' ) ) ),
+	);
+	$r    = wp_remote_get( admin_url( 'admin.php?page=media-librarian' ), array( 'timeout' => 60, 'sslverify' => false, 'cookies' => $jar ) );
+	$code = is_wp_error( $r ) ? $r->get_error_message() : (string) wp_remote_retrieve_response_code( $r );
+	$body = is_wp_error( $r ) ? '' : (string) wp_remote_retrieve_body( $r );
+	up( 'the Folders screen answers 200, logged in', '200' === $code, $code );
+	up( 'and it is the Folders screen, not the login form', false !== strpos( $body, 'page=media-librarian' ) && false === strpos( $body, 'id="loginform"' ) );
 }
 
 $total = $GLOBALS['up_pass'] + $GLOBALS['up_fail'];
