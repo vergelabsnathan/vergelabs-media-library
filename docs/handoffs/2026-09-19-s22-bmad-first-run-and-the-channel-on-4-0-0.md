@@ -1,10 +1,10 @@
-# S22 — BMAD's first run, and the channel serves 4.0.0
+# S22 — BMAD's first run, the channel serves 4.0.0, and a 3.16.1 site upgrades in place
 
 **Date:** 2026-09-19. **Model:** Opus 5. **From:**
 `docs/handoffs/2026-09-19-s21-the-estimate-and-the-small-things.md`. **Plan:**
-`plans/suite-readiness.md`, Phase 1. Plugin `65f54af` → `79d6e4c` (seven
-commits, all BMAD artefacts and docs); service `5a2fbad` → `4dfff34` (six
-commits, the shelf and one test). Nothing spent.
+`plans/suite-readiness.md`, Phase 1. Plugin `65f54af` → `50de59d`; service
+`5a2fbad` → `4dfff34` (the shelf and one test). Stories 1.1 and 1.2 done.
+Nothing spent.
 
 ## The score lines
 
@@ -101,6 +101,43 @@ the shelf and why, the one-liner that actually runs (`m.default.releases`
 under `tsx -e`), the GitHub step in a free pull-back, and the `gh` commands
 that exist.
 
+## Story 1.2 — a 3.16.1 site upgrades in place and keeps everything (done)
+
+Nathan: "the hostname is just the box" → the box's own nip.io pattern, so the
+fixture is **`upg.46.225.66.194.nip.io`** (`/var/www/upg`, MySQL `wpupg`,
+admin `vgmls22`, password in `/root/.upg-admin-pass` on the box), made by
+`tools/box-upgrade-site.sh` (`create | plugin <zip> | reset | destroy`). It
+stays up (Nathan) and `reset` re-arms it for the next schema bump.
+
+The walk: 3.16.1 in through `wp plugin install`, the state built by **3.16.1's
+own code** in mock mode — 20 pictures, 3 folders, 20 mock-described (with alt
+texts), 6 filed through `vergeml_autofile_file(…, 'accepted')` (1 batch, 6
+moves), a Folders session with two turns, a summary and a draft through
+`vergeml_guide_clean_draft` — frozen by literal SQL
+(`tests/compat/upgrade-3161-snapshot.php`, nine tables in every column,
+embeddings by hash, three options), then **`wp plugin install …4.0.0.zip
+--force`** (the `WP_Upgrader` path a customer's Upload → Replace takes), one
+admin request, then `node tools/verify.mjs upgrade-3161` → **31/31 passed**:
+schema 3 → 4 with `source` and `hit`, the six old rows at their defaults,
+**0 differences** row for row, the session opening with `tree = editing`, no
+lock, the Folders screen **200 logged in**. Playground first as the smoke
+(`upgrade-3161-smoke`, PHP 8.5 against the tree's own zip): **27/27, 0
+differences**. Mutations: one alt text altered → red on that row; the
+`ai.php` fix reverted → the smoke red on the exact line.
+
+Found by the walk: **4.0.0 on PHP 8.4+ logged a deprecation on every request**
+(`vergeml_ai_rest_status()` implicit-nullable, `core/ai.php:1995`, the only
+such site) — fixed in the tree, PHP 8.5's linter 2 → 0, ships with 4.0.1; the
+fixture runs the 4.0.0 archive so its suite names that one line as known until
+then. And **4.0.0's Folders screen answers 500 on a malformed draft** (a draft
+of strings, `guide.php:1255`) — 3.16.1 never writes that shape, so no customer
+path reaches it; on the record in `deferred-work.md`. The plan's "schema
+1 → 4" was 3 → 4, and its "confirmed tree" is 4.0.0's, not 3.16.1's.
+
+Two review passes, 40 findings triaged in the spec; commits `6dc3223`,
+`8f9bf53`, `68fd127`, `50de59d`. Screenshot
+`docs/superpowers/mocks/shots/2026-09-19-upgrade-3161-folders.png`.
+
 ## Open, and Nathan's
 
 - **The spec's frozen rollback line** names `catalogue-before.json`, whose
@@ -110,46 +147,39 @@ that exist.
 - **Which 3.16.1 is the rollback target** — the clean re-cut is on the shelf;
   the leaked build is in git at `dd07dd0^`. Overturn if you want the served
   bytes back.
-- **The sequencing note in the epics:** FR10 (plaintext key in the ticket)
-  and FR12 (CSV formula injection) are both small plugin changes that need a
-  release; cutting 4.0.1 with both *before* the wordpress.org form means
-  reviewers never see either. Your call on the order.
+- **The 4.0.1 cut, before the wordpress.org form:** FR10 (plaintext key in
+  the ticket), FR12 (CSV formula injection) and now the PHP 8.4+ deprecation
+  fix already in the tree. Your call on the order; the changelog line is yours.
 - **Pro 1.0.3** (sealing + tests, unreleased) and the missing minimum-free
   gate — when.
 - **The wordpress.org form** — still yours to send; nothing else reaches
   existing free sites.
 
-## Next — S23: stories 1.2 and 1.3
+## Next — S23: story 1.3
 
-Both fully specified in `_bmad-output/planning-artifacts/epics.md` (Files,
-Behaviour, Proof, Mirror, Copy, Do not, Cost, Stop points); sprint status has
-them `backlog`. Run `bmad-build` on each; each opens on one of Nathan's:
-
-- **1.2** — a fresh WordPress on MySQL beside `/var/www/ms2`. Hostname
-  answered 2026-09-19 (Nathan: "just the box"): the box's sites are nip.io
-  names (`ms2.46.225.66.194.nip.io`, `ms.…`, `upd.…`), so the fixture is
-  `upg.46.225.66.194.nip.io` → `/var/www/upg`, database `wpupg`, an nginx
-  block copied from `upd`'s; 21 GB disk and 5.8 GB memory free, PHP 8.5.4,
-  wp-cli 2.12. Cost ≤ €0.05 only if the twenty pictures are described; manual
-  moves cost nothing. Whether the fixture stays up afterwards.
-- **1.3** — `VGMLPRO_SEATS_KEY` and `VGMLPRO_EXPIRED_KEY` in the environment
-  for Pro's box suites (issued by `service/scripts/issue-box-licence.ts`, no
-  money); the proof itself is the archive leg in Playground, no cost.
+`_bmad-output/planning-artifacts/epics.md` story 1.3, fully specified; sprint
+status `backlog`. Run `bmad-build` on it, then `bmad-code-review`. Its stop
+point: **`VGMLPRO_SEATS_KEY` and `VGMLPRO_EXPIRED_KEY` in the environment** for
+Pro's box suites (issued by `service/scripts/issue-box-licence.ts`, a prod-DB
+step — Nathan's); the proof itself is the archive leg in Playground (free
+4.0.0 archive, then the Pro 1.0.2 archive `2a6a7946426f` — the `0825e17` build
+customers have, not pro HEAD), no cost. The fixture from 1.2 is a fine place
+for a Pro-on-4.0.0 box check too (`upg`, mock mode).
 
 Opener, cwd `plugin`:
 
 ```
 Read docs/handoffs/2026-09-19-s22-bmad-first-run-and-the-channel-on-4-0-0.md,
-then _bmad-output/planning-artifacts/epics.md (Epic 1, stories 1.2 and 1.3)
+then _bmad-output/planning-artifacts/epics.md (Epic 1, story 1.3)
 and the spine in _bmad-output/planning-artifacts/architecture/. AGENTS.md
 loads via CLAUDE.md.
 
 State which model you are and follow that profile in
 ~/.claude/harness/model-profiles.md.
 
-This session is bmad-build on story 1.2, then 1.3, then bmad-code-review on
-each. Stop points: the second site's hostname on the box (1.2); the fixture
-staying up (1.2); the two Pro keys in the environment (1.3); nothing on ms2
-or the real shop. Cost: say it before any describe run. Test first, one
-mutation per story. End with a handoff in docs/handoffs/.
+This session is bmad-build on story 1.3, then bmad-code-review. Stop points:
+the two Pro keys in the environment (Nathan's to issue); nothing on ms2 or the
+real shop; no describe run on a real library. Cost: none expected; say it if
+that changes. Test first, one mutation per story. End with a handoff in
+docs/handoffs/.
 ```
