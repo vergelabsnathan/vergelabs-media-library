@@ -632,7 +632,8 @@
 		 *  as soon as a tree stands.
 		 */
 		var cats = Number( state.facts.product_cats ) || 0;
-		if ( sells && ! hasTree && cats > 0 ) {
+		var catsOffered = sells && ! hasTree && cats > 0;
+		if ( catsOffered ) {
 			var useCats = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary vgml-cats-btn' },
 				/* translators: %s: how many product categories the site has */
 				sprintf( __( 'Use my %s product categories', 'vergelabs-media-library' ), fmt( cats ) ) );
@@ -647,8 +648,14 @@
 			dom.treeMove.appendChild( restore );
 		}
 		if ( described && licensed && ! capped() ) {
-			// Never automatic: a proposal is a planner call, and its cost is on the button.
-			var propose = el( 'button', { type: 'button', class: 'vgml-btn vgml-propose-btn' + ( hasTree ? '' : ' vgml-btn-primary' ) }, __( 'Propose folders', 'vergelabs-media-library' ) );
+			/*
+			 *  Never automatic: a proposal is a planner call, and its cost is on
+			 *  the button. It is the primary only while nothing else in the row
+			 *  is -- a shop's own categories come first, and two blue buttons
+			 *  side by side say nothing about which to press (seen on the real
+			 *  shop, 2026-09-19).
+			 */
+			var propose = el( 'button', { type: 'button', class: 'vgml-btn vgml-propose-btn' + ( hasTree || catsOffered ? '' : ' vgml-btn-primary' ) }, __( 'Propose folders', 'vergelabs-media-library' ) );
 			propose.disabled = ! canTalk() || talk.streaming();
 			propose.addEventListener( 'click', onPropose );
 			dom.treeMove.appendChild( propose );

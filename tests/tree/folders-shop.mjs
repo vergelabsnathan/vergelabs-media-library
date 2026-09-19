@@ -57,6 +57,14 @@ const primary = await page.$eval( move, ( row ) => {
 } );
 check( 'B2 it is the card\'s primary while the tree is empty', primary && primary.primary && 'Use my 9 product categories' === primary.text, JSON.stringify( primary ) );
 
+/*
+ *  Seen on the real shop, 2026-09-19: with the library described, Propose
+ *  folders draws itself as the primary too whenever there is no tree, so the
+ *  card offered two blue buttons side by side. One card, one primary.
+ */
+const primaries = await page.$$eval( `${ move } .vgml-btn-primary`, ( els ) => els.map( ( e ) => e.textContent ) );
+check( 'B2b it is the only primary in the row: Propose folders stands beside it, quiet', 1 === primaries.length, JSON.stringify( primaries ) );
+
 await page.click( button );
 await page.waitForFunction( () => document.querySelectorAll( '#vgml-folders .g-tree-slot .vgml-node' ).length > 0, null, { timeout: 5000 } );
 

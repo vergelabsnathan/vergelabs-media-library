@@ -21,6 +21,8 @@ import { fileURLToPath } from 'node:url';
 const BOXES = {
 	'46.225.66.194': { key: '~/.ssh/hetzner_vgml', wp: '/var/www/wp' },
 	'ms2.46.225.66.194.nip.io': { key: '~/.ssh/hetzner_vgml', wp: '/var/www/ms2', url: 'http://ms2.46.225.66.194.nip.io', as: 'www-data' },
+	// Blog 3 of that network: the WooCommerce shop S19 built (27 products, 32 product photos). One word from the line above, and a different library.
+	'shop.ms2.46.225.66.194.nip.io': { key: '~/.ssh/hetzner_vgml', wp: '/var/www/ms2', url: 'http://shop.ms2.46.225.66.194.nip.io', as: 'www-data' },
 };
 
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..', '..' );
