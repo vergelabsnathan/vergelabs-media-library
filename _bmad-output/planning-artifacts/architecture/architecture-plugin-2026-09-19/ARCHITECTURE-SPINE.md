@@ -110,4 +110,5 @@ graph LR
 - **wordpress.org SVN as a fourth surface** — after Nathan sends the form.
 - **A script that copies `../dist` → `service/public/releases/` and edits the catalogue** — a story if 1.1 shows the by-hand step is error-prone.
 - **Whether the box has room and a hostname for a second WordPress** — checked at the start of 1.2.
+- **Static zips grow the service repo by about 1 MB per free release** — acceptable now; Vercel Blob if it ever matters.
 - **Phases 2–4 of the plan** — the money path, the operational promises, the client-library risks: separate spines if they need one; most do not.
