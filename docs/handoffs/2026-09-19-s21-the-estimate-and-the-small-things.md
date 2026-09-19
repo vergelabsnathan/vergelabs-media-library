@@ -260,83 +260,57 @@ answer. `vgmls21` deleted on both networks after.
 
 ## Next — S22
 
-The card in `plugin/.harness/active.json` has been updated to the state below;
-the JSON block that used to sit here described work that is now done and has
-been removed rather than left to mislead. In short: nothing mechanical is left
-before the form. What follows it is the licence key in the support ticket, the
-growing shop, the Uncategorized guard, and the sheet pass.
+The JSON card that used to sit here described work that is now done; the card
+in `plugin/.harness/active.json` is the live one. The old card and the opener
+that went with it are in this file's history at `1c0c167`.
+
+Everything mechanical before the wordpress.org form is finished: 4.0.0 is cut,
+tagged `v4.0.0`, archived at `dist/vergelabs-media-library-4.0.0.zip` (145
+entries, sha256 `bf0d63b70056`) and passing Plugin Check with no errors.
+
+**What S22 is actually for** is `plans/suite-readiness.md`: the suite around
+the plugin has drifted behind it. The update channel still serves free 3.16.1
+while 4.0.0 sits tagged and archived, and nobody knows whether Pro 1.0.2
+survives 4.0.0. Those two break customers; everything else waits behind them.
+
+**BMAD Method v6.12.0 was installed at the end of this session**
+(`de680ba`), and `bmad-project-context` has already run — it wrote `AGENTS.md`,
+which `CLAUDE.md` imports, so it loads automatically from now on. The 29
+`bmad-*` skills were installed mid-session, so they load for the first time in
+the next one; `pre-bmad-2026-09-19` tags the tree from before. Nothing was
+stripped: the rollout note says to remove `docs/handoffs`, `plans` and
+`docs/superpowers`, and that is Nathan's call, not made yet.
+
+**Model: Opus 5.** The work is verification against live money and live
+customers, each item carrying a concrete acceptance test — that profile's
+shape, rather than Fable's whole-problem autonomy.
 
 Opener, cwd `plugin`:
 
 ```
-Read docs/handoffs/2026-09-19-s21-the-estimate-and-the-small-things.md. State
-which model you are and follow that profile in
-~/.claude/harness/model-profiles.md. This session is S22 of
-every-picture-a-home; the card is already in .harness/active.json — read it
-before anything else. Both rules-only SCORE lines first (shop 347 of 581,
-tech 153 of 200). 4.0.0 is cut and passes Plugin Check; if I have edited
-readme.txt, re-cut the archive and re-check it before anything else. Then the
-licence key in the support ticket, then the growing shop (a product's picture
-placed on upload — plan it before building it, it is a new automatic write
-path). Test first, one mutation per story, every cost said before it is spent.
-Talk plainly. End with a handoff carrying the S23 card.
-```
+Read plans/suite-readiness.md. AGENTS.md now loads automatically via
+CLAUDE.md — trust it over anything you remember about this repo.
 
-The old S22 card, for the record, is in this file's history at `1c0c167`.
+State which model you are and follow that profile in
+~/.claude/harness/model-profiles.md.
 
-```json
-{
-  "phase": "Every picture a home — S22: the last small thing, and the release. The estimate, the rounds line, the AI header and Show me are done and the archive passes Plugin Check unchanged. What is left: Filling 0 of 33 stands still on a one-slice run — the three setup phases timed on the shop first, then Nathan's words for what the row says while the count is zero; the user's pass over the Folders screens from the shot sheet; folders.spec:1546, red since before S20; and the version bump and changelog for everything since 3.16.1, which is Nathan's copy and the last thing before the wordpress.org form.",
-  "model": "opus",
-  "plan": "a plan file only if the Filling row turns out to need more than a beat before the loop; the six fields per task",
-  "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.8, the order of the steps by library)",
-  "scope": [
-    "core/folder-talk.php (the beat before the row loop), js/vergeml-folders.js renderMove",
-    "tests/ui/folders.spec.mjs (1546, and any screen change), tests/tree/**",
-    "docs/superpowers/mocks/** (a mock before any visible change)",
-    "readme.txt, vergelabs-media-library.php (the version), docs/**, the archive",
-    "docs/handoffs/**",
-    "plans/**"
-  ],
-  "readFirst": [
-    "docs/handoffs/2026-09-19-s21-the-estimate-and-the-small-things.md (this: the estimate, the three small things, the check that was lying, the fourth measured but not built)",
-    "core/folder-talk.php around 1120-1170 (the slice's setup, then the row loop and its two-second beat)",
-    "tools/box-shop-untree.php (freeze, clear, restore -- the shop's tree, by literal SQL) and tools/box-folders-sheet.mjs (the shot sheet)",
-    "memory: progress-always-visible, ui-less-text-pills, do-the-cli-work, model-spend-discipline, verge-media-library-fork (the archive is stale at 3.16.1)"
-  ],
-  "handoffDir": "docs/handoffs",
-  "stopPoints": [
-    "Every user-facing string is Nathan's, verbatim; a mock before any visible change",
-    "The price of the model call is Nathan's; until priced it is metered, never debited",
-    "The model never overrules a product placement, a hand placement, or files into a view or a locked folder",
-    "A band is re-taken only rules-only and with the reason; the model's lines are never a band",
-    "Say every cost before it is spent: a describe is a credit a picture; the shop's 33 are described and cached",
-    "The version bump and the changelog are Nathan's copy, and the wordpress.org form is his to send",
-    "Test first, one mutation per story; a mutation of anything that can start a run holds the cron wire",
-    "Never git checkout a file carrying uncommitted work; never chain a checkout into a command",
-    "box-eval --site shop is the C.5 main site; --site realshop is the WooCommerce shop"
-  ],
-  "gates": [
-    "node tools/box-eval.mjs tools/box-truth-score.php --site shop and the tech line with --copy tests/tree/truth-tech.json:/tmp/vgml-truth.json --env VGML_TRUTH=/tmp/vgml-truth.json (MSYS_NO_PATHCONV=1): both rules-only lines in every check-in (shop 347 of 581 (60 %) · 72 %, tech 153 of 200 (77 %) · 76 %) — neither falls",
-    "node tools/verify.mjs filing sticky guide ai surface roles escaping copy tree-view talk-chips folders-shop seed-shop ai-background filing-trail → green (escaping 9/10 known); service pnpm test green",
-    "node tools/deploy.mjs --check before trusting any box result: it names both digests now, and a STALE box means the suite is testing yesterday",
-    "folders.spec and modes.spec on the tech site after any screen change",
-    "the shop re-walked after any change to the fill: tools/box-shop-untree.php freeze/clear, tools/box-shop-walk.mjs, one press, 32 by product, every screen shot"
-  ]
-}
-```
+BMAD v6.12.0 was installed here on 2026-09-19 and its 29 skills are live in
+this session for the first time. Run bmad-help first and tell me where it
+thinks we are before doing anything else. The required chain is
+bmad-architecture -> bmad-create-epics-and-stories -> bmad-sprint-planning ->
+bmad-build -> bmad-code-review; bmad-project-context has already run and wrote
+AGENTS.md.
 
-Opener, cwd `plugin`:
+The work is plans/suite-readiness.md. Phase 1 breaks customers today and comes
+first: the update channel still serves free 3.16.1 while 4.0.0 is tagged,
+archived and passing Plugin Check, and nobody knows whether Pro 1.0.2 survives
+4.0.0. Do not start Phase 2's buyer walk without telling me the cost first --
+Stripe is live and it is a real payment.
 
-```
-Read docs/handoffs/2026-09-19-s21-the-estimate-and-the-small-things.md. State
-which model you are and follow that profile in
-~/.claude/harness/model-profiles.md. This session is S22 of
-every-picture-a-home; the card is already in .harness/active.json — read it
-before anything else. Both rules-only SCORE lines first (shop 347 of 581,
-tech 153 of 200); then time the fill's three setup phases on the shop and
-bring me the numbers before building anything for the Filling row; then
-folders.spec:1546, red since before S20; then the version and the changelog,
-which are mine to write. Test first, one mutation per story, every cost said
-before it is spent. Talk plainly. End with a handoff carrying the S23 card.
+Do not strip docs/handoffs, plans or docs/superpowers. The rollout note says
+to; it is my call and I have not made it. pre-bmad-2026-09-19 tags the tree
+from before BMAD.
+
+Test first, one mutation per story, every cost said before it is spent. Talk
+plainly. End with a handoff in docs/handoffs/.
 ```

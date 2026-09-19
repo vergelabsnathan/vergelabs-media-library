@@ -1,7 +1,7 @@
 {
-  "phase": "Every picture a home — S22: the listing, then what was deferred. 4.0.0 is cut: the changelog, the Upgrade Notice and the rewritten External services section are written, the version is set in all three places, and Plugin Check on a clean archive gives no errors and two non-blocking warnings. Nothing mechanical is left. What is waiting is Nathan's read of the copy (the proof page lists the three decisions), and after the form is sent: the licence key in the support ticket, the growing-shop case, the Uncategorized guard, and whatever his pass over the Folders shot sheet turns up.",
+  "phase": "S22 — the suite, not the plugin. 4.0.0 is cut, tagged, archived and passes Plugin Check; BMAD v6.12.0 is installed and AGENTS.md is written. The work is plans/suite-readiness.md: the update channel still serves free 3.16.1 while 4.0.0 sits tagged, and Pro 1.0.2 is untested against 4.0.0. Those two break customers and come first.",
   "model": "opus",
-  "plan": "a plan file for the growing-shop case before it is built — it is a new automatic write path on a real library and wants the six fields per task",
+  "plan": "plans/suite-readiness.md",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.8, the order of the steps by library)",
   "scope": [
     "readme.txt (Nathan's copy edits, then re-cut and re-check)",
@@ -14,19 +14,19 @@
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-19-s21-the-estimate-and-the-small-things.md (this session: the estimate, the four small things, the audit, and 4.0.0)",
-    "docs/outbound-audit-2026-09-19.md (every outbound call and what it sends) and docs/release-inventory-2026-09-19.md (the 98 changes behind the changelog)",
-    "docs/wordpress-org-submission.md (what is done and what the form needs)",
-    "memory: verge-media-library-fork, do-the-cli-work, model-spend-discipline, progress-always-visible, ui-less-text-pills"
+    "plans/suite-readiness.md (the four phases, ordered by what hurts a paying client first)",
+    "AGENTS.md (loads automatically via CLAUDE.md; trust it over recall)",
+    "docs/handoffs/2026-09-19-s21-the-estimate-and-the-small-things.md (what S21 did, and the opener)",
+    "docs/outbound-audit-2026-09-19.md (every outbound call and what it sends)"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "Every user-facing string is Nathan's, verbatim; a mock before any visible change",
-    "The readme's External services section is a statement about what leaves a customer's site — never widen what the plugin sends without saying so there in the same commit",
-    "The price of the model call is Nathan's; until priced it is metered, never debited",
-    "The model never overrules a product placement, a hand placement, or files into a view or a locked folder",
-    "Say every cost before it is spent: a describe is a credit a picture",
-    "The wordpress.org form is Nathan's to send",
+    "Run bmad-help before anything else; BMAD v6.12.0 is live for the first time",
+    "The buyer walk spends real money -- Stripe is live; say the cost before starting it",
+    "Do not strip docs/handoffs, plans or docs/superpowers; that is Nathans call and pre-bmad-2026-09-19 tags the tree from before",
+    "Every user-facing string is Nathans, verbatim",
+    "Never widen what the plugin sends without updating readmes External services in the same commit",
+    "The wordpress.org form is Nathans to send",
     "Test first, one mutation per story; a mutation of anything that can start a run holds the cron wire",
     "Never git checkout a file carrying uncommitted work; never chain a checkout into a command",
     "box-eval --site shop is the C.5 main site; --site realshop is the WooCommerce shop"
