@@ -150,7 +150,17 @@ function fw_memberships( $taxonomy ) {
     return $out;
 }
 
-/** Every folder: id => name, parent, slug, profile meta, locked meta. */
+/**
+ *  Every folder: id => name, parent, slug, profile meta, the profile a
+ *  re-profiling replaced, locked meta.
+ *
+ *  The previous profile is here because the walk's confirm re-plans the
+ *  folders it walks, and a plan replacing a plan keeps the old one as *prev*
+ *  (core/filing.php). S18's walk left that key on fifteen real tech folders,
+ *  where it stood as a Restore offer on the Tree step until it expired, and
+ *  folders.spec found earlier profiles where it expects none. What the walk
+ *  writes, the walk puts back.
+ */
 function fw_terms( $taxonomy ) {
     $out   = array();
     $terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) );
@@ -160,6 +170,7 @@ function fw_terms( $taxonomy ) {
             'parent'  => (int) $t->parent,
             'slug'    => (string) $t->slug,
             'profile' => get_term_meta( (int) $t->term_id, VERGEML_FILING_META, true ),
+            'prev'    => defined( 'VERGEML_FILING_META_PREV' ) ? get_term_meta( (int) $t->term_id, VERGEML_FILING_META_PREV, true ) : '',
             'locked'  => get_term_meta( (int) $t->term_id, VERGEML_FILING_LOCKED, true ),
         );
     }
@@ -433,6 +444,14 @@ foreach ( $fw_snap['terms'] as $fw_tid => $fw_t ) {
     } else {
         update_term_meta( $fw_tid, VERGEML_FILING_META, $fw_t['profile'] );
     }
+    // The Restore offer the walk's own re-plan would leave behind (S19 found fifteen of them on the tech site).
+    if ( defined( 'VERGEML_FILING_META_PREV' ) ) {
+        if ( '' === $fw_t['prev'] || false === $fw_t['prev'] ) {
+            delete_term_meta( $fw_tid, VERGEML_FILING_META_PREV );
+        } else {
+            update_term_meta( $fw_tid, VERGEML_FILING_META_PREV, $fw_t['prev'] );
+        }
+    }
     if ( '' === $fw_t['locked'] || false === $fw_t['locked'] ) {
         delete_term_meta( $fw_tid, VERGEML_FILING_LOCKED );
     } else {
@@ -475,7 +494,14 @@ if ( function_exists( 'vergeml_folders_moved' ) ) {
 }
 
 $fw_end_terms = fw_terms( $fw_tax );
+$fw_prev_left = 0;
+foreach ( $fw_end_terms as $fw_tid => $fw_t ) {
+    if ( ( '' !== $fw_t['prev'] && false !== $fw_t['prev'] ) && ( ! isset( $fw_snap['terms'][ $fw_tid ] ) || $fw_snap['terms'][ $fw_tid ]['prev'] !== $fw_t['prev'] ) ) {
+        $fw_prev_left++;
+    }
+}
 fw_check( 'G5 the folders are as they were: same ids, names, parents, profiles and locks', $fw_end_terms === $fw_snap['terms'], count( $fw_end_terms ) . ' folders' );
+fw_check( 'G5b no folder is left offering to restore a profile this walk replaced', 0 === $fw_prev_left, $fw_prev_left . ' left' );
 fw_check( 'G6 the memberships are as they were', fw_memberships( $fw_tax ) === $fw_snap['files'] );
 fw_check( 'G7 in no folder is what it was', $fw_unfiled_before === vergeml_talk_fill_status()['unfiled'], (string) vergeml_talk_fill_status()['unfiled'] );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
