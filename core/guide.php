@@ -1860,9 +1860,10 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
 
     $vectors = array();
     $words   = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9), as the fill reads them.
+    $product = vergeml_filing_product_sql( 'i' ); // The product the picture belongs to (S10.8), as the fill reads it: a literal NULL where nothing sells.
     foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
-        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by, {$words['select']} FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s {$words['join']} WHERE i.attachment_id IN (" . implode( ',', $chunk ) . ')', VERGEML_FILING_PLACED_BY ), ARRAY_A ) as $v ) {
+        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by, {$words['select']}, {$product['select']} FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s {$words['join']} {$product['join']} WHERE i.attachment_id IN (" . implode( ',', $chunk ) . ')', VERGEML_FILING_PLACED_BY ), ARRAY_A ) as $v ) {
             $vectors[ (int) $v['attachment_id'] ] = $v;
         }
     }
@@ -1907,6 +1908,18 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
         $in = empty( $r['in_terms'] ) ? array() : array_map( 'intval', explode( ',', (string) $r['in_terms'] ) );
         $index[] = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '', 'placed_by' => '' ), array( 'in_locked' => (bool) array_intersect( $in, $locked ) ) );
     }
+    /*
+     *  File by the product (S10.8), the one step the fill took and this count
+     *  did not. On the box's real shop the Tree step read "23 would be placed
+     *  · 10 would stay unfiled" where the fill placed 32 by product: the owner
+     *  was shown a worse number than what happens, on every shop. The draft's
+     *  profiles are keyed by this run's own numbers and carry their paths, so
+     *  vergeml_filing_product_folder() resolves a category to a draft folder
+     *  that does not exist yet exactly as it resolves one to a real folder.
+     *  A site that sells nothing pays nothing: the column above is a literal
+     *  NULL and this returns the rows untouched.
+     */
+    $index   = vergeml_filing_product_folders( $index, $profiles );
     $counted = vergeml_filing_count( $profiles, $index, $deadline );
     if ( null === $counted ) {
         return null;

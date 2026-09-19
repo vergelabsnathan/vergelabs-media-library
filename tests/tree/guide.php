@@ -460,6 +460,96 @@ if ( ! taxonomy_exists( 'product_cat' ) ) {
     g_check( 'H9 the fixture\'s categories are gone again', is_array( $g_left ) && 0 === count( $g_left ), is_array( $g_left ) ? implode( ',', $g_left ) : 'error' );
 }
 
+/* ------------------------- J  the estimate on a site that sells (S21, task 1) */
+
+/*
+ *  The Tree step says how many pictures a draft would place, and until now it
+ *  said it rules-only: the fill files a product's picture into the folder its
+ *  categories name before any matching (S10.8,
+ *  vergeml_filing_product_folders), and the dry count did not. On the box's
+ *  real shop that read "23 would be placed · 10 would stay unfiled" where the
+ *  fill placed 32 by product -- the owner was shown a worse number than what
+ *  happens, on every shop.
+ *
+ *  The fixture is this suite's own: one product category, one product in it
+ *  whose featured image is a picture the library has already described, and a
+ *  draft folder with the category's name. The folder's name says nothing about
+ *  the picture, so rules alone place nothing in it -- J1. The same count with
+ *  the product's featured image set places exactly that one, by product -- J2.
+ *  Both counts are taken before a check runs and the product and the term are
+ *  removed in between (tests-never-touch-live-state).
+ */
+
+echo "\nJ  the estimate counts what the fill files by product\n\n";
+
+/** The fixture's own category and product, however a run ended. */
+function g_shop_clear() {
+    foreach ( (array) get_posts( array( 'post_type' => 'product', 'title' => 'Zzprobe product', 'post_status' => 'any', 'numberposts' => 10, 'fields' => 'ids' ) ) as $p ) {
+        wp_delete_post( (int) $p, true );
+    }
+    $t = get_term_by( 'name', 'Zzprobe shelf', 'product_cat' );
+    if ( $t instanceof WP_Term ) {
+        wp_delete_term( (int) $t->term_id, 'product_cat' );
+    }
+}
+
+$g_tax = vergeml_librarian_taxonomy();
+$g_att = (int) $wpdb->get_var( "SELECT attachment_id FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL ORDER BY attachment_id ASC LIMIT 1" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+if ( ! taxonomy_exists( 'product_cat' ) || ! $g_att ) {
+    g_check( 'J0 product_cat and a described picture (WooCommerce active, the library described)', false, taxonomy_exists( 'product_cat' ) ? 'no described picture' : 'no product_cat' );
+} else {
+
+    g_shop_clear();
+    $g_cat  = wp_insert_term( 'Zzprobe shelf', 'product_cat' );
+    $g_prod = is_wp_error( $g_cat ) ? 0 : (int) wp_insert_post( array( 'post_type' => 'product', 'post_title' => 'Zzprobe product', 'post_status' => 'publish' ) );
+    if ( $g_prod ) {
+        wp_set_object_terms( $g_prod, array( (int) $g_cat['term_id'] ), 'product_cat' );
+    }
+
+    // Two folders, one of them the category's name. Nothing in either name says anything about a picture.
+    $g_shop_draft = array(
+        'folders' => array(
+            array( 'key' => 'zzshelf', 'term_id' => null, 'name' => 'Zzprobe shelf', 'parent' => '', 'count' => null, 'matches' => '', 'classes' => array(), 'kinds' => array(), 'audience' => '', 'by' => '' ),
+            array( 'key' => 'zzelse', 'term_id' => null, 'name' => 'Zzprobe elsewhere', 'parent' => '', 'count' => null, 'matches' => '', 'classes' => array(), 'kinds' => array(), 'audience' => '', 'by' => '' ),
+        ),
+        'gone'   => array(),
+        'tags'   => array(),
+        'origin' => 'talk',
+        'rule'   => null,
+    );
+
+    // Without the product's picture: what the rules alone make of the same draft.
+    $g_q0    = (int) $wpdb->num_queries;
+    $g_fit_a = vergeml_guide_draft_fit( $g_shop_draft, $g_tax );
+    $g_qa    = (int) $wpdb->num_queries - $g_q0;
+
+    // The same draft, with the picture now the product's featured image.
+    if ( $g_prod ) {
+        update_post_meta( $g_prod, '_thumbnail_id', $g_att );
+    }
+    $g_q1    = (int) $wpdb->num_queries;
+    $g_fit_b = vergeml_guide_draft_fit( $g_shop_draft, $g_tax );
+    $g_qb    = (int) $wpdb->num_queries - $g_q1;
+
+    g_shop_clear();
+    $g_left_p = (array) get_posts( array( 'post_type' => 'product', 'title' => 'Zzprobe product', 'post_status' => 'any', 'numberposts' => 10, 'fields' => 'ids' ) );
+    $g_left_t = get_term_by( 'name', 'Zzprobe shelf', 'product_cat' );
+
+    $g_in_a = is_array( $g_fit_a ) ? (int) $g_fit_a['counts']['zzshelf'] : -1;
+    $g_in_b = is_array( $g_fit_b ) ? (int) $g_fit_b['counts']['zzshelf'] : -1;
+    $g_by_a = is_array( $g_fit_a ) ? (int) $g_fit_a['tally']['product'] : -1;
+    $g_by_b = is_array( $g_fit_b ) ? (int) $g_fit_b['tally']['product'] : -1;
+
+    g_check( 'J1 the folder\'s name alone places nothing in it: the same picture is nobody\'s by the rules', 0 === $g_in_a, 'zzshelf ' . $g_in_a . ', by product ' . $g_by_a );
+    g_check( 'J2 the product\'s picture lands in the folder its category names, in the count as in the fill', 1 === $g_in_b, 'zzshelf ' . $g_in_b );
+    g_check( 'J3 and the tally says by product, so the screen\'s number is the Move\'s', $g_by_b === $g_by_a + 1, 'by product ' . $g_by_a . ' -> ' . $g_by_b );
+    g_check( 'J4 the picture is placed, not left unfiled: one fewer below the floor', is_array( $g_fit_a ) && is_array( $g_fit_b ) && (int) $g_fit_b['unfiled']['floor'] === (int) $g_fit_a['unfiled']['floor'] - 1, json_encode( array( 'floor' => array( is_array( $g_fit_a ) ? $g_fit_a['unfiled']['floor'] : null, is_array( $g_fit_b ) ? $g_fit_b['unfiled']['floor'] : null ) ) ) );
+    // The product column rides in the query the count already makes; only the categories of the slice's own products are a query of their own.
+    g_check( 'J5 knowing the products costs the count at most three queries more', $g_qb <= $g_qa + 3, $g_qa . ' -> ' . $g_qb . ' queries' );
+    g_check( 'J6 the fixture\'s product and category are gone again', 0 === count( $g_left_p ) && ! ( $g_left_t instanceof WP_Term ) );
+}
+
 /* ------------------------------------------------------------------ put back */
 
 if ( false === $g_was ) {

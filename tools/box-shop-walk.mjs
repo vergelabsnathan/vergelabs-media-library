@@ -19,7 +19,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 
 const BASE = 'http://shop.ms2.46.225.66.194.nip.io';
-const USER = 'vgmls20';
+const USER = process.env.UI_USER || 'vgmls20';
 const PASS = process.env.UI_PASS;
 const OUT = 'docs/superpowers/mocks/shots';
 const shots = [];

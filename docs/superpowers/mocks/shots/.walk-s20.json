@@ -1,0 +1,38 @@
+{
+ "rows": [
+  "Clothing",
+  "Accessories",
+  "Hoodies",
+  "Jackets",
+  "Shirts",
+  "Sweater",
+  "Tshirts",
+  "Decor",
+  "Music"
+ ],
+ "pills": [
+  "32 by product",
+  "0 by evidence",
+  "1 question",
+  "1 to sort",
+  "round 1: 32 placed · round 2: 32 · 1 to sort",
+  "29",
+  "1",
+  "album cover",
+  "music packaging",
+  "music single artwork",
+  "+1",
+  "2"
+ ],
+ "shots": [
+  "docs/superpowers/mocks/shots/2026-09-19-shop-way-in-01-tree-empty.png",
+  "docs/superpowers/mocks/shots/2026-09-19-shop-way-in-02-pressed.png",
+  "docs/superpowers/mocks/shots/2026-09-19-shop-way-in-03-counted.png",
+  "docs/superpowers/mocks/shots/2026-09-19-shop-way-in-04-confirming.png",
+  "docs/superpowers/mocks/shots/2026-09-19-shop-way-in-05-confirmed.png",
+  "docs/superpowers/mocks/shots/2026-09-19-shop-way-in-06-fill-step.png",
+  "docs/superpowers/mocks/shots/2026-09-19-shop-way-in-07-filling.png",
+  "docs/superpowers/mocks/shots/2026-09-19-shop-way-in-08-filled.png",
+  "docs/superpowers/mocks/shots/2026-09-19-shop-way-in-09-library.png"
+ ]
+}

@@ -105,15 +105,15 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-folders.js:549 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:580 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:599 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:891 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:981 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1193 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1244 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1361 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1366 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2078 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2121 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2131 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:898 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:988 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1200 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1251 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1368 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1373 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2085 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2128 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2138 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |
