@@ -1,0 +1,139 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>The shop's way in — the options, side by side</title>
+
+<!--
+	2026-09-19 (S20), for Nathan's pick. Two choices, each drawn:
+
+	  shapes  Where the press lives. A: a chip in the ways-in row, beside
+	          "Paste or upload a list". B: the card's primary in the move
+	          row while the tree is empty (the pattern "Propose folders"
+	          already follows: primary without a tree, plain with one).
+	          C: both -- the primary while empty, the chip once a tree
+	          stands, so it is still reachable after the first press.
+
+	  labels  The words on it, in shape B, over the real shop's nine
+	          categories. L1 is S19's draft. Every label is a draft until
+	          Nathan says the words.
+
+	Only the rows that differ are drawn: the card's head, tree and composer
+	are the same on every board and are left out so the difference is the
+	whole picture.
+-->
+<link rel="stylesheet" href="../../../css/vergeml-shell.css">
+<link rel="stylesheet" href="../../../css/vergeml-tree-view.css">
+<link rel="stylesheet" href="../../../css/vergeml-folders.css">
+
+<style>
+html, body { margin: 0; }
+body { background: var(--vgml-ground, #f7f9fc); font-family: var(--vgml-font, Inter, system-ui, sans-serif); color: var(--vgml-ink, #101d40); }
+
+.vgml-shell { min-height: 0 !important; margin: 0; padding: 20px 22px 22px; max-width: 820px; }
+.g-card { background: var(--vgml-pane, #fff); border: 1px solid var(--vgml-rule, #d5dbe9); border-radius: 10px; padding: 14px 16px 16px; }
+.g-card + .g-card { margin-top: 14px; }
+.g-board { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--vgml-muted); margin: 0 0 12px; }
+.g-board .draft { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 3px; background: #fff3cd; color: #7a5b00; text-transform: none; letter-spacing: 0; font-weight: 600; }
+.g-tag { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--vgml-muted); margin: 0 0 8px; }
+.g-tag b { color: var(--vgml-ink); font-weight: 600; }
+.g-note { margin: 8px 0 0; font-size: 13px; color: var(--vgml-muted); }
+
+.g-elide { margin: 0 0 12px; padding: 0 0 12px; border-bottom: 1px dashed var(--vgml-rule); font-size: 13px; color: var(--vgml-muted); }
+
+.g-move { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--vgml-rule, #d5dbe9); }
+.g-move .vgml-btn { font-size: 14px; padding: 9px 16px; border-radius: 8px; }
+.g-quiet { border: 0; background: transparent; padding: 9px 10px; font: inherit; font-size: 13.5px; color: var(--vgml-muted, #6f7891); cursor: pointer; }
+.g-pill { display: inline-flex; align-items: baseline; gap: 5px; padding: 4px 11px; border-radius: 999px; background: var(--vgml-n200, #e8ecf5); color: var(--vgml-ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+.g-pill b { font-weight: 600; }
+
+.mark { outline: 2px solid #ffd84d; outline-offset: 3px; border-radius: 999px; }
+.mark.is-sq { border-radius: 8px; }
+</style>
+
+<!-- ======================================================================= the shapes -->
+<div class="vgml-shell" data-shot="shapes">
+	<p class="g-board">Where the press lives — the same card, three shapes <span class="draft">draft</span></p>
+
+	<div class="g-card">
+		<p class="g-tag"><b>A</b> · a chip in the ways-in row</p>
+		<p class="g-elide">… the tree (empty), the composer …</p>
+		<div class="g-chips">
+			<button class="g-chip">Fewer folders</button>
+			<button class="g-chip">Split by kind</button>
+			<button class="g-chip">By year first</button>
+			<button class="g-chip is-way-in mark">Use my 9 product categories</button>
+			<button class="g-chip is-way-in" style="margin-inline-start:0">Paste or upload a list</button>
+		</div>
+		<div class="g-move"><button class="g-quiet">Skip</button></div>
+		<p class="g-note">Sits among the three tweak chips. One row, nothing moves. Reads as a way to change a tree, not as the way to start one.</p>
+	</div>
+
+	<div class="g-card">
+		<p class="g-tag"><b>B</b> · the card's primary while the tree is empty</p>
+		<p class="g-elide">… the tree (empty), the composer …</p>
+		<div class="g-chips">
+			<button class="g-chip">Fewer folders</button>
+			<button class="g-chip">Split by kind</button>
+			<button class="g-chip">By year first</button>
+			<button class="g-chip is-way-in">Paste or upload a list</button>
+		</div>
+		<div class="g-move">
+			<button class="vgml-btn vgml-btn-primary mark is-sq">Use my 9 product categories</button>
+			<button class="g-quiet">Skip</button>
+		</div>
+		<p class="g-note">The one thing to press on a shop with no folders — where Propose folders sits on a described library. Gone from the row once a tree stands.</p>
+	</div>
+
+	<div class="g-card">
+		<p class="g-tag"><b>C</b> · both: the primary while empty, the chip once a tree stands</p>
+		<p class="g-elide">… the tree (9 folders), the composer …</p>
+		<div class="g-chips">
+			<button class="g-chip">Fewer folders</button>
+			<button class="g-chip">Split by kind</button>
+			<button class="g-chip">By year first</button>
+			<button class="g-chip is-way-in mark">Use my 9 product categories</button>
+			<button class="g-chip is-way-in" style="margin-inline-start:0">Paste or upload a list</button>
+		</div>
+		<div class="g-move">
+			<button class="vgml-btn vgml-btn-primary is-sq">This is my tree</button>
+			<span class="g-pill"><b>0</b> credits</span>
+			<button class="g-quiet">Skip</button>
+		</div>
+		<p class="g-note">After the first press the primary is This is my tree, and the categories stay reachable as a chip — for a shop that adds a category later, or presses Skip and comes back.</p>
+	</div>
+</div>
+
+<!-- ======================================================================= the labels -->
+<div class="vgml-shell" data-shot="labels">
+	<p class="g-board">The words on it — shape B, the real shop's nine categories <span class="draft">draft</span></p>
+
+	<div class="g-card">
+		<p class="g-tag"><b>L1</b> · S19's draft — the count is live from the site</p>
+		<div class="g-move"><button class="vgml-btn vgml-btn-primary is-sq">Use my 9 product categories</button><button class="g-quiet">Skip</button></div>
+	</div>
+
+	<div class="g-card">
+		<p class="g-tag"><b>L2</b> · no count</p>
+		<div class="g-move"><button class="vgml-btn vgml-btn-primary is-sq">Use my product categories</button><button class="g-quiet">Skip</button></div>
+		<p class="g-note">Shorter, and one less number to be wrong when a category is added while the screen stands open.</p>
+	</div>
+
+	<div class="g-card">
+		<p class="g-tag"><b>L3</b> · what it makes, not what it takes</p>
+		<div class="g-move"><button class="vgml-btn vgml-btn-primary is-sq">Folders from my 9 categories</button><button class="g-quiet">Skip</button></div>
+	</div>
+
+	<div class="g-card">
+		<p class="g-tag"><b>L4</b> · the count as a pill, the label bare</p>
+		<div class="g-move"><button class="vgml-btn vgml-btn-primary is-sq">Use my product categories</button><span class="g-pill"><b>9</b> categories</span><button class="g-quiet">Skip</button></div>
+		<p class="g-note">The grammar the other two buttons follow: Propose folders · 10 credits, Describe 33 pictures · 33 credits.</p>
+	</div>
+</div>
+
+<script>
+/* ?state=<board> shows that board alone (tools/shoot-mock.mjs --viewports). */
+( function () {
+	var want = new URLSearchParams( location.search ).get( 'state' );
+	if ( ! want ) { return; }
+	document.querySelectorAll( '[data-shot]' ).forEach( function ( b ) { b.hidden = b.getAttribute( 'data-shot' ) !== want; } );
+} )();
+</script>

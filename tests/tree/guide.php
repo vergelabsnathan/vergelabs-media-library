@@ -57,7 +57,7 @@ $g_before = $wpdb->num_queries;
 $g_boot   = vergeml_folders_boot();
 $g_cost   = $wpdb->num_queries - $g_before;
 // Nine on 2026-09-05 (render 1 + the request 1 + the tree 7); eleven measured on 2026-09-15 with the rail's steps (images, not described, without alt, the fill's state and its unfiled count); twelve with Step 4's own count (the pictures whose catalogue alt the button writes).
-g_check( 'A1 the boot data costs at most thirteen queries (twelve as measured on 2026-09-15 with the rail\'s steps and Step 4\'s count; one more since S17\'s rail on a site that sells, 7d13048: the on_products count)', $g_cost <= 13, $g_cost . ' queries' );
+g_check( 'A1 the boot data costs at most fourteen queries (twelve as measured on 2026-09-15 with the rail\'s steps and Step 4\'s count; one more since S17\'s rail on a site that sells, 7d13048: the on_products count; one more when the live session holds a draft, measured 2026-09-19 -- the confirm\'s profile facts read what it would ask about, C.5)', $g_cost <= 14, $g_cost . ' queries' );
 g_check( 'A2 it carries the tree, the session and the stamp', isset( $g_boot['nodes'], $g_boot['session'], $g_boot['version'], $g_boot['facts'] ) && is_array( $g_boot['nodes'] ) );
 $g_before = $wpdb->num_queries;
 ob_start();
@@ -375,6 +375,90 @@ foreach ( array_keys( $GLOBALS['g_texts'] ) as $g_text ) {
 }
 wp_clear_scheduled_hook( VERGEML_GUIDE_FIT_HOOK );
 delete_transient( VERGEML_GUIDE_FIT_LOCK );
+
+/* ------------------------------------------- H  the shop's way in (S20, task 1) */
+
+/*
+ *  A site that sells starts from its own product categories: the paths the
+ *  Tree step's button pastes, and the count on it. S19's shop had to have its
+ *  nine categories typed into the composer by hand.
+ *
+ *  The fixture is this suite's own: two product categories made here, a
+ *  picture-less product in the deeper one, both removed before the section
+ *  ends. Nothing of the site's own catalogue is read through the code under
+ *  test (fixtures-never-read-through-the-code-under-test).
+ */
+
+echo "\nH  the product categories, as the paths the way in pastes\n\n";
+
+/** The fixture's own categories, however a run ended: removed by name, deepest first. */
+function g_cats_clear() {
+    $gone = 0;
+    foreach ( array( 'Probe deep', 'Probe cat two', 'Probe cat' ) as $name ) {
+        $t = get_term_by( 'name', $name, 'product_cat' );
+        if ( $t instanceof WP_Term ) {
+            wp_delete_term( (int) $t->term_id, 'product_cat' );
+            $gone++;
+        }
+    }
+    return $gone;
+}
+
+if ( ! taxonomy_exists( 'product_cat' ) ) {
+    g_check( 'H0 product_cat exists on this site (WooCommerce active)', false, 'skipped: no product_cat' );
+} else {
+
+    /*
+     *  Everything is measured first and the categories are removed before a
+     *  single check runs: a failed check must never be what decides whether
+     *  the site gets its terms back (tests-never-touch-live-state).
+     */
+    g_cats_clear();
+    $g_top  = wp_insert_term( 'Probe cat', 'product_cat' );
+    $g_deep = is_wp_error( $g_top ) ? $g_top : wp_insert_term( 'Probe deep', 'product_cat', array( 'parent' => (int) $g_top['term_id'] ) );
+    $g_made = ! is_wp_error( $g_top ) && ! is_wp_error( $g_deep );
+
+    $g_paths = vergeml_folders_product_paths();
+    $g_lines = array_map( function ( $p ) { return implode( ' > ', $p ); }, (array) $g_paths['paths'] );
+
+    $g_default = (int) get_option( 'default_product_cat' );
+    $g_dterm   = $g_default ? get_term( $g_default, 'product_cat' ) : null;
+    $g_dname   = $g_dterm instanceof WP_Term ? vergeml_term_name( $g_dterm ) : '';
+    $g_dcount  = $g_dterm instanceof WP_Term ? (int) $g_dterm->count : 0;
+
+    $g_res   = rest_do_request( new WP_REST_Request( 'GET', '/vergeml/v1/guide/product-categories' ) );
+    $g_rdata = $g_res->get_data();
+
+    $g_facts = vergeml_folders_facts( vergeml_librarian_taxonomy(), 0 );
+    $g_sum   = vergeml_guide_summary();
+
+    // The key that decides a refresh: a category made now must change it, or a shop's new category never reaches the planner.
+    $g_sess = vergeml_guide_fresh();
+    vergeml_guide_summary_fresh( $g_sess );
+    $g_key1 = (string) $g_sess['summary_key'];
+    wp_insert_term( 'Probe cat two', 'product_cat' );
+    vergeml_guide_summary_fresh( $g_sess );
+    $g_key2 = (string) $g_sess['summary_key'];
+
+    g_cats_clear();
+    $g_left = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false, 'name' => array( 'Probe cat', 'Probe deep', 'Probe cat two' ), 'fields' => 'ids' ) );
+
+    g_check( 'H1 a category is its own path, a child carries its parent first', $g_made && in_array( 'Probe cat', $g_lines, true ) && in_array( 'Probe cat > Probe deep', $g_lines, true ), implode( ' | ', array_slice( $g_lines, 0, 12 ) ) );
+    g_check( 'H2 a parent comes before its child, so one paste makes the tree top down', $g_made && array_search( 'Probe cat', $g_lines, true ) < array_search( 'Probe cat > Probe deep', $g_lines, true ) );
+    g_check( 'H3 Woo\'s default category is left out while nothing is in it, and kept once products are', '' === $g_dname || ( $g_dcount > 0 ) === in_array( $g_dname, $g_lines, true ), $g_dname . ' (' . $g_dcount . ' products)' );
+    g_check( 'H4 total counts every category the site has, the paths stop at the paste\'s five hundred', (int) $g_paths['total'] >= count( $g_paths['paths'] ) && count( $g_paths['paths'] ) <= 500, $g_paths['total'] . ' total, ' . count( $g_paths['paths'] ) . ' paths' );
+    g_check( 'H5 the route answers the same paths to a user who may manage categories', 200 === $g_res->get_status() && isset( $g_rdata['paths'], $g_rdata['total'] ) && count( $g_rdata['paths'] ) === count( $g_paths['paths'] ), (string) $g_res->get_status() );
+    g_check( 'H6 the count rides with the facts exactly when the site sells (a shop with no product picture pays no query)', ! empty( $g_facts['sells'] ) === isset( $g_facts['product_cats'] ), json_encode( array( 'sells' => ! empty( $g_facts['sells'] ), 'product_cats' => isset( $g_facts['product_cats'] ) ? $g_facts['product_cats'] : null ) ) );
+    /*
+     *  Task 3: the planner reads the summary whole (the service dumps it into
+     *  the prompt), so the categories ride there rather than in a field of
+     *  their own -- no service change, and a proposal starts from the names
+     *  the shop already uses.
+     */
+    g_check( 'H7 the summary carries the categories on a site that sells, and nothing when it does not', ! empty( $g_facts['sells'] ) === isset( $g_sum['product_categories'] ), isset( $g_sum['product_categories'] ) ? count( $g_sum['product_categories'] ) . ' paths' : 'absent' );
+    g_check( 'H8 a category made after the session opened re-takes the summary', empty( $g_facts['sells'] ) || $g_key1 !== $g_key2, $g_key1 . ' -> ' . $g_key2 );
+    g_check( 'H9 the fixture\'s categories are gone again', is_array( $g_left ) && 0 === count( $g_left ), is_array( $g_left ) ? implode( ',', $g_left ) : 'error' );
+}
 
 /* ------------------------------------------------------------------ put back */
 

@@ -2,7 +2,8 @@
  *  Run one PHP file on the box through wp eval-file, on either library.
  *
  *      node tools/box-eval.mjs tools/box-ask-split.php              (the tech library, /var/www/wp)
- *      node tools/box-eval.mjs tools/box-ask-split.php --site shop  (the shop, /var/www/ms2 as www-data)
+ *      node tools/box-eval.mjs tools/box-ask-split.php --site shop  (the C.5 library, ms2's main site, as www-data)
+ *      node tools/box-eval.mjs <file>.php --site realshop           (the WooCommerce shop, blog 3 of ms2)
  *
  *  The file is copied fresh, run, and removed. Environment for the script goes
  *  through --env NAME=value (repeatable). Prints what the script prints.
@@ -16,9 +17,16 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import os from 'node:os';
 
+/*
+ *  `shop` is the ms2 network's MAIN site -- the C.5 Commons library, 626
+ *  pictures against the 318-folder catalogue. `realshop` is blog 3 of that
+ *  network, the WooCommerce shop S19 built (27 products, 32 product photos):
+ *  the two are one word apart and a describe run went to the wrong one once.
+ */
 const SITES = {
 	tech: { wp: '/var/www/wp', url: '', as: '' },
 	shop: { wp: '/var/www/ms2', url: 'http://ms2.46.225.66.194.nip.io', as: 'www-data' },
+	realshop: { wp: '/var/www/ms2', url: 'http://shop.ms2.46.225.66.194.nip.io', as: 'www-data' },
 };
 const BOX = { host: '46.225.66.194', key: path.join( os.homedir(), '.ssh', 'hetzner_vgml' ) };
 

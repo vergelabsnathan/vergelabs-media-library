@@ -222,7 +222,7 @@ foreach ( $r_routes as $r_route => $r_handlers ) {
 }
 
 /*
- *  The static surface holds 81 endpoints; a running site holds 79, and the
+ *  The static surface holds 82 endpoints; a running site holds 80, and the
  *  difference is the whole point of checking both. `/rename-files` GET and POST
  *  are registered only when VERGEML_FILE_RENAME is defined, and it is off
  *  because the reference rewrite behind it is unfinished. So the live count is
@@ -231,10 +231,11 @@ foreach ( $r_routes as $r_route => $r_handlers ) {
  *  would otherwise balance this sum and look correct. (76/74 until 2026-09-15,
  *  when /guide/questions and /guide/answer joined; 78/76 until later that day,
  *  when /guide/confirm and /guide/unconfirm did; 80/78 until 2026-09-16, when
- *  /guide/profiles-restore did, C.4.)
+ *  /guide/profiles-restore did, C.4. 81/79 until 2026-09-19, when
+ *  /guide/product-categories did, S20's way in for a site that sells.)
  */
 $r_flagged = defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME;
-$r_want    = $r_flagged ? 81 : 79;
+$r_want    = $r_flagged ? 82 : 80;
 
 r_check(
     sprintf( 'the REST server holds %d of our endpoints, with the file renamer %s', $r_want, $r_flagged ? 'on' : 'off' ),

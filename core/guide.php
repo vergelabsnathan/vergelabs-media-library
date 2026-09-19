@@ -233,6 +233,115 @@ function vergeml_folders_node_prev( $term_id ) {
 }
 
 /**
+ *  Pictures a product owns (S19, the real shop: "36 on products" beside 33
+ *  pictures). A picture is on a product when a product's featured image names
+ *  it or a product's gallery lists it; WooCommerce's own importer puts the
+ *  featured image in the gallery too, and a variable product's photo sits in
+ *  its variations'. Pictures, not picture-product pairs.
+ *
+ *  One query from the product side on the meta key's index -- the featured
+ *  ids and the gallery lists, as many rows as products have pictures -- and
+ *  the set of ids made here: a gallery is a comma-separated list SQL cannot
+ *  split, and an attachment-side count would probe every picture of the
+ *  library against every product. Read twice per request (the facts and the
+ *  summary), so the answer is kept.
+ */
+function vergeml_folders_on_products() {
+
+    static $n = null;
+
+    if ( null !== $n ) {
+        return $n;
+    }
+
+    global $wpdb;
+    $n = 0;
+
+    if ( ! post_type_exists( 'product' ) ) {
+        return $n;
+    }
+
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- core's tables.
+    $lists = $wpdb->get_col(
+        "SELECT m.meta_value FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id AND p.post_type = 'product'
+          WHERE m.meta_key IN ( '_thumbnail_id', '_product_image_gallery' ) AND m.meta_value <> '' AND m.meta_value <> '0'"
+    );
+
+    $ids = array();
+    foreach ( (array) $lists as $list ) {
+        foreach ( explode( ',', (string) $list ) as $id ) {
+            if ( (int) $id > 0 ) {
+                $ids[ (int) $id ] = true;
+            }
+        }
+    }
+    $n = count( $ids );
+
+    return $n;
+}
+
+/**
+ *  The product categories as paths, parents first (S20, the shop's way in).
+ *
+ *  S19 walked the real shop and found the one thing missing: a site that
+ *  sells gets no way to make its own categories the tree -- the owner types
+ *  them, or takes a proposal that never heard of them. This is the list the
+ *  Tree step's button pastes: root to leaf as names, a parent before its
+ *  child, so one paste makes the tree top down through the same reader a
+ *  typed list goes through (js/vergeml-structure.js).
+ *
+ *  Woo's default category ("Uncategorized") is left out while nothing is in
+ *  it and nothing is under it: it is a placeholder, and a folder for it is a
+ *  folder nobody asked for. Once products sit in it, it is a category like
+ *  any other.
+ *
+ *  One terms query. The paths stop at the paste's own cap so the button and
+ *  the reader agree on what one press makes; `total` is what the site has.
+ *
+ *  @param int $limit The most paths one press may make; the paste's cap.
+ *  @return array{paths:string[][],total:int}
+ */
+function vergeml_folders_product_paths( $limit = 500 ) {
+
+    if ( ! function_exists( 'taxonomy_exists' ) || ! taxonomy_exists( 'product_cat' ) ) {
+        return array( 'paths' => array(), 'total' => 0 );
+    }
+
+    $terms = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false ) );
+
+    if ( is_wp_error( $terms ) ) {
+        return array( 'paths' => array(), 'total' => 0 );
+    }
+
+    $kids = array();
+    foreach ( $terms as $t ) {
+        $kids[ (int) $t->parent ][] = $t;
+    }
+
+    $default = (int) get_option( 'default_product_cat' );
+    $paths   = array();
+    $total   = 0;
+
+    $walk = function ( $parent, $trail ) use ( &$walk, &$paths, &$total, $kids, $default, $limit ) {
+        foreach ( isset( $kids[ $parent ] ) ? $kids[ $parent ] : array() as $t ) {
+            $id = (int) $t->term_id;
+            if ( $id === $default && 0 === (int) $t->count && empty( $kids[ $id ] ) ) {
+                continue;
+            }
+            $total++;
+            $here = array_merge( $trail, array( vergeml_term_name( $t ) ) );
+            if ( count( $paths ) < $limit ) {
+                $paths[] = $here;
+            }
+            $walk( $id, $here );
+        }
+    };
+    $walk( 0, array() );
+
+    return array( 'paths' => $paths, 'total' => $total );
+}
+
+/**
  *  The line under the title: pictures, folders, in no folder, described when.
  *  One query for the three numbers about pictures; the folder count comes
  *  from the terms already read.
@@ -268,36 +377,17 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
      *  with products and no product pictures is a shop in name only, and
      *  keeps the bare pack's order.
      */
-    $out['on_products'] = 0;
-    if ( post_type_exists( 'product' ) ) {
-        /*
-         *  Pictures, not picture-product pairs (S19, the real shop: "36 on
-         *  products" beside 33 pictures). A picture is on a product when a
-         *  product's featured image names it or a product's gallery lists it;
-         *  WooCommerce's own importer puts the featured image in the gallery
-         *  too, and a variable product's photo sits in its variations'. One
-         *  query from the product side on the meta key's index -- the featured
-         *  ids and the gallery lists, as many rows as products have pictures --
-         *  and the set of ids made here: a gallery is a comma-separated list
-         *  SQL cannot split, and an attachment-side count would probe every
-         *  picture of the library against every product.
-         */
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- core's tables.
-        $lists = $wpdb->get_col(
-            "SELECT m.meta_value FROM {$wpdb->postmeta} m JOIN {$wpdb->posts} p ON p.ID = m.post_id AND p.post_type = 'product'
-              WHERE m.meta_key IN ( '_thumbnail_id', '_product_image_gallery' ) AND m.meta_value <> '' AND m.meta_value <> '0'"
-        );
-        $ids = array();
-        foreach ( (array) $lists as $list ) {
-            foreach ( explode( ',', (string) $list ) as $id ) {
-                if ( (int) $id > 0 ) {
-                    $ids[ (int) $id ] = true;
-                }
-            }
-        }
-        $out['on_products'] = count( $ids );
+    $out['on_products'] = vergeml_folders_on_products();
+    $out['sells']       = $out['on_products'] > 0;
+
+    /*
+     *  What the Tree step's button says it will make (S20). Only on a site
+     *  that sells: a site with WooCommerce and no product picture keeps the
+     *  bare pack's order and pays no terms query for a button it never draws.
+     */
+    if ( $out['sells'] ) {
+        $out['product_cats'] = count( vergeml_folders_product_paths()['paths'] );
     }
-    $out['sells'] = $out['on_products'] > 0;
 
     if ( ! isset( $wpdb->vergeml_ai_index ) ) {
         return $out;
@@ -661,7 +751,14 @@ function vergeml_guide_summary() {
         $tax
     ) ) : $total; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
 
-    return array(
+    /*
+     *  A site that sells says so in its own words (S20). The service puts the
+     *  summary into the planner's prompt whole, so the categories reach it
+     *  here -- and a proposal starts from the names the shop already uses
+     *  instead of guessing them from the pictures (S19: Headwear / Hoodies /
+     *  Other beside a catalogue that says Clothing > Hoodies).
+     */
+    $out = array(
         'total'        => $total,
         'unfiled'      => $unfiled,
         'described_at' => $last,
@@ -676,6 +773,13 @@ function vergeml_guide_summary() {
         ),
         'samples'      => vergeml_talk_samples(),
     );
+
+    // Absent, not empty, on a library that sells nothing: a key the planner has no use for is noise in its context.
+    if ( vergeml_folders_on_products() > 0 ) {
+        $out['product_categories'] = vergeml_folders_product_paths()['paths'];
+    }
+
+    return $out;
 }
 
 /**
@@ -687,7 +791,9 @@ function vergeml_guide_summary_fresh( &$s ) {
     $described = vergeml_guide_described_count();
     $tax       = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
     $nterms    = '' !== $tax && taxonomy_exists( $tax ) ? (int) wp_count_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) ) : 0;
-    $key       = $described . ':' . $nterms . ':' . ( function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0 );
+    // A category made after the session opened is one the planner must see (S20): it is in the summary, so it is in the key that re-takes it.
+    $ncats     = taxonomy_exists( 'product_cat' ) && vergeml_folders_on_products() > 0 ? (int) wp_count_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false ) ) : 0;
+    $key       = $described . ':' . $nterms . ':' . $ncats . ':' . ( function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0 );
 
     if ( ! is_array( $s['summary'] ) || (string) $s['summary_key'] !== $key ) {
         $s['summary']     = vergeml_guide_summary();
@@ -849,6 +955,12 @@ function vergeml_guide_routes() {
             // Several turns in one write, in order: what a suite plants and puts back.
             'turns' => array( 'type' => 'array', 'required' => false ),
         ),
+    ) );
+    // The shop's way in (S20): the site's own product categories, read at the press so a category made since the page opened is in them.
+    register_rest_route( VERGEML_REST_NS, '/guide/product-categories', array(
+        'methods'             => WP_REST_Server::READABLE,
+        'callback'            => 'vergeml_guide_rest_product_categories',
+        'permission_callback' => $may,
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/rules', array(
         'methods'             => WP_REST_Server::READABLE,
@@ -3059,6 +3171,11 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
 
 function vergeml_guide_rest_rules( WP_REST_Request $request ) {
     return rest_ensure_response( vergeml_guide_rules_all() );
+}
+
+/** The site's product categories as paths: what the Tree step's button pastes (S20). */
+function vergeml_guide_rest_product_categories( WP_REST_Request $request ) {
+    return rest_ensure_response( vergeml_folders_product_paths() );
 }
 
 /**
