@@ -155,6 +155,31 @@ answer. `vgmls21` deleted on both networks after.
   So this is a wording choice, not a defect: whether the row should name what it
   is doing while the count is honestly zero. Nathan's, and it needs no further
   measurement.
+- **A new shop, and a growing one: three cases, one of them unbuilt.** Asked
+  after the sheet (Nathan, 2026-09-19). The product rule runs in exactly two
+  places — the fill (`core/folder-talk.php:1127`) and the dry count
+  (`core/guide.php:1922`, added today). It is **not** in `core/auto-file.php`.
+  1. **A shop with categories and products but no product pictures.** Correct
+     as it stands: the rail only turns round when a picture is actually on a
+     product, and `guide` H6 already holds the line (a Woo site with no product
+     picture pays no query). Nothing to do.
+  2. **A shop still filing everything under Woo's default category.** One press
+     would make a single folder called *Uncategorized* — truthful and useless.
+     Woo's default is skipped while empty and kept once products are in it
+     (`vergeml_folders_product_paths`, `guide` H3). A one-line guard could
+     withhold the button when the default is the *only* category with anything
+     in it. Small, and Nathan's shape call.
+  3. **A shop that keeps growing — the real gap.** A picture uploaded to a new
+     product tomorrow is not placed by its product on upload. It waits for the
+     next Fill; if auto-file reaches it first it is placed by *evidence*, the
+     weaker answer the product rule exists to avoid. Not a regression — the
+     Fill button is the front door and it does place them — but the fact is
+     sitting in the database unused until somebody presses it. Building it
+     means a new automatic write path on a shop's real library, against
+     auto-file's own doctrine that filing is earned per folder (a product
+     placement is a fact, not a suggestion, so the doctrine arguably does not
+     apply to it). **Deliberately deferred past the submission**: it wants a
+     walk and its own session, and nothing about it is broken today.
 - **The archive is not ready to send as it stands.** Plugin Check passes, but
   `Version:` and `Stable tag:` are still 3.16.1 and the changelog's newest
   entry is 3.16.1, while S12–S21 added the Folders screen, filing by evidence,
