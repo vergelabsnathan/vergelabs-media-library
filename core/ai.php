@@ -1955,6 +1955,10 @@ function vergeml_ai_routes() {
         'permission_callback' => function () {
             return current_user_can( 'manage_categories' );
         },
+        // The line under the title, re-rendered: asked for when a run ends, not on every poll.
+        'args'                => array(
+            'line' => array( 'type' => 'boolean', 'default' => false ),
+        ),
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/ai-index', array(
@@ -1988,7 +1992,7 @@ function vergeml_ai_routes() {
     ) );
 }
 
-function vergeml_ai_rest_status() {
+function vergeml_ai_rest_status( WP_REST_Request $request = null ) {
 
     global $wpdb;
 
@@ -2000,9 +2004,24 @@ function vergeml_ai_rest_status() {
     $settings = vergeml_ai_settings();
     $credits  = vergeml_ai_refresh_credits();
 
+    /*
+     *  The line under the title, rendered again (S21). It was painted with the
+     *  page and nothing repainted it, so a run described three pictures and the
+     *  line still read what it read before, until somebody reloaded (S19, found
+     *  on the real shop). The screen asks for it when a run ends, never on the
+     *  poll -- the counts behind it are the page's own dozen queries, and a run
+     *  polls this route every couple of seconds.
+     */
+    $line = null;
+    if ( $request instanceof WP_REST_Request && $request->get_param( 'line' ) && function_exists( 'vergeml_ai_facts_line' ) && function_exists( 'vergeml_ai_screen_counts' ) ) {
+        $line = vergeml_ai_facts_line( vergeml_ai_screen_counts() );
+    }
+
     return rest_ensure_response( array(
         'images'      => $images,
         'indexed'     => $indexed,
+        // Null unless it was asked for: the screen keeps what it has rather than blanking the line.
+        'counts_line' => $line,
         'unindexed'   => vergeml_ai_pending_count( 'unindexed' ),
         'missing_alt' => vergeml_ai_pending_count( 'missing-alt' ),
         'page_gap'    => vergeml_ai_pending_count( 'page-gap' ),

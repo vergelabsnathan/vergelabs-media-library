@@ -851,8 +851,13 @@
 	/*
 	 *  The rounds (S10.7), only when there were two: round 1 placed from
 	 *  the tree as confirmed, round 2 from what the folders held by then.
-	 *  "round 1: 553 placed · round 2: 640 · 113 to sort" once the run is
-	 *  over; while round 2 runs, its count climbs and the tail waits.
+	 *  "round 1: 553 placed · round 2: 87 more · 113 to sort" once the run
+	 *  is over; while round 2 runs, its count climbs and the tail waits.
+	 *
+	 *  The run keeps rounds[2] as the total placed by the end of round 2, and
+	 *  the line used to print it beside round 1's -- so the real shop's
+	 *  "round 1: 32 placed · round 2: 32" read as 32 more where round 2 had
+	 *  placed none (S19, S21). Round 2's own number is the difference.
 	 */
 	function appendRounds( pills, r, done ) {
 		var rounds = ( r && r.rounds ) || {};
@@ -860,7 +865,8 @@
 			return;
 		}
 		var two = rounds[ 2 ] !== undefined ? rounds[ 2 ] : ( Number( r.moved ) || 0 );
-		var text = sprintf( __( 'round 1: %1$s placed · round 2: %2$s', 'vergelabs-media-library' ), fmt( rounds[ 1 ] ), fmt( two ) );
+		/* translators: 1: pictures round 1 placed, 2: pictures round 2 placed on top of them */
+		var text = sprintf( __( 'round 1: %1$s placed · round 2: %2$s more', 'vergelabs-media-library' ), fmt( rounds[ 1 ] ), fmt( Math.max( 0, two - rounds[ 1 ] ) ) );
 		if ( done ) {
 			text += sprintf( __( ' · %s to sort', 'vergelabs-media-library' ), fmt( Number( r.tally && r.tally.nothing ) || 0 ) );
 		}

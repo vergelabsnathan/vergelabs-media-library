@@ -106,8 +106,15 @@
 		button.setAttribute( 'data-idle-off', button.disabled ? '1' : '' );
 	}
 
-	function refresh() {
-		return apiFetch( { path: '/vergeml/v1/ai-status' } ).then( function ( s ) {
+	/*
+	 *  withLine: also ask the route to render the line under the title again
+	 *  (S21). It is painted with the page and nothing repainted it, so a run
+	 *  described three pictures and the line still said "0 described" until
+	 *  somebody reloaded (S19). Asked when a run ends, never on the poll --
+	 *  the counts behind it are the page's own dozen queries.
+	 */
+	function refresh( withLine ) {
+		return apiFetch( { path: '/vergeml/v1/ai-status' + ( withLine ? '?line=1' : '' ) } ).then( function ( s ) {
 			var fresh = parseInt( s.unindexed, 10 ) || 0;
 			var missing = parseInt( s.missing_alt, 10 ) || 0;
 			var gap = parseInt( s.page_gap, 10 ) || 0;
@@ -135,6 +142,10 @@
 				/* translators: %s: pictures */
 				$( 'vgml-ai-page-gap' ).textContent = sprintf( __( 'Alt text on your SEO pages · %s', 'vergelabs-media-library' ), fmt( gap ) );
 				$( 'vgml-ai-page-gap' ).setAttribute( 'data-idle', $( 'vgml-ai-page-gap' ).textContent );
+			}
+			// Only when it was asked for: an absent line leaves what is on the screen alone rather than blanking it.
+			if ( s.counts_line && $( 'vgml-ai-counts' ) ) {
+				$( 'vgml-ai-counts' ).textContent = s.counts_line;
 			}
 			if ( $( 'vgml-ai-enrich' ) ) {
 				$( 'vgml-ai-enrich' ).checked = !! s.settings.enrich_search;
@@ -192,7 +203,7 @@
 			stop.hidden = true;
 			bar.hidden = true;
 			note.textContent = text;
-			refresh();
+			refresh( true );
 		}
 
 		( function step() {

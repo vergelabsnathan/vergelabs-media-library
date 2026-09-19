@@ -63,6 +63,19 @@ console.log( '\nthe describe loop' );
 const before = await page.evaluate( async () =>
 	await window.wp.apiFetch( { path: '/vergeml/v1/ai-status' } ) );
 
+/*
+ *  The line under the title is the four numbers the whole screen is about, and
+ *  it was painted with the page: a run described three pictures and it still
+ *  said what it said before, until somebody reloaded (S19, found on the real
+ *  shop). Read here before the run and again after it ends.
+ */
+const headLine = () => page.evaluate( () => ( document.getElementById( 'vgml-ai-counts' ) || {} ).textContent || '' );
+const headDescribed = ( text ) => {
+	const m = /([\d.,]+) described/.exec( String( text ) );
+	return m ? Number( m[ 1 ].replace( /[.,\s]/g, '' ) ) : -1;
+};
+const headBefore = await headLine();
+
 await page.click( '#vgml-ai-run' );
 
 // the loop is done when the note says so. run() clears the note and only
@@ -87,6 +100,22 @@ check( 'descriptions were stored', after.indexed >= before.indexed && after.inde
 check( 'missing alt text was filled on the way, for every picture described', after.missing_alt === before.missing_alt - before.unindexed, `${ before.missing_alt } -> ${ after.missing_alt }, ${ before.unindexed } described` );
 check( 'the log shows captions', await page.evaluate( () =>
 	document.querySelectorAll( '#vgml-ai-log li' ).length > 0 ) );
+
+/*
+ *  The header catches up on its own: described is up by exactly the run's own
+ *  count, no reload. The note is written before the line is, because finish()
+ *  writes the note and then asks the route to render the line again, so this
+ *  waits for the line rather than reading it the instant the note appears.
+ */
+await page.waitForFunction(
+	( was ) => ( ( document.getElementById( 'vgml-ai-counts' ) || {} ).textContent || '' ) !== was,
+	headBefore,
+	{ timeout: 20000 }
+).catch( () => console.log( '  the line under the title did not move within twenty seconds' ) );
+const headAfter = await headLine();
+check( 'the line under the title counts the run in, without a reload',
+	headDescribed( headAfter ) === headDescribed( headBefore ) + before.unindexed,
+	`${ headBefore.trim() }  ->  ${ headAfter.trim() } (${ before.unindexed } described)` );
 
 /* --- search finds what pictures show ------------------------------------------ */
 

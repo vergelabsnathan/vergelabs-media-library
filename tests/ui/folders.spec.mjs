@@ -407,7 +407,8 @@ test.describe( 'the Folders screen', () => {
 			app.state.moving = { running: false, moved: 640, seen: 1000, total: 1000, round: 2, rounds: { 1: 553, 2: 640 }, tally: { sure: 400, likely: 240, nothing: 113 } };
 			app.render();
 		} );
-		await expect( page.locator( '.g-card[data-card="fill"] .g-pill[data-rounds]' ) ).toHaveText( 'round 1: 553 placed · round 2: 640 · 113 to sort' );
+		// Round 2's own number, not the running total (S21): 640 after a round 1 of 553 is 87 more, and "round 2: 640" read as 640 more.
+		await expect( page.locator( '.g-card[data-card="fill"] .g-pill[data-rounds]' ) ).toHaveText( 'round 1: 553 placed · round 2: 87 more · 113 to sort' );
 		await page.evaluate( () => {
 			const app = window.vgmlFoldersApp;
 			app.state.moving = { running: true, moved: 590, seen: 700, total: 1000, round: 2, rounds: { 1: 553 }, tally: { sure: 380, likely: 210, nothing: 60 } };
@@ -415,11 +416,18 @@ test.describe( 'the Folders screen', () => {
 			app.state.session.apply = app.state.moving;
 			app.render();
 		} );
-		await expect( page.locator( '.g-card[data-card="fill"] .g-pill[data-rounds]' ) ).toHaveText( 'round 1: 553 placed · round 2: 590' );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-pill[data-rounds]' ) ).toHaveText( 'round 1: 553 placed · round 2: 37 more' );
+		// A round 2 that placed nothing more says so, rather than saying round 1's number again (the real shop, 2026-09-19).
 		await page.evaluate( () => {
 			const app = window.vgmlFoldersApp;
 			app.state.session.apply = app.state.session.applyWas;
 			delete app.state.session.applyWas;
+			app.state.moving = { running: false, moved: 32, seen: 33, total: 33, round: 2, rounds: { 1: 32, 2: 32 }, tally: { sure: 32, likely: 0, nothing: 1 } };
+			app.render();
+		} );
+		await expect( page.locator( '.g-card[data-card="fill"] .g-pill[data-rounds]' ) ).toHaveText( 'round 1: 32 placed · round 2: 0 more · 1 to sort' );
+		await page.evaluate( () => {
+			const app = window.vgmlFoldersApp;
 			app.state.questions = [];
 			app.state.moving = null;
 			app.render();
