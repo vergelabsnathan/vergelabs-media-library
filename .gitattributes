@@ -15,4 +15,5 @@
 /.github          export-ignore
 /site             export-ignore
 /tickets          export-ignore
+/_bmad            export-ignore
 /pnpm-lock.yaml   export-ignore
