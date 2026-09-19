@@ -23,7 +23,7 @@ Plugin Check without Docker".
 | Requirement | State |
 |---|---|
 | Plugin Check errors | **0** — all five categories, the release archive at 3.16.1 (`7f2a4fe9…`), run in Playground on 2026-09-12; **run again on 2026-09-19** against a clean archive of `89ba1f1` (everything through S21), same result |
-| Plugin Check warnings | **1** — `mismatched_plugin_name`: readme.txt's title carries a strapline the plugin header does not. A copy call, not a blocker |
+| Plugin Check warnings | **2** at 4.0.0 — `mismatched_plugin_name` (readme.txt's title carries a strapline the plugin header does not; a copy call, not a blocker) and `readme_parser_warnings_trimmed_section_description` (the Description runs to 11,468 characters against the parser's 2,500; it was 13,856 before this release, so it is long-standing, and moving External services out of it shortened rather than caused it). Neither blocks |
 | `php -l` on every file | clean |
 | Runs on current WordPress | 18 of 18 matrix cells on 2026-09-11 — WordPress 6.5, 7.0, 7.1 × PHP 7.4, 8.2, 8.5, multisite, `nl_NL` and `ar`; see [compatibility.md](compatibility.md) |
 | Upgrade from Enhanced Media Library 2.9.4 | settings, taxonomies, MIME types and every term assignment carried over; 18 checks |
@@ -89,16 +89,21 @@ The old by-hand route, still valid:
 Then Tools -> Plugin Check. Tick **every** category: the form defaults to
 "Plugin Repo" alone, which skips Security, Performance and Accessibility.
 
-Last run, a clean archive of `89ba1f1`, all five categories, 2026-09-19: one
-warning, `mismatched_plugin_name` on readme.txt line 0; no errors. The 3.16.1
-release archive gave the same on 2026-09-12.
+Last run, a clean archive of `badb481` at **4.0.0**, all five categories,
+2026-09-19: **no errors**, two warnings (above). Earlier the same day,
+`89ba1f1` and the 3.16.1 release archive both gave no errors and the one
+`mismatched_plugin_name` warning.
 
-**What the archive still needs before it is sent.** The version is 3.16.1 and
-the changelog's newest entry is 3.16.1, but the plugin has moved a long way
-since: the Folders screen, filing by evidence, the shop's way in, the fill's
-two rounds. A submission of this archive would ship those changes under a
-version that does not name them. The bump and the changelog entry are a copy
-call, and Nathan's.
+**The version and the changelog are done.** 4.0.0, with an Upgrade Notice the
+readme did not have before, written from
+[release-inventory-2026-09-19.md](release-inventory-2026-09-19.md).
+
+**External services was rewritten, and moved.** The section described two of
+the plugin's eighteen external calls and contradicted the code in five places;
+[outbound-audit-2026-09-19.md](outbound-audit-2026-09-19.md) is the
+enumeration it was rewritten from. It is now a top-level section rather than a
+subsection of the Description, because the Description is truncated by the
+readme parser and a disclosure nobody can read is not a disclosure.
 
 ## When you submit
 
