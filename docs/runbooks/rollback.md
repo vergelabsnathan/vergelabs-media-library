@@ -20,9 +20,46 @@ production deployment, and then the wait for sites to ask again.
   its own: its row is checked by `/api/health` and the daily `release-check`,
   but no site reads it. Once the free plugin is on wordpress.org (Phase 1.8) a
   free pull-back happens there — set `Stable tag` in `trunk/readme.txt` back
-  to the previous version in the SVN. Until then the free plugin only ships as
-  `service/public/releases/vergelabs-media-library.zip`; put the previous
-  build back in that file and the row's version with it.
+  to the previous version in the SVN. Until then new free installs come from
+  GitHub Releases/latest — the site's install page (`public/index.html`) and
+  the licence email (`service/lib/email.ts`, `FREE_PLUGIN_RELEASE`) both
+  point there — so a free pull-back is `gh release edit v<previous> --latest`
+  (GitHub's "latest" is whichever release was marked last; unmarking the bad
+  one alone is not enough), plus the catalogue row back to the previous file
+  so health and the release-check stay honest. The two "previous" versions
+  differ today: the catalogue's is 3.16.1, GitHub's is v3.16.0 (no v3.16.1
+  release was ever published).
+
+## How releases are named (binding for both plugins from 4.0.0, 2026-09-19)
+
+Every zip in `service/public/releases/` is `<slug>-<version>-<sha256
+prefix>.zip` — twelve hex characters from 4.0.0 on
+(`vergelabs-media-library-4.0.0-bf0d63b70056.zip`); Pro's existing
+`vergelabs-media-library-pro-1.0.2-2a6a794642.zip` carries ten and predates
+the rule. A published file is never overwritten. The current and the previous
+version of each slug stay on disk, so step 2 below is an env flip; anything
+older is retired in its own commit, and never within a day of the catalogue
+moving off it (Pro sites cache the package URL for six hours). As of
+2026-09-19 the free plugin has both (`…-3.16.1-7f2a4fe9bee9.zip` beside
+4.0.0); Pro has only 1.0.2 — 1.0.1's file was removed in `15f4d47`, so a Pro
+rollback today is `git show 15f4d47^:public/releases/vergelabs-media-library-pro-1.0.1-d0fe7f2ee9.zip > public/releases/<same name>`,
+commit, deploy, then the env step. The unversioned
+`vergelabs-media-library.zip` is gone; a restored file always takes the
+versioned name, never that one.
+
+The order of a release is: commit and deploy the zip; fetch it and check that
+the `Version:` header inside is the version and the sha256's first twelve
+characters are the ones in the file name; write the new catalogue and parse
+it with the service's own reader — from `service/`,
+`PLUGIN_RELEASES="$(cat catalogue.json)" npx tsx -e "import('./lib/updates.ts').then(m=>console.log(m.releases().map(r=>r.slug+'@'+r.version+' '+r.source)))"`
+must print every row with the new `source` (`releases()` never throws: a
+typo prints nothing, a bad row is dropped silently, so count the rows); then
+`vercel env rm` / `vercel env add` and a redeploy; then
+`gh release create v<version> <zip> --title … --notes-file … --latest` in the
+plugin repo. The GitHub asset is uploaded as `vergelabs-media-library.zip`
+on purpose — every release's asset has that name, and WordPress users expect
+it — and its digest must equal the served file's. 4.0.0 went out this way on
+2026-09-19 (service `5e1f5e9`, `dd07dd0`, `3eb0b9b`).
 
 ## What to change
 
@@ -31,10 +68,8 @@ production deployment, and then the wait for sites to ask again.
    `PLUGIN_RELEASES` line somewhere safe.
 2. Write the catalogue you want: the same array, with the bad row's `version`
    and `source` set back to the previous release. The previous zip has to
-   exist at that `source`. Today the site keeps only the current Pro zip in
-   `public/releases/` (1.0.1's answered 404 on 2026-09-11), so keep the
-   previous zip beside the current one from now on, or restore it from git
-   and deploy it first.
+   exist at that `source` (see "How releases are named"); if it was removed,
+   restore it from git and deploy it first.
 3. Replace the variable: `vercel env rm PLUGIN_RELEASES production -y`, then
    `vercel env add PLUGIN_RELEASES production < catalogue.json`. The two
    together took 11 seconds in the rehearsal. The live deployment does not
@@ -59,6 +94,9 @@ production deployment, and then the wait for sites to ask again.
 - `/api/cron/release-check`, with `Authorization: Bearer $CRON_SECRET` (the
   secret is in the same Vercel environment), answers `"ok": true`: the zip at
   each `source` carries the version its row claims.
+- The file at the restored `source` hashes to the twelve characters in its
+  own name (`sha256sum` on the fetched bytes) — the cron reads the header,
+  not the bytes.
 - On a site: `wp transient delete vgmlpro_update_check`, then
   `wp plugin list --fields=name,version,update,update_version`. Without the
   delete, a site that checked in the last six hours still shows the withdrawn
