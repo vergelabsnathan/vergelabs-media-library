@@ -16,4 +16,6 @@
 /site             export-ignore
 /tickets          export-ignore
 /_bmad            export-ignore
+/CLAUDE.md        export-ignore
+/AGENTS.md        export-ignore
 /pnpm-lock.yaml   export-ignore
