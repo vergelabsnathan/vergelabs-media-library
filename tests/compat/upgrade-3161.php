@@ -31,12 +31,15 @@ $p = $wpdb->prefix;
 
 // The upgrade runs on plugins_loaded in admin, cron or CLI; wp-cli counts, so
 // this process has already provisioned if the option was behind.
-up( 'the plugin is 4.0.0', '4.0.0' === VERGEML_VERSION, VERGEML_VERSION );
-up( 'vergeml_version moved to 4.0.0', '4.0.0' === get_option( 'vergeml_version' ), (string) get_option( 'vergeml_version' ) );
+// Against the running plugin, not a literal: the fixture stays up across
+// 4.0.1 and beyond, and a suite pinned to one version would go red on the
+// first patch release with nothing regressed.
+up( 'the plugin is a 4.x', 0 === strpos( VERGEML_VERSION, '4.' ), VERGEML_VERSION );
+up( 'vergeml_version moved to the running version', get_option( 'vergeml_version' ) === VERGEML_VERSION, (string) get_option( 'vergeml_version' ) );
 
 $lib = get_option( 'vergeml_librarian' );
-up( 'librarian schema is 4', is_array( $lib ) && 4 === (int) $lib['schema'], is_array( $lib ) ? (string) $lib['schema'] : 'none' );
-up( 'the code says 4 too', 4 === VERGEML_LIBRARIAN_VERSION );
+up( 'librarian schema is the code\'s', is_array( $lib ) && VERGEML_LIBRARIAN_VERSION === (int) $lib['schema'], is_array( $lib ) ? (string) $lib['schema'] : 'none' );
+up( 'and the code\'s is at least 4 (source, hit)', VERGEML_LIBRARIAN_VERSION >= 4, (string) VERGEML_LIBRARIAN_VERSION );
 
 // phpcs:disable WordPress.DB.DirectDatabaseQuery
 $cols = $wpdb->get_col( "SHOW COLUMNS FROM {$p}vergeml_librarian_moves", 0 );
@@ -44,11 +47,12 @@ up( 'moves carries source', in_array( 'source', $cols, true ) );
 up( 'moves carries hit', in_array( 'hit', $cols, true ) );
 up( 'moves kept its old columns', ! array_diff( array( 'move_id', 'batch_id', 'attachment_id', 'term_id', 'why', 'nearest' ), $cols ) );
 
-$snap = json_decode( (string) file_get_contents( getenv( 'VGML_SNAP' ) ?: '/tmp/vgml-upg.json' ), true );
-up( 'the snapshot is there', is_array( $snap ) && isset( $snap['moves'] ) );
-$old_moves = is_array( $snap ) ? count( $snap['moves'] ) : 0;
+$snap_file = getenv( 'VGML_SNAP' ) ?: '/root/vgml-upg.json';
+$snap      = json_decode( (string) file_get_contents( $snap_file ), true );
+up( 'the snapshot is there', is_array( $snap ) && isset( $snap['moves'], $snap['batches'], $snap['options'] ), $snap_file );
+$old_moves = is_array( $snap ) && isset( $snap['moves'] ) ? count( $snap['moves'] ) : 0;
 up( 'the snapshot had at least five moves', $old_moves >= 5, (string) $old_moves );
-up( 'and at least one batch', is_array( $snap ) && count( $snap['batches'] ) >= 1 );
+up( 'and at least one batch', is_array( $snap ) && isset( $snap['batches'] ) && count( $snap['batches'] ) >= 1 );
 $now_moves = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}vergeml_librarian_moves" );
 up( 'every old move row is still there', $now_moves === $old_moves, "$now_moves of $old_moves" );
 $new_cols_empty = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}vergeml_librarian_moves WHERE source = '' AND hit = ''" );
@@ -59,6 +63,22 @@ up( 'three folders', 3 === (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}term_
 $rels = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}term_relationships tr JOIN {$p}term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tt.taxonomy = 'media_category'" );
 up( 'six pictures still filed', 6 === $rels, (string) $rels );
 up( 'the folder counts add up to six', 6 === (int) $wpdb->get_var( "SELECT SUM(count) FROM {$p}term_taxonomy WHERE taxonomy = 'media_category'" ) );
+
+// Row for row, through the same literal-SQL compare the snapshot was frozen
+// with: terms and their meta, relationships, alt texts, both librarian tables
+// in their schema-3 columns, index rows, attachments, the three options.
+$compare = file_exists( __DIR__ . '/upgrade-3161-snapshot.php' ) ? __DIR__ . '/upgrade-3161-snapshot.php' : '/tmp/upgrade-3161-snapshot.php';
+up( 'the compare script is beside the suite', file_exists( $compare ), $compare );
+if ( file_exists( $compare ) ) {
+	putenv( 'VGML_SNAP=' . $snap_file );
+	putenv( 'VGML_COMPARE=1' );
+	ob_start();
+	include $compare;
+	$said = ob_get_clean();
+	putenv( 'VGML_COMPARE' );
+	$n = preg_match( '/(\d+) differences/', $said, $m ) ? (int) $m[1] : -1;
+	up( 'every row the customer had reads the same (0 differences)', 0 === $n, 0 === $n ? '' : trim( $said ) );
+}
 // Playground's SQLite keeps no packed embedding through $wpdb->insert, so the
 // index is empty there; the row count is a box-only check.
 if ( ! getenv( 'VGML_SMOKE' ) ) {
@@ -78,9 +98,18 @@ up( 'mock mode survived', ! empty( vergeml_ai_settings()['mock'] ) );
 // (Playground's SQLite refuses the packed embedding) are not the upgrade's.
 $log   = WP_CONTENT_DIR . '/debug.log';
 $since = is_array( $snap ) && isset( $snap['debug_log_lines'] ) ? (int) $snap['debug_log_lines'] : 0;
-$lines = file_exists( $log ) ? array_slice( file( $log ), $since ) : array();
+$all   = file_exists( $log ) ? file( $log ) : array();
+up( 'debug.log did not shrink since the snapshot', count( $all ) >= $since, count( $all ) . ' vs ' . $since );
+$lines = array_slice( $all, $since );
 $mine  = preg_grep( '#vergelabs-media-library/#', $lines );
-up( 'debug.log carries no line from the plugin since the snapshot', ! $mine, $mine ? trim( reset( $mine ) ) : count( $lines ) . ' new lines, none ours' );
+// The one line 4.0.0 is known to write on PHP 8.4+: the implicit-nullable
+// parameter of vergeml_ai_rest_status(), fixed in the tree on 2026-09-19 and
+// shipping with 4.0.1. The fixture runs the archive customers have, so it is
+// named here rather than hidden; anything else the plugin writes is a failure.
+// Remove this allowance once the fixture is on 4.0.1.
+$known = preg_grep( '#vergeml_ai_rest_status\(\): Implicitly marking parameter#', $mine );
+$other = array_diff_key( $mine, $known );
+up( 'debug.log carries no unexpected line from the plugin since the snapshot', ! $other, $other ? trim( reset( $other ) ) : ( count( $lines ) . ' new lines' . ( $known ? ', ' . count( $known ) . ' known (4.0.0 implicit-nullable, fixed for 4.0.1)' : ', none ours' ) ) );
 
 // One admin request through the real front door, as the customer's browser
 // would make it. Playground cannot reach itself over HTTP, so the smoke sets

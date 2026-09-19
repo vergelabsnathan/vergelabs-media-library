@@ -211,7 +211,12 @@ const SUITES = [
 	 *  `wp` names the WordPress it runs in; VGML_SNAP the frozen state. Story 1.2
 	 *  of plans/suite-readiness.md.
 	 */
-	{ name: 'upgrade-3161', file: 'tests/compat/upgrade-3161.php', env: 'box', php: true, wp: '/var/www/upg', vars: { VGML_SNAP: '/tmp/vgml-upg.json' } },
+	{ name: 'upgrade-3161', file: 'tests/compat/upgrade-3161.php', also: [ 'tests/compat/upgrade-3161-snapshot.php' ], env: 'box', php: true, wp: '/var/www/upg', vars: { VGML_SNAP: '/root/vgml-upg.json' } },
+	/*
+	 *  The same walk in Playground on PHP 8.5 against the working tree's own
+	 *  zip -- the smoke, run before the box. Builds playground/*.zip itself.
+	 */
+	{ name: 'upgrade-3161-smoke', file: 'tests/compat/upgrade-3161.spec.mjs', env: 'local' },
 	/*
 	 *  The licence key at rest, in logs and in responses: a canary key planted
 	 *  through the settings route, then the tables, every GET route as an
@@ -443,7 +448,7 @@ function precondition( suite ) {
 
 		const child = spawn(
 			SSH.split( ' ' )[ 0 ],
-			[ ...SSH.split( ' ' ).slice( 1 ), `cd ${ BOX.wp } && ${ suite.before } --allow-root` ],
+			[ ...SSH.split( ' ' ).slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ suite.before } --allow-root` ],
 			{ stdio: 'ignore' }
 		);
 
@@ -543,9 +548,12 @@ function runPhp( suite ) {
 		const remote = `/tmp/${ path.basename( suite.file ) }`;
 		const args = SSH.split( ' ' );
 
+		// A suite may bring companions (`also`) -- a compare script it includes --
+		// which land beside it under /tmp with their own basenames.
+		const companions = ( suite.also || [] ).map( ( f ) => path.join( ROOT, f ) );
 		const copy = spawn(
 			'scp',
-			[ ...args.slice( 1, args.length - 1 ), path.join( ROOT, suite.file ), `${ args[ args.length - 1 ] }:${ remote }` ],
+			[ ...args.slice( 1, args.length - 1 ), path.join( ROOT, suite.file ), ...companions, `${ args[ args.length - 1 ] }:/tmp/` ],
 			{ stdio: 'inherit' }
 		);
 
@@ -567,7 +575,7 @@ function runPhp( suite ) {
 			 */
 			const child = spawn(
 				args[ 0 ],
-				[ ...args.slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ Object.entries( suite.vars || {} ).map( ( [ k, v ] ) => `${ k }=${ v }` ).join( ' ' ) } wp eval-file ${ remote } --allow-root` ],
+				[ ...args.slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ Object.entries( suite.vars || {} ).map( ( [ k, v ] ) => `${ k }='${ String( v ).replace( /'/g, "'\''" ) }'` ).join( ' ' ) } wp eval-file ${ remote } --allow-root` ],
 				{ stdio: [ 'ignore', 'pipe', 'pipe' ] }
 			);
 

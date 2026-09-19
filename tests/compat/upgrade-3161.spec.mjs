@@ -9,7 +9,9 @@
  *  (upgrade-3161-snapshot.php); then 4.0.0 installed over it through
  *  Plugin_Upgrader with overwrite_package -- the same object `wp plugin
  *  install --force` and the Plugins -> Upload -> Replace screen use; then an
- *  admin-context compare and the suite (upgrade-3161.php).
+ *  admin-context boot (which is what runs the migration), the compare and
+ *  the suite (upgrade-3161.php). The new side is the working tree's own zip
+ *  on PHP 8.5, so a deprecation the tree ships is caught here first.
  *
  *  Playground is SQLite behind a translation layer, which is why AD-5 makes
  *  the box the proof: dbDelta here is not dbDelta on MySQL. What this run
@@ -19,7 +21,7 @@
  *  Output comes back through a mounted directory, because Playground prints
  *  nothing a runPHP step says (pro/tools/verify.mjs learned that first).
  */
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -28,8 +30,11 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..', '..' );
 const DIST = path.resolve( ROOT, '..', 'dist' );
 const OLD = path.join( DIST, 'vergelabs-media-library-3.16.1.zip' );
-const NEW = path.join( DIST, 'vergelabs-media-library-4.0.0.zip' );
+// The new side is the working tree, zipped by deploy.mjs --zip (playground/…),
+// so a fix in the tree is what the smoke swaps in -- not a hand-cut archive.
+const NEW = path.join( ROOT, 'playground', 'vergelabs-media-library.zip' );
 
+execSync( 'node tools/deploy.mjs --zip', { cwd: ROOT, stdio: 'inherit' } );
 for ( const z of [ OLD, NEW ] ) {
 	if ( ! fs.existsSync( z ) ) {
 		console.log( `missing ${ z }` );
@@ -49,7 +54,12 @@ fs.copyFileSync( NEW, path.join( work, 'new.zip' ) );
 // Twenty pictures: the repo's own screenshots, copied under plain names.
 const pics = path.join( work, 'pics' );
 fs.mkdirSync( pics );
-const shots = fs.readdirSync( path.join( ROOT, 'tests', 'tree', 'shots' ) ).filter( ( f ) => f.endsWith( '.png' ) ).slice( 0, 20 );
+const shotsDir = path.join( ROOT, 'tests', 'tree', 'shots' );
+const shots = fs.existsSync( shotsDir ) ? fs.readdirSync( shotsDir ).filter( ( f ) => f.endsWith( '.png' ) ).slice( 0, 20 ) : [];
+if ( shots.length < 20 ) {
+	console.log( `need twenty .png in ${ shotsDir }, found ${ shots.length }` );
+	process.exit( 2 );
+}
 shots.forEach( ( f, i ) => fs.copyFileSync( path.join( ROOT, 'tests', 'tree', 'shots', f ), path.join( pics, `picture-${ String( i + 1 ).padStart( 2, '0' ) }.png` ) ) );
 
 const compat = path.join( work, 'compat' );
@@ -61,7 +71,7 @@ for ( const f of [ 'upgrade-3161-fixture.php', 'upgrade-3161-snapshot.php', 'upg
 const OUT = '/wordpress/wp-content/vgml-out';
 const php = ( name, env, body ) => ( {
 	step: 'runPHP',
-	code: `<?php error_reporting( E_ALL ); ini_set( 'display_errors', '1' ); define( 'WP_DEBUG', true ); define( 'WP_DEBUG_DISPLAY', true );\n`
+	code: `<?php error_reporting( E_ALL ); ini_set( 'display_errors', '1' ); define( 'WP_DEBUG', true ); define( 'WP_DEBUG_LOG', true ); define( 'WP_DEBUG_DISPLAY', true );\n`
 		+ Object.entries( env ).map( ( [ k, v ] ) => `putenv( '${ k }=${ v }' );` ).join( ' ' ) + '\n'
 		+ `ob_start( function ( $b ) { file_put_contents( '${ OUT }/${ name }.txt', $b, FILE_APPEND ); return $b; } );\n`
 		+ `register_shutdown_function( function () { $e = error_get_last(); if ( $e ) { file_put_contents( '${ OUT }/${ name }.txt', "\\nLAST ERROR: " . json_encode( $e ) . "\\n", FILE_APPEND ); } } );\n`
@@ -69,7 +79,7 @@ const php = ( name, env, body ) => ( {
 } );
 
 const blueprint = {
-	preferredVersions: { php: '8.3', wp: 'latest' },
+	preferredVersions: { php: '8.5', wp: 'latest' },
 	steps: [
 		{ step: 'installPlugin', pluginData: { resource: 'vfs', path: '/dist/old.zip' }, options: { activate: true } },
 		php( '1-fixture', { VGML_PICTURES: '/pics' }, `require '/wordpress/wp-load.php'; require '/wordpress/wp-content/vgml-compat/upgrade-3161-fixture.php';` ),
@@ -83,7 +93,7 @@ $r = $u->install( '/dist/new.zip', array( 'overwrite_package' => true ) );
 echo 'install: ' . var_export( $r, true ) . ' result: ' . var_export( $u->result, true ) . ' messages: ' . wp_json_encode( $u->skin->get_upgrade_messages() ) . "\\n";
 echo 'active after: ' . ( is_plugin_active( 'vergelabs-media-library/vergelabs-media-library.php' ) ? 'yes' : 'no' ) . "\\n";
 echo 'header: ' . get_plugin_data( WP_PLUGIN_DIR . '/vergelabs-media-library/vergelabs-media-library.php', false, false )['Version'] . "\\n";` ),
-		php( '4-compare', { VGML_SNAP: `${ OUT }/snap.json`, VGML_COMPARE: '1' }, `require '/wordpress/wp-load.php'; require '/wordpress/wp-content/vgml-compat/upgrade-3161-snapshot.php';` ),
+		php( '4-compare', { VGML_SNAP: `${ OUT }/snap.json`, VGML_COMPARE: '1' }, `define( 'WP_ADMIN', true ); require '/wordpress/wp-load.php'; echo 'provisioned to ' . get_option( 'vergeml_version' ) . "\n"; require '/wordpress/wp-content/vgml-compat/upgrade-3161-snapshot.php';` ),
 		php( '5-suite', { VGML_SNAP: `${ OUT }/snap.json`, VGML_SMOKE: '1' }, `define( 'WP_ADMIN', true ); require '/wordpress/wp-load.php'; require '/wordpress/wp-content/vgml-compat/upgrade-3161.php';` ),
 	],
 };
@@ -109,7 +119,7 @@ p.on( 'close', ( code ) => {
 	for ( const f of fs.readdirSync( out ).filter( ( f ) => f.endsWith( '.txt' ) ).sort() ) {
 		const text = fs.readFileSync( path.join( out, f ), 'utf8' );
 		console.log( `\n──── ${ f }\n${ text.trim() }` );
-		if ( 'error' === 'error' && /Fatal error|Uncaught|FAIL /.test( text ) ) {
+		if ( /Fatal error|Uncaught|FAIL /.test( text ) ) {
 			ok = false;
 		}
 	}

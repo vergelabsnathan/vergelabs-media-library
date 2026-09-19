@@ -41,10 +41,18 @@ fx( 'mock', vergeml_ai_ready() ? 'on, ready' : 'on, NOT ready' );
 
 $tax = vergeml_librarian_taxonomy();
 fx( 'taxonomy', $tax );
+if ( '' === $tax ) {
+	echo "no folder taxonomy\n";
+	exit( 1 );
+}
 
 $have = get_posts( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => -1, 'fields' => 'ids' ) );
 if ( count( $have ) < 20 ) {
 	$dir   = getenv( 'VGML_PICTURES' ) ?: '/tmp/vgml-upg-pics';
+	if ( ! is_dir( $dir ) ) {
+		echo "no pictures at $dir\n";
+		exit( 1 );
+	}
 	$files = array_values( array_filter( (array) scandir( $dir ), function ( $f ) {
 		return (bool) preg_match( '/\.(jpe?g|png)$/i', $f );
 	} ) );
@@ -65,12 +73,20 @@ if ( count( $have ) < 20 ) {
 }
 $have = array_map( 'intval', $have );
 fx( 'pictures', count( $have ) );
+if ( count( $have ) < 20 ) {
+	echo "fewer than twenty pictures\n";
+	exit( 1 );
+}
 
 $folders = array();
 foreach ( array( 'Products', 'People', 'Places' ) as $name ) {
 	$t = term_exists( $name, $tax );
 	if ( ! $t ) {
 		$t = wp_insert_term( $name, $tax );
+	}
+	if ( is_wp_error( $t ) ) {
+		echo '  folder: ' . $t->get_error_message() . "\n";
+		exit( 1 );
 	}
 	$folders[] = (int) ( is_array( $t ) ? $t['term_id'] : $t );
 }
@@ -88,7 +104,8 @@ fx( 'described', $described );
 
 $filed = 0;
 foreach ( array_slice( $have, 0, 6 ) as $i => $id ) {
-	if ( wp_get_object_terms( $id, $tax, array( 'fields' => 'ids' ) ) ) {
+	$already = wp_get_object_terms( $id, $tax, array( 'fields' => 'ids' ) );
+	if ( ! is_wp_error( $already ) && $already ) {
 		$filed++;
 		continue;
 	}
@@ -101,7 +118,19 @@ foreach ( array_slice( $have, 0, 6 ) as $i => $id ) {
 }
 fx( 'filed', $filed );
 
-vergeml_guide_save( vergeml_guide_fresh() );
+// A session with something in it, so the merge on the other side has
+// something to lose: two turns, a draft naming the fixture's folders, a
+// summary. The keys are 3.16.1's own (vergeml_guide_fresh at 348c841).
+$session = vergeml_guide_fresh();
+$session['turns'] = array(
+	array( 'role' => 'user', 'text' => 'Products, People and Places' ),
+	array( 'role' => 'assistant', 'text' => 'Three folders, then.' ),
+);
+$session['assistant_turns'] = 1;
+$session['summary']         = 'A small library: products, people, places.';
+$session['summary_key']     = 'fixture-3161';
+$session['draft']           = array( 'folders' => array( 'Products', 'People', 'Places' ), 'term_ids' => $folders );
+vergeml_guide_save( $session );
 $s = get_option( VERGEML_GUIDE_OPTION );
 fx( 'session', is_array( $s ) ? 'v' . $s['version'] . ( isset( $s['tree'] ) ? ' with tree' : ' no tree key' ) : 'none' );
 
