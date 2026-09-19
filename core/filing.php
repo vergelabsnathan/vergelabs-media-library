@@ -2844,6 +2844,22 @@ function vergeml_filing_questions( $groups, $siblings, $names = array(), $neares
         );
     }
 
+    /*
+     *  Show me, only when there is more to show (S21).
+     *
+     *  The card shows VERGEML_FILING_SAMPLE pictures and the answer returns
+     *  the group's, so on a group of eight or fewer it showed exactly what
+     *  was already on the screen: the card did not change and the thumbnail
+     *  quietly became a link. Nathan met it on the real shop's one-picture
+     *  card (S19) and the rule is his (2026-09-19). One pass here rather than
+     *  a condition in each of the four places a question is made.
+     */
+    foreach ( $out as $i => $q ) {
+        if ( (int) $q['count'] <= VERGEML_FILING_SAMPLE ) {
+            $out[ $i ]['answers'] = array_values( array_diff( (array) $q['answers'], array( 'show-me' ) ) );
+        }
+    }
+
     return $out;
 }
 

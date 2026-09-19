@@ -155,16 +155,36 @@ $questions = vergeml_filing_questions( $groups, $siblings, $names, $nearest );
 f_check( '4 seven questions: the sibling parent first, then the four groups by size, the small-groups card, the unreadable last', 7 === count( $questions ) && array( 'siblings', 'residue', 'residue', 'residue', 'residue', 'residue', 'residue' ) === array_column( $questions, 'kind' ), json_encode( array_column( $questions, 'id' ) ) );
 
 $q = $questions[0];
-f_check( '4b the sibling question: id s:1, term 1, the two children most often tied (2, 3), count 6, sample of 6, three answers', 's:1' === $q['id'] && 1 === $q['term_id'] && array( 2, 3 ) === $q['children'] && 6 === $q['count'] && 6 === count( $q['sample'] ) && array( 'keep-parent', 'split', 'show-me' ) === $q['answers'], json_encode( array( $q['id'], $q['term_id'], $q['children'], $q['count'], count( $q['sample'] ), $q['answers'] ) ) );
+// Six pictures, and the card shows all six: no Let me look, because there is nothing it has not already shown (S21).
+f_check( '4b the sibling question: id s:1, term 1, the two children most often tied (2, 3), count 6, sample of 6, two answers and no look', 's:1' === $q['id'] && 1 === $q['term_id'] && array( 2, 3 ) === $q['children'] && 6 === $q['count'] && 6 === count( $q['sample'] ) && array( 'keep-parent', 'split' ) === $q['answers'], json_encode( array( $q['id'], $q['term_id'], $q['children'], $q['count'], count( $q['sample'] ), $q['answers'] ) ) );
 
 $q = $questions[1];
 f_check( '4c the named group: id r:0, Robotics, count 17, share 0.824, eight in the sample, new-folder / put-in:7 / leave / show-me', 'r:0' === $q['id'] && 'Robotics' === $q['name'] && 17 === $q['count'] && abs( $q['share'] - 14 / 17 ) < 1e-9 && 8 === count( $q['sample'] ) && array( 'new-folder', 'put-in:7', 'leave', 'show-me' ) === $q['answers'] && empty( $q['unreadable'] ) && empty( $q['more'] ), json_encode( array( $q['id'], $q['name'], $q['count'], $q['share'], count( $q['sample'] ), $q['answers'] ) ) );
 
 $q = $questions[3];
-f_check( '4d a group with no name and no folder near: the class word as its name, no put-in; the mixed one carries its share', 'r:2' === $q['id'] && 'Screenshot' === $q['name'] && 'screenshot' === $q['group_kind'] && array( 'new-folder', 'leave', 'show-me' ) === $q['answers'] && 'r:3' === $questions[4]['id'] && abs( $questions[4]['share'] - 4 / 7 ) < 1e-9, json_encode( array( $q['id'], $q['name'], $q['group_kind'], $q['answers'], $questions[4]['share'] ) ) );
+// Seven pictures, all seven on the card: no Show me here either.
+f_check( '4d a group with no name and no folder near: the class word as its name, no put-in, no Show me on its seven; the mixed one carries its share', 'r:2' === $q['id'] && 'Screenshot' === $q['name'] && 'screenshot' === $q['group_kind'] && array( 'new-folder', 'leave' ) === $q['answers'] && 'r:3' === $questions[4]['id'] && abs( $questions[4]['share'] - 4 / 7 ) < 1e-9, json_encode( array( $q['id'], $q['name'], $q['group_kind'], $q['answers'], $questions[4]['share'] ) ) );
 
 $q = $questions[5];
-f_check( '4e the small-groups card: id r:4, more, count 13, leave / show-me only; the unreadable one: r:5, count 2, the same two answers', 'r:4' === $q['id'] && ! empty( $q['more'] ) && 13 === $q['count'] && array( 'leave', 'show-me' ) === $q['answers'] && 'r:5' === $questions[6]['id'] && ! empty( $questions[6]['unreadable'] ) && 2 === $questions[6]['count'] && array( 'leave', 'show-me' ) === $questions[6]['answers'], json_encode( array( $q['id'], $q['count'], $q['answers'], $questions[6]['id'], $questions[6]['count'] ) ) );
+// Thirteen against a card of eight: Show me has five it has not shown, and keeps it. The unreadable two do not.
+f_check( '4e the small-groups card: id r:4, more, count 13, leave / show-me; the unreadable one: r:5, count 2, leave alone', 'r:4' === $q['id'] && ! empty( $q['more'] ) && 13 === $q['count'] && array( 'leave', 'show-me' ) === $q['answers'] && 'r:5' === $questions[6]['id'] && ! empty( $questions[6]['unreadable'] ) && 2 === $questions[6]['count'] && array( 'leave' ) === $questions[6]['answers'], json_encode( array( $q['id'], $q['count'], $q['answers'], $questions[6]['id'], $questions[6]['count'] ) ) );
+
+/*
+ *  The boundary, stated on its own (S21). Show me returns the group's
+ *  pictures and the card already shows VERGEML_FILING_SAMPLE of them, so on a
+ *  group of eight it showed exactly what was on the screen and nothing
+ *  changed -- Nathan, on the real shop's one-picture card (S19).
+ */
+$edge = vergeml_filing_questions(
+    array(
+        array( 'ids' => range( 700, 707 ), 'count' => 8, 'class' => 'edge eight', 'kind' => 'photo', 'share' => 1.0 ),
+        array( 'ids' => range( 710, 718 ), 'count' => 9, 'class' => 'edge nine', 'kind' => 'photo', 'share' => 1.0 ),
+    ),
+    array(),
+    array(),
+    array()
+);
+f_check( '4f eight is the whole card and offers no Show me; nine has one it has not shown and offers it', 2 === count( $edge ) && 8 === count( $edge[0]['sample'] ) && ! in_array( 'show-me', (array) $edge[0]['answers'], true ) && in_array( 'show-me', (array) $edge[1]['answers'], true ), json_encode( array( $edge[0]['answers'], $edge[1]['answers'] ) ) );
 
 echo "\n== put in X: only when X is where most of the group would go\n";
 
@@ -230,10 +250,21 @@ $plan = vergeml_filing_answer_plan( $questions[1], 'show-me' );
 $m    = f_apply( $map, $plan );
 f_check( '16 show-me: not answered, nothing moves, the ids come back', empty( $plan['answered'] ) && array() === $plan['moves'] && $questions[1]['ids'] === $plan['show'] && $map === $m, json_encode( array( $plan['answered'], count( $plan['show'] ) ) ) );
 
-// A sibling question's ids are a map picture => best child; "Let me look" must hand back the pictures, not the children
-// (on the box, 2026-09-15, it handed back term ids and the strip opened empty).
-$plan = vergeml_filing_answer_plan( $questions[0], 'show-me' );
-f_check( '16b show-me on a sibling question: the pictures, not their best children', empty( $plan['answered'] ) && array_map( 'intval', array_keys( $siblings[1]['ids'] ) ) === $plan['show'] && ! in_array( 2, $plan['show'], true ) && ! in_array( 3, $plan['show'], true ), json_encode( $plan['show'] ) );
+/*
+ *  A sibling question's ids are a map picture => best child; "Let me look"
+ *  must hand back the pictures, not the children (on the box, 2026-09-15, it
+ *  handed back term ids and the strip opened empty). Asked on a parent of
+ *  nine, because a card that shows all six no longer offers it (S21).
+ */
+$nine_ids = array();
+foreach ( range( 401, 409 ) as $n ) {
+    $nine_ids[ $n ] = 0 === $n % 2 ? 3 : 2;
+}
+$look = vergeml_filing_questions( array(), array( 1 => array( 'ids' => $nine_ids, 'children' => array( 2 => 5, 3 => 4 ) ) ), array(), array() );
+$plan = vergeml_filing_answer_plan( $look[0], 'show-me' );
+f_check( '16b show-me on a sibling question of nine: the pictures, not their best children', in_array( 'show-me', (array) $look[0]['answers'], true ) && empty( $plan['answered'] ) && array_map( 'intval', array_keys( $nine_ids ) ) === $plan['show'] && ! in_array( 2, $plan['show'], true ) && ! in_array( 3, $plan['show'], true ), json_encode( $plan['show'] ) );
+// And on the card that shows all six, the answer is refused as any answer it does not offer is.
+f_check( '16c a card that has already shown everything refuses show-me, as it refuses any answer it does not offer', null === vergeml_filing_answer_plan( $questions[0], 'show-me' ), json_encode( $questions[0]['answers'] ) );
 
 f_check( '17 an answer the question does not offer is refused', null === vergeml_filing_answer_plan( $questions[6], 'new-folder' ) && null === vergeml_filing_answer_plan( $questions[5], 'new-folder' ) && null === vergeml_filing_answer_plan( $questions[0], 'leave' ) && null === vergeml_filing_answer_plan( $questions[1], 'put-in:5' ) && null === vergeml_filing_answer_plan( $questions[1], 'delete' ), '' );
 
@@ -250,7 +281,8 @@ $either = array(
 $with   = vergeml_filing_questions( $groups, $siblings, $names, $nearest, $either );
 f_check( '18 the either question sits after the sibling one and before the residue', 8 === count( $with ) && array( 'siblings', 'either', 'residue', 'residue', 'residue', 'residue', 'residue', 'residue' ) === array_column( $with, 'kind' ), json_encode( array_column( $with, 'id' ) ) );
 $q = $with[1];
-f_check( '19 its shape: id e:2:4, no term, children by how often best (2, 4), count 3, put-in:2 / put-in:4 / split / leave / show-me', 'e:2:4' === $q['id'] && 0 === $q['term_id'] && array( 2, 4 ) === $q['children'] && 3 === $q['count'] && array( 301, 302, 303 ) === $q['sample'] && array( 'put-in:2', 'put-in:4', 'split', 'leave', 'show-me' ) === $q['answers'], json_encode( array( $q['id'], $q['term_id'], $q['children'], $q['count'], $q['sample'], $q['answers'] ) ) );
+// Three pictures, all three on the card: no show-me (S21).
+f_check( '19 its shape: id e:2:4, no term, children by how often best (2, 4), count 3, put-in:2 / put-in:4 / split / leave', 'e:2:4' === $q['id'] && 0 === $q['term_id'] && array( 2, 4 ) === $q['children'] && 3 === $q['count'] && array( 301, 302, 303 ) === $q['sample'] && array( 'put-in:2', 'put-in:4', 'split', 'leave' ) === $q['answers'], json_encode( array( $q['id'], $q['term_id'], $q['children'], $q['count'], $q['sample'], $q['answers'] ) ) );
 
 $map3 = array( 301 => 0, 302 => 0, 303 => 0 );
 $plan = vergeml_filing_answer_plan( $q, 'split' );
@@ -259,8 +291,20 @@ $plan = vergeml_filing_answer_plan( $q, 'put-in:4' );
 f_check( '21 put-in:4: all three into Hardware, by hand', ! empty( $plan['answered'] ) && array( 4, 4, 4 ) === array_values( f_apply( $map3, $plan ) ) && ! empty( $plan['placed_by'] ) && null === $plan['make'], json_encode( f_apply( $map3, $plan ) ) );
 $plan = vergeml_filing_answer_plan( $q, 'leave' );
 f_check( '22 leave: all three into To sort', ! empty( $plan['answered'] ) && array( 98, 98, 98 ) === array_values( f_apply( $map3, $plan ) ), json_encode( f_apply( $map3, $plan ) ) );
-$plan = vergeml_filing_answer_plan( $q, 'show-me' );
-f_check( '23 show-me: the pictures, not their folders; keep-parent and new-folder refused', empty( $plan['answered'] ) && array( 301, 302, 303 ) === $plan['show'] && null === vergeml_filing_answer_plan( $q, 'keep-parent' ) && null === vergeml_filing_answer_plan( $q, 'new-folder' ), json_encode( $plan['show'] ) );
+f_check( '23 keep-parent and new-folder refused, and so is show-me on a card of three that has shown all three', null === vergeml_filing_answer_plan( $q, 'show-me' ) && null === vergeml_filing_answer_plan( $q, 'keep-parent' ) && null === vergeml_filing_answer_plan( $q, 'new-folder' ), json_encode( $q['answers'] ) );
+
+/*
+ *  The same either/or over nine pictures: it offers the look, and the look
+ *  hands back the pictures rather than the two folders they are tied between
+ *  (the bug 23 was written for, kept on a card that still offers it).
+ */
+$nine_pairs = array();
+foreach ( range( 331, 339 ) as $n ) {
+    $nine_pairs[ $n ] = 0 === $n % 2 ? 4 : 2;
+}
+$big  = array_values( array_filter( vergeml_filing_questions( array(), array(), array(), array(), array( '2:4' => array( 'ids' => $nine_pairs, 'children' => array( 2 => 5, 4 => 4 ) ) ) ), function ( $x ) { return 'either' === $x['kind']; } ) );
+$plan = vergeml_filing_answer_plan( $big[0], 'show-me' );
+f_check( '23b an either/or of nine offers the look, and it hands back the pictures, not the two folders', in_array( 'show-me', (array) $big[0]['answers'], true ) && empty( $plan['answered'] ) && array_map( 'intval', array_keys( $nine_pairs ) ) === $plan['show'] && ! in_array( 2, $plan['show'], true ) && ! in_array( 4, $plan['show'], true ), json_encode( $plan['show'] ) );
 
 echo "\n== the questions' grain (S10.5): either/ors of one picture fold into one card; two folders of one name are told apart by their paths\n";
 
@@ -282,14 +326,13 @@ $many = array(
 );
 $folded = array_values( array_filter( vergeml_filing_questions( array(), array(), array(), array(), $many ), function ( $q ) { return 'either' === $q['kind']; } ) );
 $one    = end( $folded );
-f_check( '24 five pairs, three of one picture: two pair cards (largest first) and one folded card of the three, e:one, ids by best, each picture with its own two folders, split / leave / show-me', 3 === count( $folded ) && 'e:2:4' === $folded[0]['id'] && 'e:5:7' === $folded[1]['id'] && 'e:one' === $one['id'] && 'either' === $one['kind'] && 3 === $one['count'] && array( 321 => 9, 322 => 10, 323 => 13 ) === $one['ids'] && array( 321 => array( 9, 8 ), 322 => array( 10, 11 ), 323 => array( 13, 12 ) ) === $one['pairs'] && array( 321, 322, 323 ) === $one['sample'] && array( 'split', 'leave', 'show-me' ) === $one['answers'], json_encode( array( array_column( $folded, 'id' ), isset( $one['ids'] ) ? $one['ids'] : null, isset( $one['pairs'] ) ? $one['pairs'] : null, isset( $one['answers'] ) ? $one['answers'] : null ) ) );
+f_check( '24 five pairs, three of one picture: two pair cards (largest first) and one folded card of the three, e:one, ids by best, each picture with its own two folders, split / leave', 3 === count( $folded ) && 'e:2:4' === $folded[0]['id'] && 'e:5:7' === $folded[1]['id'] && 'e:one' === $one['id'] && 'either' === $one['kind'] && 3 === $one['count'] && array( 321 => 9, 322 => 10, 323 => 13 ) === $one['ids'] && array( 321 => array( 9, 8 ), 322 => array( 10, 11 ), 323 => array( 13, 12 ) ) === $one['pairs'] && array( 321, 322, 323 ) === $one['sample'] && array( 'split', 'leave' ) === $one['answers'], json_encode( array( array_column( $folded, 'id' ), isset( $one['ids'] ) ? $one['ids'] : null, isset( $one['pairs'] ) ? $one['pairs'] : null, isset( $one['answers'] ) ? $one['answers'] : null ) ) );
 $mapo = array( 321 => 0, 322 => 0, 323 => 0 );
 $plan = vergeml_filing_answer_plan( $one, 'split' );
 $plan2 = vergeml_filing_answer_plan( $one, 'leave' );
-$plan3 = vergeml_filing_answer_plan( $one, 'show-me' );
-f_check( '25 on the folded card: split files each to its own best (answer), leave parks all three, show-me lists them, put-in is refused', is_array( $plan ) && array( 321 => 9, 322 => 10, 323 => 13 ) === f_apply( $mapo, $plan ) && 'answer' === $plan['placed_by'] && array( 98, 98, 98 ) === array_values( f_apply( $mapo, $plan2 ) ) && array( 321, 322, 323 ) === $plan3['show'] && null === vergeml_filing_answer_plan( $one, 'put-in:9' ), json_encode( array( is_array( $plan ) ? f_apply( $mapo, $plan ) : null ) ) );
+f_check( '25 on the folded card: split files each to its own best (answer), leave parks all three, put-in and show-me are refused', is_array( $plan ) && array( 321 => 9, 322 => 10, 323 => 13 ) === f_apply( $mapo, $plan ) && 'answer' === $plan['placed_by'] && array( 98, 98, 98 ) === array_values( f_apply( $mapo, $plan2 ) ) && null === vergeml_filing_answer_plan( $one, 'show-me' ) && null === vergeml_filing_answer_plan( $one, 'put-in:9' ), json_encode( array( is_array( $plan ) ? f_apply( $mapo, $plan ) : null ) ) );
 $single = array_values( array_filter( vergeml_filing_questions( array(), array(), array(), array(), array( '8:9' => $many['8:9'] ) ), function ( $q ) { return 'either' === $q['kind']; } ) );
-f_check( '25b one pair of one picture alone stays its own card, with its put-ins', 1 === count( $single ) && 'e:8:9' === $single[0]['id'] && array( 'put-in:9', 'put-in:8', 'split', 'leave', 'show-me' ) === $single[0]['answers'], json_encode( array_column( $single, 'id' ) ) );
+f_check( '25b one pair of one picture alone stays its own card, with its put-ins and no look at the picture it is showing', 1 === count( $single ) && 'e:8:9' === $single[0]['id'] && array( 'put-in:9', 'put-in:8', 'split', 'leave' ) === $single[0]['answers'], json_encode( array_column( $single, 'id' ) ) );
 
 /*
  *  "10 pictures: Backpacks or Backpacks?" -- the seeded collisions worded by
