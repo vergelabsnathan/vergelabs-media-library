@@ -45,6 +45,45 @@ Rules-only, after every task, unchanged all session (no rule moved):
    already had — which also checks the count *after* the confirm, which the
    original never did. Green again alone in **2.6 m**, and the box carries none.
 
+## Then the release itself (after the card below was first written)
+
+9. **The change inventory (`990a8ff`).** 98 user-visible changes distilled from
+   the 353 commits since 3.16.1, grouped, with the numbers from the commit
+   bodies kept: `docs/release-inventory-2026-09-19.md`.
+10. **Every outbound request audited (`741b511`).** Twenty call sites in
+    shipped code — eighteen external, two loopback, and one of the eighteen
+    made from the admin's browser. `docs/outbound-audit-2026-09-19.md`. The
+    readme's External services section described **two** of the eighteen and
+    contradicted the code in five places. Three findings verified by hand: the
+    support ticket carries the plaintext licence key, an email address and
+    **every active plugin with versions**, and needs **no licence**; the
+    browser-side `window.fetch` exposes the admin's IP; the known-issues feed
+    is cached twelve hours and one hour after a failure, against a claimed
+    "at most once a day".
+11. **External services rewritten and moved (`94641a8`, `badb481`).** It now
+    names all three destinations and everything that leaves. Moved from a
+    `###` subsection of the Description to its own `##` section, because the
+    Description is truncated by the readme parser and a disclosure nobody can
+    read is not a disclosure.
+12. **4.0.0 (`a558059`, `8ef4e7a`, `badb481`).** The version in all three
+    places, a changelog of 34 bullets across seven sections including "Changed,
+    and worth knowing before you update", and an Upgrade Notice the readme
+    never had (263 of 300 characters). Major rather than minor: filing
+    decisions move, the Rules tab is gone, the list toolbar is rebuilt, EML's
+    media scripts are set aside.
+13. **Plugin Check on the 4.0.0 archive (`0931858`): no errors**, two warnings
+    — the known `mismatched_plugin_name`, and the Description's length
+    (11,468 characters against the parser's 2,500; it was 13,856 before this
+    release, so moving External services out shortened it rather than caused
+    it). Neither blocks.
+
+**Two corrections made to this session's own copy before it shipped:** "the one
+thing that works without a licence key" (Connect and the feed do too), and
+"32 of 33 pictures, sure, with no AI asked" — the text model is not asked, but
+`vergeml_filing_profile_build` returns null without a vector from the service
+(`core/filing.php:384`), so nothing is filed at all without a licence. The
+product rule removes the guessing, not the licence.
+
 ## Built, story by story
 
 1. **The Tree step's estimate counts what the fill files by product
@@ -203,9 +242,47 @@ answer. `vgmls21` deleted on both networks after.
 - Both SCORE lines above, after every task. Bands not re-taken (no rule moved).
 - Plugin Check on a clean archive of `89ba1f1`: 0 errors, 1 known warning.
 
+## Open, and Nathan's
+
+- **The three readme decisions**, on the proof page generated from `readme.txt`
+  itself: does External services sound like him; is 4.0.0 the number (three
+  strings if not); and the Description at 11,468 characters against the
+  parser's 2,500 — trim it or accept the cut.
+- **The plaintext licence key in the support ticket.** Raised 2026-09-19 and
+  not decided. The key is sealed at rest against the site's auth salt so a
+  database leak cannot hand out working licences, and then `vergeml_help_send()`
+  posts it in the clear. Attaching a system report is ordinary; attaching the
+  key is an inconsistency in the plugin's own threat model. The site token
+  already sent, or the key's last four characters, would identify the customer
+  as well.
+- **The growing-shop case, the Uncategorized guard, and the shot-sheet pass** —
+  all three deliberately after the submission.
+
 ## Next — S22
 
-Card, to `plugin/.harness/active.json`:
+The card in `plugin/.harness/active.json` has been updated to the state below;
+the JSON block that used to sit here described work that is now done and has
+been removed rather than left to mislead. In short: nothing mechanical is left
+before the form. What follows it is the licence key in the support ticket, the
+growing shop, the Uncategorized guard, and the sheet pass.
+
+Opener, cwd `plugin`:
+
+```
+Read docs/handoffs/2026-09-19-s21-the-estimate-and-the-small-things.md. State
+which model you are and follow that profile in
+~/.claude/harness/model-profiles.md. This session is S22 of
+every-picture-a-home; the card is already in .harness/active.json — read it
+before anything else. Both rules-only SCORE lines first (shop 347 of 581,
+tech 153 of 200). 4.0.0 is cut and passes Plugin Check; if I have edited
+readme.txt, re-cut the archive and re-check it before anything else. Then the
+licence key in the support ticket, then the growing shop (a product's picture
+placed on upload — plan it before building it, it is a new automatic write
+path). Test first, one mutation per story, every cost said before it is spent.
+Talk plainly. End with a handoff carrying the S23 card.
+```
+
+The old S22 card, for the record, is in this file's history at `1c0c167`.
 
 ```json
 {

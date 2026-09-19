@@ -1,30 +1,32 @@
 {
-  "phase": "Every picture a home — S22: the release. All four of S19's small things are closed (the fourth turned out to be a wording choice, not a defect: the bar is indeterminate and the seconds move, only the count is honestly zero while the model answers — 98 % of a one-slice fill is that one call), folders.spec is green on the box again, and the archive passes Plugin Check unchanged. What is left: Nathan's pass over the Folders shot sheet; whatever his words are for the Filling row, if any; and the version bump and changelog for everything since 3.16.1, which is his copy and the last thing before the wordpress.org form.",
+  "phase": "Every picture a home — S22: the listing, then what was deferred. 4.0.0 is cut: the changelog, the Upgrade Notice and the rewritten External services section are written, the version is set in all three places, and Plugin Check on a clean archive gives no errors and two non-blocking warnings. Nothing mechanical is left. What is waiting is Nathan's read of the copy (the proof page lists the three decisions), and after the form is sent: the licence key in the support ticket, the growing-shop case, the Uncategorized guard, and whatever his pass over the Folders shot sheet turns up.",
   "model": "opus",
-  "plan": "a plan file only if the Filling row turns out to need more than a beat before the loop; the six fields per task",
+  "plan": "a plan file for the growing-shop case before it is built — it is a new automatic write path on a real library and wants the six fields per task",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.8, the order of the steps by library)",
   "scope": [
-    "core/folder-talk.php (the beat before the row loop), js/vergeml-folders.js renderMove",
-    "tests/ui/folders.spec.mjs (1546, and any screen change), tests/tree/**",
-    "docs/superpowers/mocks/** (a mock before any visible change)",
-    "readme.txt, vergelabs-media-library.php (the version), docs/**, the archive",
+    "readme.txt (Nathan's copy edits, then re-cut and re-check)",
+    "core/get-help.php (the licence key in the support ticket, if Nathan says so)",
+    "core/auto-file.php, core/filing.php (the growing shop: a product's picture placed on upload)",
+    "core/guide.php vergeml_folders_product_paths (the Uncategorized guard)",
+    "js/vergeml-folders.js, tests/**, docs/superpowers/mocks/** (a mock before any visible change)",
+    "docs/**, the archive",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-19-s21-the-estimate-and-the-small-things.md (this: the estimate, the three small things, the check that was lying, the fourth measured but not built)",
-    "core/folder-talk.php around 1120-1170 (the slice's setup, then the row loop and its two-second beat)",
-    "tools/box-shop-untree.php (freeze, clear, restore -- the shop's tree, by literal SQL) and tools/box-folders-sheet.mjs (the shot sheet)",
-    "memory: progress-always-visible, ui-less-text-pills, do-the-cli-work, model-spend-discipline, verge-media-library-fork (the archive is stale at 3.16.1)"
+    "docs/handoffs/2026-09-19-s21-the-estimate-and-the-small-things.md (this session: the estimate, the four small things, the audit, and 4.0.0)",
+    "docs/outbound-audit-2026-09-19.md (every outbound call and what it sends) and docs/release-inventory-2026-09-19.md (the 98 changes behind the changelog)",
+    "docs/wordpress-org-submission.md (what is done and what the form needs)",
+    "memory: verge-media-library-fork, do-the-cli-work, model-spend-discipline, progress-always-visible, ui-less-text-pills"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
     "Every user-facing string is Nathan's, verbatim; a mock before any visible change",
+    "The readme's External services section is a statement about what leaves a customer's site — never widen what the plugin sends without saying so there in the same commit",
     "The price of the model call is Nathan's; until priced it is metered, never debited",
     "The model never overrules a product placement, a hand placement, or files into a view or a locked folder",
-    "A band is re-taken only rules-only and with the reason; the model's lines are never a band",
-    "Say every cost before it is spent: a describe is a credit a picture; the shop's 33 are described and cached",
-    "The version bump and the changelog are Nathan's copy, and the wordpress.org form is his to send",
+    "Say every cost before it is spent: a describe is a credit a picture",
+    "The wordpress.org form is Nathan's to send",
     "Test first, one mutation per story; a mutation of anything that can start a run holds the cron wire",
     "Never git checkout a file carrying uncommitted work; never chain a checkout into a command",
     "box-eval --site shop is the C.5 main site; --site realshop is the WooCommerce shop"
@@ -32,8 +34,9 @@
   "gates": [
     "node tools/box-eval.mjs tools/box-truth-score.php --site shop and the tech line with --copy tests/tree/truth-tech.json:/tmp/vgml-truth.json --env VGML_TRUTH=/tmp/vgml-truth.json (MSYS_NO_PATHCONV=1): both rules-only lines in every check-in (shop 347 of 581 (60 %) · 72 %, tech 153 of 200 (77 %) · 76 %) — neither falls",
     "node tools/verify.mjs filing sticky guide ai surface roles escaping copy tree-view talk-chips folders-shop seed-shop ai-background filing-trail → green (escaping 9/10 known); service pnpm test green",
-    "node tools/deploy.mjs --check before trusting any box result: it names both digests now, and a STALE box means the suite is testing yesterday",
-    "folders.spec and modes.spec on the tech site after any screen change — all green now; :1546 was fifteen stale earlier profiles on the box, cleared with tools/box-prev-profiles.php, and its assertion is a delta since",
-    "the shop re-walked after any change to the fill: tools/box-shop-untree.php freeze/clear, tools/box-shop-walk.mjs, one press, 32 by product, every screen shot"
+    "node tools/deploy.mjs --check before trusting any box result: it names both digests, and a STALE box means the suite is testing yesterday",
+    "folders.spec and modes.spec on the tech site after any screen change — all green at S21's end",
+    "any readme change re-cut and re-checked: git archive, Playground, node tools/plugin-check.mjs — no errors, and the two known warnings only",
+    "any change to what the plugin sends re-audited against docs/outbound-audit-2026-09-19.md and written into readme.txt in the same commit"
   ]
 }
