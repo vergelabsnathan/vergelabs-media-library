@@ -22,7 +22,7 @@ Plugin Check without Docker".
 
 | Requirement | State |
 |---|---|
-| Plugin Check errors | **0** — all five categories, the release archive at 3.16.1 (`7f2a4fe9…`), run in Playground on 2026-09-12 |
+| Plugin Check errors | **0** — all five categories, the release archive at 3.16.1 (`7f2a4fe9…`), run in Playground on 2026-09-12; **run again on 2026-09-19** against a clean archive of `89ba1f1` (everything through S21), same result |
 | Plugin Check warnings | **1** — `mismatched_plugin_name`: readme.txt's title carries a strapline the plugin header does not. A copy call, not a blocker |
 | `php -l` on every file | clean |
 | Runs on current WordPress | 18 of 18 matrix cells on 2026-09-11 — WordPress 6.5, 7.0, 7.1 × PHP 7.4, 8.2, 8.5, multisite, `nl_NL` and `ar`; see [compatibility.md](compatibility.md) |
@@ -89,8 +89,16 @@ The old by-hand route, still valid:
 Then Tools -> Plugin Check. Tick **every** category: the form defaults to
 "Plugin Repo" alone, which skips Security, Performance and Accessibility.
 
-Last run, 3.16.1, the release archive, all five categories, 2026-09-12: one
-warning, `mismatched_plugin_name` on readme.txt line 0; no errors.
+Last run, a clean archive of `89ba1f1`, all five categories, 2026-09-19: one
+warning, `mismatched_plugin_name` on readme.txt line 0; no errors. The 3.16.1
+release archive gave the same on 2026-09-12.
+
+**What the archive still needs before it is sent.** The version is 3.16.1 and
+the changelog's newest entry is 3.16.1, but the plugin has moved a long way
+since: the Folders screen, filing by evidence, the shop's way in, the fill's
+two rounds. A submission of this archive would ship those changes under a
+version that does not name them. The bump and the changelog entry are a copy
+call, and Nathan's.
 
 ## When you submit
 
