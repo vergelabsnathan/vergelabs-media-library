@@ -313,7 +313,7 @@ The Folders screen is rebuilt: you build a tree, confirm it, and fill it. Filing
 
 = Shops =
 * **One press turns your product categories into folders.** On a site that sells, the Tree step offers your own categories -- nine folders where it used to take four typed instructions.
-* **Pictures are filed by the product they belong to**, before anything is guessed at: featured image, gallery, or uploaded to the product. On a real shop that placed 32 of 33 pictures, sure, with no AI asked.
+* **Pictures are filed by the product they belong to**, before anything is guessed at: featured image, gallery, or uploaded to the product. Your product's category named the folder, so it is a fact rather than a judgement -- nothing is asked about where the picture might go. On a real shop that placed 32 of 33 pictures.
 * **The steps come in a different order on a shop** -- Tree, Fill, then Describe -- because the products place their own pictures first and describing is only for what nothing placed.
 
 = Alt text and describing =
