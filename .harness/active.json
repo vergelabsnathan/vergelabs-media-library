@@ -1,5 +1,5 @@
 {
-  "phase": "Every picture a home — S22: the last small thing, and the release. The estimate, the rounds line, the AI header and Show me are done and the archive passes Plugin Check unchanged. What is left: Filling 0 of 33 stands still on a one-slice run — the three setup phases timed on the shop first, then Nathan's words for what the row says while the count is zero; the user's pass over the Folders screens from the shot sheet; folders.spec:1546, red since before S20; and the version bump and changelog for everything since 3.16.1, which is Nathan's copy and the last thing before the wordpress.org form.",
+  "phase": "Every picture a home — S22: the release. All four of S19's small things are closed (the fourth turned out to be a wording choice, not a defect: the bar is indeterminate and the seconds move, only the count is honestly zero while the model answers — 98 % of a one-slice fill is that one call), folders.spec is green on the box again, and the archive passes Plugin Check unchanged. What is left: Nathan's pass over the Folders shot sheet; whatever his words are for the Filling row, if any; and the version bump and changelog for everything since 3.16.1, which is his copy and the last thing before the wordpress.org form.",
   "model": "opus",
   "plan": "a plan file only if the Filling row turns out to need more than a beat before the loop; the six fields per task",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.8, the order of the steps by library)",
@@ -33,7 +33,7 @@
     "node tools/box-eval.mjs tools/box-truth-score.php --site shop and the tech line with --copy tests/tree/truth-tech.json:/tmp/vgml-truth.json --env VGML_TRUTH=/tmp/vgml-truth.json (MSYS_NO_PATHCONV=1): both rules-only lines in every check-in (shop 347 of 581 (60 %) · 72 %, tech 153 of 200 (77 %) · 76 %) — neither falls",
     "node tools/verify.mjs filing sticky guide ai surface roles escaping copy tree-view talk-chips folders-shop seed-shop ai-background filing-trail → green (escaping 9/10 known); service pnpm test green",
     "node tools/deploy.mjs --check before trusting any box result: it names both digests now, and a STALE box means the suite is testing yesterday",
-    "folders.spec and modes.spec on the tech site after any screen change (27 passed, 1 failed at :1546, 3 skipped is the standing line)",
+    "folders.spec and modes.spec on the tech site after any screen change — all green now; :1546 was fifteen stale earlier profiles on the box, cleared with tools/box-prev-profiles.php, and its assertion is a delta since",
     "the shop re-walked after any change to the fill: tools/box-shop-untree.php freeze/clear, tools/box-shop-walk.mjs, one press, 32 by product, every screen shot"
   ]
 }

@@ -1594,9 +1594,20 @@ test.describe( 'the Folders screen', () => {
 			expect( await row().locator( '.vgml-unclass' ).count(), 'a confirmed row has no ×' ).toBe( 0 );
 
 			// A second confirm with other words replaces the profile and keeps the earlier one; Unconfirm offers Restore, which puts it back.
+			/*
+			 *  prev is the site's whole count, not this folder's, so what is
+			 *  asserted is the delta: the second confirm keeps exactly one more
+			 *  earlier profile than the site already had. Written as an absolute
+			 *  0, this went red for two sessions on fifteen leftovers the
+			 *  fill-walk had dropped before S20 put them back (bb8f6c1) -- a
+			 *  true statement about the box and nothing at all about the code.
+			 */
 			const u1 = await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/unconfirm`, method: 'POST' } ), NS );
-			expect( u1.prev, 'no earlier profile before the second confirm' ).toBe( 0 );
+			const prevWas = Number( u1.prev ) || 0;
 			await draftWith( [ 'probe six' ] );
+			await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/confirm`, method: 'POST' } ), NS );
+			const u2 = await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/unconfirm`, method: 'POST' } ), NS );
+			expect( Number( u2.prev ) || 0, 'the second confirm keeps this folder\'s earlier profile, and only it' ).toBe( prevWas + 1 );
 			await page.evaluate( ( ns ) => wp.apiFetch( { path: `${ ns }/guide/confirm`, method: 'POST' } ), NS );
 			await expect.poll( nodeClasses, { timeout: 20000 } ).toEqual( [ 'probe six' ] );
 			await page.reload( { waitUntil: 'domcontentloaded' } );

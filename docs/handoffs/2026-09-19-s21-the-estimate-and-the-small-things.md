@@ -23,6 +23,28 @@ Rules-only, after every task, unchanged all session (no rule moved):
 - **Show me**: do not offer it when the card has already shown everything.
 - **A shot sheet of every Folders screen** for his own pass.
 
+## After the handoff was written — two more, on Nathan's "move on"
+
+7. **The fill's seconds, timed (`tools/box-fill-phases.php`, new).** On the
+   shop, warm, 32 of 33 already claimed by a product: profiles 0.02 s, the
+   slice read 0.01 s, the products' folders 0.01 s, **the text model 3.22 s**,
+   the picks 0.03 s — **3.29 s in all, 98 % of it the one service call**. At
+   the press nothing is claimed yet, so all 33 go in the chunk and that is the
+   fifteen seconds. The beat is set only after a chunk returns, so nothing can
+   move during it. Moves nothing; the model call is metered, not debited.
+8. **`folders.spec:1546` was the box, not the code.** `u1.prev` is the site's
+   whole count of folders carrying an earlier profile
+   (`vergeml_guide_prev_count`), and the test asserted an absolute **0**. The
+   box answered **15** — the exact fifteen the fill-walk dropped before S20's
+   put-back (`bb8f6c1`): S20 fixed the tool and never cleaned what earlier runs
+   had left. They also meant the box's own Folders screen had been offering
+   *Restore the earlier classes* for a restore point that only existed because
+   of the bug. `tools/box-prev-profiles.php` (new) lists them and took them off
+   (15 removed, 0 left); the test passed alone in **2.4 m**. The assertion is
+   now the **delta** — the second confirm keeps exactly one more than the site
+   already had — which also checks the count *after* the confirm, which the
+   original never did. Green again alone in **2.6 m**, and the box carries none.
+
 ## Built, story by story
 
 1. **The Tree step's estimate counts what the fill files by product
@@ -124,12 +146,15 @@ answer. `vgmls21` deleted on both networks after.
   things S21 did not have: the three phases timed on the shop (a real fill),
   and Nathan's words for what the row says while the count is still zero.**
   `core/folder-talk.php` was outside the card's scope.
-- **`folders.spec`'s pre-existing failure.** *the words a folder takes: pills
-  from the profile, × removes, #word adds, Unconfirm offers Restore*
-  (`folders.spec.mjs:1546`, the poll at :1598 for `[ 'probe six' ]`). It failed
-  in S20's own end-of-session run too — **27 passed, 1 failed, 3 skipped,
-  30.4 m** — and that line never reached S20's handoff. Not caused by anything
-  in S21: it was red before this session's first change.
+- **The fourth small thing is not what S19 called it.** *Filling 0 of 33 · 15 s*
+  does **not** stand still: `renderProgress` puts the bar in its indeterminate
+  state while `done` is 0 (`js/vergeml-folders.js:319`) and pushes the moving
+  seconds (`:351-353`, whose comment names Nathan's own earlier "0 of 1 batches
+  for fifty seconds"). The bar animates and the seconds climb. Only the **count**
+  sits at 0, and the count is true — nothing is filed until the model answers.
+  So this is a wording choice, not a defect: whether the row should name what it
+  is doing while the count is honestly zero. Nathan's, and it needs no further
+  measurement.
 - **The archive is not ready to send as it stands.** Plugin Check passes, but
   `Version:` and `Stable tag:` are still 3.16.1 and the changelog's newest
   entry is 3.16.1, while S12–S21 added the Folders screen, filing by evidence,
