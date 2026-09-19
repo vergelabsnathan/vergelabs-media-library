@@ -451,8 +451,15 @@ function scp( box, from, to ) {
  *  Not "did the copy exit zero" -- it always does. Every shipped file is
  *  re-hashed on the far end and compared against the manifest that went with
  *  it, so "deployed" means the bytes match and nothing else.
+ *
+ *  And the manifest itself is compared to the one this working tree makes
+ *  right now (S21). Without that, --check only proved the box still held what
+ *  the last deploy sent it: on 2026-09-19 it answered "box up to date" over a
+ *  working tree with three changed files the box had never seen, which is the
+ *  exact reassurance this file exists to refuse to give. A box whose files
+ *  match an old manifest is a box that is behind, not a box that is current.
  */
-function verifyBox( box ) {
+function verifyBox( box, want ) {
 
 	const dir = `${ box.wp }/wp-content/plugins/${ SLUG }`;
 
@@ -460,6 +467,7 @@ function verifyBox( box ) {
 		set -e
 		cd ${ dir } 2>/dev/null || { echo 'MISSING_DIR'; exit 0; }
 		[ -f .deploy-manifest ] || { echo 'NO_MANIFEST'; exit 0; }
+		echo "MANIFEST $( sha256sum .deploy-manifest | cut -c1-12 )"
 		sha256sum -c .deploy-manifest --quiet 2>&1 | head -20
 		echo "CHECKED $( wc -l < .deploy-manifest )"
 	` ).trim();
@@ -474,6 +482,11 @@ function verifyBox( box ) {
 
 	const bad = out.split( '\n' ).filter( ( l ) => l.includes( 'FAILED' ) || l.includes( 'differ' ) );
 	const checked = ( out.match( /CHECKED (\d+)/ ) || [ , '0' ] )[ 1 ];
+	const there = ( out.match( /MANIFEST ([0-9a-f]+)/ ) || [ , '' ] )[ 1 ];
+
+	if ( want && there !== want ) {
+		return { ok: false, why: `the box holds another build (its manifest is ${ there || 'unreadable' }, this tree's is ${ want })` };
+	}
 
 	return bad.length
 		? { ok: false, why: `${ bad.length } file(s) on the box differ`, detail: bad.slice( 0, 6 ) }
@@ -623,14 +636,14 @@ if ( DO_BOX ) {
 
 	try {
 		if ( CHECK ) {
-			const v = verifyBox( box );
+			const v = verifyBox( box, want );
 			console.log( v.ok
 				? `  box   up to date  (${ v.checked } files verified)`
 				: `  box   STALE -- ${ v.why }` );
 			failed = failed || ! v.ok;
 		} else {
 			deployBox( box, files, mf );
-			const v = verifyBox( box );
+			const v = verifyBox( box, want );
 			console.log( v.ok
 				? `  box   deployed and verified  (${ v.checked } files re-hashed on ${ BOX_HOST })`
 				: `  box   DEPLOY DID NOT VERIFY -- ${ v.why }` );
