@@ -4,7 +4,7 @@ Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.16.1
+Stable tag: 4.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -286,7 +286,63 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 
 
 
+## Upgrade Notice ##
+
+### 4.0.0 ###
+The Folders screen is rebuilt: you build a tree, confirm it, and fill it. Filing now reads what pictures show rather than matching names, so a fill after updating will place things differently than before. The Rules tab is gone and the media list's toolbar is one row. Read the changelog before you run a fill.
+
 ## Changelog ##
+
+### 4.0.0 ###
+*A screen that builds your folders and fills them, filing that reads what a picture shows, and a shop that sorts itself*
+
+= Folders: build a tree, then fill it =
+* **The Folders screen is a workflow, not a conversation.** Tree, Fill, Describe, Alt text, Rename -- each step reachable by clicking, none of them a gate. The page opens without asking the AI anything; *Propose folders* is a button with its credit cost printed on it.
+* **Paste your folder tree.** One folder per line, `Clothing > Hoodies` for depth. A folder that already exists at that place is reused. Refusals name the line: no name, deeper than five levels, more than five hundred folders.
+* **Or build it by clicking** -- `+` on any row adds a child, `×` removes one, and a name may itself be a path.
+* **Confirm locks the tree** and stores its words on the folders. Unconfirm offers to restore the classes a confirm replaced.
+* **The words a folder files by are yours to edit.** They show as pills after the folder's name; `×` removes one and the count re-runs without asking the AI; `#word` adds one.
+* **Built for a catalogue.** Parents start closed and carry their counts, a find box appears from ten folders, and hovering a closed parent previews what is inside it without opening it.
+
+= Filing that reads what a picture shows =
+* **One way of filing, with three honest answers:** it fits, it is between two folders, or nothing fits. A picture between two children of one folder goes in the parent rather than nowhere. A picture you placed by hand is never moved, and a locked folder is never filed into.
+* **The number before you press is the number that happens.** The estimate on the Tree step and the fill itself now count with the same code.
+* **It learns from your own folders.** A folder holding three or more described pictures is read over them, and a second round re-reads what the first left: *round 1: 553 placed · round 2: 87 more · 113 to sort*.
+* **A "view" of your tree files nothing.** A branch that repeats names from elsewhere -- a sale, a season -- is recognised as a view. One such branch had been swallowing 201 of 626 pictures.
+* **Why a picture is where it is** now shows on the picture's own edit screen and in the grid: the folder, the word that matched, the score, the folder it could not beat, and the batch someone approved.
+
+= Shops =
+* **One press turns your product categories into folders.** On a site that sells, the Tree step offers your own categories -- nine folders where it used to take four typed instructions.
+* **Pictures are filed by the product they belong to**, before anything is guessed at: featured image, gallery, or uploaded to the product. On a real shop that placed 32 of 33 pictures, sure, with no AI asked.
+* **The steps come in a different order on a shop** -- Tree, Fill, then Describe -- because the products place their own pictures first and describing is only for what nothing placed.
+
+= Alt text and describing =
+* **Alt text never overwrites what you wrote.**
+* **Changing the brief no longer re-describes your library by itself.** The count waits on a button that shows the credits before you press it.
+* The AI screen's summary line updates when a run ends instead of waiting for a reload.
+
+= The media library =
+* **The folders panel is on the list view too**, not only the grid, and the table keeps its own width beside it.
+* **The list toolbar is one row** -- the folder you are in, search, filters, the view switch and the pages. On a test site the first row went from 429 to 201 pixels tall.
+* **A new filter, "Placed by hand"**, lists the pictures you moved yourself.
+* **The media library opens at a quarter of a million pictures.** The counts behind the smart folders cost ten seconds of database time on every admin page and now cost 8.6 milliseconds. Above fifty thousand files the expensive ones say "not looked" rather than guessing.
+
+= Fixed =
+* **Six buttons did nothing at all, silently** -- Complete Cleanup, Restore default MIME types, Apply settings to the network and three taxonomy confirmations. Sixteen call sites named four functions that did not exist.
+* **The reset-filters button crashed the media list on a fresh site**, taking the rest of the screen's JavaScript with it.
+* **An update did not reach a browser that already had the old scripts.** The cache-busting string was built from timestamps that arrive as 1980 from a zip, so it never changed.
+* **A folder with an `&` in its name** was matched against the stored `&amp;` and quietly failed to match itself.
+* **Running beside Enhanced Media Library**, its older copy of the shared media scripts answered first and the grid ignored your folders.
+* Pressing Move no longer waits half a minute before answering, and a fill can no longer stall behind a stuck cron.
+
+= Changed, and worth knowing before you update =
+* **Filing decisions have moved.** A fill after updating will place pictures differently than the same library did before.
+* **The Rules tab is gone.** Paste, product categories, clicking or the conversation are the ways in.
+* **The media list's toolbar is rebuilt as one row** -- the controls are all there, but not where they were.
+* **Above fifty thousand files the smart-folder counts are not computed**, on purpose.
+* **A confirmed tree refuses edits** until you unconfirm it.
+* **With Enhanced Media Library active, its media scripts and grid template are now set aside** so the two do not fight.
+* **The readme's "External services" section has been rewritten** to say everything that leaves your site, which is more than it used to say. Nothing new was added to what the plugin sends; the account of it was incomplete.
 
 ### 3.16.1 ###
 *The list, made readable, and two plugins that were quietly narrowing it*
