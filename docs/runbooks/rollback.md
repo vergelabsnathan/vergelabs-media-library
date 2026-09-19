@@ -36,30 +36,45 @@ Every zip in `service/public/releases/` is `<slug>-<version>-<sha256
 prefix>.zip` — twelve hex characters from 4.0.0 on
 (`vergelabs-media-library-4.0.0-bf0d63b70056.zip`); Pro's existing
 `vergelabs-media-library-pro-1.0.2-2a6a794642.zip` carries ten and predates
-the rule. A published file is never overwritten. The current and the previous
-version of each slug stay on disk, so step 2 below is an env flip; anything
-older is retired in its own commit, and never within a day of the catalogue
-moving off it (Pro sites cache the package URL for six hours). As of
-2026-09-19 the free plugin has both (`…-3.16.1-7f2a4fe9bee9.zip` beside
-4.0.0); Pro has only 1.0.2 — 1.0.1's file was removed in `15f4d47`, so a Pro
-rollback today is `git show 15f4d47^:public/releases/vergelabs-media-library-pro-1.0.1-d0fe7f2ee9.zip > public/releases/<same name>`,
-commit, deploy, then the env step. The unversioned
+the rule. A published file is never overwritten. `service/lib/release-files.test.ts`
+reads the directory and fails `pnpm test` for any file whose name does not
+match its own sha256 prefix and `Version:` header. The current and the
+previous version of each slug stay on disk, so steps 2–4 below are a
+catalogue edit, an env flip and a redeploy; anything older is retired in its
+own commit, and — for Pro, whose sites cache the package URL for six hours —
+never within a day of the catalogue moving off it (the free plugin has no
+updater, so its old file could go the same hour). On the shelf since
+2026-09-19: free `…-3.16.1-7f2a4fe9bee9.zip` and `…-4.0.0-bf0d63b70056.zip`,
+Pro `…-1.0.1-d0fe7f2ee9.zip` and `…-1.0.2-2a6a794642.zip`. **The 3.16.1 on
+the shelf is the clean re-cut from `dist/` (142 entries), not the build the
+site served from 2026-09-09 to 09-19 (`539e4937…`, 148 entries, which had
+shipped `tickets/*.md` and `pnpm-lock.yaml` to anyone who downloaded it).**
+Both say `Version: 3.16.1`; a rollback serves the clean one, by decision, and
+the leaked build stays only in git (`dd07dd0^`). The unversioned
 `vergelabs-media-library.zip` is gone; a restored file always takes the
-versioned name, never that one.
+versioned name, never that one, and is restored with
+`git checkout <commit> -- public/releases/<name>` — never through a shell
+redirect, which can re-encode the bytes on Windows.
 
 The order of a release is: commit and deploy the zip; fetch it and check that
-the `Version:` header inside is the version and the sha256's first twelve
-characters are the ones in the file name; write the new catalogue and parse
-it with the service's own reader — from `service/`,
-`PLUGIN_RELEASES="$(cat catalogue.json)" npx tsx -e "import('./lib/updates.ts').then(m=>console.log(m.releases().map(r=>r.slug+'@'+r.version+' '+r.source)))"`
-must print every row with the new `source` (`releases()` never throws: a
-typo prints nothing, a bad row is dropped silently, so count the rows); then
-`vercel env rm` / `vercel env add` and a redeploy; then
-`gh release create v<version> <zip> --title … --notes-file … --latest` in the
-plugin repo. The GitHub asset is uploaded as `vergelabs-media-library.zip`
-on purpose — every release's asset has that name, and WordPress users expect
-it — and its digest must equal the served file's. 4.0.0 went out this way on
-2026-09-19 (service `5e1f5e9`, `dd07dd0`, `3eb0b9b`).
+the `Version:` header inside is the version and the sha256 starts with the
+prefix in the file name; write the new catalogue and parse it with the
+service's own reader — from `service/`,
+`PLUGIN_RELEASES="$(cat catalogue.json)" npx tsx -e "import('./lib/updates.ts').then(m=>console.log((m.releases??m.default.releases)().map(r=>r.slug+'@'+r.version+' paid='+r.paid+' '+r.source).join('\n')))"`
+(under `tsx -e` the module lands on `m.default`; the plain `m.releases()`
+throws) must print every row, with the new `source` and every other field as
+before — `releases()` never throws: invalid JSON prints `[]` and a line on
+stderr, a row missing `slug`, `version` or `source` is dropped silently, and
+a wrong `paid` passes, so read the rows, do not just count them; then
+`vercel env rm` / `vercel env add` and a redeploy; then, from the plugin
+repo, copy the zip to a file named `vergelabs-media-library.zip` and
+`gh release create v<version> vergelabs-media-library.zip --title … --notes-file … --latest`
+— the asset keeps the file's name (`<zip>#label` only sets a display label),
+every release's asset has that name, WordPress users expect it, and its
+digest must equal the served file's; confirm with
+`gh api repos/vergelabsnathan/vergelabs-media-library/releases/latest --jq .tag_name`
+(`gh release view --json` has no `isLatest` field). 4.0.0 went out this way
+on 2026-09-19 (service `5e1f5e9`, `dd07dd0`, `3eb0b9b`, `6c65233`, `4dfff34`).
 
 ## What to change
 
@@ -76,13 +91,19 @@ it — and its digest must equal the served file's. 4.0.0 went out this way on
    change yet — it keeps the environment it was built with, so there is no
    gap in service between this step and the next.
 4. Deploy: `vercel redeploy <current production URL> --target production`
-   (`vercel ls` prints the URL), or push to `main`. Production builds took
-   24–45 seconds on 2026-09-11 and 09-13. This is the step that changes what
-   sites see. It ran from the agent's terminal twice on 2026-09-13 (the
-   monitor rehearsal, `../../../service/docs/runbooks/incident.md`,
-   "Rehearsed") and was refused by the shell classifier on 2026-09-11; if it
-   is refused, it is Nathan's, from his terminal or the dashboard.
-5. Say so in the handoff or the commit: which version was withdrawn, at what
+   (`vercel ls` prints the URL), or push to `main`. Production builds take
+   about 20–50 seconds (22–32 s on 2026-09-19, 50 s for the redeploy that
+   re-aliased ai.vergelabs.nl). This is the step that changes what sites see.
+   It has run from the agent's terminal on 2026-09-13 and 09-19; it was
+   refused by the shell classifier once, on 2026-09-11 — if that happens, it
+   is Nathan's, from his terminal or the dashboard. Then
+   `node tools/promote.mjs` so vergelabsmedia.com and www follow.
+5. For the free plugin, also the GitHub side (see "When"):
+   `gh release edit v<previous> --latest` in the plugin repo, and check
+   `gh api repos/vergelabsnathan/vergelabs-media-library/releases/latest --jq .tag_name`.
+   If the catalogue's previous and GitHub's previous are different versions
+   (today 3.16.1 versus v3.16.0), say which one new installs will get.
+6. Say so in the handoff or the commit: which version was withdrawn, at what
    time, and what the catalogue now says.
 
 ## How you know it worked
@@ -94,9 +115,10 @@ it — and its digest must equal the served file's. 4.0.0 went out this way on
 - `/api/cron/release-check`, with `Authorization: Bearer $CRON_SECRET` (the
   secret is in the same Vercel environment), answers `"ok": true`: the zip at
   each `source` carries the version its row claims.
-- The file at the restored `source` hashes to the twelve characters in its
-  own name (`sha256sum` on the fetched bytes) — the cron reads the header,
-  not the bytes.
+- The file at the restored `source` hashes to the prefix in its own name
+  (twelve characters from 4.0.0, ten on Pro's older files; `sha256sum` on the
+  fetched bytes) — the cron reads the header, not the bytes; `pnpm test`
+  checks the shelf, not what is served.
 - On a site: `wp transient delete vgmlpro_update_check`, then
   `wp plugin list --fields=name,version,update,update_version`. Without the
   delete, a site that checked in the last six hours still shows the withdrawn

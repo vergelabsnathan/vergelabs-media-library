@@ -62,7 +62,7 @@ context:
 - [x] scratchpad `catalogue-after.json` -- the before file with the free row's `version`, `source`, `changelog` changed; parse it with `releases()` from `lib/updates.ts` and print slug@version -- the bad-JSON guard.
 - [x] Vercel `PLUGIN_RELEASES` -- `vercel env rm … -y` then `vercel env add … < catalogue-after.json`, then `vercel redeploy` -- say the JSON first (stop point).
 - [x] probes -- `health.mjs`, `hosts.mjs` (`version=3.16.1` and `4.0.0`), cron with bearer from a pulled env file (deleted after) -- the read lines pasted.
-- [x] GitHub -- `gh release create v4.0.0 ../dist/vergelabs-media-library-4.0.0.zip#vergelabs-media-library.zip --title … --notes-file …` with the approved text; `gh release view v4.0.0 --json assets,isLatest` -- AD-4.
+- [x] GitHub -- `gh release create v4.0.0 ../dist/vergelabs-media-library-4.0.0.zip#vergelabs-media-library.zip --title … --notes-file …` with the approved text; `gh release view v4.0.0 --json assets` plus `gh api …/releases/latest --jq .tag_name` (`--json isLatest` does not exist in gh 2.86) -- AD-4.
 - [x] `service/public/releases/vergelabs-media-library.zip` -- remove, second commit `chore(releases): the unversioned 3.16.1 zip retired`, push, re-run `health.mjs` and `pnpm test`.
 - [x] `docs/runbooks/rollback.md` -- the naming convention and "keep the previous zip beside the current" in one paragraph; commit in the plugin repo.
 
@@ -81,9 +81,12 @@ context:
 - GitHub: `v4.0.0` is latest; the asset first landed as `vergelabs-media-library-4.0.0.zip` (gh's `#label` sets a label, not the name) and was replaced by `vergelabs-media-library.zip`, digest `sha256:bf0d63b70056…`, 1,101,616 bytes.
 - After retirement: `pnpm test` 38 files / 505 tests passed, 14 skipped (87.8 s); health still `free 4.0.0`; the old URL 404.
 - Deviation from step 3: implemented directly, not by a context-free subagent, because the env flip is a stop point only this conversation can honour and the story is remote ops Nathan approved.
-- Rollback input kept: scratchpad `catalogue-before.json` (free 3.16.1 row; its zip is now only in git and `../dist`).
+- Rollback input: `catalogue-rollback-3.16.1.json` beside this spec (the before-catalogue with the free `source` at `…-3.16.1-7f2a4fe9bee9.zip`, the clean dist re-cut now on the shelf since service `3eb0b9b`). `catalogue-before.json` as saved names the unversioned URL, which is a 404 since `dd07dd0`.
+- Code review (second pass, four layers): service `6c65233` adds `lib/release-files.test.ts` (every zip on the shelf named after its own bytes; a 1.0.3-named 1.0.1 fails it) and restores Pro 1.0.1 beside 1.0.2. Runbook corrected: the parse one-liner (`m.default.releases`), which 3.16.1 is on the shelf and why, the asset-name step, the GitHub step in a free pull-back, the Pro/free retirement rule, the hash bullet. `pnpm test` after: 39 files / 511 tests passed, 14 skipped. `6c65233` deployed to an Error (a type narrowing the build's tsc rejected and vitest did not); production stayed on `3eb0b9b`; `4dfff34` fixed it, deploy Ready in 22 s, promote.mjs: both hostnames serving it, health `free 4.0.0, pro 1.0.2`, Pro 1.0.1 read back `200 · d0fe7f2ee95b`.
 
 ## Spec Change Log
+
+- 2026-09-19, code review: the frozen Boundaries say rollback is `PLUGIN_RELEASES` back to `catalogue-before.json`; that file's free `source` became a 404 when the unversioned zip was retired (a consequence of AD-1 the spec did not foresee). The usable input is `catalogue-rollback-3.16.1.json`. The frozen line is Nathan's to amend; no code was re-derived. KEEP: AD-2's order and the local parse before `vercel env add`, which held.
 
 ## Review Triage Log
 
@@ -103,6 +106,25 @@ context:
 | 12 | No automated check that every live catalogue source answers 200 between pnpm test and the daily cron; extend tools/promote.mjs (gap) | medium, pre-existing | the read-back was done by hand this story; release-check exists for exactly this and runs daily | defer: candidate story |
 
 
+### Second pass (bmad-code-review, four layers)
+
+| # | Finding (layer) | Verdict | Evidence | Route |
+|---|---|---|---|---|
+| 13 | The restored 3.16.1 is the dist re-cut (7f2a4fe9bee9, 142 entries), not the served build (539e4937cdb8, 148 entries, which shipped tickets/*.md and pnpm-lock.yaml) (blind, edge, gap, acceptance) | medium | git show dd07dd0^ hashed and listed; both headers 3.16.1 | patch: runbook says which and why; the clean one is the rollback target — Nathan to confirm |
+| 14 | Frozen rollback statement names catalogue-before.json, whose free source 404s (blind, edge, acceptance) | high | probe 404 on the unversioned URL | bad_spec in the frozen block → change-log entry, catalogue-rollback-3.16.1.json written; Nathan's line |
+| 15 | Runbook parse one-liner throws m.releases is not a function under tsx -e (edge, gap, acceptance) | high | reproduced; m.default.releases works | patch: runbook |
+| 16 | Pro 1.0.1 not restored, rule broken for Pro (blind) | medium | shelf had 1.0.2 only | patch: git checkout 15f4d47^ (6c65233) |
+| 17 | No test checks name ↔ sha256 ↔ header on the shelf (gap) | medium | grep public/releases in tests: none | patch: lib/release-files.test.ts (6c65233), mutation red then green |
+| 18 | gh --json isLatest does not exist; spec records a command that errors (edge, acceptance) | low | gh 2.86 Unknown JSON field | patch: spec Tasks/Verification and runbook use gh api releases/latest |
+| 19 | Runbook release recipe repeats the #label trap (acceptance) | low | notes line 81 | patch: copy to vergelabs-media-library.zip first |
+| 20 | Free pull-back GitHub step not in the numbered steps; which previous differs (blind) | low | — | patch: step 5 |
+| 21 | "step 2 is an env flip" wrong step; "a typo prints nothing" prints []; hash bullet says twelve for every file; "never within a day" contradicted by the 4-minute free retirement; old timings; shell redirect for a binary restore (blind, edge) | low | wording | patch: runbook |
+| 22 | Spec status done vs sprint review (blind, acceptance) | false | BMAD's own flow: build marks the spec done and the story review; code-review closes it | reject |
+| 23 | Task 8 said one paragraph, delivered four places (acceptance) | low | the triage log accounts for each | reject: scope grew by review, recorded |
+| 24 | Diff omitted release-notes-4.0.0.md and epic-1-context.md (blind, acceptance) | low | the auditor read them: body byte-identical to the published release | reject: reviewed anyway |
+| 25 | paid="false" as a string would pass releases() (blind) | low | releases() checks slug/version/source only | patch: one-liner prints paid; "read the rows" |
+| 26 | The naming rule has no producer script (blind) | low | grep: none | defer: fold into the promote.mjs item |
+
 ## Verification
 
 **Commands:**
@@ -111,5 +133,5 @@ context:
 - `node <scratchpad>/health.mjs` -- expected: `"releases","ok":true,"detail":"free 4.0.0, pro 1.0.2"`
 - `node <scratchpad>/hosts.mjs` -- expected: `update:true` + the new package for 3.16.1, `update:false` for 4.0.0
 - cron probe -- expected: `200 {"ok":true…}`
-- `gh release view v4.0.0 --json isLatest,assets` -- expected: `isLatest: true`, one asset, size 1101616
+- `gh release view v4.0.0 --json assets` and `gh api repos/vergelabsnathan/vergelabs-media-library/releases/latest --jq .tag_name` -- expected: one asset, size 1101616; `v4.0.0`
 - `pnpm test` in `service/` -- expected: all suites pass

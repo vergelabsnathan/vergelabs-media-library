@@ -1,0 +1,22 @@
+[
+  {
+    "slug": "vergelabs-media-library",
+    "version": "3.16.1",
+    "requiresWp": "6.5",
+    "requiresPhp": "7.4",
+    "testedWp": "7.1",
+    "source": "https://vergelabsmedia.com/releases/vergelabs-media-library-3.16.1-7f2a4fe9bee9.zip",
+    "paid": false,
+    "changelog": "3.16.1: the Librarian says why every picture is where it is, on the attachment screen and in the grid's modal."
+  },
+  {
+    "slug": "vergelabs-media-library-pro",
+    "version": "1.0.2",
+    "requiresWp": "6.5",
+    "requiresPhp": "7.4",
+    "testedWp": "7.1",
+    "source": "https://vergelabsmedia.com/releases/vergelabs-media-library-pro-1.0.2-2a6a794642.zip",
+    "paid": true,
+    "changelog": "1.0.2: a licence check can no longer be redirected by another plugin, a staging site keeps its seat, and the Alt text column says what happened to the alt text."
+  }
+]
