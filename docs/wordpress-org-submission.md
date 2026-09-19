@@ -18,6 +18,15 @@ Plugin Check without Docker".
 > suspicion — the plugin's floor is 7.4 and its ceiling is whatever a host ships
 > next, and this page did not previously distinguish them.
 
+## The archive to upload
+
+**`dist/vergelabs-media-library-4.0.0.zip`** — built 2026-09-19 from `59df217`,
+tagged `v4.0.0`. 145 entries, 1,101,616 bytes, sha256 begins `bf0d63b70056`.
+Checked after building, not assumed: no `tests/`, `tools/`, `docs/`, `plans/`,
+`node_modules/`, `research/` or `dist/` inside it, no hidden files, the main
+plugin file present, and `Stable tag: 4.0.0` and `Version: 4.0.0` read back out
+of the zip itself rather than off the working tree.
+
 ## Done
 
 | Requirement | State |
