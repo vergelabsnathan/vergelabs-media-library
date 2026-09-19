@@ -205,6 +205,14 @@ const SUITES = [
 	 */
 	{ name: 'paths', file: 'tests/security/paths.php', env: 'box', php: true },
 	/*
+	 *  A 3.16.1 site upgraded in place to 4.0.0 kept everything: runs on the
+	 *  upgrade fixture (/var/www/upg, built by tests/compat/upgrade-3161-fixture.php
+	 *  under 3.16.1 and frozen by upgrade-3161-snapshot.php), not the tech site.
+	 *  `wp` names the WordPress it runs in; VGML_SNAP the frozen state. Story 1.2
+	 *  of plans/suite-readiness.md.
+	 */
+	{ name: 'upgrade-3161', file: 'tests/compat/upgrade-3161.php', env: 'box', php: true, wp: '/var/www/upg', vars: { VGML_SNAP: '/tmp/vgml-upg.json' } },
+	/*
 	 *  The licence key at rest, in logs and in responses: a canary key planted
 	 *  through the settings route, then the tables, every GET route as an
 	 *  administrator, a describe pass against a stand-in service, PHP's log,
@@ -559,7 +567,7 @@ function runPhp( suite ) {
 			 */
 			const child = spawn(
 				args[ 0 ],
-				[ ...args.slice( 1 ), `cd ${ BOX.wp } && wp eval-file ${ remote } --allow-root` ],
+				[ ...args.slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ Object.entries( suite.vars || {} ).map( ( [ k, v ] ) => `${ k }=${ v }` ).join( ' ' ) } wp eval-file ${ remote } --allow-root` ],
 				{ stdio: [ 'ignore', 'pipe', 'pipe' ] }
 			);
 

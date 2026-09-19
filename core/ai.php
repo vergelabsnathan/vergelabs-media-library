@@ -1992,7 +1992,7 @@ function vergeml_ai_routes() {
     ) );
 }
 
-function vergeml_ai_rest_status( WP_REST_Request $request = null ) {
+function vergeml_ai_rest_status( ?WP_REST_Request $request = null ) {
 
     global $wpdb;
 
