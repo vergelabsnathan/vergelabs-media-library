@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>folders-shop harness</title>
+<script>
+	/*
+	 *  The Folders screen (js/vergeml-folders.js) from disk, on a site that
+	 *  sells: the page's markup as core/guide.php prints it for a shop, the
+	 *  config it localises, and wp.apiFetch stood in -- every call recorded,
+	 *  the product categories answered as the real shop's nine.
+	 *  tests/tree/folders-shop.mjs reads window.harness.
+	 *
+	 *  ?state=tree boots with a folder already on the site, which is the one
+	 *  thing that must take the button away again.
+	 */
+	var STATE = new URLSearchParams( location.search ).get( 'state' ) || 'empty';
+
+	window.harness = { calls: [], categories: 0 };
+
+	var PATHS = [
+		[ 'Clothing' ],
+		[ 'Clothing', 'Accessories' ],
+		[ 'Clothing', 'Hoodies' ],
+		[ 'Clothing', 'Jackets' ],
+		[ 'Clothing', 'Shirts' ],
+		[ 'Clothing', 'Sweater' ],
+		[ 'Clothing', 'Tshirts' ],
+		[ 'Decor' ],
+		[ 'Music' ]
+	];
+
+	window.wp = {
+		i18n: {
+			__: function ( s ) { return s; },
+			_n: function ( a, b, n ) { return 1 === n ? a : b; },
+			sprintf: function ( s ) {
+				var a = [].slice.call( arguments, 1 );
+				var i = 0;
+				return String( s ).replace( /%(\d+\$)?[sd]/g, function ( m, pos ) { return pos ? a[ parseInt( pos, 10 ) - 1 ] : a[ i++ ]; } );
+			}
+		},
+		apiFetch: function ( o ) {
+			window.harness.calls.push( { path: o.path, method: o.method || 'GET', data: o.data || null } );
+			if ( /guide\/product-categories$/.test( o.path ) ) {
+				window.harness.categories++;
+				return Promise.resolve( { paths: PATHS, total: PATHS.length } );
+			}
+			if ( /guide\/turn$/.test( o.path ) ) {
+				return Promise.resolve( { fit: { counted: true, looked: 33, counts: {}, unfiled: { floor: 1, margin: 0, gated: 0 } } } );
+			}
+			return Promise.resolve( {} );
+		}
+	};
+	window.fetch = function () { return Promise.resolve( new Response( 'event: done\ndata: {"choices":[]}\n\n', { status: 200, headers: { 'Content-Type': 'text/event-stream' } } ) ); };
+
+	var NODES = 'tree' === STATE ? [ { id: 7, parent: 0, name: 'Clothing', slug: 'clothing', count: 3, color: '', order: 0, classes: [], prev: false } ] : [];
+
+	window.vgmlFolders = {
+		ns: 'vergeml/v1',
+		cap: 25,
+		described: 0,
+		licensed: true,
+		taxonomy: 'media_category',
+		session: { turns: [], draft: null, assistant_turns: 0, cap: 25, apply: null, fit: null, tree: 'editing', profile: { folders: 0, credits: 0 } },
+		nodes: NODES,
+		version: 1,
+		facts: {
+			pictures: 0,
+			folders: NODES.length,
+			unfiled: 0,
+			described_at: '',
+			images: 33,
+			not_described: 33,
+			alt_missing: 33,
+			alt_have: 0,
+			alt_pending: 0,
+			on_products: 32,
+			sells: true,
+			product_cats: 9
+		},
+		fill: { open: 0, unfiled: 0, running: false, done: false },
+		made: [],
+		undo: { available: false, until: 0 },
+		aiUrl: '#ai',
+		licenceUrl: '#licence',
+		libraryUrl: '#library',
+		proposeCredits: 10,
+		profileBatch: 60,
+		walk: false
+	};
+</script>
+</head>
+<body>
+<div class="wrap vgml-home vgml-librarian">
+	<div class="g-head">
+		<h1 class="vgml-pg-title">Folders</h1>
+		<div class="g-pills vgml-folders-facts">
+			<span class="g-pill" data-fact="images"><b>33</b> pictures</span>
+			<span class="g-pill" data-fact="on_products"><b>32</b> on products</span>
+			<span class="g-pill" data-fact="folders"><b>0</b> folders</span>
+		</div>
+	</div>
+	<div class="g-rail" role="group" aria-label="Steps" data-sells="1">
+		<button type="button" class="g-step" data-step="tree">Tree</button>
+		<button type="button" class="g-step" data-step="fill">Fill</button>
+		<button type="button" class="g-step" data-step="describe">Describe</button>
+		<button type="button" class="g-step" data-step="alt">Alt text</button>
+		<button type="button" class="g-step" data-step="rename">Rename</button>
+	</div>
+	<div id="vgml-folders" class="vgml-folders" data-described="0"></div>
+</div>
+<script src="../../js/vergeml-tree-view.js"></script>
+<script src="../../js/vergeml-structure.js"></script>
+<script src="../../js/vergeml-talk.js"></script>
+<script src="../../js/vergeml-folders.js"></script>
+</body>
+</html>

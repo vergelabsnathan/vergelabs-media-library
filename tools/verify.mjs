@@ -101,6 +101,12 @@ const SUITES = [
 	 */
 	{ name: 'talk-chips', file: 'tests/tree/talk-chips.mjs', env: 'local' },
 	/*
+	 *  The Folders screen on a site that sells, against a page loaded from
+	 *  disk: the Tree step's categories button, and the press behind it as a
+	 *  paste. S19's walk of the real shop found there was no such way in.
+	 */
+	{ name: 'folders-shop', file: 'tests/tree/folders-shop.mjs', env: 'local' },
+	/*
 	 *  The paste reader (js/vergeml-structure.js) and the preview it feeds,
 	 *  against a page loaded from disk: one reading of a paste, the three
 	 *  refusals, reuse of what exists. env 'local'.

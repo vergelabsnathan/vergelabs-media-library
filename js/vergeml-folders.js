@@ -622,6 +622,24 @@
 				dom.treeMove.appendChild( pill( Number( profile.credits ), __( 'credits', 'vergelabs-media-library' ) ) );
 			}
 		}
+		/*
+		 *  A site that sells starts from its own categories (S20, the mock
+		 *  2026-09-18-shop-way-in.html, shape B). S19 walked the real shop:
+		 *  the nine product categories had to be typed into the composer for
+		 *  the fill to place 32 of 33 by product, and a shop owner would not
+		 *  know to. The press is where Propose sits on a described library --
+		 *  the one thing to press on a shop with no folders -- and it is gone
+		 *  as soon as a tree stands.
+		 */
+		var cats = Number( state.facts.product_cats ) || 0;
+		if ( sells && ! hasTree && cats > 0 ) {
+			var useCats = el( 'button', { type: 'button', class: 'vgml-btn vgml-btn-primary vgml-cats-btn' },
+				/* translators: %s: how many product categories the site has */
+				sprintf( __( 'Use my %s product categories', 'vergelabs-media-library' ), fmt( cats ) ) );
+			useCats.disabled = state.pastePending || state.turnPending || running();
+			useCats.addEventListener( 'click', onUseCategories );
+			dom.treeMove.appendChild( useCats );
+		}
 		renderCounting();
 		if ( state.prevProfiles > 0 ) {
 			var restore = quiet( __( 'Restore the earlier classes', 'vergelabs-media-library' ), onRestoreProfiles );
@@ -637,6 +655,45 @@
 			dom.treeMove.appendChild( pill( cfg.proposeCredits || 10, __( 'credits', 'vergelabs-media-library' ) ) );
 		}
 		dom.treeMove.appendChild( quiet( __( 'Skip', 'vergelabs-media-library' ), function () { setStep( 'fill' ); } ) );
+	}
+
+	/*
+	 *  The categories, as a paste (S20). The paths are read at the press, not
+	 *  at the paint, so a category made since the page opened is in them; they
+	 *  become the same "Clothing > Hoodies" lines a person would type, and go
+	 *  through the same reader -- one line makes its parent, a category that
+	 *  already is a folder is reused by name, and the draft settles through
+	 *  the turn route like any other paste. A refusal (deeper than five levels,
+	 *  more than five hundred) opens the paste panel with the lines in it, so
+	 *  it is read in the paste's own words rather than a new one.
+	 */
+	function onUseCategories( ev ) {
+		var pressed = ev && ev.currentTarget ? ev.currentTarget : null;
+		if ( pressed ) {
+			pressed.disabled = true;
+			pressed.classList.add( 'is-working' );
+		}
+		api( 'GET', 'guide/product-categories' ).then( function ( r ) {
+			var paths = r && r.paths ? r.paths : [];
+			dom.pasteArea.value = paths.map( function ( p ) { return ( p || [] ).join( ' > ' ); } ).join( '\n' );
+			readPaste( true );
+			if ( dom.refused.hidden ) {
+				// Read clean: the draft is made and the box has nothing left to say.
+				dom.pasteArea.value = '';
+				readPaste( false );
+			} else if ( dom.paste.hidden ) {
+				dom.paste.hidden = false;
+				dom.wayIn.setAttribute( 'aria-expanded', 'true' );
+			}
+			renderCards();
+		}, function ( err ) {
+			refuse( ( err && err.message ) || __( 'That did not go through. Try again.', 'vergelabs-media-library' ) );
+			if ( dom.paste.hidden ) {
+				dom.paste.hidden = false;
+				dom.wayIn.setAttribute( 'aria-expanded', 'true' );
+			}
+			renderCards();
+		} );
 	}
 
 	function onConfirm( ev ) {
