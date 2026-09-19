@@ -1,39 +1,38 @@
 {
-  "phase": "Every picture a home — S20: the shop's way in, then the road's end. The real shop stands (shop.ms2, 27 products, 32 photos, tree = the categories, 32 by product) and S19's walk found the one thing that matters: a site that sells has no way to make its product categories the tree — the owner types them or gets a proposal that never heard of them. Nathan's shape and words first (a chip on the Tree step; the categories in the planner's context), then the build; then the cut-caption check on the service (2.4 % of the week's captions end mid-sentence; normalise() fails a caption or alt without terminal punctuation, as the other checks do; pnpm test; vps.yml for the box copy); then the fill-walk's snapshot carries _vergeml_filing_profile_prev; then a user's pass over every Folders screen (Nathan's), Plugin Check and the archive.",
+  "phase": "Every picture a home — S21: the road's end. The shop's way in is built and walked (one press → 9 folders → 32 by product) and the service refuses a cut caption. What is left: the Tree step's estimate on a site that sells counts rules only (23 would be placed where the fill placed 32 by product) — Nathan's call whether the preview learns the product placements; then a user's pass over every Folders screen (Nathan's own, with the four small things S19 listed); then Plugin Check and the archive for wordpress.org.",
   "model": "opus",
-  "plan": "a plan file for the shop's way in once Nathan's shape is in (the six fields per task, plans/folders-one-tree.md Phase 0 as the reference shape); the cut-caption check and the fill-walk key as single tasks under this card",
+  "plan": "plans/shop-way-in.md is done (three tasks); a plan file for the preview's product count only if Nathan asks for it, the six fields per task",
   "spec": "docs/superpowers/specs/2026-09-16-folders-at-catalogue-scale.md (S10.8, the order of the steps by library)",
   "scope": [
-    "js/vergeml-folders.js, core/guide.php, core/folder-talk.php, tests/ui/folders.spec.mjs, tests/tree/guide.php (the shop's way in: the chip, the categories as a paste by path, the planner's context)",
-    "service/lib/anthropic.ts normalise(), service/lib/*.test.ts (the cut-caption check; never the prompt)",
-    "tools/box-fill-walk.php (the snapshot and put-back of VERGEML_FILING_META_PREV)",
-    "docs/superpowers/mocks/** (the chip's mock before the build; the shop's screens)",
+    "core/filing.php vergeml_filing_count / the dry run, core/guide.php (the preview's product count, if Nathan says yes)",
+    "js/vergeml-folders.js, tests/tree/folders-shop.mjs, tests/ui/folders.spec.mjs (any screen change)",
+    "docs/superpowers/mocks/** (a mock before any visible change)",
+    "readme.txt, docs/**, the archive (Plugin Check)",
     "docs/handoffs/**",
     "plans/**"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-18-s19-the-real-shop.md (this: the shop, the walk, the finding, the cut captions, the fill-walk's leftover)",
-    "docs/handoffs/2026-09-18-s18-agree-or-ask.md (the model beside the rules, the tiers as built)",
-    "core/filing.php vergeml_filing_product_folder and vergeml_filing_product_folders (the map a category path takes to a folder), core/guide.php vergeml_folders_facts (sells, on_products)",
-    "memory: hetzner-box-fixtures (the shop subsite and the --site shop trap), tests-never-touch-live-state, model-spend-discipline, hooks-block-curl-and-key-paths, do-the-cli-work, ui-less-text-pills"
+    "docs/handoffs/2026-09-19-s20-the-shops-way-in.md (this: the way in, the walk, the estimate's gap, the caption check)",
+    "plans/shop-way-in.md (the decisions and the three tasks as built)",
+    "core/guide.php vergeml_folders_product_paths and vergeml_guide_summary (the paths and the planner's context), js/vergeml-folders.js onUseCategories",
+    "memory: shop-starts-from-its-categories, hetzner-box-fixtures (--site realshop and the walk's reset), do-the-cli-work, ui-less-text-pills, model-spend-discipline"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "Never run a suite or a walk on ms2 while Nathan is on it; ask first — the shop subsite is on ms2",
-    "The chip's shape and every string are Nathan's; a mock before the build; no placeholder copy",
+    "Every user-facing string is Nathan's, verbatim; a mock before any visible change",
     "The price of the model call is Nathan's; until priced it is metered, never debited",
     "The model never overrules a product placement, a hand placement, or files into a view or a locked folder",
     "A band is re-taken only rules-only and with the reason; the model's lines are never a band",
-    "Say every cost before it is spent: a describe is a credit a picture; the shop's 33 are described and cached; the suites use the stand-in",
+    "Say every cost before it is spent: a describe is a credit a picture; the shop's 33 are described and cached",
     "A service push is not on the box until gh workflow run vps.yml --ref main has run and the box's copy answers the route",
     "Test first, one mutation per story; a mutation of anything that can start a run holds the cron wire",
     "Never git checkout a file carrying uncommitted work; never chain a checkout into a command",
-    "box-eval --site shop is the C.5 main site: the shop subsite needs --url=http://shop.ms2.46.225.66.194.nip.io through a wrapper"
+    "box-eval --site shop is the C.5 main site; --site realshop is the WooCommerce shop (S20 closed that trap)"
   ],
   "gates": [
     "node tools/box-eval.mjs tools/box-truth-score.php --site shop and the tech line with --copy tests/tree/truth-tech.json:/tmp/vgml-truth.json --env VGML_TRUTH=/tmp/vgml-truth.json (MSYS_NO_PATHCONV=1): both rules-only lines in every check-in (shop 347 of 581 (60 %) · 72 %, tech 153 of 200 (77 %) · 76 %) — neither falls",
-    "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view talk-chips seed-shop ai-background filing-trail → green (escaping 9/10 known); service pnpm test green after the caption check",
-    "folders.spec and modes.spec on the tech site green after any screen change (28 passed, 3 skipped today)",
-    "the shop walked again after the chip: the tree from the categories in one press, 32 by product, every screen shot"
+    "node tools/verify.mjs filing sticky guide surface roles escaping copy tree-view talk-chips folders-shop seed-shop ai-background filing-trail → green (escaping 9/10 known); service pnpm test green",
+    "folders.spec and modes.spec on the tech site green after any screen change",
+    "the shop re-walked after any change to the way in: tools/box-shop-walk.mjs, one press, 32 by product, every screen shot"
   ]
 }
