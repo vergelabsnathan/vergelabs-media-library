@@ -55,33 +55,6 @@ A folder tree sits beside the media library. Drag files onto a folder to file th
 **Nothing that cannot be interrupted.** Applying works in small batches, so it does not time out on shared hosting. Pause it, close the tab, pick it up where it stopped.
 
 
-### External services ###
-
-This plugin talks to three places: an AI service run by VergeLabs at `https://ai.vergelabs.nl/v1`, the VergeLabs site at `https://vergelabsmedia.com` when you connect a licence, and GitHub, to read a list of known problems. Everything below says what goes where, when, and what you have to do for it to happen.
-
-**The AI features need a licence key, and do nothing without one.** With no key, no folder is filed, no picture is described, no search is answered by meaning, and no conversation can start -- the requests are refused before they are made. Demo mode invents captions locally from the file names and sends nothing anywhere. The folder tree itself, the smart folders, the health report, the importer, the galleries, the MIME settings and the Librarian's date-and-type scheme need no service at all.
-
-**Describing a picture** sends a downsized copy of it (never the original, unless the original is already small), its file name, its MIME type, the picture's own title and caption, your site's address, your licence key and whether the site is production or staging. If the picture is used on a page, that page's title goes too; on a WooCommerce site, up to six of the product's category names. With "Page context" on -- it is on by default, and one switch turns it off -- the page's focus keyphrase, meta description and related keyphrases from Yoast, Rank Math, SEOPress or All in One SEO go as well, as wording for the model, never as instructions. What comes back is a caption, alt text, tags and a suggested title. No picture is sent on upload, and none on a page load: only while a run you started is in progress.
-
-**Sorting pictures into folders** sends more than the pictures. When you ask for a plan, confirm one, fill your folders, or talk to the Folders screen, these go to the same service: **your folder names, their parents and how many files are in each**, the captions the AI wrote for your pictures, the words it recorded about what they show, and anything you typed into the screen along with the conversation so far. On a WooCommerce site your product category paths go too. Searching by meaning sends the phrase you typed. None of this happens on its own: each of them is a button you press.
-
-**The Folders screen talks to the service from your browser**, not from your server, for the part that streams a reply as it is written. That request carries what you typed, your draft folder tree and the same library summary -- and, because it comes from your browser rather than your server, your own IP address and browser headers reach the service, as they would visiting any website.
-
-**Connecting a licence** sends you to `https://vergelabsmedia.com`, carrying your site's address and the address of your admin screen, and sends back a one-time code your site exchanges for a key. Saving, checking or removing a key sends the key and your site's address to the AI service. Once a key is set, the plugin checks your remaining credits when you open a VergeLabs screen, at most once every five minutes.
-
-**Asking for help** works without a licence key, as connecting one and the known-problems list below do. Pressing Send on the Get help screen posts what you typed, the email address you gave, your licence key if you have one, and a full system report: your site's address, your WordPress, PHP and MySQL versions, your server's limits, your theme, how many files you have, your folder and taxonomy counts, this plugin's settings, and **the name and version of every plugin you have active**. The screen shows you the report before you send it, and it will not send without the tick box.
-
-**Library counts go only if you switch them on.** Under Library settings, "Share library counts" (off by default) posts to the same service once a day: how many files and folders, how deep the folders nest, how many files are of each broad type, files added in the last thirty days, and the plugin, WordPress and PHP versions with the site language, alongside the licence key and the site address. Never a file name, a title, a folder name or a picture.
-
-**Known problems, fetched from GitHub.** The Help screen checks a list of known problems against what your site runs, reading `known-issues.json` from this plugin's own public repository at `raw.githubusercontent.com`. It is a plain file download, twice a day while it succeeds and hourly while GitHub is unreachable, and it carries no key and no counts -- though, like every request WordPress makes, it identifies itself with your site's address.
-
-**Pointing it somewhere else.** `VERGEML_AI_SERVICE`, `VERGEML_AI_STREAM`, `VERGEML_SITE_URL` and `VERGEML_KNOWN_ISSUES_URL` in `wp-config.php` send these requests to a host of your choosing. There is no filter for any of them on purpose: a destination for your files should not be changeable by another plugin.
-
-**What the service does with it, in writing.** [Sub-processors](https://vergelabsmedia.com/legal/sub-processors) names every company that touches the data and where each one is. [What is kept, and for how long](https://vergelabsmedia.com/legal/retention) answers that per category — images are kept for no time at all, and it says which file in the code proves it. [Data Processing Agreement](https://vergelabsmedia.com/legal/dpa), if you need one.
-
-Service terms: [https://vergelabs.nl/voorwaarden](https://vergelabs.nl/voorwaarden) -- Privacy policy: [https://vergelabs.nl/privacy](https://vergelabs.nl/privacy)
-
-
 ### What this fork fixes ###
 
 * **The WordPress 7.0 toolbar layout.** WP 7.0 turned the media toolbar into a fixed two-column CSS grid and gave placement to its own two filters only. The extra filters this plugin adds had nowhere to go, so they stacked into a 300px-tall block with every label sitting above the wrong control. The toolbar is one tidy row again, whatever number of filters you enable.
@@ -193,6 +166,32 @@ Please notice that you use Enhanced Media Library with other plugins that add me
 * [Upstream documentation](https://www.wpuxsolutions.com/documents/enhanced-media-library), still accurate for the parts this fork did not change
 
 
+## External services ##
+
+This plugin talks to three places: an AI service run by VergeLabs at `https://ai.vergelabs.nl/v1`, the VergeLabs site at `https://vergelabsmedia.com` when you connect a licence, and GitHub, to read a list of known problems. Everything below says what goes where, when, and what you have to do for it to happen.
+
+**The AI features need a licence key, and do nothing without one.** With no key, no folder is filed, no picture is described, no search is answered by meaning, and no conversation can start -- the requests are refused before they are made. Demo mode invents captions locally from the file names and sends nothing anywhere. The folder tree itself, the smart folders, the health report, the importer, the galleries, the MIME settings and the Librarian's date-and-type scheme need no service at all.
+
+**Describing a picture** sends a downsized copy of it (never the original, unless the original is already small), its file name, its MIME type, the picture's own title and caption, your site's address, your licence key and whether the site is production or staging. If the picture is used on a page, that page's title goes too; on a WooCommerce site, up to six of the product's category names. With "Page context" on -- it is on by default, and one switch turns it off -- the page's focus keyphrase, meta description and related keyphrases from Yoast, Rank Math, SEOPress or All in One SEO go as well, as wording for the model, never as instructions. What comes back is a caption, alt text, tags and a suggested title. No picture is sent on upload, and none on a page load: only while a run you started is in progress.
+
+**Sorting pictures into folders** sends more than the pictures. When you ask for a plan, confirm one, fill your folders, or talk to the Folders screen, these go to the same service: **your folder names, their parents and how many files are in each**, the captions the AI wrote for your pictures, the words it recorded about what they show, and anything you typed into the screen along with the conversation so far. On a WooCommerce site your product category paths go too. Searching by meaning sends the phrase you typed. None of this happens on its own: each of them is a button you press.
+
+**The Folders screen talks to the service from your browser**, not from your server, for the part that streams a reply as it is written. That request carries what you typed, your draft folder tree and the same library summary -- and, because it comes from your browser rather than your server, your own IP address and browser headers reach the service, as they would visiting any website.
+
+**Connecting a licence** sends you to `https://vergelabsmedia.com`, carrying your site's address and the address of your admin screen, and sends back a one-time code your site exchanges for a key. Saving, checking or removing a key sends the key and your site's address to the AI service. Once a key is set, the plugin checks your remaining credits when you open a VergeLabs screen, at most once every five minutes.
+
+**Asking for help** works without a licence key, as connecting one and the known-problems list below do. Pressing Send on the Get help screen posts what you typed, the email address you gave, your licence key if you have one, and a full system report: your site's address, your WordPress, PHP and MySQL versions, your server's limits, your theme, how many files you have, your folder and taxonomy counts, this plugin's settings, and **the name and version of every plugin you have active**. The screen shows you the report before you send it, and it will not send without the tick box.
+
+**Library counts go only if you switch them on.** Under Library settings, "Share library counts" (off by default) posts to the same service once a day: how many files and folders, how deep the folders nest, how many files are of each broad type, files added in the last thirty days, and the plugin, WordPress and PHP versions with the site language, alongside the licence key and the site address. Never a file name, a title, a folder name or a picture.
+
+**Known problems, fetched from GitHub.** The Help screen checks a list of known problems against what your site runs, reading `known-issues.json` from this plugin's own public repository at `raw.githubusercontent.com`. It is a plain file download, twice a day while it succeeds and hourly while GitHub is unreachable, and it carries no key and no counts -- though, like every request WordPress makes, it identifies itself with your site's address.
+
+**Pointing it somewhere else.** `VERGEML_AI_SERVICE`, `VERGEML_AI_STREAM`, `VERGEML_SITE_URL` and `VERGEML_KNOWN_ISSUES_URL` in `wp-config.php` send these requests to a host of your choosing. There is no filter for any of them on purpose: a destination for your files should not be changeable by another plugin.
+
+**What the service does with it, in writing.** [Sub-processors](https://vergelabsmedia.com/legal/sub-processors) names every company that touches the data and where each one is. [What is kept, and for how long](https://vergelabsmedia.com/legal/retention) answers that per category — images are kept for no time at all, and it says which file in the code proves it. [Data Processing Agreement](https://vergelabsmedia.com/legal/dpa), if you need one.
+
+Service terms: [https://vergelabs.nl/voorwaarden](https://vergelabs.nl/voorwaarden) -- Privacy policy: [https://vergelabs.nl/privacy](https://vergelabs.nl/privacy)
+
 ## Installation ##
 
 1. Install the zip through **Plugins > Add New > Upload Plugin**, or upload the plugin folder to `/wp-content/plugins/`.
@@ -289,7 +288,7 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 ## Upgrade Notice ##
 
 ### 4.0.0 ###
-The Folders screen is rebuilt: you build a tree, confirm it, and fill it. Filing now reads what pictures show rather than matching names, so a fill after updating will place things differently than before. The Rules tab is gone and the media list's toolbar is one row. Read the changelog before you run a fill.
+The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now reads what pictures show, so a fill after updating places things differently than before. The Rules tab is gone and the media list toolbar is one row. Read the changelog before you fill.
 
 ## Changelog ##
 
