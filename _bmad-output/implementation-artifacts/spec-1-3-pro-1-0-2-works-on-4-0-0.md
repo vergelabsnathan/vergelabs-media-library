@@ -56,6 +56,25 @@ context:
 - [x] `upg`: install the Pro archive, run `compat-free` there through the plugin repo's `verify.mjs` (`wp: /var/www/upg`, `also:` the suite), three screenshots into `docs/superpowers/mocks/shots/2026-09-20-pro-on-4-0-0-*.png`, deactivate the licence; the fixture keeps Pro installed but inactive.
 - [x] Pro's own suites on the box with both keys: `node tools/verify.mjs` in `pro/`; every `N/N passed` line recorded as HEAD evidence.
 
+### Review Findings
+
+`bmad-code-review`, 2026-09-20, pass 2 (rows 22–43 of the triage log). Patches applied in pro `ef1709b` and plugin `7f1936e`, re-verified 23/23 on both legs.
+
+- [ ] [Review][Decision] `compat-free-upg` in the free battery makes a bare `node tools/verify.mjs` exit 2 (SKIPPED) without `VGMLPRO_SEATS_KEY` or with Pro inactive on `upg` — the spec's Verification (`N/N passed`) and Task 4 (Pro left inactive) contradict. (a) keep: bare runs need the key or `--allow-skips`; (b) register the suite only when the key is set, one printed line when it is not; (c) the runner activates Pro before and deactivates after (still needs the key).
+- [x] [Review][Patch] A Pro in safe mode was reported SKIPPED, not FAIL [pro/tests/compat-free.php:302-321]
+- [x] [Review][Patch] The screenshot tool could not run from the fixture's end state (Pro inactive) [plugin/tools/upg-pro-shots.mjs:62-70]
+- [x] [Review][Patch] The free runner's SKIPPED sentence named the wrong reason [plugin/tools/verify.mjs:824]
+- [x] [Review][Patch] The column's off-by-default set was not pinned [pro/tests/compat-free.php:521-532]
+- [x] [Review][Patch] Warnings, notices and deprecations from Pro files were read by hand, not by the suite [pro/tests/compat-free.php:323-333, 570-576]
+- [x] [Review][Patch] `text=Connected` matched "Disconnected." [plugin/tools/upg-pro-shots.mjs:114]
+- [x] [Review][Patch] The `finally` printed fixed success lines and a held seat exited 0 [plugin/tools/upg-pro-shots.mjs:150-176]
+- [x] [Review][Patch] The tool cleared the licence rather than restoring what it found [plugin/tools/upg-pro-shots.mjs:82-84, 160-163]
+- [x] [Review][Patch] `/We wrote/` counted the edited and emptied labels [plugin/tools/upg-pro-shots.mjs:124]
+- [x] [Review][Patch] The column option showed every column, not what Screen Options writes [plugin/tools/upg-pro-shots.mjs:97]
+- [x] [Review][Patch] Mock mode on the free side was neither set nor asserted [pro/tests/compat-free.php:466-476]
+
+Rejected: 24 version pins in two places (low — bytes vs the story's pair, different facts); 25 Playground half (unreachable after 22); 28 page-1 judgement (low — the fixture has 20 pictures); 31 sibling paths / `unzip` (low — loud failure); 32 `uid`/`described` shapes (low — fixture states never met); 34 ssh drops mid-run (low); 37 a dead run's leftover key (low — `seats.php`'s guard, a human clears it); 38 refused-activation cascade (low, carried); 39 `--tree` re-seal (false — pro HEAD's own designed migration, `licence.php:150-154`); 41 licensed-boot vacuity (low, carried); 43 12-hex hash prefix (false — AD-1's own convention).
+
 **Acceptance Criteria:**
 - Given the two archives in Playground and the seats key, when `compat-free` runs, then it prints `N/N passed` with the four touch points green and the seat given back.
 - Given `upg`, when the same suite runs on MySQL, then it is green and the three screens answer 200 with the Alt text column visible.
@@ -63,7 +82,7 @@ context:
 
 ## Implementation Notes
 
-- **Commits:** pro `c84ecef` (the suite and the archives leg), plugin `3416589` (`compat-free-upg` and the three screenshots), plugin `a1a5a7c` ([tools/upg-pro-shots.mjs](../../tools/upg-pro-shots.mjs), the screenshot step as a repo tool — the matrix's Screens row needs a covering check that can be re-run, and a scratchpad script is not one). After review: pro `81f6fd3`, plugin `45a96a4` (triage rows 1, 4, 7, 12, 13, 14, 17, 20). Nothing spent.
+- **Commits:** pro `c84ecef` (the suite and the archives leg), plugin `3416589` (`compat-free-upg` and the three screenshots), plugin `a1a5a7c` ([tools/upg-pro-shots.mjs](../../tools/upg-pro-shots.mjs), the screenshot step as a repo tool — the matrix's Screens row needs a covering check that can be re-run, and a scratchpad script is not one). After review: pro `81f6fd3`, plugin `45a96a4` (triage rows 1, 4, 7, 12, 13, 14, 17, 20); after `bmad-code-review`: pro `ef1709b`, plugin `7f1936e` (rows 22, 23, 25, 26, 27, 29, 33, 35, 36, 40, 42). Nothing spent.
 - **After the review patches:** Playground on the archives `20/20 passed` — the new Profile rows: `the saved brief lands in vergeml_ai[site_profile], the key Pro reads -- compat probe profile` and `Pro's describe sends that brief as profile, with this site and its key -- profile "compat probe profile", site http://127.0.0.1:64069, key the seats key` (the service stood in for by `pre_http_request`, nothing spent); `upg` on MySQL `20/20 passed`, `site http://upg.46.225.66.194.nip.io`; `compat-free-upg` with Pro inactive → `SKIPPED — exit 2`, the runner's own skipped line, not a FAIL; `tools/upg-pro-shots.mjs` → `licence 200 ok · media-list 200 ok, 20 of 20 cells say "We wrote" · attachment 200 ok`, `exit 0`, `released 0/1; key cleared`. `upg` after everything: 20 attachments, 0 probe files, 20 alts, `site_profile` empty, key option absent, Pro `inactive 1.0.2`, 0 Pro lines in `debug.log`.
 - **The archives leg** ([pro/tools/verify.mjs](../../../pro/tools/verify.mjs)): a suite marked `archives: true` unzips `../dist`'s two zips into the temp dir after asserting their sha256 (`bf0d63b70056`, `2a6a7946426f`) and mounts those instead of the working trees, with `pro/tests` mounted beside them at `/wordpress/wp-content/vgmlpro-tests` because the suite is not inside the archive. `--tree` overrides it (the mutation run, or pro HEAD later). `unzip`, not `tar`: Git Bash's tar reads `C:` as a host and does not read zips.
 - **The suite** ([pro/tests/compat-free.php](../../../pro/tests/compat-free.php)) writes the key with `vgmlpro_set_key()` when it exists (HEAD, sealed) and `update_option` otherwise (the archive); with `VGMLPRO_COMPAT_ARCHIVES` set it pins free `4.0.0` / Pro `1.0.2`. It restores the key, the licence state, the `vergeml_ai` option and deletes its probe index row (id `2147480000`) from a shutdown function, and hands the seat back inside the run as its own check.
@@ -104,6 +123,35 @@ Pass 1, 2026-09-20 — blind-hunter 13, edge-case-hunter 19, verification-gap 1 
 | 19 | EC · seat ordering: `seats` without `seats-deactivate`, or while `upg` holds the seat → `seat_limit` | low | True; the refusal prints `refused: seat_limit`, and the full run orders `seats-deactivate` before `compat-free` | reject (low) |
 | 20 | EC-claim · "the versions are pinned so a working tree cannot pass for the archives" overclaims — HEAD trees carry the same versions; only the Playground hash pins bytes, `compat-free-upg` trusts the install | low | True; the docblock says so plainly now: the hash pins the Playground leg, the box leg trusts `box-upgrade-site.sh plugin <zip>` (sha256 read on the box before install) | patch |
 | 21 | VG-other · no pairing for free HEAD against the Pro 1.0.2 archive (the next free release's question) | low | True; the frozen intent pins both sides to the archives. A `--free-tree` mode for the release after 4.0.0 | defer |
+
+Pass 2, `bmad-code-review` 2026-09-20 — blind-hunter 10, edge-case-hunter 17, verification-gap 0 gaps + 3, acceptance-auditor 6. Commits pro `ef1709b`, plugin `7f1936e`.
+
+| # | Finding | Verdict | Evidence | Route |
+|---|---------|---------|----------|-------|
+| 22 | BH · a Pro in safe mode (no `licence.php`) exits 2 — SKIPPED for the failure the suite hunts | medium | True: `vergelabs-media-library-pro.php:57-63` skips `licence.php` in safe mode; the guard tested `vgmlpro_refresh`. Now inactive (`VGMLPRO_VERSION` undefined) skips; loaded without `licence.php` FAILs | patch |
+| 23 | BH/AA · the screenshot tool refuses to run in the fixture's own end state (Pro inactive) | medium | True; it activates Pro when found inactive and deactivates it at the end, recording both | patch |
+| 24 | BH/EC · version pins live in two places; the box entry forces `VGMLPRO_COMPAT_ARCHIVES` | low | True; the hash pins bytes, the version pin names the story's pair — different facts. Parameters for a fixture that holds a different pair would be a new story's | reject (low) |
+| 25 | BH/EC/VG · exit 2 reads as "FAILED — no N/M line" in Playground; the free runner's SKIPPED sentence names the wrong reason | low | Playground: unreachable after row 22 (the blueprint activates Pro, the runner pre-checks the key). Free runner: the sentence now points at the suite's own line | patch (runner text) |
+| 26 | BH · the suite does not pin that the column is off the default set | low | True, and it is what a Pro customer sees; one assertion on `default_hidden_columns` | patch |
+| 27 | BH · "no fatal, no warning" checked by hand in `debug.log`, not by the suite | medium | True; `set_error_handler` collects warnings/notices/deprecations from Pro files, a check at the end asserts none | patch |
+| 28 | BH · media-list verdict judges page 1, not the chosen picture | low | True on a fixture with more than 20 pictures; this one has 20 | reject (low) |
+| 29 | BH · `text=Connected` is a substring match; "Disconnected." passes | low | True; `getByText( 'Connected', { exact: true } )` | patch |
+| 30 | BH/AA · `compat-free-upg` in the default free battery: a bare `node tools/verify.mjs` exits 2 (SKIPPED) without the key or with Pro inactive — the spec's Verification (`N/N passed`) and Task 4 (Pro inactive) contradict | medium | True; the current behaviour is the runner's loud skip. Options: (a) keep — bare runs need the key or `--allow-skips`; (b) register only when `VGMLPRO_SEATS_KEY` is set, printing one line that it is not registered; (c) the runner activates Pro before and deactivates after | decision_needed |
+| 31 | BH/EC · sibling-checkout paths and `unzip` unguarded | low | Loud failure, not a false pass | reject (low) |
+| 32 | EC · `uid`/`described` not numeric; no described row | low | Fixture-specific states the tool never meets | reject (low) |
+| 33 | EC/VG/AA · the `finally` prints "key cleared" / "put back" whatever PHP said; a held seat still exits 0 | medium | True: `wpEval` never throws and the lines were fixed strings. Each step's own last line is judged and the exit code needs all of them | patch |
+| 34 | EC · activation eval outside the `try`; an eval throwing inside the `finally`; `look()` throwing | low | ssh drops mid-run; guards | reject (low) |
+| 35 | EC/AA · the tool clears the licence rather than restoring what it found | low | True; snapshot before, put back as found (delete when absent) — the suite's discipline | patch |
+| 36 | EC · `/We wrote/` also counts "We wrote it, you changed it" | low | True; `We wrote this` | patch |
+| 37 | EC · a dead run leaving the seats key stored makes the suite refuse "use a test licence" | low | True; the refusal is `seats.php`'s guard and a human clears the option | reject (low) |
+| 38 | EC · activation refused → cascade | low | Carried from row 6 | reject (low) |
+| 39 | EC · `--tree` with pro HEAD: `vgmlpro_get_key()` seals a plain key before the snapshot, the restore writes the sealed form | false | HEAD's own designed migration (`licence.php:150-154`: "Keep it working, and seal it now"); the next read would seal it anyway; same key | reject (false) |
+| 40 | EC-claim · `update_user_option( …, array() )` shows every column, not what Screen Options would write | low | True; the option is now the default hidden list minus `vgmlpro_source`, and the shot shows Used on and the folder column hidden | patch |
+| 41 | VG-other · "features stay unloaded" vacuous on a licensed boot | low | Carried from row 3 | reject (low) |
+| 42 | AA · mock mode on the free side never set or asserted | low | True as a stated guard; the settings request now also saves `mock => 1`, asserted | patch |
+| 43 | AA · the hash pin is a 12-hex prefix | false | The spine's naming convention (AD-1) is the 12-char prefix; the threat is a wrong file, not an adversary | reject (false) |
+
+After pass 2: Playground `23/23 passed` (new lines: `the free side is in mock mode for the rest of the run`, `the column is off the default set until Screen Options turns it on (as 3.16.1)`, `Pro raised no warning, notice or deprecation on the way`); `upg` `23/23 passed`; `compat-free-upg` with Pro inactive `SKIPPED: Pro is not active here`; `tools/upg-pro-shots.mjs` from the inactive state: `ok activate Pro (found inactive)`, three screens `200 ok`, `ok seat released: released 0/1`, `ok licence key and state put back (key was absent)`, `ok column option put back (was false)`, `ok Pro deactivated again`, exit 0. Fixture after: 20 attachments, 0 probe files, `vergeml_ai` as found (mock 1, profile empty), key option absent, Pro inactive, 0 Pro lines in `debug.log`.
 
 ## Verification
 
