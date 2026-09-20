@@ -157,8 +157,12 @@ Two review passes, 40 findings triaged in the spec; commits `6dc3223`,
 
 ## Next — S23: story 1.3
 
-`_bmad-output/planning-artifacts/epics.md` story 1.3, fully specified; sprint
-status `backlog`. Run `bmad-build` on it, then `bmad-code-review`. Its stop
+Spec approved by Nathan on 2026-09-20 and `ready-for-dev`:
+`_bmad-output/implementation-artifacts/spec-1-3-pro-1-0-2-works-on-4-0-0.md`
+— `bmad-build` resumes it at implementation. The two keys were issued
+(licences 14 single, 15 expired, `box@vergelabs.nl`) and live only in
+Nathan's terminal and the S22 conversation: paste them into the new session
+as `VGMLPRO_SEATS_KEY` / `VGMLPRO_EXPIRED_KEY`, never into a file in the repo. Its stop
 point: **`VGMLPRO_SEATS_KEY` and `VGMLPRO_EXPIRED_KEY` in the environment** for
 Pro's box suites (issued by `service/scripts/issue-box-licence.ts`, a prod-DB
 step — Nathan's); the proof itself is the archive leg in Playground (free
@@ -170,15 +174,17 @@ Opener, cwd `plugin`:
 
 ```
 Read docs/handoffs/2026-09-19-s22-bmad-first-run-and-the-channel-on-4-0-0.md,
-then _bmad-output/planning-artifacts/epics.md (Epic 1, story 1.3)
+then _bmad-output/implementation-artifacts/spec-1-3-pro-1-0-2-works-on-4-0-0.md
+(approved, ready-for-dev) and _bmad-output/planning-artifacts/epics.md (Epic 1, story 1.3)
 and the spine in _bmad-output/planning-artifacts/architecture/. AGENTS.md
 loads via CLAUDE.md.
 
 State which model you are and follow that profile in
 ~/.claude/harness/model-profiles.md.
 
-This session is bmad-build on story 1.3, then bmad-code-review. Stop points:
-the two Pro keys in the environment (Nathan's to issue); nothing on ms2 or the
+This session is bmad-build on story 1.3 (resume the ready-for-dev spec), then
+bmad-code-review. VGMLPRO_SEATS_KEY=<paste> VGMLPRO_EXPIRED_KEY=<paste> are
+in this message, not in any file. Stop points: nothing on ms2 or the
 real shop; no describe run on a real library. Cost: none expected; say it if
 that changes. Test first, one mutation per story. End with a handoff in
 docs/handoffs/.
