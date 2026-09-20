@@ -28,3 +28,9 @@
 - source_spec: `spec-1-3-pro-1-0-2-works-on-4-0-0.md`
   summary: Pro's api-base suite on the box fails "the base agrees with the free plugin" because /var/www/wp/wp-config.php:101 defines VERGEML_AI_SERVICE = http://127.0.0.1:3100/v1 (a next-server on the box); decide whether the tech site keeps that define or the check allows it.
   evidence: 2/3 on 2026-09-20 with pro HEAD; every other Pro suite green. The box's configuration, not Pro's code.
+- source_spec: `spec-epic-1-retro-chores.md`
+  summary: the box walk (upgrade-3161 on /var/www/upg, real MySQL) from the rollback target b787a3bb6a20 -- today's fixture was built from 7f2a4fe9bee9 and stays up until the next schema bump; at that `reset` install the target as the old side (box-upgrade-site.sh plugin <b787 zip>) so the MySQL proof starts from the code customers had.
+  evidence: the smoke walks from both 3.16.1s (SMOKE GREEN twice, 2026-09-20); the box proof still starts from git's 3.16.1.
+- source_spec: `spec-epic-1-retro-chores.md`
+  summary: the three keyed proofs skipped on 2026-09-20 -- pro `verify.mjs compat-free` on PHP 8.5 (expect 24/24, seat back 0/1), free `verify.mjs compat-free-upg` (expect the `working trees` header, 23/23, Pro `inactive` after the `after` step), and `tools/upg-pro-shots.mjs` (three screens 200 ok, the new finally order) -- at the next run with VGMLPRO_SEATS_KEY in the environment.
+  evidence: A-4, A-8 and A-11 committed on keyless evidence (php -l, node --check, the four runner behaviours).

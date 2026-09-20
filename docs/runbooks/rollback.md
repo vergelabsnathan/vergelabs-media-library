@@ -43,16 +43,28 @@ previous version of each slug stay on disk, so steps 2–4 below are a
 catalogue edit, an env flip and a redeploy; anything older is retired in its
 own commit, and — for Pro, whose sites cache the package URL for six hours —
 never within a day of the catalogue moving off it (the free plugin has no
-updater, so its old file could go the same hour). On the shelf since
-2026-09-19: free `…-3.16.1-7f2a4fe9bee9.zip` and `…-4.0.0-bf0d63b70056.zip`,
-Pro `…-1.0.1-d0fe7f2ee9.zip` and `…-1.0.2-2a6a794642.zip`. **The 3.16.1 on
-the shelf is the clean re-cut from `dist/` (142 entries), not the build the
-site served from 2026-09-09 to 09-19 (`539e4937…`, 148 entries, which had
-shipped `tickets/*.md` and `pnpm-lock.yaml` to anyone who downloaded it).**
-Both say `Version: 3.16.1`; a rollback serves the clean one, by decision, and
-the leaked build stays only in git (`dd07dd0^`). The unversioned
-`vergelabs-media-library.zip` is gone; a restored file always takes the
-versioned name, never that one, and is restored with
+updater, so its old file could go the same hour). On the shelf: free
+`…-3.16.1-b787a3bb6a20.zip`, `…-3.16.1-7f2a4fe9bee9.zip` and
+`…-4.0.0-bf0d63b70056.zip`, Pro `…-1.0.1-d0fe7f2ee9.zip` and
+`…-1.0.2-2a6a794642.zip`.
+
+**Two 3.16.1s, and the rollback target is `b787a3bb6a20` (decided
+2026-09-20, Epic 1 retro).** The build the site served from 2026-09-09 to
+09-19 was `539e4937…` (148 entries, in git at `dd07dd0^`), and it had
+shipped `tickets/*.md` and `pnpm-lock.yaml` to anyone who downloaded it.
+`7f2a4fe9bee9` (shelved 09-19, 142 entries) is git's 3.16.1 — the clean
+`dist/` re-cut — and its *code* differs from the served build in 22 files
+(`core/smart-folders.php`, `core/compatibility.php`, `core/ai.php`,
+`core/guide.php`, the main file, `uninstall.php`, JS and CSS among them):
+it is a 3.16.1 no customer ran. `b787a3bb6a20` is the served build's own
+bytes with the six leaked entries removed and nothing else
+(`plugin/tools/recut-release.mjs`; `diff -r` against the served build lists
+only `tickets/` and `pnpm-lock.yaml`; 142 entries; `Version: 3.16.1`). Both
+3.16.1s say `Version: 3.16.1`; a rollback serves `b787a3bb6a20` — the code
+customers had, without the leak — and the upgrade smoke walks from both
+(`tests/compat/upgrade-3161.spec.mjs`). The leaked build stays only in git.
+The unversioned `vergelabs-media-library.zip` is gone; a restored file
+always takes the versioned name, never that one, and is restored with
 `git checkout <commit> -- public/releases/<name>` — never through a shell
 redirect, which can re-encode the bytes on Windows.
 
