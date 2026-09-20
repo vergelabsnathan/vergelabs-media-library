@@ -40,11 +40,12 @@ Verbatim from the copy block and the F proposal: the readme's 4.0.1
 strapline and three `= Fixed =` lines; the same three as the GitHub release
 body; the strapline as the catalogue's changelog line. Pro: the approved
 changelog line for the gate; the Description now says "An add-on to
-VergeLabs Media Library 4.0.0 or newer." **One line is mine, not approved:**
-Pro's second 1.0.3 changelog line, "The licence key is stored sealed rather
-than in the clear, and a key in the wrong shape never leaves the site." —
-the plan said the sealed key ships with 1.0.3 and to say so in the release
-text; the block had no sentence for it. The catalogue's Pro line carries the
+VergeLabs Media Library 4.0.0 or newer." **One line was mine, accepted by Nathan
+the same evening ("do what's best"):** Pro's second 1.0.3 changelog line,
+"The licence key is stored sealed rather than in the clear, and a key in
+the wrong shape never leaves the site." — the plan said the sealed key ships
+with 1.0.3 and to say so in the release text; the block had no sentence for
+it. It stands; no 1.0.4. The catalogue's Pro line carries the
 same two facts. `Requires Plugins` header left out: the free plugin is not
 on wordpress.org, so WordPress's install link would dead-end.
 
@@ -82,8 +83,7 @@ on wordpress.org, so WordPress's install link would dead-end.
 
 ## Open, and Nathan's
 
-- The sealed-key changelog line (above): edit it in `pro/readme.txt` and the
-  catalogue if the words are wrong; the zip would then be a 1.0.4.
+- ~~The sealed-key changelog line~~ — accepted, stands.
 - PRIVATE0 and the `…AB26` licence (his clicks); the Stripe feedback text
   from S25 (unsent); the wordpress.org form with `dist/vergelabs-media-library-4.0.1.zip`.
 - Wave 3 onward per `plans/finish-the-suite.md`; the decision sitting
