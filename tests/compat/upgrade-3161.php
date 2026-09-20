@@ -29,10 +29,14 @@ function up( $name, $ok, $detail = '' ) {
 global $wpdb;
 $p = $wpdb->prefix;
 
-// How long debug.log is as this run starts: on the box the judgement at the
-// end covers the lines this run wrote, nothing older (the window used to open
-// at the snapshot's count on a fixture that stays up -- 1,100 lines and
-// growing, red for good on any other notice; Epic 1 retro, A-5).
+// How long debug.log is as this file starts: on the box the judgement at the
+// end covers the lines written from here, nothing older (the window used to
+// open at the snapshot's count on a fixture that stays up -- 1,100 lines and
+// growing, red for good on any other notice; Epic 1 retro, A-5). This CLI
+// process has already booted the plugin by now (wp eval-file runs after
+// plugins_loaded), so its own boot lies before the count; what the window
+// holds are the two front-door requests below, each a full PHP-FPM boot of
+// the plugin -- the boot a customer's browser causes.
 $log            = WP_CONTENT_DIR . '/debug.log';
 $log_at_start   = file_exists( $log ) ? count( file( $log ) ) : 0;
 
@@ -134,8 +138,8 @@ if ( ! getenv( 'VGML_SMOKE' ) ) {
 	up( 'and it is the Folders screen, not the login form', false !== strpos( $body, 'page=media-librarian' ) && false === strpos( $body, 'id="loginform"' ) );
 }
 
-// What this run wrote to debug.log: the CLI boot above and, on the box, the
-// two front-door requests. In the smoke the window opens at the snapshot's
+// What was written to debug.log since this file started: on the box, the two
+// front-door requests above. In the smoke the window opens at the snapshot's
 // count instead -- there the swap and the admin boot are separate runPHP
 // steps before this one, and the fixture stage's own notices (Playground's
 // SQLite refuses the packed embedding) are not the upgrade's.

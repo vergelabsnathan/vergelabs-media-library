@@ -50,10 +50,10 @@ const OLD_SIDES = [
 ].map( ( s ) => ( { ...s, zip: path.join( SHELF, `vergelabs-media-library-3.16.1-${ s.sha256.slice( 0, 12 ) }.zip` ) } ) );
 
 const argv = process.argv.slice( 2 );
-const pick = argv[ argv.indexOf( '--old' ) + 1 ];
-const sides = argv.includes( '--old' ) ? OLD_SIDES.filter( ( s ) => s.sha256.startsWith( pick || '~' ) ) : OLD_SIDES;
+const pick = argv.includes( '--old' ) ? argv[ argv.indexOf( '--old' ) + 1 ] || '' : '';
+const sides = argv.includes( '--old' ) ? OLD_SIDES.filter( ( s ) => pick && s.sha256.startsWith( pick ) ) : OLD_SIDES;
 if ( ! sides.length ) {
-	console.log( `--old ${ pick }: no old side with that hash prefix. Known: ${ OLD_SIDES.map( ( s ) => s.sha256.slice( 0, 12 ) ).join( ', ' ) }` );
+	console.log( `--old ${ pick || '(nothing)' }: no old side with that hash prefix. Known: ${ OLD_SIDES.map( ( s ) => s.sha256.slice( 0, 12 ) ).join( ', ' ) }` );
 	process.exit( 2 );
 }
 
@@ -156,7 +156,7 @@ function walk( side ) {
 		p.stdout.on( 'data', ( c ) => ( log += c ) );
 		p.stderr.on( 'data', ( c ) => ( log += c ) );
 		p.on( 'error', ( e ) => {
-			console.log( `  playground could not start: ${ e.message }` );
+			console.log( `  playground could not start: ${ e.message }\n  kept: ${ work }` );
 			resolve( false );
 		} );
 		p.on( 'close', ( code ) => {

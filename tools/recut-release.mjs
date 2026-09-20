@@ -23,11 +23,12 @@ import path from 'node:path';
 import { readZipEntries, writeZip } from './lib/zip.mjs';
 
 const argv = process.argv.slice( 2 );
-const input = argv.find( ( a ) => ! a.startsWith( '--' ) && a.endsWith( '.zip' ) );
-const outDir = argv[ argv.indexOf( '--out' ) + 1 ];
+const valueOf = ( flag ) => argv.includes( flag ) ? argv[ argv.indexOf( flag ) + 1 ] : undefined;
+const input = argv.find( ( a ) => ! a.startsWith( '--' ) && a.endsWith( '.zip' ) && a !== valueOf( '--out' ) );
+const outDir = valueOf( '--out' );
 const drop = argv.flatMap( ( a, i ) => '--drop' === a ? [ argv[ i + 1 ] ] : [] );
 
-if ( ! input || ! fs.existsSync( input ) || ! outDir || ! drop.length ) {
+if ( ! input || ! fs.existsSync( input ) || ! outDir || outDir.startsWith( '--' ) || ! drop.length || drop.some( ( d ) => ! d || d.startsWith( '--' ) ) ) {
 	console.error( 'usage: node tools/recut-release.mjs <in.zip> --out <dir> --drop <path-under-the-slug> [--drop …]' );
 	process.exit( 2 );
 }
@@ -43,10 +44,12 @@ if ( ! version ) {
 	process.exit( 1 );
 }
 
+// A path is dropped when it is the name itself or lies under it as a
+// directory -- `tickets` never takes `tickets-notes.md` with it.
 const dropped = [];
 const kept = entries.filter( ( [ name ] ) => {
 	const rel = under( name );
-	const gone = drop.some( ( d ) => rel === d || rel.startsWith( d ) );
+	const gone = drop.some( ( d ) => rel === d || rel === d.replace( /\/$/, '' ) || rel.startsWith( d.endsWith( '/' ) ? d : `${ d }/` ) );
 	if ( gone ) {
 		dropped.push( rel );
 	}

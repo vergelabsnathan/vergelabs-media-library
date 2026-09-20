@@ -57,12 +57,18 @@ shipped `tickets/*.md` and `pnpm-lock.yaml` to anyone who downloaded it.
 (`core/smart-folders.php`, `core/compatibility.php`, `core/ai.php`,
 `core/guide.php`, the main file, `uninstall.php`, JS and CSS among them):
 it is a 3.16.1 no customer ran. `b787a3bb6a20` is the served build's own
-bytes with the six leaked entries removed and nothing else
-(`plugin/tools/recut-release.mjs`; `diff -r` against the served build lists
-only `tickets/` and `pnpm-lock.yaml`; 142 entries; `Version: 3.16.1`). Both
-3.16.1s say `Version: 3.16.1`; a rollback serves `b787a3bb6a20` — the code
-customers had, without the leak — and the upgrade smoke walks from both
-(`tests/compat/upgrade-3161.spec.mjs`). The leaked build stays only in git.
+bytes with the six leaked entries removed and nothing else: from the
+plugin repo in Git Bash (its redirect is byte-exact; PowerShell's is not —
+check the digest before going on),
+`git -C ../service show 'dd07dd0^:public/releases/vergelabs-media-library.zip' > served.zip`
+(sha256 `539e4937…`), then
+`node tools/recut-release.mjs served.zip --out ../service/public/releases --drop tickets/ --drop pnpm-lock.yaml`
+prints `kept 142 entries` and `sha256 b787a3bb6a202d40c85ba20a47e1d382c4354611da77e8e196b965f8cf8b7742`;
+`diff -r` of the two unpacked archives lists only `tickets` and
+`pnpm-lock.yaml`; the header says `Version: 3.16.1`. Both 3.16.1s say
+`Version: 3.16.1`; a rollback serves `b787a3bb6a20` — the code customers
+had, without the leak — and the upgrade smoke walks from both
+(`plugin/tests/compat/upgrade-3161.spec.mjs`). The leaked build stays only in git.
 The unversioned `vergelabs-media-library.zip` is gone; a restored file
 always takes the versioned name, never that one, and is restored with
 `git checkout <commit> -- public/releases/<name>` — never through a shell

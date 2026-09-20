@@ -109,6 +109,21 @@ export function writeZip( file, entries ) {
 
 
 /**
+ *  The end-of-central-directory record: how many entries and where the
+ *  directory starts, or null when there is none within the last 64KB (the
+ *  most a trailing comment can add). One rule for both readers below.
+ */
+function endRecord( buf ) {
+	for ( let i = buf.length - 22; i >= 0 && i > buf.length - 66000; i-- ) {
+		if ( buf.readUInt32LE( i ) === 0x06054b50 ) {
+			return { count: buf.readUInt16LE( i + 10 ), at: buf.readUInt32LE( i + 16 ) };
+		}
+	}
+	return null;
+}
+
+
+/**
  *  Read back the central directory: name and CRC per entry, as a Map, or null
  *  when the file is missing or is not a zip.
  *
@@ -122,20 +137,13 @@ export function readZipIndex( file ) {
 	}
 
 	const buf = fs.readFileSync( file );
-
-	let end = -1;
-	for ( let i = buf.length - 22; i >= 0 && i > buf.length - 66000; i-- ) {
-		if ( buf.readUInt32LE( i ) === 0x06054b50 ) {
-			end = i;
-			break;
-		}
-	}
-	if ( end < 0 ) {
+	const end = endRecord( buf );
+	if ( ! end ) {
 		return null;
 	}
 
-	const count = buf.readUInt16LE( end + 10 );
-	let at = buf.readUInt32LE( end + 16 );
+	const count = end.count;
+	let at = end.at;
 	const out = new Map();
 
 	for ( let i = 0; i < count; i++ ) {
@@ -163,20 +171,13 @@ export function readZipIndex( file ) {
 export function readZipEntries( file ) {
 
 	const buf = fs.readFileSync( file );
-	const index = readZipIndex( file );
-	if ( ! index ) {
+	const end = endRecord( buf );
+	if ( ! end ) {
 		throw new Error( `${ file } is not a zip` );
 	}
 
-	let end = -1;
-	for ( let i = buf.length - 22; i >= 0; i-- ) {
-		if ( buf.readUInt32LE( i ) === 0x06054b50 ) {
-			end = i;
-			break;
-		}
-	}
-	const count = buf.readUInt16LE( end + 10 );
-	let at = buf.readUInt32LE( end + 16 );
+	const count = end.count;
+	let at = end.at;
 	const out = [];
 
 	for ( let i = 0; i < count; i++ ) {

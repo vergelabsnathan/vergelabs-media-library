@@ -13,13 +13,22 @@
  *  Check refuses a hidden file in a zip, and nothing in the battery read an
  *  archive's entry list.
  *
- *  Three things are asserted: no entry of either archive has a path segment
- *  starting with `.` or `_`; the two hold the same set of files; and the
- *  Playground zip is the tree's own (deploy.mjs --check, so a stale zip is
- *  red here too rather than only in a deploy nobody ran).
+ *  Four things are asserted: no entry of either archive has a path segment
+ *  starting with `.` or `_`; no top-level entry is repo furniture by name --
+ *  the served 3.16.1 leaked `tickets/` and `pnpm-lock.yaml`, neither hidden,
+ *  and both archives now read one list, so a dropped export-ignore line
+ *  would otherwise ship in both and still agree (review, 2026-09-20); the
+ *  two hold the same set of files; and the Playground zip is the tree's own
+ *  (deploy.mjs --check, so a stale zip is red here too rather than only in a
+ *  deploy nobody ran).
+ *
+ *  `git archive HEAD` reads the committed .gitattributes, the Playground zip
+ *  the working tree's: on a dirty tree the "same files" line says so, so a
+ *  red there names its likely cause before it is read as a leak.
  *
  *  Mutation: add `.harness/x` to the tree and commit it without an
- *  export-ignore line -- the first check names it.
+ *  export-ignore line -- the first check names it; remove `/tickets` from
+ *  .gitattributes with a tickets/ file committed -- the furniture check does.
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -40,6 +49,18 @@ const check = ( name, ok, detail = '' ) => {
 };
 
 const hidden = ( name ) => name.split( '/' ).some( ( seg ) => seg && ( seg.startsWith( '.' ) || seg.startsWith( '_' ) ) );
+
+// Repo furniture by name, none of it hidden: what the SKIP lists in
+// deploy.mjs and the export-ignore lines exist to keep out of a customer's
+// hands. A new top-level directory of that kind belongs here as well.
+const FURNITURE = new Set( [
+	'tests', 'tools', 'docs', 'plans', 'tickets', 'research', 'dist', 'site', 'playground', 'node_modules', 'assets',
+	'package.json', 'package-lock.json', 'pnpm-lock.yaml', 'CLAUDE.md', 'AGENTS.md',
+] );
+const furniture = ( name ) => FURNITURE.has( name.split( '/' )[ 0 ] );
+
+// The tree as it is: a dirty tree is the usual reason the two archives differ.
+const dirty = execFileSync( 'git', [ 'status', '--porcelain' ], { cwd: ROOT } ).toString().trim();
 
 // Files only: git archive writes a directory entry per folder, deploy.mjs none.
 const filesOf = ( index, prefix ) => [ ...index.keys() ]
@@ -69,14 +90,17 @@ if ( release && playground ) {
 	const strayPlayground = playgroundFiles.filter( hidden );
 	check( 'no Playground zip entry starts with . or _ (any segment)', 0 === strayPlayground.length, strayPlayground.slice( 0, 5 ).join( ', ' ) || `${ playgroundFiles.length } files` );
 
+	const furnitureIn = [ ...new Set( [ ...releaseFiles, ...playgroundFiles ].filter( furniture ).map( ( f ) => f.split( '/' )[ 0 ] ) ) ];
+	check( 'no top-level entry of either archive is repo furniture by name', 0 === furnitureIn.length, furnitureIn.join( ', ' ) || `${ FURNITURE.size } names checked` );
+
 	const onlyRelease = releaseFiles.filter( ( f ) => ! playgroundFiles.includes( f ) );
 	const onlyPlayground = playgroundFiles.filter( ( f ) => ! releaseFiles.includes( f ) );
 	check(
 		'the release and the Playground zip hold the same files',
 		0 === onlyRelease.length && 0 === onlyPlayground.length,
 		onlyRelease.length || onlyPlayground.length
-			? `only in the release: ${ onlyRelease.slice( 0, 4 ).join( ', ' ) || 'none' }; only in the Playground zip: ${ onlyPlayground.slice( 0, 4 ).join( ', ' ) || 'none' }`
-			: `${ releaseFiles.length } files each`
+			? `only in the release: ${ onlyRelease.slice( 0, 4 ).join( ', ' ) || 'none' }; only in the Playground zip: ${ onlyPlayground.slice( 0, 4 ).join( ', ' ) || 'none' }${ dirty ? ' -- the tree is dirty (HEAD vs working tree), commit and re-run before reading this as a leak' : '' }`
+			: `${ releaseFiles.length } files each${ dirty ? ' (tree dirty)' : '' }`
 	);
 
 	check( 'the main plugin file is in both', releaseFiles.includes( `${ SLUG }.php` ) && playgroundFiles.includes( `${ SLUG }.php` ) );

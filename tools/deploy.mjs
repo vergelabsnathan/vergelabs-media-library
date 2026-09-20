@@ -5,7 +5,7 @@
  *      node tools/deploy.mjs --zip         # only rebuild playground/*.zip
  *      node tools/deploy.mjs --box         # only ship to the test box
  *      node tools/deploy.mjs --check       # prove nothing, change nothing, report
- *      node tools/deploy.mjs --check --zip # the same, the zip only
+ *      node tools/deploy.mjs --check --zip # the same, the zip only (--check --box: the box only)
  *      node tools/deploy.mjs --box 46.225.66.194
  *
  *  Written on 31-08-2026, after a session spent rebuilding a nav item that was

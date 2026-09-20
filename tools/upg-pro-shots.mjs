@@ -75,6 +75,9 @@ if ( ! wasActive ) {
 let screensOk = false;
 let uid, hadHidden, hadKey, hadState;
 let activate = '';
+// Set before the activate call, not from its answer: an ssh that dies after
+// the remote side ran leaves the seat taken with nothing to show for it.
+let activateRan = false;
 try {
 	if ( '1' !== wpEval( `echo function_exists( "vgmlpro_refresh" ) ? 1 : 0;` ) ) {
 		throw new Error( 'Pro is active but includes/licence.php is not loaded (safe mode?); nothing written.' );
@@ -91,6 +94,7 @@ try {
 	hadKey = wpEval( `echo wp_json_encode( get_option( "vgmlpro_licence_key", false ) );` );
 	hadState = wpEval( `echo wp_json_encode( get_option( "vgmlpro_licence_state", false ) );` );
 
+	activateRan = true;
 	activate = wpEval(
 		`update_option( "vgmlpro_licence_key", strtoupper( trim( getenv( "K" ) ) ) ); delete_option( "vgmlpro_licence_state" ); $s = vgmlpro_refresh( "activate" ); echo ( $s["valid"] ? "activated" : "refused: " . $s["reason"] ) . " " . $s["sites_used"] . "/" . $s["sites_allowed"];`,
 		{ K: KEY }
@@ -159,7 +163,7 @@ try {
 	// so one failing does not take the others with it.
 	// A seat was taken only if the activate call ran; before that there is
 	// nothing to release and nothing of the fixture's has been written.
-	if ( activate ) {
+	if ( activateRan ) {
 		step( 'seat released', wpEval(
 			`$s = function_exists( "vgmlpro_refresh" ) ? vgmlpro_refresh( "deactivate" ) : array( "valid" => false, "reason" => "pro not loaded", "sites_used" => "?", "sites_allowed" => "?" ); echo ( $s["valid"] ? "released" : "answer: " . $s["reason"] ) . " " . $s["sites_used"] . "/" . $s["sites_allowed"];`
 		), /^released/ );
@@ -168,15 +172,20 @@ try {
 	// Before the key goes back: Pro's deactivation hook releases whatever key
 	// it finds (includes/licence.php, vgmlpro_on_deactivation), so with the
 	// fixture's own key restored first it would hand back a real seat. The
-	// test key is emptied so the hook has nothing to release either (A-11).
+	// stored key -- the test key, or the fixture's own when the run died
+	// before the activate call -- is set aside while Pro deactivates and put
+	// back after (A-11, review).
 	if ( ! wasActive ) {
-		if ( activate ) {
-			wpEval( `delete_option( "vgmlpro_licence_key" ); delete_option( "vgmlpro_licence_state" );` );
+		const aside = wpEval( `$k = get_option( "vgmlpro_licence_key", false ); delete_option( "vgmlpro_licence_key" ); echo wp_json_encode( $k );` );
+		step( 'Pro deactivated again, with no key for its hook to release', wpPlugin( 'deactivate' ), /deactivated/i );
+		if ( ! activateRan && 'false' !== aside ) {
+			wpEval( `update_option( "vgmlpro_licence_key", json_decode( '${ aside.replace( /'/g, "\\'" ) }', true ), false );` );
 		}
-		step( 'Pro deactivated again, before the key goes back', wpPlugin( 'deactivate' ), /deactivated/i );
 	}
 
-	if ( activate ) {
+	if ( activateRan ) {
+		// The state option is gone by now (the activate call deleted it, and the
+		// aside above deleted the key); both go back exactly as found.
 		const put = ( option, had ) => 'false' === had
 			? `delete_option( "${ option }" );`
 			: `update_option( "${ option }", json_decode( '${ had.replace( /'/g, "\\'" ) }', true ), false );`;

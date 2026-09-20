@@ -244,11 +244,18 @@ const SUITES = [
 	...( SEATS_KEY ? [ {
 		name: 'compat-free-upg', file: '../pro/tests/compat-free.php', env: 'box', php: true, wp: '/var/www/upg',
 		vars: { VGMLPRO_SEATS_KEY: SEATS_KEY },
+		// Before WordPress loads (wp-cli --exec): every error a Pro file raises
+		// while booting, for the suite's first check. The same line sits in
+		// pro/tools/verify.mjs for the Playground leg (A-8, review). No single
+		// quotes and no backslashes in it: wp-cli strips the one from an
+		// --exec value and the shell halves the other (proven 2026-09-20).
+		exec: `$GLOBALS["cf_boot_noise"] = array(); set_error_handler( function ( $no, $str, $file, $line ) { if ( false !== strpos( str_replace( chr( 92 ), "/", $file ), "/vergelabs-media-library-pro/" ) ) { $GLOBALS["cf_boot_noise"][] = basename( $file ) . ":" . $line . " " . $str; } return false; } );`,
 		before: 'wp plugin activate vergelabs-media-library-pro',
-		// Only when no key is connected: Pro's deactivation hook releases the
-		// seat of whatever key it finds, and the suite has just put the site's
-		// own key back. A fixture holding a real key keeps Pro active (A-11).
-		after: `wp eval 'if ( "" === (string) get_option( "vgmlpro_licence_key", "" ) ) { deactivate_plugins( "vergelabs-media-library-pro/vergelabs-media-library-pro.php" ); echo "Pro deactivated"; } else { echo "a key is connected; Pro left active"; }'`,
+		// Deactivate only when no key is connected or the stored key is the
+		// test key the suite left behind (it died before its restore): Pro's
+		// deactivation hook releases the seat of whatever key it finds, and a
+		// fixture holding a real key keeps Pro active instead (A-11, review).
+		after: `wp eval '$k = (string) get_option( "vgmlpro_licence_key", "" ); if ( "" === $k || strtoupper( $k ) === strtoupper( (string) getenv( "VGMLPRO_SEATS_KEY" ) ) ) { deactivate_plugins( "vergelabs-media-library-pro/vergelabs-media-library-pro.php" ); echo "Pro deactivated"; } else { echo "a key is connected; Pro left active"; }'`,
 	} ] : [] ),
 	/*
 	 *  The licence key at rest, in logs and in responses: a canary key planted
@@ -471,8 +478,20 @@ if ( ! BOX ) {
 const SSH = `ssh -i ${ BOX.key } -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${ BOX_HOST }`;
 
 /*
+ *  One value inside single quotes for the remote shell. "'\\''" is the POSIX
+ *  idiom '\'' -- the quote closed, escaped, reopened. "'\''" was '''': three
+ *  quotes, an empty string closed and reopened, the quote lost (A-7).
+ */
+const sq = ( v ) => `'${ String( v ).replace( /'/g, "'\\''" ) }'`;
+
+// The suite's variables as a command prefix: NAME='value' NAME2='value' …
+const envPrefix = ( suite ) => Object.entries( suite.vars || {} ).map( ( [ k, v ] ) => `${ k }=${ sq( v ) }` ).join( ' ' );
+
+/*
  *  A suite's `before` (precondition) or `after` (put the site back), one
- *  wp-cli command on the box. `after` runs whatever the suite exited with.
+ *  wp-cli command on the box, with the suite's variables in its environment
+ *  so an `after` can tell the test key from the site's own. `after` runs
+ *  whatever the suite exited with.
  */
 function boxStep( suite, field ) {
 	return new Promise( ( resolve ) => {
@@ -484,11 +503,11 @@ function boxStep( suite, field ) {
 		}
 
 		const label = 'before' === field ? 'precondition' : 'after';
-		console.log( `  ${ label }: ${ command }` );
+		console.log( `  ${ label }: ${ command.length > 96 ? command.slice( 0, 93 ) + '…' : command }` );
 
 		const child = spawn(
 			SSH.split( ' ' )[ 0 ],
-			[ ...SSH.split( ' ' ).slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ command } --allow-root` ],
+			[ ...SSH.split( ' ' ).slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ envPrefix( suite ) } ${ command } --allow-root` ],
 			{ stdio: 'ignore' }
 		);
 
@@ -630,12 +649,12 @@ function runPhp( suite ) {
 			 *  the moment it arrives: buffering to the end would make a suite
 			 *  that takes a minute look like one that has hung.
 			 */
+			// `exec` is PHP wp-cli runs before WordPress loads (--exec): a
+			// handler that must be in place while the plugins boot.
+			const exec = suite.exec ? ` --exec=${ sq( suite.exec ) }` : '';
 			const child = spawn(
 				args[ 0 ],
-				// "'\\''" is the POSIX idiom '\'' -- a quote inside a
-				// single-quoted value. "'\''" was '''': three quotes, an
-				// empty string closed and reopened, the quote lost (A-7).
-				[ ...args.slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ Object.entries( suite.vars || {} ).map( ( [ k, v ] ) => `${ k }='${ String( v ).replace( /'/g, "'\\''" ) }'` ).join( ' ' ) } wp eval-file ${ remote } --allow-root` ],
+				[ ...args.slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ envPrefix( suite ) } wp eval-file ${ remote } --allow-root${ exec }` ],
 				{ stdio: [ 'ignore', 'pipe', 'pipe' ] }
 			);
 
