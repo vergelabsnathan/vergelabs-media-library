@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-19-2026 14:30
-last_updated: "09-20-2026 11:40"
+last_updated: "09-20-2026 16:40"
 project: vergelabs-media-library
 project_key: NOKEY
 tracking_system: file-system
@@ -47,14 +47,14 @@ development_status:
   2-3-the-vat-position-nathan-s-with-an-accountant: backlog
   epic-2-retrospective: optional
 
-  epic-3: backlog
+  epic-3: in-progress
   3-1-an-availability-answer: backlog
-  3-2-the-licence-key-leaves-the-support-ticket: backlog
+  3-2-the-licence-key-leaves-the-support-ticket: review
   3-3-a-response-time-that-can-be-kept-solo: backlog
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-the-csv-export-cannot-execute-in-a-spreadsheet: backlog
+  epic-4: in-progress
+  4-1-the-csv-export-cannot-execute-in-a-spreadsheet: review
   4-2-the-compatibility-matrix-on-4-0-0: backlog
   4-3-operator-grade-or-client-grade: backlog
   epic-4-retrospective: optional

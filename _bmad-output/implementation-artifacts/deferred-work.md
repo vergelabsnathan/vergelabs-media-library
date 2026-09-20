@@ -58,3 +58,18 @@
 - source_spec: `spec-c-subscription-floor.md`
   summary: a code used on a yearly plan never records its redemption -- the webhook's payment_intent.succeeded returns early for subscription plans before recordRedemption(), and invoice.paid writes none -- so max_uses and "first purchase only" do not hold on single/five/agency. Write the redemption on invoice.paid for the first invoice (the subscription's metadata carries code and code_id).
   evidence: WALK0920 (max_uses 1) still answers ok EUR 0.50 on /api/pricing after the 2026-09-20 purchase; app/api/stripe/webhook/route.ts:541 returns before :547.
+- source_spec: `spec-3-2-the-licence-key-leaves-the-support-ticket.md`
+  summary: a licensed site whose origin changed since activation (http→https, a domain move, staging, a network subsite) now files its ticket with licence_id null -- the full-key path resolved it regardless of site. Decide whether a prefix that matches exactly one licence may resolve without a seat (a 4-character guess would then attach a stranger's licence facts to a ticket), or keep the seat rule and rely on the note's count.
+  evidence: consolidation review 2026-09-20 (three lenses); the note now says "(N licences end that way)" so a person can find it; lib/store.ts findLicenceByPrefixOnSite joins live activations only.
+- source_spec: `spec-4-1-the-csv-export-cannot-execute-in-a-spreadsheet.md`
+  summary: the box suite tests/import/csv.php never exports a folder that starts with a trigger character, so FR12 is proven only by the fixture-only csv-local suite; add one =HYPERLINK folder to the box fixture (counts 5→6) at the next box run; a 4.0.0 export holding a folder literally named '=x loses one apostrophe when imported by 4.0.1 (no in-band marker); the filename column is prefixed too (correct protection, a visible apostrophe on a file named -01.jpg).
+  evidence: consolidation review 2026-09-20; csv-local 69/69 is the proof on file; csv on the box unchanged.
+- source_spec: `spec-e-minimum-free-gate.md` (pro/docs/specs)
+  summary: the licence screen's in-page sentence covers "not active" only; "active, too old" shows via admin_notices alone (settings.php outside the story's Files line); pro readme should name the 4.0.0 floor and could carry `Requires Plugins: vergelabs-media-library`; compat-free --tree with a real key (the archives leg cannot exercise the gate) is the train's, with VGMLPRO_SEATS_KEY.
+  evidence: consolidation review 2026-09-20; min-free 15/15 on both archive legs.
+- source_spec: `spec-d-billing-and-order.md` (service/docs/specs)
+  summary: the order page's registration hand-off relies on the cart having written localStorage vgml-email in the same browser; a buyer who reaches /order in another browser (a 3-D Secure redirect that opened elsewhere) gets an empty email field -- correct, but worth a Playwright row; no e2e spec opens /order at all (the has_account route test is the pin).
+  evidence: consolidation review 2026-09-20; app/api/order/route.test.ts 4 rows.
+- source_spec: `plans/finish-the-suite.md`
+  summary: tools/verify.mjs runPhpPlayground() duplicates runPhpLocal()'s result judging (~30 lines); a shared judge() would keep the two from drifting; verify.mjs in plugin assumed ../plugin and ../dist beside the checkout (pro's runner fixed it for worktrees with sibling()).
+  evidence: consolidation review 2026-09-20 (blind hunter); pro 9fa975f sibling().

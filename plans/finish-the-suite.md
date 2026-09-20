@@ -121,3 +121,51 @@ One document, `docs/decisions-2026-09.md`, one row each: the question, the evide
 ## Cost and time
 
 Wave 1: six agents for a day (about six sessions of tokens in one day; no money; no describe). 1c: half a day. Wave 2: a day with stop points. Wave 3: a day, no money. Wave 4: €0.50 and one credit, on Nathan's go. Waves 5–6: a day. **Three to four calendar days from the go on wave 1**; Nathan's own time about a working day in total (the plan read, elicitation on A and C, the 1c triage, the train's stop points, the sitting).
+
+## Consolidation 1c — done 2026-09-20 (Opus 5, same session as wave 1)
+
+Merged, no conflicts: plugin `e932d62` (F `1f4780f`, B `f510bf2`+`6d85510`, A `e9bd6b2`+`fcad5ea`+`48931c5`), service `40c33e4` (A `2bbd3f1`, D `eb1d314`+`a39d8c1`), pro `5f8ffb9` (E `9fa975f`+`aaa44a5`). Batteries before review: service `534 passed`, tsc, build; plugin `get-help 22/22`, `csv-local 69/69`, `archive-hygiene 8/8` after the zip re-cut (`c93e7de`); pro `min-free 15/15`, `min-free-current 15/15`.
+
+Review: four lenses over the combined diff (2,566 lines) — blind hunter 14, edge-case hunter 13, verification gap 2 + 2, acceptance auditor 12. Triage (`patch` = done in `b75aed9` service, `a850512` plugin, `da04526` pro; `defer` = `deferred-work.md`; `reject` with the reason):
+
+| # | Finding | Verdict | Route |
+|---|---|---|---|
+| 1 | D · Billing's `expand: ['data.subscription']` is rejected on API versions from 2025-03-31; the catch turns the tab dark and the newer-shape reader is unreachable | medium | patch: `subscriptionExpand(STRIPE_API_VERSION)` from the exported pin; test |
+| 2 | D · `limit: 12` before the filter hides a paid invoice behind twelve abandoned checkouts | medium | patch: 50 asked, 12 shown |
+| 3 | D · `has_account` and the order page's link have no test | medium | patch: `app/api/order/route.test.ts`, 4 rows |
+| 4 | D · the buyer's email in the registration URL (history, logs, referrers) | medium | patch: the register form reads the cart's `localStorage vgml-email`; the link carries no address |
+| 5 | D · "open on an active subscription" widened to "not incomplete" (canceled, paused pass) | medium | patch: `OWED_ON` = active, past_due, unpaid, trialing; test |
+| 6 | D · a hand-issued open invoice (no subscription) vanished from Billing | medium | patch: shown; test |
+| 7 | D · `meta.email === ''` passes through and builds a register link | low | patch: empty is absent; test |
+| 8 | D · the enumeration comment overclaims | low | patch: comment |
+| 9 | D · the Playwright proof is not in the repo | low | defer: the route test pins the boolean; an `/order` e2e row in `deferred-work.md` |
+| 10 | A · a key shorter than four characters would be sent whole; lowercase last-four rejected by the service's regex | low | patch: `strlen > 4`, `strtoupper` |
+| 11 | A · a malformed prefix reads as a free install in the support note | low | patch: "a licence prefix was sent in a shape we do not issue"; test |
+| 12 | A · prefix + seat fails for a moved origin, staging, a network subsite (the old full-key path resolved regardless of site) | medium | patch the note with the count of licences ending that way; **defer** the unique-prefix fallback — a privacy call, Nathan's |
+| 13 | A · spec tasks unticked, no implementation notes | low | patch: ticked, notes with the proof and mutation lines |
+| 14 | A · `docs/outbound-audit-2026-09-19.md:46` still says plaintext key | low | patch: dated note in the row |
+| 15 | A/F · the readme sentence was written (plan Files) vs proposed (plan Copy); F proposed a different one | low | patch F to what landed; the words stay Nathan's at the train (copy block below) |
+| 16 | A · readme lacks a 4.0.1 changelog entry | — | reject: the train's, from Nathan's copy |
+| 17 | A · multisite network key in the suite | low | reject: fixture-only suite |
+| 18 | B · the filename column is prefixed too (`'-01.jpg`) | low | reject: every cell is protected by design; recorded |
+| 19 | B · a 4.0.0 export with a folder literally named `'=x` loses an apostrophe on import | low | defer |
+| 20 | B · the box suite never exports a trigger folder | low | defer: one fixture folder at the next box run |
+| 21 | B · the plan's "re-imported, equal" is met at cell level; `vergeml_csv_path()`'s `/`→`-` is pre-existing | — | reject: documented in the spec's matrix |
+| 22 | E · `min-free.php` clears the site's schedule and backoff unconditionally; a text match on "Warning" | medium | patch: snapshot and put back; `Fatal error` only |
+| 23 | E · the notice assertion is pinned to the sentence Nathan will edit | medium | patch: anchored on `VGMLPRO_MIN_FREE` |
+| 24 | E · a `4.0.0-beta` free version reads as below | low | reject: the free plugin ships no pre-release tags |
+| 25 | E · in-page sentence for "active, too old"; pro readme floor; `Requires Plugins` header | low | defer (copy block) |
+| 26 | E · `compat-free --tree` with a real key not run | — | defer: the train's, with `VGMLPRO_SEATS_KEY` |
+| 27 | verify.mjs · `runPhpPlayground` collapses exit 2 into FAILED; judging duplicated from `runPhpLocal` | low | patch exit 2 → SKIPPED; defer the dedupe |
+| 28 | Files outside the stories' Files lines (`secrets.php` E, `verify.mjs` by A, `.gitattributes` by E, the order route by D) | — | reject: each is the story's proof or the plan's own gap; no conflict at the merge |
+| 29 | D/E specs under `docs/specs/` not `_bmad-output` | — | reject: those repos carry no `_bmad-output`; the plugin's sprint status tracks 3.2 and 4.1 |
+
+After the patches: service `541 passed`, tsc, build; plugin `get-help 22/22`, `csv-local 69/69`, `archive-hygiene 8/8`; pro `15/15` × 2. Service pushed `b75aed9`. Nothing cut, nothing on the box, nothing to Stripe.
+
+### Copy block for Nathan (nothing here is final until he says so)
+
+1. `readme.txt:183`, External services, as landed by A: "…the email address you gave, the last four characters of your licence key if you have one (never the key itself), and a full system report: …".
+2. `readme.txt` changelog 4.0.1, proposed in `docs/release-notes-4.0.1-proposal.md` (three lines: the ticket, the CSV cells, the PHP 8.4+ notice) and a two-line strapline.
+3. Pro's notice, as landed by E: "VergeLabs Media Library Pro needs VergeLabs Media Library 4.0.0 or newer. This site has 3.16.1, so Pro features are paused until the free plugin is updated." (`%1$s` the minimum, `%2$s` the version found; "an older version" when unknown). Changelog line for Pro 1.0.3: "Pro now needs VergeLabs Media Library 4.0.0 or newer. On an older free plugin it pauses its features and says so, instead of failing."
+4. Pro readme: name the 4.0.0 floor in the Description; optionally the `Requires Plugins: vergelabs-media-library` header.
+5. The service's support note strings (`a licence prefix was sent in a shape we do not issue`, `(N licences end that way)`) — internal mail to support, not customer-facing; yours all the same.
