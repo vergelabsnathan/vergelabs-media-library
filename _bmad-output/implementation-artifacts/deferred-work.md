@@ -55,3 +55,6 @@
 - source_spec: `spec-2-1-the-buyer-walk-on-4-0-0.md`
   summary: the walk licence (...93RJ, EUR 0.50, cancels 2027-09-20) and the free PRIVATE0 licence (...AB26) stay on the walk account nathan+buyer-0920@vergelabs.nl; cancelling ...AB26 from /account is one click (no money), Nathan's.
   evidence: /account overview 2026-09-20 shows both; verify on ...93RJ: 1,999 credits, 0 sites.
+- source_spec: `spec-c-subscription-floor.md`
+  summary: a code used on a yearly plan never records its redemption -- the webhook's payment_intent.succeeded returns early for subscription plans before recordRedemption(), and invoice.paid writes none -- so max_uses and "first purchase only" do not hold on single/five/agency. Write the redemption on invoice.paid for the first invoice (the subscription's metadata carries code and code_id).
+  evidence: WALK0920 (max_uses 1) still answers ok EUR 0.50 on /api/pricing after the 2026-09-20 purchase; app/api/stripe/webhook/route.ts:541 returns before :547.
