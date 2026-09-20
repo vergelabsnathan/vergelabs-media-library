@@ -53,6 +53,22 @@ function snap_norm( $v ) {
 	return $v;
 }
 
+/** sha256 over "sha256  path" per file, sorted: what sha256sum would print, hashed. */
+function snap_plugin_digest( $dir ) {
+	if ( ! is_dir( $dir ) ) {
+		return 'absent';
+	}
+	$lines = array();
+	$it    = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $dir, FilesystemIterator::SKIP_DOTS ) );
+	foreach ( $it as $f ) {
+		if ( $f->isFile() ) {
+			$lines[] = hash_file( 'sha256', $f->getPathname() ) . '  ' . str_replace( '\\', '/', substr( $f->getPathname(), strlen( $dir ) + 1 ) );
+		}
+	}
+	sort( $lines, SORT_STRING );
+	return hash( 'sha256', implode( "\n", $lines ) . "\n" ) . ' (' . count( $lines ) . ' files)';
+}
+
 const VGML_SNAP_TABLES = array( 'terms', 'termmeta', 'rels', 'alts', 'postmeta', 'batches', 'moves', 'index', 'posts' );
 
 $state = array(
@@ -78,6 +94,11 @@ $state['moving'] = array(
 	'vergeml_version'   => get_option( 'vergeml_version' ),
 	'vergeml_librarian' => get_option( 'vergeml_librarian' ),
 );
+// Which bytes were running: sha256 over "sha256  path" per file of the plugin
+// directory, sorted -- the same line sha256sum would print. Recorded, not
+// compared: the swap is supposed to change it, and the box legs otherwise
+// never say which archive they ran against (Epic 1 retro, A-3).
+$state['plugin_digest'] = snap_plugin_digest( WP_PLUGIN_DIR . '/vergelabs-media-library' );
 
 if ( ! getenv( 'VGML_COMPARE' ) ) {
 	if ( false === file_put_contents( $file, wp_json_encode( $state, JSON_PRETTY_PRINT ) ) ) {
@@ -89,6 +110,7 @@ if ( ! getenv( 'VGML_COMPARE' ) ) {
 		echo str_pad( $k, 10 ) . count( $state[ $k ] ) . "\n";
 	}
 	echo 'moving    ' . wp_json_encode( $state['moving'] ) . "\n";
+	echo 'plugin    ' . $state['plugin_digest'] . "\n";
 	echo 'debug.log ' . $state['debug_log_lines'] . " lines\n";
 	echo "frozen to $file\n";
 	return;
@@ -133,4 +155,6 @@ foreach ( array( 'guide', 'ai', 'taxonomies' ) as $opt ) {
 }
 echo 'moving before ' . wp_json_encode( $before['moving'] ) . "\n";
 echo 'moving after  ' . wp_json_encode( $state['moving'] ) . "\n";
+echo 'plugin before ' . ( $before['plugin_digest'] ?? 'not recorded (snapshot predates A-3)' ) . "\n";
+echo 'plugin after  ' . $state['plugin_digest'] . "\n";
 echo "$diffs differences\n";

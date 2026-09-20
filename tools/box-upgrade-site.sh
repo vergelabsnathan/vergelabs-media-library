@@ -5,7 +5,7 @@
 #  with the other four but the PHP-FPM socket and the `wp` database user.
 #
 #      bash box-upgrade-site.sh create            # /var/www/upg, wpupg, nginx, admin vgmls22
-#      bash box-upgrade-site.sh plugin <zip>      # wp plugin install <zip> --force --activate
+#      bash box-upgrade-site.sh plugin <zip> [--inactive]   # wp plugin install <zip> --force [--activate]; prints the zip's sha256 and the installed slug's version
 #      bash box-upgrade-site.sh url               # prints the site URL
 #      bash box-upgrade-site.sh reset             # destroy + create: the fixture back to empty
 #      bash box-upgrade-site.sh destroy           # dir, database, nginx block
@@ -73,10 +73,19 @@ destroy() {
 case "${1:-}" in
   create) create ;;
   plugin)
+    # Says what it installed: the zip's digest and the version of the slug the
+    # zip carries (its top directory), not the free plugin's whatever went in
+    # -- after a Pro install it once printed the free plugin's 4.0.0 as if that
+    # were Pro's. --inactive leaves the plugin as installed, for a fixture that
+    # keeps Pro inactive between runs.
     ZIP=${2:?zip path}
-    wp plugin install "$ZIP" --path="$ROOT" --force --activate --allow-root
+    ACTIVATE=--activate; [ "${3:-}" = "--inactive" ] && ACTIVATE=
+    SLUG=$(unzip -Z1 "$ZIP" | head -1 | cut -d/ -f1)
+    [ -n "$SLUG" ] || { echo "no top directory in $ZIP"; exit 1; }
+    wp plugin install "$ZIP" --path="$ROOT" --force $ACTIVATE --allow-root
     chown -R www-data:www-data "$ROOT/wp-content"
-    wp plugin get vergelabs-media-library --field=version --path="$ROOT" --allow-root
+    echo "zip     $(sha256sum "$ZIP" | cut -c1-64)  $(basename "$ZIP")"
+    echo "plugin  $SLUG $(wp plugin get "$SLUG" --field=version --path="$ROOT" --allow-root) $(wp plugin get "$SLUG" --field=status --path="$ROOT" --allow-root)"
     ;;
   url) echo "$URL" ;;
   reset) destroy; create ;;
