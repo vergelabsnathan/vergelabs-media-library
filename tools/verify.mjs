@@ -236,11 +236,14 @@ const SUITES = [
 	 *  environment -- the one-seat test licence, never the site's own; the
 	 *  suite hands the seat back. The fixture keeps Pro installed but inactive
 	 *  (how story 1.3 leaves it), so `before` activates it and `after` puts it
-	 *  back whatever the suite said.
+	 *  back whatever the suite said. No VGMLPRO_COMPAT_ARCHIVES here: that
+	 *  pins 4.0.0 / 1.0.2, and the fixture stays up across patch releases by
+	 *  design (upgrade-3161 tolerates any 4.x) -- the hash-pinned archives in
+	 *  Playground are the archive proof (Epic 1 retro, A-4).
 	 */
 	...( SEATS_KEY ? [ {
 		name: 'compat-free-upg', file: '../pro/tests/compat-free.php', env: 'box', php: true, wp: '/var/www/upg',
-		vars: { VGMLPRO_SEATS_KEY: SEATS_KEY, VGMLPRO_COMPAT_ARCHIVES: '1' },
+		vars: { VGMLPRO_SEATS_KEY: SEATS_KEY },
 		before: 'wp plugin activate vergelabs-media-library-pro',
 		after: 'wp plugin deactivate vergelabs-media-library-pro',
 	} ] : [] ),
