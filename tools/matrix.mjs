@@ -3,6 +3,7 @@
  *
  *      node tools/matrix.mjs                          # every cell, then the table
  *      node tools/matrix.mjs --parallel 3             # the same, three Playgrounds at a time
+ *                                                     # (a cell that never boots: --cell it once before calling it ✗)
  *      node tools/matrix.mjs --cell wp=6.5,php=7.4    # one cell; its row is replaced
  *      node tools/matrix.mjs --list                   # the cells and their keys
  *      VGML_MATRIX_MUTATE=1 node tools/matrix.mjs --cell wp=7.1,php=8.2   # must go ✗
@@ -32,7 +33,10 @@
  *  Mock mode in every cell: VERGEML_AI_MOCK is defined on every Playground,
  *  and the box cells switch the `mock` flag on in the site's vergeml_ai option
  *  for the run and put the option back as it was (deleted if it was absent).
- *  No cell has a licence key, so nothing is described for real anywhere.
+ *  No cell has a licence key, so nothing is described for real anywhere. The
+ *  five-minute script triggers no describe itself (nothing describes on
+ *  add_attachment; core/ai.php is reached through the index step, the cron
+ *  pass and the brief), so mock is the safety net, not a path under test.
  *
  *  --parallel N runs the version and language cells N at a time; each is its
  *  own Playground on its own port with its own temp dir and log, so they do
@@ -116,12 +120,16 @@ for ( const name of Object.keys( COMPANIONS ) ) {
  *  real database.
  */
 cells.push( { key: 'shape=multisite-subdirectory', wp: '7.1', php: '8.5', shape: 'multisite, subdirectory (the box)', lang: 'en_US', with: '', box: true, dir: MS_DIR, url: MS_URL } );
-cells.push( { key: 'shape=multisite-subdomain', wp: '7.1', php: '8.5', shape: 'multisite, subdomain (the box, sub-site)', lang: 'en_US', with: '', box: true, dir: '/var/www/ms2', url: `http://two.ms2.${ BOX }.nip.io`, skip: 'not run on this release: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11' } );
+cells.push( { key: 'shape=multisite-subdomain', wp: '7.1', php: '8.5', shape: 'multisite, subdomain (the box, sub-site)', lang: 'en_US', with: '', box: true, dir: '/var/www/ms2', url: `http://two.ms2.${ BOX }.nip.io`, skip: 'not run: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11' } );
 cells.push( { key: 'with=filebird,shape=multisite-subdirectory', wp: '7.1', php: '8.5', shape: 'multisite, subdirectory (the box)', lang: 'en_US', with: 'filebird-box', box: true, dir: MS_DIR, url: MS_URL, link: { from: '/var/www/wp/wp-content/plugins/filebird', slug: 'filebird' } } );
 
 const argv = process.argv.slice( 2 );
 const only = argv.includes( '--cell' ) ? argv[ argv.indexOf( '--cell' ) + 1 ] : '';
-const PARALLEL = Math.max( 1, Number( argv.includes( '--parallel' ) ? argv[ argv.indexOf( '--parallel' ) + 1 ] : 1 ) || 1 );
+const PARALLEL = argv.includes( '--parallel' ) ? Number( argv[ argv.indexOf( '--parallel' ) + 1 ] ) : 1;
+if ( ! Number.isInteger( PARALLEL ) || PARALLEL < 1 ) {
+	console.error( '--parallel needs a whole number, 1 or more' );
+	process.exit( 2 );
+}
 const MUTATE = '1' === process.env.VGML_MATRIX_MUTATE;
 
 if ( argv.includes( '--list' ) ) {
@@ -195,12 +203,19 @@ function fiveMinutes( base, env, tag = '' ) {
 	return new Promise( ( resolve ) => {
 		const child = spawn( process.execPath, [ SCRIPT, base ], { env: { ...process.env, ...env }, stdio: [ 'ignore', 'pipe', 'inherit' ] } );
 		let out = '';
+		let partial = ''; // whole lines only: a chunk that ends mid-line waits for its end
+		const echo = ( lines ) => process.stdout.write( lines.filter( ( l ) => ! l.startsWith( 'RESULT ' ) ).map( ( l ) => ( l ? `    ${ tag }${ l }\n` : '\n' ) ).join( '' ) );
 		child.stdout.on( 'data', ( d ) => {
 			const text = d.toString();
 			out += text;
-			process.stdout.write( text.split( '\n' ).filter( ( l ) => ! l.startsWith( 'RESULT ' ) ).map( ( l ) => ( l ? `    ${ tag }${ l }` : l ) ).join( '\n' ) );
+			const lines = ( partial + text ).split( '\n' );
+			partial = lines.pop();
+			echo( lines );
 		} );
 		child.on( 'close', () => {
+			if ( partial ) {
+				echo( [ partial ] );
+			}
 			const line = out.split( /\r?\n/ ).find( ( l ) => l.startsWith( 'RESULT ' ) );
 			try {
 				resolve( JSON.parse( line.slice( 7 ) ) );
@@ -277,8 +292,9 @@ async function runPlayground( cell, tag = '' ) {
 		 *  because its wait loop retries until a request lands on the right
 		 *  worker. Automatic updates off: the cell has to test the version it
 		 *  names -- "7.1" pulled a 7.1.1-RC1 that updated itself mid-boot.
-		 *  VERGEML_AI_MOCK: describing runs on this server from file names
-		 *  (core/ai.php), so the upload path is exercised and nothing is sent.
+		 *  VERGEML_AI_MOCK: should anything describe during the run (the cron
+		 *  pass, if Playground's loopback lets it fire), it is the on-server mock
+		 *  from core/ai.php and nothing is sent.
 		 */
 		const args = [ '@wp-playground/cli', 'server', '--port', String( thisPort ), '--php', cell.php, '--wp', ASK[ cell.wp ] || cell.wp, '--blueprint', blueprint,
 			'--define', 'PLAYGROUND_AUTO_LOGIN_AS_USER', 'admin',
@@ -352,10 +368,17 @@ async function runBox( cell ) {
 	 *  original goes back in the finally -- deleted when there was none. On
 	 *  /var/www/ms it is {"site_profile":""} (2026-09-20). The JSON travels
 	 *  base64, so a sealed key or a quote in it never meets the shell.
+	 *
+	 *  "Absent" is WP-CLI's own "Does it exist?" and nothing else: a get that
+	 *  fails any other way (sudo, the database, a notice on stdout) stops the
+	 *  cell before the write, because the restore of an unread option would be
+	 *  a delete. After the run the option is read back and compared with the
+	 *  snapshot; the row carries that as its last step.
 	 */
 	const option = `${ wp } option`;
 	const site = `--url=${ cell.url } --allow-root`;
-	const made = ssh( `${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1; ${ wp } user create ${ user } ${ user }@invalid.test --role=administrator --user_pass='${ pass }' --allow-root 2>&1 | grep -v Deprecated; ${ role } ${ linkIn } echo "SNAP $( ${ option } get vergeml_ai --format=json ${ site } 2>/dev/null | base64 -w0 )"; ${ wp } core version --allow-root; php -r 'echo PHP_VERSION;'` );
+	const snapshot = `echo "SNAP $( ${ option } get vergeml_ai --format=json ${ site } 2>/tmp/vgml-snap-err | base64 -w0 )"; echo "SNAPERR $( base64 -w0 < /tmp/vgml-snap-err )"; rm -f /tmp/vgml-snap-err;`;
+	const made = ssh( `${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1; ${ wp } user create ${ user } ${ user }@invalid.test --role=administrator --user_pass='${ pass }' --allow-root 2>&1 | grep -v Deprecated; ${ role } ${ linkIn } ${ snapshot } ${ wp } core version --allow-root; php -r 'echo PHP_VERSION;'` );
 	const lines = made.stdout.trim().split( /\r?\n/ );
 	if ( 0 !== made.status || ! /Success/.test( made.stdout ) ) {
 		if ( linkOut ) {
@@ -366,28 +389,57 @@ async function runBox( cell ) {
 	cell.wp = lines[ lines.length - 2 ] || cell.wp;
 	cell.php = ( lines[ lines.length - 1 ] || cell.php ).split( '.' ).slice( 0, 2 ).join( '.' );
 
-	const snap = ( ( made.stdout.match( /^SNAP (\S*)$/m ) || [ , '' ] )[ 1 ] );
+	const b64 = ( name ) => ( made.stdout.match( new RegExp( `^${ name } (\\S*)$`, 'm' ) ) || [ , '' ] )[ 1 ];
+	const decode = ( s ) => Buffer.from( s, 'base64' ).toString( 'utf8' );
+	const snap = b64( 'SNAP' );
+	const snapErr = decode( b64( 'SNAPERR' ) ).replace( /^.*Deprecated.*$/mg, '' ).trim();
+	const bail = ( why ) => {
+		ssh( `${ linkOut } ${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1` );
+		return { ok: false, steps: [], failed: why };
+	};
+	if ( ! snap && ! /Does it exist\?/.test( snapErr ) ) {
+		return bail( `could not read vergeml_ai on ${ cell.dir } (nothing written): ${ snapErr.slice( -160 ) || 'no output' }` );
+	}
 	let saved = {};
 	if ( snap ) {
-		try { saved = JSON.parse( Buffer.from( snap, 'base64' ).toString( 'utf8' ) ); } catch { saved = {}; }
+		try {
+			saved = JSON.parse( decode( snap ) );
+		} catch {
+			return bail( `vergeml_ai on ${ cell.dir } did not read as JSON (nothing written): ${ decode( snap ).slice( 0, 120 ) }` );
+		}
 	}
 	const mocked = Buffer.from( JSON.stringify( { ...saved, mock: 1 } ) ).toString( 'base64' );
 	// The cd stands before the pipeline, not inside it: `echo | cd dir && wp` runs
 	// wp in the outer shell's /root with no stdin (the first run, 2026-09-20).
-	const write = ( b64 ) => `cd ${ cell.dir } && echo ${ b64 } | base64 -d | sudo -u www-data wp option update vergeml_ai --format=json ${ site }`;
+	const write = ( b ) => `cd ${ cell.dir } && echo ${ b } | base64 -d | sudo -u www-data wp option update vergeml_ai --format=json ${ site }`;
 	const restore = snap
 		? `${ write( snap ) } >/dev/null 2>&1;`
 		: `${ option } delete vergeml_ai ${ site } >/dev/null 2>&1;`;
 
+	let result;
 	try {
 		const on = ssh( `${ write( mocked ) } 2>&1 | grep -v Deprecated; ${ option } get vergeml_ai --format=json ${ site } 2>/dev/null` );
 		if ( ! /"mock":1/.test( on.stdout ) ) {
-			return { ok: false, steps: [], failed: `could not switch mock on in ${ cell.dir }: ${ on.stdout.trim().slice( -160 ) || on.stderr.trim().slice( -160 ) }` };
+			result = { ok: false, steps: [], failed: `could not switch mock on in ${ cell.dir }: ${ on.stdout.trim().slice( -160 ) || on.stderr.trim().slice( -160 ) }` };
+		} else {
+			result = await fiveMinutes( cell.url, { VGML_USER: user, VGML_PASS: pass, VGML_MATRIX_NO_UNINSTALL: '1', VGML_MATRIX_PROBE: '', VGML_MATRIX_LOCALE: '', VGML_MATRIX_MUTATE: MUTATE ? '1' : '' } );
 		}
-		return await fiveMinutes( cell.url, { VGML_USER: user, VGML_PASS: pass, VGML_MATRIX_NO_UNINSTALL: '1', VGML_MATRIX_PROBE: '', VGML_MATRIX_LOCALE: '', VGML_MATRIX_MUTATE: MUTATE ? '1' : '' } );
 	} finally {
-		ssh( `${ restore } ${ linkOut } ${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1` );
+		const back = ssh( `${ restore } ${ linkOut } ${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1; echo "BACK $( ${ option } get vergeml_ai --format=json ${ site } 2>/dev/null | base64 -w0 )"` );
+		const after = ( back.stdout.match( /^BACK (\S*)$/m ) || [ , '' ] )[ 1 ];
+		const same = after === snap;
+		const name = 'the site\'s vergeml_ai option is as it was';
+		const detail = same ? ( snap ? `restored: ${ decode( snap ).slice( 0, 80 ) }` : 'absent, as before' ) : `expected ${ snap ? decode( snap ).slice( 0, 80 ) : 'absent' }, found ${ after ? decode( after ).slice( 0, 80 ) : 'absent' }`;
+		console.log( `      ${ same ? 'ok  ' : 'FAIL' } ${ name }  -- ${ detail }` );
+		if ( result ) {
+			result.steps.push( { name, ok: same, detail } );
+			if ( ! same ) {
+				result.ok = false;
+				result.failed = result.failed || `${ name }: ${ detail }`;
+			}
+		}
 	}
+	return result;
 }
 
 const stored = fs.existsSync( RESULTS ) ? JSON.parse( fs.readFileSync( RESULTS, 'utf8' ) ) : { fullRun: '', command: '', zip: '', cells: {} };
@@ -421,9 +473,10 @@ async function runCell( cell ) {
 		step: result.skipped ? result.skipped : ( result.ok ? `all ${ result.steps.length } steps${ note }` : result.failed ),
 		steps: result.steps,
 		ran: today,
+		rerun: !! only, // written by --cell, not by the run the table is headed with
 		seconds,
 	};
-	console.log( `  ${ result.ok ? '✓' : '✗' } ${ cell.key } · ${ passed }/${ result.steps.length } · ${ seconds }s` );
+	console.log( `  ${ result.skipped ? '—' : ( result.ok ? '✓' : '✗' ) } ${ cell.key } · ${ passed }/${ result.steps.length } · ${ seconds }s` );
 	if ( ! result.ok ) {
 		failing.push( `${ cell.key } (${ result.failed })` );
 	}
@@ -455,13 +508,24 @@ async function runCell( cell ) {
 const pooled = chosen.filter( ( c ) => ! c.box && ! c.with );
 const serial = chosen.filter( ( c ) => c.box || c.with );
 let next = 0;
+// A throw inside one cell (an unzip, a temp dir) is that cell's ✗, not the end
+// of the pool: a rejected Promise.all would exit before the other workers'
+// finally blocks stopped their Playgrounds, and those would hold their ports.
+const guarded = async ( cell ) => {
+	try {
+		await runCell( cell );
+	} catch ( e ) {
+		console.log( `  ✗ ${ cell.key } · the runner threw: ${ String( e && e.message || e ).slice( 0, 160 ) }` );
+		failing.push( `${ cell.key } (the runner threw: ${ String( e && e.message || e ).slice( 0, 160 ) })` );
+	}
+};
 await Promise.all( Array.from( { length: Math.min( PARALLEL, pooled.length ) }, async () => {
 	while ( next < pooled.length ) {
-		await runCell( pooled[ next++ ] );
+		await guarded( pooled[ next++ ] );
 	}
 } ) );
 for ( const cell of serial ) {
-	await runCell( cell );
+	await guarded( cell );
 }
 
 /*
@@ -476,7 +540,8 @@ function writeDoc( data ) {
 		if ( ! r ) {
 			return `| ${ c.wp } | ${ c.php } | ${ c.shape } | ${ c.lang } | ${ c.with ? COMPANIONS[ c.with ].label : 'nothing' } | — | not run |`;
 		}
-		const rerun = r.ran !== data.fullRun ? ` (rerun ${ r.ran })` : '';
+		// A row written by --cell says so, with its date when that differs from the run's.
+		const rerun = r.skipped ? '' : ( r.ran !== data.fullRun ? ` (rerun ${ r.ran })` : ( r.rerun ? ' (rerun)' : '' ) );
 		return `| ${ r.wp } | ${ r.php } | ${ r.shape } | ${ r.lang } | ${ r.with } | ${ r.skipped ? '—' : ( r.ok ? '✓' : '✗' ) } | ${ esc( r.step ) }${ rerun } |`;
 	} );
 	const block = [
@@ -497,8 +562,10 @@ function writeDoc( data ) {
 		...rows,
 		'',
 		'The nine version cells are Playground (SQLite, no GD); the language and',
-		'companion cells run on WordPress 7.1 / PHP 8.2 there. Mock mode is on in every',
-		'cell and no cell has a licence key, so nothing is described for real. The',
+		'companion cells run on WordPress 7.1 / PHP 8.2 there. No cell has a licence key',
+		'and every cell runs with mock mode on (the box rows read the option back as their',
+		'last step), so nothing is described for real. A row marked (rerun) was written by',
+		'`--cell` after the run in the heading. The',
 		'multisite cells are the box\'s networks — `/var/www/ms` (subdirectory) and',
 		'`/var/www/ms2` (subdomain, its sub-site `two.`; not run while it holds the shop',
 		'library, its row says so) — real MariaDB, `WP_DEBUG` off, the uninstall step',
@@ -520,11 +587,14 @@ function writeDoc( data ) {
 }
 
 console.log( '' );
+// Skipped cells are neither ✓ nor ✗: the closing line counts them apart.
+const skipped = chosen.filter( ( c ) => stored.cells[ c.key ] && stored.cells[ c.key ].skipped ).length;
+const green = chosen.length - skipped - failing.length;
 if ( failing.length ) {
-	console.log( `  ${ failing.length } of ${ chosen.length } cell(s) ✗:` );
+	console.log( `  ${ failing.length } of ${ chosen.length } cell(s) ✗ (${ green } ✓, ${ skipped } not run):` );
 	failing.forEach( ( f ) => console.log( `    ${ f }` ) );
 	console.log( '' );
 	process.exit( 1 );
 }
-console.log( `  ${ chosen.length } of ${ chosen.length } cell(s) ✓\n` );
+console.log( `  ${ green } of ${ chosen.length } cell(s) ✓${ skipped ? `, ${ skipped } not run` : '' }\n` );
 process.exit( 0 );

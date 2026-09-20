@@ -75,7 +75,7 @@ One question per step, the plan's default taken and recorded (Nathan: "offer Adv
 - **How parallel?** A pool of three. Eleven Playgrounds at once do not fit in 2.5 GB free; three is the number the machine can hold without paging the browser out, and it is a flag, so the next machine picks its own. Companions stay sequential (Nathan's brief; two of them install from the network and one is a licensed zip) and the box cells share one network and one throwaway user, so they cannot overlap.
 - **The ms2 cell.** Not run. The stop point is explicit and `/var/www/ms2` is the shop library now. The row says so and keeps the date of the last result; the doc's sentence under the table stops claiming the sub-site was tested. The subdomain shape is untested on 4.0.1 — a gap, on record, not a ✗.
 - **Mock on the box.** Switched on through the option for the run and restored, not through `wp-config.php`. The site has no option today, so the restore is a delete; a snapshot is taken with WP-CLI before the write, never through the plugin.
-- **Mock on Playground changes what 09-11 tested.** Uploads now go through `vergeml_ai_mock_describe()`; on 09-11 describing was off (no key, no mock). That is more plugin code on the path, not less, and it is what the brief asks for. A ✗ that appears only with mock on is still a finding.
+- **Mock on Playground changes what 09-11 tested.** ~~Uploads now go through `vergeml_ai_mock_describe()`~~ — corrected at review: nothing describes on `add_attachment`; `core/ai.php` is reached through the index step, the cron pass and the brief, none of which the five-minute script triggers. Mock is the safety net for anything that might fire (a cron pass on the box), not a path under test; the rows are comparable with 09-11 because the path did not change. A ✗ that appears only with mock on would still be a finding.
 - **A ✗ is a finding.** The row and the handoff carry the step, the detail and the cause as far as the log tells it; no fix in this story, no rerun to make it green. One rerun is allowed only when the detail is a boot failure (`did not finish`, `nothing usable`, `did not sign`) — that is the sandbox, not the plugin.
 - **Advanced Elicitation** — offered; in a one-go session with the defaults pre-approved, a pre-mortem was run on this spec by the session instead: (1) the pool could exhaust memory and fail cells that are fine → the rerun rule above; (2) parallel writes to the results file → one process, one `stored` object, writes serialised on the event loop; (3) interleaved console lines → the key prefix; (4) the restore of `vergeml_ai` could be skipped by a crash → the restore is in a `finally`, and the acceptance reads the option back; (5) the doc paragraph would keep saying ms2 was tested → T1 edits the sentence. Nathan can still ask for a proper elicitation pass on the spec.
 
@@ -100,6 +100,35 @@ One question per step, the plan's default taken and recorded (Nathan: "offer Adv
 
 ## Review Triage Log
 
+2026-09-20, `bmad-code-review` over `e3ac8dc..14b4813`, four lenses (blind hunter 12, edge-case hunter 8, verification gap 2 + 3, acceptance auditor 8). Verdicts and routes:
+
+| # | Finding | Verdict | Route |
+|---|---|---|---|
+| 1 | the restore of `vergeml_ai` is never read back; a failed restore leaves mock on under a green row (VG, blind, edge, acceptance) | medium | patch: read back in the `finally`, compared with the snapshot, pushed as the row's last step; ✗ when it differs |
+| 2 | a snapshot that fails for any reason but absence reads as absent → the restore deletes the real option; non-JSON snapshot → `saved = {}` (edge ×2, acceptance) | medium | patch: "absent" is WP-CLI's "Does it exist?" only; anything else, or a snapshot that does not parse, stops the cell before the write |
+| 3 | a throw in one pooled worker rejects `Promise.all`, the process exits, the other workers' Playgrounds are orphaned on their ports (edge, VG) | medium | patch: `guarded()` records the cell as ✗ and lets the pool drain |
+| 4 | same-day `--cell` reruns are invisible: the table says one command produced every row (blind, acceptance) | medium | patch: rows written by `--cell` carry `rerun: true` and render "(rerun)"; the paragraph says what it means |
+| 5 | skipped cells count as ✓ in the closing line ("18 of 18 ✓" with two not run) (blind, acceptance) | low | patch: "N ✓, M not run"; the per-cell line prints — for a skip |
+| 6 | `--parallel abc` / `0` / `1.5` silently runs sequentially (edge) | low | patch: exit 2 with the reason |
+| 7 | output tagged per chunk, not per line — a fragment lands under another cell's key (blind, edge) | low | patch: whole lines only, the partial flushed on close |
+| 8 | "the upload path is exercised" — nothing describes on upload (VG) | medium (a false claim in the runner and the doc) | patch: comment, header, doc sentence, the spec's decision bullet |
+| 9 | the skip sentence says "on this release" and will print the same on 4.0.2 (blind) | low | patch: "not run: …"; the flag to run ms2 when free → defer |
+| 10 | `docs/testing.md` documents the runner without `--parallel`, mock or the ms2 skip (blind) | low | patch |
+| 11 | `docs/wordpress-org-submission.md:39` "18 of 18 matrix cells on 2026-09-11" is now false; the release-notes proposal cites it (blind) | medium (Nathan's evidence table) | patch the submission line; the proposal is marked shipped, left |
+| 12 | the FileBird entry names two commits and ignores that the box's core moved 7.1 → 7.1.1; the FileBird version is a label the runner never reads (blind) | medium (the fix story's bisect) | patch the entry (core moved; FileBird verified 6.5.8 on the box); reading the companion's version → defer |
+| 13 | spec Code Map lines stale; `armOne()` is at 2085 (blind) | low | reject (spec edit); the deferred entry corrected |
+| 14 | Ctrl-C during a box cell: the `finally` never runs — mock on, user and link left (edge) | medium, unverified (not demonstrated) | defer: a SIGINT handler that runs the cleanup; Nathan's call whether the runner should own it |
+| 15 | a warm-up boot per WordPress version would settle the pool's boot race (edge) | low | defer (recorded with the hazard) |
+| 16 | nothing observes `VERGEML_AI_MOCK` landed on the Playground worker that served the request (VG) | low (the sentence now claims only what is true) | defer: a `ready` field in the probe |
+| 17 | AC4 / Verification say "no option" — the option exists (blind, VG, acceptance) | — | reject (spec edit); the Verification line corrected as build hygiene, the frozen AC logged |
+| 18 | `.harness/active.json` not in the frozen Never list (acceptance) | — | reject (spec edit; the plan requires the file per session) |
+| 19 | the box cells' rerun after the runner's own bug is outside the frozen rerun rule (acceptance) | — | reject (spec edit); noted in Implementation Notes |
+| 20 | the ms2 row's 09-11 steps were deleted from the JSON (blind, acceptance) | low | reject: git holds them; keeping two results per row is more shape than the reader needs |
+| 21 | the handoff is missing (blind, acceptance) | — | reject: the handoff is the session's last step, after this review |
+| 22 | a mock-off run was made on the box by hand (acceptance) | — | reject: no key on the network, nothing spent; on record in Implementation Notes |
+
+After the patches: `shape=multisite-subdirectory` **✓ 10/10 · 41 s** ("restored: {"site_profile":""}"), `with=filebird,shape=multisite-subdirectory` **✗ 7/10 · 70 s** (the same drag finding, the restore step ✓), `--parallel abc` → exit 2; the two 6.5 cells and the mutation rerun through the patched pool — lines in the handoff.
+
 ## Verification
 
 **Commands:**
@@ -107,5 +136,5 @@ One question per step, the plan's default taken and recorded (Nathan: "offer Adv
 - `VGML_MATRIX_MUTATE=1 node tools/matrix.mjs --parallel 3 --cell wp=7.1,php=8.2` → `1 of 1 cell(s) ✗`, exit 1.
 - `node tools/matrix.mjs --parallel 3` → the per-cell lines, then `N of 18 cell(s) ✓` (exit 0) or the named ✗ cells (exit 1).
 - `node tools/rtl.mjs --check` → exit 0.
-- On the box after the run: `wp option get vergeml_ai` → not found; `wp user get vgmlmatrix` → not found.
+- On the box after the run: the row's last step "the site's vergeml_ai option is as it was" ✓ (`restored: {"site_profile":""}` on `/var/www/ms` — the option exists there; "not found" as first written was wrong); `wp user get vgmlmatrix` → not found.
 - Cost: nothing. No credits (mock everywhere, no key on any cell), no Stripe, no describe on a real library. Time: about 35 minutes of runs.

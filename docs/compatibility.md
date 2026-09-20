@@ -14,8 +14,8 @@ row means that row is newer than the run above it.
 
 | WordPress | PHP | Shape | Language | Alongside | Result | Step |
 |---|---|---|---|---|---|---|
-| 6.5.11 | 7.4 | single | en_US | nothing | ✓ | all 9 steps |
-| 6.5.11 | 8.2 | single | en_US | nothing | ✓ | all 9 steps |
+| 6.5.11 | 7.4 | single | en_US | nothing | ✓ | all 9 steps (rerun) |
+| 6.5.11 | 8.2 | single | en_US | nothing | ✓ | all 9 steps (rerun) |
 | 6.5.11 | 8.5 | single | en_US | nothing | ✓ | all 9 steps |
 | 7.0.5 | 7.4 | single | en_US | nothing | ✓ | all 9 steps |
 | 7.0.5 | 8.2 | single | en_US | nothing | ✓ | all 9 steps |
@@ -29,13 +29,15 @@ row means that row is newer than the run above it.
 | 7.1.1 | 8.2 | single | en_US | Premio Folders (wordpress.org) | ✓ | all 9 steps |
 | 7.1.1 | 8.2 | single | en_US | Enhanced Media Library 2.9.4 | ✓ | all 9 steps |
 | 7.1.1 | 8.2 | single | en_US | Polylang Pro 3.8.7 | ✓ | all 9 steps |
-| 7.1.1 | 8.5 | multisite, subdirectory (the box) | en_US | nothing | ✓ | all 9 steps · uninstall not run on the box |
-| 7.1 | 8.5 | multisite, subdomain (the box, sub-site) | en_US | nothing | — | not run on this release: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11 |
-| 7.1.1 | 8.5 | multisite, subdirectory (the box) | en_US | FileBird 6.5.8 (MariaDB) | ✗ | drag one into the folder: the folder lit up; file 251050 is in [] |
+| 7.1.1 | 8.5 | multisite, subdirectory (the box) | en_US | nothing | ✓ | all 10 steps · uninstall not run on the box (rerun) |
+| 7.1 | 8.5 | multisite, subdomain (the box, sub-site) | en_US | nothing | — | not run: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11 |
+| 7.1.1 | 8.5 | multisite, subdirectory (the box) | en_US | FileBird 6.5.8 (MariaDB) | ✗ | drag one into the folder: the folder lit up; file 251065 is in [] (rerun) |
 
 The nine version cells are Playground (SQLite, no GD); the language and
-companion cells run on WordPress 7.1 / PHP 8.2 there. Mock mode is on in every
-cell and no cell has a licence key, so nothing is described for real. The
+companion cells run on WordPress 7.1 / PHP 8.2 there. No cell has a licence key
+and every cell runs with mock mode on (the box rows read the option back as their
+last step), so nothing is described for real. A row marked (rerun) was written by
+`--cell` after the run in the heading. The
 multisite cells are the box's networks — `/var/www/ms` (subdirectory) and
 `/var/www/ms2` (subdomain, its sub-site `two.`; not run while it holds the shop
 library, its row says so) — real MariaDB, `WP_DEBUG` off, the uninstall step

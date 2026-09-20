@@ -110,7 +110,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "8 error(s) from other code, not counted"
+					"detail": "7 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -119,7 +119,8 @@
 				}
 			],
 			"ran": "2026-09-20",
-			"seconds": 132
+			"rerun": true,
+			"seconds": 140
 		},
 		"wp=6.5,php=8.2": {
 			"wp": "6.5.11",
@@ -178,7 +179,8 @@
 				}
 			],
 			"ran": "2026-09-20",
-			"seconds": 130
+			"rerun": true,
+			"seconds": 129
 		},
 		"wp=6.5,php=8.5": {
 			"wp": "6.5.11",
@@ -865,7 +867,7 @@
 			"with": "nothing",
 			"ok": true,
 			"skipped": "",
-			"step": "all 9 steps · uninstall not run on the box",
+			"step": "all 10 steps · uninstall not run on the box",
 			"steps": [
 				{
 					"name": "the site answers and the plugin is on",
@@ -875,22 +877,22 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 2065, 1 folders"
+					"detail": "\"Matrix run\" is folder 2068, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 251045, 251046, 251047"
+					"detail": "attachments 251060, 251061, 251062"
 				},
 				{
 					"name": "drag one into the folder",
 					"ok": true,
-					"detail": "the folder lit up; file 251045 is in [2065]"
+					"detail": "the folder lit up; file 251060 is in [2068]"
 				},
 				{
 					"name": "filter the grid by the folder",
 					"ok": true,
-					"detail": "the grid shows file 251045 alone"
+					"detail": "the grid shows file 251060 alone"
 				},
 				{
 					"name": "select two files and move them in one drag",
@@ -911,9 +913,15 @@
 					"name": "no fatal, and nothing of ours in the debug log",
 					"ok": true,
 					"detail": "no fatal on any screen visited (no debug log on this site)"
+				},
+				{
+					"name": "the site's vergeml_ai option is as it was",
+					"ok": true,
+					"detail": "restored: {\"site_profile\":\"\"}\n"
 				}
 			],
 			"ran": "2026-09-20",
+			"rerun": true,
 			"seconds": 41
 		},
 		"shape=multisite-subdomain": {
@@ -923,10 +931,11 @@
 			"lang": "en_US",
 			"with": "nothing",
 			"ok": true,
-			"skipped": "not run on this release: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11",
-			"step": "not run on this release: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11",
+			"skipped": "not run: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11",
+			"step": "not run: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11",
 			"steps": [],
 			"ran": "2026-09-20",
+			"rerun": true,
 			"seconds": 0
 		},
 		"with=filebird,shape=multisite-subdirectory": {
@@ -937,7 +946,7 @@
 			"with": "FileBird 6.5.8 (MariaDB)",
 			"ok": false,
 			"skipped": "",
-			"step": "drag one into the folder: the folder lit up; file 251050 is in []",
+			"step": "drag one into the folder: the folder lit up; file 251065 is in []",
 			"steps": [
 				{
 					"name": "the site answers and the plugin is on",
@@ -947,22 +956,22 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 2066, 1 folders"
+					"detail": "\"Matrix run\" is folder 2069, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 251050, 251051, 251052"
+					"detail": "attachments 251065, 251066, 251067"
 				},
 				{
 					"name": "drag one into the folder",
 					"ok": false,
-					"detail": "the folder lit up; file 251050 is in []"
+					"detail": "the folder lit up; file 251065 is in []"
 				},
 				{
 					"name": "filter the grid by the folder",
 					"ok": false,
-					"detail": "the grid shows 0 files [], expected [251050]"
+					"detail": "the grid shows 0 files [], expected [251065]"
 				},
 				{
 					"name": "select two files and move them in one drag",
@@ -983,10 +992,16 @@
 					"name": "no fatal, and nothing of ours in the debug log",
 					"ok": true,
 					"detail": "no fatal on any screen visited (no debug log on this site)"
+				},
+				{
+					"name": "the site's vergeml_ai option is as it was",
+					"ok": true,
+					"detail": "restored: {\"site_profile\":\"\"}\n"
 				}
 			],
 			"ran": "2026-09-20",
-			"seconds": 69
+			"rerun": true,
+			"seconds": 70
 		}
 	}
 }
