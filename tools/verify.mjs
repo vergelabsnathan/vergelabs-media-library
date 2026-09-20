@@ -267,6 +267,13 @@ const SUITES = [
 	 *  options it writes are put back from a shutdown function. Phase 5.7.
 	 */
 	{ name: 'secrets', file: 'tests/security/secrets.php', env: 'box', php: true },
+	/*
+	 *  What the Get help button posts (story 3.2, FR10): the licence key's
+	 *  last four characters and the site, never the key; a free install
+	 *  sends neither. Needs WordPress and no MySQL, so it boots Playground
+	 *  here on the mounted checkout (runPhpPlayground) -- never the box.
+	 */
+	{ name: 'get-help', file: 'tests/security/get-help.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },
@@ -798,12 +805,88 @@ function runPhpLocal( suite ) {
 	} );
 }
 
+/*
+ *  A PHP suite that needs WordPress but no MySQL, run here in Playground.
+ *
+ *  The wasm runner above mounts the checkout and nothing else: no WordPress,
+ *  so a suite that calls a handler cannot run there. `env: 'playground',
+ *  php: true` looks like the answer and is not -- runPhp() ships every PHP
+ *  suite over SSH to the box regardless of its env (see auto-file above).
+ *  This is the third way: `run-blueprint` boots WordPress, the checkout is
+ *  mounted as the plugin and activated, and one runPHP step loads wp-load.php
+ *  and requires the suite -- the same file `wp eval-file` would run on the
+ *  box. Output reaches a file on a second mount, as in runPhpLocal().
+ *
+ *  Story 3.2 added it so the ticket suite could prove itself with nothing on
+ *  the box; the plugin's own Playground boot is the only network there is.
+ */
+function runPhpPlayground( suite ) {
+	return new Promise( ( resolve ) => {
+
+		const MOUNT = '/wordpress/wp-content/plugins/vergelabs-media-library';
+		const outDir = fs.mkdtempSync( path.join( os.tmpdir(), 'vgml-verify-' ) );
+		const out = path.join( outDir, 'result.txt' );
+		const blueprint = path.join( outDir, 'blueprint.json' );
+
+		fs.writeFileSync( blueprint, JSON.stringify( { steps: [
+			{ step: 'activatePlugin', pluginPath: MOUNT },
+			{
+				step: 'runPHP',
+				// Whatever the suite prints, fatal errors included, reaches the file: the shutdown function runs after exit().
+				code: `<?php ob_start(); register_shutdown_function( function () { file_put_contents( '/out/result.txt', ob_get_clean() ); } ); require_once '/wordpress/wp-load.php'; require '${ MOUNT }/${ suite.file }';`,
+			},
+		] } ) );
+
+		const child = spawn(
+			'npx',
+			[ '-y', '@wp-playground/cli', 'run-blueprint',
+				'--blueprint', blueprint,
+				'--mount-dir', MOUNT_ROOT, MOUNT,
+				'--mount-dir', outDir, '/out',
+				'--verbosity', 'quiet' ],
+			{ cwd: ROOT, stdio: [ 'ignore', 'ignore', 'inherit' ], shell: true, env: { ...process.env, MSYS_NO_PATHCONV: '1' } }
+		);
+
+		child.on( 'error', () => { fs.rmSync( outDir, { recursive: true, force: true } ); resolve( 1 ); } );
+
+		child.on( 'close', ( c ) => {
+
+			const said = fs.existsSync( out ) ? fs.readFileSync( out, 'utf8' ) : '';
+			process.stdout.write( said );
+			fs.rmSync( outDir, { recursive: true, force: true } );
+
+			const found = String( said ).match( /(\d+)\s*\/\s*(\d+)\s+passed/g );
+			const last = found && found.length ? found[ found.length - 1 ].match( /(\d+)\s*\/\s*(\d+)/ ) : null;
+			const pass = last ? Number( last[ 1 ] ) : null;
+			const total = last ? Number( last[ 2 ] ) : null;
+
+			if ( null === total ) {
+				console.log( '\n  FAILED — the suite printed no "N/M passed" line, so there is nothing to trust here' );
+				return resolve( 1 );
+			}
+			if ( 0 === total ) {
+				console.log( '\n  FAILED — the suite reported 0 checks' );
+				return resolve( 1 );
+			}
+			if ( pass !== total || 0 !== ( c ?? 1 ) ) {
+				console.log( `\n  FAILED — ${ pass }/${ total }, exit ${ c }` );
+				return resolve( 1 );
+			}
+			resolve( 0 );
+		} );
+	} );
+}
+
 function run( suite ) {
 
-	console.log( `\n──────── ${ suite.name }  (${ suite.files ? suite.files.join( ', ' ) : suite.file } → ${ 'wasm' === suite.php ? 'php-wasm' : baseFor( suite ) })` );
+	console.log( `\n──────── ${ suite.name }  (${ suite.files ? suite.files.join( ', ' ) : suite.file } → ${ 'wasm' === suite.php ? 'php-wasm' : ( 'playground' === suite.php ? 'playground (booted here)' : baseFor( suite ) ) })` );
 
 	if ( 'wasm' === suite.php ) {
 		return runPhpLocal( suite );
+	}
+
+	if ( 'playground' === suite.php ) {
+		return runPhpPlayground( suite );
 	}
 
 	if ( suite.php ) {

@@ -214,13 +214,13 @@ function vergeml_help_send() {
         );
     }
 
-    // The licence key identifies the customer on the other side. Only when the
-    // AI layer is loaded (not in safe mode) and a key is set.
+    // The key's last four characters and the site identify the customer on the other side
+    // (matched against the licence's activations); the key itself never travels in a ticket.
     if ( function_exists( 'vergeml_ai_settings' ) && function_exists( 'vergeml_ai_unseal' ) ) {
         $settings = vergeml_ai_settings();
         $key      = isset( $settings['license_key'] ) ? vergeml_ai_unseal( $settings['license_key'] ) : '';
         if ( '' !== $key ) {
-            $body['key'] = $key;
+            $body['licence'] = substr( $key, -4 );
         }
     }
 
