@@ -439,7 +439,12 @@ $s_ai = get_option( 'vergeml_ai', array() );
 $s_ai = is_array( $s_ai ) ? $s_ai : array();
 $s_mock_was = ! empty( $s_ai['mock'] );
 
-// With mock on, describe() never builds a request. Both halves are wanted.
+// With mock on, describe() never builds a request. Both halves are wanted, so
+// mock is switched on here rather than assumed: the box has run in real mode
+// since the buyer walk, and a suite that reads the site's setting fails the
+// "mock on" half and then spends the stand-in's one 500 on it (2026-09-20).
+$s_ai['mock'] = 1;
+update_option( 'vergeml_ai', $s_ai, false );
 $s_mock_out = vergeml_ai_describe( $s_images[0] );
 s_check( 'mock on: describe() answers without a request', ! is_wp_error( $s_mock_out ) && 0 === count( array_filter( $GLOBALS['s_calls'], function ( $c ) { return '/describe' === substr( (string) wp_parse_url( $c['url'], PHP_URL_PATH ), -9 ); } ) ) );
 
