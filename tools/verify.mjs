@@ -224,7 +224,8 @@ const SUITES = [
 	 *  in Playground (pro/tools/verify.mjs compat-free); this is the same file
 	 *  on a real database. Needs VGMLPRO_SEATS_KEY in the environment -- the
 	 *  one-seat test licence, never the site's own; the suite hands the seat
-	 *  back. Story 1.3 of plans/suite-readiness.md.
+	 *  back. Without the key, or with Pro inactive on the fixture (how story
+	 *  1.3 leaves it), the suite exits 2 and is reported SKIPPED, not failed.
 	 */
 	{ name: 'compat-free-upg', file: '../pro/tests/compat-free.php', env: 'box', php: true, wp: '/var/www/upg', vars: { VGMLPRO_SEATS_KEY: ( process.env.VGMLPRO_SEATS_KEY || '' ).trim(), VGMLPRO_COMPAT_ARCHIVES: '1' } },
 	/*
