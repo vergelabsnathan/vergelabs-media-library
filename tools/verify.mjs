@@ -612,7 +612,10 @@ function runPhp( suite ) {
 			 */
 			const child = spawn(
 				args[ 0 ],
-				[ ...args.slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ Object.entries( suite.vars || {} ).map( ( [ k, v ] ) => `${ k }='${ String( v ).replace( /'/g, "'\''" ) }'` ).join( ' ' ) } wp eval-file ${ remote } --allow-root` ],
+				// "'\\''" is the POSIX idiom '\'' -- a quote inside a
+				// single-quoted value. "'\''" was '''': three quotes, an
+				// empty string closed and reopened, the quote lost (A-7).
+				[ ...args.slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ Object.entries( suite.vars || {} ).map( ( [ k, v ] ) => `${ k }='${ String( v ).replace( /'/g, "'\\''" ) }'` ).join( ' ' ) } wp eval-file ${ remote } --allow-root` ],
 				{ stdio: [ 'ignore', 'pipe', 'pipe' ] }
 			);
 
