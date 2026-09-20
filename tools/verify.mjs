@@ -355,6 +355,13 @@ const SUITES = [
 	 */
 	{ name: 'csv', file: 'tests/import/csv.php', env: 'box', php: true },
 	/*
+	 *  The cells themselves (story 4.1): a folder named =HYPERLINK(...) must
+	 *  reach a spreadsheet as text and come back through the import as its
+	 *  name. The real export, writer and parser over a stubbed term list --
+	 *  no database -- so it runs here on Playground's PHP, like filing.
+	 */
+	{ name: 'csv-local', file: 'tests/import/csv-cells.php', env: 'local', php: 'wasm' },
+	/*
 	 *  Folders only one person sees. On the box because it needs real users
 	 *  and a real term query -- the whole feature is what get_terms returns
 	 *  for somebody who is not the owner.
