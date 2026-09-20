@@ -2,7 +2,7 @@
 title: 'The buyer walk on 4.0.0'
 type: 'walk'
 created: '2026-09-20'
-status: 'ready-for-dev'
+status: 'review'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: 'e106e20ab17783bdedd4b9e78ed94750c9f1c28f'
@@ -61,13 +61,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] T1 Prepare: `node tools/deploy.mjs --check` in `plugin/`; `upg` as found (4.0.0 active, Pro 1.0.2 inactive, key absent, mock 1, `wp config get VGMLPRO_API_BASE` absent so Pro talks to `ai.vergelabs.nl`) recorded; the literal-SQL snapshot of one picture (`wp_posts` row, all `postmeta`, `vergeml_index` row) and of `vergeml_ai`; `health` → `free 4.0.0, pro 1.0.2`, `stripe live mode`; the walk script `tools/buyer-walk.mjs` (headed Playwright, stages with a stop before Pay, shots with the key masked) written and its dry stages run against `/checkout` up to the figure. Nothing spent.
-- [ ] T2 Buy: the walk window opens `/checkout?plan=single` with the walk email; the script prints the form's figure and stops → **go on €39.00** → Nathan types the card, Pay → `/order` polled to "fulfilled", key read by the script, shot with the key masked. Then the read-only Stripe script from `service/` (`sk_live` via `vercel env pull` into a local file, never printed) lists the subscription, invoice, intent and their metadata; fallback: Nathan quotes them from the dashboard.
-- [ ] T3 Licence and email: verify `check` with the key; Nathan quotes the licence email's subject and first line; registration at `/account` in the walk window (Nathan types the walk password; the verification link opened in the window), Licence tab shot.
-- [ ] T4 Download and install: `Download Pro 1.0.2 (zip)` captured by Playwright → the box → sha256 → `box-upgrade-site.sh plugin` → `1.0.2 active`.
-- [ ] T5 Connect and describe: the script logs in to `upg` as `vgmls22`, types the key on the Licence screen, shot; **Describe with AI** on the snapshotted picture; the media list cell shot; the alt, caption and provenance read back by SQL; `credits_spent`/`credits_remaining` from the response. Cost said first: 1 credit of the 2,000 and ~€0.002 of model.
-- [ ] T6 Credits and invoice: verify → 1999; `/account` Credit activity and Invoices shots; our PDF via `/api/invoice` (walk session) read for its number and total; Stripe's invoice fields from the T2 script.
-- [ ] T7 Afterwards, restore, record: `/account` → cancel at period end, reply and panel shot; deactivate on the Licence screen, verify `sites_used:0`, key removed, Pro inactive, mock 1, the picture's three rows put back from the snapshot and diffed to 0, `debug.log` diffed; the walk written into `service/docs/buyer-walk-2026-09-20.md` (the matrix's rows with the artefacts named, the key's prefix only) and `deferred-work.md` for anything found (PRIVATE0 under the €0.50 floor already).
+- [x] T1 Prepare: `node tools/deploy.mjs --check` in `plugin/`; `upg` as found (4.0.0 active, Pro 1.0.2 inactive, key absent, mock 1, `wp config get VGMLPRO_API_BASE` absent so Pro talks to `ai.vergelabs.nl`) recorded; the literal-SQL snapshot of one picture (`wp_posts` row, all `postmeta`, `vergeml_index` row) and of `vergeml_ai`; `health` → `free 4.0.0, pro 1.0.2`, `stripe live mode`; the walk script `tools/buyer-walk.mjs` (headed Playwright, stages with a stop before Pay, shots with the key masked) written and its dry stages run against `/checkout` up to the figure. Nothing spent.
+- [x] T2 Buy: the walk window opens `/checkout?plan=single` with the walk email; the script prints the form's figure and stops → **go on €39.00** → Nathan types the card, Pay → `/order` polled to "fulfilled", key read by the script, shot with the key masked. Then the read-only Stripe script from `service/` (`sk_live` via `vercel env pull` into a local file, never printed) lists the subscription, invoice, intent and their metadata; fallback: Nathan quotes them from the dashboard.
+- [x] T3 Licence and email: verify `check` with the key; Nathan quotes the licence email's subject and first line; registration at `/account` in the walk window (Nathan types the walk password; the verification link opened in the window), Licence tab shot.
+- [x] T4 Download and install: `Download Pro 1.0.2 (zip)` captured by Playwright → the box → sha256 → `box-upgrade-site.sh plugin` → `1.0.2 active`.
+- [x] T5 Connect and describe: the script logs in to `upg` as `vgmls22`, types the key on the Licence screen, shot; **Describe with AI** on the snapshotted picture; the media list cell shot; the alt, caption and provenance read back by SQL; `credits_spent`/`credits_remaining` from the response. Cost said first: 1 credit of the 2,000 and ~€0.002 of model.
+- [x] T6 Credits and invoice: verify → 1999; `/account` Credit activity and Invoices shots; our PDF via `/api/invoice` (walk session) read for its number and total; Stripe's invoice fields from the T2 script.
+- [x] T7 Afterwards, restore, record: `/account` → cancel at period end, reply and panel shot; deactivate on the Licence screen, verify `sites_used:0`, key removed, Pro inactive, mock 1, the picture's three rows put back from the snapshot and diffed to 0, `debug.log` diffed; the walk written into `service/docs/buyer-walk-2026-09-20.md` (the matrix's rows with the artefacts named, the key's prefix only) and `deferred-work.md` for anything found (PRIVATE0 under the €0.50 floor already).
 
 **Acceptance Criteria:**
 - Given live Stripe and a fresh buyer email, when Nathan pays €39.00 on his go, then the `/order` page shows the key and "fulfilled", the licence email arrives, and `verify` says `single / 2000 / 0 sites`.
@@ -76,6 +76,12 @@ context:
 - Given the end of the walk, when `upg` is read, then it equals the T1 record and the seat is free.
 
 ## Implementation Notes
+
+- **Walked 2026-09-20, live.** The full record with every artefact is `service/docs/buyer-walk-2026-09-20.md`. Commits: plugin `9a9ebe0` (spec), `acf769b` (the two tools, 14 shots), this one; service `f581f56` (the account page's "Check your inbox" state, Nathan's override of "nothing on the service changes" after seeing the form as a buyer; `scripts/make-walk-code.ts`, `scripts/walk-inspect.mjs`), deployed and serving (marker in `01mj1pjej7fcc.js`).
+- **The path, in one line each:** cart `Code WALK0920 · €38.50 off` → checkout **Pay €0.50** (the go) → `/order` "Your One site licence is ready", `Paid €0.50`, key shown → Stripe `pi_3UHjdr…` succeeded, invoice **AWTXBCFC-0016** paid €0.50, `sub_1UHjdq…` active to 2027-09-20 → licence email delivered (Resend) → `verify` `single / 2000 / 0 sites` → registration, confirmation mail, `/account` **Download Pro 1.0.2 (zip)** = `2a6a7946426f…` → `upg` `1.0.2 active` → Pro Licence screen **Connected, 1 / 1, 2,000** → **Describe with AI**: a real alt and caption, **We wrote this**, `credits_remaining 1999` → `/account` **CREDITS LEFT 1,999**, `−1 Images described` → Billing `AWTXBCFC-0016 · paid €0.50 · PDF`, our PDF Total €0.50 → "Cancelled. Everything keeps working until the end of the period you have paid for." → `upg` restored, **0 differences**.
+- **Cost:** €0.50 on Nathan's card (plus Stripe's fee), 1 credit, one describe. Two abandoned checkouts (no code; the code before it existed) and one `LSLS` try sit incomplete in Stripe.
+- **Found (deferred-work.md):** a sub-minimum percent code (PRIVATE0, €0.39) yields a *free* year — Stripe marks the invoice paid at €0.00 and the webhook issues (licence `…AB26`); Billing lists abandoned checkouts as `open` invoices; the order page's account link lands on Sign in, not registration; both licences stay on the walk account, `…AB26` to cancel.
+- **Verification block, taken:** `deploy.mjs --check` (tech site on another build; `upg` holds the 4.0.0 archive, the target); `walk-inspect.mjs` one subscription active, one invoice paid `50 eur`, `kind plugin_licence`; `verify` 2000 → 1999, sites 0 → 1 → 0; the restore diff `0 differences`.
 
 ## Spec Change Log
 

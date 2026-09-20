@@ -43,3 +43,15 @@
 - source_spec: `spec-epic-1-retro-chores.md`
   summary: the A-11 seat-safety ordering (deactivate with no key stored, then restore) is pinned by no test; one runbook line naming the invariant, or a fixture that holds a real key on purpose and a ledger read after teardown.
   evidence: review pass 1 (VG3); both tools judge their own last lines, not the licence server's seat count.
+- source_spec: `spec-2-1-the-buyer-walk-on-4-0-0.md`
+  summary: a percent code that takes a yearly plan under Stripe's minimum charge (PRIVATE0, 99 % of EUR 39 = EUR 0.39) yields a free year -- Stripe marks the sub-minimum invoice paid with amount_paid 0, activates the subscription, and the webhook issues the licence on invoice.paid. Guard in the intent route (refuse a subscription whose first invoice would be under the floor, or floor the coupon), and decide what to do with PRIVATE0 (Nathan's: switch off or restrict to credits).
+  evidence: invoice AWTXBCFC-0012 on the walk customer, status paid, total 0.39, paid 0.00, subscription active, licence ...AB26 with 2,000 credits, no money; lib/discounts.ts discounted() only floors one-off amounts.
+- source_spec: `spec-2-1-the-buyer-walk-on-4-0-0.md`
+  summary: /account Billing lists a customer's abandoned checkouts as `open` invoices (five EUR 39.00 / 0.78 "open" rows beside the one paid one) -- draft-incomplete subscription invoices should be hidden or shown as "not completed", not as money owed.
+  evidence: the walk account's Billing tab on 2026-09-20: "Invoices 7 on file", one paid, five open, from checkouts that never confirmed.
+- source_spec: `spec-2-1-the-buyer-walk-on-4-0-0.md`
+  summary: the licence email's copy carries the plaintext key and goes to the buyer; fine -- but nothing after the purchase tells the buyer to create the account the email points at, and the order page's "Go to your account" lands on a sign-in form for an address that has no account yet. A first-time buyer should land on registration with the address filled.
+  evidence: from the code, not observed -- app/order/page.tsx links plain /account and app/account/page.tsx:219 defaults mode to 'signin'; the walk script opened /account?mode=register itself.
+- source_spec: `spec-2-1-the-buyer-walk-on-4-0-0.md`
+  summary: the walk licence (...93RJ, EUR 0.50, cancels 2027-09-20) and the free PRIVATE0 licence (...AB26) stay on the walk account nathan+buyer-0920@vergelabs.nl; cancelling ...AB26 from /account is one click (no money), Nathan's.
+  evidence: /account overview 2026-09-20 shows both; verify on ...93RJ: 1,999 credits, 0 sites.
