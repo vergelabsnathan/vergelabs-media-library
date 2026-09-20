@@ -6,7 +6,7 @@
 `done`; sprint status: the eight action items `done`, A-6/A-9/A-10 and the
 four Nathan-owned ones still `open`). Plugin `5abbbf1` → `1ec93c1` (+ this
 handoff's commit); pro `ef1709b` → `cea2e1e`; service `4dfff34` → `9da6ddd`
-(one new file on the shelf, **not pushed, not deployed**). Nothing spent;
+(one new file on the shelf, pushed and serving — see "Open"). Nothing spent;
 nothing on ms2 or the real shop; a fresh one-seat test key minted and used for the three keyed
 proofs on Nathan's go (3 activations, 3 releases); the `upg` fixture is as found (4.0.0 active, Pro 1.0.2 inactive).
 
@@ -103,7 +103,9 @@ Not re-taken: no engine, screen or filing code changed. S21's stand: shop
 
 ## Next — S25
 
-Epic 2, story 2.1, the buyer walk. Opener, cwd `plugin`:
+Epic 2, story 2.1, the buyer walk — on **Opus 5**: a real payment on
+Nathan's go, `bmad-spec` first with one question per step, a story that
+should stop often, not run long. Opener, cwd `plugin`:
 
 ```
 Read docs/handoffs/2026-09-20-s24-epic-1-retro-chores.md, then
