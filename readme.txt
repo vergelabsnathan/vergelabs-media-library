@@ -4,7 +4,7 @@ Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 4.0.0
+Stable tag: 4.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -291,6 +291,14 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now reads what pictures show, so a fill after updating places things differently than before. The Rules tab is gone and the media list toolbar is one row. Read the changelog before you fill.
 
 ## Changelog ##
+
+### 4.0.1 ###
+*A support ticket that keeps your key to itself, a CSV export a spreadsheet can't turn into a command, and a PHP 8.4 warning that is gone.*
+
+= Fixed =
+* **The support ticket no longer carries your licence key.** It now sends the last four characters of the key and your site's address; the service matches those to a licence itself, and a free install still sends nothing.
+* **A CSV cell that starts with `=`, `+`, `-`, `@`, tab or a carriage return no longer opens as a formula.** The export quotes it safely; importing it back strips the safety mark, so the cell round-trips unchanged.
+* **A PHP 8.4+ deprecation notice on every AI request is gone.** `vergeml_ai_rest_status()` took an implicit-nullable parameter; it is explicit now.
 
 ### 4.0.0 ###
 *A screen that builds your folders and fills them, filing that reads what a picture shows, and a shop that sorts itself*
