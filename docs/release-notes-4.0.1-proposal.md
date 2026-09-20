@@ -10,8 +10,8 @@ Proposed voice matches the existing `= Fixed =` bullets in `readme.txt`
 (short factual clause in bold, one sentence after).
 
 * **The support ticket no longer carries your licence key.** It now sends
-  the key's short form and your site's address; the service matches those
-  to a licence itself, and a free install still sends nothing.
+  the last four characters of the key and your site's address; the service
+  matches those to a licence itself, and a free install still sends nothing.
 * **A CSV cell that starts with `=`, `+`, `-`, `@`, tab or a carriage
   return no longer opens as a formula.** The export quotes it safely;
   importing it back strips the safety mark, so the cell round-trips
@@ -22,9 +22,7 @@ Proposed voice matches the existing `= Fixed =` bullets in `readme.txt`
 
 **Evidence:**
 
-- Line 1 (FR10, story A, **in progress at the time of writing** — this
-  describes the behaviour the plan commits to, not code read in this
-  worktree): `plans/finish-the-suite.md` lines 43–51 (mini-spec A,
+- Line 1 (FR10, story A, landed the same day as `fcad5ea`: `core/get-help.php` sends `licence` = the key's last four characters, upper-cased, beside the site, never `key`): `plans/finish-the-suite.md` lines 43–51 (mini-spec A,
   "Behaviour": *"the ticket body carries the key's prefix (the `…93RJ`
   shape the account page shows) and the site, never the key... a free
   install still sends no key"*); ticket identifier FR10 defined in
@@ -58,42 +56,13 @@ Proposed voice matches the existing `= Fixed =` bullets in `readme.txt`
   names the PHP 8.4+ deprecation fix (core/ai.php
   vergeml_ai_rest_status), beside FR10 and FR12"*).
 
-## (b) Rewritten "External services" sentence — the support ticket, after story A
+## (b) The "External services" sentence — what story A landed
 
-Current text, `readme.txt:183` (the "Asking for help" paragraph):
+Story A wrote the minimal factual sentence into `readme.txt:183` in the same commit as the code (`fcad5ea`), as the plan's Files line required; the plan's Copy line said "propose", so the words are still Nathan's to change at the train. The sentence as it stands:
 
-> Pressing Send on the Get help screen posts what you typed, the email
-> address you gave, your licence key if you have one, and a full system
-> report: your site's address, your WordPress, PHP and MySQL versions,
-> your server's limits, your theme, how many files you have, your folder
-> and taxonomy counts, this plugin's settings, and **the name and version
-> of every plugin you have active**. The screen shows you the report
-> before you send it, and it will not send without the tick box.
+> Pressing Send on the Get help screen posts what you typed, the email address you gave, the last four characters of your licence key if you have one (never the key itself), and a full system report: […]
 
-**Proposed rewrite** (only the licence-key clause changes, same voice,
-same paragraph):
-
-> Pressing Send on the Get help screen posts what you typed, the email
-> address you gave, the short form of your licence key if you have one
-> and your site's address, and a full system report: your site's address,
-> your WordPress, PHP and MySQL versions, your server's limits, your
-> theme, how many files you have, your folder and taxonomy counts, this
-> plugin's settings, and **the name and version of every plugin you have
-> active**. The screen shows you the report before you send it, and it
-> will not send without the tick box.
-
-(The duplicated "your site's address" in that draft should collapse to
-one mention when this lands — left visible here so the diff against the
-current sentence is exact.)
-
-**Evidence:** `plans/finish-the-suite.md` lines 43–51, mini-spec A
-Behaviour, as above. **Not sourced:** the plan calls the sent value the
-key's "prefix" but shows it as a trailing shape, `…93RJ` (a leading
-ellipsis reads as the *last* four characters, the way a masked key is
-usually shown, not the first four). This proposal uses the plan's own
-neutral phrase, "the short form", rather than choosing prefix or suffix.
-Confirm which it is against story A's actual code before this sentence
-ships.
+Nothing else in that paragraph changed. The consolidation review's note: "the short form" in the changelog line above was replaced by "the last four characters" so the two texts agree.
 
 ## (c) Should `Tested up to` and `Requires PHP` move?
 
@@ -140,10 +109,5 @@ voice matched against `readme.txt`'s existing straplines for 4.0.0
 
 ## Unsourced
 
-- The prefix-vs-suffix shape of the licence key sent in the support
-  ticket (see (b)) — the plan's own wording is ambiguous; nothing in this
-  worktree resolves it because story A has not landed here.
-- Any actual character count or exact display format for "the short form"
-  of the key beyond the plan's own `…93RJ` example.
-- Whether the release date for 4.0.1 is set — no date is invented
-  anywhere in this file, per the story's "do not invent a date" rule.
+- No release date was invented.
+- (Resolved at consolidation, 2026-09-20: the sent value is the key's **last four characters**, upper-cased — `core/get-help.php` after `fcad5ea`; the earlier prefix-vs-suffix question is closed.)

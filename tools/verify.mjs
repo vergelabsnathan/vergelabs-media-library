@@ -875,6 +875,11 @@ function runPhpPlayground( suite ) {
 				console.log( '\n  FAILED — the suite reported 0 checks' );
 				return resolve( 1 );
 			}
+			// Exit 2 is this file's own SKIPPED convention (the suite said why in
+			// its first line); it is passed through, not collapsed into FAILED.
+			if ( 2 === c ) {
+				return resolve( 2 );
+			}
 			if ( pass !== total || 0 !== ( c ?? 1 ) ) {
 				console.log( `\n  FAILED — ${ pass }/${ total }, exit ${ c }` );
 				return resolve( 1 );

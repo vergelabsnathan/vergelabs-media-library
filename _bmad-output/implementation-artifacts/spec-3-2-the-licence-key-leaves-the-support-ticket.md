@@ -60,13 +60,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] T1 Spec (this file).
-- [ ] T2 Plugin test first: `tests/security/get-help.php` (free body, licensed body, restore) and `secrets.php` section E flipped; `runPhpPlayground()` and the `get-help` entry in `verify.mjs`. Red on the current code.
-- [ ] T3 Service test first: `lib/store.test.ts` — prefix + activated site → the licence; prefix + another site → null; two licences with one prefix → the activated one. `app/api/support/ticket/route.test.ts` — the four bodies of the matrix. Red on the current code.
-- [ ] T4 The plugin change: `$body['licence']`, the readme sentence, same commit.
-- [ ] T5 The service change: `findLicenceByPrefixOnSite()` in `store.ts`; the `licence` branch in `route.ts`.
-- [ ] T6 Proof: `node tools/verify.mjs get-help` green; `npx vitest run lib/store.test.ts app/api/support/ticket/route.test.ts` green; `npx tsc --noEmit -p .` clean; mutation (the key back in the body) → `get-help` red, restored.
-- [ ] T7 Commits on `story/3.2-key-out-of-ticket` in both repos; handoff `docs/handoffs/2026-09-20-wave1-A-key-out-of-ticket.md`.
+- [x] T1 Spec (this file).
+- [x] T2 Plugin test first: `tests/security/get-help.php` (free body, licensed body, restore) and `secrets.php` section E flipped; `runPhpPlayground()` and the `get-help` entry in `verify.mjs`. Red on the current code.
+- [x] T3 Service test first: `lib/store.test.ts` — prefix + activated site → the licence; prefix + another site → null; two licences with one prefix → the activated one. `app/api/support/ticket/route.test.ts` — the four bodies of the matrix. Red on the current code.
+- [x] T4 The plugin change: `$body['licence']`, the readme sentence, same commit.
+- [x] T5 The service change: `findLicenceByPrefixOnSite()` in `store.ts`; the `licence` branch in `route.ts`.
+- [x] T6 Proof: `node tools/verify.mjs get-help` green; `npx vitest run lib/store.test.ts app/api/support/ticket/route.test.ts` green; `npx tsc --noEmit -p .` clean; mutation (the key back in the body) → `get-help` red, restored.
+- [x] T7 Commits on `story/3.2-key-out-of-ticket` in both repos; handoff `docs/handoffs/2026-09-20-wave1-A-key-out-of-ticket.md`.
 
 **Acceptance Criteria:**
 - Given a licensed 4.0.1 install, when Send is pressed on Get help, then the captured `/support/ticket` body has no `key` field, its `licence` field is 4 characters and equals the key's last four, and the key occurs nowhere in the body.
@@ -97,6 +97,11 @@ Proposal for `readme.txt` External services, the "Asking for help" paragraph (Na
 > **Asking for help** works without a licence key, as connecting one and the known-problems list below do. Pressing Send on the Get help screen posts what you typed, the email address you gave, the last four characters of your licence key if you have one -- never the key itself -- and a full system report: …
 
 The `keyNote` strings stay. The consent sentence on the screen ("It does not contain your licence key…") stays; it was already true of the report and is now true of the whole request.
+
+## Implementation Notes
+
+- Built in wave 1 (agent A, worktrees `wt/plugin-A` / `wt/service-A`), merged at consolidation (plugin `e932d62`). Proof: plugin `node tools/verify.mjs get-help` → `22/22 passed` (was `16/22` before the change); service `npx vitest run lib/store.test.ts app/api/support/ticket/route.test.ts` → `55 passed (55)` (was `8 failed | 47 passed`); `tsc --noEmit` clean. Mutation (`$body['key'] = $key;` back): `18/22 passed` — `FAIL no key field`, `FAIL the key occurs nowhere in the raw body -- 1 occurrence(s)`, two more; restored `22/22`.
+- Consolidation review patches (2026-09-20): a key shorter than four characters is not sent at all and the four sent are upper-cased (`core/get-help.php`); the service names a malformed prefix in the support note and, when no seat matches the ticket's site, says how many licences end that way (`countLicencesByPrefix`); `runPhpPlayground` passes exit 2 through as SKIPPED. Found, deferred: a site whose origin changed since activation (http→https, staging, a network subsite) files without a licence — the full-key path resolved it regardless of site; a fallback when the prefix is unique is Nathan's privacy call (`deferred-work.md`).
 
 ## Spec Change Log
 

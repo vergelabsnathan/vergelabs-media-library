@@ -220,7 +220,11 @@ function vergeml_help_send() {
         $settings = vergeml_ai_settings();
         $key      = isset( $settings['license_key'] ) ? vergeml_ai_unseal( $settings['license_key'] ) : '';
         if ( '' !== $key ) {
-            $body['licence'] = substr( $key, -4 );
+            // Only ever the last four, upper-cased as the service compares
+            // them; a key too short to have four is not sent at all.
+            if ( strlen( $key ) > 4 ) {
+                $body['licence'] = strtoupper( substr( $key, -4 ) );
+            }
         }
     }
 
