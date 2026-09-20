@@ -135,18 +135,43 @@ function vergeml_csv_path( $id, $names, $parent ) {
 }
 
 
+/*
+ *  A cell that a spreadsheet would run.
+ *
+ *  Excel, LibreOffice and Sheets treat a cell beginning with =, +, -, @, a tab
+ *  or a CR as a formula, and a folder called =HYPERLINK(...) is a folder
+ *  anyone who can name folders can make. On the way out such a cell gets an
+ *  apostrophe in front -- the spreadsheet's own "this is text" mark -- and on
+ *  the way in that apostrophe comes off again, so the round trip is the name.
+ *
+ *  The pair has to invert for every name, including one that already begins
+ *  with an apostrophe before a trigger: '=x goes out as ''=x and comes back as
+ *  '=x. A name like 'Quoted matches neither side and is never touched.
+ */
+function vergeml_csv_cell_out( $field ) {
+    return preg_match( '/^\'*[=+\-@\t\r]/', $field ) ? "'" . $field : $field;
+}
+
+function vergeml_csv_cell_in( $field ) {
+    return preg_match( '/^\'+[=+\-@\t\r]/', $field ) ? substr( $field, 1 ) : $field;
+}
+
+
 function vergeml_csv_line( $fields ) {
 
     $out = array();
 
     foreach ( $fields as $field ) {
         $field = (string) $field;
+        $safe  = vergeml_csv_cell_out( $field );
         // Quote whenever the field could otherwise be misread, and double any
         // quote inside it -- RFC 4180, which is what every spreadsheet expects.
-        if ( preg_match( '/[",\r\n]/', $field ) ) {
-            $field = '"' . str_replace( '"', '""', $field ) . '"';
+        // A cell that was just neutralised is always quoted, so the apostrophe
+        // is visibly deliberate in the file.
+        if ( $safe !== $field || preg_match( '/[",\r\n]/', $field ) ) {
+            $safe = '"' . str_replace( '"', '""', $safe ) . '"';
         }
-        $out[] = $field;
+        $out[] = $safe;
     }
 
     return implode( ',', $out ) . "\r\n";
@@ -269,8 +294,10 @@ function vergeml_csv_parse( $text ) {
             );
         }
 
-        $path = isset( $cells[0] ) ? trim( (string) $cells[0] ) : '';
-        $raw  = isset( $cells[1] ) ? trim( (string) $cells[1] ) : '';
+        // The export's apostrophe comes off before anything else looks at
+        // the cell -- see vergeml_csv_cell_out().
+        $path = isset( $cells[0] ) ? trim( vergeml_csv_cell_in( (string) $cells[0] ) ) : '';
+        $raw  = isset( $cells[1] ) ? trim( vergeml_csv_cell_in( (string) $cells[1] ) ) : '';
 
         if ( '' === $path ) {
             continue;
