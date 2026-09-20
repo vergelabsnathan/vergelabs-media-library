@@ -34,3 +34,15 @@
 - source_spec: `spec-epic-1-retro-chores.md`
   summary: the three keyed proofs skipped on 2026-09-20 -- pro `verify.mjs compat-free` on PHP 8.5 (expect 24/24, seat back 0/1), free `verify.mjs compat-free-upg` (expect the `working trees` header, 23/23, Pro `inactive` after the `after` step), and `tools/upg-pro-shots.mjs` (three screens 200 ok, the new finally order) -- at the next run with VGMLPRO_SEATS_KEY in the environment.
   evidence: A-4, A-8 and A-11 committed on keyless evidence (php -l, node --check, the four runner behaviours).
+- source_spec: `spec-epic-1-retro-chores.md`
+  summary: the snapshot's plugin_digest is recorded, never asserted -- the smoke could compute the same digest from old.zip's and new.zip's entries (tools/lib/zip.mjs readZipEntries) and assert `plugin before` / `plugin after` match, turning A-3's print into a proof.
+  evidence: review pass 1 (BH5); A-3 asked for "records"; both smoke runs on 2026-09-20 printed different old digests landing on one new one, by eye.
+- source_spec: `spec-epic-1-retro-chores.md`
+  summary: a Pro-side archive check (git archive HEAD through readZipIndex, the hidden-segment and furniture rules) -- pro/tools/verify.mjs has no local kind; the export-ignore lines landed in pro cea2e1e.
+  evidence: review pass 1 (VG2); git archive in pro/ shipped .harness/active.json, tools/verify.mjs and .gitignore before that commit.
+- source_spec: `spec-epic-1-retro-chores.md`
+  summary: the default compat-free never compiles Pro's working tree on 8.5 (the archives leg is what customers have; --tree is opt-in); a tree leg belongs with the deferred --free-tree pairing.
+  evidence: review pass 1 (VG1-b); a deprecation introduced in Pro's tree boots only under --tree.
+- source_spec: `spec-epic-1-retro-chores.md`
+  summary: the A-11 seat-safety ordering (deactivate with no key stored, then restore) is pinned by no test; one runbook line naming the invariant, or a fixture that holds a real key on purpose and a ledger read after teardown.
+  evidence: review pass 1 (VG3); both tools judge their own last lines, not the licence server's seat count.

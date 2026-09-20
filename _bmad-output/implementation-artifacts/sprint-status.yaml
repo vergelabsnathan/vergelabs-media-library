@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-19-2026 14:30
-last_updated: "09-20-2026 09:14"
+last_updated: "09-20-2026 10:29"
 project: vergelabs-media-library
 project_key: NOKEY
 tracking_system: file-system
@@ -66,7 +66,7 @@ action_items:
       in .gitattributes; a registered check that no archive entry starts with . or
       _; re-cut the playground zip"
     owner: "next session"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
   - id: "epic-1-retro-item-2-walk-the-upgrade-from-the-served-3-16-1"
     epic: 1
@@ -74,7 +74,7 @@ action_items:
       as a second old side in the smoke; correct upgrade-3161.spec.mjs:44-46 and rollback.md:48-52
       (24 files differ); settle the rollback target"
     owner: "Nathan (target), next session (run)"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
   - id: "epic-1-retro-item-3-box-upgrade-site-sh-plugin-zip-inactive"
     epic: 1
@@ -82,21 +82,21 @@ action_items:
       sha256sum and the installed slug own version; the snapshot records a digest
       of the plugin directory"
     owner: "next session"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
   - id: "epic-1-retro-item-4-drop-vgmlpro_compat_archives-from-the-co"
     epic: 1
     action: "Drop VGMLPRO_COMPAT_ARCHIVES from the compat-free-upg entry so both box
       suites share the fixture version policy"
     owner: "next session"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
   - id: "epic-1-retro-item-5-upgrade-3161-php-judges-only-the-debug-l"
     epic: 1
     action: "upgrade-3161.php judges only the debug.log lines this run wrote; the
       snapshot count stays for the one-shot smoke"
     owner: "next session"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
   - id: "epic-1-retro-item-6-one-front-end-boot-step-in-the-upgrade-s"
     epic: 1
@@ -110,14 +110,14 @@ action_items:
     action: "plugin/tools/verify.mjs:606 vars quoting: the JS literal must be a backslash-escaped
       POSIX idiom (today it yields three quotes)"
     owner: "next session"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
   - id: "epic-1-retro-item-8-pro-archives-leg-on-php-8-5-compat-free"
     epic: 1
     action: "Pro archives leg on php 8.5; compat-free.php reads error_get_last() at
       the top and fails on a Pro file"
     owner: "next session"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
   - id: "epic-1-retro-item-9-at-the-fixture-next-reset-build-the-3-16"
     epic: 1
@@ -140,7 +140,7 @@ action_items:
       rather than exit 2, reachable() per suite base, the not-registered line only
       on a bare run or when asked"
     owner: "next session"
-    status: open
+    status: done
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
   - id: "epic-1-retro-item-12-reconcile-epics-md-1-3-the-media-list-sh"
     epic: 1
