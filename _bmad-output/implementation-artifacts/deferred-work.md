@@ -16,3 +16,15 @@
 - source_spec: `spec-1-2-a-3-16-1-site-upgrades-in-place.md`
   summary: a second smoke variant that swaps 4.0.0 over a site with no vergeml_guide_session (the matrix's "No session" row).
   evidence: the fixture always plants a session; the row is asserted nowhere.
+- source_spec: `spec-1-3-pro-1-0-2-works-on-4-0-0.md`
+  summary: Pro's describe writes _wp_attachment_image_alt with update_post_meta outside vergeml_index_writing(), so the free plugin's vergeml_index_watch_alt locks `alt` on that picture and a free re-describe will not paint over it; decide whether that lock is intended for Pro's own writes.
+  evidence: pro/includes/describe.php:232 (same in the 1.0.2 archive); plugin/core/ai-index.php:562-576 -- and identically core/ai-index.php:565 in the 3.16.1 archive, so it is pre-existing, not an update-day change. Pro's column reads its own record first (vgmlpro_provenance_state) and still says "We wrote this".
+- source_spec: `spec-1-3-pro-1-0-2-works-on-4-0-0.md`
+  summary: a `--free-tree` pairing in pro/tools/verify.mjs (free working tree against the Pro 1.0.2 archive) so the next free release can run compat-free against what Pro customers actually hold.
+  evidence: the archives leg pins both sides to the 4.0.0 / 1.0.2 zips and --tree mounts both working trees; AD-6 binds every free release after 4.0.0, and that pairing has no mode today.
+- source_spec: `spec-1-3-pro-1-0-2-works-on-4-0-0.md`
+  summary: `.harness` is not export-ignore in .gitattributes; the 4.0.0 archive ships .harness/active.json (3,986 bytes). A line for the 4.0.1 cut.
+  evidence: `unzip -l dist/vergelabs-media-library-4.0.0.zip` lists vergelabs-media-library/.harness/active.json; the archive is cut and tagged, so it stays for 4.0.0.
+- source_spec: `spec-1-3-pro-1-0-2-works-on-4-0-0.md`
+  summary: Pro's api-base suite on the box fails "the base agrees with the free plugin" because /var/www/wp/wp-config.php:101 defines VERGEML_AI_SERVICE = http://127.0.0.1:3100/v1 (a next-server on the box); decide whether the tech site keeps that define or the check allows it.
+  evidence: 2/3 on 2026-09-20 with pro HEAD; every other Pro suite green. The box's configuration, not Pro's code.
