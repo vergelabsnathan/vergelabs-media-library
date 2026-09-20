@@ -2,6 +2,7 @@
  *  The compatibility matrix.
  *
  *      node tools/matrix.mjs                          # every cell, then the table
+ *      node tools/matrix.mjs --parallel 3             # the same, three Playgrounds at a time
  *      node tools/matrix.mjs --cell wp=6.5,php=7.4    # one cell; its row is replaced
  *      node tools/matrix.mjs --list                   # the cells and their keys
  *      VGML_MATRIX_MUTATE=1 node tools/matrix.mjs --cell wp=7.1,php=8.2   # must go ✗
@@ -24,8 +25,20 @@
  *    Multisite subdirectory -- the box's second WordPress at /var/www/ms, the
  *      one tools/multisite.mjs reaches, with a throwaway administrator for
  *      the run and the uninstall step left out (deactivating any plugin on
- *      the box fatals in core's FTP class). Multisite subdomain is not
- *      provisioned and is written as ✗ saying so.
+ *      the box fatals in core's FTP class). Multisite subdomain is the box's
+ *      third WordPress at /var/www/ms2, which has held the shop library since
+ *      2026-09-16: its cell is not run and its row says so.
+ *
+ *  Mock mode in every cell: VERGEML_AI_MOCK is defined on every Playground,
+ *  and the box cells switch the `mock` flag on in the site's vergeml_ai option
+ *  for the run and put the option back as it was (deleted if it was absent).
+ *  No cell has a licence key, so nothing is described for real anywhere.
+ *
+ *  --parallel N runs the version and language cells N at a time; each is its
+ *  own Playground on its own port with its own temp dir and log, so they do
+ *  not share anything but the machine. The companion cells (two install from
+ *  the network) and the box cells (one network, one throwaway user) stay one
+ *  after another. Three fit in the 2.5 GB this laptop had free on 2026-09-20.
  *
  *  Not wp-env, not Docker: Playground boots in seconds and Docker Desktop
  *  crashed five times in one run. Never the box's main site (/var/www/wp).
@@ -94,17 +107,21 @@ for ( const name of Object.keys( COMPANIONS ) ) {
  *  The box's two networks. /var/www/ms is the subdirectory network
  *  tools/multisite.mjs reaches; /var/www/ms2 is the subdomain network
  *  tools/box-ms2-provision.sh made on 2026-09-11, run against its sub-site
- *  two.ms2… so a subdomain is what is tested. The FileBird row on MariaDB
- *  links the box's own inactive FileBird into ms for the run and unlinks it
- *  after -- Playground's SQLite refuses FileBird's own FIND_IN_SET query, so
- *  that row can only be answered on a real database.
+ *  two.ms2… so a subdomain is what is tested -- until 2026-09-16, when ms2
+ *  became the shop library (blog 3, shop.ms2…) and test runs stopped going
+ *  there. The cell stays so the table keeps its row; it is skipped with the
+ *  reason. The FileBird row on MariaDB links the box's own inactive FileBird
+ *  into ms for the run and unlinks it after -- Playground's SQLite refuses
+ *  FileBird's own FIND_IN_SET query, so that row can only be answered on a
+ *  real database.
  */
 cells.push( { key: 'shape=multisite-subdirectory', wp: '7.1', php: '8.5', shape: 'multisite, subdirectory (the box)', lang: 'en_US', with: '', box: true, dir: MS_DIR, url: MS_URL } );
-cells.push( { key: 'shape=multisite-subdomain', wp: '7.1', php: '8.5', shape: 'multisite, subdomain (the box, sub-site)', lang: 'en_US', with: '', box: true, dir: '/var/www/ms2', url: `http://two.ms2.${ BOX }.nip.io` } );
+cells.push( { key: 'shape=multisite-subdomain', wp: '7.1', php: '8.5', shape: 'multisite, subdomain (the box, sub-site)', lang: 'en_US', with: '', box: true, dir: '/var/www/ms2', url: `http://two.ms2.${ BOX }.nip.io`, skip: 'not run on this release: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11' } );
 cells.push( { key: 'with=filebird,shape=multisite-subdirectory', wp: '7.1', php: '8.5', shape: 'multisite, subdirectory (the box)', lang: 'en_US', with: 'filebird-box', box: true, dir: MS_DIR, url: MS_URL, link: { from: '/var/www/wp/wp-content/plugins/filebird', slug: 'filebird' } } );
 
 const argv = process.argv.slice( 2 );
 const only = argv.includes( '--cell' ) ? argv[ argv.indexOf( '--cell' ) + 1 ] : '';
+const PARALLEL = Math.max( 1, Number( argv.includes( '--parallel' ) ? argv[ argv.indexOf( '--parallel' ) + 1 ] : 1 ) || 1 );
 const MUTATE = '1' === process.env.VGML_MATRIX_MUTATE;
 
 if ( argv.includes( '--list' ) ) {
@@ -171,15 +188,17 @@ function copyTree( from, to ) {
 
 /*
  *  The five-minute script as a child, its lines echoed, its RESULT line kept.
+ *  The tag is the cell's key when cells run side by side, so the interleaved
+ *  lines still say whose they are.
  */
-function fiveMinutes( base, env ) {
+function fiveMinutes( base, env, tag = '' ) {
 	return new Promise( ( resolve ) => {
 		const child = spawn( process.execPath, [ SCRIPT, base ], { env: { ...process.env, ...env }, stdio: [ 'ignore', 'pipe', 'inherit' ] } );
 		let out = '';
 		child.stdout.on( 'data', ( d ) => {
 			const text = d.toString();
 			out += text;
-			process.stdout.write( text.split( '\n' ).filter( ( l ) => ! l.startsWith( 'RESULT ' ) ).map( ( l ) => ( l ? `    ${ l }` : l ) ).join( '\n' ) );
+			process.stdout.write( text.split( '\n' ).filter( ( l ) => ! l.startsWith( 'RESULT ' ) ).map( ( l ) => ( l ? `    ${ tag }${ l }` : l ) ).join( '\n' ) );
 		} );
 		child.on( 'close', () => {
 			const line = out.split( /\r?\n/ ).find( ( l ) => l.startsWith( 'RESULT ' ) );
@@ -192,7 +211,7 @@ function fiveMinutes( base, env ) {
 	} );
 }
 
-async function runPlayground( cell ) {
+async function runPlayground( cell, tag = '' ) {
 	const work = fs.mkdtempSync( path.join( os.tmpdir(), 'vgml-matrix-' ) );
 	const thisPort = port++;
 	const base = `http://127.0.0.1:${ thisPort }`;
@@ -258,11 +277,14 @@ async function runPlayground( cell ) {
 		 *  because its wait loop retries until a request lands on the right
 		 *  worker. Automatic updates off: the cell has to test the version it
 		 *  names -- "7.1" pulled a 7.1.1-RC1 that updated itself mid-boot.
+		 *  VERGEML_AI_MOCK: describing runs on this server from file names
+		 *  (core/ai.php), so the upload path is exercised and nothing is sent.
 		 */
 		const args = [ '@wp-playground/cli', 'server', '--port', String( thisPort ), '--php', cell.php, '--wp', ASK[ cell.wp ] || cell.wp, '--blueprint', blueprint,
 			'--define', 'PLAYGROUND_AUTO_LOGIN_AS_USER', 'admin',
 			'--define-bool', 'WP_DEBUG', 'true', '--define-bool', 'WP_DEBUG_LOG', 'true', '--define-bool', 'WP_DEBUG_DISPLAY', 'false',
-			'--define-bool', 'AUTOMATIC_UPDATER_DISABLED', 'true', '--define-bool', 'WP_AUTO_UPDATE_CORE', 'false' ];
+			'--define-bool', 'AUTOMATIC_UPDATER_DISABLED', 'true', '--define-bool', 'WP_AUTO_UPDATE_CORE', 'false',
+			'--define-bool', 'VERGEML_AI_MOCK', 'true' ];
 		for ( const [ from, to ] of mounts ) {
 			args.push( '--mount-dir', from, to );
 		}
@@ -272,7 +294,7 @@ async function runPlayground( cell ) {
 		const env = { VGML_MATRIX_PROBE: '1', VGML_MATRIX_LOCALE: 'en_US' === cell.lang ? '' : cell.lang, VGML_MATRIX_MUTATE: MUTATE ? '1' : '' };
 		let result;
 		try {
-			result = await fiveMinutes( base, env );
+			result = await fiveMinutes( base, env, tag );
 		} finally {
 			stop( child );
 			fs.closeSync( log );
@@ -286,7 +308,7 @@ async function runPlayground( cell ) {
 
 		if ( ! result.ok && /did not finish|nothing usable|did not sign/.test( result.failed ) ) {
 			const tail = fs.readFileSync( path.join( work, 'playground.log' ), 'utf8' ).trim().split( /\r?\n/ ).slice( -6 );
-			console.log( '    playground said:\n' + tail.map( ( l ) => `      ${ l.slice( 0, 160 ) }` ).join( '\n' ) );
+			console.log( `    ${ tag }playground said:\n` + tail.map( ( l ) => `      ${ tag }${ l.slice( 0, 160 ) }` ).join( '\n' ) );
 		}
 
 		// The Arabic cell is where the hand-kept RTL sheets show: a stale one is that cell's ✗.
@@ -294,7 +316,7 @@ async function runPlayground( cell ) {
 			const rtl = spawnSync( process.execPath, [ path.join( ROOT, 'tools', 'rtl.mjs' ), '--check' ], { encoding: 'utf8' } );
 			const ok = 0 === rtl.status;
 			result.steps.push( { name: 'the RTL sheets are current (tools/rtl.mjs --check)', ok, detail: ok ? 'up to date' : ( rtl.stdout || '' ).trim().split( /\r?\n/ ).pop() } );
-			console.log( `    ${ ok ? 'ok  ' : 'FAIL' } the RTL sheets are current (tools/rtl.mjs --check)` );
+			console.log( `    ${ tag }${ ok ? 'ok  ' : 'FAIL' } the RTL sheets are current (tools/rtl.mjs --check)` );
 			if ( ! ok ) {
 				result.ok = false;
 				result.failed = result.failed || `RTL sheets: ${ rtl.stdout.trim().split( /\r?\n/ ).pop() }`;
@@ -324,7 +346,16 @@ async function runBox( cell ) {
 	const linkIn = cell.link ? `ln -sfn ${ cell.link.from } ${ plugins }/${ cell.link.slug }; ${ wp } plugin activate ${ cell.link.slug } --url=${ cell.url } --allow-root 2>&1 | grep -v Deprecated;` : '';
 	const linkOut = cell.link ? `${ wp } plugin deactivate ${ cell.link.slug } --url=${ cell.url } --allow-root >/dev/null 2>&1; unlink ${ plugins }/${ cell.link.slug };` : '';
 
-	const made = ssh( `${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1; ${ wp } user create ${ user } ${ user }@invalid.test --role=administrator --user_pass='${ pass }' --allow-root 2>&1 | grep -v Deprecated; ${ role } ${ linkIn } ${ wp } core version --allow-root; php -r 'echo PHP_VERSION;'` );
+	/*
+	 *  Mock on for the run: the site's vergeml_ai option is read with WP-CLI
+	 *  (never through the plugin), the `mock` flag is set on a copy, and the
+	 *  original goes back in the finally -- deleted when there was none. On
+	 *  /var/www/ms it is {"site_profile":""} (2026-09-20). The JSON travels
+	 *  base64, so a sealed key or a quote in it never meets the shell.
+	 */
+	const option = `${ wp } option`;
+	const site = `--url=${ cell.url } --allow-root`;
+	const made = ssh( `${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1; ${ wp } user create ${ user } ${ user }@invalid.test --role=administrator --user_pass='${ pass }' --allow-root 2>&1 | grep -v Deprecated; ${ role } ${ linkIn } echo "SNAP $( ${ option } get vergeml_ai --format=json ${ site } 2>/dev/null | base64 -w0 )"; ${ wp } core version --allow-root; php -r 'echo PHP_VERSION;'` );
 	const lines = made.stdout.trim().split( /\r?\n/ );
 	if ( 0 !== made.status || ! /Success/.test( made.stdout ) ) {
 		if ( linkOut ) {
@@ -335,22 +366,40 @@ async function runBox( cell ) {
 	cell.wp = lines[ lines.length - 2 ] || cell.wp;
 	cell.php = ( lines[ lines.length - 1 ] || cell.php ).split( '.' ).slice( 0, 2 ).join( '.' );
 
+	const snap = ( ( made.stdout.match( /^SNAP (\S*)$/m ) || [ , '' ] )[ 1 ] );
+	let saved = {};
+	if ( snap ) {
+		try { saved = JSON.parse( Buffer.from( snap, 'base64' ).toString( 'utf8' ) ); } catch { saved = {}; }
+	}
+	const mocked = Buffer.from( JSON.stringify( { ...saved, mock: 1 } ) ).toString( 'base64' );
+	// The cd stands before the pipeline, not inside it: `echo | cd dir && wp` runs
+	// wp in the outer shell's /root with no stdin (the first run, 2026-09-20).
+	const write = ( b64 ) => `cd ${ cell.dir } && echo ${ b64 } | base64 -d | sudo -u www-data wp option update vergeml_ai --format=json ${ site }`;
+	const restore = snap
+		? `${ write( snap ) } >/dev/null 2>&1;`
+		: `${ option } delete vergeml_ai ${ site } >/dev/null 2>&1;`;
+
 	try {
+		const on = ssh( `${ write( mocked ) } 2>&1 | grep -v Deprecated; ${ option } get vergeml_ai --format=json ${ site } 2>/dev/null` );
+		if ( ! /"mock":1/.test( on.stdout ) ) {
+			return { ok: false, steps: [], failed: `could not switch mock on in ${ cell.dir }: ${ on.stdout.trim().slice( -160 ) || on.stderr.trim().slice( -160 ) }` };
+		}
 		return await fiveMinutes( cell.url, { VGML_USER: user, VGML_PASS: pass, VGML_MATRIX_NO_UNINSTALL: '1', VGML_MATRIX_PROBE: '', VGML_MATRIX_LOCALE: '', VGML_MATRIX_MUTATE: MUTATE ? '1' : '' } );
 	} finally {
-		ssh( `${ linkOut } ${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1` );
+		ssh( `${ restore } ${ linkOut } ${ wp } user delete ${ user } --network --yes --allow-root >/dev/null 2>&1` );
 	}
 }
 
 const stored = fs.existsSync( RESULTS ) ? JSON.parse( fs.readFileSync( RESULTS, 'utf8' ) ) : { fullRun: '', command: '', zip: '', cells: {} };
 const failing = [];
 
-for ( const cell of chosen ) {
+async function runCell( cell ) {
 	const started = Date.now();
+	const tag = PARALLEL > 1 && ! cell.box && ! cell.with ? `[${ cell.key }] ` : '';
 	console.log( `\n  ▸ ${ cell.key }  ·  WP ${ cell.wp } · PHP ${ cell.php } · ${ cell.shape } · ${ cell.lang } · ${ cell.with ? COMPANIONS[ cell.with ].label : 'nothing' }` );
 
 	let result;
-	const skip = cell.with && COMPANIONS[ cell.with ].skip;
+	const skip = cell.skip || ( cell.with && COMPANIONS[ cell.with ].skip );
 	if ( skip ) {
 		// Recorded, not counted: the row says why it cannot run here.
 		result = { ok: true, skipped: skip, steps: [], failed: '' };
@@ -358,7 +407,7 @@ for ( const cell of chosen ) {
 	} else if ( cell.box ) {
 		result = await runBox( cell );
 	} else {
-		result = await runPlayground( cell );
+		result = await runPlayground( cell, tag );
 	}
 
 	const seconds = Math.round( ( Date.now() - started ) / 1000 );
@@ -381,13 +430,38 @@ for ( const cell of chosen ) {
 	// Written after every cell, so a run that dies keeps the rows it earned.
 	if ( ! only ) {
 		stored.fullRun = today;
-		stored.command = 'node tools/matrix.mjs';
+		stored.command = `node tools/matrix.mjs${ PARALLEL > 1 ? ` --parallel ${ PARALLEL }` : '' }`;
 		stored.zip = zipDigest;
 	}
 	if ( ! MUTATE ) {
 		fs.writeFileSync( RESULTS, JSON.stringify( stored, null, '	' ) + '\n' );
 		writeDoc( stored );
 	}
+}
+
+/*
+ *  The version and language cells go through a pool of PARALLEL workers;
+ *  each worker takes the next cell off the list until there are none. Every
+ *  completion writes the results file from the one `stored` object in this
+ *  process, one at a time on the event loop, so no row is lost to another.
+ *  The companion and box cells then run one after another, in table order.
+ *
+ *  Known hazard (2026-09-20): three cells of a WordPress version Playground had
+ *  not cached yet started together, and two of them never booted -- Playground's
+ *  own eval.php read an empty wp-config.php on the --define step, 502 for ten
+ *  minutes. Alone, each booted in 130 s. Rerun such a cell with --cell before
+ *  calling it a finding; a warm-up boot per version would settle it.
+ */
+const pooled = chosen.filter( ( c ) => ! c.box && ! c.with );
+const serial = chosen.filter( ( c ) => c.box || c.with );
+let next = 0;
+await Promise.all( Array.from( { length: Math.min( PARALLEL, pooled.length ) }, async () => {
+	while ( next < pooled.length ) {
+		await runCell( pooled[ next++ ] );
+	}
+} ) );
+for ( const cell of serial ) {
+	await runCell( cell );
 }
 
 /*
@@ -423,9 +497,11 @@ function writeDoc( data ) {
 		...rows,
 		'',
 		'The nine version cells are Playground (SQLite, no GD); the language and',
-		'companion cells run on WordPress 7.1 / PHP 8.2 there. The multisite cells are the',
-		'box\'s two networks — `/var/www/ms` (subdirectory) and `/var/www/ms2` (subdomain,',
-		'tested on its sub-site `two.`) — real MariaDB, `WP_DEBUG` off, the uninstall step',
+		'companion cells run on WordPress 7.1 / PHP 8.2 there. Mock mode is on in every',
+		'cell and no cell has a licence key, so nothing is described for real. The',
+		'multisite cells are the box\'s networks — `/var/www/ms` (subdirectory) and',
+		'`/var/www/ms2` (subdomain, its sub-site `two.`; not run while it holds the shop',
+		'library, its row says so) — real MariaDB, `WP_DEBUG` off, the uninstall step',
 		'left out because deleting through the box\'s Plugins screen fatals in core\'s FTP',
 		'class. FileBird on MariaDB is the box\'s own copy, linked into `/var/www/ms` for',
 		'the run; Playground\'s SQLite refuses FileBird\'s own `FIND_IN_SET` query, which is',

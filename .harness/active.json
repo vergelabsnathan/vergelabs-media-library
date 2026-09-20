@@ -1,39 +1,35 @@
 {
-  "phase": "S26 — the release train (wave 2): 4.0.1 then Pro 1.0.3, from plans/finish-the-suite.md 'The release train'. Nathan's copy approved 2026-09-20 as in the 1c copy block; say-and-do at every step; the one-seat test key minted by the session; stop only on a red gate.",
+  "phase": "S27 — wave 3: story 4.2, the compatibility matrix on 4.0.1 (FR13), from plans/finish-the-suite.md 'Waves' wave 3. bmad-spec (defaults recorded) → bmad-build (matrix.mjs, Playground cells pooled, companions and box cells sequential, every row into the results file and the doc) → bmad-code-review over the diff. A red cell is a finding with its cause, not a fix.",
   "model": "opus",
   "plan": "plans/finish-the-suite.md",
-  "spec": "plans/finish-the-suite.md ('The release train' and 'Copy block for Nathan'); docs/release-notes-4.0.1-proposal.md; docs/runbooks/rollback.md",
+  "spec": "_bmad-output/implementation-artifacts/spec-4-2-the-compatibility-matrix-on-4-0-0.md",
   "scope": [
-    "readme.txt (Stable tag, the 4.0.1 changelog from the copy block)",
-    "vergelabs-media-library.php (Version header, VERGEML_VERSION)",
-    "playground/vergelabs-media-library.zip (re-cut by deploy.mjs --zip)",
-    "../dist/vergelabs-media-library-4.0.1.zip, ../dist/vergelabs-media-library-pro-1.0.3.zip",
-    "../service/public/releases/** (versioned zips, never overwritten)",
-    "../pro/readme.txt, ../pro/vergelabs-media-library-pro.php (Version, VGMLPRO_VERSION, the 1.0.3 changelog line, the 4.0.0 floor in the Description)",
-    "docs/handoffs/**, plans/**, _bmad-output/implementation-artifacts/**",
+    "tools/matrix.mjs (--parallel pool, VERGEML_AI_MOCK on Playground cells, mock on/restore on the box cells, the ms2 cell skipped with its reason, the header comment)",
+    "tests/compat/matrix-results.json (written by the runner)",
+    "docs/compatibility.md (between the matrix markers, written by the runner; the ms2 sentence under the table)",
+    "_bmad-output/implementation-artifacts/spec-4-2-the-compatibility-matrix-on-4-0-0.md, sprint-status.yaml, deferred-work.md",
+    "docs/handoffs/**, plans/**",
     ".harness/active.json"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-20-s25b-wave-1-and-consolidation.md",
+    "docs/handoffs/2026-09-20-s26-the-release-train.md",
     "plans/finish-the-suite.md",
-    "docs/runbooks/rollback.md",
-    "docs/release-notes-4.0.1-proposal.md"
+    "docs/compatibility.md",
+    "_bmad-output/implementation-artifacts/spec-4-2-the-compatibility-matrix-on-4-0-0.md"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "Every readme line is Nathan's: the copy block as approved, verbatim; no new copy",
-    "Say what goes out before PLUGIN_RELEASES changes and before any push (say-and-do, no pause)",
-    "Nothing on ms2 or the real shop",
-    "The box deploy of 4.0.1 only after the served zip's header is read back over HTTPS",
-    "A red gate stops the train",
-    "Never git checkout a file carrying uncommitted work"
+    "Nothing on ms2 or the real shop: the shape=multisite-subdomain cell is not run",
+    "No describe on a real library: mock mode in every cell, no licence key anywhere",
+    "Every user-facing string is Nathan's; runner-generated row text and the one doc sentence are proposals, listed in the handoff",
+    "Say what goes out before any push",
+    "A red cell is logged with its cause and the run goes on; a fix is a story of its own"
   ],
   "gates": [
-    "Plugin Check on git archive HEAD in Playground: 0 errors (the one known warning, mismatched_plugin_name)",
-    "node tools/verify.mjs archive-hygiene → 8/8",
-    "service pnpm test green (lib/release-files.test.ts: every shelf zip named after its own bytes and header)",
-    "/api/health releases: free 4.0.1 / pro 1.0.3",
-    "/api/cron/release-check by hand → ok:true",
-    "pro: node tools/verify.mjs min-free min-free-current → 15/15 ×2; compat-free (archives) and compat-free --tree with VGMLPRO_SEATS_KEY green"
+    "node tools/deploy.mjs --check --box → box up to date, before the box cells",
+    "VGML_MATRIX_MUTATE=1 node tools/matrix.mjs --parallel 3 --cell wp=7.1,php=8.2 → ✗, exit 1",
+    "node tools/matrix.mjs --parallel 3 → exit 0, or the red cells named",
+    "node tools/rtl.mjs --check → exit 0 (the ar cell's 11th step green)",
+    "sprint-status.yaml 4.2 → review"
   ]
 }

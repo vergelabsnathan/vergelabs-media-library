@@ -1,10 +1,10 @@
 {
-	"fullRun": "2026-09-11",
-	"command": "node tools/matrix.mjs",
-	"zip": "fe9f647216ea",
+	"fullRun": "2026-09-20",
+	"command": "node tools/matrix.mjs --parallel 3",
+	"zip": "66814aa2d056",
 	"cells": {
 		"wp=7.1,php=8.2": {
-			"wp": "7.1",
+			"wp": "7.1.1",
 			"php": "8.2",
 			"shape": "single",
 			"lang": "en_US",
@@ -51,7 +51,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "12 error(s) from other code, not counted"
+					"detail": "15 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -59,11 +59,11 @@
 					"detail": "32 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 187
+			"ran": "2026-09-20",
+			"seconds": 287
 		},
 		"wp=6.5,php=7.4": {
-			"wp": "6.5.10",
+			"wp": "6.5.11",
 			"php": "7.4",
 			"shape": "single",
 			"lang": "en_US",
@@ -110,7 +110,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "13 error(s) from other code, not counted"
+					"detail": "8 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -118,11 +118,11 @@
 					"detail": "31 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 228
+			"ran": "2026-09-20",
+			"seconds": 132
 		},
 		"wp=6.5,php=8.2": {
-			"wp": "6.5.10",
+			"wp": "6.5.11",
 			"php": "8.2",
 			"shape": "single",
 			"lang": "en_US",
@@ -169,7 +169,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "13 error(s) from other code, not counted"
+					"detail": "7 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -177,11 +177,11 @@
 					"detail": "32 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 230
+			"ran": "2026-09-20",
+			"seconds": 130
 		},
 		"wp=6.5,php=8.5": {
-			"wp": "6.5.10",
+			"wp": "6.5.11",
 			"php": "8.5",
 			"shape": "single",
 			"lang": "en_US",
@@ -228,7 +228,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "13 error(s) from other code, not counted"
+					"detail": "9 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -236,11 +236,11 @@
 					"detail": "200 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 201
+			"ran": "2026-09-20",
+			"seconds": 153
 		},
 		"wp=7.0,php=7.4": {
-			"wp": "7.0.4",
+			"wp": "7.0.5",
 			"php": "7.4",
 			"shape": "single",
 			"lang": "en_US",
@@ -287,7 +287,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "12 error(s) from other code, not counted"
+					"detail": "10 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -295,12 +295,130 @@
 					"detail": "31 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 219
+			"ran": "2026-09-20",
+			"seconds": 157
 		},
 		"wp=7.0,php=8.2": {
-			"wp": "7.0.4",
+			"wp": "7.0.5",
 			"php": "8.2",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "nothing",
+			"ok": true,
+			"skipped": "",
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "9 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "32 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-20",
+			"seconds": 152
+		},
+		"wp=7.0,php=8.5": {
+			"wp": "7.0.5",
+			"php": "8.5",
+			"shape": "single",
+			"lang": "en_US",
+			"with": "nothing",
+			"ok": true,
+			"skipped": "",
+			"step": "all 9 steps",
+			"steps": [
+				{
+					"name": "the site answers and the plugin is on",
+					"ok": true,
+					"detail": "library screen, lang=en-US"
+				},
+				{
+					"name": "make a folder",
+					"ok": true,
+					"detail": "\"Matrix run\" is folder 2, 1 folders"
+				},
+				{
+					"name": "upload three images",
+					"ok": true,
+					"detail": "attachments 5, 6, 7"
+				},
+				{
+					"name": "drag one into the folder",
+					"ok": true,
+					"detail": "the folder lit up; file 5 is in [2]"
+				},
+				{
+					"name": "filter the grid by the folder",
+					"ok": true,
+					"detail": "the grid shows file 5 alone"
+				},
+				{
+					"name": "select two files and move them in one drag",
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
+				},
+				{
+					"name": "deactivate and delete the plugin",
+					"ok": true,
+					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
+				},
+				{
+					"name": "no JS error from this plugin",
+					"ok": true,
+					"detail": "9 error(s) from other code, not counted"
+				},
+				{
+					"name": "no fatal, and nothing of ours in the debug log",
+					"ok": true,
+					"detail": "33 log line(s), none ours"
+				}
+			],
+			"ran": "2026-09-20",
+			"seconds": 164
+		},
+		"wp=7.1,php=7.4": {
+			"wp": "7.1.1",
+			"php": "7.4",
 			"shape": "single",
 			"lang": "en_US",
 			"with": "nothing",
@@ -351,132 +469,14 @@
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
 					"ok": true,
-					"detail": "32 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 225
-		},
-		"wp=7.0,php=8.5": {
-			"wp": "7.0.4",
-			"php": "8.5",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": true,
-			"skipped": "",
-			"step": "all 9 steps",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": true,
-					"detail": "12 error(s) from other code, not counted"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "33 log line(s), none ours"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 197
-		},
-		"wp=7.1,php=7.4": {
-			"wp": "7.1",
-			"php": "7.4",
-			"shape": "single",
-			"lang": "en_US",
-			"with": "nothing",
-			"ok": true,
-			"skipped": "",
-			"step": "all 9 steps",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 2, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 5, 6, 7"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 5 is in [2]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 5 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "deactivate and delete the plugin",
-					"ok": true,
-					"detail": "gone; folder survives; 3 of 3 files keep it; 3 of 3 attachments remain"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": true,
-					"detail": "12 error(s) from other code, not counted"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
 					"detail": "31 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 203
+			"ran": "2026-09-20",
+			"seconds": 284
 		},
 		"wp=7.1,php=8.5": {
-			"wp": "7.1",
+			"wp": "7.1.1",
 			"php": "8.5",
 			"shape": "single",
 			"lang": "en_US",
@@ -523,7 +523,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "11 error(s) from other code, not counted"
+					"detail": "14 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -531,11 +531,11 @@
 					"detail": "33 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 165
+			"ran": "2026-09-20",
+			"seconds": 280
 		},
 		"lang=nl_NL": {
-			"wp": "7.1",
+			"wp": "7.1.1",
 			"php": "8.2",
 			"shape": "single",
 			"lang": "nl_NL",
@@ -547,7 +547,7 @@
 				{
 					"name": "the site answers and the plugin is on",
 					"ok": true,
-					"detail": "library screen, lang=nl-NL, after 1 reload(s)"
+					"detail": "library screen, lang=nl-NL"
 				},
 				{
 					"name": "make a folder",
@@ -587,7 +587,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "10 error(s) from other code, not counted"
+					"detail": "12 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -595,11 +595,11 @@
 					"detail": "32 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 203
+			"ran": "2026-09-20",
+			"seconds": 217
 		},
 		"lang=ar": {
-			"wp": "7.1",
+			"wp": "7.1.1",
 			"php": "8.2",
 			"shape": "single",
 			"lang": "ar",
@@ -651,7 +651,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "10 error(s) from other code, not counted"
+					"detail": "12 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -664,8 +664,8 @@
 					"detail": "up to date"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 202
+			"ran": "2026-09-20",
+			"seconds": 235
 		},
 		"with=filebird": {
 			"wp": "7.1",
@@ -677,11 +677,11 @@
 			"skipped": "not run on Playground: FileBird's own FIND_IN_SET query does not run on SQLite (its list is empty there with or without us); see the MariaDB row",
 			"step": "not run on Playground: FileBird's own FIND_IN_SET query does not run on SQLite (its list is empty there with or without us); see the MariaDB row",
 			"steps": [],
-			"ran": "2026-09-11",
+			"ran": "2026-09-20",
 			"seconds": 0
 		},
 		"with=folders": {
-			"wp": "7.1",
+			"wp": "7.1.1",
 			"php": "8.2",
 			"shape": "single",
 			"lang": "en_US",
@@ -728,7 +728,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "10 error(s) from other code, not counted"
+					"detail": "9 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -736,11 +736,11 @@
 					"detail": "32 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 174
+			"ran": "2026-09-20",
+			"seconds": 168
 		},
 		"with=enhanced-media-library": {
-			"wp": "7.1",
+			"wp": "7.1.1",
 			"php": "8.2",
 			"shape": "single",
 			"lang": "en_US",
@@ -787,7 +787,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "10 error(s) from other code, not counted"
+					"detail": "9 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -795,11 +795,11 @@
 					"detail": "32 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 162
+			"ran": "2026-09-20",
+			"seconds": 155
 		},
 		"with=polylang-pro": {
-			"wp": "7.1",
+			"wp": "7.1.1",
 			"php": "8.2",
 			"shape": "single",
 			"lang": "en_US",
@@ -846,7 +846,7 @@
 				{
 					"name": "no JS error from this plugin",
 					"ok": true,
-					"detail": "10 error(s) from other code, not counted"
+					"detail": "9 error(s) from other code, not counted"
 				},
 				{
 					"name": "no fatal, and nothing of ours in the debug log",
@@ -854,11 +854,11 @@
 					"detail": "32 log line(s), none ours"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 206
+			"ran": "2026-09-20",
+			"seconds": 198
 		},
 		"shape=multisite-subdirectory": {
-			"wp": "7.1",
+			"wp": "7.1.1",
 			"php": "8.5",
 			"shape": "multisite, subdirectory (the box)",
 			"lang": "en_US",
@@ -875,22 +875,22 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 8, 1 folders"
+					"detail": "\"Matrix run\" is folder 2065, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 36, 37, 38"
+					"detail": "attachments 251045, 251046, 251047"
 				},
 				{
 					"name": "drag one into the folder",
 					"ok": true,
-					"detail": "the folder lit up; file 36 is in [8]"
+					"detail": "the folder lit up; file 251045 is in [2065]"
 				},
 				{
 					"name": "filter the grid by the folder",
 					"ok": true,
-					"detail": "the grid shows file 36 alone"
+					"detail": "the grid shows file 251045 alone"
 				},
 				{
 					"name": "select two files and move them in one drag",
@@ -913,8 +913,8 @@
 					"detail": "no fatal on any screen visited (no debug log on this site)"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 38
+			"ran": "2026-09-20",
+			"seconds": 41
 		},
 		"shape=multisite-subdomain": {
 			"wp": "7.1",
@@ -923,67 +923,21 @@
 			"lang": "en_US",
 			"with": "nothing",
 			"ok": true,
-			"skipped": "",
-			"step": "all 9 steps · uninstall not run on the box",
-			"steps": [
-				{
-					"name": "the site answers and the plugin is on",
-					"ok": true,
-					"detail": "library screen, lang=en-US"
-				},
-				{
-					"name": "make a folder",
-					"ok": true,
-					"detail": "\"Matrix run\" is folder 4, 1 folders"
-				},
-				{
-					"name": "upload three images",
-					"ok": true,
-					"detail": "attachments 15, 16, 17"
-				},
-				{
-					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 15 is in [4]"
-				},
-				{
-					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 15 alone"
-				},
-				{
-					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
-				},
-				{
-					"name": "remove what the run made (uninstall not run on this site)",
-					"ok": true,
-					"detail": "3 of 3 files removed; 0 folders (was 0)"
-				},
-				{
-					"name": "no JS error from this plugin",
-					"ok": true,
-					"detail": "0 error(s) from other code, not counted"
-				},
-				{
-					"name": "no fatal, and nothing of ours in the debug log",
-					"ok": true,
-					"detail": "no fatal on any screen visited (no debug log on this site)"
-				}
-			],
-			"ran": "2026-09-11",
-			"seconds": 39
+			"skipped": "not run on this release: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11",
+			"step": "not run on this release: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11",
+			"steps": [],
+			"ran": "2026-09-20",
+			"seconds": 0
 		},
 		"with=filebird,shape=multisite-subdirectory": {
-			"wp": "7.1",
+			"wp": "7.1.1",
 			"php": "8.5",
 			"shape": "multisite, subdirectory (the box)",
 			"lang": "en_US",
 			"with": "FileBird 6.5.8 (MariaDB)",
-			"ok": true,
+			"ok": false,
 			"skipped": "",
-			"step": "all 9 steps · uninstall not run on the box",
+			"step": "drag one into the folder: the folder lit up; file 251050 is in []",
 			"steps": [
 				{
 					"name": "the site answers and the plugin is on",
@@ -993,27 +947,27 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 9, 1 folders"
+					"detail": "\"Matrix run\" is folder 2066, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 41, 42, 43"
+					"detail": "attachments 251050, 251051, 251052"
 				},
 				{
 					"name": "drag one into the folder",
-					"ok": true,
-					"detail": "the folder lit up; file 41 is in [9]"
+					"ok": false,
+					"detail": "the folder lit up; file 251050 is in []"
 				},
 				{
 					"name": "filter the grid by the folder",
-					"ok": true,
-					"detail": "the grid shows file 41 alone"
+					"ok": false,
+					"detail": "the grid shows 0 files [], expected [251050]"
 				},
 				{
 					"name": "select two files and move them in one drag",
-					"ok": true,
-					"detail": "2 of 2 moved; the folder counts 3"
+					"ok": false,
+					"detail": "2 of 2 moved; the folder counts 2"
 				},
 				{
 					"name": "remove what the run made (uninstall not run on this site)",
@@ -1031,8 +985,8 @@
 					"detail": "no fatal on any screen visited (no debug log on this site)"
 				}
 			],
-			"ran": "2026-09-11",
-			"seconds": 39
+			"ran": "2026-09-20",
+			"seconds": 69
 		}
 	}
 }

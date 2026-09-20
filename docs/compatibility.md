@@ -1,10 +1,10 @@
 # Compatibility
 
 <!-- matrix:start -->
-## The matrix — 2026-09-11
+## The matrix — 2026-09-20
 
-Produced 2026-09-11 by `node tools/matrix.mjs`: the release zip
-(`playground/vergelabs-media-library.zip`, sha256 fe9f647216ea…) installed on every cell
+Produced 2026-09-20 by `node tools/matrix.mjs --parallel 3`: the release zip
+(`playground/vergelabs-media-library.zip`, sha256 66814aa2d056…) installed on every cell
 and `tests/compat/five-minutes.mjs` run against it — make a folder, upload three
 images, drag one in, filter the grid by the folder, select two and move them in one
 drag, deactivate and delete. Any JS error from this plugin, any fatal, and anything
@@ -14,29 +14,31 @@ row means that row is newer than the run above it.
 
 | WordPress | PHP | Shape | Language | Alongside | Result | Step |
 |---|---|---|---|---|---|---|
-| 6.5.10 | 7.4 | single | en_US | nothing | ✓ | all 9 steps |
-| 6.5.10 | 8.2 | single | en_US | nothing | ✓ | all 9 steps |
-| 6.5.10 | 8.5 | single | en_US | nothing | ✓ | all 9 steps |
-| 7.0.4 | 7.4 | single | en_US | nothing | ✓ | all 9 steps |
-| 7.0.4 | 8.2 | single | en_US | nothing | ✓ | all 9 steps |
-| 7.0.4 | 8.5 | single | en_US | nothing | ✓ | all 9 steps |
-| 7.1 | 7.4 | single | en_US | nothing | ✓ | all 9 steps |
-| 7.1 | 8.2 | single | en_US | nothing | ✓ | all 9 steps |
-| 7.1 | 8.5 | single | en_US | nothing | ✓ | all 9 steps |
-| 7.1 | 8.2 | single | nl_NL | nothing | ✓ | all 10 steps |
-| 7.1 | 8.2 | single | ar | nothing | ✓ | all 11 steps |
+| 6.5.11 | 7.4 | single | en_US | nothing | ✓ | all 9 steps |
+| 6.5.11 | 8.2 | single | en_US | nothing | ✓ | all 9 steps |
+| 6.5.11 | 8.5 | single | en_US | nothing | ✓ | all 9 steps |
+| 7.0.5 | 7.4 | single | en_US | nothing | ✓ | all 9 steps |
+| 7.0.5 | 8.2 | single | en_US | nothing | ✓ | all 9 steps |
+| 7.0.5 | 8.5 | single | en_US | nothing | ✓ | all 9 steps |
+| 7.1.1 | 7.4 | single | en_US | nothing | ✓ | all 9 steps |
+| 7.1.1 | 8.2 | single | en_US | nothing | ✓ | all 9 steps |
+| 7.1.1 | 8.5 | single | en_US | nothing | ✓ | all 9 steps |
+| 7.1.1 | 8.2 | single | nl_NL | nothing | ✓ | all 10 steps |
+| 7.1.1 | 8.2 | single | ar | nothing | ✓ | all 11 steps |
 | 7.1 | 8.2 | single | en_US | FileBird | — | not run on Playground: FileBird's own FIND_IN_SET query does not run on SQLite (its list is empty there with or without us); see the MariaDB row |
-| 7.1 | 8.2 | single | en_US | Premio Folders (wordpress.org) | ✓ | all 9 steps |
-| 7.1 | 8.2 | single | en_US | Enhanced Media Library 2.9.4 | ✓ | all 9 steps |
-| 7.1 | 8.2 | single | en_US | Polylang Pro 3.8.7 | ✓ | all 9 steps |
-| 7.1 | 8.5 | multisite, subdirectory (the box) | en_US | nothing | ✓ | all 9 steps · uninstall not run on the box |
-| 7.1 | 8.5 | multisite, subdomain (the box, sub-site) | en_US | nothing | ✓ | all 9 steps · uninstall not run on the box |
-| 7.1 | 8.5 | multisite, subdirectory (the box) | en_US | FileBird 6.5.8 (MariaDB) | ✓ | all 9 steps · uninstall not run on the box |
+| 7.1.1 | 8.2 | single | en_US | Premio Folders (wordpress.org) | ✓ | all 9 steps |
+| 7.1.1 | 8.2 | single | en_US | Enhanced Media Library 2.9.4 | ✓ | all 9 steps |
+| 7.1.1 | 8.2 | single | en_US | Polylang Pro 3.8.7 | ✓ | all 9 steps |
+| 7.1.1 | 8.5 | multisite, subdirectory (the box) | en_US | nothing | ✓ | all 9 steps · uninstall not run on the box |
+| 7.1 | 8.5 | multisite, subdomain (the box, sub-site) | en_US | nothing | — | not run on this release: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11 |
+| 7.1.1 | 8.5 | multisite, subdirectory (the box) | en_US | FileBird 6.5.8 (MariaDB) | ✗ | drag one into the folder: the folder lit up; file 251050 is in [] |
 
 The nine version cells are Playground (SQLite, no GD); the language and
-companion cells run on WordPress 7.1 / PHP 8.2 there. The multisite cells are the
-box's two networks — `/var/www/ms` (subdirectory) and `/var/www/ms2` (subdomain,
-tested on its sub-site `two.`) — real MariaDB, `WP_DEBUG` off, the uninstall step
+companion cells run on WordPress 7.1 / PHP 8.2 there. Mock mode is on in every
+cell and no cell has a licence key, so nothing is described for real. The
+multisite cells are the box's networks — `/var/www/ms` (subdirectory) and
+`/var/www/ms2` (subdomain, its sub-site `two.`; not run while it holds the shop
+library, its row says so) — real MariaDB, `WP_DEBUG` off, the uninstall step
 left out because deleting through the box's Plugins screen fatals in core's FTP
 class. FileBird on MariaDB is the box's own copy, linked into `/var/www/ms` for
 the run; Playground's SQLite refuses FileBird's own `FIND_IN_SET` query, which is
