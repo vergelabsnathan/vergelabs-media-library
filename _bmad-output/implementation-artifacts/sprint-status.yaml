@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-19-2026 14:30
-last_updated: "09-20-2026 10:29"
+last_updated: "09-20-2026 11:40"
 project: vergelabs-media-library
 project_key: NOKEY
 tracking_system: file-system
@@ -41,8 +41,8 @@ development_status:
   1-3-pro-1-0-2-works-on-4-0-0: done
   epic-1-retrospective: done
 
-  epic-2: backlog
-  2-1-the-buyer-walk-on-4-0-0: backlog
+  epic-2: in-progress
+  2-1-the-buyer-walk-on-4-0-0: in-progress
   2-2-credits_min-in-production-recorded-no-work: done
   2-3-the-vat-position-nathan-s-with-an-accountant: backlog
   epic-2-retrospective: optional
