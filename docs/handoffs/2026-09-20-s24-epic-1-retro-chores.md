@@ -7,8 +7,8 @@
 four Nathan-owned ones still `open`). Plugin `5abbbf1` → `1ec93c1` (+ this
 handoff's commit); pro `ef1709b` → `cea2e1e`; service `4dfff34` → `9da6ddd`
 (one new file on the shelf, **not pushed, not deployed**). Nothing spent;
-nothing on ms2 or the real shop; no key used (Nathan skipped the keyed
-proofs); the `upg` fixture is as found (4.0.0 active, Pro 1.0.2 inactive).
+nothing on ms2 or the real shop; a fresh one-seat test key minted and used for the three keyed
+proofs on Nathan's go (3 activations, 3 releases); the `upg` fixture is as found (4.0.0 active, Pro 1.0.2 inactive).
 
 ## The score lines
 
@@ -76,11 +76,7 @@ Not re-taken: no engine, screen or filing code changed. S21's stand: shop
 1. The box walk from the rollback target: `upg` was built from
    `7f2a4fe9bee9` and stays up until the next schema bump; at that `reset`,
    `box-upgrade-site.sh plugin <b787 zip>` is the old side.
-2. The three keyed proofs skipped today: pro `verify.mjs compat-free`
-   (expect **24/24** on 8.5, seat back `0/1`), free `verify.mjs
-   compat-free-upg` (the `working trees` header, 23/23, the `after` step
-   printing `Pro deactivated`), `tools/upg-pro-shots.mjs` (three screens,
-   the new `finally` order).
+2. ~~The three keyed proofs~~ **Taken on Nathan's go with a fresh one-seat key** (licences 16 and 17 issued by `issue-box-licence.ts`, PLAN=single, the second one used): pro `compat-free` on the archives, PHP 8.5.10 -- **24/24**, `collector installed before boot`, seat back 0/1; `compat-free-upg` on `upg` -- header `working trees`, **23/23**, the `after` step ran, Pro `inactive` after, key option absent; `upg-pro-shots.mjs` -- three screens 200 ok, 20 of 20 cells "We wrote this", `Pro deactivated again, with no key for its hook to release`, exit 0. The key lives in no file (the pulled env was deleted after).
 3. `plugin_digest` recorded, not asserted against the zips (BH5).
 4. A Pro-side archive check (the lines landed; the Pro runner has no local
    kind).

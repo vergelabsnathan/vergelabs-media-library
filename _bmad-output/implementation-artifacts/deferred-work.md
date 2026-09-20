@@ -32,9 +32,6 @@
   summary: the box walk (upgrade-3161 on /var/www/upg, real MySQL) from the rollback target b787a3bb6a20 -- today's fixture was built from 7f2a4fe9bee9 and stays up until the next schema bump; at that `reset` install the target as the old side (box-upgrade-site.sh plugin <b787 zip>) so the MySQL proof starts from the code customers had.
   evidence: the smoke walks from both 3.16.1s (SMOKE GREEN twice, 2026-09-20); the box proof still starts from git's 3.16.1.
 - source_spec: `spec-epic-1-retro-chores.md`
-  summary: the three keyed proofs skipped on 2026-09-20 -- pro `verify.mjs compat-free` on PHP 8.5 (expect 24/24, seat back 0/1), free `verify.mjs compat-free-upg` (expect the `working trees` header, 23/23, Pro `inactive` after the `after` step), and `tools/upg-pro-shots.mjs` (three screens 200 ok, the new finally order) -- at the next run with VGMLPRO_SEATS_KEY in the environment.
-  evidence: A-4, A-8 and A-11 committed on keyless evidence (php -l, node --check, the four runner behaviours).
-- source_spec: `spec-epic-1-retro-chores.md`
   summary: the snapshot's plugin_digest is recorded, never asserted -- the smoke could compute the same digest from old.zip's and new.zip's entries (tools/lib/zip.mjs readZipEntries) and assert `plugin before` / `plugin after` match, turning A-3's print into a proof.
   evidence: review pass 1 (BH5); A-3 asked for "records"; both smoke runs on 2026-09-20 printed different old digests landing on one new one, by eye.
 - source_spec: `spec-epic-1-retro-chores.md`
