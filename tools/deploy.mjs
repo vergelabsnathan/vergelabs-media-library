@@ -5,6 +5,7 @@
  *      node tools/deploy.mjs --zip         # only rebuild playground/*.zip
  *      node tools/deploy.mjs --box         # only ship to the test box
  *      node tools/deploy.mjs --check       # prove nothing, change nothing, report
+ *      node tools/deploy.mjs --check --zip # the same, the zip only
  *      node tools/deploy.mjs --box 46.225.66.194
  *
  *  Written on 31-08-2026, after a session spent rebuilding a nav item that was
@@ -30,7 +31,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import zlib from 'node:zlib';
+import { crc32, readZipIndex, writeZip } from './lib/zip.mjs';
 
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const SLUG = 'vergelabs-media-library';
@@ -50,8 +51,10 @@ function flagValue( name, fallback ) {
 const CHECK = argv.includes( '--check' );
 const ONLY_ZIP = argv.includes( '--zip' );
 const ONLY_BOX = argv.includes( '--box' );
-const DO_ZIP = CHECK || ONLY_ZIP || ! ONLY_BOX;
-const DO_BOX = CHECK || ONLY_BOX || ! ONLY_ZIP;
+// --check alone checks both; --check --zip checks only the zip (the
+// archive-hygiene suite asks that, with no box in reach).
+const DO_ZIP = ONLY_ZIP || ! ONLY_BOX;
+const DO_BOX = ONLY_BOX || ! ONLY_ZIP;
 
 /*
  *  The same map verify.mjs keeps, and for the same reason: a box it does not
@@ -71,10 +74,18 @@ const BOX_HOST = flagValue( '--box', '46.225.66.194' );
  *  Shipping tests/ and plans/ to a public box puts the fixtures and the
  *  unreleased roadmap on a webserver. node_modules is 40MB of things that
  *  never execute in PHP.
+ *
+ *  These two lists serve only the walk below, for a folder with no git in it.
+ *  With git, the one ship list is `.gitattributes` (export-ignore): the same
+ *  list `git archive` cuts the release from. The two lists disagreed for a
+ *  week -- `_bmad`, `_bmad-output`, `.harness` and `AGENTS.md` were in the
+ *  archive's list and not here, so the Playground zip and the box carried 32
+ *  files no customer receives (Epic 1 retro, A-1).
  */
 const SKIP = new Set( [
-	'.git', '.github', '.claude', 'node_modules', 'playground',
-	'tests', 'plans', 'tickets', 'docs', 'tools', 'research', 'dist',
+	'.git', '.github', '.claude', '.harness', 'node_modules', 'playground',
+	'tests', 'plans', 'tickets', 'docs', 'tools', 'research', 'dist', 'site',
+	'_bmad', '_bmad-output',
 	// wordpress.org screenshots live in the SVN assets/ directory, not in
 	// the plugin; shipping them puts 315KB of PNG on every install.
 	'.release-assets', 'assets',
@@ -84,7 +95,7 @@ const SKIP = new Set( [
 // in a zip, and none of these does anything on a site. The manifest is added
 // to the payload separately, by name, so it is not walked here.
 const SKIP_FILE = new Set( [
-	'.verify.lock', 'package-lock.json', 'package.json', 'pnpm-lock.yaml', 'CLAUDE.md',
+	'.verify.lock', 'package-lock.json', 'package.json', 'pnpm-lock.yaml', 'CLAUDE.md', 'AGENTS.md',
 	'.wp-env.json', '.gitignore', '.gitattributes', '.deploy-manifest',
 ] );
 
@@ -92,10 +103,55 @@ const SKIP_FILE = new Set( [
 /* ------------------------------------------------------------- the payload */
 
 /**
+ *  Which of these paths `.gitattributes` marks export-ignore.
+ *
+ *  git sets the attribute on the entry the pattern names -- `/tools` marks
+ *  `tools`, not `tools/verify.mjs` -- and `git archive` skips the subtree
+ *  because it meets the directory first. So every ancestor of every file is
+ *  asked as well, in one call.
+ */
+function exportIgnored( files ) {
+
+	const ask = new Set();
+	for ( const rel of files ) {
+		const parts = rel.split( '/' );
+		for ( let i = 1; i <= parts.length; i++ ) {
+			ask.add( parts.slice( 0, i ).join( '/' ) );
+		}
+	}
+
+	const answer = execFileSync( 'git', [ 'check-attr', '-z', '--stdin', 'export-ignore' ], {
+		cwd: ROOT,
+		input: [ ...ask ].join( '\0' ) + '\0',
+		maxBuffer: 32 * 1024 * 1024,
+	} ).toString().split( '\0' );
+
+	// -z output is path, attribute, value, repeated.
+	const ignored = new Set();
+	for ( let i = 0; i + 2 < answer.length; i += 3 ) {
+		if ( 'set' === answer[ i + 2 ] ) {
+			ignored.add( answer[ i ] );
+		}
+	}
+
+	return ( rel ) => {
+		const parts = rel.split( '/' );
+		for ( let i = 1; i <= parts.length; i++ ) {
+			if ( ignored.has( parts.slice( 0, i ).join( '/' ) ) ) {
+				return true;
+			}
+		}
+		return false;
+	};
+}
+
+
+/**
  *  Every file that ships, relative to the plugin root, sorted.
  *
- *  What git tracks, filtered by the two lists above -- not what happens to be
- *  in the folder.
+ *  What git tracks, minus what `.gitattributes` export-ignores -- the same
+ *  answer `git archive` gives, read from the working tree so a fix in the
+ *  tree is what ships. Not what happens to be in the folder.
  *
  *  This used to walk the filesystem, and a walk ships whatever is lying
  *  around. On 2026-09-07 the zip held twenty files nobody had committed: a
@@ -117,8 +173,9 @@ function payload() {
 			.filter( Boolean );
 
 		if ( tracked.length ) {
+			const ignored = exportIgnored( tracked );
 			return tracked
-				.filter( ( rel ) => ! SKIP.has( rel.split( '/' )[ 0 ] ) && ! SKIP_FILE.has( rel ) )
+				.filter( ( rel ) => ! ignored( rel ) )
 				.filter( ( rel ) => fs.existsSync( path.join( ROOT, rel ) ) )
 				.sort();
 		}
@@ -187,159 +244,10 @@ function dirty() {
 /* ----------------------------------------------------------------- zipping */
 
 /*
- *  A zip writer, in the file, on purpose.
- *
- *  The first version of this called PowerShell's Compress-Archive, which on
- *  Windows PowerShell 5.1 writes entry names with backslash separators --
- *  `vergelabs-media-library\core\ai.php`. Windows opens that happily. Linux
- *  unzip and PHP's ZipArchive do not: they create one file with a backslash in
- *  its name instead of a directory, so the plugin unpacks into a single
- *  unusable blob. The zip this replaces was built by something else and used
- *  forward slashes, which is why nobody had met this before.
- *
- *  Adding a packaging dependency to a plugin whose entire argument is that it
- *  has no build step was the other option. Sixty lines of the ZIP spec is the
- *  cheaper one, and it makes the output deterministic: same files in, byte
- *  identical archive out, so a rebuild that changes nothing changes nothing.
+ *  The zip writer and the central-directory reader live in tools/lib/zip.mjs
+ *  since 2026-09-20 (they were written here; that file's header keeps the
+ *  reason a packaging dependency was refused). Same bytes, one copy.
  */
-
-const crc32 = zlib.crc32
-	? ( buf ) => zlib.crc32( buf ) >>> 0
-	: ( () => {
-		const table = new Uint32Array( 256 );
-		for ( let i = 0; i < 256; i++ ) {
-			let c = i;
-			for ( let k = 0; k < 8; k++ ) {
-				c = c & 1 ? 0xedb88320 ^ ( c >>> 1 ) : c >>> 1;
-			}
-			table[ i ] = c >>> 0;
-		}
-		return ( buf ) => {
-			let c = 0xffffffff;
-			for ( let i = 0; i < buf.length; i++ ) {
-				c = table[ ( c ^ buf[ i ] ) & 0xff ] ^ ( c >>> 8 );
-			}
-			return ( c ^ 0xffffffff ) >>> 0;
-		};
-	} )();
-
-
-/**
- *  Write a zip. `entries` is [ name, Buffer ] with names already using the
- *  forward slashes the format actually specifies.
- *
- *  Timestamps are fixed rather than taken from the clock, so two runs over
- *  unchanged files produce the same bytes and a pointless commit is visible as
- *  no diff at all.
- */
-function writeZip( file, entries ) {
-
-	const chunks = [];
-	const central = [];
-	let offset = 0;
-
-	for ( const [ name, body ] of entries ) {
-
-		const nameBuf = Buffer.from( name, 'utf8' );
-		const deflated = zlib.deflateRawSync( body, { level: 9 } );
-		const store = deflated.length >= body.length;
-		const data = store ? body : deflated;
-		const sum = crc32( body );
-
-		const local = Buffer.alloc( 30 );
-		local.writeUInt32LE( 0x04034b50, 0 );
-		local.writeUInt16LE( 20, 4 );               // version needed
-		local.writeUInt16LE( 0x0800, 6 );           // UTF-8 names
-		local.writeUInt16LE( store ? 0 : 8, 8 );    // stored or deflated
-		local.writeUInt16LE( 0, 10 );               // time
-		local.writeUInt16LE( 0x0021, 12 );          // date: 1980-01-01
-		local.writeUInt32LE( sum, 14 );
-		local.writeUInt32LE( data.length, 18 );
-		local.writeUInt32LE( body.length, 22 );
-		local.writeUInt16LE( nameBuf.length, 26 );
-		local.writeUInt16LE( 0, 28 );
-
-		chunks.push( local, nameBuf, data );
-
-		const dir = Buffer.alloc( 46 );
-		dir.writeUInt32LE( 0x02014b50, 0 );
-		dir.writeUInt16LE( 20, 4 );
-		dir.writeUInt16LE( 20, 6 );
-		dir.writeUInt16LE( 0x0800, 8 );
-		dir.writeUInt16LE( store ? 0 : 8, 10 );
-		dir.writeUInt16LE( 0, 12 );
-		dir.writeUInt16LE( 0x0021, 14 );
-		dir.writeUInt32LE( sum, 16 );
-		dir.writeUInt32LE( data.length, 20 );
-		dir.writeUInt32LE( body.length, 24 );
-		dir.writeUInt16LE( nameBuf.length, 28 );
-		dir.writeUInt16LE( 0, 30 );
-		dir.writeUInt16LE( 0, 32 );
-		dir.writeUInt16LE( 0, 34 );
-		dir.writeUInt16LE( 0, 36 );
-		dir.writeUInt32LE( 0, 38 );                 // external attrs
-		dir.writeUInt32LE( offset, 42 );
-
-		central.push( Buffer.concat( [ dir, nameBuf ] ) );
-		offset += local.length + nameBuf.length + data.length;
-	}
-
-	const dirBuf = Buffer.concat( central );
-
-	const end = Buffer.alloc( 22 );
-	end.writeUInt32LE( 0x06054b50, 0 );
-	end.writeUInt16LE( entries.length, 8 );
-	end.writeUInt16LE( entries.length, 10 );
-	end.writeUInt32LE( dirBuf.length, 12 );
-	end.writeUInt32LE( offset, 16 );
-
-	fs.writeFileSync( file, Buffer.concat( [ ...chunks, dirBuf, end ] ) );
-}
-
-
-/**
- *  Read back the central directory: name and CRC per entry.
- *
- *  Enough to prove the archive holds what was put in it without unpacking it
- *  anywhere, which is the only claim this script is allowed to make.
- */
-function readZipIndex( file ) {
-
-	if ( ! fs.existsSync( file ) ) {
-		return null;
-	}
-
-	const buf = fs.readFileSync( file );
-
-	let end = -1;
-	for ( let i = buf.length - 22; i >= 0 && i > buf.length - 66000; i-- ) {
-		if ( buf.readUInt32LE( i ) === 0x06054b50 ) {
-			end = i;
-			break;
-		}
-	}
-	if ( end < 0 ) {
-		return null;
-	}
-
-	const count = buf.readUInt16LE( end + 10 );
-	let at = buf.readUInt32LE( end + 16 );
-	const out = new Map();
-
-	for ( let i = 0; i < count; i++ ) {
-		if ( buf.readUInt32LE( at ) !== 0x02014b50 ) {
-			return null;
-		}
-		const sum = buf.readUInt32LE( at + 16 );
-		const nameLen = buf.readUInt16LE( at + 28 );
-		const extraLen = buf.readUInt16LE( at + 30 );
-		const commentLen = buf.readUInt16LE( at + 32 );
-		out.set( buf.toString( 'utf8', at + 46, at + 46 + nameLen ), sum >>> 0 );
-		at += 46 + nameLen + extraLen + commentLen;
-	}
-
-	return out;
-}
 
 
 /* ------------------------------------------------------------ the zip file */

@@ -13,6 +13,7 @@
 /tools            export-ignore
 /plans            export-ignore
 /.github          export-ignore
+/.harness         export-ignore
 /site             export-ignore
 /tickets          export-ignore
 /_bmad            export-ignore

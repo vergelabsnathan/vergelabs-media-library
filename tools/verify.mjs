@@ -117,6 +117,12 @@ const SUITES = [
 	 */
 	{ name: 'structure', file: 'tests/tree/structure.mjs', env: 'local' },
 	/*
+	 *  One ship list: `git archive HEAD` and playground/*.zip hold the same
+	 *  files, none starting with `.` or `_`, and the zip is the tree's own.
+	 *  The 4.0.0 archive shipped .harness/active.json (Epic 1 retro, A-1).
+	 */
+	{ name: 'archive-hygiene', file: 'tests/release/archive-hygiene.mjs', env: 'local' },
+	/*
 	 *  The copy standard, over the strings Phase 4 struck. Reads the source
 	 *  from disk, so env 'local'. Copy rots back: "Please try again" is the
 	 *  first thing typed when somebody adds the next error message.
