@@ -26,9 +26,10 @@ production deployment, and then the wait for sites to ask again.
   point there — so a free pull-back is `gh release edit v<previous> --latest`
   (GitHub's "latest" is whichever release was marked last; unmarking the bad
   one alone is not enough), plus the catalogue row back to the previous file
-  so health and the release-check stay honest. The two "previous" versions
-  differ today: the catalogue's is 3.16.1, GitHub's is v3.16.0 (no v3.16.1
-  release was ever published).
+  so health and the release-check stay honest. Since 4.0.1 (2026-09-20) the
+  two "previous" versions agree: the catalogue's is 4.0.0 and GitHub's is
+  v4.0.0. (Before that they differed: the catalogue's 3.16.1 against GitHub's
+  v3.16.0 — no v3.16.1 release was ever published.)
 
 ## How releases are named (binding for both plugins from 4.0.0, 2026-09-19)
 
@@ -43,10 +44,14 @@ previous version of each slug stay on disk, so steps 2–4 below are a
 catalogue edit, an env flip and a redeploy; anything older is retired in its
 own commit, and — for Pro, whose sites cache the package URL for six hours —
 never within a day of the catalogue moving off it (the free plugin has no
-updater, so its old file could go the same hour). On the shelf: free
-`…-3.16.1-b787a3bb6a20.zip`, `…-3.16.1-7f2a4fe9bee9.zip` and
-`…-4.0.0-bf0d63b70056.zip`, Pro `…-1.0.1-d0fe7f2ee9.zip` and
-`…-1.0.2-2a6a794642.zip`.
+updater, so its old file could go the same hour). On the shelf (2026-09-20,
+after the 4.0.1 / Pro 1.0.3 train): free `…-3.16.1-b787a3bb6a20.zip`,
+`…-3.16.1-7f2a4fe9bee9.zip`, `…-4.0.0-bf0d63b70056.zip` and
+`…-4.0.1-c5510da6b16a.zip`; Pro `…-1.0.1-d0fe7f2ee9.zip`,
+`…-1.0.2-2a6a794642.zip` and `…-1.0.3-9bb6c8ff5088.zip`. The catalogue
+serves 4.0.1 and 1.0.3; a rollback of either is one row back to 4.0.0 /
+1.0.2. Nothing has been retired yet — `b787a3bb6a20` is what the upgrade
+smoke walks from, so retiring the 3.16.1s is a decision.
 
 **Two 3.16.1s, and the rollback target is `b787a3bb6a20` (decided
 2026-09-20, Epic 1 retro).** The build the site served from 2026-09-09 to
@@ -92,7 +97,13 @@ every release's asset has that name, WordPress users expect it, and its
 digest must equal the served file's; confirm with
 `gh api repos/vergelabsnathan/vergelabs-media-library/releases/latest --jq .tag_name`
 (`gh release view --json` has no `isLatest` field). 4.0.0 went out this way
-on 2026-09-19 (service `5e1f5e9`, `dd07dd0`, `3eb0b9b`, `6c65233`, `4dfff34`).
+on 2026-09-19 (service `5e1f5e9`, `dd07dd0`, `3eb0b9b`, `6c65233`, `4dfff34`);
+4.0.1 and Pro 1.0.3 on 2026-09-20 (service `38a7ed5`, `058bfe5`; the env
+swap took 8 s and 7 s, the redeploys aliased in 45 s and 47 s). One thing
+the order above does not say: `.github/workflows/box.yml` deploys the
+plugin to the test box on every push to `main`, so pushing the release
+commit puts it on the box before the read-back — push after the read-back
+if that order matters, or push only the tag first.
 
 ## What to change
 

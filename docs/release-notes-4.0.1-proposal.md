@@ -1,7 +1,12 @@
-# 4.0.1 copy proposal — for Nathan's approval
+# 4.0.1 copy proposal — approved 2026-09-20, shipped
 
-Everything in this file is a proposal. Nothing here has been written into
-`readme.txt`. Story F changes no code; it names evidence for each line and
+Approved by Nathan on 2026-09-20 as proposed; (a) and (d) are in
+`readme.txt` and the `v4.0.1` GitHub release (plugin `657b257`), (d) is the
+catalogue's changelog line, (c) was taken (neither header moved). The text
+below is the proposal as it stood.
+
+Everything in this file was a proposal. Nothing here had been written into
+`readme.txt` at the time. Story F changes no code; it names evidence for each line and
 leaves the wording for Nathan to accept, edit or reject.
 
 ## (a) Three changelog lines for 4.0.1

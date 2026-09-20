@@ -20,19 +20,21 @@ Plugin Check without Docker".
 
 ## The archive to upload
 
-**`dist/vergelabs-media-library-4.0.0.zip`** — built 2026-09-19 from `59df217`,
-tagged `v4.0.0`. 145 entries, 1,101,616 bytes, sha256 begins `bf0d63b70056`.
+**`dist/vergelabs-media-library-4.0.1.zip`** — built 2026-09-20 from `b6a89f1`,
+tagged `v4.0.1`. 143 entries, 1,100,286 bytes, sha256 begins `c5510da6b16a`
+(4.0.0 was `59df217`, 145 entries, `bf0d63b70056`; the two fewer entries are
+`.harness/` and its file, export-ignored since retro A-1).
 Checked after building, not assumed: no `tests/`, `tools/`, `docs/`, `plans/`,
 `node_modules/`, `research/` or `dist/` inside it, no hidden files, the main
-plugin file present, and `Stable tag: 4.0.0` and `Version: 4.0.0` read back out
+plugin file present, and `Stable tag: 4.0.1` and `Version: 4.0.1` read back out
 of the zip itself rather than off the working tree.
 
 ## Done
 
 | Requirement | State |
 |---|---|
-| Plugin Check errors | **0** — all five categories, the release archive at 3.16.1 (`7f2a4fe9…`), run in Playground on 2026-09-12; **run again on 2026-09-19** against a clean archive of `89ba1f1` (everything through S21), same result |
-| Plugin Check warnings | **2** at 4.0.0 — `mismatched_plugin_name` (readme.txt's title carries a strapline the plugin header does not; a copy call, not a blocker) and `readme_parser_warnings_trimmed_section_description` (the Description runs to 11,468 characters against the parser's 2,500; it was 13,856 before this release, so it is long-standing, and moving External services out of it shortened rather than caused it). Neither blocks |
+| Plugin Check errors | **0** — all five categories, the release archive at 3.16.1 (`7f2a4fe9…`), run in Playground on 2026-09-12; **run again on 2026-09-19** against a clean archive of `89ba1f1` (everything through S21), same result; **and on 2026-09-20** against `657b257` (4.0.1), same result |
+| Plugin Check warnings | **2** at 4.0.0 and 4.0.1 — `mismatched_plugin_name` (readme.txt's title carries a strapline the plugin header does not; a copy call, not a blocker) and `readme_parser_warnings_trimmed_section_description` (the Description runs to 11,468 characters against the parser's 2,500; it was 13,856 before this release, so it is long-standing, and moving External services out of it shortened rather than caused it). Neither blocks |
 | `php -l` on every file | clean |
 | Runs on current WordPress | 18 of 18 matrix cells on 2026-09-11 — WordPress 6.5, 7.0, 7.1 × PHP 7.4, 8.2, 8.5, multisite, `nl_NL` and `ar`; see [compatibility.md](compatibility.md) |
 | Upgrade from Enhanced Media Library 2.9.4 | settings, taxonomies, MIME types and every term assignment carried over; 18 checks |

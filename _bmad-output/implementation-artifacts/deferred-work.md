@@ -73,3 +73,6 @@
 - source_spec: `plans/finish-the-suite.md`
   summary: tools/verify.mjs runPhpPlayground() duplicates runPhpLocal()'s result judging (~30 lines); a shared judge() would keep the two from drifting; verify.mjs in plugin assumed ../plugin and ../dist beside the checkout (pro's runner fixed it for worktrees with sibling()).
   evidence: consolidation review 2026-09-20 (blind hunter); pro 9fa975f sibling().
+- source_spec: `plans/finish-the-suite.md` (the release train, S26)
+  summary: `.github/workflows/box.yml` deploys to the box on every push to main, so the plugin push that carries a release tag puts the new build on the box before the served zip is read back over HTTPS -- the train's "box deploy only after the read-back" cannot be kept by pushing; either push the plugin main after the read-back next time (the GitHub release needs the tag pushed, not main) or give box.yml a manual trigger for release commits. Also: the shelf now holds two 3.16.1s, 4.0.0, 4.0.1, Pro 1.0.1, 1.0.2, 1.0.3 -- the runbook says older files are retired in their own commit (Pro never within a day of the catalogue moving); 3.16.1 b787a3bb6a20 is the rollback target the upgrade smoke reads, so the retirement is a decision, not a chore.
+  evidence: box.yml run 35529498161 at 18:34:29Z on the 4.0.1 push; the HTTPS read-back followed at 18:37Z (S26 handoff).

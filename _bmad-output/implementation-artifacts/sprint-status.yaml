@@ -49,12 +49,12 @@ development_status:
 
   epic-3: in-progress
   3-1-an-availability-answer: backlog
-  3-2-the-licence-key-leaves-the-support-ticket: review
+  3-2-the-licence-key-leaves-the-support-ticket: done
   3-3-a-response-time-that-can-be-kept-solo: backlog
   epic-3-retrospective: optional
 
   epic-4: in-progress
-  4-1-the-csv-export-cannot-execute-in-a-spreadsheet: review
+  4-1-the-csv-export-cannot-execute-in-a-spreadsheet: done
   4-2-the-compatibility-matrix-on-4-0-0: backlog
   4-3-operator-grade-or-client-grade: backlog
   epic-4-retrospective: optional
