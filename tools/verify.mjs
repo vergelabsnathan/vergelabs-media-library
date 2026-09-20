@@ -821,7 +821,7 @@ for ( const suite of chosen ) {
 	if ( 0 === code ) {
 		passed.push( suite.name );
 	} else if ( 2 === code ) {
-		console.log( `  SKIPPED — the suite says this is not the site it seeds` );
+		console.log( `  SKIPPED — the suite says why in its own line above (not its site, no key, Pro inactive)` );
 		skipped.push( suite.name );
 	} else {
 		failed.push( `${ suite.name } (exit ${ code })` );
