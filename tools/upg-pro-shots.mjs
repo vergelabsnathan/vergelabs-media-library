@@ -11,10 +11,11 @@
  *  the option written is the default hidden list minus that one column),
  *  logs in with Playwright, judges each screen on what it shows and writes
  *  the PNGs into docs/superpowers/mocks/shots. Whatever happens it releases
- *  the seat, puts the licence key and state back as found, puts the column
- *  option back and deactivates Pro if it found it inactive -- and the exit
- *  code is 1 unless every one of those steps said so itself. Nothing printed
- *  contains a key. Story 1.3 of plans/suite-readiness.md.
+ *  the seat, deactivates Pro if it found it inactive (before the key goes
+ *  back -- Pro's deactivation hook releases whatever key it finds), puts
+ *  the licence key and state back as found and puts the column option back
+ *  -- and the exit code is 1 unless every one of those steps said so itself.
+ *  Nothing printed contains a key. Story 1.3 of plans/suite-readiness.md.
  */
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
@@ -69,30 +70,33 @@ if ( ! wasActive ) {
 		process.exit( 1 );
 	}
 }
-if ( '1' !== wpEval( `echo function_exists( "vgmlpro_refresh" ) ? 1 : 0;` ) ) {
-	console.error( 'Pro is active but includes/licence.php is not loaded (safe mode?); nothing written.' );
-	process.exit( 1 );
-}
-
-const pass = box( 'cat /root/.upg-admin-pass' ).trim();
-const uid = wpEval( `echo get_user_by( "login", "vgmls22" )->ID;` );
-const described = wpEval( `global $wpdb; echo (int) $wpdb->get_var( "SELECT attachment_id FROM {$wpdb->prefix}vergeml_ai_index WHERE alt <> '' ORDER BY attachment_id LIMIT 1" );` );
-
-console.log( `admin uid ${ uid }, a described picture: ${ described }, Pro was ${ wasActive ? 'active' : 'inactive' }` );
-
-// What the fixture held before, put back exactly at the end: JSON, or false.
-const hadHidden = wpEval( `echo wp_json_encode( get_user_option( "manageuploadcolumnshidden", ${ uid } ) );` );
-const hadKey = wpEval( `echo wp_json_encode( get_option( "vgmlpro_licence_key", false ) );` );
-const hadState = wpEval( `echo wp_json_encode( get_option( "vgmlpro_licence_state", false ) );` );
-
-const activate = wpEval(
-	`update_option( "vgmlpro_licence_key", strtoupper( trim( getenv( "K" ) ) ) ); delete_option( "vgmlpro_licence_state" ); $s = vgmlpro_refresh( "activate" ); echo ( $s["valid"] ? "activated" : "refused: " . $s["reason"] ) . " " . $s["sites_used"] . "/" . $s["sites_allowed"];`,
-	{ K: KEY }
-);
-console.log( `licence: ${ activate }` );
-
+// From here everything runs inside the try: whatever fails, the finally puts
+// back what was taken -- the seat, the activation, the options (A-11).
 let screensOk = false;
+let uid, hadHidden, hadKey, hadState;
+let activate = '';
 try {
+	if ( '1' !== wpEval( `echo function_exists( "vgmlpro_refresh" ) ? 1 : 0;` ) ) {
+		throw new Error( 'Pro is active but includes/licence.php is not loaded (safe mode?); nothing written.' );
+	}
+
+	const pass = box( 'cat /root/.upg-admin-pass' ).trim();
+	uid = wpEval( `echo get_user_by( "login", "vgmls22" )->ID;` );
+	const described = wpEval( `global $wpdb; echo (int) $wpdb->get_var( "SELECT attachment_id FROM {$wpdb->prefix}vergeml_ai_index WHERE alt <> '' ORDER BY attachment_id LIMIT 1" );` );
+
+	console.log( `admin uid ${ uid }, a described picture: ${ described }, Pro was ${ wasActive ? 'active' : 'inactive' }` );
+
+	// What the fixture held before, put back exactly at the end: JSON, or false.
+	hadHidden = wpEval( `echo wp_json_encode( get_user_option( "manageuploadcolumnshidden", ${ uid } ) );` );
+	hadKey = wpEval( `echo wp_json_encode( get_option( "vgmlpro_licence_key", false ) );` );
+	hadState = wpEval( `echo wp_json_encode( get_option( "vgmlpro_licence_state", false ) );` );
+
+	activate = wpEval(
+		`update_option( "vgmlpro_licence_key", strtoupper( trim( getenv( "K" ) ) ) ); delete_option( "vgmlpro_licence_state" ); $s = vgmlpro_refresh( "activate" ); echo ( $s["valid"] ? "activated" : "refused: " . $s["reason"] ) . " " . $s["sites_used"] . "/" . $s["sites_allowed"];`,
+		{ K: KEY }
+	);
+	console.log( `licence: ${ activate }` );
+
 	if ( ! activate.startsWith( 'activated' ) ) {
 		throw new Error( 'the licence did not activate' );
 	}
@@ -151,26 +155,39 @@ try {
 	console.error( e.message );
 } finally {
 	// Each step says what it did in its last line, and that line is judged;
-	// the release first, then the options, then the plugin, each its own eval
+	// the release first, then the plugin, then the options, each its own eval
 	// so one failing does not take the others with it.
-	step( 'seat released', wpEval(
-		`$s = function_exists( "vgmlpro_refresh" ) ? vgmlpro_refresh( "deactivate" ) : array( "valid" => false, "reason" => "pro not loaded", "sites_used" => "?", "sites_allowed" => "?" ); echo ( $s["valid"] ? "released" : "answer: " . $s["reason"] ) . " " . $s["sites_used"] . "/" . $s["sites_allowed"];`
-	), /^released/ );
+	// A seat was taken only if the activate call ran; before that there is
+	// nothing to release and nothing of the fixture's has been written.
+	if ( activate ) {
+		step( 'seat released', wpEval(
+			`$s = function_exists( "vgmlpro_refresh" ) ? vgmlpro_refresh( "deactivate" ) : array( "valid" => false, "reason" => "pro not loaded", "sites_used" => "?", "sites_allowed" => "?" ); echo ( $s["valid"] ? "released" : "answer: " . $s["reason"] ) . " " . $s["sites_used"] . "/" . $s["sites_allowed"];`
+		), /^released/ );
+	}
 
-	const put = ( option, had ) => 'false' === had
-		? `delete_option( "${ option }" );`
-		: `update_option( "${ option }", json_decode( '${ had.replace( /'/g, "\\'" ) }', true ), false );`;
-	step( 'licence key and state put back', wpEval(
-		`${ put( 'vgmlpro_licence_key', hadKey ) } ${ put( 'vgmlpro_licence_state', hadState ) } delete_transient( "vgmlpro_check_failed" ); echo "put back (key was " . ( ${ 'false' === hadKey ? 'true' : 'false' } ? "absent" : "present" ) . ")";`
-	), /^put back/ );
-
-	const restore = 'false' === hadHidden || 'null' === hadHidden
-		? `delete_user_option( ${ uid }, "manageuploadcolumnshidden", true );`
-		: `update_user_option( ${ uid }, "manageuploadcolumnshidden", json_decode( '${ hadHidden }', true ), true );`;
-	step( 'column option put back', wpEval( `${ restore } echo "put back (was ${ hadHidden.replace( /"/g, '\\"' ) })";` ), /^put back/ );
-
+	// Before the key goes back: Pro's deactivation hook releases whatever key
+	// it finds (includes/licence.php, vgmlpro_on_deactivation), so with the
+	// fixture's own key restored first it would hand back a real seat. The
+	// test key is emptied so the hook has nothing to release either (A-11).
 	if ( ! wasActive ) {
-		step( 'Pro deactivated again', wpPlugin( 'deactivate' ), /deactivated/i );
+		if ( activate ) {
+			wpEval( `delete_option( "vgmlpro_licence_key" ); delete_option( "vgmlpro_licence_state" );` );
+		}
+		step( 'Pro deactivated again, before the key goes back', wpPlugin( 'deactivate' ), /deactivated/i );
+	}
+
+	if ( activate ) {
+		const put = ( option, had ) => 'false' === had
+			? `delete_option( "${ option }" );`
+			: `update_option( "${ option }", json_decode( '${ had.replace( /'/g, "\\'" ) }', true ), false );`;
+		step( 'licence key and state put back', wpEval(
+			`${ put( 'vgmlpro_licence_key', hadKey ) } ${ put( 'vgmlpro_licence_state', hadState ) } delete_transient( "vgmlpro_check_failed" ); echo "put back (key was " . ( ${ 'false' === hadKey ? 'true' : 'false' } ? "absent" : "present" ) . ")";`
+		), /^put back/ );
+
+		const restore = 'false' === hadHidden || 'null' === hadHidden
+			? `delete_user_option( ${ uid }, "manageuploadcolumnshidden", true );`
+			: `update_user_option( ${ uid }, "manageuploadcolumnshidden", json_decode( '${ hadHidden }', true ), true );`;
+		step( 'column option put back', wpEval( `${ restore } echo "put back (was ${ hadHidden.replace( /"/g, '\\"' ) })";` ), /^put back/ );
 	}
 }
 process.exit( screensOk && said.every( Boolean ) ? 0 : 1 );

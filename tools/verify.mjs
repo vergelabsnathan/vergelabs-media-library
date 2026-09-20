@@ -245,7 +245,10 @@ const SUITES = [
 		name: 'compat-free-upg', file: '../pro/tests/compat-free.php', env: 'box', php: true, wp: '/var/www/upg',
 		vars: { VGMLPRO_SEATS_KEY: SEATS_KEY },
 		before: 'wp plugin activate vergelabs-media-library-pro',
-		after: 'wp plugin deactivate vergelabs-media-library-pro',
+		// Only when no key is connected: Pro's deactivation hook releases the
+		// seat of whatever key it finds, and the suite has just put the site's
+		// own key back. A fixture holding a real key keeps Pro active (A-11).
+		after: `wp eval 'if ( "" === (string) get_option( "vgmlpro_licence_key", "" ) ) { deactivate_plugins( "vergelabs-media-library-pro/vergelabs-media-library-pro.php" ); echo "Pro deactivated"; } else { echo "a key is connected; Pro left active"; }'`,
 	} ] : [] ),
 	/*
 	 *  The licence key at rest, in logs and in responses: a canary key planted
@@ -504,7 +507,24 @@ function boxStep( suite, field ) {
 	} );
 }
 
-const baseFor = ( suite ) => ( 'playground' === suite.env ? PLAYGROUND : ( 'local' === suite.env ? '' : BASE ) );
+/*
+ *  Where a suite's site answers. A box suite that names another WordPress
+ *  (`wp: /var/www/upg`) lives on the box's nip.io pattern -- upg answers at
+ *  upg.<ip>.nip.io, not at the main site, which is what was probed before a
+ *  suite on the fixture ran (A-11).
+ */
+const baseFor = ( suite ) => {
+	if ( 'playground' === suite.env ) {
+		return PLAYGROUND;
+	}
+	if ( 'local' === suite.env ) {
+		return '';
+	}
+	if ( suite.wp && suite.wp !== BOX.wp ) {
+		return `http://${ path.basename( suite.wp ) }.${ BOX_HOST }.nip.io`;
+	}
+	return BASE;
+};
 
 async function reachable( url ) {
 	try {
@@ -809,11 +829,26 @@ process.on( 'SIGTERM', () => process.exit( 143 ) );
 
 const chosen = only.length ? SUITES.filter( ( s ) => only.includes( s.name ) ) : SUITES;
 
+const failed = [];
+const skipped = [];
+const passed = [];
+
+/*
+ *  The key-gated suite without its key: said on a bare run or when it was
+ *  asked for, not on every keyless run of something else. Asked for alone it
+ *  is exit 2 as before; asked for beside others it is SKIPPED and the others
+ *  run -- the summary still says so and the exit is 2 unless --allow-skips.
+ */
 if ( ! SEATS_KEY ) {
 	const asked = only.includes( 'compat-free-upg' );
-	console.log( `  compat-free-upg: not registered — VGMLPRO_SEATS_KEY absent${ asked ? '; it was asked for' : '' }` );
-	if ( asked ) {
+	if ( asked || ! only.length ) {
+		console.log( `  compat-free-upg: not registered — VGMLPRO_SEATS_KEY absent${ asked ? '; it was asked for' : '' }` );
+	}
+	if ( asked && ! chosen.length ) {
 		process.exit( 2 );
+	}
+	if ( asked ) {
+		skipped.push( 'compat-free-upg' );
 	}
 }
 
@@ -826,10 +861,6 @@ console.log( `\nverify` );
 console.log( `  box        ${ BASE }` );
 console.log( `  playground ${ PLAYGROUND }` );
 console.log( `  ${ chosen.length } suite(s), one at a time` );
-
-const failed = [];
-const skipped = [];
-const passed = [];
 
 for ( const suite of chosen ) {
 
