@@ -10,8 +10,9 @@
  *  path against a stand-in service, PHP's error log, the support ticket, the
  *  counts snapshot. The key may appear in exactly one place: as the top-level
  *  `license_key` / `key` field of a request body to the service, which is how
- *  every /v1 call authenticates (docs/security-hosts.md decides where those
- *  go). Anywhere else is a leak.
+ *  every /v1 call but the support ticket authenticates (docs/security-hosts.md
+ *  decides where those go; the ticket sends the key's last four characters,
+ *  story 3.2). Anywhere else is a leak.
  *
  *  ## The canary
  *
@@ -508,9 +509,10 @@ s_check( 'the handler ran to its redirect and the stand-in took the ticket', fal
 $s_tickets = array_values( array_filter( $GLOBALS['s_calls'], function ( $c ) { return '/support/ticket' === substr( (string) wp_parse_url( $c['url'], PHP_URL_PATH ), -15 ); } ) );
 $s_ticket  = $s_tickets ? json_decode( (string) $s_tickets[0]['args']['body'], true ) : null;
 s_check( 'one ticket body was caught', 1 === count( $s_tickets ) && is_array( $s_ticket ) );
-s_check( 'it authenticates with the key as its top-level `key` field', is_array( $s_ticket ) && isset( $s_ticket['key'] ) && $s_ticket['key'] === $s_key );
-unset( $s_ticket['key'] );
-s_check( 'and nothing else in it -- question, report, known issues -- carries the key', 0 === s_hits( wp_json_encode( $s_ticket ) ) && 0 === s_token_hits( wp_json_encode( $s_ticket ) ) );
+// Story 3.2 (FR10): a ticket is the one /v1 call that does not authenticate
+// with the key. It names the licence by its last four characters and the site.
+s_check( 'it carries the key\'s last four characters as `licence`, not the key', is_array( $s_ticket ) && ! isset( $s_ticket['key'] ) && isset( $s_ticket['licence'] ) && substr( $s_key, -4 ) === $s_ticket['licence'] );
+s_check( 'and nothing in it -- question, report, known issues -- carries the key', 0 === s_hits( wp_json_encode( $s_ticket ) ) && 0 === s_token_hits( wp_json_encode( $s_ticket ) ) );
 
 
 /* ------------------------------------------------- F. the counts snapshot */
