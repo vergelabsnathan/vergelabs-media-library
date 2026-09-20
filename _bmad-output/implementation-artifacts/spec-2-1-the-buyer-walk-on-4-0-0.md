@@ -80,6 +80,7 @@ context:
 ## Spec Change Log
 
 - 2026-09-20 Nathan's four calls: €39.00 with no code; buyer `nathan+buyer-0920@vergelabs.nl` (a first-time account); the site is `upg`; afterwards the subscription is cancelled at period end from `/account` (no refund).
+- 2026-09-20 12:10, Nathan at the Pay button: not €39 — €0.50. A new amount-off code (`WALK0920`, €38.50 off, `single` only, 1 use, made at `/admin/discounts`) takes the first invoice to Stripe's €0.50 floor; renewal stays €39 (the coupon is `once`). The walk therefore proves the coupon path on a yearly plan — `ensureStripeCoupon` makes the Stripe coupon on first use — and the first abandoned checkout (no code) stays incomplete in Stripe until it expires. The "Never: a discount code" line is superseded by this entry.
 - 2026-09-20 pre-mortem (Advanced Elicitation, applied): one headed Playwright window instead of Nathan's browser; DB rows optional, customer artefacts the proof; the snapshot widened to `wp_posts` + `postmeta` + `vergeml_index`; the key masked in shots; cancel at period end inside T7; the Stripe-read fallback; `VGMLPRO_API_BASE` checked in T1. Ruled out by reading: `normaliseEmail` keeps the tag; Pro sends bytes, not a URL.
 
 ## Review Triage Log
