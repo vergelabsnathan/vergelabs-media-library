@@ -73,6 +73,10 @@ for ( const name of [ '--base', '--playground' ] ) {
 
 const only = argv.filter( ( a, i ) => ! taken.has( i ) && ! a.startsWith( '--' ) );
 
+// Pro's one-seat test licence; the suites that need it are registered only
+// when it is here, and say so below when it is not.
+const SEATS_KEY = ( process.env.VGMLPRO_SEATS_KEY || '' ).trim();
+
 /*
  *  Order matters. The watchdog runs last because it deliberately drives the
  *  site into safe mode, and a suite that starts while the features are off
@@ -222,12 +226,18 @@ const SUITES = [
 	 *  on the upgrade fixture with the Pro 1.0.2 archive installed and active
 	 *  (tools/box-upgrade-site.sh plugin <zip>). The proof is the archives leg
 	 *  in Playground (pro/tools/verify.mjs compat-free); this is the same file
-	 *  on a real database. Needs VGMLPRO_SEATS_KEY in the environment -- the
-	 *  one-seat test licence, never the site's own; the suite hands the seat
-	 *  back. Without the key, or with Pro inactive on the fixture (how story
-	 *  1.3 leaves it), the suite exits 2 and is reported SKIPPED, not failed.
+	 *  on a real database. Registered only when VGMLPRO_SEATS_KEY is in the
+	 *  environment -- the one-seat test licence, never the site's own; the
+	 *  suite hands the seat back. The fixture keeps Pro installed but inactive
+	 *  (how story 1.3 leaves it), so `before` activates it and `after` puts it
+	 *  back whatever the suite said.
 	 */
-	{ name: 'compat-free-upg', file: '../pro/tests/compat-free.php', env: 'box', php: true, wp: '/var/www/upg', vars: { VGMLPRO_SEATS_KEY: ( process.env.VGMLPRO_SEATS_KEY || '' ).trim(), VGMLPRO_COMPAT_ARCHIVES: '1' } },
+	...( SEATS_KEY ? [ {
+		name: 'compat-free-upg', file: '../pro/tests/compat-free.php', env: 'box', php: true, wp: '/var/www/upg',
+		vars: { VGMLPRO_SEATS_KEY: SEATS_KEY, VGMLPRO_COMPAT_ARCHIVES: '1' },
+		before: 'wp plugin activate vergelabs-media-library-pro',
+		after: 'wp plugin deactivate vergelabs-media-library-pro',
+	} ] : [] ),
 	/*
 	 *  The licence key at rest, in logs and in responses: a canary key planted
 	 *  through the settings route, then the tables, every GET route as an
@@ -448,31 +458,38 @@ if ( ! BOX ) {
 
 const SSH = `ssh -i ${ BOX.key } -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${ BOX_HOST }`;
 
-function precondition( suite ) {
+/*
+ *  A suite's `before` (precondition) or `after` (put the site back), one
+ *  wp-cli command on the box. `after` runs whatever the suite exited with.
+ */
+function boxStep( suite, field ) {
 	return new Promise( ( resolve ) => {
 
-		if ( ! suite.before || 'box' !== suite.env ) {
+		const command = suite[ field ];
+
+		if ( ! command || 'box' !== suite.env ) {
 			return resolve( true );
 		}
 
-		console.log( `  precondition: ${ suite.before }` );
+		const label = 'before' === field ? 'precondition' : 'after';
+		console.log( `  ${ label }: ${ command }` );
 
 		const child = spawn(
 			SSH.split( ' ' )[ 0 ],
-			[ ...SSH.split( ' ' ).slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ suite.before } --allow-root` ],
+			[ ...SSH.split( ' ' ).slice( 1 ), `cd ${ suite.wp || BOX.wp } && ${ command } --allow-root` ],
 			{ stdio: 'ignore' }
 		);
 
-		// A precondition that cannot run is worth saying out loud, but it is
-		// the suite's own failure that decides the result.
+		// A step that cannot run is worth saying out loud, but it is the
+		// suite's own failure that decides the result.
 		child.on( 'close', ( code ) => {
 			if ( 0 !== code ) {
-				console.log( `  precondition exited ${ code } — the suite may fail for that reason` );
+				console.log( `  ${ label } exited ${ code } — ${ 'before' === field ? 'the suite may fail for that reason' : 'the site may not be as it was' }` );
 			}
 			resolve( true );
 		} );
 		child.on( 'error', () => {
-			console.log( '  precondition could not run (no ssh?)' );
+			console.log( `  ${ label } could not run (no ssh?)` );
 			resolve( true );
 		} );
 	} );
@@ -780,6 +797,14 @@ process.on( 'SIGTERM', () => process.exit( 143 ) );
 
 const chosen = only.length ? SUITES.filter( ( s ) => only.includes( s.name ) ) : SUITES;
 
+if ( ! SEATS_KEY ) {
+	const asked = only.includes( 'compat-free-upg' );
+	console.log( `  compat-free-upg: not registered — VGMLPRO_SEATS_KEY absent${ asked ? '; it was asked for' : '' }` );
+	if ( asked ) {
+		process.exit( 2 );
+	}
+}
+
 if ( ! chosen.length ) {
 	console.error( `No suite matched. Known: ${ SUITES.map( ( s ) => s.name ).join( ', ' ) }` );
 	process.exit( 2 );
@@ -802,9 +827,11 @@ for ( const suite of chosen ) {
 		continue;
 	}
 
-	await precondition( suite );
+	await boxStep( suite, 'before' );
 
 	const code = await run( suite );
+
+	await boxStep( suite, 'after' );
 
 	/*
 	 *  Exit 2 is a suite saying "not here" rather than "broken".
@@ -821,7 +848,7 @@ for ( const suite of chosen ) {
 	if ( 0 === code ) {
 		passed.push( suite.name );
 	} else if ( 2 === code ) {
-		console.log( `  SKIPPED — the suite says why in its own line above (not its site, no key, Pro inactive)` );
+		console.log( `  SKIPPED — the suite says why in its own line above` );
 		skipped.push( suite.name );
 	} else {
 		failed.push( `${ suite.name } (exit ${ code })` );
