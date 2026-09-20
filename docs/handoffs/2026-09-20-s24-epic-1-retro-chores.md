@@ -91,10 +91,11 @@ Not re-taken: no engine, screen or filing code changed. S21's stand: shop
 
 ## Open, and Nathan's
 
-- **The service commit `9da6ddd` is local.** Pushing it puts
-  `…-3.16.1-b787a3bb6a20.zip` on the shelf at vergelabsmedia.com (a new
-  file; the catalogue still serves 4.0.0 and is untouched). Nothing else
-  waits on it until a rollback does.
+- **Service `9da6ddd` pushed on Nathan's go** (10:28 UTC): the hook built
+  production in 22 s and
+  `https://vergelabsmedia.com/releases/vergelabs-media-library-3.16.1-b787a3bb6a20.zip`
+  answers 200, 975,185 bytes, sha256 `b787a3bb6a20` — the bytes, not a
+  status code; health `ok`. The catalogue still serves 4.0.0, untouched.
 - `7f2a4fe9bee9` stays on the shelf; retiring it is its own commit, yours.
 - Still yours from S22/S23: the 4.0.1 cut (FR10, FR12, the PHP 8.4+ fix,
   `.harness` export-ignore — done in A-1 — and now `research`/`dist`/
