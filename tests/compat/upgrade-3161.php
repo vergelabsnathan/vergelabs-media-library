@@ -29,6 +29,13 @@ function up( $name, $ok, $detail = '' ) {
 global $wpdb;
 $p = $wpdb->prefix;
 
+// How long debug.log is as this run starts: on the box the judgement at the
+// end covers the lines this run wrote, nothing older (the window used to open
+// at the snapshot's count on a fixture that stays up -- 1,100 lines and
+// growing, red for good on any other notice; Epic 1 retro, A-5).
+$log            = WP_CONTENT_DIR . '/debug.log';
+$log_at_start   = file_exists( $log ) ? count( file( $log ) ) : 0;
+
 // The upgrade runs on plugins_loaded in admin, cron or CLI; wp-cli counts, so
 // this process has already provisioned if the option was behind.
 // Against the running plugin, not a literal: the fixture stays up across
@@ -102,25 +109,6 @@ up( 'the stored session was 3.16.1\'s (no tree key of its own, or editing)', is_
 up( 'no upgrade lock left', false === get_option( 'vergeml_upgrading' ) );
 up( 'mock mode survived', ! empty( vergeml_ai_settings()['mock'] ) );
 
-// Only what was written after the snapshot: the fixture stage's own notices
-// (Playground's SQLite refuses the packed embedding) are not the upgrade's.
-$log   = WP_CONTENT_DIR . '/debug.log';
-$since = is_array( $snap ) && isset( $snap['debug_log_lines'] ) ? (int) $snap['debug_log_lines'] : 0;
-$all   = file_exists( $log ) ? file( $log ) : array();
-up( 'debug.log did not shrink since the snapshot', count( $all ) >= $since, count( $all ) . ' vs ' . $since );
-$lines = array_slice( $all, $since );
-$mine  = preg_grep( '#vergelabs-media-library/#', $lines );
-// The one line the 4.0.0 archive is known to write on PHP 8.4+: the
-// implicit-nullable parameter of vergeml_ai_rest_status(), fixed in the tree
-// on 2026-09-19 and shipping with 4.0.1. Named, not hidden, and only where
-// the archive runs: on the box fixture while it is on 4.0.0. The smoke runs
-// the tree's own zip, where the line must not appear at all -- a revert of
-// the fix turns the smoke red. Retires itself when the fixture moves on.
-$allow = ! getenv( 'VGML_SMOKE' ) && '4.0.0' === VERGEML_VERSION;
-$known = $allow ? preg_grep( '#vergeml_ai_rest_status\(\): Implicitly marking parameter#', $mine ) : array();
-$other = array_diff_key( $mine, $known );
-up( 'debug.log carries no unexpected line from the plugin since the snapshot', ! $other, $other ? trim( reset( $other ) ) : ( count( $lines ) . ' new lines' . ( $known ? ', ' . count( $known ) . ' known (4.0.0 implicit-nullable, fixed for 4.0.1)' : ', none ours' ) ) );
-
 // One admin request through the real front door, as the customer's browser
 // would make it. Playground cannot reach itself over HTTP, so the smoke sets
 // VGML_SMOKE and this one check is not counted there.
@@ -145,6 +133,29 @@ if ( ! getenv( 'VGML_SMOKE' ) ) {
 	up( 'the Folders screen answers 200, logged in', '200' === $code, $code );
 	up( 'and it is the Folders screen, not the login form', false !== strpos( $body, 'page=media-librarian' ) && false === strpos( $body, 'id="loginform"' ) );
 }
+
+// What this run wrote to debug.log: the CLI boot above and, on the box, the
+// two front-door requests. In the smoke the window opens at the snapshot's
+// count instead -- there the swap and the admin boot are separate runPHP
+// steps before this one, and the fixture stage's own notices (Playground's
+// SQLite refuses the packed embedding) are not the upgrade's.
+$since = getenv( 'VGML_SMOKE' )
+	? ( is_array( $snap ) && isset( $snap['debug_log_lines'] ) ? (int) $snap['debug_log_lines'] : 0 )
+	: $log_at_start;
+$all   = file_exists( $log ) ? file( $log ) : array();
+up( 'debug.log did not shrink since the window opened', count( $all ) >= $since, count( $all ) . ' vs ' . $since . ( getenv( 'VGML_SMOKE' ) ? ' (the snapshot)' : ' (this run)' ) );
+$lines = array_slice( $all, $since );
+$mine  = preg_grep( '#vergelabs-media-library/#', $lines );
+// The one line the 4.0.0 archive is known to write on PHP 8.4+: the
+// implicit-nullable parameter of vergeml_ai_rest_status(), fixed in the tree
+// on 2026-09-19 and shipping with 4.0.1. Named, not hidden, and only where
+// the archive runs: on the box fixture while it is on 4.0.0. The smoke runs
+// the tree's own zip, where the line must not appear at all -- a revert of
+// the fix turns the smoke red. Retires itself when the fixture moves on.
+$allow = ! getenv( 'VGML_SMOKE' ) && '4.0.0' === VERGEML_VERSION;
+$known = $allow ? preg_grep( '#vergeml_ai_rest_status\(\): Implicitly marking parameter#', $mine ) : array();
+$other = array_diff_key( $mine, $known );
+up( 'debug.log carries no unexpected line from the plugin in that window', ! $other, $other ? trim( reset( $other ) ) : ( count( $lines ) . ' new lines' . ( $known ? ', ' . count( $known ) . ' known (4.0.0 implicit-nullable, fixed for 4.0.1)' : ', none ours' ) ) );
 
 $total = $GLOBALS['up_pass'] + $GLOBALS['up_fail'];
 echo "\n{$GLOBALS['up_pass']}/{$total} passed\n";
