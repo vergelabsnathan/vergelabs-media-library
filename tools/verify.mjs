@@ -218,6 +218,16 @@ const SUITES = [
 	 */
 	{ name: 'upgrade-3161-smoke', file: 'tests/compat/upgrade-3161.spec.mjs', env: 'local' },
 	/*
+	 *  Pro 1.0.2 on free 4.0.0, on MySQL: the Pro repo's compat-free suite run
+	 *  on the upgrade fixture with the Pro 1.0.2 archive installed and active
+	 *  (tools/box-upgrade-site.sh plugin <zip>). The proof is the archives leg
+	 *  in Playground (pro/tools/verify.mjs compat-free); this is the same file
+	 *  on a real database. Needs VGMLPRO_SEATS_KEY in the environment -- the
+	 *  one-seat test licence, never the site's own; the suite hands the seat
+	 *  back. Story 1.3 of plans/suite-readiness.md.
+	 */
+	{ name: 'compat-free-upg', file: '../pro/tests/compat-free.php', env: 'box', php: true, wp: '/var/www/upg', vars: { VGMLPRO_SEATS_KEY: ( process.env.VGMLPRO_SEATS_KEY || '' ).trim(), VGMLPRO_COMPAT_ARCHIVES: '1' } },
+	/*
 	 *  The licence key at rest, in logs and in responses: a canary key planted
 	 *  through the settings route, then the tables, every GET route as an
 	 *  administrator, a describe pass against a stand-in service, PHP's log,
