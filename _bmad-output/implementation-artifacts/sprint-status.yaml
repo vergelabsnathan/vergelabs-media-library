@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-19-2026 14:30
-last_updated: "09-20-2026 13:10"
+last_updated: "09-20-2026 09:14"
 project: vergelabs-media-library
 project_key: NOKEY
 tracking_system: file-system
@@ -39,7 +39,7 @@ development_status:
   1-1-the-channel-serves-4-0-0: done
   1-2-a-3-16-1-site-upgrades-in-place-and-keeps-everything: done
   1-3-pro-1-0-2-works-on-4-0-0: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   epic-2: backlog
   2-1-the-buyer-walk-on-4-0-0: backlog
@@ -58,3 +58,115 @@ development_status:
   4-2-the-compatibility-matrix-on-4-0-0: backlog
   4-3-operator-grade-or-client-grade: backlog
   epic-4-retrospective: optional
+action_items:
+  - id: "epic-1-retro-item-1-one-ship-list-deploy-mjs-derives-its-pay"
+    epic: 1
+    action: "One ship list: deploy.mjs derives its payload from git check-attr export-ignore
+      (or adds _bmad, _bmad-output, .harness, AGENTS.md to SKIP); .harness export-ignore
+      in .gitattributes; a registered check that no archive entry starts with . or
+      _; re-cut the playground zip"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-2-walk-the-upgrade-from-the-served-3-16-1"
+    epic: 1
+    action: "Walk the upgrade from the served 3.16.1 (539e4937, service dd07dd0^)
+      as a second old side in the smoke; correct upgrade-3161.spec.mjs:44-46 and rollback.md:48-52
+      (24 files differ); settle the rollback target"
+    owner: "Nathan (target), next session (run)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-3-box-upgrade-site-sh-plugin-zip-inactive"
+    epic: 1
+    action: "box-upgrade-site.sh plugin <zip> [--inactive]: activation optional, prints
+      sha256sum and the installed slug own version; the snapshot records a digest
+      of the plugin directory"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-4-drop-vgmlpro_compat_archives-from-the-co"
+    epic: 1
+    action: "Drop VGMLPRO_COMPAT_ARCHIVES from the compat-free-upg entry so both box
+      suites share the fixture version policy"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-5-upgrade-3161-php-judges-only-the-debug-l"
+    epic: 1
+    action: "upgrade-3161.php judges only the debug.log lines this run wrote; the
+      snapshot count stays for the one-shot smoke"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-6-one-front-end-boot-step-in-the-upgrade-s"
+    epic: 1
+    action: "One front-end boot step in the upgrade smoke between install and the
+      admin boot: no error, vergeml_version still 3.16.1, snapshot at 0 differences"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-7-plugin-tools-verify-mjs-606-vars-quoting"
+    epic: 1
+    action: "plugin/tools/verify.mjs:606 vars quoting: the JS literal must be a backslash-escaped
+      POSIX idiom (today it yields three quotes)"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-8-pro-archives-leg-on-php-8-5-compat-free"
+    epic: 1
+    action: "Pro archives leg on php 8.5; compat-free.php reads error_get_last() at
+      the top and fails on a Pro file"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-9-at-the-fixture-next-reset-build-the-3-16"
+    epic: 1
+    action: "At the fixture next reset, build the 3.16.1 session turns with vergeml_guide_turn_add
+      (kind and at)"
+    owner: "next session, at the next schema bump"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-10-release-files-test-ts-positive-assertion"
+    epic: 1
+    action: "release-files.test.ts: positive assertion on the negative case and a
+      12-hex prefix from 4.0.0 / Pro 1.0.3 on"
+    owner: "next session (service)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-11-upg-pro-shots-mjs-and-verify-mjs-hygiene"
+    epic: 1
+    action: "upg-pro-shots.mjs and verify.mjs hygiene in one commit: activation inside
+      the try, deactivate before the key restore, compat-free-upg dropped from only
+      rather than exit 2, reachable() per suite base, the not-registered line only
+      on a bare run or when asked"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-12-reconcile-epics-md-1-3-the-media-list-sh"
+    epic: 1
+    action: "Reconcile epics.md 1.3: the media list shows provenance, the attachment
+      screen answers 200 (Pro 1.0.2 has no attachment-screen hook)"
+    owner: "Nathan"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-13-reviews-pass-the-previous-pass-rejected"
+    epic: 1
+    action: "Reviews: pass the previous pass rejected rows to the reviewers (bmad-customize
+      candidate for bmad-code-review)"
+    owner: "Nathan"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-14-commit-subjects-name-the-story-story-n-m"
+    epic: 1
+    action: "Commit subjects name the story (story N.M or a Story: trailer); one AGENTS.md
+      line via bmad-project-context, which also refreshes the suite count"
+    owner: "Nathan"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-1-retro-item-15-bmad-spec-derive-the-verification-block"
+    epic: 1
+    action: "bmad-spec: derive the Verification block from the last task end state
+      (bmad-customize candidate)"
+    owner: "Nathan"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
