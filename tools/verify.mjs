@@ -275,6 +275,14 @@ const SUITES = [
 	 *  here on the mounted checkout (runPhpPlayground) -- never the box.
 	 */
 	{ name: 'get-help', file: 'tests/security/get-help.php', env: 'local', php: 'playground' },
+	/*
+	 *  What a describe run does while the service is down (E3-2, 2026-09-21):
+	 *  the line behind the readme's outage FAQ -- marked on the first miss
+	 *  when unreachable, on the third 503, re-offered only by the Alt text
+	 *  pass. A stand-in service answers every call; spends nothing. Playground
+	 *  here, like get-help.
+	 */
+	{ name: 'ai-outage', file: 'tests/ai/outage.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },
