@@ -235,6 +235,8 @@ Re-run the 18 cells and the plugin-conflict set; to be detailed when sequenced.
 
 A product decision, Nathan's; a mock before any screen change.
 
+**Decided 2026-09-21 (`docs/decisions-2026-09.md` row 3): client-grade, with one pause.** Above 500 pictures the fill runs its first slice of 100 and stops on "100 placed — look at them, then continue or undo"; the continue button carries the remaining count; below the threshold the fill runs whole, as today. Next: a mock for Nathan's approval, then the story (spec → build → review). Copy is Nathan's.
+
 ### Story 4.4: A single row drags into a folder beside FileBird
 
 Found by 4.2 on 2026-09-20: beside FileBird 6.5.8 on MariaDB, one unselected list row dragged onto a folder lights the folder and files nothing (the 09-11 bytes passed). Bisect between `c85cde6` and 4.0.1, fix, prove with the matrix cell and the tree drag specs; 4.0.2 material.

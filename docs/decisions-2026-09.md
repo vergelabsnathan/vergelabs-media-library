@@ -41,7 +41,7 @@ describing or a queue; the behaviour is already the right one.
 `service/docs/runbooks/incident.md` (cross-reference); `sprint-status.yaml`
 3.1 → done; a `deferred-work.md` row for the status word.
 
-**Nathan's answer.** _(blank)_
+**Nathan's answer.** _(not given at the sitting — asked again; the recommendation stands as the proposal)_
 
 ---
 
@@ -69,7 +69,7 @@ Nathan actually reads, in which case the reverse.
 support section and terms (same number, one address); `sprint-status.yaml`
 3.3 → done.
 
-**Nathan's answer.** _(blank — the number, and which address)_
+**Nathan's answer.** **One business day stays; the address is support@vergelabsmedia.com** ("2 support@", 2026-09-21). Landed: readme.txt Support (the ticket mail's sentence, verbatim); service public/index.html support heading (0317178). The "more than 25 sites" link in the unpushed pricing commit still says in.vergelabs.nl — Nathan's branch.
 
 ---
 
@@ -100,7 +100,7 @@ per the story: a mock first, Nathan's approval, then a story of its own.
 (spec → build → review); `sprint-status.yaml` 4.3 → in-progress with the
 decision recorded in `epics.md`.
 
-**Nathan's answer.** _(blank — client-grade or operator; the threshold)_
+**Nathan's answer.** **Client-grade with the pause at 500 / first 100** ("3 yes i agree"). Landed: epics.md story 4.3 carries the decision; the mock is the next step, not started.
 
 ---
 
@@ -123,7 +123,7 @@ make a new one". Nothing in the code changes.
 **Where it lands.** Nathan's two clicks; `deferred-work.md` row closed;
 `sprint-status.yaml` note under 2.2.
 
-**Nathan's answer.** _(blank — off / credits-only replacement / leave)_
+**Nathan's answer.** **Off** ("4 yeah fine"). Landed: deferred-work.md row marked decided. The two clicks (/admin/discounts Switch off; …AB26 cancel) are Nathan's and not yet confirmed on file.
 
 ---
 
@@ -147,7 +147,7 @@ which is a copy pass.
 **Where it lands.** Stripe dashboard (Nathan) or `INVOICE_SELLER_ADDRESS` +
 legal pages; `vat.md` item 5 closed.
 
-**Nathan's answer.** _(blank — which address is the registered office)_
+**Nathan's answer.** **Santa Cruz** ("5 santa cruz"). Landed: vat.md item 5 (1f92502). Stripe's business profile and tax head office to Calle Fernando Fuentes 2 — Nathan's dashboard field, not yet confirmed on file.
 
 ---
 
@@ -176,8 +176,7 @@ one rule in `service/app/api/licence/intent/route.ts` (GB + no tax id →
 `code`/reason the cart already shows) with a sentence of Nathan's; if a
 registration: Stripe Tax registration GB, no code.
 
-**Nathan's answer.** _(blank — hold, register, or sell at 0 % on the
-accountant's word)_
+**Nathan's answer.** **Neither hold nor guess: UK VAT and US sales tax according to the rules as they apply to a Spanish entity, which VergeLabs is for now** ("6 uk vat or us according to the rules which is i am a spanish entity for now"). The accountant states the rules; live stays as row C meanwhile, no checkout hold. Landed: vat.md item 6 (1f92502). The recommended hold was not taken.
 
 ---
 
@@ -199,7 +198,7 @@ Nathan's hour and the evidence is all in files already.
 **Where it lands.** `sprint-status.yaml` retro rows → done with the file
 names; `plans/finish-the-suite.md` wave 6 record.
 
-**Nathan's answer.** _(blank)_
+**Nathan's answer.** **Recorded, headless** ("7 okay"). Runs in wave 6 once row 1 is answered; 2.1's code review first.
 
 ---
 

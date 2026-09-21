@@ -129,7 +129,7 @@ Network activate the plugin and choose which options will be available to your a
 
 ### Support ###
 
-Questions and problems go to the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues), which is read by the person who maintains the plugin.
+Questions and problems go to the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues), which is read by the person who maintains the plugin. Licence holders write to support@vergelabsmedia.com; you can expect an answer within one business day, Monday to Friday.
 
 
 ### Compatible with the Plugins: ###
