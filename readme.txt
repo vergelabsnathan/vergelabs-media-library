@@ -4,7 +4,7 @@ Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 4.0.1
+Stable tag: 4.0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -291,6 +291,13 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now reads what pictures show, so a fill after updating places things differently than before. The Rules tab is gone and the media list toolbar is one row. Read the changelog before you fill.
 
 ## Changelog ##
+
+### 4.0.2 ###
+*Dragging into a folder works again beside FileBird, and two tabs the folder panel had covered are back.*
+
+= Fixed =
+* **Dragging one file into a folder works again beside FileBird and other plugins that add a column to the media list;** the checkbox column no longer takes the table's spare width.
+* **Screen Options and Help open again on the media list beside the folder panel;** a folder no longer lights up for another plugin's drag.
 
 ### 4.0.1 ###
 *A support ticket that keeps your key to itself, a CSV export a spreadsheet can't turn into a command, and a PHP 8.4 warning that is gone.*

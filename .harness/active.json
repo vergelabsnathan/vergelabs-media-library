@@ -1,34 +1,31 @@
 {
-  "phase": "S28b — story 4.5 (Nathan's go on 4.4's two open questions, before the 4.0.2 cut): our droppables accept only our own helper; File's share decided in the script from the head cells and re-measured on a Screen Options change. Spec → build → prove (harness both ways with a checkbox-label step, the FileBird cell, modes.spec with a live toggle) → bmad-code-review.",
+  "phase": "S29 — the release train for 4.0.2 from c1056a1 (stories 4.4 and 4.5, the Screen Options fix): Nathan's changelog copy → readme → version → Plugin Check on git archive → archive-hygiene → the zip → tag → GitHub release → shelf → PLUGIN_RELEASES → redeploy → health → release-check.",
   "model": "opus",
   "plan": "plans/finish-the-suite.md",
-  "spec": "_bmad-output/implementation-artifacts/spec-4-5-our-folders-take-only-our-own-drag.md",
+  "spec": "docs/handoffs/2026-09-21-s28b-our-folders-take-only-our-own-drag.md",
   "scope": [
-    "js/vergeml-tree.js (ownDrag(), accept on dropTarget/unfileTarget)",
-    "js/vergeml-media-list.js (share() from the head, the change listener)",
-    "core/media-list.php (two static share rules; share out of the localize)",
-    "tools/box-drag-beside.mjs (the checkbox-label step), tests/ui/modes.spec.mjs (share from the class; the live toggle)",
-    "tests/compat/matrix-results.json, docs/compatibility.md (the rerun row)",
-    "_bmad-output/implementation-artifacts/spec-4-5-*.md, sprint-status.yaml, deferred-work.md, planning-artifacts/epics.md",
-    "docs/handoffs/**, plans/**",
+    "readme.txt (Stable tag, the 4.0.2 changelog), vergelabs-media-library.php (Version, VERGEML_VERSION)",
+    "playground/vergelabs-media-library.zip (re-cut), dist/vergelabs-media-library-4.0.2.zip",
+    "../service/public/releases/vergelabs-media-library-4.0.2-<sha12>.zip",
+    "docs/runbooks/rollback.md, docs/wordpress-org-submission.md, docs/handoffs/**, plans/**",
     ".harness/active.json"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-21-s28-a-single-row-beside-filebird.md",
-    "_bmad-output/implementation-artifacts/spec-4-4-a-single-row-drags-into-a-folder-beside-filebird.md"
+    "docs/handoffs/2026-09-21-s28b-our-folders-take-only-our-own-drag.md",
+    "plans/finish-the-suite.md",
+    "docs/handoffs/2026-09-20-s26-the-release-train.md"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
     "Nothing on ms2 or the real shop",
-    "Mock mode on the box cell; no describe; no key on the network",
-    "No version bump: the train cuts 4.0.2 after this",
-    "Every user-facing string is Nathan's; none expected",
-    "Say what goes out before any push; the box at HEAD at the end"
+    "Every user-facing string is Nathan's (the 4.0.2 block, approved 'do what's best')",
+    "Say what goes out before any push or env change",
+    "Stop if a gate is red"
   ],
   "gates": [
-    "node tools/box-drag-beside.mjs --with filebird → 21/21 + the checkbox step not lit; without → 21/21 + lit",
-    "node tools/matrix.mjs --cell with=filebird,shape=multisite-subdirectory → ✓ 10/10",
-    "modes.spec 'the rows on the media list' → 2 passed with the live toggle",
-    "node tools/deploy.mjs --check --box → up to date; bmad-code-review; sprint 4.5 → review"
+    "node tools/plugin-check.mjs on a git archive in Playground → 0 errors (the 2 known warnings)",
+    "node tools/verify.mjs archive-hygiene → 8/8",
+    "HTTPS read-back of the shelf zip: 200, sha256 prefix = file name, Version: 4.0.2",
+    "/api/health → free 4.0.2; release-check → ok:true"
   ]
 }
