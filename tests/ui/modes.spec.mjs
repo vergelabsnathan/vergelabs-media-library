@@ -654,11 +654,15 @@ for ( const mode of [ 'grid', 'list' ] ) {
 			 *  of ours: 69%, File auto ≈ 28% < 40%). With every other plugin's
 			 *  column on it depends on how they size theirs, so that set
 			 *  asserts only the consequence: File at or above its share when
-			 *  a class is on.
+			 *  a class is on. Four of ours (no Pro column: Playground, a free
+			 *  site) leave File at ≈ 51%, above the share, so the class is
+			 *  rightly off there and set two asserts nothing about it
+			 *  (2026-09-21; before that the 40 was the box's geometry and the
+			 *  test could not run anywhere else).
 			 */
 			const sets = [
 				[ 'ours off, and the other plugins\' columns off', ROW_CEILING, theirs.concat( ours ), 0 ],
-				[ 'all five of ours on, the other plugins\' columns off', ROW_CEILING, theirs, 40 ],
+				[ `all ${ ours.length } of ours on, the other plugins' columns off`, ROW_CEILING, theirs, 5 === ours.length ? 40 : null ],
 				[ 'as the screen ships, with every other plugin\'s column on', ROW_ALARM, ours, null ],
 				[ 'two of ours on, the other plugins\' columns off', ROW_CEILING, theirs.concat( ours.slice( 2 ) ), 0 ],
 			];
