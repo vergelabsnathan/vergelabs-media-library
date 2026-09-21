@@ -20,23 +20,24 @@ Plugin Check without Docker".
 
 ## The archive to upload
 
-**`dist/vergelabs-media-library-4.0.1.zip`** — built 2026-09-20 from `b6a89f1`,
-tagged `v4.0.1`. 143 entries, 1,100,286 bytes, sha256 begins `c5510da6b16a`
-(4.0.0 was `59df217`, 145 entries, `bf0d63b70056`; the two fewer entries are
-`.harness/` and its file, export-ignored since retro A-1).
+**`dist/vergelabs-media-library-4.0.2.zip`** — built 2026-09-21 from `0e03cd4`,
+tagged `v4.0.2`. 143 entries, 1,102,302 bytes, sha256 begins `d57c3020567e`
+(4.0.1 was `b6a89f1`, 143 entries, `c5510da6b16a`; 4.0.0 was `59df217`, 145
+entries, `bf0d63b70056` — the two fewer entries since are `.harness/` and its
+file, export-ignored since retro A-1).
 Checked after building, not assumed: no `tests/`, `tools/`, `docs/`, `plans/`,
 `node_modules/`, `research/` or `dist/` inside it, no hidden files, the main
-plugin file present, and `Stable tag: 4.0.1` and `Version: 4.0.1` read back out
+plugin file present, and `Stable tag: 4.0.2` and `Version: 4.0.2` read back out
 of the zip itself rather than off the working tree.
 
 ## Done
 
 | Requirement | State |
 |---|---|
-| Plugin Check errors | **0** — all five categories, the release archive at 3.16.1 (`7f2a4fe9…`), run in Playground on 2026-09-12; **run again on 2026-09-19** against a clean archive of `89ba1f1` (everything through S21), same result; **and on 2026-09-20** against `657b257` (4.0.1), same result |
-| Plugin Check warnings | **2** at 4.0.0 and 4.0.1 — `mismatched_plugin_name` (readme.txt's title carries a strapline the plugin header does not; a copy call, not a blocker) and `readme_parser_warnings_trimmed_section_description` (the Description runs to 11,468 characters against the parser's 2,500; it was 13,856 before this release, so it is long-standing, and moving External services out of it shortened rather than caused it). Neither blocks |
+| Plugin Check errors | **0** — all five categories, the release archive at 3.16.1 (`7f2a4fe9…`), run in Playground on 2026-09-12; **run again on 2026-09-19** against a clean archive of `89ba1f1` (everything through S21), same result; **and on 2026-09-20** against `657b257` (4.0.1), same result; **and on 2026-09-21** against `0e03cd4` (4.0.2), same result |
+| Plugin Check warnings | **2** at 4.0.0, 4.0.1 and 4.0.2 — `mismatched_plugin_name` (readme.txt's title carries a strapline the plugin header does not; a copy call, not a blocker) and `readme_parser_warnings_trimmed_section_description` (the Description runs to 11,468 characters against the parser's 2,500; it was 13,856 before this release, so it is long-standing, and moving External services out of it shortened rather than caused it). Neither blocks |
 | `php -l` on every file | clean |
-| Runs on current WordPress | 15 of 18 matrix cells ✓ on 2026-09-20 against the 4.0.1 zip — WordPress 6.5.11, 7.0.5, 7.1.1 × PHP 7.4, 8.2, 8.5, multisite (subdirectory), `nl_NL` and `ar`, beside Premio Folders, Enhanced Media Library and Polylang Pro; 2 cells not run (FileBird on Playground's SQLite; the subdomain network while it holds the shop library); 1 ✗: beside FileBird on MariaDB a single-row drag files nothing (story to follow); see [compatibility.md](compatibility.md) |
+| Runs on current WordPress | 15 of 18 matrix cells ✓ on 2026-09-20 against the 4.0.1 zip — WordPress 6.5.11, 7.0.5, 7.1.1 × PHP 7.4, 8.2, 8.5, multisite (subdirectory), `nl_NL` and `ar`, beside Premio Folders, Enhanced Media Library and Polylang Pro; 2 cells not run (FileBird on Playground's SQLite; the subdomain network while it holds the shop library); 1 ✗: beside FileBird on MariaDB a single-row drag files nothing — fixed by stories 4.4 and 4.5, the cell ✓ 10/10 on 2026-09-21 and shipped in 4.0.2; see [compatibility.md](compatibility.md) |
 | Upgrade from Enhanced Media Library 2.9.4 | settings, taxonomies, MIME types and every term assignment carried over; 18 checks |
 | Runs beside the 18 most common plugins | each alone and fourteen together; see [compatibility.md](compatibility.md) |
 | `debug.log` clean after exercising every screen | yes |
