@@ -8,7 +8,7 @@
  *
  *  Reads the key from WALK_DIR/walk-key.txt (written by tools/buyer-walk.mjs
  *  buy); the key is never printed. The snapshot to restore from is
- *  /root/walk-0920/pic<N>-before.sql on the box, taken by literal SQL before
+ *  /root/$WALK_RUN/pic<N>-before.sql on the box (walk-0920 unless set), taken by literal SQL before
  *  the walk (mariadb-dump --hex-blob of the wp_posts, wp_postmeta and
  *  wp_vergeml_ai_index rows). Mirrors tools/upg-pro-shots.mjs.
  */
@@ -31,7 +31,8 @@ const STAMP = new Date().toISOString().slice( 0, 10 );
 const SCRATCH = process.env.WALK_DIR || path.join( os.tmpdir(), 'vgml-walk' );
 const KEY_FILE = path.join( SCRATCH, 'walk-key.txt' );
 const PIC = Number( process.env.WALK_PIC || 23 );
-const WALK = '/root/walk-0920';
+// One directory on the box per walk, holding the zip, the script and the snapshot: WALK_RUN=walk-0921.
+const WALK = `/root/${ process.env.WALK_RUN || 'walk-0920' }`;
 const sshArgs = [ '-i', BOX.key, '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=15' ];
 
 const stage = process.argv[ 2 ];

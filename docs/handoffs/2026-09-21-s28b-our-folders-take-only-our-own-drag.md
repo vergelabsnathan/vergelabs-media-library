@@ -79,3 +79,31 @@ None shipped. Two proposed 4.0.2 changelog lines, with 4.4's:
 Say whether the two commits here go out (the box already holds the bytes). Then
 the S29 opener from the S28 handoff stands, with both changelog lines above as
 the copy to approve first.
+
+## Addendum — wave 4, the walk, prepared and paused (same day)
+
+Nathan said "do the walk"; at the Pay button: no card at hand, later. Nothing
+charged; one abandoned checkout (`nathan+buyer-0921@vergelabs.nl`, `WALK0921`)
+expires in Stripe on its own. Prepared and left in place:
+
+- `upg`: free **4.0.1** installed from the shelf zip (`c5510da6b16a`; the free
+  plugin has no updater of its own — Pro's carries both slugs and Pro is
+  inactive there), Pro 1.0.2 inactive, key absent, mock 1; picture 23's three
+  rows snapshotted by literal SQL to `/root/walk-0921/pic23-before.sql`
+  (5 rows, `19cba051d577`); `debug.log` 2122 lines.
+- Code **WALK0921** (id 6, €38.50 off `single`, one use) made through the
+  store as production runs it — from a worktree at `origin/main`, because the
+  service checkout carries Nathan's unpushed `13b2ccd` (pricing: Agency,
+  Founding, Lifetime) whose migration `020` (`recurring`) is not on production
+  yet; `make-walk-code.ts` takes `WALK_CODE`, `buyer-walk-site.mjs` takes
+  `WALK_RUN`. The cart read `Code WALK0921 · €38.50 off`, the checkout
+  **Pay €0.50** (shots `2026-09-21-buyer-walk-01-cart`, `02-checkout`).
+
+To resume, in `plugin/`:
+
+```
+WALK_DIR=%TEMP%\vgml-walk-0921 node tools/buyer-walk.mjs buy --email nathan+buyer-0921@vergelabs.nl --code WALK0921
+WALK_DIR=%TEMP%\vgml-walk-0921 WALK_RUN=walk-0921 node tools/buyer-walk-site.mjs install   # expects Pro 1.0.3, sha 9bb6c8ff5088
+… connect · describe (1 credit) · then buyer-walk.mjs final · then buyer-walk-site.mjs restore
+service: ENV_FILE=<pulled env> node scripts/walk-inspect.mjs <pi_…>   (from a worktree at origin/main until 020 is applied)
+```
