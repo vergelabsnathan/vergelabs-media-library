@@ -1,0 +1,103 @@
+---
+title: "4.0.3: Screen Options over the folder panel, the live tick skips aloud, the outage FAQ says what the code does"
+type: 'defect'
+created: '2026-09-21'
+status: 'ready-for-dev'
+route: 'dispatch'
+review_loop_iteration: 0
+baseline_commit: 'plugin c293f7f1758c7c6bedb36e445f2ca2f815fc86cc · service 33063ea03f51dbefabe066a0156ac557832dfb6c'
+context:
+  - '{project-root}/_bmad-output/implementation-artifacts/epic-4-retro-2026-09-21.md'
+  - '{project-root}/_bmad-output/implementation-artifacts/epic-3-retro-2026-09-21.md'
+  - '{project-root}/docs/handoffs/2026-09-21-s31-wave-6-review-and-retros.md'
+---
+
+<frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
+
+## Intent
+
+**Problem:** Three retro items that are customer-visible today, in one small story for 4.0.3 (Nathan's opener, 2026-09-21). (E4-1) On the media list beside the folder panel, Screen Options opens *under* the panel: 4.5 lifted the tabs to `z-index: 2` and the list-mode panel is fixed at `z-index: 3`, so on `upg` (free 4.0.2) three of four column checkboxes answer `elementFromPoint` with a piece of the tree. (E4-3) modes.spec's live-tick block degrades to a `console.log` on a site without a third-party column — green with every 4.5 assertion skipped. (E3-2) The outage FAQ shipped in S30 says "Describing is paused … pictures waiting are described when it is back"; `core/ai.php` marks a picture as failed on the first miss when the service cannot be reached, on the third error when it answers 5xx, and nothing re-offers a marked picture but the *Alt text for …* pass. The sentence was written from line references; the claims behind the new one get a suite line first (E3-9).
+
+**Approach:** One CSS number (`z-index: 4` on the existing `#screen-meta` rule), one modes.spec assertion (every `.hide-column-tog` is what `elementFromPoint` returns at its centre, printed N/N) and the `test.skip`; a local Playground PHP suite that pins the three outage behaviours; then the FAQ paragraph — Nathan's words, approved 2026-09-21 — into `readme.txt` and `service/docs/manual/credits.md`. The two comments A4 named are corrected in passing.
+
+## Boundaries & Constraints
+
+**Always:** files in the Files line only. Proof on the served build's fixture: the one CSS file copied to `upg`, the probe's N/N, the original put back and its digest compared. modes.spec "the rows on the media list" on the box tech site with the tree deployed (`deploy.mjs --box`, `--check` first). The outage suite runs here in Playground, spends nothing. The FAQ words verbatim, both files in one sitting, the service commit on `main` unpushed. The credits page keeps its bold lead-in. Say what goes out before any push.
+
+**Never:** ms2 or the real shop; a describe on the box; a version bump or a changelog line (the line is proposed in the handoff, Nathan's); a `reset` or a zip install on `upg`; a cut; a deploy of the service; a change to `core/ai.php` (that is E3-1); a change to the panel's own `z-index`.
+
+## I/O & Edge-Case Matrix
+
+| Case | Today | After | Proof |
+|---|---|---|---|
+| list mode, Screen Options open, `elementFromPoint` at each column checkbox | 3 of 4 answer a tree element on `upg` (Author, Media Categories, Used) | every one answers the checkbox | probe N/N on `upg`; modes.spec prints `N/N checkboxes reachable` in both modes |
+| the open panel and the fixed tree overlap | panel under the tree | panel over the tree; the tree is still clickable outside the panel's box | probe: after closing Screen Options, `elementFromPoint` on the first folder row is the row |
+| grid mode | tabs already over the wrap (z 2 beats auto) | unchanged | modes.spec grid pass |
+| a site without a third-party column (Playground) | live tick logged, test green | the test reports *skipped* with the reason; the tab-open and checkbox assertions ran first | `test.skip( ! theirs.length, … )` placed after them |
+| the box (three third-party columns) | live tick runs | unchanged, 2 passed | modes.spec on the box |
+| service unreachable (`pre_http_request` → `WP_Error('http_request_failed')`) | stubbed on the first miss, the run marches on | same (E3-1 changes it) | outage suite: index row with `error = 'http_request_failed'` after one step; the run's `done` empty, no `fatal` |
+| service answers 503 three times | held twice (no row), stubbed on the third; the run waits, it does not stop (the screen's loop and the background tick start the next step) | same | outage suite: one describe call per step (the filter counts), no row after steps 1 and 2 (hold lifted between), row `error = 'vergeml_ai_service_503'` after 3 |
+| a marked picture, `unindexed` scope | skipped | same | outage suite: `vergeml_ai_pending('unindexed')` excludes it |
+| a marked picture without alt, `missing-alt` scope | offered | same | outage suite: `vergeml_ai_pending('missing-alt')` includes it |
+| RTL | — | unchanged (`z-index` is not directional) | — |
+
+</frozen-after-approval>
+
+## Copy (verbatim, Nathan's — approved 2026-09-21, re-approved after the pre-mortem dropped "after four the run stops")
+
+`readme.txt` FAQ "What happens when the AI service is down?", the paragraph replaced; `service/docs/manual/credits.md:44-50`, the same words after the bold lead-in **When the service is down, your plugin keeps working without the AI features.** (the lead-in stays, the first clause below then starts at "filing"):
+
+> Your plugin keeps working without the AI features: filing, search and everything already described keep working, and no credits are taken for a picture that was not described. When the service answers with an error, a describe run holds the picture and tries it again ten minutes later; after three errors in a row the picture is marked as failed. When the service cannot be reached at all, each picture the run gets to is marked as failed. A marked picture is not tried again by itself: once the service is back, *Alt text for …* on the AI screen describes the ones still without alt text. Searching by meaning falls back to the ordinary word search, and your credit balance shows the last number it read until the service answers again.
+
+Every clause and its line: holds and retries `core/ai.php:1568-1592`, the hold `VERGEML_AI_HOLD_SECONDS` `:1386`; third strike `:1579,:1603-1606`; unreachable → first miss `:597-598`, `:882`, `:891` with `:1570`; `unindexed` skips stubs `:1287-1300`; `missing-alt` reaches them `:1272-1281`; the button `core/ai-screen.php:280-285`. Not said, because false: "the run stops" — the step breaks after four transients in a row (`:1588-1590`) but `js/vergeml-ai.js:240` and `core/ai-background.php`'s tick start the next step; the run waits on the held pictures. The outage suite (T3) is the line behind each claim before the words go in.
+
+## Code Map
+
+- `css/vergeml-tree.css:115-126` the lift rule (`z-index: 2`); `:181-187` the list-mode panel (`position: fixed; z-index: 3`). Nothing between: `.vgml-grip` z 4 and the filter card z 20 are inside the panel or the listbar. `eml-admin-media.css:209-213` lifts the same tabs to 999 beside the grid — the precedent for a number above the panel.
+- `tests/ui/modes.spec.mjs:707-738` the tab click, `#adv-settings` visible, the `theirs.length` branch; `:517-521` the comment crediting the measured floor to 4.4 (A4); `:525-542` `readWidths()` — the `elementFromPoint` pattern to mirror; `tests/ui/crawl.spec.mjs:89` and `folders.spec.mjs:620` — `test.skip( cond, reason )` in a test body.
+- `js/vergeml-media-list.js:112-116` the rAF comment ("this script's listener runs before the tree's") — the guarantee is that rAF runs after every DOMContentLoaded listener whatever the order (A4).
+- `tools/upg-pro-shots.mjs:25-95` the mirror for a tool on `upg`: `box()` over ssh, the admin password from `/root/.upg-admin-pass`, `vgmls22`, Playwright login, a shot into `docs/superpowers/mocks/shots/`. The plugin on `upg` lives at `/var/www/upg/wp-content/plugins/vergelabs-media-library/`.
+- `tests/security/get-help.php` the mirror for a Playground PHP suite: `pre_http_request` at priority 1, options snapshot and restore, `N/N passed` last; registered in `tools/verify.mjs:277` as `env: 'local', php: 'playground'`. `tests/ai/parallel.php:53-78` `pl_make()` — a real JPEG attached, for the picture. `add_filter( 'vergeml_ai_parallel', → 1 )` keeps the pass on `wp_remote_post` (`core/ai.php:829-838`), where `pre_http_request` answers. `vergeml_ai_ready()` (`:360-362`) needs a sealed key in `vergeml_ai`'s `license_key`; the hold between strikes is the `vergeml_ai_recent` transient (`:1388-1418`), the strikes `vergeml_ai_strikes`.
+- The row test on the box: a throwaway administrator via `tools/box-ui-user.sh` over the ssh wrapper, Playwright's `cli.js` called without a shell with `-g "the rows on the media list"`, `--list` first (S28's 21-minute trap), the administrator deleted after.
+
+## Tasks & Acceptance
+
+- [ ] T1 `css/vergeml-tree.css:125` `z-index: 2` → `4`, the comment says why (the list-mode panel is 3). `tests/ui/modes.spec.mjs`: after `#adv-settings` is visible, every `.hide-column-tog` scrolled to the viewport's *centre* (the top edge is under the fixed admin bar) and `elementFromPoint` at its centre is the checkbox itself; the message names what was hit (tag, id, class — a FileBird pane on the box reads as FileBird's); `N/N checkboxes reachable` printed; `:517-521` and `js/vergeml-media-list.js:112-116` reworded. `tools/upg-screen-options-probe.mjs`: prints the fixture file's sha256 before anything is copied; logs in as `vgmls22`, list mode at 1440×900, clicks Screen Options, the same reading, prints `N/N`, closes it and reads the first folder row, one shot; with `--css <file>` copies that file to the fixture first and restores the original in `finally` (sha256 after, compared); `--restore` alone puts the kept original back, re-runnable.
+- [ ] T2 `tests/ui/modes.spec.mjs:716-717` `test.skip( ! theirs.length, "no third-party column on this site: the live tick is not exercised here" )`.
+- [ ] T3 `tests/ai/outage.php` (mirror: get-help): a sealed placeholder key; two pictures from literal PNG bytes written to the uploads dir (no GD — Playground may not have it, and an image-payload error would stub for the wrong reason); `vergeml_ai_parallel` → 1; `pre_http_request` at 1 routes by URL — the describe endpoint gets the scripted answer (`WP_Error( 'http_request_failed' )` for picture A; 503 ×3 for picture B), every other call a harmless 200 — and counts describe calls; the `vergeml_ai_recent` transient deleted between steps; per step: exactly one describe call, then the row (or its absence) with the exact `error` code; the `unindexed` / `missing-alt` rows of the matrix; every option, transient and picture removed after. Registered in `tools/verify.mjs` as `ai-outage`, `env: 'local', php: 'playground'`.
+- [ ] T4 `readme.txt:231-233` and `service/docs/manual/credits.md:44-50`: the copy block verbatim. Service commit on `main`, not pushed.
+- [ ] T5 Deploy to the box (`--check` after), the row test both modes; the probe on `upg` with the tree's CSS, then the restore line; `bmad-code-review`; `sprint-status.yaml` items 25, 27, 17 → done; commit per item (`retro E4-1`, `E4-3`, `E3-2`); handoff.
+
+**Acceptance Criteria:**
+- Given `upg` with the tree's `vergeml-tree.css` in place, when the probe runs, then `4/4` (or N/N, every checkbox), the first folder row reachable after the panel closes, and the restore line `sha256 … put back`.
+- Given the box at HEAD, when modes.spec "the rows on the media list" runs, then `2 passed` with `N/N checkboxes reachable` printed in both modes and the live tick lines as before.
+- Given `node tools/verify.mjs ai-outage`, then `N/N passed` with one line per matrix row: stub on the first miss, no row after two 503s, stub on the third, absent from `unindexed`, present in `missing-alt`.
+- Given the two documents, then `grep -c "described when it is back"` is 0 in both and the paragraph is the copy block byte for byte.
+
+## Decisions taken
+
+- **The number, not the panel.** The panel's 3 exists so the fixed tree paints over the list strip; lowering it would need a second look at every list-mode layer. The tabs and their panel are core's top-of-page furniture; 4 is the smallest number over 3 and stays under `.vgml-grip` in no shared context.
+- **Every checkbox, not the first.** The retro's assertion was the first `.hide-column-tog`; the probe on `upg` found the fourth reachable and the first three not — position decides, so all of them are read. Scrolled into view first: `elementFromPoint` answers null outside the viewport and would fail for the wrong reason.
+- **Inline `test.skip`.** On a site without a third-party column the whole row test reports skipped, four asserted sets included; only a Playground run is such a site, the registered run (the box) has three. Nathan's call 2026-09-21, the retro's line.
+- **The suite before the words.** The three claims in the paragraph are read from `core/ai.php`; E3-9 says customer text carries the suite line. `tests/ai/outage.php` is that line, and E3-1's red test when it starts.
+- **The sentence is the truth today, not the promise.** It is long because the code has three branches; E3-1 folds them and the sentence shrinks then.
+
+## Implementation Notes
+
+_(filled at build)_
+
+## Spec Change Log
+
+- 2026-09-21 written from E4-1, E4-3 (epic 4 retro) and E3-2 (epic 3 retro) on Nathan's opener; three questions answered (the words: go; the probe suite: yes; E4-3 inline).
+- 2026-09-21 pre-mortem (Advanced Elicitation), five findings applied: "after four the run stops" was false (the run waits) — the paragraph shortened and re-approved; checkboxes scrolled to the viewport's centre and the hit named; the outage suite on literal PNG bytes, the filter routing by URL and counting, exact error codes, the hold lifted between steps; the probe prints the digest first and has `--restore`.
+
+## Review Triage Log
+
+_(filled at review)_
+
+## Verification
+
+- `node tools/upg-screen-options-probe.mjs --css css/vergeml-tree.css` → `4/4`, folder row reachable, `put back` with the digest.
+- modes.spec "the rows on the media list" on the box → `2 passed`, `N/N checkboxes reachable` ×2.
+- `node tools/verify.mjs ai-outage` → `N/N passed`.
+- `node tools/deploy.mjs --check --box` → up to date. Cost: nothing.
