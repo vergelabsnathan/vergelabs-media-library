@@ -15,13 +15,15 @@
  *         walk-key.txt in the scratch dir for the site-side tool, deleted by
  *         the restore); opens registration for the walk email and WAITS until
  *         the account page shows the Pro download; captures the zip.
- *  final: /account credits and invoices shots, our PDF for the first invoice,
- *         then "cancel at period end" through the page, the reply recorded.
+ *  final: /account on the walk's own licence tab: credits and invoices shots,
+ *         our PDF for the first invoice, then "cancel at period end" through
+ *         the page, the reply recorded; the browser profile (the session) is
+ *         deleted at the end.
  *
  *  Every line printed is evidence; nothing printed is the key or a secret.
  */
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,7 +44,9 @@ const opt = ( name, fallback ) => {
 	const i = args.indexOf( `--${ name }` );
 	return -1 === i ? fallback : args[ i + 1 ];
 };
-const EMAIL = opt( 'email', 'nathan+buyer-0920@vergelabs.nl' );
+// A first-time buyer each day: an address that already has an account gets the
+// sign-in mail, and the walk would wait for a download only a sign-in shows.
+const EMAIL = opt( 'email', `nathan+buyer-${ STAMP.slice( 5 ).replace( '-', '' ) }@vergelabs.nl` );
 const PLAN = opt( 'plan', 'single' );
 // A discount code, applied by the cart from its query string (Nathan's call
 // of 2026-09-20: the walk pays the code's price, not the list price).
@@ -138,10 +142,23 @@ try {
 
 		// Registration is the customer's: the password is typed by Nathan, the
 		// verification link pasted into this window. The script waits for the
-		// account page to show the download.
-		await orderPage.goto( `${ SITE }/account?mode=register`, { waitUntil: 'networkidle' } );
+		// account page to show the download. The way in is the order page's own
+		// link -- on 2026-09-20 it landed on Sign in for a new buyer, and the tool
+		// has to be able to see that again.
+		const accountLink = orderPage.locator( 'a', { hasText: 'Go to your account' } ).first();
+		if ( await accountLink.count() ) {
+			say( `order page link: ${ await accountLink.getAttribute( 'href' ) }` );
+			await Promise.all( [ orderPage.waitForURL( /\/account/ ), accountLink.click() ] );
+			await orderPage.waitForLoadState( 'networkidle' );
+			const heading = ( await orderPage.locator( 'h1' ).first().innerText().catch( () => '(no h1)' ) ).trim();
+			say( `landed on ${ new URL( orderPage.url() ).pathname }${ new URL( orderPage.url() ).search } · heading "${ heading }"` );
+			if ( 'Create your account' !== heading ) say( `NOT the registration form for a new buyer` );
+		} else {
+			say( 'order page: no "Go to your account" link; opening registration by URL' );
+			await orderPage.goto( `${ SITE }/account?mode=register`, { waitUntil: 'networkidle' } );
+		}
 		const emailBox = orderPage.locator( 'input[type="email"]' ).first();
-		if ( await emailBox.count() ) await emailBox.fill( EMAIL );
+		if ( await emailBox.count() && ! ( await emailBox.inputValue() ) ) await emailBox.fill( EMAIL );
 		say( `registration form opened for ${ EMAIL }; Nathan types the password and creates the account, then pastes the verification link into this window` );
 		const acct = await waitForHuman( context, 'account registered, verified and showing the Pro download', async ( p ) =>
 			p.url().includes( '/account' ) && ( await p.getByText( /Download Pro .* \(zip\)/ ).count() ) > 0, 30 );
@@ -166,6 +183,16 @@ try {
 		await page.goto( `${ SITE }/account`, { waitUntil: 'networkidle' } );
 		if ( ( await page.getByText( /Download Pro .* \(zip\)/ ).count() ) === 0 ) {
 			throw new Error( 'the walk session is gone: sign in again in this window and re-run final' );
+		}
+		// The walk's own licence, by its tab: the account held two on 2026-09-20 and
+		// the page selects the first one by itself.
+		const tabs = page.getByRole( 'tab' );
+		if ( state.key_prefix && ( await tabs.count() ) > 1 ) {
+			const mine = tabs.filter( { hasText: state.key_prefix.slice( -4 ) } ).first();
+			if ( ! ( await mine.count() ) ) throw new Error( `no licence tab ending ${ state.key_prefix.slice( -4 ) } among ${ await tabs.count() }` );
+			await mine.click();
+			await page.waitForTimeout( 1500 );
+			say( `licence tab: ${ ( await mine.innerText() ).replace( /\s+/g, ' ' ).trim() } (of ${ await tabs.count() })` );
 		}
 		const text = ( await page.locator( 'main, body' ).first().innerText() ).replace( /\s+/g, ' ' );
 		const credits = text.match( /CREDITS LEFT\s*([\d,.\-]+)/i );
@@ -221,6 +248,9 @@ try {
 			say( 'cancel: no "Cancel subscription" button on the page' );
 		}
 		save();
+		// The walk is over: the signed-in session goes with the profile. A failed
+		// final never reaches this line, so the re-run still has its window.
+		state.forget_profile = true;
 	} else {
 		console.error( 'stage: buy | final' );
 		process.exitCode = 2;
@@ -230,4 +260,8 @@ try {
 	process.exitCode = 1;
 } finally {
 	await context.close();
+	if ( state.forget_profile ) {
+		rmSync( path.join( SCRATCH, 'profile' ), { recursive: true, force: true } );
+		say( 'browser profile deleted: the walk account is signed out on this machine' );
+	}
 }

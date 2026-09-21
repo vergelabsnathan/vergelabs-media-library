@@ -101,6 +101,10 @@
 - source_spec: `plans/finish-the-suite.md` wave 4 (S29b, 2026-09-21)
   summary: tools/plugin-check.mjs, matrix.mjs, play.mjs, uninstall-walk.mjs and verify.mjs call `npx @wp-playground/cli` unpinned; 3.1.55 resolves but cannot install (`@php-wasm/node-8-1@3.1.55` unpublished, 2026-09-21). Pin `@3.1.54` in one place (a constant in tools/lib) until the package is fixed.
   evidence: S29 handoff, found 1; Plugin Check for 4.0.2 ran on the cached 3.1.54.
+  resolved: 2026-09-21 (S30), `tools/lib/playground.mjs` pins 3.1.54 for the six call sites; `VGML_PLAYGROUND_CLI` overrides.
 - source_spec: `plans/finish-the-suite.md` wave 4 (S29b, 2026-09-21)
   summary: box-issued licence rows are never removed -- nine `box@vergelabs.nl` rows (ids 5, 12-17, 20, 22) sit in the production licences table; health counts them ("14 licences"). Either a `box` flag the counts and the accountant's views exclude, or a retire script. Nathan's call.
   evidence: read-only query 2026-09-21 12:23 UTC; S26 wrote "deleted after" of the env file, not the row.
+- source_spec: `spec-2-1-the-buyer-walk-on-4-0-0.md` (code review, 2026-09-21)
+  summary: tools/buyer-walk.mjs `final` saves our invoice PDF and prints its status, type and size, never its number and total (T6 says "read for its number and total"; AC3 "the same number"). The record's "our PDF Total EUR 0.50" was read by eye. Reading it needs a PDF text extractor the plugin repo does not carry (the streams are Flate-compressed); the service's own invoice test covers the total. Add pdf-parse to the plugin's dev dependencies or render the PDF in the walk window and shoot it -- Nathan's call.
+  evidence: review 2026-09-21 (acceptance auditor); buyer-walk.mjs final, the `/api/invoice` block.
