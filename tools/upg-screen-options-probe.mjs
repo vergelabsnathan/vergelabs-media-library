@@ -15,10 +15,12 @@
  *  docs/superpowers/mocks/shots.
  *
  *  --css copies one stylesheet over the fixture's, keeps the original beside
- *  it and puts it back in `finally`; the digest is printed before anything is
- *  copied and compared after. --restore does only the putting back, for an
- *  ssh that died in between. Logs in as vgmls22 with the fixture's own
- *  password; writes nothing to the database.
+ *  it (<file>.probe-orig) and puts it back in `finally`; the digest is
+ *  printed before anything is copied and compared after. A kept original
+ *  already there means an earlier run died between the copy and the
+ *  restore: the tool refuses to copy over it. --restore puts every kept
+ *  original under the plugin back, whatever --css it came from. Logs in as
+ *  vgmls22 with the fixture's own password; writes nothing to the database.
  */
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
@@ -38,8 +40,12 @@ const sshArgs = [ '-i', BOX.key, '-o', 'StrictHostKeyChecking=no', '-o', 'UserKn
 
 const argv = process.argv.slice( 2 );
 const at = argv.indexOf( '--css' );
-const CSS = at >= 0 ? argv[ at + 1 ] : '';
+const CSS = at >= 0 ? argv[ at + 1 ] || '' : '';
 const RESTORE = argv.includes( '--restore' );
+if ( at >= 0 && ( ! CSS || CSS.startsWith( '--' ) ) ) {
+	console.error( '--css needs a path (relative to the checkout)' );
+	process.exit( 1 );
+}
 
 function box( script ) {
 	return execFileSync( 'ssh', [ ...sshArgs, `root@${ BOX.host }`, 'bash -s' ], { input: script, stdio: 'pipe' } ).toString();
@@ -50,16 +56,22 @@ const target = () => `${ PLUGIN }/${ CSS ? path.posix.normalize( CSS.replace( /\
 const kept = () => `${ target() }.probe-orig`;
 const digest = ( file ) => box( `sha256sum ${ file } 2>/dev/null | cut -c1-12` ).trim() || 'absent';
 
+// Every kept original under the plugin goes back where it came from.
 function restore() {
-	const had = box( `test -f ${ kept() } && echo yes || echo no` ).trim();
-	if ( 'no' === had ) {
-		console.log( `restore: nothing kept at ${ path.posix.basename( kept() ) }; the fixture's sheet is ${ digest( target() ) }` );
+	const found = box( `find ${ PLUGIN } -name '*.probe-orig' -type f` ).split( /\r?\n/ ).filter( Boolean );
+	if ( ! found.length ) {
+		console.log( `restore: nothing kept under the plugin; the fixture's sheet is ${ digest( target() ) }` );
 		return true;
 	}
-	box( `mv -f ${ kept() } ${ target() }` );
-	const now = digest( target() );
-	console.log( `restore: ${ path.posix.basename( target() ) } put back, sha256 ${ now }` );
-	return 'absent' !== now;
+	let ok = true;
+	for ( const orig of found ) {
+		const file = orig.replace( /\.probe-orig$/, '' );
+		box( `mv -f ${ orig } ${ file }` );
+		const now = digest( file );
+		console.log( `restore: ${ file.slice( PLUGIN.length + 1 ) } put back, sha256 ${ now }` );
+		ok = ok && 'absent' !== now;
+	}
+	return ok;
 }
 
 if ( RESTORE ) {
@@ -74,6 +86,9 @@ let ok = false;
 try {
 	if ( CSS ) {
 		const local = path.join( ROOT, CSS );
+		if ( 'yes' === box( `test -f ${ kept() } && echo yes || echo no` ).trim() ) {
+			throw new Error( `a kept original is still on the fixture (${ path.posix.basename( kept() ) }): an earlier run died before its restore. Run --restore first.` );
+		}
 		box( `cp -f ${ target() } ${ kept() }` );
 		copied = true;
 		execFileSync( 'scp', [ ...sshArgs, local, `root@${ BOX.host }:${ target() }` ], { stdio: 'pipe' } );
@@ -99,7 +114,8 @@ try {
 
 		const layers = await page.evaluate( () => {
 			const z = ( sel ) => { const el = document.querySelector( sel ); return el ? getComputedStyle( el ).zIndex : 'none'; };
-			return { meta: z( '#screen-meta' ), tree: z( '.vgml-tree' ), position: z( '.vgml-tree' ) && ( document.querySelector( '.vgml-tree' ) ? getComputedStyle( document.querySelector( '.vgml-tree' ) ).position : 'none' ) };
+			const tree = document.querySelector( '.vgml-tree' );
+			return { meta: z( '#screen-meta' ), tree: z( '.vgml-tree' ), position: tree ? getComputedStyle( tree ).position : 'none' };
 		} );
 		console.log( `layers: #screen-meta z ${ layers.meta }, .vgml-tree z ${ layers.tree } (${ layers.position })` );
 
@@ -128,6 +144,20 @@ try {
 		const reached = boxes.filter( ( b ) => b.ok ).length;
 		console.log( `${ reached }/${ boxes.length } checkboxes reachable  ${ path.basename( file ) }` );
 
+		// The lift took nothing from the tree: while the panel is open, the
+		// first folder row below its bottom edge still takes the click.
+		const under = await page.evaluate( () => {
+			const panel = document.querySelector( '#screen-meta' ).getBoundingClientRect();
+			const first = Array.from( document.querySelectorAll( '.vgml-tree .vgml-row' ) ).find( ( el ) => { const r = el.getBoundingClientRect(); return r.height > 0 && r.top >= panel.bottom; } );
+			if ( ! first ) {
+				return { found: false };
+			}
+			const r = first.getBoundingClientRect();
+			const hit = document.elementFromPoint( r.x + r.width / 2, r.y + r.height / 2 );
+			return { found: true, ok: !! ( hit && hit.closest( '.vgml-row' ) === first ), hit: hit ? hit.tagName.toLowerCase() + '.' + ( hit.getAttribute( 'class' ) || '' ).trim().split( /\s+/ ).join( '.' ) : 'nothing', top: Math.round( r.top ), bottom: Math.round( panel.bottom ) };
+		} );
+		console.log( `${ under.found && under.ok ? 'ok  ' : 'FAIL' }  panel open: the first folder row below it (${ under.found ? `y ${ under.top }, panel ends ${ under.bottom }` : 'none below the panel' }) takes the press (${ under.found ? under.hit : '-' })` );
+
 		// Closed again, the tree still takes a click where it always did.
 		await page.click( '#show-settings-link' );
 		await page.waitForSelector( '#adv-settings', { state: 'hidden', timeout: 10000 } );
@@ -140,11 +170,11 @@ try {
 			}
 			const r = first.getBoundingClientRect();
 			const hit = document.elementFromPoint( r.x + r.width / 2, r.y + r.height / 2 );
-			return { found: true, ok: !! ( hit && hit.closest( '.vgml-row' ) === first ), hit: hit ? hit.tagName.toLowerCase() + '.' + String( hit.className ).trim().split( /\s+/ ).join( '.' ) : 'nothing' };
+			return { found: true, ok: !! ( hit && hit.closest( '.vgml-row' ) === first ), hit: hit ? hit.tagName.toLowerCase() + '.' + ( hit.getAttribute( 'class' ) || '' ).trim().split( /\s+/ ).join( '.' ) : 'nothing' };
 		} );
 		console.log( `${ row.found && row.ok ? 'ok  ' : 'FAIL' }  panel closed: a press on the first folder row lands in the row (${ row.found ? row.hit : 'no row found' })` );
 
-		ok = boxes.length > 0 && reached === boxes.length && row.found && row.ok;
+		ok = boxes.length > 0 && reached === boxes.length && under.found && under.ok && row.found && row.ok;
 	} finally {
 		await browser.close();
 	}
