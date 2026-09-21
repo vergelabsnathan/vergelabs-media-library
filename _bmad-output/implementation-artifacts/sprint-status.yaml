@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-19-2026 14:30
-last_updated: "09-21-2026 12:05"
+last_updated: "09-21-2026 17:09"
 project: vergelabs-media-library
 project_key: NOKEY
 tracking_system: file-system
@@ -42,24 +42,24 @@ development_status:
   epic-1-retrospective: done
 
   epic-2: in-progress
-  2-1-the-buyer-walk-on-4-0-0: review
+  2-1-the-buyer-walk-on-4-0-0: done
   2-2-credits_min-in-production-recorded-no-work: done
   2-3-the-vat-position-nathan-s-with-an-accountant: backlog
   epic-2-retrospective: optional
 
-  epic-3: in-progress
+  epic-3: done
   3-1-an-availability-answer: done
   3-2-the-licence-key-leaves-the-support-ticket: done
   3-3-a-response-time-that-can-be-kept-solo: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   epic-4: in-progress
   4-1-the-csv-export-cannot-execute-in-a-spreadsheet: done
-  4-2-the-compatibility-matrix-on-4-0-0: review
+  4-2-the-compatibility-matrix-on-4-0-0: done
   4-3-operator-grade-or-client-grade: backlog
   4-4-a-single-row-drags-into-a-folder-beside-filebird: done
   4-5-our-folders-take-only-our-own-drag: done
-  epic-4-retrospective: optional
+  epic-4-retrospective: done
 action_items:
   - id: "epic-1-retro-item-1-one-ship-list-deploy-mjs-derives-its-pay"
     epic: 1
@@ -172,3 +172,114 @@ action_items:
     owner: "Nathan"
     status: open
     ref: "_bmad-output/implementation-artifacts/epic-1-retro-2026-09-20.md"
+  - id: "epic-3-retro-item-16-e3-1-story-the-describe-pass-treats-a-tr"
+    epic: 3
+    action: "E3-1 story: the describe pass treats a transport failure (http_request_failed,
+      vergeml_ai_transport) as transient like a 5xx, and a picture stubbed vergeml_ai_service_*
+      after its strikes is offered again by the next pass once the service answers;
+      proof: a suite with pre_http_request WP_Error and three 503s"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-21.md"
+  - id: "epic-3-retro-item-17-e3-2-until-e3-1-ships-the-faq-sentence-i"
+    epic: 3
+    action: "E3-2 until E3-1 ships, the FAQ sentence in readme.txt and service docs
+      credits.md says what the code does (proposal in the retro); words are Nathan"
+    owner: "Nathan (words), next session (edit)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-21.md"
+  - id: "epic-3-retro-item-18-e3-3-the-support-ticket-keeps-the-prefix"
+    epic: 3
+    action: "E3-3 the support ticket keeps the prefix note: createTicket takes keyNote,
+      /admin/tickets shows it, the agent brief carries it; route test prefix + wrong
+      site"
+    owner: "next session (service)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-21.md"
+  - id: "epic-3-retro-item-19-e3-4-service-docs-manual-privacy-md-83-a"
+    epic: 3
+    action: "E3-4 service docs manual privacy.md:83 and plugin docs security-secrets.md:63
+      say last four characters and the site, not the key"
+    owner: "Nathan (privacy words), next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-21.md"
+  - id: "epic-3-retro-item-20-e3-5-decision-which-plans-the-one-busine"
+    epic: 3
+    action: "E3-5 decision: which plans the one-business-day promise covers; then
+      the site heading, the readme FAQ Where do I report a problem, and SUPPORT_REPLY_TO
+      default follow in one commit"
+    owner: "Nathan"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-21.md"
+  - id: "epic-3-retro-item-21-e3-6-inbound-mail-tickets-resolve-the-se"
+    epic: 3
+    action: "E3-6 inbound mail tickets resolve the sender address to a licence when
+      exactly one customer matches (support/inbound/route.ts:142)"
+    owner: "next session (service)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-21.md"
+  - id: "epic-3-retro-item-22-e3-7-one-fixture-for-the-plugin-service"
+    epic: 3
+    action: "E3-7 one fixture for the plugin-service ticket contract: the get-help
+      suite writes the captured body to a file the route test posts; store.test.ts
+      derives prefixes with keyPrefix()"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-21.md"
+  - id: "epic-3-retro-item-23-e3-8-store-test-ts-countlicencesbyprefix"
+    epic: 3
+    action: "E3-8 store.test.ts: countLicencesByPrefix 2 and 0 against PGlite"
+    owner: "next session (service)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-21.md"
+  - id: "epic-3-retro-item-24-e3-9-process-a-decision-row-that-becomes"
+    epic: 3
+    action: "E3-9 process: a decision row that becomes customer text carries the suite
+      line behind each behaviour claim, not line references alone"
+    owner: "Nathan (rule)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-3-retro-2026-09-21.md"
+  - id: "epic-4-retro-item-25-e4-1-screen-meta-paints-above-the-list-m"
+    epic: 4
+    action: "E4-1 #screen-meta paints above the list-mode tree panel (css/vergeml-tree.css:122-126
+      vs :186); modes.spec asserts elementFromPoint on the first column checkbox is
+      the checkbox; the two comments of A4 corrected; 4.0.3 material with a changelog
+      line (Nathan)"
+    owner: "next session (small story)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-09-21.md"
+  - id: "epic-4-retro-item-26-e4-2-the-9-percent-column-rule-behind-a"
+    epic: 4
+    action: "E4-2 the 9 percent column rule behind a body class the script sets in
+      share(); the 8/9 boundary in the live-tick block"
+    owner: "next session, when media-list.php is next touched"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-09-21.md"
+  - id: "epic-4-retro-item-27-e4-3-modes-spec-mjs-test-skip-with-a-rea"
+    epic: 4
+    action: "E4-3 modes.spec.mjs: test.skip with a reason in place of the console.log
+      when the site has no third-party column"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-09-21.md"
+  - id: "epic-4-retro-item-28-e4-4-tests-tree-drag-mjs-and-reparent-mj"
+    epic: 4
+    action: "E4-4 tests/tree/drag.mjs and reparent.mjs registered in tools/verify.mjs
+      against Playground; the FileBird negative case stays the box"
+    owner: "next session"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-09-21.md"
+  - id: "epic-4-retro-item-29-e4-5-story-4-3-the-mock-of-the-pause-500"
+    epic: 4
+    action: "E4-5 story 4.3: the mock of the pause (500 / first 100) for Nathan approval,
+      then spec, build, review; copy is Nathan"
+    owner: "next session (mock), Nathan (approval)"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-09-21.md"
+  - id: "epic-4-retro-item-30-e4-6-process-a-fix-that-lifts-one-elemen"
+    epic: 4
+    action: "E4-6 process: a fix that lifts one element over another gets a geometry
+      probe on the whole surface it touches, not only the failure"
+    owner: "sessions"
+    status: open
+    ref: "_bmad-output/implementation-artifacts/epic-4-retro-2026-09-21.md"
