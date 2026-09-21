@@ -202,6 +202,16 @@ async function drag( fromSel, toSel ) {
 	if ( ! a || ! b ) {
 		return { error: 'a row is not on screen' };
 	}
+	/*
+	 *  What is under the press, for the detail when the file does not land.
+	 *  On 2026-09-20 the folder lit up and nothing was filed, and it took a
+	 *  probe to learn the press had landed on the checkbox label -- 324px
+	 *  wide beside FileBird, and FileBird's drag handle (story 4.4).
+	 */
+	const pressedOn = await page.evaluate( ( [ x, y ] ) => {
+		const el = document.elementFromPoint( x, y );
+		return el ? `${ el.tagName.toLowerCase() }${ el.className && 'string' === typeof el.className ? '.' + el.className.trim().split( /\s+/ ).join( '.' ) : '' }` : 'nothing';
+	}, [ a.x + 40, a.y + a.height / 2 ] );
 	await page.mouse.move( a.x + 40, a.y + a.height / 2 );
 	await page.mouse.down();
 	await page.mouse.move( a.x + 60, a.y + a.height / 2, { steps: 4 } );
@@ -209,7 +219,7 @@ async function drag( fromSel, toSel ) {
 	const hovering = await to.evaluate( ( el ) => el.classList.contains( 'is-drop' ) );
 	await page.mouse.up();
 	await page.waitForTimeout( 1500 );
-	return { hovering };
+	return { hovering, pressedOn };
 }
 
 let folderId = 0;
@@ -362,7 +372,7 @@ try {
 		}
 		const terms = await termsOf( ids[ 0 ], folderId );
 		const ok = terms.includes( folderId );
-		return { ok, detail: `${ r.hovering ? 'the folder lit up' : 'the folder did not light up' }; file ${ ids[ 0 ] } is in [${ terms.join( ',' ) }]` };
+		return { ok, detail: `${ r.hovering ? 'the folder lit up' : 'the folder did not light up' }; file ${ ids[ 0 ] } is in [${ terms.join( ',' ) }]${ ok ? '' : `; the press landed on ${ r.pressedOn }` }` };
 	} );
 
 	await step( 'filter the grid by the folder', async () => {

@@ -877,22 +877,22 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 2068, 1 folders"
+					"detail": "\"Matrix run\" is folder 2101, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 251060, 251061, 251062"
+					"detail": "attachments 251124, 251125, 251126"
 				},
 				{
 					"name": "drag one into the folder",
 					"ok": true,
-					"detail": "the folder lit up; file 251060 is in [2068]"
+					"detail": "the folder lit up; file 251124 is in [2101]"
 				},
 				{
 					"name": "filter the grid by the folder",
 					"ok": true,
-					"detail": "the grid shows file 251060 alone"
+					"detail": "the grid shows file 251124 alone"
 				},
 				{
 					"name": "select two files and move them in one drag",
@@ -920,9 +920,9 @@
 					"detail": "restored: {\"site_profile\":\"\"}\n"
 				}
 			],
-			"ran": "2026-09-20",
+			"ran": "2026-09-21",
 			"rerun": true,
-			"seconds": 41
+			"seconds": 42
 		},
 		"shape=multisite-subdomain": {
 			"wp": "7.1",
@@ -944,9 +944,9 @@
 			"shape": "multisite, subdirectory (the box)",
 			"lang": "en_US",
 			"with": "FileBird 6.5.8 (MariaDB)",
-			"ok": false,
+			"ok": true,
 			"skipped": "",
-			"step": "drag one into the folder: the folder lit up; file 251065 is in []",
+			"step": "all 10 steps · uninstall not run on the box",
 			"steps": [
 				{
 					"name": "the site answers and the plugin is on",
@@ -956,27 +956,27 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 2069, 1 folders"
+					"detail": "\"Matrix run\" is folder 2092, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 251065, 251066, 251067"
+					"detail": "attachments 251113, 251114, 251115"
 				},
 				{
 					"name": "drag one into the folder",
-					"ok": false,
-					"detail": "the folder lit up; file 251065 is in []"
+					"ok": true,
+					"detail": "the folder lit up; file 251113 is in [2092]"
 				},
 				{
 					"name": "filter the grid by the folder",
-					"ok": false,
-					"detail": "the grid shows 0 files [], expected [251065]"
+					"ok": true,
+					"detail": "the grid shows file 251113 alone"
 				},
 				{
 					"name": "select two files and move them in one drag",
-					"ok": false,
-					"detail": "2 of 2 moved; the folder counts 2"
+					"ok": true,
+					"detail": "2 of 2 moved; the folder counts 3"
 				},
 				{
 					"name": "remove what the run made (uninstall not run on this site)",
@@ -999,9 +999,9 @@
 					"detail": "restored: {\"site_profile\":\"\"}\n"
 				}
 			],
-			"ran": "2026-09-20",
+			"ran": "2026-09-21",
 			"rerun": true,
-			"seconds": 70
+			"seconds": 44
 		}
 	}
 }

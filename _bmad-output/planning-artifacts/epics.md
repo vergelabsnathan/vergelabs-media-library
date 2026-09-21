@@ -234,3 +234,7 @@ Re-run the 18 cells and the plugin-conflict set; to be detailed when sequenced.
 ### Story 4.3: Operator-grade or client-grade
 
 A product decision, Nathan's; a mock before any screen change.
+
+### Story 4.4: A single row drags into a folder beside FileBird
+
+Found by 4.2 on 2026-09-20: beside FileBird 6.5.8 on MariaDB, one unselected list row dragged onto a folder lights the folder and files nothing (the 09-11 bytes passed). Bisect between `c85cde6` and 4.0.1, fix, prove with the matrix cell and the tree drag specs; 4.0.2 material.

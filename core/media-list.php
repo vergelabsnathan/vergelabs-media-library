@@ -279,9 +279,24 @@ function vergeml_list_assets( $hook ) {
     $core   = array( 'cb', 'title', 'author', 'date', 'parent', 'comments' );
     $beyond = array_diff( $visible, $core );
     $theirs = array_diff( $beyond, vergeml_list_our_columns() );
+    $share  = $beyond ? ( $theirs ? 30 : 40 ) : 0;
 
-    if ( $beyond ) {
-        $css .= "\n\n.wp-list-table.media .column-title {\n\twidth: " . ( $theirs ? '30%' : '40%' ) . ";\n}";
+    /*
+     *  The share is a floor, not a width: it applies only while File would
+     *  be narrower without it. Unconditional, it sized every column once one
+     *  other plugin's column was on -- FileBird's 10%, say -- and a fixed
+     *  table hands what is left over to its one fixed-length column, the
+     *  checkbox: 324px of 900 beside FileBird on 2026-09-20, with core's
+     *  label stretched over all of it, and FileBird's drag handle on that
+     *  label. A single row dragged into a folder filed nothing (story 4.4).
+     *  So the rule waits behind a class that js/vergeml-media-list.js puts
+     *  on the body after measuring File once: below its share, the class
+     *  goes on and the other unsized columns give way; at or above it, File
+     *  is the column that takes the leftover, as core intends. On the body
+     *  because a folder click swaps in a whole new table.
+     */
+    if ( $share ) {
+        $css .= "\n\nbody.vgml-file-share .wp-list-table.media .column-title {\n\twidth: " . $share . "%;\n}";
     }
 
     wp_add_inline_style( 'vergeml-media-list', $css );
@@ -297,6 +312,8 @@ function vergeml_list_assets( $hook ) {
     wp_localize_script( 'vergeml-media-list', 'vergemlList', array(
         'rows'    => vergeml_list_row_meta(),
         'columns' => vergeml_list_our_columns(),
+        // File's floor as a percentage of the table, 0 when no column beyond core's is on.
+        'share'   => $share,
         // The word on a picture, as the pill says it (spec §3; vergeml_filing_confidence).
         'words'   => array(
             'sure'   => __( 'sure', 'vergelabs-media-library' ),

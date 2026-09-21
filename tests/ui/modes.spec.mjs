@@ -557,6 +557,7 @@ for ( const mode of [ 'grid', 'list' ] ) {
 			page: document.documentElement.scrollWidth,
 			window: window.innerWidth,
 			file: Math.round( document.querySelector( '.wp-list-table th#title' ).getBoundingClientRect().width ),
+			checkbox: Math.round( document.querySelector( '.wp-list-table thead .check-column' ).getBoundingClientRect().width ),
 		} ) );
 
 		expect( room.trees, 'the folder panel is on the list screen too' ).toBe( 1 );
@@ -564,7 +565,15 @@ for ( const mode of [ 'grid', 'list' ] ) {
 			room.page,
 			`the page does not scroll sideways (page ${ room.page }px, window ${ room.window }px)`
 		).toBeLessThanOrEqual( room.window );
-		expect( room.file, `File is a share of the table, not a fixed 759px (${ room.file }px of ${ room.table }px)` ).toBeLessThan( room.table * 0.5 );
+		/*
+		 *  File is a share of the table, never its nowrap width (759px on
+		 *  2026-09-14, three columns off the right edge -- the sideways scroll
+		 *  above is that failure's own mark). Since story 4.4 File is the
+		 *  column that takes the table's leftover, so it can be wider than
+		 *  half; what it cannot be is the whole table less the checkbox.
+		 */
+		expect( room.file, `File is a share of the table, not its own width (${ room.file }px of ${ room.table }px)` ).toBeLessThan( room.table - room.checkbox - 200 );
+		expect( room.checkbox, `the checkbox column is ${ room.checkbox }px wide on arrival` ).toBeLessThan( 60 );
 
 		const columns = await page.$$eval( '.wp-list-table thead th[id]', ( ths ) =>
 			ths.map( ( th ) => ( { id: th.id, hidden: th.classList.contains( 'hidden' ) } ) ) );
@@ -576,13 +585,34 @@ for ( const mode of [ 'grid', 'list' ] ) {
 		expect( ours.length, 'our columns are on this screen to switch on' ).toBeGreaterThan( 0 );
 
 		try {
+			/*
+			 *  The fourth set is the one that showed the checkbox swallowing
+			 *  the table's slack (story 4.4, 2026-09-21): with two of ours on
+			 *  and nothing else, every column had a width that summed to 82%,
+			 *  and Chrome's fixed layout gave the other 18% to the only
+			 *  fixed-length column -- the checkbox, 137px of 982 -- whose
+			 *  label core stretches over the whole cell. Beside FileBird that
+			 *  label is FileBird's drag handle, and a single row dragged into
+			 *  a folder filed nothing. Five of ours (set two) sum past 100%
+			 *  and never showed it.
+			 */
+			/*
+			 *  `floor` is what body.vgml-file-share must read for the set:
+			 *  false where File takes the leftover on its own (core's three;
+			 *  two of ours: 82% sized, File auto ≈ 55%), true where the
+			 *  sized columns leave File below its share (five of ours: 69%,
+			 *  File auto ≈ 28% < 40%). With every other plugin's column on
+			 *  it depends on how they size theirs, so that set asserts only
+			 *  the consequence: File at or above its share when the class is on.
+			 */
 			const sets = [
-				[ 'ours off, and the other plugins\' columns off', ROW_CEILING, theirs.concat( ours ) ],
-				[ 'all five of ours on, the other plugins\' columns off', ROW_CEILING, theirs ],
-				[ 'as the screen ships, with every other plugin\'s column on', ROW_ALARM, ours ],
+				[ 'ours off, and the other plugins\' columns off', ROW_CEILING, theirs.concat( ours ), false ],
+				[ 'all five of ours on, the other plugins\' columns off', ROW_CEILING, theirs, true ],
+				[ 'as the screen ships, with every other plugin\'s column on', ROW_ALARM, ours, null ],
+				[ 'two of ours on, the other plugins\' columns off', ROW_CEILING, theirs.concat( ours.slice( 2 ) ), false ],
 			];
 
-			for ( const [ what, ceiling, hidden ] of sets ) {
+			for ( const [ what, ceiling, hidden, floor ] of sets ) {
 
 				await setHidden( page, Array.from( new Set( hidden ) ) );
 				await openList( page );
@@ -590,8 +620,36 @@ for ( const mode of [ 'grid', 'list' ] ) {
 				const on = await page.$$eval( '.wp-list-table thead th[id]', ( ths ) =>
 					ths.filter( ( th ) => ! th.classList.contains( 'hidden' ) ).map( ( th ) => th.id ) );
 				const rows = await rowHeights( page );
+				/*
+				 *  The head cell sets the column in a fixed table; core sizes it
+				 *  2.5em. And the press the drag suites make -- 40px into the
+				 *  first row, where the thumbnail is -- must land on the title
+				 *  cell: on the checkbox label it is another plugin's drag.
+				 */
+				const width = await page.evaluate( ( share ) => {
+					const table = document.querySelector( '.wp-list-table' );
+					const row = document.querySelector( '#the-list > tr[id^="post-"]' );
+					const a = row.getBoundingClientRect();
+					const pressed = document.elementFromPoint( a.x + 40, a.y + a.height / 2 );
+					return {
+						checkbox: Math.round( table.querySelector( 'thead .check-column' ).getBoundingClientRect().width ),
+						table: Math.round( table.getBoundingClientRect().width ),
+						file: Math.round( table.querySelector( 'thead .column-title' ).getBoundingClientRect().width ),
+						share: parseInt( window.vergemlList && window.vergemlList.share, 10 ) || 0,
+						floor: document.body.classList.contains( 'vgml-file-share' ),
+						pressOnTitle: !! ( pressed && pressed.closest( '.column-title' ) ),
+					};
+				} );
+				const checkbox = width.checkbox;
 
 				expect( rows.length, 'the list has rows to measure' ).toBeGreaterThan( 0 );
+				expect( width.pressOnTitle, `${ what }, arriving in ${ mode }: a press 40px into the first row lands on the title cell, not the checkbox label` ).toBe( true );
+				if ( null !== floor ) {
+					expect( width.floor, `${ what }, arriving in ${ mode }: body.vgml-file-share is ${ width.floor ? 'on' : 'off' } (share ${ width.share }%, File ${ width.file }px of ${ width.table }px)` ).toBe( floor );
+				}
+				if ( width.floor ) {
+					expect( width.file, `${ what }, arriving in ${ mode }: with the class on, File holds its ${ width.share }% share (${ width.file }px of ${ width.table }px)` ).toBeGreaterThanOrEqual( Math.floor( width.table * width.share / 100 ) - 1 );
+				}
 
 				/*
 				 *  Said on a pass as well as a failure. Two phases recorded
@@ -602,10 +660,16 @@ for ( const mode of [ 'grid', 'list' ] ) {
 				 */
 				console.log(
 					`      ${ mode } · ${ what }\n` +
-					`        tallest ${ rows[ 0 ].h }px of ${ rows.length } rows, ceiling ${ ceiling }\n` +
+					`        tallest ${ rows[ 0 ].h }px of ${ rows.length } rows, ceiling ${ ceiling }; the checkbox column ${ checkbox }px\n` +
 					`        that row is ${ rows[ 0 ].id } "${ rows[ 0 ].title }"\n` +
 					`        ${ on.length } columns on: ${ on.join( ', ' ) }`
 				);
+
+				expect(
+					checkbox,
+					`${ what }, arriving in ${ mode }: the checkbox column is ${ checkbox }px wide -- the table's slack has landed on it ` +
+					`(core sizes it 2.5em; its label covers the cell, and beside FileBird that label is the drag handle)`
+				).toBeLessThan( 60 );
 
 				expect(
 					rows[ 0 ].h,

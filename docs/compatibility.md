@@ -29,9 +29,9 @@ row means that row is newer than the run above it.
 | 7.1.1 | 8.2 | single | en_US | Premio Folders (wordpress.org) | ✓ | all 9 steps |
 | 7.1.1 | 8.2 | single | en_US | Enhanced Media Library 2.9.4 | ✓ | all 9 steps |
 | 7.1.1 | 8.2 | single | en_US | Polylang Pro 3.8.7 | ✓ | all 9 steps |
-| 7.1.1 | 8.5 | multisite, subdirectory (the box) | en_US | nothing | ✓ | all 10 steps · uninstall not run on the box (rerun) |
+| 7.1.1 | 8.5 | multisite, subdirectory (the box) | en_US | nothing | ✓ | all 10 steps · uninstall not run on the box (rerun 2026-09-21) |
 | 7.1 | 8.5 | multisite, subdomain (the box, sub-site) | en_US | nothing | — | not run: /var/www/ms2 has held the shop library since 2026-09-16 and test runs stay off it; the shape last passed all 9 steps on 2026-09-11 |
-| 7.1.1 | 8.5 | multisite, subdirectory (the box) | en_US | FileBird 6.5.8 (MariaDB) | ✗ | drag one into the folder: the folder lit up; file 251065 is in [] (rerun) |
+| 7.1.1 | 8.5 | multisite, subdirectory (the box) | en_US | FileBird 6.5.8 (MariaDB) | ✓ | all 10 steps · uninstall not run on the box (rerun 2026-09-21) |
 
 The nine version cells are Playground (SQLite, no GD); the language and
 companion cells run on WordPress 7.1 / PHP 8.2 there. No cell has a licence key

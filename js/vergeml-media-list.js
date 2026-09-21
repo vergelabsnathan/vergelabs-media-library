@@ -93,12 +93,52 @@
 		}
 	}
 
+	/*
+	 *  File's floor, applied only when File needs it.
+	 *
+	 *  core/media-list.php writes File's share (30% beside another plugin's
+	 *  columns, 40% among ours) behind body.vgml-file-share, because written
+	 *  as a plain width it sized every column and the fixed table gave its
+	 *  leftover to the checkbox column -- 324px wide beside FileBird. So
+	 *  File starts as core has it, auto, and is measured once: narrower than
+	 *  its share, the class goes on and the unsized columns beside it give
+	 *  way; at or above it, File is the column that takes the leftover and
+	 *  nothing is done. The head cell is the one that sizes a fixed column.
+	 *
+	 *  Measured in the frame after DOMContentLoaded, not in it: this script's
+	 *  listener runs before js/vergeml-tree.js's, and that one puts the panel
+	 *  beside the list and narrows the table. The ratio is what is compared,
+	 *  so the em-wide checkbox is the only thing the width changes -- but the
+	 *  table the person sees is the one to measure.
+	 */
+	function share() {
+
+		var table = document.querySelector( '.wp-list-table.media' );
+		var title = table && table.querySelector( 'thead .column-title' );
+		var share = parseInt( cfg.share, 10 ) || 0; // localize hands numbers over as strings
+
+		if ( ! share || ! title ) {
+			return;
+		}
+
+		document.body.classList.toggle(
+			'vgml-file-share',
+			title.getBoundingClientRect().width < table.getBoundingClientRect().width * share / 100
+		);
+	}
+
 	function draw() {
 		var rows = document.querySelectorAll( '#the-list > tr[id^="post-"]' );
 		for ( var i = 0; i < rows.length; i++ ) {
 			line( rows[ i ] );
-			titles( rows[ i ] );
 		}
+		// The titles read what the widths cut short, so they follow the share.
+		window.requestAnimationFrame( function () {
+			share();
+			for ( var i = 0; i < rows.length; i++ ) {
+				titles( rows[ i ] );
+			}
+		} );
 	}
 
 	if ( document.readyState === 'loading' ) {
