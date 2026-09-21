@@ -238,3 +238,7 @@ A product decision, Nathan's; a mock before any screen change.
 ### Story 4.4: A single row drags into a folder beside FileBird
 
 Found by 4.2 on 2026-09-20: beside FileBird 6.5.8 on MariaDB, one unselected list row dragged onto a folder lights the folder and files nothing (the 09-11 bytes passed). Bisect between `c85cde6` and 4.0.1, fix, prove with the matrix cell and the tree drag specs; 4.0.2 material.
+
+### Story 4.5: Our folders take only our own drag, and File's share follows a live column toggle
+
+The two questions 4.4 left open (2026-09-21, Nathan's go): beside FileBird its own drag over our tree lights our folder and drops nothing — our droppables accept only our helper; and File's share is decided once at load — it follows a Screen Options toggle without a reload. Before the 4.0.2 cut.

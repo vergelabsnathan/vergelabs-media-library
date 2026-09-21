@@ -258,14 +258,12 @@ function vergeml_list_assets( $hook ) {
     }
 
     /*
-     *  File's share, only while a column beyond core's own is on the screen.
+     *  File's two shares, for when a column beyond core's own is on the screen.
      *
      *  With core's three alone, File has no width and takes the leftover,
      *  which is what core intends. Once more columns arrive the leftover is
      *  what they leave -- 151px at 1440 on the box on 2026-09-14, the title
-     *  a letter to a line beside its own thumbnail. Unconditional, a width
-     *  would sit File in the middle of a three-column table with the leftover
-     *  as a blank to its left, measured the same day.
+     *  a letter to a line beside its own thumbnail.
      *
      *  Two shares, because a fixed table is zero-sum. Among ours (9% each)
      *  40% leaves rows at 81px median, 98px tallest at 1600. With another
@@ -275,13 +273,7 @@ function vergeml_list_assets( $hook ) {
      *  rows of 231, the same table the screen had before, with nothing off
      *  the right edge. Their columns are theirs to size and the user's to
      *  hide.
-     */
-    $core   = array( 'cb', 'title', 'author', 'date', 'parent', 'comments' );
-    $beyond = array_diff( $visible, $core );
-    $theirs = array_diff( $beyond, vergeml_list_our_columns() );
-    $share  = $beyond ? ( $theirs ? 30 : 40 ) : 0;
-
-    /*
+     *
      *  The share is a floor, not a width: it applies only while File would
      *  be narrower without it. Unconditional, it sized every column once one
      *  other plugin's column was on -- FileBird's 10%, say -- and a fixed
@@ -289,15 +281,16 @@ function vergeml_list_assets( $hook ) {
      *  checkbox: 324px of 900 beside FileBird on 2026-09-20, with core's
      *  label stretched over all of it, and FileBird's drag handle on that
      *  label. A single row dragged into a folder filed nothing (story 4.4).
-     *  So the rule waits behind a class that js/vergeml-media-list.js puts
-     *  on the body after measuring File once: below its share, the class
-     *  goes on and the other unsized columns give way; at or above it, File
-     *  is the column that takes the leftover, as core intends. On the body
-     *  because a folder click swaps in a whole new table.
+     *  So both shares wait behind a class that js/vergeml-media-list.js puts
+     *  on the body after measuring File: below its share, the class goes on
+     *  and the other unsized columns give way; at or above it, File is the
+     *  column that takes the leftover, as core intends. The script, not this
+     *  file, decides which share from the columns on the screen, because a
+     *  Screen Options tick changes them without a reload (story 4.5). On the
+     *  body because a folder click swaps in a whole new table.
      */
-    if ( $share ) {
-        $css .= "\n\nbody.vgml-file-share .wp-list-table.media .column-title {\n\twidth: " . $share . "%;\n}";
-    }
+    $css .= "\n\nbody.vgml-file-share-30 .wp-list-table.media .column-title {\n\twidth: 30%;\n}"
+          . "\n\nbody.vgml-file-share-40 .wp-list-table.media .column-title {\n\twidth: 40%;\n}";
 
     wp_add_inline_style( 'vergeml-media-list', $css );
 
@@ -312,8 +305,6 @@ function vergeml_list_assets( $hook ) {
     wp_localize_script( 'vergeml-media-list', 'vergemlList', array(
         'rows'    => vergeml_list_row_meta(),
         'columns' => vergeml_list_our_columns(),
-        // File's floor as a percentage of the table, 0 when no column beyond core's is on.
-        'share'   => $share,
         // The word on a picture, as the pill says it (spec §3; vergeml_filing_confidence).
         'words'   => array(
             'sure'   => __( 'sure', 'vergelabs-media-library' ),

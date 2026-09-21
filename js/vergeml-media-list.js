@@ -96,14 +96,18 @@
 	/*
 	 *  File's floor, applied only when File needs it.
 	 *
-	 *  core/media-list.php writes File's share (30% beside another plugin's
-	 *  columns, 40% among ours) behind body.vgml-file-share, because written
-	 *  as a plain width it sized every column and the fixed table gave its
-	 *  leftover to the checkbox column -- 324px wide beside FileBird. So
-	 *  File starts as core has it, auto, and is measured once: narrower than
-	 *  its share, the class goes on and the unsized columns beside it give
-	 *  way; at or above it, File is the column that takes the leftover and
-	 *  nothing is done. The head cell is the one that sizes a fixed column.
+	 *  core/media-list.php writes File's two shares -- 30% beside another
+	 *  plugin's columns, 40% among ours -- behind body.vgml-file-share-30 and
+	 *  -40, because written as a plain width the share sized every column and
+	 *  the fixed table gave its leftover to the checkbox column: 324px wide
+	 *  beside FileBird. So File starts as core has it, auto, and is measured:
+	 *  narrower than its share, the class goes on and the unsized columns
+	 *  beside it give way; at or above it, File is the column that takes the
+	 *  leftover and nothing is done. The head cell is the one that sizes a
+	 *  fixed column, and the head is where the share is read from -- which
+	 *  columns are on the screen -- because a Screen Options tick changes
+	 *  that without a reload. Both classes come off before the measurement:
+	 *  with one on, File measures at its share and never below it.
 	 *
 	 *  Measured in the frame after DOMContentLoaded, not in it: this script's
 	 *  listener runs before js/vergeml-tree.js's, and that one puts the panel
@@ -111,20 +115,49 @@
 	 *  so the em-wide checkbox is the only thing the width changes -- but the
 	 *  table the person sees is the one to measure.
 	 */
+	var CORE = [ 'cb', 'title', 'author', 'date', 'parent', 'comments' ];
+
 	function share() {
 
 		var table = document.querySelector( '.wp-list-table.media' );
 		var title = table && table.querySelector( 'thead .column-title' );
-		var share = parseInt( cfg.share, 10 ) || 0; // localize hands numbers over as strings
 
-		if ( ! share || ! title ) {
+		if ( ! title ) {
 			return;
 		}
 
-		document.body.classList.toggle(
-			'vgml-file-share',
-			title.getBoundingClientRect().width < table.getBoundingClientRect().width * share / 100
-		);
+		var beyond = false;
+		var theirs = false;
+		var heads = table.querySelectorAll( 'thead th[id], thead td[id]' );
+
+		for ( var i = 0; i < heads.length; i++ ) {
+			if ( heads[ i ].classList.contains( 'hidden' ) || CORE.indexOf( heads[ i ].id ) !== -1 ) {
+				continue;
+			}
+			beyond = true;
+			if ( columns.indexOf( heads[ i ].id ) === -1 ) {
+				theirs = true;
+			}
+		}
+
+		var pct = beyond ? ( theirs ? 30 : 40 ) : 0;
+
+		document.body.classList.remove( 'vgml-file-share-30', 'vgml-file-share-40' );
+
+		if ( pct && title.getBoundingClientRect().width < table.getBoundingClientRect().width * pct / 100 ) {
+			document.body.classList.add( 'vgml-file-share-' + pct );
+		}
+	}
+
+	// The titles read what the widths cut short, so they follow the share, in the same frame.
+	function measure() {
+		window.requestAnimationFrame( function () {
+			share();
+			var rows = document.querySelectorAll( '#the-list > tr[id^="post-"]' );
+			for ( var i = 0; i < rows.length; i++ ) {
+				titles( rows[ i ] );
+			}
+		} );
 	}
 
 	function draw() {
@@ -132,13 +165,7 @@
 		for ( var i = 0; i < rows.length; i++ ) {
 			line( rows[ i ] );
 		}
-		// The titles read what the widths cut short, so they follow the share.
-		window.requestAnimationFrame( function () {
-			share();
-			for ( var i = 0; i < rows.length; i++ ) {
-				titles( rows[ i ] );
-			}
-		} );
+		measure();
 	}
 
 	if ( document.readyState === 'loading' ) {
@@ -146,4 +173,11 @@
 	} else {
 		draw();
 	}
+
+	// A Screen Options tick: core has shown or hidden the column by the time change fires.
+	document.addEventListener( 'change', function ( e ) {
+		if ( e.target && e.target.classList && e.target.classList.contains( 'hide-column-tog' ) ) {
+			measure();
+		}
+	} );
 }() );

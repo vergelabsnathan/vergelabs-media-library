@@ -2219,6 +2219,30 @@
 	}
 
 	/*
+	 *  Only a drag of ours -- a file's or a folder's, both carry our helper.
+	 *
+	 *  A droppable takes any jQuery UI drag by default, so beside FileBird its
+	 *  own drag (from the checkbox column, its handle) lit our folder and
+	 *  dropped nothing: the drop handler found nothing of ours to file, and
+	 *  the person read our folder as refusing their file (story 4.5). The
+	 *  drag under way is ddmanager.current, and its helper says whose it is.
+	 *
+	 *  Read in `over` and `drop`, not given as `accept`: jQuery UI resets a
+	 *  droppable's isover only for drags it accepted, so a refused drag let go
+	 *  over a folder left that folder thinking it was still hovered, and our
+	 *  next drag entering it got no highlight. The hover class is added just
+	 *  before `over` fires, so taking it off there paints nothing in between;
+	 *  a drop that is not ours returns false and the drag stays with the
+	 *  plugin that started it.
+	 */
+	function ownDrag() {
+		var $ = window.jQuery;
+		var current = $ && $.ui && $.ui.ddmanager && $.ui.ddmanager.current;
+		var helper = current && current.helper;
+		return !! ( helper && helper.hasClass && helper.hasClass( 'vgml-drag-helper' ) );
+	}
+
+	/*
 	 *  "Unfiled" as a drop target.
 	 *
 	 *  Dragging a file there empties its folders, which is the only way to unfile
@@ -2242,7 +2266,16 @@
 			addClasses: false,
 			tolerance: 'pointer',
 			hoverClass: 'is-drop',
+			over: function () {
+				if ( ! ownDrag() ) {
+					row.classList.remove( 'is-drop' );
+				}
+			},
 			drop: function () {
+
+				if ( ! ownDrag() ) {
+					return false;
+				}
 
 				if ( draggingFolder ) {
 					return; // folders are not unfiled; they are deleted or moved
@@ -2274,6 +2307,10 @@
 			tolerance: 'pointer',
 			hoverClass: 'is-drop',
 			over: function ( e ) {
+				if ( ! ownDrag() ) {
+					row.classList.remove( 'is-drop' );
+					return;
+				}
 				if ( draggingFolder && ! canReparent( draggingFolder, termId ) ) {
 					row.classList.remove( 'is-drop' );
 					row.classList.add( 'is-refused' );
@@ -2286,6 +2323,10 @@
 
 				row.classList.remove( 'is-drop' );
 				row.classList.remove( 'is-refused' );
+
+				if ( ! ownDrag() ) {
+					return false;
+				}
 
 				// A folder being dragged onto another folder: re-parent it, or
 				// place it beside that folder if the pointer was on an edge.

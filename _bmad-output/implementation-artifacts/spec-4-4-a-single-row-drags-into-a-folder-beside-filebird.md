@@ -101,6 +101,7 @@ One question per step, investigation first (the cause was measured before a line
 ## Spec Change Log
 
 - 2026-09-21 written from the S27 finding after the probe established the cause; the bisect is file history plus a runtime toggle, for the reason in Always.
+- 2026-09-21 (story 4.5) supersedes AC 4's "no title rule is emitted" and the `body.vgml-file-share` name: both share rules are on every list page now, as `body.vgml-file-share-30` / `-40`, and the script decides which from the head cells; with core's three only, no class is on the body — that half of the AC stands.
 - 2026-09-21 (build) T3's harness plants two `Drag Scratch` folders and a `vgmldrag` user the frozen AC 5 does not name; the end-of-session check covers them (Verification). The five-minute drag step reads `elementFromPoint` before every press and prints it only on failure — within "a detail line on failure", noted.
 
 ## Review Triage Log

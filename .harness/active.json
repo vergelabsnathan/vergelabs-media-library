@@ -1,36 +1,34 @@
 {
-  "phase": "S28 — story 4.4, a single row drags into a folder beside FileBird (found by 4.2). Cause measured first (a probe on /var/www/ms): not the arming — core/media-list.php's title width sized every column and the fixed table gave its slack to the checkbox column (324px beside FileBird), whose label is FileBird's drag handle. bmad-spec → fix in core/media-list.php + js/vergeml-media-list.js (File auto; the share behind body.vgml-file-share, measured once) → prove with the FileBird matrix cell, drag.mjs on ms through tools/box-drag-beside.mjs, modes.spec's row test → bmad-code-review. No version bump: the train cuts 4.0.2.",
+  "phase": "S28b — story 4.5 (Nathan's go on 4.4's two open questions, before the 4.0.2 cut): our droppables accept only our own helper; File's share decided in the script from the head cells and re-measured on a Screen Options change. Spec → build → prove (harness both ways with a checkbox-label step, the FileBird cell, modes.spec with a live toggle) → bmad-code-review.",
   "model": "opus",
   "plan": "plans/finish-the-suite.md",
-  "spec": "_bmad-output/implementation-artifacts/spec-4-4-a-single-row-drags-into-a-folder-beside-filebird.md",
+  "spec": "_bmad-output/implementation-artifacts/spec-4-5-our-folders-take-only-our-own-drag.md",
   "scope": [
-    "core/media-list.php (the share behind the body class; vergemlList.share)",
-    "js/vergeml-media-list.js (share(): the one measurement)",
-    "tools/box-drag-beside.mjs (new: drag.mjs on /var/www/ms beside a companion)",
-    "tests/ui/modes.spec.mjs (set 4, the checkbox and class assertions), tests/compat/five-minutes.mjs (the drag step's failure detail)",
-    "tests/compat/matrix-results.json, docs/compatibility.md (the rerun row, written by the runner)",
-    "_bmad-output/implementation-artifacts/spec-4-4-*.md, sprint-status.yaml, deferred-work.md, planning-artifacts/epics.md (story 4.4)",
+    "js/vergeml-tree.js (ownDrag(), accept on dropTarget/unfileTarget)",
+    "js/vergeml-media-list.js (share() from the head, the change listener)",
+    "core/media-list.php (two static share rules; share out of the localize)",
+    "tools/box-drag-beside.mjs (the checkbox-label step), tests/ui/modes.spec.mjs (share from the class; the live toggle)",
+    "tests/compat/matrix-results.json, docs/compatibility.md (the rerun row)",
+    "_bmad-output/implementation-artifacts/spec-4-5-*.md, sprint-status.yaml, deferred-work.md, planning-artifacts/epics.md",
     "docs/handoffs/**, plans/**",
     ".harness/active.json"
   ],
   "readFirst": [
-    "docs/handoffs/2026-09-20-s27-the-matrix-on-4-0-1.md",
-    "plans/finish-the-suite.md",
-    "_bmad-output/implementation-artifacts/deferred-work.md"
+    "docs/handoffs/2026-09-21-s28-a-single-row-beside-filebird.md",
+    "_bmad-output/implementation-artifacts/spec-4-4-a-single-row-drags-into-a-folder-beside-filebird.md"
   ],
   "handoffDir": "docs/handoffs",
   "stopPoints": [
-    "Nothing on ms2 or the real shop: the probe, the proof and the harness run on /var/www/ms only",
-    "Mock mode on the box cell; no describe on a real library; no licence key on the network",
-    "No version bump: the train cuts 4.0.2",
-    "Every user-facing string is Nathan's; none in this story (a 4.0.2 changelog line is proposed in the handoff)",
-    "Say what goes out before any push; the box is at HEAD at the end (deploy.mjs --check says up to date)"
+    "Nothing on ms2 or the real shop",
+    "Mock mode on the box cell; no describe; no key on the network",
+    "No version bump: the train cuts 4.0.2 after this",
+    "Every user-facing string is Nathan's; none expected",
+    "Say what goes out before any push; the box at HEAD at the end"
   ],
   "gates": [
-    "node tools/matrix.mjs --cell with=filebird,shape=multisite-subdirectory → ✓ 10/10 (was 7/10)",
-    "node tools/box-drag-beside.mjs --with filebird → 21/21 (was 7/19); without → 21/21",
-    "modes.spec 'the rows on the media list' on the box → 2 passed, checkbox < 60px and the press on the title cell in every set",
-    "node tools/deploy.mjs --check --box → box up to date at the end",
-    "bmad-code-review over the diff; sprint-status.yaml 4.4 → review"
+    "node tools/box-drag-beside.mjs --with filebird → 21/21 + the checkbox step not lit; without → 21/21 + lit",
+    "node tools/matrix.mjs --cell with=filebird,shape=multisite-subdirectory → ✓ 10/10",
+    "modes.spec 'the rows on the media list' → 2 passed with the live toggle",
+    "node tools/deploy.mjs --check --box → up to date; bmad-code-review; sprint 4.5 → review"
   ]
 }

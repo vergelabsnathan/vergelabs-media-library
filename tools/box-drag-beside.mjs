@@ -3,6 +3,7 @@
  *
  *      node tools/box-drag-beside.mjs                  # our plugin alone
  *      node tools/box-drag-beside.mjs --with filebird  # FileBird linked in for the run
+ *      node tools/box-drag-beside.mjs --spec reparent  # tests/tree/reparent.mjs (folder drags) instead
  *
  *  tests/tree/drag.mjs takes the first file on the list and clears its
  *  folders, so it must never point at the tech library. This runs it on
@@ -36,6 +37,12 @@ const ssh = ( cmd ) => spawnSync( 'ssh', [ ...SSH, cmd ], { encoding: 'utf8' } )
 const argv = process.argv.slice( 2 );
 const withAt = argv.indexOf( '--with' );
 const companion = withAt >= 0 ? argv[ withAt + 1 ] || '' : '';
+const specAt = argv.indexOf( '--spec' );
+const spec = specAt >= 0 ? argv[ specAt + 1 ] || '' : 'drag';
+if ( 'drag' !== spec && 'reparent' !== spec ) {
+	console.error( `--spec takes drag or reparent, not "${ spec }"` );
+	process.exit( 2 );
+}
 if ( withAt >= 0 && 'filebird' !== companion ) {
 	console.error( companion ? `only filebird is on the box to link in, not "${ companion }"` : '--with needs a slug: --with filebird' );
 	process.exit( 2 );
@@ -115,7 +122,7 @@ if ( ! /"mock":1/.test( on.stdout ) ) {
 	process.exit( 1 );
 }
 
-console.log( `\n  drag.mjs on ${ URL_MS } beside ${ companion || 'nothing' }\n` );
+console.log( `\n  ${ spec }.mjs on ${ URL_MS } beside ${ companion || 'nothing' }\n` );
 
 // From here every exit goes through the finally: the box is prepared now.
 let browser = null;
@@ -174,8 +181,70 @@ try {
 	}
 	console.log( `  file ${ fileId }, scratch folders ${ scratch.join( ', ' ) }` );
 
-	const run = spawnSync( process.execPath, [ path.join( ROOT, 'tests', 'tree', 'drag.mjs' ), URL_MS, user, pass ], { cwd: ROOT, encoding: 'utf8', stdio: 'inherit' } );
+	const run = spawnSync( process.execPath, [ path.join( ROOT, 'tests', 'tree', `${ spec }.mjs` ), URL_MS, user, pass ], { cwd: ROOT, encoding: 'utf8', stdio: 'inherit' } );
 	exit = run.status ?? 1;
+
+	/*
+	 *  One press drag.mjs never makes: on the checkbox label, left of the box.
+	 *  Beside FileBird that label is FileBird's handle, so the drag is
+	 *  FileBird's and our folder must neither light nor file (story 4.5: it
+	 *  lit and filed nothing). Alone, our own row instance takes the press
+	 *  and the folder does both. Either way a drag must be under way while
+	 *  the pointer is over the folder -- a press that starts nothing is also
+	 *  "not lit, not filed" -- so the drag's helper is read there and it has
+	 *  to be the companion's (beside one) or ours (alone). drag.mjs leaves
+	 *  the file unfiled; it is unfiled here again in case it did not.
+	 */
+	const unfiled = ( terms ) => ! terms.includes( scratch[ 0 ] );
+	const termsOf = async () => ( ( ( await rest( 'GET', `/wp/v2/media/${ fileId }?_fields=media_category` ) ).json || {} ).media_category ) || [];
+	const label = 'drag' !== spec ? null : await ( async () => {
+		if ( ! unfiled( await termsOf() ) ) {
+			await rest( 'POST', '/vergeml/v1/assign', { taxonomy: 'media_category', attachments: [ fileId ], add: [], mode: 'move' } );
+		}
+		await page.goto( `${ URL_MS }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
+		await page.waitForSelector( `#post-${ fileId } .check-column label` );
+		await page.waitForTimeout( 800 );
+		const from = await page.$( `#post-${ fileId } .check-column` );
+		const to = await page.$( `.vgml-node[data-id="${ scratch[ 0 ] }"] .vgml-row` );
+		if ( ! from || ! to ) {
+			return { error: from ? 'no scratch folder row' : 'no checkbox cell' };
+		}
+		const a = await from.boundingBox();
+		const b = await to.boundingBox();
+		const pressed = await page.evaluate( ( [ x, y ] ) => { const el = document.elementFromPoint( x, y ); return el ? el.tagName.toLowerCase() + ( el.className && 'string' === typeof el.className ? '.' + el.className.trim().split( /\s+/ ).join( '.' ) : '' ) : 'nothing'; }, [ a.x + 4, a.y + a.height / 2 ] );
+		await page.mouse.move( a.x + 4, a.y + a.height / 2 );
+		await page.mouse.down();
+		await page.mouse.move( a.x + 64, a.y + a.height / 2, { steps: 6 } );
+		await page.mouse.move( b.x + b.width / 2, b.y + b.height / 2, { steps: 12 } );
+		const over = await page.evaluate( ( sel ) => {
+			const $ = window.jQuery;
+			const cur = $ && $.ui && $.ui.ddmanager && $.ui.ddmanager.current;
+			return {
+				lit: document.querySelector( sel ).classList.contains( 'is-drop' ),
+				helper: cur && cur.helper ? cur.helper[ 0 ].className : 'none',
+			};
+		}, `.vgml-node[data-id="${ scratch[ 0 ] }"] .vgml-row` );
+		await page.mouse.up();
+		let filed = false;
+		for ( let t = 0; t < 8 && ! filed; t++ ) {
+			await page.waitForTimeout( 500 );
+			filed = ! unfiled( await termsOf() );
+		}
+		if ( filed ) {
+			await rest( 'POST', '/vergeml/v1/assign', { taxonomy: 'media_category', attachments: [ fileId ], add: [], mode: 'move' } );
+		}
+		return { pressed, lit: over.lit, helper: over.helper, filed };
+	} )();
+	if ( label ) {
+		const want = ! companion;
+		const ours = /\bvgml-drag-helper\b/.test( label.helper || '' );
+		const underWay = 'none' !== label.helper && ours === want;
+		const ok = ! label.error && underWay && label.lit === want && label.filed === want;
+		console.log( `  ${ ok ? 'ok  ' : 'FAIL' } a drag from the checkbox label ${ companion ? `beside ${ companion } is ${ companion }'s: our folder stays dark and files nothing` : 'alone is ours: the folder lights and files' }  -- ${ label.error || `pressed on ${ label.pressed }; over the folder the drag's helper was ${ label.helper }; lit ${ label.lit }, filed ${ label.filed }` }` );
+		if ( ! ok ) {
+			exit = 1;
+		}
+	}
 } catch ( e ) {
 	console.error( `  stopped: ${ e && e.message ? e.message : e }` );
 } finally {

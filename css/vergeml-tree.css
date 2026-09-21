@@ -112,6 +112,19 @@ body.vgml-has-tree .wrap {
 	padding-inline-start: calc( var( --vgml-panel-w, 300px ) + 16px );
 }
 
+/*
+ *  A positioned .wrap paints over core's Screen Options and Help tabs,
+ *  which float at the top right before it and are not positioned: from
+ *  2026-09-10 to 09-21 neither could be clicked on the list screen (a
+ *  Playwright click on Screen Options waited four minutes on the wrap).
+ *  Lifted the way eml-admin-media.css lifts them beside the grid.
+ */
+body.vgml-has-tree #screen-meta-links,
+body.vgml-has-tree #screen-meta {
+	position: relative;
+	z-index: 2;
+}
+
 body.vgml-has-tree .vgml-tree {
 	position: absolute;
 	top: 0;

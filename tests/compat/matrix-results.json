@@ -956,22 +956,22 @@
 				{
 					"name": "make a folder",
 					"ok": true,
-					"detail": "\"Matrix run\" is folder 2092, 1 folders"
+					"detail": "\"Matrix run\" is folder 2125, 1 folders"
 				},
 				{
 					"name": "upload three images",
 					"ok": true,
-					"detail": "attachments 251113, 251114, 251115"
+					"detail": "attachments 251149, 251150, 251151"
 				},
 				{
 					"name": "drag one into the folder",
 					"ok": true,
-					"detail": "the folder lit up; file 251113 is in [2092]"
+					"detail": "the folder lit up; file 251149 is in [2125]"
 				},
 				{
 					"name": "filter the grid by the folder",
 					"ok": true,
-					"detail": "the grid shows file 251113 alone"
+					"detail": "the grid shows file 251149 alone"
 				},
 				{
 					"name": "select two files and move them in one drag",
@@ -1001,7 +1001,7 @@
 			],
 			"ran": "2026-09-21",
 			"rerun": true,
-			"seconds": 44
+			"seconds": 36
 		}
 	}
 }

@@ -514,6 +514,33 @@ const rowHeights = ( page ) => page.evaluate( () => Array.from( document.querySe
 	} ) )
 	.sort( ( a, b ) => b.h - a.h ) );
 
+/**
+ *  The table's widths and File's share as the body class says it (story
+ *  4.4: File is the leftover's column; the 30% or 40% floor goes on only
+ *  when File would be narrower without it; story 4.5: the script decides
+ *  which share from the head cells, so a Screen Options tick is followed).
+ *  And where a press 40px into the first row lands, which is what the drag
+ *  suites make: on the checkbox label it is another plugin's drag.
+ */
+const readWidths = ( page ) => page.evaluate( () => {
+	const table = document.querySelector( '.wp-list-table' );
+	const row = document.querySelector( '#the-list > tr[id^="post-"]' );
+	if ( ! table || ! row ) {
+		return { checkbox: 0, table: 0, file: 0, share: 0, floor: false, pressOnTitle: false, empty: true };
+	}
+	const a = row.getBoundingClientRect();
+	const pressed = document.elementFromPoint( a.x + 40, a.y + a.height / 2 );
+	const share = document.body.classList.contains( 'vgml-file-share-30' ) ? 30 : document.body.classList.contains( 'vgml-file-share-40' ) ? 40 : 0;
+	return {
+		checkbox: Math.round( table.querySelector( 'thead .check-column' ).getBoundingClientRect().width ),
+		table: Math.round( table.getBoundingClientRect().width ),
+		file: Math.round( table.querySelector( 'thead .column-title' ).getBoundingClientRect().width ),
+		share,
+		floor: share > 0,
+		pressOnTitle: !! ( pressed && pressed.closest( '.column-title' ) ),
+	};
+} );
+
 const openList = async ( page ) => {
 	await page.goto( '/wp-admin/upload.php?mode=list', { waitUntil: 'domcontentloaded' } );
 	await page.waitForSelector( '#the-list tr[id^="post-"]', { timeout: 30000 } );
@@ -597,22 +624,23 @@ for ( const mode of [ 'grid', 'list' ] ) {
 			 *  and never showed it.
 			 */
 			/*
-			 *  `floor` is what body.vgml-file-share must read for the set:
-			 *  false where File takes the leftover on its own (core's three;
-			 *  two of ours: 82% sized, File auto ≈ 55%), true where the
-			 *  sized columns leave File below its share (five of ours: 69%,
-			 *  File auto ≈ 28% < 40%). With every other plugin's column on
-			 *  it depends on how they size theirs, so that set asserts only
-			 *  the consequence: File at or above its share when the class is on.
+			 *  `share` is the class the set must leave on the body -- 0 for
+			 *  none: none where File takes the leftover on its own (core's
+			 *  three; two of ours: 82% sized, File auto ≈ 55%), 40 where the
+			 *  sized columns leave File below its share among ours only (five
+			 *  of ours: 69%, File auto ≈ 28% < 40%). With every other plugin's
+			 *  column on it depends on how they size theirs, so that set
+			 *  asserts only the consequence: File at or above its share when
+			 *  a class is on.
 			 */
 			const sets = [
-				[ 'ours off, and the other plugins\' columns off', ROW_CEILING, theirs.concat( ours ), false ],
-				[ 'all five of ours on, the other plugins\' columns off', ROW_CEILING, theirs, true ],
+				[ 'ours off, and the other plugins\' columns off', ROW_CEILING, theirs.concat( ours ), 0 ],
+				[ 'all five of ours on, the other plugins\' columns off', ROW_CEILING, theirs, 40 ],
 				[ 'as the screen ships, with every other plugin\'s column on', ROW_ALARM, ours, null ],
-				[ 'two of ours on, the other plugins\' columns off', ROW_CEILING, theirs.concat( ours.slice( 2 ) ), false ],
+				[ 'two of ours on, the other plugins\' columns off', ROW_CEILING, theirs.concat( ours.slice( 2 ) ), 0 ],
 			];
 
-			for ( const [ what, ceiling, hidden, floor ] of sets ) {
+			for ( const [ what, ceiling, hidden, share ] of sets ) {
 
 				await setHidden( page, Array.from( new Set( hidden ) ) );
 				await openList( page );
@@ -626,29 +654,17 @@ for ( const mode of [ 'grid', 'list' ] ) {
 				 *  first row, where the thumbnail is -- must land on the title
 				 *  cell: on the checkbox label it is another plugin's drag.
 				 */
-				const width = await page.evaluate( ( share ) => {
-					const table = document.querySelector( '.wp-list-table' );
-					const row = document.querySelector( '#the-list > tr[id^="post-"]' );
-					const a = row.getBoundingClientRect();
-					const pressed = document.elementFromPoint( a.x + 40, a.y + a.height / 2 );
-					return {
-						checkbox: Math.round( table.querySelector( 'thead .check-column' ).getBoundingClientRect().width ),
-						table: Math.round( table.getBoundingClientRect().width ),
-						file: Math.round( table.querySelector( 'thead .column-title' ).getBoundingClientRect().width ),
-						share: parseInt( window.vergemlList && window.vergemlList.share, 10 ) || 0,
-						floor: document.body.classList.contains( 'vgml-file-share' ),
-						pressOnTitle: !! ( pressed && pressed.closest( '.column-title' ) ),
-					};
-				} );
+				const width = await readWidths( page );
 				const checkbox = width.checkbox;
 
 				expect( rows.length, 'the list has rows to measure' ).toBeGreaterThan( 0 );
 				expect( width.pressOnTitle, `${ what }, arriving in ${ mode }: a press 40px into the first row lands on the title cell, not the checkbox label` ).toBe( true );
-				if ( null !== floor ) {
-					expect( width.floor, `${ what }, arriving in ${ mode }: body.vgml-file-share is ${ width.floor ? 'on' : 'off' } (share ${ width.share }%, File ${ width.file }px of ${ width.table }px)` ).toBe( floor );
+				if ( null !== share ) {
+					expect( width.share, `${ what }, arriving in ${ mode }: the body carries ${ width.share ? `vgml-file-share-${ width.share }` : 'no share class' }, expected ${ share ? `vgml-file-share-${ share }` : 'none' } (File ${ width.file }px of ${ width.table }px)` ).toBe( share );
 				}
 				if ( width.floor ) {
-					expect( width.file, `${ what }, arriving in ${ mode }: with the class on, File holds its ${ width.share }% share (${ width.file }px of ${ width.table }px)` ).toBeGreaterThanOrEqual( Math.floor( width.table * width.share / 100 ) - 1 );
+					// Within two points: percentages that sum past 100% are scaled by the browser (five of ours: 109%).
+					expect( width.file, `${ what }, arriving in ${ mode }: with the class on, File holds its ${ width.share }% share (${ width.file }px of ${ width.table }px)` ).toBeGreaterThanOrEqual( Math.floor( width.table * ( width.share - 2 ) / 100 ) );
 				}
 
 				/*
@@ -678,6 +694,47 @@ for ( const mode of [ 'grid', 'list' ] ) {
 					`The row is ${ rows[ 0 ].id } "${ rows[ 0 ].title }" — page one is the twenty newest ` +
 					`attachments, so check it is a real picture and not a fixture a suite left behind`
 				).toBeLessThanOrEqual( ceiling );
+			}
+
+			/*
+			 *  A Screen Options tick, no reload (story 4.5). From the last set
+			 *  -- two of ours on, the floor off -- every other plugin's column
+			 *  is ticked on: File would share the leftover with their unsized
+			 *  columns, so the 30% floor must go on in the frame after the
+			 *  tick; ticked off again, File is the leftover's column and the
+			 *  floor comes off. Before 4.5 the decision was made once at load.
+			 */
+			/*
+			 *  The tab itself first, as a person clicks it: from 2026-09-10 to
+			 *  09-21 the tree's positioned .wrap painted over core's Screen
+			 *  Options and Help tabs and neither could be clicked on this screen
+			 *  (a Playwright click waited four minutes on the wrap).
+			 */
+			await page.click( '#show-settings-link', { timeout: 10000 } );
+			await expect( page.locator( '#adv-settings' ), 'Screen Options opens on the list screen beside the tree' ).toBeVisible();
+
+			if ( ! theirs.length ) {
+				console.log( `      ${ mode } · no other plugin's column on this site: the live tick is not exercised here` );
+			} else {
+				for ( const id of theirs ) {
+					await page.check( `[id="${ id }-hide"]` );
+				}
+				await page.waitForTimeout( 800 );
+				const shown = await readWidths( page );
+				console.log( `      ${ mode } · ticked on live: ${ theirs.join( ', ' ) }\n        share ${ shown.share }%, File ${ shown.file }px of ${ shown.table }px, the checkbox ${ shown.checkbox }px` );
+				expect( shown.share, `ticking ${ theirs.length } other plugin's column(s) on, no reload: the 30% floor follows (File ${ shown.file }px of ${ shown.table }px)` ).toBe( 30 );
+				// Within two points, as above: two of ours and three of theirs sum past 100%.
+				expect( shown.file, `with the floor on, File holds 30% (${ shown.file }px of ${ shown.table }px)` ).toBeGreaterThanOrEqual( Math.floor( shown.table * 0.28 ) );
+				expect( shown.checkbox, `the checkbox column after the tick is ${ shown.checkbox }px` ).toBeLessThan( 60 );
+
+				for ( const id of theirs ) {
+					await page.uncheck( `[id="${ id }-hide"]` );
+				}
+				await page.waitForTimeout( 800 );
+				const hidden = await readWidths( page );
+				console.log( `      ${ mode } · ticked off again: share ${ hidden.share }%, File ${ hidden.file }px of ${ hidden.table }px` );
+				expect( hidden.share, `ticked off again, no reload: File is the leftover's column, the floor off (File ${ hidden.file }px of ${ hidden.table }px)` ).toBe( 0 );
+				expect( hidden.file, `File takes the leftover (${ hidden.file }px of ${ hidden.table }px)` ).toBeGreaterThanOrEqual( Math.floor( hidden.table * 0.4 ) );
 			}
 		} finally {
 			await openList( page ).catch( () => null );
