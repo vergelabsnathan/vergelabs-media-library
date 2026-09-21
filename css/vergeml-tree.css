@@ -118,11 +118,17 @@ body.vgml-has-tree .wrap {
  *  2026-09-10 to 09-21 neither could be clicked on the list screen (a
  *  Playwright click on Screen Options waited four minutes on the wrap).
  *  Lifted the way eml-admin-media.css lifts them beside the grid.
+ *
+ *  Above the list-mode panel too (z-index 3, below): at 2 the tabs opened
+ *  and the panel they open sat under the fixed tree -- on a 4.0.2 site three
+ *  of four column checkboxes answered elementFromPoint with a folder row.
+ *  The tabs and their panel are core's top-of-page furniture; they paint
+ *  over ours.
  */
 body.vgml-has-tree #screen-meta-links,
 body.vgml-has-tree #screen-meta {
 	position: relative;
-	z-index: 2;
+	z-index: 4;
 }
 
 body.vgml-has-tree .vgml-tree {

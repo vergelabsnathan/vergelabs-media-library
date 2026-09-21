@@ -516,11 +516,12 @@ const rowHeights = ( page ) => page.evaluate( () => Array.from( document.querySe
 
 /**
  *  The table's widths and File's share as the body class says it (story
- *  4.4: File is the leftover's column; the 30% or 40% floor goes on only
- *  when File would be narrower without it; story 4.5: the script decides
- *  which share from the head cells, so a Screen Options tick is followed).
- *  And where a press 40px into the first row lands, which is what the drag
- *  suites make: on the checkbox label it is another plugin's drag.
+ *  4.4: File is the leftover's column, behind a share class PHP chose at
+ *  load; story 4.5: the script decides which share from the head cells and
+ *  puts the floor on only when File would be narrower without it, so a
+ *  Screen Options tick is followed). And where a press 40px into the first
+ *  row lands, which is what the drag suites make: on the checkbox label it
+ *  is another plugin's drag.
  */
 const readWidths = ( page ) => page.evaluate( () => {
 	const table = document.querySelector( '.wp-list-table' );
@@ -540,6 +541,28 @@ const readWidths = ( page ) => page.evaluate( () => {
 		pressOnTitle: !! ( pressed && pressed.closest( '.column-title' ) ),
 	};
 } );
+
+/**
+ *  Every column checkbox in the open Screen Options panel, and what a press
+ *  at its centre would land on. Until 4.0.3 the panel opened under the
+ *  list-mode tree (z-index 2 against the fixed panel's 3): on a 4.0.2 site
+ *  three of the four checkboxes answered with a folder row, and this suite
+ *  was green because the columns it ticks sit right of the tree. Each box is
+ *  scrolled to the viewport's centre first -- at the top edge it is under
+ *  the fixed admin bar, and off-screen elementFromPoint answers null; both
+ *  would fail for the wrong reason. `hit` names whatever was there instead,
+ *  so another plugin's pane reads as that plugin's.
+ */
+const checkboxesReachable = ( page ) => page.evaluate( () => Array.from( document.querySelectorAll( '#adv-settings .hide-column-tog' ) ).map( ( box ) => {
+	box.scrollIntoView( { block: 'center' } );
+	const r = box.getBoundingClientRect();
+	const at = document.elementFromPoint( r.x + r.width / 2, r.y + r.height / 2 );
+	return {
+		id: box.id,
+		ok: at === box,
+		hit: at ? at.tagName.toLowerCase() + ( at.id ? '#' + at.id : '' ) + ( at.className && 'string' === typeof at.className ? '.' + at.className.trim().split( /\s+/ ).join( '.' ) : '' ) : 'nothing (off screen)',
+	};
+} ) );
 
 const openList = async ( page ) => {
 	await page.goto( '/wp-admin/upload.php?mode=list', { waitUntil: 'domcontentloaded' } );
@@ -713,29 +736,36 @@ for ( const mode of [ 'grid', 'list' ] ) {
 			await page.click( '#show-settings-link', { timeout: 10000 } );
 			await expect( page.locator( '#adv-settings' ), 'Screen Options opens on the list screen beside the tree' ).toBeVisible();
 
-			if ( ! theirs.length ) {
-				console.log( `      ${ mode } · no other plugin's column on this site: the live tick is not exercised here` );
-			} else {
-				for ( const id of theirs ) {
-					await page.check( `[id="${ id }-hide"]` );
-				}
-				await page.waitForTimeout( 800 );
-				const shown = await readWidths( page );
-				console.log( `      ${ mode } · ticked on live: ${ theirs.join( ', ' ) }\n        share ${ shown.share }%, File ${ shown.file }px of ${ shown.table }px, the checkbox ${ shown.checkbox }px` );
-				expect( shown.share, `ticking ${ theirs.length } other plugin's column(s) on, no reload: the 30% floor follows (File ${ shown.file }px of ${ shown.table }px)` ).toBe( 30 );
-				// Within two points, as above: two of ours and three of theirs sum past 100%.
-				expect( shown.file, `with the floor on, File holds 30% (${ shown.file }px of ${ shown.table }px)` ).toBeGreaterThanOrEqual( Math.floor( shown.table * 0.28 ) );
-				expect( shown.checkbox, `the checkbox column after the tick is ${ shown.checkbox }px` ).toBeLessThan( 60 );
+			// And the panel it opens is over the tree, not under it (4.0.3).
+			const boxes = await checkboxesReachable( page );
+			const covered = boxes.filter( ( b ) => ! b.ok );
+			console.log( `      ${ mode } · ${ boxes.length - covered.length }/${ boxes.length } checkboxes reachable` );
+			expect( boxes.length, 'the open Screen Options panel lists column checkboxes' ).toBeGreaterThan( 0 );
+			expect(
+				covered.map( ( b ) => `${ b.id } → ${ b.hit }` ),
+				`a press at the centre of every column checkbox lands on the checkbox (${ covered.length } of ${ boxes.length } covered)`
+			).toEqual( [] );
 
-				for ( const id of theirs ) {
-					await page.uncheck( `[id="${ id }-hide"]` );
-				}
-				await page.waitForTimeout( 800 );
-				const hidden = await readWidths( page );
-				console.log( `      ${ mode } · ticked off again: share ${ hidden.share }%, File ${ hidden.file }px of ${ hidden.table }px` );
-				expect( hidden.share, `ticked off again, no reload: File is the leftover's column, the floor off (File ${ hidden.file }px of ${ hidden.table }px)` ).toBe( 0 );
-				expect( hidden.file, `File takes the leftover (${ hidden.file }px of ${ hidden.table }px)` ).toBeGreaterThanOrEqual( Math.floor( hidden.table * 0.4 ) );
+			test.skip( ! theirs.length, "no third-party column on this site: the live tick is not exercised here" );
+			for ( const id of theirs ) {
+				await page.check( `[id="${ id }-hide"]` );
 			}
+			await page.waitForTimeout( 800 );
+			const shown = await readWidths( page );
+			console.log( `      ${ mode } · ticked on live: ${ theirs.join( ', ' ) }\n        share ${ shown.share }%, File ${ shown.file }px of ${ shown.table }px, the checkbox ${ shown.checkbox }px` );
+			expect( shown.share, `ticking ${ theirs.length } other plugin's column(s) on, no reload: the 30% floor follows (File ${ shown.file }px of ${ shown.table }px)` ).toBe( 30 );
+			// Within two points, as above: two of ours and three of theirs sum past 100%.
+			expect( shown.file, `with the floor on, File holds 30% (${ shown.file }px of ${ shown.table }px)` ).toBeGreaterThanOrEqual( Math.floor( shown.table * 0.28 ) );
+			expect( shown.checkbox, `the checkbox column after the tick is ${ shown.checkbox }px` ).toBeLessThan( 60 );
+
+			for ( const id of theirs ) {
+				await page.uncheck( `[id="${ id }-hide"]` );
+			}
+			await page.waitForTimeout( 800 );
+			const hidden = await readWidths( page );
+			console.log( `      ${ mode } · ticked off again: share ${ hidden.share }%, File ${ hidden.file }px of ${ hidden.table }px` );
+			expect( hidden.share, `ticked off again, no reload: File is the leftover's column, the floor off (File ${ hidden.file }px of ${ hidden.table }px)` ).toBe( 0 );
+			expect( hidden.file, `File takes the leftover (${ hidden.file }px of ${ hidden.table }px)` ).toBeGreaterThanOrEqual( Math.floor( hidden.table * 0.4 ) );
 		} finally {
 			await openList( page ).catch( () => null );
 			await setHidden( page, before ).catch( () => null );

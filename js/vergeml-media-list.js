@@ -109,9 +109,10 @@
 	 *  that without a reload. Both classes come off before the measurement:
 	 *  with one on, File measures at its share and never below it.
 	 *
-	 *  Measured in the frame after DOMContentLoaded, not in it: this script's
-	 *  listener runs before js/vergeml-tree.js's, and that one puts the panel
-	 *  beside the list and narrows the table. The ratio is what is compared,
+	 *  Measured in the frame after DOMContentLoaded, not in it: a frame runs
+	 *  after every DOMContentLoaded listener whatever their order, and
+	 *  js/vergeml-tree.js's puts the panel beside the list and narrows the
+	 *  table. The ratio is what is compared,
 	 *  so the em-wide checkbox is the only thing the width changes -- but the
 	 *  table the person sees is the one to measure.
 	 */
