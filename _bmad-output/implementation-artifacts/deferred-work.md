@@ -95,3 +95,12 @@
 - source_spec: `spec-4-2-the-compatibility-matrix-on-4-0-0.md` (code review)
   summary: tools/matrix.mjs box cells -- Ctrl-C or an OOM during a box cell skips the finally, leaving mock on, the vgmlmatrix administrator and the FileBird link on /var/www/ms; a SIGINT handler that runs the same cleanup line would close it (not demonstrated, so not patched). Also: a warm-up boot per WordPress version before the pool (the 6.5 boot race); the runner reading the companion's version into the row instead of the "FileBird 6.5.8" label; a `ready`/`demo` field in tests/compat/matrix-probe.php so a Playground row can say the mock constant reached the worker that served it; a flag to run the shape=multisite-subdomain cell once ms2 is free.
   evidence: review 2026-09-20 (edge-case hunter, verification gap, blind hunter); the cleanup line is `runBox()`'s finally.
+- source_spec: `plans/finish-the-suite.md` wave 4 (S29b, 2026-09-21)
+  summary: tools/buyer-walk.mjs waits for the account page in its own browser window, but the confirmation mail opens in the buyer's default browser, so the registration and the download happen out of the script's sight and `buy` never reaches the zip capture; `final` then fails with "the walk session is gone". Poll the service instead (the account's licence via the API, or the download route's log) or print the link for the buyer to paste. Also: a second `buy` on the same day overwrites the first run's 01/02 shots (the stamp is the date).
+  evidence: S29b handoff -- the first run's log stops at WAITING while the account page was open in Nathan's own browser; `final` 12:24:35 FAIL.
+- source_spec: `plans/finish-the-suite.md` wave 4 (S29b, 2026-09-21)
+  summary: tools/plugin-check.mjs, matrix.mjs, play.mjs, uninstall-walk.mjs and verify.mjs call `npx @wp-playground/cli` unpinned; 3.1.55 resolves but cannot install (`@php-wasm/node-8-1@3.1.55` unpublished, 2026-09-21). Pin `@3.1.54` in one place (a constant in tools/lib) until the package is fixed.
+  evidence: S29 handoff, found 1; Plugin Check for 4.0.2 ran on the cached 3.1.54.
+- source_spec: `plans/finish-the-suite.md` wave 4 (S29b, 2026-09-21)
+  summary: box-issued licence rows are never removed -- nine `box@vergelabs.nl` rows (ids 5, 12-17, 20, 22) sit in the production licences table; health counts them ("14 licences"). Either a `box` flag the counts and the accountant's views exclude, or a retire script. Nathan's call.
+  evidence: read-only query 2026-09-21 12:23 UTC; S26 wrote "deleted after" of the env file, not the row.
