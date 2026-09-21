@@ -53,6 +53,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PLAYGROUND_CLI } from './lib/playground.mjs';
 
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const SESSION = path.resolve( ROOT, '..' );
@@ -296,7 +297,7 @@ async function runPlayground( cell, tag = '' ) {
 		 *  pass, if Playground's loopback lets it fire), it is the on-server mock
 		 *  from core/ai.php and nothing is sent.
 		 */
-		const args = [ '@wp-playground/cli', 'server', '--port', String( thisPort ), '--php', cell.php, '--wp', ASK[ cell.wp ] || cell.wp, '--blueprint', blueprint,
+		const args = [ PLAYGROUND_CLI, 'server', '--port', String( thisPort ), '--php', cell.php, '--wp', ASK[ cell.wp ] || cell.wp, '--blueprint', blueprint,
 			'--define', 'PLAYGROUND_AUTO_LOGIN_AS_USER', 'admin',
 			'--define-bool', 'WP_DEBUG', 'true', '--define-bool', 'WP_DEBUG_LOG', 'true', '--define-bool', 'WP_DEBUG_DISPLAY', 'false',
 			'--define-bool', 'AUTOMATIC_UPDATER_DISABLED', 'true', '--define-bool', 'WP_AUTO_UPDATE_CORE', 'false',

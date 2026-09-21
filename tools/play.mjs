@@ -32,6 +32,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PLAYGROUND_CLI } from './lib/playground.mjs';
 
 let ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const SLUG = 'vergelabs-media-library';
@@ -113,7 +114,7 @@ console.log( `  open http://127.0.0.1:${ PORT }  -- not localhost\n` );
  */
 const child = spawn(
 	'npx',
-	[ '@wp-playground/cli', 'server',
+	[ PLAYGROUND_CLI, 'server',
 		'--port', PORT,
 		'--blueprint', tmp,
 		'--mount-dir', ROOT, MOUNT,

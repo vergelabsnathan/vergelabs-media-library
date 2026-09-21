@@ -35,6 +35,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PLAYGROUND_CLI } from '../../tools/lib/playground.mjs';
 
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..', '..' );
 const SHELF = path.resolve( ROOT, '..', 'service', 'public', 'releases' );
@@ -142,7 +143,7 @@ function walk( side ) {
 		const bp = path.join( work, 'blueprint.json' );
 		fs.writeFileSync( bp, JSON.stringify( blueprint, null, '\t' ) );
 
-		const args = [ '@wp-playground/cli', 'run-blueprint', '--blueprint', bp,
+		const args = [ PLAYGROUND_CLI, 'run-blueprint', '--blueprint', bp,
 			'--mount-dir', work, '/dist',
 			'--mount-dir', pics, '/pics',
 			'--mount-dir', compat, '/wordpress/wp-content/vgml-compat',

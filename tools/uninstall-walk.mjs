@@ -31,6 +31,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import { PLAYGROUND_CLI } from './lib/playground.mjs';
 
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const SLUG = 'vergelabs-media-library';
@@ -88,7 +89,7 @@ function boot( port, pluginDir ) {
 	// MSYS_NO_PATHCONV: Git Bash would rewrite /wordpress/... into a Windows path.
 	const child = spawn(
 		'npx',
-		[ '@wp-playground/cli', 'server',
+		[ PLAYGROUND_CLI, 'server',
 			'--port', String( port ),
 			'--blueprint', blueprint,
 			'--mount-dir', pluginDir, `/wordpress/wp-content/plugins/${ SLUG }` ],

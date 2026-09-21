@@ -15,7 +15,7 @@
  *
  *      git archive HEAD --prefix=vergelabs-media-library/ -o /tmp/clean.tar
  *      tar xf /tmp/clean.tar -C <somewhere>
- *      npx @wp-playground/cli server --port 8907 --php=8.3 --wp=latest \
+ *      npx @wp-playground/cli@3.1.54 server --port 8907 --php=8.3 --wp=latest \
  *        --mount-dir "<somewhere>\vergelabs-media-library" \
  *          /wordpress/wp-content/plugins/vergelabs-media-library \
  *        --blueprint=tools/plugin-check-blueprint.json

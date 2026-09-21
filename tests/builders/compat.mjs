@@ -19,6 +19,7 @@ import { spawn, execFileSync } from 'node:child_process';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PLAYGROUND_CLI } from '../../tools/lib/playground.mjs';
 
 const REPO = process.cwd();
 const only = (() => {
@@ -69,7 +70,7 @@ for (const b of BUILDERS) {
 
   const p = port++;
   const base = `http://127.0.0.1:${p}`;
-  const server = spawn('npx', ['--yes', '@wp-playground/cli@latest', 'server',
+  const server = spawn('npx', ['--yes', PLAYGROUND_CLI, 'server',
     '--port', String(p),
     '--mount-dir', REPO, '/wordpress/wp-content/plugins/vergelabs-media-library',
     '--blueprint', bpPath,

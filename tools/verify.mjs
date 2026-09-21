@@ -27,6 +27,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PLAYGROUND_CLI } from './lib/playground.mjs';
 
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const LOCK = path.join( ROOT, '.verify.lock' );
@@ -770,7 +771,7 @@ function runPhpLocal( suite ) {
 
 			const child = spawn(
 				'npx',
-				[ '-y', '@wp-playground/cli', 'run-blueprint',
+				[ '-y', PLAYGROUND_CLI, 'run-blueprint',
 					'--blueprint', blueprint,
 					'--mount-dir', MOUNT_ROOT, '/plugin',
 					'--mount-dir', outDir, '/out',
@@ -846,7 +847,7 @@ function runPhpPlayground( suite ) {
 
 		const child = spawn(
 			'npx',
-			[ '-y', '@wp-playground/cli', 'run-blueprint',
+			[ '-y', PLAYGROUND_CLI, 'run-blueprint',
 				'--blueprint', blueprint,
 				'--mount-dir', MOUNT_ROOT, MOUNT,
 				'--mount-dir', outDir, '/out',
