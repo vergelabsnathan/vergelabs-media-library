@@ -41,7 +41,7 @@ describing or a queue; the behaviour is already the right one.
 `service/docs/runbooks/incident.md` (cross-reference); `sprint-status.yaml`
 3.1 → done; a `deferred-work.md` row for the status word.
 
-**Nathan's answer.** _(not given at the sitting — asked again; the recommendation stands as the proposal)_
+**Nathan's answer.** **Yes, and tell the users** ("yes and let users know about it", 2026-09-21). Landed: readme.txt FAQ "What happens when the AI service is down?" and the credits docs page (service 299adc1, live), both built from the terms line and the incident runbook's approved customer sentence; 3.1 → done. The status word for a run holding on an outage stays a small story of its own.
 
 ---
 

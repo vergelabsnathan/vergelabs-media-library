@@ -228,6 +228,10 @@ The folder tree itself, the smart folders, the health report, the importer, the 
 
 The original plugin polled its author's server twice a day for admin notices and printed whatever came back into your dashboard. That has been removed and nothing replaced it.
 
+= What happens when the AI service is down? =
+
+Your plugin keeps working without the AI features. Describing is paused while the service is unavailable; filing, search and everything already described keep working. Pictures waiting to be described are described when it is back, and no credits are taken for a picture that was not described. Searching by meaning falls back to the ordinary word search, and your credit balance shows the last number it read until the service answers again.
+
 = What happens if the plugin crashes my site? =
 
 It tries to get out of your way. After two fatal errors in its own code within an hour it puts itself into safe mode: its features stop loading, the site comes back, and a notice in the dashboard tells you what happened and offers to switch them back on. That is there so a white screen does not mean an FTP client and a renamed folder.
