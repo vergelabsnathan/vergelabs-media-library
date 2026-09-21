@@ -230,7 +230,7 @@ The original plugin polled its author's server twice a day for admin notices and
 
 = What happens when the AI service is down? =
 
-Your plugin keeps working without the AI features. Describing is paused while the service is unavailable; filing, search and everything already described keep working. Pictures waiting to be described are described when it is back, and no credits are taken for a picture that was not described. Searching by meaning falls back to the ordinary word search, and your credit balance shows the last number it read until the service answers again.
+Your plugin keeps working without the AI features: filing, search and everything already described keep working, and no credits are taken for a picture that was not described. When the service answers with an error, a describe run holds the picture and tries it again ten minutes later; after three errors in a row the picture is marked as failed. When the service cannot be reached at all, each picture the run gets to is marked as failed. A marked picture is not tried again by itself: once the service is back, *Alt text for …* on the AI screen describes the ones still without alt text. Searching by meaning falls back to the ordinary word search, and your credit balance shows the last number it read until the service answers again.
 
 = What happens if the plugin crashes my site? =
 
