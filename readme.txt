@@ -259,6 +259,7 @@ Please report security bugs found in the source code of the VergeLabs Media Libr
 Every night an automated watch looks for new releases of WordPress, PHP and the plugins and themes this plugin integrates with, greps each new release for every hook and field we rely on, upgrades a staging site and runs the checks there. What passed is recorded here, newest first:
 
 <!-- watch:verified -->
+* Rank Math SEO 1.0.279 — contract intact, stage suites passed (2026-09-22)
 * Beaver Builder 2.11.0.5 — contract intact, stage suites passed (2026-09-12)
 * Beaver Builder 2.11.0.4 — contract intact, stage suites passed (2026-09-11)
 * Dokan 5.1.1 — contract intact, stage suites passed (2026-09-10)
