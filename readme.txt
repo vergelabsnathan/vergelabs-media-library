@@ -4,7 +4,7 @@ Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 4.0.3
+Stable tag: 4.0.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -230,7 +230,7 @@ The original plugin polled its author's server twice a day for admin notices and
 
 = What happens when the AI service is down? =
 
-Your plugin keeps working without the AI features: filing, search and everything already described keep working, and no credits are taken for a picture that was not described. When the service answers with a temporary error (a rate limit or a 5xx), a describe run sets the picture aside for ten minutes and tries it again on its next pass; after three such errors in a row the picture is marked as failed. When the service cannot be reached at all, each picture the run gets to is marked as failed. A marked picture is not tried again by itself: once the service is back, *Alt text for …* on the AI screen describes the ones still without alt text. Searching by meaning falls back to the ordinary word search, and your credit balance shows the last number it read until the service answers again.
+Your plugin keeps working without the AI features: filing, search and everything already described keep working, and no credits are taken for a picture that was not described. A picture the service could not answer for -- a temporary error, or no answer at all -- is set aside and tried again: a run in the background comes back to it ten minutes later, a run you are watching leaves it for your next press. A picture is marked as failed only when the service answers that the file itself cannot be described. Searching by meaning falls back to the ordinary word search, and your credit balance shows the last number it read until the service answers again.
 
 = What happens if the plugin crashes my site? =
 
@@ -295,6 +295,14 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now reads what pictures show, so a fill after updating places things differently than before. The Rules tab is gone and the media list toolbar is one row. Read the changelog before you fill.
 
 ## Changelog ##
+
+### 4.0.4 ###
+*While the AI service is away, pictures wait instead of being marked as failed; a re-describe that fails keeps the description the picture already had.*
+
+= Fixed =
+* **While the AI service is away, pictures wait.** A picture the service could not answer for -- a temporary error, or no answer at all -- is set aside and tried again, for as long as the service is away; nothing is marked as failed for a failure that is not the file's. Before, an unreachable service marked every picture a run reached, and three temporary errors marked one for good.
+* **A re-describe that fails keeps the description the picture already had.** It stays in search, filing and the counts; the failure is in the run's report only.
+* **A run in the background whose pictures are all set aside waits ten minutes** instead of asking again at once.
 
 ### 4.0.3 ###
 *Screen Options opens over the folder panel on the media list, not under it; the AI-outage answer in the FAQ says what a describe run does.*
