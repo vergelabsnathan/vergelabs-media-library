@@ -2,7 +2,7 @@
 title: "4.0.3: Screen Options over the folder panel, the live tick skips aloud, the outage FAQ says what the code does"
 type: 'defect'
 created: '2026-09-21'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: 'plugin c293f7f1758c7c6bedb36e445f2ca2f815fc86cc · service 33063ea03f51dbefabe066a0156ac557832dfb6c'
