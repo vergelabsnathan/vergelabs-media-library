@@ -35,7 +35,7 @@ of the zip itself rather than off the working tree.
 | Requirement | State |
 |---|---|
 | Plugin Check errors | **0** — all five categories, the release archive at 3.16.1 (`7f2a4fe9…`), run in Playground on 2026-09-12; **run again on 2026-09-19** against a clean archive of `89ba1f1` (everything through S21), same result; **and on 2026-09-20** against `657b257` (4.0.1), same result; **and on 2026-09-21** against `0e03cd4` (4.0.2), same result |
-| Plugin Check warnings | **2** at 4.0.0 through 4.0.4 (2026-09-22, the archive of `7563c0a`, 0 errors) — `mismatched_plugin_name` (readme.txt's title carries a strapline the plugin header does not; a copy call, not a blocker) and `readme_parser_warnings_trimmed_section_description` (the Description runs to 11,468 characters against the parser's 2,500; it was 13,856 before this release, so it is long-standing, and moving External services out of it shortened rather than caused it). Neither blocks |
+| Plugin Check warnings | **2** at 4.0.0 through 4.0.4 (2026-09-22, the archive of `7563c0a`, 0 errors) — `mismatched_plugin_name` (readme.txt's title carries a strapline the plugin header does not; a copy call, not a blocker) and `readme_parser_warnings_trimmed_section_description` (the Description runs to 11,468 characters against the parser's 2,500; it was 13,856 before this release, so it is long-standing, and moving External services out of it shortened rather than caused it). Neither blocks. The readme title was matched to the header in `ed90005`, after that run; Plugin Check has not been rerun since |
 | `php -l` on every file | clean |
 | Runs on current WordPress | 15 of 18 matrix cells ✓ on 2026-09-20 against the 4.0.1 zip — WordPress 6.5.11, 7.0.5, 7.1.1 × PHP 7.4, 8.2, 8.5, multisite (subdirectory), `nl_NL` and `ar`, beside Premio Folders, Enhanced Media Library and Polylang Pro; 2 cells not run (FileBird on Playground's SQLite; the subdomain network while it holds the shop library); 1 ✗: beside FileBird on MariaDB a single-row drag files nothing — fixed by stories 4.4 and 4.5, the cell ✓ 10/10 on 2026-09-21 and shipped in 4.0.2; see [compatibility.md](compatibility.md) |
 | Upgrade from Enhanced Media Library 2.9.4 | settings, taxonomies, MIME types and every term assignment carried over; 18 checks |
@@ -127,6 +127,13 @@ account. The first review currently comes within a day or two; what costs time
 is rounds (about six on average in 2025). Reply the same day, briefly, on the
 same thread, and fix every instance of a flagged category, not only the lines
 quoted.
+
+**Keep the slug `vergelabs-media-library`.** wordpress.org recognises an
+installed copy by its folder, every zip we have shipped unpacks into
+`vergelabs-media-library/`, and Pro 1.0.4 stops offering free updates the
+moment wordpress.org's entry for that folder appears. The form proposes the
+slug from the plugin name; if the reviewer offers another, ask them to keep
+this one — a slug cannot be changed after approval.
 
 **Before the upload:** English terms and privacy pages live at
 `vergelabsmedia.com/legal/terms` and `/legal/privacy`, and the readme's

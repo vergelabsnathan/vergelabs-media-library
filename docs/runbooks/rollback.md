@@ -18,7 +18,12 @@ production deployment, and then the wait for sites to ask again.
   `/api/plugin/update` for its own slug and caches the answer for six hours
   in the transient `vgmlpro_update_check`. The free plugin has no updater of
   its own: its row is checked by `/api/health` and the daily `release-check`,
-  but no site reads it. Once the free plugin is on wordpress.org (Phase 1.8) a
+  but no site reads it. **From Pro 1.0.4** (built 2026-09-22, not released;
+  `pro/docs/specs/spec-f-free-updates-through-pro.md`) every site with Pro
+  reads the free row too, keyless, kept six hours in
+  `vgmlpro_free_update_check`, and offers it as the free plugin's update:
+  withdrawing the free row then stops those sites the same way it stops Pro's.
+  Once the free plugin is on wordpress.org (Phase 1.8) a
   free pull-back happens there — set `Stable tag` in `trunk/readme.txt` back
   to the previous version in the SVN. Until then new free installs come from
   GitHub Releases/latest — the site's install page (`public/index.html`) and
@@ -45,7 +50,8 @@ previous version of each slug stay on disk, so steps 2–4 below are a
 catalogue edit, an env flip and a redeploy; anything older is retired in its
 own commit, and — for Pro, whose sites cache the package URL for six hours —
 never within a day of the catalogue moving off it (the free plugin has no
-updater, so its old file could go the same hour). On the shelf (2026-09-22,
+updater, so its old file could go the same hour — until Pro 1.0.4 ships;
+from then the free file waits a day as well). On the shelf (2026-09-22,
 after the 4.0.4 train): free `…-3.16.1-b787a3bb6a20.zip`,
 `…-3.16.1-7f2a4fe9bee9.zip`, `…-4.0.0-bf0d63b70056.zip`,
 `…-4.0.1-c5510da6b16a.zip`, `…-4.0.2-d57c3020567e.zip`,
