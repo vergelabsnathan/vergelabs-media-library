@@ -119,6 +119,44 @@ readme parser and a disclosure nobody can read is not a disclosure.
 
 ## When you submit
 
+Checked against the review team's rules on 2026-09-22 (sources in the S33
+handoff addendum): the account is `vergelabsnathan` on `nathan@vergelabs.nl`
+— a company-domain address, which a brand-led plugin name requires; turn on
+two-factor login before submitting, or the form refuses; never a second
+account. The first review currently comes within a day or two; what costs time
+is rounds (about six on average in 2025). Reply the same day, briefly, on the
+same thread, and fix every instance of a flagged category, not only the lines
+quoted.
+
+**Before the upload:** English terms and privacy pages live at
+`vergelabsmedia.com/legal/terms` and `/legal/privacy`, and the readme's
+External services linking them instead of the Dutch consultancy pages on
+vergelabs.nl (drafts in `service/docs/legal/`); then build the archive from
+that commit.
+
+**The note to send with the first reply** (approved words are Nathan's):
+
+> Thank you for reviewing VergeLabs Media Library. Three things you may want to
+> know up front:
+>
+> 1. It is a fork of Enhanced Media Library 2.9.4 by wpUXsolutions (GPLv2 or
+>    later). The original copyright and credit are kept in the plugin header, the
+>    readme and the admin footer. Since the fork it has been substantially
+>    rebuilt: a folder tree in the grid, the list and the media modal; smart
+>    folders; an importer for seven other folder plugins; folder galleries;
+>    WordPress 7 fixes; and optional AI descriptions and alt text through a
+>    service we run.
+> 2. The AI features use that external service (ai.vergelabs.nl). The readme's
+>    External services section says what is sent, when, and links our terms and
+>    privacy policy. No picture is sent until the site owner connects a licence
+>    and starts a run. All plugin code is present and unlocked; what is paid for
+>    is the service.
+> 3. The folder taxonomy is registered as `media_category`, without our prefix,
+>    on purpose: it is the taxonomy Enhanced Media Library registers, so sites
+>    moving over keep their folders, and tools that already recognise those
+>    folders keep working. Everything we add — functions, options, hooks,
+>    script handles, AJAX actions — carries the `vergeml_` / `vergeml-` prefix.
+
 1. One submission at a time. If the review team replies, answer that email — do not
    open a second submission.
 2. Upload the artifact built by `git archive`, not a zip of the working directory. The
