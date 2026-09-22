@@ -424,10 +424,20 @@ function vergeml_ai_run_tick() {
      *  between batches and then waits indefinitely for a page load is not a
      *  background run, it is a stalled one.
      */
+    /*
+     *  Unless the last step held everything it was offered -- the service is
+     *  away, or every remaining picture was described minutes ago -- in
+     *  which case there is nothing to do until the hold lapses: booked for
+     *  then, and not chased. Booked now and chased, a tick during an outage
+     *  followed a tick followed a tick for the length of the hold (4.0.4).
+     */
+    $waiting = empty( $result['described'] ) && empty( $result['errors'] ) && ! empty( $result['held'] );
     if ( ! wp_next_scheduled( VERGEML_AI_RUN_HOOK ) ) {
-        wp_schedule_single_event( time(), VERGEML_AI_RUN_HOOK );
+        wp_schedule_single_event( time() + ( $waiting ? VERGEML_AI_HOLD_SECONDS : 0 ), VERGEML_AI_RUN_HOOK );
     }
-    vergeml_ai_run_nudge();
+    if ( ! $waiting ) {
+        vergeml_ai_run_nudge();
+    }
 }
 
 

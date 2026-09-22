@@ -814,6 +814,30 @@ function vergeml_ai_parallel() {
  *  right way round.
  */
 
+/**
+ *  An answer the service did not give for this picture: no answer at all
+ *  (the transport failed, on either path), or a status that says "not now".
+ *  These hold the picture; everything else is an answer about the file.
+ */
+function vergeml_ai_transient( $error ) {
+
+    if ( ! is_wp_error( $error ) ) {
+        return false;
+    }
+
+    $code = (string) $error->get_error_code();
+
+    if ( in_array( $code, array( 'http_request_failed', 'vergeml_ai_transport', 'vergeml_ai_no_answer' ), true ) ) {
+        return true;
+    }
+
+    if ( 0 !== strpos( $code, 'vergeml_ai_service_' ) ) {
+        return false;
+    }
+
+    return in_array( (int) substr( $code, strlen( 'vergeml_ai_service_' ) ), array( 0, 408, 425, 429, 500, 502, 503, 504 ), true );
+}
+
 function vergeml_ai_describe_many( $ids ) {
 
     $ids = array_values( array_unique( array_map( 'intval', (array) $ids ) ) );
@@ -821,6 +845,17 @@ function vergeml_ai_describe_many( $ids ) {
 
     if ( ! $ids ) {
         return $out;
+    }
+
+    /*
+     *  A seam for the suites: the parallel path below goes through
+     *  Requests::request_multiple, which pre_http_request cannot reach, so a
+     *  test that wants the loop to see a 'vergeml_ai_transport' answer hands
+     *  it here. Null means "ask the service".
+     */
+    $handed = apply_filters( 'vergeml_ai_describe_answers', null, $ids );
+    if ( is_array( $handed ) ) {
+        return $handed;
     }
 
     $settings = vergeml_ai_settings();
@@ -1558,37 +1593,19 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
              *  described first time, 12 of 12. A customer's library would have
              *  looked broken after any provider hiccup and stayed that way.
              *
-             *  So a transient status goes on the same ten-minute hold a
-             *  duplicate does, writes nothing, and comes round again. And if
-             *  four in a row are transient, this pass stops: the provider is
-             *  saying no to everyone right now, and marching through the rest
-             *  of the library to collect the same answer is how ninety-six
-             *  seconds of hiccup became a day of damage.
+             *  So an answer the service did not give -- a temporary status, or
+             *  no answer at all -- goes on the same ten-minute hold a duplicate
+             *  does, writes nothing, and comes round again when the hold
+             *  lapses, for as long as the service is away. Until 4.0.4 three
+             *  such answers in a row earned a stub ("transient three times
+             *  running is not transient"); a ten-minute outage then marked
+             *  pictures that nothing offered again, and a service that could
+             *  not be reached at all was never transient in the first place.
+             *  A picture the service did not answer for is not a failing file.
+             *  What keeps a run from marching through the library during an
+             *  outage is the streak: four in a row and this pass stops.
              */
-            $status    = (int) substr( (string) $described->get_error_code(), strlen( 'vergeml_ai_service_' ) );
-            $transient = in_array( $status, array( 0, 408, 425, 429, 500, 502, 503, 504 ), true )
-                && 0 === strpos( (string) $described->get_error_code(), 'vergeml_ai_service_' );
-
-            /*
-             *  Transient three times running is not transient.
-             *
-             *  With no cap, five pictures that time out on every attempt kept
-             *  a run 'active' indefinitely: held ten minutes, tried, held
-             *  again -- the screen said working, and it was, at nothing. A
-             *  picture that fails the same way three times in a row gets the
-             *  stub it has earned, with the real status on it, and the run
-             *  moves on. The counter lives in a transient keyed by id and
-             *  forgets itself after an hour.
-             */
-            $strikes = get_transient( 'vergeml_ai_strikes' );
-            $strikes = is_array( $strikes ) ? $strikes : array();
-
-            if ( $transient && ( $strikes[ $id ] ?? 0 ) < 2 ) {
-                $strikes[ $id ] = ( $strikes[ $id ] ?? 0 ) + 1;
-                set_transient( 'vergeml_ai_strikes', $strikes, HOUR_IN_SECONDS );
-                // Reported as non-fatal, so a refusal storm reads as what it
-                // is on the screen rather than as "working, nothing failed".
-                $errors[] = array( 'id' => $id, 'error' => $described->get_error_message(), 'fatal' => false );
+            if ( vergeml_ai_transient( $described ) ) {
                 vergeml_ai_recently_described( array( $id ), true );
                 $streak = isset( $streak ) ? $streak + 1 : 1;
                 if ( $streak >= 4 ) {
@@ -1597,8 +1614,24 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
                 continue;
             }
             $streak = 0;
-            unset( $strikes[ $id ] );
-            set_transient( 'vergeml_ai_strikes', $strikes, HOUR_IN_SECONDS );
+
+            /*
+             *  The service answered, and the answer is no: this file, as it
+             *  is, cannot be described. A picture that already holds a
+             *  description keeps it -- a re-describe that fails is not a
+             *  reason to lose the answer the library has, and every reader
+             *  (search, filing, the counts) filters on error = ''. The row is
+             *  stamped current so the stale sweep moves on; the next prompt
+             *  change offers it again. The failure is in this run's report.
+             */
+            $existing = vergeml_index_get( $id );
+            if ( $existing && '' === (string) $existing['error'] && '' !== (string) $existing['caption'] ) {
+                vergeml_index_set( $id, array(
+                    'prompt_hash'  => isset( $stamp['prompt_hash'] ) ? (string) $stamp['prompt_hash'] : '',
+                    'described_at' => current_time( 'mysql', true ),
+                ) );
+                continue;
+            }
 
             // A stub keeps a permanently failing file from wedging the loop;
             // reindexing later replaces it.
