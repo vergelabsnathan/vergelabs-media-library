@@ -9,8 +9,8 @@
  *    red     -> the same issue, plus the fix step (fix.sh) when the run has the
  *               tokens for it. The issue says when it does not.
  *
- *  Every yellow and red also lands in tools/watch/known-issues.json, which the
- *  plugin's Get help screen and the support agent read later.
+ *  Every red also lands in tools/watch/known-issues.json, which the plugin's
+ *  Get help screen and the support agent read later. Yellows stay issues.
  *
  *      node tools/watch/triage.mjs report.json [stage.json] [--dry-run]
  *
@@ -186,7 +186,15 @@ for ( const d of report.dependencies ) {
 	try { plan = await writePlan( d, dep, stageResult ); } catch ( e ) { console.log( `  plan failed for ${ d.key }: ${ e.message }` ); }
 	const title = `${ d.verdict === 'red' ? 'Broke' : 'Check' }: ${ dep.name } ${ d.version } — ${ d.reason.slice( 0, 80 ) }`;
 	const url = openIssue( title, issueBody( d, dep, plan, stageResult ), [ 'watch', `watch:${ d.verdict }` ] );
-	recordKnownIssue( d, dep, url );
+	/*
+	 *  Only a red reaches the public feed. The plugin's Get help screen lists
+	 *  every feed entry matching a site's versions under "Known problems that
+	 *  match this site"; until 2026-09-22 that included the yellows -- "changelog
+	 *  mentions attachment, upload, rest api", "not proven either way" -- shown
+	 *  to customers as problems. A yellow is the watch's to-do, and it stays an
+	 *  issue here.
+	 */
+	if ( d.verdict === 'red' ) recordKnownIssue( d, dep, url );
 	acted.push( { key: d.key, verdict: d.verdict, issue: url } );
 	console.log( `  ${ d.verdict.padEnd( 6 ) } ${ d.key } ${ d.version } -> ${ url }` );
 }

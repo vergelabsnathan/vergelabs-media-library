@@ -126,13 +126,15 @@
           "kind": "js",
           "value": "media.view.MediaFrame.EditAttachments",
           "usedIn": "js/vergeml-media-views.js",
-          "file": "wp-includes/js/media-views.js"
+          "file": "wp-includes/js/media-grid.js",
+          "note": "defined in media-grid.js, not media-views.js; searched in the wrong file until 2026-09-22 (false alarms #13, #23)"
         },
         {
           "kind": "js",
           "value": "media.view.MediaFrame.Manage.Router",
           "usedIn": "js/eml-media-grid.js",
-          "file": "wp-includes/js/media-views.js"
+          "file": "wp-includes/js/media-grid.js",
+          "note": "defined in media-grid.js, not media-views.js; searched in the wrong file until 2026-09-22 (false alarms #13, #23)"
         },
         {
           "kind": "js",
@@ -629,12 +631,18 @@
       "symbols": [
         {
           "kind": "meta",
-          "value": "_yoast_wpseo_focuskw",
+          "value": "_yoast_wpseo_",
+          "usedIn": "core/seo-context.php:49-50",
+          "note": "Yoast writes its keys as WPSEO_Meta::$meta_prefix . 'focuskw', so the whole key is never a quoted literal; the prefix and the field names are checked instead (false alarm #19, 2026-09-22)"
+        },
+        {
+          "kind": "meta",
+          "value": "focuskw",
           "usedIn": "core/seo-context.php:49"
         },
         {
           "kind": "meta",
-          "value": "_yoast_wpseo_metadesc",
+          "value": "metadesc",
           "usedIn": "core/seo-context.php:50"
         },
         {

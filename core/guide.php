@@ -244,13 +244,16 @@ function vergeml_folders_node_prev( $term_id ) {
  *  the set of ids made here: a gallery is a comma-separated list SQL cannot
  *  split, and an attachment-side count would probe every picture of the
  *  library against every product. Read twice per request (the facts and the
- *  summary), so the answer is kept.
+ *  summary), so the answer is kept. $fresh counts again -- for a caller that
+ *  changed products in the same request (the woo integration check read
+ *  0 -> 0 for a product it had just made, and the watch filed it as a
+ *  WooCommerce break, 2026-09-19).
  */
-function vergeml_folders_on_products() {
+function vergeml_folders_on_products( $fresh = false ) {
 
     static $n = null;
 
-    if ( null !== $n ) {
+    if ( null !== $n && ! $fresh ) {
         return $n;
     }
 
