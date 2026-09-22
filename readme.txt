@@ -1,4 +1,4 @@
-=== VergeLabs Media Library – Media folders, categories and AI alt text ===
+=== VergeLabs Media Library ===
 Contributors: vergelabsnathan
 Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
