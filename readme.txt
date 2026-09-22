@@ -230,7 +230,7 @@ The original plugin polled its author's server twice a day for admin notices and
 
 = What happens when the AI service is down? =
 
-Your plugin keeps working without the AI features: filing, search and everything already described keep working, and no credits are taken for a picture that was not described. A picture the service could not answer for -- a temporary error, or no answer at all -- is set aside and tried again: a run in the background comes back to it ten minutes later, a run you are watching leaves it for your next press. A picture is marked as failed only when the service answers that the file itself cannot be described. Searching by meaning falls back to the ordinary word search, and your credit balance shows the last number it read until the service answers again.
+Your plugin keeps working without the AI features: filing, search and everything already described keep working, and no credits are taken for a picture that was not described. A picture the service could not answer for — a temporary error, or no answer at all — is set aside and tried again: a run in the background comes back to it ten minutes later, a run you are watching leaves it for your next press. A picture is marked as failed only when the service answers that the file itself cannot be described. Searching by meaning falls back to the ordinary word search, and your credit balance shows the last number it read until the service answers again.
 
 = What happens if the plugin crashes my site? =
 
@@ -300,7 +300,7 @@ The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now rea
 *While the AI service is away, pictures wait instead of being marked as failed; a re-describe that fails keeps the description the picture already had.*
 
 = Fixed =
-* **While the AI service is away, pictures wait.** A picture the service could not answer for -- a temporary error, or no answer at all -- is set aside and tried again, for as long as the service is away; nothing is marked as failed for a failure that is not the file's. Before, an unreachable service marked every picture a run reached, and three temporary errors marked one for good.
+* **While the AI service is away, pictures wait.** A picture the service could not answer for — a temporary error, or no answer at all — is set aside and tried again, for as long as the service is away; nothing is marked as failed for a failure that is not the file's. Before, an unreachable service marked every picture a run reached, and three temporary errors marked one for good.
 * **A re-describe that fails keeps the description the picture already had.** It stays in search, filing and the counts; the failure is in the run's report only.
 * **A run in the background whose pictures are all set aside waits ten minutes** instead of asking again at once.
 

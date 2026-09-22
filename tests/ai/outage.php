@@ -13,7 +13,7 @@
  *  First written 2026-09-21 (E3-2) to pin what the code did then -- marked on
  *  the first miss when unreachable, on the third 503 -- and rewritten the
  *  next day as E3-1's proof: nothing is marked for a failure that is not the
- *  file's. Six pictures, a stand-in service, the 'unindexed' pass one
+ *  file's. Nine pictures, a stand-in service, the 'unindexed' pass one
  *  picture per step unless said otherwise, then the way back:
  *
  *     1. the service cannot be reached (WP_Error from the transport, the
@@ -22,8 +22,8 @@
  *        picture E is held, no row.
  *   3-5. 503 three times running: picture B is held every time, no row,
  *        no strikes kept.
- *     6. four transients in one step end the step: of four pictures offered,
- *        four are asked and the step breaks before the fifth.
+ *     6. five transients in one step: every answer in hand is read and held,
+ *        none dropped (the 4.0.3 break threw away paid answers).
  *     7. 400 -- the service answers that this file cannot be described:
  *        picture C is marked on the first answer.
  *     8. a described picture D, offered again and answered 400, keeps its
@@ -33,7 +33,13 @@
  *        A, B and E, alt written.
  *    10. C, marked, has no alt: 'missing-alt' reaches it.
  *    11. a background run with the service away books its next pass after
- *        the hold and does not chase it.
+ *        the hold and does not chase it; its held pictures are not "failed".
+ *    12. a background run with the service back and no budget books its next
+ *        pass now and chases it -- the ordinary tail, pinned too.
+ *
+ *  The nine PNGs are byte-identical: on a site whose health scan has hashed
+ *  them they would fill from a twin and never reach the service; the
+ *  Playground this runs in has no scan.
  *
  *  ## No request leaves this suite
  *
@@ -45,7 +51,7 @@
  *  ## What it touches, and puts back
  *
  *  vergeml_ai (a sealed placeholder key goes in), the vergeml_ai_recent
- *  transient, the run state and its cron event, six attachments of its own
+ *  transient, the run state and its cron event, nine attachments of its own
  *  from literal PNG bytes (no GD needed) and their index rows. All removed
  *  from a shutdown function.
  */
@@ -71,6 +77,7 @@ $GLOBALS['ao_answer']    = null;      // what the describe endpoint answers next
 $GLOBALS['ao_describes'] = 0;         // describe calls seen since the counter was read
 $GLOBALS['ao_others']    = array();
 $GLOBALS['ao_handed']    = null;      // answers handed through the parallel seam, or null
+$GLOBALS['ao_nudges']    = 0;         // how often a run asked whether it may nudge
 $GLOBALS['ao_before']    = array();
 $GLOBALS['ao_ids']       = array();
 $GLOBALS['ao_done']      = false;
@@ -211,10 +218,11 @@ function ao_error( $id ) {
     return $row ? (string) $row['error'] : '';
 }
 
-/** A held picture is reported exactly once, not fatal. */
-function ao_reported_once( $result, $id ) {
+/** A picture is reported exactly once, not fatal; a held one says so. */
+function ao_reported_once( $result, $id, $held = true ) {
     $mine = array_filter( $result['errors'], function ( $e ) use ( $id ) { return $id === (int) $e['id']; } );
-    return 1 === count( $mine ) && 1 === count( $result['errors'] ) && empty( reset( $mine )['fatal'] );
+    $one  = reset( $mine );
+    return 1 === count( $mine ) && 1 === count( $result['errors'] ) && empty( $one['fatal'] ) && $held === ! empty( $one['held'] );
 }
 
 
@@ -230,6 +238,8 @@ register_shutdown_function( 'ao_restore' );
 add_filter( 'pre_http_request', 'ao_catch', 1, 3 );
 add_filter( 'vergeml_ai_describe_answers', 'ao_hand', 1, 2 );
 add_filter( 'vergeml_ai_parallel', function () { return 1; } );
+// A nudge is counted, never sent (this suite holds the cron wire).
+add_filter( 'vergeml_ai_run_should_nudge', function () { $GLOBALS['ao_nudges']++; return false; } );
 
 $ao_ai = is_array( $GLOBALS['ao_before']['vergeml_ai'] ) ? $GLOBALS['ao_before']['vergeml_ai'] : array();
 $ao_ai['license_key'] = vergeml_ai_seal( 'VGML-' . strtoupper( wp_generate_password( 30, false, false ) ) . 'ZZZZ' );
@@ -308,7 +318,6 @@ foreach ( array( 3, 4, 5 ) as $ao_n ) {
     $ao_seen[] = array( 'asked' => $ao_asked, 'errors' => $ao_r['errors'], 'row' => ao_error( $ao_b ), 'ok' => 1 === $ao_asked && ao_reported_once( $ao_r, $ao_b ) && null === vergeml_index_get( $ao_b ) );
 }
 ao_check( 'B asked three times, held each time, reported once each, no row ever', array( true, true, true ) === array_column( $ao_seen, 'ok' ), wp_json_encode( $ao_seen ) );
-ao_check( 'no strikes are kept', false === get_transient( 'vergeml_ai_strikes' ) );
 
 
 /* ------------------------------------------ 6. four in a row end the step */
@@ -322,9 +331,9 @@ $GLOBALS['ao_answer'] = 503;
 $ao_r6 = vergeml_ai_index_step( 'unindexed', 24, false );
 $ao_asked6 = ao_describes();
 
-// The five go out as one batch; the loop stops reading answers after the fourth.
-ao_check( 'five pictures offered, asked as one batch; four processed, then the step stopped', 5 === $ao_asked6 && 4 === count( $ao_r6['errors'] ), $ao_asked6 . ' asked, ' . count( $ao_r6['errors'] ) . ' reported' );
-ao_check( 'none of them has a row', null === vergeml_index_get( $ao_f[0] ) && null === vergeml_index_get( $ao_f[3] ) );
+$ao_all_held6 = 5 === count( $ao_r6['errors'] ) && 0 === count( array_filter( $ao_r6['errors'], function ( $e ) { return empty( $e['held'] ); } ) );
+ao_check( 'five pictures offered, asked as one batch; every answer read, all five held, none dropped', 5 === $ao_asked6 && $ao_all_held6, $ao_asked6 . ' asked, ' . count( $ao_r6['errors'] ) . ' reported' );
+ao_check( 'none of them has a row, and all five are off the table', null === vergeml_index_get( $ao_f[0] ) && null === vergeml_index_get( $ao_f[3] ) && 5 === count( vergeml_ai_recently_described( array_merge( array( $ao_c ), $ao_f ) ) ) );
 
 
 /* ------------------------------------- 7. the service answers 400 */
@@ -339,7 +348,11 @@ $ao_asked7 = ao_describes();
 
 ao_check( 'one describe call went out', 1 === $ao_asked7, $ao_asked7 . ' asked; ' . wp_json_encode( $ao_r7['errors'] ) );
 ao_check( 'picture C is marked on the first answer', 'vergeml_ai_service_400' === ao_error( $ao_c ), "error = '" . ao_error( $ao_c ) . "'" );
-ao_check( 'reported once, not fatal', ao_reported_once( $ao_r7, $ao_c ) );
+ao_check( 'reported once as failed, not held, not fatal', ao_reported_once( $ao_r7, $ao_c, false ) );
+// Marked, C has no alt and stays in missing-alt; within the hold it is not asked again.
+$GLOBALS['ao_answer'] = 400;
+$ao_r7b = vergeml_ai_index_step( 'missing-alt', 24, false );
+ao_check( "a marked picture is not asked again within the hold ('missing-alt' step: nothing sent)", 0 === ao_describes() && empty( $ao_r7b['described'] ) && empty( $ao_r7b['errors'] ), wp_json_encode( $ao_r7b['errors'] ) );
 
 
 /* ------------------------- 8. a described picture on a stale run, 400 */
@@ -367,7 +380,19 @@ $ao_d_row = vergeml_index_get( $ao_d );
 ao_check( 'one describe call went out', 1 === ao_describes() );
 ao_check( 'D keeps its description', $ao_d_row && 'An older answer' === (string) $ao_d_row['caption'] && '' === (string) $ao_d_row['error'], "caption '" . ( $ao_d_row ? $ao_d_row['caption'] : '' ) . "', error '" . ao_error( $ao_d ) . "'" );
 ao_check( 'D is stamped current (prompt p2), so the stale sweep moves on', $ao_d_row && 'p2' === (string) $ao_d_row['prompt_hash'], 'prompt_hash ' . ( $ao_d_row ? $ao_d_row['prompt_hash'] : '' ) );
-ao_check( 'the failure is in the report', ao_reported_once( $ao_r8, $ao_d ) );
+ao_check( "D's described_at is its own answer's date, not the refusal's", $ao_d_row && strtotime( $ao_d_row['described_at'] . ' UTC' ) < time() - 15 * MINUTE_IN_SECONDS, $ao_d_row ? $ao_d_row['described_at'] : '' );
+ao_check( 'the failure is in the report, as failed, not held', ao_reported_once( $ao_r8, $ao_d, false ) );
+$ao_r8b = vergeml_ai_index_step( 'missing-alt', 24, false );
+ao_check( 'D is not asked again within the hold', 0 === ao_describes() && empty( $ao_r8b['errors'] ) );
+// A demo row the service refuses is stubbed as before, never stamped real.
+$ao_m = ao_make( 'zz-outage-m.png' );
+$ao_mine[] = $ao_m;
+vergeml_index_set( $ao_m, array( 'caption' => 'Mock caption', 'alt' => 'Mock', 'model' => 'mock', 'prompt_hash' => 'p1', 'error' => '', 'described_at' => gmdate( 'Y-m-d H:i:s', time() - 20 * MINUTE_IN_SECONDS ) ) );
+delete_transient( 'vergeml_ai_recent' );
+vergeml_ai_recently_described( array_values( array_diff( $ao_mine, array( $ao_m ) ) ), true );
+$GLOBALS['ao_answer'] = 400;
+$ao_r8m = vergeml_ai_index_step( 'missing-alt', 24, false );
+ao_check( 'a demo (mock) row the service refuses is marked, not kept as if real', 1 === ao_describes() && 'vergeml_ai_service_400' === ao_error( $ao_m ), "error = '" . ao_error( $ao_m ) . "'" );
 
 
 /* ------------------------------------------------ 9. the service back */
@@ -381,7 +406,7 @@ $ao_r9_ids = array_map( function ( $d ) { return (int) $d['id']; }, $ao_r9['desc
 
 ao_check( 'everything still waiting is described: B, E and the four of step 6', 6 === ao_describes() && 6 === count( $ao_r9['described'] ) && in_array( $ao_b, $ao_r9_ids, true ) && in_array( $ao_e, $ao_r9_ids, true ) && empty( $ao_r9['errors'] ), count( $ao_r9['described'] ) . ' described: ' . implode( ', ', $ao_r9_ids ) );
 ao_check( 'the alt text is on B', 'One pixel' === get_post_meta( $ao_b, '_wp_attachment_image_alt', true ) );
-ao_check( "'unindexed' is empty", array() === vergeml_ai_pending( 'unindexed' ) );
+ao_check( "'unindexed' is empty", array() === vergeml_ai_pending( 'unindexed' ), wp_json_encode( vergeml_ai_pending( 'unindexed' ) ) );
 
 
 /* -------------------------------------------- 10. the marked one's way back */
@@ -404,8 +429,10 @@ foreach ( array( $ao_a, $ao_b, $ao_e, $ao_f[0], $ao_f[1], $ao_f[2], $ao_f[3] ) a
 delete_transient( 'vergeml_ai_recent' );
 delete_transient( 'vergeml_ai_run_lock' );
 $GLOBALS['ao_answer'] = 'unreachable';
+$GLOBALS['ao_nudges'] = 0;
 $ao_started = vergeml_ai_run_start( 'unindexed', false, 'outage suite' );
-ao_check( 'the run starts', ! is_wp_error( $ao_started ) && ! empty( vergeml_ai_run_state()['active'] ), is_wp_error( $ao_started ) ? $ao_started->get_error_message() : 'active' );
+ao_check( 'the run starts, and asks to nudge once', ! is_wp_error( $ao_started ) && ! empty( vergeml_ai_run_state()['active'] ) && 1 === $GLOBALS['ao_nudges'], is_wp_error( $ao_started ) ? $ao_started->get_error_message() : 'active, nudges ' . $GLOBALS['ao_nudges'] );
+$GLOBALS['ao_nudges'] = 0;
 
 // Cron takes the event off the schedule before it calls the tick; done here by hand.
 $ao_booked = wp_next_scheduled( 'vergeml_ai_run_tick' );
@@ -418,9 +445,48 @@ $ao_state = vergeml_ai_run_state();
 $ao_next  = wp_next_scheduled( 'vergeml_ai_run_tick' );
 $ao_asked = ao_describes();
 
-ao_check( 'the tick asked, held what it asked, and the run is still active', $ao_asked >= 1 && ! empty( $ao_state['active'] ), "$ao_asked asked" );
-ao_check( 'the next pass is booked after the hold, not now', false !== $ao_next && $ao_next >= $ao_t0 + VERGEML_AI_HOLD_SECONDS - 5, false === $ao_next ? 'nothing booked' : ( $ao_next - $ao_t0 ) . ' s away' );
+ao_check( 'the tick asked once for each of the seven, held them all (no rows), and the run is still active', 7 === $ao_asked && ! empty( $ao_state['active'] ) && null === vergeml_index_get( $ao_a ) && null === vergeml_index_get( $ao_f[3] ), "$ao_asked asked" );
+ao_check( 'held pictures are not counted as failed', 0 === (int) $ao_state['failed'] && empty( $ao_state['failed_ids'] ), 'failed ' . $ao_state['failed'] );
+ao_check( 'the next pass is booked after the hold, not now', false !== $ao_next && $ao_next >= $ao_t0 + VERGEML_AI_HOLD_SECONDS, false === $ao_next ? 'nothing booked' : ( $ao_next - $ao_t0 ) . ' s away' );
+ao_check( 'and it is not chased: no nudge asked for', 0 === $GLOBALS['ao_nudges'], 'nudges ' . $GLOBALS['ao_nudges'] );
 ao_check( 'no request other than describe (and the cron nudge) was answered', array() === $GLOBALS['ao_others'], implode( ', ', $GLOBALS['ao_others'] ) );
+
+vergeml_ai_run_stop( 'outage suite' );
+
+
+/* --------------------------- 12. a background run, service back, no budget */
+
+echo "\n12  a background run with the service back and no budget: the ordinary tail\n";
+
+// The run's work: the seven held pictures, the hold lifted; a budget of 0 ends the tick after one step.
+delete_transient( 'vergeml_ai_recent' );
+delete_transient( 'vergeml_ai_run_lock' );
+$ao_booked = wp_next_scheduled( 'vergeml_ai_run_tick' );
+if ( false !== $ao_booked ) {
+    wp_unschedule_event( $ao_booked, 'vergeml_ai_run_tick' );
+}
+add_filter( 'vergeml_ai_run_budget', '__return_zero' );
+add_filter( 'vergeml_ai_parallel', function () { return 1; } );
+$GLOBALS['ao_answer'] = 'back';
+$GLOBALS['ao_nudges'] = 0;
+$ao_started12 = vergeml_ai_run_start( 'unindexed', true, 'outage suite' );
+$ao_booked = wp_next_scheduled( 'vergeml_ai_run_tick' );
+if ( false !== $ao_booked ) {
+    wp_unschedule_event( $ao_booked, 'vergeml_ai_run_tick' );
+}
+$GLOBALS['ao_nudges'] = 0;
+// Three of the seven on hold: the step describes four, the recount keeps the run alive, the tail books the rest.
+vergeml_ai_recently_described( array( $ao_f[1], $ao_f[2], $ao_f[3] ), true );
+$ao_t12 = time();
+vergeml_ai_run_tick();
+$ao_state12 = vergeml_ai_run_state();
+$ao_next12  = wp_next_scheduled( 'vergeml_ai_run_tick' );
+$ao_asked12 = ao_describes();
+remove_filter( 'vergeml_ai_run_budget', '__return_zero' );
+
+ao_check( 'one step described the four it asked and the run is still active with three left', ! is_wp_error( $ao_started12 ) && 4 === $ao_asked12 && 4 === (int) $ao_state12['described'] && ! empty( $ao_state12['active'] ) && 3 === (int) $ao_state12['remaining'], "$ao_asked12 asked, described " . $ao_state12['described'] . ', remaining ' . $ao_state12['remaining'] );
+ao_check( 'the next pass is booked now', false !== $ao_next12 && $ao_next12 <= $ao_t12 + 1, false === $ao_next12 ? 'nothing booked' : ( $ao_next12 - $ao_t12 ) . ' s away' );
+ao_check( 'and chased: the nudge was asked for', 1 === $GLOBALS['ao_nudges'], 'nudges ' . $GLOBALS['ao_nudges'] );
 
 vergeml_ai_run_stop( 'outage suite' );
 ao_restore();

@@ -216,11 +216,15 @@
 				r.described.forEach( function ( d ) {
 					log( '#' + d.id + ' ' + d.caption );
 				} );
+				var held = 0;
 				r.errors.forEach( function ( e ) {
-					log( '#' + e.id + ' — ' + e.error, true );
+					if ( e.held ) {
+						held++;
+					}
+					log( '#' + e.id + ' — ' + e.error, ! e.held );
 				} );
 				described += r.described.length;
-				failed += r.errors.length;
+				failed += r.errors.length - held;
 
 				if ( ! total ) {
 					total = r.remaining + r.described.length + r.errors.length;
@@ -234,6 +238,14 @@
 				if ( stopping && r.remaining > 0 ) {
 					/* translators: 1: pictures described, 2: pictures in the run, 3: pictures left, 4: a time */
 					finish( sprintf( __( '%1$s of %2$s described · %3$s left · Stop at %4$s', 'vergelabs-media-library' ), fmt( doneCount ), fmt( total ), fmt( r.remaining ), timeNow() ) );
+					return;
+				}
+
+				// Every picture this step asked for was set aside: the service is
+				// away. Asking for the next ones would only set them aside too.
+				if ( ! r.described.length && held > 0 && held === r.errors.length ) {
+					/* translators: 1: pictures described, 2: pictures set aside */
+					finish( sprintf( __( '%1$s described · %2$s set aside — the service did not answer. Try again in ten minutes.', 'vergelabs-media-library' ), fmt( described ), fmt( r.remaining ) ) );
 					return;
 				}
 

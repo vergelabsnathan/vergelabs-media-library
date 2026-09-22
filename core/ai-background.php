@@ -248,6 +248,9 @@ function vergeml_ai_run_start( $scope, $apply_alt, $reason = '' ) {
         'reason'     => (string) $reason,
     ) );
 
+    // Due now: a run that ended waiting on the service may have booked a
+    // pass ten minutes out, and a fresh press should not wait for it.
+    vergeml_ai_run_unschedule();
     vergeml_ai_run_schedule();
     vergeml_ai_run_nudge();
 
@@ -321,11 +324,21 @@ function vergeml_ai_run_tick() {
 
     $started = time();
     $stop    = '';
+    /*
+     *  Waiting: this tick stored nothing and every picture it asked for was
+     *  held -- the service is away. Judged over the whole tick, not the last
+     *  step: a budget that runs out after a step that held four of sixteen
+     *  is the same outage.
+     */
+    $waiting = true;
+    // The budget is a constant; a suite reaches the tail's other branch through the filter.
+    $budget = (int) apply_filters( 'vergeml_ai_run_budget', VERGEML_AI_RUN_BUDGET );
 
     do {
         set_transient( 'vergeml_ai_run_lock', time(), 2 * MINUTE_IN_SECONDS );
 
-        $result = vergeml_ai_index_step( $state['scope'], VERGEML_AI_RUN_CHUNK, $state['apply_alt'] );
+        $result   = vergeml_ai_index_step( $state['scope'], VERGEML_AI_RUN_CHUNK, $state['apply_alt'] );
+        $held_now = 0;
 
         $state['described'] += count( $result['described'] );
         $state['remaining']  = (int) $result['remaining'];
@@ -347,6 +360,13 @@ function vergeml_ai_run_tick() {
         }
 
         foreach ( $result['errors'] as $error ) {
+
+            // A held picture is one the service did not answer for; it is
+            // waiting, not failed, and comes round again after the hold.
+            if ( ! empty( $error['held'] ) ) {
+                $held_now++;
+                continue;
+            }
 
             $id = isset( $error['id'] ) ? (int) $error['id'] : 0;
             if ( $id > 0 && ! in_array( $id, $failed_ids, true ) ) {
@@ -371,13 +391,24 @@ function vergeml_ai_run_tick() {
             break;
         }
 
+        if ( ! empty( $result['described'] ) || count( $result['errors'] ) > $held_now ) {
+            $waiting = false;
+        }
+
         // Nothing described and nothing failed means the step found no work
         // it could take; looping on that would spin.
         if ( empty( $result['described'] ) && empty( $result['errors'] ) ) {
             break;
         }
 
-    } while ( $state['remaining'] > 0 && ( time() - $started ) < VERGEML_AI_RUN_BUDGET );
+        // Every picture this step asked for was held: asking for the next
+        // ones now would only hold them too. The tail books the next pass
+        // for when the hold lapses.
+        if ( empty( $result['described'] ) && $held_now > 0 && count( $result['errors'] ) === $held_now ) {
+            break;
+        }
+
+    } while ( $state['remaining'] > 0 && ( time() - $started ) < $budget );
 
     delete_transient( 'vergeml_ai_run_lock' );
 
@@ -431,9 +462,9 @@ function vergeml_ai_run_tick() {
      *  then, and not chased. Booked now and chased, a tick during an outage
      *  followed a tick followed a tick for the length of the hold (4.0.4).
      */
-    $waiting = empty( $result['described'] ) && empty( $result['errors'] ) && ! empty( $result['held'] );
+    // Five seconds past the hold, so the pass does not arrive while the hold still stands.
     if ( ! wp_next_scheduled( VERGEML_AI_RUN_HOOK ) ) {
-        wp_schedule_single_event( time() + ( $waiting ? VERGEML_AI_HOLD_SECONDS : 0 ), VERGEML_AI_RUN_HOOK );
+        wp_schedule_single_event( time() + ( $waiting ? VERGEML_AI_HOLD_SECONDS + 5 : 0 ), VERGEML_AI_RUN_HOOK );
     }
     if ( ! $waiting ) {
         vergeml_ai_run_nudge();

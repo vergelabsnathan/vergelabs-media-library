@@ -276,11 +276,13 @@ const SUITES = [
 	 */
 	{ name: 'get-help', file: 'tests/security/get-help.php', env: 'local', php: 'playground' },
 	/*
-	 *  What a describe run does while the service is down (E3-2, 2026-09-21):
-	 *  the line behind the readme's outage FAQ -- marked on the first miss
-	 *  when unreachable, on the third 503, re-offered only by the Alt text
-	 *  pass. A stand-in service answers every call; spends nothing. Playground
-	 *  here, like get-help.
+	 *  What a describe run does while the service is away (E3-2 2026-09-21,
+	 *  E3-1 2026-09-22): the line behind the readme's outage FAQ -- a picture
+	 *  the service did not answer for is held and comes round again, only a
+	 *  refusal about the file marks it, a refused re-describe keeps its
+	 *  description, a waiting run books its next pass after the hold. A
+	 *  stand-in service answers every call; spends nothing. Playground here,
+	 *  like get-help.
 	 */
 	{ name: 'ai-outage', file: 'tests/ai/outage.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.

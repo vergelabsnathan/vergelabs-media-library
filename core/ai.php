@@ -799,6 +799,34 @@ function vergeml_ai_parallel() {
 
 
 /**
+ *  An answer the service did not give for this picture: no answer at all
+ *  (the transport failed, on either path, or WordPress was told not to make
+ *  outbound requests), or a status that says "not now" -- any 5xx, and the
+ *  handful of 4xx that mean the same (a timeout, too early, too many).
+ *  These hold the picture; everything else is an answer about the file.
+ */
+function vergeml_ai_transient( $error ) {
+
+    if ( ! is_wp_error( $error ) ) {
+        return false;
+    }
+
+    $code = (string) $error->get_error_code();
+
+    if ( in_array( $code, array( 'http_request_failed', 'http_request_not_executed', 'vergeml_ai_transport', 'vergeml_ai_no_answer' ), true ) ) {
+        return true;
+    }
+
+    if ( 0 !== strpos( $code, 'vergeml_ai_service_' ) ) {
+        return false;
+    }
+
+    $status = (int) substr( $code, strlen( 'vergeml_ai_service_' ) );
+
+    return $status >= 500 || in_array( $status, array( 0, 408, 425, 429 ), true );
+}
+
+/**
  *  Describe several, in flight together.
  *
  *  Returns attachment id => the same thing vergeml_ai_describe() returns for
@@ -813,30 +841,6 @@ function vergeml_ai_parallel() {
  *  sent down the sequential path instead: slower, and it works, which is the
  *  right way round.
  */
-
-/**
- *  An answer the service did not give for this picture: no answer at all
- *  (the transport failed, on either path), or a status that says "not now".
- *  These hold the picture; everything else is an answer about the file.
- */
-function vergeml_ai_transient( $error ) {
-
-    if ( ! is_wp_error( $error ) ) {
-        return false;
-    }
-
-    $code = (string) $error->get_error_code();
-
-    if ( in_array( $code, array( 'http_request_failed', 'vergeml_ai_transport', 'vergeml_ai_no_answer' ), true ) ) {
-        return true;
-    }
-
-    if ( 0 !== strpos( $code, 'vergeml_ai_service_' ) ) {
-        return false;
-    }
-
-    return in_array( (int) substr( $code, strlen( 'vergeml_ai_service_' ) ), array( 0, 408, 425, 429, 500, 502, 503, 504 ), true );
-}
 
 function vergeml_ai_describe_many( $ids ) {
 
@@ -1472,7 +1476,7 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
             'errors'    => array(),
             'remaining' => 0,
             'held'      => count( $held ),
-            'notice'    => __( 'These files were described in the last few minutes and are not being sent again. If they still look out of date, the definition of "out of date" is the problem, not the files — please report it.', 'vergelabs-media-library' ),
+            'notice'    => __( 'These files were sent in the last few minutes and are not being sent again yet. If the service was away, try again in ten minutes; if they still look out of date after that, please report it.', 'vergelabs-media-library' ),
         );
     }
 
@@ -1549,7 +1553,7 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
                     $done[] = array( 'id' => $id, 'caption' => $row['caption'], 'twin' => $twin );
                 } else {
                     /*
-                     *  Same three strikes as a transient. The service's window
+                     *  Three strikes, the duplicate path's own. The service's window
                      *  is ten minutes, so an honest duplicate clears itself;
                      *  a picture the service will never charge for again would
                      *  otherwise keep a run open forever.
@@ -1602,18 +1606,21 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
              *  pictures that nothing offered again, and a service that could
              *  not be reached at all was never transient in the first place.
              *  A picture the service did not answer for is not a failing file.
-             *  What keeps a run from marching through the library during an
-             *  outage is the streak: four in a row and this pass stops.
+             *
+             *  Every answer in hand is read: the whole group went out before
+             *  this loop, so stopping it early only threw away answers that
+             *  were already paid for (the 4.0.3 "four in a row" break did that
+             *  to the twelve good answers beside four timeouts). What keeps a
+             *  run from marching through the library during an outage is the
+             *  caller: a step that held everything it asked is the signal to
+             *  wait (core/ai-background.php, js/vergeml-ai.js), and the
+             *  entry says so with 'held'.
              */
             if ( vergeml_ai_transient( $described ) ) {
                 vergeml_ai_recently_described( array( $id ), true );
-                $streak = isset( $streak ) ? $streak + 1 : 1;
-                if ( $streak >= 4 ) {
-                    break;
-                }
+                $errors[ count( $errors ) - 1 ]['held'] = true;
                 continue;
             }
-            $streak = 0;
 
             /*
              *  The service answered, and the answer is no: this file, as it
@@ -1625,11 +1632,16 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
              *  change offers it again. The failure is in this run's report.
              */
             $existing = vergeml_index_get( $id );
-            if ( $existing && '' === (string) $existing['error'] && '' !== (string) $existing['caption'] ) {
-                vergeml_index_set( $id, array(
-                    'prompt_hash'  => isset( $stamp['prompt_hash'] ) ? (string) $stamp['prompt_hash'] : '',
-                    'described_at' => current_time( 'mysql', true ),
-                ) );
+            if ( $existing && '' === (string) $existing['error'] && '' !== (string) $existing['caption'] && 'mock' !== (string) $existing['model'] ) {
+                // The hash only: described_at stays the answer's own date, so
+                // the stamp and the dashboard's newest rows do not read a
+                // refusal as a fresh description.
+                if ( isset( $stamp['prompt_hash'] ) && '' !== (string) $stamp['prompt_hash'] ) {
+                    vergeml_index_set( $id, array( 'prompt_hash' => (string) $stamp['prompt_hash'] ) );
+                }
+                // Off the table for ten minutes like a hold: a scope that still
+                // lists it (missing-alt, page-gap) would ask again next step.
+                vergeml_ai_recently_described( array( $id ), true );
                 continue;
             }
 
@@ -1639,6 +1651,7 @@ function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
                 'error'        => substr( $described->get_error_code(), 0, 64 ),
                 'described_at' => current_time( 'mysql', true ),
             ) );
+            vergeml_ai_recently_described( array( $id ), true );
             continue;
         }
 
