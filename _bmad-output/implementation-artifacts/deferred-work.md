@@ -133,3 +133,9 @@
 - source_spec: `spec-e3-1-the-service-away-pictures-wait.md` (build, 2026-09-22)
   summary: `tools/plugin-check.mjs` trusts whatever answers the port it is given. On 2026-09-22 a Playground boot failed with EADDRINUSE and the tool reported a clean check from the previous version's server; the result was reported before it was caught. It should read the mounted plugin's `Version:` header from the site and refuse a server that is not running the version under test.
   evidence: the S33 handoff, "a check I reported and then corrected".
+- source_spec: S33 addendum (2026-09-22)
+  summary: the Get help screen lists every feed entry that matches a site's versions, whatever its `status` or `severity` (core/get-help.php vergeml_help_matching_issues). The feed now carries reds only (triage.mjs), so this is belt-and-braces: filter to `severity === 'red'` and `status === 'open'` in the plugin when get-help.php is next touched, so a closed or yellow entry written by hand can never read as a known problem.
+  evidence: 2026-09-22, four false reds and five yellows were on customer screens until the feed was emptied.
+- source_spec: S33 addendum (2026-09-22)
+  summary: a staging copy (`WP_ENVIRONMENT_TYPE=staging`) gets `403 site_not_activated` from the service's `/v1/embed`, while `docs/manual/credits.md` says a staging copy "is validated without ever touching the activation list". On a customer's staging copy, search by meaning falls back to words and new folders get no filing profile. Decide whether `/embed` should honour the staging exemption (embedding is 0 credits) -- a service change, Nathan's call.
+  evidence: probe on /var/www/upd 2026-09-22; the tech site (production) gets 200 and a 512-dim vector.
