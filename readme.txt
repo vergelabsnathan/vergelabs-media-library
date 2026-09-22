@@ -4,7 +4,7 @@ Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 4.0.2
+Stable tag: 4.0.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -295,6 +295,13 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now reads what pictures show, so a fill after updating places things differently than before. The Rules tab is gone and the media list toolbar is one row. Read the changelog before you fill.
 
 ## Changelog ##
+
+### 4.0.3 ###
+*Screen Options opens over the folder panel on the media list, not under it; the AI-outage answer in the FAQ says what a describe run does.*
+
+= Fixed =
+* **Screen Options opens over the folder panel on the media list, not under it.** 4.0.2 brought the tab back; the panel it opens was still under the folder tree, so the column checkboxes on the left could not be ticked.
+* **The FAQ answer "What happens when the AI service is down?" says what the describe run does:** a temporary error sets a picture aside and tries again, an unreachable service marks it, and the Alt text button on the AI screen picks marked pictures up once the service is back. The previous answer promised more than the run did.
 
 ### 4.0.2 ###
 *Dragging into a folder works again beside FileBird, and two tabs the folder panel had covered are back.*
