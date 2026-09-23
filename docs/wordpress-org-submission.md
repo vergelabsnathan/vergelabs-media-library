@@ -135,11 +135,11 @@ moment wordpress.org's entry for that folder appears. The form proposes the
 slug from the plugin name; if the reviewer offers another, ask them to keep
 this one — a slug cannot be changed after approval.
 
-**Before the upload:** English terms and privacy pages live at
-`vergelabsmedia.com/legal/terms` and `/legal/privacy`, and the readme's
-External services linking them instead of the Dutch consultancy pages on
-vergelabs.nl (drafts in `service/docs/legal/`); then build the archive from
-that commit.
+**Before the upload:** build the archive from `5a27c06` or later. The English
+terms and privacy pages are live at `vergelabsmedia.com/legal/terms` and
+`/legal/privacy` since 2026-09-23 (service `cc3c368`), and the readme's
+External services links them since `5a27c06`, no longer the Dutch consultancy
+pages.
 
 **The note to send with the first reply** (approved words are Nathan's):
 
