@@ -190,7 +190,7 @@ This plugin talks to three places: an AI service run by VergeLabs at `https://ai
 
 **What the service does with it, in writing.** [Sub-processors](https://vergelabsmedia.com/legal/sub-processors) names every company that touches the data and where each one is. [What is kept, and for how long](https://vergelabsmedia.com/legal/retention) answers that per category — images are kept for no time at all, and it says which file in the code proves it. [Data Processing Agreement](https://vergelabsmedia.com/legal/dpa), if you need one.
 
-Service terms: [https://vergelabs.nl/voorwaarden](https://vergelabs.nl/voorwaarden) -- Privacy policy: [https://vergelabs.nl/privacy](https://vergelabs.nl/privacy)
+Service terms: [https://vergelabsmedia.com/legal/terms](https://vergelabsmedia.com/legal/terms) -- Privacy policy: [https://vergelabsmedia.com/legal/privacy](https://vergelabsmedia.com/legal/privacy)
 
 ## Installation ##
 
