@@ -4,7 +4,7 @@ Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 4.0.4
+Stable tag: 4.0.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -296,6 +296,13 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now reads what pictures show, so a fill after updating places things differently than before. The Rules tab is gone and the media list toolbar is one row. Read the changelog before you fill.
 
 ## Changelog ##
+
+### 4.0.5 ###
+*A site without a licence can try the AI free on 25 pictures, and sees what its own library would cost, instead of an error.*
+
+= New =
+* **Try it free on 25 pictures.** On the AI screen, a site without a licence enters an email address and gets 25 free credits for that site, connected by itself. Alt text is then written for 25 pictures without one. One free try per site and per email; not on local or test sites.
+* **The AI screen says what is missing and what it costs.** Where pressing Alt text used to answer "Configure an AI endpoint and key first", a site without a licence sees how many of its pictures have no alt text, and a button that buys exactly those credits at the current price.
 
 ### 4.0.4 ###
 *While the AI service is away, pictures wait instead of being marked as failed; a re-describe that fails keeps the description the picture already had.*
