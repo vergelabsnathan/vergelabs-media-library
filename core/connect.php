@@ -41,6 +41,24 @@ function vergeml_connect_base() {
     return untrailingslashit( $base );
 }
 
+/**
+ * A buy or plans link on vergelabsmedia.com, tagged with the screen it came
+ * from so Analytics shows which screen sells.
+ *
+ * @param string $path   Path on the site, e.g. '/pricing' or '/cart?plan=credits&credits=500'.
+ * @param string $screen dashboard | ai | licence | connect.
+ */
+function vergeml_buy_url( $path, $screen ) {
+    return add_query_arg(
+        array(
+            'utm_source'   => 'plugin',
+            'utm_medium'   => $screen,
+            'utm_campaign' => 'upgrade',
+        ),
+        vergeml_connect_base() . $path
+    );
+}
+
 /** The nonce-protected URL behind the "Connect" button. */
 function vergeml_connect_start_url() {
     return wp_nonce_url(
@@ -243,7 +261,7 @@ function vergeml_connect_banner() {
         esc_html__( 'One button: sign in, pick your licence, and you are sent straight back with the key in place. No copying anything.', 'vergelabs-media-library' ),
         esc_url( vergeml_connect_start_url() ),
         esc_html__( 'Connect to VergeLabs', 'vergelabs-media-library' ),
-        esc_url( vergeml_connect_base() . '/pricing' ),
+        esc_url( vergeml_buy_url( '/pricing', 'connect' ) ),
         esc_html__( 'See the plans', 'vergelabs-media-library' )
     );
 }

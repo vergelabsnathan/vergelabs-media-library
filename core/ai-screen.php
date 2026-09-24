@@ -381,7 +381,7 @@ function vergeml_ai_tab_describe( $c ) {
                 <li><?php echo esc_html( sprintf( __( '%s to describe the library again', 'vergelabs-media-library' ), number_format_i18n( $c['images'] ) ) ); ?></li>
             </ul>
             <div class="vgml-ai-buttons">
-                <a class="vgml-btn" href="https://vergelabsmedia.com/#pricing" target="_blank" rel="noopener"><?php esc_html_e( 'Get credits ↗', 'vergelabs-media-library' ); ?></a>
+                <a class="vgml-btn" href="<?php echo esc_url( vergeml_buy_url( '/pricing', 'ai' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Get credits ↗', 'vergelabs-media-library' ); ?></a>
                 <a class="vgml-btn vgml-btn-ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=media-licence' ) ); ?>"><?php esc_html_e( 'Licence →', 'vergelabs-media-library' ); ?></a>
             </div>
         </div>

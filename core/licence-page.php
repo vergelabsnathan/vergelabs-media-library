@@ -145,7 +145,7 @@ function vergeml_licence_page() {
             __( 'Licence', 'vergelabs-media-library' ),
             __( 'This site\'s connection to VergeLabs. Images go to the service only to be described; nothing else leaves your site.', 'vergelabs-media-library' ),
             '<a class="button" href="https://vergelabsmedia.com/account" target="_blank" rel="noopener">' . esc_html__( 'Your account ↗', 'vergelabs-media-library' ) . '</a>'
-                . '<a class="button button-primary" href="https://vergelabsmedia.com/#pricing" target="_blank" rel="noopener">' . esc_html__( 'Get credits ↗', 'vergelabs-media-library' ) . '</a>'
+                . '<a class="button button-primary" href="' . esc_url( vergeml_buy_url( '/pricing', 'licence' ) ) . '" target="_blank" rel="noopener">' . esc_html__( 'Get credits ↗', 'vergelabs-media-library' ) . '</a>'
         );
 
         echo '<div class="vgml-status-band">' . $band . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
