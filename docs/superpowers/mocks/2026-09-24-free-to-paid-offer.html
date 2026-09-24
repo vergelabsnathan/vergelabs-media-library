@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Mock: free user offer on the AI screen (spec G1)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#111a33;--mute:#5b6378;--line:#d9dde6;--blue:#2846a8;--blue2:#2f55d4;--bg:#f6f7f9}
+  *{box-sizing:border-box}
+  body{margin:0;background:#fff;font:15px/1.5 Inter,system-ui,sans-serif;color:var(--ink)}
+  .frame{display:grid;grid-template-columns:600px 300px;gap:44px;padding:36px 44px 44px;width:1040px}
+  .cap{grid-column:1/-1;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8a90a0;margin-bottom:-18px}
+  h1{font-size:30px;margin:0 0 10px;grid-column:1/-1}
+  .facts{color:var(--mute);grid-column:1/-1;margin:-6px 0 6px}
+  .tabs{grid-column:1/-1;display:flex;gap:28px;border-bottom:1px solid var(--line);margin-bottom:4px}
+  .tabs span{padding:0 0 10px;color:var(--mute);font-weight:500}.tabs .on{color:var(--ink);border-bottom:2px solid var(--blue2)}
+  .lab{font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin:18px 0 8px}
+  ul.sq{list-style:none;padding:0;margin:0}ul.sq li{position:relative;padding-left:16px;margin:4px 0}
+  ul.sq li:before{content:"";position:absolute;left:0;top:.62em;width:7px;height:7px;background:var(--blue2)}
+  .big{font-size:17px;font-weight:600}
+  .btns{display:flex;gap:12px;margin:18px 0 8px;flex-wrap:wrap}
+  .b{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:6px;font-weight:600;font-size:15px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+  .b.p{background:var(--blue2);border-color:var(--blue2);color:#fff}
+  .note{color:var(--mute);font-size:13.5px}
+  .side{border-top:2px solid var(--line);padding-top:14px}
+  .num{font-size:30px;font-weight:700;margin:2px 0 6px}
+  .form{display:flex;gap:10px;margin:14px 0 6px}
+  .in{height:40px;border:1px solid #b9c0cf;border-radius:6px;padding:0 12px;width:300px;color:var(--ink);display:flex;align-items:center}
+  .sep{grid-column:1/-1;height:1px;background:#eceef3;margin:8px 0 0}
+</style></head><body>
+
+<div class="frame">
+  <div class="cap">State 1 · free site, no licence connected</div>
+  <h1>AI</h1>
+  <div class="facts">1,240 pictures · 0 described · 0 with alt text</div>
+  <div class="tabs"><span class="on">Describe</span><span>How it describes</span><span>Search</span></div>
+
+  <div>
+    <div class="lab">Describe</div>
+    <ul class="sq">
+      <li class="big">1,240 pictures on this site have no alt text</li>
+      <li>Alt text is written from what the picture shows and the page it is on</li>
+      <li>Only empty alt text is filled · what is there stays</li>
+    </ul>
+    <div class="btns">
+      <span class="b p">Try it free on 25 pictures</span>
+      <span class="b">Fill all 1,240 · €17.98 ↗</span>
+    </div>
+    <div class="note">Free: your email, 25 pictures on this site, no card. The rest: 1,240 credits, one per picture, VAT at checkout.</div>
+  </div>
+
+  <div class="side">
+    <div class="lab" style="margin-top:0">Credits</div>
+    <div class="num">0</div>
+    <ul class="sq">
+      <li>One credit describes one picture</li>
+      <li>25 free to try on this site</li>
+      <li>From €7.25 for 500</li>
+    </ul>
+    <div class="btns" style="margin-top:14px"><span class="b">See prices ↗</span></div>
+  </div>
+
+  <div class="sep"></div>
+  <div class="cap" style="margin-top:14px">State 2 · after “Try it free on 25 pictures”</div>
+
+  <div>
+    <div class="lab">Try it free</div>
+    <ul class="sq">
+      <li>25 pictures on this site, described now, alt text filled where it is empty</li>
+      <li>A free key is made for this site and connected here by itself</li>
+    </ul>
+    <div class="form"><span class="in">you@yoursite.com</span><span class="b p">Start · 25 free</span></div>
+    <div class="note">One free try per site and per email. No card.</div>
+  </div>
+  <div class="side">
+    <div class="lab" style="margin-top:0">Credits</div>
+    <div class="num">0</div>
+    <ul class="sq"><li>25 free once you press Start</li></ul>
+  </div>
+</div>
+</body></html>
