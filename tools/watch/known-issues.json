@@ -1,4 +1,20 @@
 {
   "_": "Written by tools/watch/triage.mjs. Read by the plugin's Get help screen and the support agent. Reds only since 2026-09-22; that day the four reds were proven false (WordPress 7.1 and 7.1.1: the contract searched media-views.js, the symbols live in media-grid.js; Yoast 28.5: the key is built from a prefix and never a quoted literal; WooCommerce 11.1.1: the stage clone cannot make folder vectors and the check read a cached count) and the five yellows were watch notes, not problems -- issues #2, #5, #13, #14, #19, #23, #24, #26, #30 on GitHub.",
-  "issues": []
+  "issues": [
+    {
+      "dependency": "all-in-one-seo-pack",
+      "name": "All in One SEO",
+      "slug": "all-in-one-seo-pack",
+      "version": "5.0.2",
+      "severity": "red",
+      "summary": "1 symbol(s) gone: AIOSEO_VERSION",
+      "affects": [
+        "core/seo-context.php:76"
+      ],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/33",
+      "found": "2026-09-24"
+    }
+  ]
 }
