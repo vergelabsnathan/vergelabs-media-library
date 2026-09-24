@@ -3643,3 +3643,19 @@ body.vgml-screen #wpbody-content {
 		justify-content: flex-start;
 	}
 }
+
+/* The offer for a site without a licence (spec G1, core/offer.php). */
+.vgml-shell .vgml-offer .vgml-offer-head {
+	font-size: 17px;
+	font-weight: 600;
+}
+.vgml-shell .vgml-offer-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 14px 0 6px;
+}
+.vgml-shell .vgml-offer-row input[type=email] {
+	height: 40px;
+	min-width: 260px;
+}

@@ -194,7 +194,9 @@ function vergeml_ai_page() {
 
         <?php
         // The licence lives on its own tab. Only the absence of one is said here.
-        if ( function_exists( 'vergeml_connect_has_key' ) && ! vergeml_connect_has_key() && $can_configure ) {
+        // On the Describe tab the offer says it better (spec G1).
+        $offer_here = function_exists( 'vergeml_offer_applies' ) && vergeml_offer_applies() && 'describe' === $tab;
+        if ( function_exists( 'vergeml_connect_has_key' ) && ! vergeml_connect_has_key() && $can_configure && ! $offer_here ) {
             printf(
                 '<div class="notice notice-info"><p>%s <a href="%s">%s</a></p></div>',
                 esc_html__( 'No licence is connected, so nothing can be described yet.', 'vergelabs-media-library' ),
@@ -249,12 +251,14 @@ function vergeml_ai_tab_describe( $c ) {
     }
     $credits = get_option( 'vergeml_ai_credits', array() );
     $left    = is_array( $credits ) && isset( $credits['remaining'] ) && null !== $credits['remaining'] ? (int) $credits['remaining'] : null;
+    $offer   = function_exists( 'vergeml_offer_applies' ) && vergeml_offer_applies();
 
     ?>
     <div class="vgml-cols vgml-ai-cols">
     <div class="vgml-cols-main">
 
-        <section class="vgml-ai-sec vgml-ai-run">
+        <?php if ( $offer ) { vergeml_offer_box( $c['missing'] ); } ?>
+        <section class="vgml-ai-sec vgml-ai-run"<?php echo $offer ? ' hidden' : ''; ?>>
             <h2 class="vgml-kicker"><?php esc_html_e( 'Describe', 'vergelabs-media-library' ); ?></h2>
             <ul class="vgml-facts vgml-ai-facts">
                 <?php /* translators: %s: a number of pictures */ ?>
@@ -298,6 +302,11 @@ function vergeml_ai_tab_describe( $c ) {
             </div>
             <div class="vgml-import-bar vgml-ai-bar" id="vgml-ai-bar" hidden><div class="vgml-import-fill" id="vgml-ai-fill"></div></div>
             <div class="vgml-import-bar vgml-ai-bar" id="vgml-ai-bg-bar" hidden><div class="vgml-import-fill" id="vgml-ai-bg-fill"></div></div>
+            <?php if ( ! $offer && isset( $_GET['vgml_trial'] ) && $c['missing'] > 0 ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a display flag, not an action. ?>
+            <?php /* translators: %s: a number of pictures */ ?>
+            <p class="vgml-ai-line"><?php echo esc_html( sprintf( __( '%s free credits on this site. Writing alt text now; it stops when they are used.', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?></p>
+            <script>window.addEventListener( 'load', function () { var b = document.getElementById( 'vgml-ai-alt' ); if ( b && ! b.disabled ) { b.click(); } } );</script>
+            <?php endif; ?>
             <p class="vgml-ai-line" id="vgml-ai-note"></p>
             <p class="vgml-ai-line" id="vgml-ai-bg-note"></p>
             <ul id="vgml-ai-log" class="vgml-ai-log"></ul>
@@ -372,7 +381,8 @@ function vergeml_ai_tab_describe( $c ) {
     </div><!-- /main -->
 
     <aside class="vgml-cols-rail">
-        <div class="vgml-rail-block">
+        <?php if ( $offer ) { vergeml_offer_rail(); } ?>
+        <div class="vgml-rail-block"<?php echo $offer ? ' hidden' : ''; ?>>
             <h6 class="vgml-kicker"><?php esc_html_e( 'Credits', 'vergelabs-media-library' ); ?></h6>
             <p class="vgml-ai-num vgml-ai-credits-n"><?php echo esc_html( null === $left ? '—' : number_format_i18n( $left ) ); ?></p>
             <ul class="vgml-facts">

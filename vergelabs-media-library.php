@@ -1595,6 +1595,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         include_once( 'core/admin-shell.php' );
         include_once( 'core/filing.php' );
         include_once( 'core/connect.php' );
+        include_once( 'core/offer.php' );
         include_once( 'core/licence-page.php' );
 
         if ( vergeml_enhance_media_shortcodes() ) {

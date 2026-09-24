@@ -2106,7 +2106,11 @@ function vergeml_ai_rest_status( ?WP_REST_Request $request = null ) {
 function vergeml_ai_rest_index( WP_REST_Request $request ) {
 
     if ( ! vergeml_ai_ready() ) {
-        return new WP_Error( 'vergeml_ai_unconfigured', __( 'Configure an AI endpoint and key first.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+        // A site with no key is offered a free try and credits on the AI screen (spec G1), not told to configure an endpoint.
+        $why = function_exists( 'vergeml_connect_has_key' ) && ! vergeml_connect_has_key()
+            ? __( 'No licence on this site yet. Try it free on 25 pictures, or buy credits, on the AI screen.', 'vergelabs-media-library' )
+            : __( 'Configure an AI endpoint and key first.', 'vergelabs-media-library' );
+        return new WP_Error( 'vergeml_ai_unconfigured', $why, array( 'status' => 400 ) );
     }
 
     $scope = $request->get_param( 'scope' );
