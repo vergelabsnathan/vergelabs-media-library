@@ -147,17 +147,20 @@ pages.
 > know up front:
 >
 > 1. It is a fork of Enhanced Media Library 2.9.4 by wpUXsolutions (GPLv2 or
->    later). The original copyright and credit are kept in the plugin header, the
->    readme and the admin footer. Since the fork it has been substantially
+>    later), under a new name and slug. We are not affiliated with wpUXsolutions,
+>    and the plugin does not present itself as theirs: the original copyright and
+>    credit are kept in the plugin header, the readme and the admin footer. Since the fork it has been substantially
 >    rebuilt: a folder tree in the grid, the list and the media modal; smart
 >    folders; an importer for seven other folder plugins; folder galleries;
 >    WordPress 7 fixes; and optional AI descriptions and alt text through a
 >    service we run.
 > 2. The AI features use that external service (ai.vergelabs.nl). The readme's
 >    External services section says what is sent, when, and links our terms and
->    privacy policy. No picture is sent until the site owner connects a licence
->    and starts a run. All plugin code is present and unlocked; what is paid for
->    is the service.
+>    privacy policy. The plugin contacts nothing on activation or when a screen
+>    opens; every request follows a button the user presses (connecting a
+>    licence, a free 25-picture try that asks for an email address, starting a
+>    run). All plugin code is present and unlocked; what is paid for is the
+>    service.
 > 3. The folder taxonomy is registered as `media_category`, without our prefix,
 >    on purpose: it is the taxonomy Enhanced Media Library registers, so sites
 >    moving over keep their folders, and tools that already recognise those
