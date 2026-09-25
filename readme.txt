@@ -55,17 +55,6 @@ A folder tree sits beside the media library. Drag files onto a folder to file th
 **Nothing that cannot be interrupted.** Applying works in small batches, so it does not time out on shared hosting. Pause it, close the tab, pick it up where it stopped.
 
 
-### What this fork fixes ###
-
-* **The WordPress 7.0 toolbar layout.** WP 7.0 turned the media toolbar into a fixed two-column CSS grid and gave placement to its own two filters only. The extra filters this plugin adds had nowhere to go, so they stacked into a 300px-tall block with every label sitting above the wrong control. The toolbar is one tidy row again, whatever number of filters you enable.
-* **The author filter drew on top of the type filter.** It rendered with the same HTML id as the type filter, which was invisible under the old layout but made the two overlap once WordPress started placing elements by id. It now uses the id its own label was already pointing at, which fixes the overlap and the mislabelled control together.
-* **PHP 8 warnings.** The four settings handlers read their nonce field before checking whether it was there. Also four `get_terms()` calls still using the argument order deprecated back in WordPress 4.5.
-
-### Moving over from Enhanced Media Library ###
-
-Activating this plugin copies your existing Enhanced Media Library settings across: taxonomies, MIME types, library and filter options. The originals are left untouched, so nothing is lost if you switch back. Deactivate Enhanced Media Library before activating this one, since running both at once means two copies of the same taxonomies.
-
-
 ### Categorize by Anything! ###
 
 * Unlimited **categories & tags** for media items
@@ -103,11 +92,6 @@ Additional parameters for the [gallery] and [playlist] shortcodes:
 Add or remove file types, allow or disallow uploading. The plugin incorporates a file type into media filters if you wish.
 
 
-### Inside WordPress's own screens ###
-
-The folders, filters and settings sit in the media screens WordPress already has: the Media Library, the list view and the media window you insert images from. There is no separate app to learn.
-
-
 ### Developer-Friendly ###
 
 * **Core hooks just work** for media taxonomies and media items
@@ -115,33 +99,6 @@ The folders, filters and settings sit in the media screens WordPress already has
 * **REST API supported** out of the box
 * **No custom tables** in the database
 * **Deactivation makes no harm to data:** all media items and taxonomies remain after deactivation
-
-
-### Export / Import / Restore Plugin Settings ###
-
-If you need to move your media library to another website you should export and import WordPress content with WordPress built-in export/import. But to make this plugin work on the new site with the same settings you are provided with the export/import feature.
-
-
-### Multisite compatible ###
-
-Network activate the plugin and choose which options will be available to your admins.
-
-
-### Support ###
-
-Questions and problems go to the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues), which is read by the person who maintains the plugin. Licence holders write to support@vergelabsmedia.com; you can expect an answer within one business day, Monday to Friday.
-
-
-### Other folder plugins ###
-
-Running a second folder plugin at the same time is not recommended: both would register folders against the same media. Bring its folders across instead, under Settings → Import Folders, and deactivate it. Which releases of WordPress and of the plugins this one integrates with have been checked is listed near the end of this page.
-
-
-### Useful Links ###
-
-* [Source and issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library)
-* [Enhanced Media Library, the plugin this one is forked from](https://wordpress.org/plugins/enhanced-media-library/)
-* [Upstream documentation](https://www.wpuxsolutions.com/documents/enhanced-media-library), still accurate for the parts this fork did not change
 
 
 ## External services ##
@@ -196,7 +153,25 @@ It will not break your site if you do: every function, class, option, script han
 
 = How is this different from Enhanced Media Library? =
 
-It started as a fork of Enhanced Media Library 2.9.4 and keeps what that plugin did: media categories and taxonomies, filters, MIME types and dynamic galleries, with your settings carried over. On top of that it adds a folder tree with drag and drop, smart folders, an importer for other folder plugins, a Librarian that sorts an unfiled library, duplicate detection, and optional AI features that write alt text and captions and let you search by what a picture shows. It is not made by, or affiliated with, wpUXsolutions.
+It started as a fork of Enhanced Media Library 2.9.4 and keeps what that plugin did: media categories and taxonomies, filters, MIME types and dynamic galleries, with your settings carried over. On top of that it adds a folder tree with drag and drop, smart folders, an importer for other folder plugins, a Librarian that sorts an unfiled library, duplicate detection, and optional AI features that write alt text and captions and let you search by what a picture shows. It is not made by, or affiliated with, wpUXsolutions. The [upstream documentation](https://www.wpuxsolutions.com/documents/enhanced-media-library) is still accurate for the parts this fork did not change.
+
+= What does this fork fix in the original features? =
+
+* **The WordPress 7.0 toolbar layout.** WP 7.0 turned the media toolbar into a fixed two-column CSS grid and gave placement to its own two filters only. The extra filters this plugin adds had nowhere to go, so they stacked into a 300px-tall block with every label sitting above the wrong control. The toolbar is one tidy row again, whatever number of filters you enable.
+* **The author filter drew on top of the type filter.** It rendered with the same HTML id as the type filter, which was invisible under the old layout but made the two overlap once WordPress started placing elements by id. It now uses the id its own label was already pointing at, which fixes the overlap and the mislabelled control together.
+* **PHP 8 warnings.** The four settings handlers read their nonce field before checking whether it was there. Also four `get_terms()` calls still using the argument order deprecated back in WordPress 4.5.
+
+= Can I run it next to another folder plugin? =
+
+Running a second folder plugin at the same time is not recommended: both would register folders against the same media. Bring its folders across instead, under Settings → Import Folders, and deactivate it. Which releases of WordPress and of the plugins this one integrates with have been checked is listed near the end of this page.
+
+= Can I take my settings to another site? =
+
+If you need to move your media library to another website you should export and import WordPress content with WordPress built-in export/import. But to make this plugin work on the new site with the same settings you are provided with the export/import feature.
+
+= Does it work on multisite? =
+
+Network activate the plugin and choose which options will be available to your admins.
 
 = Does it send anything to an external service? =
 
@@ -226,7 +201,7 @@ If you genuinely want everything gone, that exists too, in two forms on the Util
 
 = Where do I report a problem? =
 
-On the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues).
+Questions and problems go to the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues), which is read by the person who maintains the plugin. Licence holders write to support@vergelabsmedia.com; you can expect an answer within one business day, Monday to Friday.
 
 = Where do I report security bugs found in this plugin? =
 
@@ -286,6 +261,7 @@ The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now rea
 * **No price is fetched on the AI screen.** A site without a licence sees how many credits its library needs; the price is on the cart the button opens.
 * **The known-problems list is fetched only when you press "Check for known problems"** on the Get help screen. Opening the dashboard or the Help screen no longer downloads it, and when GitHub cannot be reached the screen says so instead of reporting no problems.
 * **Versions before 4.0 moved from the readme to `changelog.txt`.**
+* **Reference sections moved from the description into the FAQ**, so the plugin page shows the whole External services section instead of cutting it off.
 
 ### 4.0.6 ###
 *Demo mode stays usable on a site without a licence, and code the original plugin kept for its paid edition is gone.*
