@@ -45,10 +45,12 @@ function vergeml_help_menu() {
 /* ------------------------------------------------------------ known issues */
 
 /**
- *  The feed, cached for twelve hours. A failure to fetch is remembered for an
- *  hour so an admin screen never waits on GitHub twice in a row.
+ *  The feed, cached for twelve hours. Fetched only when the user presses Check
+ *  on the Help screen; until then null, meaning not checked, so no screen
+ *  contacts GitHub by being opened. False when the press could not read it:
+ *  an empty list would claim nothing is wrong.
  */
-function vergeml_help_known_issues() {
+function vergeml_help_known_issues( $fetch = false ) {
 
     $cached = get_transient( 'vergeml_known_issues' );
 
@@ -56,11 +58,14 @@ function vergeml_help_known_issues() {
         return $cached;
     }
 
+    if ( ! $fetch ) {
+        return null;
+    }
+
     $response = wp_remote_get( VERGEML_KNOWN_ISSUES_URL, array( 'timeout' => 6 ) );
 
     if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
-        set_transient( 'vergeml_known_issues', array(), HOUR_IN_SECONDS );
-        return array();
+        return false;
     }
 
     $data   = json_decode( (string) wp_remote_retrieve_body( $response ), true );
@@ -110,12 +115,18 @@ function vergeml_help_installed() {
  *  The issues that apply here: same slug, and either the same version or no
  *  version on the issue. Newest first, as the feed is written.
  */
-function vergeml_help_matching_issues() {
+function vergeml_help_matching_issues( $fetch = false ) {
+
+    $issues = vergeml_help_known_issues( $fetch );
+
+    if ( ! is_array( $issues ) ) {
+        return $issues;
+    }
 
     $installed = vergeml_help_installed();
     $matches   = array();
 
-    foreach ( vergeml_help_known_issues() as $issue ) {
+    foreach ( $issues as $issue ) {
 
         if ( empty( $issue['slug'] ) || ! isset( $installed[ $issue['slug'] ] ) ) {
             continue;
@@ -188,6 +199,8 @@ function vergeml_help_send() {
         exit;
     }
 
+    $known = vergeml_help_matching_issues();
+
     $body = array(
         'site'         => home_url( '/' ),
         'site_token'   => vergeml_help_site_token(),
@@ -200,7 +213,7 @@ function vergeml_help_send() {
                 'summary'    => isset( $issue['summary'] ) ? $issue['summary'] : '',
                 'issue'      => isset( $issue['issue'] ) ? $issue['issue'] : '',
             );
-        }, vergeml_help_matching_issues() ),
+        }, is_array( $known ) ? $known : array() ),
     );
 
     if ( '' !== $email ) {
@@ -257,7 +270,8 @@ function vergeml_help_page() {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
-    $matches = vergeml_help_matching_issues();
+    $check   = isset( $_GET['vgml-check'], $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'vergeml_help_check' );
+    $matches = vergeml_help_matching_issues( $check );
     $safe    = function_exists( 'vergeml_safe_mode' ) && vergeml_safe_mode();
     $report  = function_exists( 'vergeml_system_report_text' ) ? vergeml_system_report_text() : '';
 
@@ -299,7 +313,10 @@ function vergeml_help_page() {
         <?php endif; ?>
 
         <h2><?php esc_html_e( 'Known problems that match this site', 'vergelabs-media-library' ); ?></h2>
-        <?php if ( $matches ) : ?>
+        <?php if ( ! is_array( $matches ) ) : ?>
+            <p class="description"><?php false === $matches ? esc_html_e( 'GitHub could not be reached just now, so nothing was checked. Try again in a minute, or ask below.', 'vergelabs-media-library' ) : esc_html_e( 'Not checked yet. Checking downloads the list of known problems from this plugin’s public GitHub repository; like every request WordPress makes, it carries your site’s address.', 'vergelabs-media-library' ); ?></p>
+            <p><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=media-help&vgml-check=1' ), 'vergeml_help_check' ) ); ?>"><?php esc_html_e( 'Check for known problems', 'vergelabs-media-library' ); ?></a></p>
+        <?php elseif ( $matches ) : ?>
             <ul class="vgml-help-issues">
             <?php foreach ( $matches as $issue ) : ?>
                 <li>
@@ -367,7 +384,9 @@ function vergeml_help_card() {
     <div class="vgml-help-card vgml-foot-row">
         <div class="vgml-foot-label"><?php esc_html_e( 'Get help', 'vergelabs-media-library' ); ?></div>
         <div class="vgml-foot-text"><?php
-            if ( $matches ) {
+            if ( null === $matches ) {
+                esc_html_e( 'Check whether a known problem matches this site, or ask with the report attached.', 'vergelabs-media-library' );
+            } elseif ( $matches ) {
                 /* translators: %d: number of known issues */
                 echo esc_html( sprintf( _n( '%d known problem matches what this site runs.', '%d known problems match what this site runs.', count( $matches ), 'vergelabs-media-library' ), count( $matches ) ) );
             } else {

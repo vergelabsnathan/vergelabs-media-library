@@ -20,33 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** What the free try gives; the service holds the real number. */
 define( 'VERGEML_TRIAL_PICTURES', 25 );
 
-/**
- * The price of $n credits from the service's own quote, cached 12 hours.
- * Null when the service cannot be reached; the box then names no price at all
- * rather than one that may be out of date.
- *
- * @return array{credits:int, display:string}|null
- */
-function vergeml_offer_quote( $n ) {
-    // The service sells 500 credits at least; below that the quote is for the smallest pack.
-    $n = max( 500, (int) $n );
-    $key = 'vergeml_offer_quote_' . $n;
-    $q   = get_transient( $key );
-    if ( false === $q ) {
-        $q = '';
-        $r = wp_remote_get( vergeml_connect_base() . '/api/pricing?credits=' . $n, array( 'timeout' => 5 ) );
-        if ( ! is_wp_error( $r ) && 200 === (int) wp_remote_retrieve_response_code( $r ) ) {
-            $b = json_decode( wp_remote_retrieve_body( $r ), true );
-            if ( isset( $b['quote']['credits'], $b['quote']['display'] ) ) {
-                $q = array( 'credits' => (int) $b['quote']['credits'], 'display' => (string) $b['quote']['display'] );
-            }
-        }
-        // A miss is remembered briefly, so a service outage does not slow every screen.
-        set_transient( $key, $q, '' === $q ? 10 * MINUTE_IN_SECONDS : 12 * HOUR_IN_SECONDS );
-    }
-    return '' === $q ? null : $q;
-}
-
 /** Whether the service would give this site a free try: not on local or test hosts. */
 function vergeml_offer_trial_possible() {
     $host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
@@ -65,7 +38,9 @@ function vergeml_offer_applies() {
 /** The offer box, in the place of the Describe section on the AI screen. */
 function vergeml_offer_box( $missing ) {
     $missing = (int) $missing;
-    $quote   = $missing > 0 ? vergeml_offer_quote( $missing ) : null;
+    // The service sells 500 credits at least. No price is fetched: the plugin
+    // contacts nobody before the user asks it to, and the cart names the price.
+    $credits = max( 500, $missing );
     $try     = vergeml_offer_trial_possible();
     $admin   = wp_get_current_user();
     ?>
@@ -88,14 +63,10 @@ function vergeml_offer_box( $missing ) {
                     <button type="button" class="vgml-btn vgml-btn-primary" id="vgml-offer-try"><?php echo esc_html( sprintf( __( 'Try it free on %s pictures', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?></button>
                 <?php endif; ?>
                 <?php if ( $missing > 0 ) : ?>
-                    <a class="vgml-btn<?php echo $try ? '' : ' vgml-btn-primary'; ?>" target="_blank" rel="noopener" href="<?php echo esc_url( vergeml_buy_url( '/cart?plan=credits&credits=' . ( $quote ? $quote['credits'] : $missing ), 'ai' ) ); ?>"><?php
-                        echo esc_html( $quote
-                            /* translators: 1: a number of pictures, 2: a price */
-                            ? ( $quote['credits'] > $missing
-                                /* translators: 1: a number of credits, 2: a price */
-                                ? sprintf( __( 'Buy %1$s credits · %2$s ↗', 'vergelabs-media-library' ), number_format_i18n( $quote['credits'] ), $quote['display'] )
-                                /* translators: 1: a number of pictures, 2: a price */
-                                : sprintf( __( 'Fill all %1$s · %2$s ↗', 'vergelabs-media-library' ), number_format_i18n( $missing ), $quote['display'] ) )
+                    <a class="vgml-btn<?php echo $try ? '' : ' vgml-btn-primary'; ?>" target="_blank" rel="noopener" href="<?php echo esc_url( vergeml_buy_url( '/cart?plan=credits&credits=' . $credits, 'ai' ) ); ?>"><?php
+                        echo esc_html( $credits > $missing
+                            /* translators: %s: a number of credits */
+                            ? sprintf( __( 'Buy %s credits ↗', 'vergelabs-media-library' ), number_format_i18n( $credits ) )
                             /* translators: %s: a number of pictures */
                             : sprintf( __( 'Fill all %s ↗', 'vergelabs-media-library' ), number_format_i18n( $missing ) ) );
                     ?></a>
@@ -109,7 +80,7 @@ function vergeml_offer_box( $missing ) {
                 }
                 if ( $missing > 0 ) {
                     /* translators: %s: a number of credits */
-                    $bits[] = sprintf( __( 'The rest: %s credits, one per picture, VAT at checkout.', 'vergelabs-media-library' ), number_format_i18n( $quote ? $quote['credits'] : $missing ) );
+                    $bits[] = sprintf( __( 'The rest: %s credits, one per picture, VAT at checkout.', 'vergelabs-media-library' ), number_format_i18n( $credits ) );
                 }
                 echo esc_html( implode( ' ', $bits ) );
             ?></p>
@@ -166,7 +137,6 @@ function vergeml_offer_box( $missing ) {
 
 /** The Credits rail block for a site without a licence. */
 function vergeml_offer_rail() {
-    $floor = vergeml_offer_quote( 500 );
     ?>
     <div class="vgml-rail-block">
         <h6 class="vgml-kicker"><?php esc_html_e( 'Credits', 'vergelabs-media-library' ); ?></h6>
@@ -176,10 +146,6 @@ function vergeml_offer_rail() {
             <?php if ( vergeml_offer_trial_possible() ) : ?>
                 <?php /* translators: %s: a number of pictures */ ?>
                 <li><?php echo esc_html( sprintf( __( '%s free to try on this site', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?></li>
-            <?php endif; ?>
-            <?php if ( $floor ) : ?>
-                <?php /* translators: %s: a price */ ?>
-                <li><?php echo esc_html( sprintf( __( 'From %s for 500', 'vergelabs-media-library' ), $floor['display'] ) ); ?></li>
             <?php endif; ?>
         </ul>
         <div class="vgml-ai-buttons">
