@@ -532,6 +532,9 @@ l_check( 'a reused folder is logged as not created', 0 === $reused_flag );
 
 echo "\nthe gate\n";
 
+// Applying a tree is local work, and nothing may hold it back (WordPress.org
+// Guidelines 5-6): not a licence, not a credit balance, not a filter someone
+// hangs on the old hook name.
 l_check( 'the gate is open by default', vergeml_librarian_gate()['allow'] );
 
 $g = array( l_attachment( 'g1' ), l_attachment( 'g2' ) );
@@ -543,35 +546,18 @@ function l_deny() {
     return array( 'allow' => false, 'reason' => 'zz out of credit' );
 }
 
-$denied = l_apply( array( 'scheme' => 'subject', 'run_id' => $gate_run, 'branches' => array() ) );
-
-$gate_batch = is_wp_error( $denied ) ? 0 : (int) $denied['batch_id'];
-
-l_check( 'a gate refusal pauses the batch rather than failing it',
-    ! is_wp_error( $denied ) && 'paused' === $denied['status'],
-    is_wp_error( $denied ) ? $denied->get_error_message() : $denied['status'] );
-
-l_check( 'and the reason is on the row',
-    ! is_wp_error( $denied ) && false !== strpos( $denied['reason'], 'out of credit' ),
-    is_wp_error( $denied ) ? '' : $denied['reason'] );
-
-l_check( 'a refused batch filed nothing', array() === l_terms_of( $g[0] ) );
+$applied_anyway = l_apply( array( 'scheme' => 'subject', 'run_id' => $gate_run, 'branches' => array() ) );
 
 remove_filter( 'vergeml_librarian_gate', 'l_deny' );
-
-$resumed = vergeml_librarian_apply_step( $gate_batch );
-$steps   = 0;
-
-while ( ! is_wp_error( $resumed ) && 'running' === $resumed['status'] && $steps++ < 50 ) {
-    $resumed = vergeml_librarian_apply_step( $gate_batch );
-}
 
 $gated = l_term_named( 'zz Gated' );
 $GLOBALS['l_terms'][] = $gated;
 
-l_check( 'the same batch resumes once the gate opens',
-    ! is_wp_error( $resumed ) && 'done' === $resumed['status'] && $gated > 0,
-    is_wp_error( $resumed ) ? $resumed->get_error_message() : $resumed['status'] );
+l_check( 'a filter on the old hook cannot stop a batch: it runs to done',
+    ! is_wp_error( $applied_anyway ) && 'done' === $applied_anyway['status'] && $gated > 0,
+    is_wp_error( $applied_anyway ) ? $applied_anyway->get_error_message() : $applied_anyway['status'] );
+
+l_check( 'and the files are filed', in_array( (int) $gated, array_map( 'intval', l_terms_of( $g[0] ) ), true ) );
 
 
 /* -------------------------------------------------------- pause and resume */

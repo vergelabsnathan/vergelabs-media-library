@@ -55,9 +55,11 @@ function vergeml_offer_trial_possible() {
     return (bool) apply_filters( 'vergeml_offer_trial_possible', $ok );
 }
 
-/** Whether the offer replaces the AI actions on this request. */
+/** Whether the offer replaces the AI actions on this request. Never in demo mode: that runs locally and stays usable. */
 function vergeml_offer_applies() {
-    return function_exists( 'vergeml_connect_has_key' ) && ! vergeml_connect_has_key() && current_user_can( 'manage_options' );
+    $settings = function_exists( 'vergeml_ai_settings' ) ? vergeml_ai_settings() : array();
+    $demo     = ! empty( $settings['mock'] ) || defined( 'VERGEML_AI_MOCK' );
+    return ! $demo && function_exists( 'vergeml_connect_has_key' ) && ! vergeml_connect_has_key() && current_user_can( 'manage_options' );
 }
 
 /** The offer box, in the place of the Describe section on the AI screen. */

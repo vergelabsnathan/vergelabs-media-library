@@ -732,21 +732,10 @@
 
                     frameToolbar = this.controller.toolbar && this.controller.toolbar.get();
 
-                    // ---- PRO bulk buttons live on the frame toolbar ----
+                    // ---- bulk buttons live on the frame toolbar ----
+                    // (The original's "Select all", shown only to its paid edition, is gone:
+                    // a directory plugin may not hold features back. WordPress.org Guidelines 5-6.)
                     if (isEmlGrid && frameToolbar) {
-                        if ($('body').hasClass('eml-pro-media-css')) {
-                            frameToolbar.set(
-                                'emlSelectAllButton',
-                                new media.view.emlSelectAllButton({
-                                    filters: allFilters,
-                                    disabled: true,
-                                    text: vergeml.l10n.select_all,
-                                    controller: this.controller,
-                                    priority: -80,
-                                }).render(),
-                            );
-                        }
-
                         frameToolbar.set(
                             'emlDeselectButton',
                             new media.view.emlDeselectButton({

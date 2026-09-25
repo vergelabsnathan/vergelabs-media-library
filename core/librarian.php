@@ -778,34 +778,15 @@ function vergeml_librarian_scheme_tree( $scheme, $run_id = 0 ) {
 /**
  *  vergeml_librarian_gate
  *
- *  Where the paid add-on will check credits, and where the free plugin says
- *  yes.
- *
- *  A hook rather than a stub with an if in it: Pro hangs its check here and
- *  the free plugin ships with it open, so there is exactly one place the
- *  answer comes from and no build of this file knows about licensing.
- *
- *  A refusal pauses the batch with its reason. It never fails it -- a batch
- *  that ran out of credit halfway is not a broken batch, it is a batch
- *  waiting, and the work it already did stays applied and undoable.
+ *  Applying a folder tree is local work, and nothing may restrict it: it
+ *  always goes ahead (WordPress.org Guidelines 5 and 6). The function stays
+ *  so its three callers keep their shape; there is deliberately no filter here
+ *  for anything to hang a restriction on.
  */
 
 function vergeml_librarian_gate( $context = array() ) {
 
-    $verdict = apply_filters(
-        'vergeml_librarian_gate',
-        array( 'allow' => true, 'reason' => '' ),
-        $context
-    );
-
-    if ( ! is_array( $verdict ) ) {
-        return array( 'allow' => true, 'reason' => '' );
-    }
-
-    return array(
-        'allow'  => ! isset( $verdict['allow'] ) || (bool) $verdict['allow'],
-        'reason' => isset( $verdict['reason'] ) ? (string) $verdict['reason'] : '',
-    );
+    return array( 'allow' => true, 'reason' => '' );
 }
 
 

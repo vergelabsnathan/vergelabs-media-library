@@ -80,7 +80,7 @@ Activating this plugin copies your existing Enhanced Media Library settings acro
 * **Configurable outcome** of the filtering: include / exclude child categories
 
 
-### Enhanced Media Library ###
+### The media grid ###
 
 * **Show captions:** title, filename, or caption field for each media item
 * **Bulk selection:** no special mode anymore, faster editing
@@ -103,9 +103,9 @@ Additional parameters for the [gallery] and [playlist] shortcodes:
 Add or remove file types, allow or disallow uploading. The plugin incorporates a file type into media filters if you wish.
 
 
-### Feels Native to WordPress ###
+### Inside WordPress's own screens ###
 
-We spent hours to make Enhanced Media Library operates as though it were native WordPress functionality. All plugin features are incorporated into WordPress UI seamlessly.
+The folders, filters and settings sit in the media screens WordPress already has: the Media Library, the list view and the media window you insert images from. There is no separate app to learn.
 
 
 ### Developer-Friendly ###
@@ -132,31 +132,9 @@ Network activate the plugin and choose which options will be available to your a
 Questions and problems go to the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues), which is read by the person who maintains the plugin. Licence holders write to support@vergelabsmedia.com; you can expect an answer within one business day, Monday to Friday.
 
 
-### Compatible with the Plugins: ###
+### Other folder plugins ###
 
-* [Advanced Custom Fields](https://wordpress.org/plugins/advanced-custom-fields/)
-* [WooCommerce](https://wordpress.org/plugins/woocommerce/)
-* [FooGallery](https://wordpress.org/plugins/foogallery/) - [How to use?](https://wpuxsolutions.com/documents/enhanced-media-library/how-to-create-a-dynamic-foogallery)
-* [Anything Order by Terms](https://wordpress.org/plugins/anything-order-by-terms/)
-* [Search & Filter](https://wordpress.org/plugins/search-filter/)
-* [Document Gallery](https://wordpress.org/plugins/document-gallery/)
-* [Jetpack Carousel](https://wordpress.org/plugins/jetpack/)
-* [Jetpack Tiled Galleries](https://wordpress.org/plugins/jetpack/)
-* [Simple Lightbox](https://wordpress.org/plugins/simple-lightbox/)
-* [Justified Gallery](https://wordpress.org/plugins/justified-gallery/)
-* [Meow Gallery](https://wordpress.org/plugins/meow-gallery/)
-* [Meow Lightbox](https://wordpress.org/plugins/meow-lightbox/)
-* [MetaSlider](https://wordpress.org/plugins/ml-slider/)
-* [Responsive Lightbox & Gallery](https://wordpress.org/plugins/responsive-lightbox/)
-* [Compress JPEG & PNG Images](https://wordpress.org/plugins/tiny-compress-images/) (TinyPNG)
-
-
-Please let us know if you find any issue with the plugins from the list above or others.
-
-
-### Incompatibility ###
-
-Please notice that you use Enhanced Media Library with other plugins that add media categories, media folders, or manage MIME Types at your own risk. We cannot guarantee their compatibility because of the different approaches to the same functionality. We do not recommend using other media library (folder) plugin at the same time with the Enhanced Media Library. Please choose the one you prefer.
+Running a second folder plugin at the same time is not recommended: both would register folders against the same media. Bring its folders across instead, under Settings → Import Folders, and deactivate it. Which releases of WordPress and of the plugins this one integrates with have been checked is listed near the end of this page.
 
 
 ### Useful Links ###
@@ -170,13 +148,17 @@ Please notice that you use Enhanced Media Library with other plugins that add me
 
 This plugin talks to three places: an AI service run by VergeLabs at `https://ai.vergelabs.nl/v1`, the VergeLabs site at `https://vergelabsmedia.com` when you connect a licence, and GitHub, to read a list of known problems. Everything below says what goes where, when, and what you have to do for it to happen.
 
-**The AI features need a licence key, and do nothing without one.** With no key, no folder is filed, no picture is described, no search is answered by meaning, and no conversation can start -- the requests are refused before they are made. Demo mode invents captions locally from the file names and sends nothing anywhere. The folder tree itself, the smart folders, the health report, the importer, the galleries, the MIME settings and the Librarian's date-and-type scheme need no service at all.
+**The AI features need a licence key, and do nothing without one** (a free trial key counts). With no key, no folder is filed, no picture is described, no search is answered by meaning, and no conversation can start -- the requests are refused before they are made. Demo mode invents captions locally from the file names and sends nothing anywhere. The folder tree itself, the smart folders, the health report, the importer, the galleries, the MIME settings and the Librarian's date-and-type scheme need no service at all.
 
 **Describing a picture** sends a downsized copy of it (never the original, unless the original is already small), its file name, its MIME type, the picture's own title and caption, your site's address, your licence key and whether the site is production or staging. If the picture is used on a page, that page's title goes too; on a WooCommerce site, up to six of the product's category names. With "Page context" on -- it is on by default, and one switch turns it off -- the page's focus keyphrase, meta description and related keyphrases from Yoast, Rank Math, SEOPress or All in One SEO go as well, as wording for the model, never as instructions. What comes back is a caption, alt text, tags and a suggested title. No picture is sent on upload, and none on a page load: only while a run you started is in progress.
 
 **Sorting pictures into folders** sends more than the pictures. When you ask for a plan, confirm one, fill your folders, or talk to the Folders screen, these go to the same service: **your folder names, their parents and how many files are in each**, the captions the AI wrote for your pictures, the words it recorded about what they show, and anything you typed into the screen along with the conversation so far. On a WooCommerce site your product category paths go too. Searching by meaning sends the phrase you typed. None of this happens on its own: each of them is a button you press.
 
 **The Folders screen talks to the service from your browser**, not from your server, for the part that streams a reply as it is written. That request carries what you typed, your draft folder tree and the same library summary -- and, because it comes from your browser rather than your server, your own IP address and browser headers reach the service, as they would visiting any website.
+
+**Trying it free** (the AI screen, on a site without a licence) sends the email address you type and your site's address to `https://vergelabsmedia.com/api/trial`, which answers with a free key for that site, holding 25 credits. It happens only when you press Start. The email address receives one message, once the 25 credits are used, with the key and a way to buy more.
+
+**Showing the price** of the credits your library would need, in that same place, asks `https://vergelabsmedia.com/api/pricing` for a quote. It sends only the number of credits; no key, no site data. The answer is kept for twelve hours.
 
 **Connecting a licence** sends you to `https://vergelabsmedia.com`, carrying your site's address and the address of your admin screen, and sends back a one-time code your site exchanges for a key. Saving, checking or removing a key sends the key and your site's address to the AI service. Once a key is set, the plugin checks your remaining credits when you open a VergeLabs screen, at most once every five minutes.
 
@@ -214,9 +196,9 @@ Yes. Activating this plugin copies your taxonomies, MIME types, and library and 
 
 It will not break your site if you do: every function, class, option, script handle and AJAX action carries its own prefix. But both plugins register taxonomies against your media library, so you would see each of them twice. Deactivate Enhanced Media Library first.
 
-= How different is this from the original? =
+= How is this different from Enhanced Media Library? =
 
-Not very. It is Enhanced Media Library 2.9.4 with the WordPress 7 toolbar layout repaired, the PHP 8 warnings cleared, a missing capability check added to the multisite settings handler, and the Bulk select button restored. Roughly 97% of the code is unchanged.
+It started as a fork of Enhanced Media Library 2.9.4 and keeps what that plugin did: media categories and taxonomies, filters, MIME types and dynamic galleries, with your settings carried over. On top of that it adds a folder tree with drag and drop, smart folders, an importer for other folder plugins, a Librarian that sorts an unfiled library, duplicate detection, and optional AI features that write alt text and captions and let you search by what a picture shows. It is not made by, or affiliated with, wpUXsolutions.
 
 = Does it send anything to an external service? =
 

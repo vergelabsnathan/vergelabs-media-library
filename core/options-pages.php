@@ -3513,16 +3513,6 @@ function vergeml_admin_notice() {
 
     if (    ! empty( $notice['for'] ) ) {
 
-        // a notice for free users only
-        if ( in_array( 'free', $notice['for'] ) && defined( 'EML_IS_PRO' ) ) {
-            return;
-        }
-
-        // a notice for pro users only
-        if ( in_array( 'pro', $notice['for'] ) && ! defined( 'EML_IS_PRO' ) ) {
-            return;
-        }
-
         // a notice for multisite users only
         if ( in_array( 'multisite', $notice['for'] ) && ! is_multisite() ) {
             return;
