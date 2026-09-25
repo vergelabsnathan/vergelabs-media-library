@@ -46,7 +46,7 @@ cache durations (`core/get-help.php:59-71`).
 | `/v1/support/ticket` | site URL, a persistent per-site token, **the typed question**, **an email address**, the matched known issues, **the plaintext licence key** (until 4.0.0; from 4.0.1 — story 3.2, `fcad5ea` — the key's last four characters only, matched to an activation on the site), and **the whole system report** — home URL, WP / PHP / MySQL versions, server limits, debug flags, theme, attachment count, every attachment taxonomy with its term count, fifteen plugin settings, and **the name and version of every active plugin** | the Send button on Get help: `manage_options`, nonce, a question, and a consent tick | **no** |
 | `vergelabsmedia.com/api/connect/exchange` | the one-time code, the site URL | returning from the Connect handshake | **no** |
 | `vergelabsmedia.com/connect` — **browser redirect** | `state`, the site URL, the admin URL, and the admin's IP and headers | pressing Connect | **no** |
-| `raw.githubusercontent.com/…/known-issues.json` | nothing in the request; **the site address travels in WordPress's default User-Agent** | opening Get help. Cached **12 hours**, and **1 hour** after a failure | **no** |
+| `raw.githubusercontent.com/…/known-issues.json` | nothing in the request; **the site address travels in WordPress's default User-Agent** | opening Get help until 4.0.7; **from 4.0.7 only the Check for known problems button** (no screen fetches it by opening; the price quote the AI screen fetched in 4.0.5–4.0.6 is gone too). Cached **12 hours**; a failure is not cached and the screen says so | **no** |
 | the site's own `wp-cron.php` (×2) | a `doing_wp_cron` key | chaining a describe or refile pass from inside a tick | no |
 
 ## What can leave the site
