@@ -156,10 +156,11 @@ pages.
 >    service we run.
 > 2. The AI features use that external service (ai.vergelabs.nl). The readme's
 >    External services section says what is sent, when, and links our terms and
->    privacy policy. The plugin contacts nothing on activation or when a screen
->    opens; every request follows a button the user presses (connecting a
->    licence, a free 25-picture try that asks for an email address, starting a
->    run). All plugin code is present and unlocked; what is paid for is the
+>    privacy policy. Without a licence key the plugin contacts nothing on
+>    activation or when a screen opens; every request follows a button the user
+>    presses (connecting a licence, a free 25-picture try that asks for an email
+>    address, starting a run). With a key connected, it reads the credit balance
+>    when one of its screens opens, at most every five minutes. All plugin code is present and unlocked; what is paid for is the
 >    service.
 > 3. The folder taxonomy is registered as `media_category`, without our prefix,
 >    on purpose: it is the taxonomy Enhanced Media Library registers, so sites
