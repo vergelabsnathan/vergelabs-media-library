@@ -4,7 +4,7 @@ Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 4.0.5
+Stable tag: 4.0.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -280,6 +280,15 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now reads what pictures show, so a fill after updating places things differently than before. The Rules tab is gone and the media list toolbar is one row. Read the changelog before you fill.
 
 ## Changelog ##
+
+### 4.0.6 ###
+*Demo mode stays usable on a site without a licence, and code the original plugin kept for its paid edition is gone.*
+
+= Changed =
+* **Demo mode is never replaced by the free-try offer.** It runs on your site and needs no licence, so the AI screen keeps its Describe buttons while it is on.
+* **Nothing can hold back applying a folder tree.** The hook the original plugin kept for a paid add-on is gone, and the Librarian applies every folder whatever any other code says.
+* **Code the original plugin kept for its paid edition is removed**, including a Select all button only that edition could show.
+* **The readme says which requests the free try and the price quote make**, under External services.
 
 ### 4.0.5 ###
 *A site without a licence can try the AI free on 25 pictures, and sees what its own library would cost, instead of an error.*
