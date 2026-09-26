@@ -170,13 +170,13 @@ async function bottomup( run ) {
 	const system = 'You design the folder tree of a media library from what is in it. You get every distinct description phrase in the library -- the main object; its broader class; [kind] when the picture is not a photo -- with how many pictures carry it and, where known, their audience. '
 		+ 'Merge phrases that mean the same thing, then arrange folders as a tree. Rules:\n'
 		+ '1. A folder needs at least 3 pictures behind it (count the phrases you put in it). A phrase too rare for a folder of its own goes into its broader folder.\n'
-		+ '2. At most three levels. A parent has two to twelve children; never a parent with a single child.\n'
+		+ '2. At most three levels. A parent has two to twelve children; never a parent with a single child. A folder of more than 20 pictures whose phrases fall into clear kinds gets those kinds as children, down to the third level.\n'
 		+ '3. Every folder name is unique in the whole tree, a plain label of at most three words, in the language of the phrases, sentence case, no slash.\n'
 		+ '4. Split by audience (men, women, kids) only where the counts support it on both sides.\n'
 		+ '5. Kinds (logo, screenshot, diagram, document, illustration) get a folder of their own kind only when they have enough pictures; otherwise they sit with their subject.\n'
 		+ '6. A phrase that fits no folder of a sensible tree maps to null: it stays unfiled. Never force it.\n'
 		+ 'Answer JSON only, no reasoning before it: {"folders": [{"name": string, "parent": string, "phrases": ["p0", "p7", ...]}]} -- "parent" is the exact name of another folder or ""; "phrases" lists the ids of the phrases whose pictures belong in THIS folder (its most specific fit). A phrase that belongs nowhere is listed in no folder.';
-	const text = await cached( `${ base }-bottomup-${ run }.json`, () => ask( system, `Phrases (${ list.length }, ${ pictures.length } pictures):\n${ lines.join( '\n' ) }`, 16000, undefined, TREE_SCHEMA ) );
+	const text = await cached( `${ base }-bottomup-${ run }.json`, () => ask( system, `Phrases (${ list.length }, ${ pictures.length } pictures):\n${ lines.join( '\n' ) }`, 16000, 0, TREE_SCHEMA ) );
 	const j = JSON.parse( text.slice( 0, text.lastIndexOf( '}' ) + 1 ) );
 	j.assign = {};
 	j.folders.forEach( ( f ) => ( f.phrases || [] ).forEach( ( id ) => { j.assign[ id ] = f.name; } ) );
