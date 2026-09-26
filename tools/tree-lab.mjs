@@ -356,6 +356,92 @@ if ( 'baseline' === mode ) {
 		ps.forEach( ( p ) => { const parts = p.split( ' > ' ); for ( let i = 1; i <= parts.length; i++ ) { all.add( parts.slice( 0, i ).join( ' > ' ) ); } } );
 		score( await fileInto( [ ...all ], `bottomup-${ a3 || '1' }-min${ MIN }` ), `bottom-up tree, filed by model` );
 	}
+} else if ( 'reference' === mode ) {
+	// A fixed reference tree (Google product taxonomy + IAB content taxonomy 3.1), every phrase to its nearest node by embedding, the rules in code.
+	const dir = path.dirname( exportFile );
+	const nodes = new Set();
+	for ( const l of fs.readFileSync( path.join( dir, 'google-taxonomy.txt' ), 'utf8' ).split( '\n' ) ) {
+		if ( l.trim() && ! l.startsWith( '#' ) ) {
+			nodes.add( l.trim().split( ' > ' ).slice( 0, 4 ).join( ' > ' ) );
+		}
+	}
+	for ( const l of fs.readFileSync( path.join( dir, 'iab-content.tsv' ), 'utf8' ).split( '\n' ).slice( 2 ) ) {
+		const c = l.split( '\t' );
+		const p = [ c[ 3 ], c[ 4 ], c[ 5 ], c[ 6 ] ].map( ( x ) => ( x || '' ).trim() ).filter( Boolean );
+		if ( p.length ) {
+			nodes.add( p.join( ' > ' ) );
+		}
+	}
+	const nodeList = [ ...nodes ].sort();
+	const embed = async ( texts, tag ) => cached( `embed-${ tag }-${ require_hash( texts.join( '\n' ) ) }.json`, async () => {
+		const out = [];
+		for ( let i = 0; i < texts.length; i += 500 ) {
+			const r = await fetch( 'https://openrouter.ai/api/v1/embeddings', { method: 'POST', headers: { Authorization: `Bearer ${ key }`, 'Content-Type': 'application/json' }, body: JSON.stringify( { model: 'openai/text-embedding-3-small', input: texts.slice( i, i + 500 ) } ) } );
+			const j = await r.json();
+			j.data.forEach( ( d ) => out.push( d.embedding ) );
+		}
+		return out;
+	} );
+	const phraseOf = ( p ) => classes( p ).slice( 0, 2 ).join( '; ' ) || '?';
+	const phrases = [ ...new Set( pictures.map( phraseOf ) ) ].sort();
+	const build = async ( tag ) => {
+		const nv = await embed( nodeList, `nodes${ tag }` );
+		const pv = await embed( phrases, `${ base }-phrases${ tag }` );
+		const nearest = {};
+		phrases.forEach( ( ph, i ) => {
+			let best = -2, at = 0;
+			nv.forEach( ( v, k ) => {
+				let d = 0;
+				for ( let x = 0; x < v.length; x++ ) {
+					d += v[ x ] * pv[ i ][ x ];
+				}
+				if ( d > best ) {
+					best = d;
+					at = k;
+				}
+			} );
+			nearest[ ph ] = nodeList[ at ];
+		} );
+		const assign = {};
+		pictures.forEach( ( p ) => { assign[ p.id ] = nearest[ phraseOf( p ) ]; } );
+		return rules( assign, MIN );
+	};
+	const a1 = await build( '' );
+	score( a1, `reference tree (min ${ MIN })` );
+	const a2 = await build( '-again' ); // Embedded afresh: the same answer or not.
+	const same = pictures.filter( ( p ) => a1[ p.id ] === a2[ p.id ] ).length;
+	console.log( `planned twice: ${ same }/${ pictures.length } pictures in the same folder` );
+} else if ( 'consensus' === mode ) {
+	// Five bottom-up runs; the tree kept is the one the others agree with most (pair F1 against each other). Two builds, compared.
+	const agree = ( a, b ) => {
+		const cell = {}, rA = {}, rB = {};
+		for ( const p of pictures ) {
+			const x = a[ p.id ], y = b[ p.id ];
+			if ( x ) { rA[ x ] = ( rA[ x ] || 0 ) + 1; }
+			if ( y ) { rB[ y ] = ( rB[ y ] || 0 ) + 1; }
+			if ( x && y ) { cell[ x + '\u0000' + y ] = ( cell[ x + '\u0000' + y ] || 0 ) + 1; }
+		}
+		const c2 = ( n ) => ( n * ( n - 1 ) ) / 2;
+		const tp = Object.values( cell ).reduce( ( s, n ) => s + c2( n ), 0 );
+		const P = tp / Math.max( 1, Object.values( rB ).reduce( ( s, n ) => s + c2( n ), 0 ) ), R = tp / Math.max( 1, Object.values( rA ).reduce( ( s, n ) => s + c2( n ), 0 ) );
+		return ( 2 * P * R ) / Math.max( 1e-9, P + R );
+	};
+	const medoid = async ( runs ) => {
+		const trees = [];
+		for ( const r of runs ) {
+			trees.push( rules( ( await bottomup( String( r ) ) ).assign, MIN ) );
+		}
+		const mean = trees.map( ( t, i ) => trees.reduce( ( s, u, j ) => s + ( i === j ? 0 : agree( t, u ) ), 0 ) / ( trees.length - 1 ) );
+		const at = mean.indexOf( Math.max( ...mean ) );
+		console.log( `runs ${ runs.join( ',' ) }: agreement with the others ${ mean.map( ( m ) => Math.round( 100 * m ) + '%' ).join( ' ' ) } -> keep run ${ runs[ at ] }` );
+		trees.forEach( ( t, i ) => score( t, `  run ${ runs[ i ] }${ i === at ? ' (kept)' : '' }` ) );
+		return trees[ at ];
+	};
+	const m1 = await medoid( [ 41, 42, 43, 44, 45 ] );
+	const m2 = await medoid( [ 51, 52, 53, 54, 55 ] );
+	score( m1, 'consensus build 1' );
+	score( m2, 'consensus build 2' );
+	console.log( `build 1 vs build 2: ${ Math.round( 100 * agree( m1, m2 ) ) }% pair agreement · ${ pictures.filter( ( p ) => m1[ p.id ] === m2[ p.id ] ).length }/${ pictures.length } pictures in the same folder` );
 } else if ( 'truth' === mode ) {
 	const t = {};
 	pictures.forEach( ( p ) => { t[ p.id ] = p.truth || ''; } );
