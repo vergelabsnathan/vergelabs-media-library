@@ -1,0 +1,34 @@
+- id: "1"
+  title: The tree score on the box
+  description: >-
+    CAP-6. A read-only tool scores a site's current folder tree against its truth labels (pair F1 leaf and
+    top, purity, real folders recovered, unfiled, folders, depth, same names), same maths as tools/tree-lab.mjs.
+- id: "2"
+  title: The service plans one tree from a label inventory
+  description: >-
+    CAP-1, service half. A route takes distinct labels with counts and returns one tree with each folder's
+    label ids; Sonnet 5, reasoning off, structured output; metered like /folders.
+- id: "3"
+  title: The plugin plans by consensus with the price on the button
+  description: >-
+    CAP-1 and pricing. Label inventory counted on the site, the price on the button, five runs, the
+    most-agreed kept, rules.md in code, the result as the Folders screen's draft.
+  spec_checkpoint: true
+- id: "4"
+  title: The accepted tree is frozen
+  description: >-
+    CAP-2. The accepted tree and every label match are stored; planning again returns the same tree; new
+    pictures go into it and a new folder is proposed only at the minimum.
+- id: "5"
+  title: Folders are matched on their member pictures
+  description: >-
+    CAP-3. A planned folder's profile comes from the labels and vectors of the pictures that formed it.
+- id: "6"
+  title: Splits the pictures cannot show are asked
+  description: >-
+    CAP-4. Audience or an owner axis comes from one question or from product categories, never inferred.
+- id: "7"
+  title: Large libraries fold rare labels
+  description: >-
+    CAP-5. Rare labels fold into their broader class so a plan stays five calls; measured on a synthetic
+    50,000-picture library.

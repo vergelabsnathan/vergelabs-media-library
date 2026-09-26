@@ -57,6 +57,3 @@ On the box, the shop and tech libraries planned from scratch give trees that mee
 - The describer's two-level object labels are present on every picture (625 of 626 on the shop, 199 of 200 on tech).
 - The lab's truth trees stand for real owners' intent closely enough to gate on.
 
-## Open Questions
-
-- Names: are two independent builds that name the same group differently ("Audio" / "Audio equipment") acceptable, given that only the first build is ever frozen?
