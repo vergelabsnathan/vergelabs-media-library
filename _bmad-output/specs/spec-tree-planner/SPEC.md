@@ -1,0 +1,64 @@
+---
+id: SPEC-tree-planner
+companions: [lab-results.md, rules.md]
+sources: []
+---
+
+> **Canonical contract.** This SPEC and the files in `companions:` are the complete contract for what to build, test and validate.
+
+# Bottom-up folder planner
+
+## Why
+
+A pain to solve. The folder tree decides how well everything after it works, and today's planner builds it from a sample. It reads a summary (10 groups from the oldest 600 pictures with 2 captions each, 40 sample captions, the 24 most common words), asks a question before it proposes anything, then proposes 11–19 flat folders. On the shop those recover 2–8 of 47 real folders and leave 30–67 % of pictures unfiled, and two runs never agree. Nathan (2026-09-26) wants the tree built from every picture, with explicit rules, and both maximum quality and a predictable result.
+
+## Capabilities
+
+- **CAP-1**
+  - **intent:** The planner builds a folder tree from every picture's labels (the describer's object and class, plus kind and audience counts), taken as an inventory of distinct labels with their counts. The model arranges them, five runs are made and the most-agreed run is kept, and the rules are enforced in code.
+  - **success:** On the tree score, the shop recovers ≥ 38 of 47 real folders with purity ≥ 75 % and ≤ 20 % unfiled; tech recovers ≥ 9 of 11 with purity ≥ 78 %. Lab: 40/47 at 77–83 %; 9/11 at 80 %.
+- **CAP-2**
+  - **intent:** Once the owner accepts a tree, the tree and every label-to-folder match are frozen. Planning again returns the same tree, and new pictures are placed into it. A new folder is proposed only when a label reaches the minimum, and nothing existing moves without the owner's yes.
+  - **success:** A suite plans the same library twice and gets an identical tree. After new pictures are added, every existing folder keeps its pictures and name.
+- **CAP-3**
+  - **intent:** Each folder is matched on the pictures that formed it (the labels and vectors of its members), not on words the model wrote.
+  - **success:** The truth score of a fill into a planned tree is at least the lab's bottom-up filing result (shop pair F1 ≥ 68 %).
+- **CAP-4**
+  - **intent:** A split the pictures cannot show, such as men/women/kids or the owner's own axis, comes from the owner as one question, or from the shop's product categories. It is never guessed.
+  - **success:** With no audience evidence, the proposed tree holds no audience folders, and the conversation offers the split as a question.
+- **CAP-5**
+  - **intent:** A library whose label inventory is too large for one call folds its rare labels into their broader class first, so a plan is still five calls.
+  - **success:** A synthetic library of 50,000 pictures plans within the call limit, at a cost stated before the owner presses.
+- **CAP-6**
+  - **intent:** A tree score (pair F1 at leaf and top, purity, real folders recovered, unfiled, folder count, depth, same names) gates the planner the way the truth score gates filing.
+  - **success:** `tools/tree-lab.mjs score` runs on shop and tech and its line is in every story's proof.
+
+## Constraints
+
+- The rules in `rules.md` run in code after the model and are never left to the prompt alone: 5 pictures minimum, 3 levels, 2–12 children per parent including the top level, unique names, one-child parents collapse.
+- The model never decides a count, and never moves or deletes a picture or folder. The owner accepts a tree before anything is filed.
+- Folders stay terms of `media_category` (AGENTS.md policy). Existing folders and product categories are kept, and new folders only fill gaps.
+- Sonnet 5 through OpenRouter, with reasoning off and structured output (the lab's failure modes: all tokens spent reasoning, and think-text instead of JSON).
+- Anything newly sent to the service updates readme.txt's External services section and the outbound audit in the same commit.
+- Cost is stated before the owner presses: about $0.25 for a 600-picture shop and $0.11 for 200 pictures, driven by distinct labels.
+
+## Non-goals
+
+- A fixed reference taxonomy as the structure. Measured: 9 fewer real shop folders and 20 points lower purity.
+- Audience folders inferred from pictures (3 of 88 carry the right audience).
+- Changing the filing matcher's thresholds, or the second-ask filing work on branch `filing-max`.
+- Pricing the plan. That is Nathan's call once the numbers are in.
+
+## Success signal
+
+On the box, the shop and tech libraries planned from scratch give trees that meet CAP-1's numbers. A second plan returns the identical frozen tree. Filing into the tree meets CAP-3.
+
+## Assumptions
+
+- The describer's two-level object labels are present on every picture (625 of 626 on the shop, 199 of 200 on tech).
+- The lab's truth trees stand for real owners' intent closely enough to gate on.
+
+## Open Questions
+
+- Pricing: a fixed number of credits per plan, or scaled by label count?
+- Names: are two independent builds that name the same group differently ("Audio" / "Audio equipment") acceptable, given that only the first build is ever frozen?
