@@ -139,3 +139,6 @@
 - source_spec: S33 addendum (2026-09-22)
   summary: a staging copy (`WP_ENVIRONMENT_TYPE=staging`) gets `403 site_not_activated` from the service's `/v1/embed`, while `docs/manual/credits.md` says a staging copy "is validated without ever touching the activation list". On a customer's staging copy, search by meaning falls back to words and new folders get no filing profile. Decide whether `/embed` should honour the staging exemption (embedding is 0 credits) -- a service change, Nathan's call.
   evidence: probe on /var/www/upd 2026-09-22; the tech site (production) gets 200 and a 512-dim vector.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/2-the-service-plans-one-tree-from-a-label-inventory.md`
+  summary: /v1/plan-tree answers with max_tokens 16000 while MAX_LABELS allows 3,000 labels; a large inventory may not fit one answer.
+  evidence: unmeasured; story 7 (large libraries) measures a synthetic 50,000-picture library and sets the fold so the answer fits.
