@@ -4,6 +4,7 @@
  *      node tools/tree-lab.mjs <export.json> baseline <summary.json> [run]
  *      node tools/tree-lab.mjs <export.json> bottomup [run]
  *      node tools/tree-lab.mjs <export.json> score <tree.json> [--min N] [--file]
+ *      node tools/tree-lab.mjs <export.json> current      (the tree the site holds: the cross-check for tools/box-tree-score.php)
  *
  *  export.json is tools/box-filing-export.php's (every labelled picture with
  *  its describer record and its truth folder); summary.json is
@@ -442,6 +443,14 @@ if ( 'baseline' === mode ) {
 	score( m1, 'consensus build 1' );
 	score( m2, 'consensus build 2' );
 	console.log( `build 1 vs build 2: ${ Math.round( 100 * agree( m1, m2 ) ) }% pair agreement · ${ pictures.filter( ( p ) => m1[ p.id ] === m2[ p.id ] ).length }/${ pictures.length } pictures in the same folder` );
+} else if ( 'current' === mode ) {
+	// Where the export found each picture (its deepest folder; the first by name between two as deep): the cross-check for tools/box-tree-score.php.
+	const t = {};
+	pictures.forEach( ( p ) => {
+		const fs_ = ( p.folders || [] ).slice().sort( ( a, b ) => ( b.split( ' > ' ).length - a.split( ' > ' ).length ) || ( a < b ? -1 : a > b ? 1 : 0 ) );
+		t[ p.id ] = fs_[ 0 ] || '';
+	} );
+	score( t, 'the tree the site holds' );
 } else if ( 'truth' === mode ) {
 	const t = {};
 	pictures.forEach( ( p ) => { t[ p.id ] = p.truth || ''; } );
