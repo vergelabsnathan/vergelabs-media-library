@@ -5,6 +5,9 @@
  *      node tools/box-eval.mjs tools/box-filing-export.php --site shop > shop.json
  *      node tools/box-eval.mjs tools/box-filing-export.php --copy tests/tree/truth-tech.json:/tmp/vgml-truth.json --env VGML_TRUTH=/tmp/vgml-truth.json > tech.json
  *
+ *  With --env VGML_VECTORS=1 each picture carries its embedding too, rounded
+ *  to four places (tools/tree-lab.mjs places rare labels by it).
+ *
  *  For tools/filing-lab.mjs, which tries matchers offline against the truth.
  *  The truth is read as box-truth-score.php reads it (the seed stamp, or
  *  VGML_TRUTH). Per picture: the index row whole (caption, the describer's
@@ -72,6 +75,7 @@ foreach ( $rows as $k => $r ) {
 }
 $picks = vergeml_filing_count( $profiles, $rows )['picks'];
 
+$vectors  = '1' === (string) getenv( 'VGML_VECTORS' );
 $pictures = array();
 foreach ( $rows as $r ) {
     $id = (int) $r['attachment_id'];
@@ -100,6 +104,11 @@ foreach ( $rows as $r ) {
             'score'      => isset( $pick['score'] ) ? round( (float) $pick['score'], 3 ) : 0,
         ),
     );
+    if ( $vectors ) {
+        $pictures[ count( $pictures ) - 1 ]['vector'] = array_map( function ( $x ) {
+            return round( $x, 4 );
+        }, (array) vergeml_index_vector_out( $r['embedding'] ) );
+    }
 }
 
 echo wp_json_encode( array( 'site' => home_url(), 'taken' => gmdate( 'c' ), 'folders' => array_values( $folders ), 'pictures' => $pictures ) );

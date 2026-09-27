@@ -6,6 +6,7 @@
  *      node tools/tree-lab.mjs <export.json> score <tree.json> [--min N] [--file]
  *      node tools/tree-lab.mjs <export.json> current      (the tree the site holds: the cross-check for tools/box-tree-score.php)
  *      node tools/tree-lab.mjs <export.json> assign <assign.json>   (a tree made elsewhere, as { picture id: path })
+ *      node tools/tree-lab.mjs <export.json> improve [--cache NAME] [--sim 0.4,0.5] [--builds 41-45/51-55] [--each]   (two builds of five: kept run or tightest run, rare labels placed by vector; the export needs VGML_VECTORS=1)
  *
  *  export.json is tools/box-filing-export.php's (every labelled picture with
  *  its describer record and its truth folder); summary.json is
@@ -37,12 +38,13 @@ const require_hash = ( s ) => crypto.createHash( 'md5' ).update( s ).digest( 'he
 
 const argv = process.argv.slice( 2 );
 const flag = ( n, d ) => ( argv.includes( n ) ? argv[ argv.indexOf( n ) + 1 ] : d );
-const [ exportFile, mode, a3, a4 ] = argv.filter( ( a, i ) => ! a.startsWith( '--' ) && '--min' !== argv[ i - 1 ] );
+const [ exportFile, mode, a3, a4 ] = argv.filter( ( a, i ) => ! a.startsWith( '--' ) && ! [ '--min', '--cache', '--sim', '--builds' ].includes( argv[ i - 1 ] ) );
 const MIN = Number( flag( '--min', 5 ) );
 const MODEL = 'anthropic/claude-sonnet-5';
 const data = JSON.parse( fs.readFileSync( exportFile, 'utf8' ) );
 const pictures = data.pictures.slice().sort( ( a, b ) => a.id - b.id );
-const base = path.basename( exportFile, '.json' );
+// --cache NAME reads and writes the model's answers under another export's name: the same pictures, exported again with vectors.
+const base = flag( '--cache', path.basename( exportFile, '.json' ) );
 const cacheDir = path.join( os.tmpdir(), 'vgml-tree-lab' );
 fs.mkdirSync( cacheDir, { recursive: true } );
 
@@ -452,6 +454,93 @@ if ( 'baseline' === mode ) {
 		t[ p.id ] = fs_[ 0 ] || '';
 	} );
 	score( t, 'the tree the site holds' );
+} else if ( 'improve' === mode ) {
+	/*
+	 *  Two ways past the kept run. Placed: a label left unfiled joins the
+	 *  folder whose pictures its own pictures are nearest to (cosine of the
+	 *  mean vectors), when that is at least --sim. Tightest: of the five runs,
+	 *  the one whose pictures sit closest to their folder's centre once
+	 *  placed. Votes -- each label where most runs put it, mapped onto the
+	 *  kept run's folders -- were tried and dropped: shop 37 -> 37, 29 -> 27.
+	 */
+	const unit = ( v ) => { const n = Math.hypot( ...v ) || 1; return v.map( ( x ) => x / n ); };
+	const mean = ( vs ) => unit( vs.reduce( ( s, v ) => s.map( ( x, i ) => x + v[ i ] ), new Array( vs[ 0 ].length ).fill( 0 ) ) );
+	const cos = ( a, b ) => a.reduce( ( s, x, i ) => s + x * b[ i ], 0 );
+	const vec = Object.fromEntries( pictures.map( ( p ) => [ p.id, unit( p.vector ) ] ) );
+	const phraseOf = ( p ) => { const c = classes( p ); return `${ c[ 0 ] || '?' }; ${ c[ 1 ] || '' }${ p.kind && 'photo' !== p.kind ? ` [${ p.kind }]` : '' }`; };
+	const byPhrase = {};
+	pictures.forEach( ( p ) => { ( byPhrase[ phraseOf( p ) ] = byPhrase[ phraseOf( p ) ] || [] ).push( p ); } );
+	const agree = ( a, b ) => {
+		const cell = {}, rA = {}, rB = {};
+		for ( const p of pictures ) {
+			const x = a[ p.id ], y = b[ p.id ];
+			if ( x ) { rA[ x ] = ( rA[ x ] || 0 ) + 1; }
+			if ( y ) { rB[ y ] = ( rB[ y ] || 0 ) + 1; }
+			if ( x && y ) { cell[ x + ' ' + y ] = ( cell[ x + ' ' + y ] || 0 ) + 1; }
+		}
+		const c2 = ( n ) => ( n * ( n - 1 ) ) / 2;
+		const tp = Object.values( cell ).reduce( ( s, n ) => s + c2( n ), 0 );
+		const P = tp / Math.max( 1, Object.values( rB ).reduce( ( s, n ) => s + c2( n ), 0 ) ), R = tp / Math.max( 1, Object.values( rA ).reduce( ( s, n ) => s + c2( n ), 0 ) );
+		return ( 2 * P * R ) / Math.max( 1e-9, P + R );
+	};
+	const place = ( assign, sim ) => {
+		const members = {};
+		pictures.forEach( ( p ) => { if ( assign[ p.id ] ) { ( members[ assign[ p.id ] ] = members[ assign[ p.id ] ] || [] ).push( vec[ p.id ] ); } } );
+		const centre = Object.fromEntries( Object.entries( members ).map( ( [ f, vs ] ) => [ f, mean( vs ) ] ) );
+		const out = { ...assign };
+		for ( const ps of Object.values( byPhrase ) ) {
+			if ( out[ ps[ 0 ].id ] ) {
+				continue;
+			}
+			const v = mean( ps.map( ( p ) => vec[ p.id ] ) );
+			let best = '', top = -1;
+			for ( const [ f, c ] of Object.entries( centre ) ) {
+				const x = cos( v, c );
+				if ( x > top ) { top = x; best = f; }
+			}
+			if ( top >= sim ) {
+				ps.forEach( ( p ) => { out[ p.id ] = best; } );
+			}
+		}
+		return out;
+	};
+	// What the vectors alone say of a tree: mean cosine of each picture to its folder's centre. No truth read.
+	const tightness = ( assign ) => {
+		const members = {};
+		pictures.forEach( ( p ) => { if ( assign[ p.id ] ) { ( members[ assign[ p.id ] ] = members[ assign[ p.id ] ] || [] ).push( vec[ p.id ] ); } } );
+		let t = 0, n = 0;
+		for ( const vs of Object.values( members ) ) {
+			const c = mean( vs );
+			vs.forEach( ( v ) => { t += cos( v, c ); n++; } );
+		}
+		return t / Math.max( 1, n );
+	};
+	const sims = String( flag( '--sim', '0.3,0.4,0.5,0.6' ) ).split( ',' ).map( Number );
+	const build = async ( runs ) => {
+		const trees = [];
+		for ( const r of runs ) {
+			trees.push( rules( ( await bottomup( String( r ) ) ).assign, MIN ) );
+		}
+		const m = trees.map( ( t, i ) => trees.reduce( ( s, u, j ) => s + ( i === j ? 0 : agree( t, u ) ), 0 ) );
+		const tight = trees.map( ( t ) => tightness( place( t, sims[ 0 ] ) ) );
+		if ( argv.includes( '--each' ) ) {
+			trees.forEach( ( t, i ) => score( place( t, sims[ 0 ] ), `  run ${ runs[ i ] } tight ${ tight[ i ].toFixed( 3 ) } agree ${ ( m[ i ] / ( trees.length - 1 ) ).toFixed( 2 ) }` ) );
+		}
+		const at = m.indexOf( Math.max( ...m ) );
+		const kept = trees[ at ], tightest = trees[ tight.indexOf( Math.max( ...tight ) ) ];
+		const out = { kept };
+		sims.forEach( ( x ) => { out[ `kept+placed ${ x }` ] = place( kept, x ); out[ `tightest+placed ${ x }` ] = place( tightest, x ); } );
+		return out;
+	};
+	// --builds 41-45/51-55 (the default): two builds, each from its own runs.
+	const [ r1, r2 ] = String( flag( '--builds', '41-45/51-55' ) ).split( '/' ).map( ( r ) => { const [ a, b ] = r.split( '-' ).map( Number ); return Array.from( { length: b - a + 1 }, ( _, i ) => a + i ); } );
+	const b1 = await build( r1 );
+	const b2 = await build( r2 );
+	for ( const k of Object.keys( b1 ) ) {
+		score( b1[ k ], `1 ${ k }` );
+		score( b2[ k ], `2 ${ k }` );
+		console.log( `  build 1 vs 2: ${ Math.round( 100 * agree( b1[ k ], b2[ k ] ) ) }% pair agreement` );
+	}
 } else if ( 'assign' === mode ) {
 	// A tree made elsewhere (the service's /plan-tree on the box), as { picture id: folder path }: scored as it stands.
 	const given = JSON.parse( fs.readFileSync( a3, 'utf8' ) );
