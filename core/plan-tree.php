@@ -466,7 +466,7 @@ function vergeml_plan_draft( $planned, $labels ) {
     return vergeml_guide_clean_draft( $out );
 }
 
-add_action( 'rest_api_init', function () {
+function vergeml_plan_routes() {
     $may = function () {
         return current_user_can( 'manage_categories' );
     };
@@ -474,4 +474,6 @@ add_action( 'rest_api_init', function () {
         array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_plan_rest_poll', 'permission_callback' => $may ),
         array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_start', 'permission_callback' => $may ),
     ) );
-} );
+}
+
+add_action( 'rest_api_init', 'vergeml_plan_routes' );

@@ -52,6 +52,7 @@ Hosts as they stand with no defines: `ai.vergelabs.nl` is the AI service,
 | core/brief.php | `$request['url']` | ai.vergelabs.nl | derived | the same array from vergeml_ai_describe_request(), so `vergeml_ai_service_url()` . '/describe'; the brief under test rides in the body |
 | core/connect.php | `vergeml_connect_base() . '/api/connect/exchange'` | vergelabsmedia.com | define | `VERGEML_SITE_URL` in wp-config.php, else the constant inside `vergeml_connect_base()`; the one-time code goes here and the key comes back, so no filter — removed 2026-09-13 |
 | core/connect.php | `vergeml_ai_service_url() . '/licence'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()`; gives the previous licence its seat back |
+| core/filing.php | `vergeml_ai_service_url() . '/file'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()` |
 | core/filing.php | `vergeml_ai_service_url() . '/folders'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()` |
 | core/folder-talk.php | `vergeml_ai_service_url() . '/folders'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()` |
 | core/folder-talk.php | `vergeml_ai_service_url() . '/name-group'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()` |
@@ -61,6 +62,8 @@ Hosts as they stand with no defines: `ai.vergelabs.nl` is the AI service,
 | core/guide.php | `vergeml_guide_stream_url() . '/guide/session'` | ai.vergelabs.nl | define | `VERGEML_AI_STREAM` in wp-config.php, else `vergeml_ai_service_url()` unless that is loopback, then the constant — inside `vergeml_guide_stream_url()` |
 | core/instrument.php | `vergeml_ai_service_url() . '/counts'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()`; sent only when the site opted in |
 | core/licence-page.php | `vergeml_ai_service_url() . '/licence'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()`; gives the removed licence its seat back |
+| core/offer.php | `vergeml_connect_base() . '/api/trial'` | vergelabsmedia.com | define | `VERGEML_SITE_URL` in wp-config.php, else the constant inside `vergeml_connect_base()` |
+| core/plan-tree.php | `vergeml_ai_service_url() . '/plan-tree'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()`; the label inventory, from the Plan my folders job |
 | core/search-meaning.php | `vergeml_ai_service_url() . '/embed'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()` |
 | pro/includes/describe.php | `vgmlpro_api_base() . '/v1/describe'` | ai.vergelabs.nl | define | `VGMLPRO_API_BASE` in wp-config.php, else `VGMLPRO_API_DEFAULT`, inside `vgmlpro_api_base()`; https or loopback only |
 | pro/includes/licence.php | `vgmlpro_api_base() . '/api/licence/verify'` | ai.vergelabs.nl | define | `VGMLPRO_API_BASE`, else `VGMLPRO_API_DEFAULT`, inside `vgmlpro_api_base()` |

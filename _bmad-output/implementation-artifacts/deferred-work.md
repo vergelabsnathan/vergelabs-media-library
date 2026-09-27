@@ -148,3 +148,15 @@
 - Audience folders are left to the prompt; nothing in applyRules strips an audience split the counts do not support (CAP-4, story 6).
 - rules.md's "under 30 pictures: one level, no subfolders" has no code path in the service rules.
 - assignmentOf's parent-cycle guard (pathOf's seen set) has no test; add a cyclic answer case when lib/plan-tree.ts is next touched.
+
+## Deferred from: story 3 hardening, full verify run (2026-09-27)
+
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/3-the-plugin-plans-by-consensus-with-the-price-on-the-button.md`
+  summary: the box's `admin` password matches neither `password` (what verify.mjs logs in with) nor `VgmlTest7pass` (the suites' usage line), so every box UI suite that signs in -- health, ai, smart -- fails at the login and tests nothing.
+  evidence: wp_check_password on user 1 is false for both, 2026-09-27; the three suites time out on their first selector on main's build too. Nathan's call: reset the password or pass UI_PASS through verify.mjs.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/3-the-plugin-plans-by-consensus-with-the-price-on-the-button.md`
+  summary: health-keep (A1, A2), auto-file (a file between two folders is suggested) and naming (232 of 996 carry "Electronics") are red on the box with main's build as well as this branch's.
+  evidence: main deployed to the box and the three run on 2026-09-27: the same rows fail; this branch is back on the box after.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/3-the-plugin-plans-by-consensus-with-the-price-on-the-button.md`
+  summary: db-calls (the register reason for core/guide.php f8e582bd4e no longer matches a call; three queries in auto-file.php, folder-talk.php and guide.php it cannot prove), escaping (text sinks no longer four to one: 244 to 65) and voice (2 strings with banned words) are red on main too.
+  evidence: the same rows on main's checkout, 2026-09-27; the register needs a reason a person has read, so none was written here.
