@@ -19,6 +19,8 @@ context: []
 - Service: fifteen runs, every valid tree returned (0d1f5b8, e7b369d). The price is unchanged at 10 + 6 per 100 labels pending Nathan's pack price.
 - Decisions, Nathan 2026-09-27: vector placement at a cosine of 0.5; unfiled target 10 %; fifteen runs with the tightest kept. Measurements: `lab-results.md`, 2026-09-27.
 - The first real plan (5 runs, most-agreed, before this story's changes) scored 27/47, purity 70 %, 31 % unfiled on the shop; 38 credits.
+- Hardening round (bmad-build, 2026-09-27): the planner's calls get their own `PLAN_CALL` = 120 s and one retry (`lib/plan-tree.ts`; passed as request options in `route.ts`), because the shared client's 40 s dropped runs when plans ran back to back. It lives in `lib/`, not the route: Next.js refuses any route export other than handlers and config. A test pins the options and that a run and its retry fit the route's 300 s. SPEC CAP-1 no longer carries an agreement bar (Nathan: one plan is seen, and accepting it freezes it).
+- Not in this story: the fill still re-decides every picture with the matcher (17-22 % unfiled after its dry run against 12-14 % in the plan). Filing by each label's planned folder is story 4.
 
 ## Review Triage Log (2026-09-27, the fifteen-run change, both repos)
 
@@ -33,6 +35,16 @@ context: []
 - low, rejected: `kept` and `placed` are not shown on screen -- no copy was asked for.
 - low, rejected: 0.5 is fixed for every site -- tuned on both truth sites; the proof runs check it.
 
+## Review Triage Log (2026-09-27, hardening round: PLAN_CALL, CAP-1)
+
+- low, patched: story proof line still listed agreement as a live bar -- annotated as dropped.
+- low, patched: a stray blank line in route.ts; an over-long comment line in lib/plan-tree.ts.
+- real, not a code fix: no proof yet that 120 s recovers the lost runs -- the proof round after deploy measures valid runs per plan.
+- low, rejected: the DB work around the fifteen calls must fit the 60 s left -- it is a handful of queries before the calls and one refund after; the SDK's timeout bounds each attempt, so 240 s plus backoff and those queries stays under 300 s.
+- low, rejected: the test checks the options, not a slow run -- how a timed-out attempt resolves is the SDK's behaviour; askOnce already turns any throw into null, which the refund tests cover.
+- low, rejected: a slow run retried may be billed twice -- the price at fifteen runs is already an open decision with Nathan.
+- Status stays in-progress, not done: the proof is not green (unfiled over 10 % until story 4; tech not run; the button not yet operated in a browser).
+
 ## Proof (shop, 2026-09-27, service e7b369d, plugin 235a147)
 
 Four real plans through what the job runs (charged call, `vergeml_plan_choose`, draft, fit); scored with `tools/tree-lab.mjs assign`.
@@ -46,7 +58,7 @@ Four real plans through what the job runs (charged call, `vergeml_plan_choose`, 
 
 Agreement between plans: 69, 79 and 68 %.
 
-Against the bars: recovered ≥ 35 met; purity ≥ 75 % met; unfiled ≤ 10 % not met (12-14 % in the plan, 17-22 % after the matcher); agreement ≥ 80 % not met.
+Against the bars: recovered ≥ 35 met; purity ≥ 75 % met; unfiled ≤ 10 % not met (12-14 % in the plan, 17-22 % after the matcher); agreement ≥ 80 % not met (a bar since dropped from CAP-1).
 
 - Runs dropped when plans ran back to back: the service's client times a call out at 40 s with one retry, and a run takes 18-26 s unloaded. Fifteen calls straight to OpenRouter all answered (26 s). Fix: a longer timeout for the planner's calls, inside the route's 300 s.
 - The matcher leaves more unfiled than the plan: it re-decides each picture from the draft's class words, and 105-133 pictures fall between two folders. The plan already knows each label's folder; filing by that is CAP-2/CAP-3 (stories 4 and 5).
