@@ -661,6 +661,9 @@
 			dom.treeMove.appendChild( propose );
 			dom.treeMove.appendChild( pill( cfg.proposeCredits || 10, __( 'credits', 'vergelabs-media-library' ) ) );
 		}
+		if ( described && licensed && cfg.plan && cfg.plan.labels > 0 ) {
+			renderPlanButton();
+		}
 		dom.treeMove.appendChild( quiet( __( 'Skip', 'vergelabs-media-library' ), function () { setStep( 'fill' ); } ) );
 	}
 
@@ -822,6 +825,64 @@
 		state.fit = state.session.fit || null;
 		view.editable = ! confirmed();
 		view.render();
+	}
+
+	/*
+	 *  The bottom-up plan (core/plan-tree.php): one number on the button,
+	 *  counted on this site from the label inventory, the same sum the
+	 *  service charges. The press books a job; the screen polls it.
+	 */
+	function planState() {
+		return state.session && state.session.plan ? state.session.plan.state : '';
+	}
+
+	function renderPlanButton() {
+		var price = Number( cfg.plan.price ) || 0;
+		var balance = null === cfg.plan.balance || undefined === cfg.plan.balance ? null : Number( cfg.plan.balance );
+		var low = null !== balance && balance < price;
+		/* translators: %s: credits */
+		var label = sprintf( __( 'Plan my folders · %s credits', 'vergelabs-media-library' ), fmt( price ) );
+		if ( low ) {
+			/* translators: 1: credits the plan costs, 2: credits left */
+			label = sprintf( __( 'Plan my folders · %1$s credits · %2$s left', 'vergelabs-media-library' ), fmt( price ), fmt( balance ) );
+		}
+		var planning = 'running' === planState();
+		var btn = el( 'button', { type: 'button', class: 'vgml-btn vgml-plan-btn' + ( planning ? ' is-working' : '' ) }, label );
+		btn.disabled = low || planning || ! canTalk() || talk.streaming();
+		btn.addEventListener( 'click', onPlan );
+		dom.treeMove.appendChild( btn );
+		if ( 'failed' === planState() && state.session.plan.message ) {
+			dom.treeMove.appendChild( el( 'p', { class: 'g-why vgml-plan-note' }, state.session.plan.message ) );
+		}
+	}
+
+	function onPlan() {
+		if ( 'running' === planState() || ! canTalk() ) {
+			return;
+		}
+		api( 'POST', 'guide/plan' ).then( tookPlan, function ( err ) {
+			state.session.plan = { state: 'failed', message: ( err && err.message ) || __( 'That did not go through. Try again.', 'vergelabs-media-library' ) };
+			renderTreeStep();
+		} );
+	}
+
+	var planTimer = null;
+	function tookPlan( r ) {
+		var was = planState();
+		state.session.plan = r.plan || null;
+		if ( 'running' === planState() ) {
+			if ( ! planTimer ) {
+				planTimer = window.setTimeout( function () {
+					planTimer = null;
+					api( 'GET', 'guide/plan' ).then( tookPlan, function () { tookPlan( { plan: state.session.plan } ); } );
+				}, 3000 );
+			}
+		} else if ( 'running' === was && 'done' === planState() ) {
+			state.session.turns = r.turns;
+			setDraft( r.draft, true );
+			state.fit = r.fit || null;
+		}
+		renderCards();
 	}
 
 	function onPropose() {
@@ -2472,6 +2533,11 @@
 	talk.render();
 	setStep( stepAt() );
 	root.classList.add( 'is-ready' );
+
+	// A plan still going from before this page loaded carries on being watched.
+	if ( 'running' === planState() ) {
+		tookPlan( { plan: state.session.plan } );
+	}
 
 	// A run still going from before this page loaded carries on being watched.
 	if ( running() ) {

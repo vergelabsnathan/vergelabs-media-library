@@ -113,6 +113,8 @@ function vergeml_folders_assets( $hook ) {
         // "Show me" opens a picture in the library's own modal, where Why is it here answers for it.
         'libraryUrl'=> admin_url( 'upload.php' ),
         'proposeCredits' => VERGEML_GUIDE_PROPOSE_CREDITS,
+        // The plan's price, counted here from the label inventory; the service charges the same sum.
+        'plan'           => function_exists( 'vergeml_plan_facts' ) && $boot['facts']['pictures'] > 0 ? vergeml_plan_facts() : null,
         // Folders a confirm reads per request: the progress row counts batches by it (S10.0).
         'profileBatch'   => defined( 'VERGEML_FILING_PROFILE_BATCH' ) ? VERGEML_FILING_PROFILE_BATCH : 60,
         'walk'      => (bool) apply_filters( 'vergeml_folders_walk', false ),
@@ -549,6 +551,8 @@ function vergeml_guide_fresh() {
          *  draft) until unconfirmed, and the fill runs against exactly it.
          */
         'tree'            => 'editing',
+        // The bottom-up plan's job (core/plan-tree.php): null, or running, done or failed.
+        'plan'            => null,
     );
 }
 
@@ -582,6 +586,7 @@ function vergeml_guide_session_out( $s ) {
         'tree'            => isset( $s['tree'] ) && 'confirmed' === $s['tree'] ? 'confirmed' : 'editing',
         // What "This is my tree" would ask the planner about, and its credits past the free hundred (C.5): the button says it.
         'profile'         => vergeml_guide_profile_facts( $s['draft'] ),
+        'plan'            => isset( $s['plan'] ) ? $s['plan'] : null,
     );
 }
 
