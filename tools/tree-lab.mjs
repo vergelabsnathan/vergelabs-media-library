@@ -5,6 +5,7 @@
  *      node tools/tree-lab.mjs <export.json> bottomup [run]
  *      node tools/tree-lab.mjs <export.json> score <tree.json> [--min N] [--file]
  *      node tools/tree-lab.mjs <export.json> current      (the tree the site holds: the cross-check for tools/box-tree-score.php)
+ *      node tools/tree-lab.mjs <export.json> assign <assign.json>   (a tree made elsewhere, as { picture id: path })
  *
  *  export.json is tools/box-filing-export.php's (every labelled picture with
  *  its describer record and its truth folder); summary.json is
@@ -451,6 +452,12 @@ if ( 'baseline' === mode ) {
 		t[ p.id ] = fs_[ 0 ] || '';
 	} );
 	score( t, 'the tree the site holds' );
+} else if ( 'assign' === mode ) {
+	// A tree made elsewhere (the service's /plan-tree on the box), as { picture id: folder path }: scored as it stands.
+	const given = JSON.parse( fs.readFileSync( a3, 'utf8' ) );
+	const t = {};
+	pictures.forEach( ( p ) => { t[ p.id ] = given[ p.id ] || ''; } );
+	score( t, `assigned (${ path.basename( a3 ) })` );
 } else if ( 'truth' === mode ) {
 	const t = {};
 	pictures.forEach( ( p ) => { t[ p.id ] = p.truth || ''; } );
