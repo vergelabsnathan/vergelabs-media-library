@@ -120,16 +120,19 @@ function vergeml_plan_label_sums( $labels ) {
     foreach ( $labels as $l ) {
         $id_of[ $l['label'] ] = $l['id'];
     }
+    // Mid re-embed after a model change the index holds two sizes of vector; only the library's most common one is summed.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    $dims  = (int) $wpdb->get_var( "SELECT embedding_dims FROM {$t} WHERE error = '' AND embedding IS NOT NULL GROUP BY embedding_dims ORDER BY COUNT(*) DESC LIMIT 1" );
     $sums  = array();
     $after = 0;
     do {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-        $rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, kind, filing, embedding FROM {$t} WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d ORDER BY attachment_id ASC LIMIT 500", $after ), ARRAY_A );
+        $rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, kind, filing, embedding, embedding_dims FROM {$t} WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d ORDER BY attachment_id ASC LIMIT 500", $after ), ARRAY_A );
         foreach ( $rows as $r ) {
             $after = (int) $r['attachment_id'];
             $label = vergeml_plan_label_of( $r['kind'], json_decode( (string) $r['filing'], true ) );
             $v     = vergeml_index_vector_out( $r['embedding'] );
-            if ( '' === $label || ! isset( $id_of[ $label ] ) || ! $v ) {
+            if ( '' === $label || ! isset( $id_of[ $label ] ) || ! $v || ( $dims > 0 && count( $v ) !== $dims ) ) {
                 continue;
             }
             $v  = vergeml_plan_unit( $v );

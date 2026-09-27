@@ -6,7 +6,7 @@
  *      node tools/tree-lab.mjs <export.json> score <tree.json> [--min N] [--file]
  *      node tools/tree-lab.mjs <export.json> current      (the tree the site holds: the cross-check for tools/box-tree-score.php)
  *      node tools/tree-lab.mjs <export.json> assign <assign.json>   (a tree made elsewhere, as { picture id: path })
- *      node tools/tree-lab.mjs <export.json> improve [--cache NAME] [--sim 0.4,0.5] [--builds 41-45/51-55] [--each]   (two builds of five: kept run or tightest run, rare labels placed by vector; the export needs VGML_VECTORS=1)
+ *      node tools/tree-lab.mjs <export.json> improve [--cache NAME] [--sim 0.4,0.5] [--builds 41-45/51-55] [--each]   (two builds, five runs each by default: kept run or tightest run, rare labels placed by vector; the export needs VGML_VECTORS=1)
  *
  *  export.json is tools/box-filing-export.php's (every labelled picture with
  *  its describer record and its truth folder); summary.json is
@@ -458,7 +458,7 @@ if ( 'baseline' === mode ) {
 	/*
 	 *  Two ways past the kept run. Placed: a label left unfiled joins the
 	 *  folder whose pictures its own pictures are nearest to (cosine of the
-	 *  mean vectors), when that is at least --sim. Tightest: of the five runs,
+	 *  mean vectors), when that is at least --sim. Tightest: of a build's runs,
 	 *  the one whose pictures sit closest to their folder's centre once
 	 *  placed. Votes -- each label where most runs put it, mapped onto the
 	 *  kept run's folders -- were tried and dropped: shop 37 -> 37, 29 -> 27.

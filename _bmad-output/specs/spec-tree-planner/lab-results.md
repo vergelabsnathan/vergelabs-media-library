@@ -58,3 +58,26 @@ spent $0.22
 ```
 
 Reference taxonomy: shop 31/47, purity 62 %, 626/626 identical twice; tech 7/11, purity 68 %, 200/200 identical.
+
+## 2026-09-27: the live service, the ceiling, and what closed the gap
+
+`tools/tree-lab.mjs` on exports taken today (`box-filing-export.php` with `VGML_VECTORS=1`). Same score as above.
+
+| | Shop recovered | Purity | Unfiled | Two builds agree |
+|---|---|---|---|---|
+| Old planner (above) | 2-8 / 47 | 34-50 % | 30-67 % | no |
+| Live service, one real plan (5 runs, most-agreed) | 27 / 47 | 70 % | 31 % | - |
+| Lab re-run today (5 runs, most-agreed) | 37 and 29 | 81 and 70 % | 20 % | 79 % |
+| Votes across the five runs | 37 and 27 | 82 and 68 % | 20 % | 79 % |
+| 5 runs, tightest kept, placed at 0.5 | 41 and 36 | 77 and 73 % | 9 and 6 % | 85 % |
+| **15 runs, tightest kept, placed at 0.5** | **41 and 43** | **77 and 80 %** | **9 %** | **86 %** |
+| Ceiling: each label in its best real folder | 47 | 99 % | 0 % | - |
+| Ceiling with the broader class only | 27 | 68 % | 0 % | - |
+
+Tech (200 labelled pictures, 72 of them belonging nowhere): 15 runs, tightest, placed at 0.5 gave 9/11 at 82 and 81 %, 4 and 6 % unfiled, 78 % agreement; 5 runs gave 9/11 at 82 %, 4 %, 89 %.
+
+- The service's code is not the gap: the lab's own answers through its rules and choice score exactly as the lab does (37 and 29).
+- Tightness -- the mean cosine of a picture to its folder's centre, from the site's vectors, no truth read -- ranks runs as their true scores do: shop 0.770 for 41/47, 0.729 for 26/47.
+- Placement moves the unfiled share from 20-31 % to under 10 % at a small purity cost (81 -> 77 % on the kept shop tree).
+- `core/plan-tree.php` reproduces the lab's choice on the box: kept run 44 at 0.770, 41/47, 77 %, 9 %; 1.3 s and 67 MB for 626 pictures.
+- Spent: about $1.70 of OpenRouter; 38 credits for the one live plan.

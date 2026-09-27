@@ -15,8 +15,8 @@ A pain to solve. The folder tree decides how well everything after it works, and
 ## Capabilities
 
 - **CAP-1**
-  - **intent:** The planner builds a folder tree from every picture's labels (the describer's object and class, plus kind and audience counts), taken as an inventory of distinct labels with their counts. The model arranges them, five runs are made and the most-agreed run is kept, and the rules are enforced in code.
-  - **success:** On the tree score, the shop recovers ≥ 38 of 47 real folders with purity ≥ 75 % and ≤ 20 % unfiled; tech recovers ≥ 9 of 11 with purity ≥ 78 %. Lab: 40/47 at 77–83 %; 9/11 at 80 %.
+  - **intent:** The planner builds a folder tree from every picture's labels (the describer's object and class, plus kind and audience counts), taken as an inventory of distinct labels with their counts. The model arranges them fifteen times and the rules are enforced in code on every run. On the site, by the pictures' own vectors, the run whose pictures sit closest to their folder's centre is kept, and a label the model left out joins its nearest folder at a cosine of 0.5 or more (Nathan, 2026-09-27).
+  - **success:** On the tree score, in every plan, the shop recovers ≥ 35 of 47 real folders with purity ≥ 75 % and ≤ 10 % unfiled, and two plans agree on ≥ 80 % of picture pairs; tech recovers ≥ 9 of 11 with purity ≥ 78 %. Lab (improve mode, 2026-09-27): shop 41 and 43 of 47 at 77–80 %, 9 % unfiled, 86 % agreement; tech 9/11 at 81–82 %, 4–6 % unfiled. The ceiling -- each label in its best real folder -- is 47/47.
 - **CAP-2**
   - **intent:** Once the owner accepts a tree, the tree and every label-to-folder match are frozen. Planning again returns the same tree, and new pictures are placed into it. A new folder is proposed only when a label reaches the minimum, and nothing existing moves without the owner's yes.
   - **success:** A suite plans the same library twice and gets an identical tree. After new pictures are added, every existing folder keeps its pictures and name.
@@ -27,7 +27,7 @@ A pain to solve. The folder tree decides how well everything after it works, and
   - **intent:** A split the pictures cannot show, such as men/women/kids or the owner's own axis, comes from the owner as one question, or from the shop's product categories. It is never guessed.
   - **success:** With no audience evidence, the proposed tree holds no audience folders, and the conversation offers the split as a question.
 - **CAP-5**
-  - **intent:** A library whose label inventory is too large for one call folds its rare labels into their broader class first, so a plan is still five calls.
+  - **intent:** A library whose label inventory is too large for one call folds its rare labels into their broader class first, so a plan is still one request of fifteen runs.
   - **success:** A synthetic library of 50,000 pictures plans within the call limit, at a cost stated before the owner presses.
 - **CAP-6**
   - **intent:** A tree score (pair F1 at leaf and top, purity, real folders recovered, unfiled, folder count, depth, same names) gates the planner the way the truth score gates filing.

@@ -10,8 +10,9 @@ Enforced in code after the model. Values measured in the tree lab on 2026-09-26,
 | Names | unique in the whole tree, 3 words at most, the site's language, no slash | 0 duplicates in every lab tree |
 | Audience split | only from the owner or from product categories | 3 of 88 pictures carry the right audience |
 | Kinds (logo, screenshot, diagram, document) | a folder of their own only at the minimum | |
-| Unfiled target | 20 % or less; a label that fits nothing stays unfiled, never forced | Lab 10–24 % |
-| Run selection | 5 runs; keep the one with the highest mean pair agreement with the others | Dropped a 14/47 run automatically |
+| Unfiled target | 10 % or less; a label that fits nothing stays unfiled, never forced | Lab 4–10 % with placement (2026-09-27) |
+| Placement | a label the model left out joins the folder whose pictures its own pictures are nearest to, at a cosine of 0.5 or more; below that it stays unfiled | Shop unfiled 20 → 9 %, purity 81 → 77 % (core/plan-tree.php VERGEML_PLAN_PLACE) |
+| Run selection | 15 runs; keep the tightest: the mean cosine of a picture to its folder's centre, by the site's vectors | Ranked the runs as their true scores did (shop 0.770 for 41/47, 0.729 for 26/47); with 5 runs one build fell to 36/47 at 73 %. Most-agreed (the first rule) kept a 29/47 run; voting across runs gained nothing |
 
 ## Edge cases
 

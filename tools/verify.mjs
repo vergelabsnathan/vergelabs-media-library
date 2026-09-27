@@ -177,6 +177,12 @@ const SUITES = [
 	 */
 	{ name: 'filing', files: [ 'tests/filing/pick.php', 'tests/filing/residue.php' ], env: 'local', php: 'wasm' },
 	/*
+	 *  The planner's choice among the service's fifteen trees (core/plan-tree.php):
+	 *  the tightest kept, a label the model left out placed only at the cosine
+	 *  floor. Arithmetic on two-dimensional fixtures, like filing: no WordPress.
+	 */
+	{ name: 'plan-choose', file: 'tests/tree/plan-choose.php', env: 'local', php: 'wasm' },
+	/*
 	 *  Confirm, lock, sticky (A.3): a hand move survives a fill, a locked
 	 *  folder keeps its pictures and gains none, a confirmed tree answers 409.
 	 *  The box: it stores a packed embedding and drives a real pass over its
