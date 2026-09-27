@@ -45,6 +45,21 @@ context: []
 - low, rejected: a slow run retried may be billed twice -- the price at fifteen runs is already an open decision with Nathan.
 - Status stays in-progress, not done: the proof is not green (unfiled over 10 % until story 4; tech not run; the button not yet operated in a browser).
 
+## Review Triage Log (2026-09-27, bmad-code-review of service 9b50861, four layers)
+
+- medium, patched: twice 120 s left 60 s of the 300 s for backoff, the licence and credit queries and the refund -- PLAN_CALL is 100 s (four times an unloaded run), leaving 100 s.
+- medium, patched: the test compared PLAN_CALL with itself, so a timeout shrunk to 1 s passed -- it now pins a 90 s floor and a minute of headroom; a 1 s timeout turns it red.
+- low, patched: only the last of the fifteen calls' options was checked -- all fifteen are.
+- false: the longer timeout interacts with the burst and day limits -- both are counted before the calls start.
+- false: the fifteen calls share one options object that could be changed in flight -- the SDK reads the options, it does not write them.
+- low, rejected: `as const` on PLAN_CALL -- the test now pins the values that matter.
+- deferred: a retried slow run may be billed twice -- part of the open price decision at fifteen runs.
+- real, not a code fix: proof that the runs come back -- the proof round after deploy counts valid runs per plan.
+
+## Full verify, 2026-09-27
+
+29 passed on the first run; 7 could not start (playwright missing in the worktree: installed, 4 then passed). Fixed on this branch: surface (the plan route is a named registrar now), hosts (the /plan-tree row, and the /file and /api/trial rows main lacked), roles (84/82), the three security documents regenerated. Red on main as well, measured by deploying main to the box: health, ai, smart (the box's admin password matches neither known value), health-keep, auto-file, naming, db-calls, escaping, voice -- logged in deferred-work.md.
+
 ## Proof (shop, 2026-09-27, service e7b369d, plugin 235a147)
 
 Four real plans through what the job runs (charged call, `vergeml_plan_choose`, draft, fit); scored with `tools/tree-lab.mjs assign`.
