@@ -33,6 +33,21 @@ context: []
 - low, rejected: `kept` and `placed` are not shown on screen -- no copy was asked for.
 - low, rejected: 0.5 is fixed for every site -- tuned on both truth sites; the proof runs check it.
 
-## Proof
+## Proof (shop, 2026-09-27, service e7b369d, plugin 235a147)
 
-Pending: three plans each on shop and tech through the button path, scored with `tools/tree-lab.mjs assign`, agreement between them.
+Four real plans through what the job runs (charged call, `vergeml_plan_choose`, draft, fit); scored with `tools/tree-lab.mjs assign`.
+
+| Plan | Runs valid | Recovered | Purity | Unfiled (plan) | Unfiled after the matcher's dry run |
+|---|---|---|---|---|---|
+| 1 | 15/15 | 39/47 | 75 % | 12 % | -- |
+| 2 | 9/15 | 39/47 | 77 % | 14 % | 22 % (133 margin, 4 floor) |
+| 3 | fewer than 3 | failed, refunded | | | |
+| 4 | 15/15 | 39/47 | 75 % | 12 % | 17 % (105 margin, 1 floor) |
+
+Agreement between plans: 69, 79 and 68 %.
+
+Against the bars: recovered ≥ 35 met; purity ≥ 75 % met; unfiled ≤ 10 % not met (12-14 % in the plan, 17-22 % after the matcher); agreement ≥ 80 % not met.
+
+- Runs dropped when plans ran back to back: the service's client times a call out at 40 s with one retry, and a run takes 18-26 s unloaded. Fifteen calls straight to OpenRouter all answered (26 s). Fix: a longer timeout for the planner's calls, inside the route's 300 s.
+- The matcher leaves more unfiled than the plan: it re-decides each picture from the draft's class words, and 105-133 pictures fall between two folders. The plan already knows each label's folder; filing by that is CAP-2/CAP-3 (stories 4 and 5).
+- Tech not yet run. Credits spent on the shop proof: 114 (plan 3 refunded).
