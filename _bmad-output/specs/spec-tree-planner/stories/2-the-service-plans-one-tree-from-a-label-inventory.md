@@ -35,3 +35,19 @@ context: []
 - low, kept: the prompt says three pictures while the code folds below five; that is the combination the lab measured, commented as such.
 - low, rejected: the rate-limit and daily-cap branches are untested here; the same code is tested on /file and /folders.
 - maybe-false medium, deferred to story 7: max_tokens 16000 may not fit 3,000 labels.
+
+### Review Findings (second review, 2026-09-27, before the service deploy)
+
+- [ ] [Review][Decision] 2–12 children per parent is prompt-only — SPEC.md says every rule runs in code; the story deferred it to story 3's measurement (the best lab tree had 23 top-level folders). Decide with the first real shop plan.
+- [x] [Review][Patch] The day's planner cap had no test [lib/plan-tree.test.ts] — fixed in service 108fd3d (598 passed, tsc clean).
+- [x] [Review][Defer] Audience folders are not stripped in code [lib/plan-tree.ts applyRules] — deferred: CAP-4, story 6.
+- [x] [Review][Defer] "Under 30 pictures: one level" has no code path [lib/plan-tree.ts applyRules] — deferred: rules.md edge case, not claimed by story 2.
+- [x] [Review][Defer] The parent-cycle guard in assignmentOf has no test [lib/plan-tree.ts pathOf] — deferred: the guard is correct; add a case when the file is next touched.
+
+Rejected:
+- false: meterCall's fixed 10 under-reports a plan's spend — spentSince sums the ledger spend (the real charge) and metered cost, so the brake sees charge + 10.
+- false: the audience field is not disclosed — plugin commit 7909ea6 added /v1/plan-tree to readme.txt and the outbound audit.
+- low: prompt says 3 pictures, code folds below 5 — already triaged and kept in the first review.
+- low: CAP-5 folding absent — story 7 owns it.
+- low: metering before the debit, the licence-wide cap scaled by sites, the cap's read-then-write race, the unguarded store reads, the silent refund failure in the response — the same conventions as /folders; the refund failure is logged.
+- low: missing labels read as empty_library; foldersOf parents count 0 (the plugin recounts with the fit); count up to 1e300 (only hurts the sender's own plan); no test at exactly MAX_LABELS.

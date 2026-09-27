@@ -142,3 +142,9 @@
 - source_spec: `_bmad-output/specs/spec-tree-planner/stories/2-the-service-plans-one-tree-from-a-label-inventory.md`
   summary: /v1/plan-tree answers with max_tokens 16000 while MAX_LABELS allows 3,000 labels; a large inventory may not fit one answer.
   evidence: unmeasured; story 7 (large libraries) measures a synthetic 50,000-picture library and sets the fold so the answer fits.
+
+## Deferred from: code review of 2-the-service-plans-one-tree-from-a-label-inventory (2026-09-27)
+
+- Audience folders are left to the prompt; nothing in applyRules strips an audience split the counts do not support (CAP-4, story 6).
+- rules.md's "under 30 pictures: one level, no subfolders" has no code path in the service rules.
+- assignmentOf's parent-cycle guard (pathOf's seen set) has no test; add a cyclic answer case when lib/plan-tree.ts is next touched.
