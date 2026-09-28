@@ -85,6 +85,7 @@ $g_draft = vergeml_guide_clean_draft( array(
     'tags'    => array( array( 'name' => 'Colour', 'values' => array( 'tan', '' ) ) ),
     'origin'  => 'rule',
     'rule'    => array( 'id' => 'kind', 'options' => array( 'scope' => 'everything' ) ),
+    'label_map' => array( 'thing; class' => 'new1', 'ghost; class' => 'nosuchkey' ),
 ) );
 g_check( 'B1 a slash in a name becomes a dash', 'Renamed - by hand' === $g_draft['folders'][0]['name'], $g_draft['folders'][0]['name'] );
 g_check( 'B2 a parent key that names nothing becomes the top level', '' === $g_draft['folders'][1]['parent'] );
@@ -92,6 +93,7 @@ g_check( 'B3 a key is letters, digits and punctuation only', 'badkey' === $g_dra
 g_check( 'B4 gone keeps a known destination and drops an unknown one', 'new1' === $g_draft['gone'][77] && '' === $g_draft['gone'][78] );
 g_check( 'B5 a tag rides along without its empty values', array( 'tan' ) === $g_draft['tags'][0]['values'] );
 g_check( 'B6 a rule outside its closed list falls to its default', 'rule' === $g_draft['origin'] && 'unfiled' === $g_draft['rule']['options']['scope'] );
+g_check( 'B7 label_map (spec-tree-planner story 4) keeps an entry whose key survives and drops one pointing at a missing key', isset( $g_draft['label_map']['thing; class'] ) && 'new1' === $g_draft['label_map']['thing; class'] && ! isset( $g_draft['label_map']['ghost; class'] ), wp_json_encode( isset( $g_draft['label_map'] ) ? $g_draft['label_map'] : null ) );
 
 /* -------------------------------------------------------- C  the plan for Move */
 
@@ -107,6 +109,7 @@ $g_plan = vergeml_guide_apply_plan( array(
     'tags'    => array(),
     'origin'  => 'talk',
     'rule'    => null,
+    'label_map' => array( 'gadget; thing' => 'a' ),
 ) );
 $g_names = is_wp_error( $g_plan ) ? array() : array_map( function ( $f ) { return $f['name']; }, $g_plan['folders'] );
 $g_kept  = is_wp_error( $g_plan ) ? null : $g_plan['folders'][ array_search( 'Kept and renamed', $g_names, true ) ];
@@ -114,6 +117,7 @@ g_check( 'C1 parents come before children, whatever the draft\'s order', ! is_wp
 g_check( 'C2 a folder that exists is addressed by its term id', $g_kept && (int) $g_first['id'] === (int) $g_kept['term_id'] );
 g_check( 'C3 a removed folder\'s pictures fall back to the folder that took them, keyed as the re-filing keys folders', ! is_wp_error( $g_plan ) && isset( $g_plan['opts']['fallback'][77] ) && vergeml_talk_key( 'Parent', 'Child' ) === $g_plan['opts']['fallback'][77] && ! isset( $g_plan['opts']['fallback'][78] ) );
 g_check( 'C4 a conversation draft carries no assignment: the evidence files it', ! is_wp_error( $g_plan ) && array() === $g_plan['opts']['assign'] );
+g_check( 'C4b the draft\'s label_map (label => draft key), for a folder still new, becomes opts label_map (label => the talk key vergeml_talk_apply resolves)', ! is_wp_error( $g_plan ) && isset( $g_plan['opts']['label_map']['gadget; thing'] ) && vergeml_talk_key( 'Parent', 'Child' ) === $g_plan['opts']['label_map']['gadget; thing'], wp_json_encode( is_wp_error( $g_plan ) ? null : ( isset( $g_plan['opts']['label_map'] ) ? $g_plan['opts']['label_map'] : null ) ) );
 $g_empty = vergeml_guide_apply_plan( array( 'folders' => array(), 'gone' => array(), 'origin' => 'talk', 'rule' => null ) );
 g_check( 'C5 an empty draft is refused', is_wp_error( $g_empty ) );
 

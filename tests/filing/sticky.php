@@ -921,6 +921,132 @@ if ( 6 === $sk_reach ) {
     $sk_mclear_run( $sk_rrows );
     $GLOBALS['sk_file_on'] = false;
 
+    /* ------------------------------------------------------ K  the plan's frozen label map */
+
+    /*
+     *  spec-tree-planner story 4. The label row helper and the pick's own
+     *  branch, in the product path's shape: a label in the frozen map wins
+     *  over the matcher; a hand placement, the picture's own locked folder,
+     *  the map's target itself locked, and a product placement all still win
+     *  over it; a target the owner has since deleted is a stale entry,
+     *  ignored, and the matcher decides as today. Undo clears the map with
+     *  the rest of the run. Mutation: the label branch removed from
+     *  vergeml_filing_pick_rules -> K2 red (nothing, not fits, sure); the
+     *  lock guard removed from vergeml_filing_label_folders -> K1b red
+     *  (label_folder set on the locked-target row).
+     */
+    echo "\nK  the plan's frozen label map (spec-tree-planner story 4)\n\n";
+
+    $sk_k_map = array(
+        'zzstickylabel; zzthing'       => 501,
+        'zzstickylabellocked; zzthing' => 502,
+        'zzstickygoneword; zzthing'    => 999999999,
+    );
+    $sk_k_profiles = array( 501 => array( 'locked' => false ), 502 => array( 'locked' => true ) );
+
+    $sk_k_rows = vergeml_filing_label_folders( array(
+        array( 'kind' => 'photo', 'filing' => wp_json_encode( array( 'object' => 'zzstickylabel; zzthing' ) ) ),
+        array( 'kind' => 'photo', 'filing' => wp_json_encode( array( 'object' => 'zzstickyother; zzthing' ) ) ), // not in the map
+    ), $sk_k_profiles, $sk_k_map );
+    sk_check( 'K1 the row helper sets label_folder for a mapped label with a live, unlocked target, and leaves an unmapped one alone', 501 === (int) $sk_k_rows[0]['label_folder'] && ! isset( $sk_k_rows[1]['label_folder'] ), json_encode( $sk_k_rows ) );
+
+    $sk_k_locked_row = vergeml_filing_label_folders( array( array( 'kind' => 'photo', 'filing' => wp_json_encode( array( 'object' => 'zzstickylabellocked; zzthing' ) ) ) ), $sk_k_profiles, $sk_k_map );
+    $sk_k_gone_row   = vergeml_filing_label_folders( array( array( 'kind' => 'photo', 'filing' => wp_json_encode( array( 'object' => 'zzstickygoneword; zzthing' ) ) ) ), $sk_k_profiles, $sk_k_map );
+    sk_check( 'K1b a locked target and a target the owner has since deleted both leave the row without a label_folder', ! isset( $sk_k_locked_row[0]['label_folder'] ) && ! isset( $sk_k_gone_row[0]['label_folder'] ), json_encode( array( $sk_k_locked_row, $sk_k_gone_row ) ) );
+
+    $sk_k_pick = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => false, 'product' => 0, 'label_folder' => 501 ), $sk_k_profiles );
+    sk_check( 'K2 the label wins over the matcher: fits 501, sure, why label, score 1', 'fits' === $sk_k_pick['outcome'] && 501 === (int) $sk_k_pick['term_id'] && 'label' === $sk_k_pick['why'] && 'sure' === $sk_k_pick['confidence'] && abs( 1.0 - (float) $sk_k_pick['score'] ) < 1e-9, json_encode( $sk_k_pick ) );
+
+    $sk_k_hand   = vergeml_filing_pick_rules( array( 'placed_by' => 'user', 'in_locked' => false, 'product' => 0, 'label_folder' => 501 ), $sk_k_profiles );
+    $sk_k_inlock = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => true, 'product' => 0, 'label_folder' => 501 ), $sk_k_profiles );
+    sk_check( 'K3 a hand placement and the picture\'s own locked folder both still win over a label hit', 'nothing' === $sk_k_hand['outcome'] && 'placed' === $sk_k_hand['why'] && 'nothing' === $sk_k_inlock['outcome'] && 'locked' === $sk_k_inlock['why'], json_encode( array( $sk_k_hand, $sk_k_inlock ) ) );
+
+    $sk_k_target_locked = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => false, 'product' => 0, 'label_folder' => 502 ), $sk_k_profiles );
+    sk_check( 'K3b the label\'s own target being locked is refused by the pick too, in case a row ever carries one', 'label' !== $sk_k_target_locked['why'], json_encode( $sk_k_target_locked ) );
+
+    $sk_k_product = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => false, 'product' => 501, 'label_folder' => 502 ), array( 501 => array( 'locked' => false ), 502 => array( 'locked' => false ) ) );
+    sk_check( 'K4 the product still wins over the label: fits 501, why product', 'fits' === $sk_k_product['outcome'] && 501 === (int) $sk_k_product['term_id'] && 'product' === $sk_k_product['why'], json_encode( $sk_k_product ) );
+
+    // K5: end to end, through a real fill -- the state's own label_map, threaded from vergeml_talk_apply, wins over the matcher; a stale entry is ignored.
+    $sk_k = wp_insert_term( 'zzStickyK', $sk_tax );
+    $sk_terms['zzStickyK'] = is_wp_error( $sk_k ) ? (int) get_term_by( 'name', 'zzStickyK', $sk_tax )->term_id : (int) $sk_k['term_id'];
+
+    $sk_files['klive'] = sk_file( 'klive', 'zzstickylabel; zzthing' );
+    $sk_files['kgone'] = sk_file( 'kgone', 'zzstickygoneword; zzthing' );
+    $sk_in             = implode( ',', array_map( 'intval', array_values( $sk_files ) ) );
+
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    update_option( VERGEML_TALK_UNDO, array(
+        'terms' => array( array( 'term_id' => $sk_terms['zzStickyK'], 'name' => 'zzStickyK', 'parent' => '' ) ),
+        'files' => array( $sk_files['klive'] => array() ),
+        'made'  => array(),
+        'until' => time() + DAY_IN_SECONDS,
+    ), false );
+    update_option( VERGEML_TALK_STATE, array(
+        'active'    => true,
+        'taxonomy'  => $sk_tax,
+        'ids'       => array( 'k' => $sk_terms['zzStickyK'] ),
+        'vectors'   => array(),
+        'assign'    => array(),
+        'fallback'  => array(),
+        'reasons'   => array(),
+        'label_map' => array( 'zzstickylabel; zzthing' => $sk_terms['zzStickyK'], 'zzstickygoneword; zzthing' => 999999999 ),
+        'after'     => $sk_files['klive'] - 1,
+        'moved'     => 0,
+        'skipped'   => 0,
+        'seen'      => 0,
+        'total'     => 2,
+        'counts'    => array(),
+        'by_term'   => array(),
+        'unfiled'   => array(),
+        'tags'      => array(),
+        'tagged'    => 0,
+        'until'     => time() + DAY_IN_SECONDS,
+        'remove'    => array(),
+        'started'   => time(),
+        'ticked'    => time(),
+    ), false );
+    $sk_done = vergeml_talk_refile_run( microtime( true ) + 30.0 );
+    sk_check( 'K5 the mapped label is filed by the fill before any matching: klive lands in zzStickyK', array( $sk_terms['zzStickyK'] ) === $sk_where( $sk_files['klive'] ), json_encode( $sk_where( $sk_files['klive'] ) ) );
+    sk_check( 'K5b a target the owner has since deleted is a stale entry, ignored: kgone is not moved there by the map', array() === $sk_where( $sk_files['kgone'] ), json_encode( $sk_where( $sk_files['kgone'] ) ) );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $sk_krow = $wpdb->get_row( $wpdb->prepare( "SELECT why, score, source FROM {$sk_moves} WHERE attachment_id = %d ORDER BY move_id DESC LIMIT 1", $sk_files['klive'] ), ARRAY_A );
+    sk_check( 'K5c the trail row says why label, score 1, source label', is_array( $sk_krow ) && 'label' === $sk_krow['why'] && abs( (float) $sk_krow['score'] - 1.0 ) < 1e-6 && 'label' === $sk_krow['source'], json_encode( $sk_krow ) );
+
+    $sk_undone = vergeml_talk_undo();
+    sk_check( 'K6 undo clears the frozen map with the rest of the run, and klive is back in no folder', ! is_wp_error( $sk_undone ) && false === get_option( VERGEML_TALK_LABEL_MAP ) && array() === $sk_where( $sk_files['klive'] ), json_encode( array( 'undo' => is_wp_error( $sk_undone ) ? $sk_undone->get_error_message() : 'ok', 'map' => get_option( VERGEML_TALK_LABEL_MAP ), 'klive' => $sk_where( $sk_files['klive'] ) ) ) );
+
+    /*
+     *  K7: vergeml_talk_apply() itself, not a hand-written state -- the
+     *  function that actually resolves opts['label_map'] (label => talk key)
+     *  into a term id through $ids, the way it resolves fallback. Only this
+     *  suite's own new folder is passed: vergeml_talk_apply() never deletes a
+     *  folder itself (removal is the run's finish, deferred), and the pass it
+     *  schedules is cleared below before it could ever reach the real site's
+     *  other folders -- the same reason the wp-cron.php loopback above is
+     *  faked rather than let through.
+     */
+    $sk_apply_folders = array( array( 'term_id' => 0, 'name' => 'zzStickyApplyLabel', 'parent' => '', 'matches' => '', 'classes' => array(), 'kinds' => array(), 'audience' => '' ) );
+    $sk_apply_key   = vergeml_talk_key( '', 'zzStickyApplyLabel' );
+    $sk_apply_label = 'zzstickyapplylabel; zzthing';
+    $sk_applied     = vergeml_talk_apply( $sk_apply_folders, array(), array( 'assign' => array(), 'fallback' => array(), 'reasons' => array(), 'label_map' => array( $sk_apply_label => $sk_apply_key ) ) );
+    // Cleared at once: nothing on this real site should run a full pass because this test asked one function a question.
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    sk_check( 'K7 vergeml_talk_apply itself accepts the label_map opt', ! is_wp_error( $sk_applied ), is_wp_error( $sk_applied ) ? $sk_applied->get_error_message() : 'ok' );
+
+    $sk_apply_state = get_option( VERGEML_TALK_STATE );
+    $sk_apply_term  = is_array( $sk_apply_state ) && isset( $sk_apply_state['ids'][ $sk_apply_key ] ) ? (int) $sk_apply_state['ids'][ $sk_apply_key ] : 0;
+    if ( $sk_apply_term ) {
+        $sk_terms['zzStickyApplyLabel'] = $sk_apply_term;
+    }
+    sk_check( 'K7b the run\'s own state resolves the label to that term id, the way it resolves fallback', $sk_apply_term > 0 && is_array( $sk_apply_state ) && isset( $sk_apply_state['label_map'][ $sk_apply_label ] ) && $sk_apply_term === (int) $sk_apply_state['label_map'][ $sk_apply_label ], json_encode( array( 'term' => $sk_apply_term, 'map' => is_array( $sk_apply_state ) && isset( $sk_apply_state['label_map'] ) ? $sk_apply_state['label_map'] : null ) ) );
+
+    $sk_apply_option = get_option( VERGEML_TALK_LABEL_MAP );
+    sk_check( 'K7c and its own option carries the same resolved map', is_array( $sk_apply_option ) && isset( $sk_apply_option[ $sk_apply_label ] ) && $sk_apply_term === (int) $sk_apply_option[ $sk_apply_label ], json_encode( $sk_apply_option ) );
+
+    $sk_apply_undone = vergeml_talk_undo();
+    sk_check( 'K7d cleaned up as K is: undo puts the real tree back exactly as it was and takes the one folder this made with it', ! is_wp_error( $sk_apply_undone ) && ! ( get_term( $sk_apply_term, $sk_tax ) instanceof WP_Term ), is_wp_error( $sk_apply_undone ) ? $sk_apply_undone->get_error_message() : json_encode( $sk_apply_undone ) );
+
     wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
     if ( false !== $sk_hook_was ) {
         wp_schedule_single_event( (int) $sk_hook_was, VERGEML_TALK_HOOK );

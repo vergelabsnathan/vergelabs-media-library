@@ -111,9 +111,9 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-folders.js:1318 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:1435 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:1440 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2152 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2195 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2205 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2153 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2196 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2206 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |

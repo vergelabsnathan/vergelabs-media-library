@@ -85,6 +85,9 @@ const VERGEML_TALK_FLOOR = 0.16;
 /** What we remember so the whole thing can be put back. */
 const VERGEML_TALK_UNDO = 'vergeml_talk_undo';
 
+/** The frozen label -> folder map an accepted plan filled (spec-tree-planner story 4), label text => term id. Cleared with undo. */
+const VERGEML_TALK_LABEL_MAP = 'vergeml_talk_label_map';
+
 
 /**
  *  Where a folder sits, as a key.
@@ -894,6 +897,14 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		return new WP_Error( 'empty', __( 'Nothing to apply.', 'vergelabs-media-library' ) );
 	}
 
+	// The frozen label map (spec-tree-planner story 4), by the same keys as fallback: label text => term id.
+	$label_ids = array();
+	foreach ( (array) ( isset( $opts['label_map'] ) ? $opts['label_map'] : array() ) as $label => $key ) {
+		if ( isset( $ids[ $key ] ) ) {
+			$label_ids[ (string) $label ] = (int) $ids[ $key ];
+		}
+	}
+
 	/*
 	 *  Everything that sits in a folder about to go is written into the undo
 	 *  record now, before a single term is touched. Deleting a term takes its
@@ -948,6 +959,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		'assign'   => $assign_ids,
 		'fallback' => $fallback_ids,
 		'reasons'  => $reasons,
+		'label_map' => $label_ids,
 		/*
 		 *  No planner call, here or in the passes. The run files against the
 		 *  profiles this request just seeded from the draft (vergeml_talk_seed_profile),
@@ -987,6 +999,8 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 
 	delete_transient( VERGEML_TALK_BEAT ); // An older run's heartbeat never reads as this one's.
 	update_option( VERGEML_TALK_STATE, $state, false );
+	// Its own option too (spec-tree-planner story 4): later filing (Auto-file, a picture described after the fill) reads this after the run's own state is long gone.
+	update_option( VERGEML_TALK_LABEL_MAP, $label_ids, false );
 
 	// The answer is "running, nothing seen yet"; the passes are cron's, and
 	// the screen polls them. A Move answers in the time it takes to make the
@@ -1035,7 +1049,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 	set_transient( VERGEML_TALK_PASS_LOCK, time(), 120 );
 
 	// A Move already in flight across the deploy that added these.
-	foreach ( array( 'residue' => array(), 'siblings' => array(), 'either' => array(), 'questions' => array(), 'names' => array(), 'asked' => array(), 'tally' => vergeml_filing_tally_fresh() ) as $k => $fresh ) {
+	foreach ( array( 'residue' => array(), 'siblings' => array(), 'either' => array(), 'questions' => array(), 'names' => array(), 'asked' => array(), 'tally' => vergeml_filing_tally_fresh(), 'label_map' => array() ) as $k => $fresh ) {
 		if ( ! isset( $state[ $k ] ) || ! is_array( $state[ $k ] ) ) {
 			$state[ $k ] = $fresh;
 		}
@@ -1125,6 +1139,8 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 		}
 		// File by the product (S10.8): the product's folder on the row, a fact the pick answers before any matching.
 		$rows = empty( $state['assign'] ) ? vergeml_filing_product_folders( (array) $rows, $profiles ) : $rows;
+		// File by the plan's frozen label map (spec-tree-planner story 4): the same rule the dry run and later filing use.
+		$rows = empty( $state['assign'] ) && function_exists( 'vergeml_filing_label_folders' ) ? vergeml_filing_label_folders( (array) $rows, $profiles, (array) $state['label_map'] ) : $rows;
 		/*
 		 *  The text model beside the rules (S18): its word on each row before
 		 *  the count, forty pictures a call, once per picture per tree. Asked
@@ -2095,6 +2111,8 @@ function vergeml_talk_undo() {
 	}
 
 	delete_option( VERGEML_TALK_UNDO );
+	// The frozen label map goes with the rest of the run (spec-tree-planner story 4): filing is the matcher's again.
+	delete_option( VERGEML_TALK_LABEL_MAP );
 
 	/*
 	 *  The questions were about a fill that is now put back: an answer to one
@@ -2102,9 +2120,10 @@ function vergeml_talk_undo() {
 	 *  the folders the answers made are no longer "new".
 	 */
 	$state = get_option( VERGEML_TALK_STATE );
-	if ( is_array( $state ) && ( ! empty( $state['questions'] ) || ! empty( $state['made_by_answer'] ) ) ) {
+	if ( is_array( $state ) && ( ! empty( $state['questions'] ) || ! empty( $state['made_by_answer'] ) || ! empty( $state['label_map'] ) ) ) {
 		$state['questions']      = array();
 		$state['made_by_answer'] = array();
+		$state['label_map']      = array();
 		update_option( VERGEML_TALK_STATE, $state, false );
 	}
 

@@ -266,6 +266,27 @@ uf_check( 'a folder with one described file has none',
 
 uf_say( "\nwhere it would go\n" );
 
+/*
+ *  spec-tree-planner story 4: a label the owner's accepted plan already
+ *  placed files without waiting for its folder to earn autonomy. Planted
+ *  before the first vergeml_autofile_suggest() call below, so this fresh,
+ *  unearned folder is in the profiles that call's own static cache keeps.
+ */
+$uf_label_term = wp_insert_term( 'zzLabelTarget', $GLOBALS['uf_tax'] );
+$uf_terms['zzLabelTarget'] = is_wp_error( $uf_label_term ) ? 0 : (int) $uf_label_term['term_id'];
+uf_profile( $uf_terms['zzLabelTarget'], 'zzLabelTarget', uf_vector( 6, 0 ) );
+$uf_labelled = uf_file( 'labelled', uf_vector( 6, 1 ), 0, 'zzlabelword; zzthing' );
+update_option( VERGEML_TALK_LABEL_MAP, array( 'zzlabelword; zzthing' => $uf_terms['zzLabelTarget'] ), false );
+
+uf_check( 'the label\'s target has not earned autonomy on its own', false === vergeml_autofile_earned( $uf_terms['zzLabelTarget'] ) );
+
+$uf_label_suggestion = vergeml_autofile_suggest( $uf_labelled );
+uf_check( 'a frozen label hit is suggested for its mapped folder with earned true, though the folder has not earned it',
+    is_array( $uf_label_suggestion ) && $uf_terms['zzLabelTarget'] === $uf_label_suggestion['term_id'] && true === $uf_label_suggestion['earned'],
+    is_array( $uf_label_suggestion ) ? ( $uf_label_suggestion['term_id'] . ' earned=' . var_export( $uf_label_suggestion['earned'], true ) ) : 'null' );
+
+delete_option( VERGEML_TALK_LABEL_MAP );
+
 $uf_near = uf_file( 'near-invoices', uf_vector( 0, 2 ), 0, 'zzinvoices' );
 
 $uf_suggestion = vergeml_autofile_suggest( $uf_near );

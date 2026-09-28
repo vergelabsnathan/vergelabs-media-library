@@ -164,3 +164,7 @@
 - source_spec: `_bmad-output/specs/spec-tree-planner/stories/4-the-accepted-tree-is-frozen.md`
   summary: plan again on an accepted tree, free -- keep every frozen folder and propose a new folder only when a label reaches the minimum (CAP-2's growth half).
   evidence: split from story 4 by Nathan 2026-09-28 to keep it one goal; until it lands the button stays refused on an accepted tree (409).
+
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/4-the-accepted-tree-is-frozen.md`
+  summary: vergeml_guide_draft_fit's label step (label -> synthetic profile id through array_flip( $order )) has no suite row; a wrong flip would make the Tree screen's "would stay unfiled" differ from the fill.
+  evidence: no fixture in tests/tree/guide.php section F sets draft['label_map']; story 4's manual check compares the dry run with a real fill on the shop, which is the check until a row exists.

@@ -1617,7 +1617,8 @@
 
 	/** The component's draft plus what the session remembers about where it came from. */
 	function withOrigin( draft, prev ) {
-		return { folders: draft.folders, gone: draft.gone, tags: ( prev && prev.tags ) || [], origin: ( prev && prev.origin ) || 'talk', rule: ( prev && prev.rule ) || null };
+		// The plan's frozen label -> folder map (spec-tree-planner story 4) is the draft's own, not the tree component's: an edit, a paste or an answer rebuilds folders/gone and would otherwise drop it silently.
+		return { folders: draft.folders, gone: draft.gone, tags: ( prev && prev.tags ) || [], origin: ( prev && prev.origin ) || 'talk', rule: ( prev && prev.rule ) || null, label_map: draft.label_map || ( prev && prev.label_map ) || {} };
 	}
 
 	var persistTimer = null;

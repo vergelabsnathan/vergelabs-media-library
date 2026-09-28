@@ -2,7 +2,8 @@
 title: 'The accepted tree is frozen'
 type: 'feature'
 created: '2026-09-28'
-status: 'ready-for-dev'
+status: 'in-review'
+baseline_commit: '4397b155b5b181ad8dc706efcd5bd99488c0107e'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
@@ -50,13 +51,13 @@ context: []
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `core/plan-tree.php` -- map each planned folder onto the existing folder holding ≥ half its pictures (from `in_terms`), else a new folder; keep the label text → draft key map in the session beside the draft -- the near-copies and the map's source.
-- [ ] `core/guide.php` -- pass the label map to `apply_plan`'s opts; the draft fit applies the label step -- counts match the fill.
-- [ ] `core/folder-talk.php` -- resolve and store the frozen label → term_id map in its own option; the refile run applies the label step; undo clears it.
-- [ ] `core/filing.php` -- the label row helper and the `pick_rules` branch, in the product path's shape.
-- [ ] `core/auto-file.php` -- `vergeml_autofile_suggest` takes the label step before the pick; a label hit files without the `earned` gate.
-- [ ] `tests/filing/sticky.php` -- new rows: label wins over matcher, loses to hand-placed, locked and product, falls back when the target is gone.
-- [ ] `tests/tree/plan-choose.php` -- the existing-folder mapping, two-onto-one, and the map's label keys.
+- [x] `core/plan-tree.php` -- map each planned folder onto the existing folder holding ≥ half its pictures (from `in_terms`), else a new folder; keep the label text → draft key map in the session beside the draft -- the near-copies and the map's source.
+- [x] `core/guide.php` -- pass the label map to `apply_plan`'s opts; the draft fit applies the label step -- counts match the fill.
+- [x] `core/folder-talk.php` -- resolve and store the frozen label → term_id map in its own option; the refile run applies the label step; undo clears it.
+- [x] `core/filing.php` -- the label row helper and the `pick_rules` branch, in the product path's shape.
+- [x] `core/auto-file.php` -- `vergeml_autofile_suggest` takes the label step before the pick; a label hit files without the `earned` gate.
+- [x] `tests/filing/sticky.php` -- new rows: label wins over matcher, loses to hand-placed, locked and product, falls back when the target is gone.
+- [x] `tests/tree/plan-choose.php` -- the existing-folder mapping, two-onto-one, and the map's label keys.
 
 **Acceptance Criteria:**
 - Given the shop planned and filled, when the fill ends, then at most 10 % of described pictures are unfiled and the dry run's "would stay unfiled" equals the fill's.
@@ -76,6 +77,27 @@ context: []
 
 ## Implementation Notes
 
+- Built by a fresh implementation agent from this spec; judged against the diff from 4397b15, not its report.
+- The exact-name merge is kept as the fallback when no existing folder holds half a planned folder's pictures (row 9, the `&amp;` fix, relies on it).
+- Added after the diff review: "To sort" (slug `to-sort`) is never a mapping target -- its pictures are what a plan is for (`plan-choose` row 13; turns red without the guard). View folders are not excluded: they are derived from the tree's shape and rare; recorded as a known limit.
+- Label-filed pictures are not marked placed (unlike product): a stale target must stay able to fall back to the matcher; every fill re-resolves the map.
+- Suites: plan-choose 15/15; filing, sticky (K1-K6 new), fill-walk, guide passed on the box at this tree; auto-file 22/23, the one row red on main as well.
+- After review: nine patches (the JS carries label_map through withOrigin; locked folders and views are not targets; ties go to the lower term id; Auto-file reads the map per call; tests through apply_plan, talk_apply, clean_draft and Auto-file). Suites at this tree: plan-choose 15/15, sticky 75/75, guide 59/59, filing, fill-walk, tree-view, talk-chips, folders-shop, structure, hosts, roles, surface passed; auto-file 24/25 and db-calls red as on main.
+- Status stays in-review, not done: AC 1-2 need the spec's manual check (a real plan and fill on the shop, restored from a snapshot after); no dedicated test for Auto-file's label hit (AC 5) or a second fill moving nothing (AC 3).
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+Pass 1 (2026-09-28; blind hunter, edge-case hunter, verification gap):
+- high, patch: js/vergeml-folders.js withOrigin() rebuilt the draft from five named fields and dropped label_map on every edit, paste and answer -- the map survived only an untouched accept.
+- medium, patch: nothing drove the map through apply_plan -> talk_apply -> the stored map (sticky K wrote the state by hand) -- tests in guide C and sticky.
+- medium, patch: the real clean_draft's label_map handling ran in no test (plan-choose stubs it) -- guide B.
+- medium, patch: Auto-file's label hit and its earned bypass had no test -- auto-file.
+- medium, patch: the majority mapping could fold a planned folder onto a locked folder that the fill then refuses -- locked folders are not targets.
+- low, patch: a tie between two existing folders fell to row order -- lower term id.
+- low, patch: the label pick refused a locked target but not a view, which the model pick refuses -- same guard.
+- low, patch: Auto-file cached the map in a static for the whole process, stale after an undo -- read per call.
+- low, patch: auto-file.php's header rule "filing is earned" no longer held for label hits -- one line.
+- medium, defer: the dry run's label step has no test -- AC 1's manual check compares the dry run with the fill; logged in deferred-work.md.
+- false: the same label text in two planned folders overwrites the map -- the service assigns each label one path (assignmentOf), so a label is in one folder.

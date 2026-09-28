@@ -625,7 +625,7 @@ function vergeml_guide_clean_draft( $in ) {
         return preg_replace( '/[^A-Za-z0-9:_\-.]/', '', (string) $k );
     };
 
-    $out  = array( 'folders' => array(), 'gone' => array(), 'tags' => array(), 'origin' => 'talk', 'rule' => null );
+    $out  = array( 'folders' => array(), 'gone' => array(), 'tags' => array(), 'origin' => 'talk', 'rule' => null, 'label_map' => array() );
     $keys = array();
 
     // The second axis the assistant proposes as tags rides along for the apply; the tree does not draw it.
@@ -677,6 +677,19 @@ function vergeml_guide_clean_draft( $in ) {
         $to  = $key( $to );
         if ( $tid > 0 ) {
             $out['gone'][ $tid ] = isset( $keys[ $to ] ) ? $to : '';
+        }
+    }
+    /*
+     *  The label -> draft key map the plan built (spec-tree-planner story 4),
+     *  carried on the draft's own side rather than a folder's fields, which
+     *  the loop above already whitelisted closed. A key naming a folder the
+     *  cleaning dropped is dropped with it.
+     */
+    foreach ( (array) ( isset( $in['label_map'] ) ? $in['label_map'] : array() ) as $label => $to ) {
+        $label = sanitize_text_field( (string) $label );
+        $to    = $key( $to );
+        if ( '' !== $label && isset( $keys[ $to ] ) ) {
+            $out['label_map'][ $label ] = $to;
         }
     }
     if ( isset( $in['origin'] ) && 'rule' === $in['origin'] && isset( $in['rule'] ) && is_array( $in['rule'] ) ) {
@@ -1928,6 +1941,22 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
      *  NULL and this returns the rows untouched.
      */
     $index   = vergeml_filing_product_folders( $index, $profiles );
+    /*
+     *  The frozen label map (spec-tree-planner story 4), read here by the same
+     *  rule the fill will use: label text -> this run's own synthetic id, so
+     *  the dry run's "would stay unfiled" is the fill's. Keyed by label text
+     *  because $order runs the other way (id -> draft key).
+     */
+    if ( function_exists( 'vergeml_filing_label_folders' ) && ! empty( $draft['label_map'] ) ) {
+        $key_to_n = array_flip( $order );
+        $label_by_id = array();
+        foreach ( (array) $draft['label_map'] as $label => $draft_key ) {
+            if ( isset( $key_to_n[ $draft_key ] ) ) {
+                $label_by_id[ $label ] = $key_to_n[ $draft_key ];
+            }
+        }
+        $index = vergeml_filing_label_folders( $index, $profiles, $label_by_id );
+    }
     $counted = vergeml_filing_count( $profiles, $index, $deadline );
     if ( null === $counted ) {
         return null;
@@ -2375,11 +2404,18 @@ function vergeml_guide_apply_plan( $draft ) {
         $talk_key[ $f['key'] ] = vergeml_talk_key( $parent_name, (string) $f['name'] );
     }
 
-    $opts = array( 'assign' => array(), 'fallback' => array(), 'reasons' => array() );
+    $opts = array( 'assign' => array(), 'fallback' => array(), 'reasons' => array(), 'label_map' => array() );
 
     foreach ( (array) $draft['gone'] as $tid => $to ) {
         if ( '' !== $to && isset( $talk_key[ $to ] ) ) {
             $opts['fallback'][ (int) $tid ] = $talk_key[ $to ];
+        }
+    }
+
+    // The frozen label -> folder map (spec-tree-planner story 4), by the talk key vergeml_talk_apply resolves to a term id, as fallback is.
+    foreach ( (array) ( isset( $draft['label_map'] ) ? $draft['label_map'] : array() ) as $label => $to ) {
+        if ( isset( $talk_key[ $to ] ) ) {
+            $opts['label_map'][ (string) $label ] = $talk_key[ $to ];
         }
     }
 

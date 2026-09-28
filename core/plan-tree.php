@@ -395,10 +395,18 @@ function vergeml_plan_ask( $labels ) {
 
 /**
  *  The service's folders as the screen's draft. Every existing folder is in
- *  it where it stands (a folder left out of a draft reads as removed); a
- *  planned folder with an existing folder's name is that folder, and keeps
- *  its place. The rest are new, under their planned parents. A folder's
- *  classes are its labels' objects, which is what the matcher files by.
+ *  it where it stands (a folder left out of a draft reads as removed). A
+ *  planned folder whose pictures already sit at least half in one existing
+ *  folder becomes that folder -- the near-copy fix (spec-tree-planner story
+ *  4: "Bags and luggage" proposed beside an existing "Bags & Luggage" was
+ *  the same folder twice); failing that, a planned folder with an existing
+ *  folder's exact name is still that folder, as before. The rest are new,
+ *  under their planned parents. A folder's classes are its labels' objects,
+ *  which is what the matcher files by.
+ *
+ *  Alongside the draft, the label text -> draft key of every planned label is
+ *  kept on the draft's own side (vergeml_guide_clean_draft's 'label_map'):
+ *  the near-copies above, and what the fill freezes when the owner accepts.
  */
 function vergeml_plan_draft( $planned, $labels ) {
     $by_id = array();
@@ -410,7 +418,7 @@ function vergeml_plan_draft( $planned, $labels ) {
     $terms    = '' !== $taxonomy ? get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) ) : array();
     $terms    = is_array( $terms ) ? $terms : array();
 
-    $out     = array( 'folders' => array(), 'gone' => array(), 'tags' => array(), 'origin' => 'talk', 'rule' => null );
+    $out     = array( 'folders' => array(), 'gone' => array(), 'tags' => array(), 'origin' => 'talk', 'rule' => null, 'label_map' => array() );
     $by_name = array();
     foreach ( $terms as $t ) {
         // WordPress stores a term name escaped ("Bags &amp; Luggage"); the draft carries it as the owner reads it, or the folder reads as renamed.
@@ -422,7 +430,47 @@ function vergeml_plan_draft( $planned, $labels ) {
         );
     }
 
-    $key_of = array();
+    /*
+     *  Where each label's pictures already sit, from the described library
+     *  itself: label text -> existing term id -> how many of that label's
+     *  pictures are in it now. The source both the near-copy mapping below
+     *  and, once the owner accepts, the frozen label map read from.
+     */
+    $label_terms = array();
+    $rows        = ( '' !== $taxonomy && function_exists( 'vergeml_guide_rule_rows' ) ) ? vergeml_guide_rule_rows( $taxonomy, 'all', array( 'filing', 'terms' ) ) : array();
+    foreach ( (array) $rows as $r ) {
+        if ( empty( $r['in_terms'] ) ) {
+            continue;
+        }
+        $label = vergeml_plan_label_of( isset( $r['kind'] ) ? $r['kind'] : '', json_decode( (string) ( isset( $r['filing'] ) ? $r['filing'] : '' ), true ) );
+        if ( '' === $label ) {
+            continue;
+        }
+        foreach ( array_map( 'intval', explode( ',', (string) $r['in_terms'] ) ) as $tid ) {
+            $label_terms[ $label ][ $tid ] = isset( $label_terms[ $label ][ $tid ] ) ? $label_terms[ $label ][ $tid ] + 1 : 1;
+        }
+    }
+    // The folders a planned folder may become. Not "To sort": pictures waiting there are what a plan is for, and a planned folder made mostly of them is not To sort.
+    $waiting = array();
+    foreach ( $terms as $t ) {
+        if ( defined( 'VERGEML_FILING_TO_SORT_SLUG' ) && isset( $t->slug ) && VERGEML_FILING_TO_SORT_SLUG === $t->slug ) {
+            $waiting[ (int) $t->term_id ] = true;
+        }
+    }
+    $by_term = array();
+    foreach ( $out['folders'] as $at => $t ) {
+        if ( null === $t['term_id'] || isset( $waiting[ (int) $t['term_id'] ] ) ) {
+            continue;
+        }
+        // Read the lock the way core/filing.php does: a locked folder is not the fill's to file into, so it is not the mapping's to fold a planned folder onto either.
+        if ( defined( 'VERGEML_FILING_LOCKED' ) && function_exists( 'get_term_meta' ) && get_term_meta( (int) $t['term_id'], VERGEML_FILING_LOCKED, true ) ) {
+            continue;
+        }
+        $by_term[ (int) $t['term_id'] ] = $at;
+    }
+
+    $key_of    = array();
+    $label_map = array();
     foreach ( (array) $planned as $i => $f ) {
         $name = str_replace( '/', '-', sanitize_text_field( (string) ( isset( $f['name'] ) ? $f['name'] : '' ) ) );
         $path = (string) ( isset( $f['path'] ) ? $f['path'] : '' );
@@ -431,30 +479,68 @@ function vergeml_plan_draft( $planned, $labels ) {
         }
         $classes = array();
         $kinds   = array();
+        $total   = 0;   // This planned folder's pictures, by its labels' own counts.
+        $hits    = array(); // existing term id => how many of those pictures sit there already.
         foreach ( (array) ( isset( $f['labels'] ) ? $f['labels'] : array() ) as $id ) {
-            if ( isset( $by_id[ $id ] ) ) {
-                $classes[] = $by_id[ $id ]['class'];
-                $kinds[]   = $by_id[ $id ]['kind'];
+            if ( ! isset( $by_id[ $id ] ) ) {
+                continue;
+            }
+            $classes[] = $by_id[ $id ]['class'];
+            $kinds[]   = $by_id[ $id ]['kind'];
+            $total    += (int) ( isset( $by_id[ $id ]['count'] ) ? $by_id[ $id ]['count'] : 0 );
+            $label     = isset( $by_id[ $id ]['label'] ) ? $by_id[ $id ]['label'] : '';
+            if ( '' !== $label && isset( $label_terms[ $label ] ) ) {
+                foreach ( $label_terms[ $label ] as $tid => $n ) {
+                    $hits[ $tid ] = isset( $hits[ $tid ] ) ? $hits[ $tid ] + $n : $n;
+                }
             }
         }
         $classes = array_values( array_unique( $classes ) );
         $kinds   = array_values( array_unique( $kinds ) );
 
-        $n = mb_strtolower( $name );
-        if ( isset( $by_name[ $n ] ) ) {
-            $at = $by_name[ $n ];
+        // The existing folder holding at least half this planned folder's pictures, if one does. A tie goes to the lower term id, not to row scan order.
+        $onto = 0;
+        $best = 0;
+        foreach ( $hits as $tid => $n ) {
+            if ( ! isset( $by_term[ $tid ] ) ) {
+                continue;
+            }
+            if ( $n > $best || ( $n === $best && $tid < $onto ) ) {
+                $best = $n;
+                $onto = $tid;
+            }
+        }
+        $at = ( $total > 0 && $best * 2 >= $total ) ? $by_term[ $onto ] : null;
+
+        // No majority: today's fallback, an existing folder of the very same name.
+        if ( null === $at ) {
+            $lower = mb_strtolower( $name );
+            $at    = isset( $by_name[ $lower ] ) ? $by_name[ $lower ] : null;
+        }
+
+        if ( null !== $at ) {
             $out['folders'][ $at ]['classes'] = array_values( array_unique( array_merge( $out['folders'][ $at ]['classes'], $classes ) ) );
             $out['folders'][ $at ]['kinds']   = array_values( array_unique( array_merge( $out['folders'][ $at ]['kinds'], $kinds ) ) );
             $key_of[ $path ] = $out['folders'][ $at ]['key'];
+            foreach ( (array) ( isset( $f['labels'] ) ? $f['labels'] : array() ) as $id ) {
+                if ( isset( $by_id[ $id ]['label'] ) ) {
+                    $label_map[ $by_id[ $id ]['label'] ] = $out['folders'][ $at ]['key'];
+                }
+            }
             continue;
         }
         $key_of[ $path ]  = 'p' . $i;
-        $by_name[ $n ]    = count( $out['folders'] );
+        $by_name[ mb_strtolower( $name ) ] = count( $out['folders'] );
         $out['folders'][] = array(
             'key' => 'p' . $i, 'term_id' => null, 'name' => $name, 'parent' => (string) ( isset( $f['parent'] ) ? $f['parent'] : '' ),
             'count' => null, 'matches' => '', 'classes' => $classes, 'nowords' => false, 'kinds' => $kinds,
             'audience' => '', 'by' => '', 'asked' => false,
         );
+        foreach ( (array) ( isset( $f['labels'] ) ? $f['labels'] : array() ) as $id ) {
+            if ( isset( $by_id[ $id ]['label'] ) ) {
+                $label_map[ $by_id[ $id ]['label'] ] = 'p' . $i;
+            }
+        }
     }
     // Parents were paths; now they are keys. A planned parent that is not in the answer leaves the folder at the top.
     foreach ( $out['folders'] as &$f ) {
@@ -463,6 +549,8 @@ function vergeml_plan_draft( $planned, $labels ) {
         }
     }
     unset( $f );
+
+    $out['label_map'] = $label_map;
 
     return vergeml_guide_clean_draft( $out );
 }
