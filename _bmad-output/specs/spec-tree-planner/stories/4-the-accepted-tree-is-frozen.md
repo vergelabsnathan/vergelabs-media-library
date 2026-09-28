@@ -2,10 +2,10 @@
 title: 'The accepted tree is frozen'
 type: 'feature'
 created: '2026-09-28'
-status: 'in-review'
+status: 'in-progress'
 baseline_commit: '4397b155b5b181ad8dc706efcd5bd99488c0107e'
 route: 'dispatch'
-review_loop_iteration: 0
+review_loop_iteration: 1
 context: []
 ---
 
@@ -25,6 +25,8 @@ context: []
 
 **Decisions (Nathan, 2026-09-28):** New pictures: the Auto-file sweep files a picture whose label is in the map without waiting for the folder to have earned it; a label not in the map keeps today's earned rule. Planning again on an accepted tree stays refused (today's 409); a free re-plan that keeps the frozen folders and proposes only growth is its own story. The spec is kept whole.
 
+**Decisions after the shop proof (Nathan, 2026-09-28):** A frozen label files a picture out of the locked "To sort" folder unless a person put it there (placed_by user or answer); To sort stays locked against the matcher and against every other rule, and any other locked folder stays untouchable. The dry run's "would stay unfiled" counts the pictures that will remain in To sort after the fill, so the screen shows what the owner will see.
+
 ## I/O & Edge-Case Matrix
 
 | Scenario | Input / State | Expected Output / Behavior | Error Handling |
@@ -35,6 +37,8 @@ context: []
 | Product picture | picture of a WooCommerce product | its product category, not the map | N/A |
 | Map target gone | the owner deleted the mapped folder | the matcher decides | stale entry ignored |
 | Existing folder holds most | ≥ half of a planned folder's pictures sit in "Bags & Luggage" | the draft uses "Bags & Luggage", no new folder | N/A |
+| In To sort, label mapped | a picture the fill left in To sort, label in the map | filed in the label's folder | N/A |
+| In To sort by hand | placed_by user or answer | stays in To sort | N/A |
 | Two planned → one existing | both hold mostly "Kitchen" pictures | both map onto "Kitchen" | N/A |
 
 </frozen-after-approval>
@@ -58,6 +62,9 @@ context: []
 - [x] `core/auto-file.php` -- `vergeml_autofile_suggest` takes the label step before the pick; a label hit files without the `earned` gate.
 - [x] `tests/filing/sticky.php` -- new rows: label wins over matcher, loses to hand-placed, locked and product, falls back when the target is gone.
 - [x] `tests/tree/plan-choose.php` -- the existing-folder mapping, two-onto-one, and the map's label keys.
+- [ ] `core/filing.php` + `core/folder-talk.php` (+ the dry run's rows in `core/guide.php`) -- a row knows when the only locked folder it sits in is To sort; the label branch then applies despite the lock, unless placed_by is user or answer -- the frozen plan takes labelled pictures out of To sort.
+- [ ] `core/guide.php` -- the dry run counts pictures that will stay in To sort as "would stay unfiled".
+- [ ] `tests/filing/sticky.php` -- a labelled picture in To sort is filed out; a hand-placed one in To sort stays; a labelled picture in another locked folder stays; the matcher still never files out of To sort.
 
 **Acceptance Criteria:**
 - Given the shop planned and filled, when the fill ends, then at most 10 % of described pictures are unfiled and the dry run's "would stay unfiled" equals the fill's.
