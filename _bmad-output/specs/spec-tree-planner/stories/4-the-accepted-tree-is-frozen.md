@@ -101,3 +101,12 @@ Pass 1 (2026-09-28; blind hunter, edge-case hunter, verification gap):
 - low, patch: auto-file.php's header rule "filing is earned" no longer held for label hits -- one line.
 - medium, defer: the dry run's label step has no test -- AC 1's manual check compares the dry run with the fill; logged in deferred-work.md.
 - false: the same label text in two planned folders overwrites the map -- the service assigns each label one path (assignmentOf), so a label is in one folder.
+
+## Proof (shop, 2026-09-28, plugin 3d8ed8f, service a3d3eea)
+
+Plan -> dry run -> confirm -> fill through the routes the screen calls; the shop snapshotted first (/var/tmp and /root: vgml-shop-before-story4.json) and restored exactly after (323 terms, 627 relationships, 31 placed_by; the label map option deleted).
+
+- Plan: 15/15 runs; the tightest kept, 76 labels placed; the draft has 332 folders of which 9 new (the near-copies are gone), 391 labels in the map.
+- Fill: 33 s, 481 moved, 4 described pictures in no folder.
+- Not met: 85 pictures stay in "To sort" -- 14.2 % unfiled against the 10 % bar -- and the dry run said 1. To sort is locked by design ("the fill never files into it or out of it", `vergeml_talk_to_sort`), so a picture in it is `in_locked` and kept; 65 of the 85 have a label in the frozen map. The dry run does not count pictures kept in To sort as unfiled, so it and the fill disagree on exactly these.
+- Open for Nathan: may a frozen plan take a labelled picture out of To sort (a hand placement staying where it is)?
