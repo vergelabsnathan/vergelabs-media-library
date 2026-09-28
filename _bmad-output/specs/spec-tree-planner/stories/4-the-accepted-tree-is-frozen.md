@@ -137,3 +137,13 @@ Same procedure (snapshot /var/tmp/vgml-shop-before-story4b.json, restored exactl
 - Fill: 32 s, 539 moved; after it, 0 described pictures in no folder and 21 only in To sort -- 3.4 % unfiled (bar 10 %). The dry run said 22: one picture the dry run left below the floor found a folder in the fill.
 - The filled tree against the shop's truth (tools/tree-lab.mjs current): recovered 38/47, purity 75 %, pair F1 leaf 62 % -- before the plan 34/47, 76 %, 37 %. CAP-1's bars met; CAP-3's pair F1 68 % not yet (story 5, profiles from member pictures).
 - Not proven here: AC 3 (a second fill moves nothing) -- no second fill was run; the label rule re-resolves the same map, so it is expected, not measured.
+
+## Proof, tech (2026-09-28, plugin eb12415 + tools/box-plan-proof.php, live service)
+
+Tech unpointed to the live service, snapshotted (/root and /var/tmp: vgml-tech-before-techproof.json), one plan run through the screen's routes by `tools/box-plan-proof.php`, scored with `tools/box-tree-score.php` against tests/tree/truth-tech.json, restored exactly (21 terms, 975 relationships, 61 placed_by, label map deleted; the score after restore equals the score before), re-pointed.
+
+- Before: recovered 7/11, purity 67 %, pair F1 leaf 20 %, unfiled 4 %, 17 folders.
+- Plan: 1,000 described pictures, 678 labels, 51 credits; 15/15 runs, 84 labels placed; draft 46 folders of which 25 new, 657 labels in the map. Dry run: 3 would stay unfiled.
+- Fill: 22 s, 908 moved, 3 unfiled (the dry run said 3).
+- After: **recovered 7/11, purity 75 %**, pair F1 leaf 41 %, unfiled 0 %, 28 folders, depth 3.
+- Not met: CAP-1's tech bar (≥ 9/11, purity ≥ 78 %). Stopped after one plan, as agreed with Nathan: the numbers go to him before the bar or the planner changes. Credits: the balance fell 209 (23,842 → 23,633); the plan was 51, the other 158 not traced (the confirm's folder profiles are the likely charge).

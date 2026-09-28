@@ -28,7 +28,7 @@ A pain to solve. The folder tree decides how well everything after it works, and
   - **success:** With no audience evidence, the proposed tree holds no audience folders, and the conversation offers the split as a question.
 - **CAP-5**
   - **intent:** A library whose label inventory is too large for one call folds its rare labels into their broader class first, so a plan is still one request of fifteen runs.
-  - **success:** A synthetic library of 50,000 pictures plans within the call limit, at a cost stated before the owner presses.
+  - **success:** A synthetic library of 500,000 pictures plans within the call limit, at a cost stated before the owner presses. No library is ever refused for its size (Nathan, 2026-09-28).
 - **CAP-6**
   - **intent:** A tree score (pair F1 at leaf and top, purity, real folders recovered, unfiled, folder count, depth, same names) gates the planner the way the truth score gates filing.
   - **success:** `tools/tree-lab.mjs score` runs on shop and tech and its line is in every story's proof.
