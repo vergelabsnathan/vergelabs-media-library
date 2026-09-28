@@ -89,3 +89,12 @@ Against the bars: recovered ≥ 35 met; purity ≥ 75 % met; unfiled ≤ 10 % no
 - Runs dropped when plans ran back to back: the service's client times a call out at 40 s with one retry, and a run takes 18-26 s unloaded. Fifteen calls straight to OpenRouter all answered (26 s). Fix: a longer timeout for the planner's calls, inside the route's 300 s.
 - The matcher leaves more unfiled than the plan: it re-decides each picture from the draft's class words, and 105-133 pictures fall between two folders. The plan already knows each label's folder; filing by that is CAP-2/CAP-3 (stories 4 and 5).
 - Tech not yet run. Credits spent on the shop proof: 114 (plan 3 refunded).
+
+## Browser proof (shop, 2026-09-28, service a3d3eea, plugin 72b613d)
+
+Pressed in Chromium as the shop's admin (tree unconfirmed for the press, session restored after): the button read "Plan my folders · 38 credits", went to working on the press, and the screen settled on the draft in 55-60 s with the matcher's pills (361 folders · 447 would be placed · 179 would stay unfiled).
+
+- Found and fixed (72b613d): existing folders came through with WordPress's stored escaping ("Bags &amp; Luggage") and read as renamed; accepting would have renamed them. `plan-choose` row 9 guards it. After the fix: no "&amp;", no "renamed from".
+- Found, not fixed: on a site that already has folders the plan sees only labels, so it proposes near-copies beside them ("Bags and luggage" beside "Bags & Luggage", "Scarf" beside "Scarves", "Kitchenware" beside "Kitchen"), mostly with 0 pictures because the matcher keeps filing into the existing ones. Belongs with story 4: map a planned folder onto the existing folder that already holds most of its pictures.
+- Tech proof (2 plans before the 402s): 7 and 8 of 11 recovered, purity 86 and 85 %, unfiled 1 and 2 %.
+- The 402s: OpenRouter refused runs when fifteen reserved 16,000 tokens each on a low balance; the budget is sized to the labels now (e0177f3, a3d3eea) and the account tops up automatically.

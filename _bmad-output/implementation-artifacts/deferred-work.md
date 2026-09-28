@@ -153,7 +153,7 @@
 
 - source_spec: `_bmad-output/specs/spec-tree-planner/stories/3-the-plugin-plans-by-consensus-with-the-price-on-the-button.md`
   summary: the box's `admin` password matches neither `password` (what verify.mjs logs in with) nor `VgmlTest7pass` (the suites' usage line), so every box UI suite that signs in -- health, ai, smart -- fails at the login and tests nothing.
-  evidence: wp_check_password on user 1 is false for both, 2026-09-27; the three suites time out on their first selector on main's build too. Nathan's call: reset the password or pass UI_PASS through verify.mjs.
+  evidence: wp_check_password on user 1 is false for both, 2026-09-27; the three suites time out on their first selector on main's build too. Resolved 2026-09-28 (Nathan: go): admin on the box and on the shop set to VgmlTest7pass; with UI_PASS=VgmlTest7pass health, ai and smart pass. verify.mjs still passes no password, so without UI_PASS they log in with 'password' and fail.
 - source_spec: `_bmad-output/specs/spec-tree-planner/stories/3-the-plugin-plans-by-consensus-with-the-price-on-the-button.md`
   summary: health-keep (A1, A2), auto-file (a file between two folders is suggested) and naming (232 of 996 carry "Electronics") are red on the box with main's build as well as this branch's.
   evidence: main deployed to the box and the three run on 2026-09-27: the same rows fail; this branch is back on the box after.
