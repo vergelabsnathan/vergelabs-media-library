@@ -64,10 +64,10 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/file/(?P<id>\d+)` | POST, PUT, PATCH | closure | edit_post((int) $request['id']) | yes (1) | `title`, `alt`, $request | post/term write, meta/option write | no | core/quick-edit.php:161 |
 | `/vergeml/v1/folder` | POST | vergeml_can_manage_folders | manage_categories | no | `taxonomy*`, `action*`, `id`, `parent`, `name`, `color`, `ids`, `post_type`, $request | post/term write, delete, meta/option write, db query | yes | core/rest-folders.php:28 |
 | `/vergeml/v1/folder-privacy` | POST | closure | manage_categories | no | `id*`, `private`, $request | meta/option write | yes | core/private-folders.php:205 |
-| `/vergeml/v1/folders-apply` | POST | $may | manage_categories | no | `folders*`, `plan_id*`, $request | db query, post/term write, meta/option write, outbound http, schedules cron | yes | core/folder-talk.php:2738 |
-| `/vergeml/v1/folders-progress` | GET | $may | manage_categories | no | — | outbound http, schedules cron, db query, term assign, meta/option write | no | core/folder-talk.php:2760 |
-| `/vergeml/v1/folders-propose` | POST | $may | manage_categories | no | `instruction*`, `history`, `mode`, $request | outbound http, db query | no | core/folder-talk.php:2720 |
-| `/vergeml/v1/folders-undo` | POST | $may | manage_categories | no | — | post/term write, delete, term assign, meta/option write, db query | no | core/folder-talk.php:2748 |
+| `/vergeml/v1/folders-apply` | POST | $may | manage_categories | no | `folders*`, `plan_id*`, $request | db query, post/term write, meta/option write, outbound http, schedules cron | yes | core/folder-talk.php:2758 |
+| `/vergeml/v1/folders-progress` | GET | $may | manage_categories | no | — | outbound http, schedules cron, db query, term assign, meta/option write | no | core/folder-talk.php:2780 |
+| `/vergeml/v1/folders-propose` | POST | $may | manage_categories | no | `instruction*`, `history`, `mode`, $request | outbound http, db query | no | core/folder-talk.php:2740 |
+| `/vergeml/v1/folders-undo` | POST | $may | manage_categories | no | — | post/term write, delete, term assign, meta/option write, db query | no | core/folder-talk.php:2768 |
 | `/vergeml/v1/folders/version` | GET | vergeml_can_read_tree | upload_files | no | — | — | no | core/folders-version.php:102 |
 | `/vergeml/v1/gallery-folders` | GET | vergeml_can_read_tree | upload_files | no | `taxonomy`, $request | — | no | core/gallery-block.php:351 |
 | `/vergeml/v1/guide/answer` | POST | $may | manage_categories | no | `id*`, `answer*`, $request | post/term write, term assign, meta/option write, db write, db query | yes | core/guide.php:1044 |
@@ -135,7 +135,7 @@ Anything without brackets is a site-wide yes.
 |---|---|---|---|
 | `/vergeml/v1/autofile-act` | POST | unscoped capability on an id from the request | core/auto-file.php:665 |
 | `/vergeml/v1/brief/turn` | POST | unscoped capability on an id from the request | core/brief.php:649 |
-| `/vergeml/v1/folders-apply` | POST | unscoped capability on an id from the request | core/folder-talk.php:2738 |
+| `/vergeml/v1/folders-apply` | POST | unscoped capability on an id from the request | core/folder-talk.php:2758 |
 | `/vergeml/v1/guide/turn` | POST | unscoped capability on an id from the request | core/guide.php:968 |
 | `/vergeml/v1/guide/answer` | POST | unscoped capability on an id from the request | core/guide.php:1044 |
 | `/vergeml/v1/health-retire` | POST | unscoped capability on an id from the request | core/health-keep.php:843 |
@@ -191,7 +191,7 @@ anything it spends has to be decided before it is booked.
 | hook | booked at | answered by | writes | reads |
 |---|---|---|---|---|
 | `vergeml_ai_run_tick` | core/ai-background.php:467 | vergeml_ai_run_tick (core/ai-background.php:291) | schedules cron, db query, meta/option write, db write, outbound http | — |
-| `vergeml_talk_refile_event` | core/folder-talk.php:1749 | vergeml_talk_refile_event (core/folder-talk.php:1738) | schedules cron, db query, term assign, meta/option write, outbound http, delete, db write | — |
+| `vergeml_talk_refile_event` | core/folder-talk.php:1769 | vergeml_talk_refile_event (core/folder-talk.php:1758) | schedules cron, db query, term assign, meta/option write, outbound http, delete, db write | — |
 | `vergeml_guide_fit_event` | core/guide.php:1661 | vergeml_guide_fit_event (core/guide.php:1676) | db query, outbound http, meta/option write | — |
 | `vergeml_plan_event` | core/plan-tree.php:293 | vergeml_plan_event (core/plan-tree.php:302) | meta/option write, db query, outbound http, schedules cron | — |
 | `vergeml_meaning_convert` | core/search-meaning.php:538 | vergeml_meaning_convert_tick (core/search-meaning.php:545) | db query, db write, schedules cron | — |

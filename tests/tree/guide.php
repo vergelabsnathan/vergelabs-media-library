@@ -554,6 +554,72 @@ if ( ! taxonomy_exists( 'product_cat' ) || ! $g_att ) {
     g_check( 'J6 the fixture\'s product and category are gone again', 0 === count( $g_left_p ) && ! ( $g_left_t instanceof WP_Term ) );
 }
 
+/* ---------------------------------------------- K  the dry run counts To sort */
+
+/*
+ *  spec-tree-planner story 4, shop proof 2026-09-28: a picture kept only by
+ *  To sort's own lock is now counted as "would stay unfiled" (core/guide.php);
+ *  one kept by any other lock is not, exactly as before. Two fresh, described
+ *  pictures of this suite's own, one put in each kind of lock; the dry run is
+ *  run once before either exists and once after, so the difference is read
+ *  off the real count rather than guessed from it.
+ */
+echo "\nK  the dry run's unfiled counts a picture kept only by To sort, not one kept by another lock\n\n";
+
+$g_tax3 = vergeml_librarian_taxonomy();
+$GLOBALS['g_posts_k'] = array();
+
+function g_k_file( $title, $object ) {
+    $id = wp_insert_post( array( 'post_title' => 'zz guide ' . $title, 'post_type' => 'attachment', 'post_status' => 'inherit', 'post_mime_type' => 'image/png' ) );
+    $GLOBALS['g_posts_k'][] = (int) $id;
+    vergeml_index_set( (int) $id, array(
+        'caption'       => 'seeded',
+        'kind'          => 'photo',
+        'filing'        => wp_json_encode( array( 'object' => $object, 'audience' => '' ) ),
+        'embedding'     => array( 1.0, 0.0, 0.0, 0.0 ),
+        'model'         => 'zz-test',
+        'model_version' => 'zz-model-7',
+        'prompt_hash'   => 'zzguidehash0123456',
+        'error'         => '',
+        'described_at'  => gmdate( 'Y-m-d H:i:s' ),
+    ) );
+    return (int) $id;
+}
+
+$g_to_sort_id = vergeml_talk_to_sort( $g_tax3 );
+$g_lock2      = wp_insert_term( 'zzGuideOtherLock', $g_tax3 );
+$g_lock2_id   = is_wp_error( $g_lock2 ) ? (int) get_term_by( 'name', 'zzGuideOtherLock', $g_tax3 )->term_id : (int) $g_lock2['term_id'];
+update_term_meta( $g_lock2_id, VERGEML_FILING_LOCKED, 1 );
+
+// One folder is enough: neither test picture ever reaches the matcher, both are refused by a lock before it.
+$g_k_draft = vergeml_guide_clean_draft( array(
+    'folders' => array( array( 'key' => 't' . $g_first['id'], 'term_id' => $g_first['id'], 'name' => (string) $g_first['name'], 'parent' => '', 'classes' => array(), 'kinds' => array() ) ),
+    'gone'    => array(),
+    'origin'  => 'talk',
+    'rule'    => null,
+) );
+
+$g_fit_k0 = vergeml_guide_draft_fit( $g_k_draft, $g_tax3 );
+$g_k0     = is_array( $g_fit_k0 ) && isset( $g_fit_k0['unfiled']['to_sort'] ) ? (int) $g_fit_k0['unfiled']['to_sort'] : 0;
+
+$g_to_sort_pic = g_k_file( 'tosort', 'zzguidetosort; zzthing' );
+$g_other_pic   = g_k_file( 'otherlock', 'zzguideotherlock; zzthing' );
+wp_set_object_terms( $g_to_sort_pic, array( $g_to_sort_id ), $g_tax3, false );
+wp_set_object_terms( $g_other_pic, array( $g_lock2_id ), $g_tax3, false );
+
+$g_fit_k1 = vergeml_guide_draft_fit( $g_k_draft, $g_tax3 );
+$g_k1     = is_array( $g_fit_k1 ) && isset( $g_fit_k1['unfiled']['to_sort'] ) ? (int) $g_fit_k1['unfiled']['to_sort'] : 0;
+
+g_check( 'K1 the dry run\'s unfiled counts the picture kept only by To sort\'s lock, not the one kept by another lock', is_array( $g_fit_k0 ) && is_array( $g_fit_k1 ) && $g_k1 === $g_k0 + 1, json_encode( array( 'before' => $g_k0, 'after' => $g_k1 ) ) );
+
+foreach ( $GLOBALS['g_posts_k'] as $g_pid ) {
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $wpdb->delete( $wpdb->vergeml_ai_index, array( 'attachment_id' => $g_pid ), array( '%d' ) );
+    wp_delete_post( $g_pid, true );
+}
+wp_delete_term( $g_lock2_id, $g_tax3 );
+g_check( 'K2 the fixture is gone again', 0 === count( array_filter( $GLOBALS['g_posts_k'], function ( $id ) { return (bool) get_post( $id ); } ) ) && ! ( get_term( $g_lock2_id, $g_tax3 ) instanceof WP_Term ) );
+
 /* ------------------------------------------------------------------ put back */
 
 if ( false === $g_was ) {

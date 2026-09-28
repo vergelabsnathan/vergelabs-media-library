@@ -1923,11 +1923,25 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
     $locked = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids', 'meta_key' => VERGEML_FILING_LOCKED, 'meta_value' => '1' ) );
     $locked = is_wp_error( $locked ) ? array() : array_map( 'intval', (array) $locked );
 
+    /*
+     *  To sort's lock yields to a label, no other lock does (spec-tree-planner
+     *  story 4, shop proof 2026-09-28): read the same way the run's own SQL
+     *  does, by the slug, never created here.
+     */
+    $to_sort_slug = defined( 'VERGEML_FILING_TO_SORT_SLUG' ) ? VERGEML_FILING_TO_SORT_SLUG : 'to-sort';
+    $to_sort_term = get_term_by( 'slug', $to_sort_slug, $taxonomy );
+    $locked_other = $to_sort_term instanceof WP_Term ? array_values( array_diff( $locked, array( (int) $to_sort_term->term_id ) ) ) : $locked;
+
     $index = array();
     foreach ( $rows as $r ) {
         $id = (int) $r['attachment_id'];
         $in = empty( $r['in_terms'] ) ? array() : array_map( 'intval', explode( ',', (string) $r['in_terms'] ) );
-        $index[] = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '', 'placed_by' => '' ), array( 'in_locked' => (bool) array_intersect( $in, $locked ) ) );
+        $index[] = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '', 'placed_by' => '' ), array( 'in_locked' => (bool) array_intersect( $in, $locked ), 'in_locked_other' => (bool) array_intersect( $in, $locked_other ) ) );
+    }
+    // By attachment id, for the "still in To sort" count below -- $index carries facts $rows does not.
+    $locked_other_by_id = array();
+    foreach ( $index as $ix ) {
+        $locked_other_by_id[ (int) $ix['attachment_id'] ] = ! empty( $ix['in_locked_other'] );
     }
     /*
      *  File by the product (S10.8), the one step the fill took and this count
@@ -1979,6 +1993,15 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
                         $residue_word[ $key ] = $class[0]; // The describer's own words, as the screen will say them.
                     }
                 }
+            } elseif ( 'locked' === $pick['why'] && empty( $locked_other_by_id[ $id ] ) ) {
+                /*
+                 *  Kept only by To sort's lock (spec-tree-planner story 4,
+                 *  shop proof 2026-09-28): the fill leaves it there too
+                 *  (no label of its own, or the label map does not reach
+                 *  here), so the dry run's "would stay unfiled" now says so
+                 *  rather than reading it as placed and dropping it.
+                 */
+                $why['to_sort'] = isset( $why['to_sort'] ) ? $why['to_sort'] + 1 : 1;
             }
             continue;
         }

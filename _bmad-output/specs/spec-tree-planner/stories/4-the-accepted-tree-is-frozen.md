@@ -62,9 +62,9 @@ context: []
 - [x] `core/auto-file.php` -- `vergeml_autofile_suggest` takes the label step before the pick; a label hit files without the `earned` gate.
 - [x] `tests/filing/sticky.php` -- new rows: label wins over matcher, loses to hand-placed, locked and product, falls back when the target is gone.
 - [x] `tests/tree/plan-choose.php` -- the existing-folder mapping, two-onto-one, and the map's label keys.
-- [ ] `core/filing.php` + `core/folder-talk.php` (+ the dry run's rows in `core/guide.php`) -- a row knows when the only locked folder it sits in is To sort; the label branch then applies despite the lock, unless placed_by is user or answer -- the frozen plan takes labelled pictures out of To sort.
-- [ ] `core/guide.php` -- the dry run counts pictures that will stay in To sort as "would stay unfiled".
-- [ ] `tests/filing/sticky.php` -- a labelled picture in To sort is filed out; a hand-placed one in To sort stays; a labelled picture in another locked folder stays; the matcher still never files out of To sort.
+- [x] `core/filing.php` + `core/folder-talk.php` (+ the dry run's rows in `core/guide.php`) -- a row knows when the only locked folder it sits in is To sort; the label branch then applies despite the lock, unless placed_by is user or answer -- the frozen plan takes labelled pictures out of To sort.
+- [x] `core/guide.php` -- the dry run counts pictures that will stay in To sort as "would stay unfiled".
+- [x] `tests/filing/sticky.php` -- a labelled picture in To sort is filed out; a hand-placed one in To sort stays; a labelled picture in another locked folder stays; the matcher still never files out of To sort.
 
 **Acceptance Criteria:**
 - Given the shop planned and filled, when the fill ends, then at most 10 % of described pictures are unfiled and the dry run's "would stay unfiled" equals the fill's.
@@ -108,6 +108,16 @@ Pass 1 (2026-09-28; blind hunter, edge-case hunter, verification gap):
 - low, patch: auto-file.php's header rule "filing is earned" no longer held for label hits -- one line.
 - medium, defer: the dry run's label step has no test -- AC 1's manual check compares the dry run with the fill; logged in deferred-work.md.
 - false: the same label text in two planned folders overwrites the map -- the service assigns each label one path (assignmentOf), so a label is in one folder.
+
+Pass 2 (2026-09-28, the To sort decisions; blind hunter, edge-case hunter, verification gap):
+- medium, patch: a picture only in To sort with a product folder and a label left To sort by the product rule, not the label -- the product branch refuses a locked row.
+- medium, patch: the dry run's to_sort bucket was pinned by no suite -- a guide row.
+- low, patch: no test for a picture in both To sort and another locked folder -- sticky L6.
+- false: the preview lines omit to_sort -- no screen reads them; the pill sums why.to_sort.
+- false: pictures kept in another locked folder are not counted unfiled -- a locked folder is the owner's finished folder, not unfiled (Nathan's decision).
+- low, rejected: the To sort lookup is duplicated in folder-talk.php and guide.php -- style only; the fix adds a function.
+- low, rejected: a second correlated subquery per row -- slices are bounded; not measurable at this size.
+- not registered: tests/ui/folders.spec.mjs sums only floor+margin+gated for the pill; it is outside verify.mjs.
 
 ## Proof (shop, 2026-09-28, plugin 3d8ed8f, service a3d3eea)
 

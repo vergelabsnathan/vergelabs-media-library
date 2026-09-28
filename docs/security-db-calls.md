@@ -17,7 +17,7 @@ looks safest in a diff, so what is examined is `prepare()`'s own format string.
 
 | | count |
 |---|---|
-| lines mentioning `$wpdb->` | 515 |
+| lines mentioning `$wpdb->` | 518 |
 | `$wpdb->prepare()` calls | 133 |
 | **calls that reach the server** | **215** |
 | · prepared | 112 |
@@ -38,9 +38,9 @@ vulnerability — it is the list a person must read, and nothing else needs read
 | where | method | could not prove | SQL |
 |---|---|---|---|
 | core/auto-file.php:269 | `get_row` | `$words['select']`, `$words['join']` | `"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.prompt_hash, i.model_version, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHE` |
-| core/folder-talk.php:1108 | `get_results` | `$words['select']`, `$product['select']`, `$words['join']`, `$product['join']` | `"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.caption, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']}, {$pro` |
+| core/folder-talk.php:1121 | `get_results` | `$words['select']`, `$product['select']`, `$words['join']`, `$product['join']` | `"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.caption, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']}, {$pro` |
 | core/guide.php:1887 | `get_results` | `$words['select']`, `$product['select']`, `$words['join']`, `$product['join']` | `"SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by, {$words['select']}, {$product['select']} FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$` |
-| core/guide.php:3137 | `get_results` | `$words['select']`, `$words['join']`, `implode( ',', $chunk )` | `"SELECT i.attachment_id, i.embedding, i.tags, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id IN (" . implode( ',', $` |
+| core/guide.php:3160 | `get_results` | `$words['select']`, `$words['join']`, `implode( ',', $chunk )` | `"SELECT i.attachment_id, i.embedding, i.tags, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id IN (" . implode( ',', $` |
 
 ## Read by hand
 
@@ -170,9 +170,9 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | 274 | — | `get_var` | only a `$wpdb` table name | $wpdb->vergeml_ai_index — a $wpdb table name |
 | 283 | — | `get_results` | prepared | $wpdb->vergeml_ai_index — a $wpdb table name |
 | 949 | — | `get_var` | only a `$wpdb` table name | $wpdb->vergeml_ai_index — a $wpdb table name |
-| 1108 | — | `get_results` | **a finding** | could not prove `$words['select']`, `$product['select']`, `$words['join']`, `$product['join']` |
-| 2227 | — | `get_results` | only integers it cast itself | $wpdb->vergeml_ai_index — a $wpdb table name; implode( ',', array_map( 'intval', $chunk ) ) — implode of array_map( 'intval', ... ) |
-| 2505 | — | `get_var` | prepared | $wpdb->vergeml_ai_index — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
+| 1121 | — | `get_results` | **a finding** | could not prove `$words['select']`, `$product['select']`, `$words['join']`, `$product['join']` |
+| 2247 | — | `get_results` | only integers it cast itself | $wpdb->vergeml_ai_index — a $wpdb table name; implode( ',', array_map( 'intval', $chunk ) ) — implode of array_map( 'intval', ... ) |
+| 2525 | — | `get_var` | prepared | $wpdb->vergeml_ai_index — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
 
 ### core/guide.php
 
@@ -192,8 +192,8 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | 727 | — | `get_results` | prepared | $t — $t is only ever a $wpdb table name |
 | 768 | — | `get_var` | prepared | $t — $t is only ever a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
 | 1887 | — | `get_results` | **a finding** | could not prove `$words['select']`, `$product['select']`, `$words['join']`, `$product['join']` |
-| 2703 | — | `get_results` | only integers it cast itself | $select — $select is only ever a string literal in our own source / appended a string literal in our own source; $t — $t is only ever a $wpdb table name; $join — $join is only ever a string literal in our own source / appended text holding only a $wpdb table name / appended a $wpdb->prepare() fragment whose format string holds only a $wpdb table name; $where — $where is only ever a string literal in our own source / appended a $wpdb->prepare() fragment whose format string holds only a $wpdb table name; $group — $group is only ever a string literal in our own source |
-| 3137 | — | `get_results` | **a finding** | could not prove `$words['select']`, `$words['join']`, `implode( ',', $chunk )` |
+| 2726 | — | `get_results` | only integers it cast itself | $select — $select is only ever a string literal in our own source / appended a string literal in our own source; $t — $t is only ever a $wpdb table name; $join — $join is only ever a string literal in our own source / appended text holding only a $wpdb table name / appended a $wpdb->prepare() fragment whose format string holds only a $wpdb table name; $where — $where is only ever a string literal in our own source / appended a $wpdb->prepare() fragment whose format string holds only a $wpdb table name; $group — $group is only ever a string literal in our own source |
+| 3160 | — | `get_results` | **a finding** | could not prove `$words['select']`, `$words['join']`, `implode( ',', $chunk )` |
 
 ### core/health-delete.php
 

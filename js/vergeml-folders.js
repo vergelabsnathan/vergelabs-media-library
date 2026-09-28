@@ -569,7 +569,8 @@
 			return null;
 		}
 		var why = fit.unfiled || {};
-		var unfiled = ( Number( why.floor ) || 0 ) + ( Number( why.margin ) || 0 ) + ( Number( why.gated ) || 0 );
+		// to_sort (spec-tree-planner story 4): pictures the fill will still leave in the locked To sort folder, so this pill and the fill agree.
+		var unfiled = ( Number( why.floor ) || 0 ) + ( Number( why.margin ) || 0 ) + ( Number( why.gated ) || 0 ) + ( Number( why.to_sort ) || 0 );
 		return { placed: Math.max( 0, ( Number( fit.looked ) || 0 ) - unfiled ), unfiled: unfiled };
 	}
 

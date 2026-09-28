@@ -958,7 +958,8 @@ if ( 6 === $sk_reach ) {
     sk_check( 'K2 the label wins over the matcher: fits 501, sure, why label, score 1', 'fits' === $sk_k_pick['outcome'] && 501 === (int) $sk_k_pick['term_id'] && 'label' === $sk_k_pick['why'] && 'sure' === $sk_k_pick['confidence'] && abs( 1.0 - (float) $sk_k_pick['score'] ) < 1e-9, json_encode( $sk_k_pick ) );
 
     $sk_k_hand   = vergeml_filing_pick_rules( array( 'placed_by' => 'user', 'in_locked' => false, 'product' => 0, 'label_folder' => 501 ), $sk_k_profiles );
-    $sk_k_inlock = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => true, 'product' => 0, 'label_folder' => 501 ), $sk_k_profiles );
+    // A locked folder besides To sort (spec-tree-planner story 4): its lock is absolute, so in_locked_other is explicit here -- section L covers To sort's own, narrower exception.
+    $sk_k_inlock = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => true, 'in_locked_other' => true, 'product' => 0, 'label_folder' => 501 ), $sk_k_profiles );
     sk_check( 'K3 a hand placement and the picture\'s own locked folder both still win over a label hit', 'nothing' === $sk_k_hand['outcome'] && 'placed' === $sk_k_hand['why'] && 'nothing' === $sk_k_inlock['outcome'] && 'locked' === $sk_k_inlock['why'], json_encode( array( $sk_k_hand, $sk_k_inlock ) ) );
 
     $sk_k_target_locked = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => false, 'product' => 0, 'label_folder' => 502 ), $sk_k_profiles );
@@ -1046,6 +1047,170 @@ if ( 6 === $sk_reach ) {
 
     $sk_apply_undone = vergeml_talk_undo();
     sk_check( 'K7d cleaned up as K is: undo puts the real tree back exactly as it was and takes the one folder this made with it', ! is_wp_error( $sk_apply_undone ) && ! ( get_term( $sk_apply_term, $sk_tax ) instanceof WP_Term ), is_wp_error( $sk_apply_undone ) ? $sk_apply_undone->get_error_message() : json_encode( $sk_apply_undone ) );
+
+    /*
+     *  L: a frozen label takes a picture out of the locked "To sort" folder,
+     *  and only that lock ever yields (spec-tree-planner story 4, shop proof
+     *  2026-09-28: 85 pictures stayed in To sort, 65 of them labelled).
+     *  $sk_to_sort is the real, site-wide "To sort" (never added to
+     *  $sk_terms: this suite must never delete it, only the pictures it put
+     *  there).
+     */
+    echo "\nL  a frozen label empties To sort, but only To sort's lock yields (spec-tree-planner story 4)\n\n";
+
+    $sk_to_sort = vergeml_talk_to_sort( $sk_tax );
+    sk_check( 'L0 To sort exists and is locked', $sk_to_sort > 0 && (bool) get_term_meta( $sk_to_sort, VERGEML_FILING_LOCKED, true ), (string) $sk_to_sort );
+
+    $sk_ol = wp_insert_term( 'zzStickyOtherLock', $sk_tax );
+    $sk_terms['zzStickyOtherLock'] = is_wp_error( $sk_ol ) ? (int) get_term_by( 'name', 'zzStickyOtherLock', $sk_tax )->term_id : (int) $sk_ol['term_id'];
+    update_term_meta( $sk_terms['zzStickyOtherLock'], VERGEML_FILING_LOCKED, 1 );
+    $sk_lt = wp_insert_term( 'zzStickyToSortTarget', $sk_tax );
+    $sk_terms['zzStickyToSortTarget'] = is_wp_error( $sk_lt ) ? (int) get_term_by( 'name', 'zzStickyToSortTarget', $sk_tax )->term_id : (int) $sk_lt['term_id'];
+
+    $sk_l_label = 'zzstickytosort; zzthing';
+    $sk_files['tosort-label']  = sk_file( 'tosort-label',  $sk_l_label );
+    $sk_files['tosort-hand']   = sk_file( 'tosort-hand',   $sk_l_label );
+    $sk_files['tosort-plain']  = sk_file( 'tosort-plain',  'zzstickytosortplain; zzthing' ); // Not in the map: the matcher must never take it out of To sort.
+    $sk_files['otherlock-lbl'] = sk_file( 'otherlock-lbl', $sk_l_label );
+    wp_set_object_terms( $sk_files['tosort-label'], array( $sk_to_sort ), $sk_tax, false );
+    wp_set_object_terms( $sk_files['tosort-hand'], array( $sk_to_sort ), $sk_tax, false );
+    update_post_meta( $sk_files['tosort-hand'], VERGEML_FILING_PLACED_BY, 'user' );
+    wp_set_object_terms( $sk_files['tosort-plain'], array( $sk_to_sort ), $sk_tax, false );
+    wp_set_object_terms( $sk_files['otherlock-lbl'], array( $sk_terms['zzStickyOtherLock'] ), $sk_tax, false );
+
+    $sk_l_after     = min( $sk_files['tosort-label'], $sk_files['tosort-hand'], $sk_files['tosort-plain'], $sk_files['otherlock-lbl'] ) - 1;
+    $sk_to_sort_now = get_term( $sk_to_sort, $sk_tax );
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    // A real term, To sort's own -- undo's own "put terms back" reads by term_id first (it still exists, untouched) and only patches a name or parent mismatch, so its exact current name goes here, not a guess that would rename it.
+    update_option( VERGEML_TALK_UNDO, array( 'terms' => array( array( 'term_id' => $sk_to_sort, 'name' => $sk_to_sort_now instanceof WP_Term ? vergeml_term_name( $sk_to_sort_now ) : 'To sort', 'parent' => '' ) ), 'files' => array(), 'made' => array(), 'until' => time() + DAY_IN_SECONDS ), false );
+    update_option( VERGEML_TALK_STATE, array(
+        'active'    => true,
+        'taxonomy'  => $sk_tax,
+        'ids'       => array( 'lt' => $sk_terms['zzStickyToSortTarget'], 'ol' => $sk_terms['zzStickyOtherLock'] ),
+        'vectors'   => array(),
+        'assign'    => array(),
+        'fallback'  => array(),
+        'reasons'   => array(),
+        'label_map' => array( $sk_l_label => $sk_terms['zzStickyToSortTarget'] ),
+        'after'     => $sk_l_after,
+        'moved'     => 0,
+        'skipped'   => 0,
+        'seen'      => 0,
+        'total'     => 4,
+        'counts'    => array(),
+        'by_term'   => array(),
+        'unfiled'   => array(),
+        'tags'      => array(),
+        'tagged'    => 0,
+        'until'     => time() + DAY_IN_SECONDS,
+        'remove'    => array(),
+        'started'   => time(),
+        'ticked'    => time(),
+    ), false );
+    $sk_l_done = vergeml_talk_refile_run( microtime( true ) + 30.0 );
+
+    sk_check( 'L1 a labelled picture in To sort is filed out, into the label\'s folder', array( $sk_terms['zzStickyToSortTarget'] ) === $sk_where( $sk_files['tosort-label'] ), json_encode( $sk_where( $sk_files['tosort-label'] ) ) );
+    sk_check( 'L2 the hand-placed one, the same label, stays in To sort', array( $sk_to_sort ) === $sk_where( $sk_files['tosort-hand'] ), json_encode( $sk_where( $sk_files['tosort-hand'] ) ) );
+    sk_check( 'L3 the plain one, no label, stays in To sort: the matcher still never files out of it', array( $sk_to_sort ) === $sk_where( $sk_files['tosort-plain'] ), json_encode( $sk_where( $sk_files['tosort-plain'] ) ) );
+    sk_check( 'L4 a labelled picture in another locked folder stays there: only To sort\'s lock ever yields', array( $sk_terms['zzStickyOtherLock'] ) === $sk_where( $sk_files['otherlock-lbl'] ), json_encode( $sk_where( $sk_files['otherlock-lbl'] ) ) );
+
+    $sk_l_undone = vergeml_talk_undo();
+    sk_check( 'L5 undo puts the labelled picture back in To sort', ! is_wp_error( $sk_l_undone ) && array( $sk_to_sort ) === $sk_where( $sk_files['tosort-label'] ), is_wp_error( $sk_l_undone ) ? $sk_l_undone->get_error_message() : json_encode( $sk_where( $sk_files['tosort-label'] ) ) );
+
+    /*
+     *  L6: a picture in two locks, labelled, is untouchable -- To sort's own
+     *  exception only ever applies when To sort is the picture's *only*
+     *  lock (in_locked_other=true here refuses it before the label is even
+     *  read). A To-sort-only picture that is both a product's image and
+     *  labelled goes to the label's folder, not the product's: the product
+     *  branch is now gated on empty( $facts['in_locked'] ), so a row the
+     *  lock gate let through never reaches it.
+     */
+    $sk_files['tosort-both-lbl'] = sk_file( 'tosort-both-lbl', $sk_l_label );
+    wp_set_object_terms( $sk_files['tosort-both-lbl'], array( $sk_to_sort, $sk_terms['zzStickyOtherLock'] ), $sk_tax, false );
+
+    wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+    update_option( VERGEML_TALK_UNDO, array( 'terms' => array( array( 'term_id' => $sk_to_sort, 'name' => $sk_to_sort_now instanceof WP_Term ? vergeml_term_name( $sk_to_sort_now ) : 'To sort', 'parent' => '' ) ), 'files' => array(), 'made' => array(), 'until' => time() + DAY_IN_SECONDS ), false );
+    update_option( VERGEML_TALK_STATE, array(
+        'active'    => true,
+        'taxonomy'  => $sk_tax,
+        'ids'       => array( 'lt' => $sk_terms['zzStickyToSortTarget'], 'ol' => $sk_terms['zzStickyOtherLock'] ),
+        'vectors'   => array(),
+        'assign'    => array(),
+        'fallback'  => array(),
+        'reasons'   => array(),
+        'label_map' => array( $sk_l_label => $sk_terms['zzStickyToSortTarget'] ),
+        'after'     => $sk_files['tosort-both-lbl'] - 1,
+        'moved'     => 0,
+        'skipped'   => 0,
+        'seen'      => 0,
+        'total'     => 1,
+        'counts'    => array(),
+        'by_term'   => array(),
+        'unfiled'   => array(),
+        'tags'      => array(),
+        'tagged'    => 0,
+        'until'     => time() + DAY_IN_SECONDS,
+        'remove'    => array(),
+        'started'   => time(),
+        'ticked'    => time(),
+    ), false );
+    $sk_l6_done  = vergeml_talk_refile_run( microtime( true ) + 30.0 );
+    $sk_l6_where = $sk_where( $sk_files['tosort-both-lbl'] );
+    sort( $sk_l6_where );
+    $sk_l6_want = array( $sk_to_sort, $sk_terms['zzStickyOtherLock'] );
+    sort( $sk_l6_want );
+    sk_check( 'L6 a picture in To sort and another locked folder, labelled, stays in both: only To sort alone ever yields', $sk_l6_want === $sk_l6_where, json_encode( $sk_l6_where ) );
+
+    if ( ! post_type_exists( 'product' ) || ! taxonomy_exists( 'product_cat' ) ) {
+        echo "  skip  no product type on this site: WooCommerce is not active (L6b)\n";
+    } else {
+        $sk_pf = wp_insert_term( 'zzStickyToSortProduct', $sk_tax );
+        $sk_terms['zzStickyToSortProduct'] = is_wp_error( $sk_pf ) ? (int) get_term_by( 'name', 'zzStickyToSortProduct', $sk_tax )->term_id : (int) $sk_pf['term_id'];
+        $sk_pc2 = wp_insert_term( 'zzStickyToSortProduct', 'product_cat' );
+        $sk_pc2 = is_wp_error( $sk_pc2 ) ? (int) get_term_by( 'name', 'zzStickyToSortProduct', 'product_cat' )->term_id : (int) $sk_pc2['term_id'];
+        $sk_product2 = wp_insert_post( array( 'post_title' => 'zz sticky tosort product', 'post_type' => 'product', 'post_status' => 'publish' ) );
+        $GLOBALS['sk_posts'][] = (int) $sk_product2;
+        wp_set_object_terms( (int) $sk_product2, array( $sk_pc2 ), 'product_cat', false );
+
+        $sk_files['tosort-prod-lbl'] = sk_file( 'tosort-prod-lbl', $sk_l_label );
+        update_post_meta( (int) $sk_product2, '_thumbnail_id', (string) $sk_files['tosort-prod-lbl'] );
+        wp_set_object_terms( $sk_files['tosort-prod-lbl'], array( $sk_to_sort ), $sk_tax, false );
+
+        wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
+        update_option( VERGEML_TALK_UNDO, array( 'terms' => array( array( 'term_id' => $sk_to_sort, 'name' => $sk_to_sort_now instanceof WP_Term ? vergeml_term_name( $sk_to_sort_now ) : 'To sort', 'parent' => '' ) ), 'files' => array(), 'placed' => array(), 'batches' => array(), 'until' => time() + DAY_IN_SECONDS ), false );
+        update_option( VERGEML_TALK_STATE, array(
+            'active'    => true,
+            'taxonomy'  => $sk_tax,
+            'ids'       => array( 'lt' => $sk_terms['zzStickyToSortTarget'], 'pf' => $sk_terms['zzStickyToSortProduct'] ),
+            'vectors'   => array(),
+            'assign'    => array(),
+            'fallback'  => array(),
+            'reasons'   => array(),
+            'label_map' => array( $sk_l_label => $sk_terms['zzStickyToSortTarget'] ),
+            'after'     => $sk_files['tosort-prod-lbl'] - 1,
+            'moved'     => 0,
+            'skipped'   => 0,
+            'seen'      => 0,
+            'total'     => 1,
+            'counts'    => array(),
+            'by_term'   => array(),
+            'unfiled'   => array(),
+            'tags'      => array(),
+            'tagged'    => 0,
+            'until'     => time() + DAY_IN_SECONDS,
+            'remove'    => array(),
+            'started'   => time(),
+            'ticked'    => time(),
+        ), false );
+        $sk_l6b_done = vergeml_talk_refile_run( microtime( true ) + 30.0 );
+        sk_check( 'L6b a To-sort-only picture that is both a product\'s image and labelled goes to the label\'s folder, not the product\'s', array( $sk_terms['zzStickyToSortTarget'] ) === $sk_where( $sk_files['tosort-prod-lbl'] ), json_encode( $sk_where( $sk_files['tosort-prod-lbl'] ) ) );
+
+        wp_delete_term( $sk_pc2, 'product_cat' );
+    }
+
+    // Every file this section made, so the final cleanup below reaches K7's and L's own trail rows too.
+    $sk_in = implode( ',', array_map( 'intval', array_values( $sk_files ) ) );
 
     wp_clear_scheduled_hook( VERGEML_TALK_HOOK );
     if ( false !== $sk_hook_was ) {

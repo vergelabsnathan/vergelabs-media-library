@@ -1037,6 +1037,19 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 	}
 
 	/*
+	 *  To sort's own id, looked up rather than made (vergeml_talk_to_sort()
+	 *  would create it): a site with none yet has no picture sitting in it,
+	 *  so 0 excludes nothing and in_locked_other reads exactly as in_locked
+	 *  (spec-tree-planner story 4, shop proof 2026-09-28).
+	 */
+	$to_sort_id  = 0;
+	$to_sort_slg = defined( 'VERGEML_FILING_TO_SORT_SLUG' ) ? VERGEML_FILING_TO_SORT_SLUG : 'to-sort';
+	$to_sort_tm  = get_term_by( 'slug', $to_sort_slg, $taxonomy );
+	if ( $to_sort_tm instanceof WP_Term ) {
+		$to_sort_id = (int) $to_sort_tm->term_id;
+	}
+
+	/*
 	 *  One pass at a time. A tick and a poll's pass (S10.2) that both read
 	 *  `after` would both work the same slice and count it twice. The lock
 	 *  outlives the longest pass (a slice of 500 at the box's five a second)
@@ -1110,7 +1123,11 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr
 			            JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
 			            JOIN {$wpdb->termmeta} tm ON tm.term_id = tt.term_id AND tm.meta_key = %s AND tm.meta_value = '1'
-			           WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s ) AS in_locked
+			           WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s ) AS in_locked,
+			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr2
+			            JOIN {$wpdb->term_taxonomy} tt2 ON tt2.term_taxonomy_id = tr2.term_taxonomy_id
+			            JOIN {$wpdb->termmeta} tm2 ON tm2.term_id = tt2.term_id AND tm2.meta_key = %s AND tm2.meta_value = '1'
+			           WHERE tr2.object_id = i.attachment_id AND tt2.taxonomy = %s AND tt2.term_id != %d ) AS in_locked_other
 			   FROM {$wpdb->vergeml_ai_index} i
 			   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
 			   {$words['join']}
@@ -1120,6 +1137,9 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			  LIMIT %d",
 			VERGEML_FILING_LOCKED,
 			$taxonomy,
+			VERGEML_FILING_LOCKED,
+			$taxonomy,
+			$to_sort_id,
 			VERGEML_FILING_PLACED_BY,
 			(int) $state['after'],
 			$slice
