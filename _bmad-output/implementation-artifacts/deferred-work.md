@@ -160,3 +160,7 @@
 - source_spec: `_bmad-output/specs/spec-tree-planner/stories/3-the-plugin-plans-by-consensus-with-the-price-on-the-button.md`
   summary: db-calls (the register reason for core/guide.php f8e582bd4e no longer matches a call; three queries in auto-file.php, folder-talk.php and guide.php it cannot prove), escaping (text sinks no longer four to one: 244 to 65) and voice (2 strings with banned words) are red on main too.
   evidence: the same rows on main's checkout, 2026-09-27; the register needs a reason a person has read, so none was written here.
+
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/4-the-accepted-tree-is-frozen.md`
+  summary: plan again on an accepted tree, free -- keep every frozen folder and propose a new folder only when a label reaches the minimum (CAP-2's growth half).
+  evidence: split from story 4 by Nathan 2026-09-28 to keep it one goal; until it lands the button stays refused on an accepted tree (409).
