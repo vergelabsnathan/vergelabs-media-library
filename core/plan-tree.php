@@ -413,9 +413,10 @@ function vergeml_plan_draft( $planned, $labels ) {
     $out     = array( 'folders' => array(), 'gone' => array(), 'tags' => array(), 'origin' => 'talk', 'rule' => null );
     $by_name = array();
     foreach ( $terms as $t ) {
-        $by_name[ mb_strtolower( $t->name ) ] = count( $out['folders'] );
+        // WordPress stores a term name escaped ("Bags &amp; Luggage"); the draft carries it as the owner reads it, or the folder reads as renamed.
+        $by_name[ mb_strtolower( vergeml_term_name( $t ) ) ] = count( $out['folders'] );
         $out['folders'][] = array(
-            'key' => 't' . $t->term_id, 'term_id' => (int) $t->term_id, 'name' => $t->name,
+            'key' => 't' . $t->term_id, 'term_id' => (int) $t->term_id, 'name' => vergeml_term_name( $t ),
             'parent' => $t->parent ? 't' . $t->parent : '', 'count' => null, 'matches' => '',
             'classes' => array(), 'nowords' => false, 'kinds' => array(), 'audience' => '', 'by' => '', 'asked' => false,
         );

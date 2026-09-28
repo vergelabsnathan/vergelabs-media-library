@@ -82,6 +82,34 @@ pc_check( '7. a single tree is kept and placed', 0 === $one['index'] && 2 === $o
 $gap = vergeml_plan_choose( array( array( 'folders' => $tight['folders'], 'unfiled' => array( 'z' ) ) ), $sums, $counts );
 pc_check( '8. a label with no vector stays out', 0 === $gap['placed'], (string) $gap['placed'] );
 
+/*
+ *  The draft keeps an existing folder as the owner reads it. WordPress stores
+ *  "Bags & Luggage" as "Bags &amp; Luggage"; copied raw, the draft showed
+ *  every such folder as renamed, and accepting it would have renamed them
+ *  (the shop, 2026-09-28). The stand-ins below are WordPress's and the
+ *  plugin's own, as small as the call needs.
+ */
+function vergeml_librarian_taxonomy() {
+    return 'media_category';
+}
+function get_terms( $args ) {
+    return array( (object) array( 'term_id' => 7, 'name' => 'Bags &amp; Luggage', 'parent' => 0 ) );
+}
+function wp_specialchars_decode( $t, $q = 0 ) {
+    return html_entity_decode( (string) $t, ENT_QUOTES, 'UTF-8' );
+}
+function vergeml_term_name( $term ) {
+    return wp_specialchars_decode( (string) $term->name, ENT_QUOTES );
+}
+function sanitize_text_field( $t ) {
+    return trim( strip_tags( (string) $t ) );
+}
+function vergeml_guide_clean_draft( $draft ) {
+    return $draft;
+}
+$pc_draft = vergeml_plan_draft( array( array( 'path' => 'Bags & luggage', 'name' => 'Bags & luggage', 'parent' => '', 'labels' => array( 'a' ) ) ), array( array( 'id' => 'a', 'class' => 'backpack', 'kind' => 'photo' ) ) );
+pc_check( '9. an existing folder keeps its name as read, and a planned folder of that name is it', 1 === count( $pc_draft['folders'] ) && 'Bags & Luggage' === $pc_draft['folders'][0]['name'] && 7 === $pc_draft['folders'][0]['term_id'] && array( 'backpack' ) === $pc_draft['folders'][0]['classes'], wp_json( $pc_draft['folders'] ) );
+
 function wp_json( $v ) {
     return json_encode( $v );
 }
