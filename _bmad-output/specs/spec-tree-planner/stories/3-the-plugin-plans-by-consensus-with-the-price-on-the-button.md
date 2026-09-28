@@ -56,6 +56,17 @@ context: []
 - deferred: a retried slow run may be billed twice -- part of the open price decision at fifteen runs.
 - real, not a code fix: proof that the runs come back -- the proof round after deploy counts valid runs per plan.
 
+## Review Triage Log (2026-09-28, bmad-code-review of service e0177f3, the token budget)
+
+Why: the third plan in a row, then every plan, failed with OpenRouter's 402 "would exceed your available credits given your current in-flight requests" (39 runs in the log, 2026-09-27). Fifteen runs at 16,000 tokens reserved about $3.60 a plan up front. `planMaxTokens` = 1,500 + 8 per label, at most 16,000: the shop reserves about $1.17.
+
+- medium, patched: tech's budget was checked only from below, so a slide back to 16,000 would pass -- pinned at 2,884.
+- low, patched: a run cut short by its budget logged as a bare parse failure -- the failure log carries the budget.
+- low, patched: the parameter is a count, named `labelCount`; `budgetsSeen` resets with the rest in beforeEach; the comment says where the headroom ends.
+- deferred (logged under story 2): above about 1,800 labels the cap binds, about 4.8 tokens a label at 3,000 -- unchanged from the flat 16,000; story 7 folds rare labels.
+- false: the price is stale -- it is counted from labels, not tokens.
+- low, rejected: ids longer than the plugin's `l0`-`l2999`, CJK names, a 0-label test -- none is reachable from the plugin, and the floor is 1,500.
+
 ## Full verify, 2026-09-27
 
 29 passed on the first run; 7 could not start (playwright missing in the worktree: installed, 4 then passed). Fixed on this branch: surface (the plan route is a named registrar now), hosts (the /plan-tree row, and the /file and /api/trial rows main lacked), roles (84/82), the three security documents regenerated. Red on main as well, measured by deploying main to the box: health, ai, smart (the box's admin password matches neither known value), health-keep, auto-file, naming, db-calls, escaping, voice -- logged in deferred-work.md.
