@@ -2,7 +2,7 @@
 title: 'Large libraries fold rare labels'
 type: 'feature'
 created: '2026-09-28'
-status: 'in-review'
+status: 'done'
 baseline_commit: '3d8d28144eb3412019a56c6e9045b5d4892a1fd1'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -114,6 +114,7 @@ Pass 1 (2026-09-28; blind hunter, edge-case hunter, verification gap):
 - **low, rejected:** `folded_labels` and `left_out_pictures` are not shown on screen. Screen copy is Nathan's to write; this is proposed to him.
 - **low, rejected:** the fixture's kind roll adds labels beyond "about 40,000". It produced 41,794, which is about right.
 - **false:** the `too_many_labels` task claims a removal. There was no path to remove (see Implementation Notes).
+- **waived (Nathan, 2026-09-28): AC 2, one real charged plan at 500,000 pictures.** The test licence had no free seat (see Proof). The service's limits are covered by its own tests, and 1,500 labels is under the 3,000 wall and inside the token budget.
 
 ## Proof (box, 2026-09-28, plugin at this diff, live service)
 
