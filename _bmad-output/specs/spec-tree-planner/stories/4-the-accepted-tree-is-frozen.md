@@ -2,7 +2,7 @@
 title: 'The accepted tree is frozen'
 type: 'feature'
 created: '2026-09-28'
-status: 'in-progress'
+status: 'done'
 baseline_commit: '4397b155b5b181ad8dc706efcd5bd99488c0107e'
 route: 'dispatch'
 review_loop_iteration: 1
@@ -127,3 +127,13 @@ Plan -> dry run -> confirm -> fill through the routes the screen calls; the shop
 - Fill: 33 s, 481 moved, 4 described pictures in no folder.
 - Not met: 85 pictures stay in "To sort" -- 14.2 % unfiled against the 10 % bar -- and the dry run said 1. To sort is locked by design ("the fill never files into it or out of it", `vergeml_talk_to_sort`), so a picture in it is `in_locked` and kept; 65 of the 85 have a label in the frozen map. The dry run does not count pictures kept in To sort as unfiled, so it and the fill disagree on exactly these.
 - Open for Nathan: may a frozen plan take a labelled picture out of To sort (a hand placement staying where it is)?
+
+## Proof, second run (shop, 2026-09-28, plugin f9b5e67, service a3d3eea)
+
+Same procedure (snapshot /var/tmp/vgml-shop-before-story4b.json, restored exactly after: 323 terms, 627 relationships, 31 placed_by, label map deleted).
+
+- Plan: 15/15 runs; 328 folders of which 5 new; 386 labels frozen.
+- Dry run: would stay unfiled 22 (1 below the floor, 21 staying in To sort).
+- Fill: 32 s, 539 moved; after it, 0 described pictures in no folder and 21 only in To sort -- 3.4 % unfiled (bar 10 %). The dry run said 22: one picture the dry run left below the floor found a folder in the fill.
+- The filled tree against the shop's truth (tools/tree-lab.mjs current): recovered 38/47, purity 75 %, pair F1 leaf 62 % -- before the plan 34/47, 76 %, 37 %. CAP-1's bars met; CAP-3's pair F1 68 % not yet (story 5, profiles from member pictures).
+- Not proven here: AC 3 (a second fill moves nothing) -- no second fill was run; the label rule re-resolves the same map, so it is expected, not measured.
