@@ -168,3 +168,13 @@
 - source_spec: `_bmad-output/specs/spec-tree-planner/stories/4-the-accepted-tree-is-frozen.md`
   summary: vergeml_guide_draft_fit's label step (label -> synthetic profile id through array_flip( $order )) has no suite row; a wrong flip would make the Tree screen's "would stay unfiled" differ from the fill.
   evidence: no fixture in tests/tree/guide.php section F sets draft['label_map']; story 4's manual check compares the dry run with a real fill on the shop, which is the check until a row exists.
+
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/7-large-libraries-fold-rare-labels.md`
+  summary: the inventory's cache stamp (`SELECT COUNT(*), MAX(described_at) ... WHERE error = '' AND embedding IS NOT NULL`, core/plan-tree.php vergeml_plan_inventory) costs 4.4-4.6 s at 500,000 pictures and runs on every Folders page render, even with a warm cache; an index or a counter bumped on each description would make it cheap.
+  evidence: measured on the box's scale500k site, 2026-09-28; it predates story 7 (the same query was the stamp before).
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/7-large-libraries-fold-rare-labels.md`
+  summary: vergeml_ai_activate_site() treats any HTTP 200 as activated, but the service answers 200 {valid:false, reason:'seat_limit'} on a full licence, so a failed activation reads as success.
+  evidence: the story 7 proof, 2026-09-28: activation returned "ok", then /licence showed 5/5 seats and /plan-tree answered 403.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/7-large-libraries-fold-rare-labels.md`
+  summary: the fit job (dry run) at 500,000 pictures loads every vector and asks the service to embed about 42,000 phrases; not measured -- the fill at that size was out of story 7.
+  evidence: traced by the proof agent, 2026-09-28; no draft was built because the plan did not run.

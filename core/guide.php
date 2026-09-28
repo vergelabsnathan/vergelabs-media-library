@@ -2689,12 +2689,18 @@ function vergeml_guide_rule_args( $id, $options ) {
 
 /**
  *  The described pictures a rule looks at: every one, or only those in no
- *  folder, with what each rule needs to know about them. One query.
+ *  folder, with what each rule needs to know about them. One query, or,
+ *  with $after and $limit given, one page of it (spec-tree-planner story 7:
+ *  vergeml_plan_draft pages this the way vergeml_plan_label_sums pages the
+ *  index itself, so a large library never sits in memory whole). Left out,
+ *  they behave exactly as before -- the whole table, one query.
  *
  *  @param string $scope  'unfiled' | 'all'
  *  @param array  $need   any of 'filing', 'date', 'terms'
+ *  @param int    $after  attachment_id to read after; 0 for the start.
+ *  @param int    $limit  rows to a page; 0 for no limit.
  */
-function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array() ) {
+function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array(), $after = 0, $limit = 0 ) {
 
     global $wpdb;
 
@@ -2721,9 +2727,18 @@ function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array() ) {
     if ( 'unfiled' === $scope ) {
         $where .= $wpdb->prepare( " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s )", $taxonomy );
     }
+    $after = (int) $after;
+    if ( $after > 0 ) {
+        $where .= $wpdb->prepare( ' AND i.attachment_id > %d', $after );
+    }
+    $limit_sql = '';
+    $limit     = (int) $limit;
+    if ( $limit > 0 ) {
+        $limit_sql = $wpdb->prepare( ' LIMIT %d', $limit );
+    }
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; the parts are prepared above.
-    return (array) $wpdb->get_results( "SELECT {$select} FROM {$t} i{$join} WHERE {$where}{$group} ORDER BY i.attachment_id ASC", ARRAY_A );
+    return (array) $wpdb->get_results( "SELECT {$select} FROM {$t} i{$join} WHERE {$where}{$group} ORDER BY i.attachment_id ASC{$limit_sql}", ARRAY_A );
 }
 
 /** Live folders by lowercased path ("apparel/women") and by id. */

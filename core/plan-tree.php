@@ -31,6 +31,13 @@ const VERGEML_PLAN_TIMEOUT = 280;
 const VERGEML_PLAN_CACHE   = 'vergeml_plan_inventory';
 /** A label the model left out joins the nearest folder at this cosine or more; below it, it stays unfiled. Tuned on shop and tech. */
 const VERGEML_PLAN_PLACE   = 0.5;
+/** Bumped whenever the inventory's shape changes, so a cache built before the fold (spec-tree-planner story 7) is never read as one built after it. */
+const VERGEML_PLAN_INVENTORY_VERSION = 2;
+/** The service refuses more than 3,000 labels and its answer stops fitting its own budget well before that; the inventory folds down to this many so a library of any size is always under both. */
+const VERGEML_PLAN_FOLD_BUDGET = 1500;
+/** A cold inventory read past this many seconds serves the last cached one instead and hands the rest to cron. */
+const VERGEML_PLAN_FACTS_BUDGET = 15;
+const VERGEML_PLAN_REFRESH_HOOK = 'vergeml_plan_inventory_refresh';
 
 /** Ten credits and six per hundred labels, rounded up: the service's planPrice(). */
 function vergeml_plan_price( $labels ) {
@@ -43,55 +50,264 @@ function vergeml_plan_price( $labels ) {
  *  when the picture is not a photo -- the key tools/tree-lab.mjs measured.
  *  Cached against the described count and the newest description.
  *
- * @return array{labels:array,pictures:int,unlabelled:int}
+ *  Read in pages of 500 so a library of any size never sits in memory whole
+ *  (spec-tree-planner story 7). Over VERGEML_PLAN_FOLD_BUDGET distinct
+ *  labels, the rarest fold into their class's fold label
+ *  (vergeml_plan_fold_label) until the count is at or under the budget; if
+ *  even every label folded still leaves more fold labels than the budget,
+ *  the rarest of those are left out of the inventory entirely, counted in
+ *  'left_out_pictures' -- the matcher decides those pictures as it does an
+ *  unfolded library's leftovers.
+ *
+ *  A cold read past VERGEML_PLAN_FACTS_BUDGET seconds gives up and serves
+ *  the last cached inventory instead, and books one cron event
+ *  (VERGEML_PLAN_REFRESH_HOOK) to finish the count in the background. The
+ *  plan job itself calls with $force so its own read is never the stale one
+ *  the page render can settle for.
+ *
+ * @param bool $force Skip the time budget: read the whole library through,
+ *                     however long it takes. The plan job's own call.
+ * @return array{labels:array,pictures:int,unlabelled:int,folded_labels:int,left_out_pictures:int}
  */
-function vergeml_plan_inventory() {
+function vergeml_plan_inventory( $force = false ) {
     global $wpdb;
     $t = $wpdb->vergeml_ai_index;
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
     $stamp = $wpdb->get_row( "SELECT COUNT(*) AS n, MAX(described_at) AS at FROM {$t} WHERE error = '' AND embedding IS NOT NULL", ARRAY_A );
-    $key   = md5( wp_json_encode( $stamp ) );
+    $key   = md5( wp_json_encode( $stamp ) . '|' . VERGEML_PLAN_INVENTORY_VERSION . '|' . VERGEML_PLAN_FOLD_BUDGET );
     $held  = get_option( VERGEML_PLAN_CACHE );
     if ( is_array( $held ) && isset( $held['key'] ) && $held['key'] === $key ) {
         return $held['inventory'];
     }
+    // A refresh is already on its way: the page does not spend another 15 s finding that out.
+    if ( ! $force && is_array( $held ) && isset( $held['inventory'] ) && get_transient( VERGEML_PLAN_REFRESH_HOOK ) ) {
+        return $held['inventory'];
+    }
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    $rows = $wpdb->get_results( "SELECT kind, filing FROM {$t} WHERE error = '' AND embedding IS NOT NULL", ARRAY_A );
-
+    $started    = microtime( true );
     $by         = array();
     $unlabelled = 0;
-    foreach ( (array) $rows as $r ) {
-        $filing = json_decode( (string) $r['filing'], true );
-        $label  = vergeml_plan_label_of( $r['kind'], $filing );
-        if ( '' === $label ) {
-            ++$unlabelled;
-            continue;
+    $pictures   = 0;
+    $after      = 0;
+    $timed_out  = false;
+    do {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+        $rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, kind, filing FROM {$t} WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d ORDER BY attachment_id ASC LIMIT 500", $after ), ARRAY_A );
+        foreach ( $rows as $r ) {
+            $after = (int) $r['attachment_id'];
+            ++$pictures;
+            $filing = json_decode( (string) $r['filing'], true );
+            $label  = vergeml_plan_label_of( $r['kind'], $filing );
+            if ( '' === $label ) {
+                ++$unlabelled;
+                continue;
+            }
+            if ( ! isset( $by[ $label ] ) ) {
+                $classes      = vergeml_filing_classes_of_object( is_array( $filing ) && isset( $filing['object'] ) ? $filing['object'] : '' );
+                $kind         = sanitize_key( (string) $r['kind'] );
+                $by[ $label ] = array(
+                    'label'      => $label,
+                    'class'      => $classes[0],
+                    'kind'       => '' === $kind ? 'photo' : $kind,
+                    'count'      => 0,
+                    'audience'   => array(),
+                    'fold'       => vergeml_plan_fold_label( $r['kind'], $filing ),
+                    'fold_class' => isset( $classes[1] ) ? $classes[1] : $classes[0],
+                );
+            }
+            ++$by[ $label ]['count'];
+            $aud = vergeml_filing_audience_of_picture( is_array( $filing ) && isset( $filing['audience'] ) ? $filing['audience'] : '' );
+            if ( in_array( $aud, array( 'men', 'women', 'kids' ), true ) ) {
+                $by[ $label ]['audience'][ $aud ] = ( isset( $by[ $label ]['audience'][ $aud ] ) ? $by[ $label ]['audience'][ $aud ] : 0 ) + 1;
+            }
         }
-        if ( ! isset( $by[ $label ] ) ) {
-            $classes      = vergeml_filing_classes_of_object( $filing['object'] );
-            $kind         = sanitize_key( (string) $r['kind'] );
-            $by[ $label ] = array( 'label' => $label, 'class' => $classes[0], 'kind' => '' === $kind ? 'photo' : $kind, 'count' => 0, 'audience' => array() );
+        if ( ! $force && ( microtime( true ) - $started ) > VERGEML_PLAN_FACTS_BUDGET ) {
+            $timed_out = true;
+            break;
         }
-        ++$by[ $label ]['count'];
-        $aud = vergeml_filing_audience_of_picture( is_array( $filing ) && isset( $filing['audience'] ) ? $filing['audience'] : '' );
-        if ( in_array( $aud, array( 'men', 'women', 'kids' ), true ) ) {
-            $by[ $label ]['audience'][ $aud ] = ( isset( $by[ $label ]['audience'][ $aud ] ) ? $by[ $label ]['audience'][ $aud ] : 0 ) + 1;
+    } while ( 500 === count( $rows ) );
+
+    if ( $timed_out ) {
+        vergeml_plan_schedule_refresh();
+        if ( is_array( $held ) && isset( $held['inventory'] ) ) {
+            return $held['inventory'];
         }
+        // No cache exists yet at all: fold and hand back what the partial scan already saw rather than nothing.
     }
+
+    list( $by, $folded_labels, $left_out_pictures ) = vergeml_plan_fold( $by, VERGEML_PLAN_FOLD_BUDGET );
 
     uasort( $by, function ( $a, $b ) {
         return $b['count'] - $a['count'] ?: strcmp( $a['label'], $b['label'] );
     } );
     $labels = array();
     foreach ( array_values( $by ) as $i => $l ) {
+        unset( $l['fold'], $l['fold_class'] );
         $labels[] = array_merge( array( 'id' => 'l' . $i ), $l );
     }
 
-    $inventory = array( 'labels' => $labels, 'pictures' => count( (array) $rows ), 'unlabelled' => $unlabelled );
-    update_option( VERGEML_PLAN_CACHE, array( 'key' => $key, 'inventory' => $inventory ), false );
+    $inventory = array(
+        'labels'             => $labels,
+        'pictures'           => $pictures,
+        'unlabelled'         => $unlabelled,
+        'folded_labels'      => $folded_labels,
+        'left_out_pictures'  => $left_out_pictures,
+    );
+    // A partial count is held under a key no read matches, so the renders until the refresh lands serve it instead of scanning again.
+    update_option( VERGEML_PLAN_CACHE, array( 'key' => $timed_out ? 'partial' : $key, 'inventory' => $inventory ), false );
     return $inventory;
+}
+
+/**
+ *  The rarest labels folded into their class's fold label until the count
+ *  is at or under $budget (spec-tree-planner story 7). Under budget,
+ *  untouched. Rarest-first: a label with no vector for a folder to sit near
+ *  is no less foldable than one with a vector -- pictures-count is the only
+ *  thing that decides which fold first. Two labels that fold to the same
+ *  target merge into one entry, their counts and audience summed, the kind
+ *  kept (a photo and a screenshot of the same class never share a fold
+ *  label, because their label text -- and so their fold target -- differ by
+ *  the [kind] suffix).
+ *
+ *  If folding every last label still leaves more distinct fold labels than
+ *  the budget -- more classes in the library than the budget allows -- the
+ *  rarest fold labels are dropped from the answer entirely. Their pictures
+ *  are counted in $left_out_pictures but appear nowhere in the map that
+ *  comes back, so the matcher decides them exactly as it decides an
+ *  unfolded library's leftovers.
+ *
+ * @param array $by     label text => {label,class,kind,count,audience,fold,fold_class}.
+ * @param int   $budget VERGEML_PLAN_FOLD_BUDGET.
+ * @return array{0:array,1:int,2:int} the folded set, labels folded away, pictures left out.
+ */
+function vergeml_plan_fold( $by, $budget ) {
+    if ( count( $by ) <= $budget ) {
+        return array( $by, 0, 0 );
+    }
+
+    $order = $by;
+    uasort( $order, function ( $a, $b ) {
+        return $a['count'] - $b['count'] ?: strcmp( $a['label'], $b['label'] );
+    } );
+
+    $kept          = $by;
+    $folds         = array();
+    $folded_labels = 0;
+    foreach ( $order as $label => $entry ) {
+        if ( count( $kept ) + count( $folds ) <= $budget ) {
+            break;
+        }
+        unset( $kept[ $label ] );
+        ++$folded_labels;
+        $fl = $entry['fold'];
+        if ( ! isset( $folds[ $fl ] ) ) {
+            $folds[ $fl ] = array(
+                'label'      => $fl,
+                'class'      => $entry['fold_class'],
+                'kind'       => $entry['kind'],
+                'count'      => 0,
+                'audience'   => array(),
+                'fold'       => '',
+                'fold_class' => $entry['fold_class'],
+            );
+        }
+        $folds[ $fl ]['count'] += (int) $entry['count'];
+        foreach ( (array) $entry['audience'] as $a => $n ) {
+            $folds[ $fl ]['audience'][ $a ] = ( isset( $folds[ $fl ]['audience'][ $a ] ) ? $folds[ $fl ]['audience'][ $a ] : 0 ) + $n;
+        }
+    }
+
+    // A fold label that is also a kept label's own text takes that label in: counts and audience summed.
+    foreach ( $folds as $fl => $f ) {
+        if ( ! isset( $kept[ $fl ] ) ) {
+            continue;
+        }
+        $folds[ $fl ]['count'] += (int) $kept[ $fl ]['count'];
+        foreach ( (array) $kept[ $fl ]['audience'] as $a => $n ) {
+            $folds[ $fl ]['audience'][ $a ] = ( isset( $folds[ $fl ]['audience'][ $a ] ) ? $folds[ $fl ]['audience'][ $a ] : 0 ) + $n;
+        }
+        unset( $kept[ $fl ] );
+    }
+    $merged = array_merge( $kept, $folds );
+
+    $left_out_pictures = 0;
+    if ( count( $merged ) > $budget ) {
+        uasort( $folds, function ( $a, $b ) {
+            return $a['count'] - $b['count'] ?: strcmp( $a['label'], $b['label'] );
+        } );
+        foreach ( $folds as $label => $entry ) {
+            if ( count( $merged ) <= $budget ) {
+                break;
+            }
+            unset( $merged[ $label ] );
+            $left_out_pictures += (int) $entry['count'];
+        }
+    }
+
+    return array( $merged, $folded_labels, $left_out_pictures );
+}
+
+/**
+ *  The class a rare label folds into when the inventory is over budget:
+ *  "various <class>; <class>", the [kind] kept as the label's own carries
+ *  it (lib/plan-tree.ts reads a label as "object; class [kind]", which is
+ *  why the fold's "object" is "various <class>"). '' when the picture has
+ *  no object at all -- nothing to fold, as vergeml_plan_label_of already
+ *  reads '' the same way.
+ */
+function vergeml_plan_fold_label( $kind, $filing ) {
+    $classes = vergeml_filing_classes_of_object( is_array( $filing ) && isset( $filing['object'] ) ? $filing['object'] : '' );
+    if ( ! $classes ) {
+        return '';
+    }
+    $broad = isset( $classes[1] ) ? $classes[1] : $classes[0];
+    $kind  = sanitize_key( (string) $kind );
+    $kind  = '' === $kind ? 'photo' : $kind;
+    return 'various ' . $broad . '; ' . $broad . ( 'photo' === $kind ? '' : ' [' . $kind . ']' );
+}
+
+/**
+ *  The label a picture is known under in a label-keyed map: its own label
+ *  where the map holds that text, else its fold label where the map holds
+ *  that instead, else ''. A plan that stayed under budget never folded, so
+ *  no fold label is ever in its map and this reads exactly as
+ *  vergeml_plan_label_of did before story 7. Reused by the inventory's own
+ *  vector sums, the draft's near-copy match, and the frozen label map's
+ *  fill (core/filing.php's vergeml_filing_label_folders).
+ *
+ * @param array $known label text => anything; only isset() is read.
+ */
+function vergeml_plan_effective_label( $kind, $filing, $known ) {
+    $label = vergeml_plan_label_of( $kind, $filing );
+    if ( '' !== $label && isset( $known[ $label ] ) ) {
+        return $label;
+    }
+    $fold = vergeml_plan_fold_label( $kind, $filing );
+    if ( '' !== $fold && isset( $known[ $fold ] ) ) {
+        return $fold;
+    }
+    return '';
+}
+
+function vergeml_plan_schedule_refresh() {
+    set_transient( VERGEML_PLAN_REFRESH_HOOK, 1, 10 * MINUTE_IN_SECONDS );
+    if ( ! wp_next_scheduled( VERGEML_PLAN_REFRESH_HOOK ) ) {
+        wp_schedule_single_event( time(), VERGEML_PLAN_REFRESH_HOOK );
+    }
+    if ( ! defined( 'DOING_CRON' ) ) {
+        spawn_cron();
+    }
+}
+
+add_action( VERGEML_PLAN_REFRESH_HOOK, 'vergeml_plan_inventory_refresh_event' );
+
+function vergeml_plan_inventory_refresh_event() {
+    if ( function_exists( 'set_time_limit' ) ) {
+        @set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
+    }
+    vergeml_plan_inventory( true );
+    delete_transient( VERGEML_PLAN_REFRESH_HOOK );
 }
 
 /** A picture's label: "object; class", with [kind] when not a photo. '' when the describer named no object. */
@@ -130,7 +346,8 @@ function vergeml_plan_label_sums( $labels ) {
         $rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, kind, filing, embedding, embedding_dims FROM {$t} WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d ORDER BY attachment_id ASC LIMIT 500", $after ), ARRAY_A );
         foreach ( $rows as $r ) {
             $after = (int) $r['attachment_id'];
-            $label = vergeml_plan_label_of( $r['kind'], json_decode( (string) $r['filing'], true ) );
+            // A label the inventory folded away is not in $id_of by its own text; its fold label, if that survived the budget, is.
+            $label = vergeml_plan_effective_label( $r['kind'], json_decode( (string) $r['filing'], true ), $id_of );
             $v     = vergeml_index_vector_out( $r['embedding'] );
             if ( '' === $label || ! isset( $id_of[ $label ] ) || ! $v || ( $dims > 0 && count( $v ) !== $dims ) ) {
                 continue;
@@ -309,7 +526,8 @@ function vergeml_plan_event() {
         @set_time_limit( VERGEML_PLAN_TIMEOUT + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
 
-    $inv    = vergeml_plan_inventory();
+    // Forced: the paid plan reads the library through, whatever that costs here, rather than settling for the page render's 15s-or-stale inventory.
+    $inv    = vergeml_plan_inventory( true );
     $result = vergeml_plan_ask( $inv['labels'] );
 
     $s = vergeml_guide_session();
@@ -347,7 +565,15 @@ function vergeml_plan_event() {
     delete_transient( VERGEML_PLAN_LOCK );
 }
 
-/** The one outbound call: the labels, their counts and audience counts. Never a picture, a caption or a file name. */
+/**
+ *  The one outbound call: the labels, their counts and audience counts.
+ *  Never a picture, a caption or a file name. $labels is always
+ *  vergeml_plan_inventory()'s, which never hands back more than
+ *  VERGEML_PLAN_FOLD_BUDGET -- the service's 'too_many_labels' refusal
+ *  (spec-tree-planner story 7's problem) has no path here to reach any more,
+ *  so it is not given its own message and falls, like any other code this
+ *  service has not sent before, to the generic one below.
+ */
 function vergeml_plan_ask( $labels ) {
     $licence = function_exists( 'vergeml_ai_settings' ) ? vergeml_ai_unseal( vergeml_ai_settings()['license_key'] ) : '';
     if ( '' === $licence ) {
@@ -434,21 +660,35 @@ function vergeml_plan_draft( $planned, $labels ) {
      *  Where each label's pictures already sit, from the described library
      *  itself: label text -> existing term id -> how many of that label's
      *  pictures are in it now. The source both the near-copy mapping below
-     *  and, once the owner accepts, the frozen label map read from.
+     *  and, once the owner accepts, the frozen label map read from. Read in
+     *  pages of 500, as vergeml_plan_label_sums is, so a large library never
+     *  sits in memory whole; a picture whose own label the inventory folded
+     *  away counts under its fold label instead, when that survived the
+     *  budget (vergeml_plan_effective_label).
      */
     $label_terms = array();
-    $rows        = ( '' !== $taxonomy && function_exists( 'vergeml_guide_rule_rows' ) ) ? vergeml_guide_rule_rows( $taxonomy, 'all', array( 'filing', 'terms' ) ) : array();
-    foreach ( (array) $rows as $r ) {
-        if ( empty( $r['in_terms'] ) ) {
-            continue;
-        }
-        $label = vergeml_plan_label_of( isset( $r['kind'] ) ? $r['kind'] : '', json_decode( (string) ( isset( $r['filing'] ) ? $r['filing'] : '' ), true ) );
-        if ( '' === $label ) {
-            continue;
-        }
-        foreach ( array_map( 'intval', explode( ',', (string) $r['in_terms'] ) ) as $tid ) {
-            $label_terms[ $label ][ $tid ] = isset( $label_terms[ $label ][ $tid ] ) ? $label_terms[ $label ][ $tid ] + 1 : 1;
-        }
+    $label_index = array_column( $labels, 'id', 'label' );
+    if ( '' !== $taxonomy && function_exists( 'vergeml_guide_rule_rows' ) ) {
+        $after = 0;
+        do {
+            $rows = (array) vergeml_guide_rule_rows( $taxonomy, 'all', array( 'filing', 'terms' ), $after, 500 );
+            foreach ( $rows as $r ) {
+                if ( isset( $r['attachment_id'] ) ) {
+                    $after = (int) $r['attachment_id'];
+                }
+                if ( empty( $r['in_terms'] ) ) {
+                    continue;
+                }
+                $filing = json_decode( (string) ( isset( $r['filing'] ) ? $r['filing'] : '' ), true );
+                $label  = vergeml_plan_effective_label( isset( $r['kind'] ) ? $r['kind'] : '', $filing, $label_index );
+                if ( '' === $label ) {
+                    continue;
+                }
+                foreach ( array_map( 'intval', explode( ',', (string) $r['in_terms'] ) ) as $tid ) {
+                    $label_terms[ $label ][ $tid ] = isset( $label_terms[ $label ][ $tid ] ) ? $label_terms[ $label ][ $tid ] + 1 : 1;
+                }
+            }
+        } while ( 500 === count( $rows ) );
     }
     // The folders a planned folder may become. Not "To sort": pictures waiting there are what a plan is for, and a planned folder made mostly of them is not To sort.
     $waiting = array();

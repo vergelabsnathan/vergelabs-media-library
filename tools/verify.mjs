@@ -183,6 +183,14 @@ const SUITES = [
 	 */
 	{ name: 'plan-choose', file: 'tests/tree/plan-choose.php', env: 'local', php: 'wasm' },
 	/*
+	 *  The large-library fold (spec-tree-planner story 7): rare labels folded
+	 *  into their class's fold label until the inventory fits the budget, a
+	 *  fold-label collision merged rather than dropped, the exact label
+	 *  beating its own fold label, and a pre-version cache recomputed. No
+	 *  WordPress; a two-method $wpdb stub stands in for the one cache row.
+	 */
+	{ name: 'plan-fold', file: 'tests/tree/plan-fold.php', env: 'local', php: 'wasm' },
+	/*
 	 *  Confirm, lock, sticky (A.3): a hand move survives a fill, a locked
 	 *  folder keeps its pictures and gains none, a confirmed tree answers 409.
 	 *  The box: it stores a packed embedding and drives a real pass over its

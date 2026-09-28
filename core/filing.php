@@ -1673,7 +1673,10 @@ function vergeml_filing_product_folders( $rows, $profiles ) {
  *
  * @param array $rows      Index rows: 'kind', 'filing'.
  * @param array $profiles  vergeml_filing_profiles() (or a draft's own, keyed by its synthetic ids).
- * @param array $label_ids Label text => target id, frozen when the plan was filled.
+ * @param array $label_ids Label text => target id, frozen when the plan was filled. A plan that
+ *                          folded over its rare labels (spec-tree-planner story 7) keys some
+ *                          entries by a fold label ("various footwear; footwear") rather than by
+ *                          the picture's own exact label text.
  */
 function vergeml_filing_label_folders( $rows, $profiles, $label_ids ) {
     if ( ! $label_ids ) {
@@ -1681,8 +1684,9 @@ function vergeml_filing_label_folders( $rows, $profiles, $label_ids ) {
     }
     foreach ( (array) $rows as $k => $r ) {
         $filing = isset( $r['filing'] ) ? json_decode( (string) $r['filing'], true ) : null;
-        $label  = function_exists( 'vergeml_plan_label_of' ) ? vergeml_plan_label_of( isset( $r['kind'] ) ? $r['kind'] : '', $filing ) : '';
-        if ( '' === $label || ! isset( $label_ids[ $label ] ) ) {
+        // The picture's own label wins where the map holds it; else its fold label, where a folded plan's map holds that instead.
+        $label  = function_exists( 'vergeml_plan_effective_label' ) ? vergeml_plan_effective_label( isset( $r['kind'] ) ? $r['kind'] : '', $filing, $label_ids ) : '';
+        if ( '' === $label ) {
             continue;
         }
         $tid = (int) $label_ids[ $label ];
