@@ -214,6 +214,12 @@ const SUITES = [
 	 */
 	{ name: 'plan-grow', file: 'tests/tree/plan-grow.php', env: 'local', php: 'wasm' },
 	/*
+	 *  The plan's job, press and poll end to end against stand-ins: a job its
+	 *  host kills mid-ask failed and asked back rather than booked and
+	 *  charged again. The service is a scripted answer; nothing is spent.
+	 */
+	{ name: 'plan-job', file: 'tests/tree/plan-job.php', env: 'local', php: 'wasm' },
+	/*
 	 *  Confirm, lock, sticky (A.3): a hand move survives a fill, a locked
 	 *  folder keeps its pictures and gains none, a confirmed tree answers 409.
 	 *  The box: it stores a packed embedding and drives a real pass over its

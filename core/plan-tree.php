@@ -725,11 +725,20 @@ function vergeml_plan_rest_start() {
     return rest_ensure_response( vergeml_plan_out( $s ) );
 }
 
-/** The poll: the plan's state and, once it is done, the session with its draft. A job cron never started is booked again. */
+/**
+ *  The poll: the plan's state and, once it is done, the session with its
+ *  draft. A job cron never started is booked again; a job that started and
+ *  holds no lock was stopped by its host mid-plan, and is failed instead --
+ *  booked again it would name a new plan and be charged twice.
+ */
 function vergeml_plan_rest_poll() {
-    $s = vergeml_guide_session();
-    if ( isset( $s['plan']['state'] ) && 'running' === $s['plan']['state'] && ! get_transient( VERGEML_PLAN_LOCK ) ) {
-        if ( time() - (int) $s['plan']['at'] > VERGEML_PLAN_TIMEOUT + 120 ) {
+    // The lock before the session: the job saves its answer before it lets the lock go, so a session read after an absent lock is never an older one.
+    $locked = get_transient( VERGEML_PLAN_LOCK );
+    $s      = vergeml_guide_session();
+    if ( isset( $s['plan']['state'] ) && 'running' === $s['plan']['state'] && ! $locked ) {
+        if ( ! empty( $s['plan']['started'] ) ) {
+            $s = vergeml_plan_lost( $s['plan'] );
+        } elseif ( time() - (int) $s['plan']['at'] > VERGEML_PLAN_TIMEOUT + 120 ) {
             $s['plan'] = array( 'state' => 'failed', 'message' => __( 'The plan did not finish. Try again.', 'vergelabs-media-library' ) );
             vergeml_guide_save( $s );
         } elseif ( ! wp_next_scheduled( VERGEML_PLAN_HOOK ) ) {
@@ -737,6 +746,39 @@ function vergeml_plan_rest_poll() {
         }
     }
     return rest_ensure_response( vergeml_plan_out( $s ) );
+}
+
+/**
+ *  A started job that died: failed first, so a second poll meanwhile does not
+ *  ask again, then the plan it named asked back -- the service may have
+ *  charged it before the host stopped the job. A growth charged nothing.
+ */
+function vergeml_plan_lost( $plan ) {
+    $id = empty( $plan['grow'] ) && ! empty( $plan['id'] ) ? (string) $plan['id'] : '';
+    $s  = vergeml_plan_put( array(
+        'state'   => 'failed',
+        'message' => '' === $id
+            ? __( 'The plan did not finish. Try again.', 'vergelabs-media-library' )
+            : __( 'The plan did not come back, and it may have been charged. Your balance is on the Licence screen.', 'vergelabs-media-library' ),
+    ) );
+    if ( '' === $id ) {
+        return $s;
+    }
+    $refund = vergeml_plan_refund( $id );
+    if ( null === $refund ) {
+        return $s;
+    }
+    vergeml_plan_credits_left( $refund['credits_remaining'] );
+    // Given back, or never charged at all (not_refundable): either way this plan cost nothing.
+    return vergeml_plan_put( array( 'state' => 'failed', 'message' => __( 'The plan did not come together. Nothing was charged.', 'vergelabs-media-library' ) ) );
+}
+
+/** The plan's state onto the session as it stands now, not as some earlier read of it had it. */
+function vergeml_plan_put( $plan ) {
+    $s         = vergeml_guide_session();
+    $s['plan'] = $plan;
+    vergeml_guide_save( $s );
+    return $s;
 }
 
 function vergeml_plan_out( $s ) {
@@ -756,13 +798,24 @@ add_action( VERGEML_PLAN_HOOK, 'vergeml_plan_event' );
 
 function vergeml_plan_event() {
     $s = vergeml_guide_session();
-    if ( ! isset( $s['plan']['state'] ) || 'running' !== $s['plan']['state'] || get_transient( VERGEML_PLAN_LOCK ) ) {
+    // A job that started once never runs again: the poll fails it and asks its plan back (vergeml_plan_lost).
+    if ( ! isset( $s['plan']['state'] ) || 'running' !== $s['plan']['state'] || ! empty( $s['plan']['started'] ) || get_transient( VERGEML_PLAN_LOCK ) ) {
         return;
     }
     set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
     if ( function_exists( 'set_time_limit' ) ) {
         @set_time_limit( VERGEML_PLAN_TIMEOUT + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
+    /*
+     *  Named and marked started before anything is spent, in the session and
+     *  not only here: a host that stops this job mid-ask leaves the poll a
+     *  plan to fail and ask back by name, never one to book again (story 9's
+     *  review: a second run was a second charge).
+     */
+    $plan_id              = wp_generate_uuid4();
+    $s['plan']['id']      = $plan_id;
+    $s['plan']['started'] = time();
+    vergeml_guide_save( $s );
 
     // A filled plan grows here, with no service call (story 10).
     if ( ! empty( $s['plan']['grow'] ) ) {
@@ -776,10 +829,8 @@ function vergeml_plan_event() {
     $audience_confirmed = ( isset( $s['audience_split'] ) && 'yes' === $s['audience_split'] ) || vergeml_plan_product_audience_evidence();
 
     // Forced: the paid plan reads the library through, whatever that costs here, rather than settling for the page render's 15s-or-stale inventory.
-    $inv = vergeml_plan_inventory( true );
-    // Named here, so a plan whose answer never arrives can still be asked back by name (story 9's review).
-    $plan_id = wp_generate_uuid4();
-    $result  = vergeml_plan_ask( $inv['labels'], $audience_confirmed, $plan_id );
+    $inv    = vergeml_plan_inventory( true );
+    $result = vergeml_plan_ask( $inv['labels'], $audience_confirmed, $plan_id );
     // The ask can take the whole of the lock's time; the guard and the refund come after it.
     set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
 
