@@ -1005,7 +1005,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 	delete_transient( VERGEML_TALK_BEAT ); // An older run's heartbeat never reads as this one's.
 	update_option( VERGEML_TALK_STATE, $state, false );
 	// Its own option too (spec-tree-planner story 4): later filing (Auto-file, a picture described after the fill) reads this after the run's own state is long gone.
-	update_option( VERGEML_TALK_LABEL_MAP, $label_ids, false );
+	update_option( VERGEML_TALK_LABEL_MAP, $label_ids, true );
 
 	// The answer is "running, nothing seen yet"; the passes are cron's, and
 	// the screen polls them. A Move answers in the time it takes to make the
@@ -2143,7 +2143,7 @@ function vergeml_talk_undo() {
 	 *  the frozen one stays frozen.
 	 */
 	if ( ! empty( $before['label_map'] ) && is_array( $before['label_map'] ) ) {
-		update_option( VERGEML_TALK_LABEL_MAP, $before['label_map'], false );
+		update_option( VERGEML_TALK_LABEL_MAP, $before['label_map'], true );
 	} else {
 		delete_option( VERGEML_TALK_LABEL_MAP );
 	}

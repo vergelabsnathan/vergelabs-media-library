@@ -94,9 +94,14 @@ function vergeml_plan_price( $labels ) {
  *
  * @param bool $force Skip the time budget: read the whole library through,
  *                     however long it takes. The plan job's own call.
+ * @param bool $stale  The Folders page render: any held inventory, however
+ *                     old, rather than a scan before the page paints; an old
+ *                     one books the refresh. The price it shows is only the
+ *                     button's -- the press and the job count again and
+ *                     refuse a price above it.
  * @return array{labels:array,pictures:int,unlabelled:int,folded_labels:int,left_out_pictures:int}
  */
-function vergeml_plan_inventory( $force = false ) {
+function vergeml_plan_inventory( $force = false, $stale = false ) {
     global $wpdb;
     $t = $wpdb->vergeml_ai_index;
 
@@ -107,9 +112,15 @@ function vergeml_plan_inventory( $force = false ) {
     if ( is_array( $held ) && isset( $held['key'] ) && $held['key'] === $key ) {
         return $held['inventory'];
     }
-    // A refresh is already on its way: the page does not spend another 15 s finding that out.
-    if ( ! $force && is_array( $held ) && isset( $held['inventory'] ) && get_transient( VERGEML_PLAN_REFRESH_HOOK ) ) {
-        return $held['inventory'];
+    // A refresh is already on its way: the page does not spend another 15 s finding that out. The page render never does: it books one.
+    if ( ! $force && is_array( $held ) && isset( $held['inventory'] ) ) {
+        $refreshing = get_transient( VERGEML_PLAN_REFRESH_HOOK );
+        if ( $stale && ! $refreshing ) {
+            vergeml_plan_schedule_refresh();
+        }
+        if ( $stale || $refreshing ) {
+            return $held['inventory'];
+        }
     }
 
     $started    = microtime( true );
@@ -685,9 +696,16 @@ function vergeml_plan_product_audience_evidence() {
     return false;
 }
 
-/** What the button needs: the price, the label count, and the balance where one is known; and whether to ask the audience question (CAP-4). */
-function vergeml_plan_facts() {
-    $inv      = vergeml_plan_inventory();
+/**
+ *  What the button needs: the price, the label count, and the balance where
+ *  one is known; and whether to ask the audience question (CAP-4).
+ *
+ * @param bool|null $frozen Whether a plan is filled, when the caller knows already (the Folders boot).
+ * @param bool      $page   The page render: the held inventory, never a scan (vergeml_plan_inventory).
+ */
+function vergeml_plan_facts( $frozen = null, $page = false ) {
+    $inv      = vergeml_plan_inventory( false, $page );
+    $frozen   = null === $frozen ? (bool) vergeml_plan_frozen() : (bool) $frozen;
     $state    = function_exists( 'vergeml_ai_credits_state' ) ? vergeml_ai_credits_state() : array( 'remaining' => null );
     $evidence = vergeml_plan_product_audience_evidence();
     return array(
@@ -695,7 +713,7 @@ function vergeml_plan_facts() {
         // No folder holds fewer than five pictures (rules.md), so a library under five makes no plan; the button is not offered.
         'enough'            => vergeml_plan_enough( $inv['labels'] ),
         // A filled plan's re-plan only grows it and costs nothing (story 10, the spec's price constraint).
-        'price'             => vergeml_plan_frozen() ? 0 : vergeml_plan_price( count( $inv['labels'] ) ),
+        'price'             => $frozen ? 0 : vergeml_plan_price( count( $inv['labels'] ) ),
         'balance'           => null === $state['remaining'] ? null : (int) $state['remaining'],
         // Asked only while the site's own pictures say too little and the categories say nothing either; the screen stops asking once the session has an answer.
         'audience_ask'      => ! $evidence && vergeml_plan_audience_share( $inv['labels'] ) < VERGEML_PLAN_AUDIENCE_ASK,
@@ -1291,21 +1309,41 @@ function vergeml_plan_draft( $planned, $labels ) {
  *  and empty again once its folders are gone (the box's shop held 399 labels
  *  pointing at 49 deleted folders), so such a site plans from scratch again.
  */
-function vergeml_plan_frozen() {
-    $map = defined( 'VERGEML_TALK_LABEL_MAP' ) ? get_option( VERGEML_TALK_LABEL_MAP ) : array();
-    if ( ! is_array( $map ) || ! $map ) {
+function vergeml_plan_frozen( $live = null ) {
+    $map = vergeml_plan_label_map();
+    if ( ! $map ) {
         return array();
     }
-    $live = get_terms( array(
-        'taxonomy'   => function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category',
-        'include'    => array_values( array_unique( array_map( 'intval', $map ) ) ),
-        'hide_empty' => false,
-        'fields'     => 'ids',
-    ) );
+    // The Folders boot hands over the term ids it already loaded, so the frozen flag costs it no query.
+    if ( null === $live ) {
+        $live = get_terms( array(
+            'taxonomy'   => function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category',
+            'include'    => array_values( array_unique( array_map( 'intval', $map ) ) ),
+            'hide_empty' => false,
+            'fields'     => 'ids',
+        ) );
+    }
     $live = array_flip( array_map( 'intval', is_array( $live ) ? $live : array() ) );
     return array_filter( $map, function ( $tid ) use ( $live ) {
         return isset( $live[ (int) $tid ] );
     } );
+}
+
+/**
+ *  The frozen map as stored. It is autoloaded, because the Folders boot reads
+ *  it on every load (its query cap, tests/tree/guide.php A1); a row a fill
+ *  wrote before that was so is flipped once, here -- update_option() moves
+ *  autoload only when the value changes too.
+ */
+function vergeml_plan_label_map() {
+    if ( ! defined( 'VERGEML_TALK_LABEL_MAP' ) ) {
+        return array();
+    }
+    $map = get_option( VERGEML_TALK_LABEL_MAP );
+    if ( false !== $map && function_exists( 'wp_load_alloptions' ) && function_exists( 'wp_set_option_autoload' ) && ! array_key_exists( VERGEML_TALK_LABEL_MAP, wp_load_alloptions() ) ) {
+        wp_set_option_autoload( VERGEML_TALK_LABEL_MAP, true );
+    }
+    return is_array( $map ) ? $map : array();
 }
 
 /** The frozen map as a draft's label_map: label -> 't<term id>', the key every existing folder has in a draft. */

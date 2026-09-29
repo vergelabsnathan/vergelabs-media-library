@@ -114,7 +114,7 @@ function vergeml_folders_assets( $hook ) {
         'libraryUrl'=> admin_url( 'upload.php' ),
         'proposeCredits' => VERGEML_GUIDE_PROPOSE_CREDITS,
         // The plan's price, counted here from the label inventory; the service charges the same sum.
-        'plan'           => function_exists( 'vergeml_plan_facts' ) && $boot['facts']['pictures'] > 0 ? vergeml_plan_facts() : null,
+        'plan'           => function_exists( 'vergeml_plan_facts' ) && $boot['facts']['pictures'] > 0 ? vergeml_plan_facts( ! empty( $boot['session']['frozen'] ), true ) : null,
         // Folders a confirm reads per request: the progress row counts batches by it (S10.0).
         'profileBatch'   => defined( 'VERGEML_FILING_PROFILE_BATCH' ) ? VERGEML_FILING_PROFILE_BATCH : 60,
         'walk'      => (bool) apply_filters( 'vergeml_folders_walk', false ),
@@ -159,7 +159,8 @@ function vergeml_folders_boot() {
         'nodes'    => $nodes,
         'version'  => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
         'facts'    => $facts,
-        'session'  => vergeml_guide_session_out( $session ),
+        // The term ids the tree already loaded: the frozen flag reads them instead of asking for the terms again.
+        'session'  => vergeml_guide_session_out( $session, array_column( $nodes, 'id' ) ),
         // Where Step 3 stands: open questions, pictures in no folder, running, done.
         'fill'     => function_exists( 'vergeml_talk_fill_status' ) ? vergeml_talk_fill_status() : array( 'open' => 0, 'unfiled' => (int) $facts['unfiled'], 'running' => false, 'done' => false ),
         'undo'     => function_exists( 'vergeml_talk_undo_available' ) ? vergeml_talk_undo_available() : array( 'available' => false, 'until' => 0 ),
@@ -576,8 +577,13 @@ function vergeml_guide_save( $session ) {
     return $session;
 }
 
-/** What the browser gets of the session: never the token's secret parts beyond the token itself, never the summary. */
-function vergeml_guide_session_out( $s ) {
+/**
+ *  What the browser gets of the session: never the token's secret parts
+ *  beyond the token itself, never the summary.
+ *
+ * @param array|null $live The folders' term ids, when the caller has them loaded already (the boot).
+ */
+function vergeml_guide_session_out( $s, $live = null ) {
     return array(
         'turns'           => array_values( (array) $s['turns'] ),
         'draft'           => $s['draft'],
@@ -592,7 +598,7 @@ function vergeml_guide_session_out( $s ) {
         // CAP-4's one question: null until answered, then 'yes' or 'no'.
         'audience_split'  => isset( $s['audience_split'] ) ? $s['audience_split'] : null,
         // A plan was filled: planning again only grows it, for free (spec-tree-planner story 10).
-        'frozen'          => function_exists( 'vergeml_plan_frozen' ) && (bool) vergeml_plan_frozen(),
+        'frozen'          => function_exists( 'vergeml_plan_frozen' ) && (bool) vergeml_plan_frozen( $live ),
     );
 }
 

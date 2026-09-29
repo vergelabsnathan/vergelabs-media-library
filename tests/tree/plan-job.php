@@ -18,13 +18,17 @@
  *  mid-run asking a refund -> row 6; the job saving its whole early read of
  *  the session over a confirm or a turn made meanwhile -> rows 7, 8, 9; a
  *  job overwriting a plan the poll already failed -> row 10; a press or a
- *  job going ahead at a price above the button's -> rows 11, 12.
+ *  job going ahead at a price above the button's -> rows 11, 12; a plan
+ *  offered or asked under five pictures -> rows 14, 15; the page render
+ *  scanning the library, or the frozen flag asking for terms the boot holds
+ *  -> rows 16, 17; the label map left out of the autoload -> row 18.
  */
 
 define( 'ABSPATH', '/' );
 define( 'ARRAY_A', 'ARRAY_A' );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'VERGEML_REST_NS', 'vergeml/v1' );
+define( 'VERGEML_TALK_LABEL_MAP', 'vergeml_talk_label_map' );
 
 class WP_Error {
     public $code;
@@ -117,7 +121,15 @@ function wp_schedule_single_event( $ts, $hook ) {
     return true;
 }
 function spawn_cron() {}
+function wp_load_alloptions() {
+    return $GLOBALS['pj_autoloaded'];
+}
+function wp_set_option_autoload( $name, $autoload ) {
+    $GLOBALS['pj_autoload_set'][ $name ] = $autoload;
+    return true;
+}
 function get_terms( $args ) {
+    $GLOBALS['pj_get_terms']++;
     $terms = $GLOBALS['pj_terms'];
     if ( isset( $args['fields'] ) && 'ids' === $args['fields'] ) {
         $ids = array_map( function ( $t ) { return (int) $t->term_id; }, $terms );
@@ -215,6 +227,7 @@ class PJ_Wpdb {
         return array( 'n' => count( $GLOBALS['pj_rows'] ), 'at' => $GLOBALS['pj_stamp'] );
     }
     public function get_results( $q ) {
+        $GLOBALS['pj_scans']++;
         return false !== strpos( $q, 'attachment_id > 0 ' ) ? $GLOBALS['pj_rows'] : array();
     }
     public function get_var( $q ) {
@@ -247,6 +260,10 @@ function pj_reset( $rows = 12 ) {
     $GLOBALS['pj_booked']     = 0;
     $GLOBALS['pj_calls']      = array();
     $GLOBALS['pj_filed']      = false;
+    $GLOBALS['pj_scans']      = 0;
+    $GLOBALS['pj_get_terms']  = 0;
+    $GLOBALS['pj_autoloaded'] = array();
+    $GLOBALS['pj_autoload_set'] = array();
     $GLOBALS['pj_stamp']      = 'stamp-' . microtime( true );
     unset( $GLOBALS['pj_meanwhile'] );
     $GLOBALS['pj_terms'] = array(
@@ -452,6 +469,33 @@ $GLOBALS['pj_rows'] = array_slice( $GLOBALS['pj_rows'], 0, 4 );
 vergeml_plan_event();
 $s = pj_session();
 pj_check( '15. five at the press and four by the job: failed before the ask, nothing spent', array() === $GLOBALS['pj_calls'] && 'failed' === $s['plan']['state'] && 'A plan needs at least five described pictures.' === $s['plan']['message'], json_encode( $s['plan'] ) );
+
+/* ---------------------------------------- M2  what the Folders boot costs */
+
+echo "
+M2  the Folders page reads what it holds, and asks for nothing again
+
+";
+
+pj_reset();
+vergeml_plan_facts();
+$GLOBALS['pj_rows'][] = pj_row( 200, 'teapot; kitchen appliance', '', array( 0, 1, 1 ) );
+$GLOBALS['pj_scans']  = 0;
+$page                 = vergeml_plan_facts( false, true );
+pj_check( '16. the page render serves the held count, however old, without a scan, and books the refresh', 0 === $GLOBALS['pj_scans'] && 2 === $page['labels'] && ! empty( $GLOBALS['pj_scheduled'][ VERGEML_PLAN_REFRESH_HOOK ] ), $GLOBALS['pj_scans'] . ' scans, ' . $page['labels'] . ' labels' );
+vergeml_plan_inventory_refresh_event();
+$press = vergeml_plan_facts( false, true );
+pj_check( '16b. the refresh it booked counts the new label, and the next render shows it', 3 === $press['labels'] && $GLOBALS['pj_scans'] > 0, $press['labels'] . ' labels' );
+
+pj_reset();
+$GLOBALS['pj_options'][ VERGEML_TALK_LABEL_MAP ] = array( 'ankle boot; footwear' => 5, 'gone; thing' => 99 );
+$frozen                                          = vergeml_plan_frozen( array( 5, 6 ) );
+pj_check( '17. handed the tree\'s term ids, the frozen map asks for no terms, and drops a deleted folder\'s entry', 0 === $GLOBALS['pj_get_terms'] && array( 'ankle boot; footwear' => 5 ) === $frozen, json_encode( $frozen ) );
+pj_check( '18. a map row written before it was autoloaded is flipped once', array( VERGEML_TALK_LABEL_MAP => true ) === $GLOBALS['pj_autoload_set'] );
+$GLOBALS['pj_autoloaded']   = array( VERGEML_TALK_LABEL_MAP => 'x' );
+$GLOBALS['pj_autoload_set'] = array();
+vergeml_plan_frozen( array( 5 ) );
+pj_check( '18b. and never again once it is', array() === $GLOBALS['pj_autoload_set'] );
 
 $pj_total = $GLOBALS['pj_pass'] + $GLOBALS['pj_fail'];
 printf( "\n%d/%d passed\n", $GLOBALS['pj_pass'], $pj_total );
