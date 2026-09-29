@@ -968,6 +968,31 @@ if ( 6 === $sk_reach ) {
     $sk_k_product = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => false, 'product' => 501, 'label_folder' => 502 ), array( 501 => array( 'locked' => false ), 502 => array( 'locked' => false ) ) );
     sk_check( 'K4 the product still wins over the label: fits 501, why product', 'fits' === $sk_k_product['outcome'] && 501 === (int) $sk_k_product['term_id'] && 'product' === $sk_k_product['why'], json_encode( $sk_k_product ) );
 
+    /*
+     *  K4b-K4e (spec-tree-planner CAP-4, story 6's fix round). The frozen map
+     *  decided a LABEL belongs in a gendered folder; that is a fact about the
+     *  label's pictures in general, not about one picture in particular. A
+     *  picture whose own audience matches still wins by the label; one that
+     *  says a different audience, or says nothing, is never guessed into it --
+     *  the same gate an ungated pick already meets, so it falls to the
+     *  matcher below instead of being taken here. Mutation: the audience
+     *  check removed from the label branch -> K4c and K4d red (why reads
+     *  'label' on a picture that never said so).
+     */
+    $sk_k_aud_profiles = array( 503 => array( 'locked' => false, 'audience' => 'men', 'kinds' => array( 'photo' ) ) );
+
+    $sk_k_aud_match = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => false, 'product' => 0, 'label_folder' => 503, 'audience' => 'men' ), $sk_k_aud_profiles );
+    sk_check( 'K4b a picture the describer called the same audience as the label\'s target still wins by the label: fits 503, why label', 'fits' === $sk_k_aud_match['outcome'] && 503 === (int) $sk_k_aud_match['term_id'] && 'label' === $sk_k_aud_match['why'], json_encode( $sk_k_aud_match ) );
+
+    $sk_k_aud_blank = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => false, 'product' => 0, 'label_folder' => 503, 'audience' => '' ), $sk_k_aud_profiles );
+    sk_check( 'K4c a picture that says nothing about audience is never guessed into the label\'s gendered target', 'label' !== $sk_k_aud_blank['why'], json_encode( $sk_k_aud_blank ) );
+
+    $sk_k_aud_other = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => false, 'product' => 0, 'label_folder' => 503, 'audience' => 'women' ), $sk_k_aud_profiles );
+    sk_check( 'K4d a picture the describer called a different audience is refused by the label branch outright', 'label' !== $sk_k_aud_other['why'], json_encode( $sk_k_aud_other ) );
+
+    $sk_k_aud_absent = vergeml_filing_pick_rules( array( 'placed_by' => '', 'in_locked' => false, 'product' => 0, 'label_folder' => 503 ), $sk_k_aud_profiles );
+    sk_check( 'K4e the same with no audience key on the row at all (an older caller): no warning, no guess', 'label' !== $sk_k_aud_absent['why'], json_encode( $sk_k_aud_absent ) );
+
     // K5: end to end, through a real fill -- the state's own label_map, threaded from vergeml_talk_apply, wins over the matcher; a stale entry is ignored.
     $sk_k = wp_insert_term( 'zzStickyK', $sk_tax );
     $sk_terms['zzStickyK'] = is_wp_error( $sk_k ) ? (int) get_term_by( 'name', 'zzStickyK', $sk_tax )->term_id : (int) $sk_k['term_id'];

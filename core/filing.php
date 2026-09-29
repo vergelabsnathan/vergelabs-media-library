@@ -2018,17 +2018,33 @@ function vergeml_filing_pick_rules( $facts, $profiles ) {
      *  own word the same way).
      */
     if ( ! empty( $facts['label_folder'] ) && isset( $profiles[ (int) $facts['label_folder'] ] ) && empty( $profiles[ (int) $facts['label_folder'] ]['locked'] ) && empty( $profiles[ (int) $facts['label_folder'] ]['view'] ) ) {
-        $tid = (int) $facts['label_folder'];
-        return vergeml_filing_outcome( 'fits', 'label', array(
-            'term_id'    => $tid,
-            'parent_id'  => vergeml_filing_parent_of( $tid, $profiles ),
-            'score'      => 1.0,
-            'confidence' => 'sure',
-            'source'     => 'label',
-            'hit'        => 'label',
-            'scores'     => array( $tid => 1.0 ),
-            'gated'      => array(),
-        ) );
+        $tid    = (int) $facts['label_folder'];
+        $target = isset( $profiles[ $tid ]['audience'] ) ? (string) $profiles[ $tid ]['audience'] : '';
+        /*
+         *  An audience-gated target (CAP-4, spec-tree-planner story 6): the
+         *  plan decided the LABEL belongs there, which is a fact about the
+         *  label's pictures in general, not about this one picture in
+         *  particular. Taking the frozen map's word for an audience folder
+         *  would refile pictures the describer never said were anyone's --
+         *  exactly the guess CAP-4 forbids, whether the folder passed the
+         *  plan's own evidence bar or the owner answered "yes" to skip it.
+         *  A picture whose own audience does not match falls through to the
+         *  gate below instead, the same one an ungated pick would meet --
+         *  gated outright if it says a different audience, held as a shadow
+         *  (a runner-up, never the pick) if it says none.
+         */
+        if ( '' === $target || ( isset( $facts['audience'] ) ? (string) $facts['audience'] : '' ) === $target ) {
+            return vergeml_filing_outcome( 'fits', 'label', array(
+                'term_id'    => $tid,
+                'parent_id'  => vergeml_filing_parent_of( $tid, $profiles ),
+                'score'      => 1.0,
+                'confidence' => 'sure',
+                'source'     => 'label',
+                'hit'        => 'label',
+                'scores'     => array( $tid => 1.0 ),
+                'gated'      => array(),
+            ) );
+        }
     }
 
     $scores   = array();
