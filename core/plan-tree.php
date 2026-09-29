@@ -1813,7 +1813,7 @@ function vergeml_plan_grow_event( &$s ) {
     }
     $s['plan'] = array(
         'state'   => $grown ? 'done' : 'kept',
-        'message' => $grown ? '' : __( 'No new folders to propose.', 'vergelabs-media-library' ),
+        'message' => $grown ? '' : __( 'No new folders to add.', 'vergelabs-media-library' ),
         'grow'    => true,
         'charged' => 0,
         'folders' => count( $decided['grow'] ),
