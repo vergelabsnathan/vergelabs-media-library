@@ -776,16 +776,30 @@ function vergeml_plan_event() {
     $audience_confirmed = ( isset( $s['audience_split'] ) && 'yes' === $s['audience_split'] ) || vergeml_plan_product_audience_evidence();
 
     // Forced: the paid plan reads the library through, whatever that costs here, rather than settling for the page render's 15s-or-stale inventory.
-    $inv    = vergeml_plan_inventory( true );
-    $result = vergeml_plan_ask( $inv['labels'], $audience_confirmed );
+    $inv = vergeml_plan_inventory( true );
+    // Named here, so a plan whose answer never arrives can still be asked back by name (story 9's review).
+    $plan_id = wp_generate_uuid4();
+    $result  = vergeml_plan_ask( $inv['labels'], $audience_confirmed, $plan_id );
     // The ask can take the whole of the lock's time; the guard and the refund come after it.
     set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
 
     $s = vergeml_guide_session();
     if ( is_wp_error( $result ) ) {
-        $s['plan'] = array( 'state' => 'failed', 'message' => $result->get_error_message() );
+        $message = $result->get_error_message();
+        // No answer, or one we cannot read: the service may have charged. Ask for it back by the name this site gave the plan.
+        if ( in_array( $result->get_error_code(), array( 'unreachable', 'failed' ), true ) ) {
+            $refund = vergeml_plan_refund( $plan_id );
+            if ( null === $refund && 'unreachable' === $result->get_error_code() ) {
+                // Neither given back nor known to be uncharged: say nothing about a charge.
+                $message = __( 'The plan did not come back, and it may have been charged. Your balance is on the Licence screen.', 'vergelabs-media-library' );
+            }
+            vergeml_plan_credits_left( null !== $refund ? $refund['credits_remaining'] : null );
+        }
+        $s['plan'] = array( 'state' => 'failed', 'message' => $message );
     } elseif ( 'confirmed' === $s['tree'] ) {
-        // Confirmed while the plan ran: the confirmed tree wins and the plan is dropped.
+        // Confirmed while the plan ran: the confirmed tree wins, the plan is dropped, and its credits are asked back -- the owner never sees it.
+        $refund = ! empty( $result['plan'] ) ? vergeml_plan_refund( (string) $result['plan'] ) : null;
+        vergeml_plan_credits_left( null !== $refund && null !== $refund['credits_remaining'] ? $refund['credits_remaining'] : ( isset( $result['credits_remaining'] ) ? (int) $result['credits_remaining'] : null ) );
         $s['plan'] = null;
     } else {
         // An older service sends its one kept tree; a current one every valid tree, to choose among here.
@@ -821,17 +835,22 @@ function vergeml_plan_event() {
             'placed'  => $chosen['placed'],
             'left_out'=> (int) $inv['unlabelled'],
         );
-        $left = null !== $refund ? $refund['credits_remaining'] : ( isset( $result['credits_remaining'] ) ? (int) $result['credits_remaining'] : null );
-        if ( null !== $left ) {
-            $credits              = get_option( 'vergeml_ai_credits', array() );
-            $credits              = is_array( $credits ) ? $credits : array();
-            $credits['remaining'] = $left;
-            $credits['time']      = time();
-            update_option( 'vergeml_ai_credits', $credits, false );
-        }
+        vergeml_plan_credits_left( null !== $refund && null !== $refund['credits_remaining'] ? $refund['credits_remaining'] : ( isset( $result['credits_remaining'] ) ? (int) $result['credits_remaining'] : null ) );
     }
     vergeml_guide_save( $s );
     delete_transient( VERGEML_PLAN_LOCK );
+}
+
+/** The balance the service last named, for the button; null leaves the cached one. */
+function vergeml_plan_credits_left( $left ) {
+    if ( null === $left ) {
+        return;
+    }
+    $credits              = get_option( 'vergeml_ai_credits', array() );
+    $credits              = is_array( $credits ) ? $credits : array();
+    $credits['remaining'] = (int) $left;
+    $credits['time']      = time();
+    update_option( 'vergeml_ai_credits', $credits, false );
 }
 
 /**
@@ -850,8 +869,12 @@ function vergeml_plan_event() {
  *                                  the service then skips stripping an
  *                                  audience folder the label counts alone
  *                                  would not support.
+ * @param string $plan              The plan's name, a uuid this site made
+ *                                  (story 9's review): the service charges
+ *                                  under it, so the credits can be asked back
+ *                                  by it when no answer arrives.
  */
-function vergeml_plan_ask( $labels, $audience_confirmed = false ) {
+function vergeml_plan_ask( $labels, $audience_confirmed = false, $plan = '' ) {
     $licence = function_exists( 'vergeml_ai_settings' ) ? vergeml_ai_unseal( vergeml_ai_settings()['license_key'] ) : '';
     if ( '' === $licence ) {
         return new WP_Error( 'no_licence', __( 'This needs a licence key. Add yours under AI.', 'vergelabs-media-library' ) );
@@ -866,7 +889,7 @@ function vergeml_plan_ask( $labels, $audience_confirmed = false ) {
         'timeout'   => VERGEML_PLAN_TIMEOUT,
         'headers'   => array( 'Content-Type' => 'application/json' ),
         'sslverify' => true,
-        'body'      => wp_json_encode( array( 'license_key' => $licence, 'site' => home_url(), 'labels' => $send, 'audienceConfirmed' => (bool) $audience_confirmed ) ),
+        'body'      => wp_json_encode( array( 'license_key' => $licence, 'site' => home_url(), 'labels' => $send, 'audienceConfirmed' => (bool) $audience_confirmed, 'plan' => $plan ) ),
     ) );
     if ( is_wp_error( $response ) ) {
         return new WP_Error( 'unreachable', __( 'The service could not be reached. Nothing was charged.', 'vergelabs-media-library' ) );
@@ -907,7 +930,10 @@ function vergeml_plan_ask( $labels, $audience_confirmed = false ) {
  *  nothing about the pictures or the folders. One retry on a network failure:
  *  a refund lost to a blip is credits an owner paid for nothing.
  *
- * @return array{refunded:int,credits_remaining:int}|null Null when the service refused or could not be reached.
+ * @return array{refunded:int,credits_remaining:int|null}|null The refund; refunded 0
+ *         when the service holds nothing to give back for this plan (never
+ *         charged, or given back already -- not_refundable); null when it
+ *         refused otherwise or could not be reached, so nothing is known.
  */
 function vergeml_plan_refund( $plan ) {
     $licence = function_exists( 'vergeml_ai_settings' ) ? vergeml_ai_unseal( vergeml_ai_settings()['license_key'] ) : '';
@@ -926,7 +952,11 @@ function vergeml_plan_refund( $plan ) {
         }
     }
     $data = is_wp_error( $response ) ? null : json_decode( (string) wp_remote_retrieve_body( $response ), true );
-    if ( 200 !== (int) wp_remote_retrieve_response_code( $response ) || ! isset( $data['refunded'], $data['credits_remaining'] ) ) {
+    $code = (int) wp_remote_retrieve_response_code( $response );
+    if ( 404 === $code && isset( $data['error'] ) && 'not_refundable' === $data['error'] ) {
+        return array( 'refunded' => 0, 'credits_remaining' => null );
+    }
+    if ( 200 !== $code || ! isset( $data['refunded'], $data['credits_remaining'] ) ) {
         return null;
     }
     return array( 'refunded' => (int) $data['refunded'], 'credits_remaining' => (int) $data['credits_remaining'] );
