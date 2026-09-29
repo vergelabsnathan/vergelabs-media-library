@@ -20,7 +20,7 @@ A WordPress media library plugin — folders, categories, and AI alt text — fo
 
 ## Running and verifying
 
-- Suites run through `node tools/verify.mjs <name>`, not a test runner. 49 are registered; naming none runs all.
+- Suites run through `node tools/verify.mjs <name>`, not a test runner. The registry in `tools/verify.mjs` is the list; naming none runs all.
 - Run `node tools/deploy.mjs --check` before trusting any result from the box. It compares the box's manifest against this working tree and names both digests; a STALE box means the suite is testing yesterday's code.
 - Ship to the box with `node tools/deploy.mjs --box`. A suite alone does not deploy the plugin — `verify.mjs` copies only the suite file.
 - Run one PHP file on the box with `node tools/box-eval.mjs <file>.php [--site shop|realshop]`. `--site shop` is the multisite main site; `--site realshop` is the WooCommerce shop. They are one word apart and a describe run went to the wrong one once.
