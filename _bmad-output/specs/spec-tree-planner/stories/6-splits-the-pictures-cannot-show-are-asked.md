@@ -2,7 +2,7 @@
 title: 'Splits the pictures cannot show are asked'
 type: 'feature'
 created: '2026-09-29'
-status: 'in-progress'
+status: 'review'
 baseline_commit: 'aaec3bd'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -64,6 +64,7 @@ context: []
 - `js/vergeml-folders.js`: `renderAudienceAsk()` / `onAudienceSplit()`, shown in the Tree step beside the Plan button when `cfg.plan.audience_ask` is true and the session has no answer yet.
 - `css/vergeml-folders.css`: a two-chip row for the question, reusing the existing `.g-chip` look.
 - `tests/tree/plan-audience.php` (local suite, registered in `tools/verify.mjs` as `plan-audience`): `vergeml_plan_audience_share` and `vergeml_plan_product_audience_evidence` on fixtures, no WordPress, no box.
+- `tools/box-audience-check.php`: read-only, `pre_http_request` blocked, prints `vergeml_plan_facts()`'s audience fields for any site -- the proof tool for this story, kept for the next time the thresholds are revisited.
 - `readme.txt` (External services) and `docs/outbound-audit-2026-09-19.md`: the `/v1/plan-tree` entry now names the new `audienceConfirmed` flag.
 
 ## Copy for Nathan (verbatim, draft)
@@ -74,13 +75,41 @@ context: []
 
 ## Tests run
 
-- Service: `npx vitest run lib/plan-tree.test.ts` -- 20 passed (was 18; two added). `npx tsc --noEmit -p .` -- clean.
-- Plugin: `node tools/verify.mjs plan-audience` -- see Proof.
-- Plugin, related suites re-run for regressions: `node tools/verify.mjs plan-choose plan-gain plan-fold` -- see Proof.
+- Service: `npx vitest run lib/plan-tree.test.ts` -- 20 passed (was 18; two added, both green, including the route-level "strips without evidence / keeps with `audienceConfirmed`" case). `npx tsc --noEmit -p .` -- clean.
+- Plugin, new suite: `node tools/verify.mjs plan-audience` -- 9/9 passed (`vergeml_plan_audience_share`, `vergeml_plan_product_audience_evidence`, the ask threshold).
+- Plugin, related suites re-run for regressions: `node tools/verify.mjs plan-choose plan-gain plan-fold` -- 15/15, 5/5, 27/27, all still passing; nothing in `applyRules`'s callers or the fold/gain paths reads audience, so none was expected to move.
+- Plugin, `core/guide.php`'s session shape (`audience_split` added to `vergeml_guide_fresh()`/`vergeml_guide_session_out()`): `node tools/verify.mjs guide` (box, read-only, no service call) -- 61/61 passed, including the "the session is as it was found" check.
+- `node --check js/vergeml-folders.js` -- clean. `php -l` on every shipped file, via `deploy.mjs --box` -- "every file parses".
 
-## Proof (free, box read-only)
+## Proof (free, box read-only, commit c8d9296)
 
-See the "Proof" section below, filled after the box run.
+`node tools/deploy.mjs --box` then `--check`: box up to date, 139 files, digest `4cb56d4c828c`.
+
+`node tools/box-eval.mjs tools/box-audience-check.php --site shop` (the C.5 Commons library, 626 pictures, 47 real folders -- outbound HTTP blocked for the run):
+
+```
+{ "labels": 464, "pictures": 626, "audience_share": 0.061, "ask_threshold": 0.15, "product_evidence": false, "audience_ask": true }
+```
+
+Thin picture evidence (6.1%, near the SPEC non-goal's "3 of 88"), no product-category evidence -- `audience_ask` is `true`: the Tree step would show the one question. This is CAP-4's success line on the site the SPEC states its numbers against.
+
+`node tools/box-eval.mjs tools/box-audience-check.php` (tech, 1,000 pictures):
+
+```
+{ "labels": 678, "pictures": 1000, "audience_share": 0, "ask_threshold": 0.15, "product_evidence": true, "audience_ask": false }
+```
+
+Zero picture evidence, but tech's own WooCommerce product categories include "Men's" and "Women's" -- `vergeml_plan_product_audience_evidence()` finds them (confirmed by reading the paths directly: 2 of 4 category paths carry an audience word) and `audience_ask` is correctly `false`: the split already has a real source, so nothing is guessed and nothing is asked either.
+
+`node tools/box-eval.mjs tools/box-audience-check.php --site realshop` (the small WooCommerce shop, 33 pictures):
+
+```
+{ "labels": 29, "pictures": 33, "audience_share": 0.152, "ask_threshold": 0.15, "product_evidence": false, "audience_ask": false }
+```
+
+Just over the 15% ask threshold on picture evidence alone (5 of 33) -- correctly not asked; a useful boundary case, not tuned to produce it.
+
+All three box reads are through `vergeml_plan_facts()`/`vergeml_plan_audience_share()`/`vergeml_plan_product_audience_evidence()` exactly as the Tree step calls them, with `add_filter( 'pre_http_request', ... )` refusing any outbound call for the run -- so this proves the trigger side of CAP-4 on real libraries without touching the AI service. The strip itself (`stripUnsupportedAudience`) is proven in the service's own unit tests (`lib/plan-tree.test.ts`), which is a complete proof of that half: it is a pure function of the model's answer shape and the label counts, so a fixture answer naming an unsupported audience folder proves the guarantee for every answer of that shape, not only one a live model happened to produce.
 
 ## Paid proof, pending
 
