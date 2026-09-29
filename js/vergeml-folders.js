@@ -910,7 +910,11 @@
 		if ( 'running' === planState() || ! canPlan() ) {
 			return;
 		}
-		api( 'POST', 'guide/plan' ).then( tookPlan, function ( err ) {
+		// The price on the button is the most the press may cost; more, and the server answers with the new price instead of planning.
+		api( 'POST', 'guide/plan', { price: frozen() ? 0 : Number( cfg.plan.price ) || 0 } ).then( tookPlan, function ( err ) {
+			if ( err && 'price_changed' === err.code && err.data && err.data.plan ) {
+				cfg.plan = err.data.plan;
+			}
 			state.session.plan = { state: 'failed', message: ( err && err.message ) || __( 'That did not go through. Try again.', 'vergelabs-media-library' ) };
 			renderTreeStep();
 		} );
@@ -920,6 +924,10 @@
 	function tookPlan( r ) {
 		var was = planState();
 		state.session.plan = r.plan || null;
+		// The job found the plan would cost more than the button said: the button says the new price.
+		if ( cfg.plan && 'failed' === planState() && state.session.plan.price ) {
+			cfg.plan.price = Number( state.session.plan.price );
+		}
 		if ( 'running' === planState() ) {
 			if ( ! planTimer ) {
 				planTimer = window.setTimeout( function () {

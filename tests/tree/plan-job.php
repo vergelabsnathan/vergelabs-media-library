@@ -17,7 +17,8 @@
  *  cron never started no longer booked again -> row 5; a growth killed
  *  mid-run asking a refund -> row 6; the job saving its whole early read of
  *  the session over a confirm or a turn made meanwhile -> rows 7, 8, 9; a
- *  job overwriting a plan the poll already failed -> row 10.
+ *  job overwriting a plan the poll already failed -> row 10; a press or a
+ *  job going ahead at a price above the button's -> rows 11, 12.
  */
 
 define( 'ABSPATH', '/' );
@@ -411,6 +412,30 @@ $GLOBALS['pj_ask'] = function ( $body ) {
 vergeml_plan_event();
 $s = pj_session();
 pj_check( '10. a plan the poll already failed is not brought back to life by its job', 'failed' === $s['plan']['state'] && null === $s['draft'], json_encode( $s['plan'] ) );
+
+/* ------------------------------------------ M1  never more than the button said */
+
+echo "\nM1  a plan never costs more than the button said\n\n";
+
+pj_reset();
+$facts = vergeml_plan_facts();
+$out   = pj_press( $facts['price'] - 1 );
+pj_check( '11. a press whose button showed less than the plan now costs is refused with the new price, and nothing is booked', is_wp_error( $out ) && 'price_changed' === $out->get_error_code() && 409 === $out->data['status'] && $facts['price'] === $out->data['plan']['price'] && 0 === $GLOBALS['pj_booked'] && null === pj_session()['plan'], is_wp_error( $out ) ? $out->get_error_message() : 'booked' );
+
+pj_reset();
+pj_press();
+$shown = pj_session()['plan']['price'];
+// Seventeen labels more are described before cron starts the job: 19 labels cost 12, the button said 11.
+for ( $i = 0; $i < 17; $i++ ) {
+    $GLOBALS['pj_rows'][] = pj_row( 100 + $i, 'thing ' . $i . '; stuff', '', array( 0, 0, 1 ) );
+}
+vergeml_plan_event();
+$s = pj_session();
+pj_check( '12. a job whose full count costs more than the button said fails before the ask, and carries the new price', 11 === $shown && array() === $GLOBALS['pj_calls'] && 'failed' === $s['plan']['state'] && 12 === $s['plan']['price'] && 'The plan now costs 12 credits. Nothing was charged.' === $s['plan']['message'], json_encode( $s['plan'] ) );
+
+pj_reset();
+vergeml_plan_rest_start( new WP_REST_Request( array() ) );
+pj_check( '13. a screen from before the check (no price sent) is held to the press\'s own count', 11 === pj_session()['plan']['price'] && 'running' === pj_session()['plan']['state'] );
 
 $pj_total = $GLOBALS['pj_pass'] + $GLOBALS['pj_fail'];
 printf( "\n%d/%d passed\n", $GLOBALS['pj_pass'], $pj_total );

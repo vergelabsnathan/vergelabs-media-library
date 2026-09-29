@@ -704,8 +704,14 @@ function vergeml_plan_facts() {
 
 /* ---------------------------------------------------------------- the job */
 
-/** The press: books the job, once. The session carries its state so a reload keeps polling. */
-function vergeml_plan_rest_start() {
+/**
+ *  The press: books the job, once. The session carries its state so a reload
+ *  keeps polling. The price the button showed rides along and is the most
+ *  this press may cost: a library described further since the page loaded
+ *  is refused here, with the new price for the button, and the job refuses
+ *  the same before its ask if its own full count comes to more.
+ */
+function vergeml_plan_rest_start( WP_REST_Request $request ) {
     $s      = vergeml_guide_session();
     $frozen = (bool) vergeml_plan_frozen();
     // A filled plan is planned again for growth, free, even from the confirmed tree (story 10); any other confirmed tree still refuses.
@@ -719,10 +725,22 @@ function vergeml_plan_rest_start() {
     if ( 0 === $facts['labels'] ) {
         return new WP_Error( 'empty', __( 'No picture is described yet.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
     }
-    $s['plan'] = array( 'state' => 'running', 'at' => time(), 'price' => $facts['price'], 'grow' => $frozen );
+    $shown = $request->get_param( 'price' );
+    // A screen from before this check sends no price: the press's own count is then the most it may cost.
+    $shown = null === $shown || '' === $shown ? $facts['price'] : max( 0, (int) $shown );
+    if ( $facts['price'] > $shown ) {
+        return new WP_Error( 'price_changed', vergeml_plan_price_changed( $facts['price'] ), array( 'status' => 409, 'plan' => $facts ) );
+    }
+    $s['plan'] = array( 'state' => 'running', 'at' => time(), 'price' => $shown, 'grow' => $frozen );
     vergeml_guide_save( $s );
     vergeml_plan_schedule();
     return rest_ensure_response( vergeml_plan_out( $s ) );
+}
+
+/** The one line for a plan that now costs more than the button said. */
+function vergeml_plan_price_changed( $price ) {
+    /* translators: %s: credits the plan costs now */
+    return sprintf( __( 'The plan now costs %s credits. Nothing was charged.', 'vergelabs-media-library' ), number_format_i18n( $price ) );
 }
 
 /**
@@ -834,7 +852,17 @@ function vergeml_plan_event() {
     $audience_confirmed = ( isset( $s['audience_split'] ) && 'yes' === $s['audience_split'] ) || vergeml_plan_product_audience_evidence();
 
     // Forced: the paid plan reads the library through, whatever that costs here, rather than settling for the page render's 15s-or-stale inventory.
-    $inv    = vergeml_plan_inventory( true );
+    $inv   = vergeml_plan_inventory( true );
+    $price = vergeml_plan_price( count( $inv['labels'] ) );
+    if ( $price > (int) $s['plan']['price'] ) {
+        // The full count says the service would charge more than the button showed: failed before the ask, so nothing is spent. The new price rides on the plan for the button.
+        $s['plan'] = array( 'state' => 'failed', 'message' => vergeml_plan_price_changed( $price ), 'price' => $price );
+        if ( 'confirmed' === vergeml_plan_settle( $s, array( 'plan' ), $plan_id, false ) ) {
+            vergeml_plan_put( null );
+        }
+        delete_transient( VERGEML_PLAN_LOCK );
+        return;
+    }
     $result = vergeml_plan_ask( $inv['labels'], $audience_confirmed, $plan_id );
     // The ask can take the whole of the lock's time; the guard and the refund come after it.
     set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
