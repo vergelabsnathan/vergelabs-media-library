@@ -819,8 +819,13 @@ function vergeml_plan_event() {
 
     // A filled plan grows here, with no service call (story 10).
     if ( ! empty( $s['plan']['grow'] ) ) {
+        // A growth may start from the confirmed tree; only a confirm made while it ran drops it. It charged nothing, so nothing is asked back.
+        $was_confirmed = 'confirmed' === $s['tree'];
         vergeml_plan_grow_event( $s );
-        vergeml_guide_save( $s );
+        $keys = 'done' === $s['plan']['state'] ? array( 'plan', 'draft', 'fit', 'tree' ) : array( 'plan' );
+        if ( 'confirmed' === vergeml_plan_settle( $s, $keys, $plan_id, $was_confirmed ) ) {
+            vergeml_plan_put( null );
+        }
         delete_transient( VERGEML_PLAN_LOCK );
         return;
     }
@@ -834,12 +839,16 @@ function vergeml_plan_event() {
     // The ask can take the whole of the lock's time; the guard and the refund come after it.
     set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
 
-    $s = vergeml_guide_session();
+    // A working copy: what the plan decides is settled onto the session as it stands at the end (vergeml_plan_settle), never saved over it.
+    $s          = vergeml_guide_session();
+    $keys       = array( 'plan' );
+    $asked_back = false;
     if ( is_wp_error( $result ) ) {
         $message = $result->get_error_message();
         // No answer, or one we cannot read: the service may have charged. Ask for it back by the name this site gave the plan.
         if ( in_array( $result->get_error_code(), array( 'unreachable', 'failed' ), true ) ) {
-            $refund = vergeml_plan_refund( $plan_id );
+            $refund     = vergeml_plan_refund( $plan_id );
+            $asked_back = true;
             if ( null === $refund && 'unreachable' === $result->get_error_code() ) {
                 // Neither given back nor known to be uncharged: say nothing about a charge.
                 $message = __( 'The plan did not come back, and it may have been charged. Your balance is on the Licence screen.', 'vergelabs-media-library' );
@@ -847,12 +856,7 @@ function vergeml_plan_event() {
             vergeml_plan_credits_left( null !== $refund ? $refund['credits_remaining'] : null );
         }
         $s['plan'] = array( 'state' => 'failed', 'message' => $message );
-    } elseif ( 'confirmed' === $s['tree'] ) {
-        // Confirmed while the plan ran: the confirmed tree wins, the plan is dropped, and its credits are asked back -- the owner never sees it.
-        $refund = ! empty( $result['plan'] ) ? vergeml_plan_refund( (string) $result['plan'] ) : null;
-        vergeml_plan_credits_left( null !== $refund && null !== $refund['credits_remaining'] ? $refund['credits_remaining'] : ( isset( $result['credits_remaining'] ) ? (int) $result['credits_remaining'] : null ) );
-        $s['plan'] = null;
-    } else {
+    } elseif ( 'confirmed' !== $s['tree'] ) {
         // An older service sends its one kept tree; a current one every valid tree, to choose among here.
         $trees      = ! empty( $result['trees'] ) ? $result['trees'] : array( array( 'folders' => $result['folders'], 'unfiled' => isset( $result['unfiled'] ) ? $result['unfiled'] : array() ) );
         $chosen     = vergeml_plan_choose( $trees, vergeml_plan_label_sums( $inv['labels'] ), array_column( $inv['labels'], 'count', 'id' ) );
@@ -865,10 +869,12 @@ function vergeml_plan_event() {
             // Reading a large library's vectors twice can take a while; the lock outlives the refund.
             set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
         }
-        $refund = ! $better && ! empty( $result['plan'] ) ? vergeml_plan_refund( (string) $result['plan'] ) : null;
-        $back   = null !== $refund ? $refund['refunded'] : 0;
+        $refund     = ! $better && ! empty( $result['plan'] ) ? vergeml_plan_refund( (string) $result['plan'] ) : null;
+        $asked_back = ! $better;
+        $back       = null !== $refund ? $refund['refunded'] : 0;
         if ( $better ) {
             $s['draft'] = $draft;
+            $keys       = array( 'plan', 'draft', 'fit' );
             if ( '' !== $taxonomy ) {
                 vergeml_guide_fit_take( $s, $taxonomy );
             }
@@ -888,8 +894,39 @@ function vergeml_plan_event() {
         );
         vergeml_plan_credits_left( null !== $refund && null !== $refund['credits_remaining'] ? $refund['credits_remaining'] : ( isset( $result['credits_remaining'] ) ? (int) $result['credits_remaining'] : null ) );
     }
-    vergeml_guide_save( $s );
+    $settled = 'confirmed' === $s['tree'] ? 'confirmed' : vergeml_plan_settle( $s, $keys, $plan_id, false );
+    if ( 'confirmed' === $settled ) {
+        // Confirmed while the plan ran: the confirmed tree wins, the plan is dropped, and its credits are asked back -- the owner never sees it.
+        $refund = ! $asked_back && ! is_wp_error( $result ) && ! empty( $result['plan'] ) ? vergeml_plan_refund( (string) $result['plan'] ) : null;
+        vergeml_plan_credits_left( null !== $refund && null !== $refund['credits_remaining'] ? $refund['credits_remaining'] : ( ! is_wp_error( $result ) && isset( $result['credits_remaining'] ) ? (int) $result['credits_remaining'] : null ) );
+        vergeml_plan_put( null );
+    }
     delete_transient( VERGEML_PLAN_LOCK );
+}
+
+/**
+ *  What the job decided, onto the session as it stands now. The job read the
+ *  session before passes that can take minutes and a refund; a turn, an edit
+ *  or a confirm made meanwhile is the owner's, so only the keys the plan owns
+ *  are written. Nothing is written when the tree was confirmed meanwhile
+ *  (the caller drops the plan and asks its credits back), or when the plan
+ *  is no longer this job's -- the poll failed it and asked it back already.
+ *
+ * @return string 'saved', 'confirmed' or 'gone'.
+ */
+function vergeml_plan_settle( $w, $keys, $plan_id, $was_confirmed ) {
+    $s = vergeml_guide_session();
+    if ( ! isset( $s['plan']['id'] ) || $plan_id !== $s['plan']['id'] ) {
+        return 'gone';
+    }
+    if ( ! $was_confirmed && 'confirmed' === $s['tree'] ) {
+        return 'confirmed';
+    }
+    foreach ( $keys as $k ) {
+        $s[ $k ] = $w[ $k ];
+    }
+    vergeml_guide_save( $s );
+    return 'saved';
 }
 
 /** The balance the service last named, for the button; null leaves the cached one. */

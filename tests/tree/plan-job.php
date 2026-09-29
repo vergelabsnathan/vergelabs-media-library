@@ -15,7 +15,9 @@
  *  the message claiming nothing was charged when the refund could not be
  *  asked -> row 3; a started job run a second time by cron -> row 4; a job
  *  cron never started no longer booked again -> row 5; a growth killed
- *  mid-run asking a refund -> row 6.
+ *  mid-run asking a refund -> row 6; the job saving its whole early read of
+ *  the session over a confirm or a turn made meanwhile -> rows 7, 8, 9; a
+ *  job overwriting a plan the poll already failed -> row 10.
  */
 
 define( 'ABSPATH', '/' );
@@ -343,6 +345,72 @@ vergeml_guide_save( $s );
 vergeml_plan_rest_poll();
 $s = pj_session();
 pj_check( '6. a growth stopped mid-run is failed and asks nothing back: it cost nothing', 'failed' === $s['plan']['state'] && array() === $GLOBALS['pj_calls'] && 'The plan did not finish. Try again.' === $s['plan']['message'], $s['plan']['message'] );
+
+/* ------------------------------------- M3  what the owner does meanwhile */
+
+echo "\nM3  a confirm or an edit made while the plan ran is the owner's, not overwritten\n\n";
+
+function pj_confirm_now() {
+    $s         = vergeml_guide_session();
+    $s['tree'] = 'confirmed';
+    vergeml_guide_save( $s );
+}
+function pj_refunds() {
+    return array_values( array_filter( $GLOBALS['pj_calls'], function ( $c ) { return '/plan-tree/refund' === $c['path']; } ) );
+}
+
+pj_reset();
+pj_press();
+$GLOBALS['pj_ask']       = function ( $body ) { return pj_answer( 200, pj_plan_answer( $body['plan'] ) ); };
+$GLOBALS['pj_meanwhile'] = 'pj_confirm_now';
+vergeml_plan_event();
+$s = pj_session();
+$r = pj_refunds();
+pj_check( '7. confirmed during the passes after the ask: the confirm stands, the plan is dropped, its credits asked back once', 'confirmed' === $s['tree'] && null === $s['plan'] && null === $s['draft'] && 1 === count( $r ) && $GLOBALS['pj_calls'][0]['body']['plan'] === $r[0]['body']['plan'], json_encode( array( 'tree' => $s['tree'], 'plan' => $s['plan'], 'refunds' => count( $r ) ) ) );
+
+pj_reset();
+pj_press();
+$GLOBALS['pj_filed']  = true;
+$GLOBALS['pj_ask']    = function ( $body ) { return pj_answer( 200, pj_plan_answer( $body['plan'] ) ); };
+$GLOBALS['pj_refund'] = function () {
+    pj_confirm_now();
+    return pj_answer( 200, array( 'refunded' => 10, 'credits_remaining' => 100, 'again' => false ) );
+};
+vergeml_plan_event();
+$s = pj_session();
+pj_check( '8. confirmed while a plan the folders beat was being given back: the confirm stands, and it is not asked back twice', 'confirmed' === $s['tree'] && null === $s['plan'] && 1 === count( pj_refunds() ), json_encode( array( 'tree' => $s['tree'], 'plan' => $s['plan'], 'refunds' => count( pj_refunds() ) ) ) );
+
+pj_reset();
+pj_press();
+$GLOBALS['pj_filed'] = true;
+$GLOBALS['pj_ask']   = function ( $body ) { return pj_answer( 200, pj_plan_answer( $body['plan'] ) ); };
+vergeml_plan_event();
+$s = pj_session();
+pj_check( '8b. (the same library left alone: the folders beat the plan, and it is given back)', 'kept' === $s['plan']['state'] && 10 === $s['plan']['refunded'] && 'editing' === $s['tree'], json_encode( $s['plan'] ) );
+
+pj_reset();
+pj_press();
+$GLOBALS['pj_ask']       = function ( $body ) { return pj_answer( 200, pj_plan_answer( $body['plan'] ) ); };
+$GLOBALS['pj_meanwhile'] = function () {
+    $s                   = vergeml_guide_session();
+    $s['turns'][]        = array( 'role' => 'user', 'text' => 'said meanwhile' );
+    $s['audience_split'] = 'no';
+    vergeml_guide_save( $s );
+};
+vergeml_plan_event();
+$s = pj_session();
+pj_check( '9. a turn and an answer given while the plan ran survive the plan landing', 'done' === $s['plan']['state'] && ! empty( $s['draft']['folders'] ) && 1 === count( $s['turns'] ) && 'no' === $s['audience_split'] && array() === pj_refunds(), json_encode( array( 'state' => $s['plan']['state'], 'turns' => count( $s['turns'] ), 'split' => $s['audience_split'] ) ) );
+
+pj_reset();
+pj_press();
+$GLOBALS['pj_ask'] = function ( $body ) {
+    // The poll failed this plan and asked it back while the job was still reading the library.
+    vergeml_plan_put( array( 'state' => 'failed', 'message' => 'lost' ) );
+    return pj_answer( 200, pj_plan_answer( $body['plan'] ) );
+};
+vergeml_plan_event();
+$s = pj_session();
+pj_check( '10. a plan the poll already failed is not brought back to life by its job', 'failed' === $s['plan']['state'] && null === $s['draft'], json_encode( $s['plan'] ) );
 
 $pj_total = $GLOBALS['pj_pass'] + $GLOBALS['pj_fail'];
 printf( "\n%d/%d passed\n", $GLOBALS['pj_pass'], $pj_total );
