@@ -778,6 +778,8 @@ function vergeml_plan_event() {
     // Forced: the paid plan reads the library through, whatever that costs here, rather than settling for the page render's 15s-or-stale inventory.
     $inv    = vergeml_plan_inventory( true );
     $result = vergeml_plan_ask( $inv['labels'], $audience_confirmed );
+    // The ask can take the whole of the lock's time; the guard and the refund come after it.
+    set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
 
     $s = vergeml_guide_session();
     if ( is_wp_error( $result ) ) {
@@ -794,6 +796,10 @@ function vergeml_plan_event() {
         $gain     = vergeml_plan_gain( $draft['label_map'], array_column( $inv['labels'], 'id', 'label' ), $taxonomy );
         // Not clearly tidier than the folders the site already has: the plan is not offered (spec-tree-planner story 8), and its credits are asked back (story 9).
         $better = vergeml_plan_gain_better( $gain );
+        if ( ! $better ) {
+            // Reading a large library's vectors twice can take a while; the lock outlives the refund.
+            set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
+        }
         $refund = ! $better && ! empty( $result['plan'] ) ? vergeml_plan_refund( (string) $result['plan'] ) : null;
         $back   = null !== $refund ? $refund['refunded'] : 0;
         if ( $better ) {
