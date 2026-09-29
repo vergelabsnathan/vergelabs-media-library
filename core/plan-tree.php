@@ -692,6 +692,8 @@ function vergeml_plan_facts() {
     $evidence = vergeml_plan_product_audience_evidence();
     return array(
         'labels'            => count( $inv['labels'] ),
+        // No folder holds fewer than five pictures (rules.md), so a library under five makes no plan; the button is not offered.
+        'enough'            => vergeml_plan_enough( $inv['labels'] ),
         // A filled plan's re-plan only grows it and costs nothing (story 10, the spec's price constraint).
         'price'             => vergeml_plan_frozen() ? 0 : vergeml_plan_price( count( $inv['labels'] ) ),
         'balance'           => null === $state['remaining'] ? null : (int) $state['remaining'],
@@ -725,6 +727,9 @@ function vergeml_plan_rest_start( WP_REST_Request $request ) {
     if ( 0 === $facts['labels'] ) {
         return new WP_Error( 'empty', __( 'No picture is described yet.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
     }
+    if ( ! $facts['enough'] ) {
+        return new WP_Error( 'too_few', vergeml_plan_too_few(), array( 'status' => 409 ) );
+    }
     $shown = $request->get_param( 'price' );
     // A screen from before this check sends no price: the press's own count is then the most it may cost.
     $shown = null === $shown || '' === $shown ? $facts['price'] : max( 0, (int) $shown );
@@ -735,6 +740,15 @@ function vergeml_plan_rest_start( WP_REST_Request $request ) {
     vergeml_guide_save( $s );
     vergeml_plan_schedule();
     return rest_ensure_response( vergeml_plan_out( $s ) );
+}
+
+/** True when the labelled pictures are enough for one folder: fewer, and every folder the service could plan falls under the minimum. */
+function vergeml_plan_enough( $labels ) {
+    return array_sum( array_map( 'intval', array_column( (array) $labels, 'count' ) ) ) >= VERGEML_PLAN_MIN;
+}
+
+function vergeml_plan_too_few() {
+    return __( 'A plan needs at least five described pictures.', 'vergelabs-media-library' );
 }
 
 /** The one line for a plan that now costs more than the button said. */
@@ -852,11 +866,14 @@ function vergeml_plan_event() {
     $audience_confirmed = ( isset( $s['audience_split'] ) && 'yes' === $s['audience_split'] ) || vergeml_plan_product_audience_evidence();
 
     // Forced: the paid plan reads the library through, whatever that costs here, rather than settling for the page render's 15s-or-stale inventory.
-    $inv   = vergeml_plan_inventory( true );
-    $price = vergeml_plan_price( count( $inv['labels'] ) );
-    if ( $price > (int) $s['plan']['price'] ) {
-        // The full count says the service would charge more than the button showed: failed before the ask, so nothing is spent. The new price rides on the plan for the button.
-        $s['plan'] = array( 'state' => 'failed', 'message' => vergeml_plan_price_changed( $price ), 'price' => $price );
+    $inv    = vergeml_plan_inventory( true );
+    $price  = vergeml_plan_price( count( $inv['labels'] ) );
+    $enough = vergeml_plan_enough( $inv['labels'] );
+    if ( ! $enough || $price > (int) $s['plan']['price'] ) {
+        // The full count says the service would charge more than the button showed, or could plan no folder at all: failed before the ask, so nothing is spent. The new price rides on the plan for the button.
+        $s['plan'] = $enough
+            ? array( 'state' => 'failed', 'message' => vergeml_plan_price_changed( $price ), 'price' => $price )
+            : array( 'state' => 'failed', 'message' => vergeml_plan_too_few() );
         if ( 'confirmed' === vergeml_plan_settle( $s, array( 'plan' ), $plan_id, false ) ) {
             vergeml_plan_put( null );
         }

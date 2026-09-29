@@ -608,7 +608,7 @@
 			next.addEventListener( 'click', function () { setStep( 'fill' ); } );
 			dom.treeMove.appendChild( next );
 			dom.treeMove.appendChild( quiet( __( 'Unconfirm', 'vergelabs-media-library' ), onUnconfirm ) );
-			if ( frozen() && described && licensed && cfg.plan && cfg.plan.labels > 0 ) {
+			if ( frozen() && described && licensed && cfg.plan && cfg.plan.labels > 0 && false !== cfg.plan.enough ) {
 				renderPlanButton();
 			}
 			return;
@@ -670,7 +670,7 @@
 			dom.treeMove.appendChild( propose );
 			dom.treeMove.appendChild( pill( cfg.proposeCredits || 10, __( 'credits', 'vergelabs-media-library' ) ) );
 		}
-		if ( described && licensed && cfg.plan && cfg.plan.labels > 0 ) {
+		if ( described && licensed && cfg.plan && cfg.plan.labels > 0 && false !== cfg.plan.enough ) {
 			renderPlanButton();
 			/*
 			 *  CAP-4: an audience split (men/women/kids) never comes from the

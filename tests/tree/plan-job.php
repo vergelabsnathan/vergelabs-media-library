@@ -437,6 +437,22 @@ pj_reset();
 vergeml_plan_rest_start( new WP_REST_Request( array() ) );
 pj_check( '13. a screen from before the check (no price sent) is held to the press\'s own count', 11 === pj_session()['plan']['price'] && 'running' === pj_session()['plan']['state'] );
 
+/* ----------------------------------- L2  a library too small to make a folder */
+
+echo "\nL2  under five described pictures no plan is offered or asked for\n\n";
+
+pj_reset( 4 );
+$facts = vergeml_plan_facts();
+$out   = pj_press();
+pj_check( '14. four described pictures: the button is not offered, and a press is refused without booking', false === $facts['enough'] && is_wp_error( $out ) && 'too_few' === $out->get_error_code() && 0 === $GLOBALS['pj_booked'], is_wp_error( $out ) ? $out->get_error_message() : 'booked' );
+
+pj_reset( 5 );
+pj_press();
+$GLOBALS['pj_rows'] = array_slice( $GLOBALS['pj_rows'], 0, 4 );
+vergeml_plan_event();
+$s = pj_session();
+pj_check( '15. five at the press and four by the job: failed before the ask, nothing spent', array() === $GLOBALS['pj_calls'] && 'failed' === $s['plan']['state'] && 'A plan needs at least five described pictures.' === $s['plan']['message'], json_encode( $s['plan'] ) );
+
 $pj_total = $GLOBALS['pj_pass'] + $GLOBALS['pj_fail'];
 printf( "\n%d/%d passed\n", $GLOBALS['pj_pass'], $pj_total );
 exit( $GLOBALS['pj_fail'] ? 1 : 0 );
