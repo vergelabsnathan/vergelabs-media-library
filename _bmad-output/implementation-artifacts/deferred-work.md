@@ -164,6 +164,7 @@
 - source_spec: `_bmad-output/specs/spec-tree-planner/stories/4-the-accepted-tree-is-frozen.md`
   summary: plan again on an accepted tree, free -- keep every frozen folder and propose a new folder only when a label reaches the minimum (CAP-2's growth half).
   evidence: split from story 4 by Nathan 2026-09-28 to keep it one goal; until it lands the button stays refused on an accepted tree (409).
+  resolved: 2026-09-29 (story 10, 24315c2) -- free, on the site alone, from the confirmed tree too.
 
 - source_spec: `_bmad-output/specs/spec-tree-planner/stories/4-the-accepted-tree-is-frozen.md`
   summary: vergeml_guide_draft_fit's label step (label -> synthetic profile id through array_flip( $order )) has no suite row; a wrong flip would make the Tree screen's "would stay unfiled" differ from the fill.
@@ -178,3 +179,13 @@
 - source_spec: `_bmad-output/specs/spec-tree-planner/stories/7-large-libraries-fold-rare-labels.md`
   summary: the fit job (dry run) at 500,000 pictures loads every vector and asks the service to embed about 42,000 phrases; not measured -- the fill at that size was out of story 7.
   evidence: traced by the proof agent, 2026-09-28; no draft was built because the plan did not run.
+
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/10-a-frozen-tree-is-replanned-for-free.md`
+  summary: a rule or conversation fill on a frozen site replaces the frozen label map with its own (usually empty), unfreezing the plan without saying so.
+  evidence: vergeml_talk_apply stores opts['label_map'] as the map on every fill; true before story 10, which kept only the fill-after-fill and undo paths.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/10-a-frozen-tree-is-replanned-for-free.md`
+  summary: rules.md's growth edge "a folder is removed only below half the minimum, with the owner's yes" is not built; growth only adds.
+  evidence: story 10 scope was growth; nothing proposes a removal.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/10-a-frozen-tree-is-replanned-for-free.md`
+  summary: the shop's Folders boot costs 16 queries before story 10 (18 with it, a stale label map present), over guide A1's cap of 14, which only runs on tech (14 with story 10).
+  evidence: measured on the box 2026-09-29 by warming vergeml_plan_frozen() first; A1 passes on tech at 14.
