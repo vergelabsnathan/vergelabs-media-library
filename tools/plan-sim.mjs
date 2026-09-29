@@ -35,6 +35,10 @@ const labelled = all.filter( ( p ) => p.labelled );
 const PLACE = 0.5;
 const MIN_PICTURES = 5;
 const MAX_DEPTH = 3;
+// --existing: the site's folder paths (To sort left out) go with the prompt, so the plan can build around them.
+const existing = argv.includes( '--existing' )
+	? [ ...new Set( all.flatMap( ( p ) => p.folders ).flatMap( ( f ) => f.split( ' > ' ).map( ( _, i, a ) => a.slice( 0, i + 1 ).join( ' > ' ) ) ) ) ].filter( ( f ) => 'To sort' !== f ).sort()
+	: [];
 
 /* ------------------------------------------------ the inventory (plugin) */
 
@@ -55,7 +59,9 @@ const counts = Object.fromEntries( labels.map( ( l ) => [ l.id, l.count ] ) );
 function planTreePrompt() {
 	const system =
 		'You design the folder tree of a media library from what is in it. You get every distinct description label in the library -- the main object; its broader class; [kind] when the picture is not a photo -- with how many pictures carry it and, where known, their audience. '
+		+ ( existing.length ? 'You also get the folders the library already has. ' : '' )
 		+ 'Merge labels that mean the same thing, then arrange folders as a tree. Rules:\n'
+		+ ( existing.length ? '0. Build around the existing folders: where labels fit one, use its exact name and place, and keep its pictures together rather than splitting it. Add folders only for what none of them holds; leave out an existing folder nothing fits.\n' : '' )
 		+ '1. A folder needs at least 3 pictures behind it (count the labels you put in it). A label too rare for a folder of its own goes into its broader folder.\n'
 		+ '2. At most three levels. A parent has two to twelve children; never a parent with a single child. A folder of more than 20 pictures whose labels fall into clear kinds gets those kinds as children, down to the third level.\n'
 		+ '3. Every folder name is unique in the whole tree, a plain label of at most three words, in the language of the labels, sentence case, no slash.\n'
@@ -65,7 +71,8 @@ function planTreePrompt() {
 		+ 'Answer JSON only, no reasoning before it: {"folders": [{"name": string, "parent": string, "labels": ["l0", "l7", ...]}]} -- "parent" is the exact name of another folder or ""; "labels" lists the ids of the labels whose pictures belong in THIS folder (its most specific fit).';
 	const lines = labels.map( ( l ) => `${ l.id }: ${ l.label } — ${ l.count }` );
 	const pictures = labels.reduce( ( s, l ) => s + l.count, 0 );
-	return { system, user: `Labels (${ labels.length }, ${ pictures } pictures):\n${ lines.join( '\n' ) }` };
+	const head = existing.length ? `Existing folders (${ existing.length }):\n${ existing.join( '\n' ) }\n\n` : '';
+	return { system, user: `${ head }Labels (${ labels.length }, ${ pictures } pictures):\n${ lines.join( '\n' ) }` };
 }
 
 function assignmentOf( answer ) {
