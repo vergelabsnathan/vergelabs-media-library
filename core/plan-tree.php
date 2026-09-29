@@ -66,9 +66,9 @@ const VERGEML_PLAN_GROW_MARGIN = 0.05;
 const VERGEML_PLAN_GROW_GROUP  = 0.6;
 const VERGEML_PLAN_GROW_UNDER  = 0.5;
 
-/** Ten credits and six per hundred labels, rounded up: the service's planPrice(). */
+/** Thirty credits and fifteen per hundred labels, rounded up: the service's planPrice(). */
 function vergeml_plan_price( $labels ) {
-    return 10 + (int) ceil( max( 0, (int) $labels ) * 6 / 100 );
+    return 30 + (int) ceil( max( 0, (int) $labels ) * 15 / 100 );
 }
 
 /**
