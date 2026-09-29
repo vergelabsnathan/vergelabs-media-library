@@ -64,6 +64,7 @@ Hosts as they stand with no defines: `ai.vergelabs.nl` is the AI service,
 | core/licence-page.php | `vergeml_ai_service_url() . '/licence'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()`; gives the removed licence its seat back |
 | core/offer.php | `vergeml_connect_base() . '/api/trial'` | vergelabsmedia.com | define | `VERGEML_SITE_URL` in wp-config.php, else the constant inside `vergeml_connect_base()` |
 | core/plan-tree.php | `vergeml_ai_service_url() . '/plan-tree'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()`; the label inventory, from the Plan my folders job |
+| core/plan-tree.php | `vergeml_ai_service_url() . '/plan-tree/refund'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()`; the licence key, the site's address and the plan's id, when the site's folders beat a plan or its answer was lost |
 | core/search-meaning.php | `vergeml_ai_service_url() . '/embed'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()` |
 | pro/includes/describe.php | `vgmlpro_api_base() . '/v1/describe'` | ai.vergelabs.nl | define | `VGMLPRO_API_BASE` in wp-config.php, else `VGMLPRO_API_DEFAULT`, inside `vgmlpro_api_base()`; https or loopback only |
 | pro/includes/licence.php | `vgmlpro_api_base() . '/api/licence/verify'` | ai.vergelabs.nl | define | `VGMLPRO_API_BASE`, else `VGMLPRO_API_DEFAULT`, inside `vgmlpro_api_base()` |
