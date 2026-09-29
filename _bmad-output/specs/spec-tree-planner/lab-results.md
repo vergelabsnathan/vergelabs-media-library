@@ -80,5 +80,6 @@ Tech (200 labelled pictures, 72 of them belonging nowhere): 15 runs, tightest, p
 - Tightness -- the mean cosine of a picture to its folder's centre, from the site's vectors, no truth read -- ranks runs as their true scores do: shop 0.770 for 41/47, 0.729 for 26/47.
 - Placement moves the unfiled share from 20-31 % to under 10 % at a small purity cost (81 -> 77 % on the kept shop tree).
 - Pair F1 leaf of the two 15-run shop builds (replayed from the cache 2026-09-29, story 5): 71 and 75 %. The live service's kept trees scored 64-67 % on the same shop (story 5).
+- Those shop numbers are partly a leak (story 5, 2026-09-29). The lab ordered labels by count and then by first picture, and the shop's picture ids run in truth-folder order. So 67 % of neighbouring labels shared a truth folder, against 17 % in the plugin's order (`tools/label-order.mjs`). With the lab's order, the service's own request averaged 69 % F1 leaf a run; with the plugin's order it averaged 51 %. An honest vector-chain order averaged 62 %, and its kept tree reached 65-69 %.
 - `core/plan-tree.php` reproduces the lab's choice on the box: kept run 44 at 0.770, 41/47, 77 %, 9 %; 1.3 s and 67 MB for 626 pictures.
 - Spent: about $1.70 of OpenRouter; 38 credits for the one live plan.
