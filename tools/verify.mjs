@@ -197,6 +197,14 @@ const SUITES = [
 	 */
 	{ name: 'plan-fold', file: 'tests/tree/plan-fold.php', env: 'local', php: 'wasm' },
 	/*
+	 *  Splits the pictures cannot show are asked (spec-tree-planner CAP-4,
+	 *  story 6): the inventory's own audience share, and whether the site's
+	 *  product categories already name one. Arithmetic and a string scan,
+	 *  like plan-choose; the service half (stripUnsupportedAudience) is
+	 *  tested in the service repo's own lib/plan-tree.test.ts.
+	 */
+	{ name: 'plan-audience', file: 'tests/tree/plan-audience.php', env: 'local', php: 'wasm' },
+	/*
 	 *  Confirm, lock, sticky (A.3): a hand move survives a fill, a locked
 	 *  folder keeps its pictures and gains none, a confirmed tree answers 409.
 	 *  The box: it stores a packed embedding and drives a real pass over its

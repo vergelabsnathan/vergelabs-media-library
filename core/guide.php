@@ -553,6 +553,8 @@ function vergeml_guide_fresh() {
         'tree'            => 'editing',
         // The bottom-up plan's job (core/plan-tree.php): null, or running, done or failed.
         'plan'            => null,
+        // CAP-4's one question, answered at most once a session: null, 'yes' or 'no'.
+        'audience_split'  => null,
     );
 }
 
@@ -587,6 +589,8 @@ function vergeml_guide_session_out( $s ) {
         // What "This is my tree" would ask the planner about, and its credits past the free hundred (C.5): the button says it.
         'profile'         => vergeml_guide_profile_facts( $s['draft'] ),
         'plan'            => isset( $s['plan'] ) ? $s['plan'] : null,
+        // CAP-4's one question: null until answered, then 'yes' or 'no'.
+        'audience_split'  => isset( $s['audience_split'] ) ? $s['audience_split'] : null,
     );
 }
 

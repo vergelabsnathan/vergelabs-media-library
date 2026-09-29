@@ -664,8 +664,43 @@
 		}
 		if ( described && licensed && cfg.plan && cfg.plan.labels > 0 ) {
 			renderPlanButton();
+			/*
+			 *  CAP-4: an audience split (men/women/kids) never comes from the
+			 *  pictures alone. Asked once, only while the library's own
+			 *  evidence is thin and the categories say nothing either
+			 *  (cfg.plan.audience_ask, worked out server-side); the answer
+			 *  rides on every plan run after it until the session ends.
+			 */
+			if ( cfg.plan.audience_ask && ! audienceAnswered() ) {
+				dom.treeMove.appendChild( renderAudienceAsk() );
+			}
 		}
 		dom.treeMove.appendChild( quiet( __( 'Skip', 'vergelabs-media-library' ), function () { setStep( 'fill' ); } ) );
+	}
+
+	function audienceAnswered() {
+		return !! ( state.session && state.session.audience_split );
+	}
+
+	function renderAudienceAsk() {
+		var wrap = el( 'div', { class: 'vgml-audience-ask' } );
+		wrap.appendChild( el( 'p', { class: 'g-why' }, __( 'Should your folders split by who they are for — men, women, kids?', 'vergelabs-media-library' ) ) );
+		var row = el( 'div', { class: 'vgml-audience-ask-row' } );
+		var yes = el( 'button', { type: 'button', class: 'g-chip' }, __( 'Yes, split by audience', 'vergelabs-media-library' ) );
+		var no = el( 'button', { type: 'button', class: 'g-chip' }, __( 'No', 'vergelabs-media-library' ) );
+		yes.addEventListener( 'click', function () { onAudienceSplit( 'yes' ); } );
+		no.addEventListener( 'click', function () { onAudienceSplit( 'no' ); } );
+		row.appendChild( yes );
+		row.appendChild( no );
+		wrap.appendChild( row );
+		return wrap;
+	}
+
+	function onAudienceSplit( answer ) {
+		api( 'POST', 'guide/audience-split', { answer: answer } ).then( function ( r ) {
+			state.session.audience_split = ( r && r.audience_split ) || answer;
+			renderTreeStep();
+		}, function () {} );
 	}
 
 	/*

@@ -40,6 +40,8 @@ const VERGEML_PLAN_FACTS_BUDGET = 15;
 const VERGEML_PLAN_REFRESH_HOOK = 'vergeml_plan_inventory_refresh';
 /** A plan is offered only when the pictures already in a folder sit this much tighter after it than now (spec-tree-planner story 8: clearly better, never worse). */
 const VERGEML_PLAN_GAIN = 0.02;
+/** Under this share of described pictures carrying any audience tag, the Tree step asks the one question (CAP-4, story 6); the shop's own share is about 3 %. */
+const VERGEML_PLAN_AUDIENCE_ASK = 0.15;
 
 /** Ten credits and six per hundred labels, rounded up: the service's planPrice(). */
 function vergeml_plan_price( $labels ) {
@@ -563,14 +565,56 @@ function vergeml_plan_choose( $trees, $sums, $counts ) {
     return $best;
 }
 
-/** What the button needs: the price, the label count, and the balance where one is known. */
+/**
+ *  What share of the inventory's pictures carry any audience tag (CAP-4),
+ *  from the label counts vergeml_plan_inventory() already gathered -- no
+ *  extra query. A label folded away by vergeml_plan_fold still carries its
+ *  audience sum (vergeml_plan_fold), so a folded inventory reads the same
+ *  share an unfolded one would.
+ */
+function vergeml_plan_audience_share( $labels ) {
+    $total = 0;
+    $with  = 0;
+    foreach ( (array) $labels as $l ) {
+        $total += (int) ( isset( $l['count'] ) ? $l['count'] : 0 );
+        $with  += array_sum( (array) ( isset( $l['audience'] ) ? $l['audience'] : array() ) );
+    }
+    return $total > 0 ? round( $with / $total, 3 ) : 0.0;
+}
+
+/**
+ *  True when a WooCommerce product category's own name already says who it
+ *  is for (CAP-4: "or from the shop's product categories"), read with the
+ *  same word list a folder name is judged by (vergeml_filing_audience_of,
+ *  which also reads Dutch compounds). False with no WooCommerce, or with
+ *  categories that say nothing about audience.
+ */
+function vergeml_plan_product_audience_evidence() {
+    if ( ! function_exists( 'vergeml_folders_product_paths' ) || ! function_exists( 'vergeml_filing_audience_of' ) ) {
+        return false;
+    }
+    foreach ( (array) vergeml_folders_product_paths()['paths'] as $path ) {
+        foreach ( (array) $path as $segment ) {
+            if ( '' !== vergeml_filing_audience_of( $segment ) ) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/** What the button needs: the price, the label count, and the balance where one is known; and whether to ask the audience question (CAP-4). */
 function vergeml_plan_facts() {
-    $inv   = vergeml_plan_inventory();
-    $state = function_exists( 'vergeml_ai_credits_state' ) ? vergeml_ai_credits_state() : array( 'remaining' => null );
+    $inv      = vergeml_plan_inventory();
+    $state    = function_exists( 'vergeml_ai_credits_state' ) ? vergeml_ai_credits_state() : array( 'remaining' => null );
+    $evidence = vergeml_plan_product_audience_evidence();
     return array(
-        'labels'  => count( $inv['labels'] ),
-        'price'   => vergeml_plan_price( count( $inv['labels'] ) ),
-        'balance' => null === $state['remaining'] ? null : (int) $state['remaining'],
+        'labels'            => count( $inv['labels'] ),
+        'price'             => vergeml_plan_price( count( $inv['labels'] ) ),
+        'balance'           => null === $state['remaining'] ? null : (int) $state['remaining'],
+        // Asked only while the site's own pictures say too little and the categories say nothing either; the screen stops asking once the session has an answer.
+        'audience_ask'      => ! $evidence && vergeml_plan_audience_share( $inv['labels'] ) < VERGEML_PLAN_AUDIENCE_ASK,
+        'audience_evidence' => $evidence,
     );
 }
 
@@ -635,9 +679,12 @@ function vergeml_plan_event() {
         @set_time_limit( VERGEML_PLAN_TIMEOUT + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
 
+    // The split is no longer a guess once the owner has said yes, or the site's own product categories already name one (CAP-4).
+    $audience_confirmed = ( isset( $s['audience_split'] ) && 'yes' === $s['audience_split'] ) || vergeml_plan_product_audience_evidence();
+
     // Forced: the paid plan reads the library through, whatever that costs here, rather than settling for the page render's 15s-or-stale inventory.
     $inv    = vergeml_plan_inventory( true );
-    $result = vergeml_plan_ask( $inv['labels'] );
+    $result = vergeml_plan_ask( $inv['labels'], $audience_confirmed );
 
     $s = vergeml_guide_session();
     if ( is_wp_error( $result ) ) {
@@ -683,15 +730,23 @@ function vergeml_plan_event() {
 }
 
 /**
- *  The one outbound call: the labels, their counts and audience counts.
- *  Never a picture, a caption or a file name. $labels is always
- *  vergeml_plan_inventory()'s, which never hands back more than
- *  VERGEML_PLAN_FOLD_BUDGET -- the service's 'too_many_labels' refusal
- *  (spec-tree-planner story 7's problem) has no path here to reach any more,
- *  so it is not given its own message and falls, like any other code this
- *  service has not sent before, to the generic one below.
+ *  The one outbound call: the labels, their counts and audience counts, and
+ *  whether an audience split is confirmed (CAP-4, story 6). Never a picture,
+ *  a caption or a file name. $labels is always vergeml_plan_inventory()'s,
+ *  which never hands back more than VERGEML_PLAN_FOLD_BUDGET -- the
+ *  service's 'too_many_labels' refusal (spec-tree-planner story 7's problem)
+ *  has no path here to reach any more, so it is not given its own message
+ *  and falls, like any other code this service has not sent before, to the
+ *  generic one below.
+ *
+ * @param bool $audience_confirmed True when the owner answered yes to the
+ *                                  one audience question, or the site's own
+ *                                  product categories already name a split:
+ *                                  the service then skips stripping an
+ *                                  audience folder the label counts alone
+ *                                  would not support.
  */
-function vergeml_plan_ask( $labels ) {
+function vergeml_plan_ask( $labels, $audience_confirmed = false ) {
     $licence = function_exists( 'vergeml_ai_settings' ) ? vergeml_ai_unseal( vergeml_ai_settings()['license_key'] ) : '';
     if ( '' === $licence ) {
         return new WP_Error( 'no_licence', __( 'This needs a licence key. Add yours under AI.', 'vergelabs-media-library' ) );
@@ -706,7 +761,7 @@ function vergeml_plan_ask( $labels ) {
         'timeout'   => VERGEML_PLAN_TIMEOUT,
         'headers'   => array( 'Content-Type' => 'application/json' ),
         'sslverify' => true,
-        'body'      => wp_json_encode( array( 'license_key' => $licence, 'site' => home_url(), 'labels' => $send ) ),
+        'body'      => wp_json_encode( array( 'license_key' => $licence, 'site' => home_url(), 'labels' => $send, 'audienceConfirmed' => (bool) $audience_confirmed ) ),
     ) );
     if ( is_wp_error( $response ) ) {
         return new WP_Error( 'unreachable', __( 'The service could not be reached. Nothing was charged.', 'vergelabs-media-library' ) );
@@ -912,6 +967,25 @@ function vergeml_plan_draft( $planned, $labels ) {
     return vergeml_guide_clean_draft( $out );
 }
 
+/**
+ *  The one question CAP-4 asks: whether the owner wants an audience split.
+ *  Stored on the session so it is asked at most once, and read by
+ *  vergeml_plan_event() the next time a plan runs.
+ */
+function vergeml_plan_rest_audience_split( WP_REST_Request $request ) {
+    $s = vergeml_guide_session();
+    if ( 'confirmed' === $s['tree'] ) {
+        return vergeml_guide_confirmed_refusal();
+    }
+    $answer = sanitize_key( (string) $request->get_param( 'answer' ) );
+    if ( ! in_array( $answer, array( 'yes', 'no' ), true ) ) {
+        return new WP_Error( 'bad_answer', __( 'That is not yes or no.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+    }
+    $s['audience_split'] = $answer;
+    vergeml_guide_save( $s );
+    return rest_ensure_response( array( 'audience_split' => $answer ) );
+}
+
 function vergeml_plan_routes() {
     $may = function () {
         return current_user_can( 'manage_categories' );
@@ -919,6 +993,9 @@ function vergeml_plan_routes() {
     register_rest_route( VERGEML_REST_NS, '/guide/plan', array(
         array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_plan_rest_poll', 'permission_callback' => $may ),
         array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_start', 'permission_callback' => $may ),
+    ) );
+    register_rest_route( VERGEML_REST_NS, '/guide/audience-split', array(
+        array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_audience_split', 'permission_callback' => $may ),
     ) );
 }
 
