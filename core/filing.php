@@ -1664,6 +1664,40 @@ function vergeml_filing_product_folders( $rows, $profiles ) {
 }
 
 /**
+ *  The frozen label map's folder on each row (spec-tree-planner story 4): the
+ *  plan decided which folder every label belongs in, and the fill keeps that
+ *  decision instead of re-guessing it with the matcher. 'label_folder' is set
+ *  only where the label is in the map AND its folder is still there AND not
+ *  locked -- a label not in the map, a deleted target, or a locked one all
+ *  leave the row to the matcher, exactly as today.
+ *
+ * @param array $rows      Index rows: 'kind', 'filing'.
+ * @param array $profiles  vergeml_filing_profiles() (or a draft's own, keyed by its synthetic ids).
+ * @param array $label_ids Label text => target id, frozen when the plan was filled. A plan that
+ *                          folded over its rare labels (spec-tree-planner story 7) keys some
+ *                          entries by a fold label ("various footwear; footwear") rather than by
+ *                          the picture's own exact label text.
+ */
+function vergeml_filing_label_folders( $rows, $profiles, $label_ids ) {
+    if ( ! $label_ids ) {
+        return $rows;
+    }
+    foreach ( (array) $rows as $k => $r ) {
+        $filing = isset( $r['filing'] ) ? json_decode( (string) $r['filing'], true ) : null;
+        // The picture's own label wins where the map holds it; else its fold label, where a folded plan's map holds that instead.
+        $label  = function_exists( 'vergeml_plan_effective_label' ) ? vergeml_plan_effective_label( isset( $r['kind'] ) ? $r['kind'] : '', $filing, $label_ids ) : '';
+        if ( '' === $label ) {
+            continue;
+        }
+        $tid = (int) $label_ids[ $label ];
+        if ( isset( $profiles[ $tid ] ) && empty( $profiles[ $tid ]['locked'] ) && empty( $profiles[ $tid ]['view'] ) ) {
+            $rows[ $k ]['label_folder'] = $tid;
+        }
+    }
+    return $rows;
+}
+
+/**
  *  The tree as the text model reads it (S18): every folder that is not a
  *  view, as a path "Parent > Child", sorted, To sort never among them; the
  *  term id behind each path by its canon spelling; and a hash of the paths,
@@ -1738,7 +1772,7 @@ function vergeml_filing_ask_model( $rows, $profiles ) {
 
     $ask = array(); // row key => the picture as sent.
     foreach ( $rows as $k => $r ) {
-        if ( in_array( (string) ( isset( $r['placed_by'] ) ? $r['placed_by'] : '' ), array( 'user', 'answer', 'product' ), true ) || ! empty( $r['in_locked'] ) || ! empty( $r['product_folder'] ) ) {
+        if ( in_array( (string) ( isset( $r['placed_by'] ) ? $r['placed_by'] : '' ), array( 'user', 'answer', 'product' ), true ) || ! empty( $r['in_locked'] ) || ! empty( $r['product_folder'] ) || ! empty( $r['label_folder'] ) ) {
             continue;
         }
         $d = vergeml_filing_model_says( $r );
@@ -1796,10 +1830,11 @@ function vergeml_filing_ask_model( $rows, $profiles ) {
 /**
  *  The picture's side of the match, as the caller reads it off the index row.
  *
- *  @param array $row An index row: 'filing' (json), 'kind', 'embedding'; 'placed_by' and
- *                    'in_locked' (sits in a locked folder) when the caller joined them;
+ *  @param array $row An index row: 'filing' (json), 'kind', 'embedding'; 'placed_by',
+ *                    'in_locked' (sits in a locked folder) and 'in_locked_other'
+ *                    (one besides To sort) when the caller joined them;
  *                    'file', 'title', 'alt' (vergeml_filing_words_sql) or 'words' ready-made.
- *  @return array 'classes', 'kind', 'audience', 'vector', 'placed_by', 'in_locked', 'words'.
+ *  @return array 'classes', 'kind', 'audience', 'vector', 'placed_by', 'in_locked', 'in_locked_other', 'words'.
  */
 function vergeml_filing_facts( $row ) {
     $filing = isset( $row['filing'] ) ? json_decode( (string) $row['filing'], true ) : null;
@@ -1812,9 +1847,12 @@ function vergeml_filing_facts( $row ) {
         'vector'    => isset( $row['embedding'] ) && function_exists( 'vergeml_index_vector_out' ) ? vergeml_index_vector_out( $row['embedding'] ) : null,
         'placed_by' => isset( $row['placed_by'] ) ? (string) $row['placed_by'] : '',
         'in_locked' => ! empty( $row['in_locked'] ),
+        // A locked folder besides To sort (spec-tree-planner story 4): true keeps a lock's refusal absolute; false is the one case a label may still take.
+        'in_locked_other' => ! empty( $row['in_locked_other'] ),
         'words'     => isset( $row['words'] ) && is_array( $row['words'] ) ? $row['words'] : vergeml_filing_words_of( isset( $row['file'] ) ? $row['file'] : '', isset( $row['title'] ) ? $row['title'] : '', isset( $row['alt'] ) ? $row['alt'] : '' ),
         'product'   => isset( $row['product_folder'] ) ? (int) $row['product_folder'] : 0, // The folder its product's categories name (S10.8), resolved by the caller.
         'model'     => isset( $row['model_folder'] ) ? (int) $row['model_folder'] : -1,   // The text model's word (S18): a term id, 0 nothing fits, -1 unasked.
+        'label_folder' => isset( $row['label_folder'] ) ? (int) $row['label_folder'] : 0, // The frozen plan's folder for this label (spec-tree-planner story 4), resolved by the caller.
     );
 }
 
@@ -1879,7 +1917,7 @@ function vergeml_filing_pick( $facts, $profiles ) {
  */
 function vergeml_filing_pick_model( $pick, $facts, $profiles ) {
     $m = isset( $facts['model'] ) ? (int) $facts['model'] : -1;
-    if ( -1 === $m || vergeml_filing_kept( $pick ) || 'product' === $pick['why'] ) {
+    if ( -1 === $m || vergeml_filing_kept( $pick ) || 'product' === $pick['why'] || 'label' === $pick['why'] ) {
         return $pick;
     }
     if ( $m > 0 && ( ! isset( $profiles[ $m ] ) || ! empty( $profiles[ $m ]['locked'] ) || ! empty( $profiles[ $m ]['view'] ) || isset( $pick['gated'][ $m ] ) ) ) {
@@ -1929,7 +1967,16 @@ function vergeml_filing_pick_rules( $facts, $profiles ) {
     if ( isset( $facts['placed_by'] ) && in_array( (string) $facts['placed_by'], array( 'user', 'answer', 'product' ), true ) ) {
         return vergeml_filing_outcome( 'nothing', 'placed', array( 'scores' => array(), 'gated' => array() ) );
     }
-    if ( ! empty( $facts['in_locked'] ) ) {
+    /*
+     *  A lock keeps what it holds -- except "To sort" (spec-tree-planner
+     *  story 4, shop proof 2026-09-28): a picture whose only locked folder is
+     *  To sort is still refused here when its label is not in the frozen
+     *  map, but a row already carrying a label_folder falls through to that
+     *  branch below and is taken out. A picture in some other locked folder,
+     *  To sort as well or not, is always refused: only To sort's lock ever
+     *  yields, and only to the plan's own decision.
+     */
+    if ( ! empty( $facts['in_locked'] ) && ( ! empty( $facts['in_locked_other'] ) || empty( $facts['label_folder'] ) ) ) {
         return vergeml_filing_outcome( 'nothing', 'locked', array( 'scores' => array(), 'gated' => array() ) );
     }
     /*
@@ -1937,10 +1984,17 @@ function vergeml_filing_pick_rules( $facts, $profiles ) {
      *  image or in its gallery goes where the product's categories say --
      *  the folder the caller resolved through vergeml_filing_product_folder
      *  -- sure, before any matching. A fact, not a guess: no model, no
-     *  score, no runner-up, and a locked or gated folder does not come into
+     *  score, no runner-up, and a locked or gated TARGET does not come into
      *  it, because the product owns the picture whatever the folder is for.
+     *
+     *  Not, though, a picture the lock gate above let through: that is only
+     *  a picture whose sole lock is To sort and that also carries a label
+     *  (spec-tree-planner story 4) -- the frozen plan's own decision, and
+     *  only that decision empties To sort. `empty( $facts['in_locked'] )`
+     *  keeps the product branch out of that one case so the label branch
+     *  below is what takes it out, not the product's older, wider rule.
      */
-    if ( ! empty( $facts['product'] ) && isset( $profiles[ (int) $facts['product'] ] ) ) {
+    if ( empty( $facts['in_locked'] ) && ! empty( $facts['product'] ) && isset( $profiles[ (int) $facts['product'] ] ) ) {
         $tid = (int) $facts['product'];
         return vergeml_filing_outcome( 'fits', 'product', array(
             'term_id'    => $tid,
@@ -1952,6 +2006,45 @@ function vergeml_filing_pick_rules( $facts, $profiles ) {
             'scores'     => array( $tid => 1.0 ),
             'gated'      => array(),
         ) );
+    }
+    /*
+     *  File by the plan's frozen label map (spec-tree-planner story 4): the
+     *  plan already decided which folder this label belongs in, so the label
+     *  files it there instead of the matcher re-guessing -- sure, before any
+     *  scoring. Unlike the product's folder, a locked or view target is never
+     *  taken (the caller resolving 'label_folder' already refused one; this
+     *  repeats the check because a profile can change between the resolving
+     *  and the pick, and because pick_model refuses a view for the model's
+     *  own word the same way).
+     */
+    if ( ! empty( $facts['label_folder'] ) && isset( $profiles[ (int) $facts['label_folder'] ] ) && empty( $profiles[ (int) $facts['label_folder'] ]['locked'] ) && empty( $profiles[ (int) $facts['label_folder'] ]['view'] ) ) {
+        $tid    = (int) $facts['label_folder'];
+        $target = isset( $profiles[ $tid ]['audience'] ) ? (string) $profiles[ $tid ]['audience'] : '';
+        /*
+         *  An audience-gated target (CAP-4, spec-tree-planner story 6): the
+         *  plan decided the LABEL belongs there, which is a fact about the
+         *  label's pictures in general, not about this one picture in
+         *  particular. Taking the frozen map's word for an audience folder
+         *  would refile pictures the describer never said were anyone's --
+         *  exactly the guess CAP-4 forbids, whether the folder passed the
+         *  plan's own evidence bar or the owner answered "yes" to skip it.
+         *  A picture whose own audience does not match falls through to the
+         *  gate below instead, the same one an ungated pick would meet --
+         *  gated outright if it says a different audience, held as a shadow
+         *  (a runner-up, never the pick) if it says none.
+         */
+        if ( '' === $target || ( isset( $facts['audience'] ) ? (string) $facts['audience'] : '' ) === $target ) {
+            return vergeml_filing_outcome( 'fits', 'label', array(
+                'term_id'    => $tid,
+                'parent_id'  => vergeml_filing_parent_of( $tid, $profiles ),
+                'score'      => 1.0,
+                'confidence' => 'sure',
+                'source'     => 'label',
+                'hit'        => 'label',
+                'scores'     => array( $tid => 1.0 ),
+                'gated'      => array(),
+            ) );
+        }
     }
 
     $scores   = array();

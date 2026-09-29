@@ -113,6 +113,8 @@ function vergeml_folders_assets( $hook ) {
         // "Show me" opens a picture in the library's own modal, where Why is it here answers for it.
         'libraryUrl'=> admin_url( 'upload.php' ),
         'proposeCredits' => VERGEML_GUIDE_PROPOSE_CREDITS,
+        // The plan's price, counted here from the label inventory; the service charges the same sum.
+        'plan'           => function_exists( 'vergeml_plan_facts' ) && $boot['facts']['pictures'] > 0 ? vergeml_plan_facts( ! empty( $boot['session']['frozen'] ), true ) : null,
         // Folders a confirm reads per request: the progress row counts batches by it (S10.0).
         'profileBatch'   => defined( 'VERGEML_FILING_PROFILE_BATCH' ) ? VERGEML_FILING_PROFILE_BATCH : 60,
         'walk'      => (bool) apply_filters( 'vergeml_folders_walk', false ),
@@ -157,7 +159,8 @@ function vergeml_folders_boot() {
         'nodes'    => $nodes,
         'version'  => function_exists( 'vergeml_folders_version' ) ? vergeml_folders_version() : 0,
         'facts'    => $facts,
-        'session'  => vergeml_guide_session_out( $session ),
+        // The term ids the tree already loaded: the frozen flag reads them instead of asking for the terms again.
+        'session'  => vergeml_guide_session_out( $session, array_column( $nodes, 'id' ) ),
         // Where Step 3 stands: open questions, pictures in no folder, running, done.
         'fill'     => function_exists( 'vergeml_talk_fill_status' ) ? vergeml_talk_fill_status() : array( 'open' => 0, 'unfiled' => (int) $facts['unfiled'], 'running' => false, 'done' => false ),
         'undo'     => function_exists( 'vergeml_talk_undo_available' ) ? vergeml_talk_undo_available() : array( 'available' => false, 'until' => 0 ),
@@ -549,6 +552,10 @@ function vergeml_guide_fresh() {
          *  draft) until unconfirmed, and the fill runs against exactly it.
          */
         'tree'            => 'editing',
+        // The bottom-up plan's job (core/plan-tree.php): null, or running, done or failed.
+        'plan'            => null,
+        // CAP-4's one question, answered at most once a session: null, 'yes' or 'no'.
+        'audience_split'  => null,
     );
 }
 
@@ -570,8 +577,13 @@ function vergeml_guide_save( $session ) {
     return $session;
 }
 
-/** What the browser gets of the session: never the token's secret parts beyond the token itself, never the summary. */
-function vergeml_guide_session_out( $s ) {
+/**
+ *  What the browser gets of the session: never the token's secret parts
+ *  beyond the token itself, never the summary.
+ *
+ * @param array|null $live The folders' term ids, when the caller has them loaded already (the boot).
+ */
+function vergeml_guide_session_out( $s, $live = null ) {
     return array(
         'turns'           => array_values( (array) $s['turns'] ),
         'draft'           => $s['draft'],
@@ -582,6 +594,11 @@ function vergeml_guide_session_out( $s ) {
         'tree'            => isset( $s['tree'] ) && 'confirmed' === $s['tree'] ? 'confirmed' : 'editing',
         // What "This is my tree" would ask the planner about, and its credits past the free hundred (C.5): the button says it.
         'profile'         => vergeml_guide_profile_facts( $s['draft'] ),
+        'plan'            => isset( $s['plan'] ) ? $s['plan'] : null,
+        // CAP-4's one question: null until answered, then 'yes' or 'no'.
+        'audience_split'  => isset( $s['audience_split'] ) ? $s['audience_split'] : null,
+        // A plan was filled: planning again only grows it, for free (spec-tree-planner story 10).
+        'frozen'          => function_exists( 'vergeml_plan_frozen' ) && (bool) vergeml_plan_frozen( $live ),
     );
 }
 
@@ -620,7 +637,7 @@ function vergeml_guide_clean_draft( $in ) {
         return preg_replace( '/[^A-Za-z0-9:_\-.]/', '', (string) $k );
     };
 
-    $out  = array( 'folders' => array(), 'gone' => array(), 'tags' => array(), 'origin' => 'talk', 'rule' => null );
+    $out  = array( 'folders' => array(), 'gone' => array(), 'tags' => array(), 'origin' => 'talk', 'rule' => null, 'label_map' => array() );
     $keys = array();
 
     // The second axis the assistant proposes as tags rides along for the apply; the tree does not draw it.
@@ -673,6 +690,23 @@ function vergeml_guide_clean_draft( $in ) {
         if ( $tid > 0 ) {
             $out['gone'][ $tid ] = isset( $keys[ $to ] ) ? $to : '';
         }
+    }
+    /*
+     *  The label -> draft key map the plan built (spec-tree-planner story 4),
+     *  carried on the draft's own side rather than a folder's fields, which
+     *  the loop above already whitelisted closed. A key naming a folder the
+     *  cleaning dropped is dropped with it.
+     */
+    foreach ( (array) ( isset( $in['label_map'] ) ? $in['label_map'] : array() ) as $label => $to ) {
+        $label = sanitize_text_field( (string) $label );
+        $to    = $key( $to );
+        if ( '' !== $label && isset( $keys[ $to ] ) ) {
+            $out['label_map'][ $label ] = $to;
+        }
+    }
+    // A frozen tree's growth (spec-tree-planner story 10): its fill files only the growth's waiting pictures.
+    if ( isset( $in['origin'] ) && 'grow' === $in['origin'] ) {
+        $out['origin'] = 'grow';
     }
     if ( isset( $in['origin'] ) && 'rule' === $in['origin'] && isset( $in['rule'] ) && is_array( $in['rule'] ) ) {
         $rule = vergeml_guide_rule_args( isset( $in['rule']['id'] ) ? $in['rule']['id'] : '', isset( $in['rule']['options'] ) ? $in['rule']['options'] : array() );
@@ -1145,7 +1179,8 @@ function vergeml_guide_confirm( &$s ) {
         if ( ! $folders ) {
             return new WP_Error( 'empty', __( 'There are no folders to confirm.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
         }
-        $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders ) );
+        // The live folders keep the frozen label map (spec-tree-planner story 10), or the fill after this confirm freezes an empty one.
+        $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders, 'label_map' => function_exists( 'vergeml_plan_frozen_keys' ) ? vergeml_plan_frozen_keys() : array() ) );
     }
 
     /*
@@ -1766,6 +1801,10 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
     if ( ! is_array( $draft ) || empty( $draft['folders'] ) || ! function_exists( 'vergeml_filing_pick' ) ) {
         return null;
     }
+    // A grown draft's fill files exactly its assignment, so that is what its dry run counts (spec-tree-planner story 10).
+    if ( 'grow' === $draft['origin'] && function_exists( 'vergeml_plan_grow_fit' ) ) {
+        return vergeml_plan_grow_fit( $draft, $taxonomy );
+    }
 
     global $wpdb;
 
@@ -1905,11 +1944,25 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
     $locked = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids', 'meta_key' => VERGEML_FILING_LOCKED, 'meta_value' => '1' ) );
     $locked = is_wp_error( $locked ) ? array() : array_map( 'intval', (array) $locked );
 
+    /*
+     *  To sort's lock yields to a label, no other lock does (spec-tree-planner
+     *  story 4, shop proof 2026-09-28): read the same way the run's own SQL
+     *  does, by the slug, never created here.
+     */
+    $to_sort_slug = defined( 'VERGEML_FILING_TO_SORT_SLUG' ) ? VERGEML_FILING_TO_SORT_SLUG : 'to-sort';
+    $to_sort_term = get_term_by( 'slug', $to_sort_slug, $taxonomy );
+    $locked_other = $to_sort_term instanceof WP_Term ? array_values( array_diff( $locked, array( (int) $to_sort_term->term_id ) ) ) : $locked;
+
     $index = array();
     foreach ( $rows as $r ) {
         $id = (int) $r['attachment_id'];
         $in = empty( $r['in_terms'] ) ? array() : array_map( 'intval', explode( ',', (string) $r['in_terms'] ) );
-        $index[] = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '', 'placed_by' => '' ), array( 'in_locked' => (bool) array_intersect( $in, $locked ) ) );
+        $index[] = array_merge( $r, isset( $vectors[ $id ] ) ? $vectors[ $id ] : array( 'embedding' => null, 'tags' => '', 'placed_by' => '' ), array( 'in_locked' => (bool) array_intersect( $in, $locked ), 'in_locked_other' => (bool) array_intersect( $in, $locked_other ) ) );
+    }
+    // By attachment id, for the "still in To sort" count below -- $index carries facts $rows does not.
+    $locked_other_by_id = array();
+    foreach ( $index as $ix ) {
+        $locked_other_by_id[ (int) $ix['attachment_id'] ] = ! empty( $ix['in_locked_other'] );
     }
     /*
      *  File by the product (S10.8), the one step the fill took and this count
@@ -1923,6 +1976,22 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
      *  NULL and this returns the rows untouched.
      */
     $index   = vergeml_filing_product_folders( $index, $profiles );
+    /*
+     *  The frozen label map (spec-tree-planner story 4), read here by the same
+     *  rule the fill will use: label text -> this run's own synthetic id, so
+     *  the dry run's "would stay unfiled" is the fill's. Keyed by label text
+     *  because $order runs the other way (id -> draft key).
+     */
+    if ( function_exists( 'vergeml_filing_label_folders' ) && ! empty( $draft['label_map'] ) ) {
+        $key_to_n = array_flip( $order );
+        $label_by_id = array();
+        foreach ( (array) $draft['label_map'] as $label => $draft_key ) {
+            if ( isset( $key_to_n[ $draft_key ] ) ) {
+                $label_by_id[ $label ] = $key_to_n[ $draft_key ];
+            }
+        }
+        $index = vergeml_filing_label_folders( $index, $profiles, $label_by_id );
+    }
     $counted = vergeml_filing_count( $profiles, $index, $deadline );
     if ( null === $counted ) {
         return null;
@@ -1945,6 +2014,15 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
                         $residue_word[ $key ] = $class[0]; // The describer's own words, as the screen will say them.
                     }
                 }
+            } elseif ( 'locked' === $pick['why'] && empty( $locked_other_by_id[ $id ] ) ) {
+                /*
+                 *  Kept only by To sort's lock (spec-tree-planner story 4,
+                 *  shop proof 2026-09-28): the fill leaves it there too
+                 *  (no label of its own, or the label map does not reach
+                 *  here), so the dry run's "would stay unfiled" now says so
+                 *  rather than reading it as placed and dropping it.
+                 */
+                $why['to_sort'] = isset( $why['to_sort'] ) ? $why['to_sort'] + 1 : 1;
             }
             continue;
         }
@@ -2370,12 +2448,39 @@ function vergeml_guide_apply_plan( $draft ) {
         $talk_key[ $f['key'] ] = vergeml_talk_key( $parent_name, (string) $f['name'] );
     }
 
-    $opts = array( 'assign' => array(), 'fallback' => array(), 'reasons' => array() );
+    $opts = array( 'assign' => array(), 'fallback' => array(), 'reasons' => array(), 'label_map' => array() );
 
     foreach ( (array) $draft['gone'] as $tid => $to ) {
         if ( '' !== $to && isset( $talk_key[ $to ] ) ) {
             $opts['fallback'][ (int) $tid ] = $talk_key[ $to ];
         }
+    }
+
+    // The frozen label -> folder map (spec-tree-planner story 4), by the talk key vergeml_talk_apply resolves to a term id, as fallback is.
+    foreach ( (array) ( isset( $draft['label_map'] ) ? $draft['label_map'] : array() ) as $label => $to ) {
+        if ( isset( $talk_key[ $to ] ) ) {
+            $opts['label_map'][ (string) $label ] = $talk_key[ $to ];
+        }
+    }
+
+    /*
+     *  A frozen tree's growth (spec-tree-planner story 10): the waiting
+     *  pictures of the growth's labels go to their folders and no other
+     *  picture is looked at -- the rule path's 'assign', so the fill neither
+     *  re-files the library nor asks the text model. Nothing to file is
+     *  refused: an empty assign would run the full fill.
+     */
+    if ( 'grow' === $draft['origin'] && function_exists( 'vergeml_plan_grow_assign' ) ) {
+        $grow = vergeml_plan_grow_assign( $draft, function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '' );
+        foreach ( $grow['assign'] as $attachment => $key ) {
+            if ( isset( $talk_key[ $key ] ) ) {
+                $opts['assign'][ (int) $attachment ] = $talk_key[ $key ];
+            }
+        }
+        if ( ! $opts['assign'] ) {
+            return new WP_Error( 'empty', __( 'Nothing to apply.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+        }
+        $opts['grow'] = true;
     }
 
     if ( 'rule' === $draft['origin'] && is_array( $draft['rule'] ) ) {
@@ -2441,7 +2546,8 @@ function vergeml_guide_rest_apply( WP_REST_Request $request ) {
         foreach ( vergeml_folders_nodes( $taxonomy ) as $node ) {
             $folders[] = array( 'key' => 't' . (int) $node['id'], 'term_id' => (int) $node['id'], 'name' => (string) $node['name'], 'parent' => $node['parent'] ? 't' . (int) $node['parent'] : '' );
         }
-        $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders ) );
+        // The live folders keep the frozen label map (spec-tree-planner story 10): without it a second fill froze an empty map and re-filed every picture by the matcher.
+        $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders, 'label_map' => function_exists( 'vergeml_plan_frozen_keys' ) ? vergeml_plan_frozen_keys() : array() ) );
     }
 
     $plan = vergeml_guide_apply_plan( $s['draft'] );
@@ -2625,12 +2731,18 @@ function vergeml_guide_rule_args( $id, $options ) {
 
 /**
  *  The described pictures a rule looks at: every one, or only those in no
- *  folder, with what each rule needs to know about them. One query.
+ *  folder, with what each rule needs to know about them. One query, or,
+ *  with $after and $limit given, one page of it (spec-tree-planner story 7:
+ *  vergeml_plan_draft pages this the way vergeml_plan_label_sums pages the
+ *  index itself, so a large library never sits in memory whole). Left out,
+ *  they behave exactly as before -- the whole table, one query.
  *
  *  @param string $scope  'unfiled' | 'all'
- *  @param array  $need   any of 'filing', 'date', 'terms'
+ *  @param array  $need   any of 'filing', 'date', 'terms', 'embedding'
+ *  @param int    $after  attachment_id to read after; 0 for the start.
+ *  @param int    $limit  rows to a page; 0 for no limit.
  */
-function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array() ) {
+function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array(), $after = 0, $limit = 0 ) {
 
     global $wpdb;
 
@@ -2641,6 +2753,9 @@ function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array() ) {
 
     if ( in_array( 'filing', $need, true ) ) {
         $select .= ', i.filing';
+    }
+    if ( in_array( 'embedding', $need, true ) ) {
+        $select .= ', i.embedding';
     }
     if ( in_array( 'date', $need, true ) ) {
         $select .= ', p.post_date';
@@ -2657,9 +2772,18 @@ function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array() ) {
     if ( 'unfiled' === $scope ) {
         $where .= $wpdb->prepare( " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s )", $taxonomy );
     }
+    $after = (int) $after;
+    if ( $after > 0 ) {
+        $where .= $wpdb->prepare( ' AND i.attachment_id > %d', $after );
+    }
+    $limit_sql = '';
+    $limit     = (int) $limit;
+    if ( $limit > 0 ) {
+        $limit_sql = $wpdb->prepare( ' LIMIT %d', $limit );
+    }
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; the parts are prepared above.
-    return (array) $wpdb->get_results( "SELECT {$select} FROM {$t} i{$join} WHERE {$where}{$group} ORDER BY i.attachment_id ASC", ARRAY_A );
+    return (array) $wpdb->get_results( "SELECT {$select} FROM {$t} i{$join} WHERE {$where}{$group} ORDER BY i.attachment_id ASC{$limit_sql}", ARRAY_A );
 }
 
 /** Live folders by lowercased path ("apparel/women") and by id. */

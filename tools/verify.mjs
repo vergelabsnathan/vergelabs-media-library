@@ -177,6 +177,49 @@ const SUITES = [
 	 */
 	{ name: 'filing', files: [ 'tests/filing/pick.php', 'tests/filing/residue.php' ], env: 'local', php: 'wasm' },
 	/*
+	 *  The planner's choice among the service's fifteen trees (core/plan-tree.php):
+	 *  the tightest kept, a label the model left out placed only at the cosine
+	 *  floor. Arithmetic on two-dimensional fixtures, like filing: no WordPress.
+	 */
+	{ name: 'plan-choose', file: 'tests/tree/plan-choose.php', env: 'local', php: 'wasm' },
+	/*
+	 *  The never-worse guard (spec-tree-planner story 8): the pictures already in
+	 *  a folder measured now and after the plan, To sort left out, an empty site
+	 *  always offered its plan. Arithmetic on fixtures, like plan-choose.
+	 */
+	{ name: 'plan-gain', file: 'tests/tree/plan-gain.php', env: 'local', php: 'wasm' },
+	/*
+	 *  The large-library fold (spec-tree-planner story 7): rare labels folded
+	 *  into their class's fold label until the inventory fits the budget, a
+	 *  fold-label collision merged rather than dropped, the exact label
+	 *  beating its own fold label, and a pre-version cache recomputed. No
+	 *  WordPress; a two-method $wpdb stub stands in for the one cache row.
+	 */
+	{ name: 'plan-fold', file: 'tests/tree/plan-fold.php', env: 'local', php: 'wasm' },
+	/*
+	 *  Splits the pictures cannot show are asked (spec-tree-planner CAP-4,
+	 *  story 6): the inventory's own audience share, and whether the site's
+	 *  product categories already name one. Arithmetic and a string scan,
+	 *  like plan-choose; the service half (stripUnsupportedAudience) is
+	 *  tested in the service repo's own lib/plan-tree.test.ts.
+	 */
+	{ name: 'plan-audience', file: 'tests/tree/plan-audience.php', env: 'local', php: 'wasm' },
+	/*
+	 *  A frozen tree planned again, free, and only grown (spec-tree-planner
+	 *  story 10): a new label joins a folder only when it sits as close as the
+	 *  folder's own pictures, the rest group into new folders at the minimum
+	 *  under a parent with room, the same library grows the same way twice,
+	 *  and the fill files only waiting pictures of the growth. Arithmetic and
+	 *  stand-ins, like plan-fold.
+	 */
+	{ name: 'plan-grow', file: 'tests/tree/plan-grow.php', env: 'local', php: 'wasm' },
+	/*
+	 *  The plan's job, press and poll end to end against stand-ins: a job its
+	 *  host kills mid-ask failed and asked back rather than booked and
+	 *  charged again. The service is a scripted answer; nothing is spent.
+	 */
+	{ name: 'plan-job', file: 'tests/tree/plan-job.php', env: 'local', php: 'wasm' },
+	/*
 	 *  Confirm, lock, sticky (A.3): a hand move survives a fill, a locked
 	 *  folder keeps its pictures and gains none, a confirmed tree answers 409.
 	 *  The box: it stores a packed embedding and drives a real pass over its

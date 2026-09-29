@@ -1556,6 +1556,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // taxonomy from one and the embedding call from the other.
         include_once( 'core/folder-talk.php' );
         include_once( 'core/guide.php' );
+        include_once( 'core/plan-tree.php' );
         // The brief as a conversation. After guide.php, whose token mint and
         // stream address it borrows, and after ai.php, whose describe request
         // and row write it reuses; inside the guard, because adopting a brief

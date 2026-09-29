@@ -21,7 +21,10 @@ if ( ! defined( 'ABSPATH' ) )
  *     the moment somebody says no. Autonomy belongs to a folder rather than
  *     to a setting because the evidence is per folder: "Invoices is
  *     unambiguous and Misc is not" is a true thing about somebody's library
- *     that no global switch can express.
+ *     that no global switch can express. One exception (spec-tree-planner
+ *     story 4): a label the owner's accepted plan already placed files
+ *     without waiting for the folder to earn it -- that decision was earned
+ *     once, by the owner, for the whole plan.
  *
  *  2. **Nothing is ever certain out loud.** The chip says "Looks like
  *     Invoices". It never says a percentage, a score, or "confident" --
@@ -280,6 +283,21 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
     if ( ! $profiles ) {
         return null;
     }
+
+    /*
+     *  The plan's frozen label map (spec-tree-planner story 4): a picture
+     *  described after the fill, whose label the owner's plan already placed,
+     *  goes there like every picture the fill itself filed -- the one row
+     *  helper the fill and the dry run use, so a new picture is not a second
+     *  rule.
+     */
+    // Not cached across calls: an undo within the same request or process clears this option, and a stale copy would keep filing by a map that is gone.
+    $label_map = defined( 'VERGEML_TALK_LABEL_MAP' ) ? (array) get_option( VERGEML_TALK_LABEL_MAP ) : array();
+    if ( $label_map && function_exists( 'vergeml_filing_label_folders' ) ) {
+        $labelled_rows = vergeml_filing_label_folders( array( $row ), $profiles, $label_map );
+        $row           = $labelled_rows[0];
+    }
+
     $pick = vergeml_filing_pick( vergeml_filing_facts( $row ), $profiles );
     if ( ! $pick['term_id'] ) {
         return null; // Nothing fits well enough, or two folders would both do.
@@ -290,7 +308,8 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
         'attachment_id' => (int) $attachment_id,
         'term_id'       => $best,
         'taxonomy'      => $taxonomy,
-        'earned'        => vergeml_autofile_earned( $best ),
+        // A label hit is the plan's own decision, kept: it does not wait for the folder to have earned autonomy (Nathan, 2026-09-28).
+        'earned'        => 'label' === $pick['why'] ? true : vergeml_autofile_earned( $best ),
 
         /*
          *  What the matcher just worked out, kept rather than dropped, so the

@@ -66,12 +66,13 @@ function vergeml_licence_save() {
             $settings['license_key'] = vergeml_ai_seal( $key );
             update_option( 'vergeml_ai', $settings, false );
             // The seat on the licence, then the balance.
-            if ( function_exists( 'vergeml_ai_activate_site' ) ) {
-                vergeml_ai_activate_site();
-            }
+            $seat   = function_exists( 'vergeml_ai_activate_site' ) ? vergeml_ai_activate_site() : true;
             $check  = vergeml_ai_refresh_credits( true );
             $state  = function_exists( 'vergeml_ai_credits_state' ) ? vergeml_ai_credits_state() : 'ok';
             $result = ( null === $check && 'rejected' === $state ) ? 'rejected' : 'saved';
+            if ( is_wp_error( $seat ) && 'vergeml_ai_seat_limit' === $seat->get_error_code() ) {
+                $result = 'seat_limit';
+            }
         }
     }
 
@@ -156,6 +157,7 @@ function vergeml_licence_page() {
                 'saved'    => array( 'success', __( 'Licence saved. This site is connected.', 'vergelabs-media-library' ) ),
                 'rejected' => array( 'error', __( 'That key was not recognised by the service. It is saved, but nothing can be described with it until it is.', 'vergelabs-media-library' ) ),
                 'removed'  => array( 'success', __( 'The licence was removed from this site.', 'vergelabs-media-library' ) ),
+                'seat_limit' => array( 'error', __( 'This licence is already in use on as many sites as it allows. Disconnect it from another site, or use another licence, to connect this one.', 'vergelabs-media-library' ) ),
             );
             if ( isset( $m[ $r ] ) ) {
                 printf( '<div class="notice notice-%s is-dismissible"><p>%s</p></div>', esc_attr( $m[ $r ][0] ), esc_html( $m[ $r ][1] ) );

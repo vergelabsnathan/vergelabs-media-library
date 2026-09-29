@@ -85,6 +85,7 @@ $g_draft = vergeml_guide_clean_draft( array(
     'tags'    => array( array( 'name' => 'Colour', 'values' => array( 'tan', '' ) ) ),
     'origin'  => 'rule',
     'rule'    => array( 'id' => 'kind', 'options' => array( 'scope' => 'everything' ) ),
+    'label_map' => array( 'thing; class' => 'new1', 'ghost; class' => 'nosuchkey' ),
 ) );
 g_check( 'B1 a slash in a name becomes a dash', 'Renamed - by hand' === $g_draft['folders'][0]['name'], $g_draft['folders'][0]['name'] );
 g_check( 'B2 a parent key that names nothing becomes the top level', '' === $g_draft['folders'][1]['parent'] );
@@ -92,6 +93,7 @@ g_check( 'B3 a key is letters, digits and punctuation only', 'badkey' === $g_dra
 g_check( 'B4 gone keeps a known destination and drops an unknown one', 'new1' === $g_draft['gone'][77] && '' === $g_draft['gone'][78] );
 g_check( 'B5 a tag rides along without its empty values', array( 'tan' ) === $g_draft['tags'][0]['values'] );
 g_check( 'B6 a rule outside its closed list falls to its default', 'rule' === $g_draft['origin'] && 'unfiled' === $g_draft['rule']['options']['scope'] );
+g_check( 'B7 label_map (spec-tree-planner story 4) keeps an entry whose key survives and drops one pointing at a missing key', isset( $g_draft['label_map']['thing; class'] ) && 'new1' === $g_draft['label_map']['thing; class'] && ! isset( $g_draft['label_map']['ghost; class'] ), wp_json_encode( isset( $g_draft['label_map'] ) ? $g_draft['label_map'] : null ) );
 
 /* -------------------------------------------------------- C  the plan for Move */
 
@@ -107,6 +109,7 @@ $g_plan = vergeml_guide_apply_plan( array(
     'tags'    => array(),
     'origin'  => 'talk',
     'rule'    => null,
+    'label_map' => array( 'gadget; thing' => 'a' ),
 ) );
 $g_names = is_wp_error( $g_plan ) ? array() : array_map( function ( $f ) { return $f['name']; }, $g_plan['folders'] );
 $g_kept  = is_wp_error( $g_plan ) ? null : $g_plan['folders'][ array_search( 'Kept and renamed', $g_names, true ) ];
@@ -114,6 +117,7 @@ g_check( 'C1 parents come before children, whatever the draft\'s order', ! is_wp
 g_check( 'C2 a folder that exists is addressed by its term id', $g_kept && (int) $g_first['id'] === (int) $g_kept['term_id'] );
 g_check( 'C3 a removed folder\'s pictures fall back to the folder that took them, keyed as the re-filing keys folders', ! is_wp_error( $g_plan ) && isset( $g_plan['opts']['fallback'][77] ) && vergeml_talk_key( 'Parent', 'Child' ) === $g_plan['opts']['fallback'][77] && ! isset( $g_plan['opts']['fallback'][78] ) );
 g_check( 'C4 a conversation draft carries no assignment: the evidence files it', ! is_wp_error( $g_plan ) && array() === $g_plan['opts']['assign'] );
+g_check( 'C4b the draft\'s label_map (label => draft key), for a folder still new, becomes opts label_map (label => the talk key vergeml_talk_apply resolves)', ! is_wp_error( $g_plan ) && isset( $g_plan['opts']['label_map']['gadget; thing'] ) && vergeml_talk_key( 'Parent', 'Child' ) === $g_plan['opts']['label_map']['gadget; thing'], wp_json_encode( is_wp_error( $g_plan ) ? null : ( isset( $g_plan['opts']['label_map'] ) ? $g_plan['opts']['label_map'] : null ) ) );
 $g_empty = vergeml_guide_apply_plan( array( 'folders' => array(), 'gone' => array(), 'origin' => 'talk', 'rule' => null ) );
 g_check( 'C5 an empty draft is refused', is_wp_error( $g_empty ) );
 
@@ -549,6 +553,72 @@ if ( ! taxonomy_exists( 'product_cat' ) || ! $g_att ) {
     g_check( 'J5 knowing the products costs the count at most three queries more', $g_qb <= $g_qa + 3, $g_qa . ' -> ' . $g_qb . ' queries' );
     g_check( 'J6 the fixture\'s product and category are gone again', 0 === count( $g_left_p ) && ! ( $g_left_t instanceof WP_Term ) );
 }
+
+/* ---------------------------------------------- K  the dry run counts To sort */
+
+/*
+ *  spec-tree-planner story 4, shop proof 2026-09-28: a picture kept only by
+ *  To sort's own lock is now counted as "would stay unfiled" (core/guide.php);
+ *  one kept by any other lock is not, exactly as before. Two fresh, described
+ *  pictures of this suite's own, one put in each kind of lock; the dry run is
+ *  run once before either exists and once after, so the difference is read
+ *  off the real count rather than guessed from it.
+ */
+echo "\nK  the dry run's unfiled counts a picture kept only by To sort, not one kept by another lock\n\n";
+
+$g_tax3 = vergeml_librarian_taxonomy();
+$GLOBALS['g_posts_k'] = array();
+
+function g_k_file( $title, $object ) {
+    $id = wp_insert_post( array( 'post_title' => 'zz guide ' . $title, 'post_type' => 'attachment', 'post_status' => 'inherit', 'post_mime_type' => 'image/png' ) );
+    $GLOBALS['g_posts_k'][] = (int) $id;
+    vergeml_index_set( (int) $id, array(
+        'caption'       => 'seeded',
+        'kind'          => 'photo',
+        'filing'        => wp_json_encode( array( 'object' => $object, 'audience' => '' ) ),
+        'embedding'     => array( 1.0, 0.0, 0.0, 0.0 ),
+        'model'         => 'zz-test',
+        'model_version' => 'zz-model-7',
+        'prompt_hash'   => 'zzguidehash0123456',
+        'error'         => '',
+        'described_at'  => gmdate( 'Y-m-d H:i:s' ),
+    ) );
+    return (int) $id;
+}
+
+$g_to_sort_id = vergeml_talk_to_sort( $g_tax3 );
+$g_lock2      = wp_insert_term( 'zzGuideOtherLock', $g_tax3 );
+$g_lock2_id   = is_wp_error( $g_lock2 ) ? (int) get_term_by( 'name', 'zzGuideOtherLock', $g_tax3 )->term_id : (int) $g_lock2['term_id'];
+update_term_meta( $g_lock2_id, VERGEML_FILING_LOCKED, 1 );
+
+// One folder is enough: neither test picture ever reaches the matcher, both are refused by a lock before it.
+$g_k_draft = vergeml_guide_clean_draft( array(
+    'folders' => array( array( 'key' => 't' . $g_first['id'], 'term_id' => $g_first['id'], 'name' => (string) $g_first['name'], 'parent' => '', 'classes' => array(), 'kinds' => array() ) ),
+    'gone'    => array(),
+    'origin'  => 'talk',
+    'rule'    => null,
+) );
+
+$g_fit_k0 = vergeml_guide_draft_fit( $g_k_draft, $g_tax3 );
+$g_k0     = is_array( $g_fit_k0 ) && isset( $g_fit_k0['unfiled']['to_sort'] ) ? (int) $g_fit_k0['unfiled']['to_sort'] : 0;
+
+$g_to_sort_pic = g_k_file( 'tosort', 'zzguidetosort; zzthing' );
+$g_other_pic   = g_k_file( 'otherlock', 'zzguideotherlock; zzthing' );
+wp_set_object_terms( $g_to_sort_pic, array( $g_to_sort_id ), $g_tax3, false );
+wp_set_object_terms( $g_other_pic, array( $g_lock2_id ), $g_tax3, false );
+
+$g_fit_k1 = vergeml_guide_draft_fit( $g_k_draft, $g_tax3 );
+$g_k1     = is_array( $g_fit_k1 ) && isset( $g_fit_k1['unfiled']['to_sort'] ) ? (int) $g_fit_k1['unfiled']['to_sort'] : 0;
+
+g_check( 'K1 the dry run\'s unfiled counts the picture kept only by To sort\'s lock, not the one kept by another lock', is_array( $g_fit_k0 ) && is_array( $g_fit_k1 ) && $g_k1 === $g_k0 + 1, json_encode( array( 'before' => $g_k0, 'after' => $g_k1 ) ) );
+
+foreach ( $GLOBALS['g_posts_k'] as $g_pid ) {
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $wpdb->delete( $wpdb->vergeml_ai_index, array( 'attachment_id' => $g_pid ), array( '%d' ) );
+    wp_delete_post( $g_pid, true );
+}
+wp_delete_term( $g_lock2_id, $g_tax3 );
+g_check( 'K2 the fixture is gone again', 0 === count( array_filter( $GLOBALS['g_posts_k'], function ( $id ) { return (bool) get_post( $id ); } ) ) && ! ( get_term( $g_lock2_id, $g_tax3 ) instanceof WP_Term ) );
 
 /* ------------------------------------------------------------------ put back */
 

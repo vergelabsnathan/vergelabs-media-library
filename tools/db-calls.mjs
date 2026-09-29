@@ -92,7 +92,7 @@ const BUILDERS = [ 'insert', 'update', 'delete', 'replace' ];
 /**
  *  Calls read by hand, with the reason, keyed by a fingerprint of their SQL.
  *
- *  The tool proves 191 of 202 on its own. The eleven below assemble their SQL from
+ *  The tool proves most calls on its own. The ones below assemble their SQL from
  *  fragments across a nested loop or a function boundary, which is further than a
  *  static reader should be trusted to follow, so each was read and the reason
  *  written down.
@@ -115,14 +115,26 @@ const REVIEWED = {
 		  "$in is implode of an array_chunk of $ids, and $ids is array_map( 'intval', (array) $ids ) on the function's first line -- integers, every one of them" ],
 	],
 
+	'core/auto-file.php': [
+		[ '0605b2be08',
+		  "$words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site; the one id is bound through %d" ],
+	],
+
 	'core/ai-screen.php': [
 		[ '56dead9d32',
 		  'every $sums[] element is its own $wpdb->prepare() fragment, and the column alias after AS comes from a literal list of eight field names in the foreach header above it' ],
 	],
 
+	'core/folder-talk.php': [
+		[ 'ab6eb6af5f',
+		  "$words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site; $product is vergeml_filing_product_sql( 'i' ): literal correlated subqueries on {$wpdb->posts} and {$wpdb->postmeta}, or the literal NULL AS product_id, and an empty join; $only implodes array_map( 'intval', ... ) of the round's ids" ],
+	],
+
 	'core/guide.php': [
-		[ 'f8e582bd4e',
-		  "$chunk comes from array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) by way of $chunks -- integers by construction" ],
+		[ '3e80c7c338',
+		  "$chunk comes from array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) by way of $chunks -- integers by construction; $words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site" ],
+		[ '42215bda29',
+		  "$chunk is array_chunk of the same (int) map over $rows -- integers by construction; $words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site; $product is vergeml_filing_product_sql( 'i' ): literal correlated subqueries on {$wpdb->posts} and {$wpdb->postmeta}, or the literal NULL AS product_id, and an empty join; the meta key is bound through %s" ],
 	],
 
 	'core/search-try.php': [

@@ -102,6 +102,11 @@
 		return 'confirmed' === state.session.tree;
 	}
 
+	/** A plan was filled: planning again only grows the tree, for free, even from the confirmed tree (spec-tree-planner story 10). */
+	function frozen() {
+		return !! ( state.session && state.session.frozen );
+	}
+
 	function running() {
 		return !! ( state.applying || ( state.session.apply && state.session.apply.running ) );
 	}
@@ -569,7 +574,8 @@
 			return null;
 		}
 		var why = fit.unfiled || {};
-		var unfiled = ( Number( why.floor ) || 0 ) + ( Number( why.margin ) || 0 ) + ( Number( why.gated ) || 0 );
+		// to_sort (spec-tree-planner story 4): pictures the fill will still leave in the locked To sort folder, so this pill and the fill agree.
+		var unfiled = ( Number( why.floor ) || 0 ) + ( Number( why.margin ) || 0 ) + ( Number( why.gated ) || 0 ) + ( Number( why.to_sort ) || 0 );
 		return { placed: Math.max( 0, ( Number( fit.looked ) || 0 ) - unfiled ), unfiled: unfiled };
 	}
 
@@ -602,6 +608,9 @@
 			next.addEventListener( 'click', function () { setStep( 'fill' ); } );
 			dom.treeMove.appendChild( next );
 			dom.treeMove.appendChild( quiet( __( 'Unconfirm', 'vergelabs-media-library' ), onUnconfirm ) );
+			if ( frozen() && described && licensed && cfg.plan && cfg.plan.labels > 0 && false !== cfg.plan.enough ) {
+				renderPlanButton();
+			}
 			return;
 		}
 		var hasTree = folders > 0;
@@ -661,7 +670,45 @@
 			dom.treeMove.appendChild( propose );
 			dom.treeMove.appendChild( pill( cfg.proposeCredits || 10, __( 'credits', 'vergelabs-media-library' ) ) );
 		}
+		if ( described && licensed && cfg.plan && cfg.plan.labels > 0 && false !== cfg.plan.enough ) {
+			renderPlanButton();
+			/*
+			 *  CAP-4: an audience split (men/women/kids) never comes from the
+			 *  pictures alone. Asked once, only while the library's own
+			 *  evidence is thin and the categories say nothing either
+			 *  (cfg.plan.audience_ask, worked out server-side); the answer
+			 *  rides on every plan run after it until the session ends.
+			 */
+			if ( cfg.plan.audience_ask && ! audienceAnswered() ) {
+				dom.treeMove.appendChild( renderAudienceAsk() );
+			}
+		}
 		dom.treeMove.appendChild( quiet( __( 'Skip', 'vergelabs-media-library' ), function () { setStep( 'fill' ); } ) );
+	}
+
+	function audienceAnswered() {
+		return !! ( state.session && state.session.audience_split );
+	}
+
+	function renderAudienceAsk() {
+		var wrap = el( 'div', { class: 'vgml-audience-ask' } );
+		wrap.appendChild( el( 'p', { class: 'g-why' }, __( 'Should your folders split by who they are for — men, women, kids?', 'vergelabs-media-library' ) ) );
+		var row = el( 'div', { class: 'vgml-audience-ask-row' } );
+		var yes = el( 'button', { type: 'button', class: 'g-chip' }, __( 'Yes, split by audience', 'vergelabs-media-library' ) );
+		var no = el( 'button', { type: 'button', class: 'g-chip' }, __( 'No', 'vergelabs-media-library' ) );
+		yes.addEventListener( 'click', function () { onAudienceSplit( 'yes' ); } );
+		no.addEventListener( 'click', function () { onAudienceSplit( 'no' ); } );
+		row.appendChild( yes );
+		row.appendChild( no );
+		wrap.appendChild( row );
+		return wrap;
+	}
+
+	function onAudienceSplit( answer ) {
+		api( 'POST', 'guide/audience-split', { answer: answer } ).then( function ( r ) {
+			state.session.audience_split = ( r && r.audience_split ) || answer;
+			renderTreeStep();
+		}, function () {} );
 	}
 
 	/*
@@ -822,6 +869,83 @@
 		state.fit = state.session.fit || null;
 		view.editable = ! confirmed();
 		view.render();
+	}
+
+	/*
+	 *  The bottom-up plan (core/plan-tree.php): one number on the button,
+	 *  counted on this site from the label inventory, the same sum the
+	 *  service charges. The press books a job; the screen polls it.
+	 */
+	function planState() {
+		return state.session && state.session.plan ? state.session.plan.state : '';
+	}
+
+	function renderPlanButton() {
+		var price = frozen() ? 0 : Number( cfg.plan.price ) || 0;
+		var balance = null === cfg.plan.balance || undefined === cfg.plan.balance ? null : Number( cfg.plan.balance );
+		var low = null !== balance && balance < price;
+		/* translators: %s: credits */
+		var label = sprintf( __( 'Plan my folders · %s credits', 'vergelabs-media-library' ), fmt( price ) );
+		if ( frozen() ) {
+			label = __( 'Plan my folders · free', 'vergelabs-media-library' );
+		} else if ( low ) {
+			/* translators: 1: credits the plan costs, 2: credits left */
+			label = sprintf( __( 'Plan my folders · %1$s credits · %2$s left', 'vergelabs-media-library' ), fmt( price ), fmt( balance ) );
+		}
+		var planning = 'running' === planState();
+		var btn = el( 'button', { type: 'button', class: 'vgml-btn vgml-plan-btn' + ( planning ? ' is-working' : '' ) }, label );
+		btn.disabled = low || planning || ! canPlan() || talk.streaming();
+		btn.addEventListener( 'click', onPlan );
+		dom.treeMove.appendChild( btn );
+		if ( ( 'failed' === planState() || 'kept' === planState() ) && state.session.plan.message ) {
+			dom.treeMove.appendChild( el( 'p', { class: 'g-why vgml-plan-note' }, state.session.plan.message ) );
+		}
+	}
+
+	function canPlan() {
+		return canTalk() || ( frozen() && described && licensed && ! capped() && ! running() );
+	}
+
+	function onPlan() {
+		if ( 'running' === planState() || ! canPlan() ) {
+			return;
+		}
+		// The price on the button is the most the press may cost; more, and the server answers with the new price instead of planning.
+		api( 'POST', 'guide/plan', { price: frozen() ? 0 : Number( cfg.plan.price ) || 0 } ).then( tookPlan, function ( err ) {
+			if ( err && 'price_changed' === err.code && err.data && err.data.plan ) {
+				cfg.plan = err.data.plan;
+			}
+			state.session.plan = { state: 'failed', message: ( err && err.message ) || __( 'That did not go through. Try again.', 'vergelabs-media-library' ) };
+			renderTreeStep();
+		} );
+	}
+
+	var planTimer = null;
+	function tookPlan( r ) {
+		var was = planState();
+		state.session.plan = r.plan || null;
+		// The job found the plan would cost more than the button said: the button says the new price.
+		if ( cfg.plan && 'failed' === planState() && state.session.plan.price ) {
+			cfg.plan.price = Number( state.session.plan.price );
+		}
+		if ( 'running' === planState() ) {
+			if ( ! planTimer ) {
+				planTimer = window.setTimeout( function () {
+					planTimer = null;
+					api( 'GET', 'guide/plan' ).then( tookPlan, function () { tookPlan( { plan: state.session.plan } ); } );
+				}, 3000 );
+			}
+		} else if ( 'running' === was && 'done' === planState() ) {
+			state.session.turns = r.turns;
+			// A grown tree comes back to editing, for the owner's yes before anything is filed (story 10).
+			if ( r.tree ) {
+				state.session.tree = r.tree;
+				view.editable = ! confirmed();
+			}
+			setDraft( r.draft, true );
+			state.fit = r.fit || null;
+		}
+		renderCards();
 	}
 
 	function onPropose() {
@@ -1556,7 +1680,8 @@
 
 	/** The component's draft plus what the session remembers about where it came from. */
 	function withOrigin( draft, prev ) {
-		return { folders: draft.folders, gone: draft.gone, tags: ( prev && prev.tags ) || [], origin: ( prev && prev.origin ) || 'talk', rule: ( prev && prev.rule ) || null };
+		// The plan's frozen label -> folder map (spec-tree-planner story 4) is the draft's own, not the tree component's: an edit, a paste or an answer rebuilds folders/gone and would otherwise drop it silently.
+		return { folders: draft.folders, gone: draft.gone, tags: ( prev && prev.tags ) || [], origin: ( prev && prev.origin ) || 'talk', rule: ( prev && prev.rule ) || null, label_map: draft.label_map || ( prev && prev.label_map ) || {} };
 	}
 
 	var persistTimer = null;
@@ -2472,6 +2597,11 @@
 	talk.render();
 	setStep( stepAt() );
 	root.classList.add( 'is-ready' );
+
+	// A plan still going from before this page loaded carries on being watched.
+	if ( 'running' === planState() ) {
+		tookPlan( { plan: state.session.plan } );
+	}
 
 	// A run still going from before this page loaded carries on being watched.
 	if ( running() ) {

@@ -193,16 +193,14 @@ function vergeml_connect_finish() {
 
     // The seat, then the balance. The exchange takes the seat server-side as
     // well; this covers an older service, and costs one request.
-    if ( function_exists( 'vergeml_ai_activate_site' ) ) {
-        vergeml_ai_activate_site();
-    }
+    $seat = function_exists( 'vergeml_ai_activate_site' ) ? vergeml_ai_activate_site() : true;
     // The screen this returns to shows the balance; fetch it now so the number
     // is right the moment the site is connected.
     if ( function_exists( 'vergeml_ai_refresh_credits' ) ) {
         vergeml_ai_refresh_credits( true );
     }
 
-    vergeml_connect_redirect_with( 'connected' );
+    vergeml_connect_redirect_with( is_wp_error( $seat ) && 'vergeml_ai_seat_limit' === $seat->get_error_code() ? 'seat_limit' : 'connected' );
 }
 
 /** Back to the AI screen, saying what happened. */
@@ -234,6 +232,14 @@ function vergeml_connect_banner() {
             printf(
                 '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
                 esc_html__( 'This site is connected. The AI features are ready to use.', 'vergelabs-media-library' )
+            );
+            return;
+        }
+
+        if ( 'seat_limit' === $result ) {
+            printf(
+                '<div class="notice notice-error is-dismissible"><p>%s</p></div>',
+                esc_html__( 'This licence is already in use on as many sites as it allows. Disconnect it from another site, or use another licence, to connect this one.', 'vergelabs-media-library' )
             );
             return;
         }

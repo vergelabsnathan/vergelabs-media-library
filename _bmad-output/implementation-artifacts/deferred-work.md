@@ -139,3 +139,53 @@
 - source_spec: S33 addendum (2026-09-22)
   summary: a staging copy (`WP_ENVIRONMENT_TYPE=staging`) gets `403 site_not_activated` from the service's `/v1/embed`, while `docs/manual/credits.md` says a staging copy "is validated without ever touching the activation list". On a customer's staging copy, search by meaning falls back to words and new folders get no filing profile. Decide whether `/embed` should honour the staging exemption (embedding is 0 credits) -- a service change, Nathan's call.
   evidence: probe on /var/www/upd 2026-09-22; the tech site (production) gets 200 and a 512-dim vector.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/2-the-service-plans-one-tree-from-a-label-inventory.md`
+  summary: /v1/plan-tree answers with max_tokens 16000 while MAX_LABELS allows 3,000 labels; a large inventory may not fit one answer.
+  evidence: unmeasured; story 7 (large libraries) measures a synthetic 50,000-picture library and sets the fold so the answer fits.
+
+## Deferred from: code review of 2-the-service-plans-one-tree-from-a-label-inventory (2026-09-27)
+
+- Audience folders are left to the prompt; nothing in applyRules strips an audience split the counts do not support (CAP-4, story 6).
+- rules.md's "under 30 pictures: one level, no subfolders" has no code path in the service rules.
+- assignmentOf's parent-cycle guard (pathOf's seen set) has no test; add a cyclic answer case when lib/plan-tree.ts is next touched.
+
+## Deferred from: story 3 hardening, full verify run (2026-09-27)
+
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/3-the-plugin-plans-by-consensus-with-the-price-on-the-button.md`
+  summary: the box's `admin` password matches neither `password` (what verify.mjs logs in with) nor `VgmlTest7pass` (the suites' usage line), so every box UI suite that signs in -- health, ai, smart -- fails at the login and tests nothing.
+  evidence: wp_check_password on user 1 is false for both, 2026-09-27; the three suites time out on their first selector on main's build too. Resolved 2026-09-28 (Nathan: go): admin on the box and on the shop set to VgmlTest7pass; with UI_PASS=VgmlTest7pass health, ai and smart pass. verify.mjs still passes no password, so without UI_PASS they log in with 'password' and fail.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/3-the-plugin-plans-by-consensus-with-the-price-on-the-button.md`
+  summary: health-keep (A1, A2), auto-file (a file between two folders is suggested) and naming (232 of 996 carry "Electronics") are red on the box with main's build as well as this branch's.
+  evidence: main deployed to the box and the three run on 2026-09-27: the same rows fail; this branch is back on the box after.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/3-the-plugin-plans-by-consensus-with-the-price-on-the-button.md`
+  summary: db-calls (the register reason for core/guide.php f8e582bd4e no longer matches a call; three queries in auto-file.php, folder-talk.php and guide.php it cannot prove), escaping (text sinks no longer four to one: 244 to 65) and voice (2 strings with banned words) are red on main too.
+  evidence: the same rows on main's checkout, 2026-09-27; the register needs a reason a person has read, so none was written here.
+
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/4-the-accepted-tree-is-frozen.md`
+  summary: plan again on an accepted tree, free -- keep every frozen folder and propose a new folder only when a label reaches the minimum (CAP-2's growth half).
+  evidence: split from story 4 by Nathan 2026-09-28 to keep it one goal; until it lands the button stays refused on an accepted tree (409).
+  resolved: 2026-09-29 (story 10, 24315c2) -- free, on the site alone, from the confirmed tree too.
+
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/4-the-accepted-tree-is-frozen.md`
+  summary: vergeml_guide_draft_fit's label step (label -> synthetic profile id through array_flip( $order )) has no suite row; a wrong flip would make the Tree screen's "would stay unfiled" differ from the fill.
+  evidence: no fixture in tests/tree/guide.php section F sets draft['label_map']; story 4's manual check compares the dry run with a real fill on the shop, which is the check until a row exists.
+
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/7-large-libraries-fold-rare-labels.md`
+  summary: the inventory's cache stamp (`SELECT COUNT(*), MAX(described_at) ... WHERE error = '' AND embedding IS NOT NULL`, core/plan-tree.php vergeml_plan_inventory) costs 4.4-4.6 s at 500,000 pictures and runs on every Folders page render, even with a warm cache; an index or a counter bumped on each description would make it cheap.
+  evidence: measured on the box's scale500k site, 2026-09-28; it predates story 7 (the same query was the stamp before).
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/7-large-libraries-fold-rare-labels.md`
+  summary: vergeml_ai_activate_site() treats any HTTP 200 as activated, but the service answers 200 {valid:false, reason:'seat_limit'} on a full licence, so a failed activation reads as success.
+  evidence: the story 7 proof, 2026-09-28: activation returned "ok", then /licence showed 5/5 seats and /plan-tree answered 403.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/7-large-libraries-fold-rare-labels.md`
+  summary: the fit job (dry run) at 500,000 pictures loads every vector and asks the service to embed about 42,000 phrases; not measured -- the fill at that size was out of story 7.
+  evidence: traced by the proof agent, 2026-09-28; no draft was built because the plan did not run.
+
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/10-a-frozen-tree-is-replanned-for-free.md`
+  summary: a rule or conversation fill on a frozen site replaces the frozen label map with its own (usually empty), unfreezing the plan without saying so.
+  evidence: vergeml_talk_apply stores opts['label_map'] as the map on every fill; true before story 10, which kept only the fill-after-fill and undo paths.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/10-a-frozen-tree-is-replanned-for-free.md`
+  summary: rules.md's growth edge "a folder is removed only below half the minimum, with the owner's yes" is not built; growth only adds.
+  evidence: story 10 scope was growth; nothing proposes a removal.
+- source_spec: `_bmad-output/specs/spec-tree-planner/stories/10-a-frozen-tree-is-replanned-for-free.md`
+  summary: the shop's Folders boot costs 16 queries before story 10 (18 with it, a stale label map present), over guide A1's cap of 14, which only runs on tech (14 with story 10).
+  evidence: measured on the box 2026-09-29 by warming vergeml_plan_frozen() first; A1 passes on tech at 14.

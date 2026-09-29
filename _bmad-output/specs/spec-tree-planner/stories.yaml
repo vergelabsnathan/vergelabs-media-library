@@ -1,0 +1,61 @@
+- id: "1"
+  title: The tree score on the box
+  description: >-
+    CAP-6. A read-only tool scores a site's current folder tree against its truth labels (pair F1 leaf and
+    top, purity, real folders recovered, unfiled, folders, depth, same names), same maths as tools/tree-lab.mjs.
+- id: "2"
+  title: The service plans one tree from a label inventory
+  description: >-
+    CAP-1, service half. A route takes distinct labels with counts and returns one tree with each folder's
+    label ids; Sonnet 5, reasoning off, structured output; metered like /folders.
+- id: "3"
+  title: The plugin plans by consensus with the price on the button
+  description: >-
+    CAP-1 and pricing. Label inventory counted on the site, the price on the button, fifteen runs, the
+    tightest kept and the left-out labels placed by the site's vectors, rules.md in code, the result as the
+    Folders screen's draft.
+  spec_checkpoint: true
+- id: "4"
+  title: The accepted tree is frozen
+  description: >-
+    CAP-2. The accepted tree and every label match are stored; planning again returns the same tree; new
+    pictures go into it and a new folder is proposed only at the minimum.
+- id: "5"
+  title: Folders are matched on their member pictures
+  description: >-
+    CAP-3. A planned folder's profile comes from the labels and vectors of the pictures that formed it.
+- id: "6"
+  title: Splits the pictures cannot show are asked
+  description: >-
+    CAP-4. Audience or an owner axis comes from one question or from product categories, never inferred.
+- id: "7"
+  title: Large libraries fold rare labels
+  description: >-
+    CAP-5. Rare labels fold into their broader class so a plan stays five calls; measured on a synthetic
+    500,000-picture library. Next story after the tech proof, before 5 and 6 (Nathan, 2026-09-28): no
+    library may ever get a refusal for its size -- the service's 3,000-label wall must never reach a
+    customer.
+- id: "8"
+  title: Tech ends tidier than it started, and never worse
+  description: >-
+    CAP-1. The tech proof (2026-09-28) recovered 7/11 at 75 % purity. 9/11 at 78 % is out of reach on the
+    1,000-picture tech site: the oracle plan (each label in its truth majority) gives 9/11 at 71 % and 8/11
+    after the fill, and sending the site's folder names made plans worse (2026-09-29, offline). New bar
+    (Nathan, 2026-09-29): after the fill, tech's purity is at least 75 % and never below the site's own
+    before the plan (67 %); a plan that would leave the site less tight than it is is not offered. Proof is
+    two real plans on tech, the shop still at or above its own bar.
+- id: "9"
+  title: No charge for a refusal
+  description: >-
+    CAP-1 and pricing. The never-worse guard runs after the charge, so a plan it does not offer is given back
+    (service /v1/plan-tree/refund, bounded: one per site a month, one per activated site per licence, within
+    the hour of the charge, never twice). The guard counts each picture against the rest of its folder, so
+    many small folders no longer beat a plan as good on the truth (shop 0.823 vs 0.788 refused; now 0.667 vs
+    0.684-0.689 offered), margin 0.015.
+- id: "10"
+  title: A frozen tree is re-planned for free, and only grows
+  description: >-
+    CAP-2 and pricing. On a site whose plan was filled, Plan my folders is free and runs on the site alone:
+    labels the frozen map does not hold, and only their waiting pictures, join an existing folder when they
+    sit as close as its own pictures, or group into new folders of five or more under the nearest parent
+    with room. The owner confirms the growth; its fill files only those pictures. No model, no service call.

@@ -107,6 +107,23 @@
 	color: var(--vgml-muted);
 }
 
+/* CAP-4's one audience question, beside the plan button: the line, then two chips. */
+.vgml-shell .vgml-audience-ask {
+	flex-basis: 100%;
+	margin-top: 4px;
+}
+
+.vgml-shell .vgml-audience-ask .g-why {
+	margin-left: 0;
+}
+
+.vgml-shell .vgml-audience-ask-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 6px;
+}
+
 .vgml-shell .g-step:not(.is-current):hover {
 	border-color: var(--vgml-accent-300);
 	color: var(--vgml-ink);
