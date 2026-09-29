@@ -37,6 +37,28 @@ The independent reviewer found no critical or high money bug. Four fixes:
    - After an unreachable or unreadable answer the plugin claims by that id. It says "Nothing was charged" only when the service confirms: given back, or `404 not_refundable`, meaning nothing is held for that id. Otherwise it shows a new message that asserts nothing about a charge.
 4. **Low: the bill-back view.** It dropped a whole spend when any refund existed, and every plan counted as one "image". Fixed in `58b18e3`: used = spend − refunds against it, and images count only describes the site kept.
 
+## Service review round (2026-09-29)
+
+All in `tree-planner-service`, on PGlite only. `pnpm typecheck` is clean and `pnpm test` gives 628 passed, 14 skipped. No plugin change was needed.
+
+Two fixes landed before this round and were missing from this record:
+- `d2092bc`: a library whose pictures sum under `MIN_PICTURES` is `422 could_not_plan` before the debit and before any model call.
+- `d2092bc`: a run the rules emptied is no valid answer. When fewer than three runs remain, the plan is `502 could_not_plan` and refunded under its own id, which uses no allowance.
+
+The plugin keys `could_not_plan` on the error, not the status, so 422 and 502 both read "The plan did not come together. Nothing was charged." Both are true, so the statuses stay as they are.
+
+Fixes from the review:
+1. `3829627`: audience folder names are read as words. Possessives and apostrophes are dropped, and Dutch words were added (heren, dames, kinderen and others). "Men's", "Womens wear" and "Heren" are now checked; "Menu" and "Herenhuis" are not.
+2. `39dc52c` (test only): a stripped top-level audience folder leaves its own labels unfiled, the same way `applyRules` treats a dissolved top-level folder. Its children move up a level. A run emptied this way is dropped, never charged.
+3. `180d284`: a claim for a plan id the licence never spent on writes a tombstone, a 0-credit `credit_sites` row. A plan request under that id that arrives later is refused as `409 duplicate_plan` with nothing charged, so the claim's "nothing was charged" stays true. The `credit_sites` primary key makes this atomic. Without 022 the claim is still 503.
+4. `98a9c95`: the source id is `plan:<licence>:<uuid>`, so two licences sending one uuid no longer share `credit_sites` or `plan_refunds` rows. This supersedes the cross-licence bullet under the abuse bound below. A second ask for a refunded plan answers `again` only on the site it was refunded to; any other site gets 404.
+5. `430832c`: the day-cap meter runs after a successful debit, so a replayed id, a 402 or a busy ledger takes no slot.
+6. `4057851`: a ledger error during a claim answers `503 busy`, not a bare 500.
+7. `edcfcf1`: a failed check for 022 is no longer cached as "not applied" for five minutes. That claim gets 503 busy, and the next claim checks again.
+8. `5950369`: `/v1/plan-tree/refund` is pinned to its route by source and destination, not only by destination.
+
+These commits join the service deploy under Pending, item 2.
+
 ## Task A: the design and its abuse bound
 
 The guard needs the pictures' vectors, which never leave the site (a published promise), so the service cannot check its verdict. Any design either trusts the client or bounds it. Options weighed:
