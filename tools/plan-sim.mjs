@@ -23,6 +23,14 @@
  *            decide it).
  *
  *  Scored as tools/tree-lab.mjs scores. No network.
+ *
+ *    --gain  with score: after each answer's fill, the never-worse guard
+ *            (vergeml_plan_gain) on the same pictures, now and after, by the
+ *            plugin's leave-one-out measure and by story 8's (a picture
+ *            counted towards its own centre), and whether the plan would be
+ *            offered at the plugin's margin. Story 9 chose the measure and the
+ *            margin with this; the box gave the same numbers through the real
+ *            PHP to three decimals.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -344,6 +352,58 @@ function fill( folderOf ) {
 	return { site, mapped, target };
 }
 
+/* ------------------------------------ the never-worse guard (vergeml_plan_gain) */
+
+const GAIN = 0.015; // VERGEML_PLAN_GAIN
+const deepestOf = ( pic ) => pic.folders.slice().sort( ( a, b ) => b.split( ' > ' ).length - a.split( ' > ' ).length || cmp( a, b ) )[ 0 ] || '';
+
+// vergeml_plan_gain_folder: each measured picture's cosine to the rest of its folder, from the sums.
+function gainFolder( sk, nk, sa ) {
+	const cross = dot( sk, sa );
+	const rest = ( nk * dot( sa, sa ) - 2 * cross + nk ) / nk;
+	return rest > 1e-12 ? ( cross - nk ) / Math.sqrt( rest ) : 0;
+}
+
+// The pictures already in a folder (To sort left out), now and where the fill puts them; every picture shapes the centre it joins.
+function guard( site ) {
+	const clean = ( f ) => ( f && 'to sort' !== f.toLowerCase() ? f : '' );
+	const now = {}, nowN = {}, kept = {}, keptN = {}, every = {};
+	let n = 0;
+	for ( const pic of all ) {
+		if ( pic.vector.length !== dims ) {
+			continue;
+		}
+		const v = unit( pic.vector );
+		const was = clean( deepestOf( pic ) );
+		const then = clean( site[ pic.id ] );
+		if ( then ) {
+			every[ then ] = every[ then ] ? add( every[ then ], v ) : v;
+		}
+		if ( ! was ) {
+			continue;
+		}
+		n++;
+		now[ was ] = now[ was ] ? add( now[ was ], v ) : v;
+		nowN[ was ] = ( nowN[ was ] || 0 ) + 1;
+		if ( then ) {
+			kept[ then ] = kept[ then ] ? add( kept[ then ], v ) : v;
+			keptN[ then ] = ( keptN[ then ] || 0 ) + 1;
+		}
+	}
+	const sum = ( o, f ) => Object.entries( o ).reduce( ( s, [ k, x ] ) => s + f( k, x ), 0 ) / Math.max( 1, n );
+	return {
+		before: sum( now, ( k, x ) => gainFolder( x, nowN[ k ], x ) ),
+		after: sum( kept, ( k, x ) => gainFolder( x, keptN[ k ], every[ k ] ) ),
+		before8: sum( now, ( k, x ) => Math.sqrt( dot( x, x ) ) ),
+		after8: sum( kept, ( k, x ) => dot( x, unit( every[ k ] ) ) ),
+	};
+}
+
+function printGuard( g ) {
+	const d = g.after - g.before;
+	console.log( `    guard ${ g.before.toFixed( 4 ) } -> ${ g.after.toFixed( 4 ) } (${ d >= 0 ? '+' : '' }${ d.toFixed( 4 ) }) ${ d >= GAIN ? 'OFFERED' : 'kept' } · story 8's measure ${ g.before8.toFixed( 3 ) } -> ${ g.after8.toFixed( 3 ) }` );
+}
+
 /* ---------------------------------------------------------- the score */
 
 function score( assign, label ) {
@@ -415,8 +475,12 @@ if ( 'prompt' === mode ) {
 	trees.forEach( ( t, i ) => {
 		const one = choose( [ t ] );
 		score( planAssign( one.folderOf ), `${ path.basename( rest[ i ] ) } plan` );
-		if ( argv.includes( '--each' ) ) {
-			score( fill( one.folderOf ).site, `${ path.basename( rest[ i ] ) } filled` );
+		if ( argv.includes( '--each' ) || argv.includes( '--gain' ) ) {
+			const filled = fill( one.folderOf ).site;
+			score( filled, `${ path.basename( rest[ i ] ) } filled` );
+			if ( argv.includes( '--gain' ) ) {
+				printGuard( guard( filled ) );
+			}
 		}
 	} );
 	const kept = choose( trees );
@@ -424,6 +488,9 @@ if ( 'prompt' === mode ) {
 	score( planAssign( kept.folderOf ), 'kept, plan' );
 	const f = fill( kept.folderOf );
 	score( f.site, 'kept, filled' );
+	if ( argv.includes( '--gain' ) ) {
+		printGuard( guard( f.site ) );
+	}
 	if ( argv.includes( '--each' ) ) {
 		for ( const [ p, t ] of Object.entries( f.target ) ) {
 			console.log( `    ${ p } -> ${ t ? `${ t } (${ f.mapped[ p ] })` : 'new' }` );
