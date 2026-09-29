@@ -44,3 +44,11 @@
     (Nathan, 2026-09-29): after the fill, tech's purity is at least 75 % and never below the site's own
     before the plan (67 %); a plan that would leave the site less tight than it is is not offered. Proof is
     two real plans on tech, the shop still at or above its own bar.
+- id: "9"
+  title: No charge for a refusal
+  description: >-
+    CAP-1 and pricing. The never-worse guard runs after the charge, so a plan it does not offer is given back
+    (service /v1/plan-tree/refund, bounded: one per site a month, one per activated site per licence, within
+    the hour of the charge, never twice). The guard counts each picture against the rest of its folder, so
+    many small folders no longer beat a plan as good on the truth (shop 0.823 vs 0.788 refused; now 0.667 vs
+    0.684-0.689 offered), margin 0.015.

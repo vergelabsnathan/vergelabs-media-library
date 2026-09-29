@@ -40,7 +40,7 @@ A pain to solve. The folder tree decides how well everything after it works, and
 - Folders stay terms of `media_category` (AGENTS.md policy). Existing folders and product categories are kept, and new folders only fill gaps.
 - Sonnet 5 through OpenRouter, with reasoning off and structured output (the lab's failure modes: all tokens spent reasoning, and think-text instead of JSON).
 - Anything newly sent to the service updates readme.txt's External services section and the outbound audit in the same commit.
-- Price: 10 credits + 6 per 100 distinct labels, rounded up (at least 35 % margin on the 20,000 pack after VAT; model cost about $0.25 for a 600-picture shop). The customer sees one number on the button ("Plan my folders · 40 credits"), counted on the site with no service call; the press charges exactly that; a failed plan (fewer than 3 valid runs) and a re-plan of a frozen tree are free; a low balance says so on the button.
+- Price: 10 credits + 6 per 100 distinct labels, rounded up (at least 35 % margin on the 20,000 pack after VAT; model cost about $0.25 for a 600-picture shop). The customer sees one number on the button ("Plan my folders · 40 credits"), counted on the site with no service call; the press charges exactly that; a failed plan (fewer than 3 valid runs) and a re-plan of a frozen tree are free; a plan the never-worse guard does not offer is given back, once per site in thirty days (story 9, 2026-09-29, pending Nathan's review); a low balance says so on the button.
 
 ## Non-goals
 
