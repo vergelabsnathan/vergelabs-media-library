@@ -99,21 +99,21 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-autofile.js:43 | `innerHTML` | a literal | `''` |
 | js/vergeml-autofile.js:156 | `innerHTML` | a literal | `''` |
 | js/vergeml-brief.js:206 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:302 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:327 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:544 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:307 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:332 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:549 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:581 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:600 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:966 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1056 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1268 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1319 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1436 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:1441 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2154 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2197 | `innerHTML` | a literal | `''` |
-| js/vergeml-folders.js:2207 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:554 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:586 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:605 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1028 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1118 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1330 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1381 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1498 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:1503 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2216 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2259 | `innerHTML` | a literal | `''` |
+| js/vergeml-folders.js:2269 | `innerHTML` | a literal | `''` |
 | js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
 | js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |
@@ -182,7 +182,7 @@ single quote, and to teach the importer to strip one leading `'` back off.
 |---|---|---|---|
 | core/gallery-widgets.php:396 | `e60edee9bb` | `$html` | vergeml_render_gallery_block() builds every part with wp_get_attachment_image(), esc_url(), esc_attr() and an (int) cast, and puts the caption through wp_kses_post(). The front-end path, so the one that matters most |
 | core/import-csv.php:217 | `7700958a44` | `vergeml_csv_line( $row )` | a CSV download, not markup: text/csv with Content-Disposition attachment, quoted per RFC 4180. Not an XSS sink -- but see "The CSV export, and spreadsheet formulas", which is a separate finding |
-| core/licence-page.php:151 | `fbcf74ab5e` | `'<div class="vgml-status-band">' . $band . '</div>'` | $band is assembled on three branches, each from esc_html__() or esc_html() plus literal markup |
+| core/licence-page.php:152 | `fbcf74ab5e` | `'<div class="vgml-status-band">' . $band . '</div>'` | $band is assembled on three branches, each from esc_html__() or esc_html() plus literal markup |
 | core/media-list.php:505 | `0ad7967fe8` | `preg_replace( '/(<option[^>]*value=[\'"]not_in[\'"][^>]*>.*?` | wp_dropdown_categories( echo => false ) -- core's own escaped markup -- with one option of ours spliced in after Unfiled, whose text is esc_html() of a translated string with number_format_i18n() (the Placed by hand filter, C.3) |
 | core/options-pages.php:1593 | `cd9e4aee76` | `json_encode( $settings )` | json_encode() into a download: application/json with Content-Disposition attachment, so not an HTML context. wp_json_encode() would be the house style |
 | core/options-pages.php:2918 | `e60edee9bb` | `$html` | assembled from __() translations and literal form markup; no value out of the request or the database is interpolated unescaped. Two sites, the media and non-media post-type branches, with the same expression |
