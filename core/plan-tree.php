@@ -735,8 +735,10 @@ function vergeml_plan_event() {
         $draft    = vergeml_plan_draft( $chosen['folders'], $inv['labels'] );
         $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
         $gain     = vergeml_plan_gain( $draft['label_map'], array_column( $inv['labels'], 'id', 'label' ), $taxonomy );
-        // Not clearly tidier than the folders the site already has: the plan is not offered (spec-tree-planner story 8).
+        // Not clearly tidier than the folders the site already has: the plan is not offered (spec-tree-planner story 8), and its credits are asked back (story 9).
         $better = $gain['after'] >= $gain['before'] + VERGEML_PLAN_GAIN;
+        $refund = ! $better && ! empty( $result['plan'] ) ? vergeml_plan_refund( (string) $result['plan'] ) : null;
+        $back   = null !== $refund ? $refund['refunded'] : 0;
         if ( $better ) {
             $s['draft'] = $draft;
             if ( '' !== $taxonomy ) {
@@ -745,18 +747,22 @@ function vergeml_plan_event() {
         }
         $s['plan'] = array(
             'state'   => $better ? 'done' : 'kept',
-            'message' => $better ? '' : __( 'Your folders are already well organised — a new plan wouldn\'t improve them.', 'vergelabs-media-library' ),
+            'message' => $better ? '' : ( $back > 0
+                ? __( 'Your folders are already well organised — a new plan wouldn\'t improve them. Nothing was charged.', 'vergelabs-media-library' )
+                : __( 'Your folders are already well organised — a new plan wouldn\'t improve them.', 'vergelabs-media-library' ) ),
             'gain'    => array( 'before' => round( $gain['before'], 4 ), 'after' => round( $gain['after'], 4 ) ),
-            'charged' => isset( $result['charged'] ) ? (int) $result['charged'] : 0,
+            'charged' => max( 0, ( isset( $result['charged'] ) ? (int) $result['charged'] : 0 ) - $back ),
+            'refunded'=> $back,
             'runs'    => isset( $result['runs'] ) ? $result['runs'] : null,
             'kept'    => $chosen['index'],
             'placed'  => $chosen['placed'],
             'left_out'=> (int) $inv['unlabelled'],
         );
-        if ( isset( $result['credits_remaining'] ) ) {
+        $left = null !== $refund ? $refund['credits_remaining'] : ( isset( $result['credits_remaining'] ) ? (int) $result['credits_remaining'] : null );
+        if ( null !== $left ) {
             $credits              = get_option( 'vergeml_ai_credits', array() );
             $credits              = is_array( $credits ) ? $credits : array();
-            $credits['remaining'] = (int) $result['credits_remaining'];
+            $credits['remaining'] = $left;
             $credits['time']      = time();
             update_option( 'vergeml_ai_credits', $credits, false );
         }
@@ -825,6 +831,42 @@ function vergeml_plan_ask( $labels, $audience_confirmed = false ) {
     }
     /* translators: %s: the service's error code */
     return new WP_Error( 'failed', sprintf( __( 'The service answered: %s', 'vergelabs-media-library' ), '' !== $err ? $err : (string) $code ) );
+}
+
+/**
+ *  A plan the site's own folders already beat, given back (spec-tree-planner
+ *  story 9). The never-worse guard runs here, after the service charged,
+ *  because it needs the pictures' vectors, which never leave the site. The
+ *  service gives back what it charged for the plan it names -- only within
+ *  the hour, once per site in thirty days, one per activated site per licence
+ *  -- so a second plan the guard keeps inside the month stays charged. Sends
+ *  the licence key, the site's address and the plan's id the service issued;
+ *  nothing about the pictures or the folders. One retry on a network failure:
+ *  a refund lost to a blip is credits an owner paid for nothing.
+ *
+ * @return array{refunded:int,credits_remaining:int}|null Null when the service refused or could not be reached.
+ */
+function vergeml_plan_refund( $plan ) {
+    $licence = function_exists( 'vergeml_ai_settings' ) ? vergeml_ai_unseal( vergeml_ai_settings()['license_key'] ) : '';
+    if ( '' === $licence ) {
+        return null;
+    }
+    for ( $try = 0; $try < 2; $try++ ) {
+        $response = wp_remote_post( vergeml_ai_service_url() . '/plan-tree/refund', array(
+            'timeout'   => 20,
+            'headers'   => array( 'Content-Type' => 'application/json' ),
+            'sslverify' => true,
+            'body'      => wp_json_encode( array( 'license_key' => $licence, 'site' => home_url(), 'plan' => $plan ) ),
+        ) );
+        if ( ! is_wp_error( $response ) ) {
+            break;
+        }
+    }
+    $data = is_wp_error( $response ) ? null : json_decode( (string) wp_remote_retrieve_body( $response ), true );
+    if ( 200 !== (int) wp_remote_retrieve_response_code( $response ) || ! isset( $data['refunded'], $data['credits_remaining'] ) ) {
+        return null;
+    }
+    return array( 'refunded' => (int) $data['refunded'], 'credits_remaining' => (int) $data['credits_remaining'] );
 }
 
 /**

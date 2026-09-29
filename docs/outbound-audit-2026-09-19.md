@@ -11,7 +11,8 @@ remote scripts, stylesheets, fonts, images and iframes, and every absolute
 
 **Twenty call sites in shipped code.** Eighteen external, two loopback to the
 site's own `wp-cron.php`. One of the eighteen is made **from the admin's
-browser**, not from PHP. No remote scripts, stylesheets, fonts, images or
+browser**, not from PHP. (Since the audit: `/v1/plan-tree` and
+`/v1/plan-tree/refund`, both in the table below.) No remote scripts, stylesheets, fonts, images or
 iframes anywhere — the fonts in `fonts/` are local.
 
 Three of the findings below were verified by hand after the audit, being the
@@ -38,6 +39,7 @@ cache durations (`core/get-help.php:59-71`).
 | `/v1/licence` | licence key (or the old key), site URL, `activate` / `check` / `deactivate`, environment | saving, removing or connecting a key — **and the credits check on admin page loads**: every VergeLabs screen, the dashboard, the Licence screen, and once per subsite on the network screen. Cached five minutes | yes |
 | `/v1/folders` | licence key, site URL, the typed instruction, the conversation history, **every folder's name, parent and count**, forty captions, the top eighty object phrases with counts, cluster sizes with captions, an audience ratio | the propose button (`/folders-propose`); Confirm a plan (`/guide/confirm`), one call per sixty folders | yes |
 | `/v1/plan-tree` | licence key, site URL, **every distinct describer label** (object; broader class; kind when not a photo) with its picture count and men / women / kids counts, and one boolean (`audienceConfirmed`) saying whether an audience split is confirmed -- by the owner's own yes to the Tree step's one question, or by the site's own product category names. No picture, caption, file name or folder name | the Plan my folders button (`/guide/plan`), run as the `vergeml_plan_event` cron job. Added 2026-09-27, spec-tree-planner story 3; `audienceConfirmed` added 2026-09-29, story 6 (CAP-4) | yes |
+| `/v1/plan-tree/refund` | licence key, site URL, and the plan's id the service issued with the plan (a uuid). Nothing about the pictures, labels or folders | the same `vergeml_plan_event` job, only when the never-worse guard keeps the site's folders and the plan is not offered (`vergeml_plan_refund`); one retry on a network failure. Added 2026-09-29, spec-tree-planner story 9 | yes |
 | `/v1/file` | licence key, site URL, **the whole folder tree as paths**, and up to forty × { attachment id, object phrases, caption } | a Move / refile pass on the `VERGEML_TALK_HOOK` cron. Never on a dry count | yes |
 | `/v1/name-group` | licence key, site URL, object phrases, captions | naming an unnamed photo group during a refile pass | yes |
 | `/v1/embed` | licence key, site URL, **search phrases a user typed**, folder paths and their *matches* free text, object phrases — up to five hundred a call | a meaning search (`?vgml_meaning=1`, `/search-meaning` at `upload_files`, `/search-try`); any filing, fit or dry-count pass | yes |
