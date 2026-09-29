@@ -102,6 +102,11 @@
 		return 'confirmed' === state.session.tree;
 	}
 
+	/** A plan was filled: planning again only grows the tree, for free, even from the confirmed tree (spec-tree-planner story 10). */
+	function frozen() {
+		return !! ( state.session && state.session.frozen );
+	}
+
 	function running() {
 		return !! ( state.applying || ( state.session.apply && state.session.apply.running ) );
 	}
@@ -603,6 +608,9 @@
 			next.addEventListener( 'click', function () { setStep( 'fill' ); } );
 			dom.treeMove.appendChild( next );
 			dom.treeMove.appendChild( quiet( __( 'Unconfirm', 'vergelabs-media-library' ), onUnconfirm ) );
+			if ( frozen() && described && licensed && cfg.plan && cfg.plan.labels > 0 ) {
+				renderPlanButton();
+			}
 			return;
 		}
 		var hasTree = folders > 0;
@@ -873,18 +881,20 @@
 	}
 
 	function renderPlanButton() {
-		var price = Number( cfg.plan.price ) || 0;
+		var price = frozen() ? 0 : Number( cfg.plan.price ) || 0;
 		var balance = null === cfg.plan.balance || undefined === cfg.plan.balance ? null : Number( cfg.plan.balance );
 		var low = null !== balance && balance < price;
 		/* translators: %s: credits */
 		var label = sprintf( __( 'Plan my folders · %s credits', 'vergelabs-media-library' ), fmt( price ) );
-		if ( low ) {
+		if ( frozen() ) {
+			label = __( 'Plan my folders · free', 'vergelabs-media-library' );
+		} else if ( low ) {
 			/* translators: 1: credits the plan costs, 2: credits left */
 			label = sprintf( __( 'Plan my folders · %1$s credits · %2$s left', 'vergelabs-media-library' ), fmt( price ), fmt( balance ) );
 		}
 		var planning = 'running' === planState();
 		var btn = el( 'button', { type: 'button', class: 'vgml-btn vgml-plan-btn' + ( planning ? ' is-working' : '' ) }, label );
-		btn.disabled = low || planning || ! canTalk() || talk.streaming();
+		btn.disabled = low || planning || ! canPlan() || talk.streaming();
 		btn.addEventListener( 'click', onPlan );
 		dom.treeMove.appendChild( btn );
 		if ( ( 'failed' === planState() || 'kept' === planState() ) && state.session.plan.message ) {
@@ -892,8 +902,12 @@
 		}
 	}
 
+	function canPlan() {
+		return canTalk() || ( frozen() && described && licensed && ! capped() && ! running() );
+	}
+
 	function onPlan() {
-		if ( 'running' === planState() || ! canTalk() ) {
+		if ( 'running' === planState() || ! canPlan() ) {
 			return;
 		}
 		api( 'POST', 'guide/plan' ).then( tookPlan, function ( err ) {
@@ -915,6 +929,11 @@
 			}
 		} else if ( 'running' === was && 'done' === planState() ) {
 			state.session.turns = r.turns;
+			// A grown tree comes back to editing, for the owner's yes before anything is filed (story 10).
+			if ( r.tree ) {
+				state.session.tree = r.tree;
+				view.editable = ! confirmed();
+			}
 			setDraft( r.draft, true );
 			state.fit = r.fit || null;
 		}

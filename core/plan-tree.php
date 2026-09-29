@@ -49,6 +49,20 @@ const VERGEML_PLAN_REFRESH_HOOK = 'vergeml_plan_inventory_refresh';
 const VERGEML_PLAN_GAIN = 0.015;
 /** Under this share of described pictures carrying any audience tag, the Tree step asks the one question (CAP-4, story 6); the shop's own share is about 3 %. */
 const VERGEML_PLAN_AUDIENCE_ASK = 0.15;
+/** rules.md: a folder holds at least five pictures, a parent at most twelve children (the top level too), the tree at most three levels. */
+const VERGEML_PLAN_MIN      = 5;
+const VERGEML_PLAN_CHILDREN = 12;
+const VERGEML_PLAN_DEPTH    = 3;
+/**
+ *  Growth of a frozen tree (story 10, vergeml_plan_grow_decide): a new label
+ *  joins a folder when its pictures sit within MARGIN of how close the
+ *  folder's own sit; the rest group at GROUP; a new folder hangs under the
+ *  parent whose subtree is UNDER near. Measured by tools/box-grow-heldout.php.
+ */
+const VERGEML_PLAN_GROW_JOIN   = 0.7;
+const VERGEML_PLAN_GROW_MARGIN = 0.05;
+const VERGEML_PLAN_GROW_GROUP  = 0.6;
+const VERGEML_PLAN_GROW_UNDER  = 0.5;
 
 /** Ten credits and six per hundred labels, rounded up: the service's planPrice(). */
 function vergeml_plan_price( $labels ) {
@@ -646,7 +660,8 @@ function vergeml_plan_facts() {
     $evidence = vergeml_plan_product_audience_evidence();
     return array(
         'labels'            => count( $inv['labels'] ),
-        'price'             => vergeml_plan_price( count( $inv['labels'] ) ),
+        // A filled plan's re-plan only grows it and costs nothing (story 10, the spec's price constraint).
+        'price'             => vergeml_plan_frozen() ? 0 : vergeml_plan_price( count( $inv['labels'] ) ),
         'balance'           => null === $state['remaining'] ? null : (int) $state['remaining'],
         // Asked only while the site's own pictures say too little and the categories say nothing either; the screen stops asking once the session has an answer.
         'audience_ask'      => ! $evidence && vergeml_plan_audience_share( $inv['labels'] ) < VERGEML_PLAN_AUDIENCE_ASK,
@@ -659,8 +674,10 @@ function vergeml_plan_facts() {
 
 /** The press: books the job, once. The session carries its state so a reload keeps polling. */
 function vergeml_plan_rest_start() {
-    $s = vergeml_guide_session();
-    if ( 'confirmed' === $s['tree'] ) {
+    $s      = vergeml_guide_session();
+    $frozen = (bool) vergeml_plan_frozen();
+    // A filled plan is planned again for growth, free, even from the confirmed tree (story 10); any other confirmed tree still refuses.
+    if ( 'confirmed' === $s['tree'] && ! $frozen ) {
         return vergeml_guide_confirmed_refusal();
     }
     if ( isset( $s['plan']['state'] ) && 'running' === $s['plan']['state'] ) {
@@ -670,7 +687,7 @@ function vergeml_plan_rest_start() {
     if ( 0 === $facts['labels'] ) {
         return new WP_Error( 'empty', __( 'No picture is described yet.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
     }
-    $s['plan'] = array( 'state' => 'running', 'at' => time(), 'price' => $facts['price'] );
+    $s['plan'] = array( 'state' => 'running', 'at' => time(), 'price' => $facts['price'], 'grow' => $frozen );
     vergeml_guide_save( $s );
     vergeml_plan_schedule();
     return rest_ensure_response( vergeml_plan_out( $s ) );
@@ -713,6 +730,14 @@ function vergeml_plan_event() {
     set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
     if ( function_exists( 'set_time_limit' ) ) {
         @set_time_limit( VERGEML_PLAN_TIMEOUT + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
+    }
+
+    // A filled plan grows here, with no service call (story 10).
+    if ( ! empty( $s['plan']['grow'] ) ) {
+        vergeml_plan_grow_event( $s );
+        vergeml_guide_save( $s );
+        delete_transient( VERGEML_PLAN_LOCK );
+        return;
     }
 
     // The split is no longer a guess once the owner has said yes, or the site's own product categories already name one (CAP-4).
@@ -1043,6 +1068,521 @@ function vergeml_plan_draft( $planned, $labels ) {
     $out['label_map'] = $label_map;
 
     return vergeml_guide_clean_draft( $out );
+}
+
+
+/* ------------------------------------------------ growth of a frozen tree */
+
+/*
+ *  Planning again once a plan is filled (spec-tree-planner story 10, CAP-2).
+ *  The frozen folders and every label in the frozen map stay exactly as they
+ *  are. Only a label the map does not hold, and only its pictures waiting in
+ *  no folder (or in To sort), are planned: a label whose pictures sit nearest
+ *  one existing folder joins it, and the rest, grouped by their broader class
+ *  and kind, become a new folder where a group reaches VERGEML_PLAN_MIN. No
+ *  model and no service call: it is the site's vectors, so it is free and the
+ *  same library always plans the same growth.
+ */
+
+/**
+ *  The frozen label -> term id map an accepted plan filled (core/folder-talk.php),
+ *  only the entries whose folder still exists: empty until a plan was filled,
+ *  and empty again once its folders are gone (the box's shop held 399 labels
+ *  pointing at 49 deleted folders), so such a site plans from scratch again.
+ */
+function vergeml_plan_frozen() {
+    $map = defined( 'VERGEML_TALK_LABEL_MAP' ) ? get_option( VERGEML_TALK_LABEL_MAP ) : array();
+    if ( ! is_array( $map ) || ! $map ) {
+        return array();
+    }
+    $live = get_terms( array(
+        'taxonomy'   => function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category',
+        'include'    => array_values( array_unique( array_map( 'intval', $map ) ) ),
+        'hide_empty' => false,
+        'fields'     => 'ids',
+    ) );
+    $live = array_flip( array_map( 'intval', is_array( $live ) ? $live : array() ) );
+    return array_filter( $map, function ( $tid ) use ( $live ) {
+        return isset( $live[ (int) $tid ] );
+    } );
+}
+
+/** The frozen map as a draft's label_map: label -> 't<term id>', the key every existing folder has in a draft. */
+function vergeml_plan_frozen_keys() {
+    $out = array();
+    foreach ( vergeml_plan_frozen() as $label => $tid ) {
+        $out[ (string) $label ] = 't' . (int) $tid;
+    }
+    return $out;
+}
+
+/** A picture waits when it sits in no folder but To sort. Its deepest folder otherwise, as vergeml_plan_gain reads it. */
+function vergeml_plan_grow_now( $in_terms, $depth, $skip ) {
+    $now = 0;
+    $at  = -1;
+    foreach ( array_filter( array_map( 'intval', explode( ',', (string) $in_terms ) ) ) as $tid ) {
+        if ( isset( $skip[ $tid ] ) || ! isset( $depth[ $tid ] ) ) {
+            continue;
+        }
+        if ( $depth[ $tid ] > $at || ( $depth[ $tid ] === $at && $tid < $now ) ) {
+            $at  = $depth[ $tid ];
+            $now = $tid;
+        }
+    }
+    return $now;
+}
+
+/** Each term's depth (a top-level folder is 1) from term id => parent id. */
+function vergeml_plan_grow_depths( $parent_of ) {
+    $depth = array();
+    foreach ( $parent_of as $tid => $p ) {
+        $d = 1;
+        while ( isset( $parent_of[ $p ] ) && $d < 32 ) {
+            $p = $parent_of[ $p ];
+            $d++;
+        }
+        $depth[ (int) $tid ] = $d;
+    }
+    return $depth;
+}
+
+/**
+ *  What the growth reads from the site: every existing folder with the
+ *  vectors of the pictures in it (its own, and its whole subtree's), and every
+ *  label the frozen map does not hold with the vectors of its waiting
+ *  pictures. A picture placed by a person or its product is never counted
+ *  as waiting: it stays where it is. Read in pages of 500, as
+ *  vergeml_plan_gain is.
+ *
+ * @return array{new:array,folders:array}
+ */
+function vergeml_plan_grow_read( $frozen, $taxonomy ) {
+    global $wpdb;
+    $folders = array();
+    $terms   = '' !== $taxonomy ? get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) ) : array();
+    $parent  = array();
+    $skip    = array();
+    $shape   = array();
+    foreach ( is_array( $terms ) ? $terms : array() as $t ) {
+        $tid            = (int) $t->term_id;
+        $parent[ $tid ] = (int) $t->parent;
+        $waiting        = defined( 'VERGEML_FILING_TO_SORT_SLUG' ) && VERGEML_FILING_TO_SORT_SLUG === $t->slug;
+        if ( $waiting ) {
+            $skip[ $tid ] = true;
+        }
+        $folders[ $tid ] = array(
+            'name'   => vergeml_term_name( $t ),
+            'parent' => (int) $t->parent,
+            'direct' => null,
+            'n'      => 0,
+            'sub'    => null,
+            // Where the fill could file: not To sort, not a locked folder, not a view (vergeml_filing_label_folders refuses the last two).
+            'target' => ! $waiting && ! ( defined( 'VERGEML_FILING_LOCKED' ) && get_term_meta( $tid, VERGEML_FILING_LOCKED, true ) ),
+        );
+    }
+    $depth = vergeml_plan_grow_depths( $parent );
+    if ( function_exists( 'vergeml_filing_views' ) ) {
+        foreach ( $folders as $tid => $f ) {
+            $path = array();
+            for ( $p = $tid, $g = 0; isset( $folders[ $p ] ) && $g < 32; $p = $folders[ $p ]['parent'], $g++ ) {
+                array_unshift( $path, $folders[ $p ]['name'] );
+            }
+            $shape[ $tid ] = array( 'parent_id' => $f['parent'], 'path' => $path );
+        }
+        foreach ( vergeml_filing_views( $shape ) as $tid => $p ) {
+            if ( ! empty( $p['view'] ) ) {
+                $folders[ $tid ]['target'] = false;
+            }
+        }
+    }
+
+    $kept = array();
+    if ( defined( 'VERGEML_FILING_PLACED_BY' ) ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one read of the pictures a person or a product placed.
+        $kept = array_flip( array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value IN ('user','answer','product')", VERGEML_FILING_PLACED_BY ) ) ) );
+    }
+    $t = $wpdb->vergeml_ai_index;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    $dims  = (int) $wpdb->get_var( "SELECT embedding_dims FROM {$t} WHERE error = '' AND embedding IS NOT NULL GROUP BY embedding_dims ORDER BY COUNT(*) DESC LIMIT 1" );
+    $new   = array();
+    $after = 0;
+    do {
+        $rows = '' !== $taxonomy && function_exists( 'vergeml_guide_rule_rows' ) ? (array) vergeml_guide_rule_rows( $taxonomy, 'all', array( 'filing', 'terms', 'embedding' ), $after, 500 ) : array();
+        foreach ( $rows as $r ) {
+            $after = (int) $r['attachment_id'];
+            $v     = vergeml_index_vector_out( $r['embedding'] );
+            if ( ! $v || ( $dims > 0 && count( $v ) !== $dims ) ) {
+                continue;
+            }
+            $v   = vergeml_plan_unit( $v );
+            $now = vergeml_plan_grow_now( $r['in_terms'], $depth, $skip );
+            if ( $now ) {
+                $folders[ $now ]['direct'] = null === $folders[ $now ]['direct'] ? $v : vergeml_plan_add( $folders[ $now ]['direct'], $v );
+                $folders[ $now ]['n']++;
+                for ( $p = $now, $g = 0; isset( $folders[ $p ] ) && $g < 32; $p = $folders[ $p ]['parent'], $g++ ) {
+                    $folders[ $p ]['sub'] = null === $folders[ $p ]['sub'] ? $v : vergeml_plan_add( $folders[ $p ]['sub'], $v );
+                }
+                continue;
+            }
+            $filing = json_decode( (string) $r['filing'], true );
+            if ( isset( $kept[ $after ] ) || '' !== vergeml_plan_effective_label( $r['kind'], $filing, $frozen ) ) {
+                continue;
+            }
+            $label = vergeml_plan_label_of( $r['kind'], $filing );
+            if ( '' === $label ) {
+                continue;
+            }
+            if ( ! isset( $new[ $label ] ) ) {
+                $classes       = vergeml_filing_classes_of_object( is_array( $filing ) && isset( $filing['object'] ) ? $filing['object'] : '' );
+                $kind          = sanitize_key( (string) $r['kind'] );
+                $new[ $label ] = array(
+                    'sum'    => null,
+                    'n'      => 0,
+                    'object' => $classes[0],
+                    'class'  => isset( $classes[1] ) ? $classes[1] : $classes[0],
+                    'kind'   => '' === $kind ? 'photo' : $kind,
+                );
+            }
+            $new[ $label ]['sum'] = null === $new[ $label ]['sum'] ? $v : vergeml_plan_add( $new[ $label ]['sum'], $v );
+            $new[ $label ]['n']++;
+        }
+    } while ( 500 === count( $rows ) );
+
+    return array( 'new' => $new, 'folders' => $folders );
+}
+
+/** A new folder's name from its group: the class ("Footwear"), with the kind for a non-photo ("Software screenshots"); three words at most. */
+function vergeml_plan_grow_name( $class, $kind ) {
+    $words  = array_values( array_filter( preg_split( '/\s+/u', str_replace( '/', ' ', trim( (string) $class ) ) ), 'strlen' ) );
+    $suffix = 'photo' === $kind || '' === (string) $kind ? '' : $kind . 's';
+    $room   = '' === $suffix ? 3 : 2;
+    $words  = array_slice( $words, -$room );
+    if ( '' !== $suffix ) {
+        $words[] = $suffix;
+    }
+    $name = implode( ' ', $words );
+    return '' === $name ? '' : mb_strtoupper( mb_substr( $name, 0, 1 ) ) . mb_substr( $name, 1 );
+}
+
+/**
+ *  The growth, decided: pure arithmetic on what vergeml_plan_grow_read gave.
+ *
+ *  1. A new label joins the existing folder its pictures sit nearest, when
+ *     they sit about as close to that folder's centre as the folder's own
+ *     pictures do: their mean cosine to the centre at least the folder's own
+ *     (each member against the rest, vergeml_plan_gain_folder) less 'margin'.
+ *     An absolute cosine does not tell a label's folder from its siblings:
+ *     on the shop a label sits at 0.7-0.9 to half a department.
+ *  2. The rest group by likeness: largest first, a label joins the first
+ *     group of its kind whose centre is at 'group' or more, else starts one.
+ *     A group of VERGEML_PLAN_MIN waiting pictures or more is a new folder,
+ *     named for the broader class most of its pictures share. It hangs under
+ *     the existing parent whose subtree its pictures sit nearest, at 'under'
+ *     or more, among parents with children, under VERGEML_PLAN_CHILDREN,
+ *     and leaving it within VERGEML_PLAN_DEPTH; else at the top while the
+ *     top has room; else under the nearest parent with room. A group named
+ *     like an existing folder joins it.
+ *  3. Anything else is left for the matcher, as it is today.
+ *
+ *  Labels in text order and groups largest first, so the same input always
+ *  gives the same growth.
+ *
+ * @param array $new     label => {sum, n, object, class, kind}.
+ * @param array $folders term id => {name, parent, direct, n, sub, target}.
+ * @param array $opts    margin, group, under: the defaults are VERGEML_PLAN_GROW_*.
+ * @return array{place:array,grow:array,left:array} place: label => term id;
+ *               grow: [{name, parent, labels, n, objects, kinds}]; left: labels.
+ */
+function vergeml_plan_grow_decide( $new, $folders, $opts = array() ) {
+    $opts = array_merge( array( 'join' => VERGEML_PLAN_GROW_JOIN, 'margin' => VERGEML_PLAN_GROW_MARGIN, 'group' => VERGEML_PLAN_GROW_GROUP, 'under' => VERGEML_PLAN_GROW_UNDER ), $opts );
+    ksort( $new, SORT_STRING );
+    ksort( $folders );
+
+    $parent_of = array();
+    foreach ( $folders as $tid => $f ) {
+        $parent_of[ (int) $tid ] = (int) $f['parent'];
+    }
+    $depth = vergeml_plan_grow_depths( $parent_of );
+    $kids  = array( 0 => 0 );
+    $named = array();
+    foreach ( $folders as $tid => $f ) {
+        $p          = isset( $folders[ (int) $f['parent'] ] ) ? (int) $f['parent'] : 0;
+        $kids[ $p ] = ( isset( $kids[ $p ] ) ? $kids[ $p ] : 0 ) + 1;
+        $named[ mb_strtolower( (string) $f['name'] ) ] = (int) $tid;
+    }
+    $direct = array();
+    $tight  = array();
+    $sub    = array();
+    foreach ( $folders as $tid => $f ) {
+        if ( empty( $f['target'] ) ) {
+            continue;
+        }
+        // A folder of one says nothing about how close its pictures sit; nothing is judged to join it.
+        if ( ! empty( $f['direct'] ) && (int) $f['n'] >= 2 ) {
+            $direct[ (int) $tid ] = vergeml_plan_unit( $f['direct'] );
+            $tight[ (int) $tid ]  = vergeml_plan_gain_folder( $f['direct'], (int) $f['n'], $f['direct'] ) / (int) $f['n'];
+        }
+        if ( ! empty( $f['sub'] ) && ! empty( $kids[ (int) $tid ] ) ) {
+            $sub[ (int) $tid ] = vergeml_plan_unit( $f['sub'] );
+        }
+    }
+    $nearest = function ( $v, $centres, $ok ) {
+        $to  = 0;
+        $top = -2.0;
+        foreach ( $centres as $tid => $c ) {
+            if ( ! $ok( $tid ) ) {
+                continue;
+            }
+            $x = vergeml_plan_dot( $v, $c );
+            if ( $x > $top ) {
+                $top = $x;
+                $to  = $tid;
+            }
+        }
+        return array( $to, $top );
+    };
+    $any = function () {
+        return true;
+    };
+
+    $place = array();
+    $rest  = array();
+    foreach ( $new as $label => $l ) {
+        if ( empty( $l['sum'] ) || (int) $l['n'] < 1 ) {
+            continue;
+        }
+        list( $to, $top ) = $nearest( vergeml_plan_unit( $l['sum'] ), $direct, $any );
+        // Near in absolute terms, and the label's pictures (their mean cosine to that centre) about as close as the folder's own.
+        if ( $to && $top >= $opts['join'] && vergeml_plan_dot( $l['sum'], $direct[ $to ] ) / (int) $l['n'] >= $tight[ $to ] - $opts['margin'] ) {
+            $place[ (string) $label ] = $to;
+            continue;
+        }
+        $rest[ (string) $label ] = $l;
+    }
+
+    // Largest first, then text: the order the groups form in is part of the answer.
+    uksort( $rest, function ( $a, $b ) use ( $rest ) {
+        return (int) $rest[ $b ]['n'] - (int) $rest[ $a ]['n'] ?: strcmp( $a, $b );
+    } );
+    $groups = array();
+    foreach ( $rest as $label => $l ) {
+        $v  = vergeml_plan_unit( $l['sum'] );
+        $at = -1;
+        foreach ( $groups as $i => $g ) {
+            if ( $g['kind'] === $l['kind'] && vergeml_plan_dot( $v, vergeml_plan_unit( $g['sum'] ) ) >= $opts['group'] ) {
+                $at = $i;
+                break;
+            }
+        }
+        if ( $at < 0 ) {
+            $groups[] = array( 'kind' => $l['kind'], 'labels' => array(), 'n' => 0, 'sum' => null, 'objects' => array(), 'classes' => array() );
+            $at       = count( $groups ) - 1;
+        }
+        $groups[ $at ]['labels'][]  = (string) $label;
+        $groups[ $at ]['objects'][] = $l['object'];
+        $groups[ $at ]['classes'][ $l['class'] ] = ( isset( $groups[ $at ]['classes'][ $l['class'] ] ) ? $groups[ $at ]['classes'][ $l['class'] ] : 0 ) + (int) $l['n'];
+        $groups[ $at ]['n']        += (int) $l['n'];
+        $groups[ $at ]['sum']       = null === $groups[ $at ]['sum'] ? $l['sum'] : vergeml_plan_add( $groups[ $at ]['sum'], $l['sum'] );
+    }
+    usort( $groups, function ( $a, $b ) {
+        return $b['n'] - $a['n'] ?: strcmp( $a['labels'][0], $b['labels'][0] );
+    } );
+
+    $room = function ( $tid ) use ( &$kids, $depth ) {
+        return $kids[ $tid ] < VERGEML_PLAN_CHILDREN && $depth[ $tid ] < VERGEML_PLAN_DEPTH;
+    };
+    $grow = array();
+    $left = array();
+    foreach ( $groups as $g ) {
+        // The broader class most of the group's pictures share names it; a tie goes to the first in text order.
+        ksort( $g['classes'], SORT_STRING );
+        arsort( $g['classes'] );
+        $name = vergeml_plan_grow_name( (string) key( $g['classes'] ), $g['kind'] );
+        if ( $g['n'] < VERGEML_PLAN_MIN || '' === $name ) {
+            $left = array_merge( $left, $g['labels'] );
+            continue;
+        }
+        $lower = mb_strtolower( $name );
+        if ( isset( $named[ $lower ] ) ) {
+            // Already a folder of that name: it is that folder (the plan's own near-copy rule), when the fill may file there.
+            $tid = $named[ $lower ];
+            if ( $tid > 0 && ! empty( $folders[ $tid ]['target'] ) ) {
+                foreach ( $g['labels'] as $label ) {
+                    $place[ $label ] = $tid;
+                }
+            } else {
+                $left = array_merge( $left, $g['labels'] );
+            }
+            continue;
+        }
+        $v = vergeml_plan_unit( $g['sum'] );
+        list( $to, $top ) = $nearest( $v, $sub, $room );
+        $parent = $to && $top >= $opts['under'] ? $to : ( $kids[0] < VERGEML_PLAN_CHILDREN ? 0 : $to );
+        if ( 0 === $parent && $kids[0] >= VERGEML_PLAN_CHILDREN ) {
+            $left = array_merge( $left, $g['labels'] );
+            continue;
+        }
+        $kids[ $parent ]++;
+        $named[ $lower ] = 0;
+        $grow[]          = array(
+            'name'    => $name,
+            'parent'  => $parent,
+            'labels'  => $g['labels'],
+            'n'       => $g['n'],
+            'objects' => array_values( array_unique( $g['objects'] ) ),
+            'kinds'   => array( $g['kind'] ),
+        );
+    }
+    sort( $left, SORT_STRING );
+    return array( 'place' => $place, 'grow' => $grow, 'left' => $left );
+}
+
+/**
+ *  The growth as the screen's draft: every existing folder exactly where it
+ *  stands, the new folders under their parents, and the label map the frozen
+ *  one plus the growth. Existing folders are marked asked, so the confirm
+ *  asks the planner nothing about them and a grown tree confirms for free.
+ *  Its origin is 'grow': the fill files only the growth's waiting pictures
+ *  (vergeml_plan_grow_assign), never the whole library.
+ */
+function vergeml_plan_grow_draft( $decided, $frozen, $taxonomy ) {
+    $terms = '' !== $taxonomy ? get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) ) : array();
+    $out   = array( 'folders' => array(), 'gone' => array(), 'tags' => array(), 'origin' => 'grow', 'rule' => null, 'label_map' => array() );
+    foreach ( is_array( $terms ) ? $terms : array() as $t ) {
+        $out['folders'][] = array(
+            'key' => 't' . $t->term_id, 'term_id' => (int) $t->term_id, 'name' => vergeml_term_name( $t ),
+            'parent' => $t->parent ? 't' . $t->parent : '', 'count' => null, 'matches' => '',
+            'classes' => array(), 'nowords' => false, 'kinds' => array(), 'audience' => '', 'by' => '', 'asked' => true,
+        );
+    }
+    foreach ( (array) $frozen as $label => $tid ) {
+        $out['label_map'][ (string) $label ] = 't' . (int) $tid;
+    }
+    foreach ( (array) $decided['place'] as $label => $tid ) {
+        $out['label_map'][ (string) $label ] = 't' . (int) $tid;
+    }
+    foreach ( (array) $decided['grow'] as $i => $g ) {
+        $out['folders'][] = array(
+            'key' => 'g' . $i, 'term_id' => null, 'name' => $g['name'], 'parent' => $g['parent'] ? 't' . $g['parent'] : '',
+            'count' => null, 'matches' => '', 'classes' => $g['objects'], 'nowords' => false, 'kinds' => $g['kinds'],
+            'audience' => '', 'by' => '', 'asked' => false,
+        );
+        foreach ( $g['labels'] as $label ) {
+            $out['label_map'][ (string) $label ] = 'g' . $i;
+        }
+    }
+    return vergeml_guide_clean_draft( $out );
+}
+
+/**
+ *  What a grown draft's fill files: each waiting picture (in no folder but To
+ *  sort, not placed by a person or a product) whose label the draft's map
+ *  holds and the frozen map does not, into that label's folder. Nothing
+ *  else is looked at, so no existing picture moves. Worked out when asked,
+ *  not when planned, so a picture described in between is filed too.
+ *
+ * @return array{assign:array,waiting:int} attachment id => draft key, and every waiting picture.
+ */
+function vergeml_plan_grow_assign( $draft, $taxonomy ) {
+    global $wpdb;
+    $grow = array_diff_key( (array) ( isset( $draft['label_map'] ) ? $draft['label_map'] : array() ), vergeml_plan_frozen() );
+    $out  = array( 'assign' => array(), 'waiting' => 0 );
+    if ( '' === $taxonomy || ! function_exists( 'vergeml_guide_rule_rows' ) ) {
+        return $out;
+    }
+    $parent = array();
+    $skip   = array();
+    foreach ( (array) get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) ) as $t ) {
+        $parent[ (int) $t->term_id ] = (int) $t->parent;
+        if ( defined( 'VERGEML_FILING_TO_SORT_SLUG' ) && VERGEML_FILING_TO_SORT_SLUG === $t->slug ) {
+            $skip[ (int) $t->term_id ] = true;
+        }
+    }
+    $depth = vergeml_plan_grow_depths( $parent );
+    $kept  = array();
+    if ( defined( 'VERGEML_FILING_PLACED_BY' ) ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one read of the pictures a person or a product placed.
+        $kept = array_flip( array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value IN ('user','answer','product')", VERGEML_FILING_PLACED_BY ) ) ) );
+    }
+    $after = 0;
+    do {
+        $rows = (array) vergeml_guide_rule_rows( $taxonomy, 'all', array( 'filing', 'terms' ), $after, 500 );
+        foreach ( $rows as $r ) {
+            $after = (int) $r['attachment_id'];
+            if ( vergeml_plan_grow_now( $r['in_terms'], $depth, $skip ) ) {
+                continue;
+            }
+            $out['waiting']++;
+            if ( ! $grow || isset( $kept[ $after ] ) ) {
+                continue;
+            }
+            $label = vergeml_plan_label_of( $r['kind'], json_decode( (string) $r['filing'], true ) );
+            if ( '' !== $label && isset( $grow[ $label ] ) ) {
+                $out['assign'][ $after ] = (string) $grow[ $label ];
+            }
+        }
+    } while ( 500 === count( $rows ) );
+    return $out;
+}
+
+/**
+ *  A grown draft's dry run, in vergeml_guide_draft_fit's shape, from the very
+ *  assignment the fill will make: what each folder holds after, how many
+ *  pictures move, and how many still wait. No matcher and no phrase vectors.
+ */
+function vergeml_plan_grow_fit( $draft, $taxonomy ) {
+    $a      = vergeml_plan_grow_assign( $draft, $taxonomy );
+    $live   = function_exists( 'vergeml_guide_live_index' ) ? vergeml_guide_live_index( $taxonomy ) : array( 'by_id' => array() );
+    $landed = array_count_values( $a['assign'] );
+    $looked = function_exists( 'vergeml_guide_described_count' ) ? (int) vergeml_guide_described_count() : 0;
+    $move   = count( $a['assign'] );
+    $stay   = max( 0, $a['waiting'] - $move );
+    $counts = array();
+    foreach ( $draft['folders'] as $f ) {
+        $key = (string) $f['key'];
+        $tid = (int) $f['term_id'];
+        $in  = isset( $landed[ $key ] ) ? $landed[ $key ] : 0;
+        $counts[ $key ] = $tid && isset( $live['by_id'][ $tid ] ) ? (int) $live['by_id'][ $tid ]['count'] + $in : $in;
+    }
+    $tally = function_exists( 'vergeml_filing_tally_fresh' ) ? vergeml_filing_tally_fresh() : array();
+    $tally = array_merge( $tally, array( 'looked' => $looked, 'fits' => max( 0, $looked - $stay ), 'sure' => max( 0, $looked - $stay ), 'nothing' => $stay ) );
+    return array(
+        'counted' => true,
+        'counts'  => $counts,
+        'unfiled' => array( 'floor' => 0, 'margin' => 0, 'gated' => 0, 'to_sort' => $stay ),
+        'move'    => $move,
+        'looked'  => $looked,
+        'preview' => array(
+            /* translators: 1: pictures that move, 2: folders they go to */
+            array( 'text' => $move ? sprintf( _n( '%1$s picture moves into %2$s folders', '%1$s pictures move into %2$s folders', $move, 'vergelabs-media-library' ), number_format_i18n( $move ), number_format_i18n( count( $landed ) ) ) : __( '0 pictures move', 'vergelabs-media-library' ), 'strong' => true ),
+        ),
+        'tally'   => $tally,
+        'residue' => null,
+    );
+}
+
+/** The job's growth half: the frozen tree planned again, on this site alone, for nothing. */
+function vergeml_plan_grow_event( &$s ) {
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+    $frozen   = vergeml_plan_frozen();
+    $read     = vergeml_plan_grow_read( $frozen, $taxonomy );
+    $decided  = vergeml_plan_grow_decide( $read['new'], $read['folders'] );
+    $grown    = $decided['place'] || $decided['grow'];
+    if ( $grown ) {
+        $s['draft'] = vergeml_plan_grow_draft( $decided, $frozen, $taxonomy );
+        // The owner says yes to the growth before anything is filed: back to the tree, where "This is my tree" confirms it.
+        $s['tree'] = 'editing';
+        vergeml_guide_fit_take( $s, $taxonomy );
+    }
+    $s['plan'] = array(
+        'state'   => $grown ? 'done' : 'kept',
+        'message' => $grown ? '' : __( 'No new folders to propose.', 'vergelabs-media-library' ),
+        'grow'    => true,
+        'charged' => 0,
+        'folders' => count( $decided['grow'] ),
+        'placed'  => count( $decided['place'] ),
+        'left'    => count( $decided['left'] ),
+    );
 }
 
 /**

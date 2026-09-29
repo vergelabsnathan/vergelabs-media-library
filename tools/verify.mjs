@@ -205,6 +205,15 @@ const SUITES = [
 	 */
 	{ name: 'plan-audience', file: 'tests/tree/plan-audience.php', env: 'local', php: 'wasm' },
 	/*
+	 *  A frozen tree planned again, free, and only grown (spec-tree-planner
+	 *  story 10): a new label joins a folder only when it sits as close as the
+	 *  folder's own pictures, the rest group into new folders at the minimum
+	 *  under a parent with room, the same library grows the same way twice,
+	 *  and the fill files only waiting pictures of the growth. Arithmetic and
+	 *  stand-ins, like plan-fold.
+	 */
+	{ name: 'plan-grow', file: 'tests/tree/plan-grow.php', env: 'local', php: 'wasm' },
+	/*
 	 *  Confirm, lock, sticky (A.3): a hand move survives a fill, a locked
 	 *  folder keeps its pictures and gains none, a confirmed tree answers 409.
 	 *  The box: it stores a packed embedding and drives a real pass over its

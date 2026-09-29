@@ -37,7 +37,8 @@ const open = async ( state ) => {
 	const page = await browser.newPage();
 	page.on( 'pageerror', ( e ) => errors.push( e.message ) );
 	await page.goto( state ? `${ HARNESS }?state=${ state }` : HARNESS );
-	await page.waitForSelector( '#vgml-folders .g-card[data-card="tree"]' );
+	// A confirmed tree opens on the Fill step, its Tree card built but hidden.
+	await page.waitForSelector( '#vgml-folders .g-card[data-card="tree"]', { state: 'frozen' === state ? 'attached' : 'visible' } );
 	return page;
 };
 
@@ -92,6 +93,29 @@ const withTree = await open( 'tree' );
 const gone = await withTree.$$( button );
 check( 'B9 with a folder already on the site the button is gone: the primary is the tree\'s own', 0 === gone.length, `${ gone.length } buttons` );
 await withTree.close();
+
+/*
+ *  F: a filled plan's tree, confirmed (spec-tree-planner story 10). Planning
+ *  again is offered free from the confirmed tree, and the growth comes back
+ *  as a draft to say yes to. Mutation: the button left inside the unconfirmed
+ *  branch only -> F1 red; the poll's tree state ignored -> F3 red.
+ */
+console.log( '\nF  a frozen tree planned again, free\n' );
+const frozen = await open( 'frozen' );
+await frozen.click( '.g-rail .g-step[data-step="tree"]' );
+const plan = `${ move } .vgml-plan-btn`;
+const planBtn = await frozen.$eval( plan, ( b ) => ( { text: b.textContent, disabled: b.disabled } ) ).catch( () => null );
+check( 'F1 the confirmed, frozen tree offers the plan, free and pressable', planBtn && 'Plan my folders · free' === planBtn.text && ! planBtn.disabled, JSON.stringify( planBtn ) );
+await frozen.click( plan );
+check( 'F2 the press books the plan', await frozen.evaluate( () => window.harness.calls.some( ( c ) => /guide\/plan$/.test( c.path ) && 'POST' === c.method ) ) );
+// A small parent's children are drawn as chips, so the slot's text is read, not its rows.
+await frozen.waitForFunction( () => /Footwear/.test( document.querySelector( '#vgml-folders .g-tree-slot' ).innerText ), null, { timeout: 8000 } ).catch( () => {} );
+const grown = await frozen.evaluate( () => ( {
+	slot: document.querySelector( '#vgml-folders .g-tree-slot' ).innerText,
+	confirm: !! document.querySelector( '#vgml-folders .g-card[data-card="tree"] .vgml-confirm-btn' ),
+} ) );
+check( 'F3 the growth is drawn, and the tree is back to "This is my tree" for the owner\'s yes', /Footwear/.test( grown.slot ) && /Clothing/.test( grown.slot ) && grown.confirm, JSON.stringify( grown ) );
+await frozen.close();
 
 check( 'B10 nothing threw', 0 === errors.length, errors.join( ' | ' ) );
 

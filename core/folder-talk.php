@@ -679,6 +679,11 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 	 *  and which folders existed. Written before the first change.
 	 */
 	$before = array( 'terms' => vergeml_talk_current(), 'files' => array() );
+	// The frozen map this run replaces, so undo puts back the tree it grew from rather than no map at all (spec-tree-planner story 10).
+	$before['label_map'] = get_option( VERGEML_TALK_LABEL_MAP );
+
+	// A rule's folders are profiled by the pictures it assigns; a frozen tree's growth also assigns, but its new folders carry their labels' classes and are profiled from them (story 10).
+	$seed_assign = ! empty( $opts['grow'] ) ? array() : $assign;
 
 	// ---------------------------------------------------------- the terms
 
@@ -745,7 +750,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 				wp_update_term( (int) $live->term_id, $taxonomy, $patch );
 			}
 			// Kept, renamed or moved alike: what the draft says it is for is what it is matched against, as the preview had it.
-			vergeml_talk_seed_profile( (int) $live->term_id, $taxonomy, $f, $assign );
+			vergeml_talk_seed_profile( (int) $live->term_id, $taxonomy, $f, $seed_assign );
 			$ids[ $key ] = (int) $live->term_id;
 			if ( ! isset( $by_name[ mb_strtolower( $f['name'] ) ] ) ) {
 				$by_name[ mb_strtolower( $f['name'] ) ] = (int) $live->term_id;
@@ -770,7 +775,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		$existing = ( ! is_wp_error( $found ) && $found ) ? $found[0] : null;
 
 		if ( null !== $existing ) {
-			vergeml_talk_seed_profile( (int) $existing->term_id, $taxonomy, $f, $assign );
+			vergeml_talk_seed_profile( (int) $existing->term_id, $taxonomy, $f, $seed_assign );
 			$ids[ $key ] = (int) $existing->term_id;
 			if ( ! isset( $by_name[ mb_strtolower( $f['name'] ) ] ) ) {
 				$by_name[ mb_strtolower( $f['name'] ) ] = (int) $existing->term_id;
@@ -798,7 +803,7 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 		if ( ! is_wp_error( $made ) && isset( $made['term_id'] ) ) {
 			$ids[ $key ] = (int) $made['term_id'];
 			$made_ids[]  = (int) $made['term_id'];
-			vergeml_talk_seed_profile( (int) $made['term_id'], $taxonomy, $f, $assign );
+			vergeml_talk_seed_profile( (int) $made['term_id'], $taxonomy, $f, $seed_assign );
 			if ( ! isset( $by_name[ mb_strtolower( $f['name'] ) ] ) ) {
 				$by_name[ mb_strtolower( $f['name'] ) ] = (int) $made['term_id'];
 			}
@@ -2131,8 +2136,17 @@ function vergeml_talk_undo() {
 	}
 
 	delete_option( VERGEML_TALK_UNDO );
-	// The frozen label map goes with the rest of the run (spec-tree-planner story 4): filing is the matcher's again.
-	delete_option( VERGEML_TALK_LABEL_MAP );
+	/*
+	 *  The frozen label map goes back to what it was before the run (spec-tree-planner
+	 *  story 4, story 10): none after the plan's own fill, so filing is the matcher's
+	 *  again; the plan's map after its growth's fill, so the grown tree is undone and
+	 *  the frozen one stays frozen.
+	 */
+	if ( ! empty( $before['label_map'] ) && is_array( $before['label_map'] ) ) {
+		update_option( VERGEML_TALK_LABEL_MAP, $before['label_map'], false );
+	} else {
+		delete_option( VERGEML_TALK_LABEL_MAP );
+	}
 
 	/*
 	 *  The questions were about a fill that is now put back: an answer to one

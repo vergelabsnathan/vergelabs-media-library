@@ -591,6 +591,8 @@ function vergeml_guide_session_out( $s ) {
         'plan'            => isset( $s['plan'] ) ? $s['plan'] : null,
         // CAP-4's one question: null until answered, then 'yes' or 'no'.
         'audience_split'  => isset( $s['audience_split'] ) ? $s['audience_split'] : null,
+        // A plan was filled: planning again only grows it, for free (spec-tree-planner story 10).
+        'frozen'          => function_exists( 'vergeml_plan_frozen' ) && (bool) vergeml_plan_frozen(),
     );
 }
 
@@ -695,6 +697,10 @@ function vergeml_guide_clean_draft( $in ) {
         if ( '' !== $label && isset( $keys[ $to ] ) ) {
             $out['label_map'][ $label ] = $to;
         }
+    }
+    // A frozen tree's growth (spec-tree-planner story 10): its fill files only the growth's waiting pictures.
+    if ( isset( $in['origin'] ) && 'grow' === $in['origin'] ) {
+        $out['origin'] = 'grow';
     }
     if ( isset( $in['origin'] ) && 'rule' === $in['origin'] && isset( $in['rule'] ) && is_array( $in['rule'] ) ) {
         $rule = vergeml_guide_rule_args( isset( $in['rule']['id'] ) ? $in['rule']['id'] : '', isset( $in['rule']['options'] ) ? $in['rule']['options'] : array() );
@@ -1167,7 +1173,8 @@ function vergeml_guide_confirm( &$s ) {
         if ( ! $folders ) {
             return new WP_Error( 'empty', __( 'There are no folders to confirm.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
         }
-        $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders ) );
+        // The live folders keep the frozen label map (spec-tree-planner story 10), or the fill after this confirm freezes an empty one.
+        $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders, 'label_map' => function_exists( 'vergeml_plan_frozen_keys' ) ? vergeml_plan_frozen_keys() : array() ) );
     }
 
     /*
@@ -1787,6 +1794,10 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
 
     if ( ! is_array( $draft ) || empty( $draft['folders'] ) || ! function_exists( 'vergeml_filing_pick' ) ) {
         return null;
+    }
+    // A grown draft's fill files exactly its assignment, so that is what its dry run counts (spec-tree-planner story 10).
+    if ( 'grow' === $draft['origin'] && function_exists( 'vergeml_plan_grow_fit' ) ) {
+        return vergeml_plan_grow_fit( $draft, $taxonomy );
     }
 
     global $wpdb;
@@ -2446,6 +2457,26 @@ function vergeml_guide_apply_plan( $draft ) {
         }
     }
 
+    /*
+     *  A frozen tree's growth (spec-tree-planner story 10): the waiting
+     *  pictures of the growth's labels go to their folders and no other
+     *  picture is looked at -- the rule path's 'assign', so the fill neither
+     *  re-files the library nor asks the text model. Nothing to file is
+     *  refused: an empty assign would run the full fill.
+     */
+    if ( 'grow' === $draft['origin'] && function_exists( 'vergeml_plan_grow_assign' ) ) {
+        $grow = vergeml_plan_grow_assign( $draft, function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '' );
+        foreach ( $grow['assign'] as $attachment => $key ) {
+            if ( isset( $talk_key[ $key ] ) ) {
+                $opts['assign'][ (int) $attachment ] = $talk_key[ $key ];
+            }
+        }
+        if ( ! $opts['assign'] ) {
+            return new WP_Error( 'empty', __( 'Nothing to apply.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+        }
+        $opts['grow'] = true;
+    }
+
     if ( 'rule' === $draft['origin'] && is_array( $draft['rule'] ) ) {
         $rule = vergeml_guide_rule( $draft['rule']['id'], $draft['rule']['options'] );
         if ( is_wp_error( $rule ) ) {
@@ -2509,7 +2540,8 @@ function vergeml_guide_rest_apply( WP_REST_Request $request ) {
         foreach ( vergeml_folders_nodes( $taxonomy ) as $node ) {
             $folders[] = array( 'key' => 't' . (int) $node['id'], 'term_id' => (int) $node['id'], 'name' => (string) $node['name'], 'parent' => $node['parent'] ? 't' . (int) $node['parent'] : '' );
         }
-        $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders ) );
+        // The live folders keep the frozen label map (spec-tree-planner story 10): without it a second fill froze an empty map and re-filed every picture by the matcher.
+        $s['draft'] = vergeml_guide_clean_draft( array( 'folders' => $folders, 'label_map' => function_exists( 'vergeml_plan_frozen_keys' ) ? vergeml_plan_frozen_keys() : array() ) );
     }
 
     $plan = vergeml_guide_apply_plan( $s['draft'] );

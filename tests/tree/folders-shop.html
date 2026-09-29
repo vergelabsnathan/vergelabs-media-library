@@ -49,12 +49,29 @@
 			if ( /guide\/turn$/.test( o.path ) ) {
 				return Promise.resolve( { fit: { counted: true, looked: 33, counts: {}, unfiled: { floor: 1, margin: 0, gated: 0 } } } );
 			}
+			// ?state=frozen (spec-tree-planner story 10): the press books the growth; the poll answers it grown, back to editing.
+			if ( /guide\/plan$/.test( o.path ) ) {
+				if ( 'POST' === o.method ) {
+					return Promise.resolve( { plan: { state: 'running', grow: true }, tree: 'confirmed', frozen: true, turns: [], draft: null } );
+				}
+				return Promise.resolve( {
+					plan: { state: 'done', grow: true, charged: 0 }, tree: 'editing', frozen: true, turns: [], fit: null,
+					draft: {
+						folders: [
+							{ key: 't7', term_id: 7, name: 'Clothing', parent: '', count: null, matches: '', classes: [], kinds: [], audience: '', by: '', asked: true },
+							{ key: 'g0', term_id: null, name: 'Footwear', parent: 't7', count: 5, matches: '', classes: [ 'sandal' ], kinds: [ 'photo' ], audience: '', by: '', asked: false }
+						],
+						gone: {}, tags: [], origin: 'grow', rule: null, label_map: { 'sandal; footwear': 'g0' }
+					}
+				} );
+			}
 			return Promise.resolve( {} );
 		}
 	};
 	window.fetch = function () { return Promise.resolve( new Response( 'event: done\ndata: {"choices":[]}\n\n', { status: 200, headers: { 'Content-Type': 'text/event-stream' } } ) ); };
 
-	var NODES = 'tree' === STATE ? [ { id: 7, parent: 0, name: 'Clothing', slug: 'clothing', count: 3, color: '', order: 0, classes: [], prev: false } ] : [];
+	var NODES = 'tree' === STATE || 'frozen' === STATE ? [ { id: 7, parent: 0, name: 'Clothing', slug: 'clothing', count: 3, color: '', order: 0, classes: [], prev: false } ] : [];
+	var FROZEN = 'frozen' === STATE;
 
 	window.vgmlFolders = {
 		ns: 'vergeml/v1',
@@ -62,7 +79,8 @@
 		described: 33,
 		licensed: true,
 		taxonomy: 'media_category',
-		session: { turns: [], draft: null, assistant_turns: 0, cap: 25, apply: null, fit: null, tree: 'editing', profile: { folders: 0, credits: 0 } },
+		session: { turns: [], draft: null, assistant_turns: 0, cap: 25, apply: null, fit: null, tree: FROZEN ? 'confirmed' : 'editing', frozen: FROZEN, profile: { folders: 0, credits: 0 } },
+		plan: FROZEN ? { labels: 40, price: 0, balance: 100, audience_ask: false, audience_evidence: false } : undefined,
 		nodes: NODES,
 		version: 1,
 		facts: {
