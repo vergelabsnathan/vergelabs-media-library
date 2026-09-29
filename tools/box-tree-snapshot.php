@@ -8,8 +8,8 @@
  *  Literal SQL, never the code under test (a restore list computed by the
  *  mutated reader deleted 100 real alts on 2026-09-15): the taxonomy's rows
  *  of terms, term_taxonomy, termmeta and term_relationships, every
- *  attachment's _vergeml_placed_by, and the three options the Folders
- *  screen lives on (the fill state, its undo, the guide session). The
+ *  attachment's _vergeml_placed_by, and the four options the Folders
+ *  screen lives on (the fill state, its undo, the guide session, the frozen label map). The
  *  restore deletes what the taxonomy holds now and inserts the rows as they
  *  were, ids included, so a band keyed on term ids (filing-baseline-shop.txt)
  *  reads the same tree. Written for the shop site before HEMA's tree was
@@ -31,8 +31,9 @@ if ( '' === $file || ! in_array( $mode, array( 'snapshot', 'restore' ), true ) )
     exit( 1 );
 }
 
-$options = array( 'vergeml_talk_state', 'vergeml_talk_undo', 'vergeml_guide_session' );
-foreach ( array( 'VERGEML_TALK_STATE', 'VERGEML_TALK_UNDO', 'VERGEML_GUIDE_OPTION' ) as $i => $c ) {
+// The frozen label map too (spec-tree-planner stories 4 and 10): absent when snapped, deleted on restore.
+$options = array( 'vergeml_talk_state', 'vergeml_talk_undo', 'vergeml_guide_session', 'vergeml_talk_label_map' );
+foreach ( array( 'VERGEML_TALK_STATE', 'VERGEML_TALK_UNDO', 'VERGEML_GUIDE_OPTION', 'VERGEML_TALK_LABEL_MAP' ) as $i => $c ) {
     if ( defined( $c ) ) {
         $options[ $i ] = constant( $c );
     }
