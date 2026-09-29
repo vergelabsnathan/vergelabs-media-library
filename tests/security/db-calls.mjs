@@ -170,14 +170,18 @@ for ( const [ key, least ] of Object.entries( FLOOR ) ) {
 }
 
 /*
- *  The reviewed list is a budget, not a floor. Eleven calls are read by hand; a
- *  twelfth means a new query went in that the prover could not follow and
+ *  The reviewed list is a budget, not a floor. Fourteen calls are read by hand; a
+ *  fifteenth means a new query went in that the prover could not follow and
  *  somebody wrote a sentence instead of making it provable. That is sometimes the
  *  right answer, and it should take a deliberate edit to this number to say so.
+ *  Eleven until 2026-09-29: the picture's words and product (S10.9, S10.8) join
+ *  four readers through vergeml_filing_words_sql()/vergeml_filing_product_sql(),
+ *  fragments a static reader cannot follow across the function boundary; each
+ *  was read and registered in tools/db-calls.mjs.
  */
 check(
-	`no more than 11 calls are read by hand rather than proven (${ c.reviewed })`,
-	c.reviewed <= 11,
+	`no more than 14 calls are read by hand rather than proven (${ c.reviewed })`,
+	c.reviewed <= 14,
 	`${ c.reviewed } are`
 );
 
