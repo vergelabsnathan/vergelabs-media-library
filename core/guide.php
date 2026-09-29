@@ -2696,7 +2696,7 @@ function vergeml_guide_rule_args( $id, $options ) {
  *  they behave exactly as before -- the whole table, one query.
  *
  *  @param string $scope  'unfiled' | 'all'
- *  @param array  $need   any of 'filing', 'date', 'terms'
+ *  @param array  $need   any of 'filing', 'date', 'terms', 'embedding'
  *  @param int    $after  attachment_id to read after; 0 for the start.
  *  @param int    $limit  rows to a page; 0 for no limit.
  */
@@ -2711,6 +2711,9 @@ function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array(), $after = 0
 
     if ( in_array( 'filing', $need, true ) ) {
         $select .= ', i.filing';
+    }
+    if ( in_array( 'embedding', $need, true ) ) {
+        $select .= ', i.embedding';
     }
     if ( in_array( 'date', $need, true ) ) {
         $select .= ', p.post_date';

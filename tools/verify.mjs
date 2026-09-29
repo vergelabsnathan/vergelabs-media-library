@@ -183,6 +183,12 @@ const SUITES = [
 	 */
 	{ name: 'plan-choose', file: 'tests/tree/plan-choose.php', env: 'local', php: 'wasm' },
 	/*
+	 *  The never-worse guard (spec-tree-planner story 8): the pictures already in
+	 *  a folder measured now and after the plan, To sort left out, an empty site
+	 *  always offered its plan. Arithmetic on fixtures, like plan-choose.
+	 */
+	{ name: 'plan-gain', file: 'tests/tree/plan-gain.php', env: 'local', php: 'wasm' },
+	/*
 	 *  The large-library fold (spec-tree-planner story 7): rare labels folded
 	 *  into their class's fold label until the inventory fits the budget, a
 	 *  fold-label collision merged rather than dropped, the exact label

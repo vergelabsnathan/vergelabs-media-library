@@ -852,7 +852,7 @@
 		btn.disabled = low || planning || ! canTalk() || talk.streaming();
 		btn.addEventListener( 'click', onPlan );
 		dom.treeMove.appendChild( btn );
-		if ( 'failed' === planState() && state.session.plan.message ) {
+		if ( ( 'failed' === planState() || 'kept' === planState() ) && state.session.plan.message ) {
 			dom.treeMove.appendChild( el( 'p', { class: 'g-why vgml-plan-note' }, state.session.plan.message ) );
 		}
 	}

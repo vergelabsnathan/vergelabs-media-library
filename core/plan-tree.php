@@ -38,6 +38,8 @@ const VERGEML_PLAN_FOLD_BUDGET = 1500;
 /** A cold inventory read past this many seconds serves the last cached one instead and hands the rest to cron. */
 const VERGEML_PLAN_FACTS_BUDGET = 15;
 const VERGEML_PLAN_REFRESH_HOOK = 'vergeml_plan_inventory_refresh';
+/** A plan is offered only when the pictures already in a folder sit this much tighter after it than now (spec-tree-planner story 8: clearly better, never worse). */
+const VERGEML_PLAN_GAIN = 0.02;
 
 /** Ten credits and six per hundred labels, rounded up: the service's planPrice(). */
 function vergeml_plan_price( $labels ) {
@@ -383,6 +385,113 @@ function vergeml_plan_dot( $a, $b ) {
 }
 
 /**
+ *  One picture into the before/after measure (vergeml_plan_gain_of). $now is
+ *  the folder it sits in ('' for none or To sort), $then the one it will sit
+ *  in once the plan fills. Only a picture already in a folder is measured;
+ *  every picture in $then still shapes that folder's centre.
+ */
+function vergeml_plan_gain_add( $acc, $v, $now, $then ) {
+    if ( '' !== $then ) {
+        $acc['all'][ $then ] = isset( $acc['all'][ $then ] ) ? vergeml_plan_add( $acc['all'][ $then ], $v ) : $v;
+    }
+    if ( '' === $now ) {
+        return $acc;
+    }
+    $acc['n']++;
+    $acc['now'][ $now ] = isset( $acc['now'][ $now ] ) ? vergeml_plan_add( $acc['now'][ $now ], $v ) : $v;
+    if ( '' !== $then ) {
+        $acc['kept'][ $then ] = isset( $acc['kept'][ $then ] ) ? vergeml_plan_add( $acc['kept'][ $then ], $v ) : $v;
+    }
+    return $acc;
+}
+
+/**
+ *  How tight the pictures already in a folder sit, now and after the plan:
+ *  the mean cosine of each to its folder's centre. The same pictures on both
+ *  sides, so a plan is not marked down for also filing what waited in To
+ *  sort. A picture the plan leaves without a folder counts 0 after. Nothing
+ *  filed yet reads 0 before, which any plan beats.
+ *
+ * @return array{before:float,after:float}
+ */
+function vergeml_plan_gain_of( $acc ) {
+    if ( 0 === $acc['n'] ) {
+        return array( 'before' => 0.0, 'after' => 1.0 );
+    }
+    $before = 0.0;
+    foreach ( $acc['now'] as $s ) {
+        $before += sqrt( vergeml_plan_dot( $s, $s ) );
+    }
+    $after = 0.0;
+    foreach ( $acc['kept'] as $k => $s ) {
+        $after += vergeml_plan_dot( $s, vergeml_plan_unit( $acc['all'][ $k ] ) );
+    }
+    return array( 'before' => $before / $acc['n'], 'after' => $after / $acc['n'] );
+}
+
+/**
+ *  The site's before/after for a draft: each described picture's deepest
+ *  folder now, and where the fill will put it -- its label's folder in the
+ *  draft's label map, unless a person placed it or its label is not in the
+ *  map, when it stays. Read in pages of 500 like vergeml_plan_label_sums.
+ */
+function vergeml_plan_gain( $label_map, $label_index, $taxonomy ) {
+    global $wpdb;
+    $acc = array( 'n' => 0, 'now' => array(), 'kept' => array(), 'all' => array() );
+    if ( '' === $taxonomy || ! function_exists( 'vergeml_guide_rule_rows' ) ) {
+        return vergeml_plan_gain_of( $acc );
+    }
+    $terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false ) );
+    $up    = array();
+    $skip  = array();
+    foreach ( is_array( $terms ) ? $terms : array() as $t ) {
+        $up[ (int) $t->term_id ] = (int) $t->parent;
+        if ( defined( 'VERGEML_FILING_TO_SORT_SLUG' ) && VERGEML_FILING_TO_SORT_SLUG === $t->slug ) {
+            $skip[ (int) $t->term_id ] = true;
+        }
+    }
+    $depth = function ( $tid ) use ( $up ) {
+        $d = 0;
+        while ( isset( $up[ $tid ] ) && $d < 32 ) {
+            $tid = $up[ $tid ];
+            $d++;
+        }
+        return $d;
+    };
+    $user = array();
+    if ( defined( 'VERGEML_FILING_PLACED_BY' ) ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one read of the hand-placed pictures.
+        $user = array_flip( array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = 'user'", VERGEML_FILING_PLACED_BY ) ) ) );
+    }
+    $t = $wpdb->vergeml_ai_index;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    $dims  = (int) $wpdb->get_var( "SELECT embedding_dims FROM {$t} WHERE error = '' AND embedding IS NOT NULL GROUP BY embedding_dims ORDER BY COUNT(*) DESC LIMIT 1" );
+    $after = 0;
+    do {
+        $rows = (array) vergeml_guide_rule_rows( $taxonomy, 'all', array( 'filing', 'terms', 'embedding' ), $after, 500 );
+        foreach ( $rows as $r ) {
+            $after = (int) $r['attachment_id'];
+            $v     = vergeml_index_vector_out( $r['embedding'] );
+            if ( ! $v || ( $dims > 0 && count( $v ) !== $dims ) ) {
+                continue;
+            }
+            $now = '';
+            $at  = -1;
+            foreach ( array_filter( array_map( 'intval', explode( ',', (string) $r['in_terms'] ) ) ) as $tid ) {
+                if ( ! isset( $skip[ $tid ] ) && ( $depth( $tid ) > $at || ( $depth( $tid ) === $at && 't' . $tid < $now ) ) ) {
+                    $at  = $depth( $tid );
+                    $now = 't' . $tid;
+                }
+            }
+            $label = vergeml_plan_effective_label( $r['kind'], json_decode( (string) $r['filing'], true ), $label_index );
+            $then  = ! isset( $user[ $after ] ) && '' !== $label && isset( $label_map[ $label ] ) ? $label_map[ $label ] : $now;
+            $acc   = vergeml_plan_gain_add( $acc, vergeml_plan_unit( $v ), $now, $then );
+        }
+    } while ( 500 === count( $rows ) );
+    return vergeml_plan_gain_of( $acc );
+}
+
+/**
  *  Of the service's trees, the one to keep, with the labels it left out
  *  placed. Per tree: each folder's centre from the labels in it; a label left
  *  out joins the folder whose centre is nearest, at VERGEML_PLAN_PLACE or
@@ -540,13 +649,21 @@ function vergeml_plan_event() {
         // An older service sends its one kept tree; a current one every valid tree, to choose among here.
         $trees      = ! empty( $result['trees'] ) ? $result['trees'] : array( array( 'folders' => $result['folders'], 'unfiled' => isset( $result['unfiled'] ) ? $result['unfiled'] : array() ) );
         $chosen     = vergeml_plan_choose( $trees, vergeml_plan_label_sums( $inv['labels'] ), array_column( $inv['labels'], 'count', 'id' ) );
-        $s['draft'] = vergeml_plan_draft( $chosen['folders'], $inv['labels'] );
-        $taxonomy   = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
-        if ( '' !== $taxonomy ) {
-            vergeml_guide_fit_take( $s, $taxonomy );
+        $draft    = vergeml_plan_draft( $chosen['folders'], $inv['labels'] );
+        $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
+        $gain     = vergeml_plan_gain( $draft['label_map'], array_column( $inv['labels'], 'id', 'label' ), $taxonomy );
+        // Not clearly tidier than the folders the site already has: the plan is not offered (spec-tree-planner story 8).
+        $better = $gain['after'] >= $gain['before'] + VERGEML_PLAN_GAIN;
+        if ( $better ) {
+            $s['draft'] = $draft;
+            if ( '' !== $taxonomy ) {
+                vergeml_guide_fit_take( $s, $taxonomy );
+            }
         }
         $s['plan'] = array(
-            'state'   => 'done',
+            'state'   => $better ? 'done' : 'kept',
+            'message' => $better ? '' : __( 'Your folders are already well organised — a new plan wouldn\'t improve them.', 'vergelabs-media-library' ),
+            'gain'    => array( 'before' => round( $gain['before'], 4 ), 'after' => round( $gain['after'], 4 ) ),
             'charged' => isset( $result['charged'] ) ? (int) $result['charged'] : 0,
             'runs'    => isset( $result['runs'] ) ? $result['runs'] : null,
             'kept'    => $chosen['index'],
