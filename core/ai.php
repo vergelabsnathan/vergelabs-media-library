@@ -120,9 +120,14 @@ function vergeml_ai_activate_site() {
         return $response;
     }
     $code = (int) wp_remote_retrieve_response_code( $response );
+    $body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
     if ( 200 !== $code ) {
-        $body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
         return new WP_Error( 'vergeml_ai_service_' . $code, is_array( $body ) && isset( $body['error'] ) ? (string) $body['error'] : 'HTTP ' . $code );
+    }
+    // A full licence is a 200 with valid:false; the seat was not taken.
+    if ( is_array( $body ) && isset( $body['valid'] ) && false === $body['valid'] ) {
+        $reason = isset( $body['reason'] ) ? sanitize_key( (string) $body['reason'] ) : 'invalid';
+        return new WP_Error( 'vergeml_ai_' . $reason, $reason );
     }
     return true;
 }
