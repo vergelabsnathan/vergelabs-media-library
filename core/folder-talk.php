@@ -1004,8 +1004,14 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 
 	delete_transient( VERGEML_TALK_BEAT ); // An older run's heartbeat never reads as this one's.
 	update_option( VERGEML_TALK_STATE, $state, false );
-	// Its own option too (spec-tree-planner story 4): later filing (Auto-file, a picture described after the fill) reads this after the run's own state is long gone.
-	update_option( VERGEML_TALK_LABEL_MAP, $label_ids, true );
+	/*
+	 *  Its own option too (spec-tree-planner story 4): later filing (Auto-file, a picture described after the fill)
+	 *  reads this after the run's own state is long gone. Only a caller that sends a map replaces it: the legacy
+	 *  /folders-apply sends none, and writing its empty one would unfreeze a filled plan.
+	 */
+	if ( isset( $opts['label_map'] ) ) {
+		update_option( VERGEML_TALK_LABEL_MAP, $label_ids, true );
+	}
 
 	// The answer is "running, nothing seen yet"; the passes are cron's, and
 	// the screen polls them. A Move answers in the time it takes to make the
