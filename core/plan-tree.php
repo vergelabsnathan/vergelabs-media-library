@@ -40,13 +40,15 @@ const VERGEML_PLAN_FACTS_BUDGET = 15;
 const VERGEML_PLAN_REFRESH_HOOK = 'vergeml_plan_inventory_refresh';
 /**
  *  A plan is offered only when the pictures already in a folder sit this much
- *  tighter after it than now (spec-tree-planner story 8: clearly better, never
- *  worse), by vergeml_plan_gain_of's leave-one-out measure. Story 9 set it
- *  from free replays of fifty-one saved plans (tools/plan-sim.mjs --gain):
- *  tech's plans that are worse on the truth gain at most 0.013, its good ones
- *  0.021 or more; the plan each shop run would choose gains 0.017-0.022.
+ *  tighter after it than now by leave-one-out, and no looser by the average
+ *  link (vergeml_plan_gain_better; spec-tree-planner story 8: clearly better,
+ *  never worse). Story 9's review, from free replays (tools/plan-sim.mjs
+ *  --gain): tech's run 4, worse than the site on the truth, gains 0.0140, its
+ *  good plans 0.0182-0.0379. No margin separates those with room, so it stays
+ *  story 8's 0.02: a good plan near the line is refused and refunded rather
+ *  than a worse one offered.
  */
-const VERGEML_PLAN_GAIN = 0.015;
+const VERGEML_PLAN_GAIN = 0.02;
 /** Under this share of described pictures carrying any audience tag, the Tree step asks the one question (CAP-4, story 6); the shop's own share is about 3 %. */
 const VERGEML_PLAN_AUDIENCE_ASK = 0.15;
 /** rules.md: a folder holds at least five pictures, a parent at most twelve children (the top level too), the tree at most three levels. */
@@ -385,6 +387,10 @@ function vergeml_plan_label_sums( $labels ) {
     return $sums;
 }
 
+function vergeml_plan_round4( $x ) {
+    return round( $x, 4 );
+}
+
 function vergeml_plan_unit( $v ) {
     $n = sqrt( vergeml_plan_dot( $v, $v ) );
     return $n > 0 ? array_map( function ( $x ) use ( $n ) {
@@ -409,19 +415,19 @@ function vergeml_plan_dot( $a, $b ) {
 
 /** The empty before/after measure: vergeml_plan_gain_add() fills it, vergeml_plan_gain_of() reads it. */
 function vergeml_plan_gain_acc() {
-    return array( 'n' => 0, 'now' => array(), 'now_n' => array(), 'kept' => array(), 'kept_n' => array(), 'all' => array() );
+    return array( 'n' => 0, 'now' => array(), 'now_n' => array(), 'kept' => array(), 'kept_n' => array() );
 }
 
 /**
  *  One picture into the before/after measure (vergeml_plan_gain_of). $now is
  *  the folder it sits in ('' for none or To sort), $then the one it will sit
- *  in once the plan fills. Only a picture already in a folder is measured;
- *  every picture in $then still shapes that folder's centre.
+ *  in once the plan fills. Only a picture already in a folder is measured,
+ *  on both sides, and only those pictures make a centre: a To-sort picture
+ *  the plan files shapes neither (story 9's review -- counted into the after
+ *  centre, seven of them lifted a folder of three from 0.671 to 0.747 with
+ *  nothing about the three changed).
  */
 function vergeml_plan_gain_add( $acc, $v, $now, $then ) {
-    if ( '' !== $then ) {
-        $acc['all'][ $then ] = isset( $acc['all'][ $then ] ) ? vergeml_plan_add( $acc['all'][ $then ], $v ) : $v;
-    }
     if ( '' === $now ) {
         return $acc;
     }
@@ -436,14 +442,16 @@ function vergeml_plan_gain_add( $acc, $v, $now, $then ) {
 }
 
 /**
- *  One folder's share of the measure: for its $nk measured pictures (their
- *  sum $sk), the summed cosine of each to the centre of the folder's OTHER
- *  pictures -- the folder's whole sum $sa less the picture itself. A picture
- *  does not count towards its own centre, so a folder of one reads 0 (it
- *  groups nothing) and a folder of five is not flattered by each picture
- *  being a fifth of its own centre. Story 9: counting the picture itself made
- *  the shop's 125 small folders read 0.823 against 0.788 for a plan as good
- *  on the truth, and the guard refused it.
+ *  One folder's share of the leave-one-out measure: for its $nk measured
+ *  pictures (their sum $sk), the summed cosine of each to the centre of the
+ *  folder's OTHER pictures -- the folder's sum $sa less the picture itself.
+ *  A folder of one reads 0 (it groups nothing), and a folder of five is not
+ *  flattered by each picture being a fifth of its own centre: counting the
+ *  picture itself made the shop's 125 small folders read 0.823 against 0.788
+ *  for a plan as good on the truth (story 9). Leave-one-out leans the other
+ *  way, towards fewer and larger folders, which is why
+ *  vergeml_plan_gain_better() also asks for no loss on
+ *  vergeml_plan_gain_link().
  *
  *  From the sums alone, with no second pass over the vectors: the numerator
  *  is exact (sk.sa - nk), each picture's distance to the rest is taken at the
@@ -457,28 +465,52 @@ function vergeml_plan_gain_folder( $sk, $nk, $sa ) {
 }
 
 /**
- *  How tight the pictures already in a folder sit, now and after the plan:
- *  the mean cosine of each to the centre of the rest of its folder
- *  (vergeml_plan_gain_folder). The same pictures on both sides, so a plan is
- *  not marked down for also filing what waited in To sort; those still shape
- *  the centre they join. A picture the plan leaves without a folder counts 0
- *  after. Nothing filed yet reads 0 before, which any plan beats.
+ *  One folder's share of the average link: each of its $n pictures' mean
+ *  cosine to the others, summed -- (|s|^2 - n) / (n - 1), exact from the sum.
+ *  A folder of one reads 0. It leans towards many small folders, the other
+ *  way from vergeml_plan_gain_folder, so a plan must not lose on it.
+ */
+function vergeml_plan_gain_link( $s, $n ) {
+    return $n > 1 ? ( vergeml_plan_dot( $s, $s ) - $n ) / ( $n - 1 ) : 0.0;
+}
+
+/**
+ *  How tight the pictures already in a folder sit, now and after the plan,
+ *  two ways: the mean cosine of each to the centre of the rest of its folder
+ *  (vergeml_plan_gain_folder), and its mean cosine to each of the others
+ *  (vergeml_plan_gain_link). The same pictures on both sides. A picture the
+ *  plan leaves without a folder counts 0 after. Nothing filed yet reads 0
+ *  before, which any plan beats.
  *
- * @return array{before:float,after:float}
+ * @return array{before:float,after:float,link_before:float,link_after:float}
  */
 function vergeml_plan_gain_of( $acc ) {
     if ( 0 === $acc['n'] ) {
-        return array( 'before' => 0.0, 'after' => 1.0 );
+        return array( 'before' => 0.0, 'after' => 1.0, 'link_before' => 0.0, 'link_after' => 0.0 );
     }
-    $before = 0.0;
+    $out = array( 'before' => 0.0, 'after' => 0.0, 'link_before' => 0.0, 'link_after' => 0.0 );
     foreach ( $acc['now'] as $k => $s ) {
-        $before += vergeml_plan_gain_folder( $s, $acc['now_n'][ $k ], $s );
+        $out['before']      += vergeml_plan_gain_folder( $s, $acc['now_n'][ $k ], $s );
+        $out['link_before'] += vergeml_plan_gain_link( $s, $acc['now_n'][ $k ] );
     }
-    $after = 0.0;
     foreach ( $acc['kept'] as $k => $s ) {
-        $after += vergeml_plan_gain_folder( $s, $acc['kept_n'][ $k ], $acc['all'][ $k ] );
+        $out['after']      += vergeml_plan_gain_folder( $s, $acc['kept_n'][ $k ], $s );
+        $out['link_after'] += vergeml_plan_gain_link( $s, $acc['kept_n'][ $k ] );
     }
-    return array( 'before' => $before / $acc['n'], 'after' => $after / $acc['n'] );
+    foreach ( $out as $k => $x ) {
+        $out[ $k ] = $x / $acc['n'];
+    }
+    return $out;
+}
+
+/**
+ *  Offered only when clearly tighter by leave-one-out AND no looser by the
+ *  average link. Each alone rewards one granularity (story 9's review): a
+ *  merge lifts the first, a split the second. Where they disagree the plan
+ *  is refused and its credits asked back -- the safer failure.
+ */
+function vergeml_plan_gain_better( $gain ) {
+    return $gain['after'] >= $gain['before'] + VERGEML_PLAN_GAIN && $gain['link_after'] >= $gain['link_before'];
 }
 
 /**
@@ -761,7 +793,7 @@ function vergeml_plan_event() {
         $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
         $gain     = vergeml_plan_gain( $draft['label_map'], array_column( $inv['labels'], 'id', 'label' ), $taxonomy );
         // Not clearly tidier than the folders the site already has: the plan is not offered (spec-tree-planner story 8), and its credits are asked back (story 9).
-        $better = $gain['after'] >= $gain['before'] + VERGEML_PLAN_GAIN;
+        $better = vergeml_plan_gain_better( $gain );
         $refund = ! $better && ! empty( $result['plan'] ) ? vergeml_plan_refund( (string) $result['plan'] ) : null;
         $back   = null !== $refund ? $refund['refunded'] : 0;
         if ( $better ) {
@@ -775,7 +807,7 @@ function vergeml_plan_event() {
             'message' => $better ? '' : ( $back > 0
                 ? __( 'Your folders are already well organised — a new plan wouldn\'t improve them. Nothing was charged.', 'vergelabs-media-library' )
                 : __( 'Your folders are already well organised — a new plan wouldn\'t improve them.', 'vergelabs-media-library' ) ),
-            'gain'    => array( 'before' => round( $gain['before'], 4 ), 'after' => round( $gain['after'], 4 ) ),
+            'gain'    => array_map( 'vergeml_plan_round4', $gain ),
             'charged' => max( 0, ( isset( $result['charged'] ) ? (int) $result['charged'] : 0 ) - $back ),
             'refunded'=> $back,
             'runs'    => isset( $result['runs'] ) ? $result['runs'] : null,

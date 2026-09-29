@@ -25,12 +25,12 @@
  *  Scored as tools/tree-lab.mjs scores. No network.
  *
  *    --gain  with score: after each answer's fill, the never-worse guard
- *            (vergeml_plan_gain) on the same pictures, now and after, by the
- *            plugin's leave-one-out measure and by story 8's (a picture
- *            counted towards its own centre), and whether the plan would be
- *            offered at the plugin's margin. Story 9 chose the measure and the
- *            margin with this; the box gave the same numbers through the real
- *            PHP to three decimals.
+ *            (vergeml_plan_gain) on the same pictures, now and after: the
+ *            plugin's leave-one-out and average link, and the verdict
+ *            (vergeml_plan_gain_better); beside them story 9's first measure
+ *            (To-sort pictures in the after centre) and story 8's (a picture
+ *            counted towards its own centre). The box gave the same numbers
+ *            through the real PHP.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -354,7 +354,7 @@ function fill( folderOf ) {
 
 /* ------------------------------------ the never-worse guard (vergeml_plan_gain) */
 
-const GAIN = 0.015; // VERGEML_PLAN_GAIN
+const GAIN = 0.02; // VERGEML_PLAN_GAIN
 const deepestOf = ( pic ) => pic.folders.slice().sort( ( a, b ) => b.split( ' > ' ).length - a.split( ' > ' ).length || cmp( a, b ) )[ 0 ] || '';
 
 // vergeml_plan_gain_folder: each measured picture's cosine to the rest of its folder, from the sums.
@@ -364,7 +364,10 @@ function gainFolder( sk, nk, sa ) {
 	return rest > 1e-12 ? ( cross - nk ) / Math.sqrt( rest ) : 0;
 }
 
-// The pictures already in a folder (To sort left out), now and where the fill puts them; every picture shapes the centre it joins.
+// Average link: each measured picture's mean cosine to the other members of its folder, from the sums (vergeml_plan_gain_link).
+const linkFolder = ( s, n ) => ( n > 1 ? ( dot( s, s ) - n ) / ( n - 1 ) : 0 );
+
+// The pictures already in a folder (To sort left out), now and where the fill puts them. Both sides measure only these pictures: a To-sort picture joining a folder shapes neither side (story 9's review).
 function guard( site ) {
 	const clean = ( f ) => ( f && 'to sort' !== f.toLowerCase() ? f : '' );
 	const now = {}, nowN = {}, kept = {}, keptN = {}, every = {};
@@ -393,15 +396,21 @@ function guard( site ) {
 	const sum = ( o, f ) => Object.entries( o ).reduce( ( s, [ k, x ] ) => s + f( k, x ), 0 ) / Math.max( 1, n );
 	return {
 		before: sum( now, ( k, x ) => gainFolder( x, nowN[ k ], x ) ),
-		after: sum( kept, ( k, x ) => gainFolder( x, keptN[ k ], every[ k ] ) ),
+		after: sum( kept, ( k, x ) => gainFolder( x, keptN[ k ], x ) ),
+		linkBefore: sum( now, ( k, x ) => linkFolder( x, nowN[ k ] ) ),
+		linkAfter: sum( kept, ( k, x ) => linkFolder( x, keptN[ k ] ) ),
+		after9: sum( kept, ( k, x ) => gainFolder( x, keptN[ k ], every[ k ] ) ),
 		before8: sum( now, ( k, x ) => Math.sqrt( dot( x, x ) ) ),
 		after8: sum( kept, ( k, x ) => dot( x, unit( every[ k ] ) ) ),
 	};
 }
 
+const offered = ( g ) => g.after >= g.before + GAIN && g.linkAfter >= g.linkBefore;
+
 function printGuard( g ) {
-	const d = g.after - g.before;
-	console.log( `    guard ${ g.before.toFixed( 4 ) } -> ${ g.after.toFixed( 4 ) } (${ d >= 0 ? '+' : '' }${ d.toFixed( 4 ) }) ${ d >= GAIN ? 'OFFERED' : 'kept' } · story 8's measure ${ g.before8.toFixed( 3 ) } -> ${ g.after8.toFixed( 3 ) }` );
+	const d = g.after - g.before, l = g.linkAfter - g.linkBefore;
+	const sg = ( x ) => `${ x >= 0 ? '+' : '' }${ x.toFixed( 4 ) }`;
+	console.log( `    guard ${ g.before.toFixed( 4 ) } -> ${ g.after.toFixed( 4 ) } (${ sg( d ) }), link ${ g.linkBefore.toFixed( 4 ) } -> ${ g.linkAfter.toFixed( 4 ) } (${ sg( l ) }) ${ offered( g ) ? 'OFFERED' : 'kept' } · story 9's first measure -> ${ g.after9.toFixed( 4 ) } · story 8's ${ g.before8.toFixed( 3 ) } -> ${ g.after8.toFixed( 3 ) }` );
 }
 
 /* ---------------------------------------------------------- the score */
