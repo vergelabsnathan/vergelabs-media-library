@@ -1206,16 +1206,16 @@ function vergeml_save_attachment_compat() {
     $vergeml_lib_options = get_option( 'vergeml_lib_options' );
 
     /*
-     *  Left slashed and unsanitised on purpose, exactly as core's own
-     *  wp_ajax_save_attachment_compat does. This is attachment field content --
-     *  title, caption, description -- which is handed to the
+     *  Attachment field content -- title, caption, description, alt text,
+     *  and a taxonomy's comma-separated term names -- is handed to the
      *  attachment_fields_to_save filter and then to wp_update_post, both of
-     *  which expect slashed input and do the sanitising themselves. Cleaning it
-     *  here would double-unslash and strip markup people are allowed to save.
+     *  which expect slashed input, as core's wp_ajax_save_attachment_compat
+     *  hands it. So it is unslashed, run through wp_kses_post (the markup a
+     *  post may hold, which is what these fields may hold), and slashed
+     *  again: the same shape downstream, with nothing in it a post could not
+     *  carry.
      */
-
-    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- see above; sanitised downstream by wp_update_post.
-    $attachment_data = $_REQUEST['attachments'][ $id ];
+    $attachment_data = wp_slash( map_deep( wp_unslash( (array) $_REQUEST['attachments'][ $id ] ), 'wp_kses_post' ) );
 
     if ( ! current_user_can( 'edit_post', $id ) )
         wp_send_json_error();
