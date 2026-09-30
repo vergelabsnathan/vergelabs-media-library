@@ -95,10 +95,12 @@ add_action( 'admin_init', 'vergeml_connect_router' );
 /** Both halves of the round trip arrive on admin_init. */
 function vergeml_connect_router() {
 
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- routing only: which half of the round trip this request is. Neither half trusts it: "start" verifies VERGEML_CONNECT_NONCE in vergeml_connect_start(), "callback" the per-user state in vergeml_connect_finish(), both after the manage_options check below.
     if ( ! isset( $_GET['vergeml_connect'] ) ) {
         return;
     }
     $step = sanitize_key( wp_unslash( $_GET['vergeml_connect'] ) );
+    // phpcs:enable
 
     // Binding a paid licence to a site is an owner's decision, not an editor's.
     if ( ! current_user_can( 'manage_options' ) ) {
@@ -141,8 +143,13 @@ function vergeml_connect_start() {
 /** Check the state, redeem the code for the key, store it. */
 function vergeml_connect_finish() {
 
+    // The state was minted in vergeml_connect_start() behind a nonce, is
+    // deleted before it is compared, and the router has already required
+    // manage_options.
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- OAuth-style return from vergelabsmedia.com; authenticated by the single-use per-user state compared with hash_equals below, not a nonce, because the request originates off-site.
     $state  = isset( $_GET['state'] ) ? sanitize_text_field( wp_unslash( $_GET['state'] ) ) : '';
     $code   = isset( $_GET['code'] ) ? sanitize_text_field( wp_unslash( $_GET['code'] ) ) : '';
+    // phpcs:enable
     $expect = get_transient( 'vergeml_connect_state_' . get_current_user_id() );
 
     delete_transient( 'vergeml_connect_state_' . get_current_user_id() );
@@ -225,8 +232,11 @@ function vergeml_connect_banner() {
         return;
     }
 
-    if ( isset( $_GET['vergeml_connected'] ) ) {
-        $result = sanitize_key( wp_unslash( $_GET['vergeml_connected'] ) );
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only: chooses which result notice to print after the redirect from vergeml_connect_redirect_with(); nothing is stored or changed on this request.
+    $result = isset( $_GET['vergeml_connected'] ) ? sanitize_key( wp_unslash( $_GET['vergeml_connected'] ) ) : null;
+    // phpcs:enable
+
+    if ( null !== $result ) {
 
         if ( 'connected' === $result ) {
             printf(
