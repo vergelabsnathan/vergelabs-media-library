@@ -3307,64 +3307,11 @@ function vergeml_print_mimetypes_options() {
                         </div>
                         <?php vergeml_print_mimetypes_buttons(); ?>
                         <?php
-                        vergeml_inline_script( 'vergeml-file-types-filter', strtr( <<<'JS'
-                        ( function () {
-                            var q = document.getElementById( 'vgml-ft-q' );
-                            var kinds = document.querySelectorAll( '.vgml-ft-kinds button' );
-                            var rows = document.querySelectorAll( '.vergeml-mime-type-list tbody tr[data-kind]' );
-                            var count = document.getElementById( 'vgml-ft-count' );
-                            var empty = document.getElementById( 'vgml-ft-empty' );
-                            var clear = document.getElementById( 'vgml-ft-clear' );
-                            var kind = 'all';
-                            var total = rows.length;
-                            var shownOf = __SHOWN_OF__;
-                            var sections = document.querySelectorAll( '.vgml-acc-item' );
-                            /*
-                             *  A filter that hides rows inside closed sections
-                             *  finds nothing a person can see. So a filter opens
-                             *  the sections that still have a row and closes the
-                             *  ones that do not; with no filter on, the sections
-                             *  are theirs again and js/vergeml-settings.js has
-                             *  the last word.
-                             */
-                            function apply() {
-                                var needle = ( q.value || '' ).trim().toLowerCase();
-                                var shown = 0;
-                                var live = {};
-                                Array.prototype.forEach.call( rows, function ( r ) {
-                                    var ok = ( kind === 'all' || r.getAttribute( 'data-kind' ) === kind ) && ( ! needle || r.getAttribute( 'data-search' ).indexOf( needle ) >= 0 );
-                                    r.classList.toggle( 'is-hidden', ! ok );
-                                    if ( ok ) { shown++; live[ r.getAttribute( 'data-kind' ) ] = true; }
-                                } );
-                                if ( 'all' !== kind || needle ) {
-                                    Array.prototype.forEach.call( sections, function ( s ) {
-                                        s.open = live[ s.getAttribute( 'data-section' ) ] === true;
-                                    } );
-                                }
-                                count.textContent = shownOf.replace( '%1$s', String( shown ) ).replace( '%2$s', String( total ) );
-                                empty.hidden = shown > 0;
-                            }
-                            q.addEventListener( 'input', apply );
-                            Array.prototype.forEach.call( kinds, function ( b ) {
-                                b.addEventListener( 'click', function () {
-                                    kind = b.getAttribute( 'data-kind' );
-                                    Array.prototype.forEach.call( kinds, function ( x ) { x.classList.toggle( 'is-on', x === b ); } );
-                                    apply();
-                                } );
-                            } );
-                            clear.addEventListener( 'click', function () {
-                                q.value = '';
-                                kind = 'all';
-                                Array.prototype.forEach.call( kinds, function ( x ) { x.classList.toggle( 'is-on', x.getAttribute( 'data-kind' ) === 'all' ); } );
-                                apply();
-                            } );
-                            apply();
-                        }() );
-                        JS
-                        , array(
+                        wp_enqueue_script( 'vergeml-file-types-filter', plugins_url( 'js/vergeml-file-types-filter.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-file-types-filter.js' ), true );
+                        wp_localize_script( 'vergeml-file-types-filter', 'vergemlFileTypes', array(
                             /* translators: 1: how many file types are shown, 2: how many there are */
-                            '__SHOWN_OF__' => wp_json_encode( __( '%1$s of %2$s types shown', 'vergelabs-media-library' ) ),
-                        ) ) );
+                            'shownOf' => __( '%1$s of %2$s types shown', 'vergelabs-media-library' ),
+                        ) );
                         ?>
 
                     </form>

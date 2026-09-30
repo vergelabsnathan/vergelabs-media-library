@@ -244,18 +244,7 @@ function vergeml_licence_page() {
                     </div>
                 </div>
                 <?php
-                vergeml_inline_script( 'vergeml-licence-remove', <<<'JS'
-                ( function () {
-                    var box = document.querySelector( '.vgml-licence-remove' );
-                    if ( ! box ) { return; }
-                    var open = box.querySelector( '.vgml-licence-remove-open' );
-                    var ask = box.querySelector( '.vgml-licence-remove-confirm' );
-                    var no = box.querySelector( '.vgml-licence-remove-no' );
-                    open.addEventListener( 'click', function () { open.hidden = true; ask.hidden = false; } );
-                    no.addEventListener( 'click', function () { ask.hidden = true; open.hidden = false; } );
-                }() );
-                JS
-                );
+                wp_enqueue_script( 'vergeml-licence-remove', plugins_url( 'js/vergeml-licence-remove.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-licence-remove.js' ), true );
                 ?>
                 <?php endif; ?>
             </form>

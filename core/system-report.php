@@ -225,36 +225,5 @@ function vergeml_system_report_render() {
     </div>
 
     <?php
-    vergeml_inline_script( 'vergeml-system-report', <<<'JS'
-    ( function () {
-        var button = document.getElementById( 'vergeml-copy-report' );
-        var field  = document.getElementById( 'vergeml-system-report' );
-        var done   = document.getElementById( 'vergeml-copy-report-done' );
-        if ( ! button || ! field ) { return; }
-
-        field.addEventListener( 'click', function () { field.select(); } );
-
-        button.addEventListener( 'click', function () {
-            field.select();
-            /*
-             *  navigator.clipboard is unavailable over plain http, which plenty
-             *  of local and staging installs still are. execCommand is
-             *  deprecated but it is the one that works there, so it is the
-             *  fallback rather than the other way round.
-             */
-            var copied = false;
-            if ( navigator.clipboard && window.isSecureContext ) {
-                navigator.clipboard.writeText( field.value ).then( function () {
-                    done.hidden = false;
-                } );
-                copied = true;
-            }
-            if ( ! copied ) {
-                try { copied = document.execCommand( 'copy' ); } catch ( e ) { copied = false; }
-                if ( copied ) { done.hidden = false; }
-            }
-        } );
-    } )();
-    JS
-    );
+    wp_enqueue_script( 'vergeml-system-report', plugins_url( 'js/vergeml-system-report.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-system-report.js' ), true );
 }
