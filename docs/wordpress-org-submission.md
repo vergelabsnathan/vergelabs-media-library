@@ -48,8 +48,21 @@ Plugin Check without Docker".
 
 ## The archive to upload
 
-**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-09-30 from `06955ab`
-(review round 1), to be tagged `v4.1.0`. 146 entries, 139 files, 1,142,985 bytes,
+**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-09-30 from `0752e82`
+(review round 2), to be tagged `v4.1.0`. 150 entries, 143 files, 1,149,122 bytes,
+sha256 `15a94b91d2b1afea71fe75dd10ea474733e75c8abb35cd5708b257eadf94e566`; read back
+out of the zip: comment `0752e822…`, `Version: 4.1.0`, `VERGEML_VERSION` 4.1.0,
+`Stable tag: 4.1.0`, `Contributors: vergelabsdev`; no entry under `tests/`,
+`tools/`, `docs/`, `plans/`, `node_modules/`, `dist/`, `playground/` and no hidden
+entry (grep count 0). The four new entries since round 1 are the js/ files the
+heredoc scripts moved into.
+
+**Order: the service first, then the upload.** The Get help screen now reads the
+known-problems list from `https://ai.vergelabs.nl/v1/known-issues`, which exists
+from service commit `78f914c` (branch `tree-planner`). Until that is deployed the
+screen says the list could not be checked, as on any failed fetch.
+
+The round-1 build, kept for the record: from `06955ab`. 146 entries, 139 files, 1,142,985 bytes,
 sha256 `0fd86850092b883986b3bfbc5bc877aee1369b81a3a36c314e5847706ab97d95`; the zip
 comment reads back `06955abc…`, `Version: 4.1.0`, `VERGEML_VERSION` 4.1.0 and
 `Stable tag: 4.1.0` out of the zip, `Contributors: vergelabsdev`. The first 4.1.0
@@ -66,7 +79,7 @@ of the zip itself rather than off the working tree.
 
 | Requirement | State |
 |---|---|
-| Plugin Check errors | **Corrected 2026-09-30: every "0" in this row was measured with the PHPCS checks not running (see the note at the top).** With them running, all five categories, 29 of 29 checks answering: `654e089` (4.1.0 as first built) **2 errors, 80 warnings**; `06955ab` (after review round 1) **1 error, 76 warnings**. The error left is `PluginCheck.CodeAnalysis.Offloading.OffloadedContent` at core/get-help.php:23, the `raw.githubusercontent.com` URL of known-issues.json: a JSON file read server-side on a button press and disclosed in External services, not an offloaded asset -- for Nathan to explain or move. The 76 warnings are database-query notes (DirectDB, NoCaching, PreparedSQL on the plugin's own tables), 8 NonceVerification.Recommended, all in core/connect.php (the licence connect router, whose callback checks manage_options and a per-user one-time state token with hash_equals rather than a nonce, and the notice it shows afterwards), and 3 hook names that belong to WordPress (https_local_ssl_verify, twice) and Dokan (dokan_forced_load_scripts), read on purpose. The old history, as written: **0** — all five categories, **and on 2026-09-30** against `847026f` (4.1.0), same result; the release archive at 3.16.1 (`7f2a4fe9…`), run in Playground on 2026-09-12; **run again on 2026-09-19** against a clean archive of `89ba1f1` (everything through S21), same result; **and on 2026-09-20** against `657b257` (4.0.1), same result; **and on 2026-09-21** against `0e03cd4` (4.0.2), same result |
+| Plugin Check errors | **Review round 2, 2026-09-30: `0752e82` -- "Checks complete. No errors found.", all five categories, "29 checks asked for, 29 ran, 29 answered success" (no warnings either). On the way: `c2d1c16` 0 errors, 48 warnings, all database notes, answered in `7664d9d`.** Round 1: **Corrected 2026-09-30: every "0" in this row was measured with the PHPCS checks not running (see the note at the top).** With them running, all five categories, 29 of 29 checks answering: `654e089` (4.1.0 as first built) **2 errors, 80 warnings**; `06955ab` (after review round 1) **1 error, 76 warnings**. The error left is `PluginCheck.CodeAnalysis.Offloading.OffloadedContent` at core/get-help.php:23, the `raw.githubusercontent.com` URL of known-issues.json: a JSON file read server-side on a button press and disclosed in External services, not an offloaded asset -- for Nathan to explain or move. The 76 warnings are database-query notes (DirectDB, NoCaching, PreparedSQL on the plugin's own tables), 8 NonceVerification.Recommended, all in core/connect.php (the licence connect router, whose callback checks manage_options and a per-user one-time state token with hash_equals rather than a nonce, and the notice it shows afterwards), and 3 hook names that belong to WordPress (https_local_ssl_verify, twice) and Dokan (dokan_forced_load_scripts), read on purpose. The old history, as written: **0** — all five categories, **and on 2026-09-30** against `847026f` (4.1.0), same result; the release archive at 3.16.1 (`7f2a4fe9…`), run in Playground on 2026-09-12; **run again on 2026-09-19** against a clean archive of `89ba1f1` (everything through S21), same result; **and on 2026-09-20** against `657b257` (4.0.1), same result; **and on 2026-09-21** against `0e03cd4` (4.0.2), same result |
 | Plugin Check warnings | **0** at 4.1.0 (2026-09-30, archive of `847026f`, 0 errors, all five categories, Playground PHP 8.3, WordPress latest). **0** at 4.0.7 (2026-09-25, archive of `23faaee`, 0 errors: the Description warning is gone since the reference sections moved to the FAQ — the parser appends External services to the Description and cuts at 2,500 *words*). **1** at 4.0.6 (2026-09-25, archive of `dab340f`, 0 errors) and at 4.0.5 (2026-09-24, the archive of `dfea3c5`, 0 errors: `readme_parser_warnings_trimmed_section_description` only; `mismatched_plugin_name` is gone since `ed90005`). **2** at 4.0.0 through 4.0.4 (2026-09-22, the archive of `7563c0a`, 0 errors) — `mismatched_plugin_name` (readme.txt's title carries a strapline the plugin header does not; a copy call, not a blocker) and `readme_parser_warnings_trimmed_section_description` (the Description runs to 11,468 characters against the parser's 2,500; it was 13,856 before this release, so it is long-standing, and moving External services out of it shortened rather than caused it). Neither blocks. The readme title was matched to the header in `ed90005`, after that run; Plugin Check has not been rerun since |
 | `php -l` on every file | clean |
 | Runs on current WordPress | 15 of 18 matrix cells ✓ on 2026-09-20 against the 4.0.1 zip — WordPress 6.5.11, 7.0.5, 7.1.1 × PHP 7.4, 8.2, 8.5, multisite (subdirectory), `nl_NL` and `ar`, beside Premio Folders, Enhanced Media Library and Polylang Pro; 2 cells not run (FileBird on Playground's SQLite; the subdomain network while it holds the shop library); 1 ✗: beside FileBird on MariaDB a single-row drag files nothing — fixed by stories 4.4 and 4.5, the cell ✓ 10/10 on 2026-09-21 and shipped in 4.0.2; see [compatibility.md](compatibility.md) |
@@ -126,6 +139,44 @@ EscapeOutput 25 → 1 (the CSV download), NonceVerification.Missing 11 → 7,
 NonPrefixedClassFound 2 → 0, I18n.MissingTranslatorsComment 1 → 0. What is left is
 listed with a reason in the round's report; the SQL sniffs (128) were not part of
 this review.
+
+## Review round 2 (2026-09-30)
+
+An independent reviewer simulation of round 1's archive, and a Playground run,
+found the items below. All on `release-4.1.0`, `18d32df`..`0752e82`; service
+`78f914c` and `d4d1567` on the service's `tree-planner` branch.
+
+| item | commits | what |
+|---|---|---|
+| OffloadedContent (the one Plugin Check error) | `18d32df`, service `78f914c` | the known-problems feed from `ai.vergelabs.nl/v1/known-issues` instead of raw.githubusercontent.com; readme External services and the outbound audit updated |
+| SQLite in Playground | `682892c` | FIND_IN_SET, SUBSTRING_INDEX and UTC_TIMESTAMP() - INTERVAL rewritten portably; the Dashboard and AI screens printed "no such function: FIND_IN_SET" |
+| HEREDOC/NOWDOC scripts | `296a3db`, `15f2447` | four scripts into js/ files, enqueued on their screen, data through wp_localize_script |
+| nonce comments | `553bbdb`, `0a3ca50` | connect.php's reads explained; the false "core checked the ajax nonce" corrected (core checks upload_files only) |
+| raw `$_REQUEST['attachments']` | `018ef8d` | wp_slash( map_deep( wp_unslash(), 'wp_kses_post' ) ) |
+| cron lock | `b6d520a`, `048949b` | the plugin no longer writes `doing_cron`; inside a cron run a keyless wp-cron.php request after the lock is released, default certificate check |
+| admin notices | `ac4a0b9` | WordPress's own notices stay on the plugin's screens |
+| generic slugs | `8b03f05`, service `d4d1567` | every page slug, settings group and nonce action prefixed `vergeml-`; each old address redirects with its arguments |
+| hard-coded plugin path | `18a6610` | plugins_url() |
+| SQL and other annotations | `ac49aa0`, `05b6571`, `7664d9d` | a checked reason beside every statement PHPCS or Plugin Check lists |
+| extract(), set_time_limit(0), @rename | `d04ac85` | explicit variables, bounded limits, WP_Filesystem_Direct::move() |
+
+PHPCS (`node tools/phpcs.mjs --ref c7d380f` against HEAD): with annotations
+honoured 22 findings -> 0; with annotations ignored 248 -> 246.
+
+Playground, a clean site from the built zip with `WP_DEBUG` and `WP_DEBUG_LOG`
+on and no licence: 29 addresses -- the plugin's 12 screens on their new slugs, 13 old addresses, 4 core media and plugin screens -- answer
+200, the old ones on their new slug; no console error, no failed request, no
+PHP notice, warning or database error from the plugin. debug.log held only
+"Cannot escape data without an active database connection" raised in
+wp-settings.php:180 before any plugin loads -- Playground's SQLite, not ours.
+"Plan my folders · free" on a confirmed tree without a licence proposed a
+folder and finished (`charged: 0`) with no request to `ai.vergelabs.nl`.
+
+Local suites at `0752e82` (`node tools/verify.mjs` with the 21 names of the round's brief): 20 green -- archive-hygiene 8/8, copy 58/58, surface 29/29, db-calls 11/11, hosts 13/13, globals 7/7, filing 105/105 and 37/37, plan-choose 15/15, plan-gain 11/11, plan-fold 27/27, plan-audience 9/9, plan-grow 18/18, plan-job 24/24, tree-view 65/65, talk-chips 6/6, folders-shop 14/14, structure 31/31, get-help 27/27, ai-outage 42/42, csv-local 69/69.
+
+Still red, and red before this round: the escaping suite's "text sinks
+outnumber HTML sinks four to one" (249 against 65; 244 against 65 at
+`654e089` and `c7d380f`).
 
 ## Running PHPCS
 
