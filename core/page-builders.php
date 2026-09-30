@@ -306,6 +306,7 @@ function vergeml_builder_dokan() {
 
     $editing = get_query_var( 'edit' ) && is_singular( 'product' );
 
+    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Dokan's own filter, read (with Dokan's default) to load the tree wherever Dokan loads its dashboard scripts; this plugin does not define it.
     if ( dokan_is_seller_dashboard() || $editing || apply_filters( 'dokan_forced_load_scripts', false ) ) {
         vergeml_builder_load_tree();
     }
