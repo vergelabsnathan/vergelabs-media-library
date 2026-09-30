@@ -23,6 +23,11 @@
  *      node tools/phpcs.mjs                 # HEAD, counts per sniff
  *      node tools/phpcs.mjs --list          # and every finding
  *      node tools/phpcs.mjs --ref <commit>
+ *      node tools/phpcs.mjs --worktree      # uncommitted changes too (git stash create)
+ *      node tools/phpcs.mjs --parse-only    # just the syntax check, on PHP 7.4 and 8.3
+ *
+ *  Every run also parses every shipped PHP file on PHP 7.4 (the floor) and
+ *  8.3 (tools/phpcs/parse-check.php, token_get_all with TOKEN_PARSE).
  *
  *  Exits 1 when anything is reported with annotations ignored.
  */
@@ -36,7 +41,12 @@ import { PLAYGROUND_CLI } from './lib/playground.mjs';
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const argv = process.argv.slice( 2 );
 const LIST = argv.includes( '--list' );
-const REF = argv.includes( '--ref' ) ? argv[ argv.indexOf( '--ref' ) + 1 ] : 'HEAD';
+const PARSE_ONLY = argv.includes( '--parse-only' );
+let REF = argv.includes( '--ref' ) ? argv[ argv.indexOf( '--ref' ) + 1 ] : 'HEAD';
+if ( argv.includes( '--worktree' ) ) {
+	// A commit object of the tracked files as they are on disk; the working tree and the index are not touched.
+	REF = execFileSync( 'git', [ 'stash', 'create' ], { cwd: ROOT, encoding: 'utf8' } ).trim() || 'HEAD';
+}
 
 const PINS = {
 	phpcs: [ 'PHPCSStandards/PHP_CodeSniffer', '3.13.4', 'PHP_CodeSniffer-3.13.4' ],
@@ -71,6 +81,7 @@ fs.writeFileSync( reporter, fs.readFileSync( reporter, 'utf8' ).replaceAll( '(FI
 
 fs.copyFileSync( path.join( ROOT, 'tools', 'phpcs', 'ruleset.xml' ), path.join( CACHE, 'ruleset.xml' ) );
 fs.copyFileSync( path.join( ROOT, 'tools', 'phpcs', 'markup-scan.php' ), path.join( CACHE, 'markup-scan.php' ) );
+fs.copyFileSync( path.join( ROOT, 'tools', 'phpcs', 'parse-check.php' ), path.join( CACHE, 'parse-check.php' ) );
 
 // A fresh archive every run: the thing a reviewer downloads, not the thing on disk.
 const work = fs.mkdtempSync( path.join( os.tmpdir(), 'vgml-cs-' ) );
@@ -82,10 +93,10 @@ fs.mkdirSync( out );
 
 const installed = Object.values( PINS ).slice( 1 ).map( ( p ) => `/cs/${ p[ 2 ] }` ).join( ',' );
 
-function boot( code ) {
+function boot( code, php = '8.3' ) {
 	const bp = path.join( work, 'bp.json' );
-	fs.writeFileSync( bp, JSON.stringify( { steps: [ { step: 'runPHP', code } ] } ) );
-	spawnSync( 'npx', [ '-y', PLAYGROUND_CLI, 'run-blueprint', '--blueprint', bp,
+	fs.writeFileSync( bp, JSON.stringify( { preferredVersions: { php, wp: 'latest' }, steps: [ { step: 'runPHP', code } ] } ) );
+	spawnSync( 'npx', [ '-y', PLAYGROUND_CLI, 'run-blueprint', '--blueprint', bp, `--php=${ php }`,
 		'--mount-dir', CACHE, '/cs',
 		'--mount-dir', path.join( work, 'vergelabs-media-library' ), '/plugin',
 		'--mount-dir', out, '/out',
@@ -113,6 +124,23 @@ function phpcs( name, extra ) {
 }
 
 console.log( `archive of ${ commit } (${ REF }), PHPCS ${ PINS.phpcs[ 1 ] }, WPCS ${ PINS.wpcs[ 1 ] }, in php-wasm` );
+
+let parseBroken = 0;
+for ( const php of [ '7.4', '8.3' ] ) {
+	const file = path.join( out, `parse-${ php }.txt` );
+	boot( `<?php ob_start(); register_shutdown_function( function () { file_put_contents( '/out/parse-${ php }.txt', ob_get_clean() ); } ); $argv = array( 'parse', '/plugin' ); require '/cs/parse-check.php';`, php );
+	const said = fs.existsSync( file ) ? fs.readFileSync( file, 'utf8' ).trim() : '';
+	if ( ! /^parse: \d+ files/m.test( said ) ) {
+		console.error( `parse check on PHP ${ php } printed nothing -- it did not run.` );
+		process.exit( 2 );
+	}
+	console.log( said );
+	parseBroken += Number( ( said.match( /(\d+) with a syntax error/ ) || [] )[ 1 ] || 0 );
+}
+if ( PARSE_ONLY ) {
+	fs.rmSync( work, { recursive: true, force: true } );
+	process.exit( parseBroken ? 1 : 0 );
+}
 
 const honoured = phpcs( 'honoured', [] );
 const ignored = phpcs( 'ignored', [ '--ignore-annotations' ] );
@@ -152,4 +180,4 @@ if ( LIST ) {
 fs.rmSync( work, { recursive: true, force: true } );
 
 const markupTotal = [ ...scan.matchAll( /=(\d+)/g ) ].reduce( ( s, m ) => s + Number( m[ 1 ] ), 0 );
-process.exit( ignored.findings.length + markupTotal > 0 ? 1 : 0 );
+process.exit( parseBroken + ignored.findings.length + markupTotal > 0 ? 1 : 0 );

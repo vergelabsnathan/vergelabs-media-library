@@ -17,6 +17,8 @@
  *    Value        a variable, property, method or function result concatenated
  *                 into markup without an escaper, a cast or a known-safe call
  *    InlineTag    a <script> or <style> tag written by PHP instead of enqueued
+ *                 (a <script type="text/html"> wp.template is markup, not script,
+ *                 and is how core prints its own media templates)
  *
  *  Reads text; it decides nothing it cannot see. A value escaped where it was
  *  assigned is still reported where it is concatenated -- escape late.
@@ -76,8 +78,13 @@ foreach ( $iter as $file ) {
 	}
 
 	foreach ( $toks as $t ) {
-		if ( ( T_INLINE_HTML === $t[0] || T_CONSTANT_ENCAPSED_STRING === $t[0] || T_ENCAPSED_AND_WHITESPACE === $t[0] ) && preg_match( '/<(script|style)\b/i', $t[1], $m ) ) {
-			$found[] = array( $rel, $t[2], 'InlineTag', '<' . strtolower( $m[1] ) . '>' );
+		// A whole tag, so the '<script ' a script_loader_tag filter rewrites is not one; a text/html template is markup for wp.template, not script.
+		if ( ( T_INLINE_HTML === $t[0] || T_CONSTANT_ENCAPSED_STRING === $t[0] || T_ENCAPSED_AND_WHITESPACE === $t[0] ) && preg_match_all( '/<(script|style)\b([^>]*)>/i', $t[1], $all, PREG_SET_ORDER ) ) {
+			foreach ( $all as $m ) {
+				if ( ! preg_match( '#type=["\']text/(html|template)["\']#i', $m[2] ) ) {
+					$found[] = array( $rel, $t[2], 'InlineTag', '<' . strtolower( $m[1] ) . '>' );
+				}
+			}
 		}
 	}
 
