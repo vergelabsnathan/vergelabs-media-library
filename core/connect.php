@@ -220,7 +220,8 @@ function vergeml_connect_redirect_with( $result ) {
  *  The invitation, and the result.
  *
  *  Printed by the AI screen itself rather than hooked to admin_notices: the
- *  shell clears every notice action on a VergeLabs screen, deliberately, so
+ *  shell clears every notice a plugin hooks on a VergeLabs screen, this one's
+ *  included (WordPress's own stay), so
  *  anything that belongs on one is drawn by it.
  *
  *  A site with no key cannot describe anything, so the button belongs exactly

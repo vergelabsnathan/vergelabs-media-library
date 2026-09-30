@@ -466,7 +466,10 @@ function vergeml_shell_badges() {
  *
  *  WordPress's own notices stay: an update, a failed cron, a permissions
  *  problem are all things somebody has to see wherever they are standing.
- *  What goes is everything registered by another plugin.
+ *  What goes is every callback defined in a plugin or theme file -- other
+ *  plugins' banners, and this plugin's own notices, which these screens
+ *  draw in place instead. Until 4.1.0 this removed every callback,
+ *  WordPress's included, which is not what the paragraph above promised.
  */
 
 add_filter( 'admin_body_class', 'vergeml_shell_body_class' );
@@ -487,8 +490,57 @@ function vergeml_shell_quiet() {
         return;
     }
 
-    remove_all_actions( 'admin_notices' );
-    remove_all_actions( 'all_admin_notices' );
+    global $wp_filter;
+
+    foreach ( array( 'admin_notices', 'all_admin_notices' ) as $hook ) {
+
+        if ( empty( $wp_filter[ $hook ] ) || ! $wp_filter[ $hook ] instanceof WP_Hook ) {
+            continue;
+        }
+
+        foreach ( $wp_filter[ $hook ]->callbacks as $priority => $callbacks ) {
+            foreach ( $callbacks as $callback ) {
+                if ( ! vergeml_shell_is_core_callback( $callback['function'] ) ) {
+                    remove_action( $hook, $callback['function'], $priority );
+                }
+            }
+        }
+    }
+}
+
+/**
+ *  Whether a hooked callback is defined in WordPress itself (wp-admin or
+ *  wp-includes) or in PHP. Anything else -- a plugin, a must-use plugin, a
+ *  theme -- is not.
+ */
+function vergeml_shell_is_core_callback( $callback ) {
+
+    try {
+        if ( is_string( $callback ) && false !== strpos( $callback, '::' ) ) {
+            $callback = explode( '::', $callback, 2 );
+        }
+
+        if ( is_array( $callback ) ) {
+            $ref = new ReflectionMethod( $callback[0], $callback[1] );
+        } elseif ( is_object( $callback ) && ! $callback instanceof Closure ) {
+            $ref = new ReflectionMethod( $callback, '__invoke' );
+        } else {
+            $ref = new ReflectionFunction( $callback );
+        }
+    } catch ( ReflectionException $e ) {
+        return false;
+    }
+
+    $file = $ref->getFileName();
+
+    if ( false === $file ) {
+        return true;
+    }
+
+    $file = wp_normalize_path( $file );
+    $root = wp_normalize_path( ABSPATH );
+
+    return 0 === strpos( $file, $root . 'wp-admin/' ) || 0 === strpos( $file, $root . WPINC . '/' );
 }
 
 
