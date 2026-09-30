@@ -1092,10 +1092,9 @@ if ( ! class_exists( 'vergeml_Walker_Media_Taxonomy_Checklist' ) ) {
 
         function start_el( &$output, $category, $depth = 0, $args = array(), $id = 0 ) {
 
-            extract($args);
-
-            if ( empty($taxonomy) )
-                $taxonomy = 'category';
+            $taxonomy      = empty( $args['taxonomy'] ) ? 'category' : $args['taxonomy'];
+            $popular_cats  = isset( $args['popular_cats'] ) ? (array) $args['popular_cats'] : array();
+            $selected_cats = isset( $args['selected_cats'] ) ? (array) $args['selected_cats'] : array();
 
             $output .= "\n<li id='" . esc_attr( $taxonomy ) . '-' . (int) $category->term_id . "'" . ( in_array( $category->term_id, $popular_cats ) ? ' class="popular-category"' : '' ) . '>'
                 . "<label class='selectit'><input value='0' type='hidden' name='tax_input[" . esc_attr( $taxonomy ) . '][' . (int) $category->term_id . "]' />"
@@ -1142,8 +1141,6 @@ if ( ! class_exists( 'vergeml_Walker_Media_Taxonomy_Uploader_Filter' ) ) {
         }
 
         function start_el( &$output, $category, $depth = 0, $args = array(), $id = 0 ) {
-
-            extract($args);
 
             $vergeml_lib_options = get_option( 'vergeml_lib_options' );
             $indent = str_repeat('&nbsp;&nbsp;&nbsp;', $depth);

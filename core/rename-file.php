@@ -316,7 +316,7 @@ function vergeml_file_rename( $attachment_id ) {
             return false; // something is already called that; do not overwrite
         }
 
-        if ( ! @rename( $from, $to ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename
+        if ( ! vergeml_file_move( $from, $to ) ) {
             $moved = vergeml_file_unmove( $moved );
             return false;
         }
@@ -362,16 +362,39 @@ function vergeml_file_rename( $attachment_id ) {
 }
 
 
-/** Put back whatever was moved before a failure. */
+/**
+ *  Move one file, never over another. WordPress's direct filesystem class
+ *  rather than rename(): it refuses an existing destination, falls back to
+ *  copy-and-delete where a rename cannot cross the boundary, and reports
+ *  failure as false. Direct, because uploads are written by PHP itself.
+ */
+function vergeml_file_move( $from, $to ) {
+
+    if ( ! class_exists( 'WP_Filesystem_Direct' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-base.php';
+        require_once ABSPATH . 'wp-admin/includes/class-wp-filesystem-direct.php';
+    }
+
+    $fs = new WP_Filesystem_Direct( null );
+
+    return $fs->move( $from, $to, false );
+}
+
+/**
+ *  Put back whatever was moved before a failure. Returns what could not be
+ *  put back ( new path => old path ), empty when everything was.
+ */
 function vergeml_file_unmove( $moved ) {
 
+    $stuck = array();
+
     foreach ( $moved as $to => $from ) {
-        if ( file_exists( $to ) ) {
-            @rename( $to, $from ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename
+        if ( file_exists( $to ) && ! vergeml_file_move( $to, $from ) ) {
+            $stuck[ $to ] = $from;
         }
     }
 
-    return array();
+    return $stuck;
 }
 
 
@@ -507,7 +530,7 @@ function vergeml_file_undo() {
 
             $to = $dir . '/' . str_replace( $new_stem, $old_stem, $base );
 
-            if ( file_exists( $to ) || ! @rename( $from, $to ) ) { // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename
+            if ( file_exists( $to ) || ! vergeml_file_move( $from, $to ) ) {
                 vergeml_file_unmove( $moved );
                 $ok = false;
                 break;

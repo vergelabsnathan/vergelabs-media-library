@@ -341,8 +341,12 @@ function vergeml_plan_schedule_refresh() {
 add_action( VERGEML_PLAN_REFRESH_HOOK, 'vergeml_plan_inventory_refresh_event' );
 
 function vergeml_plan_inventory_refresh_event() {
+    // Five minutes, not unlimited: the forced inventory reads the index 500
+    // rows a query and folds at most VERGEML_PLAN_FOLD_BUDGET labels, seconds
+    // on the libraries measured. A job still going after this is stuck, and
+    // the next page render books another refresh.
     if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
+        @set_time_limit( 5 * MINUTE_IN_SECONDS ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
     vergeml_plan_inventory( true );
     delete_transient( VERGEML_PLAN_REFRESH_HOOK );

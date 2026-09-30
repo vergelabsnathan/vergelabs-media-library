@@ -317,9 +317,13 @@ function vergeml_ai_run_tick() {
     set_transient( 'vergeml_ai_run_lock', time(), 2 * MINUTE_IN_SECONDS );
 
     // Cron requests inherit the site's limit, which on shared hosting is
-    // often 30 seconds. Ask for more; carry on without it if refused.
+    // often 30 seconds. Ask for the pass's own budget plus the longest a
+    // batch started just before it ends can take (sixteen calls in flight,
+    // each capped at sixty seconds, then the writes); carry on without it if
+    // refused. Bounded, not 0: a pass that hangs past this is dead anyway,
+    // and vergeml_ai_run_revive() starts the next one.
     if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a long cron job on shared hosting; refused silently where disallowed.
+        @set_time_limit( VERGEML_AI_RUN_BUDGET + 180 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job on shared hosting; refused silently where disallowed.
     }
 
     $started = time();
