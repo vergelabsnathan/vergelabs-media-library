@@ -1699,34 +1699,13 @@ function vergeml_talk_refile_schedule() {
 	/*
 	 *  WP-Cron fires on page loads, so on a site nobody is browsing a job that
 	 *  says it is still going simply stops. The describe run learned that the
-	 *  hard way; re-filing makes the same promise and needs the same nudge --
-	 *  and, since 2026-09-16, the same nudge exactly (core/ai-background.php,
-	 *  vergeml_ai_run_nudge). Until then this posted a fresh key without
-	 *  taking cron's lock, which wp-cron.php refuses on line one of its lock
-	 *  check: on the box's shop site the first tick's own spawn held the lock
-	 *  under a key no arriving request carried, every later post was turned
-	 *  away, and the fill stood for four minutes (C.5, S10.2).
-	 *
-	 *  Outside a cron run core's spawn_cron() takes the lock and posts; inside
-	 *  a tick it refuses outright, so the next request is chained the way
-	 *  core's own is: the lock re-taken under a new key, and that key posted.
+	 *  hard way; re-filing makes the same promise and uses the same nudge,
+	 *  vergeml_cron_continue() (core/ai-background.php): core's spawn_cron()
+	 *  outside a cron run, and inside one a keyless request to wp-cron.php
+	 *  once this run has released cron's lock. The lock is never written here
+	 *  (4.1.0; until then this took it with a new key, C.5, S10.2).
 	 */
-	if ( ! defined( 'DOING_CRON' ) ) {
-		spawn_cron();
-		return;
-	}
-
-	$key = sprintf( '%.22F', microtime( true ) );
-	set_transient( 'doing_cron', $key );
-
-	// A loopback to this site's own wp-cron.php, on the rule core's spawn_cron()
-	// uses: unverified unless the owner turns https_local_ssl_verify on.
-	wp_remote_post( add_query_arg( 'doing_wp_cron', $key, site_url( 'wp-cron.php' ) ), array(
-		'timeout'   => 0.01,
-		'blocking'  => false,
-		'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
-		'headers'   => array( 'Cache-Control' => 'no-cache' ),
-	) );
+	vergeml_cron_continue();
 }
 
 

@@ -168,36 +168,62 @@ function vergeml_ai_run_nudge() {
         return;
     }
 
-    /*
-     *  wp-cron.php only works when the key in the request matches the
-     *  'doing_cron' lock. Posting a fresh key without taking the lock, which
-     *  is what this did until 3 September 2026, is refused on line one of
-     *  the lock check: every nudge on the box came back in zero seconds and
-     *  the run waited for whatever else happened to spawn cron. Outside a
-     *  cron run, core's spawn_cron() takes the lock and posts; it declines
-     *  while a run holds the lock, and that run drops it as it ends.
-     */
+    vergeml_cron_continue();
+}
+
+
+/**
+ *  Ask WordPress for the next pass of a job whose event is already booked,
+ *  without touching cron's lock. Shared by the describe run and the refile
+ *  (core/folder-talk.php, vergeml_talk_refile_schedule).
+ *
+ *  Outside a cron run it is core's spawn_cron(): that takes the 'doing_cron'
+ *  lock with its own key and posts it, and declines while another run holds
+ *  the lock -- which then reaches the booked event itself.
+ *
+ *  Inside a cron run spawn_cron() refuses. Until 4.1.0 this wrote
+ *  'doing_cron' itself with a new key and posted that key: the next pass
+ *  came at once, but wp-cron.php checks the lock between hooks, so the run
+ *  it was called from stopped before any other plugin's due events. Now the
+ *  event is left booked and, once this request has finished -- a shutdown
+ *  function, after wp-cron.php has released its own lock -- wp-cron.php is
+ *  asked the way a system cron asks it: no key, so wp-cron.php takes the
+ *  lock under its own rules (WP_CRON_LOCK_TIMEOUT) or returns because a run
+ *  holds it. Nothing here writes the lock. The request uses WordPress's
+ *  default certificate check; where a loopback cannot pass it, the run goes
+ *  on at the pace of the screen's poll and of visitors, as WP-Cron does.
+ */
+function vergeml_cron_continue() {
+
     if ( ! defined( 'DOING_CRON' ) ) {
         spawn_cron();
         return;
     }
 
-    /*
-     *  Inside a tick spawn_cron() refuses outright, so the next request is
-     *  chained the way core's own does it: take the lock with a new key and
-     *  post that key. The finishing run only clears the lock when it still
-     *  holds it, so the handover is clean.
-     */
-    $key = sprintf( '%.22F', microtime( true ) );
-    set_transient( 'doing_cron', $key );
+    static $booked = false;
+
+    if ( ! $booked ) {
+        $booked = true;
+        register_shutdown_function( 'vergeml_cron_continue_after' );
+    }
+}
+
+/** The shutdown half of vergeml_cron_continue(): runs after wp-cron.php released its lock. */
+function vergeml_cron_continue_after() {
+
+    $lock = (float) get_transient( 'doing_cron' );
+
+    // A run holds the lock (another spawn got there first): it reaches the booked event itself.
+    if ( $lock && $lock + WP_CRON_LOCK_TIMEOUT > microtime( true ) ) {
+        return;
+    }
 
     wp_remote_post(
-        add_query_arg( 'doing_wp_cron', $key, site_url( 'wp-cron.php' ) ),
+        site_url( 'wp-cron.php' ),
         array(
-            'timeout'   => 0.01,
-            'blocking'  => false,
-            'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
-            'headers'   => array( 'Cache-Control' => 'no-cache' ),
+            'timeout'  => 0.01,
+            'blocking' => false,
+            'headers'  => array( 'Cache-Control' => 'no-cache' ),
         )
     );
 }
