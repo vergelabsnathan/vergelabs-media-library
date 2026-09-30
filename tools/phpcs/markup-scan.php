@@ -20,6 +20,12 @@
  *                 (a <script type="text/html"> wp.template is markup, not script,
  *                 and is how core prints its own media templates)
  *
+ *  Counted as escaped: the esc_* family, wp_kses*, casts and
+ *  numeric helpers; vergeml_icon (literal SVG from core/icons.php); core's
+ *  wp_get_attachment_image and get_block_wrapper_attributes, which escape
+ *  their own attributes; and sprintf()/implode() and a bracketed ternary
+ *  when everything handed to them is one of those.
+ *
  *  Reads text; it decides nothing it cannot see. A value escaped where it was
  *  assigned is still reported where it is concatenated -- escape late.
  */
@@ -36,7 +42,11 @@ $escapers = array_flip( array(
 	'wp_create_nonce', 'wp_nonce_field', 'get_submit_button', 'submit_button', 'wp_referer_field',
 	'size_format', 'human_time_diff', 'esc_url_raw', 'rawurlencode', 'urlencode', 'md5', 'sha1',
 	'min', 'max', 'round', 'ceil', 'floor', 'abs', 'strlen', 'mb_strlen',
+	'vergeml_icon', 'get_block_wrapper_attributes', 'wp_get_attachment_image',
 ) );
+
+// Pass their arguments through: safe when every argument is.
+$passthrough = array_flip( array( 'sprintf', 'vsprintf', 'implode', 'join', 'trim', 'ucfirst', 'lcfirst', 'strtoupper', 'strtolower', 'str_repeat' ) );
 
 // Not output: a value built here goes to a log, a JSON reply or an exception.
 $silent = array_flip( array(
@@ -63,6 +73,10 @@ foreach ( $iter as $file ) {
 
 	$rel = ltrim( substr( $file->getPathname(), strlen( $root ) ), '/\\' );
 	$src = file_get_contents( $file->getPathname() );
+
+	// Variables markup is gathered in: anything appended to one of these is markup, literal or not.
+	preg_match_all( '#\$(\w+)\s*\.?=\s*(?:\'[^\']*|"[^"]*)<[/!]?[a-z]#i', $src, $acc );
+	$accumulators = array_flip( $acc[1] );
 	$raw = token_get_all( $src );
 
 	// Line numbers for single-character tokens, which token_get_all leaves bare.
@@ -100,9 +114,29 @@ foreach ( $iter as $file ) {
 	 *  A frame per bracket. Each holds the expression being read at that depth
 	 *  and the name of the function whose arguments it is, if any.
 	 */
-	$frames = array( array( 'fn' => null, 'items' => array(), 'concat_eq' => false ) );
+	$frames = array( array( 'fn' => null, 'items' => array(), 'concat_eq' => false, 'unsafe' => false ) );
 
-	$evaluate = function ( $frame, $ancestors ) use ( &$found, $rel, $escapers, $silent, $translations ) {
+	// Whether an expression hands on anything but literals, casts, constants and escaped calls.
+	$unsafe_expr = function ( $items ) use ( $escapers ) {
+		$fresh = true;
+		foreach ( $items as $it ) {
+			if ( 'op' === $it['kind'] ) {
+				$fresh = true;
+				continue;
+			}
+			if ( $fresh && ! in_array( $it['kind'], array( 'lit', 'cast', 'const' ), true ) && ! ( 'call' === $it['kind'] && isset( $escapers[ $it['fn'] ] ) ) ) {
+				return true;
+			}
+			$fresh = false;
+		}
+		return false;
+	};
+
+	// A delimiter that ends a condition, not a value: what stands before it is never output.
+	$conds = array( '?', T_IS_EQUAL, T_IS_NOT_EQUAL, T_IS_IDENTICAL, T_IS_NOT_IDENTICAL, '<', '>', T_IS_SMALLER_OR_EQUAL, T_IS_GREATER_OR_EQUAL,
+		T_BOOLEAN_AND, T_BOOLEAN_OR, T_LOGICAL_AND, T_LOGICAL_OR, '!', '=', T_INSTANCEOF );
+
+	$evaluate = function ( $frame, $ancestors ) use ( &$found, $rel, $escapers, $silent, $translations, $accumulators ) {
 
 		foreach ( $ancestors as $fn ) {
 			if ( null !== $fn && ( isset( $escapers[ $fn ] ) || isset( $silent[ $fn ] ) ) ) {
@@ -131,7 +165,7 @@ foreach ( $iter as $file ) {
 			}
 		}
 
-		$markup = false;
+		$markup = $frame['concat_eq'] && isset( $frame['target'] ) && isset( $accumulators[ $frame['target'] ] );
 		foreach ( $operands as $op ) {
 			foreach ( $op as $it ) {
 				if ( 'lit' === $it['kind'] && preg_match( '#<[/!]?[a-z]#i', $it['text'] ) ) {
@@ -164,6 +198,11 @@ foreach ( $iter as $file ) {
 			}
 
 			if ( ! $markup ) {
+				continue;
+			}
+
+			// One markup variable appended whole to another: its parts were read where they were appended to it.
+			if ( 1 === count( $op ) && 'value' === $first['kind'] && '$' === $first['text'][0] && isset( $accumulators[ substr( $first['text'], 1 ) ] ) && $frame['concat_eq'] && 1 === count( $operands ) ) {
 				continue;
 			}
 
@@ -214,13 +253,14 @@ foreach ( $iter as $file ) {
 			if ( '(' === $t[0] && $prev && in_array( $prev[0], array( T_ISSET, T_EMPTY, T_ARRAY, T_LIST, T_IF, T_ELSEIF, T_WHILE, T_FOR, T_FOREACH, T_SWITCH, T_FUNCTION, T_FN, T_USE, T_CATCH ), true ) ) {
 				$fn = '#' . token_name( $prev[0] );
 			}
-			$frames[] = array( 'fn' => $fn, 'items' => array(), 'concat_eq' => false, 'open' => $t[0], 'line' => $t[2] );
+			$frames[] = array( 'fn' => $fn, 'items' => array(), 'concat_eq' => false, 'unsafe' => false, 'open' => $t[0], 'line' => $t[2] );
 			continue;
 		}
 
 		if ( ')' === $t[0] || ']' === $t[0] || '}' === $t[0] ) {
 			if ( $top > 0 ) {
 				$frame     = array_pop( $frames );
+				$unsafe    = $frame['unsafe'] || $unsafe_expr( $frame['items'] );
 				$ancestors = array_map( function ( $f ) { return $f['fn']; }, $frames );
 				$ancestors[] = $frame['fn'];
 				$evaluate( $frame, $ancestors );
@@ -230,9 +270,12 @@ foreach ( $iter as $file ) {
 					// The call replaces the name token pushed just before it.
 					if ( $last && 'name' === $last['kind'] ) {
 						array_pop( $frames[ $top ]['items'] );
-						$frames[ $top ]['items'][] = array( 'kind' => 'call', 'fn' => strtolower( $last['text'] ), 'text' => $last['text'] . '()', 'line' => $last['line'] );
+						// sprintf() and friends are as safe as everything handed to them.
+						$kind = isset( $passthrough[ strtolower( $last['text'] ) ] ) && ! $unsafe ? 'lit' : 'call';
+						$frames[ $top ]['items'][] = array( 'kind' => $kind, 'fn' => strtolower( $last['text'] ), 'text' => $last['text'] . '()', 'line' => $last['line'] );
 					} elseif ( ! $last || 'op' === $last['kind'] || ( 'cast' === $last['kind'] ) ) {
-						$frames[ $top ]['items'][] = array( 'kind' => 'value', 'text' => '( ... )', 'line' => $frame['line'] );
+						// A bracketed expression -- a ternary of class names -- is as safe as its values.
+						$frames[ $top ]['items'][] = array( 'kind' => $unsafe ? 'value' : 'lit', 'text' => '( ... )', 'line' => $frame['line'] );
 					}
 				}
 				if ( '}' === $t[0] ) {
@@ -253,10 +296,15 @@ foreach ( $iter as $file ) {
 			$evaluate( $frames[ $top ], $ancestors );
 			$frames[ $top ]['items']     = array();
 			$frames[ $top ]['concat_eq'] = true;
+			$prev = $sig[ $i - 1 ] ?? null;
+			$frames[ $top ]['target'] = $prev && T_VARIABLE === $prev[0] ? ltrim( $prev[1], '$' ) : null;
 			continue;
 		}
 
 		if ( in_array( $t[0], $delims, true ) ) {
+			if ( ! in_array( $t[0], $conds, true ) && $unsafe_expr( $frames[ $top ]['items'] ) ) {
+				$frames[ $top ]['unsafe'] = true;
+			}
 			$ancestors = array_map( function ( $f ) { return $f['fn']; }, $frames );
 			$evaluate( $frames[ $top ], $ancestors );
 			$frames[ $top ]['items']     = array();
@@ -296,6 +344,7 @@ foreach ( $iter as $file ) {
 	}
 }
 
+$found = array_values( array_unique( $found, SORT_REGULAR ) );
 usort( $found, function ( $a, $b ) { return array( $a[0], $a[1] ) <=> array( $b[0], $b[1] ); } );
 
 $counts = array();

@@ -25,6 +25,7 @@
  *      node tools/phpcs.mjs --ref <commit>
  *      node tools/phpcs.mjs --worktree      # uncommitted changes too (git stash create)
  *      node tools/phpcs.mjs --parse-only    # just the syntax check, on PHP 7.4 and 8.3
+ *      node tools/phpcs.mjs --scan-only     # just markup-scan, every finding listed
  *
  *  Every run also parses every shipped PHP file on PHP 7.4 (the floor) and
  *  8.3 (tools/phpcs/parse-check.php, token_get_all with TOKEN_PARSE).
@@ -42,6 +43,7 @@ const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..
 const argv = process.argv.slice( 2 );
 const LIST = argv.includes( '--list' );
 const PARSE_ONLY = argv.includes( '--parse-only' );
+const SCAN_ONLY = argv.includes( '--scan-only' );
 let REF = argv.includes( '--ref' ) ? argv[ argv.indexOf( '--ref' ) + 1 ] : 'HEAD';
 if ( argv.includes( '--worktree' ) ) {
 	// A commit object of the tracked files as they are on disk; the working tree and the index are not touched.
@@ -142,8 +144,8 @@ if ( PARSE_ONLY ) {
 	process.exit( parseBroken ? 1 : 0 );
 }
 
-const honoured = phpcs( 'honoured', [] );
-const ignored = phpcs( 'ignored', [ '--ignore-annotations' ] );
+const honoured = SCAN_ONLY ? { files: 0, findings: [] } : phpcs( 'honoured', [] );
+const ignored = SCAN_ONLY ? { files: 0, findings: [] } : phpcs( 'ignored', [ '--ignore-annotations' ] );
 
 boot( `<?php ob_start(); register_shutdown_function( function () { file_put_contents( '/out/scan.txt', ob_get_clean() ); } ); $argv = array( 'scan', '/plugin' ); require '/cs/markup-scan.php';` );
 const scan = fs.existsSync( path.join( out, 'scan.txt' ) ) ? fs.readFileSync( path.join( out, 'scan.txt' ), 'utf8' ) : '';
@@ -167,7 +169,7 @@ console.log( 'TOTAL'.padEnd( 76 ) + String( honoured.findings.length ).padStart(
 const scanLines = scan.trim().split( '\n' );
 console.log( '\n' + scanLines[ scanLines.length - 1 ] );
 
-if ( LIST ) {
+if ( LIST || SCAN_ONLY ) {
 	console.log( '\n--- PHPCS, annotations ignored ---' );
 	for ( const f of ignored.findings.sort( ( x, y ) => x.file.localeCompare( y.file ) || x.line - y.line ) ) {
 		const honouredToo = honoured.findings.some( ( h ) => h.file === f.file && h.line === f.line && h.source === f.source );
