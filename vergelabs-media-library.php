@@ -76,16 +76,6 @@ function vergeml_asset_ver( $rel ) {
 }
 
 /*
- *  Translations from the plugin's own languages/ folder, which the header's
- *  Domain Path advertises. WordPress's just-in-time loading covers files
- *  dropped into wp-content/languages/plugins/; a .mo placed here, where the
- *  header says it goes, was silently ignored on WordPress before 6.7.
- */
-add_action( 'init', function () {
-    load_plugin_textdomain( 'vergelabs-media-library', false, dirname( plugin_basename( VERGEML_FILE ) ) . '/languages' );
-}, 1 );
-
-/*
  *  Right-to-left. WordPress swaps <name>.css for <name>-rtl.css on an RTL
  *  locale for any style marked this way; the -rtl files are generated from
  *  the sources by tools/rtl.mjs and committed. Late in the enqueue order so
