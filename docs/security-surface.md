@@ -63,7 +63,7 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/brief/turn` | POST | vergeml_rest_can_manage_options | manage_options | no | `said`, `say`, `draft`, $request | meta/option write | yes | core/brief.php:646 |
 | `/vergeml/v1/file/(?P<id>\d+)` | POST, PUT, PATCH | closure | edit_post((int) $request['id']) | yes (1) | `title`, `alt`, $request | post/term write, meta/option write | no | core/quick-edit.php:161 |
 | `/vergeml/v1/folder` | POST | vergeml_can_manage_folders | manage_categories | no | `taxonomy*`, `action*`, `id`, `parent`, `name`, `color`, `ids`, `post_type`, $request | post/term write, delete, meta/option write, db query | yes | core/rest-folders.php:28 |
-| `/vergeml/v1/folder-privacy` | POST | closure | manage_categories | no | `id*`, `private`, $request | meta/option write | yes | core/private-folders.php:205 |
+| `/vergeml/v1/folder-privacy` | POST | closure | manage_categories | no | `id*`, `private`, $request | meta/option write | yes | core/private-folders.php:206 |
 | `/vergeml/v1/folders-apply` | POST | vergeml_rest_can_manage_categories | manage_categories | no | `folders*`, `plan_id*`, $request | db query, post/term write, meta/option write, outbound http, schedules cron | yes | core/folder-talk.php:2760 |
 | `/vergeml/v1/folders-progress` | GET | vergeml_rest_can_manage_categories | manage_categories | no | — | outbound http, schedules cron, db query, term assign, meta/option write | no | core/folder-talk.php:2782 |
 | `/vergeml/v1/folders-propose` | POST | vergeml_rest_can_manage_categories | manage_categories | no | `instruction*`, `history`, `mode`, $request | outbound http, db query | no | core/folder-talk.php:2742 |
@@ -117,8 +117,8 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/rename` | POST | closure | upload_files, manage_options, edit_post($id) | yes (1) | `action`, `limit`, `ids`, $request | post/term write, meta/option write, db query | yes | core/rename.php:488 |
 | `/vergeml/v1/rename-files` | GET | closure | manage_options | no | — | db query | no | core/rename-file.php:602 |
 | `/vergeml/v1/rename-files` | POST | closure | manage_options | no | `action`, `limit`, `ids`, $request | meta/option write, filesystem, post/term write, db query | yes | core/rename-file.php:602 |
-| `/vergeml/v1/say-plan` | POST | vergeml_rest_can_manage_categories | manage_categories | no | `text*`, $request | filesystem | no | core/nl-commands.php:548 |
-| `/vergeml/v1/say-run` | POST | vergeml_rest_can_manage_categories | manage_categories | no | `plan*`, $request | post/term write, term assign, meta/option write, db write, db query | no | core/nl-commands.php:557 |
+| `/vergeml/v1/say-plan` | POST | vergeml_rest_can_manage_categories | manage_categories | no | `text*`, $request | filesystem | no | core/nl-commands.php:550 |
+| `/vergeml/v1/say-run` | POST | vergeml_rest_can_manage_categories | manage_categories | no | `plan*`, $request | post/term write, term assign, meta/option write, db write, db query | no | core/nl-commands.php:559 |
 | `/vergeml/v1/search-meaning` | GET | closure | upload_files | no | `s*`, `limit`, $request | db query, outbound http, db write, schedules cron | no | core/search-meaning.php:603 |
 | `/vergeml/v1/search-try` | GET | closure | upload_files | no | `s*`, $request | db query, outbound http, db write, schedules cron | no | core/search-try.php:193 |
 | `/vergeml/v1/similar` | GET | vergeml_rest_can_manage_categories | manage_categories | no | `id*`, `limit`, $request | db query | yes | core/utilities.php:430 |
@@ -144,7 +144,7 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/librarian-apply-step` | POST | unscoped capability on an id from the request | core/librarian.php:2464 |
 | `/vergeml/v1/librarian-undo-step` | POST | unscoped capability on an id from the request | core/librarian.php:2489 |
 | `/vergeml/v1/organize-step` | POST | unscoped capability on an id from the request | core/organize.php:2878 |
-| `/vergeml/v1/folder-privacy` | POST | unscoped capability on an id from the request | core/private-folders.php:205 |
+| `/vergeml/v1/folder-privacy` | POST | unscoped capability on an id from the request | core/private-folders.php:206 |
 | `/vergeml/v1/quarantine-act` | POST | unscoped capability on an id from the request | core/quarantine.php:399 |
 | `/vergeml/v1/rename-files` | POST | unscoped capability on an id from the request | core/rename-file.php:602 |
 | `/vergeml/v1/folder` | POST | unscoped capability on an id from the request | core/rest-folders.php:28 |
@@ -212,11 +212,11 @@ whole of what WordPress checks before the callback runs. A screen that then read
 | `vergeml-help` | add_submenu_page | manage_options | vergeml_help_page (core/get-help.php:283) | $_GET | outbound http | wp_verify_nonce | core/get-help.php:31 |
 | `vergeml-import-folders` | add_submenu_page | manage_categories | vergeml_import_screen (core/import-ui.php:309) | — | — | — | core/import-ui.php:22 |
 | `vergeml-librarian` | add_submenu_page | manage_categories | vergeml_folders_page (core/guide.php:455) | — | — | — | core/guide.php:59 |
-| `vergeml-library` | add_submenu_page | manage_options | vergeml_print_media_library_options (core/options-pages.php:2111) | — | — | — | core/options-pages.php:126 |
+| `vergeml-library` | add_submenu_page | manage_options | vergeml_print_media_library_options (core/options-pages.php:2112) | — | — | — | core/options-pages.php:126 |
 | `vergeml-licence` | add_submenu_page | manage_options | vergeml_licence_page (core/licence-page.php:86) | $_GET | meta/option write, outbound http | — | core/licence-page.php:20 |
 | `vergeml-media-settings` | add_submenu_page | manage_options | vergeml_print_media_settings (core/options-pages.php:378) | — | — | — | core/options-pages.php:117 |
-| `vergeml-mime-types` | add_submenu_page | manage_options | vergeml_print_mimetypes_options (core/options-pages.php:3121) | — | — | — | core/options-pages.php:144 |
-| `vergeml-taxonomies` | add_submenu_page | manage_options | vergeml_print_taxonomies_options (core/options-pages.php:2627) | — | — | — | core/options-pages.php:135 |
+| `vergeml-mime-types` | add_submenu_page | manage_options | vergeml_print_mimetypes_options (core/options-pages.php:3122) | — | — | — | core/options-pages.php:144 |
+| `vergeml-taxonomies` | add_submenu_page | manage_options | vergeml_print_taxonomies_options (core/options-pages.php:2628) | — | — | — | core/options-pages.php:135 |
 | `vergeml-utilities` | add_options_page | manage_options | vergeml_print_settings (core/options-pages.php:779) | — | — | — | core/options-pages.php:184 |
 | `vergeml-utilities` | add_submenu_page | manage_network_options | vergeml_print_network_settings (core/options-pages.php:988) | $_GET | meta/option write, outbound http | wp_verify_nonce | core/options-pages.php:208 |
 
