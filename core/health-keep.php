@@ -817,14 +817,11 @@ function vergeml_health_keep_routes() {
 
 	// Rewriting other people's pages and taking files out of the library:
 	// the same authority as the delete route, minus the deleting.
-	$can = function () {
-		return current_user_can( 'manage_options' );
-	};
 
 	register_rest_route( VERGEML_REST_NS, '/health-keep', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_health_rest_keep',
-		'permission_callback' => $can,
+		'permission_callback' => 'vergeml_rest_can_manage_options',
 		'args'                => array(
 			'keep' => array( 'type' => 'integer', 'required' => true ),
 			'drop' => array( 'type' => 'array', 'required' => true, 'items' => array( 'type' => 'integer' ) ),
@@ -834,7 +831,7 @@ function vergeml_health_keep_routes() {
 	register_rest_route( VERGEML_REST_NS, '/health-keep-undo', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_health_rest_keep_undo',
-		'permission_callback' => $can,
+		'permission_callback' => 'vergeml_rest_can_manage_options',
 		'args'                => array(
 			'token' => array( 'type' => 'string', 'required' => true ),
 		),
@@ -843,7 +840,7 @@ function vergeml_health_keep_routes() {
 	register_rest_route( VERGEML_REST_NS, '/health-retire', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_health_rest_retire',
-		'permission_callback' => $can,
+		'permission_callback' => 'vergeml_rest_can_manage_options',
 		'args'                => array(
 			'ids'  => array( 'type' => 'array', 'required' => true, 'items' => array( 'type' => 'integer' ) ),
 			'undo' => array( 'type' => 'boolean', 'default' => false ),

@@ -536,9 +536,6 @@ add_action( 'rest_api_init', 'vergeml_nl_routes' );
 
 function vergeml_nl_routes() {
 
-    $can = function () {
-        return current_user_can( 'manage_categories' );
-    };
 
     /*
      *  Two endpoints, and the split is the safety.
@@ -550,7 +547,7 @@ function vergeml_nl_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/say-plan', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => 'vergeml_rest_can_manage_categories',
         'callback'            => 'vergeml_nl_rest_plan',
         'args'                => array(
             'text' => array( 'type' => 'string', 'required' => true ),
@@ -559,7 +556,7 @@ function vergeml_nl_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/say-run', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => 'vergeml_rest_can_manage_categories',
         'callback'            => 'vergeml_nl_rest_run',
         'args'                => array(
             'plan' => array( 'required' => true ),

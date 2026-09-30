@@ -219,14 +219,21 @@ function vergeml_can_read_tree() {
  *  files must not be authorised by whether the caller may edit the first.
  */
 
-function vergeml_can_assign() {
+function vergeml_can_assign( $request = null ) {
     /*
      *  Coarse gate over two different jobs now: filing a file, and filing a post.
      *  Someone who edits posts but cannot upload is still allowed to reach the
      *  endpoint -- what they may actually touch is decided per object inside the
      *  handler, which is where it has always really been decided.
      */
-    return current_user_can( 'upload_files' ) || current_user_can( 'edit_posts' );
+    if ( ! current_user_can( 'upload_files' ) && ! current_user_can( 'edit_posts' ) ) {
+        return false;
+    }
+
+    // Filing is assigning terms: the folder taxonomy's own assign_terms capability, before any object is looked at.
+    $taxonomy = $request instanceof WP_REST_Request ? get_taxonomy( (string) $request->get_param( 'taxonomy' ) ) : false;
+
+    return ! $taxonomy || current_user_can( $taxonomy->cap->assign_terms );
 }
 
 

@@ -400,39 +400,36 @@ add_action( 'rest_api_init', 'vergeml_utilities_routes' );
 
 function vergeml_utilities_routes() {
 
-    $can = function () {
-        return current_user_can( 'manage_categories' );
-    };
 
     register_rest_route( VERGEML_REST_NS, '/merge-plan', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => $can,
+        'permission_callback' => 'vergeml_rest_can_manage_categories',
         'callback'            => 'vergeml_rest_merge_plan',
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/merge-run', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => 'vergeml_rest_can_manage_categories',
         'callback'            => 'vergeml_rest_merge_run',
         'args'                => array( 'plan' => array( 'required' => true ) ),
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/alt-fill-step', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => 'vergeml_rest_can_manage_categories',
         'callback'            => 'vergeml_rest_alt_fill',
         'args'                => array( 'limit' => array( 'type' => 'integer', 'default' => 25 ) ),
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/alt-undo', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => 'vergeml_rest_can_manage_categories',
         'callback'            => 'vergeml_rest_alt_undo',
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/similar', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => $can,
+        'permission_callback' => 'vergeml_rest_can_manage_categories',
         'callback'            => 'vergeml_rest_similar',
         'args'                => array(
             'id'    => array( 'type' => 'integer', 'required' => true ),

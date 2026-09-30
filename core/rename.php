@@ -526,8 +526,16 @@ function vergeml_rename_routes() {
                     'remaining' => count( vergeml_rename_pending() ),
                 ) );
             },
-            // Writes post titles, so the same bar as editing a file.
-            'permission_callback' => function () {
+            /*
+             *  Writes post titles. Named files need upload_files here and
+             *  edit_post on each inside vergeml_rename_apply; the library-wide
+             *  run and its undo touch every author's files, so manage_options.
+             */
+            'permission_callback' => function ( WP_REST_Request $request ) {
+                $ids = $request->get_param( 'ids' );
+                if ( 'undo' === $request->get_param( 'action' ) || ! ( is_array( $ids ) && $ids ) ) {
+                    return current_user_can( 'manage_options' );
+                }
                 return current_user_can( 'upload_files' );
             },
             'args'                => array(

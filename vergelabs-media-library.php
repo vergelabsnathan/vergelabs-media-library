@@ -124,6 +124,21 @@ function vergeml_inline_script( $handle, $js ) {
 
 
 /*
+ *  REST permission callbacks, named so every route says which capability it
+ *  asks for. Folders are terms, so the folder screens and their runs ask
+ *  for manage_categories; the licence-bound brief and the health screen's
+ *  keep/retire ask for manage_options.
+ */
+function vergeml_rest_can_manage_categories() {
+    return current_user_can( 'manage_categories' );
+}
+
+function vergeml_rest_can_manage_options() {
+    return current_user_can( 'manage_options' );
+}
+
+
+/*
  *  The allow-list for wp_kses() where a helper's markup is printed.
  *
  *  The screens are drawn by helpers that return HTML -- a page head, a card,

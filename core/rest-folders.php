@@ -55,7 +55,8 @@ function vergeml_register_folder_routes() {
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'vergeml_rest_state_set',
-            'permission_callback' => 'vergeml_can_read_tree',
+            // A write with the read-level check on purpose: it stores only the caller's own tree state (open branches, width, skin) in their user options.
+            'permission_callback' => 'vergeml_can_save_own_tree_state',
             'args'                => array(
                 'taxonomy' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
                 'open'     => array( 'type' => 'array' ),
@@ -80,6 +81,12 @@ function vergeml_register_folder_routes() {
  *  renaming or deleting one changes what everybody else sees, so it takes the
  *  capability WordPress already uses for managing terms.
  */
+
+/** Saving the tree's open branches, width and skin: the caller's own UI state, for anyone who may see the tree. */
+function vergeml_can_save_own_tree_state() {
+    return current_user_can( 'upload_files' );
+}
+
 
 function vergeml_can_manage_folders() {
     return current_user_can( 'manage_categories' );

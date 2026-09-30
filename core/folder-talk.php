@@ -2753,14 +2753,11 @@ add_action( 'rest_api_init', 'vergeml_talk_routes' );
 
 function vergeml_talk_routes() {
 
-	$may = function () {
-		return current_user_can( 'manage_categories' );
-	};
 
 	register_rest_route( VERGEML_REST_NS, '/folders-propose', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_talk_rest_propose',
-		'permission_callback' => $may,
+		'permission_callback' => 'vergeml_rest_can_manage_categories',
 		'args'                => array(
 			'instruction' => array( 'type' => 'string', 'required' => true ),
 			// What has already been said, so a refinement refines rather than
@@ -2778,7 +2775,7 @@ function vergeml_talk_routes() {
 	register_rest_route( VERGEML_REST_NS, '/folders-apply', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_talk_rest_apply',
-		'permission_callback' => $may,
+		'permission_callback' => 'vergeml_rest_can_manage_categories',
 		'args'                => array(
 			'folders' => array( 'type' => 'array', 'required' => true ),
 			'plan_id' => array( 'type' => 'string', 'required' => true ),
@@ -2788,7 +2785,7 @@ function vergeml_talk_routes() {
 	register_rest_route( VERGEML_REST_NS, '/folders-undo', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_talk_rest_undo',
-		'permission_callback' => $may,
+		'permission_callback' => 'vergeml_rest_can_manage_categories',
 	) );
 
 	/*
@@ -2802,7 +2799,7 @@ function vergeml_talk_routes() {
 		'callback'            => function () {
 			return rest_ensure_response( vergeml_talk_progress() );
 		},
-		'permission_callback' => $may,
+		'permission_callback' => 'vergeml_rest_can_manage_categories',
 	) );
 }
 

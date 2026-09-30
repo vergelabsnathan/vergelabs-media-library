@@ -644,9 +644,6 @@ add_action( 'rest_api_init', 'vergeml_autofile_routes' );
 
 function vergeml_autofile_routes() {
 
-    $can = function () {
-        return current_user_can( 'manage_categories' );
-    };
 
     /*
      *  One pass. Creatable rather than readable because it can file things --
@@ -655,7 +652,7 @@ function vergeml_autofile_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/autofile-step', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => 'vergeml_rest_can_manage_categories',
         'callback'            => 'vergeml_autofile_rest_step',
         'args'                => array(
             'limit' => array( 'type' => 'integer', 'default' => VERGEML_AUTOFILE_CHUNK ),
@@ -664,7 +661,7 @@ function vergeml_autofile_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/autofile-act', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => 'vergeml_rest_can_manage_categories',
         'callback'            => 'vergeml_autofile_rest_act',
         'args'                => array(
             'attachment_id' => array( 'type' => 'integer', 'required' => true ),
