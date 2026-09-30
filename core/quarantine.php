@@ -235,7 +235,7 @@ function vergeml_quarantine_hide_grid( $args ) {
      *  handed a NOT EXISTS on the way past. Without this guard the one view
      *  that exists to show quarantined files would always be empty.
      */
-    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- reading which view was asked for; core checked the ajax nonce.
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only view choice inside core's query-attachments AJAX, which checks upload_files and no nonce; sanitize_key, and only 'quarantine' changes anything (it keeps the set-aside files in that one view).
     $asked = isset( $_POST['query']['vergeml_smart'] ) ? sanitize_key( wp_unslash( $_POST['query']['vergeml_smart'] ) ) : '';
 
     if ( 'quarantine' === $asked ) {

@@ -1159,11 +1159,18 @@ add_filter( 'ajax_query_attachments_args', 'vergeml_smart_grid_query', 20 );
 
 function vergeml_smart_grid_query( $args ) {
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- reading which filter the media grid asked for; core has checked the ajax nonce already.
+    /*
+     *  No nonce: core's wp_ajax_query_attachments() checks upload_files and
+     *  no nonce, and this filter runs inside it. The value only chooses which
+     *  of the smart folders' read-only queries narrows a listing this user
+     *  may already run: sanitize_key, then the allow-list below
+     *  (vergeml_smart_folders()); anything else leaves $args as it was.
+     */
+    // phpcs:disable WordPress.Security.NonceVerification.Missing -- read-only view choice inside core's query-attachments AJAX, which checks upload_files and no nonce; sanitize_key and an allow-list below.
     $key = isset( $_POST['query']['vergeml_smart'] )
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing
         ? sanitize_key( wp_unslash( $_POST['query']['vergeml_smart'] ) )
         : '';
+    // phpcs:enable
 
     if ( '' === $key ) {
         return $args;
