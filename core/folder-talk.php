@@ -1699,12 +1699,18 @@ function vergeml_talk_refile_schedule() {
 	/*
 	 *  WP-Cron fires on page loads, so on a site nobody is browsing a job that
 	 *  says it is still going simply stops. The describe run learned that the
-	 *  hard way; re-filing makes the same promise and uses the same nudge,
-	 *  vergeml_cron_continue() (core/ai-background.php): core's spawn_cron()
-	 *  outside a cron run, and inside one a keyless request to wp-cron.php
-	 *  once this run has released cron's lock. The lock is never written here
-	 *  (4.1.0; until then this took it with a new key, C.5, S10.2).
+	 *  hard way; re-filing makes the same promise and uses the same nudge
+	 *  (core/ai-background.php, vergeml_ai_run_nudge): core's spawn_cron()
+	 *  outside a cron run, and inside one vergeml_cron_continue(), a keyless
+	 *  request to wp-cron.php once this run has released cron's lock. The lock
+	 *  is never written here (4.1.0; until then this took it with a new key,
+	 *  C.5, S10.2).
 	 */
+	if ( ! defined( 'DOING_CRON' ) ) {
+		spawn_cron();
+		return;
+	}
+
 	vergeml_cron_continue();
 }
 

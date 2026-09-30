@@ -168,18 +168,23 @@ function vergeml_ai_run_nudge() {
         return;
     }
 
+    // Outside a cron run: core's spawn_cron(), which takes the 'doing_cron'
+    // lock with its own key and posts it, or declines while a run holds the
+    // lock -- and that run reaches the booked event itself.
+    if ( ! defined( 'DOING_CRON' ) ) {
+        spawn_cron();
+        return;
+    }
+
     vergeml_cron_continue();
 }
 
 
 /**
- *  Ask WordPress for the next pass of a job whose event is already booked,
- *  without touching cron's lock. Shared by the describe run and the refile
- *  (core/folder-talk.php, vergeml_talk_refile_schedule).
- *
- *  Outside a cron run it is core's spawn_cron(): that takes the 'doing_cron'
- *  lock with its own key and posts it, and declines while another run holds
- *  the lock -- which then reaches the booked event itself.
+ *  Inside a cron run: ask for the next pass of a job whose event is already
+ *  booked, without touching cron's lock. Shared by the describe run and the
+ *  refile (core/folder-talk.php, vergeml_talk_refile_schedule); outside a
+ *  cron run both call core's spawn_cron() instead.
  *
  *  Inside a cron run spawn_cron() refuses. Until 4.1.0 this wrote
  *  'doing_cron' itself with a new key and posted that key: the next pass
@@ -194,11 +199,6 @@ function vergeml_ai_run_nudge() {
  *  on at the pace of the screen's poll and of visitors, as WP-Cron does.
  */
 function vergeml_cron_continue() {
-
-    if ( ! defined( 'DOING_CRON' ) ) {
-        spawn_cron();
-        return;
-    }
 
     static $booked = false;
 
