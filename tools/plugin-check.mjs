@@ -26,6 +26,17 @@
  *  actually reads.
  *
  *  Exits non-zero when anything is reported.
+ *
+ *  **It also has to prove the checks ran.** Until 2026-09-30 this read the
+ *  screen's text and nothing else, and the screen said "No errors found" for
+ *  4.1.0 while the wordpress.org review found 62 unescaped outputs. Under
+ *  php-wasm every check built on PHPCS (late_escaping, i18n_usage, prefixing,
+ *  enqueued_resources, direct_db, setting_sanitization, ...) answered its AJAX
+ *  call with HTTP 400 -- "file_put_contents(): Exclusive locks are not
+ *  supported for this stream" from PHPCS's Reporter.php -- and the screen
+ *  simply left those checks out. The blueprint now patches that LOCK_EX away,
+ *  and this script watches every per-check reply: a check that did not answer
+ *  success is a failed run (exit 2), never a clean one.
  */
 import { chromium } from 'playwright';
 
@@ -35,6 +46,28 @@ const SLUG = process.argv[ 3 ] ?? 'vergelabs-media-library';
 const browser = await chromium.launch();
 const page = await ( await browser.newContext( { viewport: { width: 1500, height: 1200 } } ) ).newPage();
 page.setDefaultTimeout( 240000 );
+
+// One entry per check the screen ran: its name, and whether it answered success.
+const checkReplies = [];
+let expected = [];
+page.on( 'response', async ( r ) => {
+	const body = r.request().postData() || '';
+	if ( r.url().includes( 'admin-ajax.php' ) && body.includes( 'plugin_check_get_checks_to_run' ) ) {
+		try {
+			expected = JSON.parse( await r.text() ).data.checks || [];
+		} catch ( e ) { /* stays empty, and an empty list fails the run */ }
+		return;
+	}
+	if ( ! r.url().includes( 'admin-ajax.php' ) || ! body.includes( 'plugin_check_run_checks' ) ) {
+		return;
+	}
+	const name = ( body.match( /name="checks\[\]"\s+([a-z0-9_]+)/ ) || [] )[ 1 ] || '(unnamed)';
+	let json = null;
+	try {
+		json = JSON.parse( await r.text() );
+	} catch ( e ) { /* not JSON: a fatal page, counted as not run */ }
+	checkReplies.push( { name, ok: !! ( json && json.success ), why: json && ! json.success ? JSON.stringify( json.data ).slice( 0, 300 ) : ( json ? '' : `HTTP ${ r.status() }, not JSON` ) } );
+} );
 
 /*
  *  Waits for the site rather than assuming it.
@@ -146,14 +179,14 @@ for ( let i = 0; i < 240; i++ ) {
 	}
 	text = next;
 
-	const done = await page.evaluate( () =>
-		/complete|no errors found|checks complete/i.test( document.body.innerText )
-	);
+	// Done is every asked-for check answered and the screen saying so -- not the word "complete" anywhere on the page.
+	const done = expected.length > 0 && checkReplies.length >= expected.length
+		&& await page.evaluate( () => /checks complete/i.test( document.body.innerText ) );
 
 	if ( done && stable >= 3 ) {
 		break;
 	}
-	if ( stable >= 15 ) {
+	if ( stable >= 150 ) {
 		break;
 	}
 }
@@ -162,10 +195,24 @@ console.log( '\n----- Plugin Check output -----\n' );
 console.log( text.trim() );
 console.log( '\n----- end -----' );
 
+const failed = checkReplies.filter( ( c ) => ! c.ok );
+console.log( `\n${ expected.length } checks asked for, ${ checkReplies.length } ran, ${ checkReplies.length - failed.length } answered success` );
+for ( const c of failed ) {
+	console.log( `  NOT RUN  ${ c.name }: ${ c.why }` );
+}
+for ( const name of expected.filter( ( n ) => ! checkReplies.some( ( c ) => c.name === n ) ) ) {
+	console.log( `  NO REPLY ${ name }` );
+}
+
 const clean = /no errors found/i.test( text ) && ! /\bERROR\b|\bWARNING\b/i.test( text );
 
 await page.screenshot( { path: 'tools/.plugin-check.png', fullPage: true } );
 
 await browser.close();
+
+if ( 0 === expected.length || failed.length || checkReplies.length < expected.length ) {
+	console.log( 'FAILED RUN -- a check that did not run has reported nothing, which is not the same as clean.' );
+	process.exit( 2 );
+}
 
 process.exit( clean ? 0 : 1 );
