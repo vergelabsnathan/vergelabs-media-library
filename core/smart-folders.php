@@ -1099,8 +1099,8 @@ function vergeml_used_in_field( $fields, $post ) {
              *  it actually is one.
              */
             $links[] = $edit
-                ? '<a class="vgml-used-pill" href="' . esc_url( $edit ) . '">' . $inside . '</a>'
-                : '<span class="vgml-used-pill is-flat">' . $inside . '</span>';
+                ? '<a class="vgml-used-pill" href="' . esc_url( $edit ) . '">' . wp_kses_post( $inside ) . '</a>'
+                : '<span class="vgml-used-pill is-flat">' . wp_kses_post( $inside ) . '</span>';
         }
 
         $html = $links
@@ -1111,7 +1111,7 @@ function vergeml_used_in_field( $fields, $post ) {
     $fields['vergeml_used_in'] = array(
         'label' => __( 'Used in', 'vergelabs-media-library' ),
         'input' => 'html',
-        'html'  => '<div class="vgml-used-in">' . $html . '</div>',
+        'html'  => '<div class="vgml-used-in">' . wp_kses_post( $html ) . '</div>',
     );
 
     return $fields;
@@ -1334,7 +1334,7 @@ function vergeml_used_cell( $column, $attachment_id ) {
 
     $more = count( $sources ) - $shown;
 
-    echo implode( '<br>', $lines ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each line escaped above.
+    echo wp_kses( implode( '<br>', $lines ), vergeml_kses_allowed() );
 
     if ( $more > 0 ) {
         printf(

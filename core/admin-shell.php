@@ -254,7 +254,7 @@ function vergeml_shell_open() {
                  *  time. A button under the list is still findable -- which
                  *  is why it was added -- without claiming to be a tab.
                  */
-                echo vergeml_shell_leave(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped below.
+                echo wp_kses( vergeml_shell_leave(), vergeml_kses_allowed() );
                 ?>
 
                 <?php
@@ -271,7 +271,7 @@ function vergeml_shell_open() {
                  *  since, precisely so that "how many credits are left" never
                  *  needs a request of its own.
                  */
-                echo vergeml_shell_credits(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped below.
+                echo wp_kses( vergeml_shell_credits(), vergeml_kses_allowed() );
                 ?>
 
                 <p class="vgml-shell-version">
@@ -327,7 +327,7 @@ function vergeml_shell_leave() {
                 . '<span class="vgml-shell-leave-arrow" aria-hidden="true">&#8599;</span>'
             . '</a>',
             esc_url( admin_url( 'upload.php' ) ),
-            $icon, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal SVG, see core/icons.php.
+            wp_kses( $icon, vergeml_kses_allowed() ),
             esc_html__( 'Open your folders', 'vergelabs-media-library' )
         )
         . '<p class="vgml-shell-out-note">'
@@ -577,10 +577,12 @@ function vergeml_pg_head( $title, $lede = '', $action_html = '' ) {
     $out .= '</div>';
 
     if ( '' !== (string) $action_html ) {
-        $out .= '<div class="vgml-pg-head-action">' . $action_html . '</div>';
+        $out .= '<div class="vgml-pg-head-action">' . wp_kses( $action_html, vergeml_kses_allowed() ) . '</div>';
     }
 
-    return $out . '</div>';
+    $out .= '</div>';
+
+    return $out;
 }
 
 
@@ -610,13 +612,15 @@ function vergeml_pg_card_open( $title, $args = array() ) {
         $out .= '</h2>';
 
         if ( '' !== (string) $args['action_html'] ) {
-            $out .= '<div class="vgml-pg-card-action">' . $args['action_html'] . '</div>';
+            $out .= '<div class="vgml-pg-card-action">' . wp_kses( $args['action_html'], vergeml_kses_allowed() ) . '</div>';
         }
 
         $out .= '</div>';
     }
 
-    return $out . '<div class="vgml-pg-card-body' . ( $args['rows'] ? ' is-rows' : '' ) . '">';
+    $out .= '<div class="vgml-pg-card-body' . ( $args['rows'] ? ' is-rows' : '' ) . '">';
+
+    return $out;
 }
 
 
@@ -640,7 +644,7 @@ function vergeml_pg_row( $label, $help, $control_html, $stacked = false ) {
         $out .= '<span class="vgml-pg-row-help">' . esc_html( $help ) . '</span>';
     }
 
-    $out .= '</div><div class="vgml-pg-row-control">' . $control_html . '</div></div>';
+    $out .= '</div><div class="vgml-pg-row-control">' . wp_kses( $control_html, vergeml_kses_allowed() ) . '</div></div>';
 
     return $out;
 }
@@ -663,13 +667,15 @@ function vergeml_pg_figures( $figures ) {
 
         $lead = ! empty( $figure['lead'] ) ? ' is-lead' : '';
 
-        $out .= '<div class="vgml-pg-figure' . $lead . '">'
+        $out .= '<div class="vgml-pg-figure' . esc_attr( $lead ) . '">'
             . '<span class="vgml-pg-figure-n">' . esc_html( $figure['n'] ) . '</span>'
             . '<span class="vgml-pg-figure-l">' . esc_html( $figure['l'] ) . '</span>'
             . '</div>';
     }
 
-    return $out . '</div>';
+    $out .= '</div>';
+
+    return $out;
 }
 
 
@@ -744,7 +750,9 @@ function vergeml_pg_actions( $buttons_html, $note = '' ) {
         $out .= '<span class="vgml-pg-actions-note">' . esc_html( $note ) . '</span>';
     }
 
-    return $out . $buttons_html . '</div>';
+    $out .= wp_kses( $buttons_html, vergeml_kses_allowed() ) . '</div>';
+
+    return $out;
 }
 
 
@@ -758,5 +766,7 @@ function vergeml_pg_empty( $title, $text = '' ) {
         $out .= esc_html( $text );
     }
 
-    return $out . '</div>';
+    $out .= '</div>';
+
+    return $out;
 }

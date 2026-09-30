@@ -325,9 +325,9 @@ function vergeml_import_screen() {
     <div class="wrap vgml-import">
 
         <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Import folders', 'vergelabs-media-library' )
-        );
+        ), vergeml_kses_allowed() );
         ?>
 
         <?php

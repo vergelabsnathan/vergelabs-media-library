@@ -1431,13 +1431,13 @@ function vergeml_health_page() {
             ? sprintf( __( 'Last scanned %s ago.', 'vergelabs-media-library' ), human_time_diff( $scanned, time() ) )
             : __( 'Not scanned yet. Scanning changes nothing.', 'vergelabs-media-library' );
 
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Duplicates', 'vergelabs-media-library' ),
             __( 'The same picture uploaded twice, or saved again at another size. Scanning changes nothing.', 'vergelabs-media-library' ),
             '<div class="vgml-health-scanbox"><button type="button" class="button" id="vgml-health-scan">'
                 . esc_html( $scanned > 0 ? __( 'Scan again', 'vergelabs-media-library' ) : __( 'Scan the library', 'vergelabs-media-library' ) ) . '</button>'
                 . '<span class="vgml-health-when" id="vgml-health-counts">' . esc_html( $when ) . '</span></div>'
-        );
+        ), vergeml_kses_allowed() );
         ?>
 
         <div class="vgml-import-bar vgml-health-bar" id="vgml-health-bar" hidden><div class="vgml-import-fill" id="vgml-health-fill"></div></div>

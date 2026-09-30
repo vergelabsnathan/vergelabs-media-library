@@ -292,9 +292,7 @@ function vergeml_folder_post_types_field( $taxonomy ) {
         return '<span class="description">' . esc_html__( 'No other post types are available.', 'vergelabs-media-library' ) . '</span>';
     }
 
-    $name = 'vergeml_taxonomies[' . esc_attr( $taxonomy ) . '][post_types][]';
-
-    $html = '<select multiple="multiple" size="' . esc_attr( min( 5, count( $types ) ) ) . '" class="vergeml-post_types" name="' . $name . '">';
+    $html = '<select multiple="multiple" size="' . esc_attr( min( 5, count( $types ) ) ) . '" class="vergeml-post_types" name="' . esc_attr( 'vergeml_taxonomies[' . $taxonomy . '][post_types][]' ) . '">';
 
     foreach ( $types as $type => $label ) {
         $html .= '<option value="' . esc_attr( $type ) . '"' . selected( true, in_array( $type, $chosen, true ), false ) . '>'

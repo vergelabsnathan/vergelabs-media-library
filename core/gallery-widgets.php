@@ -393,7 +393,7 @@ function vergeml_register_elementor_gallery( $widgets_manager ) {
                     . '</div>';
             }
 
-            echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built entirely from esc_*'d parts by vergeml_render_gallery_block().
+            echo wp_kses( $html, vergeml_kses_allowed() );
         }
     }
 

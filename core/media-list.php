@@ -386,17 +386,16 @@ class vergeml_Walker_FolderDropdown extends Walker_CategoryDropdown {
 
     function start_el( &$output, $category, $depth = 0, $args = array(), $id = 0 ) {
 
-        $pad   = str_repeat( '&nbsp;', $depth * 3 );
         $count = vergeml_get_media_term_count( $category->term_id, $category->term_taxonomy_id );
 
-        $output .= "\t<option class=\"level-$depth\" value=\"" . esc_attr( $category->term_id ) . "\"";
+        $output .= "\t<option class=\"level-" . (int) $depth . "\" value=\"" . esc_attr( $category->term_id ) . "\"";
 
         // Type-juggling causes false matches, so everything is compared as a string.
         if ( (string) $category->term_id === (string) $args['selected'] ) {
             $output .= ' selected="selected"';
         }
 
-        $output .= '>' . $pad . esc_html( sprintf(
+        $output .= '>' . str_repeat( '&nbsp;', (int) $depth * 3 ) . esc_html( sprintf(
             /* translators: 1: folder name, 2: how many files are in it. */
             __( '%1$s (%2$s)', 'vergelabs-media-library' ),
             vergeml_list_folder_name( $category->name ),
@@ -502,7 +501,7 @@ function vergeml_list_folder_filter( $post_type, $which ) {
     ) );
 
     // Third, after Unfiled: core's dropdown has two fixed options and no third.
-    echo preg_replace( '/(<option[^>]*value=[\'"]not_in[\'"][^>]*>.*?<\/option>)/s', '$1' . str_replace( '$', '\\$', $option ), $dropdown, 1 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core's own markup, plus one option escaped above.
+    echo wp_kses( preg_replace( '/(<option[^>]*value=[\'"]not_in[\'"][^>]*>.*?<\/option>)/s', '$1' . str_replace( '$', '\\$', $option ), $dropdown, 1 ), vergeml_kses_allowed() );
 }
 
 // phpcs:enable WordPress.Security.NonceVerification.Recommended

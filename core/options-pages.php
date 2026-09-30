@@ -623,9 +623,9 @@ function vergeml_taxonomies_options_page_scripts() {
         'tax_new' => __( 'New Taxonomy', 'vergelabs-media-library' ),
 
         'tax_deletion_confirm_title' => __( 'Remove Taxonomy', 'vergelabs-media-library' ),
-        'tax_deletion_confirm_text_p1' => '<p>' . __( 'The taxonomy is removed. Its files are not.', 'vergelabs-media-library' ) . '</p>',
-        'tax_deletion_confirm_text_p2' => '<p>' . __( 'The terms stay in the database. A taxonomy made with the same name later gets them back.', 'vergelabs-media-library' ) . '</p>',
-        'tax_deletion_confirm_text_p3' => '<p>' . __( 'Media items will remain intact.', 'vergelabs-media-library' ) . '</p>',
+        'tax_deletion_confirm_text_p1' => '<p>' . esc_html__( 'The taxonomy is removed. Its files are not.', 'vergelabs-media-library' ) . '</p>',
+        'tax_deletion_confirm_text_p2' => '<p>' . esc_html__( 'The terms stay in the database. A taxonomy made with the same name later gets them back.', 'vergelabs-media-library' ) . '</p>',
+        'tax_deletion_confirm_text_p3' => '<p>' . esc_html__( 'Media items will remain intact.', 'vergelabs-media-library' ) . '</p>',
         // The button "Yes, remove taxonomy" is the confirmation; asking again
         // under three lines that already said it is a question nobody asked.
         'tax_deletion_confirm_text_p4' => '',
@@ -733,8 +733,8 @@ function vergeml_options_page_scripts() {
 
     $l10n_data = array(
         'cleanup_warning_title' => __( 'Complete Cleanup', 'vergelabs-media-library' ),
-        'cleanup_warning_text_p1' => '<p>' . __( 'You are about to <strong style="text-transform:uppercase">delete all plugin data</strong> from the database including backups.', 'vergelabs-media-library' ) . '</p>',
-        'cleanup_warning_text_p2' => '<p>' . __( 'This cannot be undone.', 'vergelabs-media-library') . '</p>',
+        'cleanup_warning_text_p1' => '<p>' . wp_kses_post( __( 'You are about to <strong style="text-transform:uppercase">delete all plugin data</strong> from the database including backups.', 'vergelabs-media-library' ) ) . '</p>',
+        'cleanup_warning_text_p2' => '<p>' . esc_html__( 'This cannot be undone.', 'vergelabs-media-library') . '</p>',
         'cleanup_warning_yes' => __( 'Yes, delete all data', 'vergelabs-media-library' ),
         'in_progress_cleanup_text' => __( 'Cleaning...', 'vergelabs-media-library' ),
         'cancel' => __( 'Cancel', 'vergelabs-media-library' ),
@@ -2132,10 +2132,10 @@ function vergeml_print_media_library_options() {
     <div id="vergeml-media-library-options-wrap" class="wrap eml-options">
 
         <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Library settings', 'vergelabs-media-library' ),
             __( 'Ordering, filters, search and uploads on the media screen.', 'vergelabs-media-library' )
-        );
+        ), vergeml_kses_allowed() );
         ?>
 
 
@@ -2644,10 +2644,10 @@ function vergeml_print_taxonomies_options() {
     <div id="vergeml-global-options-wrap" class="wrap eml-options">
 
         <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Folders and categories', 'vergelabs-media-library' ),
             __( 'Which categories act as folders, and which other taxonomies apply to media.', 'vergelabs-media-library' )
-        );
+        ), vergeml_kses_allowed() );
         ?>
 
         <?php
@@ -2756,9 +2756,9 @@ function vergeml_print_taxonomies_options() {
                                         else
                                             $li_class = 'wpuxss-non-eml-taxonomy';
 
-                                        $html .= '<li class="' . $li_class . '" id="' . esc_attr($taxonomy->name) . '">';
+                                        $html .= '<li class="' . esc_attr( $li_class ) . '" id="' . esc_attr($taxonomy->name) . '">';
 
-                                        $html .= '<input name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][eml_media]" type="hidden" value="' . $eml_media . '" />';
+                                        $html .= '<input name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][eml_media]" type="hidden" value="' . esc_attr( (int) $eml_media ) . '" />';
                                         /*
                                          *  This form carries the whole taxonomy.
                                          *
@@ -2767,36 +2767,36 @@ function vergeml_print_taxonomies_options() {
                                          *  posting a partial taxonomy switched off everything it did not mention.
                                          */
                                         $html .= '<input name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][_full]" type="hidden" value="1" />';
-                                        $html .= '<label><input class="vergeml-assigned" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][assigned]" type="checkbox" value="1" ' . checked( true, $assigned, false ) . ' title="' . __('Assign Taxonomy','vergelabs-media-library') . '" />' . esc_html($taxonomy->label) . '</label>';
-                                        $html .= '<a class="vergeml-button-edit" title="' . __('Edit Taxonomy','vergelabs-media-library') . '" href="javascript:;">' . __('Edit','vergelabs-media-library') . ' &darr;</a>';
+                                        $html .= '<label><input class="vergeml-assigned" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][assigned]" type="checkbox" value="1" ' . checked( true, $assigned, false ) . ' title="' . esc_attr__('Assign Taxonomy','vergelabs-media-library') . '" />' . esc_html($taxonomy->label) . '</label>';
+                                        $html .= '<a class="vergeml-button-edit" title="' . esc_attr__('Edit Taxonomy','vergelabs-media-library') . '" href="#">' . esc_html__('Edit','vergelabs-media-library') . ' &darr;</a>';
 
                                         if ( $eml_media ) {
 
-                                            $html .= '<a class="vergeml-button-remove" title="' . __('Delete Taxonomy','vergelabs-media-library') . '" href="javascript:;">&ndash;</a>';
+                                            $html .= '<a class="vergeml-button-remove" title="' . esc_attr__('Delete Taxonomy','vergelabs-media-library') . '" href="#">&ndash;</a>';
 
                                             $html .= '<div class="vergeml-taxonomy-edit" style="display:none;">';
 
                                             $html .= '<div class="vergeml-labels-edit">';
-                                            $html .= '<h4>' . __('Labels','vergelabs-media-library') . '</h4>';
+                                            $html .= '<h4>' . esc_html__('Labels','vergelabs-media-library') . '</h4>';
                                             $html .= '<ul>';
-                                            $html .= '<li><label>' . __('Singular','vergelabs-media-library') . '</label><input type="text" class="vergeml-singular_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][singular_name]" value="' . esc_html($taxonomy->labels->singular_name) . '" /></li>';
-                                            $html .= '<li><label>' . __('Plural','vergelabs-media-library') . '</label><input type="text" class="vergeml-name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][name]" value="' . esc_html($taxonomy->labels->name) . '" /></li>';
-                                            $html .= '<li><label>' . __('Menu Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-menu_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][menu_name]" value="' . esc_html($taxonomy->labels->menu_name) . '" /></li>';
-                                            $html .= '<li><label>' . __('All','vergelabs-media-library') . '</label><input type="text" class="vergeml-all_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][all_items]" value="' . esc_html($taxonomy->labels->all_items) . '" /></li>';
-                                            $html .= '<li><label>' . __('Edit','vergelabs-media-library') . '</label><input type="text" class="vergeml-edit_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][edit_item]" value="' . esc_html($taxonomy->labels->edit_item) . '" /></li>';
-                                            $html .= '<li><label>' . __('View','vergelabs-media-library') . '</label><input type="text" class="vergeml-view_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][view_item]" value="' . esc_html($taxonomy->labels->view_item) . '" /></li>';
-                                            $html .= '<li><label>' . __('Update','vergelabs-media-library') . '</label><input type="text" class="vergeml-update_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][update_item]" value="' . esc_html($taxonomy->labels->update_item) . '" /></li>';
-                                            $html .= '<li><label>' . __('Add New','vergelabs-media-library') . '</label><input type="text" class="vergeml-add_new_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][add_new_item]" value="' . esc_html($taxonomy->labels->add_new_item) . '" /></li>';
-                                            $html .= '<li><label>' . __('New','vergelabs-media-library') . '</label><input type="text" class="vergeml-new_item_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][new_item_name]" value="' . esc_html($taxonomy->labels->new_item_name) . '" /></li>';
-                                            $html .= '<li><label>' . __('Parent','vergelabs-media-library') . '</label><input type="text" class="vergeml-parent_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][parent_item]" value="' . esc_html($taxonomy->labels->parent_item) . '" /></li>';
-                                            $html .= '<li><label>' . __('Search','vergelabs-media-library') . '</label><input type="text" class="vergeml-search_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][search_items]" value="' . esc_html($taxonomy->labels->search_items) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Singular','vergelabs-media-library') . '</label><input type="text" class="vergeml-singular_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][singular_name]" value="' . esc_html($taxonomy->labels->singular_name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Plural','vergelabs-media-library') . '</label><input type="text" class="vergeml-name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][name]" value="' . esc_html($taxonomy->labels->name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Menu Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-menu_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][menu_name]" value="' . esc_html($taxonomy->labels->menu_name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('All','vergelabs-media-library') . '</label><input type="text" class="vergeml-all_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][all_items]" value="' . esc_html($taxonomy->labels->all_items) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Edit','vergelabs-media-library') . '</label><input type="text" class="vergeml-edit_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][edit_item]" value="' . esc_html($taxonomy->labels->edit_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('View','vergelabs-media-library') . '</label><input type="text" class="vergeml-view_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][view_item]" value="' . esc_html($taxonomy->labels->view_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Update','vergelabs-media-library') . '</label><input type="text" class="vergeml-update_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][update_item]" value="' . esc_html($taxonomy->labels->update_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Add New','vergelabs-media-library') . '</label><input type="text" class="vergeml-add_new_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][add_new_item]" value="' . esc_html($taxonomy->labels->add_new_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('New','vergelabs-media-library') . '</label><input type="text" class="vergeml-new_item_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][new_item_name]" value="' . esc_html($taxonomy->labels->new_item_name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Parent','vergelabs-media-library') . '</label><input type="text" class="vergeml-parent_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][parent_item]" value="' . esc_html($taxonomy->labels->parent_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Search','vergelabs-media-library') . '</label><input type="text" class="vergeml-search_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][search_items]" value="' . esc_html($taxonomy->labels->search_items) . '" /></li>';
                                             $html .= '</ul>';
                                             $html .= '</div>';
 
                                             $html .= '<div class="vergeml-settings-edit">';
-                                            $html .= '<h4>' . __('Settings','vergelabs-media-library') . '</h4>';
+                                            $html .= '<h4>' . esc_html__('Settings','vergelabs-media-library') . '</h4>';
                                             $html .= '<ul>';
-                                            $html .= '<li><label>' . __('Taxonomy Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-taxonomy-name" name="" value="' . esc_attr($taxonomy->name) . '" disabled="disabled" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Taxonomy Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-taxonomy-name" name="" value="' . esc_attr($taxonomy->name) . '" disabled="disabled" /></li>';
                                             /*
                                              *  These four read the stored setting, not the registered taxonomy.
                                              *
@@ -2812,16 +2812,16 @@ function vergeml_print_taxonomies_options() {
                                              *  then rendered unchecked, saving again kept it off. There was no way back
                                              *  from inside the interface.
                                              */
-                                            $html .= '<li><label>' . __('Hierarchical','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-hierarchical" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][hierarchical]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['hierarchical'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Column for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_admin_column" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_admin_column]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['show_admin_column'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Filter for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Edit in Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Remember Terms Order (sort)','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-sort" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][sort]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['sort'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Show in REST','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_in_rest" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_in_rest]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['show_in_rest'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Also use for','vergelabs-media-library') . '</label>' . vergeml_folder_post_types_field( $taxonomy->name ) . '</li>';
-                                            $html .= '<li><label>' . __('Rewrite Slug','vergelabs-media-library') . '</label><input type="text" class="vergeml-slug" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][rewrite][slug]" value="' . esc_attr($vergeml_taxonomies[$taxonomy->name]['rewrite']['slug']) . '" /></li>';
-                                            $html .= '<li><label>' . __('Slug with Front','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-with_front" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][rewrite][with_front]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['rewrite']['with_front'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Hierarchical','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-hierarchical" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][hierarchical]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['hierarchical'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Column for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_admin_column" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_admin_column]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['show_admin_column'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Filter for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Edit in Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Remember Terms Order (sort)','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-sort" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][sort]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['sort'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Show in REST','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_in_rest" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_in_rest]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['show_in_rest'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Also use for','vergelabs-media-library') . '</label>' . wp_kses( vergeml_folder_post_types_field( $taxonomy->name ), vergeml_kses_allowed() ) . '</li>';
+                                            $html .= '<li><label>' . esc_html__('Rewrite Slug','vergelabs-media-library') . '</label><input type="text" class="vergeml-slug" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][rewrite][slug]" value="' . esc_attr($vergeml_taxonomies[$taxonomy->name]['rewrite']['slug']) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Slug with Front','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-with_front" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][rewrite][with_front]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['rewrite']['with_front'], false ) . ' /></li>';
                                             $html .= '</ul>';
                                             $html .= '</div>';
 
@@ -2832,11 +2832,11 @@ function vergeml_print_taxonomies_options() {
                                             $html .= '<div class="vergeml-taxonomy-edit" style="display:none;">';
 
                                             $html .= '<div class="vergeml-settings-edit">';
-                                            $html .= '<h4>' . __('Settings','vergelabs-media-library') . '</h4>';
+                                            $html .= '<h4>' . esc_html__('Settings','vergelabs-media-library') . '</h4>';
                                             $html .= '<ul>';
-                                            $html .= '<li><label>' . __('Filter for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Edit in Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Filter for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Edit in Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /></li>';
                                             $html .= '</ul>';
                                             $html .= '</div>';
                                             $html .= '</div>';
@@ -2848,42 +2848,42 @@ function vergeml_print_taxonomies_options() {
                                 $html .= '<li class="vergeml-clone" style="display:none">';
                                 $html .= '<input name="" type="hidden" class="vergeml-eml_media" value="1" />';
                                 $html .= '<input name="" type="hidden" class="vergeml-create_taxonomy" value="1" />';
-                                $html .= '<label class="vergeml-taxonomy-label"><input class="vergeml-assigned" name="" type="checkbox" class="vergeml-assigned" value="1" checked="checked" title="' . __('Assign Taxonomy','vergelabs-media-library') . '" />' . '<span>' . __('New Taxonomy','vergelabs-media-library') . '</span></label>';
+                                $html .= '<label class="vergeml-taxonomy-label"><input class="vergeml-assigned" name="" type="checkbox" class="vergeml-assigned" value="1" checked="checked" title="' . esc_attr__('Assign Taxonomy','vergelabs-media-library') . '" />' . '<span>' . esc_html__('New Taxonomy','vergelabs-media-library') . '</span></label>';
 
-                                $html .= '<a class="vergeml-button-remove" title="' . __('Delete Taxonomy','vergelabs-media-library') . '" href="javascript:;">&ndash;</a>';
+                                $html .= '<a class="vergeml-button-remove" title="' . esc_attr__('Delete Taxonomy','vergelabs-media-library') . '" href="#">&ndash;</a>';
 
                                 $html .= '<div class="vergeml-taxonomy-edit">';
 
                                 $html .= '<div class="vergeml-labels-edit">';
-                                $html .= '<h4>' . __('Labels','vergelabs-media-library') . '</h4>';
+                                $html .= '<h4>' . esc_html__('Labels','vergelabs-media-library') . '</h4>';
                                 $html .= '<ul>';
-                                $html .= '<li><label>' . __('Singular','vergelabs-media-library') . '</label><input type="text" class="vergeml-singular_name" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Plural','vergelabs-media-library') . '</label><input type="text" class="vergeml-name" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Menu Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-menu_name" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('All','vergelabs-media-library') . '</label><input type="text" class="vergeml-all_items" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Edit','vergelabs-media-library') . '</label><input type="text" class="vergeml-edit_item" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('View','vergelabs-media-library') . '</label><input type="text" class="vergeml-view_item" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Update','vergelabs-media-library') . '</label><input type="text" class="vergeml-update_item" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Add New','vergelabs-media-library') . '</label><input type="text" class="vergeml-add_new_item" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('New','vergelabs-media-library') . '</label><input type="text" class="vergeml-new_item_name" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Parent','vergelabs-media-library') . '</label><input type="text" class="vergeml-parent_item" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Search','vergelabs-media-library') . '</label><input type="text" class="vergeml-search_items" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Singular','vergelabs-media-library') . '</label><input type="text" class="vergeml-singular_name" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Plural','vergelabs-media-library') . '</label><input type="text" class="vergeml-name" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Menu Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-menu_name" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('All','vergelabs-media-library') . '</label><input type="text" class="vergeml-all_items" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Edit','vergelabs-media-library') . '</label><input type="text" class="vergeml-edit_item" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('View','vergelabs-media-library') . '</label><input type="text" class="vergeml-view_item" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Update','vergelabs-media-library') . '</label><input type="text" class="vergeml-update_item" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Add New','vergelabs-media-library') . '</label><input type="text" class="vergeml-add_new_item" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('New','vergelabs-media-library') . '</label><input type="text" class="vergeml-new_item_name" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Parent','vergelabs-media-library') . '</label><input type="text" class="vergeml-parent_item" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Search','vergelabs-media-library') . '</label><input type="text" class="vergeml-search_items" name="" value="" /></li>';
                                 $html .= '</ul>';
                                 $html .= '</div>';
 
                                 $html .= '<div class="vergeml-settings-edit">';
-                                $html .= '<h4>' . __('Settings','vergelabs-media-library') . '</h4>';
+                                $html .= '<h4>' . esc_html__('Settings','vergelabs-media-library') . '</h4>';
                                 $html .= '<ul>';
-                                $html .= '<li><label>' . __('Taxonomy Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-taxonomy-name" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Hierarchical','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-hierarchical" name="" value="1" checked="checked" /></li>';
-                                $html .= '<li><label>' . __('Column for List View','vergelabs-media-library') . '</label><input class="vergeml-show_admin_column" type="checkbox" name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Filter for List View','vergelabs-media-library') . '</label><input class="vergeml-admin_filter" type="checkbox"  name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input class="vergeml-media_uploader_filter" type="checkbox" name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Edit in Media Popup','vergelabs-media-library') . '</label><input class="vergeml-media_popup_taxonomy_edit" type="checkbox" name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Remember Terms Order (sort)','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-sort" name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Show in REST','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_in_rest" name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Rewrite Slug','vergelabs-media-library') . '</label><input type="text" class="vergeml-slug" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Slug with Front','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-with_front" name="" value="1" checked="checked" /></li>';
+                                $html .= '<li><label>' . esc_html__('Taxonomy Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-taxonomy-name" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Hierarchical','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-hierarchical" name="" value="1" checked="checked" /></li>';
+                                $html .= '<li><label>' . esc_html__('Column for List View','vergelabs-media-library') . '</label><input class="vergeml-show_admin_column" type="checkbox" name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Filter for List View','vergelabs-media-library') . '</label><input class="vergeml-admin_filter" type="checkbox"  name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input class="vergeml-media_uploader_filter" type="checkbox" name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Edit in Media Popup','vergelabs-media-library') . '</label><input class="vergeml-media_popup_taxonomy_edit" type="checkbox" name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Remember Terms Order (sort)','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-sort" name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Show in REST','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_in_rest" name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Rewrite Slug','vergelabs-media-library') . '</label><input type="text" class="vergeml-slug" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Slug with Front','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-with_front" name="" value="1" checked="checked" /></li>';
                                 $html .= '</ul>';
                                 $html .= '</div>';
 
@@ -2894,8 +2894,7 @@ function vergeml_print_taxonomies_options() {
 
                                     <ul class="vergeml-settings-list vergeml-media-taxonomy-list">
                                         <?php
-                                        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- assembled above from esc_attr() and esc_html() parts plus literal form markup, which wp_kses would strip.
-                                        echo $html;
+                                        echo wp_kses( $html, vergeml_kses_allowed() );
                                         ?>
                                     </ul>
                                     <div class="vergeml-button-container-right"><a class="vgml-btn vgml-btn-ghost vergeml-button-create-taxonomy" href="javascript:;">+ <?php esc_html_e( 'Add a new taxonomy', 'vergelabs-media-library' ); ?></a></div>
@@ -2947,15 +2946,15 @@ function vergeml_print_taxonomies_options() {
 
                                                 $html .= '<li class="wpuxss-non-eml-taxonomy" id="' . esc_attr($taxonomy->name) . '">';
                                                 $html .= '<input name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][eml_media]" type="hidden" value="' . esc_attr($vergeml_taxonomies[$taxonomy->name]['eml_media']) . '" />';
-                                                $html .= '<label><input class="vergeml-assigned" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][assigned]" type="checkbox" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['assigned'], false ) . ' title="' . __('Assign Taxonomy','vergelabs-media-library') . '" />' . esc_html($taxonomy->label) . '</label>';
-                                                $html .= '<a class="vergeml-button-edit" title="' . __('Edit Taxonomy','vergelabs-media-library') . '" href="javascript:;">' . __('Edit','vergelabs-media-library') . ' &darr;</a>';
+                                                $html .= '<label><input class="vergeml-assigned" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][assigned]" type="checkbox" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['assigned'], false ) . ' title="' . esc_attr__('Assign Taxonomy','vergelabs-media-library') . '" />' . esc_html($taxonomy->label) . '</label>';
+                                                $html .= '<a class="vergeml-button-edit" title="' . esc_attr__('Edit Taxonomy','vergelabs-media-library') . '" href="#">' . esc_html__('Edit','vergelabs-media-library') . ' &darr;</a>';
                                                 $html .= '<div class="vergeml-taxonomy-edit" style="display:none;">';
 
-                                                $html .= '<h4>' . __('Settings','vergelabs-media-library') . '</h4>';
+                                                $html .= '<h4>' . esc_html__('Settings','vergelabs-media-library') . '</h4>';
                                                 $html .= '<ul>';
-                                                $html .= '<li><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-admin_filter" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-admin_filter">' . __('Filter for List View','vergelabs-media-library') . '</label></li>';
-                                                $html .= '<li><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_uploader_filter" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_uploader_filter">' . __('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label></li>';
-                                                $html .= '<li><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_popup_taxonomy_edit" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_popup_taxonomy_edit">' . __('Edit in Media Popup','vergelabs-media-library') . '</label></li>';
+                                                $html .= '<li><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-admin_filter" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-admin_filter">' . esc_html__('Filter for List View','vergelabs-media-library') . '</label></li>';
+                                                $html .= '<li><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_uploader_filter" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_uploader_filter">' . esc_html__('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label></li>';
+                                                $html .= '<li><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_popup_taxonomy_edit" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_popup_taxonomy_edit">' . esc_html__('Edit in Media Popup','vergelabs-media-library') . '</label></li>';
 
                                                 /*
                                                  *  Auto-assign. This used to be greyed out and labelled
@@ -2997,8 +2996,7 @@ function vergeml_print_taxonomies_options() {
                                                 <h4><?php echo esc_html($post_type->label); ?></h4>
                                                 <ul class="vergeml-settings-list vergeml-non-media-taxonomy-list">
                                                     <?php
-                                                    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- assembled above from esc_attr() and esc_html() parts plus literal form markup, which wp_kses would strip.
-                                                    echo $html;
+                                                    echo wp_kses( $html, vergeml_kses_allowed() );
                                                     ?>
                                                 </ul>
 
@@ -3139,12 +3137,12 @@ function vergeml_print_mimetypes_options() {
     <div id="vergeml-global-options-wrap" class="wrap eml-options">
 
         <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'File types', 'vergelabs-media-library' ),
             __( 'What may be uploaded, and how each type is labelled and filtered.', 'vergelabs-media-library' ),
             '<button type="button" class="button" id="eml-restore-mime-types-settings" name="eml-restore-mime-types-settings" value="1">' . esc_html__( 'Restore WordPress defaults', 'vergelabs-media-library' ) . '</button>'
-                . '<a class="button button-primary vergeml-button-create-mime" href="javascript:;">' . esc_html__( 'Add a file type', 'vergelabs-media-library' ) . '</a>'
-        );
+                . '<a class="button button-primary vergeml-button-create-mime" href="#">' . esc_html__( 'Add a file type', 'vergelabs-media-library' ) . '</a>'
+        ), vergeml_kses_allowed() );
         ?>
         <p class="vgml-ft-safety"><?php esc_html_e( 'WordPress role restrictions still apply to allowed types. SVG can carry scripts — keep it off unless a sanitizer plugin is installed and you trust the uploader with HTML.', 'vergelabs-media-library' ); ?></p>
 

@@ -205,7 +205,7 @@ function vergeml_ai_page() {
             );
         }
 
-        echo vergeml_pg_head( __( 'AI', 'vergelabs-media-library' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head( __( 'AI', 'vergelabs-media-library' ) ), vergeml_kses_allowed() );
         ?>
         <p class="vgml-ai-factsline" id="vgml-ai-counts"><?php echo esc_html( vergeml_ai_facts_line( $counts ) ); ?></p>
 

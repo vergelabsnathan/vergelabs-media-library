@@ -124,6 +124,67 @@ function vergeml_inline_script( $handle, $js ) {
 
 
 /*
+ *  The allow-list for wp_kses() where a helper's markup is printed.
+ *
+ *  The screens are drawn by helpers that return HTML -- a page head, a card,
+ *  a settings row -- each escaping its own parts. Printing their result
+ *  through wp_kses keeps that promise at the echo as well: the post allow-list,
+ *  plus the form controls and the inline SVG icons (core/icons.php) the
+ *  screens are made of, and the image attributes core's own image markup
+ *  carries.
+ */
+function vergeml_kses_allowed() {
+
+    static $allowed = null;
+
+    if ( null !== $allowed ) {
+        return $allowed;
+    }
+
+    $global = array( 'class' => true, 'id' => true, 'style' => true, 'title' => true, 'role' => true, 'hidden' => true, 'tabindex' => true, 'data-*' => true, 'aria-*' => true, 'aria-hidden' => true, 'aria-label' => true, 'aria-labelledby' => true, 'aria-describedby' => true, 'aria-expanded' => true, 'aria-controls' => true, 'aria-current' => true, 'aria-pressed' => true, 'aria-live' => true, 'dir' => true, 'lang' => true );
+
+    $extra = array(
+        'form'     => array( 'action' => true, 'method' => true, 'enctype' => true, 'name' => true, 'target' => true ),
+        'input'    => array( 'type' => true, 'name' => true, 'value' => true, 'checked' => true, 'disabled' => true, 'readonly' => true, 'placeholder' => true, 'min' => true, 'max' => true, 'step' => true, 'size' => true, 'maxlength' => true, 'autocomplete' => true, 'required' => true, 'multiple' => true, 'accept' => true, 'pattern' => true, 'list' => true ),
+        'select'   => array( 'name' => true, 'multiple' => true, 'size' => true, 'disabled' => true, 'required' => true, 'autocomplete' => true ),
+        'option'   => array( 'value' => true, 'selected' => true, 'disabled' => true, 'label' => true ),
+        'optgroup' => array( 'label' => true, 'disabled' => true ),
+        'button'   => array( 'type' => true, 'name' => true, 'value' => true, 'disabled' => true, 'form' => true ),
+        'textarea' => array( 'name' => true, 'rows' => true, 'cols' => true, 'readonly' => true, 'disabled' => true, 'placeholder' => true, 'maxlength' => true ),
+        'label'    => array( 'for' => true ),
+        'fieldset' => array( 'disabled' => true, 'name' => true ),
+        'legend'   => array(),
+        'details'  => array( 'open' => true, 'name' => true ),
+        'summary'  => array(),
+        'progress' => array( 'value' => true, 'max' => true ),
+        'meter'    => array( 'value' => true, 'min' => true, 'max' => true, 'low' => true, 'high' => true, 'optimum' => true ),
+        'time'     => array( 'datetime' => true ),
+        'img'      => array( 'src' => true, 'srcset' => true, 'sizes' => true, 'alt' => true, 'width' => true, 'height' => true, 'loading' => true, 'decoding' => true, 'fetchpriority' => true ),
+        'svg'      => array( 'width' => true, 'height' => true, 'viewbox' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true, 'focusable' => true, 'xmlns' => true ),
+        'g'        => array( 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'transform' => true, 'opacity' => true ),
+        'path'     => array( 'd' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true, 'opacity' => true, 'fill-rule' => true, 'clip-rule' => true, 'transform' => true ),
+        'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true, 'fill' => true, 'stroke' => true, 'opacity' => true, 'transform' => true ),
+        'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true, 'fill' => true, 'stroke' => true, 'opacity' => true ),
+        'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true, 'stroke' => true, 'stroke-width' => true ),
+        'polyline' => array( 'points' => true, 'fill' => true, 'stroke' => true ),
+        'polygon'  => array( 'points' => true, 'fill' => true, 'stroke' => true ),
+    );
+
+    $allowed = wp_kses_allowed_html( 'post' );
+
+    foreach ( $extra as $tag => $attrs ) {
+        $allowed[ $tag ] = array_merge( isset( $allowed[ $tag ] ) ? $allowed[ $tag ] : array(), $global, $attrs );
+    }
+
+    foreach ( $allowed as $tag => $attrs ) {
+        $allowed[ $tag ] = array_merge( $global, (array) $attrs );
+    }
+
+    return $allowed;
+}
+
+
+/*
  *  Loaded before anything else, so the handler is watching while the code it
  *  guards is running. See core/watchdog.php for what it does and does not do.
  */
@@ -873,7 +934,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
                 ob_start();
 
-                    wp_terms_checklist( 0, array( 'taxonomy' => $taxonomy->name, 'checked_ontop' => false, 'walker' => new Walker_Media_Taxonomy_Uploader_Filter() ) );
+                    wp_terms_checklist( 0, array( 'taxonomy' => $taxonomy->name, 'checked_ontop' => false, 'walker' => new vergeml_Walker_Media_Taxonomy_Uploader_Filter() ) );
 
                     $html = '';
                     if ( ob_get_contents() != false ) {
@@ -1388,10 +1449,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         $settings_page = is_network_admin() ? 'settings.php' : 'options-general.php';
 
         if ( ! is_network_admin() ) {
-            $custom_links['settings'] = '<a href="' . self_admin_url($settings_page.'?page=media') . '">' . __( 'Media Settings', 'vergelabs-media-library' ) . '</a>';
+            $custom_links['settings'] = '<a href="' . esc_url( self_admin_url( $settings_page . '?page=media' ) ) . '">' . esc_html__( 'Media Settings', 'vergelabs-media-library' ) . '</a>';
         }
 
-        $custom_links['utility'] = '<a href="' . self_admin_url($settings_page.'?page=eml-settings') . '">' . __( 'Utilities', 'vergelabs-media-library' ) . '</a>';
+        $custom_links['utility'] = '<a href="' . esc_url( self_admin_url( $settings_page . '?page=eml-settings' ) ) . '">' . esc_html__( 'Utilities', 'vergelabs-media-library' ) . '</a>';
 
         return array_merge( $custom_links, $actions );
     }

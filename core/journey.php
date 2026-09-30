@@ -1273,11 +1273,11 @@ function vergeml_journey_screen() {
             }
         }
 
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Your media library', 'vergelabs-media-library' ),
             __( 'Where things stand, and what to do next.', 'vergelabs-media-library' ),
             $meta
-        );
+        ), vergeml_kses_allowed() );
         ?>
 
         <?php
@@ -1566,7 +1566,7 @@ function vergeml_journey_screen() {
                             <?php endif; ?>
 
                                 <span class="vgml-quick-ico"><?php
-                                    echo function_exists( 'vergeml_icon' ) ? vergeml_icon( $act['icon'], 18 ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal SVG.
+                                    echo wp_kses( function_exists( 'vergeml_icon' ) ? vergeml_icon( $act['icon'], 18 ) : '', vergeml_kses_allowed() );
                                 ?></span>
                                 <span class="vgml-quick-text">
                                     <span class="vgml-quick-label"><?php echo esc_html( $act['label'] ); ?></span>

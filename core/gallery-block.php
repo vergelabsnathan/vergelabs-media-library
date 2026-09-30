@@ -268,7 +268,7 @@ function vergeml_render_gallery_block( $attributes ) {
 
         if ( 'file' === $link_to ) {
             $href = wp_get_attachment_url( $image->ID );
-            $img  = '<a href="' . esc_url( $href ) . '">' . $img . '</a>';
+            $img  = '<a href="' . esc_url( $href ) . '">' . wp_kses( $img, vergeml_kses_allowed() ) . '</a>';
         } elseif ( 'lightbox' === $link_to ) {
             /*
              *  An ordinary link to the full-size file, marked for the script to
@@ -277,9 +277,9 @@ function vergeml_render_gallery_block( $attributes ) {
              *  working link, never the only way to the image.
              */
             $href = wp_get_attachment_url( $image->ID );
-            $img  = '<a class="vgml-lightbox" href="' . esc_url( $href ) . '">' . $img . '</a>';
+            $img  = '<a class="vgml-lightbox" href="' . esc_url( $href ) . '">' . wp_kses( $img, vergeml_kses_allowed() ) . '</a>';
         } elseif ( 'post' === $link_to ) {
-            $img = '<a href="' . esc_url( get_permalink( $image->ID ) ) . '">' . $img . '</a>';
+            $img = '<a href="' . esc_url( get_permalink( $image->ID ) ) . '">' . wp_kses( $img, vergeml_kses_allowed() ) . '</a>';
         }
 
         $caption = wp_get_attachment_caption( $image->ID );
@@ -288,7 +288,7 @@ function vergeml_render_gallery_block( $attributes ) {
             $img .= '<figcaption class="wp-element-caption">' . wp_kses_post( $caption ) . '</figcaption>';
         }
 
-        $items .= '<figure class="wp-block-image size-' . esc_attr( $size ) . '">' . $img . '</figure>';
+        $items .= '<figure class="wp-block-image size-' . esc_attr( $size ) . '">' . wp_kses( $img, vergeml_kses_allowed() ) . '</figure>';
     }
 
     if ( '' === $items ) {
@@ -313,9 +313,6 @@ function vergeml_render_gallery_block( $attributes ) {
         ? '--vgml-slide:calc((100% - ' . ( ( $columns - 1 ) * 16 ) . 'px)/' . $columns . ');'
         : '--vgml-columns:' . (int) $columns . ';';
 
-    $wrapper = function_exists( 'get_block_wrapper_attributes' )
-        ? get_block_wrapper_attributes( array_filter( array( 'class' => $classes, 'style' => $style ) ) )
-        : 'class="' . esc_attr( $classes ) . '"' . ( $style ? ' style="' . esc_attr( $style ) . '"' : '' );
 
     /*
      *  The stylesheet rides along with every render. It used to come only for
@@ -331,7 +328,14 @@ function vergeml_render_gallery_block( $attributes ) {
         wp_enqueue_script( 'vergeml-gallery' );
     }
 
-    return '<figure ' . $wrapper . '>' . $items . '</figure>';
+    // The wrapper's attributes come escaped from core, or from esc_attr(); $items was escaped piece by piece as it was built.
+    $out  = '<figure ' . ( function_exists( 'get_block_wrapper_attributes' )
+        ? get_block_wrapper_attributes( array_filter( array( 'class' => $classes, 'style' => $style ) ) )
+        : 'class="' . esc_attr( $classes ) . '"' . ( $style ? ' style="' . esc_attr( $style ) . '"' : '' ) ) . '>';
+    $out .= $items;
+    $out .= '</figure>';
+
+    return $out;
 }
 
 

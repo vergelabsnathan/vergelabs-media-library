@@ -142,14 +142,14 @@ function vergeml_licence_page() {
     <div class="wrap vgml-home vgml-licence">
 
         <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Licence', 'vergelabs-media-library' ),
             __( 'This site\'s connection to VergeLabs. Images go to the service only to be described; nothing else leaves your site.', 'vergelabs-media-library' ),
             '<a class="button" href="https://vergelabsmedia.com/account" target="_blank" rel="noopener">' . esc_html__( 'Your account ↗', 'vergelabs-media-library' ) . '</a>'
                 . '<a class="button button-primary" href="' . esc_url( vergeml_buy_url( '/pricing', 'licence' ) ) . '" target="_blank" rel="noopener">' . esc_html__( 'Get credits ↗', 'vergelabs-media-library' ) . '</a>'
-        );
+        ), vergeml_kses_allowed() );
 
-        echo '<div class="vgml-status-band">' . $band . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
+        echo wp_kses( '<div class="vgml-status-band">' . $band . '</div>', vergeml_kses_allowed() );
 
         if ( isset( $_GET['vergeml_licence'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a notice after a redirect, no action taken.
             $r = sanitize_key( wp_unslash( $_GET['vergeml_licence'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -173,29 +173,29 @@ function vergeml_licence_page() {
         echo '<section class="vgml-pg-card vgml-licence-rows"><div class="vgml-pg-card-body is-rows">';
 
         if ( $connected ) {
-            echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            echo wp_kses( vergeml_pg_row(
                 __( 'Licence', 'vergelabs-media-library' ),
                 '',
                 '…' . esc_html( substr( $key, -4 ) ) . ' <span class="vgml-muted">— ' . esc_html( $network
                     ? __( 'set by the network administrator for every site.', 'vergelabs-media-library' )
                     : __( 'the last four characters match what your account page shows.', 'vergelabs-media-library' ) ) . '</span>'
-            );
-            echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            ), vergeml_kses_allowed() );
+            echo wp_kses( vergeml_pg_row(
                 __( 'Plan', 'vergelabs-media-library' ),
                 '',
                 esc_html( '' === $plan_name ? '—' : $plan_name )
-            );
-            echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            ), vergeml_kses_allowed() );
+            echo wp_kses( vergeml_pg_row(
                 __( 'Credits', 'vergelabs-media-library' ),
                 '',
                 esc_html( null === $left ? '—' : number_format_i18n( $left ) ) . ' <span class="vgml-muted">— ' . esc_html( ( 'ok' !== $state && function_exists( 'vergeml_ai_credits_warning' ) && '' !== (string) vergeml_ai_credits_warning() )
                     ? (string) vergeml_ai_credits_warning()
                     : __( 'one describes one picture.', 'vergelabs-media-library' ) ) . '</span>'
-            );
+            ), vergeml_kses_allowed() );
         }
 
         if ( ! $locked ) {
-            echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            echo wp_kses( vergeml_pg_row(
                 $connected ? __( 'Change licence', 'vergelabs-media-library' ) : __( 'Connect', 'vergelabs-media-library' ),
                 $connected
                     ? __( 'Sign in at vergelabsmedia.com, pick another licence, and you are brought straight back. The old licence gets its seat back.', 'vergelabs-media-library' )
@@ -204,7 +204,7 @@ function vergeml_licence_page() {
                     ? '<a class="button' . ( $connected ? '' : ' button-primary' ) . '" href="' . esc_url( $connect ) . '">'
                         . esc_html( $connected ? __( 'Connect a different licence', 'vergelabs-media-library' ) : __( 'Connect to VergeLabs', 'vergelabs-media-library' ) ) . '</a>'
                     : ''
-            );
+            ), vergeml_kses_allowed() );
         }
 
         echo '</div></section>';
@@ -261,11 +261,11 @@ function vergeml_licence_page() {
             </form>
             <?php
         else :
-            echo vergeml_pg_card_open( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            echo wp_kses( vergeml_pg_card_open(
                 __( 'Set for the network', 'vergelabs-media-library' ),
                 array( 'note' => __( 'The network administrator set one licence for every site and locked it. Change it under Network Admin → Media.', 'vergelabs-media-library' ) )
-            );
-            echo vergeml_pg_card_close(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal markup.
+            ), vergeml_kses_allowed() );
+            echo wp_kses( vergeml_pg_card_close(), vergeml_kses_allowed() );
         endif;
 
         if ( ! $connected ) :

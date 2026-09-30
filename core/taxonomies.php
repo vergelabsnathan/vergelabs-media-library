@@ -648,15 +648,13 @@ function vergeml_dropdown_cats( $output, $r ) {
     if ( isset( $r['show_option_in'] ) && $r['show_option_in'] ) {
 
         $show_option_in = $r['show_option_in'];
-        $selected = ( isset($r['selected']) && 'in' === strval($r['selected']) ) ? " selected='selected'" : '';
-        $new_output .= "\t<option value='in'{$selected}>" . esc_html($show_option_in) . "</option>\n";
+        $new_output .= "\t<option value='in'" . selected( isset( $r['selected'] ) && 'in' === strval( $r['selected'] ), true, false ) . '>' . esc_html($show_option_in) . "</option>\n";
     }
 
     if ( isset( $r['show_option_not_in'] ) && $r['show_option_not_in'] ) {
 
         $show_option_not_in = $r['show_option_not_in'];
-        $selected = ( isset($r['selected']) && 'not_in' === strval($r['selected']) ) ? " selected='selected'" : '';
-        $new_output .= "\t<option value='not_in'{$selected}>" . esc_html($show_option_not_in) . "</option>\n";
+        $new_output .= "\t<option value='not_in'" . selected( isset( $r['selected'] ) && 'not_in' === strval( $r['selected'] ), true, false ) . '>' . esc_html($show_option_not_in) . "</option>\n";
     }
 
     array_splice( $options_array, 2, 0, $new_output );
@@ -926,19 +924,18 @@ function vergeml_attachment_fields_to_edit( $form_fields, $post ) {
 
             ob_start();
 
-                wp_terms_checklist( $post->ID, array( 'taxonomy' => $taxonomy, 'checked_ontop' => false, 'walker' => new Walker_Media_Taxonomy_Checklist() ) );
+                wp_terms_checklist( $post->ID, array( 'taxonomy' => $taxonomy, 'checked_ontop' => false, 'walker' => new vergeml_Walker_Media_Taxonomy_Checklist() ) );
 
                 if ( ob_get_contents() != false ) {
-                    $html = '<ul class="term-list">' . ob_get_contents() . '</ul>';
+                    $html = '<ul class="term-list">' . wp_kses( ob_get_contents(), vergeml_kses_allowed() ) . '</ul>';
                 }
                 else {
 
-                    $not_found = sprintf(
+                    $html = '<ul class="term-list"><li>' . sprintf(
                         /* translators: %s: name of a taxonomy, for example "Media Categories" */
                         esc_html__( 'No %s found.', 'vergelabs-media-library' ),
                         esc_html( $t['label'] )
-                    );
-                    $html = '<ul class="term-list"><li>' . $not_found . ' <a href="' . esc_url( admin_url( '/edit-tags.php?taxonomy=' . $taxonomy . '&post_type=attachment' ) ) . '">' . esc_html__( 'Add some', 'vergelabs-media-library' ) . '.</a></li></ul>';
+                    ) . ' <a href="' . esc_url( admin_url( '/edit-tags.php?taxonomy=' . $taxonomy . '&post_type=attachment' ) ) . '">' . esc_html__( 'Add some', 'vergelabs-media-library' ) . '.</a></li></ul>';
                 }
 
             ob_end_clean();
@@ -979,8 +976,6 @@ class vergeml_Walker_CategoryDropdown extends Walker_CategoryDropdown {
 
         $vergeml_lib_options = get_option( 'vergeml_lib_options' );
 
-        $pad = str_repeat('&nbsp;', $depth * 3);
-
         /** This filter is documented in wp-includes/category-template.php */
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter, applied so term names render the way core does.
         $cat_name = apply_filters( 'list_cats', $category->name, $category );
@@ -991,13 +986,13 @@ class vergeml_Walker_CategoryDropdown extends Walker_CategoryDropdown {
             $value_field = 'term_id';
         }
 
-        $output .= "\t<option class=\"level-$depth\" value=\"" . esc_attr( $category->{$value_field} ) . "\"";
+        $output .= "\t<option class=\"level-" . (int) $depth . "\" value=\"" . esc_attr( $category->{$value_field} ) . "\"";
 
         // Type-juggling causes false matches, so we force everything to a string.
         if ( (string) $category->{$value_field} === (string) $args['selected'] )
             $output .= ' selected="selected"';
         $output .= '>';
-        $output .= $pad.$cat_name;
+        $output .= str_repeat( '&nbsp;', (int) $depth * 3 ) . esc_html( $cat_name );
 
 
         if ( $args['show_count'] && (bool) $vergeml_lib_options['show_count'] ) {
@@ -1070,7 +1065,7 @@ function vergeml_get_media_term_count( $term_id, $tt_id ) {
 
 
 /**
- *  Walker_Media_Taxonomy_Checklist
+ *  vergeml_Walker_Media_Taxonomy_Checklist
  *
  *  Based on /wp-includes/category-template.php
  *
@@ -1078,23 +1073,21 @@ function vergeml_get_media_term_count( $term_id, $tt_id ) {
  *  @created  09/09/13
  */
 
-if ( ! class_exists( 'Walker_Media_Taxonomy_Checklist' ) ) {
+if ( ! class_exists( 'vergeml_Walker_Media_Taxonomy_Checklist' ) ) {
 
-    class Walker_Media_Taxonomy_Checklist extends Walker {
+    class vergeml_Walker_Media_Taxonomy_Checklist extends Walker {
 
         var $tree_type = 'category';
         var $db_fields = array ('parent' => 'parent', 'id' => 'term_id');
 
         function start_lvl( &$output, $depth = 0, $args = array() ) {
 
-            $indent = str_repeat("\t", $depth);
-            $output .= "$indent<ul class='children'>\n";
+            $output .= str_repeat( "\t", (int) $depth ) . "<ul class='children'>\n";
         }
 
         function end_lvl( &$output, $depth = 0, $args = array() ) {
 
-            $indent = str_repeat("\t", $depth);
-            $output .= "$indent</ul>\n";
+            $output .= str_repeat( "\t", (int) $depth ) . "</ul>\n";
         }
 
         function start_el( &$output, $category, $depth = 0, $args = array(), $id = 0 ) {
@@ -1104,9 +1097,12 @@ if ( ! class_exists( 'Walker_Media_Taxonomy_Checklist' ) ) {
             if ( empty($taxonomy) )
                 $taxonomy = 'category';
 
-            $class = in_array( $category->term_id, $popular_cats ) ? ' class="popular-category"' : '';
-            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter, applied so term names render the way core does.
-            $output .= "\n<li id='{$taxonomy}-{$category->term_id}'$class>" . "<label class='selectit'><input value='0' type='hidden' name='tax_input[{$taxonomy}][{$category->term_id}]' /><input value='1' type='checkbox' name='tax_input[{$taxonomy}][{$category->term_id}]' id='in-{$taxonomy}-{$category->term_id}'" . checked( in_array( $category->term_id, $selected_cats ), true, false ) . disabled( empty( $args['disabled'] ), false, false ) . " />" . esc_html( apply_filters('the_category', $category->name )) . "</label>";
+            $output .= "\n<li id='" . esc_attr( $taxonomy ) . '-' . (int) $category->term_id . "'" . ( in_array( $category->term_id, $popular_cats ) ? ' class="popular-category"' : '' ) . '>'
+                . "<label class='selectit'><input value='0' type='hidden' name='tax_input[" . esc_attr( $taxonomy ) . '][' . (int) $category->term_id . "]' />"
+                . "<input value='1' type='checkbox' name='tax_input[" . esc_attr( $taxonomy ) . '][' . (int) $category->term_id . "]' id='in-" . esc_attr( $taxonomy ) . '-' . (int) $category->term_id . "'"
+                . checked( in_array( $category->term_id, $selected_cats ), true, false ) . disabled( empty( $args['disabled'] ), false, false ) . ' />'
+                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter, applied so term names render the way core does.
+                . esc_html( apply_filters( 'the_category', $category->name ) ) . '</label>';
         }
 
         function end_el( &$output, $category, $depth = 0, $args = array() ) {
@@ -1119,7 +1115,7 @@ if ( ! class_exists( 'Walker_Media_Taxonomy_Checklist' ) ) {
 
 
 /**
- *  Walker_Media_Taxonomy_Uploader_Filter
+ *  vergeml_Walker_Media_Taxonomy_Uploader_Filter
  *
  *  Based on /wp-includes/category-template.php
  *
@@ -1127,9 +1123,9 @@ if ( ! class_exists( 'Walker_Media_Taxonomy_Checklist' ) ) {
  *  @created  05/11/13
  */
 
-if ( ! class_exists( 'Walker_Media_Taxonomy_Uploader_Filter' ) ) {
+if ( ! class_exists( 'vergeml_Walker_Media_Taxonomy_Uploader_Filter' ) ) {
 
-    class Walker_Media_Taxonomy_Uploader_Filter extends Walker {
+    class vergeml_Walker_Media_Taxonomy_Uploader_Filter extends Walker {
 
         var $tree_type = 'category';
         var $db_fields = array ('parent' => 'parent', 'id' => 'term_id');

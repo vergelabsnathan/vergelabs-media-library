@@ -284,10 +284,10 @@ function vergeml_help_page() {
     <div class="wrap vgml-help">
         <?php
         if ( function_exists( 'vergeml_pg_head' ) ) {
-            echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            echo wp_kses( vergeml_pg_head(
                 __( 'Get help', 'vergelabs-media-library' ),
                 __( 'What this site runs, what is already known about it, and a way to ask that carries the facts with it.', 'vergelabs-media-library' )
-            );
+            ), vergeml_kses_allowed() );
         } else {
             echo '<h1>' . esc_html__( 'Get help', 'vergelabs-media-library' ) . '</h1>';
         }
