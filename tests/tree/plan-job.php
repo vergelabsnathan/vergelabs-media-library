@@ -442,17 +442,17 @@ pj_check( '11. a press whose button showed less than the plan now costs is refus
 pj_reset();
 pj_press();
 $shown = pj_session()['plan']['price'];
-// Seventeen labels more are described before cron starts the job: 19 labels cost 12, the button said 11.
+// Seventeen labels more are described before cron starts the job: 19 labels cost 33 (30 + 15 per 100 labels, rounded up), the button said 31.
 for ( $i = 0; $i < 17; $i++ ) {
     $GLOBALS['pj_rows'][] = pj_row( 100 + $i, 'thing ' . $i . '; stuff', '', array( 0, 0, 1 ) );
 }
 vergeml_plan_event();
 $s = pj_session();
-pj_check( '12. a job whose full count costs more than the button said fails before the ask, and carries the new price', 11 === $shown && array() === $GLOBALS['pj_calls'] && 'failed' === $s['plan']['state'] && 12 === $s['plan']['price'] && 'The plan now costs 12 credits. Nothing was charged.' === $s['plan']['message'], json_encode( $s['plan'] ) );
+pj_check( '12. a job whose full count costs more than the button said fails before the ask, and carries the new price', 31 === $shown && array() === $GLOBALS['pj_calls'] && 'failed' === $s['plan']['state'] && 33 === $s['plan']['price'] && 'The plan now costs 33 credits. Nothing was charged.' === $s['plan']['message'], json_encode( $s['plan'] ) );
 
 pj_reset();
 vergeml_plan_rest_start( new WP_REST_Request( array() ) );
-pj_check( '13. a screen from before the check (no price sent) is held to the press\'s own count', 11 === pj_session()['plan']['price'] && 'running' === pj_session()['plan']['state'] );
+pj_check( '13. a screen from before the check (no price sent) is held to the press\'s own count', 31 === pj_session()['plan']['price'] && 'running' === pj_session()['plan']['state'] );
 
 /* ----------------------------------- L2  a library too small to make a folder */
 
