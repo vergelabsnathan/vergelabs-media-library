@@ -396,7 +396,7 @@ function vergeml_health_rewrite_source( $source_id, $from, $to, $map, &$record )
 		return false;
 	}
 
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the same direct writes core/health-delete.php makes, recorded for undo.
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- the same direct writes core/health-delete.php makes, recorded for undo.
 
 	$content = vergeml_health_rewrite_text( $post->post_content, $map, $from, $to );
 
@@ -733,7 +733,7 @@ function vergeml_health_keep_undo( $token ) {
 	$back   = 0;
 	$kept   = 0;
 
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the inverse of the writes above.
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- the inverse of the writes above.
 
 	foreach ( (array) $record['posts'] as $change ) {
 		clean_post_cache( (int) $change['id'] );

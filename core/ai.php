@@ -1766,7 +1766,7 @@ function vergeml_ai_alt_pending( $limit = 0 ) {
 
     $cap = $limit > 0 ? (int) $limit : PHP_INT_MAX;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table.
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
         'SELECT i.attachment_id ' . vergeml_ai_alt_pending_from() . ' ORDER BY i.attachment_id ASC LIMIT %d',
         $cap
@@ -1779,7 +1779,7 @@ function vergeml_ai_alt_pending_count() {
 
     global $wpdb;
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table.
     return (int) $wpdb->get_var( 'SELECT COUNT(*) ' . vergeml_ai_alt_pending_from() );
 }
 

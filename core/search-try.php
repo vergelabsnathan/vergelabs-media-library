@@ -76,11 +76,11 @@ function vergeml_search_try( $q ) {
         }
         $where_all[]  = '( ' . implode( ' OR ', $any ) . ' )';
         $where_core[] = '( ' . implode( ' OR ', $own ) . ' )';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $from is fixed SQL over $wpdb table names; every LIKE in $any went through prepare() with a column from vergeml_search_try_fields().
         $out['word']['per_word'][] = array( 'word' => $term, 'n' => (int) $wpdb->get_var( "SELECT COUNT(*) {$from} AND ( " . implode( ' OR ', $any ) . ' )' ) );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- assembled from prepared pieces.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- assembled from prepared pieces.
     $out['word']['total'] = (int) $wpdb->get_var( "SELECT COUNT(*) {$from} AND " . implode( ' AND ', $where_all ) );
     $out['word']['core']  = (int) $wpdb->get_var( "SELECT COUNT(*) {$from} AND " . implode( ' AND ', $where_core ) );
 

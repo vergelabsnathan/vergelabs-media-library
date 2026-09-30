@@ -2065,6 +2065,7 @@ function vergeml_transients_cleanup() {
      *  register itself here, and the one that forgot would linger forever.
      *  Underscores escaped so the wildcard is the only wildcard.
      */
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the cleanup deletes this plugin's transients by prefix; no API deletes by prefix, and nothing is cached after a delete.
     $wpdb->query(
         "DELETE FROM {$wpdb->options}
          WHERE option_name LIKE '\_transient\_vergeml\_%'

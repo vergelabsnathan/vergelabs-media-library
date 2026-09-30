@@ -341,7 +341,7 @@ function vergeml_similar( $attachment_id, $limit = 12 ) {
 
     $table = vergeml_index_table();
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is vergeml_index_table(), $wpdb->vergeml_ai_index; the id is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is vergeml_index_table(), $wpdb->vergeml_ai_index; the id is bound.
     $ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT x.attachment_id
            FROM {$table} x

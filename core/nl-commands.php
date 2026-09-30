@@ -270,6 +270,7 @@ function vergeml_nl_select( $phrase, $limit = 500 ) {
     if ( isset( $vocab['folders'][ $key ] ) && '' !== $taxonomy ) {
 
         $query = new WP_Query( array_merge( $args, array(
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- the files in one folder are a taxonomy query by definition; WP_Query pages them.
             'tax_query' => array( array(
                 'taxonomy' => $taxonomy,
                 'field'    => 'term_id',
@@ -285,6 +286,7 @@ function vergeml_nl_select( $phrase, $limit = 500 ) {
         $terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids' ) );
 
         $query = new WP_Query( array_merge( $args, array(
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- the files in no folder are a taxonomy query by definition; WP_Query pages them.
             'tax_query' => array( array(
                 'taxonomy' => $taxonomy,
                 'field'    => 'term_id',

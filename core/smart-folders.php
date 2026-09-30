@@ -364,7 +364,7 @@ function vergeml_smart_counts( $fresh = false ) {
         }
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- one indexed statement for a panel that ships with the page; every value is bound below.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- one indexed statement for a panel that ships with the page; every value is bound below.
     $wpdb->last_error = '';
 
     $rows = $wpdb->get_results( $wpdb->prepare(

@@ -1143,7 +1143,7 @@ function vergeml_filing_members_layers( $term_ids, $taxonomy ) {
     $in = implode( ',', $term_ids );
     // A locked folder is never a candidate, so it has no layer and owns no word: on the tech library To sort held seven
     // smart speakers, won the word, and Batteries and Components both ceded it (2026-09-17).
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; ids are integers.
     $stamps = $wpdb->get_results( $wpdb->prepare(
         "SELECT tt.term_id, COUNT(*) AS n, SUM(i.attachment_id) AS ids, SUM(i.attachment_id * i.attachment_id) AS sq, MAX(i.described_at) AS last
            FROM {$wpdb->term_relationships} tr

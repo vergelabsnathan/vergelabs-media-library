@@ -309,7 +309,7 @@ function vergeml_health_repoint( $from, $to ) {
 				continue;
 			}
 
-			$wpdb->update( $wpdb->postmeta, array( 'meta_value' => $value ), array( 'meta_id' => (int) $row->meta_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->update( $wpdb->postmeta, array( 'meta_value' => $value ), array( 'meta_id' => (int) $row->meta_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- an update by meta_id, the primary key: meta_value is the column written, not a condition.
 			wp_cache_delete( (int) $row->post_id, 'post_meta' );
 			$changed['meta']++;
 		}

@@ -1128,7 +1128,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			: '';
 		$words   = vergeml_filing_words_sql( 'i' );   // The picture's file, title and alt (S10.9).
 		$product = vergeml_filing_product_sql( 'i' ); // The product it belongs to, when the site sells (S10.8).
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; the ids are cast to int.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; the ids are cast to int.
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.caption, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']}, {$product['select']},
 			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr

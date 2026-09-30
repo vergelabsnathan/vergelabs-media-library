@@ -167,6 +167,7 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
         return $args;
     }
 
+    // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- hides the folders marked private from the term list: a handful of term ids, not posts.
     $args['exclude'] = array_merge(
         isset( $args['exclude'] ) ? (array) $args['exclude'] : array(),
         $hidden

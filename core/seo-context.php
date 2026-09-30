@@ -77,6 +77,7 @@ function vergeml_seo_page_context( $post_id ) {
 
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- All in One SEO keeps keyphrases in its own table with no API for them; one prepared read by post id, feeding one describe request.
         $row = $wpdb->get_row( $wpdb->prepare(
             "SELECT keyphrases, description FROM {$wpdb->prefix}aioseo_posts WHERE post_id = %d",
             $post_id

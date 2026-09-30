@@ -32,6 +32,7 @@ function vergeml_uninstall_housekeeping() {
 
     // Transients, in both storage shapes -- underscores escaped so the
     // wildcard is the only wildcard.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
     $wpdb->query(
         "DELETE FROM {$wpdb->options}
          WHERE option_name LIKE '\_transient\_vergeml\_%'
@@ -59,6 +60,7 @@ function vergeml_uninstall_wipe_site() {
         $own      = ! empty( $params['eml_media'] );
         $taxonomy = (string) $taxonomy;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall reads the term ids of a taxonomy this plugin registered, to delete them below; it runs once, so there is nothing to cache.
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT term_taxonomy_id, term_id FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s",
             $taxonomy
@@ -78,7 +80,7 @@ function vergeml_uninstall_wipe_site() {
 
             // $tt_in / $term_in are strings of %d placeholders sized to the id
             // lists, which are absint()ed above; every value is placeheld.
-            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
             $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->term_relationships} WHERE term_taxonomy_id IN ($tt_in)", $tt_ids ) );
             $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->termmeta} WHERE term_id IN ($term_in)", $term_ids ) );
             $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s", $taxonomy ) );
@@ -91,7 +93,7 @@ function vergeml_uninstall_wipe_site() {
 
             // Attachments only; the taxonomy keeps living its own life.
             // $tt_in is %d placeholders sized to the list; every value is placeheld.
-            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
             $wpdb->query( $wpdb->prepare(
                 "DELETE tr FROM {$wpdb->term_relationships} tr
                  INNER JOIN {$wpdb->posts} p ON tr.object_id = p.ID
@@ -116,6 +118,7 @@ function vergeml_uninstall_wipe_site() {
      *  whichever ones were added after it was written. Transients do not
      *  match: their rows start with _transient_, not vergeml_.
      */
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
     $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'vergeml\_%'" );
 }
 
@@ -182,6 +185,7 @@ else {
         delete_site_option( 'vergeml_notices' );
 
         // Per-user leftovers: dismissed notices, remembered tree state.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
         $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'vergeml\_%'" );
     }
 }

@@ -132,7 +132,7 @@ function vergeml_ai_screen_counts() {
         foreach ( array( 'object', 'material', 'colour', 'setting', 'style', 'audience', 'season', 'details' ) as $f ) {
             $sums[] = $wpdb->prepare( "SUM(filing LIKE %s AND filing NOT LIKE %s) AS {$f}", '%"' . $f . '":"%', '%"' . $f . '":""%' );
         }
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- every fragment above went through prepare(); the field names come from the fixed list, not from input.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- every fragment above went through prepare(); the field names come from the fixed list, not from input.
         $filing = $wpdb->get_row( 'SELECT ' . implode( ', ', $sums ) . " FROM {$t} WHERE error = ''", ARRAY_A );
         foreach ( (array) $filing as $f => $n ) {
             $c['filing'][ $f ] = (int) $n;

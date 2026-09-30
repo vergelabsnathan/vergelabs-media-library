@@ -266,7 +266,7 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
      */
     global $wpdb;
     $words = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; $words is vergeml_filing_words_sql(), fixed column and join text with $wpdb's table names, no input; the id is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; $words is vergeml_filing_words_sql(), fixed column and join text with $wpdb's table names, no input; the id is bound.
     $row   = $wpdb->get_row( $wpdb->prepare(
         "SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.prompt_hash, i.model_version, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id = %d AND i.error = '' AND i.embedding IS NOT NULL",
         (int) $attachment_id
@@ -559,7 +559,7 @@ function vergeml_autofile_sweep( $limit = VERGEML_AUTOFILE_CHUNK ) {
 
     $tt = vergeml_autofile_tt_ids( $taxonomy );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is vergeml_index_table() ($wpdb->vergeml_ai_index); $tt is vergeml_autofile_tt_ids(), term_taxonomy ids joined after intval(), or '0'; the limit is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is vergeml_index_table() ($wpdb->vergeml_ai_index); $tt is vergeml_autofile_tt_ids(), term_taxonomy ids joined after intval(), or '0'; the limit is bound.
     $ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT p.ID
            FROM {$wpdb->posts} p
@@ -748,7 +748,7 @@ function vergeml_autofile_loose_count( $unlooked = false ) {
         ? "AND NOT EXISTS ( SELECT 1 FROM {$table} x WHERE x.attachment_id = p.ID )"
         : '';
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is $wpdb->vergeml_ai_index, $described one of two literals, $tt intval()ed term_taxonomy ids.
     return (int) $wpdb->get_var(
         "SELECT COUNT(*) FROM {$wpdb->posts} p
           WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
