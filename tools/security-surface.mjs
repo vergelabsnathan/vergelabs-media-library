@@ -1190,7 +1190,9 @@ function handWritten() {
 const roleLists = ( () => {
 
 	const key = ( r ) => `${ r.route } ${ r.methods }`;
-	const gate = ( r ) => [ ...new Set( r.permCaps.map( ( c ) => c.cap ) ) ].sort().join( '+' );
+	// A taxonomy's own term capability ($taxonomy->cap->assign_terms) is edit_posts unless the taxonomy says otherwise.
+	const gate = ( r ) => [ ...new Set( r.permCaps.map( ( c ) => ( /->cap->/.test( c.cap ) ? 'edit_posts' : c.cap ) ) ) ].sort().join( '+' );
+	const ADMIN = /^(manage_options|manage_network_options|delete_posts)$/;
 
 	const authorMay = [];
 	const objectScoped = [];
@@ -1198,9 +1200,11 @@ const roleLists = ( () => {
 
 	for ( const r of restRows ) {
 		const g = gate( r );
+		const caps = g.split( '+' );
 		if ( g === 'edit_post' ) objectScoped.push( key( r ) );
-		else if ( /manage_options|manage_network_options|delete_posts/.test( g ) ) adminOnly.push( key( r ) );
-		else if ( g === 'upload_files' || g === 'edit_posts+upload_files' ) authorMay.push( key( r ) );
+		else if ( caps.every( ( c ) => ADMIN.test( c ) ) ) adminOnly.push( key( r ) );
+		// upload_files or edit_posts, with at most an administrator's branch beside it (/rename: named files, or the whole library).
+		else if ( caps.some( ( c ) => 'upload_files' === c || 'edit_posts' === c ) && caps.every( ( c ) => 'upload_files' === c || 'edit_posts' === c || ADMIN.test( c ) ) ) authorMay.push( key( r ) );
 	}
 
 	const sorted = ( a ) => [ ...a ].sort();

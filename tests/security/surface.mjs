@@ -90,7 +90,8 @@ const FLOOR = {
 	cron: 4,
 	screens: 13,
 	frontend: 2,
-	settings: 7,
+	// 6 since 4.1.0's review round: the vergeml_notices setting belonged to the removed remote-notice printer.
+	settings: 6,
 	metaRest: 2,
 	inputHooks: 36,
 };

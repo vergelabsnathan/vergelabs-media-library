@@ -108,30 +108,14 @@ const REVIEWED = {
 
 	/* --- PHP ----------------------------------------------------------- */
 
-	'core/gallery-widgets.php': [
-		[ 'e60edee9bb', 'vergeml_render_gallery_block() builds every part with wp_get_attachment_image(), esc_url(), esc_attr() and an (int) cast, and puts the caption through wp_kses_post(). The front-end path, so the one that matters most' ],
-	],
-
 	'core/import-csv.php': [
 		[ '7700958a44', 'a CSV download, not markup: text/csv with Content-Disposition attachment, quoted per RFC 4180. Not an XSS sink -- but see "The CSV export, and spreadsheet formulas", which is a separate finding' ],
 	],
 
-	'core/licence-page.php': [
-		[ 'fbcf74ab5e', '$band is assembled on three branches, each from esc_html__() or esc_html() plus literal markup' ],
-	],
-
-	'core/media-list.php': [
-		[ '0ad7967fe8', "wp_dropdown_categories( echo => false ) -- core's own escaped markup -- with one option of ours spliced in after Unfiled, whose text is esc_html() of a translated string with number_format_i18n() (the Placed by hand filter, C.3)" ],
-	],
-
 	'core/options-pages.php': [
 		[ 'cd9e4aee76', 'json_encode() into a download: application/json with Content-Disposition attachment, so not an HTML context. wp_json_encode() would be the house style' ],
-		[ 'e60edee9bb', 'assembled from __() translations and literal form markup; no value out of the request or the database is interpolated unescaped. Two sites, the media and non-media post-type branches, with the same expression' ],
 	],
 
-	'core/smart-folders.php': [
-		[ 'dde83623fc', 'each $lines[] entry is sprintf( \'<a href="%s">%s</a>\', esc_url( get_edit_post_link( … ) ), esc_html( $title ) )' ],
-	],
 };
 
 const SKIP = new Set( [
