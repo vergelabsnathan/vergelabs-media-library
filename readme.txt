@@ -1,5 +1,5 @@
 === VergeLabs Media Library ===
-Contributors: vergelabsnathan
+Contributors: vergelabsdev
 Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
@@ -23,17 +23,17 @@ Grown from [Enhanced Media Library](https://wordpress.org/plugins/enhanced-media
 
 ### Folders ###
 
-A folder tree sits beside the media library. Drag files onto a folder to file them, drag folders into each other to rearrange, rename in place, colour them, and arrange them in whatever order you want. It is in the list view, in the grid, and in the media panel that opens when you insert an image into a post — which is where a media library is most used, and where a folder plugin most often is not.
+A folder tree sits beside the media library. Drag files onto a folder to file them, drag folders into each other to rearrange, rename in place, colour them, and arrange them in whatever order you want. It is in the list view, in the grid, and in the media panel that opens when you insert an image into a post — which is where a media library is most used.
 
-**Your folders are ordinary media categories.** Nothing is kept in a private table of ours. That means your structure is readable by WordPress itself, by your theme, by WP-CLI and by any other plugin — and it is still there, intact and usable, if you ever remove this plugin. A folder plugin that stores your organisation somewhere only it can read is a folder plugin you cannot leave.
+**Your folders are ordinary media categories.** The folder structure is not kept in a table of ours. That means your structure is readable by WordPress itself, by your theme, by WP-CLI and by any other plugin — and it is still there, intact and usable, if you ever remove this plugin.
 
-**A file can be in more than one folder.** Dragging a file moves it, exactly as it does on your desktop. Hold Ctrl while dropping and it is added to that folder as well -- the same photo in Products and in Autumn Campaign without a second copy of it existing, which is the thing single-folder plugins cannot do. If you want the one-folder promise kept absolutely, there is a setting that makes every drop a move.
+**A file can be in more than one folder.** Dragging a file moves it, exactly as it does on your desktop. Hold Ctrl while dropping and it is added to that folder as well -- the same photo in Products and in Autumn Campaign without a second copy of it existing. If you want the one-folder promise kept absolutely, there is a setting that makes every drop a move.
 
-**A folder can be a gallery.** Add the Folder gallery block in the block editor -- or the Folder gallery element in Elementor, Divi or WPBakery, or drop `[vergeml_gallery folder="12"]` anywhere shortcodes work -- pick a folder, and it shows every image in it. Grid or carousel, with a built-in lightbox if you want one. It stays a folder rather than becoming a list of files: put a new image in the folder and every page using that gallery has it, with nothing re-edited. WordPress's own gallery block freezes a list of images at the moment you insert it.
+**A folder can be a gallery.** Add the Folder gallery block in the block editor -- or the Folder gallery element in Elementor, Divi or WPBakery, or drop `[vergeml_gallery folder="12"]` anywhere shortcodes work -- pick a folder, and it shows every image in it. Grid or carousel, with a built-in lightbox if you want one. It stays a folder rather than becoming a list of files: put a new image in the folder and every page using that gallery has it, with nothing re-edited.
 
 **One set of folders in every language.** With Polylang or WPML, a translated copy of an image goes into the same folders as the original, and the tree shows the same folders whichever language you are working in.
 
-**Smart folders answer questions.** Above your folders sit five that nothing was ever filed into: Unused media, Missing alt text, Large files, Unattached, and This month. Each is a live view of the library. Unused and Large need one scan -- a click, a progress count, done -- which reads every post once to learn which files are genuinely referenced: embedded images, pasted URLs, featured images, galleries. "1,400 images have no alt text" and "2 GB of this library is unused" are the two numbers most worth knowing about a media library, and no folder plugin can tell you either.
+**Smart folders answer questions.** Above your folders sit five that nothing was ever filed into: Unused media, Missing alt text, Large files, Unattached, and This month. Each is a live view of the library. Unused and Large need one scan -- a click, a progress count, done -- which reads every post once to learn which files are genuinely referenced: embedded images, pasted URLs, featured images, galleries. "1,400 images have no alt text" and "2 GB of this library is unused" are the two numbers most worth knowing about a media library.
 
 **Uploads land where you are.** Upload while a folder is open and the files arrive filed into it -- no second step. With All files open, uploads arrive unfiled, exactly as before.
 
@@ -97,7 +97,7 @@ Add or remove file types, allow or disallow uploading. The plugin incorporates a
 * **Core hooks just work** for media taxonomies and media items
 * **All taxonomies supported:** custom and code-registered
 * **REST API supported** out of the box
-* **No custom tables** in the database
+* **Folders are ordinary terms** in WordPress's own tables; four tables of the plugin's own hold the AI descriptions, the Librarian's batches and moves, and the sorting runs
 * **Deactivation makes no harm to data:** all media items and taxonomies remain after deactivation
 
 
@@ -182,8 +182,6 @@ Yes, if you use the AI features -- and not only the pictures. Describing sends t
 All of it needs a licence key except the Get help screen and the known-problems list. Without a key the AI features refuse before they make a request, and demo mode makes its captions up locally so you can see the shape of the thing before paying for anything.
 
 The folder tree itself, the smart folders, the health report, the importer, the galleries, the MIME settings and the Librarian's date-and-type scheme make no outbound requests at all. What does talk to the service is the part of the Folders screen that plans, fills and answers -- that is the AI, wearing the folder screen's clothes.
-
-The original plugin polled its author's server twice a day for admin notices and printed whatever came back into your dashboard. That has been removed and nothing replaced it.
 
 = What happens when the AI service is down? =
 
