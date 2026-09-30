@@ -316,11 +316,13 @@ function vergeml_health_repoint( $from, $to ) {
 	}
 
 	// WooCommerce: the product gallery is a comma-separated list of ids.
+	// Matched as ",<id>," inside ",<list>," -- FIND_IN_SET() in a form SQLite
+	// (Playground) can run as well.
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 	$galleries = $wpdb->get_results( $wpdb->prepare(
 		"SELECT meta_id, post_id, meta_value FROM {$wpdb->postmeta}
-		  WHERE meta_key = '_product_image_gallery' AND FIND_IN_SET( %s, meta_value )",
-		(string) $from
+		  WHERE meta_key = '_product_image_gallery' AND CONCAT( ',', meta_value, ',' ) LIKE %s",
+		'%,' . $wpdb->esc_like( (string) $from ) . ',%'
 	) );
 	// phpcs:enable
 

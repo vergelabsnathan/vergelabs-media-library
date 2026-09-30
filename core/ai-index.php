@@ -730,6 +730,10 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
      */
     $cooldown = max( 0, (int) $cooldown );
 
+    // The cutoff is worked out here rather than as UTC_TIMESTAMP() - INTERVAL
+    // in SQL, which SQLite (Playground) cannot run. described_at is UTC
+    // (current_time( 'mysql', true )), and so is gmdate().
+
     // Nothing to compare against: no row can be stale. Handing back the whole
     // table because the caller passed nothing would be the worst available
     // reading of an empty argument.
@@ -754,7 +758,7 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
         "SELECT attachment_id FROM {$wpdb->vergeml_ai_index}
           WHERE error = '' AND attachment_id > %d
-            AND ( %d = 0 OR described_at IS NULL OR described_at < UTC_TIMESTAMP() - INTERVAL %d SECOND )
+            AND ( %d = 0 OR described_at IS NULL OR described_at < %s )
             AND (
                     ( %d = 1 AND model <> %s )
                  OR ( %d = 1 AND model_version <> %s )
@@ -765,7 +769,7 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
           LIMIT %d",
         (int) $after,
         $cooldown > 0 ? 1 : 0,
-        $cooldown,
+        gmdate( 'Y-m-d H:i:s', time() - $cooldown ),
         $check_model,
         (string) $model,
         $check_version,

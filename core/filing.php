@@ -1605,7 +1605,7 @@ function vergeml_filing_product_sql( $i = 'i' ) {
             ( SELECT vp1.ID FROM {$wpdb->postmeta} vm1 JOIN {$wpdb->posts} vp1 ON vp1.ID = vm1.post_id AND vp1.post_type = 'product'
                WHERE vm1.meta_key = '_thumbnail_id' AND vm1.meta_value = CAST({$i}.attachment_id AS CHAR) LIMIT 1 ),
             ( SELECT vp2.ID FROM {$wpdb->postmeta} vm2 JOIN {$wpdb->posts} vp2 ON vp2.ID = vm2.post_id AND vp2.post_type = 'product'
-               WHERE vm2.meta_key = '_product_image_gallery' AND FIND_IN_SET({$i}.attachment_id, vm2.meta_value) LIMIT 1 ),
+               WHERE vm2.meta_key = '_product_image_gallery' AND CONCAT( ',', vm2.meta_value, ',' ) LIKE CONCAT( '%,', {$i}.attachment_id, ',%' ) LIMIT 1 ),
             ( SELECT vp3.ID FROM {$wpdb->posts} va3 JOIN {$wpdb->posts} vp3 ON vp3.ID = va3.post_parent AND vp3.post_type = 'product'
                WHERE va3.ID = {$i}.attachment_id LIMIT 1 )
           ) AS product_id",

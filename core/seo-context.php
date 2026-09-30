@@ -279,6 +279,8 @@ function vergeml_seo_gap_sql( $select ) {
 
     // $select, $keys and $stars are literals from this file, never input; the
     // one value from outside is the MIME pattern, and it is placeheld.
+    // _vergeml_used_in is a comma list of post ids; the CONCAT ... LIKE is
+    // FIND_IN_SET() spelled so SQLite (Playground) can run it too.
     // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     return $wpdb->prepare(
         "SELECT $select FROM {$wpdb->posts} p
@@ -286,7 +288,7 @@ function vergeml_seo_gap_sql( $select ) {
            LEFT JOIN {$wpdb->postmeta} used ON used.post_id = p.ID AND used.meta_key = '_vergeml_used_in'
           INNER JOIN ( $pages ) kw
                   ON kw.post_id = p.post_parent
-                  OR ( used.meta_value IS NOT NULL AND FIND_IN_SET( kw.post_id, used.meta_value ) )
+                  OR ( used.meta_value IS NOT NULL AND CONCAT( ',', used.meta_value, ',' ) LIKE CONCAT( '%,', kw.post_id, ',%' ) )
           WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
             AND ( alt.meta_id IS NULL OR alt.meta_value = '' )",
         $mime

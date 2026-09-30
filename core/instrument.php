@@ -80,11 +80,13 @@ function vergeml_stats_snapshot() {
         "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_status = 'inherit'"
     );
 
-    $families = $wpdb->get_results(
-        "SELECT SUBSTRING_INDEX( post_mime_type, '/', 1 ) AS family, COUNT(*) AS c
+    // Counted per MIME type and folded into families below: SUBSTRING_INDEX()
+    // did it in SQL, and SQLite (Playground) does not have it.
+    $types = $wpdb->get_results(
+        "SELECT post_mime_type AS mime, COUNT(*) AS c
          FROM {$wpdb->posts}
          WHERE post_type = 'attachment' AND post_status = 'inherit'
-         GROUP BY family"
+         GROUP BY post_mime_type"
     );
 
     $recent = (int) $wpdb->get_var( $wpdb->prepare(
@@ -96,10 +98,13 @@ function vergeml_stats_snapshot() {
 
     $mimes = array();
 
-    foreach ( (array) $families as $row ) {
+    foreach ( (array) $types as $row ) {
+        // The part before the slash, as SUBSTRING_INDEX( mime, '/', 1 ) gave.
         // sanitize_key, so a malformed mime in the database cannot put an
-        // arbitrary string into the snapshot through the back door.
-        $mimes[ sanitize_key( (string) $row->family ) ] = (int) $row->c;
+        // arbitrary string into the snapshot through the back door; it also
+        // lowercases, as MySQL's GROUP BY on a _ci column did.
+        $family           = sanitize_key( strstr( (string) $row->mime . '/', '/', true ) );
+        $mimes[ $family ] = ( isset( $mimes[ $family ] ) ? $mimes[ $family ] : 0 ) + (int) $row->c;
     }
 
     $folders = 0;

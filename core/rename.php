@@ -142,13 +142,16 @@ function vergeml_rename_pending_count() {
         return (int) $cached;
     }
 
+    // "title" in the comma list i.locked, written as a LIKE rather than
+    // FIND_IN_SET(): same rows on MySQL, and SQLite (Playground) has no
+    // FIND_IN_SET. vergeml_index_locked_list() writes the list without spaces.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
     $n = (int) $wpdb->get_var(
         "SELECT COUNT(*)
            FROM {$wpdb->vergeml_ai_index} i
      INNER JOIN {$wpdb->posts} p ON p.ID = i.attachment_id
           WHERE i.error = '' AND TRIM(i.title) <> '' AND p.post_title <> TRIM(i.title)
-            AND NOT FIND_IN_SET( 'title', i.locked )"
+            AND CONCAT( ',', i.locked, ',' ) NOT LIKE '%,title,%'"
     );
     // phpcs:enable
 
