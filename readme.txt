@@ -103,7 +103,7 @@ Add or remove file types, allow or disallow uploading. The plugin incorporates a
 
 ## External services ##
 
-This plugin talks to three places: an AI service run by VergeLabs at `https://ai.vergelabs.nl/v1`, the VergeLabs site at `https://vergelabsmedia.com` when you connect a licence, and GitHub, to read a list of known problems when you ask for it. Without a licence key, nothing is contacted by installing, activating or opening a screen; every request below follows something you do. Everything below says what goes where, when, and what you have to do for it to happen.
+This plugin talks to two places: an AI service run by VergeLabs at `https://ai.vergelabs.nl/v1`, which also serves a list of known problems when you ask for it, and the VergeLabs site at `https://vergelabsmedia.com` when you connect a licence. Without a licence key, nothing is contacted by installing, activating or opening a screen; every request below follows something you do. Everything below says what goes where, when, and what you have to do for it to happen.
 
 **The AI features need a licence key, and do nothing without one** (a free trial key counts). With no key, no folder is filed, no picture is described, no search is answered by meaning, and no conversation can start -- the requests are refused before they are made. Demo mode invents captions locally from the file names and sends nothing anywhere. The folder tree itself, the smart folders, the health report, the importer, the galleries, the MIME settings and the Librarian's date-and-type scheme need no service at all.
 
@@ -119,11 +119,9 @@ This plugin talks to three places: an AI service run by VergeLabs at `https://ai
 
 **Connecting a licence** sends you to `https://vergelabsmedia.com`, carrying your site's address and the address of your admin screen, and sends back a one-time code your site exchanges for a key. Saving, checking or removing a key sends the key and your site's address to the AI service. Once a key is set, the plugin checks your remaining credits when you open a VergeLabs screen, at most once every five minutes.
 
-**Asking for help** works without a licence key, as connecting one and the known-problems list below do. Pressing Send on the Get help screen posts what you typed, the email address you gave, the last four characters of your licence key if you have one (never the key itself), and a full system report: your site's address, your WordPress, PHP and MySQL versions, your server's limits, your theme, how many files you have, your folder and taxonomy counts, this plugin's settings, and **the name and version of every plugin you have active**. The screen shows you the report before you send it, and it will not send without the tick box.
+**Asking for help** works without a licence key, as connecting one and the known-problems list do. Pressing Send on the Get help screen posts what you typed, the email address you gave, the last four characters of your licence key if you have one (never the key itself), and a full system report: your site's address, your WordPress, PHP and MySQL versions, your server's limits, your theme, how many files you have, your folder and taxonomy counts, this plugin's settings, and **the name and version of every plugin you have active**. The screen shows you the report before you send it, and it will not send without the tick box. Pressing "Check for known problems" on the same screen reads the list of known problems from the AI service at `https://ai.vergelabs.nl/v1/known-issues` and compares it with what your site runs. It happens only when you press the button; the list is then kept for twelve hours, and if the service cannot be reached the screen says so rather than showing an empty list. That request carries no key and no counts -- though, like every request WordPress makes, it identifies itself with your site's address.
 
 **Library counts go only if you switch them on.** Under Library settings, "Share library counts" (off by default) posts to the same service once a day: how many files and folders, how deep the folders nest, how many files are of each broad type, files added in the last thirty days, and the plugin, WordPress and PHP versions with the site language, alongside the licence key and the site address. Never a file name, a title, a folder name or a picture.
-
-**Known problems, fetched from GitHub.** Pressing "Check for known problems" on the Get help screen reads `known-issues.json` from this plugin's own public repository at `raw.githubusercontent.com` and compares it with what your site runs. It happens only when you press the button; the list is then kept for twelve hours, and if GitHub cannot be reached the screen says so rather than showing an empty list. It is a plain file download and carries no key and no counts -- though, like every request WordPress makes, it identifies itself with your site's address.
 
 **Pointing it somewhere else.** `VERGEML_AI_SERVICE`, `VERGEML_AI_STREAM`, `VERGEML_SITE_URL` and `VERGEML_KNOWN_ISSUES_URL` in `wp-config.php` send these requests to a host of your choosing. There is no filter for any of them on purpose: a destination for your files should not be changeable by another plugin.
 
@@ -273,6 +271,9 @@ The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now rea
 
 = Fixed =
 * **A licence with no free seat now says so.** Saving or connecting one used to report success, and every AI request after it failed.
+
+= Changed =
+* **The known-problems list comes from the AI service** at `ai.vergelabs.nl`, not from GitHub. It is still fetched only when you press "Check for known problems".
 
 ### 4.0.7 ###
 *The plugin contacts nothing until you ask it to.*

@@ -7,7 +7,8 @@ if ( ! defined( 'ABSPATH' ) )
  *
  *  One screen that carries the facts support needs before anyone types a
  *  word: the system report the plugin already builds, the known problems that
- *  match what this site runs (from the nightly watch, tools/watch/known-issues.json),
+ *  match what this site runs (the nightly watch's tools/watch/known-issues.json,
+ *  served by the AI service at /v1/known-issues),
  *  and a question box whose "send" includes the report -- with the person's
  *  consent, and with the list of what is sent printed beside the tick box.
  *
@@ -18,10 +19,6 @@ if ( ! defined( 'ABSPATH' ) )
  *
  *  @since 3.16
  */
-
-if ( ! defined( 'VERGEML_KNOWN_ISSUES_URL' ) ) {
-    define( 'VERGEML_KNOWN_ISSUES_URL', 'https://raw.githubusercontent.com/vergelabsnathan/vergelabs-media-library/main/tools/watch/known-issues.json' );
-}
 
 add_action( 'admin_menu', 'vergeml_help_menu', 60 );
 
@@ -47,8 +44,22 @@ function vergeml_help_menu() {
 /**
  *  The feed, cached for twelve hours. Fetched only when the user presses Check
  *  on the Help screen; until then null, meaning not checked, so no screen
- *  contacts GitHub by being opened. False when the press could not read it:
- *  an empty list would claim nothing is wrong.
+ *  contacts the service by being opened. False when the press could not read
+ *  it -- a network error, a non-200, or a body without an issues list, which
+ *  is what a service that does not serve /known-issues yet answers: an empty
+ *  list would claim nothing is wrong.
+ *
+ *  From the AI service, which readme.txt already discloses, rather than
+ *  GitHub as until 4.1.0. VERGEML_KNOWN_ISSUES_URL in
+ *  wp-config still points it elsewhere.
+ */
+function vergeml_help_known_issues_url() {
+
+    return defined( 'VERGEML_KNOWN_ISSUES_URL' ) ? VERGEML_KNOWN_ISSUES_URL : vergeml_help_service_url() . '/known-issues';
+}
+
+/**
+ *  The feed itself; see vergeml_help_known_issues_url().
  */
 function vergeml_help_known_issues( $fetch = false ) {
 
@@ -62,14 +73,19 @@ function vergeml_help_known_issues( $fetch = false ) {
         return null;
     }
 
-    $response = wp_remote_get( VERGEML_KNOWN_ISSUES_URL, array( 'timeout' => 6 ) );
+    $response = wp_remote_get( vergeml_help_known_issues_url(), array( 'timeout' => 6 ) );
 
     if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
         return false;
     }
 
-    $data   = json_decode( (string) wp_remote_retrieve_body( $response ), true );
-    $issues = is_array( $data ) && isset( $data['issues'] ) && is_array( $data['issues'] ) ? $data['issues'] : array();
+    $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+
+    if ( ! is_array( $data ) || ! isset( $data['issues'] ) || ! is_array( $data['issues'] ) ) {
+        return false;
+    }
+
+    $issues = $data['issues'];
 
     set_transient( 'vergeml_known_issues', $issues, 12 * HOUR_IN_SECONDS );
 
@@ -314,7 +330,7 @@ function vergeml_help_page() {
 
         <h2><?php esc_html_e( 'Known problems that match this site', 'vergelabs-media-library' ); ?></h2>
         <?php if ( ! is_array( $matches ) ) : ?>
-            <p class="description"><?php false === $matches ? esc_html_e( 'GitHub could not be reached just now, so nothing was checked. Try again in a minute, or ask below.', 'vergelabs-media-library' ) : esc_html_e( 'Not checked yet. Checking downloads the list of known problems from this plugin’s public GitHub repository; like every request WordPress makes, it carries your site’s address.', 'vergelabs-media-library' ); ?></p>
+            <p class="description"><?php false === $matches ? esc_html_e( 'The VergeLabs service could not be reached just now, so nothing was checked. Try again in a minute, or ask below.', 'vergelabs-media-library' ) : esc_html_e( 'Not checked yet. Checking downloads the list of known problems from the VergeLabs AI service at ai.vergelabs.nl; like every request WordPress makes, it carries your site’s address.', 'vergelabs-media-library' ); ?></p>
             <p><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=media-help&vgml-check=1' ), 'vergeml_help_check' ) ); ?>"><?php esc_html_e( 'Check for known problems', 'vergelabs-media-library' ); ?></a></p>
         <?php elseif ( $matches ) : ?>
             <ul class="vgml-help-issues">

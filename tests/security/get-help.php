@@ -14,8 +14,9 @@
  *
  *  ## No request leaves this suite
  *
- *  pre_http_request answers every call: the known-issues feed with an empty
- *  list, /support/ticket with ok. Nothing reaches GitHub or the service.
+ *  pre_http_request answers every call: the known-issues feed with whatever
+ *  $GLOBALS['gh_feed'] says (an empty list unless a check sets it), and
+ *  /support/ticket with ok. Nothing reaches the service.
  *
  *  ## What it touches, and puts back
  *
@@ -44,6 +45,7 @@ $GLOBALS['gh_fail']   = 0;
 $GLOBALS['gh_calls']  = array();
 $GLOBALS['gh_before'] = array();
 $GLOBALS['gh_done']   = false;
+$GLOBALS['gh_feed']   = array( 200, wp_json_encode( array( 'issues' => array() ) ) );
 
 // The real shape: VGML- and 34 of 0-9A-Z. The last four are the prefix the account page shows.
 $GLOBALS['gh_key'] = 'VGML-' . strtoupper( wp_generate_password( 30, false, false ) ) . 'Q7ZK';
@@ -71,18 +73,19 @@ function gh_catch( $pre, $args, $url ) {
     $GLOBALS['gh_calls'][] = array( 'url' => $url, 'args' => $args );
 
     $path = (string) wp_parse_url( $url, PHP_URL_PATH );
-    $body = array( 'ok' => true );
+    $code = 200;
+    $body = wp_json_encode( array( 'ok' => true ) );
 
     if ( '/support/ticket' === substr( $path, -15 ) ) {
-        $body = array( 'ok' => true, 'id' => 7 );
-    } elseif ( 'known-issues.json' === substr( $path, -17 ) ) {
-        $body = array( 'issues' => array() );
+        $body = wp_json_encode( array( 'ok' => true, 'id' => 7 ) );
+    } elseif ( '/known-issues' === substr( $path, -13 ) ) {
+        list( $code, $body ) = $GLOBALS['gh_feed'];
     }
 
     return array(
         'headers'  => array(),
-        'body'     => wp_json_encode( $body ),
-        'response' => array( 'code' => 200, 'message' => 'OK' ),
+        'body'     => $body,
+        'response' => array( 'code' => $code, 'message' => 200 === $code ? 'OK' : 'Not Found' ),
         'cookies'  => array(),
         'filename' => null,
     );
@@ -248,6 +251,39 @@ foreach ( $GLOBALS['gh_calls'] as $gh_c ) {
     }
 }
 gh_check( count( $GLOBALS['gh_calls'] ) . ' requests caught; the key is in none of them, in no URL and no header', empty( $gh_bad ), implode( ', ', $gh_bad ) );
+
+
+/* ------------------------------------------- E. the known-problems feed */
+
+echo "
+E  the known-problems feed comes from the AI service, and a miss says so
+";
+
+/** One press of Check, from an empty cache. Returns what the screen would be given and the URL asked. */
+function gh_check_feed( $code, $body ) {
+    delete_transient( 'vergeml_known_issues' );
+    $GLOBALS['gh_feed'] = array( $code, $body );
+    $before = count( $GLOBALS['gh_calls'] );
+    $got    = vergeml_help_known_issues( true );
+    $asked  = array_slice( $GLOBALS['gh_calls'], $before );
+    return array( $got, $asked ? (string) $asked[0]['url'] : '', get_transient( 'vergeml_known_issues' ) );
+}
+
+delete_transient( 'vergeml_known_issues' );
+$gh_before_calls = count( $GLOBALS['gh_calls'] );
+gh_check( 'opening the screen fetches nothing: an empty cache reads as not checked', null === vergeml_help_known_issues() && count( $GLOBALS['gh_calls'] ) === $gh_before_calls );
+
+list( $gh_got, $gh_url, $gh_cached ) = gh_check_feed( 200, wp_json_encode( array( 'issues' => array( array( 'slug' => 'core', 'version' => '', 'summary' => 's' ) ) ) ) );
+gh_check( 'Check asks ai.vergelabs.nl/v1/known-issues, not GitHub', defined( 'VERGEML_KNOWN_ISSUES_URL' ) || 'https://ai.vergelabs.nl/v1/known-issues' === $gh_url, $gh_url );
+gh_check( 'a feed with an issues list is returned and kept', is_array( $gh_got ) && 1 === count( $gh_got ) && is_array( $gh_cached ) );
+
+list( $gh_got, $gh_url, $gh_cached ) = gh_check_feed( 404, '<!DOCTYPE html><title>404</title>' );
+gh_check( 'a service that does not serve it yet (404) reads as could-not-check, and nothing is kept', false === $gh_got && false === $gh_cached );
+
+list( $gh_got, $gh_url, $gh_cached ) = gh_check_feed( 200, '<!DOCTYPE html><p>not json</p>' );
+gh_check( 'a 200 that is not the feed reads as could-not-check too, never as "nothing is wrong"', false === $gh_got && false === $gh_cached );
+
+delete_transient( 'vergeml_known_issues' );
 
 
 /* ------------------------------------------------------------ D. put back */
