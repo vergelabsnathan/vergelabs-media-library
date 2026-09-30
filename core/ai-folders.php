@@ -205,6 +205,7 @@ function vergeml_ai_folders_clauses( $clauses, $query ) {
     // came from outside, and it is bound.
     $clauses['join'] .= " INNER JOIN {$table} vgml_ai ON vgml_ai.attachment_id = {$wpdb->posts}.ID ";
 
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $column is one of vergeml_ai_folder_columns(), checked with in_array() above; the value is bound.
     $clauses['where'] .= $wpdb->prepare( " AND vgml_ai.{$column} = %s ", (string) $spec['value'] );
 
     return $clauses;

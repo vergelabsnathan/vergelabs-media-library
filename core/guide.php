@@ -402,7 +402,7 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
     $t = $wpdb->vergeml_ai_index;
 
     if ( '' !== $taxonomy ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table: $t is $wpdb->vergeml_ai_index; the taxonomy is bound.
         $row = $wpdb->get_row( $wpdb->prepare(
             "SELECT COUNT(*) AS n, MAX(i.described_at) AS last,
                     SUM( CASE WHEN NOT EXISTS (
@@ -411,6 +411,7 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
                FROM {$t} i WHERE i.error = '' AND i.embedding IS NOT NULL",
             $taxonomy
         ), ARRAY_A );
+        // phpcs:enable
     } else {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
         $row = $wpdb->get_row( "SELECT COUNT(*) AS n, MAX(described_at) AS last, COUNT(*) AS unfiled FROM {$t} WHERE error = '' AND embedding IS NOT NULL", ARRAY_A );
@@ -781,12 +782,14 @@ function vergeml_guide_summary() {
     }
 
     $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table: $t is $wpdb->vergeml_ai_index; the taxonomy is bound.
     $unfiled = '' !== $tax ? (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM {$t} i WHERE i.error = '' AND i.embedding IS NOT NULL AND NOT EXISTS (
             SELECT 1 FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
              WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s )",
         $tax
-    ) ) : $total; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+    ) ) : $total;
+    // phpcs:enable
 
     /*
      *  A site that sells says so in its own words (S20). The service puts the

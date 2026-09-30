@@ -106,6 +106,7 @@ function vergeml_uninstall_wipe_site() {
     // moves, the organize runs. Descriptions already written into
     // attachments stay there; these are working tables.
     foreach ( array( 'vergeml_ai_index', 'vergeml_librarian_batches', 'vergeml_librarian_moves', 'vergeml_organize_runs' ) as $table ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- uninstall drops this plugin's own four tables; $table comes from the literal list above, and a table name cannot be a placeholder.
         $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}" );
     }
 

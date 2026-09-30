@@ -266,10 +266,12 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
      */
     global $wpdb;
     $words = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
-    $row   = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; $words is vergeml_filing_words_sql(), fixed column and join text with $wpdb's table names, no input; the id is bound.
+    $row   = $wpdb->get_row( $wpdb->prepare(
         "SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.prompt_hash, i.model_version, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id = %d AND i.error = '' AND i.embedding IS NOT NULL",
         (int) $attachment_id
     ), ARRAY_A );
+    // phpcs:enable
     if ( ! $row || ! function_exists( 'vergeml_filing_pick' ) ) {
         return null;
     }
@@ -557,7 +559,7 @@ function vergeml_autofile_sweep( $limit = VERGEML_AUTOFILE_CHUNK ) {
 
     $tt = vergeml_autofile_tt_ids( $taxonomy );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table is vergeml_index_table() ($wpdb->vergeml_ai_index); $tt is vergeml_autofile_tt_ids(), term_taxonomy ids joined after intval(), or '0'; the limit is bound.
     $ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT p.ID
            FROM {$wpdb->posts} p

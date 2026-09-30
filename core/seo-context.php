@@ -281,8 +281,8 @@ function vergeml_seo_gap_sql( $select ) {
     // one value from outside is the MIME pattern, and it is placeheld.
     // _vergeml_used_in is a comma list of post ids; the CONCAT ... LIKE is
     // FIND_IN_SET() spelled so SQLite (Playground) can run it too.
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    return $wpdb->prepare(
+    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.LikeWildcardsInQuery -- $select comes from the two callers below as a literal, $pages is built above from esc_sql()'d key lists from this file; the MIME pattern is bound. The one literal LIKE wraps a column (kw.post_id), which a replacement parameter cannot carry.
+    $sql = $wpdb->prepare(
         "SELECT $select FROM {$wpdb->posts} p
            LEFT JOIN {$wpdb->postmeta} alt  ON alt.post_id  = p.ID AND alt.meta_key  = '_wp_attachment_image_alt'
            LEFT JOIN {$wpdb->postmeta} used ON used.post_id = p.ID AND used.meta_key = '_vergeml_used_in'
@@ -293,6 +293,9 @@ function vergeml_seo_gap_sql( $select ) {
             AND ( alt.meta_id IS NULL OR alt.meta_value = '' )",
         $mime
     );
+    // phpcs:enable
+
+    return $sql;
 }
 
 
