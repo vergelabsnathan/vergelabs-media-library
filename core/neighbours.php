@@ -157,11 +157,13 @@ function vergeml_neighbour_is_ours( $handle ) {
 
 /*
  *  WP Rocket: leave our scripts out of combine, minify and defer. The
- *  patterns are matched against the script URL.
+ *  patterns are regular expressions matched against the script URL's path,
+ *  so the plugin's js/ folder is taken from plugins_url() -- a moved
+ *  wp-content or a renamed plugin folder still matches -- and quoted.
  */
 function vergeml_neighbour_rocket_exclude( $excluded ) {
     $excluded   = (array) $excluded;
-    $excluded[] = '/wp-content/plugins/vergelabs-media-library/js/(.*).js';
+    $excluded[] = preg_quote( wp_make_link_relative( plugins_url( 'js/', VERGEML_FILE ) ), '#' ) . '(.*).js';
     $excluded[] = 'wp-includes/js/dist/api-fetch(.*).js'; // the transport is printed after this one
     return $excluded;
 }
