@@ -114,7 +114,7 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/quarantine-act` | POST | vergeml_rest_can_manage_categories | manage_categories | no | `ids*`, `action*`, `reason`, $request | meta/option write | yes | core/quarantine.php:399 |
 | `/vergeml/v1/quarantine-manifest` | GET | vergeml_rest_can_manage_categories | manage_categories | no | — | — | no | core/quarantine.php:410 |
 | `/vergeml/v1/rename` | GET | closure | upload_files | no | — | db query | no | core/rename.php:485 |
-| `/vergeml/v1/rename` | POST | closure | manage_options, upload_files, manage_options, edit_post($id) | yes (1) | `action`, `limit`, `ids`, $request | post/term write, meta/option write, db query | yes | core/rename.php:485 |
+| `/vergeml/v1/rename` | POST | closure | upload_files, manage_options, edit_post($id) | yes (1) | `action`, `limit`, `ids`, $request | post/term write, meta/option write, db query | yes | core/rename.php:485 |
 | `/vergeml/v1/rename-files` | GET | closure | manage_options | no | — | db query | no | core/rename-file.php:579 |
 | `/vergeml/v1/rename-files` | POST | closure | manage_options | no | `action`, `limit`, `ids`, $request | meta/option write, filesystem, post/term write, db query | yes | core/rename-file.php:579 |
 | `/vergeml/v1/say-plan` | POST | vergeml_rest_can_manage_categories | manage_categories | no | `text*`, $request | filesystem | no | core/nl-commands.php:548 |
