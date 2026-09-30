@@ -604,7 +604,7 @@ function vergeml_guide_session_out( $s, $live = null ) {
 
 /** The confirm's ask, as two numbers for the screen: folders it would profile, credits that costs. */
 function vergeml_guide_profile_facts( $draft ) {
-    if ( ! is_array( $draft ) || empty( $draft['folders'] ) ) {
+    if ( ! is_array( $draft ) || empty( $draft['folders'] ) || ! vergeml_guide_can_profile() ) {
         return array( 'folders' => 0, 'credits' => 0 );
     }
     $ask = vergeml_guide_profile_ask( $draft );
@@ -1191,7 +1191,8 @@ function vergeml_guide_confirm( &$s ) {
      *  so the planner still sees where it hangs.
      */
     $ask  = vergeml_guide_profile_ask( $s['draft'] );
-    $want = $ask['want'];
+    // Without a licence key the confirm is local: every folder keeps the profile its own name gives it, and the service is not asked.
+    $want = vergeml_guide_can_profile() ? $ask['want'] : array();
 
     /*
      *  One batch a call (C.5). Six planner calls of twenty seconds inside
@@ -1276,6 +1277,11 @@ function vergeml_guide_confirm( &$s ) {
     $s['confirmed_at'] = time();
 
     return array( 'profiled' => $profiled, 'charged' => $charged );
+}
+
+/** Whether a confirm may ask the service to profile folders: only with a licence key connected. Confirming never needs one. */
+function vergeml_guide_can_profile() {
+    return function_exists( 'vergeml_ai_settings' ) && '' !== vergeml_ai_unseal( (string) vergeml_ai_settings()['license_key'] );
 }
 
 /**

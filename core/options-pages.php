@@ -59,13 +59,6 @@ function vergeml_register_setting() {
         'vergeml_backup', //option_name
         'vergeml_sanitize_option_array' //sanitize_callback
     );
-
-    // plugin settings: remote admin notices
-    register_setting(
-        'vergeml_notices', //option_group
-        'vergeml_notices', //option_name
-        'vergeml_sanitize_option_array' //sanitize_callback
-    );
 }
 
 
@@ -1727,8 +1720,6 @@ function vergeml_settings_restoring() {
     update_option( 'vergeml_tax_options', $vergeml_backup['tax_options'] );
     update_option( 'vergeml_mimes', $vergeml_backup['mimes'] );
 
-    do_action( 'vergeml_pro_set_settings', $vergeml_backup );
-
     update_option( 'vergeml_backup', '' );
 
     add_settings_error(
@@ -2011,8 +2002,6 @@ function vergeml_options_cleanup() {
         'vergeml_uninstall_wipe'
     );
 
-    $options = apply_filters( 'vergeml_pro_add_options', $options );
-
     foreach ( $options as $option ) {
         delete_option( $option );
     }
@@ -2021,8 +2010,7 @@ function vergeml_options_cleanup() {
      *  And then the sweep, because the list above has never once been
      *  complete: every feature that stores an option would have to remember
      *  to add itself here, and the ones that forgot lingered after a
-     *  "complete" cleanup. The list stays for the filter -- Pro options are
-     *  not all vergeml_-prefixed.
+     *  "complete" cleanup.
      */
     global $wpdb;
     $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'vergeml\_%' AND option_name NOT LIKE '\_transient%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own options.
@@ -2053,8 +2041,6 @@ function vergeml_site_options_cleanup() {
         delete_site_transient( 'vergeml_network_overview' );
     }
 
-    $options = apply_filters( 'vergeml_pro_add_options', $options );
-
     foreach ( $options as $option ) {
         delete_site_option( $option );
     }
@@ -2084,12 +2070,6 @@ function vergeml_transients_cleanup() {
          WHERE option_name LIKE '\_transient\_vergeml\_%'
             OR option_name LIKE '\_transient\_timeout\_vergeml\_%'"
     ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own transients.
-
-    $transients = apply_filters( 'vergeml_pro_add_transients', array() );
-
-    foreach ( $transients as $transient ) {
-        delete_site_transient( $transient );
-    }
 }
 
 
@@ -3449,144 +3429,3 @@ function vergeml_print_credits() { ?>
 
     <?php
 }
-
-
-
-
-
-
-
-/**
- *  vergeml_admin_notice
- *
- *  Shows a notice
- * 
- *  @since    2.8.10
- *  @created  2024/04
- */
-
-add_action( 'admin_notices', 'vergeml_admin_notice' );
-add_action( 'network_admin_notices', 'vergeml_admin_notice' );
-
-function vergeml_admin_notice() {
-
-    global // $pagenow,
-           $current_screen;
-
-
-    if ( ! current_user_can( 'manage_options' ) ) {
-        return;
-    }
-
-
-    $notices = get_site_option( 'vergeml_notices', array() );
-
-
-    if ( empty( $notices ) ) {
-        return;
-    }
-
-
-    if ( ! isset( $notices['current'] ) ) {
-        return;
-    }
-
-
-    $notice_id = $notices['current'];
-
-
-    $user_id = get_current_user_id();
-    if ( get_user_meta( $user_id, "vergeml_{$notice_id}_notice_dismissed" ) ) {
-        return;
-    }
-
-
-    $notice = $notices[$notice_id];
-
-
-    if (    ! empty( $notice['version'] ) && 
-            version_compare( VERGEML_VERSION, $notice['version'], '>=' ) 
-        ) {
-        return;
-    }
-
-
-    if (    ! empty( $notice['for'] ) ) {
-
-        // a notice for multisite users only
-        if ( in_array( 'multisite', $notice['for'] ) && ! is_multisite() ) {
-            return;
-        }
-    }
-
-
-    if (    ! isset( $notice['screens'] ) || 
-            ! in_array( $current_screen->base, $notice['screens'] ) 
-        ) {
-        return;
-    }
-
-
-    printf(
-        '<div class="notice notice-%2$s is-dismissible eml-admin-notice dashicons-before" id="%3$s">
-            %1$s
-        </div>',
-        wp_kses(
-            $notice['message'],
-            array(
-                'p'      => array(),
-                'a'      => array(
-                    'href'   => array(),
-                    'title'  => array(),
-                    'class'  => array(),
-                    'target' => array()
-                ),
-                'br'     => array(),
-                'em'     => array(),
-                'strong' => array( 
-                    'class'  => array()
-                )
-            )
-        ),
-        esc_attr( $notice['type'] ),
-        esc_html( $notice_id )
-    );
-}
-
-
-
-/**
- *  vergeml_admin_notice_dismiss
- *
- *  Associates a dismissed notice mark with a user
- * 
- *  @since    2.8.10
- *  @created  2024/04
- */
-
-add_action( 'wp_ajax_vergeml-admin-notice-dismiss', 'vergeml_admin_notice_dismiss' );
-
-function vergeml_admin_notice_dismiss() {
-
-    if ( ! isset( $_POST['notice_id'] ) )
-        wp_die();
-
-
-    check_ajax_referer( 'eml-admin-notice-nonce', 'nonce' );
-
-
-    if ( ! isset( $_POST['notice_id'] ) )
-        wp_send_json_error();
-
-    $notice_id = sanitize_text_field( wp_unslash( $_POST['notice_id'] ) );
-    $user_id = get_current_user_id();
-
-    update_user_meta( $user_id, "vergeml_{$notice_id}_notice_dismissed", true );
-
-
-    wp_die();
-}
-
-
-
-

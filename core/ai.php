@@ -766,30 +766,11 @@ function vergeml_ai_filing( $raw ) {
  */
 const VERGEML_AI_PARALLEL = 8;
 
-/*
- *  What an agency licence sends at once. Sixteen: measured on 3 September
- *  2026 at 64 a minute against Vercel and 82-104 a minute against the service
- *  on the same box, zero failures either way, after the two things that had
- *  made sixteen look worse that afternoon were found. Neither was the
- *  serverless function: the database pooler was on its session port with a
- *  hard cap of fifteen clients (now the multiplexing port), and the run's
- *  own nudge never reached wp-cron, so a run only moved when a visitor
- *  spawned cron. Sixty-four is the provider's measured comfort; the next
- *  step up is one edit here once a customer's host has carried it.
- */
-const VERGEML_AI_PARALLEL_AGENCY = 16;
 
 function vergeml_ai_parallel() {
 
-    /*
-     *  The default follows the plan, so nobody on shared hosting is hurt and
-     *  an agency gets the speed without a filter. Measured 3 September 2026:
-     *  a step of sixteen went out as two batches of eight, ~18s; as one batch
-     *  of sixteen it is ~9s, and the provider held 64 without slowing.
-     */
-    $cached  = get_option( 'vergeml_ai_credits', array() );
-    $plan    = is_array( $cached ) && isset( $cached['plan'] ) ? (string) $cached['plan'] : '';
-    $default = 'agency' === $plan ? VERGEML_AI_PARALLEL_AGENCY : VERGEML_AI_PARALLEL;
+    // One default for every site, whatever its licence: how fast the plugin runs on a server is not a plan feature.
+    $default = VERGEML_AI_PARALLEL;
 
     // A wp-config knob for a site that has measured its own service and
     // wants more, or less: define( 'VERGEML_AI_PARALLEL_FORCE', 16 );

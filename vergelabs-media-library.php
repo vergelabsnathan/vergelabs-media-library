@@ -715,17 +715,6 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
             true
         );
 
-        $admin_l10n = array(
-            'admin_notice_nonce' => wp_create_nonce( 'eml-admin-notice-nonce' )
-        );
-
-        wp_localize_script(
-            'vergeml-admin-script',
-            'vergeml_admin_l10n',
-            $admin_l10n
-        );
-
-
         // scripts for list view :: /wp-admin/upload.php
         if ( isset( $current_screen ) && 'upload' === $current_screen->base && 'list' === $media_library_mode ) {
 

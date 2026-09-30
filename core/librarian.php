@@ -773,44 +773,6 @@ function vergeml_librarian_scheme_tree( $scheme, $run_id = 0 ) {
 }
 
 
-/* ---------------------------------------------------------------- the gate */
-
-/**
- *  vergeml_librarian_gate
- *
- *  Applying a folder tree is local work, and nothing may restrict it: it
- *  always goes ahead (WordPress.org Guidelines 5 and 6). The function stays
- *  so its three callers keep their shape; there is deliberately no filter here
- *  for anything to hang a restriction on.
- */
-
-function vergeml_librarian_gate( $context = array() ) {
-
-    return array( 'allow' => true, 'reason' => '' );
-}
-
-
-/**
- *  What applying would cost, as the gate sees it.
- *
- *  Zero and honest about being zero. The service is not live, so a figure
- *  here would be a number somebody made up, and this screen's whole argument
- *  is that its numbers are counted.
- */
-
-function vergeml_librarian_credits( $context = array() ) {
-
-    $gate = vergeml_librarian_gate( $context );
-
-    return array(
-        'cost'   => 0,
-        'mode'   => 'mock',
-        'allow'  => $gate['allow'],
-        'reason' => $gate['reason'],
-    );
-}
-
-
 /* ------------------------------------------------------------- the pre-flight */
 
 /**
@@ -893,10 +855,6 @@ function vergeml_librarian_preflight( $scheme, $run_id, $branches ) {
         'filed'      => count( $filed ),
         'folders'    => array( 'create' => $create, 'reuse' => $reuse ),
         'estimate'   => $estimate,
-        'credits'    => vergeml_librarian_credits( array(
-            'scheme' => $scheme,
-            'files'  => $unfiled,
-        ) ),
         'quote'      => $quote,
     );
 }
@@ -1229,12 +1187,6 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
         return $plan;
     }
 
-    $gate = vergeml_librarian_gate( array(
-        'scheme' => $plan['scheme'],
-        'files'  => count( $plan['work'] ),
-        'stage'  => 'create',
-    ) );
-
     /*
      *  The files that already have a folder are dropped here rather than
      *  skipped one at a time later, and it buys two things.
@@ -1310,12 +1262,12 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
         array(
             'run_id'      => (int) $plan['run_id'],
             'scheme'      => (string) $plan['scheme'],
-            'status'      => $gate['allow'] ? 'running' : 'paused',
+            'status'      => 'running',
             'step_cursor' => 0,
             'done_n'      => 0,
             'skip_n'      => $skipped,
             'params'      => wp_json_encode( $params ),
-            'reason'      => vergeml_librarian_reason( $gate['allow'] ? '' : $gate['reason'] ),
+            'reason'      => '',
             'user_id'     => $user,
             'approved_at' => $user ? $now : null,
             'created_at'  => $now,
@@ -1329,12 +1281,12 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
         'batch_id'    => (int) $wpdb->insert_id,
         'run_id'      => (int) $plan['run_id'],
         'scheme'      => (string) $plan['scheme'],
-        'status'      => $gate['allow'] ? 'running' : 'paused',
+        'status'      => 'running',
         'cursor'      => 0,
         'done'        => 0,
         'skipped'     => $skipped,
         'params'      => $params,
-        'reason'      => $gate['allow'] ? '' : $gate['reason'],
+        'reason'      => '',
         'user_id'     => $user,
         'approved_at' => $user ? $now : '',
         'created_at'  => $now,
@@ -1448,26 +1400,6 @@ function vergeml_librarian_apply_step( $batch_id ) {
     $params = $batch['params'];
     $work   = isset( $params['work'] ) ? (array) $params['work'] : array();
     $total  = count( $work );
-
-    /*
-     *  The gate, at the top of every step and not only at the start. A credit
-     *  balance can run out mid-batch, and the answer to that is to stop with
-     *  a reason rather than to keep going because permission was granted a
-     *  minute ago.
-     */
-    $gate = vergeml_librarian_gate( array(
-        'scheme'   => $batch['scheme'],
-        'batch_id' => $batch['batch_id'],
-        'files'    => $total - (int) $batch['cursor'],
-        'stage'    => 'step',
-    ) );
-
-    if ( ! $gate['allow'] ) {
-        $batch['status'] = 'paused';
-        $batch['reason'] = $gate['reason'];
-        vergeml_librarian_batch_save( $batch );
-        return vergeml_librarian_report( $batch, $started );
-    }
 
     if ( 'paused' === $batch['status'] ) {
         // Resuming is what asking for a step on a paused batch means.
@@ -2745,13 +2677,6 @@ function vergeml_librarian_rest_apply( WP_REST_Request $request ) {
         }
 
         $batch_id = (int) $batch['batch_id'];
-
-        // A batch the gate refused is created and paused, not stepped: the
-        // reason is what the screen has to show, and stepping it would only
-        // ask the same question again.
-        if ( 'paused' === $batch['status'] ) {
-            return rest_ensure_response( vergeml_librarian_report( $batch, microtime( true ) ) );
-        }
     }
 
     $result = vergeml_librarian_apply_step( $batch_id );

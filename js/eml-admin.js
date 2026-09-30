@@ -3,7 +3,6 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 ( function( $ ) {
 
-    _.extend( vergeml.l10n, vergeml_admin_l10n );
 
 
 
@@ -108,16 +107,4 @@ window.vergeml = window.vergeml || { l10n: {} };
     window.vergemlFullscreenSpinnerStop = function() {
         $('.fullscreen-spinner-box').remove();
     }
-
-    $( document ).on( 'click', '.eml-admin-notice .notice-dismiss', function( event ) {
-
-        var notice_id = $( event.currentTarget ).parent('.eml-admin-notice').attr('id');
-
-        $.post( ajaxurl, {
-            nonce:     vergeml.l10n.admin_notice_nonce,
-            action:    'vergeml-admin-notice-dismiss',
-            notice_id: notice_id
-        });        
-    });
-
 })( jQuery );
