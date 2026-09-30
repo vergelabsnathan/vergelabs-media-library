@@ -33,7 +33,7 @@ function vergeml_help_menu() {
         __( 'Get help', 'vergelabs-media-library' ),
         __( 'Get help', 'vergelabs-media-library' ),
         'manage_options',
-        'media-help',
+        'vergeml-help',
         'vergeml_help_page'
     );
 }
@@ -199,7 +199,7 @@ function vergeml_help_send() {
 
     check_admin_referer( 'vergeml_help_send' );
 
-    $back = admin_url( 'admin.php?page=media-help' );
+    $back = admin_url( 'admin.php?page=vergeml-help' );
 
     $question = isset( $_POST['vergeml_question'] ) ? sanitize_textarea_field( wp_unslash( $_POST['vergeml_question'] ) ) : '';
     $consent  = ! empty( $_POST['vergeml_consent'] );
@@ -331,7 +331,7 @@ function vergeml_help_page() {
         <h2><?php esc_html_e( 'Known problems that match this site', 'vergelabs-media-library' ); ?></h2>
         <?php if ( ! is_array( $matches ) ) : ?>
             <p class="description"><?php false === $matches ? esc_html_e( 'The VergeLabs service could not be reached just now, so nothing was checked. Try again in a minute, or ask below.', 'vergelabs-media-library' ) : esc_html_e( 'Not checked yet. Checking downloads the list of known problems from the VergeLabs AI service at ai.vergelabs.nl; like every request WordPress makes, it carries your site’s address.', 'vergelabs-media-library' ); ?></p>
-            <p><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=media-help&vgml-check=1' ), 'vergeml_help_check' ) ); ?>"><?php esc_html_e( 'Check for known problems', 'vergelabs-media-library' ); ?></a></p>
+            <p><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=vergeml-help&vgml-check=1' ), 'vergeml_help_check' ) ); ?>"><?php esc_html_e( 'Check for known problems', 'vergelabs-media-library' ); ?></a></p>
         <?php elseif ( $matches ) : ?>
             <ul class="vgml-help-issues">
             <?php foreach ( $matches as $issue ) : ?>
@@ -410,7 +410,7 @@ function vergeml_help_card() {
                 esc_html_e( 'Nothing known is wrong with the versions this site runs. If something is, ask with the report attached.', 'vergelabs-media-library' );
             }
         ?></div>
-        <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=media-help' ) ); ?>"><?php esc_html_e( 'Open Get help', 'vergelabs-media-library' ); ?></a>
+        <a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=vergeml-help' ) ); ?>"><?php esc_html_e( 'Open Get help', 'vergelabs-media-library' ); ?></a>
     </div>
     <?php
 }

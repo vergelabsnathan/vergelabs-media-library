@@ -141,7 +141,7 @@ const stable = (v) => JSON.stringify(v);
         const both = await call('activate', `&plugin=${encodeURIComponent(EML)}`);
         check('both plugins can be active at once', both.result === 'activated', both.result);
 
-        for (const [name, path] of [['media library', '/wp-admin/upload.php'], ['settings', '/wp-admin/options-general.php?page=media-library']]) {
+        for (const [name, path] of [['media library', '/wp-admin/upload.php'], ['settings', '/wp-admin/options-general.php?page=vergeml-library']]) {
             const res = await get(BASE + path);
             const html = await res.text();
             const fatal = /Fatal error|There has been a critical error/i.test(html);

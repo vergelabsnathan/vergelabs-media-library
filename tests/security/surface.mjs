@@ -26,7 +26,7 @@
  *       → "no entry point is open to visitors who are not logged in" FAILs.
  *    3. vergeml_can_manage_folders() made `return true`
  *       → "every REST endpoint asks a capability question" FAILs.
- *    4. the sanitize callback dropped from register_setting( 'mime-types', … )
+ *    4. the sanitize callback dropped from register_setting( 'vergeml-mime-types', … )
  *       → "every registered setting names a sanitize callback" FAILs.
  *    5. the main menu's capability changed from manage_categories to read
  *       → "no admin screen is registered with a capability every logged-in user

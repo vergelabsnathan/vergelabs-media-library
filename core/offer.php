@@ -192,5 +192,5 @@ function vergeml_offer_ajax_trial() {
         vergeml_ai_refresh_credits( true );
     }
 
-    wp_send_json_success( array( 'next' => add_query_arg( 'vgml_trial', '1', admin_url( 'admin.php?page=media-ai' ) ) ) );
+    wp_send_json_success( array( 'next' => add_query_arg( 'vgml_trial', '1', admin_url( 'admin.php?page=vergeml-ai' ) ) ) );
 }

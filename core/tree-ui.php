@@ -271,7 +271,7 @@ function vergeml_tree_assets( $hook ) {
          *  where somebody is standing when the problem occurs to them.
          */
         'librarianUrl' => current_user_can( 'manage_categories' )
-            ? admin_url( 'admin.php?page=media-librarian' )
+            ? admin_url( 'admin.php?page=vergeml-librarian' )
             : '',
         /*
          *  A ready-made, nonce-carrying download link; the browser only appends

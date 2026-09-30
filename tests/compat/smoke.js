@@ -115,9 +115,9 @@ function check(name, ok, detail) {
 
         // ---- 4. settings screens ----
         for (const [name, url] of [
-            ['settings: library', '/wp-admin/options-general.php?page=media-library'],
-            ['settings: taxonomies', '/wp-admin/options-general.php?page=media-taxonomies'],
-            ['settings: mime types', '/wp-admin/options-general.php?page=mime-types'],
+            ['settings: library', '/wp-admin/options-general.php?page=vergeml-library'],
+            ['settings: taxonomies', '/wp-admin/options-general.php?page=vergeml-taxonomies'],
+            ['settings: mime types', '/wp-admin/options-general.php?page=vergeml-mime-types'],
         ]) {
             await page.goto(BASE + url, { waitUntil: 'domcontentloaded' });
             await page.waitForTimeout(1500);

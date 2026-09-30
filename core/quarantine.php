@@ -495,7 +495,7 @@ add_action( 'admin_enqueue_scripts', 'vergeml_quarantine_assets' );
 
 function vergeml_quarantine_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-health' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-health' ) ) {
         return;
     }
 

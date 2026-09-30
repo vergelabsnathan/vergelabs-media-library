@@ -24,7 +24,7 @@ function vergeml_import_menu() {
         __( 'Import Folders', 'vergelabs-media-library' ),
         __( 'Import Folders', 'vergelabs-media-library' ),
         'manage_categories',
-        'media-import-folders',
+        'vergeml-import-folders',
         'vergeml_import_screen'
     );
 }
@@ -357,7 +357,7 @@ function vergeml_import_assets( $hook ) {
      *  suffix moved with it. Matched on the slug rather than on the whole hook,
      *  which is the part that does not change when the menu is rearranged again.
      */
-    if ( 'media-import-folders' !== substr( (string) $hook, -20 ) ) {
+    if ( 'vergeml-import-folders' !== substr( (string) $hook, -22 ) ) {
         return;
     }
 

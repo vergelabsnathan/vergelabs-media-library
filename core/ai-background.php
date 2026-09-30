@@ -608,7 +608,7 @@ add_action( 'admin_enqueue_scripts', 'vergeml_ai_run_assets' );
 
 function vergeml_ai_run_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-ai' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-ai' ) ) {
         return;
     }
 

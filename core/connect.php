@@ -62,7 +62,7 @@ function vergeml_buy_url( $path, $screen ) {
 /** The nonce-protected URL behind the "Connect" button. */
 function vergeml_connect_start_url() {
     return wp_nonce_url(
-        admin_url( 'admin.php?page=media-licence&vergeml_connect=start' ),
+        admin_url( 'admin.php?page=vergeml-licence&vergeml_connect=start' ),
         VERGEML_CONNECT_NONCE
     );
 }
@@ -130,7 +130,7 @@ function vergeml_connect_start() {
         array(
             'state'        => rawurlencode( $state ),
             'site'         => rawurlencode( home_url() ),
-            'redirect_uri' => rawurlencode( admin_url( 'admin.php?page=media-licence' ) ),
+            'redirect_uri' => rawurlencode( admin_url( 'admin.php?page=vergeml-licence' ) ),
         ),
         vergeml_connect_base() . '/connect'
     );
@@ -212,7 +212,7 @@ function vergeml_connect_finish() {
 
 /** Back to the AI screen, saying what happened. */
 function vergeml_connect_redirect_with( $result ) {
-    wp_safe_redirect( admin_url( 'admin.php?page=media-licence&vergeml_connected=' . rawurlencode( $result ) ) );
+    wp_safe_redirect( admin_url( 'admin.php?page=vergeml-licence&vergeml_connected=' . rawurlencode( $result ) ) );
     exit;
 }
 

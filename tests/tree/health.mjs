@@ -67,7 +67,7 @@ await page.waitForSelector( '.vgml-do-list, .vgml-pg-head', { timeout: 30000 } )
 
 check( 'the overview offers Library health', await page.evaluate( () =>
 	!! [ ...document.querySelectorAll( 'a[href]' ) ]
-		.find( ( c ) => c.href.includes( 'page=media-health' ) ) ) );
+		.find( ( c ) => c.href.includes( 'page=vergeml-health' ) ) ) );
 
 /*
  *  That the switch exists, not that it is unticked.
@@ -82,7 +82,7 @@ check( 'the dashboard no longer carries the counts card', await page.evaluate( (
 	null === document.getElementById( 'vgml-stats-opt' ) && ! /Size counts/.test( document.body.textContent ) ) );
 
 // Since 3.16.2 the switch lives in Library settings, under "Share library counts".
-await page.goto( `${ BASE }/wp-admin/admin.php?page=media-library`, { waitUntil: 'domcontentloaded' } );
+await page.goto( `${ BASE }/wp-admin/admin.php?page=vergeml-library`, { waitUntil: 'domcontentloaded' } );
 
 const optBox = await page.evaluate( () => {
 	const box = document.getElementById( 'vgml-stats-opt' );
@@ -101,7 +101,7 @@ check( 'and says what goes and what never does', await page.evaluate( () => {
 
 console.log( '\nthe screen' );
 
-await page.goto( `${ BASE }/wp-admin/admin.php?page=media-health`, { waitUntil: 'domcontentloaded' } );
+await page.goto( `${ BASE }/wp-admin/admin.php?page=vergeml-health`, { waitUntil: 'domcontentloaded' } );
 await page.waitForSelector( '#vgml-health-scan', { timeout: 30000 } );
 await page.waitForTimeout( 1500 );
 

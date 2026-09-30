@@ -680,7 +680,7 @@ add_action( 'admin_enqueue_scripts', 'vergeml_nl_assets' );
 
 function vergeml_nl_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-librarian' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-librarian' ) ) {
         return;
     }
 

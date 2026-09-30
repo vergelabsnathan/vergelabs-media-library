@@ -285,7 +285,7 @@ function vergeml_journey_progress() {
             'n'      => $f['images'] - $f['no_alt'],
             'm'      => $f['images'],
             'action' => __( 'Write alt text', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-ai' ),
+            'url'    => vergeml_journey_url( 'vergeml-ai' ),
         ),
         array(
             'id'     => 'described',
@@ -293,7 +293,7 @@ function vergeml_journey_progress() {
             'n'      => $f['described'],
             'm'      => $f['images'],
             'action' => __( 'Describe the rest', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-ai' ),
+            'url'    => vergeml_journey_url( 'vergeml-ai' ),
         ),
         array(
             'id'     => 'filed',
@@ -301,7 +301,7 @@ function vergeml_journey_progress() {
             'n'      => $f['files'] - $f['unfiled'],
             'm'      => $f['files'],
             'action' => __( 'Put files in folders', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-librarian' ),
+            'url'    => vergeml_journey_url( 'vergeml-librarian' ),
         ),
         array(
             'id'     => 'checked',
@@ -309,7 +309,7 @@ function vergeml_journey_progress() {
             'n'      => $checked,
             'm'      => $f['files'],
             'action' => __( 'Check for copies', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-health' ),
+            'url'    => vergeml_journey_url( 'vergeml-health' ),
         ),
     );
 
@@ -580,7 +580,7 @@ function vergeml_journey_stages() {
             'action' => ( $f['licensed'] || $f['demo'] )
                 ? __( 'Change this', 'vergelabs-media-library' )
                 : __( 'Start here', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-licence' ),
+            'url'    => vergeml_journey_url( 'vergeml-licence' ),
         );
     }
 
@@ -599,7 +599,7 @@ function vergeml_journey_stages() {
             'blocked' => $blocked,
             'text'    => vergeml_journey_describe_text( $f ),
             'action'  => __( 'Describe them', 'vergelabs-media-library' ),
-            'url'     => vergeml_journey_url( 'media-ai' ),
+            'url'     => vergeml_journey_url( 'vergeml-ai' ),
         );
 
         /* -------------------------------------------------------- the alt */
@@ -619,7 +619,7 @@ function vergeml_journey_stages() {
                     number_format_i18n( $f['no_alt'] )
                 ),
             'action'  => __( 'Fill them in', 'vergelabs-media-library' ),
-            'url'     => vergeml_journey_url( 'media-ai' ),
+            'url'     => vergeml_journey_url( 'vergeml-ai' ),
         );
     }
 
@@ -661,7 +661,7 @@ function vergeml_journey_stages() {
                     number_format_i18n( $f['files'] )
                 ),
             'action' => $done ? __( 'See the report', 'vergelabs-media-library' ) : __( 'Scan the library', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-health' ),
+            'url'    => vergeml_journey_url( 'vergeml-health' ),
         );
     }
 
@@ -734,7 +734,7 @@ function vergeml_journey_stages() {
             'action'  => 'ready' === $stage
                 ? __( 'See where they would go', 'vergelabs-media-library' )
                 : __( 'Sort them into folders', 'vergelabs-media-library' ),
-            'url'     => vergeml_journey_url( 'media-librarian' ),
+            'url'     => vergeml_journey_url( 'vergeml-librarian' ),
         );
     }
 
@@ -748,7 +748,7 @@ function vergeml_journey_stages() {
             'done'   => false,
             'text'   => __( 'Already sorted your media with FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders or Real Media Library? We can copy those folders over so you do not start again. The other plugin keeps everything exactly as it is, you see what will happen before it happens, and it can all be undone.', 'vergelabs-media-library' ),
             'action' => __( 'Import folders', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-import-folders' ),
+            'url'    => vergeml_journey_url( 'vergeml-import-folders' ),
         );
     }
 
@@ -901,7 +901,7 @@ function vergeml_journey_todo() {
             'kind'    => 'primary',
             'n'       => (int) $f['undescribed'],
             'go'      => __( 'Describe them', 'vergelabs-media-library' ),
-            'url'     => vergeml_journey_url( 'media-ai' ),
+            'url'     => vergeml_journey_url( 'vergeml-ai' ),
             'blocked' => ( ! $f['licensed'] && ! $f['demo'] )
                 ? __( 'Add a licence key or switch on demo mode first.', 'vergelabs-media-library' )
                 : '',
@@ -992,7 +992,7 @@ function vergeml_journey_todo() {
         'kind'  => 'secondary',
         'n'     => (int) $f['unfiled'],
         'go'    => __( 'Put them in folders', 'vergelabs-media-library' ),
-        'url'   => vergeml_journey_url( 'media-librarian' ),
+        'url'   => vergeml_journey_url( 'vergeml-librarian' ),
         // The title carries the number, so the row does not print it twice.
         'count_in_title' => true,
     );
@@ -1036,7 +1036,7 @@ function vergeml_journey_todo() {
         'kind'  => 'ghost',
         'n'     => max( $copies, $sets ),
         'go'    => __( 'Review the sets', 'vergelabs-media-library' ),
-        'url'   => vergeml_journey_url( 'media-health' ),
+        'url'   => vergeml_journey_url( 'vergeml-health' ),
     );
 
     /*
@@ -1241,16 +1241,16 @@ function vergeml_journey_screen() {
     $figures = array(
         array( 'n' => $f['files'],   'label' => __( 'files', 'vergelabs-media-library' ),   'url' => 0 === $f['files'] ? admin_url( 'media-new.php' ) : admin_url( 'upload.php' ) ),
         array( 'n' => $f['folders'], 'label' => __( 'folders', 'vergelabs-media-library' ), 'url' => admin_url( 'upload.php' ) ),
-        array( 'n' => $f['unfiled'], 'label' => __( 'unfiled', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-librarian' ), 'warn' => $f['unfiled'] > 0 ),
-        array( 'n' => $f['no_alt'],  'label' => __( 'no alt text', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-ai' ), 'warn' => $f['no_alt'] > 0 ),
+        array( 'n' => $f['unfiled'], 'label' => __( 'unfiled', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-librarian' ), 'warn' => $f['unfiled'] > 0 ),
+        array( 'n' => $f['no_alt'],  'label' => __( 'no alt text', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-ai' ), 'warn' => $f['no_alt'] > 0 ),
     );
 
     if ( null !== $f['unused'] ) {
-        $figures[] = array( 'n' => $f['unused'], 'label' => __( 'used nowhere', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-health' ), 'warn' => $f['unused'] > 0 );
+        $figures[] = array( 'n' => $f['unused'], 'label' => __( 'used nowhere', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-health' ), 'warn' => $f['unused'] > 0 );
     }
 
     if ( null !== $f['credits'] ) {
-        $figures[] = array( 'n' => $f['credits'], 'label' => __( 'credits left', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-ai' ) );
+        $figures[] = array( 'n' => $f['credits'], 'label' => __( 'credits left', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-ai' ) );
     }
 
     ?>
@@ -1289,14 +1289,14 @@ function vergeml_journey_screen() {
         $band = array(
             array( 'n' => $f['files'],   'l' => __( 'files', 'vergelabs-media-library' ) ),
             array( 'n' => $f['folders'], 'l' => __( 'folders', 'vergelabs-media-library' ) ),
-            array( 'n' => $f['unfiled'], 'l' => __( 'unfiled', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-librarian' ) ),
-            array( 'n' => $f['no_alt'],  'l' => __( 'no alt text', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-ai' ) ),
+            array( 'n' => $f['unfiled'], 'l' => __( 'unfiled', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-librarian' ) ),
+            array( 'n' => $f['no_alt'],  'l' => __( 'no alt text', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-ai' ) ),
         );
         if ( null !== $f['unused'] ) {
             $band[] = array( 'n' => $f['unused'], 'l' => __( 'used nowhere', 'vergelabs-media-library' ), 'tip' => __( 'Files not used in any post, page or product yet.', 'vergelabs-media-library' ) );
         }
         if ( null !== $f['credits'] ) {
-            $band[] = array( 'n' => $f['credits'], 'l' => __( 'credits left', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-licence' ) );
+            $band[] = array( 'n' => $f['credits'], 'l' => __( 'credits left', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-licence' ) );
         }
         ?>
         <div class="vgml-band">
@@ -1531,7 +1531,7 @@ function vergeml_journey_screen() {
                         'icon'  => 'search',
                         'label' => __( 'Scan for duplicate files', 'vergelabs-media-library' ),
                         'note'  => __( 'Free, sends nothing anywhere, changes nothing.', 'vergelabs-media-library' ),
-                        'href'  => vergeml_journey_url( 'media-health' ),
+                        'href'  => vergeml_journey_url( 'vergeml-health' ),
                     );
                 }
 

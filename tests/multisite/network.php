@@ -106,7 +106,7 @@ if ( ! function_exists( 'vergeml_update_network_settings' ) ) {
 update_site_option( 'vergeml_network_options', array( 'media_settings' => 1, 'utilities' => 1 ) );
 $_POST['eml-submit-network-settings'] = '1';
 $_POST['vergeml_network_options']     = array( 'media_settings' => '0', 'utilities' => '1', 'uninstall_wipe' => '0' );
-$_REQUEST['_wpnonce'] = $_POST['_wpnonce'] = wp_create_nonce( 'eml-network-settings-options' );
+$_REQUEST['_wpnonce'] = $_POST['_wpnonce'] = wp_create_nonce( 'vergeml-network-settings-options' );
 if ( function_exists( 'vergeml_update_network_settings' ) ) {
     vergeml_update_network_settings();
     $after = get_site_option( 'vergeml_network_options' );

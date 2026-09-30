@@ -2172,7 +2172,7 @@ function vergeml_ai_menu() {
         __( 'AI', 'vergelabs-media-library' ),
         __( 'AI', 'vergelabs-media-library' ),
         'manage_categories',
-        'media-ai',
+        'vergeml-ai',
         'vergeml_ai_page'
     );
 }

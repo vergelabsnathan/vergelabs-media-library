@@ -41,14 +41,14 @@ function vergeml_ai_tab() {
 }
 
 function vergeml_ai_tab_url( $tab ) {
-    return admin_url( 'admin.php?page=media-ai' . ( 'describe' === $tab ? '' : '&tab=' . $tab ) );
+    return admin_url( 'admin.php?page=vergeml-ai' . ( 'describe' === $tab ? '' : '&tab=' . $tab ) );
 }
 
 add_action( 'admin_enqueue_scripts', 'vergeml_ai_screen_assets' );
 
 function vergeml_ai_screen_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-ai' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-ai' ) ) {
         return;
     }
 
@@ -200,7 +200,7 @@ function vergeml_ai_page() {
             printf(
                 '<div class="notice notice-info"><p>%s <a href="%s">%s</a></p></div>',
                 esc_html__( 'No licence is connected, so nothing can be described yet.', 'vergelabs-media-library' ),
-                esc_url( admin_url( 'admin.php?page=media-licence' ) ),
+                esc_url( admin_url( 'admin.php?page=vergeml-licence' ) ),
                 esc_html__( 'Connect one on the Licence tab', 'vergelabs-media-library' )
             );
         }
@@ -392,7 +392,7 @@ function vergeml_ai_tab_describe( $c ) {
             </ul>
             <div class="vgml-ai-buttons">
                 <a class="vgml-btn" href="<?php echo esc_url( vergeml_buy_url( '/pricing', 'ai' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Get credits ↗', 'vergelabs-media-library' ); ?></a>
-                <a class="vgml-btn vgml-btn-ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=media-licence' ) ); ?>"><?php esc_html_e( 'Licence →', 'vergelabs-media-library' ); ?></a>
+                <a class="vgml-btn vgml-btn-ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=vergeml-licence' ) ); ?>"><?php esc_html_e( 'Licence →', 'vergelabs-media-library' ); ?></a>
             </div>
         </div>
         <?php if ( $c['runs'] ) : ?>

@@ -43,7 +43,7 @@ add_action( 'admin_menu', 'vergeml_guide_redirect', 999 );
 
 function vergeml_guide_redirect() {
     if ( isset( $_GET['page'] ) && 'media-guide' === $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, which screen this is.
-        wp_safe_redirect( admin_url( 'admin.php?page=media-librarian' ) );
+        wp_safe_redirect( admin_url( 'admin.php?page=vergeml-librarian' ) );
         exit;
     }
 }
@@ -61,7 +61,7 @@ function vergeml_folders_menu() {
         __( 'Folders', 'vergelabs-media-library' ),
         __( 'Folders', 'vergelabs-media-library' ),
         'manage_categories',
-        'media-librarian',
+        'vergeml-librarian',
         'vergeml_folders_page'
     );
 }
@@ -70,7 +70,7 @@ add_action( 'admin_enqueue_scripts', 'vergeml_folders_assets' );
 
 function vergeml_folders_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-librarian' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-librarian' ) ) {
         return;
     }
 
@@ -108,8 +108,8 @@ function vergeml_folders_assets( $hook ) {
         // The folders the fill's answers made: the done tree marks them new.
         'made'      => function_exists( 'vergeml_talk_made_by_answer' ) ? vergeml_talk_made_by_answer() : array(),
         'undo'      => $boot['undo'],
-        'aiUrl'     => admin_url( 'admin.php?page=media-ai' ),
-        'licenceUrl'=> admin_url( 'admin.php?page=media-licence' ),
+        'aiUrl'     => admin_url( 'admin.php?page=vergeml-ai' ),
+        'licenceUrl'=> admin_url( 'admin.php?page=vergeml-licence' ),
         // "Show me" opens a picture in the library's own modal, where Why is it here answers for it.
         'libraryUrl'=> admin_url( 'upload.php' ),
         'proposeCredits' => VERGEML_GUIDE_PROPOSE_CREDITS,

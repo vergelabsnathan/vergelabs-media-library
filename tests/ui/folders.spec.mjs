@@ -1016,7 +1016,7 @@ test.describe( 'the Folders screen', () => {
 		await remember( page );
 		await plant( page, false );
 		await page.goto( '/wp-admin/admin.php?page=media-guide', { waitUntil: 'domcontentloaded' } );
-		await expect( page ).toHaveURL( /page=media-librarian/ );
+		await expect( page ).toHaveURL( /page=vergeml-librarian/ );
 	} );
 
 	/*

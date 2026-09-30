@@ -131,11 +131,11 @@ if ( ! getenv( 'VGML_SMOKE' ) ) {
 		new WP_Http_Cookie( array( 'name' => AUTH_COOKIE, 'value' => wp_generate_auth_cookie( $uid, $exp, 'auth' ) ) ),
 		new WP_Http_Cookie( array( 'name' => LOGGED_IN_COOKIE, 'value' => wp_generate_auth_cookie( $uid, $exp, 'logged_in' ) ) ),
 	);
-	$r    = wp_remote_get( admin_url( 'admin.php?page=media-librarian' ), array( 'timeout' => 60, 'sslverify' => false, 'cookies' => $jar ) );
+	$r    = wp_remote_get( admin_url( 'admin.php?page=vergeml-librarian' ), array( 'timeout' => 60, 'sslverify' => false, 'cookies' => $jar ) );
 	$code = is_wp_error( $r ) ? $r->get_error_message() : (string) wp_remote_retrieve_response_code( $r );
 	$body = is_wp_error( $r ) ? '' : (string) wp_remote_retrieve_body( $r );
 	up( 'the Folders screen answers 200, logged in', '200' === $code, $code );
-	up( 'and it is the Folders screen, not the login form', false !== strpos( $body, 'page=media-librarian' ) && false === strpos( $body, 'id="loginform"' ) );
+	up( 'and it is the Folders screen, not the login form', false !== strpos( $body, 'page=vergeml-librarian' ) && false === strpos( $body, 'id="loginform"' ) );
 }
 
 // What was written to debug.log since this file started: on the box, the two

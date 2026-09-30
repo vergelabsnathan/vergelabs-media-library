@@ -1249,7 +1249,7 @@ function vergeml_health_menu() {
         __( 'Library health', 'vergelabs-media-library' ),
         __( 'Library health', 'vergelabs-media-library' ),
         'manage_categories',
-        'media-health',
+        'vergeml-health',
         'vergeml_health_page'
     );
 }
@@ -1259,7 +1259,7 @@ add_action( 'admin_enqueue_scripts', 'vergeml_health_assets' );
 
 function vergeml_health_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-health' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-health' ) ) {
         return;
     }
 

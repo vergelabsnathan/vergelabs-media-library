@@ -29,7 +29,7 @@ function vergeml_mimes_validate( $input ) {
     if ( isset( $_POST['eml-restore-mime-types-settings'] ) ) {
 
         add_settings_error(
-            'mime-types',
+            'vergeml-mime-types',
             'eml_mime_types_restored',
             __('MIME Types settings restored.', 'vergelabs-media-library'),
             'updated'
@@ -57,7 +57,7 @@ function vergeml_mimes_validate( $input ) {
 
 
     add_settings_error(
-        'mime-types',
+        'vergeml-mime-types',
         'eml_mime_types_saved',
         __('MIME Types settings saved.', 'vergelabs-media-library'),
         'updated'

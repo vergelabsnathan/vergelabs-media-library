@@ -22,7 +22,7 @@ function vergeml_licence_menu() {
         __( 'Licence', 'vergelabs-media-library' ),
         __( 'Licence', 'vergelabs-media-library' ),
         'manage_options',
-        'media-licence',
+        'vergeml-licence',
         'vergeml_licence_page'
     );
 }
@@ -76,7 +76,7 @@ function vergeml_licence_save() {
         }
     }
 
-    wp_safe_redirect( admin_url( 'admin.php?page=media-licence&vergeml_licence=' . $result ) );
+    wp_safe_redirect( admin_url( 'admin.php?page=vergeml-licence&vergeml_licence=' . $result ) );
     exit;
 }
 

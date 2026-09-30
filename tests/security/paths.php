@@ -349,7 +349,7 @@ p_check( 'core/options-pages.php is loaded', function_exists( 'vergeml_settings_
 $p_backup_was = get_option( 'vergeml_backup', null );
 
 $_POST['eml-settings-import']       = '1';
-$_POST['eml-settings-import-nonce'] = wp_create_nonce( 'eml_settings_import_nonce' );
+$_POST['vergeml-settings-import-nonce'] = wp_create_nonce( 'vergeml_settings_import_nonce' );
 $_FILES['import_file'] = array(
     'name'     => 'settings.json',
     'type'     => 'application/json',
@@ -360,13 +360,13 @@ $_FILES['import_file'] = array(
 
 vergeml_settings_import();
 
-$p_codes = wp_list_pluck( get_settings_errors( 'eml-settings' ), 'code' );
+$p_codes = wp_list_pluck( get_settings_errors( 'vergeml-utilities' ), 'code' );
 
 p_check( 'a tmp_name PHP did not upload is treated as no file', in_array( 'eml_settings_file_absent', $p_codes, true ), implode( ', ', $p_codes ) );
 p_check( 'and it was not read', ! in_array( 'eml_settings_wrong_format', $p_codes, true ) && ! in_array( 'eml_settings_imported', $p_codes, true ) );
 p_check( 'and no backup was taken on its account', get_option( 'vergeml_backup', null ) === $p_backup_was );
 
-unset( $_POST['eml-settings-import'], $_POST['eml-settings-import-nonce'], $_FILES['import_file'] );
+unset( $_POST['eml-settings-import'], $_POST['vergeml-settings-import-nonce'], $_FILES['import_file'] );
 
 if ( null === $p_backup_was ) {
     delete_option( 'vergeml_backup' );

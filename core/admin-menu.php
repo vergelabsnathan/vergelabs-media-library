@@ -124,8 +124,28 @@ function vergeml_menu_icon() {
  *
  *  These screens lived under Settings for years and people have them bookmarked,
  *  linked from their own notes, and open in a tab. Moving a menu is not a reason
- *  to break a URL.
+ *  to break a URL. Nor is renaming one: until 4.1.0 the screens' slugs were
+ *  generic (media-ai, mime-types, eml-settings ...), and a bookmark, a link
+ *  from the VergeLabs site or a licence connect that set out before the update
+ *  arrives at the old one.
  */
+
+/** Every screen slug before 4.1.0, and what it is now. */
+function vergeml_admin_renamed_pages() {
+    return array(
+        'media'                => 'vergeml-media-settings',
+        'media-library'        => 'vergeml-library',
+        'media-taxonomies'     => 'vergeml-taxonomies',
+        'mime-types'           => 'vergeml-mime-types',
+        'media-import-folders' => 'vergeml-import-folders',
+        'media-ai'             => 'vergeml-ai',
+        'media-librarian'      => 'vergeml-librarian',
+        'media-health'         => 'vergeml-health',
+        'media-licence'        => 'vergeml-licence',
+        'media-help'           => 'vergeml-help',
+        'eml-settings'         => 'vergeml-utilities',
+    );
+}
 
 /*
  *  admin_page_access_denied, not admin_init.
@@ -144,20 +164,37 @@ function vergeml_admin_menu_redirects() {
 
     global $pagenow;
 
-    if ( 'options-general.php' !== $pagenow ) {
-        return;
-    }
-
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading which screen was asked for, not acting on it.
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- reading which screen was asked for and passing the request on unchanged; nothing is acted on here.
     $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 
-    $moved = array( 'media-library', 'media-taxonomies', 'mime-types', 'media-import-folders' );
+    $renamed = vergeml_admin_renamed_pages();
+    $new     = isset( $renamed[ $page ] ) ? $renamed[ $page ] : $page;
 
-    if ( ! in_array( $page, $moved, true ) ) {
+    // An old slug is only ours when nothing answers it: another plugin may
+    // register a page called "media" or "mime-types", and that page is left alone.
+    if ( $new !== $page && 'admin_page_access_denied' !== current_filter() ) {
         return;
     }
 
-    wp_safe_redirect( admin_url( 'admin.php?page=' . $page ), 301 );
+    // Out of Settings into the plugin's own menu.
+    $moved = array( 'vergeml-library', 'vergeml-taxonomies', 'vergeml-mime-types', 'vergeml-import-folders' );
+    $base  = 'options-general.php' === $pagenow && in_array( $new, $moved, true ) ? 'admin.php' : $pagenow;
+
+    if ( $new === $page && $base === $pagenow ) {
+        return;
+    }
+
+    // Everything else in the request goes along: a connect callback's state and code, a tab, a notice.
+    $args = array();
+    foreach ( wp_unslash( $_GET ) as $key => $value ) {
+        if ( is_string( $value ) ) {
+            $args[ sanitize_key( $key ) ] = sanitize_text_field( $value );
+        }
+    }
+    // phpcs:enable
+    $args['page'] = $new;
+
+    wp_safe_redirect( add_query_arg( rawurlencode_deep( $args ), self_admin_url( $base ) ), 301 );
     exit;
 }
 
@@ -190,43 +227,43 @@ function vergeml_admin_home() {
 
     $cards = array(
         array(
-            'page'  => 'media-taxonomies',
+            'page'  => 'vergeml-taxonomies',
             'title' => __( 'Folders and categories', 'vergelabs-media-library' ),
             'text'  => __( 'Which of your categories act as folders, what they are called, and which kinds of content they apply to.', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
         ),
         array(
-            'page'  => 'media-import-folders',
+            'page'  => 'vergeml-import-folders',
             'title' => __( 'Import folders', 'vergelabs-media-library' ),
             'text'  => __( 'Bring your folders over from FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders or Real Media Library. Nothing is taken from them, and it can be undone.', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
-            'page'  => 'media-library',
+            'page'  => 'vergeml-library',
             'title' => __( 'Library settings', 'vergelabs-media-library' ),
             'text'  => __( 'Ordering, filters, what the grid and the list show, and how uploads are filed.', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
         ),
         array(
-            'page'  => 'media-ai',
+            'page'  => 'vergeml-ai',
             'title' => __( 'AI', 'vergelabs-media-library' ),
             'text'  => __( 'Describe your pictures once; search finds what they show, and missing alt text fills itself in.', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
-            'page'  => 'media-librarian',
+            'page'  => 'vergeml-librarian',
             'title' => __( 'Folders', 'vergelabs-media-library' ),
             'text'  => __( 'Say what folders you want, or pick a rule. The folders answer. One button moves the pictures; undo for a day.', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
-            'page'  => 'media-health',
+            'page'  => 'vergeml-health',
             'title' => __( 'Library health', 'vergelabs-media-library' ),
             'text'  => __( 'Which files are copies of each other — the same upload twice, or one photo exported again at another size — and how much space they take. Reads only.', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
-            'page'  => 'mime-types',
+            'page'  => 'vergeml-mime-types',
             'title' => __( 'File types', 'vergelabs-media-library' ),
             'text'  => __( 'Which file types may be uploaded, and how they are grouped in the library filters.', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',

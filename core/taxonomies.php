@@ -183,7 +183,7 @@ function vergeml_taxonomies_validate( $input ) {
     }
 
     add_settings_error(
-        'media-taxonomies',
+        'vergeml-taxonomies',
         'eml_taxonomy_settings_saved',
         __('Folders and categories settings saved.', 'vergelabs-media-library'),
         'updated'
@@ -265,7 +265,7 @@ function vergeml_lib_options_validate( $input ) {
     }
 
     add_settings_error(
-        'media-library',
+        'vergeml-library',
         'eml_library_settings_saved',
         __('Media Library settings saved.', 'vergelabs-media-library'),
         'updated'
@@ -1366,7 +1366,7 @@ function vergeml_save_attachment_order() {
             wp_send_json_error();
     }
     else {
-        check_ajax_referer( 'eml-bulk-edit-nonce', 'nonce' );
+        check_ajax_referer( 'vergeml-bulk-edit-nonce', 'nonce' );
     }
 
 

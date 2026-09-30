@@ -39,7 +39,7 @@ await page.fill( '#user_pass', PASS );
 await page.click( '#wp-submit' );
 await page.waitForTimeout( 2500 );
 
-const SETTINGS = `${ BASE }/wp-admin/options-general.php?page=media-taxonomies`;
+const SETTINGS = `${ BASE }/wp-admin/options-general.php?page=vergeml-taxonomies`;
 const BOX = 'input[name="vergeml_tax_options[one_folder_per_file]"][type="checkbox"]';
 
 async function setOnePerFile( on ) {

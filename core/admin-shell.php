@@ -64,35 +64,35 @@ function vergeml_shell_pages() {
             'cap'   => 'manage_categories',
         ),
         array(
-            'slug'  => 'media-librarian',
+            'slug'  => 'vergeml-librarian',
             'icon'  => 'librarian',
             'sub'   => __( 'Build the folders', 'vergelabs-media-library' ),
             'label' => __( 'Folders', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
-            'slug'  => 'media-ai',
+            'slug'  => 'vergeml-ai',
             'icon'  => 'ai',
             'sub'   => __( 'Describe, alt text, credits', 'vergelabs-media-library' ),
             'label' => __( 'AI', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
-            'slug'  => 'media-health',
+            'slug'  => 'vergeml-health',
             'icon'  => 'duplicates',
             'sub'   => __( 'Copies, and space they take', 'vergelabs-media-library' ),
             'label' => __( 'Duplicates', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
-            'slug'  => 'media-import-folders',
+            'slug'  => 'vergeml-import-folders',
             'icon'  => 'import',
             'sub'   => __( 'From another plugin, or a CSV', 'vergelabs-media-library' ),
             'label' => __( 'Import folders', 'vergelabs-media-library' ),
             'cap'   => 'manage_categories',
         ),
         array(
-            'slug'  => 'media-licence',
+            'slug'  => 'vergeml-licence',
             'icon'  => 'key',
             'sub'   => __( 'Connection, key and credits', 'vergelabs-media-library' ),
             'label' => __( 'Licence', 'vergelabs-media-library' ),
@@ -100,7 +100,7 @@ function vergeml_shell_pages() {
             'group' => 'settings',
         ),
         array(
-            'slug'  => 'media-taxonomies',
+            'slug'  => 'vergeml-taxonomies',
             'icon'  => 'folders',
             'sub'   => __( 'Which categories act as folders', 'vergelabs-media-library' ),
             'label' => __( 'Folders and categories', 'vergelabs-media-library' ),
@@ -108,7 +108,7 @@ function vergeml_shell_pages() {
             'group' => 'settings',
         ),
         array(
-            'slug'  => 'media-library',
+            'slug'  => 'vergeml-library',
             'icon'  => 'sliders',
             'sub'   => __( 'Ordering, filters and uploads', 'vergelabs-media-library' ),
             'label' => __( 'Library settings', 'vergelabs-media-library' ),
@@ -116,7 +116,7 @@ function vergeml_shell_pages() {
             'group' => 'settings',
         ),
         array(
-            'slug'  => 'mime-types',
+            'slug'  => 'vergeml-mime-types',
             'icon'  => 'file',
             'sub'   => __( 'What may be uploaded', 'vergelabs-media-library' ),
             'label' => __( 'File types', 'vergelabs-media-library' ),
@@ -373,7 +373,7 @@ function vergeml_shell_credits() {
     $left = (int) $stored['remaining'];
     $when = isset( $stored['time'] ) ? (int) $stored['time'] : 0;
 
-    $url = function_exists( 'vergeml_shell_url' ) ? vergeml_shell_url( 'media-licence' ) : admin_url( 'admin.php?page=media-licence' );
+    $url = function_exists( 'vergeml_shell_url' ) ? vergeml_shell_url( 'vergeml-licence' ) : admin_url( 'admin.php?page=vergeml-licence' );
 
     /*
      *  "as of five minutes ago" was said whether or not anybody had managed to
@@ -437,10 +437,10 @@ function vergeml_shell_badges() {
     if ( function_exists( 'vergeml_journey_facts' ) ) {
         $f = vergeml_journey_facts();
         if ( ! empty( $f['unfiled'] ) ) {
-            $out['media-librarian'] = (int) $f['unfiled'];
+            $out['vergeml-librarian'] = (int) $f['unfiled'];
         }
         if ( ! empty( $f['no_alt'] ) ) {
-            $out['media-ai'] = (int) $f['no_alt'];
+            $out['vergeml-ai'] = (int) $f['no_alt'];
         }
     }
 
@@ -448,7 +448,7 @@ function vergeml_shell_badges() {
         $h    = vergeml_health_state();
         $sets = isset( $h['related']['groups'] ) ? count( (array) $h['related']['groups'] ) + (int) ( isset( $h['related']['more'] ) ? $h['related']['more'] : 0 ) : 0;
         if ( $sets > 0 ) {
-            $out['media-health'] = $sets;
+            $out['vergeml-health'] = $sets;
         }
     }
 

@@ -33,10 +33,10 @@ await page.waitForTimeout( 1500 );
 
 console.log( '\nthe way in' );
 await page.goto( `${ BASE }/wp-admin/admin.php?page=vergelabs-media`, { waitUntil: 'domcontentloaded' } );
-check( 'the dashboard offers Get help', await page.locator( 'a[href*="page=media-help"]' ).count() > 0 );
+check( 'the dashboard offers Get help', await page.locator( 'a[href*="page=vergeml-help"]' ).count() > 0 );
 
 console.log( '\nthe screen' );
-await page.goto( `${ BASE }/wp-admin/admin.php?page=media-help`, { waitUntil: 'domcontentloaded' } );
+await page.goto( `${ BASE }/wp-admin/admin.php?page=vergeml-help`, { waitUntil: 'domcontentloaded' } );
 check( 'it renders', await page.locator( '.vgml-help' ).count() === 1 );
 check( 'the known-problems section is there', /Known problems that match this site/.test( await page.textContent( '.vgml-help' ) ) );
 check( 'the report is on the screen and names this WordPress', await page.evaluate( () => {

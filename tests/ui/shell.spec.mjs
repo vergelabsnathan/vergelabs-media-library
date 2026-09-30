@@ -21,11 +21,11 @@ const SLUGS = {
 	'ai-how': `${ SCREEN.ai }&tab=how`,
 	'ai-search': `${ SCREEN.ai }&tab=search`,
 	duplicates: SCREEN.duplicates,
-	import: 'media-import-folders',
-	licence: 'media-licence',
+	import: 'vergeml-import-folders',
+	licence: 'vergeml-licence',
 	taxonomies: SCREEN.taxonomies,
-	library: 'media-library',
-	filetypes: 'mime-types',
+	library: 'vergeml-library',
+	filetypes: 'vergeml-mime-types',
 };
 
 /** The one sticky the spec allows, and the only screen it may appear on. */
@@ -284,7 +284,7 @@ for ( const [ name, slug ] of Object.entries( SETTINGS ) ) {
 			await expect( page.locator( '.vgml-acc-item[open]' ), 'nothing remembered' ).toHaveCount( 0 );
 
 			// The kind filter has to open the section its rows are in.
-			if ( slug === 'mime-types' ) {
+			if ( slug === 'vergeml-mime-types' ) {
 				await page.locator( '.vgml-ft-kinds button[data-kind="video"]' ).click();
 				await expect( page.locator( '.vgml-acc-item[open]' ) ).toHaveCount( 1 );
 				await expect( page.locator( '.vgml-acc-item[open]' ) ).toHaveAttribute( 'data-section', 'video' );

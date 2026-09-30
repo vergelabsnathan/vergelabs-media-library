@@ -46,7 +46,7 @@ if ( page.url().includes( 'wp-login' ) ) {
 for ( const [ label, width ] of WIDTHS ) {
 
 	await page.setViewportSize( { width, height: 1000 } );
-	await page.goto( `${ BASE }/wp-admin/admin.php?page=media-librarian`, { waitUntil: 'networkidle' } );
+	await page.goto( `${ BASE }/wp-admin/admin.php?page=vergeml-librarian`, { waitUntil: 'networkidle' } );
 
 	// The screen draws itself from three endpoints; networkidle is not enough
 	// on its own because the steps are appended after the last of them lands.

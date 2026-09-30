@@ -274,6 +274,7 @@ The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now rea
 
 = Changed =
 * **The known-problems list comes from the AI service** at `ai.vergelabs.nl`, not from GitHub. It is still fetched only when you press "Check for known problems".
+* **The plugin's admin screens have new addresses**, all starting `vergeml-` (for example `admin.php?page=vergeml-ai`). Bookmarks to the old ones are sent on to the new.
 
 ### 4.0.7 ###
 *The plugin contacts nothing until you ask it to.*

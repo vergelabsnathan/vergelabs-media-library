@@ -997,7 +997,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         $media_models_l10n = array(
             'media_orderby'   => $vergeml_lib_options ? sanitize_text_field( $vergeml_lib_options['media_orderby'] ) : 'date',
             'media_order'     => $vergeml_lib_options ? strtoupper( sanitize_text_field( $vergeml_lib_options['media_order'] ) ) : 'DESC',
-            'bulk_edit_nonce' => wp_create_nonce( 'eml-bulk-edit-nonce' ),
+            'bulk_edit_nonce' => wp_create_nonce( 'vergeml-bulk-edit-nonce' ),
             'term_counts_nonce' => wp_create_nonce( 'vergeml-term-counts' ),
             'natural_sort'    => (bool) $vergeml_lib_options['natural_sort'],
             'loads_per_page'  => (int) $vergeml_lib_options['loads_per_page']
@@ -1455,10 +1455,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         $settings_page = is_network_admin() ? 'settings.php' : 'options-general.php';
 
         if ( ! is_network_admin() ) {
-            $custom_links['settings'] = '<a href="' . esc_url( self_admin_url( $settings_page . '?page=media' ) ) . '">' . esc_html__( 'Media Settings', 'vergelabs-media-library' ) . '</a>';
+            $custom_links['settings'] = '<a href="' . esc_url( self_admin_url( $settings_page . '?page=vergeml-media-settings' ) ) . '">' . esc_html__( 'Media Settings', 'vergelabs-media-library' ) . '</a>';
         }
 
-        $custom_links['utility'] = '<a href="' . esc_url( self_admin_url( $settings_page . '?page=eml-settings' ) ) . '">' . esc_html__( 'Utilities', 'vergelabs-media-library' ) . '</a>';
+        $custom_links['utility'] = '<a href="' . esc_url( self_admin_url( $settings_page . '?page=vergeml-utilities' ) ) . '">' . esc_html__( 'Utilities', 'vergelabs-media-library' ) . '</a>';
 
         return array_merge( $custom_links, $actions );
     }

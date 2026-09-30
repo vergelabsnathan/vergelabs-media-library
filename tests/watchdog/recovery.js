@@ -22,7 +22,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const VICTIM = path.join(ROOT, 'core', 'taxonomies.php');
 const BACKUP = path.join(__dirname, '.victim-backup');
 const CRASH = "\n\nvergeml_crash_test_undefined_function_do_not_ship();\n";
-const SETTINGS = '/wp-admin/options-general.php?page=media-library'; // registered by core/options-pages.php, which safe mode skips
+const SETTINGS = '/wp-admin/options-general.php?page=vergeml-library'; // registered by core/options-pages.php, which safe mode skips
 
 function restoreVictim() {
   if (!fs.existsSync(BACKUP)) return false;

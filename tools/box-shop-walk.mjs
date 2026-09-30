@@ -50,7 +50,7 @@ if ( await puzzle.count() ) {
 await Promise.all( [ page.waitForNavigation( { waitUntil: 'domcontentloaded' } ).catch( () => null ), page.click( '#wp-submit' ) ] );
 console.log( `  signed in: ${ page.url() }` );
 
-await page.goto( `${ BASE }/wp-admin/admin.php?page=media-librarian`, { waitUntil: 'domcontentloaded' } );
+await page.goto( `${ BASE }/wp-admin/admin.php?page=vergeml-librarian`, { waitUntil: 'domcontentloaded' } );
 await page.waitForSelector( '#vgml-folders .g-card[data-card="tree"]', { state: 'attached', timeout: 20000 } );
 await page.waitForTimeout( 800 );
 console.log( '  step: ' + await page.getAttribute( '#vgml-folders', 'data-step' ) );

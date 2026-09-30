@@ -44,7 +44,7 @@ test.describe( 'the import screen', () => {
 
 	test( 'every source is named, and only the ones with folders can be pressed', async ( { page } ) => {
 
-		await open( page, 'media-import-folders' );
+		await open( page, 'vergeml-import-folders' );
 		await expect( page.locator( '#vgml-import-app .vgml-srcs' ).first() ).toBeVisible( { timeout: 30000 } );
 
 		const sources = await page.evaluate( () =>
@@ -93,7 +93,7 @@ test.describe( 'the import screen', () => {
 
 	test( 'the outcome line is what the import does, and the undo puts it back', async ( { page } ) => {
 
-		await open( page, 'media-import-folders' );
+		await open( page, 'vergeml-import-folders' );
 		await expect( page.locator( '#vgml-import-app .vgml-srcs' ).first() ).toBeVisible( { timeout: 30000 } );
 
 		const before = await page.evaluate( () =>
@@ -212,7 +212,7 @@ test.describe( 'the import screen', () => {
 
 	test( 'the history is named and dated, and its undo says what it removes', async ( { page } ) => {
 
-		await open( page, 'media-import-folders' );
+		await open( page, 'vergeml-import-folders' );
 		await expect( page.locator( '#vgml-import-app .vgml-srcs' ).first() ).toBeVisible( { timeout: 30000 } );
 
 		const history = await page.evaluate( () =>

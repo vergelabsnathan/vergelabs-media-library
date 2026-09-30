@@ -38,7 +38,7 @@ await page.fill( '#user_pass', PASS );
 await page.click( '#wp-submit' );
 await page.waitForTimeout( 2500 );
 
-const SCREEN = `${ BASE }/wp-admin/options-general.php?page=media-import-folders`;
+const SCREEN = `${ BASE }/wp-admin/options-general.php?page=vergeml-import-folders`;
 
 await page.goto( SCREEN, { waitUntil: 'domcontentloaded' } );
 await page.waitForSelector( '.vgml-import-card', { timeout: 60000 } );

@@ -51,7 +51,7 @@ await page.waitForTimeout( 2000 );
 /* The trap in every handoff: a timeout on a selector is usually a failed login. */
 check( 'logged in', ! page.url().includes( 'wp-login.php' ), `still at ${ page.url() }` );
 
-await page.goto( `${ BASE }/wp-admin/options-general.php?page=eml-settings`, { waitUntil: 'domcontentloaded' } );
+await page.goto( `${ BASE }/wp-admin/options-general.php?page=vergeml-utilities`, { waitUntil: 'domcontentloaded' } );
 await page.waitForTimeout( 1500 );
 
 const button = page.locator( '#eml-submit-settings-cleanup' );
@@ -76,7 +76,7 @@ if ( shown ) {
 	const cancel = page.locator( '.eml-dialog-modal .ui-dialog-buttonset button' ).last();
 	if ( await cancel.count() ) await cancel.click();
 	await page.waitForTimeout( 500 );
-	check( 'Cancel closes it and nothing was submitted', ! ( await dialog.first().isVisible().catch( () => false ) ) && page.url().includes( 'page=eml-settings' ) );
+	check( 'Cancel closes it and nothing was submitted', ! ( await dialog.first().isVisible().catch( () => false ) ) && page.url().includes( 'page=vergeml-utilities' ) );
 }
 
 await browser.close();
