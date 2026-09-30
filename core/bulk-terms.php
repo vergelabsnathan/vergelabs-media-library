@@ -146,9 +146,11 @@ function vergeml_handle_bulk_terms( $location, $doaction, $post_ids ) {
     if ( 'vergeml-add-term' !== $doaction && 'vergeml-remove-term' !== $doaction )
         return $location;
 
+    // Core's upload.php checked this before calling the filter; said again here so the handler stands on its own.
+    check_admin_referer( 'bulk-media' );
+
     $location = remove_query_arg( array( 'vergeml_done', 'vergeml_skipped', 'vergeml_term', 'vergeml_op' ), $location );
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- core checked bulk-media before calling this filter.
     $raw = isset( $_REQUEST['vergeml_bulk_term'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['vergeml_bulk_term'] ) ) : '';
 
     if ( '' === $raw || false === strpos( $raw, ':' ) )

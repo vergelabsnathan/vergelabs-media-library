@@ -131,7 +131,7 @@ function vergeml_neighbour_dismiss() {
         return;
     }
 
-    $key = preg_replace( '/[^a-z0-9_]/', '', (string) wp_unslash( $_GET['vergeml_dismiss_neighbours'] ) );
+    $key = preg_replace( '/[^a-z0-9_]/', '', sanitize_key( wp_unslash( $_GET['vergeml_dismiss_neighbours'] ) ) );
 
     if ( 0 === strpos( $key, 'vergeml_neighbours_' ) ) {
         update_user_meta( get_current_user_id(), $key, 1 );

@@ -693,7 +693,8 @@ function vergeml_meaning_offer( $post_type, $which = '' ) {
 
     printf(
         '<a class="vgml-meaning-go" href="%s">%s</a>',
-        esc_url( add_query_arg( array( 's' => $term, 'vgml_meaning' => 1 ), admin_url( 'upload.php' ) ) ),
+        // The flag is a nonce: a search by meaning is a request to the service, so a link from elsewhere cannot start one.
+        esc_url( add_query_arg( array( 's' => $term, 'vgml_meaning' => wp_create_nonce( 'vergeml_meaning' ) ), admin_url( 'upload.php' ) ) ),
         esc_html__( 'Search by meaning', 'vergelabs-media-library' )
     );
 }
@@ -717,7 +718,7 @@ function vergeml_meaning_take_over( $query ) {
         return;
     }
 
-    if ( ! isset( $_GET['vgml_meaning'] ) || ! isset( $_GET['s'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( ! isset( $_GET['vgml_meaning'], $_GET['s'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['vgml_meaning'] ) ), 'vergeml_meaning' ) || ! current_user_can( 'upload_files' ) ) {
         return;
     }
 
@@ -727,7 +728,7 @@ function vergeml_meaning_take_over( $query ) {
         return;
     }
 
-    $term = trim( sanitize_text_field( wp_unslash( $_GET['s'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $term = trim( sanitize_text_field( wp_unslash( $_GET['s'] ) ) );
     $ids  = vergeml_meaning_search( $term, 120 );
 
     if ( null === $ids ) {

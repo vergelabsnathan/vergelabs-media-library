@@ -663,6 +663,9 @@ function vergeml_list_handle_move( $location, $doaction, $post_ids ) {
         return $location;
     }
 
+    // Core's upload.php checked this before calling the filter; said again here so the handler stands on its own.
+    check_admin_referer( 'bulk-media' );
+
     $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
     $term     = $taxonomy ? get_term( (int) $found[1], $taxonomy ) : null;
 

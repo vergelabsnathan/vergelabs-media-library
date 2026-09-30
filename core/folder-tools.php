@@ -32,16 +32,23 @@ add_action( 'add_attachment', 'vergeml_file_upload_into_folder' );
 
 function vergeml_file_upload_into_folder( $attachment_id ) {
 
-    // phpcs:disable WordPress.Security.NonceVerification.Missing -- riding along
-    // on core's own upload request, whose nonce core has already checked; this
-    // reads a hint from it and verifies everything about the hint itself.
     if ( ! isset( $_POST['vergeml_folder'] ) ) {
         return;
     }
 
-    $folder   = (int) $_POST['vergeml_folder'];
+    /*
+     *  Riding along on core's own upload request (async-upload.php and the
+     *  upload-attachment AJAX action), which checks the media-form nonce
+     *  before the attachment exists. Checked again here, so the folder hint
+     *  is only ever taken from that request and never from another one that
+     *  happens to insert an attachment.
+     */
+    if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'media-form' ) ) {
+        return;
+    }
+
+    $folder   = isset( $_POST['vergeml_folder'] ) ? absint( $_POST['vergeml_folder'] ) : 0;
     $taxonomy = isset( $_POST['vergeml_folder_tax'] ) ? sanitize_key( wp_unslash( $_POST['vergeml_folder_tax'] ) ) : '';
-    // phpcs:enable
 
     if ( $folder < 1 ) {
         return;
@@ -53,12 +60,16 @@ function vergeml_file_upload_into_folder( $attachment_id ) {
         return;
     }
 
+    $tax_object = get_taxonomy( $taxonomy );
+
+    if ( ! current_user_can( 'upload_files' ) || ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) ) {
+        return;
+    }
+
     if ( ! get_term( $folder, $taxonomy ) instanceof WP_Term ) {
         return;
     }
 
-    // The uploader is the attachment's author; no further capability question
-    // arises from filing your own upload into the folder you are looking at.
     wp_set_object_terms( $attachment_id, array( $folder ), $taxonomy, true );
 
     if ( function_exists( 'vergeml_folder_flush_counts' ) ) {

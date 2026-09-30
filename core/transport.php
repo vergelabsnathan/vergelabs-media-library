@@ -47,6 +47,11 @@ function vergeml_transport_bridge() {
         wp_send_json( array( 'code' => 'rest_cookie_invalid_nonce', 'message' => __( 'Cookie check failed', 'vergelabs-media-library' ), 'data' => array( 'status' => 403 ) ), 403 );
     }
 
+    // The screens that load this bridge are for people who may upload; each route still asks its own permission_callback below.
+    if ( ! current_user_can( 'upload_files' ) ) {
+        wp_send_json( array( 'code' => 'rest_forbidden', 'message' => __( 'Sorry, you are not allowed to do that.', 'vergelabs-media-library' ), 'data' => array( 'status' => 403 ) ), 403 );
+    }
+
     $raw  = file_get_contents( 'php://input' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
     $body = json_decode( (string) $raw, true );
 
