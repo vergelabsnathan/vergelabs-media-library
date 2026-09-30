@@ -379,8 +379,10 @@ const WRITES = [
 	[ /\bwp_delete_(post|attachment|term|file)\s*\(/, 'delete' ],
 	[ /\bwp_set_object_terms\s*\(|\bwp_(add|remove)_object_terms\s*\(/, 'term assign' ],
 	[ /\b(update|add|delete)_(post|term|user|option|site_option)_?meta\s*\(|\bupdate_option\s*\(|\bdelete_option\s*\(|\bupdate_user_meta\s*\(/, 'meta/option write' ],
-	[ /\b(rename|unlink|copy|file_put_contents|mkdir|rmdir)\s*\(/, 'filesystem' ],
+	[ /\b(rename|unlink|copy|file_put_contents|mkdir|rmdir)\s*\(|\bWP_Filesystem_Direct\b/, 'filesystem' ],
 	[ /\bwp_remote_(get|post|request|head)\s*\(/, 'outbound http' ],
+	// spawn_cron() posts to the site's own wp-cron.php: a loopback, but a request all the same.
+	[ /\bspawn_cron\s*\(/, 'outbound http' ],
 	[ /\bwp_schedule_(single_)?event\s*\(/, 'schedules cron' ],
 	[ /\bwp_(set_current_user|set_auth_cookie)\s*\(/, 'auth' ],
 ];
@@ -421,8 +423,9 @@ function analyse( body, startedIn, depth = 3, seen = new Set() ) {
 
 		if ( left <= 0 ) return;
 
-		for ( const m of text.matchAll( /\b(vergeml_[A-Za-z0-9_]*)\s*\(/g ) ) {
-			const name = m[ 1 ];
+		// Called by name, or handed by name to register_shutdown_function() to run as the request ends.
+		for ( const m of text.matchAll( /\b(vergeml_[A-Za-z0-9_]*)\s*\(|register_shutdown_function\(\s*'(vergeml_[A-Za-z0-9_]*)'/g ) ) {
+			const name = m[ 1 ] || m[ 2 ];
 			if ( seen.has( name ) || ! funcs.has( name ) ) continue;
 			seen.add( name );
 			found.callees.add( name );
