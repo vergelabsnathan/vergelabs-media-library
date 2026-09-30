@@ -4,7 +4,7 @@ Tags: media library, media folders, alt text, accessibility, media categories
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 4.0.7
+Stable tag: 4.1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -256,10 +256,25 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 
 ## Upgrade Notice ##
 
+### 4.1.0 ###
+New: Plan my folders on the Folders screen builds a folder tree from what your pictures show. It costs credits (30, plus 15 per 100 distinct labels; the button shows the price) and asks for them back if the plan would not beat your current folders.
+
 ### 4.0.0 ###
 The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now reads what pictures show, so a fill after updating places things differently than before. The Rules tab is gone and the media list toolbar is one row. Read the changelog before you fill.
 
 ## Changelog ##
+
+### 4.1.0 ###
+*A folder plan built from what your pictures show.*
+
+= Added =
+* **Plan my folders.** On the Folders screen, one button builds a folder tree from every label the AI has recorded about your pictures. It costs 30 credits plus 15 per 100 distinct labels; the price is on the button, and it needs at least five described pictures.
+* **Your tree grows for free.** Once you confirm a tree, new pictures with new labels get new folders proposed at no charge.
+* **A plan that does not beat your folders is not shown, and its credits are asked back.** The same happens if the plan does not arrive or you confirm your tree while it runs.
+* **The audience is asked, not guessed.** When your pictures do not show whether they are for men, women or kids, the Tree step asks once before splitting folders that way.
+
+= Fixed =
+* **A licence with no free seat now says so.** Saving or connecting one used to report success, and every AI request after it failed.
 
 ### 4.0.7 ###
 *The plugin contacts nothing until you ask it to.*
