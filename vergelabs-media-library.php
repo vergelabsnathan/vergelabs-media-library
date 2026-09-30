@@ -109,6 +109,21 @@ if ( ! defined('VERGEML_FILE') )    define( 'VERGEML_FILE', __FILE__ );
 
 
 /*
+ *  A few lines of script a screen needs for itself, handed to the script
+ *  queue instead of written into the markup as a <script> tag. The handle
+ *  has no file; WordPress prints the lines in the footer, after the
+ *  elements they look up, which is where the tags used to sit.
+ */
+function vergeml_inline_script( $handle, $js ) {
+    if ( ! wp_script_is( $handle, 'registered' ) ) {
+        wp_register_script( $handle, false, array(), VERGEML_VERSION, true );
+    }
+    wp_enqueue_script( $handle );
+    wp_add_inline_script( $handle, $js );
+}
+
+
+/*
  *  Loaded before anything else, so the handler is watching while the code it
  *  guards is running. See core/watchdog.php for what it does and does not do.
  */

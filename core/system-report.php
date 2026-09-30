@@ -219,18 +219,20 @@ function vergeml_system_report_render() {
 
             <label for="vergeml-system-report" class="screen-reader-text"><?php esc_html_e( 'System report', 'vergelabs-media-library' ); ?></label>
             <textarea id="vergeml-system-report" readonly rows="14"
-                      style="width:100%;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:1.5"
-                      onclick="this.select()"><?php echo esc_textarea( $report ); ?></textarea>
+                      style="width:100%;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:1.5"><?php echo esc_textarea( $report ); ?></textarea>
 
         </div>
     </div>
 
-    <script>
+    <?php
+    vergeml_inline_script( 'vergeml-system-report', <<<'JS'
     ( function () {
         var button = document.getElementById( 'vergeml-copy-report' );
         var field  = document.getElementById( 'vergeml-system-report' );
         var done   = document.getElementById( 'vergeml-copy-report-done' );
         if ( ! button || ! field ) { return; }
+
+        field.addEventListener( 'click', function () { field.select(); } );
 
         button.addEventListener( 'click', function () {
             field.select();
@@ -253,6 +255,6 @@ function vergeml_system_report_render() {
             }
         } );
     } )();
-    </script>
-    <?php
+    JS
+    );
 }

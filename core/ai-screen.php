@@ -305,7 +305,7 @@ function vergeml_ai_tab_describe( $c ) {
             <?php if ( ! $offer && isset( $_GET['vgml_trial'] ) && $c['missing'] > 0 ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a display flag, not an action. ?>
             <?php /* translators: %s: a number of pictures */ ?>
             <p class="vgml-ai-line"><?php echo esc_html( sprintf( __( '%s free credits on this site. Writing alt text now; it stops when they are used.', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?></p>
-            <script>window.addEventListener( 'load', function () { var b = document.getElementById( 'vgml-ai-alt' ); if ( b && ! b.disabled ) { b.click(); } } );</script>
+            <?php vergeml_inline_script( 'vergeml-ai-trial', "window.addEventListener( 'load', function () { var b = document.getElementById( 'vgml-ai-alt' ); if ( b && ! b.disabled ) { b.click(); } } );" ); ?>
             <?php endif; ?>
             <p class="vgml-ai-line" id="vgml-ai-note"></p>
             <p class="vgml-ai-line" id="vgml-ai-bg-note"></p>

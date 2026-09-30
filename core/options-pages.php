@@ -3308,7 +3308,8 @@ function vergeml_print_mimetypes_options() {
                             <button type="button" class="button" id="vgml-ft-clear"><?php esc_html_e( 'Clear the filter', 'vergelabs-media-library' ); ?></button>
                         </div>
                         <?php vergeml_print_mimetypes_buttons(); ?>
-                        <script>
+                        <?php
+                        vergeml_inline_script( 'vergeml-file-types-filter', strtr( <<<'JS'
                         ( function () {
                             var q = document.getElementById( 'vgml-ft-q' );
                             var kinds = document.querySelectorAll( '.vgml-ft-kinds button' );
@@ -3318,8 +3319,7 @@ function vergeml_print_mimetypes_options() {
                             var clear = document.getElementById( 'vgml-ft-clear' );
                             var kind = 'all';
                             var total = rows.length;
-                            <?php /* translators: 1: how many file types are shown, 2: how many there are */ ?>
-                            var shownOf = <?php echo wp_json_encode( __( '%1$s of %2$s types shown', 'vergelabs-media-library' ) ); ?>;
+                            var shownOf = __SHOWN_OF__;
                             var sections = document.querySelectorAll( '.vgml-acc-item' );
                             /*
                              *  A filter that hides rows inside closed sections
@@ -3362,7 +3362,12 @@ function vergeml_print_mimetypes_options() {
                             } );
                             apply();
                         }() );
-                        </script>
+                        JS
+                        , array(
+                            /* translators: 1: how many file types are shown, 2: how many there are */
+                            '__SHOWN_OF__' => wp_json_encode( __( '%1$s of %2$s types shown', 'vergelabs-media-library' ) ),
+                        ) ) );
+                        ?>
 
                     </form>
 

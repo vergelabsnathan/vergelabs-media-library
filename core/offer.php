@@ -101,7 +101,8 @@ function vergeml_offer_box( $missing ) {
             </div>
             <p class="vgml-note" id="vgml-offer-msg"><?php esc_html_e( 'One free try per site and per email. No card.', 'vergelabs-media-library' ); ?></p>
         </div>
-        <script>
+        <?php
+        vergeml_inline_script( 'vergeml-offer-trial', strtr( <<<'JS'
         ( function () {
             var tryBtn = document.getElementById( 'vgml-offer-try' ),
                 start  = document.getElementById( 'vgml-offer-start-panel' ),
@@ -113,23 +114,32 @@ function vergeml_offer_box( $missing ) {
             tryBtn.addEventListener( 'click', function () { start.hidden = true; form.hidden = false; email.focus(); } );
             go.addEventListener( 'click', function () {
                 go.disabled = true;
-                go.textContent = <?php echo wp_json_encode( __( 'Making your key…', 'vergelabs-media-library' ) ); ?>;
-                var body = new URLSearchParams( { action: 'vergeml_trial', _ajax_nonce: <?php echo wp_json_encode( wp_create_nonce( 'vergeml_trial' ) ); ?>, email: email.value } );
+                go.textContent = __MAKING__;
+                var body = new URLSearchParams( { action: 'vergeml_trial', _ajax_nonce: __NONCE__, email: email.value } );
                 fetch( ajaxurl, { method: 'POST', credentials: 'same-origin', body: body } )
                     .then( function ( r ) { return r.json(); } )
                     .then( function ( r ) {
                         if ( r && r.success ) { location.href = r.data.next; return; }
-                        msg.textContent = ( r && r.data && r.data.message ) || <?php echo wp_json_encode( __( 'That did not work. Try again in a minute.', 'vergelabs-media-library' ) ); ?>;
+                        msg.textContent = ( r && r.data && r.data.message ) || __FAILED__;
                         go.disabled = false;
-                        go.textContent = <?php echo wp_json_encode( sprintf( __( 'Start · %s free', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?>;
+                        go.textContent = __START__;
                     } )
                     .catch( function () {
-                        msg.textContent = <?php echo wp_json_encode( __( 'The service did not answer. Try again in a minute.', 'vergelabs-media-library' ) ); ?>;
+                        msg.textContent = __SILENT__;
                         go.disabled = false;
                     } );
             } );
         } )();
-        </script>
+        JS
+        , array(
+            '__MAKING__' => wp_json_encode( __( 'Making your key…', 'vergelabs-media-library' ) ),
+            '__NONCE__' => wp_json_encode( wp_create_nonce( 'vergeml_trial' ) ),
+            '__FAILED__' => wp_json_encode( __( 'That did not work. Try again in a minute.', 'vergelabs-media-library' ) ),
+            /* translators: %s: a number of pictures */
+            '__START__' => wp_json_encode( sprintf( __( 'Start · %s free', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ),
+            '__SILENT__' => wp_json_encode( __( 'The service did not answer. Try again in a minute.', 'vergelabs-media-library' ) ),
+        ) ) );
+        ?>
         <?php endif; ?>
     </section>
     <?php

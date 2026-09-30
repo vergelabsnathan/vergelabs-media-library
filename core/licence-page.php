@@ -243,7 +243,8 @@ function vergeml_licence_page() {
                         </span>
                     </div>
                 </div>
-                <script>
+                <?php
+                vergeml_inline_script( 'vergeml-licence-remove', <<<'JS'
                 ( function () {
                     var box = document.querySelector( '.vgml-licence-remove' );
                     if ( ! box ) { return; }
@@ -253,7 +254,9 @@ function vergeml_licence_page() {
                     open.addEventListener( 'click', function () { open.hidden = true; ask.hidden = false; } );
                     no.addEventListener( 'click', function () { ask.hidden = true; open.hidden = false; } );
                 }() );
-                </script>
+                JS
+                );
+                ?>
                 <?php endif; ?>
             </form>
             <?php

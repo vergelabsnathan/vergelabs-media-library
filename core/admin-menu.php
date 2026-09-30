@@ -77,16 +77,15 @@ function vergeml_admin_menu() {
      *  entry answers 403. The entries stay; the sidebar simply does not draw
      *  them.
      */
-    add_action( 'admin_head', 'vergeml_hide_submenu' );
+    add_action( 'admin_enqueue_scripts', 'vergeml_hide_submenu' );
 }
 
 
 function vergeml_hide_submenu() {
 
-    printf(
-        '<style>#adminmenu .toplevel_page_%s .wp-submenu{display:none}</style>',
-        esc_attr( VERGEML_MENU )
-    );
+    wp_register_style( 'vergeml-hide-submenu', false, array(), VERGEML_VERSION );
+    wp_enqueue_style( 'vergeml-hide-submenu' );
+    wp_add_inline_style( 'vergeml-hide-submenu', '#adminmenu .toplevel_page_' . sanitize_html_class( VERGEML_MENU ) . ' .wp-submenu{display:none}' );
 }
 
 
