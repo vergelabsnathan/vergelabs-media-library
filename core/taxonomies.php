@@ -1288,57 +1288,40 @@ function vergeml_save_attachment_compat() {
 
 
 /**
- *  vergeml_delete_post
+ *  vergeml_ajax_term_counts
  *
- *  Based on /wp-admin/includes/ajax-actions.php
+ *  The media counts beside each term in the grid's taxonomy filters, asked
+ *  for after an attachment is deleted.
  *
- *  @since    2.3
- *  @created  17/06/16
+ *  Until 4.1.0 this plugin answered WordPress's own delete-post AJAX action
+ *  in place of core, only to put these counts in the reply. Core deletes
+ *  the attachment itself now, and the counts come from this action of our
+ *  own (js/eml-media-models.js asks once the delete has gone through).
  */
 
-add_action( 'wp_ajax_delete-post', 'vergeml_delete_post', 0 );
+add_action( 'wp_ajax_vergeml-term-counts', 'vergeml_ajax_term_counts' );
 
-function vergeml_delete_post() {
+function vergeml_ajax_term_counts() {
 
-    if ( empty( $action ) )
-        $action = 'delete-post';
+    check_ajax_referer( 'vergeml-term-counts', 'nonce' );
 
-    $id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
-
-    check_ajax_referer( "{$action}_$id" );
-
-    if ( ! current_user_can( 'delete_post', $id ) )
-        wp_die( -1 );
-
-    if ( ! $post = get_post( $id ) )
-        wp_die( 1 );
-
-
-    if ( 'attachment' === $post->post_type ) {
-
-        $response = array();
-        $vergeml_lib_options = get_option('vergeml_lib_options');
-
-        if ( wp_delete_post( $id ) ) {
-
-            if ( (bool) $vergeml_lib_options['show_count'] ) {
-
-                $terms = get_terms( array( 'taxonomy' => get_object_taxonomies( 'attachment', 'names' ), 'fields' => 'all', 'get' => 'all' ) );
-
-                foreach( vergeml_get_media_term_pairs( $terms, 'id=>tt_id' ) as $term_id => $tt_id ) {
-                    $response['tcount'][$term_id] = vergeml_get_media_term_count( $term_id, $tt_id );
-                }
-            }
-
-            wp_send_json_success( $response );
-        }
-        else
-            wp_send_json_error();
+    if ( ! current_user_can( 'upload_files' ) ) {
+        wp_send_json_error( null, 403 );
     }
-    elseif ( wp_delete_post( $id ) )
-        wp_die( 1 );
-    else
-        wp_die( 0 );
+
+    $response            = array( 'tcount' => array() );
+    $vergeml_lib_options = get_option( 'vergeml_lib_options' );
+
+    if ( ! empty( $vergeml_lib_options['show_count'] ) ) {
+
+        $terms = get_terms( array( 'taxonomy' => get_object_taxonomies( 'attachment', 'names' ), 'fields' => 'all', 'get' => 'all' ) );
+
+        foreach ( vergeml_get_media_term_pairs( $terms, 'id=>tt_id' ) as $term_id => $tt_id ) {
+            $response['tcount'][ $term_id ] = vergeml_get_media_term_count( $term_id, $tt_id );
+        }
+    }
+
+    wp_send_json_success( $response );
 }
 
 

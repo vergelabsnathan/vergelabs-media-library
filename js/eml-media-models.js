@@ -28,17 +28,25 @@ window.vergeml = window.vergeml || { l10n: {} };
             var result = original.Attachment.sync.apply( this, arguments );
 
 
-            if ( 'delete' === method ) {
+            /*
+             *  Core deletes the attachment and answers "1", which wp.media.ajax
+             *  reads as a failure, so this waits for either answer and then
+             *  asks for the counts with an action of the plugin's own.
+             */
+            if ( 'delete' === method && result && result.always ) {
 
-                result.done( function( resp ) {
+                result.always( function() {
 
-                    _.each( resp.tcount, function( count, term_id ) {
+                    wp.ajax.post( 'vergeml-term-counts', { nonce: vergeml.l10n.term_counts_nonce } ).done( function( data ) {
 
-                        var $option = $( '.eml-taxonomy-filters option[value="'+term_id+'"]' ),
-                            text = $option.text();
+                        _.each( data && data.tcount, function( count, term_id ) {
 
-                        text = text.replace( /\(.*?\)/, '('+count+')' );
-                        $option.text( text );
+                            var $option = $( '.eml-taxonomy-filters option[value="'+term_id+'"]' ),
+                                text = $option.text();
+
+                            text = text.replace( /\(.*?\)/, '('+count+')' );
+                            $option.text( text );
+                        });
                     });
                 });
             }

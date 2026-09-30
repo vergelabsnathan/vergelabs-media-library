@@ -993,6 +993,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
             'media_orderby'   => $vergeml_lib_options ? sanitize_text_field( $vergeml_lib_options['media_orderby'] ) : 'date',
             'media_order'     => $vergeml_lib_options ? strtoupper( sanitize_text_field( $vergeml_lib_options['media_order'] ) ) : 'DESC',
             'bulk_edit_nonce' => wp_create_nonce( 'eml-bulk-edit-nonce' ),
+            'term_counts_nonce' => wp_create_nonce( 'vergeml-term-counts' ),
             'natural_sort'    => (bool) $vergeml_lib_options['natural_sort'],
             'loads_per_page'  => (int) $vergeml_lib_options['loads_per_page']
         );
