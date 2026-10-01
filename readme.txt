@@ -216,6 +216,7 @@ Please report security bugs found in the source code of the VergeLabs Media Libr
 Every night an automated watch looks for new releases of WordPress, PHP and the plugins and themes this plugin integrates with, greps each new release for every hook and field we rely on, upgrades a staging site and runs the checks there. What passed is recorded here, newest first:
 
 <!-- watch:verified -->
+* Dokan 5.2.1 — contract intact, stage suites passed (2026-10-01)
 * Elementor 4.3.3 — contract intact, stage suites passed (2026-09-30)
 * Yoast SEO (Premium follows the same numbering) 28.6 — contract intact, stage suites passed (2026-09-29)
 * Polylang (Pro follows the same numbering) 3.8.10 — contract intact, stage suites passed (2026-09-28)
