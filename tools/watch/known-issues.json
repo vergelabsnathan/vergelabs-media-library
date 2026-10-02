@@ -5,6 +5,21 @@
       "dependency": "all-in-one-seo-pack",
       "name": "All in One SEO",
       "slug": "all-in-one-seo-pack",
+      "version": "5.0.2.1",
+      "severity": "red",
+      "summary": "1 symbol(s) gone: AIOSEO_VERSION",
+      "affects": [
+        "core/seo-context.php:76"
+      ],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/45",
+      "found": "2026-10-02"
+    },
+    {
+      "dependency": "all-in-one-seo-pack",
+      "name": "All in One SEO",
+      "slug": "all-in-one-seo-pack",
       "version": "5.0.2",
       "severity": "red",
       "summary": "1 symbol(s) gone: AIOSEO_VERSION",
