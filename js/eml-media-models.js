@@ -262,9 +262,12 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 
 
-    // many thanks to
-    // https://github.com/litejs/natural-compare-lite
-    // for the natural compare code!
+    /*
+     *  Natural compare from natural-compare-lite,
+     *  https://github.com/litejs/natural-compare-lite
+     *  Copyright (c) 2012-2015 Lauri Rooden <lauri@rooden.ee>. MIT License,
+     *  https://opensource.org/licenses/MIT
+     */
     media.natCompare = function(a, b) {
 
         var i,

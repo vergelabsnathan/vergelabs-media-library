@@ -337,6 +337,8 @@ const SUITES = [
 	{ name: 'mime-allowlist', file: 'tests/security/mime-allowlist.php', env: 'local', php: 'playground' },
 	// Every vergeml/v1 route's permission, asked as author, editor and administrator (wordpress.org review 2).
 	{ name: 'route-caps', file: 'tests/security/route-caps.php', env: 'local', php: 'playground' },
+	// What deleting the plugin removes, and what it leaves (rulebook audit HB-149).
+	{ name: 'uninstall', file: 'tests/security/uninstall.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },

@@ -149,7 +149,7 @@ function vergeml_licence_page() {
         <?php
         echo wp_kses( vergeml_pg_head(
             __( 'Licence', 'vergelabs-media-library' ),
-            __( 'This site\'s connection to VergeLabs. Images go to the service only to be described; nothing else leaves your site.', 'vergelabs-media-library' ),
+            __( 'This site\'s connection to VergeLabs. What goes to the service, and when, is listed under External services in the plugin\'s readme.', 'vergelabs-media-library' ),
             '<a class="button" href="https://vergelabsmedia.com/account" target="_blank" rel="noopener">' . esc_html__( 'Your account ↗', 'vergelabs-media-library' ) . '</a>'
                 . '<a class="button button-primary" href="' . esc_url( vergeml_buy_url( '/pricing', 'licence' ) ) . '" target="_blank" rel="noopener">' . esc_html__( 'Get credits ↗', 'vergelabs-media-library' ) . '</a>'
         ), vergeml_kses_allowed() );

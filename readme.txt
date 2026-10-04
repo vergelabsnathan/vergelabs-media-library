@@ -39,7 +39,7 @@ A folder tree sits beside the media library. Drag files onto a folder to file th
 
 **A folder can leave as a ZIP.** Pick a folder, choose Download as ZIP, and its files -- sub-folders included, as directories -- arrive as one archive named after the folder.
 
-**Already using another folder plugin?** Settings → Import Folders reads FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders, Real Media Library and Enhanced Media Library. It shows you what it will do before it does it, says which folders will merge with ones you already have, and the whole import can be undone from the same screen. Nothing is taken from the other plugin — it keeps everything exactly as it was, so you can go back at any time.
+**Already using another folder plugin?** VergeLabs Library → Import Folders reads FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders, Real Media Library and Enhanced Media Library. It shows you what it will do before it does it, says which folders will merge with ones you already have, and the whole import can be undone from the same screen. Nothing is taken from the other plugin — it keeps everything exactly as it was, so you can go back at any time.
 
 
 ### Sorting a library nobody ever filed ###
@@ -89,7 +89,7 @@ Additional parameters for the [gallery] and [playlist] shortcodes:
 
 ### MIME Types Management ###
 
-Add or remove file types, allow or disallow uploading. The plugin incorporates a file type into media filters if you wish.
+Choose which of WordPress's own file types may be uploaded, and add any of them to the media filters. Types that can run code -- PHP, HTML, JavaScript, SVG, executables -- cannot be allowed.
 
 
 ### Developer-Friendly ###
@@ -109,7 +109,7 @@ This plugin talks to two places: an AI service run by VergeLabs at `https://ai.v
 
 **Describing a picture** sends a downsized copy of it (never the original, unless the original is already small), its file name, its MIME type, the picture's own title and caption, your site's address, your licence key and whether the site is production or staging. If the picture is used on a page, that page's title goes too; on a WooCommerce site, up to six of the product's category names. With "Page context" on -- it is on by default, and one switch turns it off -- the page's focus keyphrase, meta description and related keyphrases from Yoast, Rank Math, SEOPress or All in One SEO go as well, as wording for the model, never as instructions. What comes back is a caption, alt text, tags and a suggested title. No picture is sent on upload, and none on a page load: only while a run you started is in progress.
 
-**Sorting pictures into folders** sends more than the pictures. When you ask for a plan, confirm one, fill your folders, or talk to the Folders screen, these go to the same service: **your folder names, their parents and how many files are in each**, the captions the AI wrote for your pictures, the words it recorded about what they show, and anything you typed into the screen along with the conversation so far. On a WooCommerce site your product category paths go too. Searching by meaning sends the phrase you typed. None of this happens on its own: each of them is a button you press.
+**Sorting pictures into folders** sends more than the pictures. When you ask for a plan, confirm one, fill your folders, or talk to the Folders screen, these go to the same service: **your folder names, their parents and how many files are in each**, the captions the AI wrote for your pictures, the words it recorded about what they show, and anything you typed into the screen along with the conversation so far. On a WooCommerce site your product category paths go too. Editing the draft tree sends its folder names, so the screen can show which pictures each one would hold. Searching by meaning sends the phrase you typed. None of this happens on its own: each of them is a button you press.
 
 **Planning your folders** (the Plan my folders button on the Folders screen) sends your site's address, your licence key, a random reference number the plugin makes for the plan, and every distinct label the AI recorded about what your pictures show -- the object, its broader class and the kind of picture, such as "platform sneaker; footwear" -- with how many pictures carry each and, where the description says so, how many of those are for men, women or kids. It also says whether an audience split is confirmed: whether you answered "Yes" to the one question the Tree step asks when your pictures do not show it, or your product category names already do. No picture, caption, file name or folder name is sent. It happens only when you press the button. When a plan is not shown to you -- it would not improve the folders you already have, its answer did not arrive, or you confirmed your tree while it ran -- the plugin asks the service for the plan's credits back, sending your site's address, your licence key and the plan's reference number, nothing else.
 
@@ -119,7 +119,7 @@ This plugin talks to two places: an AI service run by VergeLabs at `https://ai.v
 
 **Connecting a licence** sends you to `https://vergelabsmedia.com`, carrying your site's address and the address of your admin screen, and sends back a one-time code your site exchanges for a key. Saving, checking or removing a key sends the key and your site's address to the AI service. Once a key is set, the plugin checks your remaining credits when you open a VergeLabs screen, at most once every five minutes.
 
-**Asking for help** works without a licence key, as connecting one and the known-problems list do. Pressing Send on the Get help screen posts what you typed, the email address you gave, the last four characters of your licence key if you have one (never the key itself), and a full system report: your site's address, your WordPress, PHP and MySQL versions, your server's limits, your theme, how many files you have, your folder and taxonomy counts, this plugin's settings, and **the name and version of every plugin you have active**. The screen shows you the report before you send it, and it will not send without the tick box. Pressing "Check for known problems" on the same screen reads the list of known problems from the AI service at `https://ai.vergelabs.nl/v1/known-issues` and compares it with what your site runs. It happens only when you press the button; the list is then kept for twelve hours, and if the service cannot be reached the screen says so rather than showing an empty list. That request carries no key and no counts -- though, like every request WordPress makes, it identifies itself with your site's address.
+**Asking for help** works without a licence key, as connecting one and the known-problems list do. Pressing Send on the Get help screen posts what you typed, the email address you gave, the last four characters of your licence key if you have one (never the key itself), a random token this site keeps so replies reach the same conversation, the known problems that matched your site if you checked for them, and a full system report: your site's address, your WordPress, PHP and MySQL versions, your server's limits, your theme, how many files you have, your folder and taxonomy counts, this plugin's settings, and **the name and version of every plugin you have active**. The screen shows you the report before you send it, and it will not send without the tick box. Pressing "Check for known problems" on the same screen reads the list of known problems from the AI service at `https://ai.vergelabs.nl/v1/known-issues` and compares it with what your site runs. It happens only when you press the button; the list is then kept for twelve hours, and if the service cannot be reached the screen says so rather than showing an empty list. That request carries no key and no counts -- though, like every request WordPress makes, it identifies itself with your site's address.
 
 **Library counts go only if you switch them on.** Under Library settings, "Share library counts" (off by default) posts to the same service once a day: how many files and folders, how deep the folders nest, how many files are of each broad type, files added in the last thirty days, and the plugin, WordPress and PHP versions with the site language, alongside the licence key and the site address. Never a file name, a title, a folder name or a picture.
 
@@ -135,7 +135,7 @@ Service terms: [https://vergelabsmedia.com/legal/terms](https://vergelabsmedia.c
 
 2. Activate the plugin through the **Plugins** menu in WordPress.
 
-3. Adjust the settings under **Settings > Media**.
+3. Find it under **VergeLabs Library** in the admin menu. The folders work straight away. The AI features need a licence key: connect one under **VergeLabs Library > Licence**, or start the free trial on the AI screen.
 
 If you are moving over from Enhanced Media Library, deactivate it before activating this one.
 
@@ -163,7 +163,7 @@ It started as a fork of Enhanced Media Library 2.9.4 and keeps what that plugin 
 
 = Can I run it next to another folder plugin? =
 
-Running a second folder plugin at the same time is not recommended: both would register folders against the same media. Bring its folders across instead, under Settings → Import Folders, and deactivate it. Which releases of WordPress and of the plugins this one integrates with have been checked is listed near the end of this page.
+Running a second folder plugin at the same time is not recommended: both would register folders against the same media. Bring its folders across instead, under VergeLabs Library → Import Folders, and deactivate it. Which releases of WordPress and of the plugins this one integrates with have been checked is listed near the end of this page.
 
 = Can I take my settings to another site? =
 
@@ -205,6 +205,14 @@ Questions and problems go to the [issue tracker](https://github.com/vergelabsnat
 
 Please report security bugs found in the source code of the VergeLabs Media Library plugin through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/dc92736f-d80d-4eca-8412-aa5e58c3599a). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin. You can also email security@in.vergelabs.nl.
 
+= What does it include from other projects? =
+
+* Enhanced Media Library 2.9.4 by wpUXsolutions, GPLv2 or later: the code this plugin is a fork of, and its webbistro icon font.
+* Inter by The Inter Project Authors, SIL Open Font License 1.1 (fonts/INTER-LICENSE.txt).
+* natural-compare-lite by Lauri Rooden, MIT License: the natural sort in js/eml-media-models.js.
+* The admin screen layout follows WP Rocket's admin stylesheet (GPLv2 or later).
+* The spinner images are WordPress's own (GPLv2 or later).
+
 
 
 ### Which versions of WordPress and other plugins has it been checked against? ###
@@ -243,7 +251,7 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 
 4. Media Taxonomies settings: assign existing taxonomies to media or create your own.
 
-5. MIME Types settings: add, remove, rename and allow or disallow file types.
+5. MIME Types settings: label WordPress's file types and allow or disallow uploading them.
 
 6. The media modal inside the editor, with the same filters available when you insert an image.
 

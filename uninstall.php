@@ -39,8 +39,10 @@ function vergeml_uninstall_housekeeping() {
             OR option_name LIKE '\_transient\_timeout\_vergeml\_%'"
     );
 
-    wp_clear_scheduled_hook( 'vergeml_meaning_convert' );
-    wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+    // Every hook the plugin books, whatever arguments an event carries.
+    foreach ( array( 'vergeml_meaning_convert', 'vergeml_ai_run_tick', 'vergeml_talk_refile_event', 'vergeml_guide_fit_event', 'vergeml_plan_inventory_refresh', 'vergeml_plan_event', 'vergeml_provision_site' ) as $vergeml_hook ) {
+        wp_unschedule_hook( $vergeml_hook );
+    }
 }
 
 
@@ -120,6 +122,16 @@ function vergeml_uninstall_wipe_site() {
      */
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
     $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'vergeml\_%'" );
+
+    /*
+     *  The plugin's own meta on files and folders: what it recorded about a
+     *  picture (_vergeml_*) and about a folder (vergeml_* and _vergeml_*).
+     *  WordPress's own fields -- the alt text and captions it wrote -- stay.
+     */
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the prefix, and nothing is left to cache.
+    $wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE '\_vergeml\_%'" );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the same, for term meta.
+    $wpdb->query( "DELETE FROM {$wpdb->termmeta} WHERE meta_key LIKE 'vergeml\_%' OR meta_key LIKE '\_vergeml\_%'" );
 }
 
 
@@ -158,6 +170,9 @@ if ( is_multisite() ) {
             delete_site_option( $vergeml_site_option );
         }
         delete_site_transient( 'vergeml_network_overview' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own network transients directly: no API deletes them by prefix.
+        $wpdb->query( "DELETE FROM {$wpdb->sitemeta} WHERE meta_key LIKE '\_site\_transient\_vergeml\_%' OR meta_key LIKE '\_site\_transient\_timeout\_vergeml\_%'" );
     }
 
     if ( $vergeml_any_wipe ) {
@@ -183,6 +198,10 @@ else {
 
         delete_site_option( 'vergeml_mimes_backup' );
         delete_site_option( 'vergeml_notices' );
+
+        // On a single site, site transients live in the options table.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own transients directly: no API deletes them by prefix.
+        $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\_site\_transient\_vergeml\_%' OR option_name LIKE '\_site\_transient\_timeout\_vergeml\_%'" );
 
         // Per-user leftovers: dismissed notices, remembered tree state.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.

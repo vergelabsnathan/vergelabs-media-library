@@ -99,7 +99,7 @@ function vergeml_offer_box( $missing ) {
                 <?php /* translators: %s: a number of pictures */ ?>
                 <button type="button" class="vgml-btn vgml-btn-primary" id="vgml-offer-go"><?php echo esc_html( sprintf( __( 'Start · %s free', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?></button>
             </div>
-            <p class="vgml-note" id="vgml-offer-msg"><?php esc_html_e( 'One free try per site and per email. No card.', 'vergelabs-media-library' ); ?></p>
+            <p class="vgml-note" id="vgml-offer-msg"><?php esc_html_e( 'One free try per site and per email. No card. Your email and this site\'s address go to VergeLabs to make the key.', 'vergelabs-media-library' ); ?></p>
         </div>
         <?php
         wp_enqueue_script( 'vergeml-offer-trial', plugins_url( 'js/vergeml-offer-trial.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-offer-trial.js' ), true );
