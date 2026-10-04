@@ -54,13 +54,13 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/assign` | POST | vergeml_can_assign | upload_files, edit_posts, $taxonomy->cap->assign_terms, edit_post($attachment_id), edit_post($attachment_id) | yes (2) | `taxonomy*`, `post_type`, `attachments`, `add`, `remove`, `mode`, `batch`, $request | term assign, meta/option write, db query | yes | core/rest-tree.php:190 |
 | `/vergeml/v1/autofile-act` | POST | vergeml_autofile_can_act | manage_options, edit_post($attachment) | yes (1) | `attachment_id*`, `term_id*`, `action*`, $request | meta/option write, term assign, db write, db query | yes | core/auto-file.php:666 |
 | `/vergeml/v1/autofile-step` | POST | vergeml_rest_can_manage_options | manage_options | no | `limit`, $request | db query, meta/option write, term assign, db write | no | core/auto-file.php:656 |
-| `/vergeml/v1/brief/adopt` | POST | vergeml_rest_can_manage_options | manage_options | no | — | meta/option write, db write, db query, outbound http, schedules cron | no | core/brief.php:661 |
-| `/vergeml/v1/brief/discard` | POST | vergeml_rest_can_manage_options | manage_options | no | — | meta/option write | no | core/brief.php:666 |
-| `/vergeml/v1/brief/session` | GET | vergeml_rest_can_manage_options | manage_options | no | $request | meta/option write, db query | no | core/brief.php:629 |
-| `/vergeml/v1/brief/session` | POST | vergeml_rest_can_manage_options | manage_options | no | `reset`, `draft`, $request | meta/option write, db query | no | core/brief.php:629 |
-| `/vergeml/v1/brief/test` | POST | vergeml_rest_can_manage_options | manage_options | no | — | db query, outbound http, meta/option write | no | core/brief.php:656 |
-| `/vergeml/v1/brief/token` | POST | vergeml_rest_can_manage_options | manage_options | no | — | db query, outbound http, meta/option write | no | core/brief.php:641 |
-| `/vergeml/v1/brief/turn` | POST | vergeml_rest_can_manage_options | manage_options | no | `said`, `say`, `draft`, $request | meta/option write | yes | core/brief.php:646 |
+| `/vergeml/v1/brief/adopt` | POST | vergeml_rest_can_manage_options | manage_options | no | — | meta/option write, db write, db query, outbound http, schedules cron | no | core/brief.php:664 |
+| `/vergeml/v1/brief/discard` | POST | vergeml_rest_can_manage_options | manage_options | no | — | meta/option write | no | core/brief.php:669 |
+| `/vergeml/v1/brief/session` | GET | vergeml_rest_can_manage_options | manage_options | no | $request | meta/option write, db query | no | core/brief.php:632 |
+| `/vergeml/v1/brief/session` | POST | vergeml_rest_can_manage_options | manage_options | no | `reset`, `draft`, $request | meta/option write, db query | no | core/brief.php:632 |
+| `/vergeml/v1/brief/test` | POST | vergeml_rest_can_manage_options | manage_options | no | — | db query, outbound http, meta/option write | no | core/brief.php:659 |
+| `/vergeml/v1/brief/token` | POST | vergeml_rest_can_manage_options | manage_options | no | — | db query, outbound http, meta/option write | no | core/brief.php:644 |
+| `/vergeml/v1/brief/turn` | POST | vergeml_rest_can_manage_options | manage_options | no | `said`, `say`, `draft`, $request | meta/option write | yes | core/brief.php:649 |
 | `/vergeml/v1/file/(?P<id>\d+)` | POST, PUT, PATCH | vergeml_rest_can_edit_this_file | edit_post((int) $request['id']) | yes (1) | `title`, `alt`, $request | post/term write, meta/option write | no | core/quick-edit.php:161 |
 | `/vergeml/v1/folder` | POST | vergeml_can_manage_folders | manage_categories, $cap($term_id), $tax->cap->edit_terms, manage_options, manage_options | yes (1) | `taxonomy*`, `action*`, `id`, `parent`, `name`, `color`, `ids`, `post_type`, $request | post/term write, delete, meta/option write, db query | yes | core/rest-folders.php:28 |
 | `/vergeml/v1/folder-privacy` | POST | vergeml_private_can_edit | manage_options, edit_term($term_id) | yes (1) | `id*`, `private`, $request | meta/option write | yes | core/private-folders.php:206 |
@@ -134,7 +134,7 @@ Anything without brackets is a site-wide yes.
 
 | route | method | why | where |
 |---|---|---|---|
-| `/vergeml/v1/brief/turn` | POST | unscoped capability on an id from the request | core/brief.php:646 |
+| `/vergeml/v1/brief/turn` | POST | unscoped capability on an id from the request | core/brief.php:649 |
 | `/vergeml/v1/folders-apply` | POST | unscoped capability on an id from the request | core/folder-talk.php:2765 |
 | `/vergeml/v1/guide/turn` | POST | unscoped capability on an id from the request | core/guide.php:984 |
 | `/vergeml/v1/guide/answer` | POST | unscoped capability on an id from the request | core/guide.php:1060 |

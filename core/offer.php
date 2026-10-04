@@ -95,7 +95,7 @@ function vergeml_offer_box( $missing ) {
                 <li><?php esc_html_e( 'A free key is made for this site and connected here by itself', 'vergelabs-media-library' ); ?></li>
             </ul>
             <div class="vgml-offer-row">
-                <input type="email" id="vgml-offer-email" class="regular-text" autocomplete="email" value="<?php echo esc_attr( $admin->user_email ); ?>" placeholder="you@yoursite.com">
+                <input type="email" id="vgml-offer-email" class="regular-text" aria-label="<?php esc_attr_e( 'Email address', 'vergelabs-media-library' ); ?>" autocomplete="email" value="<?php echo esc_attr( $admin->user_email ); ?>" placeholder="you@yoursite.com">
                 <?php /* translators: %s: a number of pictures */ ?>
                 <button type="button" class="vgml-btn vgml-btn-primary" id="vgml-offer-go"><?php echo esc_html( sprintf( __( 'Start · %s free', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?></button>
             </div>

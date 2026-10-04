@@ -224,7 +224,7 @@ function vergeml_licence_page() {
                     <h6 class="vgml-kicker"><?php esc_html_e( 'Or paste a key', 'vergelabs-media-library' ); ?></h6>
                     <p class="vgml-note"><?php esc_html_e( 'From the licence tab of your account at vergelabsmedia.com.', 'vergelabs-media-library' ); ?></p>
                     <div class="vgml-licence-paste">
-                        <input type="text" name="vergeml_licence_key" class="vgml-input" autocomplete="off" spellcheck="false" placeholder="<?php echo esc_attr( $connected ? '•••••••• (saved)' : 'VGML-…' ); ?>">
+                        <input type="text" name="vergeml_licence_key" class="vgml-input" aria-label="<?php esc_attr_e( 'Licence key', 'vergelabs-media-library' ); ?>" autocomplete="off" spellcheck="false" placeholder="<?php echo esc_attr( $connected ? '•••••••• (saved)' : 'VGML-…' ); ?>">
                         <button type="submit" class="button button-primary"><?php esc_html_e( 'Save key', 'vergelabs-media-library' ); ?></button>
                     </div>
                 </div>

@@ -457,19 +457,14 @@ function vergeml_shell_badges() {
 
 
 /**
- *  Other people's notices, off our screens.
+ *  This plugin's own notices, off its own screens.
  *
- *  The sort flow is a five step process, and the first thing above step one
- *  was another plugin's banner telling somebody to go and create their first
- *  folder somewhere else. A screen that walks a person through a decision
- *  cannot also be a noticeboard.
- *
- *  WordPress's own notices stay: an update, a failed cron, a permissions
- *  problem are all things somebody has to see wherever they are standing.
- *  What goes is every callback defined in a plugin or theme file -- other
- *  plugins' banners, and this plugin's own notices, which these screens
- *  draw in place instead. Until 4.1.0 this removed every callback,
- *  WordPress's included, which is not what the paragraph above promised.
+ *  These screens draw their own state in place -- a run, a result, a
+ *  warning -- so the plugin's notices would say the same thing twice above
+ *  them. Only callbacks defined in this plugin's files are taken off, and
+ *  only on its screens. WordPress's notices and other plugins' notices are
+ *  left exactly as they are: hiding somebody else's notice is not ours to do
+ *  (wordpress.org plugin guidelines).
  */
 
 add_filter( 'admin_body_class', 'vergeml_shell_body_class' );
@@ -500,7 +495,7 @@ function vergeml_shell_quiet() {
 
         foreach ( $wp_filter[ $hook ]->callbacks as $priority => $callbacks ) {
             foreach ( $callbacks as $callback ) {
-                if ( ! vergeml_shell_is_core_callback( $callback['function'] ) ) {
+                if ( vergeml_shell_is_own_callback( $callback['function'] ) ) {
                     remove_action( $hook, $callback['function'], $priority );
                 }
             }
@@ -509,11 +504,9 @@ function vergeml_shell_quiet() {
 }
 
 /**
- *  Whether a hooked callback is defined in WordPress itself (wp-admin or
- *  wp-includes) or in PHP. Anything else -- a plugin, a must-use plugin, a
- *  theme -- is not.
+ *  Whether a hooked callback is defined in one of this plugin's own files.
  */
-function vergeml_shell_is_core_callback( $callback ) {
+function vergeml_shell_is_own_callback( $callback ) {
 
     try {
         if ( is_string( $callback ) && false !== strpos( $callback, '::' ) ) {
@@ -533,14 +526,7 @@ function vergeml_shell_is_core_callback( $callback ) {
 
     $file = $ref->getFileName();
 
-    if ( false === $file ) {
-        return true;
-    }
-
-    $file = wp_normalize_path( $file );
-    $root = wp_normalize_path( ABSPATH );
-
-    return 0 === strpos( $file, $root . 'wp-admin/' ) || 0 === strpos( $file, $root . WPINC . '/' );
+    return false !== $file && 0 === strpos( wp_normalize_path( $file ), wp_normalize_path( plugin_dir_path( VERGEML_FILE ) ) );
 }
 
 

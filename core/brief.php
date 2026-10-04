@@ -606,8 +606,11 @@ function vergeml_brief_adopt( $args = array() ) {
         'assistant',
         'say',
         $pending > 0
-            /* translators: %s: pictures */
-            ? sprintf( __( 'Brief in use.', 'vergelabs-media-library' ) . "\n- " . _n( '%s picture is described again in the background', '%s pictures are described again in the background', $pending, 'vergelabs-media-library' ) . "\n- " . __( 'The Describe tab shows the run', 'vergelabs-media-library' ), number_format_i18n( $pending ) )
+            ? __( 'Brief in use.', 'vergelabs-media-library' ) . "\n- " . sprintf(
+                /* translators: %s: how many pictures */
+                _n( '%s picture is described again in the background', '%s pictures are described again in the background', $pending, 'vergelabs-media-library' ),
+                number_format_i18n( $pending )
+            ) . "\n- " . __( 'The Describe tab shows the run', 'vergelabs-media-library' )
             : __( 'Brief in use.', 'vergelabs-media-library' ) . "\n- " . __( 'Every picture is on it', 'vergelabs-media-library' ),
         array( 'free' => true )
     );

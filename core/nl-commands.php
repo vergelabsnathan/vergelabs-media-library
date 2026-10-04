@@ -656,7 +656,7 @@ function vergeml_nl_card() {
         <h2><?php esc_html_e( 'Move files by typing a sentence', 'vergelabs-media-library' ); ?></h2>
         <p class="description"><?php esc_html_e( 'For when you already know what you want and it is faster to say it than to click it. We show you exactly which files would move before anything happens, and it cannot delete anything.', 'vergelabs-media-library' ); ?></p>
         <p>
-            <input type="text" id="vgml-say-text" class="regular-text" placeholder="<?php esc_attr_e( 'move the screenshots into Products', 'vergelabs-media-library' ); ?>">
+            <input type="text" id="vgml-say-text" class="regular-text" aria-label="<?php esc_attr_e( 'What to do with your files', 'vergelabs-media-library' ); ?>" placeholder="<?php esc_attr_e( 'move the screenshots into Products', 'vergelabs-media-library' ); ?>">
             <button type="button" class="button" id="vgml-say-plan"><?php esc_html_e( 'Show me what it would do', 'vergelabs-media-library' ); ?></button>
         </p>
         <p class="vgml-say-examples">
