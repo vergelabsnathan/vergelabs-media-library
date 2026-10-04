@@ -26,6 +26,19 @@ Clear the three findings in the wordpress.org bot review (Review ID: AUTO vergel
 ## Next concrete step
 Invoke vergelabs-loop (one-session fix: Build → Prove → Ship), then bmad-build with this file as the intent.
 
+## The full guideline audit, before any upload (memory: wporg-rejections-are-knowable)
+The bot says it does not list every case. Rounds 1 and 2 each fixed only what was named. This time, read the release archive against every rule below, fix what turns up, and record each row in docs/wordpress-org-submission.md:
+- activating or deactivating any plugin without a user click (deactivate_plugins, activate_plugin, the active_plugins option);
+- every register_rest_route and admin-ajax handler: its permission and nonce weighed against what it writes;
+- upload_mimes, and any SVG/HTML/JS/executable type;
+- every outgoing request fires only after a user action, and each is named under External services;
+- no obfuscated or minified-only code, and the sources ship;
+- admin notices can be dismissed and stay on the plugin's own screens;
+- no trialware: nothing in the free code is locked behind a key;
+- every global, option, transient, cron hook and REST namespace is prefixed;
+- data is sanitised on input and escaped on output (WPCS);
+- uninstall removes only the plugin's own data.
+
 ## Prove before uploading
 - Suites for the touched files (`node tools/verify.mjs <name>`), plus a check that /ai-run POST answers 403 for an editor and 200 for an admin, and that a `php` MIME setting cannot be saved.
 - A clean WP install with WP_DEBUG true, the plugin activated, every screen opened with no notices.
