@@ -465,6 +465,33 @@ function vergeml_health_delete_copies( $keep, $drop ) {
 
 /* --------------------------------------------------------------------- REST */
 
+/**
+ *  The health routes that take files out of the library: administrators, and
+ *  asked about each file named -- the one kept may be edited, every one
+ *  dropped may be deleted, and all of them are pictures in the library.
+ */
+function vergeml_health_can_drop( WP_REST_Request $request ) {
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return false;
+	}
+
+	$keep = (int) $request->get_param( 'keep' );
+
+	if ( 'attachment' !== get_post_type( $keep ) || ! current_user_can( 'edit_post', $keep ) ) {
+		return false;
+	}
+
+	foreach ( (array) $request->get_param( 'drop' ) as $id ) {
+		if ( 'attachment' !== get_post_type( (int) $id ) || ! current_user_can( 'delete_post', (int) $id ) ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
 add_action( 'rest_api_init', 'vergeml_health_delete_routes' );
 
 function vergeml_health_delete_routes() {
@@ -478,9 +505,7 @@ function vergeml_health_delete_routes() {
 		 *  match. That is not the same authority as uploading, and it is not
 		 *  the same authority as curating terms either.
 		 */
-		'permission_callback' => function () {
-			return current_user_can( 'manage_options' ) && current_user_can( 'delete_posts' );
-		},
+		'permission_callback' => 'vergeml_health_can_drop',
 
 		'args' => array(
 			'keep' => array( 'type' => 'integer', 'required' => true ),

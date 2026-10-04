@@ -3277,7 +3277,8 @@
 		 *  impossible to tidy up -- but taking it over is how a colleague's
 		 *  filing quietly disappears, and the endpoint refuses it too.
 		 */
-		if ( ! ownedByOther( node ) ) {
+		// Privacy hides a folder from everyone else, so only an administrator sets it.
+		if ( cfg.canScan && ! ownedByOther( node ) ) {
 			var isMine = ownedByMe( node );
 			item( isMine ? l10n.makeShared : l10n.makePrivate, false, function () {
 				setPrivacy( node, ! isMine );

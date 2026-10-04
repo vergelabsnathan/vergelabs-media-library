@@ -90,25 +90,37 @@ function vergeml_can_save_own_tree_state() {
 
 function vergeml_can_manage_folders( $request = null ) {
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
-        return false;
+    $tax = $request instanceof WP_REST_Request ? get_taxonomy( (string) $request->get_param( 'taxonomy' ) ) : false;
+
+    // Asked without a request (a screen deciding what to show), or about a
+    // taxonomy the handler will refuse: core's capability for managing terms.
+    if ( ! $tax ) {
+        return current_user_can( 'manage_categories' );
     }
 
-    // Asked without a request (a screen deciding what to show): the bar above.
-    if ( ! $request instanceof WP_REST_Request || ! get_taxonomy( (string) $request->get_param( 'taxonomy' ) ) ) {
-        return true;
-    }
-
-    $tax = get_taxonomy( (string) $request->get_param( 'taxonomy' ) );
-    $id  = (int) $request->get_param( 'id' );
+    $id = (int) $request->get_param( 'id' );
 
     /*
-     *  And the folder itself, the way core asks about a term: one request
-     *  changes one folder, or the order of the siblings it names. A folder
-     *  that does not exist is the handler's 404 to give, not a 403.
+     *  The folder itself, the way core asks about a term: one request changes
+     *  one folder, or the order of the siblings it names. Somebody else's
+     *  private folder is theirs, unless the caller administers the site. A
+     *  folder that does not exist is the handler's 404 to give, not a 403.
      */
     $may = function ( $cap, $term_id ) use ( $tax ) {
-        return ! vergeml_term_in( (int) $term_id, $tax->name ) || current_user_can( $cap, (int) $term_id );
+
+        $term_id = (int) $term_id;
+
+        if ( ! vergeml_term_in( $term_id, $tax->name ) ) {
+            return true;
+        }
+
+        $owner = function_exists( 'vergeml_private_owner' ) ? vergeml_private_owner( $term_id ) : 0;
+
+        if ( $owner && get_current_user_id() !== $owner && ! current_user_can( 'manage_options' ) ) {
+            return false;
+        }
+
+        return current_user_can( $cap, $term_id );
     };
 
     switch ( $request->get_param( 'action' ) ) {

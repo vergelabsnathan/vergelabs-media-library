@@ -206,14 +206,6 @@ function vergeml_private_routes() {
     register_rest_route( VERGEML_REST_NS, '/folder-privacy', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_private_rest',
-        /*
-         *  The same bar as renaming a folder. Making one's own folder private
-         *  is a filing decision, not an administrative one -- requiring
-         *  manage_options would mean the only people who could use the feature
-         *  are the ones whose sidebar is not crowded. Asked about the folder
-         *  itself, as core asks before editing a term; one that does not exist
-         *  gets the handler's 404.
-         */
         'permission_callback' => 'vergeml_private_can_edit',
         'args'                => array(
             'id'      => array( 'required' => true, 'type' => 'integer' ),
@@ -223,15 +215,16 @@ function vergeml_private_routes() {
 }
 
 
+/*
+ *  Administrators only: making a shared folder private hides it from everyone
+ *  else on the site (wordpress.org review 2, 2026-10-03).
+ */
 function vergeml_private_can_edit( WP_REST_Request $request ) {
 
     $term_id = (int) $request->get_param( 'id' );
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
-        return false;
-    }
-
-    return ! ( get_term( $term_id ) instanceof WP_Term ) || current_user_can( 'edit_term', $term_id );
+    return current_user_can( 'manage_options' )
+        && ( ! ( get_term( $term_id ) instanceof WP_Term ) || current_user_can( 'edit_term', $term_id ) );
 }
 
 

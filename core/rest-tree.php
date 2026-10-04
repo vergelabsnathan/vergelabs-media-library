@@ -39,6 +39,12 @@ const VERGEML_USER_TREE_STATE = 'vergeml_tree_state';
 
 add_action( 'init', 'vergeml_register_tree_meta' );
 
+/** Writing a folder's colour or order through core's term routes: asked about that folder. */
+function vergeml_tree_meta_auth( $allowed, $meta_key, $term_id ) {
+    return current_user_can( 'edit_term', (int) $term_id );
+}
+
+
 function vergeml_register_tree_meta() {
 
     foreach ( vergeml_tree_taxonomies() as $taxonomy ) {
@@ -48,7 +54,7 @@ function vergeml_register_tree_meta() {
             'single'            => true,
             'show_in_rest'      => true,
             'sanitize_callback' => 'vergeml_sanitize_color',
-            'auth_callback'     => function () { return current_user_can( 'manage_categories' ); },
+            'auth_callback'     => 'vergeml_tree_meta_auth',
         ) );
 
         register_term_meta( $taxonomy, VERGEML_TERM_ORDER, array(
@@ -56,7 +62,7 @@ function vergeml_register_tree_meta() {
             'single'            => true,
             'show_in_rest'      => true,
             'sanitize_callback' => 'absint',
-            'auth_callback'     => function () { return current_user_can( 'manage_categories' ); },
+            'auth_callback'     => 'vergeml_tree_meta_auth',
         ) );
     }
 }

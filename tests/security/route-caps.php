@@ -106,10 +106,8 @@ $expect = array(
 		'GET /state',
 		'GET /tree',
 		'POST /assign',
-		'POST /autofile-act',
 		'POST /file/(?P<id>\d+)',
 		'POST /folder',
-		'POST /folder-privacy',
 		'POST /state',
 	),
 );

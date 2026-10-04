@@ -675,14 +675,19 @@ function vergeml_autofile_routes() {
 }
 
 
+/*
+ *  Administrators only: five accepts earn a folder, and an earned folder
+ *  files the whole library by itself. And only a picture into one of the
+ *  plugin's folders.
+ */
 function vergeml_autofile_can_act( WP_REST_Request $request ) {
 
-    $term = get_term( (int) $request->get_param( 'term_id' ) );
-    $tax  = $term instanceof WP_Term ? get_taxonomy( $term->taxonomy ) : false;
+    $attachment = (int) $request->get_param( 'attachment_id' );
 
-    return current_user_can( 'manage_categories' )
-        && current_user_can( 'edit_post', (int) $request->get_param( 'attachment_id' ) )
-        && ( ! $tax || current_user_can( $tax->cap->assign_terms ) );
+    return current_user_can( 'manage_options' )
+        && 'attachment' === get_post_type( $attachment )
+        && current_user_can( 'edit_post', $attachment )
+        && get_term( (int) $request->get_param( 'term_id' ), vergeml_librarian_taxonomy() ) instanceof WP_Term;
 }
 
 

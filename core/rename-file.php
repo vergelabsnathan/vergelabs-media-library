@@ -268,7 +268,13 @@ function vergeml_file_all_paths( $attachment_id ) {
 function vergeml_file_rename( $attachment_id ) {
 
     $attachment_id = (int) $attachment_id;
-    $wanted        = vergeml_file_name_for( $attachment_id );
+
+    // A picture in the library that this person may edit, or nothing moves.
+    if ( 'attachment' !== get_post_type( $attachment_id ) || ! current_user_can( 'edit_post', $attachment_id ) ) {
+        return false;
+    }
+
+    $wanted = vergeml_file_name_for( $attachment_id );
 
     if ( '' === $wanted ) {
         return false;

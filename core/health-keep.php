@@ -821,7 +821,7 @@ function vergeml_health_keep_routes() {
 	register_rest_route( VERGEML_REST_NS, '/health-keep', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_health_rest_keep',
-		'permission_callback' => 'vergeml_rest_can_manage_options',
+		'permission_callback' => 'vergeml_health_can_drop',
 		'args'                => array(
 			'keep' => array( 'type' => 'integer', 'required' => true ),
 			'drop' => array( 'type' => 'array', 'required' => true, 'items' => array( 'type' => 'integer' ) ),

@@ -231,7 +231,8 @@ function vergeml_tree_assets( $hook ) {
         'state'      => $state,
         'boot'       => $boot,
         'canManage'  => current_user_can( 'manage_categories' ),
-        // The smart-folder scan writes to every attachment: administrators start it.
+        // Administrators only: the smart-folder scan writes to every attachment,
+        // and making a folder private hides it from everyone else.
         'canScan'    => current_user_can( 'manage_options' ),
         /*
          *  The modal is a different room: about 700px wide, opened to pick a file

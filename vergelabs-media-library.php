@@ -114,15 +114,12 @@ function vergeml_inline_script( $handle, $js ) {
 
 
 /*
- *  REST permission callbacks, named so every route says which capability it
- *  asks for. Folders are terms, so the folder screens and their runs ask
- *  for manage_categories; the licence-bound brief and the health screen's
- *  keep/retire ask for manage_options.
+ *  The REST permission callback for every route that writes across the
+ *  library, runs, applies, imports or undoes something, or calls the AI
+ *  service: site administrators only (wordpress.org review 2, 2026-10-03).
+ *  A route that changes one folder or one file asks about that object
+ *  instead, the way core does.
  */
-function vergeml_rest_can_manage_categories() {
-    return current_user_can( 'manage_categories' );
-}
-
 function vergeml_rest_can_manage_options() {
     return current_user_can( 'manage_options' );
 }
