@@ -696,10 +696,6 @@ function vergeml_mimetype_options_page_scripts() {
 
         'okay' => __( 'Ok', 'vergelabs-media-library' ),
         'cancel' => __( 'Cancel', 'vergelabs-media-library' ),
-
-        'mime_error_cannot_save_title' => __( 'MIME Types cannot be saved', 'vergelabs-media-library' ),
-        'mime_error_empty_fields' => __( 'Every column needs a value.', 'vergelabs-media-library' ),
-        'mime_error_duplicate' => __( 'That extension or MIME type is already listed.', 'vergelabs-media-library' )
     );
 
     wp_localize_script(
@@ -3154,10 +3150,20 @@ function vergeml_print_mimetypes_options() {
             __( 'File types', 'vergelabs-media-library' ),
             __( 'What may be uploaded, and how each type is labelled and filtered.', 'vergelabs-media-library' ),
             '<button type="button" class="button" id="eml-restore-mime-types-settings" name="eml-restore-mime-types-settings" value="1">' . esc_html__( 'Restore WordPress defaults', 'vergelabs-media-library' ) . '</button>'
-                . '<a class="button button-primary vergeml-button-create-mime" href="#">' . esc_html__( 'Add a file type', 'vergelabs-media-library' ) . '</a>'
         ), vergeml_kses_allowed() );
         ?>
-        <p class="vgml-ft-safety"><?php esc_html_e( 'WordPress role restrictions still apply to allowed types. SVG can carry scripts — keep it off unless a sanitizer plugin is installed and you trust the uploader with HTML.', 'vergelabs-media-library' ); ?></p>
+        <p class="vgml-ft-safety"><?php esc_html_e( 'Only file types WordPress itself knows can be allowed. Types that can run code -- PHP, HTML, JavaScript, SVG, executables -- cannot be allowed here. WordPress role restrictions still apply.', 'vergelabs-media-library' ); ?></p>
+        <?php
+        $vergeml_dropped = vergeml_mimes_dropped();
+        if ( $vergeml_dropped ) : ?>
+            <div class="notice notice-warning inline"><p><?php
+                echo esc_html( sprintf(
+                    /* translators: %s: comma-separated file extensions */
+                    __( 'Your saved settings name types this version does not allow, so they are left out: %s.', 'vergelabs-media-library' ),
+                    implode( ', ', $vergeml_dropped )
+                ) );
+            ?></p></div>
+        <?php endif; ?>
 
 
         <div id="poststuff">
@@ -3203,11 +3209,6 @@ function vergeml_print_mimetypes_options() {
                          *  already names. Ninety-eight types in one table was a
                          *  4,600px screen; a person came here to change one of
                          *  them and had to scroll past the other ninety-seven.
-                         *
-                         *  A new type goes into Other and stays there until it
-                         *  is saved, because its kind is not known until it has
-                         *  a MIME type. eml-mimetype-options.js clones into
-                         *  .vgml-ft-new for that reason.
                          */
                         $vgml_ft_kinds = array(
                             'image' => __( 'Images', 'vergelabs-media-library' ),
@@ -3253,7 +3254,7 @@ function vergeml_print_mimetypes_options() {
                             );
                             ?>
 
-                        <table class="vergeml-mime-type-list wp-list-table widefat<?php echo 'other' === $vgml_kind ? ' vgml-ft-new' : ''; ?>" cellspacing="0">
+                        <table class="vergeml-mime-type-list wp-list-table widefat" cellspacing="0">
                             <thead>
                             <tr>
                                 <th scope="col" class="manage-column vergeml-column-extension"><?php esc_html_e('Extension','vergelabs-media-library'); ?></th>
@@ -3286,24 +3287,16 @@ function vergeml_print_mimetypes_options() {
                                     <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][singular]" value="<?php echo esc_html($vergeml_mimes[$type]['singular']); ?>" /></td>
                                     <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][plural]" value="<?php echo esc_html($vergeml_mimes[$type]['plural']); ?>" /></td>
                                     <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][filter]" title="<?php esc_html_e('Add Filter','vergelabs-media-library'); ?>" value="1" <?php checked(true, (bool) $vergeml_mimes[$type]['filter']); ?> /></td>
+                                    <?php if ( vergeml_mime_refused( $type ) ) : ?>
+                                    <td class="checkbox_td"><input type="checkbox" title="<?php esc_attr_e( 'Blocked for safety', 'vergelabs-media-library' ); ?>" disabled /></td>
+                                    <?php else : ?>
                                     <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][upload]" title="<?php esc_html_e('Allow Upload','vergelabs-media-library'); ?>" value="1" <?php checked(true, $allowed); ?> /></td>
+                                    <?php endif; ?>
                                     <td><a class="vergeml-button-remove" title="<?php esc_html_e('Delete MIME Type','vergelabs-media-library'); ?>" href="javascript:;">&ndash;</a></td>
                                     </tr>
 
                                 <?php endif; ?>
                             <?php endforeach; ?>
-
-                            <?php if ( 'other' === $vgml_kind ) : ?>
-                            <tr class="vergeml-clone" style="display:none;">
-                                <td><input type="text" class="vergeml-type" placeholder="jpg|jpeg|jpe" /></td>
-                                <td><input type="text" class="vergeml-mime" placeholder="image/jpeg" /></td>
-                                <td><input type="text" class="vergeml-singular" placeholder="Image" /></td>
-                                <td><input type="text" class="vergeml-plural" placeholder="Images" /></td>
-                                <td class="checkbox_td"><input type="checkbox" class="vergeml-filter" title="<?php esc_html_e('Add Filter','vergelabs-media-library'); ?>" value="1" /></td>
-                                <td class="checkbox_td"><input type="checkbox" class="vergeml-upload" title="<?php esc_html_e('Allow Upload','vergelabs-media-library'); ?>" value="1" /></td>
-                                <td><a class="vergeml-button-remove" title="<?php esc_html_e('Delete MIME Type','vergelabs-media-library'); ?>" href="javascript:;">&ndash;</a></td>
-                            </tr>
-                            <?php endif; ?>
 
                             </tbody>
                         </table>

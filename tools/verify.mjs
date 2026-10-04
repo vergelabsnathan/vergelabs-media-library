@@ -333,6 +333,8 @@ const SUITES = [
 	 *  nothing ever deactivates the plugin (wordpress.org review 2, 2026-10-03).
 	 */
 	{ name: 'watchdog-php', file: 'tests/tree/watchdog.php', env: 'local', php: 'playground' },
+	// File types: WordPress's own types only, never one that runs code (wordpress.org review 2).
+	{ name: 'mime-allowlist', file: 'tests/security/mime-allowlist.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },

@@ -1400,7 +1400,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                     'singular' => $type,
                     'plural'   => $type,
                     'filter'   => 0,
-                    'upload'   => isset($allowed_mimes[$ext]) ? 1 : 0
+                    'upload'   => isset( $allowed_mimes[ $ext ] ) && ! ( function_exists( 'vergeml_mime_refused' ) && vergeml_mime_refused( $ext ) ) ? 1 : 0
                 );
             }
 

@@ -1,0 +1,117 @@
+<?php
+/**
+ *  The File types settings can only switch WordPress's own types on and off.
+ *
+ *      node tools/verify.mjs mime-allowlist
+ *
+ *  wordpress.org review 2 (2026-10-03), "Adding insecure MIME types": until
+ *  4.1.0 a setting could allow any extension, with a short blocklist. Now a
+ *  setting that names a type WordPress does not know is dropped on save and on
+ *  read, and a type that can run code is never allowed for upload.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+$GLOBALS['vgml_ok']  = 0;
+$GLOBALS['vgml_bad'] = 0;
+
+function vgml_t( $name, $pass, $detail = '' ) {
+	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, '' !== $detail ? '  -- ' . $detail : '' );
+}
+
+require_once ABSPATH . 'wp-admin/includes/template.php';
+wp_set_current_user( 1 );
+
+echo "\nthe MIME allowlist\n\n";
+
+$restore = get_option( 'vergeml_mimes', null );
+$known   = wp_get_mime_types();
+
+vgml_t( 'the plugin adds no type to WordPress\'s list', ! has_filter( 'mime_types', 'vergeml_mime_types' ) );
+vgml_t( 'jpg is a type WordPress knows', isset( $known['jpg|jpeg|jpe'] ) );
+vgml_t( 'svg is not', ! isset( $known['svg'] ) );
+
+/* --- on save --------------------------------------------------------------- */
+
+$saved = vergeml_mimes_validate( array(
+	'jpg|jpeg|jpe' => array( 'mime' => 'text/x-php', 'singular' => 'Image', 'plural' => 'Images', 'upload' => 1 ),
+	'php'          => array( 'mime' => 'text/x-php', 'singular' => 'PHP', 'plural' => 'PHP', 'upload' => 1 ),
+	'phtml|php'    => array( 'mime' => 'text/x-php', 'singular' => 'PHP', 'plural' => 'PHP', 'upload' => 1 ),
+	'svg'          => array( 'mime' => 'image/svg+xml', 'singular' => 'SVG', 'plural' => 'SVG', 'upload' => 1 ),
+	'xyz'          => array( 'mime' => 'application/x-xyz', 'singular' => 'X', 'plural' => 'X', 'upload' => 1 ),
+	'htm|html'     => array( 'mime' => 'text/html', 'singular' => 'HTML', 'plural' => 'HTML', 'upload' => 1 ),
+	'js'           => array( 'mime' => 'application/javascript', 'singular' => 'JS', 'plural' => 'JS', 'upload' => 1 ),
+) );
+
+vgml_t( 'a php setting cannot be saved', ! isset( $saved['php'] ) && ! isset( $saved['phtml|php'] ) );
+vgml_t( 'nor svg', ! isset( $saved['svg'] ) );
+vgml_t( 'nor a type WordPress does not know', ! isset( $saved['xyz'] ) );
+vgml_t( 'html is kept as a label but never for upload', isset( $saved['htm|html'] ) && 0 === $saved['htm|html']['upload'] );
+vgml_t( 'js the same', isset( $saved['js'] ) && 0 === $saved['js']['upload'] );
+vgml_t( 'a known type keeps WordPress\'s MIME type, not the one posted', 'image/jpeg' === $saved['jpg|jpeg|jpe']['mime'], $saved['jpg|jpeg|jpe']['mime'] );
+
+$said = wp_list_pluck( get_settings_errors( 'vergeml-mime-types' ), 'message' );
+$said = implode( ' ', $said );
+
+vgml_t( 'the screen is told which were left out',
+	false !== strpos( $said, 'php' ) && false !== strpos( $said, 'svg' ) && false !== strpos( $said, 'xyz' ) && false !== strpos( $said, 'js' ),
+	$said );
+
+/* --- on read: a setting written before 4.1.0 -------------------------------- */
+
+update_option( 'vergeml_mimes', array(
+	'jpg|jpeg|jpe' => array( 'mime' => 'image/jpeg', 'singular' => 'I', 'plural' => 'I', 'filter' => 0, 'upload' => 0 ),
+	'png'          => array( 'mime' => 'image/png', 'singular' => 'P', 'plural' => 'P', 'filter' => 0, 'upload' => 1 ),
+	'php'          => array( 'mime' => 'text/x-php', 'singular' => 'P', 'plural' => 'P', 'filter' => 0, 'upload' => 1 ),
+	'svg'          => array( 'mime' => 'image/svg+xml', 'singular' => 'S', 'plural' => 'S', 'filter' => 0, 'upload' => 1 ),
+	'xyz'          => array( 'mime' => 'application/x-xyz', 'singular' => 'X', 'plural' => 'X', 'filter' => 0, 'upload' => 1 ),
+	'js'           => array( 'mime' => 'application/javascript', 'singular' => 'J', 'plural' => 'J', 'filter' => 0, 'upload' => 1 ),
+	'gif'          => array( 'mime' => 'text/html', 'singular' => 'G', 'plural' => 'G', 'filter' => 0, 'upload' => 1 ),
+), false );
+
+// An author: no unfiltered_html, so core itself allows neither html nor js
+// (a single site's editor has unfiltered_html, and there core's own list
+// includes them; the plugin leaves that to core).
+$editor = wp_insert_user( array( 'user_login' => 'vgml_mime_author_' . wp_rand(), 'user_pass' => wp_generate_password(), 'role' => 'author' ) );
+wp_set_current_user( $editor );
+
+$allowed = get_allowed_mime_types();
+
+vgml_t( 'an old php setting does not reach the upload list', ! isset( $allowed['php'] ) );
+vgml_t( 'nor svg', ! isset( $allowed['svg'] ) );
+vgml_t( 'nor an unknown extension', ! isset( $allowed['xyz'] ) );
+vgml_t( 'nor js for an author, though the old setting said upload', ! isset( $allowed['js'] ) );
+vgml_t( 'a known type switched on is allowed', isset( $allowed['png'] ) );
+vgml_t( 'a known type switched off is not', ! isset( $allowed['jpg|jpeg|jpe'] ) );
+vgml_t( 'a stored MIME type is not trusted', isset( $allowed['gif'] ) && 'image/gif' === $allowed['gif'], isset( $allowed['gif'] ) ? $allowed['gif'] : 'absent' );
+
+$dropped = vergeml_mimes_dropped();
+
+vgml_t( 'the screen lists what an old setting named',
+	in_array( 'php', $dropped, true ) && in_array( 'svg', $dropped, true ) && in_array( 'xyz', $dropped, true ) && in_array( 'js', $dropped, true ) && ! in_array( 'png', $dropped, true ),
+	implode( ', ', $dropped ) );
+
+/* --- content check ------------------------------------------------------------ */
+
+$blank = array( 'ext' => false, 'type' => false, 'proper_filename' => false );
+$zip   = vergeml_check_filetype_and_ext( $blank, '/tmp/x.zip', 'x.zip', null, 'application/octet-stream' );
+
+vgml_t( 'unrecognised content no longer passes under any application/* extension', false === $zip['type'], var_export( $zip['type'], true ) );
+
+/* --- tidy -------------------------------------------------------------------- */
+
+wp_set_current_user( 1 );
+require_once ABSPATH . 'wp-admin/includes/user.php';
+wp_delete_user( $editor );
+
+if ( null === $restore ) {
+	delete_option( 'vergeml_mimes' );
+} else {
+	update_option( 'vergeml_mimes', $restore );
+}
+
+printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
+exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
