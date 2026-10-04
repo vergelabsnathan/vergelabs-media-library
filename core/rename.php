@@ -498,9 +498,7 @@ function vergeml_rename_routes() {
             'callback'            => function () {
                 return rest_ensure_response( array( 'remaining' => count( vergeml_rename_pending() ) ) );
             },
-            'permission_callback' => function () {
-                return current_user_can( 'upload_files' );
-            },
+            'permission_callback' => 'vergeml_rest_can_upload_files',
         ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,

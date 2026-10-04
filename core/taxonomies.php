@@ -1151,7 +1151,6 @@ function vergeml_get_media_term_count( $term_id, $tt_id ) {
  *  @created  09/09/13
  */
 
-if ( ! class_exists( 'vergeml_Walker_Media_Taxonomy_Checklist' ) ) {
 
     class vergeml_Walker_Media_Taxonomy_Checklist extends Walker {
 
@@ -1187,7 +1186,6 @@ if ( ! class_exists( 'vergeml_Walker_Media_Taxonomy_Checklist' ) ) {
             $output .= "</li>\n";
         }
     }
-}
 
 
 
@@ -1200,7 +1198,6 @@ if ( ! class_exists( 'vergeml_Walker_Media_Taxonomy_Checklist' ) ) {
  *  @created  05/11/13
  */
 
-if ( ! class_exists( 'vergeml_Walker_Media_Taxonomy_Uploader_Filter' ) ) {
 
     class vergeml_Walker_Media_Taxonomy_Uploader_Filter extends Walker {
 
@@ -1242,7 +1239,6 @@ if ( ! class_exists( 'vergeml_Walker_Media_Taxonomy_Uploader_Filter' ) ) {
                 $output .= "";
         }
     }
-}
 
 
 

@@ -23,7 +23,7 @@ window.vergeml = window.vergeml || { l10n: {} };
                 shortcodeString = shortcode.string(),
                 result = collections[ shortcodeString ],
                 attrs, args, query, others, self = this,
-                isFilterBased = emlIsFilterBased( shortcode.attrs.named );
+                isFilterBased = vergemlIsFilterBased( shortcode.attrs.named );
 
 
             delete collections[ shortcodeString ];
@@ -131,7 +131,7 @@ window.vergeml = window.vergeml || { l10n: {} };
                 props = attachments.props.toJSON(),
                 attrs = _.pick( props, 'orderby', 'order' ),
                 shortcode, clone,
-                isFilterBased = emlIsFilterBased( props );
+                isFilterBased = vergemlIsFilterBased( props );
 
 
             if ( attachments.type ) {

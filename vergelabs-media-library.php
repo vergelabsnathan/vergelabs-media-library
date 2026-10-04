@@ -31,8 +31,16 @@ if ( ! defined( 'ABSPATH' ) )
     exit;
 
 
+/*
+ *  A second copy of this plugin active beside the first (an old folder name,
+ *  a manual upload next to the installed one): the first copy loaded runs and
+ *  this one stays out, instead of both defining the same functions.
+ */
+if ( defined( 'VERGEML_VERSION' ) ) {
+    return;
+}
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '4.1.0' );
+define( 'VERGEML_VERSION', '4.1.0' );
 
 /**
  *  Cache-busting asset version: the plugin version plus the file's mtime.
@@ -124,6 +132,16 @@ function vergeml_rest_can_manage_options() {
     return current_user_can( 'manage_options' );
 }
 
+/** A read for anyone who may see the media library. */
+function vergeml_rest_can_upload_files() {
+    return current_user_can( 'upload_files' );
+}
+
+/** A route about one file: whoever may edit that file. */
+function vergeml_rest_can_edit_this_file( WP_REST_Request $request ) {
+    return current_user_can( 'edit_post', (int) $request['id'] );
+}
+
 
 /*
  *  The allow-list for wp_kses() where a helper's markup is printed.
@@ -202,7 +220,6 @@ global $vergeml_dir,
 
 
 
-if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
 
     /**
@@ -515,7 +532,6 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
             if ( add_option( 'vergeml_upgrading', time(), '', 'no' ) ) {
                 vergeml_provision_site();
-                delete_site_transient( 'eml_transient' );
                 delete_option( 'vergeml_upgrading' );
             }
         }
@@ -1515,135 +1531,135 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
     // Outside the guard on purpose: a site in safe mode is the one that most
     // needs to ask for help, and the report is what support needs first.
     // Both files are functions and one menu item; neither touches the database.
-    include_once( 'core/system-report.php' );
-    include_once( 'core/get-help.php' );
+    include_once plugin_dir_path( __FILE__ ) . 'core/system-report.php';
+    include_once plugin_dir_path( __FILE__ ) . 'core/get-help.php';
 
     if ( ! vergeml_safe_mode() ) {
 
-        include_once( 'core/mime-types.php' );
-        include_once( 'core/taxonomies.php' );
-        include_once( 'core/media-templates.php' );
-        include_once( 'core/compatibility.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/mime-types.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/taxonomies.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/media-templates.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/compatibility.php';
         // Other folder plugins and optimisers: a notice, and exclusions.
-        include_once( 'core/neighbours.php' );
-        include_once( 'core/search.php' );
-        include_once( 'core/auto-assign.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/neighbours.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/search.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/auto-assign.php';
         // Polylang and WPML: a translated copy of a filed image keeps its folders.
-        include_once( 'core/multilingual.php' );
-        include_once( 'core/bulk-terms.php' );
-        include_once( 'core/rest-tree.php' );
-        include_once( 'core/rest-folders.php' );
-        include_once( 'core/folders-version.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/multilingual.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/bulk-terms.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/rest-tree.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/rest-folders.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/folders-version.php';
         // The second road to every endpoint above and below: the same handlers
         // reached through admin-ajax when a host or a security plugin has
         // closed /wp-json/. Inside the guard, like everything it stands in for.
-        include_once( 'core/transport.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/transport.php';
         // After rest-tree.php, whose taxonomy list it filters and whose nodes
         // it adds a field to. Inside the guard: it hides folders from people,
         // and anything that hides things has to be switchable off.
-        include_once( 'core/private-folders.php' );
-        include_once( 'core/tree-ui.php' );
-        include_once( 'core/import-sources.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/private-folders.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/tree-ui.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/import-sources.php';
         // After import-sources.php, whose reader dispatch it adds a case to,
         // and whose source registry it filters. Before import-ui.php, which
         // routes the upload at it.
-        include_once( 'core/import-csv.php' );
-        include_once( 'core/import.php' );
-        include_once( 'core/import-ui.php' );
-        include_once( 'core/post-folders.php' );
-        include_once( 'core/page-builders.php' );
-        include_once( 'core/gallery-block.php' );
-        include_once( 'core/gallery-widgets.php' );
-        include_once( 'core/folder-tools.php' );
-        include_once( 'core/smart-folders.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/import-csv.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/import.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/import-ui.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/post-folders.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/page-builders.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/gallery-block.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/gallery-widgets.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/folder-tools.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/smart-folders.php';
         // After smart-folders.php: the health report reads the size index that
         // file defines, and reuses its constant rather than restating it.
-        include_once( 'core/health.php' );
-        include_once( 'core/instrument.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/health.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/instrument.php';
         // Before ai.php: the AI layer reads and writes through the index.
-        include_once( 'core/ai-index.php' );
-        include_once( 'core/ai.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/ai-index.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/ai.php';
         // The AI screen itself: three tabs over the engine above. After ai.php,
         // whose menu entry names the page callback this file defines.
-        include_once( 'core/ai-screen.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/ai-screen.php';
         // What the page an image sits on is trying to be; advisory context for describe.
-        include_once( 'core/seo-context.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/seo-context.php';
         // After ai.php: the background run is that file's own step function on
         // a schedule, so it is meaningless without it. Inside the guard like
         // everything else -- a run that crashes has to be switchable off, and
         // safe mode also unhooks the cron callback that would crash again.
-        include_once( 'core/ai-background.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/ai-background.php';
         // After both: the AI smart folders hang off smart-folders.php's
         // registry and join ai-index.php's table, so neither may be missing
         // when this file registers its filters. Inside the guard like the
         // rest -- in safe mode the panel goes back to five folders rather
         // than to five broken ones.
-        include_once( 'core/ai-folders.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/ai-folders.php';
         // After ai-index.php: the proposed tree is clustered from the vectors
         // that file stores, and reads them through $wpdb->vergeml_ai_index --
         // which does not exist until ai-index.php has registered it.
-        include_once( 'core/organize.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/organize.php';
         // After organize.php: the Librarian reviews and applies the trees that
         // file proposes, and reads them through its helpers. Inside the guard
         // like everything else here, so a crash while applying can be switched
         // off -- which for the one feature that writes to somebody's library
         // is the whole reason the guard exists.
-        include_once( 'core/librarian.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/librarian.php';
         // After librarian.php: filing by itself writes into that file's moves
         // log, so its undo covers this without knowing it exists, and it uses
         // its taxonomy helper. Inside the guard, like everything that writes.
-        include_once( 'core/auto-file.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/auto-file.php';
         // After auto-file.php: spoken commands log their moves through the
         // same batch helper, and refuse to exist without the taxonomy helper
         // both of them share.
-        include_once( 'core/nl-commands.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/nl-commands.php';
         // Setting files aside. After smart-folders.php, whose registry it
         // adds a row to; inside the guard, because it hides things from the
         // media library and that has to be switchable off.
-        include_once( 'core/quarantine.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/quarantine.php';
         // Naming files after what is in them. After the index, whose stored
         // title it applies and whose locked list it obeys; inside the guard,
         // because it writes to posts.
-        include_once( 'core/rename.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/rename.php';
         // Renaming the file on disk, which needs both the index (for the name)
         // and smart-folders (for what points at it) already loaded.
-        include_once( 'core/rename-file.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/rename-file.php';
         // After health.php: the report asks it which copy to keep.
-        include_once( 'core/health-delete.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/health-delete.php';
         // Look-alikes: keep this one (rewrite, then set aside) and keep both.
         // After quarantine.php, which it sets aside with, and health-delete.php,
         // whose id repointing it shares.
-        include_once( 'core/health-keep.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/health-keep.php';
         // After librarian.php and search-meaning.php: it borrows the folder
         // taxonomy from one and the embedding call from the other.
-        include_once( 'core/folder-talk.php' );
-        include_once( 'core/guide.php' );
-        include_once( 'core/plan-tree.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/folder-talk.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/guide.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/plan-tree.php';
         // The brief as a conversation. After guide.php, whose token mint and
         // stream address it borrows, and after ai.php, whose describe request
         // and row write it reuses; inside the guard, because adopting a brief
         // writes the catalogue and starts a run.
-        include_once( 'core/brief.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/brief.php';
         // Editing a file from the list it is in. After the index, whose lock
         // on a hand-written field is the whole reason this is safe.
-        include_once( 'core/quick-edit.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/quick-edit.php';
         // The media list in list mode: our columns off the default set, the
         // folder filter in core's own filter bar, and Move to folder in bulk
         // actions. After taxonomies.php, whose filter row it takes the folder
         // dropdown out of, and after smart-folders.php and librarian.php,
         // whose column key and folder taxonomy it names.
-        include_once( 'core/media-list.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/media-list.php';
         // Searching by what a picture means. After organize.php, whose
         // projection and distance it borrows so that "alike" means one thing
         // in this plugin, and after ai.php for the service URL.
-        include_once( 'core/search-meaning.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/search-meaning.php';
         // Try a query: both searches run for one phrase, each hit with its why.
         // After search-meaning.php, whose ranking and scores it reads.
-        include_once( 'core/search-try.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/search-try.php';
         // Last, because each of the three things in it stands on something
         // above: the health report's duplicate groups, the index's locked
         // fields, and the vectors auto-file reads.
-        include_once( 'core/utilities.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/utilities.php';
         // Last of the guarded files: it wraps every screen the ones above
         // registered, so it has to see a finished menu. Inside the guard --
         // if the shell breaks, safe mode gives back plain WordPress screens
@@ -1652,24 +1668,22 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // import, so it loads after all of them. Every read is guarded --
         // in safe mode those files are absent and the stage is simply not
         // in the list.
-        include_once( 'core/icons.php' );
-        include_once( 'core/journey.php' );
-        include_once( 'core/help.php' );
-        include_once( 'core/admin-shell.php' );
-        include_once( 'core/filing.php' );
-        include_once( 'core/connect.php' );
-        include_once( 'core/offer.php' );
-        include_once( 'core/licence-page.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/icons.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/journey.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/help.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/admin-shell.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/filing.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/connect.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/offer.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/licence-page.php';
 
         if ( vergeml_enhance_media_shortcodes() ) {
-            include_once( 'core/medialist.php' );
+            include_once plugin_dir_path( __FILE__ ) . 'core/medialist.php';
         }
 
         if ( is_admin() ) {
             // Before the option pages: they hang their screens off its menu.
-            include_once( 'core/admin-menu.php' );
-            include_once( 'core/options-pages.php' );
+            include_once plugin_dir_path( __FILE__ ) . 'core/admin-menu.php';
+            include_once plugin_dir_path( __FILE__ ) . 'core/options-pages.php';
         }
     }
-
-}

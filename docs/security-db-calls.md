@@ -125,8 +125,8 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | 1368 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->vergeml_ai_index — a $wpdb table name |
 | 1770 | — | `get_col` | prepared | vergeml_ai_alt_pending_from() — vergeml_ai_alt_pending_from() returns only text holding only a $wpdb table name |
 | 1783 | — | `get_var` | only a `$wpdb` table name | vergeml_ai_alt_pending_from() — vergeml_ai_alt_pending_from() returns only text holding only a $wpdb table name |
-| 2028 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
-| 2029 | — | `get_var` | only a `$wpdb` table name | $wpdb->vergeml_ai_index — a $wpdb table name |
+| 2022 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
+| 2023 | — | `get_var` | only a `$wpdb` table name | $wpdb->vergeml_ai_index — a $wpdb table name |
 
 ### core/auto-file.php
 
@@ -300,9 +300,9 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | 2406 | — | `get_var` | prepared | $wpdb->vergeml_librarian_batches — a $wpdb table name |
 | 2415 | — | `query` | prepared | $wpdb->vergeml_librarian_moves — a $wpdb table name |
 | 2420 | — | `query` | prepared | $wpdb->vergeml_librarian_batches — a $wpdb table name |
-| 2807 | — | `get_var` | only a `$wpdb` table name | $wpdb->vergeml_ai_index — a $wpdb table name |
-| 2904 | — | `get_results` | prepared | $wpdb->vergeml_librarian_moves — a $wpdb table name |
-| 2982 | — | `get_var` | prepared | $wpdb->vergeml_librarian_batches — a $wpdb table name |
+| 2805 | — | `get_var` | only a `$wpdb` table name | $wpdb->vergeml_ai_index — a $wpdb table name |
+| 2902 | — | `get_results` | prepared | $wpdb->vergeml_librarian_moves — a $wpdb table name |
+| 2980 | — | `get_var` | prepared | $wpdb->vergeml_librarian_batches — a $wpdb table name |
 
 ### core/media-list.php
 
@@ -434,12 +434,12 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 |---|---|---|---|---|
 | 1117 | — | `get_results` | prepared | $wpdb->term_taxonomy — a $wpdb table name |
 | 1130 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $terms_format — $terms_format is only ever implode of a generated %d placeholder list |
-| 1495 | — | `query` | a literal, nothing interpolated | — |
-| 1497 | — | `query` | prepared | $wpdb->posts — a $wpdb table name; $order_format — $order_format is only ever implode of a generated %d placeholder list |
-| 1615 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name |
-| 1625 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
-| 1671 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; $placeholders — $placeholders is only ever implode of a generated %d placeholder list |
-| 1688 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 1491 | — | `query` | a literal, nothing interpolated | — |
+| 1493 | — | `query` | prepared | $wpdb->posts — a $wpdb table name; $order_format — $order_format is only ever implode of a generated %d placeholder list |
+| 1611 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name |
+| 1621 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 1667 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; $placeholders — $placeholders is only ever implode of a generated %d placeholder list |
+| 1684 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
 
 ### core/utilities.php
 
