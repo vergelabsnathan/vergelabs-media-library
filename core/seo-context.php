@@ -316,7 +316,7 @@ function vergeml_seo_gap_ids( $limit = 0 ) {
 
     // Cornerstone and pillar pages first, then by id so a run walks in order.
     // The statement is prepared once, in vergeml_seo_gap_sql; the LIMIT is placeheld there.
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- the statement vergeml_seo_gap_sql() prepared, with a literal $select.
     return array_map( 'intval', $wpdb->get_col(
         vergeml_seo_gap_sql( 'p.ID, MAX( kw.pri ) AS pri', $cap )
     ) );
@@ -341,7 +341,7 @@ function vergeml_seo_gap_count() {
 
     global $wpdb;
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- prepared in vergeml_seo_gap_sql.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- prepared in vergeml_seo_gap_sql, with a literal $select.
     $n = (int) $wpdb->get_var( vergeml_seo_gap_sql( 'COUNT(DISTINCT p.ID)' ) );
 
     set_transient( 'vergeml_seo_gap_count', $n, MINUTE_IN_SECONDS );

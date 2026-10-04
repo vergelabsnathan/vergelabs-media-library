@@ -1911,7 +1911,7 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
     $product = vergeml_filing_product_sql( 'i' ); // The product the picture belongs to (S10.8), as the fill reads it: a literal NULL where nothing sells.
     foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
         $ph = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $ph is one %d per id and the ids are bound.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; $ph is one %d per id and the ids are bound.
         foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by, {$words['select']}, {$product['select']} FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s {$words['join']} {$product['join']} WHERE i.attachment_id IN ($ph)", array_merge( array( VERGEML_FILING_PLACED_BY ), $chunk ) ), ARRAY_A ) as $v ) {
             $vectors[ (int) $v['attachment_id'] ] = $v;
         }
@@ -3223,7 +3223,7 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
         $words    = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
         foreach ( $chunks as $chunk ) {
             $ph = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $ph is one %d per id and the ids are bound.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; $ph is one %d per id and the ids are bound.
             foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id IN ($ph)", $chunk ), ARRAY_A ) as $v ) {
                 $vectors[ (int) $v['attachment_id'] ] = $v;
             }

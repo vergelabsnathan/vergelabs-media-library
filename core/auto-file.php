@@ -560,7 +560,7 @@ function vergeml_autofile_sweep( $limit = VERGEML_AUTOFILE_CHUNK ) {
     $tt_ids = array_map( 'intval', explode( ',', vergeml_autofile_tt_ids( $taxonomy ) ) );
     $ph     = implode( ',', array_fill( 0, count( $tt_ids ), '%d' ) );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $table is vergeml_index_table() ($wpdb->vergeml_ai_index); $ph is one %d per term_taxonomy id (or the single 0); the ids and the limit are bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is vergeml_index_table() ($wpdb->vergeml_ai_index); $ph is one %d per term_taxonomy id (or the single 0); the ids and the limit are bound.
     $ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT p.ID
            FROM {$wpdb->posts} p
@@ -769,7 +769,7 @@ function vergeml_autofile_loose_count( $unlooked = false ) {
     $tt_ids = array_map( 'intval', explode( ',', $tt ) );
     $ph     = implode( ',', array_fill( 0, count( $tt_ids ), '%d' ) );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $table is $wpdb->vergeml_ai_index, $described one of two literals, $ph is one %d per term_taxonomy id; the ids are bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is $wpdb->vergeml_ai_index, $described one of two literals, $ph is one %d per term_taxonomy id; the ids are bound.
     return (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->posts} p
           WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'

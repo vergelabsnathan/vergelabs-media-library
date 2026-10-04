@@ -1127,7 +1127,7 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 		$only     = $only_ids ? ' AND i.attachment_id IN (' . implode( ',', array_fill( 0, count( $only_ids ), '%d' ) ) . ')' : '';
 		$words   = vergeml_filing_words_sql( 'i' );   // The picture's file, title and alt (S10.9).
 		$product = vergeml_filing_product_sql( 'i' ); // The product it belongs to, when the site sells (S10.8).
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $only is one %d per round id and the ids are bound.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; $only is one %d per round id and the ids are bound.
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.caption, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']}, {$product['select']},
 			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr
