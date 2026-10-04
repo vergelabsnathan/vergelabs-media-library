@@ -312,7 +312,8 @@ function vergeml_ai_service_url() {
 
     $url = defined( 'VERGEML_AI_SERVICE' ) ? VERGEML_AI_SERVICE : 'https://ai.vergelabs.nl/v1';
 
-    if ( 0 !== strpos( $url, 'https://' ) ) {
+    // https, or plain http to this machine's own loopback address (a local copy of the service).
+    if ( 0 !== strpos( $url, 'https://' ) && 0 !== strpos( $url, 'http://127.0.0.1' ) ) {
         $url = 'https://ai.vergelabs.nl/v1';
     }
 

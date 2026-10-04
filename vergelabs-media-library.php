@@ -132,6 +132,14 @@ function vergeml_rest_can_manage_options() {
     return current_user_can( 'manage_options' );
 }
 
+/**
+ *  Whether set_time_limit() may be called: PHP 7.4 still defines a function
+ *  disable_functions turned off, and calling it there warns.
+ */
+function vergeml_can_set_time_limit() {
+    return function_exists( 'set_time_limit' ) && false === stripos( (string) ini_get( 'disable_functions' ), 'set_time_limit' );
+}
+
 /** A read for anyone who may see the media library. */
 function vergeml_rest_can_upload_files() {
     return current_user_can( 'upload_files' );

@@ -339,6 +339,8 @@ const SUITES = [
 	{ name: 'route-caps', file: 'tests/security/route-caps.php', env: 'local', php: 'playground' },
 	// What deleting the plugin removes, and what it leaves (rulebook audit HB-149).
 	{ name: 'uninstall', file: 'tests/security/uninstall.php', env: 'local', php: 'playground' },
+	// Saving one Media Taxonomies form keeps the other option; an import is not a form (rulebook audit review).
+	{ name: 'settings-safety', file: 'tests/tree/settings-safety.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },

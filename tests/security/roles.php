@@ -459,48 +459,18 @@ r_check(
 );
 
 /*
- *  An editor is expected to reach the rest -- the 47 gated on manage_categories
- *  are the folder and librarian screens, and an editor runs those. Asserted so
- *  that a gate accidentally raised to manage_options shows up as the support
- *  ticket it would otherwise become.
+ *  An editor keeps the media library's folders: the tree, filing, and changing
+ *  one folder or one file at a time (wordpress.org review 2, 2026-10-03, moved
+ *  every library-wide write, run and AI call to manage_options). Asserted so a
+ *  gate raised too far -- the tree itself -- shows up here.
  */
-r_check(
-    'an editor reaches the folder and librarian endpoints',
-    count( $r_reached ) >= 58,
-    sprintf( 'reached %d', count( $r_reached ) )
-);
-
-
-/* ------------------------------- 6. the premise under the 47 unscoped routes */
-
-/*
- *  47 endpoints write to attachments behind a site-wide `manage_categories`
- *  without asking `edit_post` about the file. On stock WordPress that cannot be
- *  used to touch a file you could not already touch, because every role holding
- *  manage_categories also holds edit_others_posts. That is the whole argument,
- *  so it is asserted here: on a site where a custom role breaks it, those 47
- *  become reachable by somebody who should not reach them, and this row says so
- *  on that site rather than in a document nobody runs.
- */
-$r_broken = array();
-
-foreach ( wp_roles()->roles as $r_slug => $r_role_data ) {
-
-    $r_caps = isset( $r_role_data['capabilities'] ) ? $r_role_data['capabilities'] : array();
-
-    $r_files = ! empty( $r_caps['manage_categories'] );
-    $r_others = ! empty( $r_caps['edit_others_posts'] );
-
-    if ( $r_files && ! $r_others ) {
-        $r_broken[] = $r_slug;
-    }
+foreach ( array( '/vergeml/v1/tree GET', '/vergeml/v1/assign POST', '/vergeml/v1/folder POST', '/vergeml/v1/state POST' ) as $r_need ) {
+    r_check(
+        'an editor still reaches ' . $r_need,
+        in_array( $r_need, $r_reached, true ),
+        sprintf( 'reached %d', count( $r_reached ) )
+    );
 }
-
-r_check(
-    'no role on this site holds manage_categories without edit_others_posts',
-    0 === count( $r_broken ),
-    'these do, so the 47 folder endpoints are reachable by them: ' . implode( ', ', $r_broken )
-);
 
 
 /* ----------------------------------------------------------------- put back */

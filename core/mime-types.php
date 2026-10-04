@@ -190,13 +190,14 @@ function vergeml_mimes_prepared( $reset = false ) {
     // Dropped on read too: a setting saved before 4.1.0 may name anything.
     foreach ( (array) get_option( 'vergeml_mimes', array() ) as $ext => $type_array ) {
 
-        if ( ! isset( $known[ $ext ] ) || vergeml_mime_refused( $ext ) ) {
+        if ( ! isset( $known[ $ext ] ) ) {
             continue;
         }
 
+        // A type that can run code is never on for upload: listed here so the filter takes it off.
         $prepared[ $ext ] = array(
             'mime'   => $known[ $ext ],
-            'upload' => ! empty( $type_array['upload'] ),
+            'upload' => ! vergeml_mime_refused( $ext ) && ! empty( $type_array['upload'] ),
         );
     }
 
@@ -226,11 +227,14 @@ add_filter( 'post_mime_types', 'vergeml_post_mime_types' );
 
 function vergeml_post_mime_types( $post_mime_types ) {
 
+    $known = wp_get_mime_types();
+
     foreach ( (array) get_option( 'vergeml_mimes', array() ) as $ext => $type_array ) {
 
-        if ( is_array( $type_array ) && ! empty( $type_array['filter'] ) && ! empty( $type_array['mime'] ) ) {
+        // Dropped on read here too: a setting saved before 4.1.0 may name anything.
+        if ( is_array( $type_array ) && ! empty( $type_array['filter'] ) && isset( $known[ $ext ] ) ) {
 
-            $mime_type = sanitize_mime_type( $type_array['mime'] );
+            $mime_type = $known[ $ext ];
             // Owner-typed labels go into a printf format, so a % in one stays a %.
             $singular  = str_replace( '%', '%%', isset( $type_array['singular'] ) ? (string) $type_array['singular'] : $mime_type );
             $plural    = str_replace( '%', '%%', isset( $type_array['plural'] ) ? (string) $type_array['plural'] : $mime_type );
@@ -283,9 +287,9 @@ function vergeml_upload_mimes( $types ) {
 
     /*
      *  Settings switch WordPress's own types on and off; they never add one.
-     *  vergeml_mimes_prepared() holds only types wp_get_mime_types() knows and
-     *  none that vergeml_mime_refused() names, so a refused type is never
-     *  added here -- whether core allows it for this user stays core's call.
+     *  vergeml_mimes_prepared() holds only types wp_get_mime_types() knows, and
+     *  a type vergeml_mime_refused() names is always off -- taken out of the
+     *  list even where core itself would allow it for this user.
      */
     /*
      *  On a network the super admin's "Upload file types" is the ceiling: a

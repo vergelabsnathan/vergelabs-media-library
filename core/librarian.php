@@ -2459,7 +2459,7 @@ function vergeml_librarian_routes() {
         'args'                => array(
             'scheme'   => array( 'type' => 'string', 'default' => 'subject' ),
             'run_id'   => array( 'type' => 'integer', 'default' => 0 ),
-            'branches' => array( 'type' => 'array', 'default' => array() ),
+            'branches' => array( 'type' => array( 'array', 'string' ), 'default' => array() ),
         ),
     ) );
 
@@ -2471,7 +2471,7 @@ function vergeml_librarian_routes() {
             'batch_id' => array( 'type' => 'integer', 'default' => 0 ),
             'scheme'   => array( 'type' => 'string', 'default' => 'subject' ),
             'run_id'   => array( 'type' => 'integer', 'default' => 0 ),
-            'branches' => array( 'type' => 'array', 'default' => array() ),
+            'branches' => array( 'type' => array( 'array', 'string' ), 'default' => array() ),
         ),
     ) );
 

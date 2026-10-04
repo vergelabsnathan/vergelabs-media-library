@@ -1798,8 +1798,9 @@ function vergeml_settings_cleanup() {
         vergeml_options_cleanup();
         vergeml_transients_cleanup();
         vergeml_cleanup_drop_tables();
-        wp_clear_scheduled_hook( 'vergeml_meaning_convert' );
-        wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+        foreach ( array( 'vergeml_meaning_convert', 'vergeml_ai_run_tick', 'vergeml_talk_refile_event', 'vergeml_guide_fit_event', 'vergeml_plan_inventory_refresh', 'vergeml_plan_event', 'vergeml_provision_site' ) as $hook ) {
+            wp_unschedule_hook( $hook );
+        }
     };
 
     if ( is_multisite() ) {

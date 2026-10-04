@@ -1703,7 +1703,7 @@ function vergeml_guide_fit_event() {
         return;
     }
     set_transient( VERGEML_GUIDE_FIT_LOCK, time(), VERGEML_GUIDE_FIT_BUDGET + 60 );
-    if ( function_exists( 'set_time_limit' ) ) {
+    if ( vergeml_can_set_time_limit() ) {
         set_time_limit( VERGEML_GUIDE_FIT_BUDGET + 60 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
 

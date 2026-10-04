@@ -100,6 +100,15 @@ function vergeml_ai_run_schedule() {
 }
 
 
+// admin_init also runs for admin-post.php without a login: only an administrator's request revives a run.
+add_action( 'admin_init', 'vergeml_ai_run_revive_on_admin' );
+
+function vergeml_ai_run_revive_on_admin() {
+    if ( ! wp_doing_ajax() && current_user_can( 'manage_options' ) ) {
+        vergeml_ai_run_revive();
+    }
+}
+
 /**
  *  vergeml_ai_run_revive
  *
@@ -115,14 +124,6 @@ function vergeml_ai_run_schedule() {
  *
  *  @return bool  whether it booked one.
  */
-add_action( 'admin_init', 'vergeml_ai_run_revive_on_admin' );
-
-// admin_init also runs for admin-post.php without a login: only an administrator's request revives a run.
-function vergeml_ai_run_revive_on_admin() {
-    if ( ! wp_doing_ajax() && current_user_can( 'manage_options' ) ) {
-        vergeml_ai_run_revive();
-    }
-}
 
 
 function vergeml_ai_run_revive() {
@@ -356,7 +357,7 @@ function vergeml_ai_run_tick() {
     // each capped at sixty seconds, then the writes); carry on without it if
     // refused. Bounded, not 0: a pass that hangs past this is dead anyway,
     // and vergeml_ai_run_revive() starts the next one.
-    if ( function_exists( 'set_time_limit' ) ) {
+    if ( vergeml_can_set_time_limit() ) {
         set_time_limit( VERGEML_AI_RUN_BUDGET + 180 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job on shared hosting; refused silently where disallowed.
     }
 

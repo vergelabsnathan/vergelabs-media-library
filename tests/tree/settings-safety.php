@@ -27,6 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 wp_set_current_user( 1 );
 
+// The validators report through add_settings_error(), which only the admin loads.
+require_once ABSPATH . 'wp-admin/includes/template.php';
+
 $tax = 'media_category';
 
 $GLOBALS['vgml_ok']  = 0;
@@ -40,6 +43,9 @@ function t( $name, $pass, $detail = '' ) {
 echo "\na partial settings write\n\n";
 
 $before = get_option( 'vergeml_taxonomies', array() );
+
+// A folder to look for at the end, on a fresh site that has none yet.
+$vgml_made = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'fields' => 'ids', 'number' => 1 ) ) ? 0 : wp_insert_term( 'vgml-settings-safety', $tax );
 
 t( 'the taxonomy starts registered', taxonomy_exists( $tax ) );
 t( 'and has labels on file', ! empty( $before[ $tax ]['labels']['name'] ),
@@ -63,6 +69,9 @@ t( 'and has labels on file', ! empty( $before[ $tax ]['labels']['name'] ),
 unset( $_POST['vergeml_taxonomies'] );
 unset( $_POST['vergeml_tax_options'] );
 
+// A Settings API form post: options.php sends option_page with every form (4.1.0 keys the guard on it).
+$_POST['option_page'] = 'vergeml-taxonomies';
+
 $kept = vergeml_taxonomies_validate( null );
 
 t( 'a form that did not carry the taxonomies keeps them', count( (array) $kept ) === count( (array) $before ),
@@ -75,6 +84,7 @@ t( 'and show_in_rest intact', ! empty( $kept[ $tax ]['show_in_rest'] ),
 
 $opts_before = get_option( 'vergeml_tax_options', array() );
 $opts_kept   = vergeml_tax_options_validate( null );
+unset( $_POST['option_page'] );
 
 t( 'and the same for the options in that group',
 	count( (array) $opts_kept ) === count( (array) $opts_before ),
@@ -115,8 +125,8 @@ t( 'a partial save keeps hierarchical', ! empty( $survived[ $tax ]['hierarchical
 	var_export( $survived[ $tax ]['hierarchical'] ?? null, true ) );
 t( 'and show_in_rest', ! empty( $survived[ $tax ]['show_in_rest'] ),
 	var_export( $survived[ $tax ]['show_in_rest'] ?? null, true ) );
-t( 'and the post types', isset( $survived[ $tax ]['post_types'] ) &&
-	$survived[ $tax ]['post_types'] === ( $before[ $tax ]['post_types'] ?? array() ),
+// Whatever was stored, unchanged -- none at all on a site that never set any.
+t( 'and the post types', ( $survived[ $tax ]['post_types'] ?? array() ) === ( $before[ $tax ]['post_types'] ?? array() ),
 	wp_json_encode( $survived[ $tax ]['post_types'] ?? null ) );
 t( 'and the labels', ! empty( $survived[ $tax ]['labels']['name'] ) );
 

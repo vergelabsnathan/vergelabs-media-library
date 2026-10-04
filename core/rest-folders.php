@@ -98,7 +98,13 @@ function vergeml_can_manage_folders( $request = null ) {
         return current_user_can( 'manage_categories' );
     }
 
-    $id = (int) $request->get_param( 'id' );
+    // Core's bar for managing this taxonomy's terms comes first, whatever the action.
+    if ( ! current_user_can( $tax->cap->manage_terms ) ) {
+        return false;
+    }
+
+    $id     = (int) $request->get_param( 'id' );
+    $parent = (int) $request->get_param( 'parent' );
 
     /*
      *  The folder itself, the way core asks about a term: one request changes
@@ -125,7 +131,7 @@ function vergeml_can_manage_folders( $request = null ) {
     switch ( $request->get_param( 'action' ) ) {
 
         case 'create':
-            return current_user_can( $tax->cap->edit_terms );
+            return current_user_can( $tax->cap->edit_terms ) && ( ! $parent || $may( 'edit_term', $parent ) );
 
         case 'delete':
             return $may( 'delete_term', $id );
@@ -136,10 +142,16 @@ function vergeml_can_manage_folders( $request = null ) {
                     return false;
                 }
             }
-            return true;
+            return ! $parent || $may( 'edit_term', $parent );
+
+        case 'rename':
+        case 'color':
+        case 'move':
+            // Into a folder too, when it names one: somebody else's private folder is not a destination.
+            return $may( 'edit_term', $id ) && ( ! $parent || $may( 'edit_term', $parent ) );
 
         default:
-            return $may( 'edit_term', $id );
+            return false;
     }
 }
 

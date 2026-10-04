@@ -688,6 +688,8 @@ function vergeml_autofile_can_act( WP_REST_Request $request ) {
     return current_user_can( 'manage_options' )
         && 'attachment' === get_post_type( $attachment )
         && current_user_can( 'edit_post', $attachment )
+        && get_taxonomy( vergeml_librarian_taxonomy() )
+        && current_user_can( get_taxonomy( vergeml_librarian_taxonomy() )->cap->assign_terms )
         && get_term( (int) $request->get_param( 'term_id' ), vergeml_librarian_taxonomy() ) instanceof WP_Term;
 }
 

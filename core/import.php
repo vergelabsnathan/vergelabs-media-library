@@ -226,6 +226,11 @@ function vergeml_import_run( $key, $taxonomy, $resume = null ) {
      */
     $id    = ( $resume && ! empty( $resume['id'] ) ) ? sanitize_key( (string) $resume['id'] ) : '';
     $prior = $id ? vergeml_import_record( $id ) : null;
+
+    if ( $id && ! $prior ) {
+        return new WP_Error( 'vergeml_no_import', __( 'That import is not on record any more.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
+    }
+
     $id    = $prior ? $id : uniqid( 'imp', false );
 
     $done  = ( $prior && isset( $resume['done'] ) ) ? max( 0, (int) $resume['done'] ) : 0;

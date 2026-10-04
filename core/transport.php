@@ -16,8 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *  It is for a road that is broken, not one that is closed on purpose: the
  *  site's own REST authentication filters (a security plugin that turns REST
  *  off) are asked first and answered the same way here. Only routes this
- *  plugin registers are reachable, and each gets only the arguments it
- *  declares.
+ *  plugin registers are reachable.
  *
  *  The browser side (js/vergeml-transport.js) tries REST first and falls back
  *  here only when REST answers in a way REST never does -- a network error,
@@ -76,14 +75,13 @@ function vergeml_transport_bridge() {
         $method = 'GET';
     }
 
-    // Only a route this plugin registered, and only the arguments that route declares.
-    $args = vergeml_transport_route_args( $route, $method );
-
-    if ( null === $args ) {
+    // Only a route this plugin registered.
+    if ( ! vergeml_transport_is_ours( $route, $method ) ) {
         wp_send_json( array( 'code' => 'vergeml_bad_bridge', 'message' => 'Not one of ours.', 'data' => array( 'status' => 400 ) ), 400 );
     }
 
-    $params = isset( $body['params'] ) && is_array( $body['params'] ) ? array_intersect_key( $body['params'], $args ) : array();
+    // Handed on as REST would hand them on: the route's own args schema validates and sanitises them.
+    $params = isset( $body['params'] ) && is_array( $body['params'] ) ? $body['params'] : array();
 
     $request = new WP_REST_Request( $method, $route );
 
@@ -115,15 +113,14 @@ function vergeml_transport_bridge() {
 
 
 /**
- *  The arguments a route of ours declares for a method, keyed by name; null
- *  when the path is not one of this plugin's routes. The path is matched the
- *  way the REST server matches it, against the routes registered under our
- *  namespace and nothing else.
+ *  Whether the path is one of this plugin's routes, answering this method,
+ *  matched the way the REST server matches it against the routes registered
+ *  under our namespace and nothing else.
  */
-function vergeml_transport_route_args( $route, $method ) {
+function vergeml_transport_is_ours( $route, $method ) {
 
     if ( ! preg_match( '#^/' . preg_quote( VERGEML_REST_NS, '#' ) . '/[A-Za-z0-9/_-]+$#', $route ) || false !== strpos( $route, '..' ) ) {
-        return null;
+        return false;
     }
 
     foreach ( rest_get_server()->get_routes( VERGEML_REST_NS ) as $pattern => $handlers ) {
@@ -134,12 +131,12 @@ function vergeml_transport_route_args( $route, $method ) {
 
         foreach ( $handlers as $handler ) {
             if ( ! empty( $handler['methods'][ $method ] ) ) {
-                return isset( $handler['args'] ) && is_array( $handler['args'] ) ? $handler['args'] : array();
+                return true;
             }
         }
     }
 
-    return null;
+    return false;
 }
 
 

@@ -340,7 +340,23 @@ function vergeml_watchdog_network_notice() {
         );
     }
 
-    echo '</ul><p>' . esc_html__( 'Each site keeps working without the plugin\'s features; open it to switch them back on. The plugin was not deactivated for the network.', 'vergelabs-media-library' ) . '</p></div>';
+    echo '</ul><p>' . esc_html__( 'Each site keeps working without the plugin\'s features; open it to switch them back on. The plugin was not deactivated for the network.', 'vergelabs-media-library' ) . '</p>';
+
+    // Deactivating it for the network is the network administrator's press: core's own link and nonce.
+    $plugin = plugin_basename( VERGEML_FILE );
+
+    if ( current_user_can( 'manage_network_plugins' ) ) {
+        $deactivate = wp_nonce_url(
+            network_admin_url( 'plugins.php?action=deactivate&plugin=' . rawurlencode( $plugin ) ),
+            'deactivate-plugin_' . $plugin
+        );
+
+        echo '<p><a href="' . esc_url( $deactivate ) . '" class="button">' .
+            esc_html__( 'Network Deactivate', 'vergelabs-media-library' ) .
+            '</a></p>';
+    }
+
+    echo '</div>';
 }
 
 
