@@ -178,6 +178,68 @@ Still red, and red before this round: the escaping suite's "text sinks
 outnumber HTML sinks four to one" (249 against 65; 244 against 65 at
 `654e089` and `c7d380f`).
 
+## wordpress.org review 2 (2026-10-03) and the rulebook audit (2026-10-04)
+
+The automated review of the `0752e82` archive (Review ID AUTO
+vergelabs-media-library/vergelabsdev/26Sep26/T2 3Oct26/4.3) named three
+things and said it does not list every case. Rounds 1 and 2 each fixed only
+what was named, so this round read the archive against every written rule
+first. (The "Review round 2" above is the internal pass of 2026-09-30; this is
+the second email from wordpress.org.)
+
+**The three findings.**
+
+| finding | fix | commit |
+|---|---|---|
+| The watchdog deactivated the plugin after crashes in safe mode | No `deactivate_plugins()` anywhere: safe mode only, the notice offers core's Deactivate link; Complete Cleanup no longer deactivates either | `f2b2d86`, `0dbdeb3` |
+| `/ai-run` POST, a library-wide run, behind `manage_categories` | 39 REST endpoints and 3 admin-post handlers that write across the library, run, apply, import, undo or call the AI service need `manage_options`; single-object writes ask core's capability about that object; five screens raised with them | `fbe5126`, `41e1602` |
+| `upload_mimes` let a setting allow any extension | Only types `wp_get_mime_types()` knows; php*, phtml, phar, cgi, pl, py, sh, asp*, jsp*, htm*, shtml, svg, js, exe, htaccess, swf and other runnable types never; dropped on save and on read, and the screen names them | `dd82022` |
+
+**The rulebook.** [wordpress-org-rulebook.md](wordpress-org-rulebook.md),
+fetched 2026-10-04 from the official sources: part A 1,039 rows (the 18
+guidelines, common issues, readme rules, developer FAQ, developer pages, the
+review handbook, team posts), part B 281 rows (every Plugin Check check and
+sniff, the pre-review's issue titles, the security and REST permission docs).
+
+**The audit.** Every row was judged against a clean `git archive`, with
+`phpcs:ignore` comments ignored. The per-row tables, with file:line evidence,
+are in [wordpress-org-audit/](wordpress-org-audit/): G and CI 231 rows, RM and
+FAQ 220, DEV 263, HB 220, POST/BOT/SEC/REST 210, plus the REST route table, two
+security sweeps and the permission sweep. They are the archive as it was before
+the fixes below, so their FAIL rows are the work list; every FAIL is closed here.
+
+| class (rulebook rows) | what was wrong | commit |
+|---|---|---|
+| Changing active plugins (CI, BOT) | watchdog, Complete Cleanup | `f2b2d86`, `0dbdeb3` |
+| REST permissions (REST-3/12, BOT-permission-callback, HB-147) | 39 routes, 3 handlers, 5 screens; object checks on /folder, /folder-privacy, /autofile-act, health delete/keep, the renamer, say-run, merge-run; no route left on `manage_categories` | `fbe5126`, `41e1602`, `63273d3` |
+| Insecure MIME types (BOT) | allowlist; validator keeps only its five fields; on a network a site cannot widen the super admin's upload types | `dd82022`, `dced95e` |
+| Nonces and permissions (SEC, BOT) | the trial link auto-ran a paid run without a nonce; admin_init housekeeping ran for logged-out admin-post.php; the neighbour-notice dismiss had no capability; the licence save ignored the network lock; bulk move and bulk terms skipped `assign_terms`; save-attachment-compat could wipe or cross-assign folders | `3c0e144`, `dced95e`, `63273d3` |
+| REST bridge (REST-9, BOT-processing-whole-input) | it skipped `rest_authentication_errors`; now asks it, takes only registered `vergeml/v1` routes and only each route's declared arguments | `3c0e144` |
+| Sanitising (CI-sanitize, BOT-sanitize*) | settings validators are allowlists; raw request comparisons, two whole-`$_GET` reads, esc_attr used as a sanitizer, unslashed reads; REST args typed; import resume state no longer trusted from the browser | `dced95e`, `63273d3` |
+| Escaping (CI-escape, BOT-escape*) | `esc_html` in 17 attribute values; `json_encode`; two DOM injections in JS (a decoded term name into an HTML filter, a shortcode id); taxonomy labels and author names escaped before localizing | `3c0e144`, `dced95e` |
+| SQL (BOT-sql-array-placeholders, BOT-unsafe-sql) | 14 `IN()` lists to `%d` placeholders; `SHOW TABLES LIKE` with `esc_like`; the SEO gap query prepared once; a missing `global $wpdb` | `dced95e`, `752614e` |
+| Hiding admin notices (G9, BOT) | the plugin's screens removed other plugins' notices; now only its own | `f08f31b` |
+| Prefixing and structure (CI-prefix, CI-function-exists, HB-65, G2.2) | relative includes; a `function_exists` wrapper around the whole plugin; closure permission callbacks; an unprefixed JS global; deleting Enhanced Media Library's own transient; guide tag taxonomies unprefixed | `dced95e`, `7f0b31a` |
+| Remote and outbound (G7, CI-3p, HB-70/77) | SVG sizes fetched back over HTTP; a localhost service URL; readme External services missing the Get help token and the draft-tree request; three screen texts overclaimed | `dd82022`, `63273d3`, `ddf38c4` |
+| Readme (RM, FAQ, DEV-207, HB-53/139) | wrong settings locations; licence step missing; MIME text promised adding types; HTML comment; changelog too long; a comparison-shaped heading; TODO markers | `eb4da0b`, `ddf38c4` |
+| Licences and credits (HB-50/51) | Inter's copyright line; the natural-compare MIT notice; credits for Enhanced Media Library, its icon font, WP Rocket's admin layout and WordPress's spinners | `ddf38c4` |
+| Uninstall (HB-149) | two of seven cron hooks cleared; the wipe left post meta, term meta and site transients | `ddf38c4` |
+| i18n (CI-i18n, BOT-text-domain) | JS strings without the text domain, one borrowing core's; a misplaced translators comment | `63273d3`, `f08f31b` |
+
+**Proof, on the archive of `752614e`.**
+
+- Plugin Check in Playground, all five categories: "Checks complete. No errors found." -- no warnings; 29 checks asked for, 29 ran, 29 answered success.
+- PHPCS 3.13.4 + WPCS 3.2.0 (`node tools/phpcs.mjs`): parse clean on PHP 7.4 and 8.3; annotations honoured 0; markup-scan 0/0/0; annotations ignored 261 (SQL table-name interpolation, `$_GET` reads that only choose what to display, core hook names the plugin fires on purpose -- each with its reason beside it).
+- A clean Playground site from the archive, `WP_DEBUG` and `WP_DEBUG_LOG` on, no licence, an mu-plugin logging every outgoing request: the administrator opened 21 screens (14 of the plugin's, core's media, list, upload, posts, plugins, dashboard, media settings) -- every one 200, no console error, no failed request. An editor and an author opened the media library, the list and the upload screen (200, the tree works) and were refused the five raised screens with WordPress's own 403. `debug.log`: empty. Outgoing requests: 16, every one WordPress core's (update checks, dashboard feeds, wp-cron); 0 made by this plugin.
+- Suites: watchdog-php 15/15, mime-allowlist 19/19, route-caps 21/21 (every `vergeml/v1` route asked as author, editor and administrator), uninstall 7/7, and the brief's local suites -- archive-hygiene, copy, surface, db-calls, hosts, globals, filing, plan-choose, plan-gain, plan-fold, plan-audience, plan-grow, plan-job, tree-view, talk-chips, folders-shop, structure, get-help, ai-outage, csv-local -- green.
+
+**Product changes worth knowing.** Editors no longer see the plugin's
+dashboard, Folders, AI, Health or Import screens: they keep the folder tree in
+the media library (filing, folder edits, quick edit), but the smart-folder
+scan, making a folder private, search by meaning and the AI screens are an
+administrator's. Choosing file types can no longer add a type WordPress does
+not know, or allow SVG.
+
 ## Running PHPCS
 
     node tools/phpcs.mjs                 # HEAD: parse on 7.4 and 8.3, PHPCS twice, markup-scan
