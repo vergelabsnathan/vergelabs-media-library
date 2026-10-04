@@ -919,7 +919,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                 foreach( get_users( array( 'capability' => 'upload_files' ) ) as $user ) {
                     $users_ready_for_script[] = array(
                         'user_id' => $user->ID,
-                        'user_name' => $user->data->display_name
+                        'user_name' => esc_html( $user->data->display_name ) // the media filters render this as HTML
                     );
                 }
             }
@@ -950,8 +950,9 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                 $taxonomy_terms = json_decode( $html, true );
 
                 $media_taxonomies_ready_for_script[$taxonomy->name] = array(
-                    'singular_name' => $taxonomy->labels->singular_name,
-                    'plural_name'   => $taxonomy->labels->name,
+                    // Escaped here: the media filters and labels render these as HTML.
+                    'singular_name' => esc_html( $taxonomy->labels->singular_name ),
+                    'plural_name'   => esc_html( $taxonomy->labels->name ),
                     'term_list'     => $taxonomy_terms,
                 );
 

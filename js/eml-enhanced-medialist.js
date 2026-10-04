@@ -263,7 +263,7 @@ function emlIsFilterBased( attrs ) {
                     append += '<li>' + media.view.l10n.uploadedToThisPost + '</li>';
                 }
                 else if ( parseInt( uploadedTo ) ) {
-                    append += '<li>' + vergeml.l10n.uploaded_to + uploadedTo + '</li>';
+                    append += '<li>' + _.escape( vergeml.l10n.uploaded_to ) + parseInt( uploadedTo, 10 ) + '</li>';
                 }
             }
             append += '</ul></span>';

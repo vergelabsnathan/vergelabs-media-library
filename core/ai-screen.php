@@ -302,7 +302,8 @@ function vergeml_ai_tab_describe( $c ) {
             </div>
             <div class="vgml-import-bar vgml-ai-bar" id="vgml-ai-bar" hidden><div class="vgml-import-fill" id="vgml-ai-fill"></div></div>
             <div class="vgml-import-bar vgml-ai-bar" id="vgml-ai-bg-bar" hidden><div class="vgml-import-fill" id="vgml-ai-bg-fill"></div></div>
-            <?php if ( ! $offer && isset( $_GET['vgml_trial'] ) && $c['missing'] > 0 ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a display flag, not an action. ?>
+            <?php // The run starts by itself only after the owner's own press on the trial offer, which minted this nonce. ?>
+            <?php if ( ! $offer && isset( $_GET['vgml_trial'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['vgml_trial'] ) ), 'vergeml_trial_start' ) && $c['missing'] > 0 ) : ?>
             <?php /* translators: %s: a number of pictures */ ?>
             <p class="vgml-ai-line"><?php echo esc_html( sprintf( __( '%s free credits on this site. Writing alt text now; it stops when they are used.', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?></p>
             <?php vergeml_inline_script( 'vergeml-ai-trial', "window.addEventListener( 'load', function () { var b = document.getElementById( 'vgml-ai-alt' ); if ( b && ! b.disabled ) { b.click(); } } );" ); ?>

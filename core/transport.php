@@ -5,18 +5,19 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *
  *  Everything this plugin does after the first paint goes through
  *  /wp-json/vergeml/v1/. That is the right design and it is also the single
- *  most fragile joint in every plugin of this kind: a security plugin that
- *  blocks REST for logged-in users, a host that rewrites /wp-json/ away, a
- *  caching layer that answers an API call with a cached HTML page. The two
- *  market leaders both fail there, and both fail by showing an empty sidebar
- *  that reads as "your folders are gone".
+ *  most fragile joint in every plugin of this kind: a host that rewrites
+ *  /wp-json/ away, a caching layer that answers an API call with a cached
+ *  HTML page. A sidebar that cannot load reads as "your folders are gone".
  *
  *  This is the same endpoints reached through admin-ajax.php instead. Not a
  *  second implementation: the request is handed to rest_do_request(), so the
  *  same handler runs with the same permission callback and the same
  *  validation, and the only thing that changed is which door it came in by.
- *  admin-ajax has worked on every WordPress host since 2.x; nothing blocks it
- *  without also breaking WordPress itself.
+ *  It is for a road that is broken, not one that is closed on purpose: the
+ *  site's own REST authentication filters (a security plugin that turns REST
+ *  off) are asked first and answered the same way here. Only routes this
+ *  plugin registers are reachable, and each gets only the arguments it
+ *  declares.
  *
  *  The browser side (js/vergeml-transport.js) tries REST first and falls back
  *  here only when REST answers in a way REST never does -- a network error,
@@ -39,8 +40,8 @@ function vergeml_transport_bridge() {
      */
     $nonce = isset( $_SERVER['HTTP_X_WP_NONCE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WP_NONCE'] ) ) : '';
 
-    if ( ! $nonce && isset( $_REQUEST['_wpnonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- verified on the next line.
-        $nonce = sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) );
+    if ( ! $nonce && isset( $_GET['_wpnonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- this is the nonce, verified on the next line.
+        $nonce = sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) );
     }
 
     if ( ! wp_verify_nonce( $nonce, 'wp_rest' ) ) {
@@ -52,25 +53,37 @@ function vergeml_transport_bridge() {
         wp_send_json( array( 'code' => 'rest_forbidden', 'message' => __( 'Sorry, you are not allowed to do that.', 'vergelabs-media-library' ), 'data' => array( 'status' => 403 ) ), 403 );
     }
 
-    $raw  = file_get_contents( 'php://input' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+    // A site that switched REST off, or limited it, has switched this off too.
+    $auth = apply_filters( 'rest_authentication_errors', null );
+
+    if ( is_wp_error( $auth ) ) {
+        $status = $auth->get_error_data();
+        $status = is_array( $status ) && isset( $status['status'] ) ? (int) $status['status'] : 403;
+        wp_send_json( array( 'code' => $auth->get_error_code(), 'message' => $auth->get_error_message(), 'data' => array( 'status' => $status ) ), $status );
+    }
+
+    $raw  = file_get_contents( 'php://input' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- the request body, not a file.
     $body = json_decode( (string) $raw, true );
 
-    if ( ! is_array( $body ) ) {
+    if ( ! is_array( $body ) || ! isset( $body['route'] ) || ! is_string( $body['route'] ) ) {
         wp_send_json( array( 'code' => 'vergeml_bad_bridge', 'message' => 'The bridge needs a JSON body.', 'data' => array( 'status' => 400 ) ), 400 );
     }
 
-    $route  = isset( $body['route'] ) ? (string) $body['route'] : '';
-    $method = isset( $body['method'] ) ? strtoupper( (string) $body['method'] ) : 'GET';
-    $params = isset( $body['params'] ) && is_array( $body['params'] ) ? $body['params'] : array();
-
-    // Only our own namespace. This is a road to our endpoints, not to all of them.
-    if ( 0 !== strpos( $route, '/' . VERGEML_REST_NS . '/' ) ) {
-        wp_send_json( array( 'code' => 'vergeml_bad_bridge', 'message' => 'Not one of ours.', 'data' => array( 'status' => 400 ) ), 400 );
-    }
+    $route  = $body['route'];
+    $method = isset( $body['method'] ) && is_string( $body['method'] ) ? strtoupper( $body['method'] ) : 'GET';
 
     if ( ! in_array( $method, array( 'GET', 'POST', 'PUT', 'PATCH', 'DELETE' ), true ) ) {
         $method = 'GET';
     }
+
+    // Only a route this plugin registered, and only the arguments that route declares.
+    $args = vergeml_transport_route_args( $route, $method );
+
+    if ( null === $args ) {
+        wp_send_json( array( 'code' => 'vergeml_bad_bridge', 'message' => 'Not one of ours.', 'data' => array( 'status' => 400 ) ), 400 );
+    }
+
+    $params = isset( $body['params'] ) && is_array( $body['params'] ) ? array_intersect_key( $body['params'], $args ) : array();
 
     $request = new WP_REST_Request( $method, $route );
 
@@ -98,6 +111,35 @@ function vergeml_transport_bridge() {
     nocache_headers();
     header( 'X-VergeML-Transport: bridge' );
     wp_send_json( $data, $response->get_status() );
+}
+
+
+/**
+ *  The arguments a route of ours declares for a method, keyed by name; null
+ *  when the path is not one of this plugin's routes. The path is matched the
+ *  way the REST server matches it, against the routes registered under our
+ *  namespace and nothing else.
+ */
+function vergeml_transport_route_args( $route, $method ) {
+
+    if ( ! preg_match( '#^/' . preg_quote( VERGEML_REST_NS, '#' ) . '/[A-Za-z0-9/_-]+$#', $route ) || false !== strpos( $route, '..' ) ) {
+        return null;
+    }
+
+    foreach ( rest_get_server()->get_routes( VERGEML_REST_NS ) as $pattern => $handlers ) {
+
+        if ( ! preg_match( '@^' . $pattern . '$@i', $route ) ) {
+            continue;
+        }
+
+        foreach ( $handlers as $handler ) {
+            if ( ! empty( $handler['methods'][ $method ] ) ) {
+                return isset( $handler['args'] ) && is_array( $handler['args'] ) ? $handler['args'] : array();
+            }
+        }
+    }
+
+    return null;
 }
 
 

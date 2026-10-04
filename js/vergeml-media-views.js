@@ -267,7 +267,7 @@
                         r = this;
                     (_.each(r.options.termList || {}, function (t, l) {
                         var o = t.term_id,
-                            s = $('<div/>').html(t.term_row).text();
+                            s = _.escape($('<div/>').html(t.term_row).text()); // the filter option is rendered as HTML: a name decoded here must not become markup
                         ((i[o] = {
                             text: s,
                             props: {
