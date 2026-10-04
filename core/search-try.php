@@ -138,8 +138,9 @@ function vergeml_search_try( $q ) {
             $out['meaning']['total']     = count( $scores );
             $out['meaning']['shown']     = count( $ids );
             if ( $ids ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- ids cast to int.
-                $found = $wpdb->get_results( "SELECT attachment_id, title, caption, tags FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', array_map( 'intval', $ids ) ) . ')', ARRAY_A );
+                $ph = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $ph is one %d per id; the ids are cast to int and bound.
+                $found = $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, title, caption, tags FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN ($ph)", array_map( 'intval', $ids ) ), ARRAY_A );
                 $by    = array();
                 foreach ( (array) $found as $row ) {
                     $by[ (int) $row['attachment_id'] ] = $row;

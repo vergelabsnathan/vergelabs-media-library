@@ -184,11 +184,17 @@ function vergeml_admin_menu_redirects() {
         return;
     }
 
-    // Everything else in the request goes along: a connect callback's state and code, a tab, a notice.
+    // What the old address carried along: a connect callback's state and code, a tab, a notice.
     $args = array();
-    foreach ( wp_unslash( $_GET ) as $key => $value ) {
-        if ( is_string( $value ) ) {
-            $args[ sanitize_key( $key ) ] = sanitize_text_field( $value );
+    foreach ( array( 'tab', 'state', 'code', 'error', 'settings-updated', 'paged', 's', 'ticket', 'why' ) as $key ) {
+        if ( isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ) {
+            $args[ $key ] = sanitize_text_field( wp_unslash( $_GET[ $key ] ) );
+        }
+    }
+    foreach ( array_keys( $_GET ) as $key ) {
+        // The plugin's own notices and flags.
+        if ( is_string( $key ) && preg_match( '/^(vgml|vergeml)[-_][a-z0-9_-]+$/', $key ) && is_string( $_GET[ $key ] ) ) {
+            $args[ $key ] = sanitize_text_field( wp_unslash( $_GET[ $key ] ) );
         }
     }
     // phpcs:enable

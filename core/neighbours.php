@@ -131,9 +131,15 @@ function vergeml_neighbour_dismiss() {
         return;
     }
 
-    $key = preg_replace( '/[^a-z0-9_]/', '', sanitize_key( wp_unslash( $_GET['vergeml_dismiss_neighbours'] ) ) );
+    // The same person the notice is shown to.
+    if ( ! current_user_can( 'activate_plugins' ) ) {
+        return;
+    }
 
-    if ( 0 === strpos( $key, 'vergeml_neighbours_' ) ) {
+    $key = 'vergeml_neighbours_' . md5( implode( ',', array_keys( vergeml_neighbour_folder_plugins() ) ) );
+
+    // Only the key of the notice on screen: the set of other folder plugins active now.
+    if ( sanitize_key( wp_unslash( $_GET['vergeml_dismiss_neighbours'] ) ) === $key ) {
         update_user_meta( get_current_user_id(), $key, 1 );
     }
 

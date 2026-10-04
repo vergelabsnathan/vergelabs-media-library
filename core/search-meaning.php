@@ -413,15 +413,23 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
     arsort( $scored );
     $shortlist = array_slice( $scored, 0, $depth, true );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
-    $ready = $wpdb->get_results(
-        "SELECT attachment_id, embedding
-           FROM {$wpdb->vergeml_ai_index}
-          WHERE error = '' AND embedding IS NOT NULL
-            AND attachment_id IN (" . implode( ',', array_map( 'intval', array_keys( $shortlist ) ) ) . ')',
-        ARRAY_A
-    );
-    // phpcs:enable
+    $short_ids = array_map( 'intval', array_keys( $shortlist ) );
+    $ready     = array();
+    if ( $short_ids ) {
+        $ph = implode( ',', array_fill( 0, count( $short_ids ), '%d' ) );
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $ph is one %d per id and the ids are bound.
+        $ready = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT attachment_id, embedding
+                   FROM {$wpdb->vergeml_ai_index}
+                  WHERE error = '' AND embedding IS NOT NULL
+                    AND attachment_id IN ($ph)",
+                $short_ids
+            ),
+            ARRAY_A
+        );
+        // phpcs:enable
+    }
 
     $scored = array();
 

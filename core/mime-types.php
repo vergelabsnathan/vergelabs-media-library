@@ -82,12 +82,14 @@ function vergeml_mimes_validate( $input ) {
             $upload    = false;
         }
 
-        $input[$ext]['filter'] = isset( $type['filter'] ) && !! $type['filter'] ? 1 : 0;
-        $input[$ext]['upload'] = $upload ? 1 : 0;
-
-        $input[$ext]['mime'] = $known[ $ext ];
-        $input[$ext]['singular'] = isset( $type['singular'] ) ? sanitize_text_field( $type['singular'] ) : $known[ $ext ];
-        $input[$ext]['plural'] = isset( $type['plural'] ) ? sanitize_text_field( $type['plural'] ) : $known[ $ext ];
+        // These five, and nothing else the form carried.
+        $input[ $ext ] = array(
+            'mime'     => $known[ $ext ],
+            'singular' => isset( $type['singular'] ) && is_string( $type['singular'] ) ? sanitize_text_field( $type['singular'] ) : $known[ $ext ],
+            'plural'   => isset( $type['plural'] ) && is_string( $type['plural'] ) ? sanitize_text_field( $type['plural'] ) : $known[ $ext ],
+            'filter'   => empty( $type['filter'] ) ? 0 : 1,
+            'upload'   => $upload ? 1 : 0,
+        );
     }
 
     if ( $dropped ) {
@@ -224,11 +226,14 @@ add_filter( 'post_mime_types', 'vergeml_post_mime_types' );
 
 function vergeml_post_mime_types( $post_mime_types ) {
 
-    foreach ( get_option( 'vergeml_mimes', array() ) as $ext => $type_array ) {
+    foreach ( (array) get_option( 'vergeml_mimes', array() ) as $ext => $type_array ) {
 
-        if ( (bool) $type_array['filter'] ) {
+        if ( is_array( $type_array ) && ! empty( $type_array['filter'] ) && ! empty( $type_array['mime'] ) ) {
 
             $mime_type = sanitize_mime_type( $type_array['mime'] );
+            // Owner-typed labels go into a printf format, so a % in one stays a %.
+            $singular  = str_replace( '%', '%%', isset( $type_array['singular'] ) ? (string) $type_array['singular'] : $mime_type );
+            $plural    = str_replace( '%', '%%', isset( $type_array['plural'] ) ? (string) $type_array['plural'] : $mime_type );
 
             /*
              *  The singular and plural here are labels the site owner typed on
@@ -246,8 +251,8 @@ function vergeml_post_mime_types( $post_mime_types ) {
                     esc_html( $type_array['plural'] )
                 ),
                 array(
-                    'singular' => esc_html( $type_array['singular'] ) . ' <span class="count">(%s)</span>',
-                    'plural'   => esc_html( $type_array['plural'] ) . ' <span class="count">(%s)</span>',
+                    'singular' => esc_html( $singular ) . ' <span class="count">(%s)</span>',
+                    'plural'   => esc_html( $plural ) . ' <span class="count">(%s)</span>',
                     'context'  => null,
                     'domain'   => 'vergelabs-media-library',
                 )
@@ -282,9 +287,16 @@ function vergeml_upload_mimes( $types ) {
      *  none that vergeml_mime_refused() names, so a refused type is never
      *  added here -- whether core allows it for this user stays core's call.
      */
+    /*
+     *  On a network the super admin's "Upload file types" is the ceiling: a
+     *  site may switch types off, never back on past it. Core applies that
+     *  list before this filter runs, so a type absent here stays absent.
+     */
+    $ceiling = is_multisite() ? $types : null;
+
     foreach ( vergeml_mimes_prepared() as $ext => $entry ) {
 
-        if ( $entry['upload'] ) {
+        if ( $entry['upload'] && ( null === $ceiling || isset( $ceiling[ $ext ] ) ) ) {
             $types[$ext] = $entry['mime'];
         }
         else {
@@ -487,7 +499,11 @@ add_filter( 'wp_prepare_attachment_for_js', function( $response, $attachment, $m
 
 function vergeml_svg_dimensions( $svg ) {
 
-    $svg = simplexml_load_file( $svg );
+    if ( ! is_string( $svg ) || ! is_readable( $svg ) ) {
+        return (object) array( 'width' => 0, 'height' => 0 );
+    }
+
+    $svg = simplexml_load_file( $svg, 'SimpleXMLElement', LIBXML_NONET );
     $width = 0;
     $height = 0;
 

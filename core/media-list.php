@@ -117,8 +117,13 @@ function vergeml_list_row_meta() {
     $moves = array();
     if ( isset( $GLOBALS['wpdb']->vergeml_librarian_moves ) && function_exists( 'vergeml_filing_confidence' ) ) {
         $ids = array_map( 'intval', wp_list_pluck( $posts, 'ID' ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
-        foreach ( (array) $GLOBALS['wpdb']->get_results( "SELECT attachment_id, term_id, why, score FROM {$GLOBALS['wpdb']->vergeml_librarian_moves} WHERE undone = 0 AND attachment_id IN (" . implode( ',', $ids ) . ') ORDER BY move_id DESC', ARRAY_A ) as $row ) {
+        $move_rows = array();
+        if ( $ids ) {
+            $ph = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $ph is one %d per id and the ids are bound.
+            $move_rows = (array) $GLOBALS['wpdb']->get_results( $GLOBALS['wpdb']->prepare( "SELECT attachment_id, term_id, why, score FROM {$GLOBALS['wpdb']->vergeml_librarian_moves} WHERE undone = 0 AND attachment_id IN ($ph) ORDER BY move_id DESC", $ids ), ARRAY_A );
+        }
+        foreach ( $move_rows as $row ) {
             if ( ! isset( $moves[ (int) $row['attachment_id'] ][ (int) $row['term_id'] ] ) ) {
                 $moves[ (int) $row['attachment_id'] ][ (int) $row['term_id'] ] = $row;
             }
@@ -454,12 +459,12 @@ function vergeml_list_folder_filter( $post_type, $which ) {
     global $wp_query;
 
     // The two spellings of Unfiled: this dropdown's, and the folder tree's URL.
-    $unfiled = ( isset( $_REQUEST[ $taxonomy ] ) && 'not_in' === $_REQUEST[ $taxonomy ] )
-        || ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] )
+    $unfiled = ( isset( $_REQUEST[ $taxonomy ] ) && 'not_in' === sanitize_key( wp_unslash( $_REQUEST[ $taxonomy ] ) ) )
+        || ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === sanitize_key( wp_unslash( $_REQUEST[ 'attachment-filter' ] ) ) )
         || ! empty( $_REQUEST['uncategorized'] );
 
     // Placed by hand: the pictures a person chose a folder for (a drag, an answer's Put in) -- the ones a fill never re-judges, so the ones to review.
-    $by_you = isset( $_REQUEST[ $taxonomy ] ) && 'by_you' === $_REQUEST[ $taxonomy ];
+    $by_you = isset( $_REQUEST[ $taxonomy ] ) && 'by_you' === sanitize_key( wp_unslash( $_REQUEST[ $taxonomy ] ) );
 
     $selected = $unfiled
         ? 'not_in'

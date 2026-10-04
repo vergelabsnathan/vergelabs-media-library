@@ -1434,7 +1434,7 @@ function vergeml_print_network_overview() {
                 'name'    => get_option( 'blogname' ),
                 'url'     => get_admin_url( (int) $site_id, 'admin.php?page=vergelabs-media' ),
                 'version' => (string) get_option( 'vergeml_version', '' ),
-                'tables'  => (bool) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'vergeml_ai_index' ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                'tables'  => (bool) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . 'vergeml_ai_index' ) ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
                 'safe'    => is_array( $watchdog ) && ! empty( $watchdog['safe'] ),
                 'key'     => $own_key && ! ( $net_key && ! empty( $network['lock'] ) ) ? 'own' : ( $net_key ? 'network' : 'none' ),
                 'credits' => is_array( $credits ) && isset( $credits['remaining'] ) ? (int) $credits['remaining'] : null,
@@ -1578,7 +1578,7 @@ function vergeml_settings_export() {
     header( 'Content-Disposition: attachment; filename=vergeml-settings-' . gmdate( 'm-d-Y_hia' ) . '.json' );
     header( "Expires: 0" );
 
-    echo json_encode( $settings );
+    echo wp_json_encode( $settings );
 
     exit;
 }
@@ -2787,17 +2787,17 @@ function vergeml_print_taxonomies_options() {
                                             $html .= '<div class="vergeml-labels-edit">';
                                             $html .= '<h4>' . esc_html__('Labels','vergelabs-media-library') . '</h4>';
                                             $html .= '<ul>';
-                                            $html .= '<li><label>' . esc_html__('Singular','vergelabs-media-library') . '</label><input type="text" class="vergeml-singular_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][singular_name]" value="' . esc_html($taxonomy->labels->singular_name) . '" /></li>';
-                                            $html .= '<li><label>' . esc_html__('Plural','vergelabs-media-library') . '</label><input type="text" class="vergeml-name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][name]" value="' . esc_html($taxonomy->labels->name) . '" /></li>';
-                                            $html .= '<li><label>' . esc_html__('Menu Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-menu_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][menu_name]" value="' . esc_html($taxonomy->labels->menu_name) . '" /></li>';
-                                            $html .= '<li><label>' . esc_html__('All','vergelabs-media-library') . '</label><input type="text" class="vergeml-all_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][all_items]" value="' . esc_html($taxonomy->labels->all_items) . '" /></li>';
-                                            $html .= '<li><label>' . esc_html__('Edit','vergelabs-media-library') . '</label><input type="text" class="vergeml-edit_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][edit_item]" value="' . esc_html($taxonomy->labels->edit_item) . '" /></li>';
-                                            $html .= '<li><label>' . esc_html__('View','vergelabs-media-library') . '</label><input type="text" class="vergeml-view_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][view_item]" value="' . esc_html($taxonomy->labels->view_item) . '" /></li>';
-                                            $html .= '<li><label>' . esc_html__('Update','vergelabs-media-library') . '</label><input type="text" class="vergeml-update_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][update_item]" value="' . esc_html($taxonomy->labels->update_item) . '" /></li>';
-                                            $html .= '<li><label>' . esc_html__('Add New','vergelabs-media-library') . '</label><input type="text" class="vergeml-add_new_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][add_new_item]" value="' . esc_html($taxonomy->labels->add_new_item) . '" /></li>';
-                                            $html .= '<li><label>' . esc_html__('New','vergelabs-media-library') . '</label><input type="text" class="vergeml-new_item_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][new_item_name]" value="' . esc_html($taxonomy->labels->new_item_name) . '" /></li>';
-                                            $html .= '<li><label>' . esc_html__('Parent','vergelabs-media-library') . '</label><input type="text" class="vergeml-parent_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][parent_item]" value="' . esc_html($taxonomy->labels->parent_item) . '" /></li>';
-                                            $html .= '<li><label>' . esc_html__('Search','vergelabs-media-library') . '</label><input type="text" class="vergeml-search_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][search_items]" value="' . esc_html($taxonomy->labels->search_items) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Singular','vergelabs-media-library') . '</label><input type="text" class="vergeml-singular_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][singular_name]" value="' . esc_attr($taxonomy->labels->singular_name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Plural','vergelabs-media-library') . '</label><input type="text" class="vergeml-name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][name]" value="' . esc_attr($taxonomy->labels->name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Menu Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-menu_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][menu_name]" value="' . esc_attr($taxonomy->labels->menu_name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('All','vergelabs-media-library') . '</label><input type="text" class="vergeml-all_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][all_items]" value="' . esc_attr($taxonomy->labels->all_items) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Edit','vergelabs-media-library') . '</label><input type="text" class="vergeml-edit_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][edit_item]" value="' . esc_attr($taxonomy->labels->edit_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('View','vergelabs-media-library') . '</label><input type="text" class="vergeml-view_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][view_item]" value="' . esc_attr($taxonomy->labels->view_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Update','vergelabs-media-library') . '</label><input type="text" class="vergeml-update_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][update_item]" value="' . esc_attr($taxonomy->labels->update_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Add New','vergelabs-media-library') . '</label><input type="text" class="vergeml-add_new_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][add_new_item]" value="' . esc_attr($taxonomy->labels->add_new_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('New','vergelabs-media-library') . '</label><input type="text" class="vergeml-new_item_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][new_item_name]" value="' . esc_attr($taxonomy->labels->new_item_name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Parent','vergelabs-media-library') . '</label><input type="text" class="vergeml-parent_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][parent_item]" value="' . esc_attr($taxonomy->labels->parent_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Search','vergelabs-media-library') . '</label><input type="text" class="vergeml-search_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][search_items]" value="' . esc_attr($taxonomy->labels->search_items) . '" /></li>';
                                             $html .= '</ul>';
                                             $html .= '</div>';
 
@@ -3282,16 +3282,16 @@ function vergeml_print_mimetypes_options() {
                                     $allowed = (bool) $vergeml_mimes[$type]['upload']; ?>
                                     <tr data-kind="<?php echo esc_attr( $kind_of( (string) $mime ) ); ?>" data-search="<?php echo esc_attr( strtolower( $type . ' ' . $mime . ' ' . $vergeml_mimes[$type]['singular'] . ' ' . $vergeml_mimes[$type]['plural'] ) ); ?>">
                                     <td id="<?php echo esc_attr( $type ); ?>"><?php echo esc_html( $label ); ?></td>
-                                    <td><code><?php echo esc_html($mime); ?></code><?php if ( '' !== $note ) : ?><span class="vgml-ft-note"><?php echo esc_html( $note ); ?></span><?php endif; ?><input type="hidden" class="vergeml-mime" name="vergeml_mimes[<?php echo esc_attr($type); ?>][mime]" value="<?php echo esc_html($vergeml_mimes[$type]['mime']); ?>" /></td>
-                                    <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][singular]" value="<?php echo esc_html($vergeml_mimes[$type]['singular']); ?>" /></td>
-                                    <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][plural]" value="<?php echo esc_html($vergeml_mimes[$type]['plural']); ?>" /></td>
-                                    <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][filter]" title="<?php esc_html_e('Add Filter','vergelabs-media-library'); ?>" value="1" <?php checked(true, (bool) $vergeml_mimes[$type]['filter']); ?> /></td>
+                                    <td><code><?php echo esc_html($mime); ?></code><?php if ( '' !== $note ) : ?><span class="vgml-ft-note"><?php echo esc_html( $note ); ?></span><?php endif; ?><input type="hidden" class="vergeml-mime" name="vergeml_mimes[<?php echo esc_attr($type); ?>][mime]" value="<?php echo esc_attr($vergeml_mimes[$type]['mime']); ?>" /></td>
+                                    <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][singular]" value="<?php echo esc_attr($vergeml_mimes[$type]['singular']); ?>" /></td>
+                                    <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][plural]" value="<?php echo esc_attr($vergeml_mimes[$type]['plural']); ?>" /></td>
+                                    <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][filter]" title="<?php esc_attr_e('Add Filter','vergelabs-media-library'); ?>" value="1" <?php checked(true, (bool) $vergeml_mimes[$type]['filter']); ?> /></td>
                                     <?php if ( vergeml_mime_refused( $type ) ) : ?>
                                     <td class="checkbox_td"><input type="checkbox" title="<?php esc_attr_e( 'Blocked for safety', 'vergelabs-media-library' ); ?>" disabled /></td>
                                     <?php else : ?>
-                                    <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][upload]" title="<?php esc_html_e('Allow Upload','vergelabs-media-library'); ?>" value="1" <?php checked(true, $allowed); ?> /></td>
+                                    <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][upload]" title="<?php esc_attr_e('Allow Upload','vergelabs-media-library'); ?>" value="1" <?php checked(true, $allowed); ?> /></td>
                                     <?php endif; ?>
-                                    <td><a class="vergeml-button-remove" title="<?php esc_html_e('Delete MIME Type','vergelabs-media-library'); ?>" href="javascript:;">&ndash;</a></td>
+                                    <td><a class="vergeml-button-remove" title="<?php esc_attr_e('Delete MIME Type','vergelabs-media-library'); ?>" href="javascript:;">&ndash;</a></td>
                                     </tr>
 
                                 <?php endif; ?>

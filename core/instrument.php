@@ -252,7 +252,8 @@ add_action( 'admin_init', 'vergeml_stats_maybe_refresh' );
 
 function vergeml_stats_maybe_refresh() {
 
-    if ( wp_doing_ajax() || ! vergeml_stats_opted() ) {
+    // admin_init also runs for admin-post.php without a login: an administrator's screen only.
+    if ( wp_doing_ajax() || ! current_user_can( 'manage_options' ) || ! vergeml_stats_opted() ) {
         return;
     }
 

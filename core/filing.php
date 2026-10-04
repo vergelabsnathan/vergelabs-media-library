@@ -1140,10 +1140,10 @@ function vergeml_filing_members_layers( $term_ids, $taxonomy ) {
     if ( ! $term_ids || ! isset( $wpdb->vergeml_ai_index ) ) {
         return array();
     }
-    $in = implode( ',', $term_ids );
+    $in = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
     // A locked folder is never a candidate, so it has no layer and owns no word: on the tech library To sort held seven
     // smart speakers, won the word, and Batteries and Components both ceded it (2026-09-17).
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; ids are integers.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $in is one %d per term id and the ids are bound.
     $stamps = $wpdb->get_results( $wpdb->prepare(
         "SELECT tt.term_id, COUNT(*) AS n, SUM(i.attachment_id) AS ids, SUM(i.attachment_id * i.attachment_id) AS sq, MAX(i.described_at) AS last
            FROM {$wpdb->term_relationships} tr
@@ -1152,8 +1152,7 @@ function vergeml_filing_members_layers( $term_ids, $taxonomy ) {
            LEFT JOIN {$wpdb->termmeta} lk ON lk.term_id = tt.term_id AND lk.meta_key = %s AND lk.meta_value = '1'
           WHERE tt.taxonomy = %s AND tt.term_id IN ({$in}) AND lk.term_id IS NULL AND i.error = '' AND i.filing IS NOT NULL AND i.filing <> ''
        GROUP BY tt.term_id",
-        VERGEML_FILING_LOCKED,
-        $taxonomy
+        array_merge( array( VERGEML_FILING_LOCKED, $taxonomy ), $term_ids )
     ), ARRAY_A );
     $out   = array();
     $stale = array();
@@ -1174,7 +1173,8 @@ function vergeml_filing_members_layers( $term_ids, $taxonomy ) {
     if ( ! $stale ) {
         return $out;
     }
-    $in   = implode( ',', array_keys( $stale ) );
+    $stale_ids = array_keys( $stale );
+    $in   = implode( ',', array_fill( 0, count( $stale_ids ), '%d' ) );
     $rows = $wpdb->get_results( $wpdb->prepare(
         "SELECT tt.term_id, i.attachment_id, i.filing, i.kind, i.embedding
            FROM {$wpdb->term_relationships} tr
@@ -1182,7 +1182,7 @@ function vergeml_filing_members_layers( $term_ids, $taxonomy ) {
            JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = tr.object_id
           WHERE tt.taxonomy = %s AND tt.term_id IN ({$in}) AND i.error = '' AND i.filing IS NOT NULL AND i.filing <> ''
        ORDER BY tt.term_id, i.attachment_id",
-        $taxonomy
+        array_merge( array( $taxonomy ), $stale_ids )
     ), ARRAY_A );
     // phpcs:enable
     $members = array();

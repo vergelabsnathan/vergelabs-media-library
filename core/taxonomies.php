@@ -32,13 +32,15 @@ function vergeml_taxonomies_validate( $input ) {
      *
      *  Absent is not empty, and this is the difference.
      */
+    // A Settings API form post only (options.php checked its nonce): an import or a restore
+    // calls update_option() with no form at all, and until 4.1.0 was silently ignored here.
     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- the Settings API checked the nonce for this option group before calling us.
-    if ( ! isset( $_POST['vergeml_taxonomies'] ) ) {
+    if ( isset( $_POST['option_page'] ) && ! isset( $_POST['vergeml_taxonomies'] ) ) {
         $kept = get_option( 'vergeml_taxonomies', array() );
         return is_array( $kept ) ? $kept : array();
     }
 
-    if ( ! $input ) $input = array();
+    $input = is_array( $input ) ? $input : array();
 
     /*
      *  Anything this function does not write is carried over from what is stored.
@@ -59,6 +61,11 @@ function vergeml_taxonomies_validate( $input ) {
     $stored = is_array( $stored ) ? $stored : array();
 
     foreach ( $input as $taxonomy => $params ) {
+
+        if ( ! is_array( $params ) ) {
+            unset( $input[ $taxonomy ] );
+            continue;
+        }
 
         $sanitized_taxonomy = sanitize_key( $taxonomy );
 
@@ -147,7 +154,9 @@ function vergeml_taxonomies_validate( $input ) {
         $input[$taxonomy]['media_popup_taxonomy_edit'] = isset($params['media_popup_taxonomy_edit']) && !! $params['media_popup_taxonomy_edit'] ? 1 : 0;
 
 
-        if ( isset( $params['labels'] ) ) {
+        if ( isset( $params['labels'] ) && is_array( $params['labels'] ) ) {
+
+            $params['labels'] = wp_parse_args( $params['labels'], array( 'name' => '', 'singular_name' => '' ) );
 
             $default_labels = array(
                 'menu_name' => $params['labels']['name'],
@@ -161,7 +170,15 @@ function vergeml_taxonomies_validate( $input ) {
                 'search_items' => 'Search ' . $params['labels']['name']
             );
 
+            $input[$taxonomy]['labels'] = array();
+
             foreach ( $params['labels'] as $label => $value ) {
+
+                $label = sanitize_key( $label );
+
+                if ( '' === $label || ! is_string( $value ) ) {
+                    continue;
+                }
 
                 $input[$taxonomy]['labels'][$label] = sanitize_text_field($value);
 
@@ -179,6 +196,44 @@ function vergeml_taxonomies_validate( $input ) {
 
         if ( empty( $params['labels'] ) && ! empty( $stored[ $taxonomy ]['labels'] ) ) {
             $input[ $taxonomy ]['labels'] = $stored[ $taxonomy ]['labels'];
+        }
+    }
+
+    /*
+     *  What is stored per taxonomy, and nothing else a request carried.
+     */
+    $keys = array( 'assigned', 'eml_media', 'labels', 'hierarchical', 'show_admin_column', 'admin_filter', 'media_uploader_filter', 'media_popup_taxonomy_edit', 'sort', 'show_in_rest', 'rewrite', 'post_types', 'taxonomy_auto_assign' );
+
+    foreach ( $input as $taxonomy => $params ) {
+
+        $input[ $taxonomy ] = array_intersect_key( (array) $params, array_flip( $keys ) );
+
+        if ( isset( $input[ $taxonomy ]['rewrite'] ) ) {
+            $rewrite = (array) $input[ $taxonomy ]['rewrite'];
+            $input[ $taxonomy ]['rewrite'] = array(
+                'slug'       => isset( $rewrite['slug'] ) && is_string( $rewrite['slug'] ) ? vergeml_sanitize_slug( $rewrite['slug'], $taxonomy ) : $taxonomy,
+                'with_front' => empty( $rewrite['with_front'] ) ? 0 : 1,
+            );
+        }
+
+        if ( isset( $input[ $taxonomy ]['post_types'] ) ) {
+            $input[ $taxonomy ]['post_types'] = array_values( array_filter( array_map( 'sanitize_key', (array) $input[ $taxonomy ]['post_types'] ) ) );
+        }
+
+        if ( isset( $input[ $taxonomy ]['labels'] ) ) {
+            $labels = array();
+            foreach ( (array) $input[ $taxonomy ]['labels'] as $label => $value ) {
+                if ( is_string( $value ) ) {
+                    $labels[ sanitize_key( $label ) ] = sanitize_text_field( $value );
+                }
+            }
+            $input[ $taxonomy ]['labels'] = $labels;
+        }
+
+        foreach ( array( 'assigned', 'eml_media', 'hierarchical', 'show_admin_column', 'admin_filter', 'media_uploader_filter', 'media_popup_taxonomy_edit', 'sort', 'show_in_rest', 'taxonomy_auto_assign' ) as $flag ) {
+            if ( isset( $input[ $taxonomy ][ $flag ] ) ) {
+                $input[ $taxonomy ][ $flag ] = empty( $input[ $taxonomy ][ $flag ] ) ? 0 : 1;
+            }
         }
     }
 
@@ -219,6 +274,23 @@ function vergeml_sanitize_slug( $slug, $fallback_slug = '' ) {
 
 
 /**
+ *  The library's default order, read against the values the settings screen
+ *  offers -- a value stored before 4.1.0 may be anything.
+ */
+function vergeml_lib_orderby( $options ) {
+    $by = isset( $options['media_orderby'] ) ? $options['media_orderby'] : 'date';
+    if ( 'menuOrder' === $by ) {
+        return 'menu_order';
+    }
+    return in_array( $by, array( 'date', 'title' ), true ) ? $by : 'date';
+}
+
+function vergeml_lib_order( $options ) {
+    return isset( $options['media_order'] ) && 'DESC' === $options['media_order'] ? 'DESC' : 'ASC';
+}
+
+
+/**
  *  vergeml_lib_options_validate
  *
  *  @since    2.2.1
@@ -226,14 +298,18 @@ function vergeml_sanitize_slug( $slug, $fallback_slug = '' ) {
 
 function vergeml_lib_options_validate( $input ) {
 
-    foreach ( (array)$input as $key => $option ) {
+    $input  = is_array( $input ) ? $input : array();
+    $choice = array(
+        'media_orderby'     => array( 'date', 'title', 'menuOrder' ),
+        'media_order'       => array( 'ASC', 'DESC' ),
+        'grid_caption_type' => array( 'title', 'filename', 'caption' ),
+    );
 
-        if (    'media_orderby' === $key || 
-                'media_order' === $key || 
-                'grid_caption_type' === $key
-            ) {
-            $input[$key] = sanitize_text_field( $option );
+    foreach ( $input as $key => $option ) {
 
+        // One of the values the screen offers, or the first of them.
+        if ( isset( $choice[ $key ] ) ) {
+            $input[$key] = is_string( $option ) && in_array( $option, $choice[ $key ], true ) ? $option : $choice[ $key ][0];
         }
         elseif ( 'filters_to_show' === $key ) {
             // 'ai' is the AI folder group in the tree panel, not a filter
@@ -242,11 +318,11 @@ function vergeml_lib_options_validate( $input ) {
             // this allowlist or saving the settings page would quietly drop
             // it every time.
             $allowed = array( 'types', 'dates', 'authors', 'taxonomies', 'ai' );
-            $input[$key] = array_values( array_intersect( $option, $allowed ) );
+            $input[$key] = array_values( array_intersect( (array) $option, $allowed ) );
         }
         elseif ( 'search_in' === $key ) {
             $allowed = array( 'filenames', 'titles', 'captions', 'descriptions', 'authors', 'taxonomies' );
-            $input[$key] = array_values( array_intersect( $option, $allowed ) );
+            $input[$key] = array_values( array_intersect( (array) $option, $allowed ) );
         }
         elseif ( 'loads_per_page' === $key || 
                  'grid_sidebar_width' === $key || 
@@ -289,16 +365,18 @@ function vergeml_tax_options_validate( $input ) {
     // The same trap the other way round: saving the taxonomies form carries no
     // options, and rebuilding them from nothing switches every one of them off.
     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- the Settings API checked the nonce for this option group before calling us.
-    if ( ! isset( $_POST['vergeml_tax_options'] ) ) {
+    if ( isset( $_POST['option_page'] ) && ! isset( $_POST['vergeml_tax_options'] ) ) {
         $kept = get_option( 'vergeml_tax_options', array() );
         return is_array( $kept ) ? $kept : array();
     }
 
-    foreach ( (array)$input as $key => $option ) {
-        $input[$key] = isset( $option ) && !! $option ? 1 : 0;
+    $clean = array();
+
+    foreach ( (array) $input as $key => $option ) {
+        $clean[ sanitize_key( $key ) ] = empty( $option ) ? 0 : 1;
     }
 
-    return $input;
+    return $clean;
 }
 
 
@@ -518,7 +596,7 @@ function vergeml_restrict_manage_posts( $post_type, $which ) {
     $vergeml_taxonomies = get_option( 'vergeml_taxonomies', array() );
 
     // Two spellings of one question: the dropdown's, and the folder tree's URL.
-    $uncategorized = ( ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] ) || ! empty( $_REQUEST['uncategorized'] ) ) ? 1 : 0;
+    $uncategorized = ( ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === sanitize_key( wp_unslash( $_REQUEST[ 'attachment-filter' ] ) ) ) || ! empty( $_REQUEST['uncategorized'] ) ) ? 1 : 0;
 
 
     if ( current_user_can( 'manage_options' ) && in_array( 'authors', $vergeml_lib_options['filters_to_show'] ) ) {
@@ -749,7 +827,7 @@ function vergeml_backend_parse_tax_query( $query ) {
 
 
     // Two spellings of one question: the dropdown's, and the folder tree's URL.
-    $uncategorized = ( ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] ) || ! empty( $_REQUEST['uncategorized'] ) ) ? 1 : 0;
+    $uncategorized = ( ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === sanitize_key( wp_unslash( $_REQUEST[ 'attachment-filter' ] ) ) ) || ! empty( $_REQUEST['uncategorized'] ) ) ? 1 : 0;
     $vergeml_lib_options = get_option( 'vergeml_lib_options' );
 
 
@@ -1156,7 +1234,7 @@ if ( ! class_exists( 'vergeml_Walker_Media_Taxonomy_Uploader_Filter' ) ) {
                 // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
             );
 
-            $output .= json_encode( $el );
+            $output .= wp_json_encode( $el );
         }
 
         function end_el( &$output, $category, $depth = 0, $args = array() ) {
@@ -1245,21 +1323,33 @@ function vergeml_save_attachment_compat() {
     }
 
 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- check_ajax_referer( 'update-post_' . $id ) above.
+    $tax_input = isset( $_REQUEST['tax_input'] ) && is_array( $_REQUEST['tax_input'] ) ? map_deep( wp_unslash( $_REQUEST['tax_input'] ), 'sanitize_text_field' ) : array();
+
     foreach ( $media_taxonomy_names as $taxonomy ) {
 
-        if ( isset( $attachment_data[ $taxonomy ] ) ) {
+        $tax_object = get_taxonomy( $taxonomy );
+
+        // Core's own rule for setting terms on a post.
+        if ( ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) ) {
+            continue;
+        }
+
+        /*
+         *  Only a taxonomy the request names is touched. A taxonomy it does not
+         *  name keeps its terms -- until 4.1.0 it was set to whatever the
+         *  previous taxonomy in the loop had been given, or emptied.
+         */
+        if ( isset( $attachment_data[ $taxonomy ] ) && is_string( $attachment_data[ $taxonomy ] ) ) {
 
             $term_ids = array_map( 'trim', preg_split( '/,+/', $attachment_data[ $taxonomy ] ) );
         }
-        elseif ( isset( $_REQUEST['tax_input'] ) ) {
+        elseif ( isset( $tax_input[ $taxonomy ] ) && is_array( $tax_input[ $taxonomy ] ) ) {
 
-            if ( ! isset( $_REQUEST['tax_input'][ $taxonomy ] ) ) {
-                continue;
-            }
-            else {
-                $term_ids = array_keys( $_REQUEST['tax_input'][ $taxonomy ], 1 );
-                $term_ids = array_map( 'intval', $term_ids );
-            }
+            $term_ids = array_map( 'absint', array_keys( $tax_input[ $taxonomy ], '1', false ) );
+        }
+        else {
+            continue;
         }
 
         wp_set_object_terms( $id, $term_ids, $taxonomy, false );
@@ -1727,8 +1817,8 @@ function vergeml_pre_get_posts( $query ) {
 
     $vergeml_lib_options = get_option( 'vergeml_lib_options', array() );
 
-    $orderby = ( 'menuOrder' === $vergeml_lib_options['media_orderby'] ) ? 'menu_order' : esc_attr( $vergeml_lib_options['media_orderby'] );
-    $order = esc_attr( $vergeml_lib_options['media_order'] );
+    $orderby = vergeml_lib_orderby( $vergeml_lib_options );
+    $order   = vergeml_lib_order( $vergeml_lib_options );
 
     $query->set('orderby', $orderby );
     $query->set('order', $order );

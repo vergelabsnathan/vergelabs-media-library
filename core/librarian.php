@@ -1385,6 +1385,8 @@ function vergeml_librarian_chunk( $per_item_ms ) {
 
 function vergeml_librarian_apply_step( $batch_id ) {
 
+    global $wpdb;
+
     $started = microtime( true );
 
     $batch = vergeml_librarian_batch_get( $batch_id );
@@ -1491,9 +1493,9 @@ function vergeml_librarian_apply_step( $batch_id ) {
         }
         $veto_prof = $branch_ids ? vergeml_filing_profiles( $branch_ids, $taxonomy ) : array();
         if ( $veto_prof ) {
-            $in = implode( ',', array_map( 'intval', $ids ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids are cast to int above; this plugin's own table.
-            foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, kind, filing FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL AND attachment_id IN ($in)", ARRAY_A ) as $r ) {
+            $in = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $in is one %d per id and the ids are bound.
+            foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, embedding, kind, filing FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL AND attachment_id IN ($in)", $ids ), ARRAY_A ) as $r ) {
                 $veto_rows[ (int) $r['attachment_id'] ] = $r;
             }
         }
@@ -3170,7 +3172,7 @@ function vergeml_why_here_field( $fields, $post ) {
      *  worked out where it is read.
      */
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading which request this is, not acting on it.
-    if ( wp_doing_ajax() && isset( $_REQUEST['action'] ) && 'query-attachments' === $_REQUEST['action'] ) {
+    if ( wp_doing_ajax() && isset( $_REQUEST['action'] ) && 'query-attachments' === sanitize_key( wp_unslash( $_REQUEST[ 'action' ] ) ) ) {
         return $fields;
     }
 

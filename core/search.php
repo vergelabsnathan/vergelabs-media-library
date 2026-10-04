@@ -56,6 +56,10 @@ function vergeml_search_applies( $query ) {
     if ( ! is_admin() && ! wp_doing_ajax() )
         return false;
 
+    // Searching by uploader, filename and folder is for people who see the library.
+    if ( ! current_user_can( 'upload_files' ) )
+        return false;
+
     $post_type = $query->get( 'post_type' );
 
     if ( is_array( $post_type ) ) {

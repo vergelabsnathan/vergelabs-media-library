@@ -114,9 +114,8 @@ function vergeml_can_manage_folders( $request = null ) {
             return true;
         }
 
-        $owner = function_exists( 'vergeml_private_owner' ) ? vergeml_private_owner( $term_id ) : 0;
-
-        if ( $owner && get_current_user_id() !== $owner && ! current_user_can( 'manage_options' ) ) {
+        // A folder hidden from this person is not theirs to change (private-folders.php decides who).
+        if ( function_exists( 'vergeml_private_hidden_from' ) && in_array( $term_id, vergeml_private_hidden_from(), true ) ) {
             return false;
         }
 

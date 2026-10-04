@@ -806,7 +806,8 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
             $media_list_l10n = array(
                 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only: the list view rebuilds its own filter links from the current query string.
-                '$_GET'             => wp_json_encode( map_deep( wp_unslash( $_GET ), 'sanitize_text_field' ) ),
+                // The one request value the list script reads.
+                '$_GET'             => wp_json_encode( array( 'attachment-filter' => isset( $_GET['attachment-filter'] ) ? sanitize_key( wp_unslash( $_GET['attachment-filter'] ) ) : '' ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- which filter the list shows, not an action.
                 'uncategorized'     => __( 'All Uncategorized', 'vergelabs-media-library' ),
                 'reset_all_filters' => __( 'Reset All Filters', 'vergelabs-media-library' ),
                 'filters_to_show'   => $vergeml_lib_options ? array_map( 'sanitize_key', $vergeml_lib_options['filters_to_show'] ) : array(

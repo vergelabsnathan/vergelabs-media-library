@@ -81,11 +81,11 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
     if ( empty( $atts['ids'] ) || $custom_query ) {
 
         if ( empty( $atts['orderby'] ) || 'post__in' === $atts['orderby'] ) {
-            $output['orderby'] = $atts['orderby'] = ( 'menuOrder' === $vergeml_lib_options['media_orderby'] ) ? 'menu_order' : esc_attr( $vergeml_lib_options['media_orderby'] );
+            $output['orderby'] = $atts['orderby'] = vergeml_lib_orderby( $vergeml_lib_options );
         }
 
         if ( empty( $atts['order'] ) ) {
-            $output['order'] = $atts['order'] = esc_attr( $vergeml_lib_options['media_order'] );
+            $output['order'] = $atts['order'] = vergeml_lib_order( $vergeml_lib_options );
         }
     }
 

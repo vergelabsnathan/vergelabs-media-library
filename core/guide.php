@@ -42,7 +42,7 @@ const VERGEML_GUIDE_PROPOSE_CREDITS = 10;
 add_action( 'admin_menu', 'vergeml_guide_redirect', 999 );
 
 function vergeml_guide_redirect() {
-    if ( isset( $_GET['page'] ) && 'media-guide' === $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, which screen this is.
+    if ( isset( $_GET['page'] ) && 'media-guide' === sanitize_key( wp_unslash( $_GET['page'] ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, which screen this is.
         wp_safe_redirect( admin_url( 'admin.php?page=vergeml-librarian' ) );
         exit;
     }
@@ -1910,8 +1910,9 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
     $words   = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9), as the fill reads them.
     $product = vergeml_filing_product_sql( 'i' ); // The product the picture belongs to (S10.8), as the fill reads it: a literal NULL where nothing sells.
     foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; ids are integers.
-        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by, {$words['select']}, {$product['select']} FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s {$words['join']} {$product['join']} WHERE i.attachment_id IN (" . implode( ',', $chunk ) . ')', VERGEML_FILING_PLACED_BY ), ARRAY_A ) as $v ) {
+        $ph = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $ph is one %d per id and the ids are bound.
+        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by, {$words['select']}, {$product['select']} FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s {$words['join']} {$product['join']} WHERE i.attachment_id IN ($ph)", array_merge( array( VERGEML_FILING_PLACED_BY ), $chunk ) ), ARRAY_A ) as $v ) {
             $vectors[ (int) $v['attachment_id'] ] = $v;
         }
     }
@@ -2302,16 +2303,14 @@ function vergeml_guide_tag_taxonomy( $name ) {
         }
     }
 
-    // A taxonomy key is 32 characters of [a-z0-9_]. Core's own names are not ours to take.
-    $key = trim( substr( sanitize_key( str_replace( array( ' ', '-' ), '_', $name ) ), 0, 32 ), '_' );
+    // A taxonomy key is 32 characters of [a-z0-9_], and one this plugin makes carries its prefix.
+    $key = trim( substr( sanitize_key( str_replace( array( ' ', '-' ), '_', $name ) ), 0, 27 ), '_' );
     if ( '' === $key ) {
         return null;
     }
+    $key = 'vgml_' . $key;
     if ( taxonomy_exists( $key ) || isset( $all[ $key ] ) ) {
-        $key = 'vgml_' . substr( $key, 0, 27 );
-        if ( taxonomy_exists( $key ) || isset( $all[ $key ] ) ) {
-            return null;
-        }
+        return null;
     }
 
     $labels = array(
@@ -3223,8 +3222,9 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
         $chunks   = array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 );
         $words    = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
         foreach ( $chunks as $chunk ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; ids are integers.
-            foreach ( (array) $wpdb->get_results( "SELECT i.attachment_id, i.embedding, i.tags, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id IN (" . implode( ',', $chunk ) . ')', ARRAY_A ) as $v ) {
+            $ph = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $ph is one %d per id and the ids are bound.
+            foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id IN ($ph)", $chunk ), ARRAY_A ) as $v ) {
                 $vectors[ (int) $v['attachment_id'] ] = $v;
             }
         }

@@ -557,9 +557,10 @@ function vergeml_autofile_sweep( $limit = VERGEML_AUTOFILE_CHUNK ) {
 
     $table = vergeml_index_table();
 
-    $tt = vergeml_autofile_tt_ids( $taxonomy );
+    $tt_ids = array_map( 'intval', explode( ',', vergeml_autofile_tt_ids( $taxonomy ) ) );
+    $ph     = implode( ',', array_fill( 0, count( $tt_ids ), '%d' ) );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is vergeml_index_table() ($wpdb->vergeml_ai_index); $tt is vergeml_autofile_tt_ids(), term_taxonomy ids joined after intval(), or '0'; the limit is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $table is vergeml_index_table() ($wpdb->vergeml_ai_index); $ph is one %d per term_taxonomy id (or the single 0); the ids and the limit are bound.
     $ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT p.ID
            FROM {$wpdb->posts} p
@@ -570,11 +571,11 @@ function vergeml_autofile_sweep( $limit = VERGEML_AUTOFILE_CHUNK ) {
             -- because that is the half the database cannot answer everywhere.
             AND NOT EXISTS (
                 SELECT 1 FROM {$wpdb->term_relationships} tr
-                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( {$tt} )
+                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( {$ph} )
             )
           ORDER BY p.ID DESC
           LIMIT %d",
-        (int) $limit
+        array_merge( $tt_ids, array( (int) $limit ) )
     ) );
     // phpcs:enable
 
@@ -765,16 +766,20 @@ function vergeml_autofile_loose_count( $unlooked = false ) {
         ? "AND NOT EXISTS ( SELECT 1 FROM {$table} x WHERE x.attachment_id = p.ID )"
         : '';
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is $wpdb->vergeml_ai_index, $described one of two literals, $tt intval()ed term_taxonomy ids.
-    return (int) $wpdb->get_var(
+    $tt_ids = array_map( 'intval', explode( ',', $tt ) );
+    $ph     = implode( ',', array_fill( 0, count( $tt_ids ), '%d' ) );
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $table is $wpdb->vergeml_ai_index, $described one of two literals, $ph is one %d per term_taxonomy id; the ids are bound.
+    return (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->posts} p
           WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
             {$described}
             AND NOT EXISTS (
                 SELECT 1 FROM {$wpdb->term_relationships} tr
-                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( {$tt} )
-            )"
-    );
+                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( {$ph} )
+            )",
+        $tt_ids
+    ) );
     // phpcs:enable
 }
 

@@ -54,7 +54,7 @@ function vergeml_transport_bridge() {
     }
 
     // A site that switched REST off, or limited it, has switched this off too.
-    $auth = apply_filters( 'rest_authentication_errors', null );
+    $auth = apply_filters( 'rest_authentication_errors', null ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress's own REST authentication filter, asked exactly as WP_REST_Server::check_authentication() asks it.
 
     if ( is_wp_error( $auth ) ) {
         $status = $auth->get_error_data();

@@ -115,7 +115,15 @@ function vergeml_ai_run_schedule() {
  *
  *  @return bool  whether it booked one.
  */
-add_action( 'admin_init', 'vergeml_ai_run_revive' );
+add_action( 'admin_init', 'vergeml_ai_run_revive_on_admin' );
+
+// admin_init also runs for admin-post.php without a login: only an administrator's request revives a run.
+function vergeml_ai_run_revive_on_admin() {
+    if ( ! wp_doing_ajax() && current_user_can( 'manage_options' ) ) {
+        vergeml_ai_run_revive();
+    }
+}
+
 
 function vergeml_ai_run_revive() {
 

@@ -39,6 +39,11 @@ function vergeml_licence_save() {
     }
     check_admin_referer( 'vergeml_licence_save' );
 
+    // The network administrator set this site's key and locked it: the same refusal as /ai-settings.
+    if ( is_multisite() && ! empty( vergeml_ai_settings()['network_locked'] ) && ! current_user_can( 'manage_network_options' ) ) {
+        wp_die( esc_html__( 'You do not have permission to do that.', 'vergelabs-media-library' ) );
+    }
+
     $settings = get_option( 'vergeml_ai', array() );
     $settings = is_array( $settings ) ? $settings : array();
     $result   = 'unchanged';

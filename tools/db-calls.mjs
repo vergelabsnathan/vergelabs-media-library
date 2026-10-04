@@ -110,11 +110,6 @@ const BUILDERS = [ 'insert', 'update', 'delete', 'replace' ];
  */
 const REVIEWED = {
 
-	'core/ai-index.php': [
-		[ '77b42d1645',
-		  "$in is implode of an array_chunk of $ids, and $ids is array_map( 'intval', (array) $ids ) on the function's first line -- integers, every one of them" ],
-	],
-
 	'core/auto-file.php': [
 		[ '0605b2be08',
 		  "$words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site; the one id is bound through %d" ],
@@ -131,10 +126,10 @@ const REVIEWED = {
 	],
 
 	'core/guide.php': [
-		[ '3e80c7c338',
-		  "$chunk comes from array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) by way of $chunks -- integers by construction; $words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site" ],
-		[ '42215bda29',
-		  "$chunk is array_chunk of the same (int) map over $rows -- integers by construction; $words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site; $product is vergeml_filing_product_sql( 'i' ): literal correlated subqueries on {$wpdb->posts} and {$wpdb->postmeta}, or the literal NULL AS product_id, and an empty join; the meta key is bound through %s" ],
+		[ 'f602036f5a',
+		  "the ids are bound through one %d per id (array_fill), and the meta key through %s; $words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site; $product is vergeml_filing_product_sql( 'i' ): literal correlated subqueries on {$wpdb->posts} and {$wpdb->postmeta}, or the literal NULL AS product_id, and an empty join" ],
+		[ '1e15f87d19',
+		  "the ids are bound through one %d per id (array_fill); $words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site" ],
 	],
 
 	'core/search-try.php': [
@@ -149,8 +144,8 @@ const REVIEWED = {
 	],
 
 	'core/seo-context.php': [
-		[ '1f45eb3c01',
-		  "vergeml_seo_gap_sql() interpolates its $select argument, and both of its two call sites pass a hardcoded literal; the $keys and $stars lists inside it are array_map( 'esc_sql', ... )" ],
+		[ '8655e7f0f2',
+		  "vergeml_seo_gap_sql() interpolates its $select argument, and both of its two call sites pass a hardcoded literal; the meta keys and their star weights are one %s per key, the MIME pattern and the limit are bound, and the one optional tail is a literal chosen by whether a limit was given" ],
 		[ 'ace3ecc40b',
 		  'the same function, the other call site, also a hardcoded literal' ],
 	],

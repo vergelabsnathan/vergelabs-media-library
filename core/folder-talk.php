@@ -1123,12 +1123,11 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 
 	do {
 		// Round 2 (S10.7) looks only at what round 1 left unplaced.
-		$only = ! empty( $state['round_ids'] )
-			? ' AND i.attachment_id IN (' . implode( ',', array_map( 'intval', (array) $state['round_ids'] ) ) . ')'
-			: '';
+		$only_ids = ! empty( $state['round_ids'] ) ? array_map( 'intval', (array) $state['round_ids'] ) : array();
+		$only     = $only_ids ? ' AND i.attachment_id IN (' . implode( ',', array_fill( 0, count( $only_ids ), '%d' ) ) . ')' : '';
 		$words   = vergeml_filing_words_sql( 'i' );   // The picture's file, title and alt (S10.9).
 		$product = vergeml_filing_product_sql( 'i' ); // The product it belongs to, when the site sells (S10.8).
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; the ids are cast to int.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $only is one %d per round id and the ids are bound.
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.caption, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']}, {$product['select']},
 			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr
@@ -1146,14 +1145,19 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			  WHERE i.error = '' AND i.embedding IS NOT NULL AND i.attachment_id > %d{$only}
 		   ORDER BY i.attachment_id ASC
 			  LIMIT %d",
-			VERGEML_FILING_LOCKED,
-			$taxonomy,
-			VERGEML_FILING_LOCKED,
-			$taxonomy,
-			$to_sort_id,
-			VERGEML_FILING_PLACED_BY,
-			(int) $state['after'],
-			$slice
+			array_merge(
+				array(
+					VERGEML_FILING_LOCKED,
+					$taxonomy,
+					VERGEML_FILING_LOCKED,
+					$taxonomy,
+					$to_sort_id,
+					VERGEML_FILING_PLACED_BY,
+					(int) $state['after'],
+				),
+				$only_ids,
+				array( $slice )
+			)
 		), ARRAY_A );
 		// phpcs:enable
 
@@ -2248,8 +2252,9 @@ function vergeml_talk_questions_build( &$state, $deadline = null ) {
 	$facts    = array();
 	$captions = array();
 	foreach ( array_chunk( $residue, 500 ) as $chunk ) {
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
-		foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, kind, filing, caption FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', array_map( 'intval', $chunk ) ) . ')', ARRAY_A ) as $row ) {
+		$ph = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $ph is one %d per id and the ids are bound.
+		foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, embedding, kind, filing, caption FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN ($ph)", array_map( 'intval', $chunk ) ), ARRAY_A ) as $row ) {
 			$facts[ (int) $row['attachment_id'] ]    = vergeml_filing_facts( $row );
 			$captions[ (int) $row['attachment_id'] ] = (string) $row['caption'];
 		}

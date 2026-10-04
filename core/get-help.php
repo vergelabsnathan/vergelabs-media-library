@@ -292,7 +292,7 @@ function vergeml_help_page() {
     $report  = function_exists( 'vergeml_system_report_text' ) ? vergeml_system_report_text() : '';
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- reading which notice to show, not acting.
-    $state  = isset( $_GET['vgml-help'] ) ? sanitize_key( $_GET['vgml-help'] ) : '';
+    $state  = isset( $_GET['vgml-help'] ) ? sanitize_key( wp_unslash( $_GET['vgml-help'] ) ) : '';
     $ticket = isset( $_GET['ticket'] ) ? (int) $_GET['ticket'] : 0;
     $why    = isset( $_GET['why'] ) ? sanitize_text_field( wp_unslash( $_GET['why'] ) ) : '';
     // phpcs:enable

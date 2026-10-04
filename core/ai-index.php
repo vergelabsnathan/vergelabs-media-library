@@ -254,9 +254,9 @@ function vergeml_index_prime( $ids ) {
     }
 
     foreach ( array_chunk( $ids, 1000 ) as $chunk ) {
-        $in = implode( ',', $chunk );
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- ids are cast to int above.
-        $rows = $wpdb->get_results( "SELECT * FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN ($in)", ARRAY_A );
+        $ph = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $ph is one %d per id; the ids are bound.
+        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN ($ph)", $chunk ), ARRAY_A );
         // phpcs:enable
         foreach ( $chunk as $id ) {
             $GLOBALS['vergeml_index_primed'][ $id ] = null; // known absent unless a row says otherwise

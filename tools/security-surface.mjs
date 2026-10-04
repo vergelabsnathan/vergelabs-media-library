@@ -1203,6 +1203,8 @@ const roleLists = ( () => {
 	for ( const r of restRows ) {
 		const g = gate( r );
 		if ( g === 'edit_post' ) objectScoped.push( key( r ) );
+		// Gated on a term (an editor's folder edits): manage_options there is only an exception path, not the gate.
+		else if ( /manage_categories/.test( g ) && /edit_term|delete_term|\$cap\(|edit_posts/.test( g ) ) continue;
 		else if ( /manage_options|manage_network_options|delete_posts/.test( g ) ) adminOnly.push( key( r ) );
 		else if ( g === 'upload_files' || g === 'edit_posts+upload_files' ) authorMay.push( key( r ) );
 	}
