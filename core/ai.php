@@ -1984,9 +1984,7 @@ function vergeml_ai_routes() {
     register_rest_route( VERGEML_REST_NS, '/ai-status', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_ai_rest_status',
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         // The line under the title, re-rendered: asked for when a run ends, not on every poll.
         'args'                => array(
             'line' => array( 'type' => 'boolean', 'default' => false ),
@@ -1996,10 +1994,8 @@ function vergeml_ai_routes() {
     register_rest_route( VERGEML_REST_NS, '/ai-index', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_ai_rest_index',
-        // Describing files writes their meta: curation, same bar as the scan.
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        // Describing spends credits and writes meta on many files: administrators.
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'args'                => array(
             'scope'     => array( 'type' => 'string', 'default' => 'unindexed' ),
             'limit'     => array( 'type' => 'integer', 'default' => 8 ),
@@ -2171,7 +2167,7 @@ function vergeml_ai_menu() {
         VERGEML_MENU,
         __( 'AI', 'vergelabs-media-library' ),
         __( 'AI', 'vergelabs-media-library' ),
-        'manage_categories',
+        'manage_options',
         'vergeml-ai',
         'vergeml_ai_page'
     );

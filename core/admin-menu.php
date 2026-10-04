@@ -43,14 +43,14 @@ add_action( 'admin_menu', 'vergeml_admin_menu', 9 );
 
 function vergeml_admin_menu() {
 
-    if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         return;
     }
 
     add_menu_page(
         __( 'VergeLabs Library', 'vergelabs-media-library' ),
         __( 'VergeLabs Library', 'vergelabs-media-library' ),
-        'manage_categories',
+        'manage_options',
         VERGEML_MENU,
         // The dashboard IS the plugin's home. It used to be a card menu called
         // Overview, with a second home screen called Start above it -- two
@@ -211,7 +211,7 @@ function vergeml_admin_menu_redirects() {
 
 function vergeml_admin_home() {
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
@@ -236,7 +236,7 @@ function vergeml_admin_home() {
             'page'  => 'vergeml-import-folders',
             'title' => __( 'Import folders', 'vergelabs-media-library' ),
             'text'  => __( 'Bring your folders over from FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders or Real Media Library. Nothing is taken from them, and it can be undone.', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
             'page'  => 'vergeml-library',
@@ -248,19 +248,19 @@ function vergeml_admin_home() {
             'page'  => 'vergeml-ai',
             'title' => __( 'AI', 'vergelabs-media-library' ),
             'text'  => __( 'Describe your pictures once; search finds what they show, and missing alt text fills itself in.', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
             'page'  => 'vergeml-librarian',
             'title' => __( 'Folders', 'vergelabs-media-library' ),
             'text'  => __( 'Say what folders you want, or pick a rule. The folders answer. One button moves the pictures; undo for a day.', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
             'page'  => 'vergeml-health',
             'title' => __( 'Library health', 'vergelabs-media-library' ),
             'text'  => __( 'Which files are copies of each other — the same upload twice, or one photo exported again at another size — and how much space they take. Reads only.', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
             'page'  => 'vergeml-mime-types',

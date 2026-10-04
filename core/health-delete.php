@@ -492,9 +492,7 @@ function vergeml_health_delete_routes() {
 	register_rest_route( VERGEML_REST_NS, '/health-uses', array(
 		'methods'             => WP_REST_Server::READABLE,
 		'callback'            => 'vergeml_health_rest_uses',
-		'permission_callback' => function () {
-			return current_user_can( 'manage_categories' );
-		},
+		'permission_callback' => 'vergeml_rest_can_manage_options',
 		'args'                => array(
 			'ids' => array( 'type' => 'string', 'required' => true ),
 		),

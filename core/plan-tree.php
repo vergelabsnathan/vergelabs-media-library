@@ -1847,11 +1847,11 @@ function vergeml_plan_rest_audience_split( WP_REST_Request $request ) {
 
 function vergeml_plan_routes() {
     register_rest_route( VERGEML_REST_NS, '/guide/plan', array(
-        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_plan_rest_poll', 'permission_callback' => 'vergeml_rest_can_manage_categories' ),
-        array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_start', 'permission_callback' => 'vergeml_rest_can_manage_categories' ),
+        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_plan_rest_poll', 'permission_callback' => 'vergeml_rest_can_manage_options' ),
+        array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_start', 'permission_callback' => 'vergeml_rest_can_manage_options' ),
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/audience-split', array(
-        array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_audience_split', 'permission_callback' => 'vergeml_rest_can_manage_categories' ),
+        array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_audience_split', 'permission_callback' => 'vergeml_rest_can_manage_options' ),
     ) );
 }
 

@@ -335,6 +335,8 @@ const SUITES = [
 	{ name: 'watchdog-php', file: 'tests/tree/watchdog.php', env: 'local', php: 'playground' },
 	// File types: WordPress's own types only, never one that runs code (wordpress.org review 2).
 	{ name: 'mime-allowlist', file: 'tests/security/mime-allowlist.php', env: 'local', php: 'playground' },
+	// Every vergeml/v1 route's permission, asked as author, editor and administrator (wordpress.org review 2).
+	{ name: 'route-caps', file: 'tests/security/route-caps.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },

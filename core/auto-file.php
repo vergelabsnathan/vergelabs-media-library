@@ -654,16 +654,17 @@ function vergeml_autofile_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/autofile-step', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_autofile_rest_step',
         'args'                => array(
             'limit' => array( 'type' => 'integer', 'default' => VERGEML_AUTOFILE_CHUNK ),
         ),
     ) );
 
+    // One picture into one folder: asked about that picture and that folder.
     register_rest_route( VERGEML_REST_NS, '/autofile-act', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_autofile_can_act',
         'callback'            => 'vergeml_autofile_rest_act',
         'args'                => array(
             'attachment_id' => array( 'type' => 'integer', 'required' => true ),
@@ -671,6 +672,17 @@ function vergeml_autofile_routes() {
             'action'        => array( 'type' => 'string', 'required' => true ),
         ),
     ) );
+}
+
+
+function vergeml_autofile_can_act( WP_REST_Request $request ) {
+
+    $term = get_term( (int) $request->get_param( 'term_id' ) );
+    $tax  = $term instanceof WP_Term ? get_taxonomy( $term->taxonomy ) : false;
+
+    return current_user_can( 'manage_categories' )
+        && current_user_can( 'edit_post', (int) $request->get_param( 'attachment_id' ) )
+        && ( ! $tax || current_user_can( $tax->cap->assign_terms ) );
 }
 
 

@@ -427,7 +427,7 @@ function vergeml_ai_for_tree( $post_type ) {
         // Nothing has been looked at: either the index has never been asked,
         // or it holds no finished descriptions.
         'ladder'    => ( null === $described || 0 === (int) $described ),
-        'url'       => admin_url( 'admin.php?page=vergeml-ai' ),
+        'url'       => current_user_can( 'manage_options' ) ? admin_url( 'admin.php?page=vergeml-ai' ) : '',
     );
 }
 

@@ -1079,7 +1079,9 @@ add_action( 'admin_post_vergeml_do_alt', 'vergeml_journey_do_alt' );
 
 function vergeml_journey_do_alt() {
 
-    if ( ! current_user_can( 'upload_files' ) ) {
+    // Writes alt text on every pending picture in the library: administrators
+    // only, the same bar as /ai-alt (wordpress.org review 2, 2026-10-03).
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
     }
 
@@ -1158,7 +1160,8 @@ add_action( 'admin_post_vergeml_do_rename', 'vergeml_journey_do_rename' );
 
 function vergeml_journey_do_rename() {
 
-    if ( ! current_user_can( 'upload_files' ) ) {
+    // Rewrites the title of every pending file: administrators only.
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
     }
 
@@ -1224,7 +1227,7 @@ function vergeml_journey_alt_notice() {
  */
 function vergeml_journey_screen() {
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 

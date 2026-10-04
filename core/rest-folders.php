@@ -88,8 +88,48 @@ function vergeml_can_save_own_tree_state() {
 }
 
 
-function vergeml_can_manage_folders() {
-    return current_user_can( 'manage_categories' );
+function vergeml_can_manage_folders( $request = null ) {
+
+    if ( ! current_user_can( 'manage_categories' ) ) {
+        return false;
+    }
+
+    // Asked without a request (a screen deciding what to show): the bar above.
+    if ( ! $request instanceof WP_REST_Request || ! get_taxonomy( (string) $request->get_param( 'taxonomy' ) ) ) {
+        return true;
+    }
+
+    $tax = get_taxonomy( (string) $request->get_param( 'taxonomy' ) );
+    $id  = (int) $request->get_param( 'id' );
+
+    /*
+     *  And the folder itself, the way core asks about a term: one request
+     *  changes one folder, or the order of the siblings it names. A folder
+     *  that does not exist is the handler's 404 to give, not a 403.
+     */
+    $may = function ( $cap, $term_id ) use ( $tax ) {
+        return ! vergeml_term_in( (int) $term_id, $tax->name ) || current_user_can( $cap, (int) $term_id );
+    };
+
+    switch ( $request->get_param( 'action' ) ) {
+
+        case 'create':
+            return current_user_can( $tax->cap->edit_terms );
+
+        case 'delete':
+            return $may( 'delete_term', $id );
+
+        case 'order':
+            foreach ( (array) $request->get_param( 'ids' ) as $sibling ) {
+                if ( ! $may( 'edit_term', $sibling ) ) {
+                    return false;
+                }
+            }
+            return true;
+
+        default:
+            return $may( 'edit_term', $id );
+    }
 }
 
 

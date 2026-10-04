@@ -387,7 +387,7 @@ function vergeml_quarantine_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/quarantine', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_quarantine_rest_list',
     ) );
 
@@ -398,7 +398,7 @@ function vergeml_quarantine_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/quarantine-act', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_quarantine_rest_act',
         'args'                => array(
             'ids'    => array( 'required' => true ),
@@ -409,7 +409,7 @@ function vergeml_quarantine_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/quarantine-manifest', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_quarantine_rest_manifest',
     ) );
 }

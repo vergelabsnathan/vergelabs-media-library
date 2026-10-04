@@ -193,9 +193,8 @@ function vergeml_search_try_routes() {
     register_rest_route( VERGEML_REST_NS, '/search-try', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_search_try_rest',
-        'permission_callback' => function () {
-            return current_user_can( 'upload_files' );
-        },
+        // Sends the typed phrase to the AI service: administrators only.
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'args'                => array(
             's' => array( 'type' => 'string', 'required' => true ),
         ),

@@ -23,7 +23,7 @@ function vergeml_import_menu() {
         VERGEML_MENU,
         __( 'Import Folders', 'vergelabs-media-library' ),
         __( 'Import Folders', 'vergelabs-media-library' ),
-        'manage_categories',
+        'manage_options',
         'vergeml-import-folders',
         'vergeml_import_screen'
     );
@@ -54,12 +54,12 @@ function vergeml_import_routes() {
 
 
 /**
- *  Importing writes folders and files wholesale, so it takes the capability that
- *  governs restructuring rather than the one that governs uploading.
+ *  Importing creates folders and files every attachment it maps in one run, so
+ *  it is a site administrator's action (wordpress.org review 2, 2026-10-03).
  */
 
 function vergeml_can_import() {
-    return current_user_can( 'manage_categories' );
+    return current_user_can( 'manage_options' );
 }
 
 
@@ -308,7 +308,7 @@ function vergeml_import_history() {
 
 function vergeml_import_screen() {
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 

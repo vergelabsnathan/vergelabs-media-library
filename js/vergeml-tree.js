@@ -392,7 +392,10 @@
 			if ( state.aiOpen ) {
 
 				if ( state.ai.ladder ) {
-					out.push( { pseudo: 'ai-ladder', ai: state.ai, depth: 0, id: -81 } );
+					// The way into the AI screen, which only administrators can open.
+					if ( state.ai.url ) {
+						out.push( { pseudo: 'ai-ladder', ai: state.ai, depth: 0, id: -81 } );
+					}
 				} else {
 					smartAi.forEach( function ( sf, i ) {
 						out.push( {
@@ -971,7 +974,8 @@
 		if ( sf._progress ) {
 			row.appendChild( el( 'span', { class: 'vgml-count vgml-smart-progress' }, sf._progress ) );
 		} else if ( null === sf.count || undefined === sf.count ) {
-			row.appendChild( el( 'span', { class: 'vgml-count vgml-smart-scan' }, l10n.smartScan ) );
+			// Only an administrator can start the scan; anyone else is told it has not run.
+			row.appendChild( el( 'span', { class: 'vgml-count vgml-smart-scan' }, cfg.canScan ? l10n.smartScan : l10n.smartNotScanned ) );
 		} else if ( sf.count ) {
 			row.appendChild( el( 'span', { class: 'vgml-count' }, String( sf.count ) ) );
 		}
@@ -981,7 +985,9 @@
 				return;
 			}
 			if ( null === sf.count || undefined === sf.count ) {
-				runSmartScan( sf );
+				if ( cfg.canScan ) {
+					runSmartScan( sf );
+				}
 			} else {
 				smartSelect( sf.key );
 			}

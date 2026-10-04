@@ -500,7 +500,8 @@ function vergeml_nl_run( $plan ) {
 
     foreach ( $ids as $id ) {
 
-        if ( ! get_post( $id ) ) {
+        // A picture only, and one this person may edit: the ids come from the request.
+        if ( 'attachment' !== get_post_type( $id ) || ! current_user_can( 'edit_post', $id ) ) {
             continue;
         }
 
@@ -549,7 +550,7 @@ function vergeml_nl_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/say-plan', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_nl_rest_plan',
         'args'                => array(
             'text' => array( 'type' => 'string', 'required' => true ),
@@ -558,7 +559,7 @@ function vergeml_nl_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/say-run', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_nl_rest_run',
         'args'                => array(
             'plan' => array( 'required' => true ),

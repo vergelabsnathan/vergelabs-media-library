@@ -414,17 +414,23 @@ function vergeml_rename_notice() {
         return;
     }
 
+    $said = sprintf(
+        /* translators: %s: how many files were renamed. */
+        _n( '%s file renamed after what is in it.', '%s files renamed after what is in them.', $n, 'vergelabs-media-library' ),
+        number_format_i18n( $n )
+    );
+
+    // The undo reverts the last run across every author: administrators only.
+    if ( ! current_user_can( 'manage_options' ) ) {
+        printf( '<div class="notice notice-success is-dismissible"><p>%s</p></div>', esc_html( $said ) );
+        return;
+    }
+
     $undo = wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_rename_undo' ), 'vergeml_rename_undo' );
 
     printf(
         '<div class="notice notice-success is-dismissible"><p>%s <a href="%s">%s</a></p></div>',
-        esc_html(
-            sprintf(
-                /* translators: %s: how many files were renamed. */
-                _n( '%s file renamed after what is in it.', '%s files renamed after what is in them.', $n, 'vergelabs-media-library' ),
-                number_format_i18n( $n )
-            )
-        ),
+        esc_html( $said ),
         esc_url( $undo ),
         esc_html__( 'Put the old names back', 'vergelabs-media-library' )
     );
@@ -435,7 +441,8 @@ add_action( 'admin_post_vergeml_rename_undo', 'vergeml_rename_handle_undo' );
 
 function vergeml_rename_handle_undo() {
 
-    if ( ! current_user_can( 'upload_files' ) ) {
+    // Reverts the last run across every author: administrators only.
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
     }
 
@@ -501,18 +508,6 @@ function vergeml_rename_routes() {
 
                 $ids = $request->get_param( 'ids' );
 
-                /*
-                 *  Naming specific files needs edit_post on each, checked
-                 *  inside vergeml_rename_apply. The library-wide run -- no
-                 *  ids -- and the undo of the last run touch files across
-                 *  every author, which is an administrator's action.
-                 */
-                $library_wide = 'undo' === $request->get_param( 'action' ) || ! ( is_array( $ids ) && $ids );
-
-                if ( $library_wide && ! current_user_can( 'manage_options' ) ) {
-                    return new WP_Error( 'vergeml_rename_forbidden', __( 'Renaming the whole library is an administrator\'s job.', 'vergelabs-media-library' ), array( 'status' => 403 ) );
-                }
-
                 if ( 'undo' === $request->get_param( 'action' ) ) {
                     return rest_ensure_response( array(
                         'back'      => count( vergeml_rename_undo() ),
@@ -529,10 +524,13 @@ function vergeml_rename_routes() {
                     'remaining' => count( vergeml_rename_pending() ),
                 ) );
             },
-            // Writes post titles, so the same bar as editing a file.
-            'permission_callback' => function () {
-                return current_user_can( 'upload_files' );
-            },
+            /*
+             *  Renames many files, or undoes the last run across every author:
+             *  site administrators only (wordpress.org review 2). Named files
+             *  are still checked one by one with edit_post in
+             *  vergeml_rename_apply. One file at a time stays the row action.
+             */
+            'permission_callback' => 'vergeml_rest_can_manage_options',
             'args'                => array(
                 'action' => array( 'type' => 'string', 'default' => 'apply' ),
                 'limit'  => array( 'type' => 'integer', 'default' => 500 ),

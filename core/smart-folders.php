@@ -1129,9 +1129,7 @@ function vergeml_register_smart_routes() {
         'callback'            => 'vergeml_rest_smart_scan',
         // The scan writes meta on every attachment; that is curation, not
         // uploading, so it takes the folder-management capability.
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'args'                => array(
             'resume' => array( 'type' => 'object' ),
         ),

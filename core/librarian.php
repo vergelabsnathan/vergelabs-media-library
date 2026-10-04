@@ -2432,7 +2432,7 @@ function vergeml_librarian_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/librarian-schemes', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_librarian_rest_schemes',
         'args'                => array(
             // Naming one asks for its whole tree as well as its summary: the
@@ -2452,7 +2452,7 @@ function vergeml_librarian_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/librarian-preflight', array(
         'methods'             => 'GET, POST',
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_librarian_rest_preflight',
         'args'                => array(
             'scheme'   => array( 'type' => 'string', 'default' => 'subject' ),
@@ -2463,7 +2463,7 @@ function vergeml_librarian_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/librarian-apply-step', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_librarian_rest_apply',
         'args'                => array(
             'batch_id' => array( 'type' => 'integer', 'default' => 0 ),
@@ -2479,7 +2479,7 @@ function vergeml_librarian_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/librarian-pause', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_librarian_rest_pause',
         'args'                => array(
             'batch_id' => array( 'type' => 'integer', 'required' => true ),
@@ -2488,7 +2488,7 @@ function vergeml_librarian_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/librarian-undo-step', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_librarian_rest_undo',
         'args'                => array(
             'batch_id' => array( 'type' => 'integer', 'required' => true ),
@@ -2497,7 +2497,7 @@ function vergeml_librarian_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/librarian-batches', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_categories',
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_librarian_rest_batches',
     ) );
 

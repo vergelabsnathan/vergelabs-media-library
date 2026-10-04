@@ -210,16 +210,28 @@ function vergeml_private_routes() {
          *  The same bar as renaming a folder. Making one's own folder private
          *  is a filing decision, not an administrative one -- requiring
          *  manage_options would mean the only people who could use the feature
-         *  are the ones whose sidebar is not crowded.
+         *  are the ones whose sidebar is not crowded. Asked about the folder
+         *  itself, as core asks before editing a term; one that does not exist
+         *  gets the handler's 404.
          */
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        'permission_callback' => 'vergeml_private_can_edit',
         'args'                => array(
             'id'      => array( 'required' => true, 'type' => 'integer' ),
             'private' => array( 'type' => 'boolean', 'default' => true ),
         ),
     ) );
+}
+
+
+function vergeml_private_can_edit( WP_REST_Request $request ) {
+
+    $term_id = (int) $request->get_param( 'id' );
+
+    if ( ! current_user_can( 'manage_categories' ) ) {
+        return false;
+    }
+
+    return ! ( get_term( $term_id ) instanceof WP_Term ) || current_user_can( 'edit_term', $term_id );
 }
 
 

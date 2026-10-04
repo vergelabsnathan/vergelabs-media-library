@@ -603,9 +603,8 @@ function vergeml_meaning_routes() {
     register_rest_route( VERGEML_REST_NS, '/search-meaning', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_meaning_rest',
-        'permission_callback' => function () {
-            return current_user_can( 'upload_files' );
-        },
+        // Sends the typed phrase to the AI service: administrators only.
+        'permission_callback' => 'vergeml_rest_can_manage_options',
         'args'                => array(
             's'     => array( 'type' => 'string', 'required' => true ),
             'limit' => array( 'type' => 'integer', 'default' => 60 ),
@@ -674,6 +673,11 @@ function vergeml_meaning_offer( $post_type, $which = '' ) {
         return; // once, in the bar above the table
     }
 
+    // A request to the AI service: offered to administrators only.
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
     $term = isset( $_GET['s'] ) ? trim( sanitize_text_field( wp_unslash( $_GET['s'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading the search WordPress is already running.
 
     if ( '' === $term ) {
@@ -718,7 +722,7 @@ function vergeml_meaning_take_over( $query ) {
         return;
     }
 
-    if ( ! isset( $_GET['vgml_meaning'], $_GET['s'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['vgml_meaning'] ) ), 'vergeml_meaning' ) || ! current_user_can( 'upload_files' ) ) {
+    if ( ! isset( $_GET['vgml_meaning'], $_GET['s'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['vgml_meaning'] ) ), 'vergeml_meaning' ) || ! current_user_can( 'manage_options' ) ) {
         return;
     }
 
