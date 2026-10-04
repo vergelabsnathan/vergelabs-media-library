@@ -929,7 +929,7 @@ function vergeml_print_settings() {
                                 <form id="eml-form-cleanup" method="post">
                                     <input type='hidden' name='eml-settings-cleanup' />
                                     <?php wp_nonce_field( 'vergeml_settings_cleanup_nonce', 'vergeml-settings-cleanup-nonce' ); ?>
-                                    <?php submit_button( __( 'Delete All Data & Deactivate', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-cleanup', true ); ?>
+                                    <?php submit_button( __( 'Delete All Data', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-cleanup', true ); ?>
                                 </form>
 
                                 <hr />
@@ -1183,7 +1183,7 @@ function vergeml_print_network_settings() {
                             <form id="eml-form-cleanup" method="post">
                                 <input type='hidden' name='eml-settings-cleanup' />
                                 <?php wp_nonce_field( 'vergeml_settings_cleanup_nonce', 'vergeml-settings-cleanup-nonce' ); ?>
-                                <?php submit_button( __( 'Delete All Data & Network Deactivate', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-cleanup', true ); ?>
+                                <?php submit_button( __( 'Delete All Data', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-cleanup', true ); ?>
                             </form>
 
                         </div>
@@ -1813,7 +1813,19 @@ function vergeml_settings_cleanup() {
     vergeml_user_meta_cleanup();
 
     vergeml_site_options_cleanup();
-    deactivate_plugins( vergeml_get_basename(), false, is_multisite() );
+
+    /*
+     *  Deactivating stays the owner's click on the Plugins screen, where this
+     *  sends them (wordpress.org guidelines: a plugin never changes the active
+     *  plugins). Until then the plugin runs and may write a default or two
+     *  again, so deleting it from there takes those with it.
+     */
+    if ( is_multisite() ) {
+        update_site_option( 'vergeml_uninstall_wipe_network', '1' );
+    }
+    else {
+        update_option( 'vergeml_uninstall_wipe', '1' );
+    }
 
 
     wp_safe_redirect( self_admin_url( 'plugins.php' ) );

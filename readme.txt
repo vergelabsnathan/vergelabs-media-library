@@ -187,9 +187,9 @@ Your plugin keeps working without the AI features: filing, search and everything
 
 = What happens if the plugin crashes my site? =
 
-It tries to get out of your way. After two fatal errors in its own code within an hour it puts itself into safe mode: its features stop loading, the site comes back, and a notice in the dashboard tells you what happened and offers to switch them back on. That is there so a white screen does not mean an FTP client and a renamed folder.
+It tries to get out of your way. After two fatal errors in its own code within an hour it puts itself into safe mode: its features stop loading, the site comes back, and a notice in the dashboard tells you what happened and offers to switch them back on, or to deactivate the plugin. That is there so a white screen does not mean an FTP client and a renamed folder.
 
-It only counts errors in its own files, so it will never deactivate itself because a different plugin crashed.
+It only counts errors in its own files, and it never deactivates itself: that stays your decision.
 
 = What happens to my folders if I uninstall it? =
 
