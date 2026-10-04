@@ -9,6 +9,20 @@ Clear the three findings in the wordpress.org bot review (Review ID: AUTO vergel
 - Uncommitted: two old untracked files (docs/handoffs/2026-09-26-filing-to-the-max-kickoff.md, a mock); not part of this work
 - Tree-planner work moved on in other sessions (stories 1–10 in wt/tree-planner, 4.1.0); its state is in docs/handoffs/2026-09-29-tree-planner-built-merge-pending.md and 2026-09-29-tree-planner-story-8-guard.md, not here
 
+## STEP 1, before any code: the complete rulebook (Nathan 2026-10-04: "a deep scope of WordPress guidelines and rules")
+Run two research agents in parallel (general-purpose, WebFetch/WebSearch, official sources only). Save their output verbatim as docs/wordpress-org-rulebook.md, with one line per rule: ID · rule · what to grep for · source URL. Nothing may be paraphrased loosely, and anything not fetched is marked UNFETCHED.
+- **Agent A, the published rules:**
+  - every sub-point of the 18 Detailed Plugin Guidelines (developer.wordpress.org/plugins/wordpress-org/detailed-plugin-guidelines/);
+  - every section of the Plugin Review team's common-issues page (developer.wordpress.org/plugins/wordpress-org/common-issues/);
+  - the readme rules (how-your-readme-txt-works, plugin-developer-faq);
+  - the make.wordpress.org/plugins review handbook pages.
+- **Agent B, the automated checks:**
+  - every Plugin Check check slug (github.com/WordPress/plugin-check, includes/Checker/Checks/);
+  - the automated pre-review's issue titles, from make.wordpress.org/plugins posts on the AI-assisted review, plugin-check issues and forum reports (e.g. "Changing Active Plugins", "Check permission_callback", "Adding insecure MIME types", "Undocumented use of a 3rd Party service", "Calling files remotely", "Including libraries already in core", "Allowing direct file access", "Generic names", "Nonces and user permissions", "Sanitized, escaped, validated", "Trialware", "Hiding admin notices", "Tracking without consent", "Serving updates from other sources");
+  - developer.wordpress.org/plugins/security/ and the REST permissions_callback docs.
+
+Then audit the RELEASE ARCHIVE against every rule in the rulebook, with phpcs:ignore annotations ignored. Record each rule as pass / fixed / not applicable with file:line in docs/wordpress-org-submission.md. Upload only when no row is open.
+
 ## The three findings and the fix to make
 1. **The watchdog deactivates the plugin by itself** after repeated fatal errors. Not allowed. Fix: it never calls deactivate_plugins(). It switches the plugin's own features off (safe mode) and shows an admin notice with a Deactivate button the owner presses. Grep `deactivate_plugins` across core/ and find every path.
 2. **`/ai-run` POST** (core/ai-background.php:511) starts a library-wide run that writes alt text, but checks only `manage_categories`. Fix: the write method requires `manage_options`; GET status may stay. The team says they don't list every case, so sweep every `register_rest_route` whose write changes many attachments or terms (refile/apply/run/import/undo) and raise each to `manage_options`. List the routes and the decision for each in the commit.
