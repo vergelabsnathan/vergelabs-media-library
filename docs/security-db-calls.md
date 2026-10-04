@@ -237,7 +237,7 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 478 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name; $marks — $marks is only ever implode of a generated %d placeholder list |
+| 480 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name; $marks — $marks is only ever implode of a generated %d placeholder list |
 
 ### core/import-sources.php
 
@@ -314,15 +314,15 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 1437 | — | `get_var` | prepared | — |
-| 1866 | — | `delete` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
-| 1874 | — | `get_results` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; $rows2remove_format — $rows2remove_format is only ever implode of a generated %d placeholder list |
-| 1895 | — | `query` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; $rows2remove_format — $rows2remove_format is only ever implode of a generated %d placeholder list |
-| 1938 | — | `query` | only integers it cast itself | $wpdb->prefix — a $wpdb table name; $table — $table is only ever each item of a literal array in our own source |
-| 1961 | — | `get_col` | prepared | $id_column — $id_column is only ever a string literal in our own source; $table — $table is only ever a core table name from _get_meta_table() |
-| 1976 | — | `query` | prepared | $table — $table is only ever a core table name from _get_meta_table(); $id_column — $id_column is only ever a string literal in our own source; $placeholders — $placeholders is only ever implode of a generated %d placeholder list |
-| 2023 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
-| 2076 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 1436 | — | `get_var` | prepared | — |
+| 1878 | — | `delete` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 1886 | — | `get_results` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; $rows2remove_format — $rows2remove_format is only ever implode of a generated %d placeholder list |
+| 1907 | — | `query` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; $rows2remove_format — $rows2remove_format is only ever implode of a generated %d placeholder list |
+| 1950 | — | `query` | only integers it cast itself | $wpdb->prefix — a $wpdb table name; $table — $table is only ever each item of a literal array in our own source |
+| 1973 | — | `get_col` | prepared | $id_column — $id_column is only ever a string literal in our own source; $table — $table is only ever a core table name from _get_meta_table() |
+| 1988 | — | `query` | prepared | $table — $table is only ever a core table name from _get_meta_table(); $id_column — $id_column is only ever a string literal in our own source; $placeholders — $placeholders is only ever implode of a generated %d placeholder list |
+| 2035 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 2088 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
 
 ### core/organize.php
 
@@ -421,12 +421,12 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | 390 | — | `get_results` | read by hand — see the reason | — |
 | 578 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
 | 687 | — | `get_var` | prepared | $wpdb->postmeta — a $wpdb table name |
-| 773 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name |
-| 808 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; $placeholders — $placeholders is only ever implode of a generated %d placeholder list |
-| 847 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
-| 873 | — | `get_col` | prepared | $wpdb->options — a $wpdb table name |
-| 914 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name |
-| 951 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
+| 770 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name |
+| 805 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; $placeholders — $placeholders is only ever implode of a generated %d placeholder list |
+| 844 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
+| 870 | — | `get_col` | prepared | $wpdb->options — a $wpdb table name |
+| 911 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name |
+| 948 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
 
 ### core/taxonomies.php
 
@@ -445,8 +445,8 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 280 | — | `get_col` | prepared | $wpdb->postmeta — a $wpdb table name |
-| 345 | — | `get_col` | prepared | $table — $table is only ever vergeml_index_table() returns only a $wpdb table name; $wpdb->posts — a $wpdb table name |
+| 281 | — | `get_col` | prepared | $wpdb->postmeta — a $wpdb table name |
+| 346 | — | `get_col` | prepared | $table — $table is only ever vergeml_index_table() returns only a $wpdb table name; $wpdb->posts — a $wpdb table name |
 
 ### uninstall.php
 

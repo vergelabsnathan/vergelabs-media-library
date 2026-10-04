@@ -204,6 +204,8 @@ function vergeml_csv_download() {
 
     nocache_headers();
     header( 'Content-Type: text/csv; charset=utf-8' );
+    // A CSV is data, never a page: the browser must not guess otherwise.
+    header( 'X-Content-Type-Options: nosniff' );
     header( 'Content-Disposition: attachment; filename="' . $name . '"' );
 
     /*

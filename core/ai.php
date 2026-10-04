@@ -312,7 +312,7 @@ function vergeml_ai_service_url() {
 
     $url = defined( 'VERGEML_AI_SERVICE' ) ? VERGEML_AI_SERVICE : 'https://ai.vergelabs.nl/v1';
 
-    if ( 0 !== strpos( $url, 'https://' ) && 0 !== strpos( $url, 'http://localhost' ) && 0 !== strpos( $url, 'http://127.0.0.1' ) ) {
+    if ( 0 !== strpos( $url, 'https://' ) ) {
         $url = 'https://ai.vergelabs.nl/v1';
     }
 

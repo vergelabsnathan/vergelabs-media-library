@@ -624,7 +624,7 @@ function vergeml_meaning_routes() {
 function vergeml_meaning_rest( WP_REST_Request $request ) {
 
     $ids = vergeml_meaning_search(
-        (string) $request->get_param( 's' ),
+        sanitize_text_field( (string) $request->get_param( 's' ) ),
         max( 1, min( 200, (int) $request->get_param( 'limit' ) ) )
     );
 

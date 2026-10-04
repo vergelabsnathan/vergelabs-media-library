@@ -193,7 +193,7 @@ function vergeml_quick_edit_save( WP_REST_Request $request ) {
         $title = sanitize_text_field( (string) $request->get_param( 'title' ) );
 
         if ( $title !== $post->post_title ) {
-            wp_update_post( array( 'ID' => $id, 'post_title' => $title ) );
+            wp_update_post( array( 'ID' => $id, 'post_title' => wp_slash( $title ) ) );
         }
     }
 
@@ -203,7 +203,7 @@ function vergeml_quick_edit_save( WP_REST_Request $request ) {
 
         // Emptying it is how somebody hands the field back, and the index
         // treats it that way -- so it is stored rather than skipped.
-        update_post_meta( $id, '_wp_attachment_image_alt', $alt );
+        update_post_meta( $id, '_wp_attachment_image_alt', wp_slash( $alt ) );
     }
 
     $fresh = get_post( $id );

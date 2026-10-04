@@ -401,7 +401,7 @@ function vergeml_quarantine_routes() {
         'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_quarantine_rest_act',
         'args'                => array(
-            'ids'    => array( 'required' => true ),
+            'ids'    => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ), 'required' => true ),
             'action' => array( 'type' => 'string', 'required' => true ),
             'reason' => array( 'type' => 'string', 'default' => '' ),
         ),

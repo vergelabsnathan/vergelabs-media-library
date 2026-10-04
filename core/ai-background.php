@@ -357,7 +357,7 @@ function vergeml_ai_run_tick() {
     // refused. Bounded, not 0: a pass that hangs past this is dead anyway,
     // and vergeml_ai_run_revive() starts the next one.
     if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( VERGEML_AI_RUN_BUDGET + 180 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job on shared hosting; refused silently where disallowed.
+        set_time_limit( VERGEML_AI_RUN_BUDGET + 180 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job on shared hosting; refused silently where disallowed.
     }
 
     $started = time();

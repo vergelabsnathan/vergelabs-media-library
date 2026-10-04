@@ -346,7 +346,7 @@ function vergeml_plan_inventory_refresh_event() {
     // on the libraries measured. A job still going after this is stuck, and
     // the next page render books another refresh.
     if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( 5 * MINUTE_IN_SECONDS ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
+        set_time_limit( 5 * MINUTE_IN_SECONDS ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
     vergeml_plan_inventory( true );
     delete_transient( VERGEML_PLAN_REFRESH_HOOK );
@@ -857,7 +857,7 @@ function vergeml_plan_event() {
     }
     set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
     if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( VERGEML_PLAN_TIMEOUT + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
+        set_time_limit( VERGEML_PLAN_TIMEOUT + 60 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
     /*
      *  Named and marked started before anything is spent, in the session and

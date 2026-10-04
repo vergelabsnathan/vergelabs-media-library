@@ -732,9 +732,6 @@ function vergeml_smart_scan_step( $resume = null ) {
     if ( is_array( $resume ) && is_array( $stored ) ) {
         $state = $stored;
     }
-    elseif ( is_array( $resume ) && isset( $resume['refs'] ) ) {
-        $state = $resume; // a browser from before this change, carrying it all
-    }
     else {
         delete_option( VERGEML_SCAN_PROGRESS );
         $state = array(
@@ -1078,7 +1075,8 @@ function vergeml_used_in_field( $fields, $post ) {
                 continue;
             }
 
-            $title = get_the_title( $source );
+            // A draft or a private post's title only for someone who may read it.
+            $title = current_user_can( 'read_post', $source ) ? get_the_title( $source ) : '';
 
             if ( '' === $title ) {
                 continue; // The referencing post has been deleted since the scan.
@@ -1317,7 +1315,8 @@ function vergeml_used_cell( $column, $attachment_id ) {
             continue;
         }
 
-        $title = get_the_title( $source );
+        // A draft or a private post's title only for someone who may read it.
+            $title = current_user_can( 'read_post', $source ) ? get_the_title( $source ) : '';
 
         if ( '' === $title ) {
             continue; // the referencing post has gone since the scan

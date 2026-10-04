@@ -1217,10 +1217,13 @@ add_action( 'wp_ajax_vergeml-apply-settings-to-network', 'vergeml_apply_settings
 
 function vergeml_apply_settings_to_network() {
 
-    if ( ! isset( $_REQUEST['settings'] ) )
+    check_ajax_referer( 'vergeml-apply-to-network-nonce', 'nonce' );
+
+    // Network settings only exist on a network.
+    if ( ! is_multisite() || ! current_user_can( 'manage_network_options' ) || ! isset( $_POST['settings'] ) )
         wp_send_json_error();
 
-    check_ajax_referer( 'vergeml-apply-to-network-nonce', 'nonce' );
+    $which = sanitize_key( wp_unslash( $_POST['settings'] ) );
 
     /*
      *  This writes options into every site on the network, so it needs the
@@ -1228,13 +1231,7 @@ function vergeml_apply_settings_to_network() {
      *  Upstream relied on the nonce alone, which only held because the nonce
      *  is printed on a super-admin screen.
      *
-     *  Gated on is_multisite() because a single site grants nobody
-     *  manage_network_options, not even an administrator. Checking it
-     *  unconditionally would reject the very users allowed to be here.
      */
-
-    if ( is_multisite() && ! current_user_can( 'manage_network_options' ) )
-        wp_send_json_error();
 
 
     $plugins = get_site_option( 'active_sitewide_plugins');
@@ -1253,7 +1250,7 @@ function vergeml_apply_settings_to_network() {
 
             switch_to_blog( $site_id );
 
-            switch ( $_REQUEST['settings'] ) {
+            switch ( $which ) {
                 case 'vergeml-library':
                     update_option( 'vergeml_lib_options', $vergeml_lib_options );
                     break;
@@ -1270,6 +1267,8 @@ function vergeml_apply_settings_to_network() {
 
             restore_current_blog();
         }
+
+        restore_current_blog();
     }
 
     wp_send_json_success();
@@ -1643,15 +1642,19 @@ function vergeml_settings_import() {
     }
 
 
-    // backup settings
-    $settings = vergeml_get_settings();
-    update_option( 'vergeml_backup', $settings );
+    // A settings file is a few kilobytes; anything far larger is not one.
+    $json_data = $import_file['size'] > 0 && $import_file['size'] <= 1048576 ? file_get_contents( $import_file['tmp_name'] ) : '';
+    $settings  = json_decode( (string) $json_data, true );
 
+    // The four sections an export writes, each an array, or nothing is changed.
+    $sections = array( 'taxonomies', 'lib_options', 'tax_options', 'mimes' );
+    $complete = is_array( $settings );
 
-    $json_data = file_get_contents( $import_file['tmp_name'] );
-    $settings = json_decode( $json_data, true );
+    foreach ( $sections as $section ) {
+        $complete = $complete && isset( $settings[ $section ] ) && is_array( $settings[ $section ] );
+    }
 
-    if ( empty( $settings ) ) {
+    if ( ! $complete ) {
 
         add_settings_error(
             'vergeml-utilities',
@@ -1664,6 +1667,10 @@ function vergeml_settings_import() {
     }
 
 
+    // The backup only once the file is known to be good, so a bad file never costs the last good one.
+    update_option( 'vergeml_backup', vergeml_get_settings() );
+
+    // Each through its register_setting() validator.
     update_option( 'vergeml_taxonomies', $settings['taxonomies'] );
     update_option( 'vergeml_lib_options', $settings['lib_options'] );
     update_option( 'vergeml_tax_options', $settings['tax_options'] );
@@ -1709,6 +1716,11 @@ function vergeml_settings_restoring() {
 
 
     $vergeml_backup = get_option( 'vergeml_backup' );
+
+    // No backup, or not one this plugin wrote: nothing to restore.
+    if ( ! is_array( $vergeml_backup ) || ! isset( $vergeml_backup['taxonomies'], $vergeml_backup['lib_options'], $vergeml_backup['tax_options'], $vergeml_backup['mimes'] ) ) {
+        return;
+    }
 
     update_option( 'vergeml_taxonomies', $vergeml_backup['taxonomies'] );
     update_option( 'vergeml_lib_options', $vergeml_backup['lib_options'] );

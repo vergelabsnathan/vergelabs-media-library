@@ -124,12 +124,12 @@
                 spinner.removeClass( 'is-active' );
             }).done( function( x ) {
                 if ( ! x.success ) {
-                    $( '#find-posts-response' ).text( wp.i18n.__( 'That did not load. Reload the page.' ) );
+                    $( '#find-posts-response' ).text( wp.i18n.__( 'That did not load. Reload the page.', 'vergelabs-media-library' ) );
                 }
 
                 $( '#find-posts-response' ).html( x.data );
             }).fail( function() {
-                $( '#find-posts-response' ).text( wp.i18n.__( 'That did not load. Reload the page.' ) );
+                $( '#find-posts-response' ).text( wp.i18n.__( 'That did not load. Reload the page.', 'vergelabs-media-library' ) );
             });
         }
     };
@@ -237,7 +237,7 @@
             }, 3000 );
 
             // Handle success audible feedback.
-            wp.a11y.speak( wp.i18n.__( 'The file URL has been copied to your clipboard' ) );
+            wp.a11y.speak( wp.i18n.__( 'The file URL has been copied to your clipboard', 'vergelabs-media-library' ) );
         } );
     });
 })( jQuery );

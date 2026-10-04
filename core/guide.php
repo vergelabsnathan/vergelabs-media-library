@@ -971,7 +971,7 @@ function vergeml_guide_routes() {
             'callback'            => 'vergeml_guide_rest_session',
             'permission_callback' => 'vergeml_rest_can_manage_options',
             'args'                => array(
-                'draft' => array( 'required' => false ),
+                'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
                 'reset' => array( 'type' => 'boolean', 'required' => false ),
             ),
         ),
@@ -988,7 +988,7 @@ function vergeml_guide_routes() {
         'args'                => array(
             'said'  => array( 'type' => 'object', 'required' => false ),
             'say'   => array( 'type' => 'object', 'required' => false ),
-            'draft' => array( 'required' => false ),
+            'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
             // Several turns in one write, in order: what a suite plants and puts back.
             'turns' => array( 'type' => 'array', 'required' => false ),
         ),
@@ -1704,7 +1704,7 @@ function vergeml_guide_fit_event() {
     }
     set_transient( VERGEML_GUIDE_FIT_LOCK, time(), VERGEML_GUIDE_FIT_BUDGET + 60 );
     if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( VERGEML_GUIDE_FIT_BUDGET + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
+        set_time_limit( VERGEML_GUIDE_FIT_BUDGET + 60 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
 
     $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';

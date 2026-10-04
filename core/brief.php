@@ -634,7 +634,7 @@ function vergeml_brief_routes() {
             'permission_callback' => 'vergeml_rest_can_manage_options',
             'args'                => array(
                 'reset' => array( 'type' => 'boolean', 'required' => false ),
-                'draft' => array( 'required' => false ),
+                'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
             ),
         ),
     ) );
@@ -650,7 +650,7 @@ function vergeml_brief_routes() {
         'args'                => array(
             'said'  => array( 'type' => 'object', 'required' => false ),
             'say'   => array( 'type' => 'object', 'required' => false ),
-            'draft' => array( 'required' => false ),
+            'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
         ),
     ) );
     register_rest_route( VERGEML_REST_NS, '/brief/test', array(

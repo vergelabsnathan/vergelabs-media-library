@@ -110,7 +110,7 @@ function vergeml_import_read( $key ) {
     $sources = vergeml_import_sources();
 
     if ( ! isset( $sources[ $key ] ) ) {
-        return new WP_Error( 'vergeml_unknown_source', __( 'That is not a folder plugin this can read.', 'vergelabs-media-library' ) );
+        return new WP_Error( 'vergeml_unknown_source', __( 'That is not a folder plugin this can read.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
 
     $source = $sources[ $key ];
@@ -128,7 +128,7 @@ function vergeml_import_read( $key ) {
             return vergeml_import_read_csv();
     }
 
-    return new WP_Error( 'vergeml_unknown_source', __( 'That is not a folder plugin this can read.', 'vergelabs-media-library' ) );
+    return new WP_Error( 'vergeml_unknown_source', __( 'That is not a folder plugin this can read.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
 }
 
 

@@ -165,6 +165,12 @@ function vergeml_handle_bulk_terms( $location, $doaction, $post_ids ) {
     if ( ! $term || is_wp_error( $term ) || ! in_array( $taxonomy, get_object_taxonomies( 'attachment' ), true ) )
         return add_query_arg( 'vergeml_op', 'noterm', $location );
 
+    // Core's own rule for setting terms on a post.
+    $tax_object = get_taxonomy( $taxonomy );
+
+    if ( ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) )
+        return add_query_arg( 'vergeml_op', 'noterm', $location );
+
     $done    = 0;
     $skipped = 0;
 
@@ -172,7 +178,7 @@ function vergeml_handle_bulk_terms( $location, $doaction, $post_ids ) {
 
         $post_id = absint( $post_id );
 
-        if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+        if ( ! $post_id || 'attachment' !== get_post_type( $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
             $skipped++;
             continue;
         }

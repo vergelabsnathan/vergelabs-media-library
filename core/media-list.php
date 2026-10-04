@@ -674,7 +674,10 @@ function vergeml_list_handle_move( $location, $doaction, $post_ids ) {
     $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
     $term     = $taxonomy ? get_term( (int) $found[1], $taxonomy ) : null;
 
-    if ( ! $term instanceof WP_Term ) {
+    $tax_object = get_taxonomy( $taxonomy );
+
+    // Core's own rule for setting terms on a post.
+    if ( ! $term instanceof WP_Term || ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) ) {
         return $location;
     }
 
@@ -686,7 +689,7 @@ function vergeml_list_handle_move( $location, $doaction, $post_ids ) {
 
         $post_id = absint( $post_id );
 
-        if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+        if ( ! $post_id || 'attachment' !== get_post_type( $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
             continue;
         }
 

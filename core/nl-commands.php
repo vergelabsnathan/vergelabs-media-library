@@ -562,7 +562,7 @@ function vergeml_nl_routes() {
         'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_nl_rest_run',
         'args'                => array(
-            'plan' => array( 'required' => true ),
+            'plan' => array( 'type' => 'object', 'required' => true ),
         ),
     ) );
 }
@@ -570,7 +570,7 @@ function vergeml_nl_routes() {
 
 function vergeml_nl_rest_plan( WP_REST_Request $request ) {
 
-    $plan = vergeml_nl_plan( (string) $request->get_param( 'text' ) );
+    $plan = vergeml_nl_plan( sanitize_text_field( (string) $request->get_param( 'text' ) ) );
 
     if ( is_wp_error( $plan ) ) {
         return $plan;

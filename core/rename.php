@@ -207,7 +207,7 @@ function vergeml_rename_apply( $ids ) {
             update_post_meta( $id, VERGEML_RENAME_META, $before );
         }
 
-        wp_update_post( array( 'ID' => $id, 'post_title' => $title ) );
+        wp_update_post( array( 'ID' => $id, 'post_title' => wp_slash( sanitize_text_field( $title ) ) ) );
 
         if ( function_exists( 'vergeml_index_writing' ) ) {
             vergeml_index_writing( false );
@@ -272,7 +272,7 @@ function vergeml_rename_undo() {
             vergeml_index_writing( true );
         }
 
-        wp_update_post( array( 'ID' => $id, 'post_title' => $before ) );
+        wp_update_post( array( 'ID' => $id, 'post_title' => wp_slash( $before ) ) );
         delete_post_meta( $id, VERGEML_RENAME_META );
 
         if ( function_exists( 'vergeml_index_writing' ) ) {

@@ -1086,10 +1086,11 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
             wp_enqueue_script(
                 'vergeml-media-script',
                 $vergeml_dir . 'js/eml-media.js',
-                array( 'media-grid' ),
+                array( 'media-grid', 'wp-i18n' ),
                 VERGEML_VERSION,
                 true
             );
+            wp_set_script_translations( 'vergeml-media-script', 'vergelabs-media-library' );
             
             $media_grid_l10n = array(
                 'grid_show_caption' => (int) $vergeml_lib_options['grid_show_caption'],

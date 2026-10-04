@@ -134,7 +134,8 @@ function vergeml_merge_run( $plan ) {
 
             $id = (int) $id;
 
-            if ( ! $id || $id === $keep ) {
+            // The plan arrives from the request: a picture this person may delete, nothing else.
+            if ( ! $id || $id === $keep || 'attachment' !== get_post_type( $id ) || ! current_user_can( 'delete_post', $id ) ) {
                 continue;
             }
 
@@ -411,7 +412,7 @@ function vergeml_utilities_routes() {
         'methods'             => WP_REST_Server::CREATABLE,
         'permission_callback' => 'vergeml_rest_can_manage_options',
         'callback'            => 'vergeml_rest_merge_run',
-        'args'                => array( 'plan' => array( 'required' => true ) ),
+        'args'                => array( 'plan' => array( 'type' => 'array', 'required' => true ) ),
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/alt-fill-step', array(
