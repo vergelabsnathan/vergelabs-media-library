@@ -334,7 +334,6 @@ function vergeml_check_filetype_and_ext( $types, $file, $filename, $mimes, $real
     }
 
 
-    // @todo :: re-think all the following
     $font_types  = array(
 
         // ttf
@@ -392,11 +391,6 @@ function vergeml_check_filetype_and_ext( $types, $file, $filename, $mimes, $real
     if ( $type ) {
         $allowed = get_allowed_mime_types();
 
-        // @todo :: consider this check
-        // Either passed or real mime type must be allowed for upload
-        // if (    ! in_array( $type, $allowed, true ) && 
-        //         ! in_array( $real_mime, $allowed, true ) 
-        // ) {
 
         if ( ! in_array( $type, $allowed, true ) ) {
             $type = false;
@@ -413,8 +407,6 @@ function vergeml_check_filetype_and_ext( $types, $file, $filename, $mimes, $real
 
 
 
-// @todo ::
-// add_filter( 'wp_handle_upload_overrides', 'vergeml_handle_upload_overrides', 10, 2 );
 
 // function vergeml_handle_upload_overrides( $overrides, $file ) {
 //     return $overrides;

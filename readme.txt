@@ -151,7 +151,7 @@ Yes. Activating this plugin copies your taxonomies, MIME types, and library and 
 
 It will not break your site if you do: every function, class, option, script handle and AJAX action carries its own prefix. But both plugins register taxonomies against your media library, so you would see each of them twice. Deactivate Enhanced Media Library first.
 
-= How is this different from Enhanced Media Library? =
+= What is it built on? =
 
 It started as a fork of Enhanced Media Library 2.9.4 and keeps what that plugin did: media categories and taxonomies, filters, MIME types and dynamic galleries, with your settings carried over. On top of that it adds a folder tree with drag and drop, smart folders, an importer for other folder plugins, a Librarian that sorts an unfiled library, duplicate detection, and optional AI features that write alt text and captions and let you search by what a picture shows. It is not made by, or affiliated with, wpUXsolutions. The [upstream documentation](https://www.wpuxsolutions.com/documents/enhanced-media-library) is still accurate for the parts this fork did not change.
 
@@ -211,7 +211,6 @@ Please report security bugs found in the source code of the VergeLabs Media Libr
 
 Every night an automated watch looks for new releases of WordPress, PHP and the plugins and themes this plugin integrates with, greps each new release for every hook and field we rely on, upgrades a staging site and runs the checks there. What passed is recorded here, newest first:
 
-<!-- watch:verified -->
 * Yoast SEO (Premium follows the same numbering) 28.6 — contract intact, stage suites passed (2026-09-29)
 * Polylang (Pro follows the same numbering) 3.8.10 — contract intact, stage suites passed (2026-09-28)
 * Beaver Builder 2.11.0.6 — contract intact, stage suites passed (2026-09-26)
@@ -276,61 +275,6 @@ The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now rea
 * **The known-problems list comes from the AI service** at `ai.vergelabs.nl`, not from GitHub. It is still fetched only when you press "Check for known problems".
 * **The plugin's admin screens have new addresses**, all starting `vergeml-` (for example `admin.php?page=vergeml-ai`). Bookmarks to the old ones are sent on to the new.
 
-### 4.0.7 ###
-*The plugin contacts nothing until you ask it to.*
-
-= Changed =
-* **No price is fetched on the AI screen.** A site without a licence sees how many credits its library needs; the price is on the cart the button opens.
-* **The known-problems list is fetched only when you press "Check for known problems"** on the Get help screen. Opening the dashboard or the Help screen no longer downloads it, and when GitHub cannot be reached the screen says so instead of reporting no problems.
-* **Versions before 4.0 moved from the readme to `changelog.txt`.**
-* **Reference sections moved from the description into the FAQ**, so the plugin page shows the whole External services section instead of cutting it off.
-
-### 4.0.6 ###
-*Demo mode stays usable on a site without a licence, and code the original plugin kept for its paid edition is gone.*
-
-= Changed =
-* **Demo mode is never replaced by the free-try offer.** It runs on your site and needs no licence, so the AI screen keeps its Describe buttons while it is on.
-* **Nothing can hold back applying a folder tree.** The hook the original plugin kept for a paid add-on is gone, and the Librarian applies every folder whatever any other code says.
-* **Code the original plugin kept for its paid edition is removed**, including a Select all button only that edition could show.
-* **The readme says which requests the free try and the price quote make**, under External services.
-
-### 4.0.5 ###
-*A site without a licence can try the AI free on 25 pictures, and sees what its own library would cost, instead of an error.*
-
-= New =
-* **Try it free on 25 pictures.** On the AI screen, a site without a licence enters an email address and gets 25 free credits for that site, connected by itself. Alt text is then written for 25 pictures without one. One free try per site and per email; not on local or test sites.
-* **The AI screen says what is missing and what it costs.** Where pressing Alt text used to answer "Configure an AI endpoint and key first", a site without a licence sees how many of its pictures have no alt text, and a button that buys exactly those credits at the current price.
-
-### 4.0.4 ###
-*While the AI service is away, pictures wait instead of being marked as failed; a re-describe that fails keeps the description the picture already had.*
-
-= Fixed =
-* **While the AI service is away, pictures wait.** A picture the service could not answer for — a temporary error, or no answer at all — is set aside and tried again, for as long as the service is away; nothing is marked as failed for a failure that is not the file's. Before, an unreachable service marked every picture a run reached, and three temporary errors marked one for good.
-* **A re-describe that fails keeps the description the picture already had.** It stays in search, filing and the counts; the failure is in the run's report only.
-* **A run in the background whose pictures are all set aside waits ten minutes** instead of asking again at once.
-
-### 4.0.3 ###
-*Screen Options opens over the folder panel on the media list, not under it; the AI-outage answer in the FAQ says what a describe run does.*
-
-= Fixed =
-* **Screen Options opens over the folder panel on the media list, not under it.** 4.0.2 brought the tab back; the panel it opens was still under the folder tree, so the column checkboxes on the left could not be ticked.
-* **The FAQ answer "What happens when the AI service is down?" says what the describe run does:** a temporary error sets a picture aside and tries again, an unreachable service marks it, and the Alt text button on the AI screen picks marked pictures up once the service is back. The previous answer promised more than the run did.
-
-### 4.0.2 ###
-*Dragging into a folder works again beside FileBird, and two tabs the folder panel had covered are back.*
-
-= Fixed =
-* **Dragging one file into a folder works again beside FileBird and other plugins that add a column to the media list;** the checkbox column no longer takes the table's spare width.
-* **Screen Options and Help open again on the media list beside the folder panel;** a folder no longer lights up for another plugin's drag.
-
-### 4.0.1 ###
-*A support ticket that keeps your key to itself, a CSV export a spreadsheet can't turn into a command, and a PHP 8.4 warning that is gone.*
-
-= Fixed =
-* **The support ticket no longer carries your licence key.** It now sends the last four characters of the key and your site's address; the service matches those to a licence itself, and a free install still sends nothing.
-* **A CSV cell that starts with `=`, `+`, `-`, `@`, tab or a carriage return no longer opens as a formula.** The export quotes it safely; importing it back strips the safety mark, so the cell round-trips unchanged.
-* **A PHP 8.4+ deprecation notice on every AI request is gone.** `vergeml_ai_rest_status()` took an implicit-nullable parameter; it is explicit now.
-
 ### 4.0.0 ###
 *A screen that builds your folders and fills them, filing that reads what a picture shows, and a shop that sorts itself*
 
@@ -382,4 +326,4 @@ The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now rea
 * **With Enhanced Media Library active, its media scripts and grid template are now set aside** so the two do not fight.
 * **The readme's "External services" section has been rewritten** to say everything that leaves your site, which is more than it used to say. Nothing new was added to what the plugin sends; the account of it was incomplete.
 
-Versions before 4.0 are in `changelog.txt`, shipped with the plugin.
+Earlier versions, 4.0.7 back, are in `changelog.txt`, shipped with the plugin.

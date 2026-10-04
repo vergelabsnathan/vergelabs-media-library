@@ -1229,7 +1229,7 @@ function vergeml_save_attachment_compat() {
 
     if ( isset( $post['errors'] ) ) {
 
-        $errors = $post['errors']; // @todo return me and display me!
+        $errors = $post['errors'];
         unset( $post['errors'] );
     }
 
@@ -1604,19 +1604,6 @@ function vergeml_update_post_term_count( $terms, $taxonomy ) {
 
 
 
-// TODO: Quick Edit for the List mode (MediaFrame.EditAttachments)
-// add_filter( 'media_row_actions', 'vergeml_media_row_actions', 10, 2 );
-//
-// if ( ! function_exists( 'vergeml_media_row_actions' ) ) {
-//
-//     function vergeml_media_row_actions( $actions, $post ) {
-//
-//         $first = array_splice ( $actions, 0, 1 );
-//         $actions = array_merge ( $first, array( 'eml_quick_edit' => '<a href="#" data-attachment-id="' . $post->ID . '">Quick Edit</a>' ), $actions );
-//
-//         return $actions;
-//     }
-// }
 
 
 

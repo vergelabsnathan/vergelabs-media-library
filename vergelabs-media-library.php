@@ -839,7 +839,6 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
     /**
      *  vergeml_register_scripts
      * 
-     *  @todo :: make a separate one for Elementor if need be
      *
      *  @since    2.9.1
      *  @created  2024/05
@@ -984,14 +983,6 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         wp_enqueue_script( 'vergeml-media-views-script' );
 
 
-        // TODO:
-        // wp_enqueue_script(
-        //     'vergeml-tags-box-script',
-        //     '/wp-admin/js/tags-box.js',
-        //     array(),
-        //     VERGEML_VERSION,
-        //     true
-        // );
 
 
         $media_models_l10n = array(

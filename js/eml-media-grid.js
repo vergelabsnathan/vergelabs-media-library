@@ -23,8 +23,8 @@ window.vergeml = window.vergeml || { l10n: {} };
         buttons: {
             check  : true,
             edit   : true,
-            remove : false, // TODO: consider 'delete' button
-            attach : false // TODO: consider 'attach' button
+            remove : false,
+            attach : false
         }
     });
 
@@ -615,7 +615,6 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 
 
-    //TODO: move to PHP side
     $('body').addClass('eml-grid');
 
 

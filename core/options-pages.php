@@ -284,7 +284,6 @@ function vergeml_load_media_options_page() {
     global $pagenow, $title;
 
     // to avoid the unknown global value (php 8)
-    // @todo: look deeper
     $title = '';
 
     $hook_suffix = $pagenow = 'options-media.php';

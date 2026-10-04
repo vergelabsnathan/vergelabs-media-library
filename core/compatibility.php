@@ -7,7 +7,6 @@ if ( ! defined( 'ABSPATH' ) )
 
 /**
  *  Elementor
- *  @TODO: temporary solution
  *
  *  @since    2.5
  *  @since    2.9.2 register scripts for Elementor added

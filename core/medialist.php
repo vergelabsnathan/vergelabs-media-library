@@ -105,11 +105,6 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
     if ( ! empty( $atts['type'] ) ) {
         $mime_type = $atts['type'];
     }
-    // @todo
-    // elseif ( ! empty( $output['type'] ) ) {
-    //     $mime_type = $output['type'];
-    //     unset( $output['type'] );
-    // }
     else {
         $mime_type = 'image';
     }
@@ -125,7 +120,7 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
         'post_mime_type' => $mime_type,
         'order' => $atts['order'],
         'orderby' => $atts['orderby'],
-        'posts_per_page' => $posts_per_page, // @todo :: add pagination
+        'posts_per_page' => $posts_per_page,
     );
 
 
