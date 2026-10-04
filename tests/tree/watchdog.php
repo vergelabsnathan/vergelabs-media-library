@@ -13,12 +13,10 @@
  *  were wrong:
  *
  *    - two crashes in an hour stop the features loading, so the site comes back;
- *    - a crash in somebody else's file is never counted. Deactivating our own
- *      features because another plugin is broken would be bad; the ladder ends
- *      in deactivation, so miscounting eventually switches off a plugin that was
- *      working perfectly;
- *    - safe mode is given a minute before the ladder goes any further, because
- *      one broken page view is many PHP requests and they all land at once;
+ *    - a crash in somebody else's file is never counted. Switching our own
+ *      features off because another plugin is broken would be bad;
+ *    - the plugin never deactivates itself, however many crashes follow; the
+ *      notice offers the owner a Deactivate button instead;
  *    - it can be switched back on, or the recovery is a trap.
  */
 
@@ -85,38 +83,46 @@ t( 'and it records what crashed', ! empty( $state['file'] ) && ! empty( $state['
 	basename( (string) $state['file'] ) . ':' . ( $state['line'] ?? '?' ) );
 t( 'with the moment safe mode began', ! empty( $state['safe_since'] ) );
 
-/* --- safe mode gets its minute -------------------------------------------- */
+/* --- the plugin never deactivates itself ---------------------------------- */
 
 /*
- *  A third strike immediately afterwards must not deactivate. One broken page
- *  is a page load, its ajax, its favicon and whatever else the browser asks for
- *  -- every one of them fatal, all inside the same second.
+ *  wordpress.org review 2 (2026-10-03): activating and deactivating plugins is
+ *  the owner's decision. Until 4.1.0 a crash in safe mode, a minute after it
+ *  began, deactivated the plugin. Now nothing does: more crashes, early or
+ *  late, leave it active and in safe mode, and the notice offers the button.
  */
 vergeml_watchdog_strike( $error );
 vergeml_watchdog_strike( $error );
 
-$state = get_option( 'vergeml_watchdog', array() );
-
-t( 'a burst of crashes does not deactivate the plugin', empty( $state['deactivated_at'] ),
-	empty( $state['deactivated_at'] ) ? 'still active' : 'DEACTIVATED' );
-t( 'the plugin really is still active', is_plugin_active( plugin_basename( VERGEML_FILE ) ) );
-
-/* --- but a crash a minute later does --------------------------------------- */
-
-$aged                = get_option( 'vergeml_watchdog', array() );
-$aged['safe_since']  = time() - ( 2 * MINUTE_IN_SECONDS );
+$aged               = get_option( 'vergeml_watchdog', array() );
+$aged['safe_since'] = time() - ( 2 * MINUTE_IN_SECONDS );
 update_option( 'vergeml_watchdog', $aged, true );
 
 vergeml_watchdog_strike( $error );
 
 $state = get_option( 'vergeml_watchdog', array() );
 
-t( 'a crash after safe mode has had its minute goes further', ! empty( $state['deactivated_at'] ),
-	empty( $state['deactivated_at'] ) ? 'NOT ESCALATED' : 'deactivated' );
+t( 'crashes in safe mode, a minute on, leave it in safe mode', ! empty( $state['safe'] ) );
+t( 'and record no deactivation', ! isset( $state['deactivated_at'] ) );
+t( 'the plugin really is still active', is_plugin_active( plugin_basename( VERGEML_FILE ) ) );
 
-// Put it back immediately: everything after this needs the plugin loaded.
-activate_plugin( plugin_basename( VERGEML_FILE ), '', false, true );
-t( 'and it can be switched on again', is_plugin_active( plugin_basename( VERGEML_FILE ) ) );
+$source = file_get_contents( $dir . 'core/watchdog.php' );
+
+t( 'the watchdog has no deactivate_plugins() call', ! preg_match( '/\bdeactivate_plugins\s*\(/', $source ) );
+
+// safe_mode() cached "no" when the plugin loaded; the constant is its override.
+if ( ! defined( 'VERGEML_SAFE_MODE' ) ) {
+	define( 'VERGEML_SAFE_MODE', true );
+}
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+ob_start();
+vergeml_watchdog_notice();
+$notice = ob_get_clean();
+
+t( 'the notice offers core\'s deactivate link with its nonce',
+	false !== strpos( $notice, 'action=deactivate' ) && false !== strpos( $notice, '_wpnonce=' ) );
+t( 'and links the Get help screen', false !== strpos( $notice, 'page=vergeml-help' ) );
 
 /* --- somebody else's crash never counts ------------------------------------ */
 

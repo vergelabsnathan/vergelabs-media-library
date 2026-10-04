@@ -328,6 +328,11 @@ const SUITES = [
 	 *  like get-help.
 	 */
 	{ name: 'ai-outage', file: 'tests/ai/outage.php', env: 'local', php: 'playground' },
+	/*
+	 *  The watchdog's ladder, in a local Playground: two crashes give safe mode,
+	 *  nothing ever deactivates the plugin (wordpress.org review 2, 2026-10-03).
+	 */
+	{ name: 'watchdog-php', file: 'tests/tree/watchdog.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },

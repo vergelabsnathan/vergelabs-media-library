@@ -15,20 +15,23 @@ if ( ! defined( 'ABSPATH' ) )
  *
  *  So this plugin watches itself. It does not watch anything else: a fatal is
  *  only counted when the file that died is inside this plugin's own directory.
- *  Deactivating on somebody else's crash would be both wrong and infuriating.
+ *  Stopping our features on somebody else's crash would be both wrong and
+ *  infuriating.
  *
- *  Three rungs, deliberately:
+ *  Two rungs:
  *
  *    1. A fatal in our code is recorded. Once is not a pattern -- a one-off can
  *       be a timeout, a corrupt upload, a host restarting mid-request.
  *    2. Twice inside an hour and the plugin puts itself in SAFE MODE: the
  *       feature files stop loading, so whatever crashed is no longer running,
- *       and the site comes back. The plugin stays active, which is the point --
- *       it can still show an admin notice explaining what happened and offer to
- *       switch back on.
- *    3. A fatal while already in safe mode means the small remaining shell is
- *       itself broken, so it deactivates outright. That is the last resort, and
- *       it is still better than a dead site.
+ *       and the site comes back. The plugin stays active and shows an admin
+ *       notice that explains what happened, with a button to switch the
+ *       features back on and one to deactivate the plugin.
+ *
+ *  The plugin never deactivates itself: activating and deactivating plugins is
+ *  the site owner's decision (wordpress.org plugin guidelines). If the small
+ *  shell that stays loaded in safe mode failed too, WordPress's own recovery
+ *  mode is what pauses the plugin.
  *
  *  Set VERGEML_NO_WATCHDOG in wp-config.php to switch all of this off.
  *
@@ -130,79 +133,58 @@ function vergeml_watchdog_strike( $error ) {
     $recent = isset( $prev['at'] ) && ( $now - (int) $prev['at'] ) < HOUR_IN_SECONDS;
     $count  = $recent && isset( $prev['count'] ) ? (int) $prev['count'] + 1 : 1;
 
-    $was_safe   = ! empty( $prev['safe'] );
-    $safe_since = isset( $prev['safe_since'] ) ? (int) $prev['safe_since'] : 0;
-
     $state = array(
         'count'      => $count,
         'at'         => $now,
         'file'       => (string) $error['file'],
         'line'       => isset( $error['line'] ) ? (int) $error['line'] : 0,
         'message'    => isset( $error['message'] ) ? substr( (string) $error['message'], 0, 500 ) : '',
-        'safe'       => $was_safe,
-        'safe_since' => $safe_since,
+        'safe'       => ! empty( $prev['safe'] ),
+        'safe_since' => isset( $prev['safe_since'] ) ? (int) $prev['safe_since'] : 0,
     );
 
-    /*
-     *  Rung three -- but only once safe mode has had a minute to prove itself.
-     *
-     *  One broken page view is not one PHP request. It is the page, its admin
-     *  ajax, its favicon, whatever else the browser asks for, and every one of
-     *  them fatals. Without this delay three of them land in the same second
-     *  and the plugin goes from healthy to deactivated without safe mode ever
-     *  being given the chance it exists for. Measured, not assumed: it is
-     *  exactly what happened the first time this was tested.
-     */
-    if ( $was_safe && $safe_since > 0 && ( $now - $safe_since ) >= MINUTE_IN_SECONDS ) {
-
-        if ( ! function_exists( 'deactivate_plugins' ) )
-            require_once ABSPATH . 'wp-admin/includes/plugin.php';
-
-        /*
-         *  On a network, never. deactivate_plugins() on a network-activated
-         *  plugin deactivates it for every site -- one subsite with a broken
-         *  upload would have switched the folders off for the whole agency.
-         *  That site stays in safe mode (its own option, its own notice), and
-         *  the network admin gets a notice naming it, so the person who can
-         *  actually judge whether this is the plugin or that site's data is
-         *  the one who decides.
-         */
-        if ( is_multisite() && is_plugin_active_for_network( plugin_basename( VERGEML_FILE ) ) ) {
-
-            $network = get_site_option( 'vergeml_watchdog_network', array() );
-            $network = is_array( $network ) ? $network : array();
-
-            $network[ get_current_blog_id() ] = array(
-                'at'      => $now,
-                'message' => $state['message'],
-                'file'    => $state['file'],
-                'line'    => $state['line'],
-            );
-
-            update_site_option( 'vergeml_watchdog_network', $network );
-            update_option( 'vergeml_watchdog', $state, true );
-
-            return;
-        }
-
-        $state['deactivated_at'] = $now;
-        update_option( 'vergeml_watchdog', $state, true );
-
-        // Silently: the deactivation hooks are more code, and more code is the
-        // thing currently failing. And this site only -- the network case
-        // returned above; the third argument says so explicitly.
-        deactivate_plugins( plugin_basename( VERGEML_FILE ), true, false );
-
-        return;
-    }
-
     // Rung two: stop loading the features and let the site come back.
-    if ( ! $was_safe && $count >= 2 ) {
+    if ( ! $state['safe'] && $count >= 2 ) {
         $state['safe']       = true;
         $state['safe_since'] = $now;
+
+        vergeml_watchdog_tell_network( $state );
     }
 
     update_option( 'vergeml_watchdog', $state, true );
+}
+
+
+/**
+ *  vergeml_watchdog_tell_network
+ *
+ *  On a network-activated install, names the site that went into safe mode
+ *  for the network administrator, who may never visit that site's dashboard.
+ *  The site keeps its own option and its own notice; this is only the list.
+ */
+
+function vergeml_watchdog_tell_network( $state ) {
+
+    if ( ! is_multisite() )
+        return;
+
+    if ( ! function_exists( 'is_plugin_active_for_network' ) )
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+    if ( ! is_plugin_active_for_network( plugin_basename( VERGEML_FILE ) ) )
+        return;
+
+    $network = get_site_option( 'vergeml_watchdog_network', array() );
+    $network = is_array( $network ) ? $network : array();
+
+    $network[ get_current_blog_id() ] = array(
+        'at'      => $state['at'],
+        'message' => $state['message'],
+        'file'    => $state['file'],
+        'line'    => $state['line'],
+    );
+
+    update_site_option( 'vergeml_watchdog_network', $network );
 }
 
 
@@ -281,9 +263,29 @@ function vergeml_watchdog_notice() {
 
     echo '<p><a href="' . esc_url( $resume ) . '" class="button button-primary">' .
         esc_html__( 'Switch the features back on', 'vergelabs-media-library' ) .
-        '</a> <a href="' . esc_url( admin_url( 'options-general.php?page=vergeml-settings&tab=report' ) ) . '" class="button">' .
+        '</a> <a href="' . esc_url( admin_url( 'admin.php?page=vergeml-help' ) ) . '" class="button">' .
         esc_html__( 'System report', 'vergelabs-media-library' ) .
-        '</a></p></div>';
+        '</a>';
+
+    /*
+     *  Deactivating is the owner's call, so it is a button: core's own
+     *  deactivate link, with core's nonce. Not offered for a network-activated
+     *  plugin, which only the network administrator can deactivate.
+     */
+    $plugin = plugin_basename( VERGEML_FILE );
+
+    if ( ! is_plugin_active_for_network( $plugin ) ) {
+        $deactivate = wp_nonce_url(
+            admin_url( 'plugins.php?action=deactivate&plugin=' . rawurlencode( $plugin ) ),
+            'deactivate-plugin_' . $plugin
+        );
+
+        echo ' <a href="' . esc_url( $deactivate ) . '" class="button">' .
+            esc_html__( 'Deactivate', 'vergelabs-media-library' ) .
+            '</a>';
+    }
+
+    echo '</p></div>';
 }
 
 
