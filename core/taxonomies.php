@@ -1455,17 +1455,16 @@ function vergeml_save_attachment_order() {
     $position = 0;
     $failed   = false;
 
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one column of one row, by primary key; the post is dropped from the object cache right after.
     foreach ( array_keys( $attachments2edit ) as $reordered_id ) {
 
-        // One column of one row, by primary key; the post is dropped from the object cache right after.
-        $updated = $wpdb->update( $wpdb->posts, array( 'menu_order' => ++$position ), array( 'ID' => $reordered_id ), array( '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
-        if ( false === $updated ) {
+        if ( false === $wpdb->update( $wpdb->posts, array( 'menu_order' => ++$position ), array( 'ID' => $reordered_id ), array( '%d' ), array( '%d' ) ) ) {
             $failed = true;
         }
 
         clean_post_cache( $reordered_id );
     }
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
     if ( $failed || ! $position )
         wp_send_json_error();
