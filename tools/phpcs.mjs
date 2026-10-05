@@ -166,6 +166,16 @@ for ( const s of sources ) {
 }
 console.log( 'TOTAL'.padEnd( 76 ) + String( honoured.findings.length ).padStart( 20 ) + String( ignored.findings.length ).padStart( 10 ) );
 
+// Plugin Check's plugin-review ruleset (phpcs-rulesets/plugin-check.ruleset.xml) turns two of these into warnings:
+// InterpolatedNotPrepared and the whole NonceVerification sniff. What is left at type ERROR is what a reviewer's run
+// flags as an error.
+const reviewError = ( f ) => 'ERROR' === f.type && ! /^WordPress\.DB\.PreparedSQL\.InterpolatedNotPrepared|^WordPress\.Security\.NonceVerification/.test( f.source );
+const reviewErrors = ignored.findings.filter( reviewError );
+console.log( 'ERRORS under plugin-review, annotations ignored'.padEnd( 76 ) + String( reviewErrors.length ).padStart( 30 ) );
+for ( const f of reviewErrors ) {
+	console.log( `  ${ f.file }:${ f.line }\t${ f.source }` );
+}
+
 const scanLines = scan.trim().split( '\n' );
 console.log( '\n' + scanLines[ scanLines.length - 1 ] );
 
@@ -173,7 +183,7 @@ if ( LIST || SCAN_ONLY ) {
 	console.log( '\n--- PHPCS, annotations ignored ---' );
 	for ( const f of ignored.findings.sort( ( x, y ) => x.file.localeCompare( y.file ) || x.line - y.line ) ) {
 		const honouredToo = honoured.findings.some( ( h ) => h.file === f.file && h.line === f.line && h.source === f.source );
-		console.log( `${ f.file }:${ f.line }\t${ f.source }${ honouredToo ? '' : '\t(suppressed by a phpcs comment)' }\t${ f.message.slice( 0, 140 ) }` );
+		console.log( `${ f.file }:${ f.line }\t${ f.type }\t${ f.source }${ honouredToo ? '' : '\t(suppressed by a phpcs comment)' }\t${ f.message.slice( 0, 140 ) }` );
 	}
 	console.log( '\n--- markup-scan ---' );
 	console.log( scan.trim() );
