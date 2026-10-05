@@ -133,7 +133,6 @@ function vergeml_menu_icon() {
 /** Every screen slug before 4.1.0, and what it is now. */
 function vergeml_admin_renamed_pages() {
     return array(
-        'media'                => 'vergeml-media-settings',
         'media-library'        => 'vergeml-library',
         'media-taxonomies'     => 'vergeml-taxonomies',
         'mime-types'           => 'vergeml-mime-types',
@@ -166,6 +165,13 @@ function vergeml_admin_menu_redirects() {
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- reading which screen was asked for and passing the request on unchanged; nothing is acted on here.
     $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+
+    // Until 4.1.0 the plugin had its own copy of Settings > Media at these two
+    // addresses. Core's own screen is the only one now.
+    if ( 'admin_page_access_denied' === current_filter() && in_array( $page, array( 'media', 'vergeml-media-settings' ), true ) ) {
+        wp_safe_redirect( admin_url( 'options-media.php' ), 301 );
+        exit;
+    }
 
     $renamed = vergeml_admin_renamed_pages();
     $new     = isset( $renamed[ $page ] ) ? $renamed[ $page ] : $page;

@@ -849,11 +849,6 @@ global $vergeml_dir,
         }
 
 
-        // scripts for grid view :: /wp-admin/upload.php
-        if ( isset( $current_screen ) && 'upload' === $current_screen->base && 'grid' === $media_library_mode ) {
-
-            wp_dequeue_script( 'media' );
-        }
     }
 
 
@@ -1107,14 +1102,14 @@ global $vergeml_dir,
                 true
             );
 
+            // After core's media.js, which stays: see the note at the top of the file.
             wp_enqueue_script(
                 'vergeml-media-script',
                 $vergeml_dir . 'js/eml-media.js',
-                array( 'media-grid', 'wp-i18n' ),
+                array( 'media', 'vergeml-media-grid-script' ),
                 VERGEML_VERSION,
                 true
             );
-            wp_set_script_translations( 'vergeml-media-script', 'vergelabs-media-library' );
             
             $media_grid_l10n = array(
                 'grid_show_caption' => (int) $vergeml_lib_options['grid_show_caption'],
@@ -1470,7 +1465,7 @@ global $vergeml_dir,
         $settings_page = is_network_admin() ? 'settings.php' : 'options-general.php';
 
         if ( ! is_network_admin() ) {
-            $custom_links['settings'] = '<a href="' . esc_url( self_admin_url( $settings_page . '?page=vergeml-media-settings' ) ) . '">' . esc_html__( 'Media Settings', 'vergelabs-media-library' ) . '</a>';
+            $custom_links['settings'] = '<a href="' . esc_url( admin_url( 'admin.php?page=' . VERGEML_MENU ) ) . '">' . esc_html__( 'Media Settings', 'vergelabs-media-library' ) . '</a>';
         }
 
         $custom_links['utility'] = '<a href="' . esc_url( self_admin_url( $settings_page . '?page=vergeml-utilities' ) ) . '">' . esc_html__( 'Utilities', 'vergelabs-media-library' ) . '</a>';

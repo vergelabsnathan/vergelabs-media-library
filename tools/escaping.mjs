@@ -74,10 +74,6 @@ const REVIEWED = {
 		[ '3b644de74c', 'a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow character appended' ],
 	],
 
-	'js/eml-media.js': [
-		[ '5075804ae4', "core's own Find Posts dialog: x.data is the HTML table core builds in wp_ajax_find_posts, behind core's nonce and capability. This mirrors core's media.js" ],
-	],
-
 	'js/vergeml-gallery.js': [
 		[ '8e5f448d16', 'glyph is a parameter of mk(), called exactly twice, both times with an HTML entity literal' ],
 	],

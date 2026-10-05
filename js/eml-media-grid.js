@@ -341,6 +341,31 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 
     /**
+     * wp.media.view.emlGridAttachment
+     *
+     * Bulk select, made additive -- in this grid only. Its selection is built
+     * with `multiple` off, so core's toggleSelection falls through to
+     * reset([model]): every click replaced the selection. In select mode a
+     * plain click toggles membership; shift-ranges pass through untouched.
+     * A subclass handed to this frame's library state, so no other media
+     * frame on the site changes.
+     */
+    media.view.emlGridAttachment = media.view.Attachment.Library.extend({
+
+        toggleSelection: function( options ) {
+
+            if ( this.controller && this.controller.isModeActive && this.controller.isModeActive( 'select' ) &&
+                    ( ! options || ! options.method ) ) {
+                options = _.extend( {}, options, { method: 'toggle' } );
+            }
+
+            return media.view.Attachment.Library.prototype.toggleSelection.call( this, options );
+        }
+    });
+
+
+
+    /**
      * wp.media.view.MediaFrame.emlGrid
      *
      */
@@ -417,6 +442,7 @@ window.vergeml = window.vergeml || { l10n: {} };
 
                     // searchable         : true,
                     filterable         : 'all',
+                    AttachmentView     : media.view.emlGridAttachment,
 
                     // autoSelect         : false, // true,
                     // editable:   true,
