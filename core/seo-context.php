@@ -273,7 +273,7 @@ function vergeml_seo_gap_ids( $limit = 0 ) {
     $star = vergeml_seo_cornerstone_keys();
     $tail = array( '%,', ',%', $wpdb->esc_like( 'image/' ) . '%', $cap );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names are $wpdb's, every value is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table names are $wpdb's, every value is bound: the key lists and the tail, spread, one per placeholder.
     if ( defined( 'AIOSEO_VERSION' ) ) {
 
         $ids = $wpdb->get_col( $wpdb->prepare(

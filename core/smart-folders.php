@@ -315,7 +315,7 @@ function vergeml_smart_counts( $fresh = false ) {
 
     $extended = function_exists( 'vergeml_ai_folders_counted' ) && vergeml_ai_folders_counted();
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- one indexed statement for a panel that ships with the page; table names are $wpdb's, every value is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $args is spread, one value per placeholder; one indexed statement for a panel that ships with the page; table names are $wpdb's, every value is bound.
     $wpdb->last_error = '';
 
     if ( $extended ) {

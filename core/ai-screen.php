@@ -113,7 +113,7 @@ function vergeml_ai_screen_counts() {
         'stale'     => function_exists( 'vergeml_ai_pending_count' ) ? (int) vergeml_ai_pending_count( 'stale' ) : 0,
     );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table, and core's.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- this plugin's own table, and core's; the filing sums take the sixteen patterns built above, spread, one per placeholder.
     $c['images'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type LIKE 'image/%'" );
     // DISTINCT: a picture with two alt rows (an import left duplicates on the box) is one picture with alt text.
     $c['alt_have'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_wp_attachment_image_alt' WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE 'image/%' AND m.meta_value <> ''" );

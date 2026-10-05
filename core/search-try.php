@@ -54,7 +54,7 @@ function vergeml_search_try( $q ) {
     }
     $image = $wpdb->esc_like( 'image/' ) . '%';
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- read-only; table names are $wpdb's, every value is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- read-only; table names are $wpdb's, every value is bound: the slots built above, spread, one per placeholder.
     $counts = $wpdb->get_row( $wpdb->prepare(
         "SELECT SUM( %d = 1 AND s.hay LIKE %s ) AS w0, SUM( %d = 1 AND s.hay LIKE %s ) AS w1,
                 SUM( %d = 1 AND s.hay LIKE %s ) AS w2, SUM( %d = 1 AND s.hay LIKE %s ) AS w3,
