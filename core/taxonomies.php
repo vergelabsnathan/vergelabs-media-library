@@ -1243,86 +1243,42 @@ function vergeml_get_media_term_count( $term_id, $tt_id ) {
 
 
 /**
- *  vergeml_save_attachment_compat
+ *  vergeml_compat_save_term_checkboxes
  *
- *  Based on /wp-admin/includes/ajax-actions.php
+ *  The folder and category checkboxes in the attachment details panel post
+ *  tax_input[taxonomy][term_id] along with core's save-attachment-compat.
+ *  Core's own handler answers that request; it has verified the
+ *  update-post nonce and edit_post on the attachment before it applies this
+ *  filter. The text fields (title, caption, a taxonomy typed as names) are
+ *  core's to save, exactly as core saves them.
  *
- *  @since    1.0.6
- *  @created  06/14/14
+ *  Until 4.1.0 this plugin answered save-attachment-compat in place of core.
+ *
+ *  @since    4.1.0
  */
 
-add_action( 'wp_ajax_save-attachment-compat', 'vergeml_save_attachment_compat', 0 );
+add_filter( 'attachment_fields_to_save', 'vergeml_compat_save_term_checkboxes', 10, 2 );
 
-function vergeml_save_attachment_compat() {
+function vergeml_compat_save_term_checkboxes( $post, $attachment_data ) {
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- only the id, and only to build the nonce action checked immediately below.
-    $id = isset( $_REQUEST['id'] ) ? absint( $_REQUEST['id'] ) : 0;
-
-    if ( ! $id )
-        wp_send_json_error();
-
-    /*
-     *  Verify before reading anything else. Upstream checked the nonce after
-     *  pulling the submitted fields out of the request; nothing was exploitable
-     *  because the write still came later, but there is no reason to touch the
-     *  payload of an unverified request at all.
-     */
-
-    check_ajax_referer( 'update-post_' . $id, 'nonce' );
-
-    if ( empty( $_REQUEST['attachments'] ) || empty( $_REQUEST['attachments'][ $id ] ) )
-        wp_send_json_error();
-
-
-    $vergeml_lib_options = get_option( 'vergeml_lib_options' );
-
-    /*
-     *  Attachment field content -- title, caption, description, alt text,
-     *  and a taxonomy's comma-separated term names -- is handed to the
-     *  attachment_fields_to_save filter and then to wp_update_post, both of
-     *  which expect slashed input, as core's wp_ajax_save_attachment_compat
-     *  hands it. So it is unslashed, run through wp_kses_post (the markup a
-     *  post may hold, which is what these fields may hold), and slashed
-     *  again: the same shape downstream, with nothing in it a post could not
-     *  carry.
-     */
-    $attachment_data = wp_slash( map_deep( wp_unslash( (array) $_REQUEST['attachments'][ $id ] ), 'wp_kses_post' ) );
-
-    if ( ! current_user_can( 'edit_post', $id ) )
-        wp_send_json_error();
-
-    $post = get_post( $id, ARRAY_A );
-
-    if ( 'attachment' != $post['post_type'] )
-        wp_send_json_error();
-
-    /** This filter is documented in wp-admin/includes/media.php */
-    // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter; this handler stands in for core's, so it must run the same filter.
-    $post = apply_filters( 'attachment_fields_to_save', $post, $attachment_data );
-    // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-
-    if ( isset( $post['errors'] ) ) {
-
-        $errors = $post['errors'];
-        unset( $post['errors'] );
+    if ( ! wp_doing_ajax() || ! doing_action( 'wp_ajax_save-attachment-compat' ) || empty( $post['ID'] ) ) {
+        return $post;
     }
 
-    wp_update_post( $post );
+    $id = (int) $post['ID'];
 
-
-    $media_taxonomy_names = get_object_taxonomies( 'attachment','names' );
-
-    if ( (bool) $vergeml_lib_options['show_count'] ) {
-
-        $terms = get_terms( array( 'taxonomy' => $media_taxonomy_names, 'fields' => 'all', 'get' => 'all' ) );
-        $term_pairs = vergeml_get_media_term_pairs( $terms, 'id=>tt_id' );
+    // Core checked this nonce a moment ago; asking again costs nothing and keeps the request read honest.
+    if ( ! check_ajax_referer( 'update-post_' . $id, 'nonce', false ) || ! current_user_can( 'edit_post', $id ) ) {
+        return $post;
     }
 
+    if ( empty( $_REQUEST['tax_input'] ) || ! is_array( $_REQUEST['tax_input'] ) ) {
+        return $post;
+    }
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- check_ajax_referer( 'update-post_' . $id ) above.
-    $tax_input = isset( $_REQUEST['tax_input'] ) && is_array( $_REQUEST['tax_input'] ) ? map_deep( wp_unslash( $_REQUEST['tax_input'] ), 'sanitize_text_field' ) : array();
+    $tax_input = map_deep( wp_unslash( $_REQUEST['tax_input'] ), 'sanitize_text_field' );
 
-    foreach ( $media_taxonomy_names as $taxonomy ) {
+    foreach ( get_object_taxonomies( 'attachment', 'names' ) as $taxonomy ) {
 
         $tax_object = get_taxonomy( $taxonomy );
 
@@ -1331,41 +1287,51 @@ function vergeml_save_attachment_compat() {
             continue;
         }
 
-        /*
-         *  Only a taxonomy the request names is touched. A taxonomy it does not
-         *  name keeps its terms -- until 4.1.0 it was set to whatever the
-         *  previous taxonomy in the loop had been given, or emptied.
-         */
-        if ( isset( $attachment_data[ $taxonomy ] ) && is_string( $attachment_data[ $taxonomy ] ) ) {
-
-            $term_ids = array_map( 'trim', preg_split( '/,+/', $attachment_data[ $taxonomy ] ) );
-        }
-        elseif ( isset( $tax_input[ $taxonomy ] ) && is_array( $tax_input[ $taxonomy ] ) ) {
-
-            $term_ids = array_map( 'absint', array_keys( $tax_input[ $taxonomy ], '1', false ) );
-        }
-        else {
+        // A taxonomy typed as names is core's to save; one the request does not name keeps its terms.
+        if ( isset( $attachment_data[ $taxonomy ] ) || ! isset( $tax_input[ $taxonomy ] ) || ! is_array( $tax_input[ $taxonomy ] ) ) {
             continue;
         }
 
-        wp_set_object_terms( $id, $term_ids, $taxonomy, false );
-
-        if ( (bool) $vergeml_lib_options['show_count'] ) {
-
-            foreach( $term_pairs as $term_id => $tt_id) {
-                $tcount[$term_id] = vergeml_get_media_term_count( $term_id, $tt_id );
-            }
-        }
+        wp_set_object_terms( $id, array_map( 'absint', array_keys( $tax_input[ $taxonomy ], '1', false ) ), $taxonomy, false );
     }
 
-    if ( ! $attachment = wp_prepare_attachment_for_js( $id ) )
-        wp_send_json_error();
-
-    if ( (bool) $vergeml_lib_options['show_count'] )
-        $attachment['tcount'] = $tcount;
+    return $post;
+}
 
 
-    wp_send_json_success( $attachment );
+/**
+ *  vergeml_compat_term_counts
+ *
+ *  The counts beside each term in the grid's taxonomy filters, carried on
+ *  the attachment core sends back from save-attachment-compat
+ *  (js/vergeml-media-views.js reads `tcount`). Only on that reply.
+ *
+ *  @since    4.1.0
+ */
+
+add_filter( 'wp_prepare_attachment_for_js', 'vergeml_compat_term_counts' );
+
+function vergeml_compat_term_counts( $response ) {
+
+    if ( ! wp_doing_ajax() || ! doing_action( 'wp_ajax_save-attachment-compat' ) ) {
+        return $response;
+    }
+
+    $vergeml_lib_options = get_option( 'vergeml_lib_options' );
+
+    if ( empty( $vergeml_lib_options['show_count'] ) ) {
+        return $response;
+    }
+
+    $terms = get_terms( array( 'taxonomy' => get_object_taxonomies( 'attachment', 'names' ), 'fields' => 'all', 'get' => 'all' ) );
+
+    $response['tcount'] = array();
+
+    foreach ( vergeml_get_media_term_pairs( $terms, 'id=>tt_id' ) as $term_id => $tt_id ) {
+        $response['tcount'][ $term_id ] = vergeml_get_media_term_count( $term_id, $tt_id );
+    }
+
+    return $response;
 }
 
 
@@ -1412,13 +1378,15 @@ function vergeml_ajax_term_counts() {
 /**
  *  vergeml_save_attachment_order
  *
- *  Based on /wp-admin/includes/ajax-actions.php
+ *  The plugin's own ordering action, asked by js/eml-media-models.js. Core's
+ *  save-attachment-order needs a post; this one also orders the library
+ *  itself (post_id 0). Until 4.1.0 it answered core's action name.
  *
  *  @since    2.2
  *  @created  11/02/16
  */
 
-add_action( 'wp_ajax_save-attachment-order', 'vergeml_save_attachment_order', 0 );
+add_action( 'wp_ajax_vergeml-save-attachment-order', 'vergeml_save_attachment_order' );
 
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 

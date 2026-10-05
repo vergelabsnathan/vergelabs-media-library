@@ -105,7 +105,7 @@ window.vergeml = window.vergeml || { l10n: {} };
                 return;
             }
 
-            return wp.media.post( 'save-attachment-order', {
+            return wp.media.post( 'vergeml-save-attachment-order', {
                 nonce: nonce,
                 post_id: wp.media.model.settings.post.id,
                 attachments: attachments
