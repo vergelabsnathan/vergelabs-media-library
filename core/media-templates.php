@@ -16,7 +16,7 @@ add_action( 'print_media_templates', 'vergeml_print_media_templates' );
 
 function vergeml_print_media_templates() { ?>
 
-    <script type="text/html" id="tmpl-attachment-grid-view">
+    <script type="text/html" id="tmpl-vergeml-attachment-grid-view">
 
         <#
         show_caption = parseInt(vergeml_media_grid_l10n.grid_show_caption);

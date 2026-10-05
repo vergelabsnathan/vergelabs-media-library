@@ -35,7 +35,7 @@ window.vergeml = window.vergeml || { l10n: {} };
 
     _.extend( media.view.Attachment.prototype, {
 
-        template:  media.template('attachment-grid-view'),
+        template:  media.template('vergeml-attachment-grid-view'),
 
         events: newEvents,
 
