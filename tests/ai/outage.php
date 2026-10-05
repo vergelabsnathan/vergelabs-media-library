@@ -394,14 +394,16 @@ ao_check( 'a demo (mock) row the service refuses is marked, not kept as if real'
 
 /* ------------------------------------------------ 9. the service back */
 
-echo "\n9  the service back: one step after the hold lapses\n";
+echo "\n9  the service back: the steps after the hold lapses\n";
 
+// Six waiting, five to a step (VERGEML_AI_STEP_MAX): two steps, and nothing asked twice.
 delete_transient( 'vergeml_ai_recent' );
 $GLOBALS['ao_answer'] = 'back';
-$ao_r9 = vergeml_ai_index_step( 'unindexed', 24, true );
-$ao_r9_ids = array_map( function ( $d ) { return (int) $d['id']; }, $ao_r9['described'] );
+$ao_r9  = vergeml_ai_index_step( 'unindexed', 24, true );
+$ao_r9b = vergeml_ai_index_step( 'unindexed', 24, true );
+$ao_r9_ids = array_map( function ( $d ) { return (int) $d['id']; }, array_merge( $ao_r9['described'], $ao_r9b['described'] ) );
 
-ao_check( 'everything still waiting is described: B, E and the four of step 6', 6 === ao_describes() && 6 === count( $ao_r9['described'] ) && in_array( $ao_b, $ao_r9_ids, true ) && in_array( $ao_e, $ao_r9_ids, true ) && empty( $ao_r9['errors'] ), count( $ao_r9['described'] ) . ' described: ' . implode( ', ', $ao_r9_ids ) );
+ao_check( 'everything still waiting is described, five then one: B, E and the four of step 6', 6 === ao_describes() && 5 === count( $ao_r9['described'] ) && 1 === count( $ao_r9b['described'] ) && 6 === count( array_unique( $ao_r9_ids ) ) && in_array( $ao_b, $ao_r9_ids, true ) && in_array( $ao_e, $ao_r9_ids, true ) && empty( $ao_r9['errors'] ) && empty( $ao_r9b['errors'] ), count( $ao_r9_ids ) . ' described: ' . implode( ', ', $ao_r9_ids ) );
 ao_check( 'the alt text is on B', 'One pixel' === get_post_meta( $ao_b, '_wp_attachment_image_alt', true ) );
 ao_check( "'unindexed' is empty", array() === vergeml_ai_pending( 'unindexed' ), wp_json_encode( vergeml_ai_pending( 'unindexed' ) ) );
 

@@ -1298,18 +1298,24 @@ function vergeml_ai_recently_described( $ids = null, $record = false ) {
 
 function vergeml_ai_index_step( $scope, $limit, $apply_alt ) {
 
-    $ids    = vergeml_ai_pending( $scope, max( 1, min( VERGEML_AI_STEP_MAX, $limit ) ) );
+    $want   = max( 1, min( VERGEML_AI_STEP_MAX, $limit ) );
     $done   = array();
     $errors = array();
 
     /*
      *  Anything described in the last ten minutes is held back, and if that
      *  is everything the step was offered, the run is told it is finished
-     *  rather than handed the same eight files again. See
+     *  rather than handed the same files again. See
      *  vergeml_ai_recently_described() for the day this earned its place.
+     *
+     *  The window is widened by however many are held, so a held file does
+     *  not take a place in the step: with five to a step, five pictures the
+     *  service did not answer for would otherwise be the whole of every step
+     *  until their hold lapsed, and nothing behind them would move.
      */
+    $ids  = vergeml_ai_pending( $scope, $want + count( vergeml_ai_recently_described() ) );
     $held = vergeml_ai_recently_described( $ids );
-    $ids  = array_values( array_diff( $ids, $held ) );
+    $ids  = array_slice( array_values( array_diff( $ids, $held ) ), 0, $want );
 
     if ( ! $ids && $held ) {
         return array(
