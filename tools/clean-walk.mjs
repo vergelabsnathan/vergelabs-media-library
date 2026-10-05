@@ -84,6 +84,13 @@ file_put_contents( '/out/http.log', '' );`,
 };
 fs.writeFileSync( path.join( work, 'blueprint.json' ), JSON.stringify( blueprint ) );
 
+// Nothing may already answer here: a server left over from an earlier walk would be walked instead of this archive.
+const taken = await fetch( BASE + '/wp-login.php' ).then( () => true, () => false );
+if ( taken ) {
+	console.error( `Something already answers on ${ BASE } -- a leftover server would be walked instead of ${ commit }. Stop it first.` );
+	process.exit( 2 );
+}
+
 const server = spawn( 'npx', [ '-y', PLAYGROUND_CLI, 'server', `--port=${ PORT }`, '--php=8.3', '--wp=latest',
 	'--mount-dir', path.join( arch, 'vergelabs-media-library' ), '/wordpress/wp-content/plugins/vergelabs-media-library',
 	'--mount-dir', out, '/out',
@@ -100,7 +107,11 @@ for ( let i = 0; i < 300 && ! booted; i++ ) {
 }
 if ( ! booted ) {
 	console.error( 'Playground did not answer in five minutes -- nothing was walked.' );
-	server.kill();
+	if ( 'win32' === process.platform ) {
+		try { execFileSync( 'taskkill', [ '/PID', String( server.pid ), '/T', '/F' ], { stdio: 'ignore' } ); } catch ( e ) { /* already gone */ }
+	} else {
+		server.kill();
+	}
 	process.exit( 2 );
 }
 
@@ -338,13 +349,25 @@ try {
 	exitCode = 1;
 }
 
-server.kill();
+// On Windows the spawned shell is not the server: end the whole tree, or it keeps the port.
+const stopServer = () => {
+	if ( 'win32' === process.platform ) {
+		try { execFileSync( 'taskkill', [ '/PID', String( server.pid ), '/T', '/F' ], { stdio: 'ignore' } ); } catch ( e ) { /* already gone */ }
+	} else {
+		server.kill();
+	}
+};
+stopServer();
 
 const debug = fs.existsSync( path.join( out, 'debug.log' ) ) ? fs.readFileSync( path.join( out, 'debug.log' ), 'utf8' ) : '';
 const http = fs.existsSync( path.join( out, 'http.log' ) ) ? fs.readFileSync( path.join( out, 'http.log' ), 'utf8' ) : '';
 const ours = debug.split( '\n' ).filter( ( l ) => /vergelabs-media-library/.test( l ) );
 const outbound = http.split( '\n' ).filter( Boolean );
 const outboundOurs = outbound.filter( ( l ) => /vergeml_|vergelabs-media-library/.test( l ) );
+// The blueprint creates http.log; no file means the logger and the /out mount never ran, and every count below is empty for that reason.
+if ( ! fs.existsSync( path.join( out, 'http.log' ) ) ) {
+	row( false, 'the outbound logger wrote nothing: /out was not this site\'s, so debug.log and the request counts prove nothing' );
+}
 
 console.log( `clean-site walk of ${ commit } (${ REF })\n` );
 console.log( rows.join( '\n' ) );
