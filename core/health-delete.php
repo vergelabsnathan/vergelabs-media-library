@@ -175,6 +175,96 @@ function vergeml_health_pick_keep( $ids ) {
  * @return array{content:int,thumbs:int} What was changed.
  */
 /**
+ *  Whether this person may have this content written into this post: they
+ *  may edit the post, and kses would not cut anything out of it on the way
+ *  in. wp_update_post() runs content through kses for anyone without
+ *  unfiltered_html (an administrator on a multisite), and a post that holds
+ *  an iframe would lose it -- a duplicate file is not worth that.
+ */
+function vergeml_health_may_rewrite( $post_id, $content ) {
+
+	return current_user_can( 'edit_post', (int) $post_id )
+		&& ( current_user_can( 'unfiltered_html' ) || wp_kses_post( $content ) === $content );
+}
+
+/**
+ *  Write a post's content the way an edit does: wp_update_post(), so
+ *  revisions, save_post and the caches see it. Slashed, as it expects.
+ */
+function vergeml_health_write_content( $post_id, $content ) {
+
+	$done = wp_update_post( wp_slash( array( 'ID' => (int) $post_id, 'post_content' => $content ) ), true );
+
+	return $done && ! is_wp_error( $done );
+}
+
+/**
+ *  The posts a repoint from one file to the other would change that this
+ *  person may not change: no edit_post on them, or content kses would cut.
+ *  A file is deleted only when this is empty; otherwise a reference that
+ *  could not be moved would break when the file goes.
+ *
+ * @return int[]
+ */
+function vergeml_health_repoint_refused( $from, $to ) {
+
+	global $wpdb;
+
+	$from    = (int) $from;
+	$to      = (int) $to;
+	$refused = array();
+	$old_url = wp_get_attachment_url( $from );
+	$new_url = wp_get_attachment_url( $to );
+
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- the same reads vergeml_health_repoint() makes, before it writes.
+	if ( is_string( $old_url ) && is_string( $new_url ) && $old_url !== $new_url ) {
+
+		$old_stem = preg_replace( '/\.[a-zA-Z0-9]+$/', '', $old_url );
+		$new_stem = preg_replace( '/\.[a-zA-Z0-9]+$/', '', $new_url );
+		$like     = '%' . $wpdb->esc_like( $old_stem ) . '%';
+
+		$posts = $wpdb->get_results( $wpdb->prepare(
+			"SELECT ID, post_content FROM {$wpdb->posts} WHERE post_content LIKE %s AND post_status != 'trash'",
+			$like
+		) );
+
+		foreach ( (array) $posts as $post ) {
+			$content = vergeml_health_repoint_ids( str_replace( $old_stem, $new_stem, $post->post_content ), $from, $to );
+			if ( $content !== $post->post_content && ! vergeml_health_may_rewrite( (int) $post->ID, $content ) ) {
+				$refused[] = (int) $post->ID;
+			}
+		}
+
+		foreach ( (array) $wpdb->get_col( $wpdb->prepare(
+			"SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key <> '_thumbnail_id' AND meta_value LIKE %s",
+			$like
+		) ) as $post_id ) {
+			if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
+				$refused[] = (int) $post_id;
+			}
+		}
+	}
+
+	$holders = $wpdb->get_col( $wpdb->prepare(
+		"SELECT post_id FROM {$wpdb->postmeta}
+		  WHERE ( meta_key = '_thumbnail_id' AND meta_value = %s )
+		     OR ( meta_key = '_product_image_gallery' AND CONCAT( ',', meta_value, ',' ) LIKE %s )",
+		(string) $from,
+		'%,' . $wpdb->esc_like( (string) $from ) . ',%'
+	) );
+	// phpcs:enable
+
+	foreach ( (array) $holders as $post_id ) {
+		if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
+			$refused[] = (int) $post_id;
+		}
+	}
+
+	return array_values( array_unique( $refused ) );
+}
+
+
+/**
  *  The attachment id where a block or a builder wrote it, moved from one
  *  copy to the other. Whole ids only: 12 is not the front of 123.
  */
@@ -233,18 +323,13 @@ function vergeml_health_repoint( $from, $to ) {
 			// wp-image-123.
 			$content = vergeml_health_repoint_ids( $content, $from, $to );
 
-			if ( $content === $post->post_content ) {
+			if ( $content === $post->post_content || ! vergeml_health_may_rewrite( (int) $post->ID, $content ) ) {
 				continue;
 			}
 
-			$wpdb->update(
-				$wpdb->posts,
-				array( 'post_content' => $content ),
-				array( 'ID' => (int) $post->ID )
-			);
-
-			clean_post_cache( (int) $post->ID );
-			$changed['content']++;
+			if ( vergeml_health_write_content( (int) $post->ID, $content ) ) {
+				$changed['content']++;
+			}
 		}
 		// phpcs:enable
 	}
@@ -427,6 +512,12 @@ function vergeml_health_delete_copies( $keep, $drop ) {
 
 		$path  = get_attached_file( $id );
 		$bytes = ( is_string( $path ) && file_exists( $path ) ) ? (int) filesize( $path ) : 0;
+
+		// A reference this person may not move stays, and so does the file it points at.
+		if ( vergeml_health_repoint_refused( $id, $keep ) ) {
+			$failed[] = $id;
+			continue;
+		}
 
 		// Everything pointing at it moves first. Deleting is the last step.
 		$moved    = vergeml_health_repoint( $id, $keep );

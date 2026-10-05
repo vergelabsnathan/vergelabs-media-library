@@ -392,19 +392,24 @@ function vergeml_health_rewrite_source( $source_id, $from, $to, $map, &$record )
 
 	$post = get_post( $source_id );
 
-	if ( ! $post ) {
+	// A post this person may not edit is not rewritten; its use stays, and so does the file.
+	if ( ! $post || ! current_user_can( 'edit_post', $source_id ) ) {
 		return false;
 	}
-
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- the same direct writes core/health-delete.php makes, recorded for undo.
 
 	$content = vergeml_health_rewrite_text( $post->post_content, $map, $from, $to );
 
 	if ( $content !== $post->post_content ) {
-		$wpdb->update( $wpdb->posts, array( 'post_content' => $content ), array( 'ID' => $source_id ) );
-		clean_post_cache( $source_id );
-		$record['posts'][] = array( 'id' => $source_id, 'before' => $post->post_content, 'after' => $content );
+
+		if ( ! vergeml_health_may_rewrite( $source_id, $content ) || ! vergeml_health_write_content( $source_id, $content ) ) {
+			return false;
+		}
+
+		// What was stored, which undo compares against: save_post filters may have touched it.
+		$record['posts'][] = array( 'id' => $source_id, 'before' => $post->post_content, 'after' => (string) get_post_field( 'post_content', $source_id, 'raw' ) );
 	}
+
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- meta rows by meta_id, as core/health-delete.php does, recorded for undo.
 
 	$rows = $wpdb->get_results( $wpdb->prepare(
 		"SELECT meta_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE post_id = %d",
@@ -737,9 +742,9 @@ function vergeml_health_keep_undo( $token ) {
 
 	foreach ( (array) $record['posts'] as $change ) {
 		clean_post_cache( (int) $change['id'] );
-		if ( (string) get_post_field( 'post_content', (int) $change['id'] ) === (string) $change['after'] ) {
-			$wpdb->update( $wpdb->posts, array( 'post_content' => $change['before'] ), array( 'ID' => (int) $change['id'] ) );
-			clean_post_cache( (int) $change['id'] );
+		if ( (string) get_post_field( 'post_content', (int) $change['id'], 'raw' ) === (string) $change['after']
+				&& vergeml_health_may_rewrite( (int) $change['id'], (string) $change['before'] )
+				&& vergeml_health_write_content( (int) $change['id'], (string) $change['before'] ) ) {
 			$back++;
 		} else {
 			$kept++; // Edited since; left as the person left it.
