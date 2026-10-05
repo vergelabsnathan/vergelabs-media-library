@@ -732,60 +732,6 @@ function vergeml_ai_filing( $raw ) {
 }
 
 /**
- *  How many descriptions are in flight at once.
- *
- *  The loop that fills a backlog was strictly sequential: one request, wait
- *  for the model, next. Almost all of that time is waiting, so five hundred
- *  pictures took half an hour of a browser tab doing nothing. Eight at a time
- *  turns that into about four minutes.
- *
- *  Sixteen, and the ceiling was measured rather than guessed.
- *
- *  This said eight "because the ceiling is not this end", which was the right
- *  instinct and the wrong number: nobody had asked the provider what it would
- *  take. Sustained against the live provider with retention routing on, 3
- *  September 2026:
- *
- *      16 in flight -> 245/min   p50 3.6s   0 failed
- *      32 in flight -> 502/min   p50 3.5s   0 failed
- *      64 in flight -> 948/min   p50 3.6s   0 failed
- *
- *  Throughput doubles with concurrency and latency does not move, which is
- *  what "nowhere near the ceiling" looks like from the outside. A provider
- *  under strain slows down first and refuses second; this did neither.
- *
- *  The default stays at eight. Headroom belongs in the ceiling, not in what
- *  every site does by default: this opens connections from the customer's own
- *  server, and a cheap shared plan runs out of PHP workers long before the
- *  model runs out of capacity. No customer today has a library big enough to
- *  need more, so raising the default would be spending somebody else's hosting
- *  to solve a problem nobody has.
- *
- *  The cap is sixty-four so an install that does need it -- an agency, a
- *  single enormous library -- can be turned up to what was actually measured
- *  with one filter, and no higher without measuring again.
- */
-const VERGEML_AI_PARALLEL = 8;
-
-
-function vergeml_ai_parallel() {
-
-    // One default for every site, whatever its licence: how fast the plugin runs on a server is not a plan feature.
-    $default = VERGEML_AI_PARALLEL;
-
-    // A wp-config knob for a site that has measured its own service and
-    // wants more, or less: define( 'VERGEML_AI_PARALLEL_FORCE', 16 );
-    if ( defined( 'VERGEML_AI_PARALLEL_FORCE' ) && (int) VERGEML_AI_PARALLEL_FORCE > 0 ) {
-        $default = (int) VERGEML_AI_PARALLEL_FORCE;
-    }
-
-    $n = (int) apply_filters( 'vergeml_ai_parallel', $default );
-
-    return max( 1, min( 64, $n ) );
-}
-
-
-/**
  *  An answer the service did not give for this picture: no answer at all
  *  (the transport failed, on either path, or WordPress was told not to make
  *  outbound requests), or a status that says "not now" -- any 5xx, and the
@@ -814,112 +760,23 @@ function vergeml_ai_transient( $error ) {
 }
 
 /**
- *  Describe several, in flight together.
+ *  Describe several, one after another.
  *
  *  Returns attachment id => the same thing vergeml_ai_describe() returns for
  *  it, so the caller's error handling does not change at all.
  *
- *  WpOrg\Requests is WordPress's own bundled HTTP library -- core uses it for
- *  update checks -- and request_multiple() is curl_multi underneath. No queue,
- *  no worker, no second service.
- *
- *  It does bypass the WP_Http layer, which means the pre_http_request filter
- *  and WP_PROXY_HOST do not apply to it. A site behind a proxy is therefore
- *  sent down the sequential path instead: slower, and it works, which is the
- *  right way round.
+ *  Every call goes through wp_remote_post(), so http_request_args,
+ *  pre_http_request, the proxy settings and WP_HTTP_BLOCK_EXTERNAL apply to
+ *  each one. Until 4.1.0 a group went out together through
+ *  Requests::request_multiple(), which the HTTP API cannot see.
  */
 
 function vergeml_ai_describe_many( $ids ) {
 
-    $ids = array_values( array_unique( array_map( 'intval', (array) $ids ) ) );
     $out = array();
 
-    if ( ! $ids ) {
-        return $out;
-    }
-
-    /*
-     *  A seam for the suites: the parallel path below goes through
-     *  Requests::request_multiple, which pre_http_request cannot reach, so a
-     *  test that wants the loop to see a 'vergeml_ai_transport' answer hands
-     *  it here. Null means "ask the service".
-     */
-    $handed = apply_filters( 'vergeml_ai_describe_answers', null, $ids );
-    if ( is_array( $handed ) ) {
-        return $handed;
-    }
-
-    $settings = vergeml_ai_settings();
-    $mock     = ! empty( $settings['mock'] ) || defined( 'VERGEML_AI_MOCK' );
-
-    $sequential = $mock
-        || defined( 'WP_PROXY_HOST' )
-        || ! class_exists( '\WpOrg\Requests\Requests' )
-        || 1 === vergeml_ai_parallel();
-
-    if ( $sequential ) {
-
-        foreach ( $ids as $id ) {
-            $out[ $id ] = vergeml_ai_describe( $id );
-        }
-
-        return $out;
-    }
-
-    foreach ( array_chunk( $ids, vergeml_ai_parallel() ) as $group ) {
-
-        $requests = array();
-
-        foreach ( $group as $id ) {
-
-            $request = vergeml_ai_describe_request( $id );
-
-            // A file that cannot even be read never becomes a request, and
-            // its error is the one the caller would have got anyway.
-            if ( is_wp_error( $request ) ) {
-                $out[ $id ] = $request;
-                continue;
-            }
-
-            $requests[ $id ] = array(
-                'url'     => $request['url'],
-                'headers' => $request['headers'],
-                'data'    => $request['body'],
-                'type'    => \WpOrg\Requests\Requests::POST,
-            );
-        }
-
-        if ( ! $requests ) {
-            continue;
-        }
-
-        try {
-            $answers = \WpOrg\Requests\Requests::request_multiple( $requests, array(
-                'timeout'          => 60,
-                'connect_timeout'  => 15,
-                'verify'           => true,
-            ) );
-        } catch ( \Exception $e ) {
-
-            // The whole group failed to go out. Every file in it is reported
-            // as failed rather than silently skipped -- a file that quietly
-            // never gets described is worse than one that says why.
-            foreach ( array_keys( $requests ) as $id ) {
-                $out[ $id ] = new WP_Error( 'vergeml_ai_transport', $e->getMessage() );
-            }
-
-            continue;
-        }
-
-        foreach ( $answers as $id => $answer ) {
-
-            if ( $answer instanceof \WpOrg\Requests\Exception || $answer instanceof \Exception ) {
-                $out[ (int) $id ] = new WP_Error( 'vergeml_ai_transport', $answer->getMessage() );
-                continue;
-            }
-
-            $out[ (int) $id ] = vergeml_ai_describe_result( $answer->status_code, $answer->body );
-        }
+    foreach ( array_values( array_unique( array_map( 'intval', (array) $ids ) ) ) as $id ) {
+        $out[ $id ] = vergeml_ai_describe( $id );
     }
 
     return $out;
@@ -1379,13 +1236,10 @@ function vergeml_ai_pending_count( $scope ) {
 /**
  *  The most files one call will take on.
  *
- *  Was ten, when they went one at a time. Eight in flight makes a group take
- *  about as long as one file used to, so the ceiling that matters now is the
- *  execution time a shared host allows -- three groups of eight is roughly
- *  twelve seconds, comfortably inside the thirty second cap those hosts still
- *  ship, with the slowest plausible group still leaving room.
+ *  One at a time, about four seconds each, so five is roughly twenty seconds:
+ *  inside the thirty second cap shared hosts still ship.
  */
-const VERGEML_AI_STEP_MAX = 24;
+const VERGEML_AI_STEP_MAX = 5;
 
 /**
  *  vergeml_ai_index_step
@@ -1746,42 +1600,43 @@ function vergeml_ai_index_store( $id, $described, $apply_alt ) {
  */
 
 /**
- *  The one condition both readers share: a catalogue alt written, and none
- *  on the file. Never overwrites -- the file's own alt, however it got there,
+ *  Both readers share one condition: a catalogue alt written, and none on
+ *  the file. Never overwrites -- the file's own alt, however it got there,
  *  keeps the picture out of this set (spec §2 Step 4).
  */
-function vergeml_ai_alt_pending_from() {
-
-    global $wpdb;
-
-    return "FROM {$wpdb->vergeml_ai_index} i
-      LEFT JOIN {$wpdb->postmeta} alt
-             ON alt.post_id = i.attachment_id AND alt.meta_key = '_wp_attachment_image_alt'
-          WHERE i.error = '' AND i.alt <> ''
-            AND ( alt.meta_id IS NULL OR alt.meta_value = '' )";
-}
-
 function vergeml_ai_alt_pending( $limit = 0 ) {
 
     global $wpdb;
 
     $cap = $limit > 0 ? (int) $limit : PHP_INT_MAX;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-        'SELECT i.attachment_id ' . vergeml_ai_alt_pending_from() . ' ORDER BY i.attachment_id ASC LIMIT %d',
+        "SELECT i.attachment_id FROM {$wpdb->vergeml_ai_index} i
+           LEFT JOIN {$wpdb->postmeta} alt
+                  ON alt.post_id = i.attachment_id AND alt.meta_key = '_wp_attachment_image_alt'
+               WHERE i.error = '' AND i.alt <> ''
+                 AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
+            ORDER BY i.attachment_id ASC LIMIT %d",
         $cap
     ) ) );
     // phpcs:enable
 }
 
-/** How many, without the list: the number on the Folders screen's Alt text step. */
+/** How many, without the list: the number on the Folders screen's Alt text step. The same condition. */
 function vergeml_ai_alt_pending_count() {
 
     global $wpdb;
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table.
-    return (int) $wpdb->get_var( 'SELECT COUNT(*) ' . vergeml_ai_alt_pending_from() );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    return (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} i
+           LEFT JOIN {$wpdb->postmeta} alt
+                  ON alt.post_id = i.attachment_id AND alt.meta_key = '_wp_attachment_image_alt'
+               WHERE i.error = '' AND i.alt <> ''
+                 AND ( alt.meta_id IS NULL OR alt.meta_value = '' )"
+    );
+    // phpcs:enable
 }
 
 

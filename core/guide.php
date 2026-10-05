@@ -117,7 +117,6 @@ function vergeml_folders_assets( $hook ) {
         'plan'           => function_exists( 'vergeml_plan_facts' ) && $boot['facts']['pictures'] > 0 ? vergeml_plan_facts( ! empty( $boot['session']['frozen'] ), true ) : null,
         // Folders a confirm reads per request: the progress row counts batches by it (S10.0).
         'profileBatch'   => defined( 'VERGEML_FILING_PROFILE_BATCH' ) ? VERGEML_FILING_PROFILE_BATCH : 60,
-        'walk'      => (bool) apply_filters( 'vergeml_folders_walk', false ),
     ) );
 }
 
@@ -847,21 +846,15 @@ function vergeml_guide_summary_fresh( &$s ) {
 /* -------------------------------------------------------------- the token */
 
 /**
- *  Where the browser streams from. The service the plugin talks to
- *  server-side may sit on the loopback of this very host (the test box does);
- *  a browser cannot reach that, and the token has to be minted where it will
- *  be presented, so both go to the same public address.
+ *  Where the browser streams from: the service's own address, unless
+ *  VERGEML_AI_STREAM names another one.
  */
 function vergeml_guide_stream_url() {
 
     if ( defined( 'VERGEML_AI_STREAM' ) && is_string( VERGEML_AI_STREAM ) && '' !== VERGEML_AI_STREAM ) {
         return untrailingslashit( VERGEML_AI_STREAM );
     }
-    $url = vergeml_ai_service_url();
-    if ( preg_match( '#^https?://(127\.0\.0\.1|localhost|\[::1\])(:|/|$)#i', $url ) ) {
-        return 'https://ai.vergelabs.nl/v1';
-    }
-    return $url;
+    return vergeml_ai_service_url();
 }
 
 /**

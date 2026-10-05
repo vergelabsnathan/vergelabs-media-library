@@ -24,8 +24,7 @@ define( 'VERGEML_TRIAL_PICTURES', 25 );
 function vergeml_offer_trial_possible() {
     $host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
     $ok   = '' !== $host && ! preg_match( '/^(localhost|127\.|10\.|192\.168\.)|\.(local|test|localhost|example|invalid)$|(^|\.)playground\.wordpress\.net$|^\d+\.\d+\.\d+\.\d+$/i', $host );
-    // A walk on a local Playground shows the button to press it; the service still refuses the host.
-    return (bool) apply_filters( 'vergeml_offer_trial_possible', $ok );
+    return $ok;
 }
 
 /** Whether the offer replaces the AI actions on this request. Never in demo mode: that runs locally and stays usable. */

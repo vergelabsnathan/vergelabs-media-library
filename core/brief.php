@@ -410,14 +410,6 @@ function vergeml_brief_test_pick( $n ) {
 
 /** One picture described with a brief other than the one in use, straight against the service, nothing written. */
 function vergeml_brief_describe_with( $attachment_id, $brief ) {
-    /*
-     *  A suite may stand in for the service here: a test that spends five
-     *  credits on every push is not a test that runs on every push.
-     */
-    $stand_in = apply_filters( 'vergeml_brief_describe', null );
-    if ( is_callable( $stand_in ) ) {
-        return call_user_func( $stand_in, $attachment_id, $brief );
-    }
     $request = vergeml_ai_describe_request( $attachment_id );
     if ( is_wp_error( $request ) ) {
         return $request;

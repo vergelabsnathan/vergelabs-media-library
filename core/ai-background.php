@@ -44,10 +44,9 @@ const VERGEML_AI_RUN_GAP = 5;
 
 /** How many files one step describes before the budget is checked again.
  *
- *  Eight, which is one group in flight together -- so a chunk now costs about
- *  what a single file used to, and the budget is still only checked between
- *  chunks. Three was chosen when they went one at a time. */
-const VERGEML_AI_RUN_CHUNK = 16;
+ *  Three, one at a time: about twelve seconds, and at most three minutes if
+ *  every call runs to its sixty-second timeout -- inside the lock's four. */
+const VERGEML_AI_RUN_CHUNK = 3;
 
 
 /**
@@ -165,15 +164,6 @@ function vergeml_ai_run_nudge() {
     // Nothing to chase if the work is done or somebody stopped it.
     $state = vergeml_ai_run_state();
     if ( empty( $state['active'] ) ) {
-        return;
-    }
-
-    /*
-     *  A host with a system cron of its own, or a suite that starts a run
-     *  only to look at it, can leave the event to be picked up rather than
-     *  have a pass spawned this instant.
-     */
-    if ( ! apply_filters( 'vergeml_ai_run_should_nudge', true ) ) {
         return;
     }
 
@@ -344,17 +334,17 @@ function vergeml_ai_run_tick() {
     /*
      *  The lock is a heartbeat, not a lease. It lived five minutes and was
      *  set once, so a pass killed half-way held the run up for the rest of
-     *  those minutes. Now it lasts two and is renewed before every batch; a
-     *  batch is sixteen calls in flight together, each capped at sixty
-     *  seconds, so a living pass never lets it lapse and a dead one is found
-     *  out within two minutes of its last batch (vergeml_ai_run_revive).
+     *  those minutes. Now it lasts four and is renewed before every batch; a
+     *  batch is three calls one after another, each capped at sixty seconds,
+     *  so a living pass never lets it lapse and a dead one is found out
+     *  within four minutes of its last batch (vergeml_ai_run_revive).
      */
-    set_transient( 'vergeml_ai_run_lock', time(), 2 * MINUTE_IN_SECONDS );
+    set_transient( 'vergeml_ai_run_lock', time(), 4 * MINUTE_IN_SECONDS );
 
     // Cron requests inherit the site's limit, which on shared hosting is
     // often 30 seconds. Ask for the pass's own budget plus the longest a
-    // batch started just before it ends can take (sixteen calls in flight,
-    // each capped at sixty seconds, then the writes); carry on without it if
+    // batch started just before it ends can take (three calls one after
+    // another, each capped at sixty seconds, then the writes); carry on without it if
     // refused. Bounded, not 0: a pass that hangs past this is dead anyway,
     // and vergeml_ai_run_revive() starts the next one.
     if ( vergeml_can_set_time_limit() ) {
@@ -374,7 +364,7 @@ function vergeml_ai_run_tick() {
     $budget = (int) apply_filters( 'vergeml_ai_run_budget', VERGEML_AI_RUN_BUDGET );
 
     do {
-        set_transient( 'vergeml_ai_run_lock', time(), 2 * MINUTE_IN_SECONDS );
+        set_transient( 'vergeml_ai_run_lock', time(), 4 * MINUTE_IN_SECONDS );
 
         $result   = vergeml_ai_index_step( $state['scope'], VERGEML_AI_RUN_CHUNK, $state['apply_alt'] );
         $held_now = 0;
