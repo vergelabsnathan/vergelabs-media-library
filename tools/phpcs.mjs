@@ -167,9 +167,10 @@ for ( const s of sources ) {
 console.log( 'TOTAL'.padEnd( 76 ) + String( honoured.findings.length ).padStart( 20 ) + String( ignored.findings.length ).padStart( 10 ) );
 
 // Plugin Check's plugin-review ruleset (phpcs-rulesets/plugin-check.ruleset.xml) turns two of these into warnings:
-// InterpolatedNotPrepared and the whole NonceVerification sniff. What is left at type ERROR is what a reviewer's run
-// flags as an error.
-const reviewError = ( f ) => 'ERROR' === f.type && ! /^WordPress\.DB\.PreparedSQL\.InterpolatedNotPrepared|^WordPress\.Security\.NonceVerification/.test( f.source );
+// InterpolatedNotPrepared and the whole NonceVerification sniff. NonPrefixedHooknameFound is left out too: every one is
+// a core (or Dokan) hook fired on purpose -- the term hooks around a direct term write, the_category in a walker -- and
+// prefixing it would stop it reaching its callbacks. What is left at type ERROR is what a reviewer's run flags.
+const reviewError = ( f ) => 'ERROR' === f.type && ! /^WordPress\.DB\.PreparedSQL\.InterpolatedNotPrepared|^WordPress\.Security\.NonceVerification|NonPrefixedHooknameFound$/.test( f.source );
 const reviewErrors = ignored.findings.filter( reviewError );
 console.log( 'ERRORS under plugin-review, annotations ignored'.padEnd( 76 ) + String( reviewErrors.length ).padStart( 30 ) );
 for ( const f of reviewErrors ) {

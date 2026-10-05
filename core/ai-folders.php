@@ -229,96 +229,21 @@ function vergeml_ai_folders_query_var( $vars ) {
 /* ------------------------------------------------------------- the counts */
 
 /**
- *  vergeml_ai_folders_count_branches
+ *  vergeml_ai_folders_counted
  *
- *  Four branches, not thirteen. Grouping inside the branch gives every value
- *  of a column its own row out of one pass, so the statement stays readable
- *  and the six kinds cost what one costs.
- *
- *  Plus the honesty pair: how many files have been looked at, and how many
- *  there are. Without those a count of forty reads as "forty screenshots" on
- *  a library where two hundred of eight thousand files have been described.
- *
- *  Nothing is added at all when the schema has never been laid down -- there
- *  would be no table to join, and the whole statement would fail rather than
- *  this half of it.
+ *  Whether core/smart-folders.php asks the AI counts in its statement: the
+ *  folders are switched on and the index table has been laid down. Without
+ *  the table there is nothing to join, and the whole statement would fail
+ *  rather than this half of it.
  */
 
-add_filter( 'vergeml_smart_count_branches', 'vergeml_ai_folders_count_branches' );
+function vergeml_ai_folders_counted() {
 
-function vergeml_ai_folders_count_branches( $branches ) {
-
-    global $wpdb;
-
-    if ( ! vergeml_ai_folders_enabled() ) {
-        return $branches;
-    }
-
-    if ( ! function_exists( 'vergeml_index_state' ) ) {
-        return $branches;
+    if ( ! vergeml_ai_folders_enabled() || ! function_exists( 'vergeml_index_state' ) ) {
+        return false;
     }
 
     $state = vergeml_index_state();
 
-    if ( empty( $state['schema'] ) ) {
-        return $branches;
-    }
-
-    $table = vergeml_index_table();
-
-    $attachment = "p.post_type = 'attachment' AND p.post_status = 'inherit'";
-
-    // Unknown enum values are stored verbatim by the contract and match no
-    // folder, so these rows do not sum to `_described`. That is why
-    // `_described` is asked for separately rather than added up.
-    $branches[] = array(
-        'sql' => "SELECT CONCAT( 'ai-kind-', x.kind ) AS k, COUNT(*) AS c
-                    FROM {$wpdb->posts} p
-                    JOIN {$table} x ON x.attachment_id = p.ID
-                   WHERE {$attachment} AND x.kind <> ''
-                   GROUP BY x.kind",
-        'args' => array(),
-    );
-
-    $branches[] = array(
-        'sql' => "SELECT CONCAT( 'ai-doc-', x.document_type ) AS k, COUNT(*) AS c
-                    FROM {$wpdb->posts} p
-                    JOIN {$table} x ON x.attachment_id = p.ID
-                   WHERE {$attachment} AND x.document_type <> ''
-                   GROUP BY x.document_type",
-        'args' => array(),
-    );
-
-    $branches[] = array(
-        'sql' => "SELECT 'ai-people' AS k, COUNT(*) AS c
-                    FROM {$wpdb->posts} p
-                    JOIN {$table} x ON x.attachment_id = p.ID
-                   WHERE {$attachment} AND x.has_people = 1",
-        'args' => array(),
-    );
-
-    $branches[] = array(
-        'sql' => "SELECT 'ai-text' AS k, COUNT(*) AS c
-                    FROM {$wpdb->posts} p
-                    JOIN {$table} x ON x.attachment_id = p.ID
-                   WHERE {$attachment} AND x.has_text = 1",
-        'args' => array(),
-    );
-
-    $branches[] = array(
-        'sql' => "SELECT '_described' AS k, COUNT(*) AS c
-                    FROM {$wpdb->posts} p
-                    JOIN {$table} x ON x.attachment_id = p.ID
-                   WHERE {$attachment} AND x.described_at IS NOT NULL",
-        'args' => array(),
-    );
-
-    $branches[] = array(
-        'sql' => "SELECT '_total' AS k, COUNT(*) AS c
-                    FROM {$wpdb->posts} p
-                   WHERE {$attachment}",
-        'args' => array(),
-    );
-
-    return $branches;
+    return ! empty( $state['schema'] );
 }

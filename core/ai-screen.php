@@ -113,7 +113,7 @@ function vergeml_ai_screen_counts() {
         'stale'     => function_exists( 'vergeml_ai_pending_count' ) ? (int) vergeml_ai_pending_count( 'stale' ) : 0,
     );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table, and core's.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table, and core's.
     $c['images'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type LIKE 'image/%'" );
     // DISTINCT: a picture with two alt rows (an import left duplicates on the box) is one picture with alt text.
     $c['alt_have'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_wp_attachment_image_alt' WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE 'image/%' AND m.meta_value <> ''" );
@@ -128,12 +128,24 @@ function vergeml_ai_screen_counts() {
         $flags = $wpdb->get_row( "SELECT SUM(has_people = 1) people, SUM(has_text = 1) txt FROM {$t} WHERE error = ''", ARRAY_A );
         $c['people'] = (int) ( $flags ? $flags['people'] : 0 );
         $c['text']   = (int) ( $flags ? $flags['txt'] : 0 );
-        $sums = array();
+        // A field counts when the filing JSON carries it with a value: "field":"x", not "field":"".
+        $like = array();
         foreach ( array( 'object', 'material', 'colour', 'setting', 'style', 'audience', 'season', 'details' ) as $f ) {
-            $sums[] = $wpdb->prepare( "SUM(filing LIKE %s AND filing NOT LIKE %s) AS {$f}", '%"' . $f . '":"%', '%"' . $f . '":""%' );
+            $like[] = '%"' . $f . '":"%';
+            $like[] = '%"' . $f . '":""%';
         }
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- every fragment above went through prepare(); the field names come from the fixed list, not from input.
-        $filing = $wpdb->get_row( 'SELECT ' . implode( ', ', $sums ) . " FROM {$t} WHERE error = ''", ARRAY_A );
+        $filing = $wpdb->get_row( $wpdb->prepare(
+            "SELECT SUM(filing LIKE %s AND filing NOT LIKE %s) AS object,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS material,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS colour,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS setting,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS style,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS audience,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS season,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS details
+               FROM {$t} WHERE error = ''",
+            $like
+        ), ARRAY_A );
         foreach ( (array) $filing as $f => $n ) {
             $c['filing'][ $f ] = (int) $n;
         }

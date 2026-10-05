@@ -327,44 +327,6 @@ function vergeml_quarantine_folder( $folders ) {
 }
 
 
-add_filter( 'vergeml_smart_count_branches', 'vergeml_quarantine_count_branch' );
-
-function vergeml_quarantine_count_branch( $branches ) {
-
-    global $wpdb;
-
-    $branches[] = array(
-        'sql'  => "SELECT 'quarantine' AS k, COUNT(*) AS c
-                     FROM {$wpdb->posts} p
-                     JOIN {$wpdb->postmeta} q ON q.post_id = p.ID AND q.meta_key = %s
-                    WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'",
-        'args' => array( VERGEML_QUARANTINE_META ),
-    );
-
-    return $branches;
-}
-
-
-/*
- *  And the other five must not count what this one has taken away, or the
- *  badge above a folder disagrees with the number of files inside it. The
- *  meta key is a class constant rather than anything a request carries, and
- *  the fragment holds no placeholders, because the statement it joins is
- *  prepared with a positional argument list.
- */
-
-add_filter( 'vergeml_smart_count_exclude', 'vergeml_quarantine_count_exclude' );
-
-function vergeml_quarantine_count_exclude( $sql ) {
-
-    global $wpdb;
-
-    return $sql . " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx
-                                      WHERE qx.post_id = p.ID
-                                        AND qx.meta_key = '" . VERGEML_QUARANTINE_META . "' )";
-}
-
-
 add_filter( 'vergeml_smart_query_args', 'vergeml_quarantine_query_args', 10, 2 );
 
 function vergeml_quarantine_query_args( $args, $key ) {

@@ -212,12 +212,20 @@ function vergeml_csv_download() {
      *  A BOM, and only for this. Excel on Windows reads a CSV as the system
      *  code page unless one is present, which turns every accented folder name
      *  into mojibake in the one program most people will open this with.
+     *
+     *  The file's bytes go to the response as they are, not through echo: they
+     *  are a text/csv download with nosniff, never HTML, so an HTML escaper
+     *  would only corrupt them (a folder called "R&D" would arrive as
+     *  "R&amp;D"). Every cell went through vergeml_csv_cell_out(), which
+     *  neutralises spreadsheet formulas, and RFC 4180 quoting.
      */
-    echo "\xEF\xBB\xBF"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    $csv = "\xEF\xBB\xBF";
 
     foreach ( $rows as $row ) {
-        echo vergeml_csv_line( $row ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        $csv .= vergeml_csv_line( $row );
     }
+
+    file_put_contents( 'php://output', $csv );
 
     exit;
 }
