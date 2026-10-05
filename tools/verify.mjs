@@ -341,6 +341,10 @@ const SUITES = [
 	{ name: 'uninstall', file: 'tests/security/uninstall.php', env: 'local', php: 'playground' },
 	// Saving one Media Taxonomies form keeps the other option; an import is not a form (rulebook audit review).
 	{ name: 'settings-safety', file: 'tests/tree/settings-safety.php', env: 'local', php: 'playground' },
+	// Core's media-modal saves are core's: the folder checkboxes ride core's own handler, ordering is ours (wordpress.org review 2).
+	{ name: 'media-ajax', file: 'tests/security/media-ajax.php', env: 'local', php: 'playground' },
+	// The gates the review of review 2's fixes found untested: admin rows, private folders, author bulk, logged-out admin_init, the bridge.
+	{ name: 'gates', file: 'tests/security/gates.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },

@@ -1444,40 +1444,28 @@ function vergeml_save_attachment_order() {
 
 
     asort( $attachments2edit );
-    $order = array_keys( $attachments2edit );
-    $order_format = join( ', ', array_fill( 0, count( $order ), '%d' ) );
 
     /*
-     *  Renumbering menu_order across a whole drag-and-drop reorder in one
-     *  statement. Doing it through wp_update_post would be one full post save
-     *  per item, which on a few hundred images is the difference between
-     *  instant and unusable. The MySQL counter variable is why it cannot be
-     *  expressed with the posts API. Ids are placeheld; table names are $wpdb's.
+     *  menu_order renumbered 1..n in the order asked, one row update per file.
+     *  Not wp_update_post: that is a full post save per item, which on a few
+     *  hundred images is the difference between instant and unusable. Only
+     *  this one column changes, so each post is dropped from the object cache
+     *  as it is written.
      */
+    $position = 0;
+    $failed   = false;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-    $wpdb->query( 'SELECT @i:=0' );
+    foreach ( array_keys( $attachments2edit ) as $reordered_id ) {
 
-    $result = $wpdb->query( $wpdb->prepare(
-        "
-            UPDATE $wpdb->posts SET $wpdb->posts.menu_order = ( @i:=@i+1 )
-            WHERE $wpdb->posts.ID IN ( $order_format ) ORDER BY FIELD( $wpdb->posts.ID, $order_format )
-        ",
-        array_merge( $order, $order )
-    ) );
-    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one column of one row, by primary key; the cache is cleaned on the next line.
+        if ( false === $wpdb->update( $wpdb->posts, array( 'menu_order' => ++$position ), array( 'ID' => $reordered_id ), array( '%d' ), array( '%d' ) ) ) {
+            $failed = true;
+        }
 
-    /*
-     *  The rows were changed underneath the object cache, so drop each post
-     *  from it or the old menu_order is served until something else evicts it.
-     */
-
-    foreach ( $order as $reordered_id ) {
         clean_post_cache( $reordered_id );
     }
 
-
-    if ( ! $result )
+    if ( $failed || ! $position )
         wp_send_json_error();
 
     wp_send_json_success();
