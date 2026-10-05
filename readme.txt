@@ -73,7 +73,6 @@ A folder tree sits beside the media library. Drag files onto a folder to file th
 
 * **Show captions:** title, filename, or caption field for each media item
 * **Bulk selection:** no special mode anymore, faster editing
-* **Drag'n'Drop re-order** right in the media library
 * **Infinite scroll** and manageable loads per page options
 
 
