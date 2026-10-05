@@ -155,12 +155,6 @@ It will not break your site if you do: every function, class, option, script han
 
 It started as a fork of Enhanced Media Library 2.9.4 and keeps what that plugin did: media categories and taxonomies, filters, MIME types and dynamic galleries, with your settings carried over. On top of that it adds a folder tree with drag and drop, smart folders, an importer for other folder plugins, a Librarian that sorts an unfiled library, duplicate detection, and optional AI features that write alt text and captions and let you search by what a picture shows. It is not made by, or affiliated with, wpUXsolutions. The [upstream documentation](https://www.wpuxsolutions.com/documents/enhanced-media-library) is still accurate for the parts this fork did not change.
 
-= What does this fork fix in the original features? =
-
-* **The WordPress 7.0 toolbar layout.** WP 7.0 turned the media toolbar into a fixed two-column CSS grid and gave placement to its own two filters only. The extra filters this plugin adds had nowhere to go, so they stacked into a 300px-tall block with every label sitting above the wrong control. The toolbar is one tidy row again, whatever number of filters you enable.
-* **The author filter drew on top of the type filter.** It rendered with the same HTML id as the type filter, which was invisible under the old layout but made the two overlap once WordPress started placing elements by id. It now uses the id its own label was already pointing at, which fixes the overlap and the mislabelled control together.
-* **PHP 8 warnings.** The four settings handlers read their nonce field before checking whether it was there. Also four `get_terms()` calls still using the argument order deprecated back in WordPress 4.5.
-
 = Can I run it next to another folder plugin? =
 
 Running a second folder plugin at the same time is not recommended: both would register folders against the same media. Bring its folders across instead, under VergeLabs Library → Import Folders, and deactivate it. Which releases of WordPress and of the plugins this one integrates with have been checked is listed near the end of this page.
@@ -224,18 +218,10 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 * Beaver Builder 2.11.0.6 — contract intact, stage suites passed (2026-09-26)
 * Elementor 4.3.2 — contract intact, stage suites passed (2026-09-25)
 * PHP 8.5.11 — contract intact (2026-09-25)
-* Elementor 4.3.1 — contract intact, stage suites passed (2026-09-24)
 * WooCommerce 11.1.2 — contract intact, stage suites passed (2026-09-23)
 * Rank Math SEO 1.0.279 — contract intact, stage suites passed (2026-09-22)
-* Beaver Builder 2.11.0.5 — contract intact, stage suites passed (2026-09-12)
-* Beaver Builder 2.11.0.4 — contract intact, stage suites passed (2026-09-11)
 * Dokan 5.1.1 — contract intact, stage suites passed (2026-09-10)
-* Polylang (Pro follows the same numbering) 3.8.9 — contract intact, stage suites passed (2026-09-09)
 * Brizy 2.8.23 — contract intact, stage suites passed (2026-09-09)
-* Rank Math SEO 1.0.278 — contract intact, stage suites passed (2026-09-08)
-* Dokan 5.1.0 — contract intact, stage suites passed (2026-09-08)
-* Polylang (Pro follows the same numbering) 3.8.8 — contract intact, stage suites passed (2026-09-07)
-* Dokan 5.0.19 — contract intact, stage suites passed (2026-09-04)
 * Divi 5.11.0 — Folder gallery module renders from a built page (2026-09-01)
 * Polylang Pro 3.8.6 — a translated image keeps its folders (2026-09-01)
 * Yoast SEO 28.4, Rank Math 1.0.277.2, SEOPress 10.1, All in One SEO 5.0.1.1 — page context reaches the describe request (2026-09-01)
@@ -262,9 +248,6 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 ### 4.1.0 ###
 New: Plan my folders on the Folders screen builds a folder tree from what your pictures show. It costs credits (30, plus 15 per 100 distinct labels; the button shows the price) and asks for them back if the plan would not beat your current folders.
 
-### 4.0.0 ###
-The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now reads what pictures show, so a fill after updating places things differently than before. The Rules tab is gone and the media list toolbar is one row. Read the changelog before you fill.
-
 ## Changelog ##
 
 ### 4.1.0 ###
@@ -285,56 +268,8 @@ The Folders screen is rebuilt: build a tree, confirm it, fill it. Filing now rea
 * **Library-wide work is an administrator's.** The dashboard, Folders, AI, Health and Import screens, and everything that runs across the library, spends credits or calls the AI service, now need the Administrator role. Editors keep the folder tree in the media library: filing, and changing one folder or one file at a time. Making a folder private, the smart-folder scan and search by meaning are an administrator's.
 * **File types: WordPress's own only.** The File types screen switches WordPress's known types on and off; it no longer adds new ones, and types that can run code -- PHP, HTML, JavaScript, SVG, executables -- are never allowed. A type saved earlier that WordPress does not know is left out, and the screen names it.
 * **The plugin never deactivates itself.** After repeated crashes it still switches its own features off, and the notice offers a Deactivate button. Delete All Data no longer deactivates the plugin either; deleting it afterwards from the Plugins screen takes the rest.
+* **Settings > Media is WordPress's own screen again.** The plugin's copy of it is gone; its old address opens WordPress's.
+* **With Enhanced Media Library active, nothing of it is switched off any more.** A notice on the media screens asks you to deactivate one of the two.
+* **Describing goes one picture at a time, through WordPress's own HTTP functions**, so proxy and firewall settings apply to it. A run takes longer than before.
 
-### 4.0.0 ###
-*A screen that builds your folders and fills them, filing that reads what a picture shows, and a shop that sorts itself*
-
-= Folders: build a tree, then fill it =
-* **The Folders screen is a workflow, not a conversation.** Tree, Fill, Describe, Alt text, Rename -- each step reachable by clicking, none of them a gate. The page opens without asking the AI anything; *Propose folders* is a button with its credit cost printed on it.
-* **Paste your folder tree.** One folder per line, `Clothing > Hoodies` for depth. A folder that already exists at that place is reused. Refusals name the line: no name, deeper than five levels, more than five hundred folders.
-* **Or build it by clicking** -- `+` on any row adds a child, `×` removes one, and a name may itself be a path.
-* **Confirm locks the tree** and stores its words on the folders. Unconfirm offers to restore the classes a confirm replaced.
-* **The words a folder files by are yours to edit.** They show as pills after the folder's name; `×` removes one and the count re-runs without asking the AI; `#word` adds one.
-* **Built for a catalogue.** Parents start closed and carry their counts, a find box appears from ten folders, and hovering a closed parent previews what is inside it without opening it.
-
-= Filing that reads what a picture shows =
-* **One way of filing, with three honest answers:** it fits, it is between two folders, or nothing fits. A picture between two children of one folder goes in the parent rather than nowhere. A picture you placed by hand is never moved, and a locked folder is never filed into.
-* **The number before you press is the number that happens.** The estimate on the Tree step and the fill itself now count with the same code.
-* **It learns from your own folders.** A folder holding three or more described pictures is read over them, and a second round re-reads what the first left: *round 1: 553 placed · round 2: 87 more · 113 to sort*.
-* **A "view" of your tree files nothing.** A branch that repeats names from elsewhere -- a sale, a season -- is recognised as a view. One such branch had been swallowing 201 of 626 pictures.
-* **Why a picture is where it is** now shows on the picture's own edit screen and in the grid: the folder, the word that matched, the score, the folder it could not beat, and the batch someone approved.
-
-= Shops =
-* **One press turns your product categories into folders.** On a site that sells, the Tree step offers your own categories -- nine folders where it used to take four typed instructions.
-* **Pictures are filed by the product they belong to**, before anything is guessed at: featured image, gallery, or uploaded to the product. Your product's category named the folder, so it is a fact rather than a judgement -- nothing is asked about where the picture might go. On a real shop that placed 32 of 33 pictures.
-* **The steps come in a different order on a shop** -- Tree, Fill, then Describe -- because the products place their own pictures first and describing is only for what nothing placed.
-
-= Alt text and describing =
-* **Alt text never overwrites what you wrote.**
-* **Changing the brief no longer re-describes your library by itself.** The count waits on a button that shows the credits before you press it.
-* The AI screen's summary line updates when a run ends instead of waiting for a reload.
-
-= The media library =
-* **The folders panel is on the list view too**, not only the grid, and the table keeps its own width beside it.
-* **The list toolbar is one row** -- the folder you are in, search, filters, the view switch and the pages. On a test site the first row went from 429 to 201 pixels tall.
-* **A new filter, "Placed by hand"**, lists the pictures you moved yourself.
-* **The media library opens at a quarter of a million pictures.** The counts behind the smart folders cost ten seconds of database time on every admin page and now cost 8.6 milliseconds. Above fifty thousand files the expensive ones say "not looked" rather than guessing.
-
-= Fixed =
-* **Six buttons did nothing at all, silently** -- Complete Cleanup, Restore default MIME types, Apply settings to the network and three taxonomy confirmations. Sixteen call sites named four functions that did not exist.
-* **The reset-filters button crashed the media list on a fresh site**, taking the rest of the screen's JavaScript with it.
-* **An update did not reach a browser that already had the old scripts.** The cache-busting string was built from timestamps that arrive as 1980 from a zip, so it never changed.
-* **A folder with an `&` in its name** was matched against the stored `&amp;` and quietly failed to match itself.
-* **Running beside Enhanced Media Library**, its older copy of the shared media scripts answered first and the grid ignored your folders.
-* Pressing Move no longer waits half a minute before answering, and a fill can no longer stall behind a stuck cron.
-
-= Changed, and worth knowing before you update =
-* **Filing decisions have moved.** A fill after updating will place pictures differently than the same library did before.
-* **The Rules tab is gone.** Paste, product categories, clicking or the conversation are the ways in.
-* **The media list's toolbar is rebuilt as one row** -- the controls are all there, but not where they were.
-* **Above fifty thousand files the smart-folder counts are not computed**, on purpose.
-* **A confirmed tree refuses edits** until you unconfirm it.
-* **With Enhanced Media Library active, its media scripts and grid template are now set aside** so the two do not fight.
-* **The readme's "External services" section has been rewritten** to say everything that leaves your site, which is more than it used to say. Nothing new was added to what the plugin sends; the account of it was incomplete.
-
-Earlier versions, 4.0.7 back, are in `changelog.txt`, shipped with the plugin.
+Earlier versions are in `changelog.txt`, shipped with the plugin.
