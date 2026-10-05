@@ -611,7 +611,7 @@ function vergeml_ai_run_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-ai-background',
         plugins_url( 'js/vergeml-ai-background.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-ai-background.js' ),
         true
     );

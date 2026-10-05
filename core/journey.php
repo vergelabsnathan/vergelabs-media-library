@@ -1632,7 +1632,7 @@ function vergeml_journey_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-journey',
         plugins_url( 'js/vergeml-journey.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-journey.js' ),
         true
     );

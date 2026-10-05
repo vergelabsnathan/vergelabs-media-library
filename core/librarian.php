@@ -3254,7 +3254,7 @@ function vergeml_why_here_assets() {
     wp_enqueue_script(
         'vergeml-why-view',
         plugins_url( 'js/vergeml-why-view.js', VERGEML_FILE ),
-        array( 'media-views', 'wp-api-fetch' ),
+        array( 'media-views', 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-why-view.js' ),
         true
     );

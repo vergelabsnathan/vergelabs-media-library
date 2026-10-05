@@ -85,7 +85,7 @@ function vergeml_folders_assets( $hook ) {
     wp_enqueue_script( 'vergeml-tree-view', plugins_url( 'js/vergeml-tree-view.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-tree-view.js' ), true );
     // The paste reader: text to the same draft shape, no model, no request.
     wp_enqueue_script( 'vergeml-structure', plugins_url( 'js/vergeml-structure.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-structure.js' ), true );
-    wp_enqueue_script( 'vergeml-folders', plugins_url( 'js/vergeml-folders.js', VERGEML_FILE ), array( 'wp-api-fetch', 'wp-i18n', 'vergeml-tree-view', 'vergeml-structure', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-folders.js' ), true );
+    wp_enqueue_script( 'vergeml-folders', plugins_url( 'js/vergeml-folders.js', VERGEML_FILE ), array( 'vergeml-transport', 'wp-i18n', 'vergeml-tree-view', 'vergeml-structure', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-folders.js' ), true );
     wp_set_script_translations( 'vergeml-folders', 'vergelabs-media-library' );
 
     /*

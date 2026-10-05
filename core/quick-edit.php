@@ -138,7 +138,7 @@ function vergeml_quick_edit_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-quick-edit',
         plugins_url( 'js/vergeml-quick-edit.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-quick-edit.js' ),
         true
     );

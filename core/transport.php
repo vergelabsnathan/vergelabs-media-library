@@ -141,45 +141,32 @@ function vergeml_transport_is_ours( $route, $method ) {
 
 
 /**
- *  The browser half, loaded on every admin screen where our scripts run.
+ *  The browser half: js/vergeml-transport.js, the plugin's own script, after
+ *  wp-api-fetch.
  *
- *  Registered against wp-api-fetch and enqueued early, so any of our scripts
- *  that calls apiFetch -- thirteen of them, sixty-odd call sites -- goes through
- *  the middleware without knowing it exists.
+ *  Registered, never enqueued by itself. Every script of the plugin that
+ *  calls apiFetch names 'vergeml-transport' as its dependency instead of
+ *  'wp-api-fetch', so WordPress prints it before the first of them runs --
+ *  a middleware covers only the calls made after it is installed -- and only
+ *  on the screens where they run. Core's wp-api-fetch is not touched, and a
+ *  screen without the plugin's scripts (the block editor, any other plugin's
+ *  page) never sees it. Until 4.1.0 it was printed inline after wp-api-fetch
+ *  on every admin screen.
  */
 
-add_action( 'admin_enqueue_scripts', 'vergeml_transport_assets', 1 );
+add_action( 'init', 'vergeml_transport_register' );
 
-function vergeml_transport_assets() {
+function vergeml_transport_register() {
 
-    if ( ! current_user_can( 'upload_files' ) ) {
-        return;
-    }
+    wp_register_script(
+        'vergeml-transport',
+        plugins_url( 'js/vergeml-transport.js', VERGEML_FILE ),
+        array( 'wp-api-fetch' ),
+        vergeml_asset_ver( 'js/vergeml-transport.js' ),
+        true
+    );
 
-    /*
-     *  Attached to wp-api-fetch itself, not shipped as a script of our own.
-     *
-     *  A middleware only covers calls made after it is installed. As a
-     *  separate file it ran after some of our scripts had already asked their
-     *  first question -- the first version left one call unbridged on every
-     *  page load, which is one unhandled 403 and one missing strip. Printed
-     *  inline straight after wp-api-fetch, it is there before any script that
-     *  depends on wp-api-fetch can run, whoever enqueued it and in what order.
-     *
-     *  The handle is still registered, without a source, so a script that names
-     *  it as a dependency keeps resolving.
-     */
-    wp_register_script( 'vergeml-transport', false, array( 'wp-api-fetch' ), vergeml_asset_ver( 'js/vergeml-transport.js' ), true );
-
-    static $source = null;
-
-    if ( null === $source ) {
-        $source = (string) file_get_contents( plugin_dir_path( VERGEML_FILE ) . 'js/vergeml-transport.js' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- our own file, read once per request.
-    }
-
-    wp_add_inline_script( 'wp-api-fetch', $source, 'after' );
-
-    wp_localize_script( 'wp-api-fetch', 'vergemlTransport', array(
+    wp_localize_script( 'vergeml-transport', 'vergemlTransport', array(
         'ajax'      => admin_url( 'admin-ajax.php' ),
         'namespace' => VERGEML_REST_NS,
         'l10n'      => array(
@@ -189,6 +176,4 @@ function vergeml_transport_assets() {
             'retry'    => __( 'Try again', 'vergelabs-media-library' ),
         ),
     ) );
-
-    wp_enqueue_script( 'vergeml-transport' );
 }

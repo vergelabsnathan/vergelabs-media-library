@@ -875,7 +875,7 @@ function vergeml_autofile_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-autofile',
         plugins_url( 'js/vergeml-autofile.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-autofile.js' ),
         true
     );

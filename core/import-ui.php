@@ -364,7 +364,7 @@ function vergeml_import_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-import',
         plugins_url( 'js/vergeml-import.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         VERGEML_VERSION,
         true
     );

@@ -1262,7 +1262,7 @@ function vergeml_health_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-health',
         plugins_url( 'js/vergeml-health.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-health.js' ),
         true
     );

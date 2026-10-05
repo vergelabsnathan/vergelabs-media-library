@@ -70,7 +70,7 @@ function vergeml_register_gallery_block() {
     wp_register_script(
         'vergeml-gallery-block',
         plugins_url( 'js/vergeml-gallery-block.js', VERGEML_FILE ),
-        array( 'wp-blocks', 'wp-element', 'wp-components', 'wp-block-editor', 'wp-i18n', 'wp-api-fetch', 'wp-server-side-render' ),
+        array( 'wp-blocks', 'wp-element', 'wp-components', 'wp-block-editor', 'wp-i18n', 'vergeml-transport', 'wp-server-side-render' ),
         VERGEML_VERSION,
         true
     );

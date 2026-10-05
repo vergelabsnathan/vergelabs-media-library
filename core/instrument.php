@@ -389,7 +389,7 @@ function vergeml_stats_settings_section() {
 
 function vergeml_stats_script() {
 
-    wp_enqueue_script( 'wp-api-fetch' );
+    wp_enqueue_script( 'vergeml-transport' );
 
     $l10n = wp_json_encode( array(
         'on'     => __( 'On. The counts go once a day.', 'vergelabs-media-library' ),
@@ -397,7 +397,7 @@ function vergeml_stats_script() {
         'failed' => __( 'That did not save.', 'vergelabs-media-library' ),
     ) );
 
-    wp_add_inline_script( 'wp-api-fetch', '( function () {
+    wp_add_inline_script( 'vergeml-transport', '( function () {
 	var l10n = ' . $l10n . ';
 	var box = document.getElementById( "vgml-stats-opt" );
 	var note = document.getElementById( "vgml-stats-note" );

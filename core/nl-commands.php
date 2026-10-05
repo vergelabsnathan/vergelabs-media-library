@@ -690,7 +690,7 @@ function vergeml_nl_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-say',
         plugins_url( 'js/vergeml-say.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-say.js' ),
         true
     );

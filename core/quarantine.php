@@ -464,7 +464,7 @@ function vergeml_quarantine_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-quarantine',
         plugins_url( 'js/vergeml-quarantine.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-quarantine.js' ),
         true
     );

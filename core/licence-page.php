@@ -304,9 +304,9 @@ function vergeml_licence_page() {
  */
 function vergeml_licence_demo_script() {
 
-    wp_enqueue_script( 'wp-api-fetch' );
+    wp_enqueue_script( 'vergeml-transport' );
 
-    wp_add_inline_script( 'wp-api-fetch', '( function () {
+    wp_add_inline_script( 'vergeml-transport', '( function () {
 	var box = document.getElementById( "vgml-demo-mode" );
 	if ( ! box || box.disabled || ! window.wp || ! window.wp.apiFetch ) {
 		return;

@@ -71,7 +71,7 @@ function vergeml_ai_screen_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-ai',
         plugins_url( 'js/vergeml-ai.js', VERGEML_FILE ),
-        array( 'wp-api-fetch', 'wp-i18n' ),
+        array( 'vergeml-transport', 'wp-i18n' ),
         vergeml_asset_ver( 'js/vergeml-ai.js' ),
         true
     );

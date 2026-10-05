@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) )
  *  active for an afternoon.
  *
  *  An optimiser that combines or defers scripts can move the transport
- *  fallback -- printed inline after wp-api-fetch on purpose -- away from the
+ *  fallback -- which has to follow wp-api-fetch -- away from the
  *  script it patches. Our files are ES5 and survive minification; it is the
  *  order that matters. WP Rocket exposes filters for exactly this, and the
  *  attributes below are read by Autoptimize, LiteSpeed Cache and Cloudflare

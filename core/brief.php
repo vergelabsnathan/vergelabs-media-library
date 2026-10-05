@@ -752,7 +752,7 @@ function vergeml_brief_assets() {
         return;
     }
     vergeml_talk_assets();
-    wp_enqueue_script( 'vergeml-brief', plugins_url( 'js/vergeml-brief.js', VERGEML_FILE ), array( 'wp-api-fetch', 'wp-i18n', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-brief.js' ), true );
+    wp_enqueue_script( 'vergeml-brief', plugins_url( 'js/vergeml-brief.js', VERGEML_FILE ), array( 'vergeml-transport', 'wp-i18n', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-brief.js' ), true );
     wp_set_script_translations( 'vergeml-brief', 'vergelabs-media-library' );
     $boot = vergeml_brief_boot();
     $credits = get_option( 'vergeml_ai_credits', array() );
