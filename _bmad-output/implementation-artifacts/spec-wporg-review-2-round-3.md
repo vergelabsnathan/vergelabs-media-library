@@ -2,7 +2,7 @@
 title: 'wordpress.org review 2, round 3: the two would-reject classes and the likely questions'
 type: 'bugfix'
 created: '2026-10-05'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
@@ -74,9 +74,19 @@ context:
 
 ## Implementation Notes
 
+- 2026-10-05, branch release-4.1.0, b354dc1..27ec2c4; the zip from 27ec2c4. Evidence in docs/wordpress-org-submission.md, "wordpress.org review 2, round 3".
+- Beyond the brief, same classes: the transport script off core's wp-api-fetch (review 3 question 9); the folders walk flag and the trial-offer filter (test seams); ordering without MySQL session variables.
+- Found on the way: five-file steps let held pictures fill every step (fixed, fe57ce0); grid drag-to-reorder has been blocked by the tree's drag handle since before this round (readme claim removed, save path proved); plan-job's fixture lacked vergeml_can_set_time_limit since 78f1a5f (fixed).
+- Tooling: tools/clean-walk.mjs (screens, modal, outbound logger); phpcs.mjs counts plugin-review errors; the walk once walked a leftover server -- it now refuses a busy port and ends the process tree.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+| finding (review4-fresh-eyes, df693f4) | verdict | evidence |
+|---|---|---|
+| 0 would-reject; review 3's two classes gone everywhere | -- | review4-fresh-eyes.md, hands-off 10/10 |
+| 8 likely questions (watchdog, media_category wipe, prototype heritage, guide.php:2785, meta writes, readme 27 KB, journey/run-budget filters, the bridge) | low, for Nathan | listed in the submission doc with a proposal each |
 
 ## Verification
 

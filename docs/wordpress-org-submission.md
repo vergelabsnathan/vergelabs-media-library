@@ -48,7 +48,18 @@ Plugin Check without Docker".
 
 ## The archive to upload
 
-**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-09-30 from `0752e82`
+**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-05 from `27ec2c4`
+(branch `release-4.1.0`, wordpress.org review 2, round 3). 150 entries, 143 files,
+1,146,951 bytes, sha256
+`63c5c776a8aa2dc1a431132aba504845cfc0a988c3bfa8c0619eec13b75d78f5`; read back out of
+the zip: comment `27ec2c48…`, `Version: 4.1.0`, `VERGEML_VERSION` 4.1.0,
+`Stable tag: 4.1.0`, `Contributors: vergelabsdev`, readme 27,083 bytes; no entry
+under `tests/`, `tools/`, `docs/`, `plans/`, `node_modules/`, `dist/`,
+`playground/`, `research/`, `_bmad*` and no hidden entry (count 0). Commits after
+`27ec2c4` touch only `docs/`, which does not ship. What changed and the proof:
+"wordpress.org review 2, round 3" below.
+
+The round-2 build, kept for the record: **`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-09-30 from `0752e82`
 (review round 2), to be tagged `v4.1.0`. 150 entries, 143 files, 1,149,122 bytes,
 sha256 `15a94b91d2b1afea71fe75dd10ea474733e75c8abb35cd5708b257eadf94e566`; read back
 out of the zip: comment `0752e822…`, `Version: 4.1.0`, `VERGEML_VERSION` 4.1.0,
@@ -239,6 +250,60 @@ the media library (filing, folder edits, quick edit), but the smart-folder
 scan, making a folder private, search by meaning and the AI screens are an
 administrator's. Choosing file types can no longer add a type WordPress does
 not know, or allow SVG.
+
+## wordpress.org review 2, round 3 (2026-10-05)
+
+The fresh-eyes pass on `752614e`/`78f1a5f`
+([review3-fresh-eyes.md](wordpress-org-audit/review3-fresh-eyes.md)) would have sent
+the plugin back for two classes and listed nine likely questions. Nathan's brief,
+items 1–4: the two classes, the questions he named, PHPCS error-level at 0 with
+annotations ignored, and the code review's missing tests.
+
+| class | what was wrong | fix | commit |
+|---|---|---|---|
+| Core AJAX takeover (would-reject 1) | `wp_ajax_save-attachment-compat` and `-order` answered at priority 0 in core's place | Core's handler saves the attachment; the folder checkboxes ride `attachment_fields_to_save`, the counts `wp_prepare_attachment_for_js`, only during that action. Ordering is `wp_ajax_vergeml-save-attachment-order`; its renumbering is one `$wpdb->update` per file, no MySQL session variables | `b354dc1`, `643e014`, `6e4623f` |
+| Interfering with other plugins and themes (would-reject 2) | EML's nine scripts, two styles and its media template dequeued; Impreza's and SimpLy Gallery's filters removed | All three removed; the neighbours notice tells the owner both are active. The grid template is `tmpl-vergeml-attachment-grid-view`, so EML's copy cannot shadow it | `d3df79a` |
+| Core globals, Settings > Media, core media.js | a hidden copy of options-media.php wrote `$pagenow`/`$title`/`$hook_suffix`, fired core's screen hooks, rewrote `$submenu`; JS overwrote `adminpage`/`pagenow`; core's `media` dequeued and `findPosts` redefined; `toggleSelection` patched on core's prototype | The copy is gone and its addresses redirect to options-media.php; core's media.js stays and the plugin's script only opens its own frame after it; the bulk-select click is a grid-only `Attachment.Library` subclass | `7740a91` |
+| HTTP API bypass | `Requests::request_multiple()` | Every describe is `wp_remote_post()`, one at a time; steps of 5 (browser) and 3 (background), the run lock 4 minutes; a held picture no longer takes a place in a step | `c462ed9`, `fe57ce0` |
+| SQL outside `prepare()`, SQL from filters | `vergeml_smart_count_branches` / `_exclude` returned SQL; search-try, the SEO gap report, the alt-pending reads and the AI screen's sums were assembled from fragments | Each is one literal statement with every value bound (fixed slots with an on/off flag where the number of values varies); the two filters are gone. The CSV download writes to `php://output` instead of echoing | `7a107eb` |
+| Direct writes to other posts' content | health keep/delete `$wpdb->update`d `post_content` | `wp_update_post()` after `edit_post` on each post, and not when kses would cut markup; a delete whose references cannot all be moved does not delete | `09bef93` |
+| Test-only code in the build | `vergeml_ai_describe_answers`, `vergeml_ai_run_should_nudge`, the brief's stand-in, the folders walk flag, the trial-offer filter, the guide's loopback-to-production reroute | Removed; the suites stand in at `pre_http_request` | `c462ed9`, `3c32cd8` |
+| Script inlined into core's wp-api-fetch on every admin screen (question 9) | `vergeml-transport.js` printed inline after `wp-api-fetch`, globals localized onto it | `vergeml-transport` is the plugin's own script; the plugin's scripts depend on it, so it loads only where they run | `97734eb` |
+| Readme (question 10) | 34.4 KB; "What does this fork fix" listed a listed plugin's defects; a drag-to-reorder claim the code cannot keep | FAQ removed, checked-versions list one line per product (the watch replaces instead of appending), 4.0.0 changelog moved to changelog.txt, the reorder claim removed; 27.1 KB | `6380689`, `df693f4` |
+
+**Proof, on the archive that ships (`6e4623f`/`27ec2c4`: the same plugin files).**
+
+- **Plugin Check** in Playground, all five categories: "Checks complete. No errors found." 29 checks asked for, 29 ran, 29 answered success.
+- **PHPCS** 3.13.4 + WPCS 3.2.0 (`node tools/phpcs.mjs`): parse clean on PHP 7.4 and 8.3; annotations honoured **0**; markup-scan 0/0/0; annotations ignored 231, of which **0 at error level under plugin-review** (it was 14: 13 `PreparedSQL.NotPrepared`, 1 `EscapeOutput`). The tool now prints that count; what remains are warnings there -- table-name interpolation, `$_GET` reads that only choose what to show, and the core hooks the plugin fires on purpose.
+- **Clean-site walk** (`node tools/clean-walk.mjs`, new): a fresh Playground site from the archive, `WP_DEBUG_LOG` on, an mu-plugin logging every outgoing request -- **63/63 as expected**. 21 screens as administrator 200, no console error, no failed request; editor and author get the media screens and WordPress's 403 on the five raised ones; both old addresses of the Settings > Media copy land on core's options-media.php; in the grid, one media frame (core's media.js opened none of its own); as administrator and as editor, ticking a folder saves through core's `save-attachment-compat` and holds after a reload, and the grid's `saveMenuOrder()` saves through `vergeml-save-attachment-order` and holds after a reload. debug.log: empty. Outgoing requests: 17, every one WordPress core's; **0 from this plugin**.
+- **Suites**, all green: new -- `media-ajax` 13/13, `gates` 34/34 (admin-allowed rows for health keep/delete, autofile-act and folder-privacy with real objects; the private-folder gate as an editor; bulk terms and /assign as an author naming a page; admin_init logged out; the REST bridge), `import-passes` 11/11 (multi-pass, a forged resume is a 404, a smuggled added list ignored, undo exact), `health-rewrite` 14/14, `hands-off` 10/10 (a static read of the shipped files for every class above; four mutations each turned their row red); local -- ai-outage 42/42, get-help 27/27, watchdog-php 15/15, mime-allowlist 19/19, route-caps 21/21, uninstall 7/7, settings-safety 25/25, plan-job 24/24, filing 105+37, plan-choose/-gain/-fold/-audience/-grow, csv-local 69/69, tree-view 65/65, talk-chips, folders-shop, structure 31/31, copy 58/58, surface 29/29, db-calls 11/11, escaping 10/10, hosts 13/13, globals 7/7, archive-hygiene 8/8; on the box (`46.225.66.194`, this build) -- sticky 87/87, roles 21/21, paths 66/66, secrets 81/81, folders-version 24/24, guide 61/61, filing-trail 125/125, brief 40/40, search-try 13/13, health-keep 33/33, ai-folders 38/38, smart 11/11, csv 33/33, private-folders 18/18, journey 62/62, counts 26/26.
+- **Older than this round, not regressions** (the same suites fail the same way with `ae74ba0` deployed to the box): auto-file 24/25 ("a file between two folders is suggested for neither"), ai-background 36/37 (G1, a model-only change reads 3 stale), health.mjs (the screen's locator times out at "the way in"); voice 1/2 flags "Tree" in two strings of `core/guide.php` that this round did not touch. escaping's 4:1 text-to-HTML sink ratio was already red at `ae74ba0` (249:65); it is 3.5:1 now with the history in the suite.
+- **Fresh-eyes reviewer pass** on `df693f4` against the rulebook, annotations ignored ([review4-fresh-eyes.md](wordpress-org-audit/review4-fresh-eyes.md)): **0 would-reject**; both of review 3's would-reject classes gone everywhere; 8 likely questions, below.
+
+**Still a likely question (review 4), and what to say or do.**
+
+1. Core media views extended globally on every media modal, and admin assets on every admin screen -- the Enhanced Media Library heritage; answer, or scope in a later release.
+2. The crash watchdog boots on every request and enters safe mode by itself -- a product decision (the readme's crash FAQ describes it); proposal: safe mode only by a constant or a setting, Recovery Mode for the rest.
+3. `core/guide.php:2785` builds one statement from prepared parts.
+4. Health keep/delete still write other posts' meta and `post_parent` with `$wpdb->update()` (the content now goes through `wp_update_post`).
+5. Delete All Data and the opt-in uninstall wipe delete every `media_category` term, which Enhanced Media Library shares -- a product decision.
+6. The readme is 27 KB against the 10 KB guideline.
+7. Two more filters that exist for the suites: `vergeml_journey_facts` and `vergeml_ai_run_budget`; and plain http to `127.0.0.1` for the box's local service (`core/ai.php:316`).
+8. The admin-ajax road to the REST endpoints (`core/transport.php`): its checks are sound; a reviewer may ask why it exists.
+
+**Product changes worth knowing.** Describing is one picture at a time through
+the HTTP API: a run takes longer than with eight in flight. Settings > Media is
+WordPress's own screen again. With Enhanced Media Library active nothing of it is
+switched off. **Drag-to-reorder in the grid does not work and did not before this
+round** (`ae74ba0` the same): every tile carries the folder tree's drag-to-a-folder
+handle and jQuery UI lets one mouse widget take a press; the readme no longer
+claims it, and the save behind it is proved.
+
+**The three-line reply** (Nathan's to send, with the zip):
+
+> Thank you for the review. Version 4.1.0 is uploaded again: it no longer answers WordPress's own save-attachment-compat and save-attachment-order AJAX actions, and it no longer switches off any code of Enhanced Media Library, Impreza or SimpLy Gallery.
+> We checked every class in your email across the whole plugin, not only the lines quoted: the copy of Settings > Media and the core globals it set are gone, every request goes through the WordPress HTTP API, every SQL statement is prepared as one literal with no SQL taken from filters, and test-only hooks are removed.
+> Plugin Check reports no errors or warnings on the uploaded zip; if anything else needs changing, we will fix every instance of it.
 
 ## Running PHPCS
 
