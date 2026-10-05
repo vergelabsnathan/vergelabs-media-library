@@ -123,6 +123,8 @@ const SUITES = [
 	 *  The 4.0.0 archive shipped .harness/active.json (Epic 1 retro, A-1).
 	 */
 	{ name: 'archive-hygiene', file: 'tests/release/archive-hygiene.mjs', env: 'local' },
+	// Nothing of core's or another plugin's is answered, switched off or overwritten (wordpress.org review 2).
+	{ name: 'hands-off', file: 'tests/release/hands-off.mjs', env: 'local' },
 	/*
 	 *  The copy standard, over the strings Phase 4 struck. Reads the source
 	 *  from disk, so env 'local'. Copy rots back: "Please try again" is the
@@ -345,6 +347,10 @@ const SUITES = [
 	{ name: 'media-ajax', file: 'tests/security/media-ajax.php', env: 'local', php: 'playground' },
 	// The gates the review of review 2's fixes found untested: admin rows, private folders, author bulk, logged-out admin_init, the bridge.
 	{ name: 'gates', file: 'tests/security/gates.php', env: 'local', php: 'playground' },
+	// An import in passes, a resume the browser cannot forge, undo of exactly what it did (code review of review 2).
+	{ name: 'import-passes', file: 'tests/tree/import-passes.php', env: 'local', php: 'playground' },
+	// Health keep and delete rewrite other posts through wp_update_post, only those the person may edit (wordpress.org review 2).
+	{ name: 'health-rewrite', file: 'tests/tree/health-rewrite.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },
