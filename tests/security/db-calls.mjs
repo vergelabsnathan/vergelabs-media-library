@@ -163,7 +163,9 @@ check(
  *  Floors, not equalities: new queries are ordinary work. A count that falls is
  *  a call the reader stopped seeing, which is the direction worth guarding.
  */
-const FLOOR = { total: 202, prepared: 109, tableOnly: 52, builder: 21 };
+// builder 21 -> 18 on 2026-10-05: search-try, the SEO gap report and the smart-folder counts became literal
+// prepared statements (wordpress.org review 2), so three assembled calls are now proven as prepared.
+const FLOOR = { total: 202, prepared: 109, tableOnly: 52, builder: 18 };
 
 for ( const [ key, least ] of Object.entries( FLOOR ) ) {
 	check( `${ key }: ${ c[ key ] } found, never fewer than ${ least }`, c[ key ] >= least, `found ${ c[ key ] }` );

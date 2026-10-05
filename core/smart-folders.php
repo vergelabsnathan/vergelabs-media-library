@@ -376,7 +376,7 @@ function vergeml_smart_counts( $fresh = false ) {
              UNION ALL
              SELECT '_total', COUNT(*) FROM {$wpdb->posts} p
               WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'",
-            $args
+            ...$args
         ) );
 
         /*
@@ -426,7 +426,7 @@ function vergeml_smart_counts( $fresh = false ) {
              SELECT 'quarantine', COUNT(*) FROM {$wpdb->posts} p
                JOIN {$wpdb->postmeta} q ON q.post_id = p.ID AND q.meta_key = %s
               WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'",
-            $args
+            ...$args
         ) );
     }
     // phpcs:enable

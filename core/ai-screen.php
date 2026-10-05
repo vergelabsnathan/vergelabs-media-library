@@ -144,7 +144,7 @@ function vergeml_ai_screen_counts() {
                     SUM(filing LIKE %s AND filing NOT LIKE %s) AS season,
                     SUM(filing LIKE %s AND filing NOT LIKE %s) AS details
                FROM {$t} WHERE error = ''",
-            $like
+            ...$like
         ), ARRAY_A );
         foreach ( (array) $filing as $f => $n ) {
             $c['filing'][ $f ] = (int) $n;

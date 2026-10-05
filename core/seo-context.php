@@ -293,7 +293,7 @@ function vergeml_seo_gap_ids( $limit = 0 ) {
               WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
                 AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
               GROUP BY p.ID ORDER BY MAX( kw.pri ) DESC, p.ID ASC LIMIT %d",
-            array_merge( $star, $keys, $star, $keys, array( '%"keyphrase":"_%' ), $tail )
+            ...array_merge( $star, $keys, $star, $keys, array( '%"keyphrase":"_%' ), $tail )
         ) );
 
     } else {
@@ -314,7 +314,7 @@ function vergeml_seo_gap_ids( $limit = 0 ) {
               WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
                 AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
               GROUP BY p.ID ORDER BY MAX( kw.pri ) DESC, p.ID ASC LIMIT %d",
-            array_merge( $star, $keys, $star, $keys, $tail )
+            ...array_merge( $star, $keys, $star, $keys, $tail )
         ) );
     }
     // phpcs:enable

@@ -104,14 +104,6 @@ const REVIEWED = {
 
 	/* --- PHP ----------------------------------------------------------- */
 
-	'core/import-csv.php': [
-		[ '7700958a44', 'a CSV download, not markup: text/csv with Content-Disposition attachment, quoted per RFC 4180. Not an XSS sink -- but see "The CSV export, and spreadsheet formulas", which is a separate finding' ],
-	],
-
-	'core/options-pages.php': [
-		[ 'cd9e4aee76', 'json_encode() into a download: application/json with Content-Disposition attachment, so not an HTML context. wp_json_encode() would be the house style' ],
-	],
-
 };
 
 const SKIP = new Set( [

@@ -1,6 +1,6 @@
 <?php
 /**
- *  Eight at a time, and copies described once.
+ *  Several described in one call, and copies described once.
  *
  *      wp eval-file tests/ai/parallel.php --allow-root
  *
@@ -249,19 +249,14 @@ if ( ! function_exists( 'vergeml_ai_twin' ) || ! defined( 'VERGEML_META_HASH' ) 
 }
 
 
-/* ------------------------------------------------------------ the ceiling */
+/* ------------------------------------------------------------ one at a time */
 
-pl_say( "\nC  how many go out together\n" );
-
-pl_check( 'eight by default', 8 === vergeml_ai_parallel(), (string) vergeml_ai_parallel() );
-
-add_filter( 'vergeml_ai_parallel', function () { return 200; } );
-pl_check( 'and a site cannot ask for two hundred', 16 === vergeml_ai_parallel(), (string) vergeml_ai_parallel() );
-remove_all_filters( 'vergeml_ai_parallel' );
-
-add_filter( 'vergeml_ai_parallel', function () { return 0; } );
-pl_check( 'nor for none', 1 === vergeml_ai_parallel(), (string) vergeml_ai_parallel() );
-remove_all_filters( 'vergeml_ai_parallel' );
+/*
+ *  Since 4.1.0 nothing goes out together: every call is wp_remote_post()
+ *  (wordpress.org review 2, the HTTP API). Section C asked how many went out
+ *  at once; there is no such setting any more.
+ */
+pl_check( 'no parallel setting is left', ! function_exists( 'vergeml_ai_parallel' ) );
 
 
 /* -------------------------------------------------------------- tidy up */

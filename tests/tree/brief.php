@@ -12,9 +12,9 @@
  *  answers, and starts the stale run with its reason. Discarding drops the
  *  draft.
  *
- *  Nothing is sent to the service: the describer is stood in for through
- *  the vergeml_brief_describe filter, and the run is kept from spawning a
- *  pass through vergeml_ai_run_should_nudge. Everything written is put back:
+ *  Nothing is sent to the service: the describer is stood in for at the HTTP
+ *  layer (pre_http_request), and the wp-cron.php loopback a started run
+ *  posts is answered here, so no pass is spawned. Everything written is put back:
  *  the five rows, their alt text, the profile, the session, the run state.
  *
  *  Mutation checks run against this suite on 2026-09-06: with the write
@@ -57,13 +57,30 @@ $b_run_was     = get_option( 'vergeml_ai_run' );
 $b_cron_was    = wp_next_scheduled( VERGEML_AI_RUN_HOOK );
 $b_profile_was = vergeml_brief_in_use();
 
-// No request leaves this process unless a check says it may.
+// No request leaves this process. The describer is answered by the stand-in in C (earlier priority); the
+// wp-cron.php loopback a started run posts is answered here and counted, so no pass is spawned; anything
+// else is refused and counted.
 $GLOBALS['b_requests'] = 0;
+$GLOBALS['b_nudges']   = 0;
 add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
+    if ( false !== $pre ) {
+        return $pre;
+    }
+    if ( false !== strpos( (string) $url, 'wp-cron.php' ) ) {
+        $GLOBALS['b_nudges']++;
+        return array( 'headers' => array(), 'body' => '', 'response' => array( 'code' => 200, 'message' => 'OK' ), 'cookies' => array(), 'filename' => null );
+    }
     $GLOBALS['b_requests']++;
     return new WP_Error( 'b_blocked', 'the suite blocks HTTP: ' . $url );
 }, 10, 3 );
-add_filter( 'vergeml_ai_run_should_nudge', '__return_false' );
+
+// A key of the suite's own, so the describe request is built; the settings are put back by $b_restore.
+$b_ai = is_array( $b_ai_was ) ? $b_ai_was : array();
+$b_ai['license_key'] = vergeml_ai_seal( 'VGML-' . strtoupper( wp_generate_password( 30, false, false ) ) . 'ZZZZ' );
+update_option( 'vergeml_ai', $b_ai, false );
+if ( ! defined( 'VERGEML_AI_ALLOW_NONPROD' ) ) {
+    define( 'VERGEML_AI_ALLOW_NONPROD', true );
+}
 
 $b_restore = function () use ( $b_session_was, $b_ai_was, $b_run_was, $b_cron_was ) {
     if ( false === $b_session_was ) {
@@ -169,13 +186,22 @@ foreach ( $b_ids as $b_id ) {
 }
 $b_stamp_was = vergeml_index_current_stamp();
 
+// The service, stood in for at the HTTP layer: each describe request is answered here with a stub built from
+// the file name and the brief it carried.
 $GLOBALS['b_described'] = array();
-add_filter( 'vergeml_brief_describe', function () {
-    return function ( $id, $brief ) {
-        $GLOBALS['b_described'][] = array( $id, $brief );
-        return array(
-            'caption'       => 'Stub caption for #' . $id . ' under: ' . $brief,
-            'alt'           => 'Stub alt for #' . $id,
+add_filter( 'pre_http_request', function ( $pre, $args, $url ) {
+    if ( false !== $pre || '/describe' !== substr( (string) wp_parse_url( (string) $url, PHP_URL_PATH ), -9 ) ) {
+        return $pre;
+    }
+    $body  = json_decode( (string) $args['body'], true );
+    $id    = (string) $body['filename'];
+    $brief = (string) $body['profile'];
+    $GLOBALS['b_described'][] = array( $id, $brief );
+    return array(
+        'headers'  => array(),
+        'body'     => wp_json_encode( array(
+            'caption'       => 'Stub caption for ' . $id . ' under: ' . $brief,
+            'alt'           => 'Stub alt for ' . $id,
             'tags'          => array( 'stub', 'verge' ),
             'title'         => 'Stub Title ' . $id,
             'kind'          => 'photo',
@@ -187,9 +213,12 @@ add_filter( 'vergeml_brief_describe', function () {
             'model_version' => 'stub-1',
             'prompt_hash'   => 'stubhash' . substr( md5( $brief ), 0, 8 ),
             'filing'        => array( 'object' => 'stub; thing', 'material' => '', 'colour' => '', 'setting' => '', 'style' => '', 'audience' => '', 'season' => '', 'details' => '' ),
-        );
-    };
-} );
+        ) ),
+        'response' => array( 'code' => 200, 'message' => 'OK' ),
+        'cookies'  => array(),
+        'filename' => null,
+    );
+}, 5, 3 );
 
 $b_t0   = $GLOBALS['b_requests'];
 $b_test = vergeml_brief_test();

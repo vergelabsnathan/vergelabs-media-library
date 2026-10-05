@@ -733,7 +733,7 @@ function vergeml_ai_filing( $raw ) {
 
 /**
  *  An answer the service did not give for this picture: no answer at all
- *  (the transport failed, on either path, or WordPress was told not to make
+ *  (the transport failed, or WordPress was told not to make
  *  outbound requests), or a status that says "not now" -- any 5xx, and the
  *  handful of 4xx that mean the same (a timeout, too early, too many).
  *  These hold the picture; everything else is an answer about the file.
@@ -746,7 +746,7 @@ function vergeml_ai_transient( $error ) {
 
     $code = (string) $error->get_error_code();
 
-    if ( in_array( $code, array( 'http_request_failed', 'http_request_not_executed', 'vergeml_ai_transport', 'vergeml_ai_no_answer' ), true ) ) {
+    if ( in_array( $code, array( 'http_request_failed', 'http_request_not_executed', 'vergeml_ai_no_answer' ), true ) ) {
         return true;
     }
 

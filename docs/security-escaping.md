@@ -13,14 +13,14 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 
 | | count |
 |---|---|
-| PHP output sites with a non-literal argument | 200 |
-| · of those, read by hand with the reason | 2 |
+| PHP output sites with a non-literal argument | 198 |
+| · of those, read by hand with the reason | 0 |
 | · of those, **nothing accounted for them** | **0** |
-| JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 65 |
-| · of those, given anything but a literal | 19 |
-| · of those, read by hand with the reason | 19 |
+| JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 64 |
+| · of those, given anything but a literal | 18 |
+| · of those, read by hand with the reason | 18 |
 | · of those, **still unread** | **0** |
-| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 249 |
+| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 247 |
 
 Over 68 PHP files and 39 JavaScript files that ship.
 
@@ -41,22 +41,21 @@ table below is what it rests on rather than a recollection.
 
 ## JavaScript HTML sinks
 
-All 65 are given a literal — an empty string, an inline SVG, or an
+All 64 are given a literal — an empty string, an inline SVG, or an
 HTML entity. Not one is given a variable, a template literal with a substitution,
 or a concatenation. Every dynamic string in this plugin goes to `textContent`,
 jQuery `.text()`, `createTextNode` or `setAttribute` instead.
 
-### The 19 read by hand
+### The 18 read by hand
 
 Each is given something other than a literal and each was read. Keyed by a hash of
 what it is given, so changing any of them expires its reason.
 
 | where | fingerprint | sink | why it is safe |
 |---|---|---|---|
-| js/eml-admin.js:32 | `950a39b6c2` | `jQuery .html()` | vergemlConfirmDialog() and vergemlAlertDialog() inject their html argument. All sixteen call sites pass vergeml.l10n strings -- our own translated copy, never a value out of the database or the request. Until 2026-09-11 every call site misspelled them and they were dead code; see "Two dialog helpers that had no callers" below |
-| js/eml-admin.js:73 | `950a39b6c2` | `jQuery .html()` | vergemlConfirmDialog() and vergemlAlertDialog() inject their html argument. All sixteen call sites pass vergeml.l10n strings -- our own translated copy, never a value out of the database or the request. Until 2026-09-11 every call site misspelled them and they were dead code; see "Two dialog helpers that had no callers" below |
+| js/eml-admin.js:26 | `950a39b6c2` | `jQuery .html()` | vergemlConfirmDialog() and vergemlAlertDialog() inject their html argument. All sixteen call sites pass vergeml.l10n strings -- our own translated copy, never a value out of the database or the request. Until 2026-09-11 every call site misspelled them and they were dead code; see "Two dialog helpers that had no callers" below |
+| js/eml-admin.js:67 | `950a39b6c2` | `jQuery .html()` | vergemlConfirmDialog() and vergemlAlertDialog() inject their html argument. All sixteen call sites pass vergeml.l10n strings -- our own translated copy, never a value out of the database or the request. Until 2026-09-11 every call site misspelled them and they were dead code; see "Two dialog helpers that had no callers" below |
 | js/eml-media-grid.js:106 | `3b644de74c` | `jQuery .html()` | a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow character appended |
-| js/eml-media.js:130 | `5075804ae4` | `jQuery .html()` | core's own Find Posts dialog: x.data is the HTML table core builds in wp_ajax_find_posts, behind core's nonce and capability. This mirrors core's media.js |
 | js/vergeml-gallery.js:36 | `8e5f448d16` | `innerHTML` | glyph is a parameter of mk(), called exactly twice, both times with an HTML entity literal |
 | js/vergeml-media-views.js:127 | `7e52d60663` | `jQuery .html()` | i.item is the rendered output of a wp.media template, not a value out of the database |
 | js/vergeml-media-views.js:270 | `922a72803e` | `jQuery .html()` | $('<div/>').html( t.term_row ).text() -- a detached node used to decode entities, with only .text() read back; term_row is built by our PHP with esc_html() |
@@ -66,12 +65,12 @@ what it is given, so changing any of them expires its reason.
 | js/vergeml-tree-view.js:143 | `be95315174` | `innerHTML` | an inline SVG assembled from literal path strings chosen by a boolean |
 | js/vergeml-tree-view.js:1162 | `7524bab4c0` | `innerHTML` | chevron() or an empty string, and chevron() returns a literal SVG |
 | js/vergeml-tree-view.js:1704 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- the fold pair, S10.4 |
-| js/vergeml-tree.js:483 | `120a036696` | `innerHTML` | shard() returns a literal SVG |
-| js/vergeml-tree.js:864 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
-| js/vergeml-tree.js:896 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
-| js/vergeml-tree.js:3763 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
-| js/vergeml-tree.js:5077 | `a85ef70f6b` | `innerHTML` | an HTML entity chosen by a boolean, inside literal markup |
-| js/vergeml-tree.js:5083 | `379ac53d9c` | `innerHTML` | one of two HTML entities |
+| js/vergeml-tree.js:486 | `120a036696` | `innerHTML` | shard() returns a literal SVG |
+| js/vergeml-tree.js:867 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
+| js/vergeml-tree.js:899 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
+| js/vergeml-tree.js:3770 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- three sites, same expression |
+| js/vergeml-tree.js:5052 | `a85ef70f6b` | `innerHTML` | an HTML entity chosen by a boolean, inside literal markup |
+| js/vergeml-tree.js:5058 | `379ac53d9c` | `innerHTML` | one of two HTML entities |
 
 #### Two dialog helpers that had no callers
 
@@ -87,14 +86,13 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 `eml`- or `vergeml`-prefixed name that no script defines. Every caller passes a
 `vergeml.l10n` string, which is the only thing that may go into these two.
 
-<details><summary>All 65 JavaScript HTML sinks</summary>
+<details><summary>All 64 JavaScript HTML sinks</summary>
 
 | where | sink | given | what |
 |---|---|---|---|
-| js/eml-admin.js:32 | `jQuery .html()` | **not a literal** | `html` |
-| js/eml-admin.js:73 | `jQuery .html()` | **not a literal** | `html` |
+| js/eml-admin.js:26 | `jQuery .html()` | **not a literal** | `html` |
+| js/eml-admin.js:67 | `jQuery .html()` | **not a literal** | `html` |
 | js/eml-media-grid.js:106 | `jQuery .html()` | **not a literal** | `function(i, html) { return ! collapsed ? vergeml.l10n.less_details+' \` |
-| js/eml-media.js:130 | `jQuery .html()` | **not a literal** | `x.data` |
 | js/vergeml-ai.js:362 | `innerHTML` | a literal | `''` |
 | js/vergeml-autofile.js:43 | `innerHTML` | a literal | `''` |
 | js/vergeml-autofile.js:156 | `innerHTML` | a literal | `''` |
@@ -139,23 +137,23 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-tree-view.js:1704 | `innerHTML` | **not a literal** | `chevron()` |
 | js/vergeml-tree-view.js:1888 | `innerHTML` | a literal | `''` |
 | js/vergeml-tree.js:214 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:483 | `innerHTML` | **not a literal** | `shard()` |
-| js/vergeml-tree.js:569 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:634 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:770 | `innerHTML` | a literal | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<rect x="0.5" y=` |
-| js/vergeml-tree.js:864 | `innerHTML` | **not a literal** | `chevron()` |
-| js/vergeml-tree.js:896 | `innerHTML` | **not a literal** | `chevron()` |
-| js/vergeml-tree.js:965 | `innerHTML` | a literal | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<path d="M1.5 1h` |
-| js/vergeml-tree.js:2539 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:2743 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:3016 | `innerHTML` | a literal | `'&#8943;'` |
-| js/vergeml-tree.js:3763 | `innerHTML` | **not a literal** | `chevron()` |
-| js/vergeml-tree.js:4273 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:4278 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:4329 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:4927 | `innerHTML` | a literal | `''` |
-| js/vergeml-tree.js:5077 | `innerHTML` | **not a literal** | `'<span aria-hidden="true">' + ( collapsed ? '&#9656;' : '&#9666;' ) + ` |
-| js/vergeml-tree.js:5083 | `innerHTML` | **not a literal** | `now ? '&#9656;' : '&#9666;'` |
+| js/vergeml-tree.js:486 | `innerHTML` | **not a literal** | `shard()` |
+| js/vergeml-tree.js:572 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:637 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:773 | `innerHTML` | a literal | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<rect x="0.5" y=` |
+| js/vergeml-tree.js:867 | `innerHTML` | **not a literal** | `chevron()` |
+| js/vergeml-tree.js:899 | `innerHTML` | **not a literal** | `chevron()` |
+| js/vergeml-tree.js:968 | `innerHTML` | a literal | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<path d="M1.5 1h` |
+| js/vergeml-tree.js:2545 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:2749 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:3022 | `innerHTML` | a literal | `'&#8943;'` |
+| js/vergeml-tree.js:3770 | `innerHTML` | **not a literal** | `chevron()` |
+| js/vergeml-tree.js:4280 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:4285 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:4336 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:4902 | `innerHTML` | a literal | `''` |
+| js/vergeml-tree.js:5052 | `innerHTML` | **not a literal** | `'<span aria-hidden="true">' + ( collapsed ? '&#9656;' : '&#9666;' ) + ` |
+| js/vergeml-tree.js:5058 | `innerHTML` | **not a literal** | `now ? '&#9656;' : '&#9666;'` |
 
 </details>
 
@@ -175,13 +173,6 @@ tab or a carriage return. It takes somebody who can name a folder — `manage_ca
 it is not made here: the export feeds the import, and that round trip is the migration
 story. The fix is to prefix a field that begins with one of those characters with a
 single quote, and to teach the importer to strip one leading `'` back off.
-
-## PHP output read by hand
-
-| where | fingerprint | what is printed | why it is safe |
-|---|---|---|---|
-| core/import-csv.php:217 | `7700958a44` | `vergeml_csv_line( $row )` | a CSV download, not markup: text/csv with Content-Disposition attachment, quoted per RFC 4180. Not an XSS sink -- but see "The CSV export, and spreadsheet formulas", which is a separate finding |
-| core/options-pages.php:1586 | `cd9e4aee76` | `json_encode( $settings )` | json_encode() into a download: application/json with Content-Disposition attachment, so not an HTML context. wp_json_encode() would be the house style |
 
 ## PHP output with nothing accounting for it
 

@@ -85,10 +85,12 @@ const c = model.counted;
 const FLOOR = {
 	restEndpoints: 76,
 	restRoutes: 69,
-	ajax: 7,
+	// 6 since 2026-10-05: core's save-attachment-compat is core's again (wordpress.org review 2).
+	ajax: 6,
 	adminPost: 11,
 	cron: 4,
-	screens: 13,
+	// 12 since 2026-10-05: the hidden copy of Settings > Media is gone (wordpress.org review 2).
+	screens: 12,
 	frontend: 2,
 	// 6 since 4.1.0's review round: the vergeml_notices setting belonged to the removed remote-notice printer.
 	settings: 6,

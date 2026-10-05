@@ -121,6 +121,10 @@ function wp_schedule_single_event( $ts, $hook ) {
     return true;
 }
 function spawn_cron() {}
+// The main plugin file's (78f1a5f), which this fixture does not load; a job here never asks for more time.
+function vergeml_can_set_time_limit() {
+    return false;
+}
 function wp_load_alloptions() {
     return $GLOBALS['pj_autoloaded'];
 }

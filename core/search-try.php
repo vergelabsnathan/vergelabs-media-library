@@ -70,7 +70,7 @@ function vergeml_search_try( $q ) {
                     FROM {$wpdb->posts} p
                     LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = p.ID AND i.error = ''
                    WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE %s ) s",
-        array_merge( $slots, $slots, $slots, array( $image ) )
+        ...array_merge( $slots, $slots, $slots, array( $image ) )
     ), ARRAY_A );
 
     $rows = $wpdb->get_results( $wpdb->prepare(
@@ -85,7 +85,7 @@ function vergeml_search_try( $q ) {
           WHERE ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s )
             AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s )
           ORDER BY s.post_date DESC, s.ID DESC LIMIT 30",
-        array_merge( array( $image ), $slots )
+        ...array_merge( array( $image ), $slots )
     ), ARRAY_A );
     // phpcs:enable
 

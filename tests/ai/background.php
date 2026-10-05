@@ -372,14 +372,13 @@ bg_say( "\nG  neither a model change nor a prompt change sweeps by itself\n" );
  *  sent: under the mutations this section exists for, the sweep starts a run
  *  over the whole library, and on 2026-09-17 one tick got in before the stop
  *  below and wrote a mock row over a real picture's description. A suite
- *  that can start a run holds the wire -- twice: the nudge is declined, and
- *  whatever core's spawn_cron() still posts is answered here.
+ *  that can start a run holds the wire: whatever core's spawn_cron() posts
+ *  is answered here.
  */
 function bg_no_cron( $pre, $args, $url ) {
     return false !== strpos( (string) $url, 'wp-cron.php' ) ? array( 'response' => array( 'code' => 200 ), 'body' => '', 'headers' => array() ) : $pre;
 }
 add_filter( 'pre_http_request', 'bg_no_cron', 1, 3 );
-add_filter( 'vergeml_ai_run_should_nudge', '__return_false' );
 
 /** A row on another model, and optionally another prompt, newer than every
  *  real row -- so the stamp reads it. Never 'mock': the stamp skips those. */
@@ -498,7 +497,6 @@ bg_check(
     json_encode( array( 'hash' => array( $bg_hash_before['prompt_hash'], $bg_hash_after['prompt_hash'] ), 'described' => count( $bg_step['described'] ), 'active' => ! empty( $bg_g3['active'] ), 'reason' => isset( $bg_g3['reason'] ) ? $bg_g3['reason'] : '', 'booked' => $bg_g3_booked ) )
 );
 
-remove_filter( 'vergeml_ai_run_should_nudge', '__return_false' );
 remove_filter( 'pre_http_request', 'bg_no_cron', 1 );
 
 
