@@ -225,7 +225,8 @@ class PJ_Wpdb {
     public $postmeta         = 'wp_postmeta';
     public function prepare( $q ) {
         $args = array_slice( func_get_args(), 1 );
-        return vsprintf( str_replace( array( '%d', '%s' ), array( '%d', "'%s'" ), $q ), $args );
+        // %i is an identifier since round 4's %i rewrite; vsprintf does not know it.
+        return vsprintf( str_replace( array( '%d', '%s', '%i' ), array( '%d', "'%s'", '`%s`' ), $q ), $args );
     }
     public function get_row( $q ) {
         return array( 'n' => count( $GLOBALS['pj_rows'] ), 'at' => $GLOBALS['pj_stamp'] );

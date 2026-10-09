@@ -293,11 +293,15 @@ class PfWpdb {
     public function get_row( $sql, $output = ARRAY_A ) {
         return $this->stamp;
     }
+    // Fills %i, %s and %d left to right, as $wpdb does; filling only %d put the %i table name into the cursor (round 4).
     public function prepare( $sql, ...$args ) {
-        foreach ( $args as $a ) {
-            $sql = preg_replace( '/%d/', (string) (int) $a, $sql, 1 );
+        if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+            $args = $args[0];
         }
-        return $sql;
+        return preg_replace_callback( '/%[ids]/', function ( $m ) use ( &$args ) {
+            $a = array_shift( $args );
+            return '%d' === $m[0] ? (string) (int) $a : ( '%i' === $m[0] ? '`' . $a . '`' : "'" . $a . "'" );
+        }, $sql );
     }
     public function get_results( $sql, $output = ARRAY_A ) {
         $after = 0;
