@@ -114,15 +114,16 @@ function vergeml_mimes_validate( $input ) {
  *  vergeml_mime_refused
  *
  *  Extensions no setting may allow for upload, even where WordPress knows
- *  them: code a server or a browser would run. Checked per part of a
- *  combined key such as "htm|html".
+ *  them: code a server would run, and anything a browser interprets rather
+ *  than shows -- markup, style sheets, scripts, XML and its style sheets.
+ *  Checked per part of a combined key such as "htm|html".
  */
 
 function vergeml_mime_refused( $ext ) {
 
     foreach ( explode( '|', strtolower( (string) $ext ) ) as $part ) {
 
-        if ( preg_match( '/^(php\d*|phtml|pht|phps|phar|cgi|pl|py|sh|bash|asp|aspx|jsp|jspx|htm|html|xhtml|shtml|shtm|svg|svgz|js|mjs|exe|htaccess|swf|com|bat|cmd|msi|dll|jar|class)$/', $part ) ) {
+        if ( preg_match( '/^(php\d*|phtml|pht|phps|phar|cgi|pl|py|sh|bash|asp|aspx|jsp|jspx|htm|html|xhtml|xht|shtml|shtm|mht|mhtml|hta|css|xml|xsl|xslt|dfxp|svg|svgz|js|mjs|vbs|ps1|wasm|exe|htaccess|swf|com|bat|cmd|msi|dll|jar|class)$/', $part ) ) {
             return true;
         }
     }

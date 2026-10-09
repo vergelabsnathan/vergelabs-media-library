@@ -2828,7 +2828,7 @@ function vergeml_print_mimetypes_options() {
             '<button type="button" class="button" id="eml-restore-mime-types-settings" name="eml-restore-mime-types-settings" value="1">' . esc_html__( 'Restore WordPress defaults', 'vergelabs-media-library' ) . '</button>'
         ), vergeml_kses_allowed() );
         ?>
-        <p class="vgml-ft-safety"><?php esc_html_e( 'Only file types WordPress itself knows can be allowed. Types that can run code -- PHP, HTML, JavaScript, SVG, executables -- cannot be allowed here. WordPress role restrictions still apply.', 'vergelabs-media-library' ); ?></p>
+        <p class="vgml-ft-safety"><?php esc_html_e( 'Only file types WordPress itself knows can be allowed. Types that can run code or that a browser interprets -- PHP, HTML, CSS, JavaScript, SVG, XML, executables -- cannot be allowed here. WordPress role restrictions still apply.', 'vergelabs-media-library' ); ?></p>
         <?php
         $vergeml_dropped = vergeml_mimes_dropped();
         if ( $vergeml_dropped ) : ?>

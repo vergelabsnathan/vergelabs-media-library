@@ -88,7 +88,7 @@ Additional parameters for the [gallery] and [playlist] shortcodes:
 
 ### MIME Types Management ###
 
-Choose which of WordPress's own file types may be uploaded, and add any of them to the media filters. Types that can run code -- PHP, HTML, JavaScript, SVG, executables -- cannot be allowed.
+Choose which of WordPress's own file types may be uploaded, and add any of them to the media filters. Types that can run code or that a browser interprets -- PHP, HTML, CSS, JavaScript, SVG, XML, executables -- cannot be allowed.
 
 
 ### Developer-Friendly ###
@@ -265,7 +265,7 @@ New: Plan my folders on the Folders screen builds a folder tree from what your p
 * **The known-problems list comes from the AI service** at `ai.vergelabs.nl`, not from GitHub. It is still fetched only when you press "Check for known problems".
 * **The plugin's admin screens have new addresses**, all starting `vergeml-` (for example `admin.php?page=vergeml-ai`). Bookmarks to the old ones are sent on to the new.
 * **Library-wide work is an administrator's.** The dashboard, Folders, AI, Health and Import screens, and everything that runs across the library, spends credits or calls the AI service, now need the Administrator role. Editors keep the folder tree in the media library: filing, and changing one folder or one file at a time. Making a folder private, the smart-folder scan and search by meaning are an administrator's.
-* **File types: WordPress's own only.** The File types screen switches WordPress's known types on and off; it no longer adds new ones, and types that can run code -- PHP, HTML, JavaScript, SVG, executables -- are never allowed. A type saved earlier that WordPress does not know is left out, and the screen names it.
+* **File types: WordPress's own only.** The File types screen switches WordPress's known types on and off; it no longer adds new ones, and types that can run code or that a browser interprets -- PHP, HTML, CSS, JavaScript, SVG, XML, executables -- are never allowed. A type saved earlier that WordPress does not know is left out, and the screen names it.
 * **The plugin never deactivates itself.** After repeated crashes it still switches its own features off, and the notice offers a Deactivate button. Delete All Data no longer deactivates the plugin either; deleting it afterwards from the Plugins screen takes the rest.
 * **Settings > Media is WordPress's own screen again.** The plugin's copy of it is gone; its old address opens WordPress's.
 * **With Enhanced Media Library active, nothing of it is switched off any more.** A notice on the media screens asks you to deactivate one of the two.

@@ -88,6 +88,19 @@ vgml_t( 'a known type switched on is allowed', isset( $allowed['png'] ) );
 vgml_t( 'a known type switched off is not', ! isset( $allowed['jpg|jpeg|jpe'] ) );
 vgml_t( 'a stored MIME type is not trusted', isset( $allowed['gif'] ) && 'image/gif' === $allowed['gif'], isset( $allowed['gif'] ) ? $allowed['gif'] : 'absent' );
 
+// Style sheets and XML are what a browser interprets, not shows (wordpress.org review 2, round 4): off even for an
+// administrator, whom core itself would allow css, and whatever an old setting said.
+$vgml_css_opts = get_option( 'vergeml_mimes' );
+$vgml_css_opts['css'] = array( 'mime' => 'text/css', 'singular' => 'C', 'plural' => 'C', 'filter' => 0, 'upload' => 1 );
+update_option( 'vergeml_mimes', $vgml_css_opts, false );
+wp_set_current_user( 1 );
+$vgml_admin_allowed = get_allowed_mime_types();
+vgml_t( 'css is never allowed, not even for an administrator', ! isset( $vgml_admin_allowed['css'] ) );
+vgml_t( 'css, xml, xsl and dfxp are refused types', vergeml_mime_refused( 'css' ) && vergeml_mime_refused( 'xml' ) && vergeml_mime_refused( 'xsl' ) && vergeml_mime_refused( 'dfxp' ) && ! vergeml_mime_refused( 'png' ) && ! vergeml_mime_refused( 'pdf' ) );
+$vgml_known_open = array_filter( array_keys( wp_get_mime_types() ), function ( $ext ) { return ! vergeml_mime_refused( $ext ); } );
+vgml_t( 'of the types WordPress knows, none left open is markup, style, script or XML', array() === array_filter( $vgml_known_open, function ( $ext ) { return (bool) preg_match( '/(^|\|)(css|html?|js|xml|xsl|svg|swf|class|exe|dfxp)(\||$)/', $ext ); } ), implode( ', ', $vgml_known_open ) );
+wp_set_current_user( $editor );
+
 $dropped = vergeml_mimes_dropped();
 
 vgml_t( 'the screen lists what an old setting named',
