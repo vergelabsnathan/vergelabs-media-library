@@ -165,7 +165,9 @@ check(
  */
 // builder 21 -> 18 on 2026-10-05: search-try, the SEO gap report and the smart-folder counts became literal
 // prepared statements (wordpress.org review 2), so three assembled calls are now proven as prepared.
-const FLOOR = { total: 202, prepared: 109, tableOnly: 52, builder: 18 };
+// 2026-10-09 (round 4): every plugin table went into prepare() as %i, so prepared rose 132 -> 187 and tableOnly fell
+// 64 -> 20 (what is left interpolates only core tables). The floor follows the move, and prepared now carries it.
+const FLOOR = { total: 202, prepared: 180, tableOnly: 20, builder: 18 };
 
 for ( const [ key, least ] of Object.entries( FLOOR ) ) {
 	check( `${ key }: ${ c[ key ] } found, never fewer than ${ least }`, c[ key ] >= least, `found ${ c[ key ] }` );
