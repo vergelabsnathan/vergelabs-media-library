@@ -93,13 +93,14 @@ function vergeml_rename_pending( $limit = 0 ) {
     $limit = max( 0, (int) $limit );
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    $ids = $wpdb->get_col(
+    $ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT i.attachment_id
-           FROM {$wpdb->vergeml_ai_index} i
+           FROM %i i
      INNER JOIN {$wpdb->posts} p ON p.ID = i.attachment_id
           WHERE i.error = '' AND i.title <> '' AND p.post_title <> i.title
-       ORDER BY i.attachment_id ASC"
-    );
+       ORDER BY i.attachment_id ASC",
+        $wpdb->vergeml_ai_index
+    ) );
     // phpcs:enable
 
     $out = array();
@@ -146,13 +147,15 @@ function vergeml_rename_pending_count() {
     // FIND_IN_SET(): same rows on MySQL, and SQLite (Playground) has no
     // FIND_IN_SET. vergeml_index_locked_list() writes the list without spaces.
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    $n = (int) $wpdb->get_var(
+    $n = (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*)
-           FROM {$wpdb->vergeml_ai_index} i
+           FROM %i i
      INNER JOIN {$wpdb->posts} p ON p.ID = i.attachment_id
           WHERE i.error = '' AND TRIM(i.title) <> '' AND p.post_title <> TRIM(i.title)
-            AND CONCAT( ',', i.locked, ',' ) NOT LIKE '%,title,%'"
-    );
+            AND CONCAT( ',', i.locked, ',' ) NOT LIKE %s",
+        $wpdb->vergeml_ai_index,
+        '%' . $wpdb->esc_like( ',title,' ) . '%'
+    ) );
     // phpcs:enable
 
     set_transient( 'vergeml_rename_pending_count', $n, MINUTE_IN_SECONDS );

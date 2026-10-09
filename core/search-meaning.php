@@ -333,14 +333,15 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
     // prefix rather than a different sample on every reload.
     $after = 0;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
     do {
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT attachment_id, projection
-               FROM {$wpdb->vergeml_ai_index}
+               FROM %i
               WHERE error = '' AND projection IS NOT NULL AND attachment_id > %d
            ORDER BY attachment_id ASC
               LIMIT %d",
+            $wpdb->vergeml_ai_index,
             $after,
             VERGEML_MEANING_CHUNK
         ), ARRAY_A );
@@ -362,10 +363,11 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
         }
     } while ( count( $rows ) === VERGEML_MEANING_CHUNK && microtime( true ) < $deadline );
 
-    $pending = (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
-          WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL"
-    );
+    $pending = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM %i
+          WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL",
+        $wpdb->vergeml_ai_index
+    ) );
     // phpcs:enable
 
     // Unconverted rows left means the background tick has work to do.
@@ -416,15 +418,14 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
     $short_ids = array_map( 'intval', array_keys( $shortlist ) );
     $ready     = array();
     if ( $short_ids ) {
-        $ph = implode( ',', array_fill( 0, count( $short_ids ), '%d' ) );
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $ph is one %d per id and the ids are bound.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; one %d per id, the ids are bound.
         $ready = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT attachment_id, embedding
-                   FROM {$wpdb->vergeml_ai_index}
+                   FROM %i
                   WHERE error = '' AND embedding IS NOT NULL
-                    AND attachment_id IN ($ph)",
-                $short_ids
+                    AND attachment_id IN ( " . implode( ', ', array_fill( 0, count( $short_ids ), '%d' ) ) . ' )',
+                array_merge( array( $wpdb->vergeml_ai_index ), $short_ids )
             ),
             ARRAY_A
         );
@@ -488,13 +489,14 @@ function vergeml_meaning_convert_batch( $deadline, $max_slices = 4, $keep = null
 
     for ( $slice = 0; $slice < $max_slices && microtime( true ) < $deadline; $slice++ ) {
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT attachment_id, embedding
-               FROM {$wpdb->vergeml_ai_index}
+               FROM %i
               WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL
            ORDER BY described_at DESC
               LIMIT %d",
+            $wpdb->vergeml_ai_index,
             VERGEML_MEANING_CONVERT
         ), ARRAY_A );
 
@@ -565,11 +567,12 @@ function vergeml_meaning_convert_tick() {
 
     delete_transient( 'vergeml_meaning_convert_lock' );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-    $pending = (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
-          WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL"
-    );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $pending = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM %i
+          WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL",
+        $wpdb->vergeml_ai_index
+    ) );
     // phpcs:enable
 
     if ( $pending > 0 ) {

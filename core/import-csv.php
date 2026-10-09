@@ -482,11 +482,9 @@ function vergeml_csv_reject_unknown( $ids, &$files ) {
     // some MySQL configurations refuse outright.
     foreach ( array_chunk( $ids, 2000 ) as $chunk ) {
 
-        $marks = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $found = $wpdb->get_col( $wpdb->prepare(
-            "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND ID IN ({$marks})",
+            "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND ID IN ( " . implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) . ' )',
             $chunk
         ) );
         // phpcs:enable

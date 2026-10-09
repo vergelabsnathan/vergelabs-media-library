@@ -871,16 +871,13 @@ function vergeml_health_files( $ids ) {
         return array();
     }
 
-    $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-
     /*
-     *  $placeholders is a string of %d markers matching count( $ids ), and
-     *  every value travels through prepare. The sniffs cannot count a dynamic
-     *  list, and the first statement's only placeholders live inside it.
+     *  One %d per id in each IN list, and every value travels through
+     *  prepare.
      */
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $posts = $wpdb->get_results( $wpdb->prepare(
-        "SELECT * FROM {$wpdb->posts} WHERE ID IN ( $placeholders )",
+        "SELECT * FROM {$wpdb->posts} WHERE ID IN ( " . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . ' )',
         $ids
     ) );
 
@@ -902,7 +899,7 @@ function vergeml_health_files( $ids ) {
 
     $metas = $wpdb->get_results( $wpdb->prepare(
         "SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta}
-         WHERE post_id IN ( $placeholders ) AND meta_key IN ( %s, %s, %s )",
+         WHERE post_id IN ( " . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . " ) AND meta_key IN ( %s, %s, %s )",
         $params
     ) );
     // phpcs:enable

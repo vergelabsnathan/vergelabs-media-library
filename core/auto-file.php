@@ -265,10 +265,16 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
      *  gets one from its name.
      */
     global $wpdb;
-    $words = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; $words is vergeml_filing_words_sql(), fixed column and join text with $wpdb's table names, no input; the id is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are the same columns and joins as vergeml_filing_words_sql( 'i' ), written out; the id is bound.
     $row   = $wpdb->get_row( $wpdb->prepare(
-        "SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.prompt_hash, i.model_version, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id = %d AND i.error = '' AND i.embedding IS NOT NULL",
+        "SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.prompt_hash, i.model_version,
+                wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt
+           FROM %i i
+           LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = i.attachment_id
+           LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = i.attachment_id AND wp_f.meta_key = '_wp_attached_file'
+           LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = i.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'
+          WHERE i.attachment_id = %d AND i.error = '' AND i.embedding IS NOT NULL",
+        $wpdb->vergeml_ai_index,
         (int) $attachment_id
     ), ARRAY_A );
     // phpcs:enable
@@ -484,9 +490,10 @@ function vergeml_autofile_batch( $how ) {
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $existing = $wpdb->get_var( $wpdb->prepare(
-        "SELECT batch_id FROM {$wpdb->vergeml_librarian_batches}
+        "SELECT batch_id FROM %i
           WHERE scheme = %s AND status = %s AND DATE( created_at ) = %s
           ORDER BY batch_id DESC LIMIT 1",
+        $wpdb->vergeml_librarian_batches,
         $scheme,
         'running',
         $day
@@ -558,24 +565,23 @@ function vergeml_autofile_sweep( $limit = VERGEML_AUTOFILE_CHUNK ) {
     $table = vergeml_index_table();
 
     $tt_ids = array_map( 'intval', explode( ',', vergeml_autofile_tt_ids( $taxonomy ) ) );
-    $ph     = implode( ',', array_fill( 0, count( $tt_ids ), '%d' ) );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is vergeml_index_table() ($wpdb->vergeml_ai_index); $ph is one %d per term_taxonomy id (or the single 0); the ids and the limit are bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- the table is vergeml_index_table() ($wpdb->vergeml_ai_index), bound as %i; one %d per term_taxonomy id (or the single 0); the table, the ids and the limit are bound.
     $ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT p.ID
            FROM {$wpdb->posts} p
-           JOIN {$table} x ON x.attachment_id = p.ID
+           JOIN %i x ON x.attachment_id = p.ID
           WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
             -- described, which is the cheap half of the question. Whether it
             -- has a usable vector is asked per file through the seam above,
             -- because that is the half the database cannot answer everywhere.
             AND NOT EXISTS (
                 SELECT 1 FROM {$wpdb->term_relationships} tr
-                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( {$ph} )
+                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) . " )
             )
           ORDER BY p.ID DESC
           LIMIT %d",
-        array_merge( $tt_ids, array( (int) $limit ) )
+        array_merge( array( $table ), $tt_ids, array( (int) $limit ) )
     ) );
     // phpcs:enable
 
@@ -764,21 +770,28 @@ function vergeml_autofile_loose_count( $unlooked = false ) {
 
     $table = vergeml_index_table();
 
-    $described = $unlooked
-        ? "AND NOT EXISTS ( SELECT 1 FROM {$table} x WHERE x.attachment_id = p.ID )"
-        : '';
-
     $tt_ids = array_map( 'intval', explode( ',', $tt ) );
-    $ph     = implode( ',', array_fill( 0, count( $tt_ids ), '%d' ) );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is $wpdb->vergeml_ai_index, $described one of two literals, $ph is one %d per term_taxonomy id; the ids are bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- the table is $wpdb->vergeml_ai_index, bound as %i; one %d per term_taxonomy id; the table and the ids are bound.
+    if ( $unlooked ) {
+        return (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->posts} p
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+                AND NOT EXISTS ( SELECT 1 FROM %i x WHERE x.attachment_id = p.ID )
+                AND NOT EXISTS (
+                    SELECT 1 FROM {$wpdb->term_relationships} tr
+                     WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) . " )
+                )",
+            array_merge( array( $table ), $tt_ids )
+        ) );
+    }
+
     return (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->posts} p
           WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-            {$described}
             AND NOT EXISTS (
                 SELECT 1 FROM {$wpdb->term_relationships} tr
-                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( {$ph} )
+                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) . " )
             )",
         $tt_ids
     ) );

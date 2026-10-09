@@ -54,7 +54,7 @@ function vergeml_search_try( $q ) {
     }
     $image = $wpdb->esc_like( 'image/' ) . '%';
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- read-only; table names are $wpdb's, every value is bound: the slots built above, spread, one per placeholder.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- read-only; the plugin's table is bound as %i, every value is bound: the slots built above, spread, one per placeholder.
     $counts = $wpdb->get_row( $wpdb->prepare(
         "SELECT SUM( %d = 1 AND s.hay LIKE %s ) AS w0, SUM( %d = 1 AND s.hay LIKE %s ) AS w1,
                 SUM( %d = 1 AND s.hay LIKE %s ) AS w2, SUM( %d = 1 AND s.hay LIKE %s ) AS w3,
@@ -68,9 +68,9 @@ function vergeml_search_try( $q ) {
                                  COALESCE( i.caption, '' ), ' ', COALESCE( i.tags, '' ), ' ', COALESCE( i.title, '' ) ) AS hay,
                          CONCAT( p.post_title, ' ', p.post_excerpt, ' ', p.post_content ) AS own
                     FROM {$wpdb->posts} p
-                    LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = p.ID AND i.error = ''
+                    LEFT JOIN %i i ON i.attachment_id = p.ID AND i.error = ''
                    WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE %s ) s",
-        ...array_merge( $slots, $slots, $slots, array( $image ) )
+        ...array_merge( $slots, $slots, $slots, array( $wpdb->vergeml_ai_index, $image ) )
     ), ARRAY_A );
 
     $rows = $wpdb->get_results( $wpdb->prepare(
@@ -80,12 +80,12 @@ function vergeml_search_try( $q ) {
                          CONCAT( p.post_title, ' ', p.post_name, ' ', p.post_excerpt, ' ', p.post_content, ' ',
                                  COALESCE( i.caption, '' ), ' ', COALESCE( i.tags, '' ), ' ', COALESCE( i.title, '' ) ) AS hay
                     FROM {$wpdb->posts} p
-                    LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = p.ID AND i.error = ''
+                    LEFT JOIN %i i ON i.attachment_id = p.ID AND i.error = ''
                    WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE %s ) s
           WHERE ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s )
             AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s )
           ORDER BY s.post_date DESC, s.ID DESC LIMIT 30",
-        ...array_merge( array( $image ), $slots )
+        ...array_merge( array( $wpdb->vergeml_ai_index, $image ), $slots )
     ), ARRAY_A );
     // phpcs:enable
 
@@ -141,9 +141,8 @@ function vergeml_search_try( $q ) {
             $out['meaning']['total']     = count( $scores );
             $out['meaning']['shown']     = count( $ids );
             if ( $ids ) {
-                $ph = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $ph is one %d per id; the ids are cast to int and bound.
-                $found = $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, title, caption, tags FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN ($ph)", array_map( 'intval', $ids ) ), ARRAY_A );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one %d per id; the table (%i) and the ids are bound.
+                $found = $wpdb->get_results( $wpdb->prepare( 'SELECT attachment_id, title, caption, tags FROM %i WHERE attachment_id IN ( ' . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . ' )', array_merge( array( $wpdb->vergeml_ai_index ), $ids ) ), ARRAY_A );
                 $by    = array();
                 foreach ( (array) $found as $row ) {
                     $by[ (int) $row['attachment_id'] ] = $row;

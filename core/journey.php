@@ -85,7 +85,7 @@ function vergeml_journey_facts() {
      *  for a run and wrong for a dashboard -- on twenty thousand images it
      *  reads twenty thousand rows to print one number.
      */
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $images = (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type LIKE %s",
         $mime
@@ -113,18 +113,20 @@ function vergeml_journey_facts() {
          *  constant it is. Two statements, the first answered from the
          *  described_at index, and the whole thing is a scan with a compare.
          */
-        $current = (string) $wpdb->get_var(
-            "SELECT prompt_hash FROM {$wpdb->vergeml_ai_index}
+        $current = (string) $wpdb->get_var( $wpdb->prepare(
+            "SELECT prompt_hash FROM %i
               WHERE error = '' AND described_at IS NOT NULL AND model <> 'mock'
-              ORDER BY described_at DESC, attachment_id DESC LIMIT 1"
-        );
+              ORDER BY described_at DESC, attachment_id DESC LIMIT 1",
+            $wpdb->vergeml_ai_index
+        ) );
 
         $counts = $wpdb->get_row( $wpdb->prepare(
             "SELECT COUNT(*) AS described,
                     SUM( CASE WHEN prompt_hash IS NULL OR prompt_hash <> %s THEN 1 ELSE 0 END ) AS stale
-               FROM {$wpdb->vergeml_ai_index}
+               FROM %i
               WHERE error = ''",
-            $current
+            $current,
+            $wpdb->vergeml_ai_index
         ), ARRAY_A );
 
         $described   = isset( $counts['described'] ) ? (int) $counts['described'] : 0;
@@ -200,11 +202,14 @@ function vergeml_journey_facts() {
     $recent = array();
 
     if ( isset( $wpdb->vergeml_ai_index ) ) {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $recent = $wpdb->get_results(
-            "SELECT attachment_id, caption, kind FROM {$wpdb->vergeml_ai_index}
-              WHERE error = '' AND caption <> '' AND described_at IS NOT NULL
-              ORDER BY described_at DESC, attachment_id DESC LIMIT 8",
+            $wpdb->prepare(
+                "SELECT attachment_id, caption, kind FROM %i
+                  WHERE error = '' AND caption <> '' AND described_at IS NOT NULL
+                  ORDER BY described_at DESC, attachment_id DESC LIMIT 8",
+                $wpdb->vergeml_ai_index
+            ),
             ARRAY_A
         );
         // phpcs:enable

@@ -1101,7 +1101,7 @@ class vergeml_Walker_CategoryDropdown extends Walker_CategoryDropdown {
  *  and a stale number is worse than the query.
  */
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 function vergeml_get_media_term_count( $term_id, $tt_id ) {
 
@@ -1125,17 +1125,15 @@ function vergeml_get_media_term_count( $term_id, $tt_id ) {
         }
     }
 
-    $terms_format = join( ', ', array_fill( 0, count( $terms ), '%d' ) );
-
     $results = $wpdb->get_results( $wpdb->prepare(
         "
-            SELECT ID FROM $wpdb->posts, $wpdb->term_relationships WHERE $wpdb->posts.ID = $wpdb->term_relationships.object_id AND post_type = 'attachment' AND ( post_status = 'publish' OR post_status = 'inherit' ) AND term_taxonomy_id IN ($terms_format) GROUP BY ID
-        ",
+            SELECT ID FROM $wpdb->posts, $wpdb->term_relationships WHERE $wpdb->posts.ID = $wpdb->term_relationships.object_id AND post_type = 'attachment' AND ( post_status = 'publish' OR post_status = 'inherit' ) AND term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $terms ), '%d' ) ) . ' ) GROUP BY ID
+        ',
         $terms
     ) );
 
     $count = $results ? $wpdb->num_rows : 0;
-    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
     return $count;
 }
@@ -1618,16 +1616,12 @@ function vergeml_update_post_term_count( $terms, $taxonomy ) {
              *  $wpdb and are not input, which is why they stay interpolated.
              */
 
-            $placeholders = implode( ', ', array_fill( 0, count( $object_types ), '%s' ) );
-
-            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names are from $wpdb, every value is placeheld.
             $count += (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT COUNT(*) FROM $wpdb->term_relationships, $wpdb->posts WHERE $wpdb->posts.ID = $wpdb->term_relationships.object_id AND post_status = 'publish' AND post_type IN ( $placeholders ) AND term_taxonomy_id = %d",
+                    "SELECT COUNT(*) FROM $wpdb->term_relationships, $wpdb->posts WHERE $wpdb->posts.ID = $wpdb->term_relationships.object_id AND post_status = 'publish' AND post_type IN ( " . implode( ', ', array_fill( 0, count( $object_types ), '%s' ) ) . ' ) AND term_taxonomy_id = %d',
                     array_merge( $object_types, array( $term ) )
                 )
             );
-            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         }
 
         /*

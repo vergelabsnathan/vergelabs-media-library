@@ -119,9 +119,8 @@ function vergeml_list_row_meta() {
         $ids = array_map( 'intval', wp_list_pluck( $posts, 'ID' ) );
         $move_rows = array();
         if ( $ids ) {
-            $ph = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- this plugin's own table; $ph is one %d per id and the ids are bound.
-            $move_rows = (array) $GLOBALS['wpdb']->get_results( $GLOBALS['wpdb']->prepare( "SELECT attachment_id, term_id, why, score FROM {$GLOBALS['wpdb']->vergeml_librarian_moves} WHERE undone = 0 AND attachment_id IN ($ph) ORDER BY move_id DESC", $ids ), ARRAY_A );
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table (%i); one %d per id, and the ids are bound.
+            $move_rows = (array) $GLOBALS['wpdb']->get_results( $GLOBALS['wpdb']->prepare( 'SELECT attachment_id, term_id, why, score FROM %i WHERE undone = 0 AND attachment_id IN ( ' . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . ' ) ORDER BY move_id DESC', array_merge( array( $GLOBALS['wpdb']->vergeml_librarian_moves ), $ids ) ), ARRAY_A );
         }
         foreach ( $move_rows as $row ) {
             if ( ! isset( $moves[ (int) $row['attachment_id'] ][ (int) $row['term_id'] ] ) ) {

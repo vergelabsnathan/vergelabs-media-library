@@ -342,13 +342,14 @@ function vergeml_similar( $attachment_id, $limit = 12 ) {
 
     $table = vergeml_index_table();
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is vergeml_index_table(), $wpdb->vergeml_ai_index; the id is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is vergeml_index_table(), $wpdb->vergeml_ai_index, bound as an identifier (%i); the id is bound.
     $ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT x.attachment_id
-           FROM {$table} x
+           FROM %i x
            JOIN {$wpdb->posts} p ON p.ID = x.attachment_id
           WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
             AND x.attachment_id <> %d",
+        $table,
         (int) $attachment_id
     ) );
     // phpcs:enable

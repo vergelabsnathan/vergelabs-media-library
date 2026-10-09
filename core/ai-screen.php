@@ -113,27 +113,22 @@ function vergeml_ai_screen_counts() {
         'stale'     => function_exists( 'vergeml_ai_pending_count' ) ? (int) vergeml_ai_pending_count( 'stale' ) : 0,
     );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- this plugin's own table, and core's; the filing sums take the sixteen patterns built above, spread, one per placeholder.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table, and core's.
     $c['images'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type LIKE 'image/%'" );
     // DISTINCT: a picture with two alt rows (an import left duplicates on the box) is one picture with alt text.
     $c['alt_have'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_wp_attachment_image_alt' WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE 'image/%' AND m.meta_value <> ''" );
 
     if ( '' !== $t ) {
-        $c['described'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND embedding IS NOT NULL" );
-        $c['alt_model'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT i.attachment_id) FROM {$t} i JOIN {$wpdb->postmeta} m ON m.post_id = i.attachment_id AND m.meta_key = '_wp_attachment_image_alt' WHERE i.error = '' AND m.meta_value = i.alt" );
-        $c['titled']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} i JOIN {$wpdb->posts} p ON p.ID = i.attachment_id WHERE i.error = '' AND p.post_title = i.title" );
-        foreach ( (array) $wpdb->get_results( "SELECT kind, COUNT(*) n FROM {$t} WHERE error = '' GROUP BY kind ORDER BY n DESC", ARRAY_A ) as $row ) {
+        $c['described'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND embedding IS NOT NULL", $t ) );
+        $c['alt_model'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT i.attachment_id) FROM %i i JOIN {$wpdb->postmeta} m ON m.post_id = i.attachment_id AND m.meta_key = '_wp_attachment_image_alt' WHERE i.error = '' AND m.meta_value = i.alt", $t ) );
+        $c['titled']    = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i i JOIN {$wpdb->posts} p ON p.ID = i.attachment_id WHERE i.error = '' AND p.post_title = i.title", $t ) );
+        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT kind, COUNT(*) n FROM %i WHERE error = '' GROUP BY kind ORDER BY n DESC", $t ), ARRAY_A ) as $row ) {
             $c['kinds'][ '' === (string) $row['kind'] ? 'none' : (string) $row['kind'] ] = (int) $row['n'];
         }
-        $flags = $wpdb->get_row( "SELECT SUM(has_people = 1) people, SUM(has_text = 1) txt FROM {$t} WHERE error = ''", ARRAY_A );
+        $flags = $wpdb->get_row( $wpdb->prepare( "SELECT SUM(has_people = 1) people, SUM(has_text = 1) txt FROM %i WHERE error = ''", $t ), ARRAY_A );
         $c['people'] = (int) ( $flags ? $flags['people'] : 0 );
         $c['text']   = (int) ( $flags ? $flags['txt'] : 0 );
         // A field counts when the filing JSON carries it with a value: "field":"x", not "field":"".
-        $like = array();
-        foreach ( array( 'object', 'material', 'colour', 'setting', 'style', 'audience', 'season', 'details' ) as $f ) {
-            $like[] = '%"' . $f . '":"%';
-            $like[] = '%"' . $f . '":""%';
-        }
         $filing = $wpdb->get_row( $wpdb->prepare(
             "SELECT SUM(filing LIKE %s AND filing NOT LIKE %s) AS object,
                     SUM(filing LIKE %s AND filing NOT LIKE %s) AS material,
@@ -143,16 +138,26 @@ function vergeml_ai_screen_counts() {
                     SUM(filing LIKE %s AND filing NOT LIKE %s) AS audience,
                     SUM(filing LIKE %s AND filing NOT LIKE %s) AS season,
                     SUM(filing LIKE %s AND filing NOT LIKE %s) AS details
-               FROM {$t} WHERE error = ''",
-            ...$like
+               FROM %i WHERE error = ''",
+            array(
+                '%"object":"%', '%"object":""%',
+                '%"material":"%', '%"material":""%',
+                '%"colour":"%', '%"colour":""%',
+                '%"setting":"%', '%"setting":""%',
+                '%"style":"%', '%"style":""%',
+                '%"audience":"%', '%"audience":""%',
+                '%"season":"%', '%"season":""%',
+                '%"details":"%', '%"details":""%',
+                $t,
+            )
         ), ARRAY_A );
         foreach ( (array) $filing as $f => $n ) {
             $c['filing'][ $f ] = (int) $n;
         }
         $c['runs'] = array_map( function ( $r ) {
             return array( 'day' => (string) $r['d'], 'last' => (string) $r['last'], 'n' => (int) $r['n'] );
-        }, (array) $wpdb->get_results( "SELECT DATE(described_at) d, MAX(described_at) last, COUNT(*) n FROM {$t} WHERE error = '' AND described_at IS NOT NULL GROUP BY DATE(described_at) ORDER BY d DESC LIMIT 3", ARRAY_A ) );
-        $c['last'] = (string) $wpdb->get_var( "SELECT MAX(described_at) FROM {$t} WHERE error = ''" );
+        }, (array) $wpdb->get_results( $wpdb->prepare( "SELECT DATE(described_at) d, MAX(described_at) last, COUNT(*) n FROM %i WHERE error = '' AND described_at IS NOT NULL GROUP BY DATE(described_at) ORDER BY d DESC LIMIT 3", $t ), ARRAY_A ) );
+        $c['last'] = (string) $wpdb->get_var( $wpdb->prepare( "SELECT MAX(described_at) FROM %i WHERE error = ''", $t ) );
     }
     // phpcs:enable
 

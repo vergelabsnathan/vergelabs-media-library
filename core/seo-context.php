@@ -79,7 +79,8 @@ function vergeml_seo_page_context( $post_id ) {
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- All in One SEO keeps keyphrases in its own table with no API for them; one prepared read by post id, feeding one describe request.
         $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT keyphrases, description FROM {$wpdb->prefix}aioseo_posts WHERE post_id = %d",
+            'SELECT keyphrases, description FROM %i WHERE post_id = %d',
+            $wpdb->prefix . 'aioseo_posts',
             $post_id
         ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- another plugin's table, read once per describe.
 
@@ -255,8 +256,9 @@ function vergeml_seo_keyphrase_keys() {
  *  in flat, so a site running it gets the statement with that table in it.
  *
  *  Literal statements with every value bound: the two key lists fill the
- *  IN () lists in the order they appear (three keyphrase keys, two
- *  cornerstone keys -- change a list and its placeholders change with it).
+ *  IN () lists in the order they appear, one placeholder per key, so a
+ *  changed list changes its placeholders with it; that table's name, an
+ *  identifier, comes just before the LIKE it feeds.
  *  _vergeml_used_in is a comma list of post ids; the CONCAT ... LIKE is
  *  FIND_IN_SET() spelled so SQLite (Playground) can run it too.
  *
@@ -273,7 +275,7 @@ function vergeml_seo_gap_ids( $limit = 0 ) {
     $star = vergeml_seo_cornerstone_keys();
     $tail = array( '%,', ',%', $wpdb->esc_like( 'image/' ) . '%', $cap );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table names are $wpdb's, every value is bound: the key lists and the tail, spread, one per placeholder.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- every value is bound: the key lists and the tail, one per placeholder; the All in One SEO table is an identifier (%i).
     if ( defined( 'AIOSEO_VERSION' ) ) {
 
         $ids = $wpdb->get_col( $wpdb->prepare(
@@ -281,19 +283,19 @@ function vergeml_seo_gap_ids( $limit = 0 ) {
                LEFT JOIN {$wpdb->postmeta} alt  ON alt.post_id  = p.ID AND alt.meta_key  = '_wp_attachment_image_alt'
                LEFT JOIN {$wpdb->postmeta} used ON used.post_id = p.ID AND used.meta_key = '_vergeml_used_in'
               INNER JOIN ( SELECT post_id,
-                                  MAX( CASE WHEN meta_key IN ( %s, %s ) AND meta_value IN ( '1', 'on' ) THEN 1 ELSE 0 END ) AS pri
+                                  MAX( CASE WHEN meta_key IN ( " . implode( ', ', array_fill( 0, count( $star ), '%s' ) ) . " ) AND meta_value IN ( '1', 'on' ) THEN 1 ELSE 0 END ) AS pri
                              FROM {$wpdb->postmeta}
-                            WHERE ( meta_key IN ( %s, %s, %s ) AND meta_value <> '' )
-                               OR ( meta_key IN ( %s, %s ) AND meta_value IN ( '1', 'on' ) )
+                            WHERE ( meta_key IN ( " . implode( ', ', array_fill( 0, count( $keys ), '%s' ) ) . " ) AND meta_value <> '' )
+                               OR ( meta_key IN ( " . implode( ', ', array_fill( 0, count( $star ), '%s' ) ) . " ) AND meta_value IN ( '1', 'on' ) )
                          GROUP BY post_id
-                           HAVING SUM( CASE WHEN meta_key IN ( %s, %s, %s ) AND meta_value <> '' THEN 1 ELSE 0 END ) > 0
-                            UNION SELECT post_id, 0 AS pri FROM {$wpdb->prefix}aioseo_posts WHERE keyphrases LIKE %s ) kw
+                           HAVING SUM( CASE WHEN meta_key IN ( " . implode( ', ', array_fill( 0, count( $keys ), '%s' ) ) . " ) AND meta_value <> '' THEN 1 ELSE 0 END ) > 0
+                            UNION SELECT post_id, 0 AS pri FROM %i WHERE keyphrases LIKE %s ) kw
                       ON kw.post_id = p.post_parent
                       OR ( used.meta_value IS NOT NULL AND CONCAT( ',', used.meta_value, ',' ) LIKE CONCAT( %s, kw.post_id, %s ) )
               WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
                 AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
               GROUP BY p.ID ORDER BY MAX( kw.pri ) DESC, p.ID ASC LIMIT %d",
-            ...array_merge( $star, $keys, $star, $keys, array( '%"keyphrase":"_%' ), $tail )
+            array_merge( $star, $keys, $star, $keys, array( $wpdb->prefix . 'aioseo_posts', '%"keyphrase":"_%' ), $tail )
         ) );
 
     } else {
@@ -303,18 +305,18 @@ function vergeml_seo_gap_ids( $limit = 0 ) {
                LEFT JOIN {$wpdb->postmeta} alt  ON alt.post_id  = p.ID AND alt.meta_key  = '_wp_attachment_image_alt'
                LEFT JOIN {$wpdb->postmeta} used ON used.post_id = p.ID AND used.meta_key = '_vergeml_used_in'
               INNER JOIN ( SELECT post_id,
-                                  MAX( CASE WHEN meta_key IN ( %s, %s ) AND meta_value IN ( '1', 'on' ) THEN 1 ELSE 0 END ) AS pri
+                                  MAX( CASE WHEN meta_key IN ( " . implode( ', ', array_fill( 0, count( $star ), '%s' ) ) . " ) AND meta_value IN ( '1', 'on' ) THEN 1 ELSE 0 END ) AS pri
                              FROM {$wpdb->postmeta}
-                            WHERE ( meta_key IN ( %s, %s, %s ) AND meta_value <> '' )
-                               OR ( meta_key IN ( %s, %s ) AND meta_value IN ( '1', 'on' ) )
+                            WHERE ( meta_key IN ( " . implode( ', ', array_fill( 0, count( $keys ), '%s' ) ) . " ) AND meta_value <> '' )
+                               OR ( meta_key IN ( " . implode( ', ', array_fill( 0, count( $star ), '%s' ) ) . " ) AND meta_value IN ( '1', 'on' ) )
                          GROUP BY post_id
-                           HAVING SUM( CASE WHEN meta_key IN ( %s, %s, %s ) AND meta_value <> '' THEN 1 ELSE 0 END ) > 0 ) kw
+                           HAVING SUM( CASE WHEN meta_key IN ( " . implode( ', ', array_fill( 0, count( $keys ), '%s' ) ) . " ) AND meta_value <> '' THEN 1 ELSE 0 END ) > 0 ) kw
                       ON kw.post_id = p.post_parent
                       OR ( used.meta_value IS NOT NULL AND CONCAT( ',', used.meta_value, ',' ) LIKE CONCAT( %s, kw.post_id, %s ) )
               WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
                 AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
               GROUP BY p.ID ORDER BY MAX( kw.pri ) DESC, p.ID ASC LIMIT %d",
-            ...array_merge( $star, $keys, $star, $keys, $tail )
+            array_merge( $star, $keys, $star, $keys, $tail )
         ) );
     }
     // phpcs:enable

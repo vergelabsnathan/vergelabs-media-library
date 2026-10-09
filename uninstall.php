@@ -74,19 +74,15 @@ function vergeml_uninstall_wipe_site() {
 
         $tt_ids   = array_map( 'absint', wp_list_pluck( $rows, 'term_taxonomy_id' ) );
         $term_ids = array_map( 'absint', wp_list_pluck( $rows, 'term_id' ) );
-        $tt_in    = implode( ',', array_fill( 0, count( $tt_ids ), '%d' ) );
 
         if ( $own ) {
 
-            $term_in = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
-
-            // $tt_in / $term_in are strings of %d placeholders sized to the id
-            // lists, which are absint()ed above; every value is placeheld.
-            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
-            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->term_relationships} WHERE term_taxonomy_id IN ($tt_in)", $tt_ids ) );
-            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->termmeta} WHERE term_id IN ($term_in)", $term_ids ) );
+            // The id lists are absint()ed above; one %d per id, every value is placeheld.
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
+            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->term_relationships} WHERE term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) . ' )', $tt_ids ) );
+            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->termmeta} WHERE term_id IN ( " . implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) . ' )', $term_ids ) );
             $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s", $taxonomy ) );
-            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->terms} WHERE term_id IN ($term_in)", $term_ids ) );
+            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->terms} WHERE term_id IN ( " . implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) . ' )', $term_ids ) );
             // phpcs:enable
 
             delete_option( $taxonomy . '_children' );
@@ -94,12 +90,12 @@ function vergeml_uninstall_wipe_site() {
         else {
 
             // Attachments only; the taxonomy keeps living its own life.
-            // $tt_in is %d placeholders sized to the list; every value is placeheld.
-            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
+            // One %d per id in the absint()ed list; every value is placeheld.
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
             $wpdb->query( $wpdb->prepare(
                 "DELETE tr FROM {$wpdb->term_relationships} tr
                  INNER JOIN {$wpdb->posts} p ON tr.object_id = p.ID
-                 WHERE p.post_type = 'attachment' AND tr.term_taxonomy_id IN ($tt_in)",
+                 WHERE p.post_type = 'attachment' AND tr.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) . ' )',
                 $tt_ids
             ) );
             // phpcs:enable
@@ -110,8 +106,8 @@ function vergeml_uninstall_wipe_site() {
     // moves, the organize runs. Descriptions already written into
     // attachments stay there; these are working tables.
     foreach ( array( 'vergeml_ai_index', 'vergeml_librarian_batches', 'vergeml_librarian_moves', 'vergeml_organize_runs' ) as $table ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- uninstall drops this plugin's own four tables; $table comes from the literal list above, and a table name cannot be a placeholder.
-        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- uninstall drops this plugin's own four tables; $table comes from the literal list above.
+        $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . $table ) );
     }
 
     /*

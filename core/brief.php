@@ -193,12 +193,12 @@ function vergeml_brief_catalogue() {
     );
 
     if ( $described > 0 && isset( $wpdb->vergeml_ai_index ) ) {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-        foreach ( (array) $wpdb->get_results( "SELECT kind, COUNT(*) n FROM {$wpdb->vergeml_ai_index} WHERE error = '' GROUP BY kind ORDER BY n DESC", ARRAY_A ) as $row ) {
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT kind, COUNT(*) n FROM %i WHERE error = '' GROUP BY kind ORDER BY n DESC", $wpdb->vergeml_ai_index ), ARRAY_A ) as $row ) {
             $catalogue['kinds'][ '' === (string) $row['kind'] ? 'none' : (string) $row['kind'] ] = (int) $row['n'];
         }
         $freq = array();
-        foreach ( (array) $wpdb->get_col( "SELECT tags FROM {$wpdb->vergeml_ai_index} WHERE error = ''" ) as $raw ) {
+        foreach ( (array) $wpdb->get_col( $wpdb->prepare( "SELECT tags FROM %i WHERE error = ''", $wpdb->vergeml_ai_index ) ) as $raw ) {
             foreach ( (array) vergeml_index_tags_out( $raw ) as $tag ) {
                 $tag = mb_strtolower( trim( (string) $tag ) );
                 if ( '' !== $tag ) {
@@ -377,12 +377,13 @@ function vergeml_brief_test_pick( $n ) {
     $terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => true, 'orderby' => 'count', 'order' => 'DESC', 'number' => $n ) );
     if ( ! is_wp_error( $terms ) ) {
         foreach ( $terms as $term ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
             $id = (int) $wpdb->get_var( $wpdb->prepare(
-                "SELECT i.attachment_id FROM {$wpdb->vergeml_ai_index} i
+                "SELECT i.attachment_id FROM %i i
                    JOIN {$wpdb->term_relationships} tr ON tr.object_id = i.attachment_id
                   WHERE i.error = '' AND i.embedding IS NOT NULL AND tr.term_taxonomy_id = %d
                   ORDER BY i.attachment_id ASC LIMIT 1",
+                $wpdb->vergeml_ai_index,
                 $term->term_taxonomy_id
             ) );
             if ( $id && ! in_array( $id, $ids, true ) ) {
@@ -394,8 +395,8 @@ function vergeml_brief_test_pick( $n ) {
         }
     }
     if ( count( $ids ) < $n ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-        foreach ( (array) $wpdb->get_col( $wpdb->prepare( "SELECT attachment_id FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL ORDER BY described_at DESC, attachment_id DESC LIMIT %d", $n * 2 ) ) as $id ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+        foreach ( (array) $wpdb->get_col( $wpdb->prepare( "SELECT attachment_id FROM %i WHERE error = '' AND embedding IS NOT NULL ORDER BY described_at DESC, attachment_id DESC LIMIT %d", $wpdb->vergeml_ai_index, $n * 2 ) ) as $id ) {
             $id = (int) $id;
             if ( ! in_array( $id, $ids, true ) ) {
                 $ids[] = $id;

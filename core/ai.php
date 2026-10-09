@@ -811,15 +811,16 @@ function vergeml_ai_twin( $attachment_id ) {
         return 0;
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; there is no core API for it.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; there is no core API for it.
     $twin = $wpdb->get_var( $wpdb->prepare(
         "SELECT m.post_id
            FROM {$wpdb->postmeta} m
-     INNER JOIN {$wpdb->vergeml_ai_index} i
+     INNER JOIN %i i
              ON i.attachment_id = m.post_id AND i.error = '' AND i.described_at IS NOT NULL
           WHERE m.meta_key = %s AND m.meta_value = %s AND m.post_id <> %d
        ORDER BY m.post_id ASC
           LIMIT 1",
+        $wpdb->vergeml_ai_index,
         VERGEML_META_HASH,
         $hash,
         (int) $attachment_id
@@ -1170,13 +1171,14 @@ function vergeml_ai_pending( $scope, $limit = 0 ) {
     // The backlog is the absence of an index row. A described file has one,
     // including the stub written for a file that could not be described --
     // which is what stops a permanently failing file wedging the loop.
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
         "SELECT p.ID FROM {$wpdb->posts} p
-          LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = p.ID
+          LEFT JOIN %i i ON i.attachment_id = p.ID
          WHERE p.post_type = %s AND p.post_mime_type LIKE %s
            AND i.attachment_id IS NULL
          ORDER BY p.ID ASC LIMIT %d",
+        $wpdb->vergeml_ai_index,
         'attachment',
         $mime,
         $cap
@@ -1208,7 +1210,7 @@ function vergeml_ai_pending_count( $scope ) {
 
     $mime = $wpdb->esc_like( 'image/' ) . '%';
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     if ( 'page-gap' === $scope ) {
         return function_exists( 'vergeml_seo_gap_count' ) ? vergeml_seo_gap_count() : 0;
     }
@@ -1225,9 +1227,10 @@ function vergeml_ai_pending_count( $scope ) {
 
     return (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->posts} p
-          LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = p.ID
+          LEFT JOIN %i i ON i.attachment_id = p.ID
          WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
            AND i.attachment_id IS NULL",
+        $wpdb->vergeml_ai_index,
         $mime
     ) );
     // phpcs:enable
@@ -1616,14 +1619,15 @@ function vergeml_ai_alt_pending( $limit = 0 ) {
 
     $cap = $limit > 0 ? (int) $limit : PHP_INT_MAX;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-        "SELECT i.attachment_id FROM {$wpdb->vergeml_ai_index} i
+        "SELECT i.attachment_id FROM %i i
            LEFT JOIN {$wpdb->postmeta} alt
                   ON alt.post_id = i.attachment_id AND alt.meta_key = '_wp_attachment_image_alt'
                WHERE i.error = '' AND i.alt <> ''
                  AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
             ORDER BY i.attachment_id ASC LIMIT %d",
+        $wpdb->vergeml_ai_index,
         $cap
     ) ) );
     // phpcs:enable
@@ -1634,14 +1638,15 @@ function vergeml_ai_alt_pending_count() {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    return (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} i
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    return (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM %i i
            LEFT JOIN {$wpdb->postmeta} alt
                   ON alt.post_id = i.attachment_id AND alt.meta_key = '_wp_attachment_image_alt'
                WHERE i.error = '' AND i.alt <> ''
-                 AND ( alt.meta_id IS NULL OR alt.meta_value = '' )"
-    );
+                 AND ( alt.meta_id IS NULL OR alt.meta_value = '' )",
+        $wpdb->vergeml_ai_index
+    ) );
     // phpcs:enable
 }
 
@@ -1735,7 +1740,7 @@ function vergeml_ai_search_join( $join, $query ) {
     global $wpdb;
 
     if ( false === strpos( $join, 'vergeml_ai_index' ) ) {
-        $join .= " LEFT JOIN {$wpdb->vergeml_ai_index} vergeml_ai_index ON vergeml_ai_index.attachment_id = {$wpdb->posts}.ID ";
+        $join .= $wpdb->prepare( " LEFT JOIN %i vergeml_ai_index ON vergeml_ai_index.attachment_id = {$wpdb->posts}.ID ", $wpdb->vergeml_ai_index );
     }
 
     return $join;
@@ -1880,9 +1885,9 @@ function vergeml_ai_rest_status( ?WP_REST_Request $request = null ) {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $images  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type LIKE %s", $wpdb->esc_like( 'image/' ) . '%' ) );
-    $indexed = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = ''" );
+    $indexed = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = ''", $wpdb->vergeml_ai_index ) );
     // phpcs:enable
 
     $settings = vergeml_ai_settings();

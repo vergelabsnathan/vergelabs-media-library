@@ -315,7 +315,7 @@ function vergeml_smart_counts( $fresh = false ) {
 
     $extended = function_exists( 'vergeml_ai_folders_counted' ) && vergeml_ai_folders_counted();
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $args is spread, one value per placeholder; one indexed statement for a panel that ships with the page; table names are $wpdb's, every value is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $args is spread, one value per placeholder; one indexed statement for a panel that ships with the page; the plugin's table is bound as %i, every value is bound.
     $wpdb->last_error = '';
 
     if ( $extended ) {
@@ -353,30 +353,30 @@ function vergeml_smart_counts( $fresh = false ) {
               WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
              UNION ALL
              SELECT CONCAT( 'ai-kind-', x.kind ), COUNT(*) FROM {$wpdb->posts} p
-               JOIN {$wpdb->vergeml_ai_index} x ON x.attachment_id = p.ID
+               JOIN %i x ON x.attachment_id = p.ID
               WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND x.kind <> ''
               GROUP BY x.kind
              UNION ALL
              SELECT CONCAT( 'ai-doc-', x.document_type ), COUNT(*) FROM {$wpdb->posts} p
-               JOIN {$wpdb->vergeml_ai_index} x ON x.attachment_id = p.ID
+               JOIN %i x ON x.attachment_id = p.ID
               WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND x.document_type <> ''
               GROUP BY x.document_type
              UNION ALL
              SELECT 'ai-people', COUNT(*) FROM {$wpdb->posts} p
-               JOIN {$wpdb->vergeml_ai_index} x ON x.attachment_id = p.ID
+               JOIN %i x ON x.attachment_id = p.ID
               WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND x.has_people = 1
              UNION ALL
              SELECT 'ai-text', COUNT(*) FROM {$wpdb->posts} p
-               JOIN {$wpdb->vergeml_ai_index} x ON x.attachment_id = p.ID
+               JOIN %i x ON x.attachment_id = p.ID
               WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND x.has_text = 1
              UNION ALL
              SELECT '_described', COUNT(*) FROM {$wpdb->posts} p
-               JOIN {$wpdb->vergeml_ai_index} x ON x.attachment_id = p.ID
+               JOIN %i x ON x.attachment_id = p.ID
               WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND x.described_at IS NOT NULL
              UNION ALL
              SELECT '_total', COUNT(*) FROM {$wpdb->posts} p
               WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'",
-            ...$args
+            ...array_merge( $args, array_fill( 0, 5, $wpdb->vergeml_ai_index ) )
         ) );
 
         /*
@@ -829,27 +829,22 @@ function vergeml_smart_scan_step( $resume = null ) {
         $meta_blobs = array();
 
         if ( $ids ) {
-            $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-
             $params   = $ids;
             $params[] = $wpdb->esc_like( '_vergeml' ) . '%';
             $params[] = '%' . $wpdb->esc_like( 'wp-image-' ) . '%';
             $params[] = '%' . $wpdb->esc_like( 'uploads' ) . '%';
 
             /*
-             *  $placeholders is a string of %d markers matching count( $ids ),
-             *  and every value -- ids and LIKE patterns alike -- travels
-             *  through prepare. The sniff cannot count a dynamic list.
+             *  One %d marker per id, written where the list goes, and every
+             *  value -- ids and LIKE patterns alike -- travels through prepare.
              */
-            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             $rows = $wpdb->get_results( $wpdb->prepare(
                 "SELECT post_id, meta_value FROM {$wpdb->postmeta}
-                 WHERE post_id IN ( $placeholders )
+                 WHERE post_id IN ( " . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . " )
                    AND meta_key NOT LIKE %s
                    AND ( meta_value LIKE %s OR meta_value LIKE %s )",
                 $params
             ) );
-            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
             foreach ( (array) $rows as $row ) {
                 $meta_blobs[ (int) $row->post_id ][] = (string) $row->meta_value;

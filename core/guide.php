@@ -401,19 +401,20 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
     $t = $wpdb->vergeml_ai_index;
 
     if ( '' !== $taxonomy ) {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table: $t is $wpdb->vergeml_ai_index; the taxonomy is bound.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; the taxonomy is bound.
         $row = $wpdb->get_row( $wpdb->prepare(
             "SELECT COUNT(*) AS n, MAX(i.described_at) AS last,
                     SUM( CASE WHEN NOT EXISTS (
                         SELECT 1 FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
                          WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s ) THEN 1 ELSE 0 END ) AS unfiled
-               FROM {$t} i WHERE i.error = '' AND i.embedding IS NOT NULL",
-            $taxonomy
+               FROM %i i WHERE i.error = '' AND i.embedding IS NOT NULL",
+            $taxonomy,
+            $t
         ), ARRAY_A );
         // phpcs:enable
     } else {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
-        $row = $wpdb->get_row( "SELECT COUNT(*) AS n, MAX(described_at) AS last, COUNT(*) AS unfiled FROM {$t} WHERE error = '' AND embedding IS NOT NULL", ARRAY_A );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT COUNT(*) AS n, MAX(described_at) AS last, COUNT(*) AS unfiled FROM %i WHERE error = '' AND embedding IS NOT NULL", $t ), ARRAY_A );
     }
 
     if ( is_array( $row ) ) {
@@ -518,8 +519,8 @@ function vergeml_guide_described_count() {
     if ( ! isset( $wpdb->vergeml_ai_index ) ) {
         return 0;
     }
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
-    return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL" );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND embedding IS NOT NULL", $wpdb->vergeml_ai_index ) );
 }
 
 
@@ -732,15 +733,15 @@ function vergeml_guide_summary() {
     global $wpdb;
     $t = $wpdb->vergeml_ai_index;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
-    $total      = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND embedding IS NOT NULL" );
-    $last       = (string) $wpdb->get_var( "SELECT MAX(described_at) FROM {$t} WHERE error = ''" );
-    $kinds      = $wpdb->get_results( "SELECT kind, COUNT(*) AS n FROM {$t} WHERE error = '' AND embedding IS NOT NULL GROUP BY kind", ARRAY_A );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    $total      = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND embedding IS NOT NULL", $t ) );
+    $last       = (string) $wpdb->get_var( $wpdb->prepare( "SELECT MAX(described_at) FROM %i WHERE error = ''", $t ) );
+    $kinds      = $wpdb->get_results( $wpdb->prepare( "SELECT kind, COUNT(*) AS n FROM %i WHERE error = '' AND embedding IS NOT NULL GROUP BY kind", $t ), ARRAY_A );
     // "audience":"" is the empty answer; only a real value counts.
-    $n_audience = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND filing LIKE '%\"audience\":\"%' AND filing NOT LIKE '%\"audience\":\"\"%'" );
-    $n_brand    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND ( filing LIKE '%\"brand\":\"_%' OR tags REGEXP '(^|,)[[:space:]]*(apple|samsung|dell|lg|nike|adidas|sony|hp|lenovo|asus|logitech|canon|nikon)' )" );
-    $n_size     = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND ( caption REGEXP '[0-9]+(\\\\.[0-9]+)? ?(inch|\"|cm|mm)' OR filing REGEXP '[0-9]+(\\\\.[0-9]+)? ?(inch|\"|cm|mm)' )" );
-    $rows       = $wpdb->get_results( $wpdb->prepare( "SELECT filing FROM {$t} WHERE error = '' AND filing IS NOT NULL AND filing <> '' ORDER BY described_at DESC LIMIT %d", VERGEML_GUIDE_SAMPLE ), ARRAY_A );
+    $n_audience = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND filing LIKE %s AND filing NOT LIKE %s", $t, '%"audience":"%', '%"audience":""%' ) );
+    $n_brand    = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND ( filing LIKE %s OR tags REGEXP '(^|,)[[:space:]]*(apple|samsung|dell|lg|nike|adidas|sony|hp|lenovo|asus|logitech|canon|nikon)' )", $t, '%"brand":"_%' ) );
+    $n_size     = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND ( caption REGEXP '[0-9]+(\\\\.[0-9]+)? ?(inch|\"|cm|mm)' OR filing REGEXP '[0-9]+(\\\\.[0-9]+)? ?(inch|\"|cm|mm)' )", $t ) );
+    $rows       = $wpdb->get_results( $wpdb->prepare( "SELECT filing FROM %i WHERE error = '' AND filing IS NOT NULL AND filing <> '' ORDER BY described_at DESC LIMIT %d", $t, VERGEML_GUIDE_SAMPLE ), ARRAY_A );
     // phpcs:enable
 
     $groups = array();
@@ -781,11 +782,12 @@ function vergeml_guide_summary() {
     }
 
     $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table: $t is $wpdb->vergeml_ai_index; the taxonomy is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; the taxonomy is bound.
     $unfiled = '' !== $tax ? (int) $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM {$t} i WHERE i.error = '' AND i.embedding IS NOT NULL AND NOT EXISTS (
+        "SELECT COUNT(*) FROM %i i WHERE i.error = '' AND i.embedding IS NOT NULL AND NOT EXISTS (
             SELECT 1 FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
              WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s )",
+        $t,
         $tax
     ) ) : $total;
     // phpcs:enable
@@ -1900,12 +1902,51 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
     $profiles = vergeml_filing_settle_claims( $profiles );
 
     $vectors = array();
-    $words   = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9), as the fill reads them.
-    $product = vergeml_filing_product_sql( 'i' ); // The product the picture belongs to (S10.8), as the fill reads it: a literal NULL where nothing sells.
+    /*
+     *  The columns and joins are written out, the same as vergeml_filing_words_sql( 'i' )
+     *  (the picture's file, title and alt, S10.9) and vergeml_filing_product_sql( 'i' )
+     *  (the product the picture belongs to, S10.8) give the fill, so the fit reads
+     *  what the fill reads. Where nothing sells the product column is a literal NULL.
+     */
+    $sells = function_exists( 'post_type_exists' ) && post_type_exists( 'product' );
     foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
-        $ph = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; $ph is one %d per id and the ids are bound.
-        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by, {$words['select']}, {$product['select']} FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s {$words['join']} {$product['join']} WHERE i.attachment_id IN ($ph)", array_merge( array( VERGEML_FILING_PLACED_BY ), $chunk ) ), ARRAY_A ) as $v ) {
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the LIKE patterns, the meta key and one %d per id are bound.
+        if ( $sells ) {
+            $found = $wpdb->get_results( $wpdb->prepare(
+                "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by,
+                        wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt,
+                        COALESCE(
+                          ( SELECT vp1.ID FROM {$wpdb->postmeta} vm1 JOIN {$wpdb->posts} vp1 ON vp1.ID = vm1.post_id AND vp1.post_type = 'product'
+                             WHERE vm1.meta_key = '_thumbnail_id' AND vm1.meta_value = CAST(i.attachment_id AS CHAR) LIMIT 1 ),
+                          ( SELECT vp2.ID FROM {$wpdb->postmeta} vm2 JOIN {$wpdb->posts} vp2 ON vp2.ID = vm2.post_id AND vp2.post_type = 'product'
+                             WHERE vm2.meta_key = '_product_image_gallery' AND CONCAT( ',', vm2.meta_value, ',' ) LIKE CONCAT( %s, i.attachment_id, %s ) LIMIT 1 ),
+                          ( SELECT vp3.ID FROM {$wpdb->posts} va3 JOIN {$wpdb->posts} vp3 ON vp3.ID = va3.post_parent AND vp3.post_type = 'product'
+                             WHERE va3.ID = i.attachment_id LIMIT 1 )
+                        ) AS product_id
+                   FROM %i i
+                   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
+                   LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = i.attachment_id
+                   LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = i.attachment_id AND wp_f.meta_key = '_wp_attached_file'
+                   LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = i.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'
+                  WHERE i.attachment_id IN ( " . implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) . ' )',
+                array_merge( array( '%,', ',%', $wpdb->vergeml_ai_index, VERGEML_FILING_PLACED_BY ), $chunk )
+            ), ARRAY_A );
+        } else {
+            $found = $wpdb->get_results( $wpdb->prepare(
+                "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by,
+                        wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt,
+                        NULL AS product_id
+                   FROM %i i
+                   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
+                   LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = i.attachment_id
+                   LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = i.attachment_id AND wp_f.meta_key = '_wp_attached_file'
+                   LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = i.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'
+                  WHERE i.attachment_id IN ( " . implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) . ' )',
+                array_merge( array( $wpdb->vergeml_ai_index, VERGEML_FILING_PLACED_BY ), $chunk )
+            ), ARRAY_A );
+        }
+        // phpcs:enable
+        foreach ( (array) $found as $v ) {
             $vectors[ (int) $v['attachment_id'] ] = $v;
         }
     }
@@ -2745,44 +2786,118 @@ function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array(), $after = 0
 
     global $wpdb;
 
-    $t      = $wpdb->vergeml_ai_index;
-    $select = 'i.attachment_id, i.kind';
-    $join   = '';
-    $group  = '';
+    $dated  = in_array( 'date', $need, true );
+    $termed = in_array( 'terms', $need, true );
 
-    if ( in_array( 'filing', $need, true ) ) {
-        $select .= ', i.filing';
+    /*
+     *  One literal statement per join shape: the date join and the terms join
+     *  with its GROUP BY. Everything else is a bound value. A column nobody
+     *  asked for is read as attachment_id and dropped below, so the filing
+     *  text and the embedding are only read when a rule needs them.
+     */
+    $filing        = in_array( 'filing', $need, true );
+    $embedding     = in_array( 'embedding', $need, true );
+    $col_filing    = $filing ? 'filing' : 'attachment_id';
+    $col_embedding = $embedding ? 'embedding' : 'attachment_id';
+    $unfiled       = 'unfiled' === $scope ? 1 : 0;
+    $after         = (int) $after; // Every id is above 0, so 0 filters nothing.
+    $limit         = (int) $limit > 0 ? (int) $limit : PHP_INT_MAX; // No limit is the largest one.
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the columns are chosen above from two literals each, the rest is bound.
+    if ( $dated && $termed ) {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT i.attachment_id, i.kind, i.%i AS filing, i.%i AS embedding, p.post_date, GROUP_CONCAT( tt.term_id ) AS in_terms
+               FROM %i i
+               JOIN {$wpdb->posts} p ON p.ID = i.attachment_id
+               LEFT JOIN {$wpdb->term_relationships} tr ON tr.object_id = i.attachment_id
+               LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = %s
+              WHERE i.error = '' AND i.embedding IS NOT NULL
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s ) )
+                AND i.attachment_id > %d
+              GROUP BY i.attachment_id
+              ORDER BY i.attachment_id ASC
+              LIMIT %d",
+            $col_filing,
+            $col_embedding,
+            $wpdb->vergeml_ai_index,
+            $taxonomy,
+            $unfiled,
+            $taxonomy,
+            $after,
+            $limit
+        ), ARRAY_A );
+    } elseif ( $termed ) {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT i.attachment_id, i.kind, i.%i AS filing, i.%i AS embedding, GROUP_CONCAT( tt.term_id ) AS in_terms
+               FROM %i i
+               LEFT JOIN {$wpdb->term_relationships} tr ON tr.object_id = i.attachment_id
+               LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = %s
+              WHERE i.error = '' AND i.embedding IS NOT NULL
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s ) )
+                AND i.attachment_id > %d
+              GROUP BY i.attachment_id
+              ORDER BY i.attachment_id ASC
+              LIMIT %d",
+            $col_filing,
+            $col_embedding,
+            $wpdb->vergeml_ai_index,
+            $taxonomy,
+            $unfiled,
+            $taxonomy,
+            $after,
+            $limit
+        ), ARRAY_A );
+    } elseif ( $dated ) {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT i.attachment_id, i.kind, i.%i AS filing, i.%i AS embedding, p.post_date
+               FROM %i i
+               JOIN {$wpdb->posts} p ON p.ID = i.attachment_id
+              WHERE i.error = '' AND i.embedding IS NOT NULL
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s ) )
+                AND i.attachment_id > %d
+              ORDER BY i.attachment_id ASC
+              LIMIT %d",
+            $col_filing,
+            $col_embedding,
+            $wpdb->vergeml_ai_index,
+            $unfiled,
+            $taxonomy,
+            $after,
+            $limit
+        ), ARRAY_A );
+    } else {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT i.attachment_id, i.kind, i.%i AS filing, i.%i AS embedding
+               FROM %i i
+              WHERE i.error = '' AND i.embedding IS NOT NULL
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s ) )
+                AND i.attachment_id > %d
+              ORDER BY i.attachment_id ASC
+              LIMIT %d",
+            $col_filing,
+            $col_embedding,
+            $wpdb->vergeml_ai_index,
+            $unfiled,
+            $taxonomy,
+            $after,
+            $limit
+        ), ARRAY_A );
     }
-    if ( in_array( 'embedding', $need, true ) ) {
-        $select .= ', i.embedding';
-    }
-    if ( in_array( 'date', $need, true ) ) {
-        $select .= ', p.post_date';
-        $join   .= " JOIN {$wpdb->posts} p ON p.ID = i.attachment_id";
-    }
-    if ( in_array( 'terms', $need, true ) ) {
-        $select .= ', GROUP_CONCAT( tt.term_id ) AS in_terms';
-        $join   .= $wpdb->prepare( " LEFT JOIN {$wpdb->term_relationships} tr ON tr.object_id = i.attachment_id
-                     LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = %s", $taxonomy );
-        $group   = ' GROUP BY i.attachment_id';
+    // phpcs:enable
+
+    $rows = (array) $rows;
+    if ( ! $filing || ! $embedding ) {
+        foreach ( array_keys( $rows ) as $k ) {
+            if ( ! $filing ) {
+                unset( $rows[ $k ]['filing'] );
+            }
+            if ( ! $embedding ) {
+                unset( $rows[ $k ]['embedding'] );
+            }
+        }
     }
 
-    $where = "i.error = '' AND i.embedding IS NOT NULL";
-    if ( 'unfiled' === $scope ) {
-        $where .= $wpdb->prepare( " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s )", $taxonomy );
-    }
-    $after = (int) $after;
-    if ( $after > 0 ) {
-        $where .= $wpdb->prepare( ' AND i.attachment_id > %d', $after );
-    }
-    $limit_sql = '';
-    $limit     = (int) $limit;
-    if ( $limit > 0 ) {
-        $limit_sql = $wpdb->prepare( ' LIMIT %d', $limit );
-    }
-
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; the parts are prepared above.
-    return (array) $wpdb->get_results( "SELECT {$select} FROM {$t} i{$join} WHERE {$where}{$group} ORDER BY i.attachment_id ASC{$limit_sql}", ARRAY_A );
+    return $rows;
 }
 
 /** Live folders by lowercased path ("apparel/women") and by id. */
@@ -3213,11 +3328,19 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
         // The matcher wants the vector too; read it for the unfiled rows only.
         $vectors  = array();
         $chunks   = array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 );
-        $words    = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
         foreach ( $chunks as $chunk ) {
-            $ph = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table; $ph is one %d per id and the ids are bound.
-            foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id IN ($ph)", $chunk ), ARRAY_A ) as $v ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are the same columns and joins as vergeml_filing_words_sql( 'i' ), written out; one %d per id and the ids are bound.
+            $found = $wpdb->get_results( $wpdb->prepare(
+                "SELECT i.attachment_id, i.embedding, i.tags,
+                        wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt
+                   FROM %i i
+                   LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = i.attachment_id
+                   LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = i.attachment_id AND wp_f.meta_key = '_wp_attached_file'
+                   LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = i.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'
+                  WHERE i.attachment_id IN ( " . implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) . ' )',
+                array_merge( array( $wpdb->vergeml_ai_index ), $chunk )
+            ), ARRAY_A );
+            foreach ( (array) $found as $v ) {
                 $vectors[ (int) $v['attachment_id'] ] = $v;
             }
         }

@@ -201,12 +201,11 @@ function vergeml_ai_folders_clauses( $clauses, $query ) {
     $table = vergeml_index_table();
 
     // The table name and the column name are both ours -- one registered on
-    // $wpdb, one out of the allowlist above. The value is the only thing that
-    // came from outside, and it is bound.
-    $clauses['join'] .= " INNER JOIN {$table} vgml_ai ON vgml_ai.attachment_id = {$wpdb->posts}.ID ";
+    // $wpdb, one out of the allowlist above. Both go in as identifiers (%i);
+    // the value is the only thing that came from outside, and it is bound.
+    $clauses['join'] .= $wpdb->prepare( " INNER JOIN %i vgml_ai ON vgml_ai.attachment_id = {$wpdb->posts}.ID ", $table );
 
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $column is one of vergeml_ai_folder_columns(), checked with in_array() above; the value is bound.
-    $clauses['where'] .= $wpdb->prepare( " AND vgml_ai.{$column} = %s ", (string) $spec['value'] );
+    $clauses['where'] .= $wpdb->prepare( ' AND vgml_ai.%i = %s ', $column, (string) $spec['value'] );
 
     return $clauses;
 }

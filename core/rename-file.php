@@ -130,12 +130,13 @@ function vergeml_file_pending( $limit = 0 ) {
         return array();
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    $ids = $wpdb->get_col(
-        "SELECT attachment_id FROM {$wpdb->vergeml_ai_index}
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    $ids = $wpdb->get_col( $wpdb->prepare(
+        "SELECT attachment_id FROM %i
           WHERE error = '' AND title <> ''
-       ORDER BY attachment_id ASC"
-    );
+       ORDER BY attachment_id ASC",
+        $wpdb->vergeml_ai_index
+    ) );
     // phpcs:enable
 
     $out = array();
@@ -183,12 +184,13 @@ function vergeml_file_pending_count( $cap = 1000 ) {
         return $cached;
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
     $ids = $wpdb->get_col( $wpdb->prepare(
-        "SELECT attachment_id FROM {$wpdb->vergeml_ai_index}
+        "SELECT attachment_id FROM %i
           WHERE error = '' AND TRIM(title) <> ''
        ORDER BY attachment_id ASC
           LIMIT %d",
+        $wpdb->vergeml_ai_index,
         (int) $cap + 1
     ) );
     // phpcs:enable

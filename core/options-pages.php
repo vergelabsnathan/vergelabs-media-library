@@ -1522,7 +1522,7 @@ function vergeml_settings_cleanup() {
  *  that matter are cleaned by the core hooks fired around the delete.
  */
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 function vergeml_term_relationship_cleanup() {
 
@@ -1546,7 +1546,6 @@ function vergeml_term_relationship_cleanup() {
         elseif ( ! empty( $term_pairs ) ) {
 
             $deleted_tt_ids = array();
-            $rows2remove_format = join( ', ', array_fill( 0, count( $term_pairs ), '%d' ) );
 
             $results = $wpdb->get_results( $wpdb->prepare(
                 "
@@ -1555,8 +1554,7 @@ function vergeml_term_relationship_cleanup() {
                     INNER JOIN $wpdb->posts
                     ON $wpdb->term_relationships.object_id = $wpdb->posts.ID
                     WHERE $wpdb->posts.post_type = 'attachment'
-                    AND $wpdb->term_relationships.term_taxonomy_id IN ($rows2remove_format)
-                ",
+                    AND $wpdb->term_relationships.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $term_pairs ), '%d' ) ) . ' )',
                 $term_pairs
             ) );
 
@@ -1575,8 +1573,7 @@ function vergeml_term_relationship_cleanup() {
                     INNER JOIN $wpdb->posts
                     ON $wpdb->term_relationships.object_id = $wpdb->posts.ID
                     WHERE $wpdb->posts.post_type = 'attachment'
-                    AND $wpdb->term_relationships.term_taxonomy_id IN ($rows2remove_format)
-                ",
+                    AND $wpdb->term_relationships.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $term_pairs ), '%d' ) ) . ' )',
                 $term_pairs
             ) );
 
@@ -1612,7 +1609,7 @@ function vergeml_cleanup_drop_tables() {
     global $wpdb;
 
     foreach ( array( 'vergeml_ai_index', 'vergeml_librarian_batches', 'vergeml_librarian_moves', 'vergeml_organize_runs' ) as $table ) {
-        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- deliberate removal of this plugin's own tables.
+        $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- deliberate removal of this plugin's own tables.
     }
 }
 
@@ -1628,16 +1625,17 @@ function vergeml_user_meta_cleanup() {
 
     /*
      *  $table and $id_column are internal constants from _get_meta_table(), not
-     *  user input, so they are interpolated. Every value is placeheld. There is
-     *  no cache to prime or invalidate here: this runs once, from the settings
+     *  user input, and go in as identifiers (%i). Every value is placeheld. There
+     *  is no cache to prime or invalidate here: this runs once, from the settings
      *  cleanup action, over rows this plugin owns.
      */
 
     // Both shapes: the plain key, and on a network the per-site copy that
     // carries the blog prefix (wp_2_vergeml_...).
     $meta_ids = $wpdb->get_col(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identifiers are internal, values are placeheld below.
-        $wpdb->prepare( "SELECT $id_column FROM $table WHERE meta_key LIKE %s OR meta_key LIKE %s",
+        $wpdb->prepare( 'SELECT %i FROM %i WHERE meta_key LIKE %s OR meta_key LIKE %s',
+            $id_column,
+            $table,
             $wpdb->esc_like( $meta_key ) . '%',
             $wpdb->esc_like( $wpdb->base_prefix ) . '%' . $wpdb->esc_like( '_' . $meta_key ) . '%' )
     ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own user meta.
@@ -1647,12 +1645,13 @@ function vergeml_user_meta_cleanup() {
         return;
     }
 
-    $meta_ids     = array_map( 'absint', $meta_ids );
-    $placeholders = implode( ',', array_fill( 0, count( $meta_ids ), '%d' ) );
+    $meta_ids = array_map( 'absint', $meta_ids );
 
     $wpdb->query(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identifiers are internal, ids are placeheld.
-        $wpdb->prepare( "DELETE FROM $table WHERE $id_column IN ( $placeholders )", $meta_ids )
+        $wpdb->prepare(
+            'DELETE FROM %i WHERE %i IN ( ' . implode( ', ', array_fill( 0, count( $meta_ids ), '%d' ) ) . ' )',
+            array_merge( array( $table, $id_column ), $meta_ids )
+        )
     ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own user meta.
 }
 
@@ -1665,7 +1664,7 @@ function vergeml_user_meta_cleanup() {
  *  @created  28/04/18
  */
 
-// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 function vergeml_options_cleanup() {
 

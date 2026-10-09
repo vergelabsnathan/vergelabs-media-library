@@ -22,6 +22,7 @@
  *      patching an Attachment prototype's toggleSelection
  *    - a request outside the HTTP API (Requests::request_multiple, curl_*)
  *    - the filters that existed only for the suites, or that returned SQL
+ *    - a table of the plugin's own, or an IN list, interpolated into SQL (round 4)
  *
  *  Nothing here reaches a site. Mutation checks, 2026-10-05: re-adding
  *  `add_action( 'wp_ajax_save-attachment-order', ... )`, a
@@ -137,6 +138,14 @@ check( 'core\'s media.js is never taken off a screen', 0 === media.length, media
 // The HTTP API.
 const http = hits( php, /Requests::request_multiple|\bcurl_(?:init|exec|multi_\w+)\s*\(/g );
 check( 'every request goes through the HTTP API', 0 === http.length, http.map( ( h ) => `${ h.at } ${ h.m[ 0 ] }` ).join( ' | ' ) );
+
+// SQL: no table of the plugin's own and no IN list is interpolated into a statement (wordpress.org review 2,
+// round 4: "you cannot add variables like $wpdb->vergeml_ai_index directly to the SQL query"). Tables go in as %i,
+// IN lists as the inline implode( array_fill() ) WPCS reads.
+const tables = hits( php, /\{\$wpdb->vergeml_\w+\}|\$wpdb->prefix\s*\}|"[^"]*\{\$(?:t|table|tbl)\}[^"]*"/g );
+check( 'no table of the plugin\'s own is interpolated into SQL', 0 === tables.length, tables.map( ( h ) => `${ h.at } ${ h.m[ 0 ].slice( 0, 60 ) }` ).join( ' | ' ) );
+const inLists = hits( php, /IN\s*\(\s*\$\w+\s*\)|IN\s*\(\s*\{\$\w+\}\s*\)/g );
+check( 'no IN list is interpolated into SQL', 0 === inLists.length, inLists.map( ( h ) => `${ h.at } ${ h.m[ 0 ] }` ).join( ' | ' ) );
 
 // Seams that existed for the suites, and filters that returned SQL.
 const GONE = [ 'vergeml_ai_describe_answers', 'vergeml_ai_run_should_nudge', 'vergeml_brief_describe', 'vergeml_folders_walk', 'vergeml_offer_trial_possible', 'vergeml_ai_parallel', 'vergeml_smart_count_branches', 'vergeml_smart_count_exclude' ];
