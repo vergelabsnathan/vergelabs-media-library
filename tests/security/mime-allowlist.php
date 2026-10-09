@@ -99,6 +99,12 @@ vgml_t( 'css is never allowed, not even for an administrator', ! isset( $vgml_ad
 vgml_t( 'css, xml, xsl and dfxp are refused types', vergeml_mime_refused( 'css' ) && vergeml_mime_refused( 'xml' ) && vergeml_mime_refused( 'xsl' ) && vergeml_mime_refused( 'dfxp' ) && ! vergeml_mime_refused( 'png' ) && ! vergeml_mime_refused( 'pdf' ) );
 $vgml_known_open = array_filter( array_keys( wp_get_mime_types() ), function ( $ext ) { return ! vergeml_mime_refused( $ext ); } );
 vgml_t( 'of the types WordPress knows, none left open is markup, style, script or XML', array() === array_filter( $vgml_known_open, function ( $ext ) { return (bool) preg_match( '/(^|\|)(css|html?|js|xml|xsl|svg|swf|class|exe|dfxp)(\||$)/', $ext ); } ), implode( ', ', $vgml_known_open ) );
+// Remove-only (round 4 review pass): a type switched on in the settings but absent from the list WordPress hands the
+// filter (another plugin took it out) stays absent.
+$vgml_without_png = get_allowed_mime_types();
+unset( $vgml_without_png['png'] );
+$vgml_filtered = vergeml_upload_mimes( $vgml_without_png );
+vgml_t( 'the filter never adds a type, even one switched on', ! isset( $vgml_filtered['png'] ) && count( $vgml_filtered ) <= count( $vgml_without_png ) );
 wp_set_current_user( $editor );
 
 $dropped = vergeml_mimes_dropped();

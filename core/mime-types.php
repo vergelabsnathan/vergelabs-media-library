@@ -287,25 +287,18 @@ add_filter( 'upload_mimes', 'vergeml_upload_mimes' );
 function vergeml_upload_mimes( $types ) {
 
     /*
-     *  Settings switch WordPress's own types on and off; they never add one.
-     *  vergeml_mimes_prepared() holds only types wp_get_mime_types() knows, and
-     *  a type vergeml_mime_refused() names is always off -- taken out of the
-     *  list even where core itself would allow it for this user.
+     *  Remove-only: this filter never adds a type. The list arriving here is
+     *  what WordPress -- and, on a network, the super admin's "Upload file
+     *  types" -- allows this user; the settings switch WordPress's own types
+     *  off within it. vergeml_mimes_prepared() holds only types
+     *  wp_get_mime_types() knows, and a type vergeml_mime_refused() names is
+     *  always off, so it is taken out even where core itself would allow it.
+     *  A type another plugin added is not one of these and is left alone.
      */
-    /*
-     *  On a network the super admin's "Upload file types" is the ceiling: a
-     *  site may switch types off, never back on past it. Core applies that
-     *  list before this filter runs, so a type absent here stays absent.
-     */
-    $ceiling = is_multisite() ? $types : null;
-
     foreach ( vergeml_mimes_prepared() as $ext => $entry ) {
 
-        if ( $entry['upload'] && ( null === $ceiling || isset( $ceiling[ $ext ] ) ) ) {
-            $types[$ext] = $entry['mime'];
-        }
-        else {
-            unset( $types[$ext] );
+        if ( empty( $entry['upload'] ) || vergeml_mime_refused( $ext ) ) {
+            unset( $types[ $ext ] );
         }
     }
 
