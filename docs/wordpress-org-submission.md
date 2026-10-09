@@ -48,7 +48,13 @@ Plugin Check without Docker".
 
 ## The archive to upload
 
-**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-05 from `27ec2c4`
+**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-09 from `7644d48`
+(wordpress.org review 2, round 4). 1,147,298 bytes, sha256
+`20dafc74dd3cefd4094537a09b20a3f12f3be6969a2f20e1b6b42b13480e9ff5`; read back:
+comment `7644d48d…`, `Version: 4.1.0`, `Stable tag: 4.1.0`, no forbidden or hidden
+entry (count 0). What changed: "wordpress.org review 2, round 4" below.
+
+The round-3 build: **`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-05 from `27ec2c4`
 (branch `release-4.1.0`, wordpress.org review 2, round 3). 150 entries, 143 files,
 1,146,951 bytes, sha256
 `63c5c776a8aa2dc1a431132aba504845cfc0a988c3bfa8c0619eec13b75d78f5`; read back out of
@@ -250,6 +256,36 @@ the media library (filing, folder edits, quick edit), but the smart-folder
 scan, making a folder private, search by meaning and the AI screens are an
 administrator's. Choosing file types can no longer add a type WordPress does
 not know, or allow SVG.
+
+## wordpress.org review 2, round 4 (2026-10-09)
+
+Review ID R vergelabs-media-library/vergelabsdev/26Sep26/T3 8Oct26/4.3: two classes.
+
+| class | what was wrong | fix | commit |
+|---|---|---|---|
+| Adding insecure MIME types | the `upload_mimes` callback could switch on CSS, which WordPress knows | every browser-interpreted type core knows is refused (css, xml, xsl, xslt, dfxp, plus xht, mht, hta, vbs, ps1, wasm beside the earlier list); the filter is remove-only on single sites as on networks, so it never adds a type | `338ff57`, `7644d48` |
+| Unsafe SQL (78 incidences) | the plugin's own tables (`{$wpdb->vergeml_*}`, `{$t}`) and IN lists interpolated into queries, inside and outside `prepare()` | every plugin table is `%i`; every IN list is the inline `implode( array_fill() )`; literal `%` are bound `%s`; statements built from fragments (guide rule rows, folder-talk's product lookup, autofile, the librarian insert) are literals with flags. Core `$wpdb` tables and `CREATE TABLE` for `dbDelta()` keep the documented form | `c34020f`, `f225c35` |
+
+**Proof, on `7644d48`.** Plugin Check: no errors, 29/29 checks answered. PHPCS with
+annotations ignored: InterpolatedNotPrepared 83 → **0**, UnfinishedPrepare 21 → **0**,
+0 error-level; 5 annotated placeholder-count warnings on spread argument lists. Clean-site
+walk 63/63, debug.log empty, 14 outgoing requests all core's, 0 the plugin's. hands-off
+12/12 now also fails on any plugin table or IN list interpolated into SQL. Local suites
+green (mime-allowlist 23/23 with a sweep of `wp_get_mime_types()`, media-ajax, gates,
+import-passes, health-rewrite, ai-outage 42/42, route-caps, uninstall, settings-safety,
+the plan and filing suites, db-calls 11/11 — the register moved 132 → 187 prepared).
+Box (real MySQL, this SQL): sticky, roles, paths, secrets, folders-version, guide,
+filing-trail, brief, search-try, health-keep, ai-folders, smart, csv, private-folders,
+journey, counts, organize 67/67, librarian 66/66 green; auto-file, ai-background and naming
+fail identically with `ae74ba0` deployed, so older than this work. Fresh-eyes pass
+([review5-fresh-eyes.md](wordpress-org-audit/review5-fresh-eyes.md)): both classes gone,
+0 would-reject; its one new question (the filter could add a type) closed in `7644d48`.
+
+**The reply** (Nathan's to send):
+
+> Thank you. Both issues are fixed across the whole plugin, not only the lines quoted.
+> File types: the upload_mimes filter now only removes types and never adds one; CSS, XML and every other type a browser interprets or a server runs is always refused, even where WordPress would allow it.
+> SQL: every table name now goes into prepare() as %i and every IN list as placeholders, so no variable is interpolated into a query. Tested on a clean WordPress install with WP_DEBUG on, and Plugin Check reports no errors on the uploaded zip.
 
 ## wordpress.org review 2, round 3 (2026-10-05)
 
