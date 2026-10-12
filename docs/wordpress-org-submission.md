@@ -60,6 +60,22 @@ uninstall, route-caps, ai-outage, get-help, mime-allowlist, tree, dialogs, copy 
 ai-folders-ui not run (needs its fixture site). Box browser specs: the same failures as
 round-5 code deployed, none new. Reviewer passes: review 7 (0 would-reject) and review 8
 (verification, 0 would-reject); every ledger row has a status.
+**Runtime, on the zip itself (2026-10-12, after Nathan asked for the deeper pass).** The static
+audit had left the runtime half of the checklist partly unrun; it is now run, on the uploaded zip:
+`tools/runtime-checks.mjs` installs `dist/…zip` through installPlugin with WP_DEBUG on and runs each
+phase as its own request. Lifecycle (activate, file two pictures and delete one, deactivate,
+reactivate, delete) on WP 6.5 / PHP 7.4 and on latest / PHP 8.3: 35/35 each; with remove-everything
+on: 36/36 (folders and their pictures stay, own tables and options gone). Safe mode on both version
+pairs: 14/14, debug.log empty. Red-first: the same safe-mode scenario on the round-5 zip ends in
+"vergeml_update_attachment_term_count not found" (the fatal fixed in `aa02c46`). Multisite on the
+box's real network (`tools/multisite.mjs`, real MySQL): 20/20, from Network Activate through a site
+made after it to the network uninstall. Clean-site walk with front-end checks (a post without the
+block loads none of the plugin's files; the gallery post shows its four pictures with its own css and
+js and labelled arrows; no console error): 72/72 on WP 6.5 / PHP 7.4 and 72/72 on latest / PHP 8.3,
+debug.log empty, 0 requests by the plugin. The wordpress.org readme validator: one note, "No donate
+link was found" (a broken control readme drew warnings, so the check is live). Not runnable here: a
+server without mbstring (php-wasm has it compiled in), so that path rests on the code reading.
+
 
 **Upload comment** (Nathan's to send):
 
