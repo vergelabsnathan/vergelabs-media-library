@@ -1287,7 +1287,8 @@ function vergeml_settings_import() {
     $import_file = array(
         'name'     => isset( $_FILES['import_file']['name'] ) ? sanitize_file_name( wp_unslash( $_FILES['import_file']['name'] ) ) : '',
         'type'     => isset( $_FILES['import_file']['type'] ) ? sanitize_mime_type( wp_unslash( $_FILES['import_file']['type'] ) ) : '',
-        'tmp_name' => isset( $_FILES['import_file']['tmp_name'] ) ? sanitize_text_field( $_FILES['import_file']['tmp_name'] ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- PHP sets tmp_name and never slashes it; unslashing would strip a Windows path's backslashes : '',
+        // PHP sets tmp_name itself and never slashes it; wp_unslash() would strip a Windows path's backslashes.
+        'tmp_name' => isset( $_FILES['import_file']['tmp_name'] ) ? sanitize_text_field( $_FILES['import_file']['tmp_name'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         'error'    => isset( $_FILES['import_file']['error'] ) ? (int) $_FILES['import_file']['error'] : UPLOAD_ERR_NO_FILE,
         'size'     => isset( $_FILES['import_file']['size'] ) ? (int) $_FILES['import_file']['size'] : 0,
     );

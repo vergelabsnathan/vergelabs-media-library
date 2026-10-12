@@ -77,7 +77,7 @@ function vergeml_transport_bridge() {
 
     // Only a route this plugin registered.
     if ( ! vergeml_transport_is_ours( $route, $method ) ) {
-        wp_send_json( array( 'code' => 'vergeml_bad_bridge', 'message' => __( 'That route is not one of this plugin's.', 'vergelabs-media-library' ), 'data' => array( 'status' => 400 ) ), 400 );
+        wp_send_json( array( 'code' => 'vergeml_bad_bridge', 'message' => __( 'That route does not belong to this plugin.', 'vergelabs-media-library' ), 'data' => array( 'status' => 400 ) ), 400 );
     }
 
     // Handed on as REST would hand them on: the route's own args schema validates and sanitises them.
