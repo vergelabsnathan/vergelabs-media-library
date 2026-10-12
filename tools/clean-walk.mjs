@@ -330,6 +330,18 @@ try {
 	await screens( browser, 'vgeditor', 'pass-editor', MEDIA.concat( RAISED ), ( s ) => MEDIA.includes( s ) );
 	await screens( browser, 'vgauthor', 'pass-author', MEDIA.concat( RAISED ), ( s ) => MEDIA.includes( s ) );
 
+	// Core screens that are not the media library: not one of the plugin's styles or scripts loads there (round 5).
+	{
+		const { ctx, page } = await login( browser, 'admin', 'password' );
+		for ( const core of [ '/wp-admin/index.php', '/wp-admin/plugins.php', '/wp-admin/users.php', '/wp-admin/options-general.php' ] ) {
+			await page.goto( BASE + core, { waitUntil: 'load' } );
+			const assets = await page.evaluate( () => Array.from( document.querySelectorAll( 'link[rel="stylesheet"], script[src]' ) )
+				.map( ( el ) => el.href || el.src ).filter( ( u ) => /\/plugins\/vergelabs-media-library\//.test( u ) ) );
+			row( 0 === assets.length, `admin     ${ core } loads none of the plugin's files${ assets.length ? ': ' + assets.map( ( u ) => u.replace( /^.*\/plugins\//, '' ).replace( /\?.*$/, '' ) ).join( ', ' ) : '' }` );
+		}
+		await ctx.close();
+	}
+
 	// The old address of the plugin's own copy of Settings > Media.
 	{
 		const { ctx, page } = await login( browser, 'admin', 'password' );
