@@ -55,7 +55,7 @@ function vergeml_help_menu() {
  */
 function vergeml_help_known_issues_url() {
 
-    return defined( 'VERGEML_KNOWN_ISSUES_URL' ) ? VERGEML_KNOWN_ISSUES_URL : vergeml_help_service_url() . '/known-issues';
+    return defined( 'VERGEML_KNOWN_ISSUES_URL' ) && is_string( VERGEML_KNOWN_ISSUES_URL ) && 0 === strpos( VERGEML_KNOWN_ISSUES_URL, 'https://' ) ? VERGEML_KNOWN_ISSUES_URL : vergeml_help_service_url() . '/known-issues';
 }
 
 /**

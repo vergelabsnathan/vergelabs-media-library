@@ -2615,6 +2615,4 @@
 
 	// Nothing opens by itself: no turn, no proposal, no model route until a button is pressed.
 
-	// progress: the one row every long step renders through (S10.0), driven by the suite with models of its own.
-	window.vgmlFoldersApp = { state: state, view: function () { return view; }, preview: function () { return previewView; }, stop: stop, setStep: setStep, render: renderCards, progress: renderProgress, rows: dom.progress };
 }() );

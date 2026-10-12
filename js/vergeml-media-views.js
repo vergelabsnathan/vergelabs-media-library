@@ -457,7 +457,7 @@ window.vergeml = window.vergeml || { l10n: {} };
         },
         render: function () {
             this.$el.addClass(this.class);
-            this.$el.html('<p><strong>' + this.text + '</strong></p>');
+            this.$el.empty().append( $( '<p></p>' ).append( $( '<strong></strong>' ).text( this.text ) ) );
             return this;
         },
     });

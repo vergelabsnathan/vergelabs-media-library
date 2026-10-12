@@ -265,7 +265,7 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
      *  gets one from its name.
      */
     global $wpdb;
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are the same columns and joins as vergeml_filing_words_sql( 'i' ), written out; the id is bound.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are written out as literal columns and joins; the id is bound.
     $row   = $wpdb->get_row( $wpdb->prepare(
         "SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.prompt_hash, i.model_version,
                 wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt

@@ -23,6 +23,8 @@
  *        run all-in-one-seo-pack aioseo; run woocommerce woo; run advanced-custom-fields acf'
  */
 
+require_once ( is_file( __DIR__ . '/lib/filing-sql.php' ) ? __DIR__ . '/lib/filing-sql.php' : ( is_file( __DIR__ . '/../../tools/lib/filing-sql.php' ) ? __DIR__ . '/../../tools/lib/filing-sql.php' : '/tmp/vgml-filing-sql.php' ) ); // vergeml_filing_words_sql(), vergeml_filing_product_sql()
+
 $GLOBALS['vgml_fail'] = 0;
 $GLOBALS['vgml_n']    = 0;
 $GLOBALS['vgml_skip'] = array();

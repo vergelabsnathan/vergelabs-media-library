@@ -312,12 +312,6 @@ function vergeml_taxonomies_options_page_scripts() {
         'okay' => __( 'Ok', 'vergelabs-media-library' ),
         'cancel' => __( 'Cancel', 'vergelabs-media-library' ),
 
-        'sync_warning_title' => __( 'Synchronize Now', 'vergelabs-media-library' ),
-        'sync_warning_text' => __( 'This cannot be undone.', 'vergelabs-media-library' ),
-        'sync_warning_yes' => __( 'Synchronize', 'vergelabs-media-library' ),
-        'sync_warning_no' => __( 'Cancel', 'vergelabs-media-library' ),
-        'in_progress_sync_text' => __( 'Synchronizing...', 'vergelabs-media-library' ),
-
         'bulk_edit_nonce' => wp_create_nonce( 'vergeml-bulk-edit-nonce' )
     );
 
@@ -567,7 +561,7 @@ function vergeml_print_settings() {
 
                                 <ul>
                                     <li><strong><?php esc_html_e( 'What will be deleted:', 'vergelabs-media-library' ); ?></strong></li>
-                                    <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : ?>
+                                    <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : if ( 'media_category' === $taxonomy ) { continue; } ?>
                                         <li><?php esc_html_e( 'All', 'vergelabs-media-library' );
                                         echo ' ' . esc_html( $params['labels']['name'] ); ?></li>
                                     <?php endforeach; ?>
@@ -578,6 +572,7 @@ function vergeml_print_settings() {
                                 <ul>
                                     <li><strong><?php esc_html_e( 'What will remain intact:', 'vergelabs-media-library' ); ?></strong></li>
                                     <li><?php esc_html_e( 'All media items', 'vergelabs-media-library' ); ?></li>
+                                    <li><?php esc_html_e( 'Your folders, and which files are in them', 'vergelabs-media-library' ); ?></li>
                                     <li><?php esc_html_e( 'All taxonomies not listed above', 'vergelabs-media-library' ); ?></li>
                                 </ul>
 
@@ -601,7 +596,7 @@ function vergeml_print_settings() {
                                     <p>
                                         <label>
                                             <input type="checkbox" name="vergeml_uninstall_wipe" value="1" <?php checked( (bool) get_option( 'vergeml_uninstall_wipe' ) ); ?> />
-                                            <?php esc_html_e( 'Also remove all folders, settings and the AI index when the plugin is deleted', 'vergelabs-media-library' ); ?>
+                                            <?php esc_html_e( 'Also remove the settings, tables and AI index of this plugin when it is deleted (your folders stay)', 'vergelabs-media-library' ); ?>
                                         </label>
                                     </p>
                                     <?php wp_nonce_field( 'vergeml_uninstall_wipe_nonce', 'vergeml-uninstall-wipe-nonce' ); ?>
@@ -709,7 +704,7 @@ function vergeml_print_network_settings() {
                                             <td>
                                                 <fieldset>
                                                     <legend class="screen-reader-text"><span><?php esc_html_e('Remove all data on uninstall','vergelabs-media-library'); ?></span></legend>
-                                                    <label><input name="vergeml_network_options[uninstall_wipe]" type="hidden" value="0" /><input name="vergeml_network_options[uninstall_wipe]" type="checkbox" value="1" <?php checked( true, (bool) get_site_option( 'vergeml_uninstall_wipe_network' ), true ); ?> /> <?php esc_html_e('Remove every site\'s folders, settings and AI index when the plugin is deleted from the network. Off, deleting the plugin keeps them all — a reinstall picks them up.','vergelabs-media-library'); ?></label>
+                                                    <label><input name="vergeml_network_options[uninstall_wipe]" type="hidden" value="0" /><input name="vergeml_network_options[uninstall_wipe]" type="checkbox" value="1" <?php checked( true, (bool) get_site_option( 'vergeml_uninstall_wipe_network' ), true ); ?> /> <?php esc_html_e('Remove the settings, tables and AI index of every site when the plugin is deleted from the network; the folders stay. Off, deleting the plugin keeps everything, and a reinstall picks it up.','vergelabs-media-library'); ?></label>
 </fieldset>
                                             </td>
                                         </tr>
@@ -820,7 +815,7 @@ function vergeml_print_network_settings() {
 
                             <ul>
                                 <li><strong><?php esc_html_e( 'What will be deleted:', 'vergelabs-media-library' ); ?></strong></li>
-                                <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : ?>
+                                <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : if ( 'media_category' === $taxonomy ) { continue; } ?>
                                     <li><?php esc_html_e( 'All', 'vergelabs-media-library' );
                                     echo ' ' . esc_html( $params['labels']['name'] ); ?></li>
                                 <?php endforeach; ?>
@@ -832,6 +827,7 @@ function vergeml_print_network_settings() {
                             <ul>
                                 <li><strong><?php esc_html_e( 'What will remain intact:', 'vergelabs-media-library' ); ?></strong></li>
                                 <li><?php esc_html_e( 'All media items', 'vergelabs-media-library' ); ?></li>
+                                    <li><?php esc_html_e( 'Your folders, and which files are in them', 'vergelabs-media-library' ); ?></li>
                                 <li><?php esc_html_e( 'All taxonomies not listed above', 'vergelabs-media-library' ); ?></li>
                             </ul>
 

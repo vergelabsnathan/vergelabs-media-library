@@ -1131,9 +1131,9 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 		$only_ids = ! empty( $state['round_ids'] ) ? array_map( 'intval', (array) $state['round_ids'] ) : array();
 		// Round 2 only: a flag, and the ids (one 0 stands in when there are none, so the list is never empty).
 		$only_list = $only_ids ? $only_ids : array( 0 );
-		// The product it belongs to, when the site sells (S10.8): vergeml_filing_product_sql( 'i' ), written out and switched by a flag.
+		// The product it belongs to, when the site sells (S10.8), written out and switched by a flag.
 		$sells = function_exists( 'post_type_exists' ) && post_type_exists( 'product' ) ? 1 : 0;
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are the vergeml_filing_words_sql( 'i' ) columns, written out.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are written out as literal columns.
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.caption, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by,
 			        wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt,

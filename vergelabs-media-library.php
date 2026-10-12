@@ -713,7 +713,7 @@ global $vergeml_dir,
             }
         }
 
-        // assign/unassign taxonomies to atachment
+        // Taxonomies the settings put on attachments. One that is not ticked is left as its owner registered it.
         foreach ( $vergeml_taxonomies as $taxonomy => $params ) {
 
             $taxonomy = sanitize_key($taxonomy);
@@ -721,8 +721,6 @@ global $vergeml_dir,
             if ( (bool) $params['assigned'] )
                 register_taxonomy_for_object_type( $taxonomy, 'attachment' );
 
-            if ( ! (bool) $params['assigned'] )
-                unregister_taxonomy_for_object_type( $taxonomy, 'attachment' );
         }
 
 
@@ -1627,10 +1625,9 @@ global $vergeml_dir,
 
 
     /*
-     *  Safe mode stops here. Everything below this line is the plugin's actual
-     *  behaviour, and after two fatal errors in an hour none of it loads --
-     *  the site comes back, the plugin stays active, and the notice in
-     *  core/watchdog.php explains why.
+     *  Safe mode (VERGEML_SAFE_MODE in wp-config.php) or a server without
+     *  mbstring stops here: everything below is the plugin's behaviour, and a
+     *  notice says why it is off (core/watchdog.php, vergeml_requirements_notice()).
      */
     // Outside the guard on purpose: a site in safe mode is the one that most
     // needs to ask for help, and the report is what support needs first.

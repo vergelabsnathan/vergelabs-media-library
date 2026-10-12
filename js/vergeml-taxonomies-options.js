@@ -4,7 +4,7 @@
  *  Handles the taxonomy list on the settings screen: adding and removing
  *  taxonomies, deriving a taxonomy name, slug and labels from what the user
  *  types, validating the name against the allowed format and the reserved
- *  names, and the "synchronize terms" button.
+ *  names.
  *
  *  This file only touches its own settings screen; it does not patch any core
  *  view.
@@ -566,44 +566,6 @@ window.vergeml = window.vergeml || { l10n: {} };
         }
 
         return isValid;
-    });
-
-    $(document).on('click', '.eml-button-synchronize-terms', function (event) {
-        var $button = $(event.target);
-
-        if ($button.hasClass('disabled')) {
-            event.preventDefault();
-            return false;
-        }
-
-        vergemlConfirmDialog(
-            vergeml.l10n.sync_warning_title,
-            vergeml.l10n.sync_warning_text,
-            vergeml.l10n.sync_warning_yes,
-            vergeml.l10n.sync_warning_no,
-            'button button-primary',
-        )
-            .done(function () {
-                var postType = $button.attr('data-post-type');
-                var taxonomy = $button.attr('data-taxonomy');
-
-                vergemlFullscreenSpinnerStart(vergeml.l10n.in_progress_sync_text);
-                $.post(
-                    ajaxurl,
-                    {
-                        nonce: vergeml.l10n.bulk_edit_nonce,
-                        action: 'vergeml-synchronize-terms',
-                        post_type: postType,
-                        taxonomy: taxonomy,
-                    },
-                    function () {
-                        vergemlFullscreenSpinnerStop();
-                    },
-                );
-            })
-            .fail(function () {
-                return false;
-            });
     });
 
     $(document).on('click', 'input[readonly], .disabled .submit input.button', function (event) {

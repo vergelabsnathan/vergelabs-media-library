@@ -14,7 +14,7 @@
 
 
         // Add "All Uncategorized" option
-        $mainFilter.append('<option value="uncategorized">'+l10n.uncategorized+'</option>');
+        $mainFilter.append( $( '<option value="uncategorized"></option>' ).text( l10n.uncategorized ) );
 
 
         // Add "Reset All Filters" button

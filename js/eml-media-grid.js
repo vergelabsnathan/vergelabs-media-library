@@ -80,7 +80,7 @@ window.vergeml = window.vergeml || { l10n: {} };
 
             // collapse
             this.$el.find('.setting, #alt-text-description').wrapAll( '<div class="eml-collapse" />' );
-            this.$el.find('.compat-meta').before( '<a class="eml-toggle-collapse" href="javascript:;">'+vergeml.l10n.more_details+'</a>' );
+            this.$el.find('.compat-meta').before( $( '<a class="eml-toggle-collapse" href="javascript:;"></a>' ).text( vergeml.l10n.more_details ) );
 
             this.toggleCollapse();
         },

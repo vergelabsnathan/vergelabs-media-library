@@ -23,7 +23,8 @@ define( 'VERGEML_TRIAL_PICTURES', 25 );
 /** Whether the service would give this site a free try: not on local or test hosts. */
 function vergeml_offer_trial_possible() {
     $host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
-    $ok   = '' !== $host && ! preg_match( '/^(localhost|127\.|10\.|192\.168\.)|\.(local|test|localhost|example|invalid)$|(^|\.)playground\.wordpress\.net$|^\d+\.\d+\.\d+\.\d+$/i', $host );
+    // Without OpenSSL the key could not be stored (vergeml_ai_seal()), so the free try is not offered at all.
+    $ok   = function_exists( 'openssl_encrypt' ) && '' !== $host && ! preg_match( '/^(localhost|127\.|10\.|192\.168\.)|\.(local|test|localhost|example|invalid)$|(^|\.)playground\.wordpress\.net$|^\d+\.\d+\.\d+\.\d+$/i', $host );
     return $ok;
 }
 
@@ -98,7 +99,7 @@ function vergeml_offer_box( $missing ) {
                 <?php /* translators: %s: a number of pictures */ ?>
                 <button type="button" class="vgml-btn vgml-btn-primary" id="vgml-offer-go"><?php echo esc_html( sprintf( __( 'Start · %s free', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?></button>
             </div>
-            <p class="vgml-note" id="vgml-offer-msg"><?php esc_html_e( 'One free try per site and per email. No card. Your email and this site\'s address go to VergeLabs to make the key.', 'vergelabs-media-library' ); ?></p>
+            <p class="vgml-note" id="vgml-offer-msg"><?php esc_html_e( 'One free try per site and per email. No card. Your email and this site\'s address go to VergeLabs to make the key, and we email you once, when the free pictures are used.', 'vergelabs-media-library' ); ?></p>
         </div>
         <?php
         wp_enqueue_script( 'vergeml-offer-trial', plugins_url( 'js/vergeml-offer-trial.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-offer-trial.js' ), true );
@@ -185,6 +186,9 @@ function vergeml_offer_ajax_trial() {
     $settings                = get_option( 'vergeml_ai', array() );
     $settings                = is_array( $settings ) ? $settings : array();
     $settings['license_key'] = vergeml_ai_seal( sanitize_text_field( (string) $body['key'] ) );
+    if ( '' === $settings['license_key'] ) {
+        wp_send_json_error( array( 'message' => __( 'This server cannot store a key: the PHP OpenSSL extension is missing.', 'vergelabs-media-library' ) ), 500 );
+    }
     update_option( 'vergeml_ai', $settings, false );
 
     if ( function_exists( 'vergeml_ai_refresh_credits' ) ) {

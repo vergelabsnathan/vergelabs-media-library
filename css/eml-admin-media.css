@@ -547,7 +547,6 @@ body.eml-media-css .media-frame .spinner {
 
 /* == Gallery, Playlist :: Edit :: Classic Editor == */
 /* == a problem since wp 5 == */
-/* == TODO: look deeper into this == */
 
 body.eml-media-css .media-menu .media-menu-item.hidden {
     display: none !important;

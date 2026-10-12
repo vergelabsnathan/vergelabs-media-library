@@ -16,6 +16,7 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
 /*
  *  `shop` is the ms2 network's MAIN site -- the C.5 Commons library, 626
@@ -53,6 +54,8 @@ const remote = `/tmp/vgml-eval-${ path.basename( file ) }`;
 const sshArgs = [ '-i', BOX.key, '-o', 'StrictHostKeyChecking=no', '-o', 'ConnectTimeout=15' ];
 
 execFileSync( 'scp', [ ...sshArgs, path.resolve( file ), `root@${ BOX.host }:${ remote }` ], { stdio: 'pipe' } );
+// The tools' SQL fragments (tools/lib/filing-sql.php) go along, since they no longer ship.
+execFileSync( 'scp', [ ...sshArgs, path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), 'lib', 'filing-sql.php' ), `root@${ BOX.host }:/tmp/vgml-filing-sql.php` ], { stdio: 'pipe' } );
 for ( const c of copies ) {
 	execFileSync( 'scp', [ ...sshArgs, path.resolve( c.local ), `root@${ BOX.host }:${ c.remote }` ], { stdio: 'pipe' } );
 	if ( site.as ) {

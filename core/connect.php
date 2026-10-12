@@ -36,7 +36,7 @@ const VERGEML_CONNECT_TTL    = DAY_IN_SECONDS;
  *  plans/four-yesses.md; nothing used the filter.
  */
 function vergeml_connect_base() {
-    $base = defined( 'VERGEML_SITE_URL' ) ? VERGEML_SITE_URL : 'https://vergelabsmedia.com';
+    $base = defined( 'VERGEML_SITE_URL' ) && is_string( VERGEML_SITE_URL ) && 0 === strpos( VERGEML_SITE_URL, 'https://' ) ? VERGEML_SITE_URL : 'https://vergelabsmedia.com';
 
     return untrailingslashit( $base );
 }
@@ -105,6 +105,11 @@ function vergeml_connect_router() {
     // Binding a paid licence to a site is an owner's decision, not an editor's.
     if ( ! current_user_can( 'manage_options' ) ) {
         return;
+    }
+
+    // A key is stored sealed (vergeml_ai_seal()); without OpenSSL nothing could be stored, so no code is spent.
+    if ( ! function_exists( 'openssl_encrypt' ) ) {
+        vergeml_connect_redirect_with( 'openssl' );
     }
 
     if ( 'start' === $step ) {
@@ -251,6 +256,14 @@ function vergeml_connect_banner() {
             printf(
                 '<div class="notice notice-error is-dismissible"><p>%s</p></div>',
                 esc_html__( 'This licence is already in use on as many sites as it allows. Disconnect it from another site, or use another licence, to connect this one.', 'vergelabs-media-library' )
+            );
+            return;
+        }
+
+        if ( 'openssl' === $result ) {
+            printf(
+                '<div class="notice notice-error is-dismissible"><p>%s</p></div>',
+                esc_html__( 'This server cannot store a licence key: the PHP OpenSSL extension is missing. Nothing was changed.', 'vergelabs-media-library' )
             );
             return;
         }

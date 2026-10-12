@@ -204,7 +204,30 @@ async function open_( page ) {
 	await ready( page );
 }
 
+/*
+ *  The screens' state is closure-private in the shipped scripts; the suite reads it through a
+ *  handle it adds to the script in transit, so no test hook ships (wordpress.org round 6).
+ */
+const HANDLES = {
+	'vergeml-folders.js': "window.vgmlFoldersApp = { state: state, view: function () { return view; }, preview: function () { return previewView; }, stop: stop, setStep: setStep, render: renderCards, progress: renderProgress, rows: dom.progress };",
+	'vergeml-brief.js': 'window.vgmlBriefApp = { state: state, talk: talk };',
+};
+
+async function exposeHandles( page ) {
+	for ( const [ file, line ] of Object.entries( HANDLES ) ) {
+		await page.route( ( url ) => url.pathname.endsWith( '/js/' + file ), async ( route ) => {
+			const response = await route.fetch();
+			const body = ( await response.text() ).replace( /\}\(\)\s*\);\s*$/, '\t' + line + '\n}() );\n' );
+			await route.fulfill( { response, body } );
+		} );
+	}
+}
+
 test.describe( 'the Folders screen', () => {
+
+	test.beforeEach( async ( { page } ) => {
+		await exposeHandles( page );
+	} );
 
 	test.afterEach( async ( { page } ) => {
 		await restore( page );

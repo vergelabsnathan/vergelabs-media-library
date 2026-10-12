@@ -215,7 +215,7 @@ function vergemlIsFilterBased( attrs ) {
 
         if ( isFilterBased ) {
 
-            append = '<br class="clear" /><h3>' + vergeml.l10n.based_on + '</h3><span class="setting eml-filter-based"><ul class="eml-filter-based">';
+            append = '<br class="clear" /><h3>' + _.escape( vergeml.l10n.based_on ) + '</h3><span class="setting eml-filter-based"><ul class="eml-filter-based">';
 
             _.each( vergeml.l10n.taxonomies, function( attrs, taxonomy ) {
 

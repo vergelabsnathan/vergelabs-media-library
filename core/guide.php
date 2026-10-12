@@ -853,7 +853,7 @@ function vergeml_guide_summary_fresh( &$s ) {
  */
 function vergeml_guide_stream_url() {
 
-    if ( defined( 'VERGEML_AI_STREAM' ) && is_string( VERGEML_AI_STREAM ) && '' !== VERGEML_AI_STREAM ) {
+    if ( defined( 'VERGEML_AI_STREAM' ) && is_string( VERGEML_AI_STREAM ) && 0 === strpos( VERGEML_AI_STREAM, 'https://' ) ) {
         return untrailingslashit( VERGEML_AI_STREAM );
     }
     return vergeml_ai_service_url();
@@ -1903,10 +1903,10 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
 
     $vectors = array();
     /*
-     *  The columns and joins are written out, the same as vergeml_filing_words_sql( 'i' )
-     *  (the picture's file, title and alt, S10.9) and vergeml_filing_product_sql( 'i' )
-     *  (the product the picture belongs to, S10.8) give the fill, so the fit reads
-     *  what the fill reads. Where nothing sells the product column is a literal NULL.
+     *  The columns and joins are written out: the picture's file, title and alt
+     *  (S10.9) and the product the picture belongs to (S10.8), as the fill reads them,
+     *  so the fit reads what the fill reads. Where nothing sells the product column
+     *  is a literal NULL.
      */
     $sells = function_exists( 'post_type_exists' ) && post_type_exists( 'product' );
     foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
@@ -3329,7 +3329,7 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
         $vectors  = array();
         $chunks   = array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 );
         foreach ( $chunks as $chunk ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are the same columns and joins as vergeml_filing_words_sql( 'i' ), written out; one %d per id and the ids are bound.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are written out as literal columns and joins; one %d per id and the ids are bound.
             $found = $wpdb->get_results( $wpdb->prepare(
                 "SELECT i.attachment_id, i.embedding, i.tags,
                         wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt

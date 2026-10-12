@@ -260,6 +260,41 @@ scan, making a folder private, search by meaning and the AI screens are an
 administrator's. Choosing file types can no longer add a type WordPress does
 not know, or allow SVG.
 
+## Round 6 preparation: the full audit and the likely-questions ledger (2026-10-12)
+
+Not a new email: the round-5 zip was held back. Every rule in the rulebook was re-judged on the
+release archive with evidence only (six auditors, reports `wordpress-org-audit/r6-*.md`), plus one
+reviewer acting as the Plugins Team (`r6-team-reviewer.md`). From here on, no zip is built until
+every row below has a status: *fixed* (commit, and the guard or grep that finds zero), *answered*
+(the sentence in the upload comment) or *decided* (Nathan, with the date).
+
+| # | Likely question | Status | Evidence |
+|---|---|---|---|
+| 1 | Raw `$wpdb` writes to other posts' meta and parents (health keep/delete, reorder, hash reset) | fixed `5dc983a` | `update_metadata_by_mid`, `wp_update_post`, `delete_post_meta_by_key`; hands-off row "no direct write to posts or postmeta outside uninstall" (mutation red) |
+| 2 | Test seams and the `127.0.0.1` exception | fixed `5dc983a` | journey filter and run-budget filter gone (hands-off GONE list), budget a tick parameter, https only (hands-off loopback row) |
+| 3 | Self-entered safe mode (watchdog) | decided 2026-10-12, fixed `5dc983a` | safe mode is `VERGEML_SAFE_MODE` only; the stored state is cleared on update |
+| 4 | Wipes delete `media_category` terms | decided 2026-10-12, fixed `5dc983a`, `aa02c46` | both wipes keep folders and leave every taxonomy core or another plugin owns alone |
+| 5 | Media-modal CSS on every screen with a media frame | answered | ACF rules and Elementor's `common` enqueue removed (`5dc983a`); the comment says the modal is the surface the plugin extends |
+| 6 | `wp.media` prototypes replaced | decided 2026-10-12: answered now, subclass rewrite after approval | upload comment |
+| 7 | Readme length | fixed in part (27,161 → 19,644 bytes, changelog to changelog.txt), answered | External services alone is ~7.6 KB of required disclosure |
+| 8 | REST through admin-ajax | answered | nonce, `upload_files`, `rest_authentication_errors`, own routes only, `rest_do_request()` applies each route's args and permission callback |
+| 9 | Term-count callbacks fatal with features off | fixed `aa02c46` | registered only when defined; core counter otherwise |
+| 10 | Count callbacks of other plugins' taxonomies replaced | fixed `aa02c46` | only taxonomies on attachments still using core's counter |
+| 11 | Style on every admin page; loop over all of `$_GET` | fixed `aa02c46` | own screens only; a named key list |
+| 12 | Unsanitized input (talk instruction/history, CSV folder names, folder name); `/folder` permission on a missing taxonomy | fixed `aa02c46` | `sanitize_textarea_field` / `sanitize_text_field`; `return false` |
+| 13 | `admin_init` writes for logged-out requests | fixed `aa02c46` | `manage_options` check, as organize already had |
+| 14 | SQL fragments with a variable alias | fixed `aa02c46` | alias literal `i` |
+| 15 | External services missing the brief and `environment` | fixed `aa02c46` | readme paragraphs added |
+| 16 | Untranslated gallery and transport strings, stale `.pot` | fixed `aa02c46`, `6c54cd0` | `wp_localize_script`; labels set as attributes; `.pot` and Domain Path removed |
+| 17 | Pretty-printed minified JS (guideline 4) | fixed `1201caf` | both files rewritten; string literals and property names identical before/after |
+| 18 | Excel content-mismatch exception, unscoped tree rule, api-fetch exclusion, whole-cache flush | fixed `5c6bae7` | removed / scoped |
+| 19 | Header description over 140 characters, tags | fixed `aa02c46` | wording is Nathan's to approve |
+| 20 | EML copyright line, block apiVersion | fixed `aa02c46` | restored verbatim; 3 in PHP and JS |
+| 21 | SVN screenshots and banner (not in the zip), Pro's Plugin URI | Nathan's, before the first SVN commit after approval | screenshots 3 and 5 show retired UI; banner says "successor" |
+| 22 | `webbistro` not in Contributors | answered | credited in the readme; adoption request open |
+
+Browser specs on the box: 17 of 30 pass; the 13 that fail also fail with round-5 code deployed (14 there), so they predate this work.
+
 ## wordpress.org review 2, round 5 (2026-10-12)
 
 Review ID R ❗ACT vergelabs-media-library/vergelabsdev/26Sep26/T4 11Oct26/4.3: two classes

@@ -368,5 +368,4 @@
 		}
 	} ).catch( function () {} );
 
-	window.vgmlBriefApp = { state: state, talk: talk };
 }() );
