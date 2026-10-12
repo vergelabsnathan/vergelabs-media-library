@@ -48,11 +48,14 @@ Plugin Check without Docker".
 
 ## The archive to upload
 
-**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-09 from `7644d48`
-(wordpress.org review 2, round 4). 1,147,298 bytes, sha256
-`20dafc74dd3cefd4094537a09b20a3f12f3be6969a2f20e1b6b42b13480e9ff5`; read back:
-comment `7644d48d…`, `Version: 4.1.0`, `Stable tag: 4.1.0`, no forbidden or hidden
-entry (count 0). What changed: "wordpress.org review 2, round 4" below.
+**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-12 from `a47d6f0`
+(wordpress.org review 2, round 5). 154 files, 1,149,863 bytes, sha256
+`427777069861d18cffeaffc47a10647a8a2597c3573f1e2a6db899a3c1538c6a`; read back:
+comment `a47d6f06…`, `Version: 4.1.0`, no forbidden or hidden entry (count 0).
+What changed: "wordpress.org review 2, round 5" below.
+
+The round-4 build: rebuilt 2026-10-09 from `7644d48`. 1,147,298 bytes, sha256
+`20dafc74dd3cefd4094537a09b20a3f12f3be6969a2f20e1b6b42b13480e9ff5`.
 
 The round-3 build: **`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-05 from `27ec2c4`
 (branch `release-4.1.0`, wordpress.org review 2, round 3). 150 entries, 143 files,
@@ -256,6 +259,32 @@ the media library (filing, folder edits, quick edit), but the smart-folder
 scan, making a folder private, search by meaning and the AI screens are an
 administrator's. Choosing file types can no longer add a type WordPress does
 not know, or allow SVG.
+
+## wordpress.org review 2, round 5 (2026-10-12)
+
+Review ID R ❗ACT vergelabs-media-library/vergelabsdev/26Sep26/T4 11Oct26/4.3: two classes
+and the activation checklist.
+
+| class | what was wrong | fix | commit |
+|---|---|---|---|
+| Problems on activation | `vergeml_provision_site()` fired `vergeml_activate`, but the schema files that hooked their installers onto it are included on `plugins_loaded`, so on the activation request nothing listened and no table was made | the installers (`vergeml_index_install`, `vergeml_organize_install`, `vergeml_librarian_install`) are called by name, their files included first; each uses `$wpdb->prefix`, `get_charset_collate()` and `dbDelta()`; the version is stamped only after they ran | `eb53463` |
+| Activation checklist: extensions | mbstring and OpenSSL were used unchecked | `vergeml_requirements_missing()` checks both; without mbstring the features stay off and an admin notice says why; without OpenSSL no licence key is stored (never one in the clear), so the AI features stay off and a notice says so; safe mode leaves the media frame to core | `84ce6b7` |
+| Activation checklist: assets | the admin sheet and script loaded on every admin page; 14 modal selectors were unscoped | `vergeml_is_own_admin_screen()` gates them to Media, attachment taxonomies and the plugin's pages; the modal sheet loads where a media frame opens, every selector under `.eml-media-css`; generic class names prefixed `vergeml-` | `9ee2876` |
+| Escaping: inline JS | `vergeml_inline_script()` passed a caller-built JS string to `wp_add_inline_script()` | the helper is gone; the four scripts it built are files in `js/` (trial start, help report, stats opt-in, demo mode) with their data through `wp_localize_script()`; the two inline styles go through `wp_strip_all_tags()`, column names through `sanitize_html_class()` | `eb53463` |
+
+**Proof, on `a47d6f0`.** Plugin Check: no errors, 29/29 checks answered. PHPCS with
+annotations ignored: parse clean on 7.4 and 8.3, 0 error-level. New suite `activation`
+12/12: deactivate, drop the four tables, activate with output buffered and an error
+handler — no output, no notice, no HTTP request, four tables under the site prefix,
+version stamped; commenting out the installer call turns it red. hands-off 14/14, now
+also failing on any `wp_add_inline_script()` and any inline style not escaped at output.
+Clean-site walk 68/68, debug.log empty, 15 outgoing requests all core's, 0 the plugin's;
+it now checks that the Dashboard, Plugins, Users, Settings > Writing and Tools load none
+of the plugin's files. Local suites green (archive-hygiene, get-help, watchdog-php,
+route-caps, uninstall, media-ajax, gates, activation). Box (real MySQL): roles, paths,
+secrets, guide, health-keep, ai-folders, smart, csv, private-folders, counts, organize,
+librarian green. Fresh-eyes pass
+([review6-fresh-eyes.md](wordpress-org-audit/review6-fresh-eyes.md)): 0 would-reject.
 
 ## wordpress.org review 2, round 4 (2026-10-09)
 
