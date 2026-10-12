@@ -47,41 +47,6 @@ body.eml-media-css .compat-item .eml-tax-field {
 
 
 
-/* == ACF Attachment Fields == */
-
-body.eml-media-css .compat-attachment-fields > tbody > .acf-field {
-    margin: 5px 0;
-}
-body.eml-media-css .compat-attachment-fields > tbody > .acf-field > .acf-label {
-    min-width: 30%;
-    margin: 0;
-    padding: 0;
-    text-align: right;
-    display: block;
-    float: left;
-}
-body.eml-media-css .compat-attachment-fields > tbody > .acf-field > .acf-label > label {
-    padding-top: 6px;
-    margin: 0;
-    color: #666666;
-    font-weight: 400;
-    line-height: 16px;
-}
-body.eml-media-css .compat-attachment-fields > tbody > .acf-field > .acf-input {
-    width: 65%;
-    margin: 0;
-    padding: 0;
-    float: right;
-    display: block;
-}
-/* == TODO: look deeper into this one == */
-body.eml-media-css .compat-field-acf-form-data, 
-body.eml-media-css .compat-field-acf-blank {
-    display: none !important;
-}
-
-
-
 /* == Grid Mode == */
 
 .media-frame.mode-eml-grid .attachments-browser .media-toolbar-secondary {

@@ -465,7 +465,6 @@ $ao_booked = wp_next_scheduled( 'vergeml_ai_run_tick' );
 if ( false !== $ao_booked ) {
     wp_unschedule_event( $ao_booked, 'vergeml_ai_run_tick' );
 }
-add_filter( 'vergeml_ai_run_budget', '__return_zero' );
 $GLOBALS['ao_answer'] = 'back';
 $GLOBALS['ao_nudges'] = 0;
 $ao_started12 = vergeml_ai_run_start( 'unindexed', true, 'outage suite' );
@@ -478,11 +477,10 @@ $GLOBALS['ao_nudges'] = 0;
 // Three of the seven on hold (F2-F4): the step describes A, B and E, the recount keeps the run alive, the tail books the rest.
 vergeml_ai_recently_described( array( $ao_f[1], $ao_f[2], $ao_f[3] ), true );
 $ao_t12 = time();
-vergeml_ai_run_tick();
+vergeml_ai_run_tick( 0 );
 $ao_state12 = vergeml_ai_run_state();
 $ao_next12  = wp_next_scheduled( 'vergeml_ai_run_tick' );
 $ao_asked12 = ao_describes();
-remove_filter( 'vergeml_ai_run_budget', '__return_zero' );
 
 ao_check( 'one step described the three it asked and the run is still active with four left', ! is_wp_error( $ao_started12 ) && 3 === $ao_asked12 && 3 === (int) $ao_state12['described'] && ! empty( $ao_state12['active'] ) && 4 === (int) $ao_state12['remaining'], "$ao_asked12 asked, described " . $ao_state12['described'] . ', remaining ' . $ao_state12['remaining'] );
 ao_check( 'the next pass is booked now', false !== $ao_next12 && $ao_next12 <= $ao_t12 + 1, false === $ao_next12 ? 'nothing booked' : ( $ao_next12 - $ao_t12 ) . ' s away' );

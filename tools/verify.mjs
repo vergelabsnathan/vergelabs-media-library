@@ -330,11 +330,7 @@ const SUITES = [
 	 *  like get-help.
 	 */
 	{ name: 'ai-outage', file: 'tests/ai/outage.php', env: 'local', php: 'playground' },
-	/*
-	 *  The watchdog's ladder, in a local Playground: two crashes give safe mode,
-	 *  nothing ever deactivates the plugin (wordpress.org review 2, 2026-10-03).
-	 */
-	{ name: 'watchdog-php', file: 'tests/tree/watchdog.php', env: 'local', php: 'playground' },
+	// The self-entered safe mode (the watchdog) was removed in 4.1.0; safe mode is VERGEML_SAFE_MODE only.
 	// File types: WordPress's own types only, never one that runs code (wordpress.org review 2).
 	{ name: 'mime-allowlist', file: 'tests/security/mime-allowlist.php', env: 'local', php: 'playground' },
 	// Every vergeml/v1 route's permission, asked as author, editor and administrator (wordpress.org review 2).
@@ -530,7 +526,6 @@ const SUITES = [
 	 *  tests/librarian/gate7-blueprint.json drives it through Playground.
 	 */
 	{ name: 'librarian-schema', file: 'tests/librarian/gate7-schema.php', env: 'box', php: true },
-	{ name: 'watchdog', file: 'tests/watchdog/recovery.js', env: 'playground' },
 ];
 
 /*

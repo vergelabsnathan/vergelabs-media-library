@@ -1443,26 +1443,18 @@ function vergeml_save_attachment_order() {
 
     asort( $attachments2edit );
 
-    /*
-     *  menu_order renumbered 1..n in the order asked, one row update per file.
-     *  Not wp_update_post: that is a full post save per item, which on a few
-     *  hundred images is the difference between instant and unusable. Only
-     *  this one column changes, so each post is dropped from the object cache
-     *  as it is written.
-     */
+    // menu_order renumbered 1..n in the order asked, through wp_update_post() on each file edit_post allowed above.
     $position = 0;
     $failed   = false;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one column of one row, by primary key; the post is dropped from the object cache right after.
     foreach ( array_keys( $attachments2edit ) as $reordered_id ) {
 
-        if ( false === $wpdb->update( $wpdb->posts, array( 'menu_order' => ++$position ), array( 'ID' => $reordered_id ), array( '%d' ), array( '%d' ) ) ) {
+        $done = wp_update_post( array( 'ID' => $reordered_id, 'menu_order' => ++$position ), true );
+
+        if ( ! $done || is_wp_error( $done ) ) {
             $failed = true;
         }
-
-        clean_post_cache( $reordered_id );
     }
-    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
     if ( $failed || ! $position )
         wp_send_json_error();

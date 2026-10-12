@@ -62,6 +62,12 @@ function vergeml_uninstall_wipe_site() {
         $own      = ! empty( $params['eml_media'] );
         $taxonomy = (string) $taxonomy;
 
+        // Folders are ordinary terms and outlive the plugin: media_category is shared with
+        // Enhanced Media Library and other folder plugins, so its terms and links stay.
+        if ( 'media_category' === $taxonomy ) {
+            continue;
+        }
+
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall reads the term ids of a taxonomy this plugin registered, to delete them below; it runs once, so there is nothing to cache.
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT term_taxonomy_id, term_id FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s",

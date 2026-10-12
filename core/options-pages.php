@@ -393,7 +393,7 @@ function vergeml_options_page_scripts() {
     $l10n_data = array(
         'cleanup_warning_title' => __( 'Complete Cleanup', 'vergelabs-media-library' ),
         'cleanup_warning_text_p1' => '<p>' . wp_kses_post( __( 'You are about to <strong style="text-transform:uppercase">delete all plugin data</strong> from the database including backups.', 'vergelabs-media-library' ) ) . '</p>',
-        'cleanup_warning_text_p2' => '<p>' . esc_html__( 'This cannot be undone.', 'vergelabs-media-library') . '</p>',
+        'cleanup_warning_text_p2' => '<p>' . esc_html__( 'Your folders are kept. This cannot be undone.', 'vergelabs-media-library') . '</p>',
         'cleanup_warning_yes' => __( 'Yes, delete all data', 'vergelabs-media-library' ),
         'in_progress_cleanup_text' => __( 'Cleaning...', 'vergelabs-media-library' ),
         'cancel' => __( 'Cancel', 'vergelabs-media-library' ),
@@ -1086,7 +1086,6 @@ function vergeml_print_network_overview() {
             $credits  = function_exists( 'vergeml_ai_refresh_credits' )
                 ? array( 'remaining' => vergeml_ai_refresh_credits() )
                 : get_option( 'vergeml_ai_credits', array() );
-            $watchdog = get_option( 'vergeml_watchdog', array() );
             $network  = get_site_option( 'vergeml_ai_network', array() );
 
             $own_key = is_array( $ai ) && ! empty( $ai['license_key'] );
@@ -1098,7 +1097,7 @@ function vergeml_print_network_overview() {
                 'url'     => get_admin_url( (int) $site_id, 'admin.php?page=vergelabs-media' ),
                 'version' => (string) get_option( 'vergeml_version', '' ),
                 'tables'  => (bool) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . 'vergeml_ai_index' ) ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                'safe'    => is_array( $watchdog ) && ! empty( $watchdog['safe'] ),
+                'safe'    => vergeml_safe_mode(),
                 'key'     => $own_key && ! ( $net_key && ! empty( $network['lock'] ) ) ? 'own' : ( $net_key ? 'network' : 'none' ),
                 'credits' => is_array( $credits ) && isset( $credits['remaining'] ) ? (int) $credits['remaining'] : null,
             );
@@ -1530,6 +1529,11 @@ function vergeml_term_relationship_cleanup() {
 
 
     foreach ( get_option( 'vergeml_taxonomies', array() ) as $taxonomy => $params ) {
+
+        // Folders outlive the plugin: media_category is shared with other folder plugins.
+        if ( 'media_category' === $taxonomy ) {
+            continue;
+        }
 
         $terms = get_terms( array( 'taxonomy' => $taxonomy, 'fields' => 'all', 'get' => 'all' ) );
         $term_pairs = vergeml_get_media_term_pairs( $terms, 'id=>tt_id' );

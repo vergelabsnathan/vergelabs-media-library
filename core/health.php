@@ -521,11 +521,8 @@ function vergeml_health_scan_step( $cursor = 0 ) {
 
 function vergeml_health_reset() {
 
-    global $wpdb;
-
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- one delete beats a meta call per attachment, and the key is this plugin's own indexed meta.
-    $wpdb->delete( $wpdb->postmeta, array( 'meta_key' => VERGEML_META_HASH ) );
-    // phpcs:enable
+    // The plugin's own meta key, on every attachment, in one call.
+    delete_post_meta_by_key( VERGEML_META_HASH );
 
     // The metas went out from under the object cache, so anything holding a
     // copy of them has to be told.

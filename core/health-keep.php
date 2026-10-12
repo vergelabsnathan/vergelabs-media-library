@@ -438,7 +438,7 @@ function vergeml_health_rewrite_source( $source_id, $from, $to, $map, &$record )
 			continue;
 		}
 
-		$wpdb->update( $wpdb->postmeta, array( 'meta_value' => $value ), array( 'meta_id' => (int) $row->meta_id ) );
+		vergeml_health_write_meta( (int) $row->meta_id, $value );
 		$record['metas'][] = array( 'meta_id' => (int) $row->meta_id, 'post_id' => $source_id, 'before' => (string) $row->meta_value, 'after' => $value );
 	}
 
@@ -446,13 +446,11 @@ function vergeml_health_rewrite_source( $source_id, $from, $to, $map, &$record )
 
 	// Attached to this post: the kept file takes the place, the other floats free.
 	if ( (int) get_post_field( 'post_parent', $from ) === $source_id ) {
-		$wpdb->update( $wpdb->posts, array( 'post_parent' => 0 ), array( 'ID' => $from ) );
-		clean_post_cache( $from );
+		vergeml_health_write_parent( $from, 0 );
 		$record['parents'][] = array( 'id' => $from, 'before' => $source_id );
 
 		if ( 0 === (int) get_post_field( 'post_parent', $to ) ) {
-			$wpdb->update( $wpdb->posts, array( 'post_parent' => $source_id ), array( 'ID' => $to ) );
-			clean_post_cache( $to );
+			vergeml_health_write_parent( $to, $source_id );
 			$record['parents'][] = array( 'id' => $to, 'before' => 0 );
 		}
 	}
@@ -754,8 +752,7 @@ function vergeml_health_keep_undo( $token ) {
 	foreach ( (array) $record['metas'] as $change ) {
 		$now = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_id = %d", (int) $change['meta_id'] ) );
 		if ( (string) $now === (string) $change['after'] ) {
-			$wpdb->update( $wpdb->postmeta, array( 'meta_value' => $change['before'] ), array( 'meta_id' => (int) $change['meta_id'] ) );
-			wp_cache_delete( (int) $change['post_id'], 'post_meta' );
+			vergeml_health_write_meta( (int) $change['meta_id'], $change['before'] );
 		}
 	}
 
@@ -766,8 +763,7 @@ function vergeml_health_keep_undo( $token ) {
 	}
 
 	foreach ( (array) $record['parents'] as $change ) {
-		$wpdb->update( $wpdb->posts, array( 'post_parent' => (int) $change['before'] ), array( 'ID' => (int) $change['id'] ) );
-		clean_post_cache( (int) $change['id'] );
+		vergeml_health_write_parent( (int) $change['id'], (int) $change['before'] );
 	}
 
 	foreach ( (array) $record['used'] as $change ) {

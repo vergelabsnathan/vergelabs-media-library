@@ -14,91 +14,39 @@ Folders, categories and tags for the WordPress media library, with AI alt text a
 
 **Folders for your media library, categories that stay in WordPress, and alt text written for you.**
 
-Folders that are real taxonomy terms, so nothing breaks when you deactivate. Categories and tags on every attachment, filterable in the grid and the list. Alt text and captions written by a model that has looked at the picture, one run at a time, only when you start it. Works on WordPress 6.5 through 7.1 and PHP 7.4 through 8.3.
+Folders that are real taxonomy terms, so nothing breaks when you deactivate. Categories and tags on every attachment, filterable in the grid and the list. Alt text and captions written by a model that has looked at the picture, one run at a time, only when you start it. Works on WordPress 6.5 through 7.1 and PHP 7.4 through 8.5.
 
-Grown from [Enhanced Media Library](https://wordpress.org/plugins/enhanced-media-library/) by wpUXsolutions, GPLv2 or later as the original is; its settings carry over on activation.
+Grown from [Enhanced Media Library](https://wordpress.org/plugins/enhanced-media-library/) by wpUXsolutions, GPLv2 or later as the original is; its settings carry over on activation. It is not made by, or affiliated with, wpUXsolutions.
 
 [Source and issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library)
 
-
 ### Folders ###
 
-A folder tree sits beside the media library. Drag files onto a folder to file them, drag folders into each other to rearrange, rename in place, colour them, and arrange them in whatever order you want. It is in the list view, in the grid, and in the media panel that opens when you insert an image into a post — which is where a media library is most used.
+A folder tree sits beside the media library. Drag files onto a folder to file them, drag folders into each other to rearrange, rename in place, colour them, and arrange them in whatever order you want. It is in the list view, in the grid, and in the media panel that opens when you insert an image into a post.
 
 **Your folders are ordinary media categories.** The folder structure is not kept in a table of ours. That means your structure is readable by WordPress itself, by your theme, by WP-CLI and by any other plugin — and it is still there, intact and usable, if you ever remove this plugin.
 
-**A file can be in more than one folder.** Dragging a file moves it, exactly as it does on your desktop. Hold Ctrl while dropping and it is added to that folder as well -- the same photo in Products and in Autumn Campaign without a second copy of it existing. If you want the one-folder promise kept absolutely, there is a setting that makes every drop a move.
+**A file can be in more than one folder.** Dragging a file moves it, exactly as it does on your desktop. Hold Ctrl while dropping and it is added to that folder as well.
 
-**A folder can be a gallery.** Add the Folder gallery block in the block editor -- or the Folder gallery element in Elementor, Divi or WPBakery, or drop `[vergeml_gallery folder="12"]` anywhere shortcodes work -- pick a folder, and it shows every image in it. Grid or carousel, with a built-in lightbox if you want one. It stays a folder rather than becoming a list of files: put a new image in the folder and every page using that gallery has it, with nothing re-edited.
+**A folder can be a gallery.** Add the Folder gallery block in the block editor -- or the Folder gallery element in Elementor, Divi or WPBakery, or drop `[vergeml_gallery folder="12"]` anywhere shortcodes work -- pick a folder, and it shows every image in it.
 
-**One set of folders in every language.** With Polylang or WPML, a translated copy of an image goes into the same folders as the original, and the tree shows the same folders whichever language you are working in.
+**Smart folders answer questions.** Above your folders sit five that nothing was ever filed into: Unused media, Missing alt text, Large files, Unattached, and This month. Each is a live view of the library. Unused and Large need one scan, which reads every post once to learn which files are genuinely referenced.
 
-**Smart folders answer questions.** Above your folders sit five that nothing was ever filed into: Unused media, Missing alt text, Large files, Unattached, and This month. Each is a live view of the library. Unused and Large need one scan -- a click, a progress count, done -- which reads every post once to learn which files are genuinely referenced: embedded images, pasted URLs, featured images, galleries. "1,400 images have no alt text" and "2 GB of this library is unused" are the two numbers most worth knowing about a media library.
-
-**Uploads land where you are.** Upload while a folder is open and the files arrive filed into it -- no second step. With All files open, uploads arrive unfiled, exactly as before.
-
-**A folder can leave as a ZIP.** Pick a folder, choose Download as ZIP, and its files -- sub-folders included, as directories -- arrive as one archive named after the folder.
-
-**Already using another folder plugin?** VergeLabs Library → Import Folders reads FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders, Real Media Library and Enhanced Media Library. It shows you what it will do before it does it, says which folders will merge with ones you already have, and the whole import can be undone from the same screen. Nothing is taken from the other plugin — it keeps everything exactly as it was, so you can go back at any time.
-
+**Already using another folder plugin?** VergeLabs Library → Import Folders reads FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders, Real Media Library and Enhanced Media Library. It shows you what it will do before it does it, and the whole import can be undone from the same screen.
 
 ### Sorting a library nobody ever filed ###
 
-**The Librarian shows you the folders before it makes any.** Point it at a library that was never organised and it draws the structure it would build from your own files: every folder with the number of files it would hold, a few of them as thumbnails, and a line saying why those files were grouped together. Rename a folder before it exists, or say "not this one" and those files stay where they are.
+**The Librarian shows you the folders before it makes any.** Point it at a library that was never organised and it draws the structure it would build from your own files. Rename a folder before it exists, or say "not this one" and those files stay where they are.
 
 **Two ways to sort, and one of them needs nothing.** By date and file type, built from what WordPress already knows -- no account, no licence, nothing sent anywhere. Or by subject, grouped from what the pictures show, which is the part that uses the AI service described below.
 
-**Undo is the feature, not the apology.** Every assignment the Librarian makes is written down, so undoing it removes exactly what it did and nothing else. A file you moved yourself in the meantime is left where you put it and reported. A folder it created is deleted only if it is still empty; if you have put your own files in it, it is kept and you are told. It only ever touches files that had no folder, so a library you organised by hand is unchanged.
+**Undo is the feature, not the apology.** Every assignment the Librarian makes is written down, so undoing it removes exactly what it did and nothing else.
 
-**And once it has looked, the descriptions become folders.** The folder panel grows a group of its own — Photos, Screenshots, Documents, Logos, pictures with people in them, pictures with text in them — built from what was found rather than from anything you filed. Empty ones are not shown, and the group says how much of your library it is drawn from.
+### More ###
 
-**Nothing that cannot be interrupted.** Applying works in small batches, so it does not time out on shared hosting. Pause it, close the tab, pick it up where it stopped.
-
-
-### Categorize by Anything! ###
-
-* Unlimited **categories & tags** for media items
-* Unlimited **custom taxonomies:** create in a few clicks
-* Unlimited **third-party taxonomies:** assign to the media library
-
-
-### Configurable Filters ###
-
-* **Show / hide** data, author, taxonomy filters
-* **Per taxonomy** filters
-* **Configurable outcome** of the filtering: include / exclude child categories
-
-
-### The media grid ###
-
-* **Show captions:** title, filename, or caption field for each media item
-* **Bulk selection:** no special mode anymore, faster editing
-* **Infinite scroll** and manageable loads per page options
-
-
-### Dynamic Galleries / Playlists ###
-
-Additional parameters for the [gallery] and [playlist] shortcodes:
-
-* `media_category` or any other taxonomy
-* `monthnum`
-* `year`
-* `limit` of media items to show
-
-
-### MIME Types Management ###
-
-Choose which of WordPress's own file types may be uploaded, and add any of them to the media filters. Types that can run code or that a browser interprets -- PHP, HTML, CSS, JavaScript, SVG, XML, executables -- cannot be allowed.
-
-
-### Developer-Friendly ###
-
-* **Core hooks just work** for media taxonomies and media items
-* **All taxonomies supported:** custom and code-registered
-* **REST API supported** out of the box
+* Unlimited **custom and third-party taxonomies** for media items
+* **MIME types:** choose which of WordPress's own file types may be uploaded. Types that can run code or that a browser interprets -- PHP, HTML, CSS, JavaScript, SVG, XML, executables -- cannot be allowed.
 * **Folders are ordinary terms** in WordPress's own tables; four tables of the plugin's own hold the AI descriptions, the Librarian's batches and moves, and the sorting runs
-* **Deactivation makes no harm to data:** all media items and taxonomies remain after deactivation
-
 
 ## External services ##
 
@@ -131,82 +79,48 @@ Service terms: [https://vergelabsmedia.com/legal/terms](https://vergelabsmedia.c
 ## Installation ##
 
 1. Install the zip through **Plugins > Add New > Upload Plugin**, or upload the plugin folder to `/wp-content/plugins/`.
-
 2. Activate the plugin through the **Plugins** menu in WordPress.
-
 3. Find it under **VergeLabs Library** in the admin menu. The folders work straight away. The AI features need a licence key: connect one under **VergeLabs Library > Licence**, or start the free trial on the AI screen.
 
 If you are moving over from Enhanced Media Library, deactivate it before activating this one.
 
-
-
 ## Frequently Asked Questions ##
-
-= Will my Enhanced Media Library settings carry over? =
-
-Yes. Activating this plugin copies your taxonomies, MIME types, and library and filter settings across. The originals are left where they are, so nothing is lost if you decide to switch back.
-
-= Can I run this alongside Enhanced Media Library? =
-
-It will not break your site if you do: every function, class, option, script handle and AJAX action carries its own prefix. But both plugins register taxonomies against your media library, so you would see each of them twice. Deactivate Enhanced Media Library first.
-
-= What is it built on? =
-
-It started as a fork of Enhanced Media Library 2.9.4 and keeps what that plugin did: media categories and taxonomies, filters, MIME types and dynamic galleries, with your settings carried over. On top of that it adds a folder tree with drag and drop, smart folders, an importer for other folder plugins, a Librarian that sorts an unfiled library, duplicate detection, and optional AI features that write alt text and captions and let you search by what a picture shows. It is not made by, or affiliated with, wpUXsolutions. The [upstream documentation](https://www.wpuxsolutions.com/documents/enhanced-media-library) is still accurate for the parts this fork did not change.
-
-= Can I run it next to another folder plugin? =
-
-Running a second folder plugin at the same time is not recommended: both would register folders against the same media. Bring its folders across instead, under VergeLabs Library → Import Folders, and deactivate it. Which releases of WordPress and of the plugins this one integrates with have been checked is listed near the end of this page.
-
-= Can I take my settings to another site? =
-
-If you need to move your media library to another website you should export and import WordPress content with WordPress built-in export/import. But to make this plugin work on the new site with the same settings you are provided with the export/import feature.
 
 = Does it work on multisite? =
 
 Network activate the plugin and choose which options will be available to your admins.
 
-= Does it send anything to an external service? =
-
-Yes, if you use the AI features -- and not only the pictures. Describing sends the picture; sorting into folders sends your folder names and what the AI wrote about your pictures; searching by meaning sends the phrase you typed; asking for help sends a system report with your plugin list in it. "External services" above is the full account, written out in one place.
-
-All of it needs a licence key except the Get help screen and the known-problems list. Without a key the AI features refuse before they make a request, and demo mode makes its captions up locally so you can see the shape of the thing before paying for anything.
-
-The folder tree itself, the smart folders, the health report, the importer, the galleries, the MIME settings and the Librarian's date-and-type scheme make no outbound requests at all. What does talk to the service is the part of the Folders screen that plans, fills and answers -- that is the AI, wearing the folder screen's clothes.
-
 = What happens when the AI service is down? =
 
-Your plugin keeps working without the AI features: filing, search and everything already described keep working, and no credits are taken for a picture that was not described. A picture the service could not answer for — a temporary error, or no answer at all — is set aside and tried again: a run in the background comes back to it ten minutes later, a run you are watching leaves it for your next press. A picture is marked as failed only when the service answers that the file itself cannot be described. Searching by meaning falls back to the ordinary word search, and your credit balance shows the last number it read until the service answers again.
+Your plugin keeps working without the AI features: filing, search and everything already described keep working, and no credits are taken for a picture that was not described.
 
 = What happens if the plugin crashes my site? =
 
-It tries to get out of your way. After two fatal errors in its own code within an hour it puts itself into safe mode: its features stop loading, the site comes back, and a notice in the dashboard tells you what happened and offers to switch them back on, or to deactivate the plugin. That is there so a white screen does not mean an FTP client and a renamed folder.
+A fatal error in the plugin is handled by WordPress's own recovery mode. The plugin does not switch itself off and never deactivates itself.
 
-It only counts errors in its own files, and it never deactivates itself: that stays your decision.
+If you want its features off, add `define( 'VERGEML_SAFE_MODE', true );` to `wp-config.php`. Folders, the media views and the AI features are then off; the System report and Get help stay, and nothing is deleted. A notice in the dashboard says so. Remove the line and they switch back on.
 
 = What happens to my folders if I uninstall it? =
 
 They stay. The folders are terms in WordPress's own tables, not the plugin's, so deleting the plugin leaves them exactly where they are -- a reinstall picks them up as you left them, and so does any other folder plugin that reads the same `media_category` taxonomy. AI descriptions already written into your images stay written. Only caches and scheduled tasks are removed.
 
-If you genuinely want everything gone, that exists too, in two forms on the Utilities page: a Complete Cleanup button that wipes immediately, and a switch that makes deleting the plugin from the Plugins screen take all its data with it. Neither is ever the default, and neither touches a media file.
+If you want the rest gone, that exists too, in two forms on the Utilities page: a Complete Cleanup button that wipes immediately, and a switch that makes deleting the plugin from the Plugins screen take its data with it. Both keep your folders -- the `media_category` terms and which files are in them -- because folders are ordinary terms shared with other folder plugins; they remove the plugin's own settings, tables and other data. Neither is ever the default, and neither touches a media file.
 
 = Where do I report a problem? =
 
-Questions and problems go to the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues), which is read by the person who maintains the plugin. Licence holders write to support@vergelabsmedia.com; you can expect an answer within one business day, Monday to Friday.
+Questions and problems go to the [issue tracker](https://github.com/vergelabsnathan/vergelabs-media-library/issues). Licence holders write to support@vergelabsmedia.com; you can expect an answer within one business day, Monday to Friday.
 
 = Where do I report security bugs found in this plugin? =
 
-Please report security bugs found in the source code of the VergeLabs Media Library plugin through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/dc92736f-d80d-4eca-8412-aa5e58c3599a). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin. You can also email security@in.vergelabs.nl.
+Please report security bugs found in the source code of the VergeLabs Media Library plugin through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/dc92736f-d80d-4eca-8412-aa5e58c3599a). You can also email security@in.vergelabs.nl.
 
 = What does it include from other projects? =
 
 * Enhanced Media Library 2.9.4 by wpUXsolutions, GPLv2 or later: the code this plugin is a fork of, and its webbistro icon font.
 * Inter by The Inter Project Authors, SIL Open Font License 1.1 (fonts/INTER-LICENSE.txt).
-* natural-compare-lite by Lauri Rooden, MIT License: the natural sort in js/eml-media-models.js.
-* The admin screen layout follows WP Rocket's admin stylesheet (GPLv2 or later).
-* The spinner images are WordPress's own (GPLv2 or later).
-
-
+* natural-compare-lite by Lauri Rooden, MIT License (js/eml-media-models.js).
+* WP Rocket's admin stylesheet, GPLv2 or later: the admin screen layout follows it.
+* WordPress's own spinner images, GPLv2 or later.
 
 ### Which versions of WordPress and other plugins has it been checked against? ###
 
@@ -219,33 +133,20 @@ Every night an automated watch looks for new releases of WordPress, PHP and the 
 * PHP 8.5.11 — contract intact (2026-09-25)
 * WooCommerce 11.1.2 — contract intact, stage suites passed (2026-09-23)
 * Rank Math SEO 1.0.279 — contract intact, stage suites passed (2026-09-22)
-* Dokan 5.1.1 — contract intact, stage suites passed (2026-09-10)
-* Brizy 2.8.23 — contract intact, stage suites passed (2026-09-09)
-* Divi 5.11.0 — Folder gallery module renders from a built page (2026-09-01)
-* Polylang Pro 3.8.6 — a translated image keeps its folders (2026-09-01)
-* Yoast SEO 28.4, Rank Math 1.0.277.2, SEOPress 10.1, All in One SEO 5.0.1.1 — page context reaches the describe request (2026-09-01)
-* WooCommerce, Advanced Custom Fields — product context and duplicate repoint (2026-09-01)
 
 ## Screenshots ##
 
-1. The media library grid, with filters for type, date, author and any taxonomy you have assigned, plus Reset All Filters and Bulk select.
-
+1. The media library grid, with filters for type, date, author and any taxonomy you have assigned.
 2. List view, with your media taxonomies as sortable columns and filters above the table.
-
 3. Media Library settings: ordering, filters, search fields, grid captions and infinite scrolling.
-
 4. Media Taxonomies settings: assign existing taxonomies to media or create your own.
-
 5. MIME Types settings: label WordPress's file types and allow or disallow uploading them.
-
 6. The media modal inside the editor, with the same filters available when you insert an image.
-
-
 
 ## Upgrade Notice ##
 
 ### 4.1.0 ###
-New: Plan my folders on the Folders screen builds a folder tree from what your pictures show. It costs credits (30, plus 15 per 100 distinct labels; the button shows the price) and asks for them back if the plan would not beat your current folders.
+New: Plan my folders on the Folders screen builds a folder tree from what your pictures show. It costs credits; the button shows the price.
 
 ## Changelog ##
 
@@ -253,22 +154,25 @@ New: Plan my folders on the Folders screen builds a folder tree from what your p
 *A folder plan built from what your pictures show.*
 
 = Added =
-* **Plan my folders.** On the Folders screen, one button builds a folder tree from every label the AI has recorded about your pictures. It costs 30 credits plus 15 per 100 distinct labels; the price is on the button, and it needs at least five described pictures.
+* **Plan my folders.** On the Folders screen, one button builds a folder tree from every label the AI has recorded about your pictures. It costs 30 credits plus 15 per 100 distinct labels; the price is on the button.
 * **Your tree grows for free.** Once you confirm a tree, new pictures with new labels get new folders proposed at no charge.
-* **A plan that does not beat your folders is not shown, and its credits are asked back.** The same happens if the plan does not arrive or you confirm your tree while it runs.
-* **The audience is asked, not guessed.** When your pictures do not show whether they are for men, women or kids, the Tree step asks once before splitting folders that way.
+* **A plan that does not beat your folders is not shown, and its credits are asked back.**
+* **The audience is asked, not guessed.** When your pictures do not show whether they are for men, women or kids, the Tree step asks once.
 
 = Fixed =
 * **A licence with no free seat now says so.** Saving or connecting one used to report success, and every AI request after it failed.
 
 = Changed =
 * **The known-problems list comes from the AI service** at `ai.vergelabs.nl`, not from GitHub. It is still fetched only when you press "Check for known problems".
-* **The plugin's admin screens have new addresses**, all starting `vergeml-` (for example `admin.php?page=vergeml-ai`). Bookmarks to the old ones are sent on to the new.
-* **Library-wide work is an administrator's.** The dashboard, Folders, AI, Health and Import screens, and everything that runs across the library, spends credits or calls the AI service, now need the Administrator role. Editors keep the folder tree in the media library: filing, and changing one folder or one file at a time. Making a folder private, the smart-folder scan and search by meaning are an administrator's.
-* **File types: WordPress's own only.** The File types screen switches WordPress's known types on and off; it no longer adds new ones, and types that can run code or that a browser interprets -- PHP, HTML, CSS, JavaScript, SVG, XML, executables -- are never allowed. A type saved earlier that WordPress does not know is left out, and the screen names it.
-* **The plugin never deactivates itself.** After repeated crashes it still switches its own features off, and the notice offers a Deactivate button. Delete All Data no longer deactivates the plugin either; deleting it afterwards from the Plugins screen takes the rest.
-* **Settings > Media is WordPress's own screen again.** The plugin's copy of it is gone; its old address opens WordPress's.
-* **With Enhanced Media Library active, nothing of it is switched off any more.** A notice on the media screens asks you to deactivate one of the two.
-* **Describing goes one picture at a time, through WordPress's own HTTP functions**, so proxy and firewall settings apply to it. A run takes longer than before.
+* **The plugin's admin screens have new addresses**, all starting `vergeml-`. Bookmarks to the old ones are sent on to the new.
+* **Library-wide work is an administrator's.** The dashboard, Folders, AI, Health and Import screens, and everything that runs across the library, spends credits or calls the AI service, now need the Administrator role.
+* **File types: WordPress's own only.** The File types screen no longer adds new types, and types that can run code or that a browser interprets are never allowed.
+* **The plugin never deactivates itself.** Delete All Data no longer deactivates the plugin either; deleting it afterwards from the Plugins screen takes the rest.
+* **Safe mode is switched only in wp-config.php.** The plugin no longer enters it after crashes (see the FAQ).
+* **The wipes keep your folders.** Complete Cleanup and the delete-on-uninstall switch leave the `media_category` terms and which files are in them.
+* **Activation creates the plugin's tables itself.**
+* **PHP mbstring and OpenSSL are checked**, with a notice if either is missing.
+* **Scripts and styles load only on the plugin's screens and media frames.**
+* **Describing goes one picture at a time, through WordPress's own HTTP functions**, so proxy and firewall settings apply to it.
 
 Earlier versions are in `changelog.txt`, shipped with the plugin.

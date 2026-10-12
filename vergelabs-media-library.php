@@ -207,12 +207,8 @@ function vergeml_kses_allowed() {
 }
 
 
-/*
- *  Loaded before anything else, so the handler is watching while the code it
- *  guards is running. See core/watchdog.php for what it does and does not do.
- */
+// Safe mode, switched in wp-config.php (core/watchdog.php); read before the feature files load.
 require_once plugin_dir_path( __FILE__ ) . 'core/watchdog.php';
-vergeml_watchdog_boot();
 
 
 
@@ -356,6 +352,9 @@ global $vergeml_dir,
      *  the next request has nothing left to do.
      */
     function vergeml_provision_site() {
+
+        // The self-entered safe mode of 4.0.x is gone; a site it left switched off comes back.
+        delete_option( 'vergeml_watchdog' );
 
         // carry settings over from Enhanced Media Library, if it left any
         vergeml_migrate_legacy_options();

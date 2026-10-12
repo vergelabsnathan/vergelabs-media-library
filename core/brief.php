@@ -530,7 +530,7 @@ function vergeml_brief_test() {
  *  here, because the control the person pressed said it would. No run's end
  *  and no describe step starts one on its own any more (S12).
  *
- *  @param array $args 'start' false leaves the run unstarted (a suite).
+ *  @param array $args 'start' false saves the brief without starting the re-describe run.
  *  @return array|WP_Error { session, run }
  */
 function vergeml_brief_adopt( $args = array() ) {

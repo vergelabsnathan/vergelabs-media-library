@@ -42,6 +42,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *  count from before the thing they just did.
  */
 function vergeml_journey_touch() {
+    unset( $GLOBALS['vergeml_journey_facts'] );
     delete_transient( 'vergeml_journey_facts' );
     delete_transient( 'vergeml_rename_pending_count' );
     delete_transient( 'vergeml_file_pending_count' );
@@ -52,12 +53,15 @@ function vergeml_journey_facts() {
 
     // Per site, for the same reason as every request cache in this plugin:
     // a network job that switches blogs must not see the last site's figures.
-    static $facts = array();
+    if ( ! isset( $GLOBALS['vergeml_journey_facts'] ) ) {
+        $GLOBALS['vergeml_journey_facts'] = array();
+    }
+    $facts = &$GLOBALS['vergeml_journey_facts'];
 
     $blog = get_current_blog_id();
 
     if ( isset( $facts[ $blog ] ) ) {
-        return apply_filters( 'vergeml_journey_facts', $facts[ $blog ] );
+        return $facts[ $blog ];
     }
 
     /*
@@ -73,7 +77,7 @@ function vergeml_journey_facts() {
 
     if ( is_array( $cached ) && isset( $cached['images'] ) ) {
         $facts[ $blog ] = $cached;
-        return apply_filters( 'vergeml_journey_facts', $facts[ $blog ] );
+        return $facts[ $blog ];
     }
 
     global $wpdb;
@@ -236,18 +240,7 @@ function vergeml_journey_facts() {
 
     set_transient( 'vergeml_journey_facts', $facts[ $blog ], MINUTE_IN_SECONDS );
 
-    /**
-     *  Filter the dashboard's figures.
-     *
-     *  The seam the suite uses to put the dashboard into a state the live
-     *  library is not in -- no key, nothing described, 268 unfiled -- without
-     *  touching a row of it. Applied on every return, cached or not.
-     *
-     *  @since 3.16.2
-     *
-     *  @param array $facts  see the keys above.
-     */
-    return apply_filters( 'vergeml_journey_facts', $facts[ $blog ] );
+    return $facts[ $blog ];
 }
 
 

@@ -313,7 +313,7 @@ function vergeml_ai_run_stop( $reason = '' ) {
 
 add_action( VERGEML_AI_RUN_HOOK, 'vergeml_ai_run_tick' );
 
-function vergeml_ai_run_tick() {
+function vergeml_ai_run_tick( $budget = null ) {
 
     $state = vergeml_ai_run_state();
 
@@ -360,8 +360,8 @@ function vergeml_ai_run_tick() {
      *  is the same outage.
      */
     $waiting = true;
-    // The budget is a constant; a suite reaches the tail's other branch through the filter.
-    $budget = (int) apply_filters( 'vergeml_ai_run_budget', VERGEML_AI_RUN_BUDGET );
+    // Seconds of work in this pass. Cron passes nothing (or ''), which is the constant.
+    $budget = is_int( $budget ) ? $budget : VERGEML_AI_RUN_BUDGET;
 
     do {
         set_transient( 'vergeml_ai_run_lock', time(), 4 * MINUTE_IN_SECONDS );

@@ -154,8 +154,15 @@ check( 'no script is added inline; every script is a file', 0 === inlineJs.lengt
 const inlineCss = hits( php, /wp_add_inline_style\s*\(\s*'[^']+'\s*,(?!\s*wp_strip_all_tags\s*\()/g );
 check( 'every inline style is escaped at output (wp_strip_all_tags)', 0 === inlineCss.length, inlineCss.map( ( h ) => h.at ).join( ' | ' ) );
 
+// Writes to WordPress's own posts and postmeta go through its API (round 5 pass: health rewrote meta by meta_id and
+// parents with $wpdb->update). uninstall.php removes the plugin's own rows and is read on its own.
+const coreWrites = hits( php.filter( ( f ) => 'uninstall.php' !== f ), /\$wpdb->(?:update|insert|replace|delete)\(\s*\$wpdb->(?:posts|postmeta)\b|(?:UPDATE|INSERT INTO)\s+\{\$wpdb->(?:posts|postmeta)\}/g );
+check( 'no direct write to posts or postmeta outside uninstall', 0 === coreWrites.length, coreWrites.map( ( h ) => h.at ).join( ' | ' ) );
+const loop = hits( php, /http:\/\/127\.0\.0\.1|http:\/\/localhost/g );
+check( 'no plain-http loopback address in shipped code', 0 === loop.length, loop.map( ( h ) => h.at ).join( ' | ' ) );
+
 // Seams that existed for the suites, and filters that returned SQL.
-const GONE = [ 'vergeml_ai_describe_answers', 'vergeml_ai_run_should_nudge', 'vergeml_brief_describe', 'vergeml_folders_walk', 'vergeml_offer_trial_possible', 'vergeml_ai_parallel', 'vergeml_smart_count_branches', 'vergeml_smart_count_exclude' ];
+const GONE = [ 'vergeml_journey_facts', 'vergeml_ai_run_budget', 'vergeml_ai_describe_answers', 'vergeml_ai_run_should_nudge', 'vergeml_brief_describe', 'vergeml_folders_walk', 'vergeml_offer_trial_possible', 'vergeml_ai_parallel', 'vergeml_smart_count_branches', 'vergeml_smart_count_exclude' ];
 const seams = hits( php, /apply_filters\(\s*'([^']+)'/g ).filter( ( h ) => GONE.includes( h.m[ 1 ] ) );
 check( 'none of the removed test seams or SQL-returning filters is back', 0 === seams.length, seams.map( ( h ) => `${ h.at } ${ h.m[ 1 ] }` ).join( ' | ' ) );
 

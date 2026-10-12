@@ -22,7 +22,6 @@ function vergeml_elementor_scripts() {
     global $vergeml_dir;
 
 
-    wp_enqueue_style( 'common' );
     wp_enqueue_style(
         'vergeml-elementor-media-style',
         $vergeml_dir . 'css/eml-admin-media.css',

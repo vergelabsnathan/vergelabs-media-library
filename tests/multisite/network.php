@@ -130,24 +130,6 @@ if ( function_exists( 'vergeml_ai_seal' ) && ! is_wp_error( $site_id ) ) {
     delete_site_option( 'vergeml_ai_network' );
 }
 
-/* ---- the watchdog never deactivates the network ---------------------- */
-
-update_site_option( 'vergeml_watchdog_network', array( (int) ( is_wp_error( $site_id ) ? 1 : $site_id ) => array( 'at' => time(), 'message' => 'probe', 'file' => 'x', 'line' => 1 ) ) );
-if ( ! is_wp_error( $site_id ) ) {
-    switch_to_blog( (int) $site_id );
-    update_option( 'vergeml_watchdog', array( 'safe' => true, 'safe_since' => time() - 3600 ), true );
-    restore_current_blog();
-}
-ob_start();
-if ( function_exists( 'vergeml_watchdog_network_notice' ) ) { vergeml_watchdog_network_notice(); }
-$notice = ob_get_clean();
-vgml_t( 'network admin notice names the site in safe mode', false !== strpos( $notice, 'Client two' ), substr( wp_strip_all_tags( $notice ), 0, 80 ) );
-vgml_t( 'plugin still network active after a site went into safe mode', is_plugin_active_for_network( $plugin ) );
-if ( ! is_wp_error( $site_id ) ) {
-    switch_to_blog( (int) $site_id );
-    delete_option( 'vergeml_watchdog' );
-    restore_current_blog();
-}
 delete_site_option( 'vergeml_watchdog_network' );
 
 /* ---- deleting a site drops its tables --------------------------------- */

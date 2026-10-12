@@ -984,7 +984,7 @@ function vergeml_guide_routes() {
             'said'  => array( 'type' => 'object', 'required' => false ),
             'say'   => array( 'type' => 'object', 'required' => false ),
             'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
-            // Several turns in one write, in order: what a suite plants and puts back.
+            // Several turns in one write, applied in order, each through the same checks as a single one.
             'turns' => array( 'type' => 'array', 'required' => false ),
         ),
     ) );

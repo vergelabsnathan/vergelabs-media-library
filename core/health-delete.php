@@ -199,6 +199,26 @@ function vergeml_health_write_content( $post_id, $content ) {
 }
 
 /**
+ *  One postmeta row rewritten by its id, through the metadata API so its hooks
+ *  and cache run. The stored value is raw, so it is unserialized first or the
+ *  API would serialize it a second time.
+ */
+function vergeml_health_write_meta( $meta_id, $raw ) {
+
+	return (bool) update_metadata_by_mid( 'post', (int) $meta_id, maybe_unserialize( $raw ) );
+}
+
+/**
+ *  An attachment's parent, through wp_update_post().
+ */
+function vergeml_health_write_parent( $post_id, $parent ) {
+
+	$done = wp_update_post( array( 'ID' => (int) $post_id, 'post_parent' => (int) $parent ), true );
+
+	return $done && ! is_wp_error( $done );
+}
+
+/**
  *  The posts a repoint from one file to the other would change that this
  *  person may not change: no edit_post on them, or content kses would cut.
  *  A file is deleted only when this is empty; otherwise a reference that
@@ -394,8 +414,7 @@ function vergeml_health_repoint( $from, $to ) {
 				continue;
 			}
 
-			$wpdb->update( $wpdb->postmeta, array( 'meta_value' => $value ), array( 'meta_id' => (int) $row->meta_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- an update by meta_id, the primary key: meta_value is the column written, not a condition.
-			wp_cache_delete( (int) $row->post_id, 'post_meta' );
+			vergeml_health_write_meta( (int) $row->meta_id, $value );
 			$changed['meta']++;
 		}
 	}
@@ -429,8 +448,7 @@ function vergeml_health_repoint( $from, $to ) {
 	$to_parent   = (int) get_post_field( 'post_parent', $to );
 
 	if ( $from_parent > 0 && 0 === $to_parent ) {
-		$wpdb->update( $wpdb->posts, array( 'post_parent' => $from_parent ), array( 'ID' => $to ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		clean_post_cache( $to );
+		vergeml_health_write_parent( $to, $from_parent );
 	}
 
 	return $changed;
