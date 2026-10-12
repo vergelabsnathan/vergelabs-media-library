@@ -419,7 +419,7 @@ function vergeml_csv_folder( $path, &$folders ) {
     $parts = array();
 
     foreach ( explode( '/', $path ) as $part ) {
-        $part = trim( $part );
+        $part = sanitize_text_field( $part );
         if ( '' !== $part ) {
             $parts[] = $part;
         }

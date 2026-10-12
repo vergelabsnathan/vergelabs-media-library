@@ -83,6 +83,11 @@ function vergeml_admin_menu() {
 
 function vergeml_hide_submenu() {
 
+    // Only where the plugin's own nav is drawn beside it; elsewhere the sidebar is core's to show.
+    if ( '' === vergeml_shell_current() ) {
+        return;
+    }
+
     wp_register_style( 'vergeml-hide-submenu', false, array(), VERGEML_VERSION );
     wp_enqueue_style( 'vergeml-hide-submenu' );
     wp_add_inline_style( 'vergeml-hide-submenu', wp_strip_all_tags( '#adminmenu .toplevel_page_' . sanitize_html_class( VERGEML_MENU ) . ' .wp-submenu{display:none}' ) );
@@ -192,14 +197,16 @@ function vergeml_admin_menu_redirects() {
 
     // What the old address carried along: a connect callback's state and code, a tab, a notice.
     $args = array();
-    foreach ( array( 'tab', 'state', 'code', 'error', 'settings-updated', 'paged', 's', 'ticket', 'why' ) as $key ) {
+    // The plugin's own notices and flags are listed by name, as core's are.
+    $keys = array(
+        'tab', 'state', 'code', 'error', 'settings-updated', 'paged', 's', 'ticket', 'why',
+        'vgml_moved', 'vgml_to', 'vgml_renamed', 'vgml_renamed_back', 'vgml_files_renamed', 'vgml_files_back',
+        'vgml_alt_written', 'vgml_smart', 'vgml_meaning', 'vgml_unfiled', 'vgml_trial', 'vgml-help', 'vgml-check',
+        'vergeml_op', 'vergeml_done', 'vergeml_skipped', 'vergeml_term', 'vergeml_connected', 'vergeml_licence',
+        'vergeml_refresh', 'vergeml_quick', 'vergeml_ai_filter',
+    );
+    foreach ( $keys as $key ) {
         if ( isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ) {
-            $args[ $key ] = sanitize_text_field( wp_unslash( $_GET[ $key ] ) );
-        }
-    }
-    foreach ( array_keys( $_GET ) as $key ) {
-        // The plugin's own notices and flags.
-        if ( is_string( $key ) && preg_match( '/^(vgml|vergeml)[-_][a-z0-9_-]+$/', $key ) && is_string( $_GET[ $key ] ) ) {
             $args[ $key ] = sanitize_text_field( wp_unslash( $_GET[ $key ] ) );
         }
     }

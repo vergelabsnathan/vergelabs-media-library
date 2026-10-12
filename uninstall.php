@@ -52,9 +52,8 @@ function vergeml_uninstall_wipe_site() {
 
     /*
      *  The taxonomies this plugin managed, read from its own option. Ones it
-     *  created (eml_media) lose their terms outright; shared ones -- a post
-     *  category that was merely assigned to media -- only lose their links to
-     *  attachments, never the terms themselves.
+     *  created (eml_media) lose their terms, except media_category, the
+     *  folders; taxonomies core or another plugin owns are not touched.
      */
     foreach ( (array) get_option( 'vergeml_taxonomies', array() ) as $taxonomy => $params ) {
 
@@ -64,7 +63,9 @@ function vergeml_uninstall_wipe_site() {
 
         // Folders are ordinary terms and outlive the plugin: media_category is shared with
         // Enhanced Media Library and other folder plugins, so its terms and links stay.
-        if ( 'media_category' === $taxonomy ) {
+        // A taxonomy another plugin or core owns (a post category assigned to media, Polylang's
+        // languages, another folder plugin's) is left exactly as it is.
+        if ( 'media_category' === $taxonomy || ! $own ) {
             continue;
         }
 
@@ -92,19 +93,6 @@ function vergeml_uninstall_wipe_site() {
             // phpcs:enable
 
             delete_option( $taxonomy . '_children' );
-        }
-        else {
-
-            // Attachments only; the taxonomy keeps living its own life.
-            // One %d per id in the absint()ed list; every value is placeheld.
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
-            $wpdb->query( $wpdb->prepare(
-                "DELETE tr FROM {$wpdb->term_relationships} tr
-                 INNER JOIN {$wpdb->posts} p ON tr.object_id = p.ID
-                 WHERE p.post_type = 'attachment' AND tr.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) . ' )',
-                $tt_ids
-            ) );
-            // phpcs:enable
         }
     }
 

@@ -50,6 +50,13 @@ function vergeml_register_gallery_assets() {
         VERGEML_VERSION,
         true
     );
+    wp_localize_script( 'vergeml-gallery', 'vergemlGallery', array(
+        'previousImages' => __( 'Previous images', 'vergelabs-media-library' ),
+        'nextImages'     => __( 'Next images', 'vergelabs-media-library' ),
+        'previousImage'  => __( 'Previous image', 'vergelabs-media-library' ),
+        'nextImage'      => __( 'Next image', 'vergelabs-media-library' ),
+        'close'          => __( 'Close', 'vergelabs-media-library' ),
+    ) );
 }
 
 
@@ -109,7 +116,7 @@ function vergeml_register_gallery_block() {
     ) );
 
     register_block_type( 'vergelabs/folder-gallery', array(
-        'api_version'     => 2,
+        'api_version'     => 3,
         'title'           => __( 'Folder gallery', 'vergelabs-media-library' ),
         'category'        => 'media',
         'icon'            => 'images-alt2',

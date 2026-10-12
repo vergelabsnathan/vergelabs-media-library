@@ -65,7 +65,7 @@ function vergeml_transport_bridge() {
     $body = json_decode( (string) $raw, true );
 
     if ( ! is_array( $body ) || ! isset( $body['route'] ) || ! is_string( $body['route'] ) ) {
-        wp_send_json( array( 'code' => 'vergeml_bad_bridge', 'message' => 'The bridge needs a JSON body.', 'data' => array( 'status' => 400 ) ), 400 );
+        wp_send_json( array( 'code' => 'vergeml_bad_bridge', 'message' => __( 'The bridge needs a JSON body.', 'vergelabs-media-library' ), 'data' => array( 'status' => 400 ) ), 400 );
     }
 
     $route  = $body['route'];
@@ -77,7 +77,7 @@ function vergeml_transport_bridge() {
 
     // Only a route this plugin registered.
     if ( ! vergeml_transport_is_ours( $route, $method ) ) {
-        wp_send_json( array( 'code' => 'vergeml_bad_bridge', 'message' => 'Not one of ours.', 'data' => array( 'status' => 400 ) ), 400 );
+        wp_send_json( array( 'code' => 'vergeml_bad_bridge', 'message' => __( 'That route is not one of this plugin's.', 'vergelabs-media-library' ), 'data' => array( 'status' => 400 ) ), 400 );
     }
 
     // Handed on as REST would hand them on: the route's own args schema validates and sanitises them.

@@ -1287,7 +1287,7 @@ function vergeml_settings_import() {
     $import_file = array(
         'name'     => isset( $_FILES['import_file']['name'] ) ? sanitize_file_name( wp_unslash( $_FILES['import_file']['name'] ) ) : '',
         'type'     => isset( $_FILES['import_file']['type'] ) ? sanitize_mime_type( wp_unslash( $_FILES['import_file']['type'] ) ) : '',
-        'tmp_name' => isset( $_FILES['import_file']['tmp_name'] ) ? sanitize_text_field( wp_unslash( $_FILES['import_file']['tmp_name'] ) ) : '',
+        'tmp_name' => isset( $_FILES['import_file']['tmp_name'] ) ? sanitize_text_field( $_FILES['import_file']['tmp_name'] ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- PHP sets tmp_name and never slashes it; unslashing would strip a Windows path's backslashes : '',
         'error'    => isset( $_FILES['import_file']['error'] ) ? (int) $_FILES['import_file']['error'] : UPLOAD_ERR_NO_FILE,
         'size'     => isset( $_FILES['import_file']['size'] ) ? (int) $_FILES['import_file']['size'] : 0,
     );
@@ -1531,7 +1531,8 @@ function vergeml_term_relationship_cleanup() {
     foreach ( get_option( 'vergeml_taxonomies', array() ) as $taxonomy => $params ) {
 
         // Folders outlive the plugin: media_category is shared with other folder plugins.
-        if ( 'media_category' === $taxonomy ) {
+        // Only the plugin's own taxonomies; one core or another plugin owns is left as it is.
+        if ( 'media_category' === $taxonomy || empty( $params['eml_media'] ) ) {
             continue;
         }
 
@@ -1546,48 +1547,6 @@ function vergeml_term_relationship_cleanup() {
 
             $wpdb->delete( $wpdb->term_taxonomy, array( 'taxonomy' => $taxonomy ), array( '%s' ) );
             delete_option( $taxonomy . '_children' );
-        }
-        elseif ( ! empty( $term_pairs ) ) {
-
-            $deleted_tt_ids = array();
-
-            $results = $wpdb->get_results( $wpdb->prepare(
-                "
-                    SELECT $wpdb->term_relationships.term_taxonomy_id, $wpdb->term_relationships.object_id
-                    FROM $wpdb->term_relationships
-                    INNER JOIN $wpdb->posts
-                    ON $wpdb->term_relationships.object_id = $wpdb->posts.ID
-                    WHERE $wpdb->posts.post_type = 'attachment'
-                    AND $wpdb->term_relationships.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $term_pairs ), '%d' ) ) . ' )',
-                $term_pairs
-            ) );
-
-            foreach ( $results as $result ) {
-                $deleted_tt_ids[$result->object_id][] = $result->term_taxonomy_id;
-            }
-
-            foreach( $deleted_tt_ids as $attachment_id => $tt_ids ) {
-                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook; other plugins and core caches rely on it firing.
-                do_action( 'delete_term_relationships', $attachment_id, $tt_ids );
-            }
-
-            $removed = $wpdb->query( $wpdb->prepare(
-                "
-                    DELETE $wpdb->term_relationships.* FROM $wpdb->term_relationships
-                    INNER JOIN $wpdb->posts
-                    ON $wpdb->term_relationships.object_id = $wpdb->posts.ID
-                    WHERE $wpdb->posts.post_type = 'attachment'
-                    AND $wpdb->term_relationships.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $term_pairs ), '%d' ) ) . ' )',
-                $term_pairs
-            ) );
-
-            if ( false !== $removed ) {
-
-                foreach( $deleted_tt_ids as $attachment_id => $tt_ids ) {
-                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook; other plugins and core caches rely on it firing.
-                    do_action( 'deleted_term_relationships', $attachment_id, $tt_ids );
-                }
-            }
         }
     }
 }

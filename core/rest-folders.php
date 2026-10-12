@@ -92,8 +92,12 @@ function vergeml_can_manage_folders( $request = null ) {
 
     $tax = $request instanceof WP_REST_Request ? get_taxonomy( (string) $request->get_param( 'taxonomy' ) ) : false;
 
-    // Asked without a request (a screen deciding what to show), or about a
-    // taxonomy the handler will refuse: core's capability for managing terms.
+    // A request about a taxonomy that is not there: refused before the handler.
+    if ( $request instanceof WP_REST_Request && ! $tax ) {
+        return false;
+    }
+
+    // Asked without a request (a screen deciding what to show): core's capability for managing terms.
     if ( ! $tax ) {
         return current_user_can( 'manage_categories' );
     }
@@ -190,7 +194,7 @@ function vergeml_rest_folder( WP_REST_Request $request ) {
 
     $action = $request->get_param( 'action' );
     $id     = vergeml_id( $request->get_param( 'id' ) );
-    $name   = trim( (string) $request->get_param( 'name' ) );
+    $name   = sanitize_text_field( (string) $request->get_param( 'name' ) );
     $parent = vergeml_id( $request->get_param( 'parent' ) );
 
     switch ( $action ) {

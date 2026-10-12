@@ -896,7 +896,8 @@ add_action( 'admin_init', 'vergeml_index_maybe_migrate' );
 
 function vergeml_index_maybe_migrate() {
 
-    if ( wp_doing_ajax() ) {
+    // admin_init also runs for admin-post.php without a login: an administrator's screen only.
+    if ( wp_doing_ajax() || ! current_user_can( 'manage_options' ) ) {
         return;
     }
 

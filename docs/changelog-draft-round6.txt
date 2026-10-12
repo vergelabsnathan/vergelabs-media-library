@@ -1,0 +1,310 @@
+== VergeLabs Media Library: changelog ==
+
+The latest release, 4.1.0, is first; readme.txt carries a shorter 4.1.0 entry.
+
+### 4.1.0 ###
+*A folder plan built from what your pictures show.*
+
+= Added =
+* **Plan my folders.** On the Folders screen, one button builds a folder tree from every label the AI has recorded about your pictures. It costs 30 credits plus 15 per 100 distinct labels; the price is on the button, and it needs at least five described pictures.
+* **Your tree grows for free.** Once you confirm a tree, new pictures with new labels get new folders proposed at no charge.
+* **A plan that does not beat your folders is not shown, and its credits are asked back.** The same happens if the plan does not arrive or you confirm your tree while it runs.
+* **The audience is asked, not guessed.** When your pictures do not show whether they are for men, women or kids, the Tree step asks once before splitting folders that way.
+
+= Fixed =
+* **A licence with no free seat now says so.** Saving or connecting one used to report success, and every AI request after it failed.
+
+= Changed =
+* **The known-problems list comes from the AI service** at `ai.vergelabs.nl`, not from GitHub. It is still fetched only when you press "Check for known problems".
+* **The plugin's admin screens have new addresses**, all starting `vergeml-` (for example `admin.php?page=vergeml-ai`). Bookmarks to the old ones are sent on to the new.
+* **Library-wide work is an administrator's.** The dashboard, Folders, AI, Health and Import screens, and everything that runs across the library, spends credits or calls the AI service, now need the Administrator role. Editors keep the folder tree in the media library: filing, and changing one folder or one file at a time. Making a folder private, the smart-folder scan and search by meaning are an administrator's.
+* **File types: WordPress's own only.** The File types screen switches WordPress's known types on and off; it no longer adds new ones, and types that can run code or that a browser interprets -- PHP, HTML, CSS, JavaScript, SVG, XML, executables -- are never allowed. A type saved earlier that WordPress does not know is left out, and the screen names it.
+* **The plugin never deactivates itself.** Delete All Data no longer deactivates the plugin either; deleting it afterwards from the Plugins screen takes the rest.
+* **Safe mode is switched only in wp-config.php.** The plugin no longer enters it after crashes; a fatal error is left to WordPress's own recovery mode. With `define( 'VERGEML_SAFE_MODE', true );` the folders, media views and AI features are off, the System report and Get help stay, and nothing is deleted.
+* **The wipes keep your folders.** Complete Cleanup and the delete-on-uninstall switch leave the `media_category` terms and which files are in them, and remove the plugin's own settings, tables and other data.
+* **Activation creates the plugin's tables itself.**
+* **PHP mbstring and OpenSSL are checked**, with a notice if either is missing.
+* **Scripts and styles load only on the plugin's screens and media frames.**
+* **Settings > Media is WordPress's own screen again.** The plugin's copy of it is gone; its old address opens WordPress's.
+* **With Enhanced Media Library active, nothing of it is switched off any more.** A notice on the media screens asks you to deactivate one of the two.
+* **Describing goes one picture at a time, through WordPress's own HTTP functions**, so proxy and firewall settings apply to it. A run takes longer than before.
+
+### 4.0.7 ###
+*The plugin contacts nothing until you ask it to.*
+
+= Changed =
+* **No price is fetched on the AI screen.** A site without a licence sees how many credits its library needs; the price is on the cart the button opens.
+* **The known-problems list is fetched only when you press "Check for known problems"** on the Get help screen. Opening the dashboard or the Help screen no longer downloads it, and when GitHub cannot be reached the screen says so instead of reporting no problems.
+* **Versions before 4.0 moved from the readme to `changelog.txt`.**
+* **Reference sections moved from the description into the FAQ**, so the plugin page shows the whole External services section instead of cutting it off.
+
+### 4.0.6 ###
+*Demo mode stays usable on a site without a licence, and code the original plugin kept for its paid edition is gone.*
+
+= Changed =
+* **Demo mode is never replaced by the free-try offer.** It runs on your site and needs no licence, so the AI screen keeps its Describe buttons while it is on.
+* **Nothing can hold back applying a folder tree.** The hook the original plugin kept for a paid add-on is gone, and the Librarian applies every folder whatever any other code says.
+* **Code the original plugin kept for its paid edition is removed**, including a Select all button only that edition could show.
+* **The readme says which requests the free try and the price quote make**, under External services.
+
+### 4.0.5 ###
+*A site without a licence can try the AI free on 25 pictures, and sees what its own library would cost, instead of an error.*
+
+= New =
+* **Try it free on 25 pictures.** On the AI screen, a site without a licence enters an email address and gets 25 free credits for that site, connected by itself. Alt text is then written for 25 pictures without one. One free try per site and per email; not on local or test sites.
+* **The AI screen says what is missing and what it costs.** Where pressing Alt text used to answer "Configure an AI endpoint and key first", a site without a licence sees how many of its pictures have no alt text, and a button that buys exactly those credits at the current price.
+
+### 4.0.4 ###
+*While the AI service is away, pictures wait instead of being marked as failed; a re-describe that fails keeps the description the picture already had.*
+
+= Fixed =
+* **While the AI service is away, pictures wait.** A picture the service could not answer for — a temporary error, or no answer at all — is set aside and tried again, for as long as the service is away; nothing is marked as failed for a failure that is not the file's. Before, an unreachable service marked every picture a run reached, and three temporary errors marked one for good.
+* **A re-describe that fails keeps the description the picture already had.** It stays in search, filing and the counts; the failure is in the run's report only.
+* **A run in the background whose pictures are all set aside waits ten minutes** instead of asking again at once.
+
+### 4.0.3 ###
+*Screen Options opens over the folder panel on the media list, not under it; the AI-outage answer in the FAQ says what a describe run does.*
+
+= Fixed =
+* **Screen Options opens over the folder panel on the media list, not under it.** 4.0.2 brought the tab back; the panel it opens was still under the folder tree, so the column checkboxes on the left could not be ticked.
+* **The FAQ answer "What happens when the AI service is down?" says what the describe run does:** a temporary error sets a picture aside and tries again, an unreachable service marks it, and the Alt text button on the AI screen picks marked pictures up once the service is back. The previous answer promised more than the run did.
+
+### 4.0.2 ###
+*Dragging into a folder works again beside FileBird, and two tabs the folder panel had covered are back.*
+
+= Fixed =
+* **Dragging one file into a folder works again beside FileBird and other plugins that add a column to the media list;** the checkbox column no longer takes the table's spare width.
+* **Screen Options and Help open again on the media list beside the folder panel;** a folder no longer lights up for another plugin's drag.
+
+### 4.0.1 ###
+*A support ticket that keeps your key to itself, a CSV export a spreadsheet can't turn into a command, and a PHP 8.4 warning that is gone.*
+
+= Fixed =
+* **The support ticket no longer carries your licence key.** It now sends the last four characters of the key and your site's address; the service matches those to a licence itself, and a free install still sends nothing.
+* **A CSV cell that starts with `=`, `+`, `-`, `@`, tab or a carriage return no longer opens as a formula.** The export quotes it safely; importing it back strips the safety mark, so the cell round-trips unchanged.
+* **A PHP 8.4+ deprecation notice on every AI request is gone.** `vergeml_ai_rest_status()` took an implicit-nullable parameter; it is explicit now.
+
+### 4.0.0 ###
+*A screen that builds your folders and fills them, filing that reads what a picture shows, and a shop that sorts itself*
+
+= Folders: build a tree, then fill it =
+* **The Folders screen is a workflow, not a conversation.** Tree, Fill, Describe, Alt text, Rename -- each step reachable by clicking, none of them a gate. The page opens without asking the AI anything; *Propose folders* is a button with its credit cost printed on it.
+* **Paste your folder tree.** One folder per line, `Clothing > Hoodies` for depth. A folder that already exists at that place is reused. Refusals name the line: no name, deeper than five levels, more than five hundred folders.
+* **Or build it by clicking** -- `+` on any row adds a child, `×` removes one, and a name may itself be a path.
+* **Confirm locks the tree** and stores its words on the folders. Unconfirm offers to restore the classes a confirm replaced.
+* **The words a folder files by are yours to edit.** They show as pills after the folder's name; `×` removes one and the count re-runs without asking the AI; `#word` adds one.
+* **Built for a catalogue.** Parents start closed and carry their counts, a find box appears from ten folders, and hovering a closed parent previews what is inside it without opening it.
+
+= Filing that reads what a picture shows =
+* **One way of filing, with three honest answers:** it fits, it is between two folders, or nothing fits. A picture between two children of one folder goes in the parent rather than nowhere. A picture you placed by hand is never moved, and a locked folder is never filed into.
+* **The number before you press is the number that happens.** The estimate on the Tree step and the fill itself now count with the same code.
+* **It learns from your own folders.** A folder holding three or more described pictures is read over them, and a second round re-reads what the first left: *round 1: 553 placed · round 2: 87 more · 113 to sort*.
+* **A "view" of your tree files nothing.** A branch that repeats names from elsewhere -- a sale, a season -- is recognised as a view. One such branch had been swallowing 201 of 626 pictures.
+* **Why a picture is where it is** now shows on the picture's own edit screen and in the grid: the folder, the word that matched, the score, the folder it could not beat, and the batch someone approved.
+
+= Shops =
+* **One press turns your product categories into folders.** On a site that sells, the Tree step offers your own categories -- nine folders where it used to take four typed instructions.
+* **Pictures are filed by the product they belong to**, before anything is guessed at: featured image, gallery, or uploaded to the product. Your product's category named the folder, so it is a fact rather than a judgement -- nothing is asked about where the picture might go. On a real shop that placed 32 of 33 pictures.
+* **The steps come in a different order on a shop** -- Tree, Fill, then Describe -- because the products place their own pictures first and describing is only for what nothing placed.
+
+= Alt text and describing =
+* **Alt text never overwrites what you wrote.**
+* **Changing the brief no longer re-describes your library by itself.** The count waits on a button that shows the credits before you press it.
+* The AI screen's summary line updates when a run ends instead of waiting for a reload.
+
+= The media library =
+* **The folders panel is on the list view too**, not only the grid, and the table keeps its own width beside it.
+* **The list toolbar is one row** -- the folder you are in, search, filters, the view switch and the pages. On a test site the first row went from 429 to 201 pixels tall.
+* **A new filter, "Placed by hand"**, lists the pictures you moved yourself.
+* **The media library opens at a quarter of a million pictures.** The counts behind the smart folders cost ten seconds of database time on every admin page and now cost 8.6 milliseconds. Above fifty thousand files the expensive ones say "not looked" rather than guessing.
+
+= Fixed =
+* **Six buttons did nothing at all, silently** -- Complete Cleanup, Restore default MIME types, Apply settings to the network and three taxonomy confirmations. Sixteen call sites named four functions that did not exist.
+* **The reset-filters button crashed the media list on a fresh site**, taking the rest of the screen's JavaScript with it.
+* **An update did not reach a browser that already had the old scripts.** The cache-busting string was built from timestamps that arrive as 1980 from a zip, so it never changed.
+* **A folder with an `&` in its name** was matched against the stored `&amp;` and quietly failed to match itself.
+* **Running beside Enhanced Media Library**, its older copy of the shared media scripts answered first and the grid ignored your folders.
+* Pressing Move no longer waits half a minute before answering, and a fill can no longer stall behind a stuck cron.
+
+= Changed, and worth knowing before you update =
+* **Filing decisions have moved.** A fill after updating will place pictures differently than the same library did before.
+* **The Rules tab is gone.** Paste, product categories, clicking or the conversation are the ways in.
+* **The media list's toolbar is rebuilt as one row** -- the controls are all there, but not where they were.
+* **Above fifty thousand files the smart-folder counts are not computed**, on purpose.
+* **A confirmed tree refuses edits** until you unconfirm it.
+* **With Enhanced Media Library active, its media scripts and grid template are now set aside** so the two do not fight.
+* **The readme's "External services" section has been rewritten** to say everything that leaves your site, which is more than it used to say. Nothing new was added to what the plugin sends; the account of it was incomplete.
+
+### 3.16.1 ###
+*The list, made readable, and two plugins that were quietly narrowing it*
+
+= The media list =
+* **A row was two thousand pixels tall.** On a library with other plugins' columns the folder tree took 316px of a table that had 763px for thirteen columns, and everything in a row wrapped at a character a line. The tree is gone from list mode -- the folders are a dropdown in WordPress's own filter bar there, the way the Posts screen has filtered by a category for years, and files move with a **Move to folder...** bulk action. Grid mode keeps the tree and the drag. A row is 192px on the same screen, and the page went from 41,587px to 5,279px.
+* **Our four columns are off by default** and still in Screen Options. What they said is one quiet line under the filename -- name, folder, size -- which costs the table no width. A column of ours can no longer wrap, and none of them takes more room than it needs.
+* Core's own row actions no longer wrap on this screen, which was worth 900px a row on its own.
+
+= Fixed =
+* **Polylang made a copy of every folder that had no language.** Filing a picture into such a folder created a second folder with the same name and slug, moved the file into the copy, and said nothing. The filter that should have prevented it had been there since 3.15 and was being handed an empty list, because Polylang asks which taxonomies are translatable before ours are registered. Folders on a Polylang site are one set again.
+* **FileBird narrowed the grid.** With FileBird installed and holding folders, clicking one of ours showed only the files that were in ours *and* in none of theirs -- a folder of 39 pictures showed 2. Our tree clears FileBird's filter now.
+* **Admin notices covered the media library in grid mode.** The screen was pinned to the viewport, so notices printed inside it were painted over by the tiles: eight of them on a busy site, and the pictures began below the third. The screen scrolls like every other admin screen now.
+
+### 3.16.0 ###
+*One button instead of a copied key*
+
+= Added =
+* **Connect a site without copying anything.** The AI screen has a Connect button: it sends you to vergelabsmedia.com, you pick which licence this site should use, and you are sent straight back with the key already in place. The key is fetched between the two servers and never travels through the browser, the request carries a nonce that must come back unchanged, and the code it returns is single use, expires in ten minutes, and only works for the site it was minted for. Pasting a key by hand still works, for a site that cannot reach out and for a network licence.
+
+= Fixed =
+* **The credit balance was only ever overheard.** The service reports what is left with every description, and the plugin remembered that — so a site that had bought credits and not described anything since kept showing the number from its last run, which reads exactly like a payment that never arrived. It now asks outright, at most once every few minutes, and immediately after connecting. A site that cannot reach the service shows the last number it knew rather than an error.
+
+### 3.15.0 ###
+*In every language, the same drawer*
+
+= Multilingual =
+* **Polylang and WPML.** A translated copy of a filed image goes into the same folders as the original, whether it is made with the media screen's "+", Polylang Pro's duplicate-at-upload, or WPML Media Translation. Folders are where a file is kept, not what it says, so they are shared across languages: the plugin tells Polylang and WPML (`wpml-config.xml`) that its folder taxonomies are not to be translated, and the tree shows one set of folders whichever language is selected. A site that wants folders per language can say so with the `vergeml_multilingual_shared_folders` filter.
+* The tree no longer offers Polylang's own `language` taxonomy as a set of folders once media translation is on.
+
+= Verified against the real plugins =
+* The SEO context (3.13) now has a live check against Yoast 28.4, Rank Math 1.0.277, SEOPress 10.1 and AIOSEO 5.0.1 on the test box: keyphrase, description and related keyphrases reach the describe request, lead the filename only when the model saw them, and drive the page-gap scope. WooCommerce product categories reach the context and the product gallery follows a surviving duplicate; an ACF URL field follows it too.
+* Divi 5.11 renders the Folder gallery module from a built page. Polylang Pro 3.8.6 makes a Dutch copy that lands in the original's folder. `tests/integrations/` holds the checks.
+
+### 3.14.0 ###
+*A network, from A to Z*
+
+= Multisite =
+* Network activation provisions every site, and a site created later is provisioned the moment it exists — no more subsite without folders until somebody opens its admin.
+* Deleting a site drops the plugin's tables for it, whether or not the plugin is loaded in that request.
+* The network settings screen no longer destroys its own option on save (a wrong validator was writing the main site's taxonomy settings over the two network flags), and a missing option no longer locks site administrators out of Settings > Media.
+* One subsite's fatal errors can no longer deactivate the plugin for the whole network: that site goes into safe mode, and the network administrator gets a notice naming it.
+* Complete Cleanup is a network administrator's action on a network, and cleans every site fully — all four tables, transients and scheduled tasks per site.
+* Uninstall walks every site; the network administrator's "remove all data" switch decides for the network, and a site's own switch for itself.
+* A network-wide AI licence: enter it once, every site inherits it; lock it and sites cannot enter their own.
+* A network overview: per site, version, tables, safe mode, where its AI key comes from, credits last seen.
+* Request caches are forgotten on switch_to_blog, and a person’s remembered tree state is kept per site. The usage scan keeps its progress on the server between steps.
+* `pnpm test:multisite` runs the whole lifecycle on a real network on the test box.
+
+= Added =
+* **Filing without a mouse.** A Move selected button beside the folder search, the M key anywhere in the library with files selected, and a folder list you can type into and arrow through. Shift+F10 opens a folder's menu from the keyboard.
+* Right-to-left stylesheets for every screen, generated from the sources (`pnpm rtl`), and registered so WordPress swaps them in on RTL locales.
+* Folder talk: applying a proposal needs the plan id the proposal came with — bound to what was shown and to whom, fifteen minutes, once.
+* A notice when another folder plugin is active alongside, and exclusions so optimisers leave our scripts and the transport fallback alone.
+* Describing is refused on a staging or development copy unless `VERGEML_AI_ALLOW_NONPROD` says otherwise, and the environment travels with each request.
+
+= Fixed =
+* The translation template now covers every string (316 → 1,060), and the plugin loads translations from its own languages folder.
+* Duplicate delete repoints URL-bearing post meta, builder layouts and WooCommerce galleries as well as post content and featured images.
+
+### 3.13.2 ###
+*Audited before anyone else's site*
+
+= Security =
+* Renaming titles through the REST API now checks, per file, that the caller may edit that file; the whole-library run and its undo are administrator actions. Before this an Author could rename every title in the library in one request.
+* Applying stored alt text across the library is an administrator action. Before this an Author could push alt text onto files they could not otherwise edit.
+
+= Fixed =
+* The on-disk file renamer is switched off until it rewrites everything it moves. It was reachable through the REST API with no screen calling it, and it did not yet update builder layouts, field data or scaled originals.
+* Upgrades run their migration from the admin, cron or the command line only, one process at a time, instead of on whichever visitor's request came first after an update.
+* The usage scan keeps its progress on the server between steps instead of sending it through the browser; large libraries no longer fail at the upload-size limit.
+* Deleting duplicates refuses until the usage scan has run, so the copy that is actually in use is the one kept.
+* Multisite: network-wide cleanup, settings and uninstall reach every site, not only the first hundred.
+* The shipped plugin no longer carries screenshots, debug images or repository files.
+
+### 3.13.1 ###
+*Checked against the SEO plugins' own source*
+
+= Added =
+* Cornerstone (Yoast) and pillar (Rank Math) pages come first in "Fix alt text on your SEO pages" — the pages the site cares most about get their images described before the rest.
+* Related keyphrases: Yoast Premium's related keyphrases and the extra keywords Rank Math and SEOPress keep after the focus one travel as wording too, up to three, under the same never-add-what-you-do-not-see rule.
+
+= Verified =
+* Every meta key this plugin reads — Yoast, Rank Math Pro, SEOPress Pro — was checked against the current source of those plugins rather than remembered.
+
+### 3.13.0 ###
+*The page's keyphrase, where the picture earned it*
+
+= Added =
+* **Fix alt text on your SEO pages.** A new button on the AI screen finds images without alt text on the pages your SEO plugin gives a focus keyphrase — the images Yoast, Rank Math, SEOPress or All in One SEO are already marking those pages down for — and describes them first. It carries its count and stays hidden when there is nothing to fix.
+* **File names led by the keyphrase — only when earned.** When the file renamer runs and the page has a focus keyphrase, the new name starts with it if, and only if, every word of the keyphrase appears in what the model wrote about the picture. The photo of the table on the oak-tables page becomes `handmade-oak-table-workshop-bench.jpg`; the photo of the workshop door stays `workshop-door.jpg`. Same switch as the rest of the page context.
+
+### 3.12.0 ###
+*Descriptions that know what the page is for*
+
+= Added =
+* **Page context.** When an image was uploaded to a page, or the "Used in" scan found it on one, the description is written knowing that page's title — and, with Yoast, Rank Math, SEOPress or All in One SEO, its focus keyphrase and meta description. Advisory by design: the model names what it sees the way the page names it, and is told never to add the keyphrase to a picture that does not show it. One switch on the AI screen; off, nothing about your pages leaves the site.
+
+= Fixed =
+* Product categories were gathered for shop images and then never sent. They travel now.
+
+### 3.11.0 ###
+*The tree, wherever you build*
+
+= Added =
+* **Twenty page builders.** The folder tree now appears in the media modal of Elementor, WPBakery, Divi 4 and 5, Beaver Builder, Brizy, Bricks, Oxygen, Breakdance, Avada / Fusion Builder, Thrive Architect, Cornerstone, Zion, YooTheme, BeTheme, Themify, Tailor, Oshine, LearnPress's front-end editor and Dokan's vendor dashboard. Elementor, WPBakery, Beaver, Brizy and Zion were verified in a browser against their current releases; the rest use each builder's own documented hook and are best effort until we can run them.
+
+= Fixed =
+* On front-end builders the tree's fallback transport was never registered, so the tree script silently failed to print. It registers itself now wherever the tree loads.
+
+### 3.10.1 ###
+
+= Fixed =
+* The REST media listing no longer re-sanitizes every configured MIME type on every call — 38,000 sanitizations per hundred images, a third of the response time, now done once per request. A hundred-image listing dropped from roughly 630ms to 390ms.
+
+### 3.10.0 ###
+*Leaving is safe*
+
+= Added =
+* **Uninstalling keeps your folders.** Deleting the plugin now removes only its caches and scheduled tasks; the folders and AI descriptions stay in WordPress's own tables, ready for a reinstall or for any other plugin that reads the same taxonomy. In writing, in the FAQ.
+* A switch on the Utilities page for the opposite: have deleting the plugin take every folder, setting and the AI index with it. Off unless you turn it on.
+
+= Fixed =
+* Complete Cleanup now also removes the AI index table, the newer settings, every cached count and the scheduled background task. It said complete; now it is.
+
+### 3.9.1 ###
+
+= Fixed =
+* Search by meaning reads a compact projection instead of unpacking full embeddings: the same search over a 20,000-image library went from over five seconds to under half a second, and it converts old rows in the background within a time budget a small shared server can afford.
+
+### 3.9.0 ###
+*Work that carries on without you, and folders you can take with you*
+
+= Added =
+* **Describe in the background.** The run carries on after you close the tab, and picks up exactly where it left off. A library of twenty thousand no longer needs somebody keeping a browser open for it.
+* It stops by itself when the licence runs out of credits or is refused, and says which it was — rather than working through the rest of your library writing failures over it.
+* Slower than the on-screen run, and the screen says so: it works whenever the site is visited. A site with a real system cron runs it every minute regardless.
+* **Folders as a spreadsheet.** Write your whole structure out as a CSV, edit it wherever you like editing things, and read it back. Two hundred folders without two hundred clicks — and a way to take your structure with you.
+* **The plugin's screens are one place now.** A nav down the left, a single content pane, and sections separated by a rule instead of every block sitting in its own box. Eight screens that behaved like eight settings pages now behave like one tool.
+* Reading a file in is an import like any other: you see what it will do before it does it, folders you already have are merged rather than duplicated, and the whole thing can be undone afterwards.
+
+* **Folders only you see.** On a site where several people upload, a folder can belong to the person who made it and stay out of everyone else's sidebar. Ten people's filing in one panel is nobody's filing.
+* It hides the **folder**, never the files. Anything inside stays in the library for everyone, exactly as before, and the screen says so — because a folder that looked like a locked drawer would eventually be trusted with something that needed one.
+* Administrators can see whose a folder is, so nothing is stranded when somebody leaves. Nobody, administrators included, can quietly share out a folder that is not theirs.
+
+= Fixed =
+* **“Copy gallery shortcode” said it had copied when it had not.** On sites served over plain http, and any time the browser refused, the message appeared anyway while the clipboard still held whatever was there before. It now says so only when it worked, and shows you the shortcode when it did not.
+* The same action disappeared entirely on hosts without the ZIP extension, because it had been tucked inside the download-as-ZIP branch. Copying a line of text needs no extension.
+
+### 3.8.0 ###
+*Duplicates, alt text, and finding the one like this*
+
+= Added =
+* **Duplicates can be tidied without deleting anything.** It keeps the copy something actually points at — or the oldest, when nothing points at any of them — and sets the rest aside, where they wait thirty days and can be taken back with one click.
+* **Alt text, filled in from descriptions you already paid for.** Only where alt is empty, and never over anything you have written yourself. Everything it writes is marked, so the whole lot comes back out again if you do not like it.
+* **"More like this one."** Free, instant, and no AI call at the moment you ask: it compares against descriptions your library already holds.
+
+= Fixed =
+* **Filling in alt text marked its own writing as yours.** The protection that stops a model overwriting your words was tripped by the one writer it was meant to allow, so a filled field could never be undone and was skipped on the next run.
+
+
+### 3.7.0 ###
+*Set aside, which is not deleted*
+
+= Added =
+* **A place to put files you think you are finished with.** Set one aside and it leaves the media library — but it stays exactly where it is: same file on disk, same URL, still working in every page that uses it. If something you could not see was using it, nothing breaks and you find out.
+* **Nothing may be considered for removal for thirty days.** Not a setting you can turn down; a floor. The evidence for "unused" is that nobody found a reference, and absence is disproved by somebody noticing, which takes weeks.
+* **A list you can keep.** Download everything set aside — ids, file names, paths, sizes, and the reason each one was — and check it against a backup before you decide anything.
+* **It never deletes.** There is no delete button, no delete endpoint, and no code in this feature that removes a file. When the wait is over it tells you so and hands you the list; what happens next is yours.
+* Taking something back is instant and always available. A delay that protects you must not also trap you.
+
+
+Earlier releases — including the Enhanced Media Library history this fork
+continues — are in the repository linked at the top of this page.

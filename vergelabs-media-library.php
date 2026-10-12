@@ -2,21 +2,20 @@
 /*
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
-Description: Folders, categories and tags for the media library, with filters and MIME type settings. Optional AI alt text and descriptions through the VergeLabs service, with a licence key.
+Description: Folders, categories and tags for the media library. Optional AI alt text and descriptions through the VergeLabs service.
 Version: 4.1.0
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
 Author URI: https://vergelabs.nl
 Text Domain: vergelabs-media-library
-Domain Path: /languages
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
 Based on Enhanced Media Library by wpUXsolutions.
 https://wordpress.org/plugins/enhanced-media-library/
 
-Copyright 2013-2024 wpUXsolutions  (original work)
+Copyright 2013-2024 wpUXsolutions  (email : wpUXsolutions@gmail.com)
 Copyright 2026 VergeLabs  (modifications)
 
 This program is free software; you can redistribute it and/or modify it under
@@ -657,7 +656,8 @@ global $vergeml_dir,
                         'show_ui'               => true,
                         'show_admin_column'     => (bool) $params['show_admin_column'],
                         'hierarchical'          => (bool) $params['hierarchical'],
-                        'update_count_callback' => 'vergeml_update_attachment_term_count',
+                        // The counter lives with the feature files; with those off (safe mode, no mbstring) core counts.
+                        'update_count_callback' => function_exists( 'vergeml_update_attachment_term_count' ) ? 'vergeml_update_attachment_term_count' : '_update_generic_term_count',
                         'sort'                  => (bool) $params['sort'],
                         'show_in_rest'          => (bool) $params['show_in_rest'],
                         'query_var'             => sanitize_key( $taxonomy ),
@@ -755,19 +755,26 @@ global $vergeml_dir,
                 continue;
             }
 
-            if ( in_array( 'attachment', $params->object_type ) &&
-                 isset( $wp_taxonomies[$taxonomy]->update_count_callback ) &&
-                 '_update_generic_term_count' === $wp_taxonomies[$taxonomy]->update_count_callback ) {
-
-                unset( $wp_taxonomies[$taxonomy]->update_count_callback );
+            /*
+             *  Only a taxonomy on attachments, and only one still counted by
+             *  core's own counter: another plugin's callback is never replaced,
+             *  and a taxonomy not on media is not this plugin's to touch.
+             */
+            if ( empty( $params->object_type ) || ! in_array( 'attachment', $params->object_type, true ) ) {
+                continue;
             }
 
-            if ( in_array( 'post', $params->object_type ) ) {
+            $core_counter = in_array( (string) ( isset( $wp_taxonomies[ $taxonomy ]->update_count_callback ) ? $wp_taxonomies[ $taxonomy ]->update_count_callback : '' ), array( '', '_update_generic_term_count', '_update_post_term_count' ), true );
 
-                if ( in_array( 'attachment', $params->object_type ) )
-                    $wp_taxonomies[$taxonomy]->update_count_callback = 'vergeml_update_post_term_count';
-                else
-                    unset( $wp_taxonomies[$taxonomy]->update_count_callback );
+            if ( ! $core_counter ) {
+                continue;
+            }
+
+            if ( in_array( 'post', $params->object_type, true ) && function_exists( 'vergeml_update_post_term_count' ) ) {
+                $wp_taxonomies[ $taxonomy ]->update_count_callback = 'vergeml_update_post_term_count';
+            }
+            elseif ( '_update_generic_term_count' === $wp_taxonomies[ $taxonomy ]->update_count_callback ) {
+                $wp_taxonomies[ $taxonomy ]->update_count_callback = '';
             }
         }
 

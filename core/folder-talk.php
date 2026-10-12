@@ -2874,12 +2874,12 @@ function vergeml_talk_rest_propose( WP_REST_Request $request ) {
 		}
 		$said[] = array(
 			'role' => ( isset( $turn['role'] ) && 'assistant' === $turn['role'] ) ? 'assistant' : 'user',
-			'text' => (string) substr( (string) $turn['text'], 0, 400 ),
+			'text' => (string) substr( sanitize_textarea_field( (string) $turn['text'] ), 0, 400 ),
 		);
 	}
 
 	$result = vergeml_talk_propose(
-		(string) $request->get_param( 'instruction' ),
+		sanitize_textarea_field( (string) $request->get_param( 'instruction' ) ),
 		$said,
 		(string) $request->get_param( 'mode' )
 	);
