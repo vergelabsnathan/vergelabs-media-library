@@ -34,6 +34,9 @@ import { PLAYGROUND_CLI } from './lib/playground.mjs';
 const ROOT = path.resolve( path.dirname( fileURLToPath( import.meta.url ) ), '..' );
 const argv = process.argv.slice( 2 );
 const REF = argv.includes( '--ref' ) ? argv[ argv.indexOf( '--ref' ) + 1 ] : 'HEAD';
+// The oldest versions the readme claims are walked with --php=7.4 --wp=6.5.
+const PHP = argv.includes( '--php' ) ? argv[ argv.indexOf( '--php' ) + 1 ] : '8.3';
+const WP = argv.includes( '--wp' ) ? argv[ argv.indexOf( '--wp' ) + 1 ] : 'latest';
 const PORT = 8908;
 const BASE = `http://127.0.0.1:${ PORT }`;
 
@@ -75,7 +78,16 @@ for ( $n = 1; $n <= 4; $n++ ) {
 	$id = wp_insert_attachment( array( 'post_mime_type' => 'image/png', 'post_title' => 'walk ' . $n, 'post_status' => 'inherit', 'menu_order' => $n ), $path );
 	wp_update_attachment_metadata( $id, array( 'width' => 1, 'height' => 1, 'file' => _wp_relative_upload_path( $path ), 'sizes' => array() ) );
 }
-wp_insert_term( 'Walk folder', 'media_category' );
+$walk_folder = wp_insert_term( 'Walk folder', 'media_category' );
+// The front end: one post with no gallery, one with the Folder gallery block on the walk folder.
+if ( ! is_wp_error( $walk_folder ) ) {
+	foreach ( get_posts( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'numberposts' => -1, 'fields' => 'ids' ) ) as $att ) {
+		wp_set_object_terms( $att, (int) $walk_folder['term_id'], 'media_category', true );
+	}
+	$plain   = wp_insert_post( array( 'post_title' => 'Plain walk post', 'post_content' => '<!-- wp:paragraph --><p>Nothing of the plugin here.</p><!-- /wp:paragraph -->', 'post_status' => 'publish' ) );
+	$gallery = wp_insert_post( array( 'post_title' => 'Gallery walk post', 'post_content' => '<!-- wp:vergelabs/folder-gallery {"folder":' . (int) $walk_folder['term_id'] . ',"linkTo":"file","layout":"carousel"} /-->', 'post_status' => 'publish' ) );
+	file_put_contents( '/out/front.json', wp_json_encode( array( 'plain' => get_permalink( $plain ), 'gallery' => get_permalink( $gallery ) ) ) );
+}
 $o = get_option( 'vergeml_lib_options', array() );
 update_option( 'vergeml_lib_options', array_merge( is_array( $o ) ? $o : array(), array( 'media_orderby' => 'menuOrder', 'media_order' => 'ASC' ) ) );
 file_put_contents( '/out/http.log', '' );`,
@@ -91,7 +103,7 @@ if ( taken ) {
 	process.exit( 2 );
 }
 
-const server = spawn( 'npx', [ '-y', PLAYGROUND_CLI, 'server', `--port=${ PORT }`, '--php=8.3', '--wp=latest',
+const server = spawn( 'npx', [ '-y', PLAYGROUND_CLI, 'server', `--port=${ PORT }`, `--php=${ PHP }`, `--wp=${ WP }`,
 	'--mount-dir', path.join( arch, 'vergelabs-media-library' ), '/wordpress/wp-content/plugins/vergelabs-media-library',
 	'--mount-dir', out, '/out',
 	`--blueprint=${ path.join( work, 'blueprint.json' ) }` ], { shell: true, stdio: [ 'ignore', 'pipe', 'pipe' ] } );
@@ -340,6 +352,31 @@ try {
 				.map( ( el ) => el.href || el.src ).filter( ( u ) => /\/plugins\/vergelabs-media-library\//.test( u ) ) );
 			row( 0 === assets.length, `admin     ${ core } loads none of the plugin's files${ assets.length ? ': ' + assets.map( ( u ) => u.replace( /^.*\/plugins\//, '' ).replace( /\?.*$/, '' ) ).join( ', ' ) : '' }` );
 		}
+		await ctx.close();
+	}
+
+	// The front end, as a visitor: a post without the block loads none of the plugin's files; one with it shows the
+	// folder's pictures with the gallery's own files, and no console error either way.
+	{
+		const front = JSON.parse( fs.readFileSync( path.join( out, 'front.json' ), 'utf8' ) );
+		const ctx = await browser.newContext();
+		const page = await ctx.newPage();
+		const errors = [];
+		page.on( 'pageerror', ( e ) => errors.push( String( e.message || e ) ) );
+		page.on( 'console', ( m ) => { if ( 'error' === m.type() ) errors.push( m.text() ); } );
+		const assetsOf = () => page.evaluate( () => Array.from( document.querySelectorAll( 'link[rel="stylesheet"], script[src]' ) )
+			.map( ( el ) => el.href || el.src ).filter( ( u ) => u.includes( '/plugins/vergelabs-media-library/' ) ) );
+		const local = ( url ) => BASE + new URL( url ).pathname + new URL( url ).search;
+		const plain = await page.goto( local( front.plain ), { waitUntil: 'load' } );
+		const plainAssets = await assetsOf();
+		row( 200 === ( plain ? plain.status() : 0 ) && 0 === plainAssets.length, `visitor   a post without the gallery loads none of the plugin's files${ plainAssets.length ? ': ' + plainAssets.join( ', ' ) : '' }` );
+		const gal = await page.goto( local( front.gallery ), { waitUntil: 'load' } );
+		const galAssets = await assetsOf();
+		const pictures = await page.locator( '.wp-block-image img, figure img' ).count();
+		row( 200 === ( gal ? gal.status() : 0 ) && pictures >= 4 && galAssets.some( ( u ) => u.includes( 'vergeml-gallery.css' ) ) && galAssets.some( ( u ) => u.includes( 'vergeml-gallery.js' ) ), `visitor   the gallery post shows the folder's ${ pictures } pictures with its own css and js` );
+		const arrows = await page.locator( 'button[aria-label]' ).evaluateAll( ( b ) => b.map( ( x ) => x.getAttribute( 'aria-label' ) ) );
+		row( arrows.includes( 'Previous images' ) && arrows.includes( 'Next images' ), `visitor   the carousel arrows carry their labels: ${ arrows.join( ', ' ) }` );
+		row( 0 === errors.length, `visitor   no console error on the front end${ errors.length ? ': ' + errors.join( ' / ' ) : '' }` );
 		await ctx.close();
 	}
 
