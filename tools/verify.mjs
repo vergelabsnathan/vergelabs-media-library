@@ -347,6 +347,8 @@ const SUITES = [
 	{ name: 'media-ajax', file: 'tests/security/media-ajax.php', env: 'local', php: 'playground' },
 	// The gates the review of review 2's fixes found untested: admin rows, private folders, author bulk, logged-out admin_init, the bridge.
 	{ name: 'gates', file: 'tests/security/gates.php', env: 'local', php: 'playground' },
+	// A clean activation: no output, no notice, no request, the four tables made by dbDelta during it (wordpress.org round 5).
+	{ name: 'activation', file: 'tests/security/activation.php', env: 'local', php: 'playground' },
 	// An import in passes, a resume the browser cannot forge, undo of exactly what it did (code review of review 2).
 	{ name: 'import-passes', file: 'tests/tree/import-passes.php', env: 'local', php: 'playground' },
 	// Health keep and delete rewrite other posts through wp_update_post, only those the person may edit (wordpress.org review 2).

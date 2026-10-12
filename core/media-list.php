@@ -221,7 +221,7 @@ function vergeml_list_assets( $hook ) {
     $cells = array();
 
     foreach ( vergeml_list_our_columns() as $column ) {
-        $cells[] = '.wp-list-table.media td.column-' . $column;
+        $cells[] = '.wp-list-table.media td.column-' . sanitize_html_class( $column );
     }
 
     /*
@@ -255,7 +255,7 @@ function vergeml_list_assets( $hook ) {
         $headings = array();
 
         foreach ( vergeml_list_our_columns() as $column ) {
-            $headings[] = '.wp-list-table.media .column-' . $column;
+            $headings[] = '.wp-list-table.media .column-' . sanitize_html_class( $column );
         }
 
         $css .= "\n\n" . implode( ",\n", $headings ) . " {\n\twidth: 9%;\n}";
@@ -296,7 +296,8 @@ function vergeml_list_assets( $hook ) {
     $css .= "\n\nbody.vgml-file-share-30 .wp-list-table.media .column-title {\n\twidth: 30%;\n}"
           . "\n\nbody.vgml-file-share-40 .wp-list-table.media .column-title {\n\twidth: 40%;\n}";
 
-    wp_add_inline_style( 'vergeml-media-list', $css );
+    // Escaped at output: selectors and declarations only, no markup can close the style element.
+    wp_add_inline_style( 'vergeml-media-list', wp_strip_all_tags( $css ) );
 
     wp_enqueue_script(
         'vergeml-media-list',

@@ -85,7 +85,7 @@ function vergeml_hide_submenu() {
 
     wp_register_style( 'vergeml-hide-submenu', false, array(), VERGEML_VERSION );
     wp_enqueue_style( 'vergeml-hide-submenu' );
-    wp_add_inline_style( 'vergeml-hide-submenu', '#adminmenu .toplevel_page_' . sanitize_html_class( VERGEML_MENU ) . ' .wp-submenu{display:none}' );
+    wp_add_inline_style( 'vergeml-hide-submenu', wp_strip_all_tags( '#adminmenu .toplevel_page_' . sanitize_html_class( VERGEML_MENU ) . ' .wp-submenu{display:none}' ) );
 }
 
 

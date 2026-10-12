@@ -389,35 +389,11 @@ function vergeml_stats_settings_section() {
 
 function vergeml_stats_script() {
 
-    wp_enqueue_script( 'vergeml-transport' );
+    vergeml_screen_script( 'vergeml-stats-opt', 'vergeml-stats-opt.js', array( 'vergeml-transport' ) );
 
-    $l10n = wp_json_encode( array(
+    wp_localize_script( 'vergeml-stats-opt', 'vergemlStatsOpt', array(
         'on'     => __( 'On. The counts go once a day.', 'vergelabs-media-library' ),
         'off'    => __( 'Off. What was collected has been deleted.', 'vergelabs-media-library' ),
         'failed' => __( 'That did not save.', 'vergelabs-media-library' ),
     ) );
-
-    wp_add_inline_script( 'vergeml-transport', '( function () {
-	var l10n = ' . $l10n . ';
-	var box = document.getElementById( "vgml-stats-opt" );
-	var note = document.getElementById( "vgml-stats-note" );
-	if ( ! box || ! window.wp || ! window.wp.apiFetch ) {
-		return;
-	}
-	box.addEventListener( "change", function () {
-		box.disabled = true;
-		window.wp.apiFetch( {
-			path: "/vergeml/v1/stats-opt",
-			method: "POST",
-			data: { opted: box.checked }
-		} ).then( function ( r ) {
-			box.disabled = false;
-			note.textContent = r.opted ? l10n.on : l10n.off;
-		} ).catch( function () {
-			box.disabled = false;
-			box.checked = ! box.checked;
-			note.textContent = l10n.failed;
-		} );
-	} );
-} )();' );
 }

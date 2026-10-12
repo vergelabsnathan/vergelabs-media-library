@@ -304,25 +304,5 @@ function vergeml_licence_page() {
  */
 function vergeml_licence_demo_script() {
 
-    wp_enqueue_script( 'vergeml-transport' );
-
-    wp_add_inline_script( 'vergeml-transport', '( function () {
-	var box = document.getElementById( "vgml-demo-mode" );
-	if ( ! box || box.disabled || ! window.wp || ! window.wp.apiFetch ) {
-		return;
-	}
-	box.addEventListener( "change", function () {
-		box.disabled = true;
-		window.wp.apiFetch( {
-			path: "/vergeml/v1/ai-settings",
-			method: "POST",
-			data: { mock: box.checked ? 1 : 0 }
-		} ).then( function () {
-			box.disabled = false;
-		} ).catch( function () {
-			box.disabled = false;
-			box.checked = ! box.checked;
-		} );
-	} );
-} )();' );
+    vergeml_screen_script( 'vergeml-demo-mode', 'vergeml-demo-mode.js', array( 'vergeml-transport' ) );
 }

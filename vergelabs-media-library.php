@@ -107,17 +107,12 @@ if ( ! defined('VERGEML_FILE') )    define( 'VERGEML_FILE', __FILE__ );
 
 
 /*
- *  A few lines of script a screen needs for itself, handed to the script
- *  queue instead of written into the markup as a <script> tag. The handle
- *  has no file; WordPress prints the lines in the footer, after the
- *  elements they look up, which is where the tags used to sit.
+ *  A few lines of script one screen needs for itself: a file in js/,
+ *  enqueued while that screen renders and printed in the footer, after the
+ *  elements it looks up. No script is ever built from a string.
  */
-function vergeml_inline_script( $handle, $js ) {
-    if ( ! wp_script_is( $handle, 'registered' ) ) {
-        wp_register_script( $handle, false, array(), VERGEML_VERSION, true );
-    }
-    wp_enqueue_script( $handle );
-    wp_add_inline_script( $handle, $js );
+function vergeml_screen_script( $handle, $file, $deps = array() ) {
+    wp_enqueue_script( $handle, plugins_url( 'js/' . $file, VERGEML_FILE ), $deps, vergeml_asset_ver( 'js/' . $file ), true );
 }
 
 
@@ -369,14 +364,27 @@ global $vergeml_dir,
 
 
         /*
-         *  Schema, for the feature files that keep their own table.
-         *
-         *  An action rather than a call: in safe mode none of those files are
-         *  loaded, so nothing answers and activation does not fatal on a
-         *  function that was never defined. Runs on activation and on every
-         *  version change, which is where dbDelta belongs.
+         *  Schema, for the feature files that keep their own table: each
+         *  installer is called here, by name, with its file loaded first if this
+         *  request has not loaded it yet -- so the tables are made by dbDelta on
+         *  activation whatever order WordPress included things in. In safe mode
+         *  the feature files stay unloaded and their tables wait for the next
+         *  version check. Runs on activation and on every version change.
          */
-        do_action( 'vergeml_activate' );
+        foreach ( array(
+            'core/ai-index.php'  => 'vergeml_index_install',
+            'core/organize.php'  => 'vergeml_organize_install',
+            'core/librarian.php' => 'vergeml_librarian_install',
+        ) as $vergeml_schema_file => $vergeml_install ) {
+
+            if ( ! function_exists( $vergeml_install ) && ! vergeml_safe_mode() ) {
+                include_once plugin_dir_path( VERGEML_FILE ) . $vergeml_schema_file;
+            }
+
+            if ( function_exists( $vergeml_install ) ) {
+                call_user_func( $vergeml_install );
+            }
+        }
 
         update_option( 'vergeml_version', VERGEML_VERSION );
     }

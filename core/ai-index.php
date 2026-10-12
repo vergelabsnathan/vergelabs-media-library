@@ -168,13 +168,7 @@ function vergeml_index_install() {
 }
 
 
-/**
- *  Hooked rather than called, so that safe mode -- which skips every file in
- *  this folder -- simply means nobody answers and the activation does not
- *  fatal on a function that was never defined.
- */
-
-add_action( 'vergeml_activate', 'vergeml_index_install' );
+// Called by name from vergeml_provision_site() (the main plugin file) on activation and on a version change.
 
 
 function vergeml_index_table_exists() {

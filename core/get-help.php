@@ -377,7 +377,7 @@ function vergeml_help_page() {
         <?php if ( '' !== $report ) : ?>
             <p class="description"><?php esc_html_e( 'The same text the button sends. Copy it into a forum post or an email if you would rather not use the button.', 'vergelabs-media-library' ); ?></p>
             <textarea readonly class="large-text code" rows="18" id="vergeml-help-report"><?php echo esc_textarea( $report ); ?></textarea>
-            <?php vergeml_inline_script( 'vergeml-help-report', "( function () { var f = document.getElementById( 'vergeml-help-report' ); if ( f ) { f.addEventListener( 'click', function () { f.select(); } ); } }() );" ); ?>
+            <?php vergeml_screen_script( 'vergeml-help-report', 'vergeml-help-report.js' ); ?>
         <?php else : ?>
             <p class="description"><?php esc_html_e( 'The report cannot be built while the plugin is in safe mode; the versions above and the safe-mode notice are what to send.', 'vergelabs-media-library' ); ?></p>
         <?php endif; ?>
