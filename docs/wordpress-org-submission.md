@@ -286,6 +286,14 @@ secrets, guide, health-keep, ai-folders, smart, csv, private-folders, counts, or
 librarian green. Fresh-eyes pass
 ([review6-fresh-eyes.md](wordpress-org-audit/review6-fresh-eyes.md)): 0 would-reject.
 
+**The upload comment and the reply** (Nathan's to send):
+
+> Version 4.1.0, corrected after round 5. Activation: the activation hook now calls each table installer directly, so the four tables are created with $wpdb->prefix, get_charset_collate() and dbDelta() on the activation request itself; activation prints nothing and contacts no server. The mbstring and OpenSSL extensions are checked before use; if one is missing, the features that need it stay off and an admin notice explains why. Styles and scripts load only on the plugin's own screens and where a media frame opens, with every selector prefixed. Escaping: the inline-script helper is gone; every script is a file with its data passed through wp_localize_script(), and the two inline styles are escaped with wp_strip_all_tags().
+
+> Thank you. Both issues are fixed across the whole plugin, not only the lines quoted.
+> Activation: the tables are now created by calling the installers directly with dbDelta(); activation prints nothing and makes no external request, the PHP extensions the plugin needs are checked with a notice if one is missing, and styles and scripts load only on the plugin's own screens.
+> Escaping: there are no inline scripts any more (every script is a file, its data through wp_localize_script()), and inline styles are escaped at output. Tested on a clean WordPress install with WP_DEBUG on, and Plugin Check reports no errors on the uploaded zip.
+
 ## wordpress.org review 2, round 4 (2026-10-09)
 
 Review ID R vergelabs-media-library/vergelabsdev/26Sep26/T3 8Oct26/4.3: two classes.
