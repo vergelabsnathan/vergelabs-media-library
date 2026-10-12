@@ -274,9 +274,19 @@ and the activation checklist.
 
 **Proof, on `a47d6f0`.** Plugin Check: no errors, 29/29 checks answered. PHPCS with
 annotations ignored: parse clean on 7.4 and 8.3, 0 error-level. New suite `activation`
-12/12: deactivate, drop the four tables, activate with output buffered and an error
-handler — no output, no notice, no HTTP request, four tables under the site prefix,
-version stamped; commenting out the installer call turns it red. hands-off 14/14, now
+13/13: the plugin mounted but never loaded, then `activate_plugin()` with output buffered
+and an error handler — no output, no notice, no HTTP request, four tables, version
+stamped; commenting out the installer call turns it red.
+
+**What the email described, measured (2026-10-12).** The same fresh activation on round
+4's code (`e96062c`) also passes 13/13: on a normal site the old hook made the tables.
+What the reviewers read was the indirection: the activation function fired an action
+whose listeners sat in files 1,200 lines down behind the safe-mode guard. The real hole
+behind it: activated while the watchdog's safe mode was on (it survives deactivation),
+round 4 made 0/4 tables and still stamped the version, so nothing ever retried. Now:
+0/4 and no stamp, so the version check makes them on the first admin request after
+safe mode is lifted. No gate tested activation before this round, and the first version
+of the suite reactivated a plugin already loaded in the request. hands-off 14/14, now
 also failing on any `wp_add_inline_script()` and any inline style not escaped at output.
 Clean-site walk 68/68, debug.log empty, 15 outgoing requests all core's, 0 the plugin's;
 it now checks that the Dashboard, Plugins, Users, Settings > Writing and Tools load none

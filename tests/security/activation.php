@@ -7,8 +7,11 @@
  *
  *      node tools/verify.mjs activation
  *
- *  Each table is dropped and the version stamp removed first, so nothing a
- *  previous activation left can pass for this one.
+ *  Runs fresh (tools/verify.mjs): the plugin is mounted but was never loaded,
+ *  so activate_plugin() below is the first time its files are included, after
+ *  plugins_loaded has fired -- the request a site owner's Activate click makes.
+ *  The first version of this suite activated a plugin that was already loaded
+ *  in the same request, which is not that.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -28,7 +31,8 @@ function ac_t( $name, $pass, $detail = '' ) {
 global $wpdb;
 
 $ac_plugin = 'vergelabs-media-library/vergelabs-media-library.php';
-$ac_tables = array( $wpdb->vergeml_ai_index, $wpdb->vergeml_organize_runs, $wpdb->vergeml_librarian_batches, $wpdb->vergeml_librarian_moves );
+// Literal names: the plugin is not loaded yet, so its $wpdb properties do not exist.
+$ac_tables = array( $wpdb->prefix . 'vergeml_ai_index', $wpdb->prefix . 'vergeml_organize_runs', $wpdb->prefix . 'vergeml_librarian_batches', $wpdb->prefix . 'vergeml_librarian_moves' );
 
 $ac_exists = function ( $table ) use ( $wpdb ) {
 	return $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
@@ -37,13 +41,10 @@ $ac_exists = function ( $table ) use ( $wpdb ) {
 echo "\nactivation on a clean site\n\n";
 
 wp_set_current_user( 1 );
-deactivate_plugins( $ac_plugin, true );
-foreach ( $ac_tables as $ac_table ) {
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $ac_table ) );
-}
-delete_option( 'vergeml_version' );
 
+ac_t( 'before: the plugin is not loaded in this request', ! function_exists( 'vergeml_provision_site' ) && did_action( 'plugins_loaded' ) );
 ac_t( 'before: none of the four tables exists', 0 === count( array_filter( $ac_tables, $ac_exists ) ) );
+ac_t( 'before: no version is stamped', false === get_option( 'vergeml_version' ) );
 
 // Every PHP notice, warning or deprecation raised during the activation, and every outgoing request.
 $GLOBALS['ac_notices'] = array();
@@ -71,8 +72,7 @@ ac_t( 'the plugin is active', is_plugin_active( $ac_plugin ) );
 foreach ( $ac_tables as $ac_table ) {
 	ac_t( "dbDelta made {$ac_table} during the activation", $ac_exists( $ac_table ) );
 }
-ac_t( 'every table carries the site prefix', array() === array_filter( $ac_tables, function ( $t ) use ( $wpdb ) { return 0 !== strpos( $t, $wpdb->prefix ); } ) );
-ac_t( 'the version is stamped', VERGEML_VERSION === get_option( 'vergeml_version' ) );
+ac_t( 'the version is stamped', defined( 'VERGEML_VERSION' ) && VERGEML_VERSION === get_option( 'vergeml_version' ) );
 
 printf( "\n%d/%d passed\n", $GLOBALS['ac_ok'], $GLOBALS['ac_ok'] + $GLOBALS['ac_bad'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 exit( $GLOBALS['ac_bad'] > 0 ? 1 : 0 );
