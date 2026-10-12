@@ -528,16 +528,6 @@ function vergeml_health_reset() {
     // copy of them has to be told.
     wp_cache_set_posts_last_changed();
 
-    // Not every object-cache drop-in can flush a group; one that cannot
-    // returns false and keeps serving the old metas. Then the whole cache goes.
-    if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
-        wp_cache_flush_group( 'post_meta' );
-    } elseif ( ! is_multisite() ) {
-        // On a network one shared cache serves every site; emptying it for
-        // one site's health reset is not this site's call. The last-changed
-        // stamp above already retires the post caches that matter most.
-        wp_cache_flush();
-    }
 
     delete_option( VERGEML_HEALTH_OPTION );
 }

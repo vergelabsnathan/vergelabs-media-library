@@ -170,7 +170,6 @@ function vergeml_neighbour_is_ours( $handle ) {
 function vergeml_neighbour_rocket_exclude( $excluded ) {
     $excluded   = (array) $excluded;
     $excluded[] = preg_quote( wp_make_link_relative( plugins_url( 'js/', VERGEML_FILE ) ), '#' ) . '(.*).js';
-    $excluded[] = 'wp-includes/js/dist/api-fetch(.*).js'; // the transport is printed after this one
     return $excluded;
 }
 

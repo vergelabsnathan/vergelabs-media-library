@@ -366,13 +366,6 @@ function vergeml_check_filetype_and_ext( $types, $file, $filename, $mimes, $real
         'application/octet-stream',     // @since 2.8.12
     );
 
-    $ms_types = array(
-
-        // for now it's for xlsm since finfo_file() returns this as its mime type
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-
-    );
-
     /*
      *  A font's content often reads as a generic type, so a font may pass on
      *  it -- a font extension only. Until 4.1.0 any application/* extension
@@ -380,11 +373,6 @@ function vergeml_check_filetype_and_ext( $types, $file, $filename, $mimes, $real
      */
     if ( in_array( $real_mime, $font_types, true ) ) {
         if ( ! in_array( strtolower( (string) $ext ), array( 'ttf', 'otf', 'woff', 'woff2' ), true ) ) {
-            $type = false;
-            $ext  = false;
-        }
-    } else if ( in_array( $real_mime, $ms_types, true ) ) {
-        if ( ! str_contains( $type, 'application/vnd.ms-excel' ) ) {
             $type = false;
             $ext  = false;
         }

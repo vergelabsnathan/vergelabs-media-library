@@ -1209,8 +1209,8 @@ body.vgml-dragging-files .vgml-list .vgml-row.is-drop {
 	box-shadow: inset 0 0 0 2px var( --vgml-accent );
 }
 
-.attachment[draggable="true"],
-#the-list tr[draggable="true"] {
+body.vgml-has-tree .attachment[draggable="true"],
+body.vgml-has-tree #the-list tr[draggable="true"] {
 	cursor: grab;
 }
 
