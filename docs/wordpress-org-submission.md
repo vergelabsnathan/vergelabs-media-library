@@ -48,11 +48,32 @@ Plugin Check without Docker".
 
 ## The archive to upload
 
-**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-12 from `a47d6f0`
-(wordpress.org review 2, round 5). 154 files, 1,149,863 bytes, sha256
-`427777069861d18cffeaffc47a10647a8a2597c3573f1e2a6db899a3c1538c6a`; read back:
-comment `a47d6f06…`, `Version: 4.1.0`, no forbidden or hidden entry (count 0).
-What changed: "wordpress.org review 2, round 5" below.
+**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-12 from `7158315`
+(round 6 preparation: the full audit and ledger below). 152 files, 1,115,979 bytes, sha256
+`1942aea0872f82a2a6e2ff71e49a00cd96e51ecfb60cce6aa92979067ab1cae5`; read back: comment
+`71583158…`, one top folder, `Version: 4.1.0`, `Stable tag: 4.1.0`, no forbidden or hidden
+entry (count 0). Proof on `7158315`: Plugin Check no errors 29/29; PHPCS parse clean on 7.4
+and 8.3, 0 error-level with annotations ignored; clean-site walk 68/68, debug.log empty, 15
+outgoing requests, 0 the plugin's; hands-off 16/16, escaping 10/10, surface 29/29, db-calls
+11/11, archive-hygiene 8/8; Playground suites activation, settings-safety, gates, media-ajax,
+uninstall, route-caps, ai-outage, get-help, mime-allowlist, tree, dialogs, copy green;
+ai-folders-ui not run (needs its fixture site). Box browser specs: the same failures as
+round-5 code deployed, none new. Reviewer passes: review 7 (0 would-reject) and review 8
+(verification, 0 would-reject); every ledger row has a status.
+
+**Upload comment** (Nathan's to send):
+
+> Version 4.1.0, corrected after round 5. Activation: each table installer is now called directly from the activation hook, so the four tables are created with $wpdb->prefix, get_charset_collate() and dbDelta() on the activation request itself; activation prints nothing and contacts no server. mbstring and OpenSSL are checked before use; without them the features that need them stay off and a notice explains why. Scripts and styles load only on the plugin's own screens and where a media frame opens. Escaping: there are no inline scripts; every script is a file with its data passed through wp_localize_script(), inline styles go through wp_strip_all_tags(), and translated strings reach the page as text. We also audited the whole plugin against the guidelines and fixed every instance of the earlier classes we found: writes to other posts go through wp_update_post() and the metadata API, and no test code ships.
+>
+> Deliberate choices: the media modal is the surface this plugin extends (its folder filters live there), so its stylesheet loads wherever a media frame opens. The media views extend wp.media views inherited from Enhanced Media Library; we plan to move them to subclasses after approval. When a host blocks the REST API, the plugin's screens reach their own routes through one admin-ajax action, which checks the wp_rest nonce, upload_files and rest_authentication_errors, accepts only this plugin's routes, and runs each route's own permission callback and arguments through rest_do_request(). The readme is longer than 10 KB because the External services section (about 7.5 KB) discloses every field sent; the changelog is in changelog.txt.
+
+**Reply email** (Nathan's to send):
+
+> Thank you. Both issues are fixed across the whole plugin, not only the lines quoted.
+> Activation: the tables are created by calling the installers directly with dbDelta() during activation; activation prints nothing and makes no request, PHP extensions are checked with a notice, and styles and scripts load only on the plugin's own screens and media frames.
+> Escaping: there are no inline scripts any more (every script is a file, its data through wp_localize_script()), inline styles are escaped at output, and translated strings reach the page as text. We also re-audited the whole plugin against the guidelines before this upload. Tested on a clean WordPress install with WP_DEBUG on, and Plugin Check reports no errors on the uploaded zip.
+
+The round-5 build (not uploaded): `a47d6f0`, 1,149,863 bytes, sha256 `42777706…538c6a`.
 
 The round-4 build: rebuilt 2026-10-09 from `7644d48`. 1,147,298 bytes, sha256
 `20dafc74dd3cefd4094537a09b20a3f12f3be6969a2f20e1b6b42b13480e9ff5`.
@@ -300,6 +321,9 @@ every row below has a status: *fixed* (commit, and the guard or grep that finds 
 | 28 | Trial screen did not say the email is written to (review 7) | fixed `fbf97d9` | one sentence added; wording is Nathan's to approve |
 | 29 | Three endpoint constants not forced to https (review 7) | fixed `fbf97d9` | all four constants fall back to the default unless https |
 | 30 | Translated strings concatenated into markup in JS (review 7) | fixed `fbf97d9` | `.text()` / `_.escape()` at all four sites; escaping register 10/10 |
+| 31 | Unticking hid nothing after row 23 (review 8) | fixed `7158315` | only the plugin's own (`eml_media`) taxonomies are unregistered when unticked |
+| 32 | A hand-pasted key without OpenSSL reported "connected"; a rejected key reported "saved" (review 8) | fixed `7158315` | refused with a notice; the state is read from the array |
+| 33 | A translated string in an HTML attribute (review 8) | fixed `7158315` | `.val()` |
 
 Browser specs on the box: 17 of 30 pass; the 13 that fail also fail with round-5 code deployed (14 there), so they predate this work.
 
