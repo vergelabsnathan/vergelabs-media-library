@@ -713,13 +713,17 @@ global $vergeml_dir,
             }
         }
 
-        // Taxonomies the settings put on attachments. One that is not ticked is left as its owner registered it.
+        // Taxonomies the settings put on attachments.
         foreach ( $vergeml_taxonomies as $taxonomy => $params ) {
 
             $taxonomy = sanitize_key($taxonomy);
 
             if ( (bool) $params['assigned'] )
                 register_taxonomy_for_object_type( $taxonomy, 'attachment' );
+
+            // Unticking hides only the plugin's own taxonomies; another owner's registration is left as it is.
+            if ( ! (bool) $params['assigned'] && ! empty( $params['eml_media'] ) )
+                unregister_taxonomy_for_object_type( $taxonomy, 'attachment' );
 
         }
 

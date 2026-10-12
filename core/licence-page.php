@@ -67,14 +67,16 @@ function vergeml_licence_save() {
         $result = 'removed';
     } else {
         $key = isset( $_POST['vergeml_licence_key'] ) ? sanitize_text_field( wp_unslash( $_POST['vergeml_licence_key'] ) ) : '';
-        if ( '' !== $key ) {
+        if ( '' !== $key && ! function_exists( 'openssl_encrypt' ) ) {
+            $result = 'nossl';
+        } elseif ( '' !== $key ) {
             $settings['license_key'] = vergeml_ai_seal( $key );
             update_option( 'vergeml_ai', $settings, false );
             // The seat on the licence, then the balance.
             $seat   = function_exists( 'vergeml_ai_activate_site' ) ? vergeml_ai_activate_site() : true;
             $check  = vergeml_ai_refresh_credits( true );
-            $state  = function_exists( 'vergeml_ai_credits_state' ) ? vergeml_ai_credits_state() : 'ok';
-            $result = ( null === $check && 'rejected' === $state ) ? 'rejected' : 'saved';
+            $state  = function_exists( 'vergeml_ai_credits_state' ) ? vergeml_ai_credits_state() : array();
+            $result = ( null === $check && isset( $state['state'] ) && 'rejected' === $state['state'] ) ? 'rejected' : 'saved';
             if ( is_wp_error( $seat ) && 'vergeml_ai_seat_limit' === $seat->get_error_code() ) {
                 $result = 'seat_limit';
             }
@@ -162,6 +164,7 @@ function vergeml_licence_page() {
                 'saved'    => array( 'success', __( 'Licence saved. This site is connected.', 'vergelabs-media-library' ) ),
                 'rejected' => array( 'error', __( 'That key was not recognised by the service. It is saved, but nothing can be described with it until it is.', 'vergelabs-media-library' ) ),
                 'removed'  => array( 'success', __( 'The licence was removed from this site.', 'vergelabs-media-library' ) ),
+                'nossl'    => array( 'error', __( 'This server cannot store a licence key: the PHP OpenSSL extension is missing. Nothing was saved.', 'vergelabs-media-library' ) ),
                 'seat_limit' => array( 'error', __( 'This licence is already in use on as many sites as it allows. Disconnect it from another site, or use another licence, to connect this one.', 'vergelabs-media-library' ) ),
             );
             if ( isset( $m[ $r ] ) ) {

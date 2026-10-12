@@ -292,6 +292,14 @@ every row below has a status: *fixed* (commit, and the guard or grep that finds 
 | 20 | EML copyright line, block apiVersion | fixed `aa02c46` | restored verbatim; 3 in PHP and JS |
 | 21 | SVN screenshots and banner (not in the zip), Pro's Plugin URI | Nathan's, before the first SVN commit after approval | screenshots 3 and 5 show retired UI; banner says "successor" |
 | 22 | `webbistro` not in Contributors | answered | credited in the readme; adoption request open |
+| 23 | Other plugins' taxonomies detached from media (review 7) | fixed `fbf97d9` | an unticked taxonomy is left as its owner registered it; no `unregister_taxonomy_for_object_type` |
+| 24 | Wipe screens still said folders are deleted (review 7) | fixed `fbf97d9` | `media_category` left out of both "will be deleted" lists, "Your folders" under "will remain", both labels say the folders stay |
+| 25 | Without OpenSSL, the trial and Connect spend a key and store nothing (review 7) | fixed `fbf97d9` | the trial is not offered; Connect refuses before the exchange; the trial reply refuses an unstorable key |
+| 26 | JS globals only for the suites (review 7) | fixed `fbf97d9` | `vgmlFoldersApp` / `vgmlBriefApp` removed; folders.spec adds them to the script in transit |
+| 27 | Dead code: SQL builders, sync handler, TODO, stale safe-mode comment (review 7) | fixed `fbf97d9` | builders moved to `tools/lib/filing-sql.php` (box-eval copies it); handler and strings removed |
+| 28 | Trial screen did not say the email is written to (review 7) | fixed `fbf97d9` | one sentence added; wording is Nathan's to approve |
+| 29 | Three endpoint constants not forced to https (review 7) | fixed `fbf97d9` | all four constants fall back to the default unless https |
+| 30 | Translated strings concatenated into markup in JS (review 7) | fixed `fbf97d9` | `.text()` / `_.escape()` at all four sites; escaping register 10/10 |
 
 Browser specs on the box: 17 of 30 pass; the 13 that fail also fail with round-5 code deployed (14 there), so they predate this work.
 

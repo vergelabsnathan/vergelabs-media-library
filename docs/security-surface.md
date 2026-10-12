@@ -207,7 +207,7 @@ whole of what WordPress checks before the callback runs. A screen that then read
 | `vergeml-import-folders` | add_submenu_page | manage_options | vergeml_import_screen (core/import-ui.php:309) | — | — | — | core/import-ui.php:22 |
 | `vergeml-librarian` | add_submenu_page | manage_options | vergeml_folders_page (core/guide.php:455) | — | — | — | core/guide.php:59 |
 | `vergeml-library` | add_submenu_page | manage_options | vergeml_print_media_library_options (core/options-pages.php:1755) | — | — | — | core/options-pages.php:117 |
-| `vergeml-licence` | add_submenu_page | manage_options | vergeml_licence_page (core/licence-page.php:91) | $_GET | meta/option write, outbound http | — | core/licence-page.php:20 |
+| `vergeml-licence` | add_submenu_page | manage_options | vergeml_licence_page (core/licence-page.php:93) | $_GET | meta/option write, outbound http | — | core/licence-page.php:20 |
 | `vergeml-mime-types` | add_submenu_page | manage_options | vergeml_print_mimetypes_options (core/options-pages.php:2765) | — | — | — | core/options-pages.php:135 |
 | `vergeml-taxonomies` | add_submenu_page | manage_options | vergeml_print_taxonomies_options (core/options-pages.php:2271) | — | — | — | core/options-pages.php:126 |
 | `vergeml-utilities` | add_options_page | manage_options | vergeml_print_settings (core/options-pages.php:432) | — | — | — | core/options-pages.php:172 |
@@ -259,7 +259,7 @@ capability gate belongs to whatever screen they fire on, not to them.
 | hook | kind | callback | reads | writes | capability | nonce | where |
 |---|---|---|---|---|---|---|---|
 | `add_attachment` | action | vergeml_file_upload_into_folder | $_POST | term assign | upload_files, $tax_object->cap->assign_terms | wp_verify_nonce | core/folder-tools.php:31 |
-| `admin_enqueue_scripts` | action | vergeml_admin_enqueue_scripts | $_GET | — | — | — | vergelabs-media-library.php:791 |
+| `admin_enqueue_scripts` | action | vergeml_admin_enqueue_scripts | $_GET | — | — | — | vergelabs-media-library.php:795 |
 | `admin_init` | action | vergeml_admin_menu_redirects | $_GET | — | — | — | core/admin-menu.php:165 |
 | `admin_init` | action | vergeml_connect_router | $_GET | meta/option write, outbound http | manage_options | wp_verify_nonce | core/connect.php:93 |
 | `admin_init` | action | vergeml_neighbour_dismiss | $_GET | meta/option write | activate_plugins | wp_verify_nonce | core/neighbours.php:121 |
