@@ -377,7 +377,7 @@ global $vergeml_dir,
             'core/librarian.php' => 'vergeml_librarian_install',
         ) as $vergeml_schema_file => $vergeml_install ) {
 
-            if ( ! function_exists( $vergeml_install ) && ! vergeml_safe_mode() ) {
+            if ( ! function_exists( $vergeml_install ) && ! vergeml_features_off() ) {
                 include_once plugin_dir_path( VERGEML_FILE ) . $vergeml_schema_file;
             }
 
@@ -386,7 +386,11 @@ global $vergeml_dir,
             }
         }
 
-        update_option( 'vergeml_version', VERGEML_VERSION );
+        // Stamped only when the tables could be made: in safe mode or without mbstring the next request after
+        // the fix finds the version behind and provisions then.
+        if ( ! vergeml_features_off() ) {
+            update_option( 'vergeml_version', VERGEML_VERSION );
+        }
     }
 
 
@@ -629,7 +633,8 @@ global $vergeml_dir,
                 if ( (bool) $vergeml_tax_options['tax_archives'] ) {
 
                     $rewrite = array(
-                        'slug' => vergeml_sanitize_slug( $params['rewrite']['slug'], $taxonomy ),
+                        // core/taxonomies.php's sanitiser when the features are loaded; WordPress's own when they are not.
+                        'slug' => function_exists( 'vergeml_sanitize_slug' ) ? vergeml_sanitize_slug( $params['rewrite']['slug'], $taxonomy ) : sanitize_title( $params['rewrite']['slug'], $taxonomy ),
                         'with_front' => (bool) $params['rewrite']['with_front']
                     );
                     $public = true;
@@ -941,7 +946,8 @@ global $vergeml_dir,
                $current_screen;
 
 
-        if ( ! is_admin() ) {
+        // In safe mode, or without what the features need, the media frame is WordPress's own.
+        if ( ! is_admin() || vergeml_features_off() ) {
             return;
         }
 
@@ -1567,6 +1573,53 @@ global $vergeml_dir,
      *  Free functionality
      */
 
+    /**
+     *  What this host lacks that the plugin needs (wordpress.org review 2, round 5): checked before anything uses
+     *  it, and explained instead of failing. mbstring runs the folders, filing and search, so without it the
+     *  features stay off as in safe mode; OpenSSL keeps the licence key encrypted, so without it only the AI
+     *  features are unavailable (core/ai.php).
+     */
+    function vergeml_requirements_missing() {
+
+        $missing = array();
+
+        if ( ! function_exists( 'mb_strtolower' ) || ! function_exists( 'mb_substr' ) ) {
+            $missing[] = 'mbstring';
+        }
+
+        if ( ! function_exists( 'openssl_encrypt' ) ) {
+            $missing[] = 'openssl';
+        }
+
+        return $missing;
+    }
+
+    /** Safe mode, or no mbstring: the plugin's features do not load. */
+    function vergeml_features_off() {
+        return vergeml_safe_mode() || in_array( 'mbstring', vergeml_requirements_missing(), true );
+    }
+
+    add_action( 'admin_notices', 'vergeml_requirements_notice' );
+    add_action( 'network_admin_notices', 'vergeml_requirements_notice' );
+
+    function vergeml_requirements_notice() {
+
+        $missing = vergeml_requirements_missing();
+
+        if ( ! $missing || ! current_user_can( 'activate_plugins' ) ) {
+            return;
+        }
+
+        echo '<div class="notice notice-error"><p>';
+        if ( in_array( 'mbstring', $missing, true ) ) {
+            esc_html_e( 'VergeLabs Media Library needs the PHP mbstring extension, which this server does not have. Its features stay off until your host enables it; your folders and files are untouched.', 'vergelabs-media-library' );
+        } else {
+            esc_html_e( 'VergeLabs Media Library needs the PHP OpenSSL extension to keep a licence key encrypted, and this server does not have it. The AI features stay off until your host enables it; folders work as usual.', 'vergelabs-media-library' );
+        }
+        echo '</p></div>';
+    }
+
+
     /*
      *  Safe mode stops here. Everything below this line is the plugin's actual
      *  behaviour, and after two fatal errors in an hour none of it loads --
@@ -1579,7 +1632,7 @@ global $vergeml_dir,
     include_once plugin_dir_path( __FILE__ ) . 'core/system-report.php';
     include_once plugin_dir_path( __FILE__ ) . 'core/get-help.php';
 
-    if ( ! vergeml_safe_mode() ) {
+    if ( ! vergeml_features_off() ) {
 
         include_once plugin_dir_path( __FILE__ ) . 'core/mime-types.php';
         include_once plugin_dir_path( __FILE__ ) . 'core/taxonomies.php';

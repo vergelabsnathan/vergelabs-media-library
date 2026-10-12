@@ -328,7 +328,8 @@ function vergeml_ai_service_url() {
  */
 function vergeml_ai_seal( $plain ) {
 
-    if ( '' === $plain ) {
+    // Without OpenSSL no key is stored at all, rather than one stored in the clear (vergeml_requirements_notice() says why).
+    if ( '' === $plain || ! function_exists( 'openssl_encrypt' ) ) {
         return '';
     }
 
@@ -347,7 +348,7 @@ function vergeml_ai_seal( $plain ) {
 
 function vergeml_ai_unseal( $stored ) {
 
-    if ( ! is_string( $stored ) || 0 !== strpos( $stored, 'v1:' ) ) {
+    if ( ! is_string( $stored ) || 0 !== strpos( $stored, 'v1:' ) || ! function_exists( 'openssl_decrypt' ) ) {
         return '';
     }
 
