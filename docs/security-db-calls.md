@@ -59,15 +59,15 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | line | in | method | class | proof |
 |---|---|---|---|---|
 | 55 | — | `query` | prepared | — |
-| 187 | — | `get_var` | prepared | — |
-| 258 | — | `get_results` | prepared | implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) — implode of a generated %d placeholder list |
-| 285 | — | `get_row` | prepared | — |
-| 392 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_index_table() returns only a $wpdb table name |
-| 402 | — | `insert` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_index_table() returns only a $wpdb table name |
-| 415 | — | `delete` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_index_table() returns only a $wpdb table name |
-| 666 | — | `get_row` | prepared | — |
-| 761 | — | `get_col` | prepared | — |
-| 808 | — | `get_col` | prepared | $wpdb->postmeta — a $wpdb table name |
+| 181 | — | `get_var` | prepared | — |
+| 252 | — | `get_results` | prepared | implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) — implode of a generated %d placeholder list |
+| 279 | — | `get_row` | prepared | — |
+| 386 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_index_table() returns only a $wpdb table name |
+| 396 | — | `insert` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_index_table() returns only a $wpdb table name |
+| 409 | — | `delete` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_index_table() returns only a $wpdb table name |
+| 660 | — | `get_row` | prepared | — |
+| 755 | — | `get_col` | prepared | — |
+| 802 | — | `get_col` | prepared | $wpdb->postmeta — a $wpdb table name |
 
 ### core/ai-screen.php
 
@@ -258,32 +258,32 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 296 | — | `get_col` | prepared | — |
-| 370 | — | `get_row` | prepared | — |
-| 422 | — | `query` | prepared | — |
-| 498 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name |
-| 733 | — | `get_row` | prepared | — |
-| 887 | — | `get_col` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name; implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 1263 | — | `insert` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_librarian_batches_table() returns only a $wpdb table name |
-| 1500 | — | `get_results` | prepared | implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 1791 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $moves ), '( %d, %d, %d, %d, 0, %s, CASE WHEN %d = 1 THEN %f END, %d, CASE WHEN %d = 1 THEN %f END, %s, %s, %d, %s, %s )' ) ) — implode of a generated %d placeholder list |
-| 2070 | — | `get_results` | prepared | — |
-| 2109 | — | `get_results` | prepared | $wpdb->term_taxonomy — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 2140 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $move_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 2183 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $batch_ids ), '%d' ) ) — implode of a generated %d placeholder list; implode( ', ', array_fill( 0, count( $attachment_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 2328 | — | `get_results` | prepared | — |
-| 2380 | — | `get_var` | prepared | — |
+| 290 | — | `get_col` | prepared | — |
+| 364 | — | `get_row` | prepared | — |
+| 416 | — | `query` | prepared | — |
+| 492 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name |
+| 727 | — | `get_row` | prepared | — |
+| 881 | — | `get_col` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name; implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 1257 | — | `insert` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_librarian_batches_table() returns only a $wpdb table name |
+| 1494 | — | `get_results` | prepared | implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 1785 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $moves ), '( %d, %d, %d, %d, 0, %s, CASE WHEN %d = 1 THEN %f END, %d, CASE WHEN %d = 1 THEN %f END, %s, %s, %d, %s, %s )' ) ) — implode of a generated %d placeholder list |
+| 2064 | — | `get_results` | prepared | — |
+| 2103 | — | `get_results` | prepared | $wpdb->term_taxonomy — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 2134 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $move_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 2177 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $batch_ids ), '%d' ) ) — implode of a generated %d placeholder list; implode( ', ', array_fill( 0, count( $attachment_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 2322 | — | `get_results` | prepared | — |
+| 2374 | — | `get_var` | prepared | — |
+| 2384 | — | `query` | prepared | — |
 | 2390 | — | `query` | prepared | — |
-| 2396 | — | `query` | prepared | — |
-| 2782 | — | `get_var` | prepared | — |
-| 2879 | — | `get_results` | prepared | — |
-| 2958 | — | `get_var` | prepared | — |
+| 2776 | — | `get_var` | prepared | — |
+| 2873 | — | `get_results` | prepared | — |
+| 2952 | — | `get_var` | prepared | — |
 
 ### core/media-list.php
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 526 | — | `get_var` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name |
+| 527 | — | `get_var` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name |
 
 ### core/options-pages.php
 
@@ -303,20 +303,20 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 356 | — | `get_row` | prepared | — |
-| 378 | — | `get_row` | prepared | — |
-| 464 | — | `insert` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_organize_table() returns only a $wpdb table name |
-| 517 | — | `query` | prepared | — |
-| 548 | — | `get_var` | prepared | — |
-| 673 | — | `get_results` | prepared | implode( ', ', array_fill( 0, count( $scope ), '%d' ) ) — implode of a generated %d placeholder list |
-| 686 | — | `get_results` | prepared | — |
-| 2751 | — | `get_var` | prepared | — |
-| 2761 | — | `query` | prepared | — |
-| 2801 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
-| 2806 | — | `get_var` | prepared | — |
-| 2833 | — | `get_var` | prepared | implode( ', ', array_fill( 0, count( $copy_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 3054 | — | `get_var` | prepared | — |
-| 3070 | — | `query` | prepared | — |
+| 350 | — | `get_row` | prepared | — |
+| 372 | — | `get_row` | prepared | — |
+| 458 | — | `insert` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_organize_table() returns only a $wpdb table name |
+| 511 | — | `query` | prepared | — |
+| 542 | — | `get_var` | prepared | — |
+| 667 | — | `get_results` | prepared | implode( ', ', array_fill( 0, count( $scope ), '%d' ) ) — implode of a generated %d placeholder list |
+| 680 | — | `get_results` | prepared | — |
+| 2745 | — | `get_var` | prepared | — |
+| 2755 | — | `query` | prepared | — |
+| 2795 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
+| 2800 | — | `get_var` | prepared | — |
+| 2827 | — | `get_var` | prepared | implode( ', ', array_fill( 0, count( $copy_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 3048 | — | `get_var` | prepared | — |
+| 3064 | — | `query` | prepared | — |
 
 ### core/plan-tree.php
 

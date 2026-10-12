@@ -97,19 +97,19 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/health-scan` | POST | vergeml_rest_can_manage_options | manage_options | no | `cursor`, `reset`, $request | db write, meta/option write, db query | no | core/health.php:1194 |
 | `/vergeml/v1/health-uses` | GET | vergeml_rest_can_manage_options | manage_options | no | `ids*`, $request | — | yes | core/health-delete.php:608 |
 | `/vergeml/v1/import` | POST | vergeml_can_import | manage_options | no | `action*`, `source`, `taxonomy`, `id`, `resume`, `text`, $request | db query, meta/option write, delete, term assign, post/term write | yes | core/import-ui.php:37 |
-| `/vergeml/v1/librarian-apply-step` | POST | vergeml_rest_can_manage_options | manage_options | no | `batch_id`, `scheme`, `run_id`, `branches`, $request | db write, meta/option write, db query, term assign, post/term write | yes | core/librarian.php:2443 |
-| `/vergeml/v1/librarian-batches` | GET | vergeml_rest_can_manage_options | manage_options | no | — | db query | no | core/librarian.php:2477 |
-| `/vergeml/v1/librarian-pause` | POST | vergeml_rest_can_manage_options | manage_options | no | `batch_id*`, $request | db query | yes | core/librarian.php:2459 |
-| `/vergeml/v1/librarian-preflight` | GET, POST | vergeml_rest_can_manage_options | manage_options | no | `scheme`, `run_id`, `branches`, $request | db query | yes | core/librarian.php:2432 |
-| `/vergeml/v1/librarian-schemes` | GET | vergeml_rest_can_manage_options | manage_options | no | `scheme`, $request | db query | no | core/librarian.php:2412 |
-| `/vergeml/v1/librarian-undo-step` | POST | vergeml_rest_can_manage_options | manage_options | no | `batch_id*`, $request | term assign, db query, delete, meta/option write | yes | core/librarian.php:2468 |
-| `/vergeml/v1/librarian-why/(?P<id>\d+)` | GET | vergeml_rest_can_edit_this_file | edit_post((int) $request['id']) | yes (1) | — | db query | no | core/librarian.php:2498 |
+| `/vergeml/v1/librarian-apply-step` | POST | vergeml_rest_can_manage_options | manage_options | no | `batch_id`, `scheme`, `run_id`, `branches`, $request | db write, meta/option write, db query, term assign, post/term write | yes | core/librarian.php:2437 |
+| `/vergeml/v1/librarian-batches` | GET | vergeml_rest_can_manage_options | manage_options | no | — | db query | no | core/librarian.php:2471 |
+| `/vergeml/v1/librarian-pause` | POST | vergeml_rest_can_manage_options | manage_options | no | `batch_id*`, $request | db query | yes | core/librarian.php:2453 |
+| `/vergeml/v1/librarian-preflight` | GET, POST | vergeml_rest_can_manage_options | manage_options | no | `scheme`, `run_id`, `branches`, $request | db query | yes | core/librarian.php:2426 |
+| `/vergeml/v1/librarian-schemes` | GET | vergeml_rest_can_manage_options | manage_options | no | `scheme`, $request | db query | no | core/librarian.php:2406 |
+| `/vergeml/v1/librarian-undo-step` | POST | vergeml_rest_can_manage_options | manage_options | no | `batch_id*`, $request | term assign, db query, delete, meta/option write | yes | core/librarian.php:2462 |
+| `/vergeml/v1/librarian-why/(?P<id>\d+)` | GET | vergeml_rest_can_edit_this_file | edit_post((int) $request['id']) | yes (1) | — | db query | no | core/librarian.php:2492 |
 | `/vergeml/v1/merge-plan` | GET | vergeml_rest_can_manage_options | manage_options | no | — | db query | no | core/utilities.php:406 |
 | `/vergeml/v1/merge-run` | POST | vergeml_rest_can_manage_options | manage_options, delete_post($id) | yes (1) | `plan*`, $request | meta/option write | no | core/utilities.php:412 |
-| `/vergeml/v1/organize-cancel` | POST | vergeml_rest_can_manage_options | manage_options | no | `run_id*`, $request | db query | yes | core/organize.php:2886 |
-| `/vergeml/v1/organize-quote` | GET | vergeml_rest_can_manage_options | manage_options | no | — | db query | no | core/organize.php:2905 |
-| `/vergeml/v1/organize-run` | GET | vergeml_rest_can_manage_options | manage_options | no | `run_id`, `compare`, $request | db query | yes | core/organize.php:2895 |
-| `/vergeml/v1/organize-step` | POST | vergeml_rest_can_manage_options | manage_options | no | `run_id`, `parent_run_id`, `refine`, $request | db query, db write | yes | core/organize.php:2872 |
+| `/vergeml/v1/organize-cancel` | POST | vergeml_rest_can_manage_options | manage_options | no | `run_id*`, $request | db query | yes | core/organize.php:2880 |
+| `/vergeml/v1/organize-quote` | GET | vergeml_rest_can_manage_options | manage_options | no | — | db query | no | core/organize.php:2899 |
+| `/vergeml/v1/organize-run` | GET | vergeml_rest_can_manage_options | manage_options | no | `run_id`, `compare`, $request | db query | yes | core/organize.php:2889 |
+| `/vergeml/v1/organize-step` | POST | vergeml_rest_can_manage_options | manage_options | no | `run_id`, `parent_run_id`, `refine`, $request | db query, db write | yes | core/organize.php:2866 |
 | `/vergeml/v1/quarantine` | GET | vergeml_rest_can_manage_options | manage_options | no | — | — | no | core/quarantine.php:350 |
 | `/vergeml/v1/quarantine-act` | POST | vergeml_rest_can_manage_options | manage_options | no | `ids*`, `action*`, `reason`, $request | meta/option write | yes | core/quarantine.php:361 |
 | `/vergeml/v1/quarantine-manifest` | GET | vergeml_rest_can_manage_options | manage_options | no | — | — | no | core/quarantine.php:372 |
@@ -140,9 +140,9 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/guide/answer` | POST | unscoped capability on an id from the request | core/guide.php:1055 |
 | `/vergeml/v1/health-retire` | POST | unscoped capability on an id from the request | core/health-keep.php:845 |
 | `/vergeml/v1/import` | POST | unscoped capability on an id from the request | core/import-ui.php:37 |
-| `/vergeml/v1/librarian-apply-step` | POST | unscoped capability on an id from the request | core/librarian.php:2443 |
-| `/vergeml/v1/librarian-undo-step` | POST | unscoped capability on an id from the request | core/librarian.php:2468 |
-| `/vergeml/v1/organize-step` | POST | unscoped capability on an id from the request | core/organize.php:2872 |
+| `/vergeml/v1/librarian-apply-step` | POST | unscoped capability on an id from the request | core/librarian.php:2437 |
+| `/vergeml/v1/librarian-undo-step` | POST | unscoped capability on an id from the request | core/librarian.php:2462 |
+| `/vergeml/v1/organize-step` | POST | unscoped capability on an id from the request | core/organize.php:2866 |
 | `/vergeml/v1/quarantine-act` | POST | unscoped capability on an id from the request | core/quarantine.php:361 |
 
 ## AJAX actions
@@ -191,7 +191,7 @@ anything it spends has to be decided before it is booked.
 | `vergeml_plan_inventory_refresh` | core/plan-tree.php:334 | vergeml_plan_inventory_refresh_event (core/plan-tree.php:343) | db query, meta/option write, outbound http, schedules cron | — |
 | `vergeml_plan_event` | core/plan-tree.php:843 | vergeml_plan_event (core/plan-tree.php:852) | meta/option write, db query, outbound http, schedules cron | — |
 | `vergeml_meaning_convert` | core/search-meaning.php:548 | vergeml_meaning_convert_tick (core/search-meaning.php:555) | db query, db write, schedules cron | — |
-| `vergeml_provision_site` | vergelabs-media-library.php:557 | vergeml_provision_site (vergelabs-media-library.php:363) | meta/option write | — |
+| `vergeml_provision_site` | vergelabs-media-library.php:565 | vergeml_provision_site (vergelabs-media-library.php:358) | meta/option write | — |
 
 ## Admin screens
 
@@ -260,7 +260,7 @@ capability gate belongs to whatever screen they fire on, not to them.
 | hook | kind | callback | reads | writes | capability | nonce | where |
 |---|---|---|---|---|---|---|---|
 | `add_attachment` | action | vergeml_file_upload_into_folder | $_POST | term assign | upload_files, $tax_object->cap->assign_terms | wp_verify_nonce | core/folder-tools.php:31 |
-| `admin_enqueue_scripts` | action | vergeml_admin_enqueue_scripts | $_GET | — | — | — | vergelabs-media-library.php:774 |
+| `admin_enqueue_scripts` | action | vergeml_admin_enqueue_scripts | $_GET | — | — | — | vergelabs-media-library.php:782 |
 | `admin_init` | action | vergeml_admin_menu_redirects | $_GET | — | — | — | core/admin-menu.php:160 |
 | `admin_init` | action | vergeml_connect_router | $_GET | meta/option write, outbound http | manage_options | wp_verify_nonce | core/connect.php:93 |
 | `admin_init` | action | vergeml_neighbour_dismiss | $_GET | meta/option write | activate_plugins | wp_verify_nonce | core/neighbours.php:121 |
@@ -271,14 +271,14 @@ capability gate belongs to whatever screen they fire on, not to them.
 | `admin_init` | action | vergeml_settings_cleanup | $_POST | meta/option write, db write, db query, delete | manage_options, manage_network_options | wp_verify_nonce | core/options-pages.php:1437 |
 | `admin_menu` | action | vergeml_guide_redirect | $_GET | — | — | — | core/guide.php:42 |
 | `admin_notices` | action | vergeml_bulk_terms_notice | $_GET | — | — | — | core/bulk-terms.php:230 |
-| `admin_notices` | action | vergeml_list_move_notice | $_GET | — | — | — | core/media-list.php:728 |
+| `admin_notices` | action | vergeml_list_move_notice | $_GET | — | — | — | core/media-list.php:729 |
 | `admin_notices` | action | vergeml_rename_notice | $_GET | — | manage_options | — | core/rename.php:402 |
 | `admin_notices` | action | vergeml_rename_undo_notice | $_GET | — | — | — | core/rename.php:461 |
 | `admin_page_access_denied` | action | vergeml_admin_menu_redirects | $_GET | — | — | — | core/admin-menu.php:159 |
 | `ajax_query_attachments_args` | filter | vergeml_quarantine_hide_grid | $_POST | — | — | — | core/quarantine.php:229 |
 | `ajax_query_attachments_args` | filter | vergeml_smart_grid_query | $_POST | — | — | — | core/smart-folders.php:1189 |
 | `ajax_query_attachments_args` | filter | vergeml_ajax_query_attachments_args | $_REQUEST | — | — | — | core/taxonomies.php:411 |
-| `attachment_fields_to_edit` | filter | vergeml_why_here_field | $_REQUEST | db query | — | — | core/librarian.php:3136 |
+| `attachment_fields_to_edit` | filter | vergeml_why_here_field | $_REQUEST | db query | — | — | core/librarian.php:3130 |
 | `attachment_fields_to_save` | filter | vergeml_compat_save_term_checkboxes | $_REQUEST | term assign | edit_post($id), $tax_object->cap->assign_terms | check_ajax_referer | core/taxonomies.php:1258 |
 | `handle_bulk_actions-upload` | filter | vergeml_handle_bulk_terms | $_REQUEST | term assign | $tax_object->cap->assign_terms, edit_post($post_id) | check_admin_referer | core/bulk-terms.php:142 |
 | `init` | action | vergeml_builder_register | $_GET | — | — | — | core/page-builders.php:178 |
@@ -292,7 +292,7 @@ capability gate belongs to whatever screen they fire on, not to them.
 | `rest_api_init` | action | vergeml_ai_alt_route | $request | db query, meta/option write | — | — | core/ai.php:1686 |
 | `rest_api_init` | action | vergeml_file_rename_routes | $request | db query, meta/option write, filesystem, post/term write | edit_post($attachment_id) | — | core/rename-file.php:605 |
 | `rest_api_init` | action | vergeml_rename_routes | $request | db query, post/term write, meta/option write | edit_post($id) | — | core/rename.php:494 |
-| `restrict_manage_posts` | action | vergeml_list_folder_filter | $_REQUEST | db query | — | — | core/media-list.php:429 |
+| `restrict_manage_posts` | action | vergeml_list_folder_filter | $_REQUEST | db query | — | — | core/media-list.php:430 |
 | `restrict_manage_posts` | action | vergeml_meaning_offer | $_GET | — | manage_options | — | core/search-meaning.php:679 |
 | `restrict_manage_posts` | action | vergeml_restrict_manage_posts | $_REQUEST | — | manage_options | — | core/taxonomies.php:570 |
 

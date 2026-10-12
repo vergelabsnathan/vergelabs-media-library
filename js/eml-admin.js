@@ -94,11 +94,11 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 
     window.vergemlFullscreenSpinnerStart = function( text ) {
-        $('body').append( '<div class="fullscreen-spinner-box"><div class="fullscreen-spinner-inner-box"><span class="eml-spinner">'+text+'</span></div></div>' );
+        $('body').append( '<div class="vergeml-fullscreen-spinner-box"><div class="vergeml-fullscreen-spinner-inner-box"><span class="eml-spinner">'+text+'</span></div></div>' );
     }
 
 
     window.vergemlFullscreenSpinnerStop = function() {
-        $('.fullscreen-spinner-box').remove();
+        $('.vergeml-fullscreen-spinner-box').remove();
     }
 })( jQuery );

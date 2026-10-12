@@ -20,9 +20,9 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 | · of those, given anything but a literal | 18 |
 | · of those, read by hand with the reason | 18 |
 | · of those, **still unread** | **0** |
-| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 247 |
+| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 249 |
 
-Over 68 PHP files and 39 JavaScript files that ship.
+Over 68 PHP files and 43 JavaScript files that ship.
 
 ## The four journeys the plan names
 

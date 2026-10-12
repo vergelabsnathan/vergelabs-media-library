@@ -781,11 +781,42 @@ global $vergeml_dir,
 
     add_action( 'admin_enqueue_scripts', 'vergeml_admin_enqueue_scripts' );
 
+    /**
+     *  Whether this admin screen is one the plugin's own styles and scripts
+     *  belong on: the media library and Add New, an attachment, the media
+     *  taxonomies' term screens, and the plugin's own pages.
+     */
+    function vergeml_is_own_admin_screen() {
+
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+        if ( ! $screen ) {
+            return false;
+        }
+
+        if ( in_array( $screen->base, array( 'upload', 'media' ), true ) || 'attachment' === $screen->post_type ) {
+            return true;
+        }
+
+        if ( in_array( $screen->base, array( 'edit-tags', 'term' ), true ) && $screen->taxonomy
+             && in_array( $screen->taxonomy, get_object_taxonomies( 'attachment' ), true ) ) {
+            return true;
+        }
+
+        return false !== strpos( (string) $screen->id, 'vergelabs-media' ) || false !== strpos( (string) $screen->id, 'vergeml-' );
+    }
+
+
     function vergeml_admin_enqueue_scripts() {
 
         global $vergeml_dir,
                $current_screen;
 
+
+        // The media library, its taxonomy screens and the plugin's own screens; nowhere else.
+        if ( ! vergeml_is_own_admin_screen() ) {
+            return;
+        }
 
         $media_library_mode = get_user_option( 'media_library_mode', get_current_user_id() ) ? get_user_option( 'media_library_mode', get_current_user_id() ) : 'grid';
 
@@ -802,16 +833,9 @@ global $vergeml_dir,
         );
         wp_style_add_data( 'vergeml-admin-custom-style', 'rtl', 'replace' );
 
-        // media styles
-        wp_enqueue_style(
-            'vergeml-admin-media-style',
-            $vergeml_dir . 'css/eml-admin-media.css',
-            false,
-            VERGEML_VERSION,
-            'all'
-        );
+        // The media frame's styles on these screens too, list view included (vergeml_enqueue_media adds them wherever a frame opens).
+        wp_enqueue_style( 'vergeml-admin-media-style', $vergeml_dir . 'css/eml-admin-media.css', false, VERGEML_VERSION, 'all' );
         wp_style_add_data( 'vergeml-admin-media-style', 'rtl', 'replace' );
-
 
         wp_enqueue_style ( 'wp-jquery-ui-dialog' );
 
@@ -920,6 +944,16 @@ global $vergeml_dir,
         if ( ! is_admin() ) {
             return;
         }
+
+        // The media frame's styles, wherever WordPress opens a media frame -- and only there.
+        wp_enqueue_style(
+            'vergeml-admin-media-style',
+            $vergeml_dir . 'css/eml-admin-media.css',
+            false,
+            VERGEML_VERSION,
+            'all'
+        );
+        wp_style_add_data( 'vergeml-admin-media-style', 'rtl', 'replace' );
 
 
         $media_library_mode = get_user_option( 'media_library_mode', get_current_user_id() ) ? get_user_option( 'media_library_mode', get_current_user_id() ) : 'grid';

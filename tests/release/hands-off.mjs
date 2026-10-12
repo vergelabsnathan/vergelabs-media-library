@@ -147,6 +147,13 @@ check( 'no table of the plugin\'s own is interpolated into SQL', 0 === tables.le
 const inLists = hits( php, /IN\s*\(\s*\$\w+\s*\)|IN\s*\(\s*\{\$\w+\}\s*\)/g );
 check( 'no IN list is interpolated into SQL', 0 === inLists.length, inLists.map( ( h ) => `${ h.at } ${ h.m[ 0 ] }` ).join( ' | ' ) );
 
+// Inline code (wordpress.org review 2, round 5: "the helper outputs the caller-supplied JavaScript string directly").
+// Scripts are files in js/ with their data through wp_localize_script; an inline style is escaped at output.
+const inlineJs = hits( php, /wp_add_inline_script\s*\(/g );
+check( 'no script is added inline; every script is a file', 0 === inlineJs.length, inlineJs.map( ( h ) => h.at ).join( ' | ' ) );
+const inlineCss = hits( php, /wp_add_inline_style\s*\(\s*'[^']+'\s*,(?!\s*wp_strip_all_tags\s*\()/g );
+check( 'every inline style is escaped at output (wp_strip_all_tags)', 0 === inlineCss.length, inlineCss.map( ( h ) => h.at ).join( ' | ' ) );
+
 // Seams that existed for the suites, and filters that returned SQL.
 const GONE = [ 'vergeml_ai_describe_answers', 'vergeml_ai_run_should_nudge', 'vergeml_brief_describe', 'vergeml_folders_walk', 'vergeml_offer_trial_possible', 'vergeml_ai_parallel', 'vergeml_smart_count_branches', 'vergeml_smart_count_exclude' ];
 const seams = hits( php, /apply_filters\(\s*'([^']+)'/g ).filter( ( h ) => GONE.includes( h.m[ 1 ] ) );

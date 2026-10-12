@@ -229,11 +229,11 @@ body.upload-php.eml-grid #wpbody-content > #screen-meta {
 }
 
 /* a fix for infinite scroll */
-.attachments-browser:not(.has-load-more) .attachments {
+.eml-media-css .attachments-browser:not(.has-load-more) .attachments {
     position: static;
 }
-.attachments-browser.has-load-more .attachments-wrapper,
-.attachments-browser:not(.has-load-more) .attachments-wrapper {
+.eml-media-css .attachments-browser.has-load-more .attachments-wrapper,
+.eml-media-css .attachments-browser:not(.has-load-more) .attachments-wrapper {
     position: absolute;
     top: 72px;
     left: 300px;
@@ -308,7 +308,7 @@ body.upload-php.eml-grid #wpbody-content > #screen-meta {
 
 /* == Media Selection == */
 
-.media-frame-toolbar .media-toolbar {
+.eml-media-css .media-frame-toolbar .media-toolbar {
     bottom: -60px;
     height: 60px;
 }
@@ -316,7 +316,7 @@ body.upload-php.eml-grid #wpbody-content > #screen-meta {
     bottom: 0;
     height: 60px;
 }
-.media-frame .media-frame-toolbar .media-toolbar-primary {
+.eml-media-css .media-frame .media-frame-toolbar .media-toolbar-primary {
     position: relative;
     width: auto;
     min-height: 45px;
@@ -412,8 +412,8 @@ body.eml-media-css .attachment-details {
     margin: 10px 0 0;
 }
 
-.media-sidebar h3, 
-.image-details .media-embed h3 {
+.eml-media-css .media-sidebar h3, 
+.eml-media-css .image-details .media-embed h3 {
     position: relative;
     font-weight: 600;
     text-transform: uppercase;
@@ -422,11 +422,11 @@ body.eml-media-css .attachment-details {
     margin: 24px 0 8px;
 }
 
-.media-sidebar .setting label {
+.eml-media-css .media-sidebar .setting label {
     width: 80px;
     text-align: right;
 }
-.media-sidebar .setting select {
+.eml-media-css .media-sidebar .setting select {
     box-sizing: border-box;
     margin: 1px;
     font-size: 13px;
@@ -448,7 +448,7 @@ body.eml-media-css .attachment-details {
 
 /* == Attachment(s) Details Saving Styles == */
 
-.media-frame .media-frame-toolbar .button.button-large {
+.eml-media-css .media-frame .media-frame-toolbar .button.button-large {
     float: left;
 }
 
@@ -490,7 +490,7 @@ body.eml-media-css .media-modal-content .media-frame select.attachment-filters {
 }
 
 /* duplicate from the core for Elementor, temp solution */
-.media-modal.wp-core-ui select {
+.eml-media-css .media-modal.wp-core-ui select {
     font-size: 14px;
     line-height: 2;
     -webkit-appearance: none;
@@ -499,7 +499,7 @@ body.eml-media-css .media-modal-content .media-frame select.attachment-filters {
      padding: 0 8px 0 18px;
      padding-inline: 8px 18px !important;
 }
-.media-modal.wp-core-ui select:hover {
+.eml-media-css .media-modal.wp-core-ui select:hover {
     color: #2271b1;
 }
 
@@ -529,7 +529,7 @@ body.eml-media-css .media-modal-content .attachments-browser .search {
 body.eml-media-css .media-frame .spinner {
     margin-top: 0;
 }
-.media-frame .attachments-browser .media-toolbar .spinner {
+.eml-media-css .media-frame .attachments-browser .media-toolbar .spinner {
     float: none;
     position: absolute;
 }
@@ -537,7 +537,7 @@ body.eml-media-css .media-frame .spinner {
     top: 15px;
     left: 5px;
 }
-.media-modal-content .media-frame .attachments-browser .media-toolbar .spinner {
+.eml-media-css .media-modal-content .media-frame .attachments-browser .media-toolbar .spinner {
     left: 10px;
     top: 14px;
 }
