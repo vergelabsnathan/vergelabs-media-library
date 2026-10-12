@@ -17,7 +17,7 @@ looks safest in a diff, so what is examined is `prepare()`'s own format string.
 
 | | count |
 |---|---|
-| lines mentioning `$wpdb->` | 575 |
+| lines mentioning `$wpdb->` | 569 |
 | `$wpdb->prepare()` calls | 195 |
 | **calls that reach the server** | **214** |
 | · prepared | 184 |
@@ -281,13 +281,13 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 1099 | — | `get_var` | prepared | — |
-| 1549 | — | `delete` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
-| 1576 | — | `query` | prepared | — |
-| 1599 | — | `get_col` | prepared | — |
-| 1614 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $meta_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 1663 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
-| 1716 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 1095 | — | `get_var` | prepared | — |
+| 1545 | — | `delete` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 1572 | — | `query` | prepared | — |
+| 1595 | — | `get_col` | prepared | — |
+| 1610 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $meta_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 1659 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 1712 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
 
 ### core/organize.php
 

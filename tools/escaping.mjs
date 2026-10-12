@@ -81,7 +81,6 @@ const REVIEWED = {
 	'js/vergeml-media-views.js': [
 		[ '638ed41b71', 'compat.item is the rendered output of a wp.media template, not a value out of the database' ],
 		[ '8cbde23373', "$('<div/>').html( term.term_row ).text() -- a detached node used to decode entities, with only .text() read back; term_row is built by our PHP with esc_html()" ],
-		[ '56d3889526', 'this.text comes from options.text, and the only construction of this view passes a vergeml.l10n string' ],
 		[ '0531e42831', 'l10n.noMedia, one of our own translated strings' ],
 	],
 

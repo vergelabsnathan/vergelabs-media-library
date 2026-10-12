@@ -16,11 +16,11 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 | PHP output sites with a non-literal argument | 193 |
 | · of those, read by hand with the reason | 0 |
 | · of those, **nothing accounted for them** | **0** |
-| JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 64 |
-| · of those, given anything but a literal | 18 |
-| · of those, read by hand with the reason | 18 |
+| JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 63 |
+| · of those, given anything but a literal | 17 |
+| · of those, read by hand with the reason | 17 |
 | · of those, **still unread** | **0** |
-| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 252 |
+| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 255 |
 
 Over 68 PHP files and 43 JavaScript files that ship.
 
@@ -41,12 +41,12 @@ table below is what it rests on rather than a recollection.
 
 ## JavaScript HTML sinks
 
-All 64 are given a literal — an empty string, an inline SVG, or an
+All 63 are given a literal — an empty string, an inline SVG, or an
 HTML entity. Not one is given a variable, a template literal with a substitution,
 or a concatenation. Every dynamic string in this plugin goes to `textContent`,
 jQuery `.text()`, `createTextNode` or `setAttribute` instead.
 
-### The 18 read by hand
+### The 17 read by hand
 
 Each is given something other than a literal and each was read. Keyed by a hash of
 what it is given, so changing any of them expires its reason.
@@ -59,7 +59,6 @@ what it is given, so changing any of them expires its reason.
 | js/vergeml-gallery.js:44 | `8e5f448d16` | `innerHTML` | glyph is a parameter of mk(), called exactly twice, both times with an HTML entity literal |
 | js/vergeml-media-views.js:168 | `638ed41b71` | `jQuery .html()` | compat.item is the rendered output of a wp.media template, not a value out of the database |
 | js/vergeml-media-views.js:342 | `8cbde23373` | `jQuery .html()` | $('<div/>').html( term.term_row ).text() -- a detached node used to decode entities, with only .text() read back; term_row is built by our PHP with esc_html() |
-| js/vergeml-media-views.js:460 | `56d3889526` | `jQuery .html()` | this.text comes from options.text, and the only construction of this view passes a vergeml.l10n string |
 | js/vergeml-media-views.js:1021 | `0531e42831` | `jQuery .html()` | l10n.noMedia, one of our own translated strings |
 | js/vergeml-taxonomies-options.js:332 | `ff192819c0` | `jQuery .html()` | a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow |
 | js/vergeml-tree-view.js:143 | `be95315174` | `innerHTML` | an inline SVG assembled from literal path strings chosen by a boolean |
@@ -86,7 +85,7 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 `eml`- or `vergeml`-prefixed name that no script defines. Every caller passes a
 `vergeml.l10n` string, which is the only thing that may go into these two.
 
-<details><summary>All 64 JavaScript HTML sinks</summary>
+<details><summary>All 63 JavaScript HTML sinks</summary>
 
 | where | sink | given | what |
 |---|---|---|---|
@@ -122,7 +121,6 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-import.js:612 | `innerHTML` | a literal | `''` |
 | js/vergeml-media-views.js:168 | `jQuery .html()` | **not a literal** | `compat.item` |
 | js/vergeml-media-views.js:342 | `jQuery .html()` | **not a literal** | `term.term_row` |
-| js/vergeml-media-views.js:460 | `jQuery .html()` | **not a literal** | `'<p><strong>' + this.text + '</strong></p>'` |
 | js/vergeml-media-views.js:1021 | `jQuery .html()` | **not a literal** | `l10n.noMedia` |
 | js/vergeml-quarantine.js:97 | `innerHTML` | a literal | `''` |
 | js/vergeml-quick-edit.js:61 | `innerHTML` | a literal | `''` |
