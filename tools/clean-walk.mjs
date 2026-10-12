@@ -330,10 +330,11 @@ try {
 	await screens( browser, 'vgeditor', 'pass-editor', MEDIA.concat( RAISED ), ( s ) => MEDIA.includes( s ) );
 	await screens( browser, 'vgauthor', 'pass-author', MEDIA.concat( RAISED ), ( s ) => MEDIA.includes( s ) );
 
-	// Core screens that are not the media library: not one of the plugin's styles or scripts loads there (round 5).
+	// Core screens with no media frame: not one of the plugin's styles or scripts loads there (round 5). (General
+	// Settings opens a media frame for the Site Icon, so the frame's files rightly load there; it is not in the list.)
 	{
 		const { ctx, page } = await login( browser, 'admin', 'password' );
-		for ( const core of [ '/wp-admin/index.php', '/wp-admin/plugins.php', '/wp-admin/users.php', '/wp-admin/options-general.php' ] ) {
+		for ( const core of [ '/wp-admin/index.php', '/wp-admin/plugins.php', '/wp-admin/users.php', '/wp-admin/options-writing.php', '/wp-admin/tools.php' ] ) {
 			await page.goto( BASE + core, { waitUntil: 'load' } );
 			const assets = await page.evaluate( () => Array.from( document.querySelectorAll( 'link[rel="stylesheet"], script[src]' ) )
 				.map( ( el ) => el.href || el.src ).filter( ( u ) => /\/plugins\/vergelabs-media-library\//.test( u ) ) );
