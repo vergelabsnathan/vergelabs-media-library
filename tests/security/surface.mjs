@@ -87,7 +87,8 @@ const FLOOR = {
 	restRoutes: 69,
 	// 6 since 2026-10-05: core's save-attachment-compat is core's again (wordpress.org review 2).
 	ajax: 6,
-	adminPost: 11,
+	// 10 since round 6 (2026-10-12): the watchdog resume handler went with the self-entered safe mode.
+	adminPost: 10,
 	cron: 4,
 	// 12 since 2026-10-05: the hidden copy of Settings > Media is gone (wordpress.org review 2).
 	screens: 12,

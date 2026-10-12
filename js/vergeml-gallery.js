@@ -125,12 +125,23 @@
 		overlay.setAttribute( 'role', 'dialog' );
 		overlay.setAttribute( 'aria-modal', 'true' );
 
-		overlay.innerHTML =
-			'<img alt="" />' +
-			'<p class="vgml-lightbox-caption"></p>' +
-			'<button type="button" class="vgml-lightbox-nav" data-dir="prev" aria-label="' + t.previousImage + '">&#8249;</button>' +
-			'<button type="button" class="vgml-lightbox-nav" data-dir="next" aria-label="' + t.nextImage + '">&#8250;</button>' +
-			'<button type="button" class="vgml-lightbox-close" aria-label="' + t.close + '">&#10005;</button>';
+		overlay.innerHTML = '<img alt="" /><p class="vgml-lightbox-caption"></p>';
+
+		// The labels are translated strings, so they go in as attributes, never as markup.
+		var button = function ( cls, dir, label, glyph ) {
+			var b = document.createElement( 'button' );
+			b.type = 'button';
+			b.className = cls;
+			if ( dir ) {
+				b.setAttribute( 'data-dir', dir );
+			}
+			b.setAttribute( 'aria-label', label );
+			b.textContent = glyph;
+			overlay.appendChild( b );
+		};
+		button( 'vgml-lightbox-nav', 'prev', t.previousImage, '‹' );
+		button( 'vgml-lightbox-nav', 'next', t.nextImage, '›' );
+		button( 'vgml-lightbox-close', '', t.close, '✕' );
 
 		overlay.addEventListener( 'click', function ( e ) {
 			var nav = e.target.closest( '.vgml-lightbox-nav' );

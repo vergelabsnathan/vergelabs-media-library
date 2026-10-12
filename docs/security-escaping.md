@@ -13,14 +13,14 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 
 | | count |
 |---|---|
-| PHP output sites with a non-literal argument | 198 |
+| PHP output sites with a non-literal argument | 193 |
 | · of those, read by hand with the reason | 0 |
 | · of those, **nothing accounted for them** | **0** |
 | JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 64 |
 | · of those, given anything but a literal | 18 |
 | · of those, read by hand with the reason | 18 |
 | · of those, **still unread** | **0** |
-| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 249 |
+| JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 252 |
 
 Over 68 PHP files and 43 JavaScript files that ship.
 
@@ -56,12 +56,12 @@ what it is given, so changing any of them expires its reason.
 | js/eml-admin.js:26 | `950a39b6c2` | `jQuery .html()` | vergemlConfirmDialog() and vergemlAlertDialog() inject their html argument. All sixteen call sites pass vergeml.l10n strings -- our own translated copy, never a value out of the database or the request. Until 2026-09-11 every call site misspelled them and they were dead code; see "Two dialog helpers that had no callers" below |
 | js/eml-admin.js:67 | `950a39b6c2` | `jQuery .html()` | vergemlConfirmDialog() and vergemlAlertDialog() inject their html argument. All sixteen call sites pass vergeml.l10n strings -- our own translated copy, never a value out of the database or the request. Until 2026-09-11 every call site misspelled them and they were dead code; see "Two dialog helpers that had no callers" below |
 | js/eml-media-grid.js:106 | `3b644de74c` | `jQuery .html()` | a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow character appended |
-| js/vergeml-gallery.js:36 | `8e5f448d16` | `innerHTML` | glyph is a parameter of mk(), called exactly twice, both times with an HTML entity literal |
-| js/vergeml-media-views.js:127 | `7e52d60663` | `jQuery .html()` | i.item is the rendered output of a wp.media template, not a value out of the database |
-| js/vergeml-media-views.js:270 | `922a72803e` | `jQuery .html()` | $('<div/>').html( t.term_row ).text() -- a detached node used to decode entities, with only .text() read back; term_row is built by our PHP with esc_html() |
-| js/vergeml-media-views.js:385 | `56d3889526` | `jQuery .html()` | this.text comes from options.text, and the only construction of this view passes a vergeml.l10n string |
-| js/vergeml-media-views.js:903 | `0531e42831` | `jQuery .html()` | l10n.noMedia, one of our own translated strings |
-| js/vergeml-taxonomies-options.js:299 | `ed5afe42cb` | `jQuery .html()` | a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow |
+| js/vergeml-gallery.js:44 | `8e5f448d16` | `innerHTML` | glyph is a parameter of mk(), called exactly twice, both times with an HTML entity literal |
+| js/vergeml-media-views.js:168 | `638ed41b71` | `jQuery .html()` | compat.item is the rendered output of a wp.media template, not a value out of the database |
+| js/vergeml-media-views.js:342 | `8cbde23373` | `jQuery .html()` | $('<div/>').html( term.term_row ).text() -- a detached node used to decode entities, with only .text() read back; term_row is built by our PHP with esc_html() |
+| js/vergeml-media-views.js:460 | `56d3889526` | `jQuery .html()` | this.text comes from options.text, and the only construction of this view passes a vergeml.l10n string |
+| js/vergeml-media-views.js:1021 | `0531e42831` | `jQuery .html()` | l10n.noMedia, one of our own translated strings |
+| js/vergeml-taxonomies-options.js:332 | `ff192819c0` | `jQuery .html()` | a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow |
 | js/vergeml-tree-view.js:143 | `be95315174` | `innerHTML` | an inline SVG assembled from literal path strings chosen by a boolean |
 | js/vergeml-tree-view.js:1162 | `7524bab4c0` | `innerHTML` | chevron() or an empty string, and chevron() returns a literal SVG |
 | js/vergeml-tree-view.js:1704 | `b757a8c8a1` | `innerHTML` | chevron() returns a literal SVG -- the fold pair, S10.4 |
@@ -112,18 +112,18 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-folders.js:2218 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:2261 | `innerHTML` | a literal | `''` |
 | js/vergeml-folders.js:2271 | `innerHTML` | a literal | `''` |
-| js/vergeml-gallery.js:36 | `innerHTML` | **not a literal** | `glyph` |
-| js/vergeml-gallery.js:120 | `innerHTML` | a literal | `'<img alt="" />' + '<p class="vgml-lightbox-caption"></p>' + '<button ` |
+| js/vergeml-gallery.js:44 | `innerHTML` | **not a literal** | `glyph` |
+| js/vergeml-gallery.js:128 | `innerHTML` | a literal | `'<img alt="" /><p class="vgml-lightbox-caption"></p>'` |
 | js/vergeml-health.js:383 | `innerHTML` | a literal | `''` |
 | js/vergeml-health.js:676 | `innerHTML` | a literal | `''` |
 | js/vergeml-health.js:1029 | `innerHTML` | a literal | `''` |
 | js/vergeml-import.js:110 | `innerHTML` | a literal | `''` |
 | js/vergeml-import.js:297 | `innerHTML` | a literal | `''` |
 | js/vergeml-import.js:612 | `innerHTML` | a literal | `''` |
-| js/vergeml-media-views.js:127 | `jQuery .html()` | **not a literal** | `i.item` |
-| js/vergeml-media-views.js:270 | `jQuery .html()` | **not a literal** | `t.term_row` |
-| js/vergeml-media-views.js:385 | `jQuery .html()` | **not a literal** | `'<p><strong>' + this.text + '</strong></p>'` |
-| js/vergeml-media-views.js:903 | `jQuery .html()` | **not a literal** | `l10n.noMedia` |
+| js/vergeml-media-views.js:168 | `jQuery .html()` | **not a literal** | `compat.item` |
+| js/vergeml-media-views.js:342 | `jQuery .html()` | **not a literal** | `term.term_row` |
+| js/vergeml-media-views.js:460 | `jQuery .html()` | **not a literal** | `'<p><strong>' + this.text + '</strong></p>'` |
+| js/vergeml-media-views.js:1021 | `jQuery .html()` | **not a literal** | `l10n.noMedia` |
 | js/vergeml-quarantine.js:97 | `innerHTML` | a literal | `''` |
 | js/vergeml-quick-edit.js:61 | `innerHTML` | a literal | `''` |
 | js/vergeml-say.js:45 | `innerHTML` | a literal | `''` |
@@ -131,7 +131,7 @@ Renamed on 2026-09-11. `tests/security/globals.mjs` now fails on any bare call t
 | js/vergeml-talk.js:160 | `innerHTML` | a literal | `'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-` |
 | js/vergeml-talk.js:241 | `innerHTML` | a literal | `''` |
 | js/vergeml-talk.js:276 | `innerHTML` | a literal | `''` |
-| js/vergeml-taxonomies-options.js:299 | `jQuery .html()` | **not a literal** | `function (e, t) { return t == vergeml.l10n.edit + ' ↓' ? vergeml.l10n.` |
+| js/vergeml-taxonomies-options.js:332 | `jQuery .html()` | **not a literal** | `function (index, currentHtml) { return currentHtml == vergeml.l10n.edi` |
 | js/vergeml-tree-view.js:143 | `innerHTML` | **not a literal** | `'<svg viewBox="0 0 20 16" width="20" height="16">' + '<path class="vgm` |
 | js/vergeml-tree-view.js:1162 | `innerHTML` | **not a literal** | `entry.kids ? chevron() : ''` |
 | js/vergeml-tree-view.js:1704 | `innerHTML` | **not a literal** | `chevron()` |

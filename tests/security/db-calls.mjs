@@ -167,7 +167,8 @@ check(
 // prepared statements (wordpress.org review 2), so three assembled calls are now proven as prepared.
 // 2026-10-09 (round 4): every plugin table went into prepare() as %i, so prepared rose 132 -> 187 and tableOnly fell
 // 64 -> 20 (what is left interpolates only core tables). The floor follows the move, and prepared now carries it.
-const FLOOR = { total: 202, prepared: 180, tableOnly: 20, builder: 18 };
+// builder 10 since round 6 (2026-10-12): writes to posts and postmeta go through wp_update_post() and the metadata API.
+const FLOOR = { total: 202, prepared: 180, tableOnly: 20, builder: 10 };
 
 for ( const [ key, least ] of Object.entries( FLOOR ) ) {
 	check( `${ key }: ${ c[ key ] } found, never fewer than ${ least }`, c[ key ] >= least, `found ${ c[ key ] }` );
