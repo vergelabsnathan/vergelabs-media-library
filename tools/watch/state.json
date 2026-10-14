@@ -1,23 +1,23 @@
 {
   "plugins": {
     "filebird": {
-      "version": "6.5.8",
-      "updated": "2026-08-22 7:57am GMT",
+      "version": "6.5.9",
+      "updated": "2026-10-13 8:28pm GMT",
       "installs": 200000,
       "rating": 94,
       "tested": "7.1.3",
-      "requires_php": false,
+      "requires_php": "7.4",
       "manifest": {
         "filebird/assets/css/photoswipe/default-skin.css": "5930fb5d3d6f",
         "filebird/assets/css/photoswipe/default-skin.png": "ed95a8e40a2c",
         "filebird/assets/css/photoswipe/default-skin.svg": "2ac727c9e092",
         "filebird/assets/css/photoswipe/photoswipe.css": "cfeb8d03da07",
         "filebird/assets/css/photoswipe/preloader.gif": "6342367c93c8",
-        "filebird/assets/dist/admin.tsx-5a32e836.js": "c952f4d6c139",
-        "filebird/assets/dist/index-d04c75f0.js": "4095d147c9d5",
-        "filebird/assets/dist/main.tsx-c160adb7.js": "5fb3bf4c5338",
-        "filebird/assets/dist/manifest.json": "9db10de8f08e",
-        "filebird/assets/dist/style.css": "965834fe2d07",
+        "filebird/assets/dist/admin.tsx-5f63a41d.js": "9f8799daa876",
+        "filebird/assets/dist/index-21e04b1b.js": "e540b48f936e",
+        "filebird/assets/dist/main.tsx-90fdc97c.js": "ca72ae2af959",
+        "filebird/assets/dist/manifest.json": "6af886e0b984",
+        "filebird/assets/dist/style.css": "b61bcbf1b231",
         "filebird/assets/img/avatars/author.png": "d0b2196968ef",
         "filebird/assets/img/avatars/av1.png": "e3620876c004",
         "filebird/assets/img/avatars/av2.png": "35146233fdae",
@@ -53,7 +53,7 @@
         "filebird/blocks/filebird-gallery/build/style-index-rtl.css": "54cdf21fc8d5",
         "filebird/blocks/filebird-gallery/build/style-index.css": "4f321d589f4a",
         "filebird/blocks/filebird-gallery/init.php": "872d41ce2e1e",
-        "filebird/filebird.php": "b9d55397360e",
+        "filebird/filebird.php": "3ea634678dfd",
         "filebird/i18n/languages/filebird-de_AT.mo": "96277e111511",
         "filebird/i18n/languages/filebird-de_AT.po": "03515d9c5765",
         "filebird/i18n/languages/filebird-de_CH.mo": "dae348859a4e",
@@ -97,12 +97,12 @@
         "filebird/i18n/languages/filebird-zh_CN.po": "48fa572490fb",
         "filebird/i18n/languages/filebird.pot": "b13bc259e83a",
         "filebird/includes/Addons/PostType/Classes/MetaBox.php": "c24e0790a8a6",
-        "filebird/includes/Addons/PostType/Controllers/Main.php": "5eef9bf0a38c",
+        "filebird/includes/Addons/PostType/Controllers/Main.php": "252a99430a6f",
         "filebird/includes/Addons/PostType/Init.php": "5341e59a5627",
         "filebird/includes/Addons/PostType/Models/Main.php": "778719321e20",
         "filebird/includes/Addons/PostType/Models/PostTypeSettingModel.php": "e2fbd2c27c21",
         "filebird/includes/Addons/PostType/Routes.php": "512de5a17d8f",
-        "filebird/includes/Admin/Settings.php": "0405406d2d45",
+        "filebird/includes/Admin/Settings.php": "81d0239b2ada",
         "filebird/includes/Blocks/AbstractBlock.php": "f69b798d8776",
         "filebird/includes/Blocks/BlockController.php": "659ea9b459cd",
         "filebird/includes/Classes/ActivePro.php": "aa8f07193bad",
@@ -112,20 +112,20 @@
         "filebird/includes/Classes/Core.php": "de6fdd4bfbcd",
         "filebird/includes/Classes/Feedback.php": "65a1d6001364",
         "filebird/includes/Classes/FolderStateManager.php": "bc21a17597ce",
-        "filebird/includes/Classes/Helpers.php": "32a729373ec0",
+        "filebird/includes/Classes/Helpers.php": "b21ad685735c",
         "filebird/includes/Classes/Modules/ModuleCompatibility.php": "fa3b56558c50",
         "filebird/includes/Classes/Modules/ModuleExclude.php": "209dab150122",
         "filebird/includes/Classes/Modules/ModuleSvg.php": "b7439736fe0a",
         "filebird/includes/Classes/Modules/ModuleUser.php": "d2636041dce3",
         "filebird/includes/Classes/Review.php": "ebdfc8db8e1c",
-        "filebird/includes/Classes/Schedule.php": "e5a56729ee58",
+        "filebird/includes/Classes/Schedule.php": "7bb6df79d25c",
         "filebird/includes/Classes/Tree.php": "e00ca0b98837",
         "filebird/includes/Controller/Api.php": "ab80cecf4857",
         "filebird/includes/Controller/Controller.php": "32900fc3e0e1",
         "filebird/includes/Controller/Convert.php": "fe95a4063355",
-        "filebird/includes/Controller/FolderController.php": "0f3d384ac0f6",
+        "filebird/includes/Controller/FolderController.php": "05a2d87ade24",
         "filebird/includes/Controller/Import/DataImport.php": "063a856f5853",
-        "filebird/includes/Controller/Import/ImportController.php": "c63537c1b3eb",
+        "filebird/includes/Controller/Import/ImportController.php": "d39972f8a1a6",
         "filebird/includes/Controller/Import/ImportFactory.php": "2182607becea",
         "filebird/includes/Controller/Import/Methods/ImportMethod.php": "1520cd1ff167",
         "filebird/includes/Controller/Import/Methods/RealMediaFolderImport.php": "9aa813f53793",
@@ -137,22 +137,26 @@
         "filebird/includes/Controller/Import/PostType/PluginImporters/WickedFoldersImporter.php": "8a65bb6d9c9f",
         "filebird/includes/Controller/PostTypeController.php": "5d526a3f7d0e",
         "filebird/includes/Controller/SettingController.php": "17ebe21f7a3a",
-        "filebird/includes/Controller/SyncController.php": "bd1c5e96d73a",
+        "filebird/includes/Controller/SyncController.php": "1f707da56045",
         "filebird/includes/Fallback.php": "35d478faa2d3",
-        "filebird/includes/I18n.php": "1f10bb14b1c2",
+        "filebird/includes/I18n.php": "bbec4a958609",
         "filebird/includes/Install.php": "b4d9014b04a3",
-        "filebird/includes/Model/Folder.php": "d90370b237fe",
-        "filebird/includes/Model/SettingModel.php": "62ced17db2dd",
+        "filebird/includes/Model/Folder.php": "b55fd33d0fee",
+        "filebird/includes/Model/SettingModel.php": "67db7caa8206",
         "filebird/includes/Model/ThemeModel.php": "b5c357a0ea4b",
-        "filebird/includes/Model/UserSettingModel.php": "6d2d46279f53",
-        "filebird/includes/Plugin.php": "d52a16f5eb90",
+        "filebird/includes/Model/UserSettingModel.php": "dfb495344cc6",
+        "filebird/includes/PageBuilders/Divi/assets/js/builder.css": "637675621552",
+        "filebird/includes/PageBuilders/Divi/assets/js/builder.js": "bfbeb699c63f",
+        "filebird/includes/PageBuilders/Divi5/assets/js/builder.css": "637675621552",
+        "filebird/includes/PageBuilders/Divi5/assets/js/builder.js": "ddc43059703d",
+        "filebird/includes/Plugin.php": "1da24d928f8f",
         "filebird/includes/Rest/ApiInteface.php": "0b7cdb89b685",
         "filebird/includes/Rest/FolderApi.php": "75e72221525b",
         "filebird/includes/Rest/PostTypeApi.php": "4f2206cc3267",
-        "filebird/includes/Rest/PublicApi.php": "5d3bd6f1c110",
+        "filebird/includes/Rest/PublicApi.php": "d8663915f93d",
         "filebird/includes/Rest/RestApi.php": "bd4cd2a5aa33",
         "filebird/includes/Rest/SettingApi.php": "87b38e21c579",
-        "filebird/includes/Rest/SyncApi.php": "f26202b7f2f1",
+        "filebird/includes/Rest/SyncApi.php": "793aba270c25",
         "filebird/includes/Support/ACF/acf-field-filebird-v4.php": "8ae798191080",
         "filebird/includes/Support/ACF/acf-field-filebird-v5.php": "5a35414a4dc5",
         "filebird/includes/Support/ACF.php": "080582bbdd79",
@@ -163,50 +167,50 @@
         "filebird/includes/Support/WPML.php": "8319e52568be",
         "filebird/includes/Utils/Singleton.php": "bf91f4e97926",
         "filebird/includes/Utils/Vite.php": "04bcc3741f41",
-        "filebird/readme.txt": "7edfc027a9bf",
+        "filebird/readme.txt": "44f96d8e8a8f",
         "filebird/recommended-modules/loader.php": "5e2ff6e24264",
-        "filebird/recommended-modules/registry.php": "ec7e02c9ca2c",
+        "filebird/recommended-modules/registry.php": "7753ecae0230",
         "filebird/recommended-modules/yaymail-wc-settings-banner/assets/images/yaymail-wc-settings-banner.png": "2fd8fd3e7757",
         "filebird/recommended-modules/yaymail-wc-settings-banner/assets/js/script.js": "a9588d78d85d",
         "filebird/recommended-modules/yaymail-wc-settings-banner/init.php": "4b38003ff5fc",
-        "filebird/recommended-modules/yaymail-wc-settings-banner/main.php": "a51bcc5d0731",
-        "filebird/recommended-modules/yaymail-wc-settings-banner/register.php": "bf3934d9d103",
+        "filebird/recommended-modules/yaymail-wc-settings-banner/main.php": "86f279e27222",
+        "filebird/recommended-modules/yaymail-wc-settings-banner/register.php": "bd32a359aed2",
         "filebird/recommended-modules/yaymail-wc-settings-email-column/assets/css/style.css": "19dc716f4793",
         "filebird/recommended-modules/yaymail-wc-settings-email-column/assets/js/script.js": "4e83397d3a27",
         "filebird/recommended-modules/yaymail-wc-settings-email-column/init.php": "61a299f6cdfc",
-        "filebird/recommended-modules/yaymail-wc-settings-email-column/main.php": "71e0a560e105",
-        "filebird/recommended-modules/yaymail-wc-settings-email-column/register.php": "13132ed2b083",
+        "filebird/recommended-modules/yaymail-wc-settings-email-column/main.php": "9286e2bb03a9",
+        "filebird/recommended-modules/yaymail-wc-settings-email-column/register.php": "4bc951217c76",
         "filebird/uninstall.php": "cc7e5febbfc5",
         "filebird/vendor/autoload.php": "3bf0f65f3be6",
+        "filebird/vendor/composer/ClassLoader.php": "7f146de662b0",
+        "filebird/vendor/composer/InstalledVersions.php": "83f18357495e",
         "filebird/vendor/composer/autoload_classmap.php": "34e2dbec803d",
         "filebird/vendor/composer/autoload_namespaces.php": "3e0996af9b54",
         "filebird/vendor/composer/autoload_psr4.php": "0539b2881eae",
         "filebird/vendor/composer/autoload_real.php": "f7f7120d9b0c",
         "filebird/vendor/composer/autoload_static.php": "a531f0d8b9b8",
-        "filebird/vendor/composer/ClassLoader.php": "7f146de662b0",
         "filebird/vendor/composer/installed.json": "01052b7a9182",
-        "filebird/vendor/composer/installed.php": "a4a4dd2fa287",
-        "filebird/vendor/composer/InstalledVersions.php": "83f18357495e",
+        "filebird/vendor/composer/installed.php": "6afb4763e17d",
         "filebird/vendor/composer/platform_check.php": "29522f5965fd",
         "filebird/vendor/enshrined/svg-sanitize/composer.json": "cc34aaf78f16",
-        "filebird/vendor/enshrined/svg-sanitize/src/data/AllowedAttributes.php": "97e4ba52303d",
-        "filebird/vendor/enshrined/svg-sanitize/src/data/AllowedTags.php": "3741ddd942bf",
-        "filebird/vendor/enshrined/svg-sanitize/src/data/AttributeInterface.php": "409ea4955fd4",
-        "filebird/vendor/enshrined/svg-sanitize/src/data/TagInterface.php": "d114d039ff15",
-        "filebird/vendor/enshrined/svg-sanitize/src/data/XPath.php": "55db3b2f1b0e",
         "filebird/vendor/enshrined/svg-sanitize/src/ElementReference/Resolver.php": "0e1b60d04073",
         "filebird/vendor/enshrined/svg-sanitize/src/ElementReference/Subject.php": "56dbbea7229b",
         "filebird/vendor/enshrined/svg-sanitize/src/ElementReference/Usage.php": "73c361dc4c1a",
         "filebird/vendor/enshrined/svg-sanitize/src/Exceptions/NestingException.php": "42d0d97f1b0b",
         "filebird/vendor/enshrined/svg-sanitize/src/Helper.php": "38164dfcf35f",
         "filebird/vendor/enshrined/svg-sanitize/src/Sanitizer.php": "2742728545d9",
+        "filebird/vendor/enshrined/svg-sanitize/src/data/AllowedAttributes.php": "97e4ba52303d",
+        "filebird/vendor/enshrined/svg-sanitize/src/data/AllowedTags.php": "3741ddd942bf",
+        "filebird/vendor/enshrined/svg-sanitize/src/data/AttributeInterface.php": "409ea4955fd4",
+        "filebird/vendor/enshrined/svg-sanitize/src/data/TagInterface.php": "d114d039ff15",
+        "filebird/vendor/enshrined/svg-sanitize/src/data/XPath.php": "55db3b2f1b0e",
         "filebird/vendor/enshrined/svg-sanitize/src/svg-scanner.php": "e414a1ead75d",
         "filebird/views/notices/html-notice-first-folder.php": "2ea741eda4b1",
         "filebird/views/notices/html-notice-update-database.php": "fbf7546657a4",
         "filebird/views/particle/activation_fail.php": "c691d0a0ee4b",
-        "filebird/views/settings/header.php": "458ed02c5c0d"
+        "filebird/views/settings/header.php": "94b8f780d891"
       },
-      "seen": "2026-10-13T12:41:19.586Z"
+      "seen": "2026-10-14T10:09:44.689Z"
     },
     "folders": {
       "version": "3.2.7",
@@ -400,7 +404,7 @@
         "folders/templates/settings/user-restrictions.php": "ea2ec7017a82",
         "folders/uninstall.php": "07c6d1aa3769"
       },
-      "seen": "2026-10-13T12:41:19.666Z"
+      "seen": "2026-10-14T10:09:44.765Z"
     },
     "enhanced-media-library": {
       "version": "2.9.4",
@@ -443,7 +447,7 @@
         "enhanced-media-library/languages/enhanced-media-library.pot": "85e1b35b2743",
         "enhanced-media-library/readme.txt": "f14860ab10be"
       },
-      "seen": "2026-10-13T12:41:19.730Z"
+      "seen": "2026-10-14T10:09:44.832Z"
     },
     "elementor": {
       "version": "4.2.3",
@@ -7152,7 +7156,7 @@
         "real-media-library-lite/vendor/devowl-wp/utils/src/Utils.php": "d292b175b432",
         "real-media-library-lite/vendor/scoper-autoload.php": "1154b70fbdc6"
       },
-      "seen": "2026-10-13T12:41:19.793Z"
+      "seen": "2026-10-14T10:09:44.895Z"
     },
     "media-library-organizer": {
       "version": "2.1.5",
@@ -7734,7 +7738,7 @@
         "media-library-organizer/views/global/media-list-view-order.php": "d44dedceb315",
         "media-library-organizer/webpack.assets.config.js": "430b6cbf6e2a"
       },
-      "seen": "2026-10-13T12:41:19.863Z"
+      "seen": "2026-10-14T10:09:44.967Z"
     },
     "enable-media-replace": {
       "version": "4.2.2",
@@ -7859,7 +7863,7 @@
         "enable-media-replace/views/success.php": "6960838a0f6d",
         "enable-media-replace/views/upsell.php": "ac34421f70c2"
       },
-      "seen": "2026-10-13T12:41:19.935Z"
+      "seen": "2026-10-14T10:09:45.039Z"
     }
   },
   "checked": null,
@@ -7868,187 +7872,187 @@
       "version": "7.1.3",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:20.076Z"
+      "seen": "2026-10-14T10:09:45.183Z"
     },
     "php": {
       "version": "8.5.11",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:20.092Z"
+      "seen": "2026-10-14T10:09:45.200Z"
     },
     "elementor": {
-      "version": "4.3.4",
+      "version": "4.3.5",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:20.168Z"
+      "seen": "2026-10-14T10:09:45.277Z"
     },
     "beaver-builder-lite-version": {
       "version": "2.11.0.6",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:20.232Z"
+      "seen": "2026-10-14T10:09:45.341Z"
     },
     "brizy": {
       "version": "2.8.23",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:20.305Z"
+      "seen": "2026-10-14T10:09:45.415Z"
     },
     "js_composer": {
       "version": "9.0.1",
       "prerelease": null,
       "onBox": "9.0.1",
-      "seen": "2026-10-13T12:41:16.721Z"
+      "seen": "2026-10-14T10:09:42.198Z"
     },
     "divi": {
       "version": "5.11.0",
       "prerelease": null,
       "onBox": "5.11.0",
-      "seen": "2026-10-13T12:41:16.721Z"
+      "seen": "2026-10-14T10:09:42.198Z"
     },
     "bricks": {
       "version": "1.15",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.586Z"
+      "seen": "2026-10-14T10:09:46.704Z"
     },
     "oxygen": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.586Z"
+      "seen": "2026-10-14T10:09:46.704Z"
     },
     "avada": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.586Z"
+      "seen": "2026-10-14T10:09:46.704Z"
     },
     "thrive-architect": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.586Z"
+      "seen": "2026-10-14T10:09:46.704Z"
     },
     "cornerstone": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.586Z"
+      "seen": "2026-10-14T10:09:46.704Z"
     },
     "yootheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.586Z"
+      "seen": "2026-10-14T10:09:46.704Z"
     },
     "betheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.586Z"
+      "seen": "2026-10-14T10:09:46.704Z"
     },
     "themify-builder": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.586Z"
+      "seen": "2026-10-14T10:09:46.704Z"
     },
     "tailor": {
       "version": "1.8.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.656Z"
+      "seen": "2026-10-14T10:09:46.775Z"
     },
     "oshine": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.656Z"
+      "seen": "2026-10-14T10:09:46.775Z"
     },
     "learnpress-frontend-editor": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.656Z"
+      "seen": "2026-10-14T10:09:46.775Z"
     },
     "dokan-lite": {
       "version": "5.3.0",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.731Z"
+      "seen": "2026-10-14T10:09:46.851Z"
     },
     "wordpress-seo": {
       "version": "28.7",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.799Z"
+      "seen": "2026-10-14T10:09:46.918Z"
     },
     "seo-by-rank-math": {
       "version": "1.0.280",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.869Z"
+      "seen": "2026-10-14T10:09:46.989Z"
     },
     "wp-seopress": {
       "version": "10.3",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:21.937Z"
+      "seen": "2026-10-14T10:09:47.057Z"
     },
     "all-in-one-seo-pack": {
       "version": "5.0.3",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:22.008Z"
+      "seen": "2026-10-14T10:09:47.129Z"
     },
     "woocommerce": {
       "version": "11.2.1",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:22.079Z"
+      "seen": "2026-10-14T10:09:47.201Z"
     },
     "advanced-custom-fields": {
       "version": "6.8.10",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:22.151Z"
+      "seen": "2026-10-14T10:09:47.273Z"
     },
     "polylang": {
       "version": "3.8.11",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:22.210Z"
+      "seen": "2026-10-14T10:09:47.334Z"
     },
     "wpml": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:22.210Z"
+      "seen": "2026-10-14T10:09:47.334Z"
     },
     "wp-rocket": {
       "version": "2.0.4",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:22.965Z"
+      "seen": "2026-10-14T10:09:47.886Z"
     },
     "filebird": {
-      "version": "6.5.8",
+      "version": "6.5.9",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:23.028Z"
+      "seen": "2026-10-14T10:09:47.950Z"
     },
     "real-media-library-lite": {
       "version": "4.23.7",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:23.085Z"
+      "seen": "2026-10-14T10:09:48.007Z"
     },
     "zionbuilder": {
       "version": "3.6.17",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-13T12:41:20.380Z"
+      "seen": "2026-10-14T10:09:45.491Z"
     }
   }
 }
