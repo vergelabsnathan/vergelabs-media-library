@@ -198,7 +198,8 @@ async function screens( browser, user, pass, list, allowed ) {
 		await page.waitForTimeout( 2500 );
 		const body = await page.locator( 'body' ).innerText().catch( () => '' );
 		const status = res ? res.status() : 0;
-		const fatal = /There has been a critical error|Fatal error|Warning:|Notice:|Deprecated:/.test( body );
+		// Core's own dashboard box on an old PHP reads "Warning: / PHP Update Recommended"; that is WordPress, not a PHP warning.
+		const fatal = /There has been a critical error|Fatal error|Warning:|Notice:|Deprecated:/.test( body.replace( /Warning:\s*\n?\s*PHP Update Recommended/g, '' ) );
 		const denied = /not allowed to access this page|do not have sufficient permissions/i.test( body ) || 403 === status;
 		const open = allowed( s );
 		// A refused screen answers 403 itself, and the browser logs that as a failed resource: expected, not a fault.
