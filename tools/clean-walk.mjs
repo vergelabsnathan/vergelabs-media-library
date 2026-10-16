@@ -53,7 +53,10 @@ execFileSync( 'git', [ 'archive', REF, '--prefix=vergelabs-media-library/', '-o'
 execFileSync( 'tar', [ 'xf', 'clean.tar', '-C', 'arch' ], { cwd: work } );
 
 const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+// The CLI's --php/--wp lose to a blueprint without preferredVersions (8.5 / 7.1 ran
+// instead of 7.4 / 6.5 until 2026-10-16); versions.txt proves what booted.
 const blueprint = {
+	preferredVersions: { php: PHP, wp: WP },
 	steps: [
 		{ step: 'defineWpConfigConsts', consts: { WP_DEBUG: true, WP_DEBUG_LOG: '/out/debug.log', WP_DEBUG_DISPLAY: false } },
 		{
@@ -65,6 +68,7 @@ const blueprint = {
 		{
 			step: 'runPHP',
 			code: `<?php require '/wordpress/wp-load.php';
+file_put_contents( '/out/versions.txt', PHP_VERSION . ' ' . get_bloginfo( 'version' ) );
 foreach ( array( 'editor', 'author' ) as $r ) {
 	if ( ! username_exists( 'vg' . $r ) ) {
 		wp_insert_user( array( 'user_login' => 'vg' . $r, 'user_pass' => 'pass-' . $r, 'user_email' => $r . '@example.com', 'role' => $r ) );
@@ -418,6 +422,8 @@ const outboundOurs = outbound.filter( ( l ) => /vergeml_|vergelabs-media-library
 if ( ! fs.existsSync( path.join( out, 'http.log' ) ) ) {
 	row( false, 'the outbound logger wrote nothing: /out was not this site\'s, so debug.log and the request counts prove nothing' );
 }
+const [ ranPhp = '', ranWp = '' ] = ( fs.existsSync( path.join( out, 'versions.txt' ) ) ? fs.readFileSync( path.join( out, 'versions.txt' ), 'utf8' ) : '' ).split( ' ' );
+row( ranPhp.startsWith( PHP + '.' ) && ( 'latest' === WP || ranWp.startsWith( WP ) ), `ran on PHP ${ ranPhp || '?' }, WP ${ ranWp || '?' } (asked for PHP ${ PHP }, WP ${ WP })` );
 
 console.log( `clean-site walk of ${ commit } (${ REF })\n` );
 console.log( rows.join( '\n' ) );

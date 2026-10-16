@@ -27,6 +27,7 @@ const ZIP = path.resolve( ROOT, process.argv[ 2 ] || 'dist/vergelabs-media-libra
 
 const LIFE = [ 'activate', 'work', 'cycle', 'delete' ];
 const SCENARIOS = [
+	{ name: 'PHP floor: every call exists on PHP 7.4 without a WordPress polyfill', file: 'php-floor.php', phases: [ 'scan' ], php: '7.4', wp: '6.5' },
 	{ name: 'lifecycle on WP 6.5 / PHP 7.4', file: 'lifecycle.php', phases: LIFE, php: '7.4', wp: '6.5' },
 	{ name: 'lifecycle on latest / PHP 8.3', file: 'lifecycle.php', phases: LIFE, php: '8.3', wp: 'latest' },
 	{ name: 'lifecycle with remove-everything on, latest / PHP 8.3', file: 'lifecycle.php', phases: LIFE, php: '8.3', wp: 'latest', consts: { RT_WIPE: true } },
@@ -51,7 +52,7 @@ function run( scenario ) {
 
 		const phaseStep = ( phase ) => ( {
 			step: 'runPHP',
-			code: "<?php define( 'RT_PHASE', '" + phase + "' ); ob_start(); register_shutdown_function( function () { file_put_contents( '/out/result.txt', ob_get_clean(), FILE_APPEND ); } ); require_once '/wordpress/wp-load.php'; require '/checks/" + scenario.file + "';",
+			code: "<?php define( 'RT_PHASE', '" + phase + "' ); ob_start(); register_shutdown_function( function () { file_put_contents( '/out/result.txt', ob_get_clean(), FILE_APPEND ); } ); require_once '/wordpress/wp-load.php'; file_put_contents( '/out/versions.txt', PHP_VERSION . ' ' . get_bloginfo( 'version' ) ); require '/checks/" + scenario.file + "';",
 		} );
 
 		const steps = [
@@ -60,7 +61,9 @@ function run( scenario ) {
 			{ step: 'installPlugin', pluginData: { resource: 'vfs', path: '/zips/plugin.zip' }, options: { activate: false } },
 			...scenario.phases.map( phaseStep ),
 		];
-		fs.writeFileSync( path.join( work, 'blueprint.json' ), JSON.stringify( { steps } ) );
+		// run-blueprint ignores --php and --wp and boots the newest of both (8.5 / 7.1 on
+		// 2026-10-16); only preferredVersions is honoured, and versions.txt proves it.
+		fs.writeFileSync( path.join( work, 'blueprint.json' ), JSON.stringify( { preferredVersions: { php: scenario.php, wp: scenario.wp }, steps } ) );
 
 		const child = spawn( 'npx', [ '-y', PLAYGROUND_CLI, 'run-blueprint', `--php=${ scenario.php }`, `--wp=${ scenario.wp }`,
 			'--blueprint', path.join( work, 'blueprint.json' ),
@@ -72,8 +75,11 @@ function run( scenario ) {
 			const said = fs.existsSync( path.join( out, 'result.txt' ) ) ? fs.readFileSync( path.join( out, 'result.txt' ), 'utf8' ) : '';
 			const log = fs.existsSync( path.join( out, 'debug.log' ) ) ? fs.readFileSync( path.join( out, 'debug.log' ), 'utf8' ).trim() : '';
 			const lines = [ ...said.matchAll( PHASE_LINE ) ];
-			const ok = lines.length === scenario.phases.length && lines.every( ( m ) => m[ 2 ] === m[ 3 ] ) && '' === log;
-			console.log( `\n──────── ${ scenario.name }\n${ said.trim() || '(no output)' }` );
+			const ran = fs.existsSync( path.join( out, 'versions.txt' ) ) ? fs.readFileSync( path.join( out, 'versions.txt' ), 'utf8' ) : '';
+			const [ ranPhp = '', ranWp = '' ] = ran.split( ' ' );
+			const versionsOk = ranPhp.startsWith( scenario.php + '.' ) && ( 'latest' === scenario.wp || ranWp.startsWith( scenario.wp ) );
+			const ok = versionsOk && lines.length === scenario.phases.length && lines.every( ( m ) => m[ 2 ] === m[ 3 ] ) && '' === log;
+			console.log( `\n──────── ${ scenario.name }\n  ran on PHP ${ ranPhp || '?' }, WP ${ ranWp || '?' }${ versionsOk ? '' : `  -- FAIL, asked for PHP ${ scenario.php }, WP ${ scenario.wp }` }\n${ said.trim() || '(no output)' }` );
 			console.log( `  phases reported: ${ lines.length } of ${ scenario.phases.length }` );
 			console.log( `  debug.log: ${ log ? log.split( '\n' ).length + ' line(s)\n' + log.split( '\n' ).slice( 0, 8 ).join( '\n' ) : 'empty' }` );
 			if ( lines.length < scenario.phases.length && err ) {
