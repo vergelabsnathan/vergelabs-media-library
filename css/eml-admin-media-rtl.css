@@ -78,9 +78,6 @@ body.eml-media-css .compat-item .eml-tax-field {
     margin: 8px 0 8px 0;
     padding: 3px 5px;
     max-width: 100%;
-    font-size: 16px;
-    font-weight: 300;
-    line-height: 1.5;
     vertical-align: middle;
 }
 
@@ -159,8 +156,6 @@ body.upload-php.eml-grid #wpbody-content > #screen-meta {
 .media-frame.mode-eml-grid .media-frame-content {
     top: 0;
     bottom: 60px;
-    border: none;
-    background: none;
     overflow: hidden;
 }
 .media-frame.mode-eml-grid .attachments-browser {
@@ -171,9 +166,6 @@ body.upload-php.eml-grid #wpbody-content > #screen-meta {
     bottom: 0;
     width: auto;
     height: auto;
-    border: 1px solid #ddd;
-    border-left: 0;
-    background: #fff;
     overflow: visible;
 
     -webkit-transition: all 0.2s;
@@ -184,9 +176,6 @@ body.upload-php.eml-grid #wpbody-content > #screen-meta {
 }
 .media-frame.mode-eml-grid .attachments-browser .media-toolbar {
     right: -1px;
-}
-.media-frame.mode-eml-grid .attachments-browser .media-toolbar.wp-filter select {
-    font-size: 14px;
 }
 .media-frame.mode-eml-grid .attachments-browser .attachments,
 .media-frame.mode-eml-grid .attachments-browser .uploader-inline {
@@ -219,19 +208,6 @@ body.upload-php.eml-grid #wpbody-content > #screen-meta {
 .media-frame.mode-eml-grid .attachments-browser .attachments {
     padding: 8px;
 }
-.media-frame.mode-eml-grid .delete-attachment,
-.media-frame.mode-eml-grid .trash-attachment,
-.media-frame.mode-eml-grid .untrash-attachment {
-    color: #bc0b0b;
-}
-.media-frame.mode-eml-grid .delete-attachment:hover,
-.media-frame.mode-eml-grid .delete-attachment:focus,
-.media-frame.mode-eml-grid .trash-attachment:hover,
-.media-frame.mode-eml-grid .trash-attachment:focus,
-.media-frame.mode-eml-grid .untrash-attachment:hover,
-.media-frame.mode-eml-grid .untrash-attachment:focus {
-    color: #ff0000;
-}
 .media-frame.mode-eml-grid .attachments-browser .uploader-inline {
     position: absolute;
     top: 10px;
@@ -240,8 +216,6 @@ body.upload-php.eml-grid #wpbody-content > #screen-meta {
     bottom: auto;
     padding: 0;
     margin: 0;
-    border: 4px dashed #bbb;
-    background-color: #fff;
 }
 @media only screen and (max-width: 900px) {
 
@@ -260,13 +234,8 @@ body.upload-php.eml-grid #wpbody-content > #screen-meta {
     margin-top: 30px;
 }
 .media-frame.mode-eml-grid .attachments-browser .no-media {
-    text-align: center;
-    font-size: 20px;
-    line-height: 28px;
-    font-weight: 400;
     padding: 40px 0 0;
     margin: 0 0 0 300px;
-    color: #777;
 }
 
 
@@ -303,9 +272,6 @@ body.upload-php.eml-grid #wpbody-content > #screen-meta {
 }
 .media-frame.mode-eml-grid .media-frame-toolbar .media-toolbar-secondary .media-selection {
     position: relative;
-}
-.media-frame.mode-eml-grid .media-frame-toolbar .media-toolbar-secondary .media-selection:after {
-    background-image: none;
 }
 
 @media only screen and (max-width: 640px) {
@@ -394,7 +360,6 @@ body.eml-media-css .attachment-details {
 .eml-media-css .media-sidebar .setting select {
     box-sizing: border-box;
     margin: 1px;
-    font-size: 13px;
 }
 
 .media-sidebar ul.eml-filter-based {
@@ -452,20 +417,6 @@ body.eml-media-css .media-modal-content .media-frame select.attachment-filters {
     vertical-align: middle;
     line-height: 28px;
     height: 28px;
-}
-
-/* duplicate from the core for Elementor, temp solution */
-.eml-media-css .media-modal.wp-core-ui select {
-    font-size: 14px;
-    line-height: 2;
-    -webkit-appearance: none;
-     background: #fff url(data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%206l5%205%205-5%202%201-7%207-7-7%202-1z%22%20fill%3D%22%23555%22%2F%3E%3C%2Fsvg%3E) no-repeat left 5px top 55%; 
-     background-size: 16px 16px; 
-     padding: 0 8px 0 18px;
-     padding-inline: 8px 18px !important;
-}
-.eml-media-css .media-modal.wp-core-ui select:hover {
-    color: #2271b1;
 }
 
 body.eml-media-css .attachments-browser .media-toolbar-secondary > .media-button {
