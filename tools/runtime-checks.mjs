@@ -28,6 +28,7 @@ const ZIP = path.resolve( ROOT, process.argv[ 2 ] || 'dist/vergelabs-media-libra
 const LIFE = [ 'activate', 'work', 'cycle', 'delete' ];
 const SCENARIOS = [
 	{ name: 'PHP floor: every call exists on PHP 7.4 without a WordPress polyfill', file: 'php-floor.php', phases: [ 'scan' ], php: '7.4', wp: '6.5' },
+	{ name: 'a parent loop in the terms table, every folder walk, WP 6.5 / PHP 7.4', file: 'term-loop.php', phases: [ 'activate', 'loop' ], php: '7.4', wp: '6.5' },
 	{ name: 'lifecycle on WP 6.5 / PHP 7.4', file: 'lifecycle.php', phases: LIFE, php: '7.4', wp: '6.5' },
 	{ name: 'lifecycle on latest / PHP 8.3', file: 'lifecycle.php', phases: LIFE, php: '8.3', wp: 'latest' },
 	{ name: 'lifecycle with remove-everything on, latest / PHP 8.3', file: 'lifecycle.php', phases: LIFE, php: '8.3', wp: 'latest', consts: { RT_WIPE: true } },
