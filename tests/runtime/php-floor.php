@@ -47,8 +47,10 @@ foreach ( array( 'wp-includes', 'wp-admin' ) as $wp_dir ) {
 	}
 }
 
-// Always present on any PHP 7.4 that runs WordPress; everything else is an extension a host can lack.
-$base = array_flip( array( 'core', 'standard', 'date', 'pcre', 'spl', 'reflection', 'hash', 'json', 'filter', 'ctype', 'tokenizer', 'session', 'mysqli', 'mysqlnd', 'pdo', 'sqlite3', 'pdo_sqlite', 'libxml', 'xml', 'dom', 'simplexml', 'zlib', 'random' ) );
+// Built into every PHP 7.4 (core, standard, date, pcre, spl, reflection, hash, json) or the database WordPress
+// itself needs. ctype, SimpleXML, DOM, XML, filter, zlib and the rest can be compiled out, and Site Health
+// lists them as optional (round 7 review: simplexml_load_file() unchecked).
+$base = array_flip( array( 'core', 'standard', 'date', 'pcre', 'spl', 'reflection', 'hash', 'json', 'random', 'mysqli', 'mysqlnd', 'pdo', 'sqlite3', 'pdo_sqlite' ) );
 
 /*
  *  Files the main file includes inside `if ( ! vergeml_features_off() ) {`, which is

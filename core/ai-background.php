@@ -229,11 +229,7 @@ function vergeml_cron_continue_after() {
 
 
 function vergeml_ai_run_unschedule() {
-    $next = wp_next_scheduled( VERGEML_AI_RUN_HOOK );
-    while ( false !== $next ) {
-        wp_unschedule_event( $next, VERGEML_AI_RUN_HOOK );
-        $next = wp_next_scheduled( VERGEML_AI_RUN_HOOK );
-    }
+    wp_clear_scheduled_hook( VERGEML_AI_RUN_HOOK );
 }
 
 

@@ -62,7 +62,7 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
                 $terms = explode( ',', $atts[$taxonomy] );
             }
 
-            $field = ctype_digit( implode( '', $terms ) ) ? 'term_id' : 'slug';
+            $field = preg_match( '/^\d+$/', implode( '', $terms ) ) ? 'term_id' : 'slug';
 
             $tax_query[] = array(
                 'taxonomy'         => $taxonomy,

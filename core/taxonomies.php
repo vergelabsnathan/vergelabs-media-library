@@ -467,7 +467,7 @@ function vergeml_ajax_query_attachments_args( $query ) {
 
                 if( is_numeric( $query[$taxonomy_name] ) || is_array( $query[$taxonomy_name] ) ) {
 
-                    $field = ctype_digit( implode( '', (array) $query[$taxonomy_name] ) ) ? 'term_id' : 'slug';
+                    $field = preg_match( '/^\d+$/', implode( '', (array) $query[$taxonomy_name] ) ) ? 'term_id' : 'slug';
 
                     $tax_query[] = array(
                         'taxonomy' => $taxonomy_name,
@@ -499,7 +499,7 @@ function vergeml_ajax_query_attachments_args( $query ) {
                             $terms = explode( ',', $query[$taxonomy_name] );
                         }
 
-                        $field = ctype_digit( implode( '', $terms ) ) ? 'term_id' : 'slug';
+                        $field = preg_match( '/^\d+$/', implode( '', $terms ) ) ? 'term_id' : 'slug';
 
                         $tax_query[] = array(
                             'taxonomy'         => $taxonomy_name,

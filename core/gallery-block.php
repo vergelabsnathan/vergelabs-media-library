@@ -221,6 +221,7 @@ function vergeml_gallery_query( $atts ) {
         'post_status'    => 'inherit',
         'post_mime_type' => 'image',
         'posts_per_page' => $limit > 0 ? $limit : -1,
+        'fields'         => empty( $atts['ids'] ) ? '' : 'ids',
         'orderby'        => $chosen['orderby'],
         'order'          => $chosen['order'],
         // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- a folder gallery is a term lookup; there is no version of the feature without one, and it is bounded to a single term.
@@ -425,6 +426,7 @@ function vergeml_rest_gallery_folders( WP_REST_Request $request ) {
                     'taxonomy' => $taxonomy,
                     'folder'   => (int) $term->term_id,
                     'children' => false,
+                    'ids'      => true,
                 ) ) ),
             );
 

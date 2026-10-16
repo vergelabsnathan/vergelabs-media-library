@@ -338,7 +338,7 @@ function vergeml_csv_parse( $text ) {
             continue;
         }
 
-        if ( ! ctype_digit( $raw ) ) {
+        if ( ! preg_match( '/^\d+$/', (string) $raw ) ) {
             $problems[] = sprintf(
                 /* translators: 1: line number, 2: the value found. */
                 __( 'Line %1$d: “%2$s” is not a file id.', 'vergelabs-media-library' ),

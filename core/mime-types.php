@@ -485,7 +485,8 @@ add_filter( 'wp_prepare_attachment_for_js', function( $response, $attachment, $m
 
 function vergeml_svg_dimensions( $svg ) {
 
-    if ( ! is_string( $svg ) || ! is_readable( $svg ) ) {
+    // SimpleXML is optional in PHP; without it the SVG keeps no size, as in WordPress itself.
+    if ( ! is_string( $svg ) || ! is_readable( $svg ) || ! function_exists( 'simplexml_load_file' ) ) {
         return (object) array( 'width' => 0, 'height' => 0 );
     }
 
