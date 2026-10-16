@@ -205,7 +205,8 @@ async function screens( browser, user, pass, list, allowed ) {
 		const failed = open ? page.__failed : page.__failed.filter( ( f ) => ! f.endsWith( s ) );
 		const errors = open ? page.__errors : page.__errors.filter( ( e ) => ! /status of 403/.test( e ) );
 		const ok = ! fatal && ( open ? ( 200 === status && ! denied ) : denied ) && ! failed.length && ! errors.length;
-		row( ok, `${ user.padEnd( 9 ) } ${ String( status ).padEnd( 4 ) } ${ open ? 'open ' : 'deny ' } ${ s }${ page.__errors.length ? '  console: ' + page.__errors.join( ' / ' ) : '' }${ page.__failed.length ? '  failed: ' + page.__failed.join( ', ' ) : '' }` );
+		const said = fatal ? '  text: ' + ( /[^\n]*(?:There has been a critical error|Fatal error|Warning:|Notice:|Deprecated:)[^\n]*/.exec( body ) || [ '' ] )[ 0 ].slice( 0, 240 ) : '';
+		row( ok, `${ user.padEnd( 9 ) } ${ String( status ).padEnd( 4 ) } ${ open ? 'open ' : 'deny ' } ${ s }${ said }${ page.__errors.length ? '  console: ' + page.__errors.join( ' / ' ) : '' }${ page.__failed.length ? '  failed: ' + page.__failed.join( ', ' ) : '' }` );
 	}
 	await ctx.close();
 }
