@@ -58,6 +58,9 @@ function vergeml_gallery_folder_options() {
         }
 
         foreach ( $by_parent[ $parent ] as $term ) {
+            if ( isset( $out[ (int) $term->term_id ] ) ) {
+                continue; // a parent loop in the terms table is followed once
+            }
             $label = $prefix ? $prefix . ' / ' . $term->name : $term->name;
             $out[ (int) $term->term_id ] = $label;
             $walk( (int) $term->term_id, $label );

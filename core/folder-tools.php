@@ -157,7 +157,15 @@ function vergeml_zip_folder( $folder, $taxonomy, $zip_path ) {
      *  place in the archive is its place in the tree -- and a file in two
      *  sub-folders appears in both, which is what the tree says.
      */
-    $walk = function ( $term_id, $prefix ) use ( &$walk, &$added, &$missing, $zip, $taxonomy ) {
+    $seen = array();
+
+    $walk = function ( $term_id, $prefix ) use ( &$walk, &$added, &$missing, &$seen, $zip, $taxonomy ) {
+
+        // A parent loop in the terms table (edited by hand or by another tool) is followed once.
+        if ( isset( $seen[ $term_id ] ) ) {
+            return;
+        }
+        $seen[ $term_id ] = true;
 
         $files = get_posts( array(
             'post_type'      => 'attachment',

@@ -327,12 +327,15 @@ function vergeml_folders_product_paths( $limit = 500 ) {
     $paths   = array();
     $total   = 0;
 
-    $walk = function ( $parent, $trail ) use ( &$walk, &$paths, &$total, $kids, $default, $limit ) {
+    $seen = array();
+
+    $walk = function ( $parent, $trail ) use ( &$walk, &$paths, &$total, &$seen, $kids, $default, $limit ) {
         foreach ( isset( $kids[ $parent ] ) ? $kids[ $parent ] : array() as $t ) {
             $id = (int) $t->term_id;
-            if ( $id === $default && 0 === (int) $t->count && empty( $kids[ $id ] ) ) {
-                continue;
+            if ( isset( $seen[ $id ] ) || ( $id === $default && 0 === (int) $t->count && empty( $kids[ $id ] ) ) ) {
+                continue; // a parent loop in the terms table is followed once
             }
+            $seen[ $id ] = true;
             $total++;
             $here = array_merge( $trail, array( vergeml_term_name( $t ) ) );
             if ( count( $paths ) < $limit ) {

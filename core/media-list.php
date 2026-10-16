@@ -587,11 +587,13 @@ function vergeml_list_folder_options( $taxonomy ) {
         $children[ (int) $term->parent ][] = $term;
     }
 
-    return vergeml_list_folder_branch( $children, 0, 0 );
+    $seen = array();
+
+    return vergeml_list_folder_branch( $children, 0, 0, $seen );
 }
 
 
-function vergeml_list_folder_branch( $children, $parent, $depth ) {
+function vergeml_list_folder_branch( $children, $parent, $depth, &$seen ) {
 
     $out = array();
 
@@ -601,6 +603,11 @@ function vergeml_list_folder_branch( $children, $parent, $depth ) {
 
     foreach ( $children[ $parent ] as $term ) {
 
+        if ( isset( $seen[ (int) $term->term_id ] ) ) {
+            continue; // a parent loop in the terms table is followed once
+        }
+        $seen[ (int) $term->term_id ] = true;
+
         $out[ 'vergeml-move-' . (int) $term->term_id ] = str_repeat( '&nbsp;', $depth * 3 ) . esc_html( sprintf(
             /* translators: 1: folder name, 2: how many files are in it. */
             __( '%1$s (%2$s)', 'vergelabs-media-library' ),
@@ -608,7 +615,7 @@ function vergeml_list_folder_branch( $children, $parent, $depth ) {
             number_format_i18n( vergeml_list_folder_count( $term ) )
         ) );
 
-        $out += vergeml_list_folder_branch( $children, (int) $term->term_id, $depth + 1 );
+        $out += vergeml_list_folder_branch( $children, (int) $term->term_id, $depth + 1, $seen );
     }
 
     return $out;

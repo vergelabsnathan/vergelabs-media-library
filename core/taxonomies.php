@@ -491,7 +491,7 @@ function vergeml_ajax_query_attachments_args( $query ) {
 
                         $operator  = 'IN';
 
-                        if ( str_contains( $query[$taxonomy_name], '+' ) ) {
+                        if ( false !== strpos( $query[$taxonomy_name], '+' ) ) {
                             $terms = explode( '+', $query[$taxonomy_name] );
                             $operator = 'AND';
                         }

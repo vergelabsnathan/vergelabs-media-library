@@ -401,13 +401,20 @@ function vergeml_rest_gallery_folders( WP_REST_Request $request ) {
      *  Flattened with the path in the name, because a select cannot show a tree
      *  and "2025" on its own tells you nothing about which 2025 it is.
      */
-    $walk = function ( $parent, $prefix ) use ( &$walk, &$out, $by_parent, $taxonomy ) {
+    $seen = array();
+
+    $walk = function ( $parent, $prefix ) use ( &$walk, &$out, &$seen, $by_parent, $taxonomy ) {
 
         if ( empty( $by_parent[ $parent ] ) ) {
             return;
         }
 
         foreach ( $by_parent[ $parent ] as $term ) {
+
+            if ( isset( $seen[ (int) $term->term_id ] ) ) {
+                continue; // a parent loop in the terms table is followed once
+            }
+            $seen[ (int) $term->term_id ] = true;
 
             $label = $prefix ? $prefix . ' / ' . $term->name : $term->name;
 

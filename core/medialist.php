@@ -54,7 +54,7 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
 
         if ( ! empty( $atts[$taxonomy] ) ) {
 
-            if ( str_contains( $atts[$taxonomy], '+' ) ) {
+            if ( false !== strpos( $atts[$taxonomy], '+' ) ) {
                 $terms = explode( '+', $atts[$taxonomy] );
                 $operator = 'AND';
             }
