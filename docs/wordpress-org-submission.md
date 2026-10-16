@@ -48,7 +48,58 @@ Plugin Check without Docker".
 
 ## The archive to upload
 
-**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-12 from `7158315`
+**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-16 from `d5ae51b` (round 7: str_contains under
+Requires PHP 7.4; unbounded recursion on cyclic terms). 152 files, 1,114,146 bytes, sha256
+`e4740be8ee5b1174c0cb0339799366923be43c64d23a8c6ec16049ba9770318d`; read back: comment `d5ae51b8…`, one top
+folder, `Version: 4.1.0`, `Requires PHP: 7.4`, no hidden, test, tool or doc entry (count 0).
+
+**Correction, 2026-10-16.** Every "WP 6.5 / PHP 7.4" result recorded below for round 6 ran on **PHP 8.5.10 /
+WP 7.1.3**: `run-blueprint` and `server --blueprint` ignore `--php`/`--wp` when the blueprint has no
+`preferredVersions`. Both runners now set it and fail unless the booted versions, written by the run itself, match.
+
+Proof on `d5ae51b` (runtime on `2529c5f`, whose shipped PHP is identical; only CSS changed after it):
+- Runtime on the zip (`tools/runtime-checks.mjs`), each run reporting the versions it booted: PHP floor scan on
+  PHP 7.4.33 / WP 6.5.13 (no call that exists only through a WordPress polyfill; mbstring, OpenSSL, SimpleXML,
+  zip and GD each checked) 24/24; a parent loop in the terms table under every folder walk 26/26; lifecycle on
+  7.4/6.5 and 8.3/7.1, remove-everything on 8.3, safe mode on both: all pass, debug.log empty.
+- Red-first on the round-6 zip `7158315`: the floor scan fails on `str_contains` (core/medialist.php:57,
+  core/taxonomies.php:494), four `ctype_digit` and `simplexml_load_file` (core/mime-types.php:492); the loop
+  test ends in "Allowed memory size exhausted" at core/folder-tools.php:195.
+- Clean-site walk 73/73 on PHP 7.4.33 / WP 6.5.13 and 73/73 on PHP 8.3.33 / WP 7.1.3, debug.log empty, 0
+  requests by the plugin; screenshots show core's own toolbar, buttons and table on the Media screen.
+- Plugin Check: "No errors found", 29 of 29 checks answered. PHPCS: parse clean on 7.4 and 8.3, 0 error-level
+  with annotations ignored. hands-off 16/16, archive-hygiene 8/8, escaping 0 unaccounted, RTL up to date.
+- Reviewer passes: r7 (1 would-reject: SimpleXML unchecked — fixed; 5 questions) and r7b on the fixed archive
+  (0 would-reject).
+
+Round 7 ledger:
+
+| # | Question | Status |
+|---|---|---|
+| 34 | PHP 8 function under Requires PHP 7.4 | fixed `79fc880`; floor scan finds 0 polyfill-only calls |
+| 35 | Recursion without a visited set | fixed `79fc880`; every recursive walk keeps `$seen`; loop test green |
+| 36 | SimpleXML / ctype used unchecked | fixed `a77771e`; floor scan: every extension call guarded |
+| 37 | CSS restyles core's Media Library controls | decided by Nathan 2026-10-16: strip; fixed `a77771e`, `d5ae51b`'s parent |
+| 38 | Unbounded unschedule loop | fixed `a77771e` (`wp_clear_scheduled_hook`) |
+| 39 | Gallery counts load whole posts | fixed `a77771e` (`fields => ids`) |
+| 40 | ZIP fetches every file of a folder | answered: the download is the folder; ids only, one term per step |
+| 41 | readme 19.6 KB | answered (External services discloses every field) |
+| 42 | wp.media views patched | answered (inherited from EML; subclasses after approval) |
+
+**Upload comment, round 7** (Nathan's to approve and send):
+
+> Version 4.1.0, corrected after round 7. PHP versions: nothing in the plugin needs PHP newer than 7.4 or WordPress newer than 6.5; str_contains() is gone, and every optional PHP extension it uses (mbstring, OpenSSL, SimpleXML, zip, GD) is checked before use, with a notice or a fallback when it is missing. Recursion: every walk over the folder tree keeps a list of the folders it has visited, so a parent loop in the terms table is followed once. Styles: the plugin's stylesheets no longer change how WordPress's own Media Library controls look; they only place the folder panel beside them. Tested on a clean install with WP_DEBUG on, on PHP 7.4 with WordPress 6.5 and on PHP 8.3 with WordPress 7.1.
+>
+> Deliberate choices: the media views extend wp.media views inherited from Enhanced Media Library; we plan to move them to subclasses after approval. When a host blocks the REST API, the plugin's screens reach their own routes through one admin-ajax action, which checks the wp_rest nonce, upload_files and rest_authentication_errors, accepts only this plugin's routes, and runs each route's own permission callback through rest_do_request(). The readme is longer than 10 KB because the External services section discloses every field sent; the changelog is in changelog.txt.
+
+**Reply email, round 7** (Nathan's to approve and send):
+
+> Thank you. Both issues are fixed across the whole plugin, not only the lines quoted.
+> PHP 7.4: str_contains() is replaced, nothing else needs a newer PHP or WordPress, and every optional PHP extension (mbstring, OpenSSL, SimpleXML, zip, GD) is checked before it is used.
+> Recursion: every recursive walk over folders keeps a visited set, so a cyclic term hierarchy is followed once; we tested it with a parent loop written into the terms table. We also stopped restyling WordPress's own Media Library controls.
+> Tested on a clean install with WP_DEBUG on PHP 7.4 / WordPress 6.5 and PHP 8.3 / WordPress 7.1, and Plugin Check reports no errors on the uploaded zip.
+
+The round-6 build (uploaded 2026-10-12, rejected in round 7): rebuilt 2026-10-12 from `7158315`
 (round 6 preparation: the full audit and ledger below). 152 files, 1,115,979 bytes, sha256
 `1942aea0872f82a2a6e2ff71e49a00cd96e51ecfb60cce6aa92979067ab1cae5`; read back: comment
 `71583158…`, one top folder, `Version: 4.1.0`, `Stable tag: 4.1.0`, no forbidden or hidden
