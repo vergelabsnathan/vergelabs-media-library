@@ -48,7 +48,9 @@ Plugin Check without Docker".
 
 ## The archive to upload
 
-**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-16 from `d5ae51b` (round 7: str_contains under
+**`dist/vergelabs-media-library-4.1.0.zip`** — rebuilt 2026-10-18 from `53f0e8d` (round 7 plus the deeper pass). 152 files, 1,114,069 bytes, sha256 `a1b62daec6d5339cbbbde64f45040a9724ba954f5bc40d4c9c50b0990538d821`. Deeper pass on it: strict PHPCompatibility 10.0.0-alpha2 at testVersion 7.4- 0 errors 0 warnings (red-first on `7158315`: both str_contains as errors; PHPCompatibilityWP passes them, it waives WordPress polyfills); imagedestroy() replaced by dropping the reference, the picture hash 7/7 on PHP 7.4.33 and 8.5.10; lifecycle on PHP 8.5.10 / WP 7.1.3 passes; floor scan, loop test and 7.4/6.5 lifecycle pass again; Plugin Check 2.1.0 (no experimental checks exist in it) 29/29, no errors; PHPCS 0 error-level ignored; hands-off 16/16, hygiene 8/8. Precedent (`research: vgml-r7/precedent.md`): wp.media views extended by 4 of 5 approved folder plugins (FileBird, Real Media Library, Folders, Media Library Organizer); their readmes are 15–39 KB; none has a REST fallback over admin-ajax.
+
+The d5ae51b build: rebuilt 2026-10-16 from `d5ae51b` (round 7: str_contains under
 Requires PHP 7.4; unbounded recursion on cyclic terms). 152 files, 1,114,146 bytes, sha256
 `e4740be8ee5b1174c0cb0339799366923be43c64d23a8c6ec16049ba9770318d`; read back: comment `d5ae51b8…`, one top
 folder, `Version: 4.1.0`, `Requires PHP: 7.4`, no hidden, test, tool or doc entry (count 0).
