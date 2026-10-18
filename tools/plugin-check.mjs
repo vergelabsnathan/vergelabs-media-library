@@ -182,7 +182,8 @@ const readResults = () =>
 let text = '';
 let stable = 0;
 
-for ( let i = 0; i < 240; i++ ) {
+// 30 minutes: eight was enough on 2026-10-16 and not on 10-18, when the PHPCS checks ran slower.
+for ( let i = 0; i < 900; i++ ) {
 	await page.waitForTimeout( 2000 );
 	const next = await readResults();
 	if ( next === text && text.length > 0 ) {
