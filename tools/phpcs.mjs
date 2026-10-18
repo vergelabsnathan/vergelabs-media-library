@@ -55,7 +55,12 @@ const PINS = {
 	wpcs: [ 'WordPress/WordPress-Coding-Standards', '3.2.0', 'WordPress-Coding-Standards-3.2.0' ],
 	utils: [ 'PHPCSStandards/PHPCSUtils', '1.1.2', 'PHPCSUtils-1.1.2' ],
 	extra: [ 'PHPCSStandards/PHPCSExtra', '1.4.1', 'PHPCSExtra-1.4.1' ],
+	// --compat: the 10.x line is the first that knows PHP 8's functions (9.3.5 stops at 7.4). Round 7, 2026-10-18.
+	compat: [ 'PHPCompatibility/PHPCompatibility', '10.0.0-alpha2', 'PHPCompatibility-10.0.0-alpha2' ],
+	compatParagonie: [ 'PHPCompatibility/PHPCompatibilityParagonie', '2.0.0-alpha2', 'PHPCompatibilityParagonie-2.0.0-alpha2' ],
+	compatWp: [ 'PHPCompatibility/PHPCompatibilityWP', '3.0.0-alpha2', 'PHPCompatibilityWP-3.0.0-alpha2' ],
 };
+const COMPAT = argv.includes( '--compat' );
 
 // No spaces and no emoji: cmd.exe hands this to the Playground CLI intact.
 const CACHE = path.join( os.tmpdir(), 'vgml-phpcs' );
@@ -106,8 +111,8 @@ function boot( code, php = '8.3' ) {
 	{ stdio: [ 'ignore', 'ignore', 'ignore' ], shell: true, env: { ...process.env, MSYS_NO_PATHCONV: '1' } } );
 }
 
-function phpcs( name, extra ) {
-	const args = [ 'phpcs', '--standard=/cs/ruleset.xml', '--runtime-set', 'installed_paths', installed, ...extra,
+function phpcs( name, extra, standard = '/cs/ruleset.xml' ) {
+	const args = [ 'phpcs', `--standard=${ standard }`, '--runtime-set', 'installed_paths', installed, ...extra,
 		'--extensions=php', '-s', '--report-json=/tmp/r.json', '/plugin' ];
 	boot( `<?php ini_set( 'memory_limit', '2048M' ); register_shutdown_function( function () { if ( file_exists( '/tmp/r.json' ) ) { copy( '/tmp/r.json', '/out/${ name }.json' ); } } ); $_SERVER['argv'] = $GLOBALS['argv'] = ${ JSON.stringify( args ).replace( /^\[/, 'array(' ).replace( /\]$/, ')' ) }; $_SERVER['argc'] = count( $_SERVER['argv'] ); require '/cs/${ PINS.phpcs[ 2 ] }/bin/phpcs';` );
 	const file = path.join( out, `${ name }.json` );
@@ -142,6 +147,21 @@ for ( const php of [ '7.4', '8.3' ] ) {
 if ( PARSE_ONLY ) {
 	fs.rmSync( work, { recursive: true, force: true } );
 	process.exit( parseBroken ? 1 : 0 );
+}
+
+// PHPCompatibilityWP against the header's floor, annotations ignored: the standard tool for the round 7 class,
+// run beside tests/runtime/php-floor.php so two independent readers have to agree.
+if ( COMPAT ) {
+	const floor = ( fs.readFileSync( path.join( work, 'vergelabs-media-library', 'vergelabs-media-library.php' ), 'utf8' ).match( /Requires PHP:\s*([\d.]+)/ ) || [] )[ 1 ];
+	const res = phpcs( 'compat', [ '--ignore-annotations', '--runtime-set', 'testVersion', `${ floor }-` ], 'PHPCompatibility' );
+	console.log( `\nPHPCompatibility ${ PINS.compat[ 1 ] } / PHPCompatibilityWP ${ PINS.compatWp[ 1 ] }, testVersion ${ floor }-, annotations ignored: ${ res.files } files` );
+	for ( const f of res.findings.sort( ( x, y ) => x.file.localeCompare( y.file ) || x.line - y.line ) ) {
+		console.log( `${ f.file }:${ f.line }\t${ f.type }\t${ f.source }\t${ f.message.slice( 0, 160 ) }` );
+	}
+	const errors = res.findings.filter( ( f ) => 'ERROR' === f.type ).length;
+	console.log( `errors ${ errors }, warnings ${ res.findings.length - errors }` );
+	fs.rmSync( work, { recursive: true, force: true } );
+	process.exit( errors ? 1 : 0 );
 }
 
 const honoured = SCAN_ONLY ? { files: 0, findings: [] } : phpcs( 'honoured', [] );

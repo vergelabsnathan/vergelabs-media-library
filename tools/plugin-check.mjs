@@ -147,6 +147,23 @@ const categories = await page.evaluate( () => {
 
 console.log( `categories: ${ categories.join( ', ' ) || '(none found -- defaults stand)' }` );
 
+// --experimental: the checks Plugin Check ships before they are on by default; the review team runs ahead of us.
+if ( process.argv.includes( '--experimental' ) ) {
+	const ticked = await page.evaluate( () => {
+		const box = Array.from( document.querySelectorAll( 'input[type="checkbox"]' ) ).find( ( b ) => /experimental/i.test( b.name + ' ' + b.id ) );
+		if ( box && ! box.checked ) {
+			box.click();
+		}
+		return box ? box.name || box.id : null;
+	} );
+	if ( ! ticked ) {
+		console.error( 'asked for --experimental, but the form has no experimental checkbox' );
+		await browser.close();
+		process.exit( 2 );
+	}
+	console.log( `experimental checks on (${ ticked })` );
+}
+
 await page.evaluate( () => {
 	const button = document.querySelector( '#plugin-check__submit, input[type="submit"], button[type="submit"]' );
 	if ( button ) {
