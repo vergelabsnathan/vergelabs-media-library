@@ -31,6 +31,8 @@ const SCENARIOS = [
 	{ name: 'a parent loop in the terms table, every folder walk, WP 6.5 / PHP 7.4', file: 'term-loop.php', phases: [ 'activate', 'loop' ], php: '7.4', wp: '6.5' },
 	{ name: 'lifecycle on WP 6.5 / PHP 7.4', file: 'lifecycle.php', phases: LIFE, php: '7.4', wp: '6.5' },
 	{ name: 'lifecycle on latest / PHP 8.3', file: 'lifecycle.php', phases: LIFE, php: '8.3', wp: 'latest' },
+	{ name: 'the picture hash on PHP 7.4 (GD resource)', file: 'health-hash.php', phases: [ 'activate', 'hash' ], php: '7.4', wp: '6.5' },
+	{ name: 'the picture hash on PHP 8.5 (GdImage)', file: 'health-hash.php', phases: [ 'activate', 'hash' ], php: '8.5', wp: 'latest' },
 	// "Some recent versions of PHP may be stricter" (round 7 email): the newest PHP Playground ships.
 	{ name: 'lifecycle on latest / PHP 8.5', file: 'lifecycle.php', phases: LIFE, php: '8.5', wp: 'latest' },
 	{ name: 'lifecycle with remove-everything on, latest / PHP 8.3', file: 'lifecycle.php', phases: LIFE, php: '8.3', wp: 'latest', consts: { RT_WIPE: true } },

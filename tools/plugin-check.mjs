@@ -156,12 +156,8 @@ if ( process.argv.includes( '--experimental' ) ) {
 		}
 		return box ? box.name || box.id : null;
 	} );
-	if ( ! ticked ) {
-		console.error( 'asked for --experimental, but the form has no experimental checkbox' );
-		await browser.close();
-		process.exit( 2 );
-	}
-	console.log( `experimental checks on (${ ticked })` );
+	// templates/admin-page.php shows the box only when the release has experimental checks (2.1.0 has none).
+	console.log( ticked ? `experimental checks on (${ ticked })` : 'experimental: this Plugin Check release has none (no checkbox), so every check runs' );
 }
 
 await page.evaluate( () => {
