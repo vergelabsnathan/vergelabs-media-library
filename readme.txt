@@ -216,6 +216,7 @@ Please report security bugs found in the source code of the VergeLabs Media Libr
 Every night an automated watch looks for new releases of WordPress, PHP and the plugins and themes this plugin integrates with, greps each new release for every hook and field we rely on, upgrades a staging site and runs the checks there. What passed is recorded here, newest first:
 
 <!-- watch:verified -->
+* Beaver Builder 2.11.1.2 — contract intact, stage suites passed (2026-10-20)
 * Brizy 2.8.24 — contract intact, stage suites passed (2026-10-19)
 * Elementor 4.3.5 — contract intact, stage suites passed (2026-10-14)
 * Yoast SEO (Premium follows the same numbering) 28.7 — contract intact, stage suites passed (2026-10-13)
