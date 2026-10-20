@@ -1694,7 +1694,7 @@ function vergeml_ai_alt_route() {
             'callback'            => function () {
                 return rest_ensure_response( array( 'remaining' => count( vergeml_ai_alt_pending() ) ) );
             },
-            'permission_callback' => 'vergeml_rest_can_upload_files',
+            'permission_callback' => function () { return current_user_can( 'upload_files' ); },
         ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
@@ -1711,7 +1711,7 @@ function vergeml_ai_alt_route() {
              *  upload_files, which let any Author push alt text onto files
              *  they could not otherwise edit, in one request.
              */
-            'permission_callback' => 'vergeml_rest_can_manage_options',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
             'args'                => array(
                 'limit' => array( 'type' => 'integer', 'default' => 100 ),
             ),
@@ -1848,7 +1848,7 @@ function vergeml_ai_routes() {
     register_rest_route( VERGEML_REST_NS, '/ai-status', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_ai_rest_status',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         // The line under the title, re-rendered: asked for when a run ends, not on every poll.
         'args'                => array(
             'line' => array( 'type' => 'boolean', 'default' => false ),
@@ -1859,7 +1859,7 @@ function vergeml_ai_routes() {
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_ai_rest_index',
         // Describing spends credits and writes meta on many files: administrators.
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'scope'     => array( 'type' => 'string', 'default' => 'unindexed' ),
             'limit'     => array( 'type' => 'integer', 'default' => 8 ),
@@ -1870,7 +1870,7 @@ function vergeml_ai_routes() {
     register_rest_route( VERGEML_REST_NS, '/ai-settings', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_ai_rest_settings',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'license_key'   => array( 'type' => 'string' ),
             'site_profile'  => array( 'type' => 'string' ),

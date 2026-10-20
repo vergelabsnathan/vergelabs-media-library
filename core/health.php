@@ -1178,7 +1178,7 @@ function vergeml_health_routes() {
         'callback'            => 'vergeml_health_rest_scan',
         // Hashing writes meta on every attachment: curation, the same bar as
         // the usage scan rather than the one that governs uploading.
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'cursor' => array( 'type' => 'integer', 'default' => 0 ),
             'reset'  => array( 'type' => 'boolean', 'default' => false ),
@@ -1188,7 +1188,7 @@ function vergeml_health_routes() {
     register_rest_route( VERGEML_REST_NS, '/health-report', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_health_rest_report',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
 }
 

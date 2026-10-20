@@ -507,14 +507,14 @@ function vergeml_ai_run_routes() {
         array(
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => 'vergeml_ai_run_rest_status',
-            'permission_callback' => 'vergeml_rest_can_manage_options',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'vergeml_ai_run_rest_write',
             // A library-wide run that spends credits and writes alt text: site
             // administrators only (wordpress.org review 2, 2026-10-03).
-            'permission_callback' => 'vergeml_rest_can_manage_options',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
             'args'                => array(
                 'action'    => array( 'type' => 'string', 'default' => 'start' ),
                 'scope'     => array( 'type' => 'string', 'default' => 'unindexed' ),

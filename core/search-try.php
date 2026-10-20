@@ -197,7 +197,7 @@ function vergeml_search_try_routes() {
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_search_try_rest',
         // Sends the typed phrase to the AI service: administrators only.
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             's' => array( 'type' => 'string', 'required' => true ),
         ),

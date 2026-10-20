@@ -272,7 +272,7 @@ function vergeml_stats_routes() {
         'callback'            => 'vergeml_stats_rest_opt',
         // Deciding what a site shares about itself is the site owner's call,
         // not a folder manager's.
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'opted' => array( 'type' => 'boolean', 'required' => true ),
         ),

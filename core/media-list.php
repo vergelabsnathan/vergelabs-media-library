@@ -715,16 +715,16 @@ function vergeml_list_handle_move( $location, $doaction, $post_ids ) {
 
     return add_query_arg(
         array(
-            'vgml_moved' => $moved,
+            'vergeml_moved' => $moved,
             /*
              *  Encoded here on purpose: add_query_arg() does not encode its
              *  values, so a folder called "Client work & co" would end the
              *  query string at the ampersand. PHP decodes it once out of
              *  $_GET, so the read side needs no decode of its own.
              */
-            'vgml_to'    => rawurlencode( vergeml_list_folder_name( $term->name ) ),
+            'vergeml_to'    => rawurlencode( vergeml_list_folder_name( $term->name ) ),
         ),
-        remove_query_arg( array( 'vgml_moved', 'vgml_to' ), $location )
+        remove_query_arg( array( 'vergeml_moved', 'vergeml_to' ), $location )
     );
 }
 
@@ -744,12 +744,12 @@ function vergeml_list_move_notice() {
     }
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- reading our own redirect result to display it.
-    if ( ! isset( $_GET['vgml_moved'] ) ) {
+    if ( ! isset( $_GET['vergeml_moved'] ) ) {
         return;
     }
 
-    $moved = absint( $_GET['vgml_moved'] );
-    $to    = isset( $_GET['vgml_to'] ) ? sanitize_text_field( wp_unslash( $_GET['vgml_to'] ) ) : '';
+    $moved = absint( $_GET['vergeml_moved'] );
+    $to    = isset( $_GET['vergeml_to'] ) ? sanitize_text_field( wp_unslash( $_GET['vergeml_to'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     printf(

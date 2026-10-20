@@ -354,7 +354,7 @@ function vergeml_rename_handle_one() {
 
     $done = vergeml_rename_apply( array( $id ) );
 
-    wp_safe_redirect( add_query_arg( 'vgml_renamed', count( $done ), wp_get_referer() ?: admin_url( 'upload.php?mode=list' ) ) );
+    wp_safe_redirect( add_query_arg( 'vergeml_renamed', count( $done ), wp_get_referer() ?: admin_url( 'upload.php?mode=list' ) ) );
     exit;
 }
 
@@ -388,7 +388,7 @@ function vergeml_rename_handle_bulk( $redirect, $action, $ids ) {
         }
     }
 
-    return add_query_arg( 'vgml_renamed', count( vergeml_rename_apply( $allowed ) ), $redirect );
+    return add_query_arg( 'vergeml_renamed', count( vergeml_rename_apply( $allowed ) ), $redirect );
 }
 
 
@@ -403,11 +403,11 @@ add_action( 'admin_notices', 'vergeml_rename_notice' );
 
 function vergeml_rename_notice() {
 
-    if ( ! isset( $_GET['vgml_renamed'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading a count to display, changing nothing.
+    if ( ! isset( $_GET['vergeml_renamed'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading a count to display, changing nothing.
         return;
     }
 
-    $n = (int) $_GET['vgml_renamed']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $n = (int) $_GET['vergeml_renamed']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
     if ( $n < 1 ) {
         printf(
@@ -453,7 +453,7 @@ function vergeml_rename_handle_undo() {
 
     $back = vergeml_rename_undo();
 
-    wp_safe_redirect( add_query_arg( 'vgml_renamed_back', count( $back ), wp_get_referer() ?: admin_url( 'upload.php?mode=list' ) ) );
+    wp_safe_redirect( add_query_arg( 'vergeml_renamed_back', count( $back ), wp_get_referer() ?: admin_url( 'upload.php?mode=list' ) ) );
     exit;
 }
 
@@ -462,11 +462,11 @@ add_action( 'admin_notices', 'vergeml_rename_undo_notice' );
 
 function vergeml_rename_undo_notice() {
 
-    if ( ! isset( $_GET['vgml_renamed_back'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( ! isset( $_GET['vergeml_renamed_back'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         return;
     }
 
-    $n = (int) $_GET['vgml_renamed_back']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $n = (int) $_GET['vergeml_renamed_back']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
     printf(
         '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
@@ -501,7 +501,7 @@ function vergeml_rename_routes() {
             'callback'            => function () {
                 return rest_ensure_response( array( 'remaining' => count( vergeml_rename_pending() ) ) );
             },
-            'permission_callback' => 'vergeml_rest_can_upload_files',
+            'permission_callback' => function () { return current_user_can( 'upload_files' ); },
         ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
@@ -531,7 +531,7 @@ function vergeml_rename_routes() {
              *  are still checked one by one with edit_post in
              *  vergeml_rename_apply. One file at a time stays the row action.
              */
-            'permission_callback' => 'vergeml_rest_can_manage_options',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
             'args'                => array(
                 'action' => array( 'type' => 'string', 'default' => 'apply' ),
                 'limit'  => array( 'type' => 'integer', 'default' => 500 ),

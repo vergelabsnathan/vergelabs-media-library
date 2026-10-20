@@ -200,8 +200,8 @@ function vergeml_admin_menu_redirects() {
     // The plugin's own notices and flags are listed by name, as core's are.
     $keys = array(
         'tab', 'state', 'code', 'error', 'settings-updated', 'paged', 's', 'ticket', 'why',
-        'vgml_moved', 'vgml_to', 'vgml_renamed', 'vgml_renamed_back', 'vgml_files_renamed', 'vgml_files_back',
-        'vgml_alt_written', 'vgml_smart', 'vgml_meaning', 'vgml_unfiled', 'vgml_trial', 'vgml-help', 'vgml-check',
+        'vergeml_moved', 'vergeml_to', 'vergeml_renamed', 'vergeml_renamed_back', 'vergeml_files_renamed', 'vergeml_files_back',
+        'vergeml_alt_written', 'vergeml_smart', 'vergeml_meaning', 'vergeml_unfiled', 'vergeml_trial', 'vergeml-help', 'vergeml-check',
         'vergeml_op', 'vergeml_done', 'vergeml_skipped', 'vergeml_term', 'vergeml_connected', 'vergeml_licence',
         'vergeml_refresh', 'vergeml_quick', 'vergeml_ai_filter',
     );

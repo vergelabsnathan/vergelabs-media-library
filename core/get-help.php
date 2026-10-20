@@ -206,12 +206,12 @@ function vergeml_help_send() {
     $email    = isset( $_POST['vergeml_email'] ) ? sanitize_email( wp_unslash( $_POST['vergeml_email'] ) ) : '';
 
     if ( '' === trim( $question ) ) {
-        wp_safe_redirect( add_query_arg( 'vgml-help', 'empty', $back ) );
+        wp_safe_redirect( add_query_arg( 'vergeml-help', 'empty', $back ) );
         exit;
     }
 
     if ( ! $consent ) {
-        wp_safe_redirect( add_query_arg( 'vgml-help', 'consent', $back ) );
+        wp_safe_redirect( add_query_arg( 'vergeml-help', 'consent', $back ) );
         exit;
     }
 
@@ -267,13 +267,13 @@ function vergeml_help_send() {
     $json = is_wp_error( $response ) ? array() : json_decode( (string) wp_remote_retrieve_body( $response ), true );
 
     if ( 200 === $code && is_array( $json ) && ! empty( $json['ok'] ) ) {
-        wp_safe_redirect( add_query_arg( array( 'vgml-help' => 'sent', 'ticket' => (int) $json['id'] ), $back ) );
+        wp_safe_redirect( add_query_arg( array( 'vergeml-help' => 'sent', 'ticket' => (int) $json['id'] ), $back ) );
         exit;
     }
 
     $why = is_wp_error( $response ) ? $response->get_error_message() : ( isset( $json['error'] ) ? (string) $json['error'] : 'HTTP ' . $code );
 
-    wp_safe_redirect( add_query_arg( array( 'vgml-help' => 'failed', 'why' => rawurlencode( substr( $why, 0, 80 ) ) ), $back ) );
+    wp_safe_redirect( add_query_arg( array( 'vergeml-help' => 'failed', 'why' => rawurlencode( substr( $why, 0, 80 ) ) ), $back ) );
     exit;
 }
 
@@ -286,13 +286,13 @@ function vergeml_help_page() {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
-    $check   = isset( $_GET['vgml-check'], $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'vergeml_help_check' );
+    $check   = isset( $_GET['vergeml-check'], $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'vergeml_help_check' );
     $matches = vergeml_help_matching_issues( $check );
     $safe    = function_exists( 'vergeml_safe_mode' ) && vergeml_safe_mode();
     $report  = function_exists( 'vergeml_system_report_text' ) ? vergeml_system_report_text() : '';
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- reading which notice to show, not acting.
-    $state  = isset( $_GET['vgml-help'] ) ? sanitize_key( wp_unslash( $_GET['vgml-help'] ) ) : '';
+    $state  = isset( $_GET['vergeml-help'] ) ? sanitize_key( wp_unslash( $_GET['vergeml-help'] ) ) : '';
     $ticket = isset( $_GET['ticket'] ) ? (int) $_GET['ticket'] : 0;
     $why    = isset( $_GET['why'] ) ? sanitize_text_field( wp_unslash( $_GET['why'] ) ) : '';
     // phpcs:enable
@@ -331,7 +331,7 @@ function vergeml_help_page() {
         <h2><?php esc_html_e( 'Known problems that match this site', 'vergelabs-media-library' ); ?></h2>
         <?php if ( ! is_array( $matches ) ) : ?>
             <p class="description"><?php false === $matches ? esc_html_e( 'The VergeLabs service could not be reached just now, so nothing was checked. Try again in a minute, or ask below.', 'vergelabs-media-library' ) : esc_html_e( 'Not checked yet. Checking downloads the list of known problems from the VergeLabs AI service at ai.vergelabs.nl; like every request WordPress makes, it carries your site’s address.', 'vergelabs-media-library' ); ?></p>
-            <p><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=vergeml-help&vgml-check=1' ), 'vergeml_help_check' ) ); ?>"><?php esc_html_e( 'Check for known problems', 'vergelabs-media-library' ); ?></a></p>
+            <p><a class="button" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=vergeml-help&vergeml-check=1' ), 'vergeml_help_check' ) ); ?>"><?php esc_html_e( 'Check for known problems', 'vergelabs-media-library' ); ?></a></p>
         <?php elseif ( $matches ) : ?>
             <ul class="vgml-help-issues">
             <?php foreach ( $matches as $issue ) : ?>

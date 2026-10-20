@@ -124,18 +124,18 @@ function vergeml_posts_join( $join, $query ) {
     $columns = vergeml_search_columns();
 
     if ( in_array( 'filenames', $columns, true ) ) {
-        $join .= " LEFT JOIN {$wpdb->postmeta} AS vgml_file"
-               . " ON ( {$wpdb->posts}.ID = vgml_file.post_id AND vgml_file.meta_key = '_wp_attached_file' )";
+        $join .= " LEFT JOIN {$wpdb->postmeta} AS vergeml_file"
+               . " ON ( {$wpdb->posts}.ID = vergeml_file.post_id AND vergeml_file.meta_key = '_wp_attached_file' )";
     }
 
     if ( in_array( 'authors', $columns, true ) ) {
-        $join .= " LEFT JOIN {$wpdb->users} AS vgml_user ON {$wpdb->posts}.post_author = vgml_user.ID";
+        $join .= " LEFT JOIN {$wpdb->users} AS vergeml_user ON {$wpdb->posts}.post_author = vergeml_user.ID";
     }
 
     if ( in_array( 'taxonomies', $columns, true ) ) {
-        $join .= " LEFT JOIN {$wpdb->term_relationships} AS vgml_tr ON {$wpdb->posts}.ID = vgml_tr.object_id"
-               . " LEFT JOIN {$wpdb->term_taxonomy} AS vgml_tt ON vgml_tr.term_taxonomy_id = vgml_tt.term_taxonomy_id"
-               . " LEFT JOIN {$wpdb->terms} AS vgml_term ON vgml_tt.term_id = vgml_term.term_id";
+        $join .= " LEFT JOIN {$wpdb->term_relationships} AS vergeml_tr ON {$wpdb->posts}.ID = vergeml_tr.object_id"
+               . " LEFT JOIN {$wpdb->term_taxonomy} AS vergeml_tt ON vergeml_tr.term_taxonomy_id = vergeml_tt.term_taxonomy_id"
+               . " LEFT JOIN {$wpdb->terms} AS vergeml_term ON vergeml_tt.term_id = vergeml_term.term_id";
     }
 
     return $join;
@@ -206,15 +206,15 @@ function vergeml_posts_search( $search, $query ) {
             $ors[] = $wpdb->prepare( "{$wpdb->posts}.post_content LIKE %s", $like );
 
         if ( in_array( 'filenames', $columns, true ) )
-            $ors[] = $wpdb->prepare( 'vgml_file.meta_value LIKE %s', $like );
+            $ors[] = $wpdb->prepare( 'vergeml_file.meta_value LIKE %s', $like );
 
         if ( in_array( 'authors', $columns, true ) ) {
-            $ors[] = $wpdb->prepare( 'vgml_user.display_name LIKE %s', $like );
-            $ors[] = $wpdb->prepare( 'vgml_user.user_nicename LIKE %s', $like );
+            $ors[] = $wpdb->prepare( 'vergeml_user.display_name LIKE %s', $like );
+            $ors[] = $wpdb->prepare( 'vergeml_user.user_nicename LIKE %s', $like );
         }
 
         if ( in_array( 'taxonomies', $columns, true ) )
-            $ors[] = $wpdb->prepare( 'vgml_term.name LIKE %s', $like );
+            $ors[] = $wpdb->prepare( 'vergeml_term.name LIKE %s', $like );
 
         if ( empty( $ors ) )
             continue;

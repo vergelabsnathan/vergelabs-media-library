@@ -617,7 +617,7 @@ function vergeml_file_rename_routes() {
                         && ! empty( vergeml_smart_scan_state()['finished'] ),
                 ) );
             },
-            'permission_callback' => 'vergeml_rest_can_manage_options',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
@@ -643,7 +643,7 @@ function vergeml_file_rename_routes() {
              *  edits other people's posts to match; it is closer to a migration
              *  than to editing a caption.
              */
-            'permission_callback' => 'vergeml_rest_can_manage_options',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
             'args'                => array(
                 'action' => array( 'type' => 'string', 'default' => 'apply' ),
                 'limit'  => array( 'type' => 'integer', 'default' => 200 ),

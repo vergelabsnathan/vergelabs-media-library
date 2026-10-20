@@ -1162,7 +1162,7 @@ function vergeml_register_smart_routes() {
         'callback'            => 'vergeml_rest_smart_scan',
         // The scan writes meta on every attachment; that is curation, not
         // uploading, so it takes the folder-management capability.
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'resume' => array( 'type' => 'object' ),
         ),
@@ -1230,7 +1230,7 @@ function vergeml_smart_list_query( $query ) {
     global $pagenow;
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a bookmarkable read-only filter.
-    $key = isset( $_GET['vgml_smart'] ) ? sanitize_key( wp_unslash( $_GET['vgml_smart'] ) ) : '';
+    $key = isset( $_GET['vergeml_smart'] ) ? sanitize_key( wp_unslash( $_GET['vergeml_smart'] ) ) : '';
 
     if ( 'upload.php' !== $pagenow || '' === $key || ! array_key_exists( $key, vergeml_smart_folders() ) ) {
         return;

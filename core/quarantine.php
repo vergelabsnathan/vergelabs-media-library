@@ -258,7 +258,7 @@ function vergeml_quarantine_hide_list( $query ) {
 
     // Same guard as the grid: the folder that shows them must be allowed to.
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a read-only view switch.
-    $asked = isset( $_GET['vgml_smart'] ) ? sanitize_key( wp_unslash( $_GET['vgml_smart'] ) ) : '';
+    $asked = isset( $_GET['vergeml_smart'] ) ? sanitize_key( wp_unslash( $_GET['vergeml_smart'] ) ) : '';
 
     if ( 'quarantine' === $asked ) {
         return;
@@ -349,7 +349,7 @@ function vergeml_quarantine_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/quarantine', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_quarantine_rest_list',
     ) );
 
@@ -360,7 +360,7 @@ function vergeml_quarantine_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/quarantine-act', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_quarantine_rest_act',
         'args'                => array(
             'ids'    => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ), 'required' => true ),
@@ -371,7 +371,7 @@ function vergeml_quarantine_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/quarantine-manifest', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_quarantine_rest_manifest',
     ) );
 }

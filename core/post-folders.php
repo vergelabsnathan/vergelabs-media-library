@@ -241,7 +241,7 @@ add_action( 'pre_get_posts', 'vergeml_folder_filter_posts' );
 
 function vergeml_folder_filter_posts( $query ) {
 
-    if ( ! is_admin() || ! $query->is_main_query() || empty( $_GET['vgml_unfiled'] ) ) {
+    if ( ! is_admin() || ! $query->is_main_query() || empty( $_GET['vergeml_unfiled'] ) ) {
         return;
     }
 

@@ -2868,7 +2868,7 @@ function vergeml_organize_routes() {
         // Proposing a tree writes nothing but this feature's own rows, and it
         // is the same curation bar as the scans rather than the one that
         // governs uploading.
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_organize_rest_step',
         'args'                => array(
             'run_id'        => array( 'type' => 'integer', 'default' => 0 ),
@@ -2879,7 +2879,7 @@ function vergeml_organize_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/organize-cancel', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_organize_rest_cancel',
         'args'                => array(
             'run_id' => array( 'type' => 'integer', 'required' => true ),
@@ -2888,7 +2888,7 @@ function vergeml_organize_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/organize-run', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_organize_rest_run',
         'args'                => array(
             'run_id'  => array( 'type' => 'integer', 'default' => 0 ),
@@ -2898,7 +2898,7 @@ function vergeml_organize_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/organize-quote', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_organize_rest_quote',
     ) );
 }

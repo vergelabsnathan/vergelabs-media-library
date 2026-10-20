@@ -615,7 +615,7 @@ function vergeml_meaning_routes() {
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_meaning_rest',
         // Sends the typed phrase to the AI service: administrators only.
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             's'     => array( 'type' => 'string', 'required' => true ),
             'limit' => array( 'type' => 'integer', 'default' => 60 ),
@@ -696,7 +696,7 @@ function vergeml_meaning_offer( $post_type, $which = '' ) {
     }
 
     // Already looking at one, so there is nowhere for a link to lead.
-    if ( isset( $_GET['vgml_meaning'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( isset( $_GET['vergeml_meaning'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         printf(
             '<span class="vgml-meaning-on">%s</span>',
@@ -709,7 +709,7 @@ function vergeml_meaning_offer( $post_type, $which = '' ) {
     printf(
         '<a class="vgml-meaning-go" href="%s">%s</a>',
         // The flag is a nonce: a search by meaning is a request to the service, so a link from elsewhere cannot start one.
-        esc_url( add_query_arg( array( 's' => $term, 'vgml_meaning' => wp_create_nonce( 'vergeml_meaning' ) ), admin_url( 'upload.php' ) ) ),
+        esc_url( add_query_arg( array( 's' => $term, 'vergeml_meaning' => wp_create_nonce( 'vergeml_meaning' ) ), admin_url( 'upload.php' ) ) ),
         esc_html__( 'Search by meaning', 'vergelabs-media-library' )
     );
 }
@@ -733,7 +733,7 @@ function vergeml_meaning_take_over( $query ) {
         return;
     }
 
-    if ( ! isset( $_GET['vgml_meaning'], $_GET['s'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['vgml_meaning'] ) ), 'vergeml_meaning' ) || ! current_user_can( 'manage_options' ) ) {
+    if ( ! isset( $_GET['vergeml_meaning'], $_GET['s'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['vergeml_meaning'] ) ), 'vergeml_meaning' ) || ! current_user_can( 'manage_options' ) ) {
         return;
     }
 

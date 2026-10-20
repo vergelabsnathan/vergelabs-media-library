@@ -550,7 +550,7 @@ function vergeml_nl_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/say-plan', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_nl_rest_plan',
         'args'                => array(
             'text' => array( 'type' => 'string', 'required' => true ),
@@ -559,7 +559,7 @@ function vergeml_nl_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/say-run', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_nl_rest_run',
         'args'                => array(
             'plan' => array( 'type' => 'object', 'required' => true ),

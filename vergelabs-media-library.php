@@ -115,28 +115,12 @@ function vergeml_screen_script( $handle, $file, $deps = array() ) {
 }
 
 
-/*
- *  The REST permission callback for every route that writes across the
- *  library, runs, applies, imports or undoes something, or calls the AI
- *  service: site administrators only (wordpress.org review 2, 2026-10-03).
- *  A route that changes one folder or one file asks about that object
- *  instead, the way core does.
- */
-function vergeml_rest_can_manage_options() {
-    return current_user_can( 'manage_options' );
-}
-
 /**
  *  Whether set_time_limit() may be called: PHP 7.4 still defines a function
  *  disable_functions turned off, and calling it there warns.
  */
 function vergeml_can_set_time_limit() {
     return function_exists( 'set_time_limit' ) && false === stripos( (string) ini_get( 'disable_functions' ), 'set_time_limit' );
-}
-
-/** A read for anyone who may see the media library. */
-function vergeml_rest_can_upload_files() {
-    return current_user_can( 'upload_files' );
 }
 
 /** A route about one file: whoever may edit that file. */
@@ -350,6 +334,59 @@ global $vergeml_dir,
      *  when walking a network -- and stamps the version so the lazy check on
      *  the next request has nothing left to do.
      */
+    /**
+     *  Tag taxonomies this plugin made before 4.1.0 were keyed vgml_*; they take the
+     *  plugin's own prefix, vergeml_* (wordpress.org review 8). WordPress has no call
+     *  that renames a taxonomy, so the plugin's own rows are moved in term_taxonomy and
+     *  the registration list follows; a key that would collide or pass 32 characters
+     *  is left as it is.
+     */
+    function vergeml_migrate_tag_prefix() {
+
+        global $wpdb;
+
+        $all = get_option( 'vergeml_taxonomies', array() );
+
+        if ( ! is_array( $all ) ) {
+            return;
+        }
+
+        $moved = array();
+
+        foreach ( $all as $old => $params ) {
+
+            $old = (string) $old;
+
+            if ( 0 !== strpos( $old, 'vgml_' ) ) {
+                continue;
+            }
+
+            $new = 'vergeml_' . substr( $old, 5 );
+
+            if ( strlen( $new ) > 32 || isset( $all[ $new ] ) || taxonomy_exists( $new ) ) {
+                continue;
+            }
+
+            $wpdb->update( $wpdb->term_taxonomy, array( 'taxonomy' => $new ), array( 'taxonomy' => $old ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- renaming the plugin's own taxonomy; there is no API for it.
+
+            if ( isset( $params['rewrite']['slug'] ) && $old === $params['rewrite']['slug'] ) {
+                $params['rewrite']['slug'] = $new;
+            }
+
+            unset( $all[ $old ] );
+            $all[ $new ] = $params;
+            delete_option( $old . '_children' );
+            $moved[ $new ] = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT term_id FROM %i WHERE taxonomy = %s', $wpdb->term_taxonomy, $new ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the rows just moved, for their cache.
+        }
+
+        if ( $moved ) {
+            update_option( 'vergeml_taxonomies', $all );
+            foreach ( $moved as $taxonomy => $ids ) {
+                clean_term_cache( $ids, $taxonomy );
+            }
+        }
+    }
+
     function vergeml_provision_site() {
 
         // The self-entered safe mode of 4.0.x is gone; a site it left switched off comes back.
@@ -357,6 +394,8 @@ global $vergeml_dir,
 
         // carry settings over from Enhanced Media Library, if it left any
         vergeml_migrate_legacy_options();
+
+        vergeml_migrate_tag_prefix();
 
         vergeml_set_options();
 

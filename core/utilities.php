@@ -405,33 +405,33 @@ function vergeml_utilities_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/merge-plan', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_rest_merge_plan',
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/merge-run', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_rest_merge_run',
         'args'                => array( 'plan' => array( 'type' => 'array', 'required' => true ) ),
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/alt-fill-step', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_rest_alt_fill',
         'args'                => array( 'limit' => array( 'type' => 'integer', 'default' => 25 ) ),
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/alt-undo', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_rest_alt_undo',
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/similar', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_rest_similar',
         'args'                => array(
             'id'    => array( 'type' => 'integer', 'required' => true ),

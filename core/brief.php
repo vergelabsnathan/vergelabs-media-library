@@ -623,11 +623,11 @@ add_action( 'rest_api_init', 'vergeml_brief_routes' );
 
 function vergeml_brief_routes() {
     register_rest_route( VERGEML_REST_NS, '/brief/session', array(
-        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_brief_rest_session', 'permission_callback' => 'vergeml_rest_can_manage_options' ),
+        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_brief_rest_session', 'permission_callback' => function () { return current_user_can( 'manage_options' ); } ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'vergeml_brief_rest_session',
-            'permission_callback' => 'vergeml_rest_can_manage_options',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
             'args'                => array(
                 'reset' => array( 'type' => 'boolean', 'required' => false ),
                 'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
@@ -637,12 +637,12 @@ function vergeml_brief_routes() {
     register_rest_route( VERGEML_REST_NS, '/brief/token', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_brief_rest_token',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/brief/turn', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_brief_rest_turn',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'said'  => array( 'type' => 'object', 'required' => false ),
             'say'   => array( 'type' => 'object', 'required' => false ),
@@ -652,17 +652,17 @@ function vergeml_brief_routes() {
     register_rest_route( VERGEML_REST_NS, '/brief/test', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_brief_rest_test',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/brief/adopt', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_brief_rest_adopt',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/brief/discard', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_brief_rest_discard',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
 }
 

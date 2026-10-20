@@ -1016,7 +1016,7 @@
 		syncListBar();
 
 		var url = new URL( window.location.href );
-		url.searchParams.set( 'vgml_smart', key );
+		url.searchParams.set( 'vergeml_smart', key );
 		url.searchParams.delete( state.taxonomy );
 		url.searchParams.delete( unfiledVar() );
 		url.searchParams.delete( 'paged' );
@@ -1436,7 +1436,7 @@
 		}
 
 		// Paging belongs to the previous folder, and so does a smart filter.
-		url.searchParams.delete( 'vgml_smart' );
+		url.searchParams.delete( 'vergeml_smart' );
 		url.searchParams.delete( 'paged' );
 
 		// Against the swap in flight, when there is one: a click while the
@@ -1461,7 +1461,7 @@
 	 *  which nothing else on that screen is going to collide with.
 	 */
 	function unfiledVar() {
-		return ( cfg.postType && 'attachment' !== cfg.postType ) ? 'vgml_unfiled' : 'uncategorized';
+		return ( cfg.postType && 'attachment' !== cfg.postType ) ? 'vergeml_unfiled' : 'uncategorized';
 	}
 
 	/*
@@ -1493,10 +1493,10 @@
 				kind.selectedIndex = 0; // "All media items", whichever value core gave it
 			}
 		}
-		var smart = form.querySelector( 'input[name="vgml_smart"]' );
+		var smart = form.querySelector( 'input[name="vergeml_smart"]' );
 		if ( state.smartSelected ) {
 			if ( ! smart ) {
-				smart = el( 'input', { type: 'hidden', name: 'vgml_smart' } );
+				smart = el( 'input', { type: 'hidden', name: 'vergeml_smart' } );
 				form.appendChild( smart );
 			}
 			smart.value = state.smartSelected;
@@ -1524,14 +1524,14 @@
 		if ( params.get( unfiledVar() ) ) {
 			return -1;
 		}
-		if ( params.get( 'vgml_smart' ) ) {
-			return 'smart:' + params.get( 'vgml_smart' );
+		if ( params.get( 'vergeml_smart' ) ) {
+			return 'smart:' + params.get( 'vergeml_smart' );
 		}
 		return null;
 	}
 
 	// The vars that mean the URL was chosen, not merely arrived at. `item` is core's deep link to one picture's modal: restoring a remembered folder over it navigated away and the modal never opened (2026-09-16).
-	var URL_VARS = [ 's', 'paged', 'orderby', 'order', 'attachment-filter', 'm', 'author', 'filter_action', 'post_mime_type', 'detached', 'vgml_meaning', 'vgml_smart', 'item' ];
+	var URL_VARS = [ 's', 'paged', 'orderby', 'order', 'attachment-filter', 'm', 'author', 'filter_action', 'post_mime_type', 'detached', 'vergeml_meaning', 'vergeml_smart', 'item' ];
 
 	function urlIsBare() {
 		var params = new URL( window.location.href ).searchParams;
@@ -3516,7 +3516,7 @@
 						var n = state.byId[ state.selected ];
 						url.searchParams.set( state.taxonomy, n && n.slug ? n.slug : state.selected );
 						url.searchParams.delete( unfiledVar() );
-						url.searchParams.delete( 'vgml_smart' );
+						url.searchParams.delete( 'vergeml_smart' );
 					}
 					window.location.href = url.href;
 				}, 600 );

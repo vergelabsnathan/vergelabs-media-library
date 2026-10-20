@@ -832,7 +832,7 @@ function vergeml_health_keep_routes() {
 	register_rest_route( VERGEML_REST_NS, '/health-keep-undo', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_health_rest_keep_undo',
-		'permission_callback' => 'vergeml_rest_can_manage_options',
+		'permission_callback' => function () { return current_user_can( 'manage_options' ); },
 		'args'                => array(
 			'token' => array( 'type' => 'string', 'required' => true ),
 		),
@@ -841,7 +841,7 @@ function vergeml_health_keep_routes() {
 	register_rest_route( VERGEML_REST_NS, '/health-retire', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_health_rest_retire',
-		'permission_callback' => 'vergeml_rest_can_manage_options',
+		'permission_callback' => function () { return current_user_can( 'manage_options' ); },
 		'args'                => array(
 			'ids'  => array( 'type' => 'array', 'required' => true, 'items' => array( 'type' => 'integer' ) ),
 			'undo' => array( 'type' => 'boolean', 'default' => false ),

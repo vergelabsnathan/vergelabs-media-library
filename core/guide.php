@@ -963,11 +963,11 @@ add_action( 'rest_api_init', 'vergeml_guide_routes' );
 
 function vergeml_guide_routes() {
     register_rest_route( VERGEML_REST_NS, '/guide/session', array(
-        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_guide_rest_session', 'permission_callback' => 'vergeml_rest_can_manage_options' ),
+        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_guide_rest_session', 'permission_callback' => function () { return current_user_can( 'manage_options' ); } ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'vergeml_guide_rest_session',
-            'permission_callback' => 'vergeml_rest_can_manage_options',
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
             'args'                => array(
                 'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
                 'reset' => array( 'type' => 'boolean', 'required' => false ),
@@ -977,12 +977,12 @@ function vergeml_guide_routes() {
     register_rest_route( VERGEML_REST_NS, '/guide/token', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_token',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/turn', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_turn',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'said'  => array( 'type' => 'object', 'required' => false ),
             'say'   => array( 'type' => 'object', 'required' => false ),
@@ -995,17 +995,17 @@ function vergeml_guide_routes() {
     register_rest_route( VERGEML_REST_NS, '/guide/product-categories', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_guide_rest_product_categories',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/rules', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_guide_rest_rules',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/rule', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_rule',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'rule'    => array( 'type' => 'string', 'required' => true ),
             'options' => array( 'type' => 'object', 'required' => false ),
@@ -1014,51 +1014,51 @@ function vergeml_guide_routes() {
     register_rest_route( VERGEML_REST_NS, '/guide/apply', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_apply',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/progress', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_guide_rest_progress',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/stop', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_stop',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/undo', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_undo',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     // "This is my tree": the profiles stored, the planner asked once about folders the draft gives no classes, edits refused after.
     register_rest_route( VERGEML_REST_NS, '/guide/confirm', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_confirm',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/unconfirm', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_unconfirm',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     // The earlier classes back on every folder a confirm re-profiled within the day (C.4).
     register_rest_route( VERGEML_REST_NS, '/guide/profiles-restore', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_profiles_restore',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     // The questions the fill left, and where the step stands. Read-only and cheap.
     register_rest_route( VERGEML_REST_NS, '/guide/questions', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_guide_rest_questions',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     // One answer to one question: keep-parent | split | new-folder | put-in:<term> | leave | show-me.
     register_rest_route( VERGEML_REST_NS, '/guide/answer', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_answer',
-        'permission_callback' => 'vergeml_rest_can_manage_options',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'id'     => array( 'type' => 'string', 'required' => true ),
             'answer' => array( 'type' => 'string', 'required' => true ),
@@ -2341,11 +2341,11 @@ function vergeml_guide_tag_taxonomy( $name ) {
     }
 
     // A taxonomy key is 32 characters of [a-z0-9_], and one this plugin makes carries its prefix.
-    $key = trim( substr( sanitize_key( str_replace( array( ' ', '-' ), '_', $name ) ), 0, 27 ), '_' );
+    $key = trim( substr( sanitize_key( str_replace( array( ' ', '-' ), '_', $name ) ), 0, 24 ), '_' );
     if ( '' === $key ) {
         return null;
     }
-    $key = 'vgml_' . $key;
+    $key = 'vergeml_' . $key;
     if ( taxonomy_exists( $key ) || isset( $all[ $key ] ) ) {
         return null;
     }

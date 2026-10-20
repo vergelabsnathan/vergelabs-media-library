@@ -417,7 +417,7 @@ function vergeml_journey_do_file_rename() {
         ? count( vergeml_file_rename_many( vergeml_file_pending( 200 ) ) )
         : 0;
 
-    wp_safe_redirect( add_query_arg( 'vgml_files_renamed', $done, vergeml_journey_url( VERGEML_MENU ) ) );
+    wp_safe_redirect( add_query_arg( 'vergeml_files_renamed', $done, vergeml_journey_url( VERGEML_MENU ) ) );
     exit;
 }
 
@@ -432,7 +432,7 @@ function vergeml_journey_undo_file_rename() {
 
     $back = function_exists( 'vergeml_file_undo' ) ? count( vergeml_file_undo() ) : 0;
 
-    wp_safe_redirect( add_query_arg( 'vgml_files_back', $back, vergeml_journey_url( VERGEML_MENU ) ) );
+    wp_safe_redirect( add_query_arg( 'vergeml_files_back', $back, vergeml_journey_url( VERGEML_MENU ) ) );
     exit;
 }
 
@@ -440,9 +440,9 @@ function vergeml_journey_undo_file_rename() {
 
 function vergeml_journey_file_notice() {
 
-    if ( isset( $_GET['vgml_files_renamed'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( isset( $_GET['vergeml_files_renamed'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-        $n = (int) $_GET['vgml_files_renamed']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $n = (int) $_GET['vergeml_files_renamed']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         printf(
             '<div class="notice notice-success is-dismissible"><p>%s <a href="%s">%s</a></p></div>',
@@ -460,11 +460,11 @@ function vergeml_journey_file_notice() {
         return;
     }
 
-    if ( ! isset( $_GET['vgml_files_back'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( ! isset( $_GET['vergeml_files_back'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         return;
     }
 
-    $n = (int) $_GET['vgml_files_back']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $n = (int) $_GET['vergeml_files_back']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
     printf(
         '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
@@ -1087,7 +1087,7 @@ function vergeml_journey_do_alt() {
 
     $wrote = function_exists( 'vergeml_ai_apply_alt' ) ? vergeml_ai_apply_alt( 0 ) : 0;
 
-    wp_safe_redirect( add_query_arg( 'vgml_alt_written', (int) $wrote, vergeml_journey_url( VERGEML_MENU ) ) );
+    wp_safe_redirect( add_query_arg( 'vergeml_alt_written', (int) $wrote, vergeml_journey_url( VERGEML_MENU ) ) );
     exit;
 }
 
@@ -1107,8 +1107,8 @@ function vergeml_journey_results() {
     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- reading a result the redirect wrote, not acting.
     $said = array();
 
-    if ( isset( $_GET['vgml_renamed'] ) ) {
-        $n      = max( 0, (int) $_GET['vgml_renamed'] );
+    if ( isset( $_GET['vergeml_renamed'] ) ) {
+        $n      = max( 0, (int) $_GET['vergeml_renamed'] );
         $said[] = 0 === $n
             ? __( 'No titles needed rewriting. A title is only written from a picture we have already looked at.', 'vergelabs-media-library' )
             : sprintf(
@@ -1118,8 +1118,8 @@ function vergeml_journey_results() {
             );
     }
 
-    if ( isset( $_GET['vgml_alt_written'] ) ) {
-        $n      = max( 0, (int) $_GET['vgml_alt_written'] );
+    if ( isset( $_GET['vergeml_alt_written'] ) ) {
+        $n      = max( 0, (int) $_GET['vergeml_alt_written'] );
         $said[] = sprintf(
             /* translators: %s: how many pictures got alt text. */
             _n( '%s picture now has alt text.', '%s pictures now have alt text.', $n, 'vergelabs-media-library' ),
@@ -1127,8 +1127,8 @@ function vergeml_journey_results() {
         );
     }
 
-    if ( isset( $_GET['vgml_files_renamed'] ) ) {
-        $n      = max( 0, (int) $_GET['vgml_files_renamed'] );
+    if ( isset( $_GET['vergeml_files_renamed'] ) ) {
+        $n      = max( 0, (int) $_GET['vergeml_files_renamed'] );
         $said[] = sprintf(
             /* translators: %s: how many files were renamed on disk. */
             _n( '%s file renamed, and the pages pointing at it updated.', '%s files renamed, and the pages pointing at them updated.', $n, 'vergelabs-media-library' ),
@@ -1136,8 +1136,8 @@ function vergeml_journey_results() {
         );
     }
 
-    if ( isset( $_GET['vgml_files_back'] ) ) {
-        $n      = max( 0, (int) $_GET['vgml_files_back'] );
+    if ( isset( $_GET['vergeml_files_back'] ) ) {
+        $n      = max( 0, (int) $_GET['vergeml_files_back'] );
         $said[] = sprintf(
             /* translators: %s: how many file names were put back. */
             _n( '%s file name put back.', '%s file names put back.', $n, 'vergelabs-media-library' ),
@@ -1169,7 +1169,7 @@ function vergeml_journey_do_rename() {
         ? count( vergeml_rename_apply( vergeml_rename_pending() ) )
         : 0;
 
-    wp_safe_redirect( add_query_arg( 'vgml_renamed', $done, vergeml_journey_url( VERGEML_MENU ) ) );
+    wp_safe_redirect( add_query_arg( 'vergeml_renamed', $done, vergeml_journey_url( VERGEML_MENU ) ) );
     exit;
 }
 
@@ -1177,11 +1177,11 @@ function vergeml_journey_do_rename() {
 
 function vergeml_journey_alt_notice() {
 
-    if ( ! isset( $_GET['vgml_alt_written'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( ! isset( $_GET['vergeml_alt_written'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         return;
     }
 
-    $n = (int) $_GET['vgml_alt_written']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $n = (int) $_GET['vergeml_alt_written']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
     printf(
         '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
