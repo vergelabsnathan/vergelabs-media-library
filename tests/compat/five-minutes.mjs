@@ -161,7 +161,7 @@ const termsOf = async ( id, want = 0 ) => {
 	return terms;
 };
 const probe = async () => {
-	const res = await page.request.get( `${ BASE }/?vgml_matrix=state` );
+	const res = await page.request.get( `${ BASE }/?vergeml_matrix=state` );
 	return await res.json();
 };
 

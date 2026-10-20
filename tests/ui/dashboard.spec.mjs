@@ -150,7 +150,7 @@ test.describe( 'the dashboard', () => {
 		 *  query string, and nothing on earth read it. A button that does its
 		 *  job silently is indistinguishable from one that does nothing.
 		 */
-		expect( page.url(), 'the result should come back in the URL' ).toMatch( /vgml_renamed=/ );
+		expect( page.url(), 'the result should come back in the URL' ).toMatch( /vergeml_renamed=/ );
 		await expect(
 			page.locator( '.notice' ).filter( { hasText: /title|rewritten|needed rewriting/i } ).first(),
 			'and the screen must say what happened'

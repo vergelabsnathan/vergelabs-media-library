@@ -17,12 +17,12 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *  every term assignment as missing.
  */
 /*
- *  ?vgml_rtl=1 renders the admin right-to-left, so the mirrored stylesheet can
+ *  ?vergeml_rtl=1 renders the admin right-to-left, so the mirrored stylesheet can
  *  actually be looked at. WordPress swaps in the -rtl.css file when is_rtl() is
  *  true, and is_rtl() just reads the locale's text direction -- no language
  *  pack needed to exercise the layout.
  */
-if ( isset( $_GET['vgml_rtl'] ) ) {
+if ( isset( $_GET['vergeml_rtl'] ) ) {
 
     add_action( 'init', function () {
         if ( isset( $GLOBALS['wp_locale'] ) )
@@ -36,13 +36,13 @@ if ( isset( $_GET['vgml_rtl'] ) ) {
 
 add_action( 'wp_loaded', function () {
 
-    if ( ! isset( $_GET['vgml_test'] ) )
+    if ( ! isset( $_GET['vergeml_test'] ) )
         return;
 
     if ( ! defined( 'VGML_TEST_KEY' ) || ! isset( $_GET['key'] ) || $_GET['key'] !== VGML_TEST_KEY )
         return;
 
-    $action = sanitize_key( $_GET['vgml_test'] );
+    $action = sanitize_key( $_GET['vergeml_test'] );
     require_once ABSPATH . 'wp-admin/includes/plugin.php';
     require_once ABSPATH . 'wp-admin/includes/image.php';
 

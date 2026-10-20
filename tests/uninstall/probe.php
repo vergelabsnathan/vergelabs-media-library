@@ -1,7 +1,7 @@
 <?php
 /**
  *  Plugin Name: VergeML uninstall probe (test only)
- *  Description: Answers ?vgml_probe=state with what the database holds, before and after the plugin is deleted. Mounted into a Playground as an mu-plugin by tools/uninstall-walk.mjs; never shipped.
+ *  Description: Answers ?vergeml_probe=state with what the database holds, before and after the plugin is deleted. Mounted into a Playground as an mu-plugin by tools/uninstall-walk.mjs; never shipped.
  *
  *  It has to be an mu-plugin because the thing under test is the plugin
  *  being gone: once uninstall.php has run there is no plugin function to ask,
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'init', function () {
 
-    if ( ! isset( $_GET['vgml_probe'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a read-only probe on a throwaway site.
+    if ( ! isset( $_GET['vergeml_probe'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a read-only probe on a throwaway site.
         return;
     }
 
@@ -25,7 +25,7 @@ add_action( 'init', function () {
 
     global $wpdb;
 
-    $action = sanitize_key( (string) $_GET['vgml_probe'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $action = sanitize_key( (string) $_GET['vergeml_probe'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
     if ( 'set-wipe' === $action ) {
         $v = isset( $_GET['v'] ) && '1' === $_GET['v'] ? '1' : '0'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended

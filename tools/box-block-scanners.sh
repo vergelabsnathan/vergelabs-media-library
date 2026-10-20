@@ -27,7 +27,7 @@ CONF=/etc/nginx/conf.d/98-vergelabs-scanners.conf
 cat > "$CONF" <<'NGINX'
 #  Requests that are only ever hostile. Returning 444 closes the connection
 #  without a response, which costs nothing and tells the scanner nothing.
-map $request_uri $vgml_scanner {
+map $request_uri $vergeml_scanner {
 	default                 0;
 	"~*/\.env"              1;
 	"~*/\.git"              1;
@@ -46,7 +46,7 @@ NGINX
 SNIP=/etc/nginx/snippets/vergelabs-scanners.conf
 mkdir -p /etc/nginx/snippets
 cat > "$SNIP" <<'NGINX'
-if ($vgml_scanner) { return 444; }
+if ($vergeml_scanner) { return 444; }
 NGINX
 
 for site in /etc/nginx/sites-available/*; do

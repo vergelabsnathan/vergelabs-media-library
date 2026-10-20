@@ -173,7 +173,7 @@ check( 'and the grid shows the folder again', after.tiles === Math.min( folder.c
 
 console.log( '\nlist view' );
 
-await page.goto( `${ BASE }/wp-admin/upload.php?mode=list&vgml_smart=no-alt`, { waitUntil: 'domcontentloaded' } );
+await page.goto( `${ BASE }/wp-admin/upload.php?mode=list&vergeml_smart=no-alt`, { waitUntil: 'domcontentloaded' } );
 await page.waitForTimeout( 1500 );
 
 const list = await page.evaluate( () => {

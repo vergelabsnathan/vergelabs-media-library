@@ -80,7 +80,7 @@ update_term_meta( $terms['zzShotC'], VERGEML_FILING_META, array_merge( $profile,
     'audience' => 'women',
 ) ) );
 
-function vgml_shot_file( $title, $object, $kind, $audience, $vector ) {
+function vergeml_shot_file( $title, $object, $kind, $audience, $vector ) {
 
     $id = wp_insert_post( array(
         'post_title'     => 'zz shot ' . $title,
@@ -105,10 +105,10 @@ function vgml_shot_file( $title, $object, $kind, $audience, $vector ) {
 }
 
 $files = array(
-    'ok'     => vgml_shot_file( 'ok',     $class, 'photo',  '',      $vector ),
-    'floor'  => vgml_shot_file( 'floor',  '',     'photo',  '',      $vector ),
-    'gated'  => vgml_shot_file( 'gated',  $class, 'zzlogo', '',      $vector ),
-    'margin' => vgml_shot_file( 'margin', $class, 'photo',  'women', $vector ),
+    'ok'     => vergeml_shot_file( 'ok',     $class, 'photo',  '',      $vector ),
+    'floor'  => vergeml_shot_file( 'floor',  '',     'photo',  '',      $vector ),
+    'gated'  => vergeml_shot_file( 'gated',  $class, 'zzlogo', '',      $vector ),
+    'margin' => vergeml_shot_file( 'margin', $class, 'photo',  'women', $vector ),
 );
 
 /*

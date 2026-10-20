@@ -351,21 +351,21 @@ if ( ! is_wp_error( $hk_r ) ) {
 
 // A serialised layout whose text length would change: the row is left
 // alone, the scan still finds the file in it, the file stays.
-update_post_meta( $hk_post, '_vgml_p6_layout', array( 'hero' => $hk_url_b ) );
+update_post_meta( $hk_post, '_vergeml_p6_layout', array( 'hero' => $hk_url_b ) );
 update_post_meta( $hk_b, VERGEML_META_USED_IN, (string) $hk_post );
 
 $hk_r = vergeml_health_keep( $hk_a, array( $hk_b ) );
 
 hk_check( 'E2 a serialised layout is not rewritten, so the file stays', ! is_wp_error( $hk_r ) && ! vergeml_quarantine_has( $hk_b ) && array() === $hk_r['aside']
     && false !== strpos( $hk_r['line'], 'stays: 1 use in Phase 6 walk could not be rewritten' )
-    && $hk_url_b === get_post_meta( $hk_post, '_vgml_p6_layout', true )['hero'],
+    && $hk_url_b === get_post_meta( $hk_post, '_vergeml_p6_layout', true )['hero'],
     is_wp_error( $hk_r ) ? $hk_r->get_error_message() : $hk_r['line'] );
 
 if ( ! is_wp_error( $hk_r ) ) {
     vergeml_health_keep_undo( $hk_r['undo']['token'] );
 }
 
-delete_post_meta( $hk_post, '_vgml_p6_layout' );
+delete_post_meta( $hk_post, '_vergeml_p6_layout' );
 delete_post_meta( $hk_b, VERGEML_META_USED_IN );
 update_post_meta( $hk_b, VERGEML_META_UNUSED, '1' );
 

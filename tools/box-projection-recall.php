@@ -11,7 +11,7 @@
  *  Nothing here writes. It reads embeddings and prints two numbers.
  */
 
-function vgml_t_nrm( $v ) {
+function vergeml_t_nrm( $v ) {
     $s = 0.0;
     foreach ( $v as $x ) { $s += (float) $x * (float) $x; }
     $l = sqrt( $s );
@@ -22,7 +22,7 @@ function vgml_t_nrm( $v ) {
 }
 
 /** The projection as it shipped in 3.9.1 through 3.16.0. */
-function vgml_t_band( $v, $d = 64 ) {
+function vergeml_t_band( $v, $d = 64 ) {
     $v = array_values( $v ); $L = count( $v ); $o = array();
     for ( $i = 0; $i < $d; $i++ ) {
         $f = (int) floor( $i * $L / $d ); $t = (int) floor( ( $i + 1 ) * $L / $d );
@@ -31,10 +31,10 @@ function vgml_t_band( $v, $d = 64 ) {
         for ( $j = $f; $j < $t && $j < $L; $j++ ) { $s += (float) $v[ $j ]; }
         $o[] = $s / ( $t - $f );
     }
-    return vgml_t_nrm( $o );
+    return vergeml_t_nrm( $o );
 }
 
-function vgml_t_dot( $a, $b ) {
+function vergeml_t_dot( $a, $b ) {
     $s = 0.0; $n = min( count( $a ), count( $b ) );
     for ( $i = 0; $i < $n; $i++ ) { $s += $a[ $i ] * $b[ $i ]; }
     return $s;
@@ -60,8 +60,8 @@ foreach ( $rows as $r ) {
     $id = (int) $r['attachment_id'];
     $v  = vergeml_index_vector_out( $r['embedding'] );
     if ( ! is_array( $v ) || count( $v ) < 64 ) { continue; }
-    $full[ $id ] = vgml_t_nrm( $v );
-    $band[ $id ] = vgml_t_band( $v );
+    $full[ $id ] = vergeml_t_nrm( $v );
+    $band[ $id ] = vergeml_t_band( $v );
     $hash[ $id ] = vergeml_organize_project( $v, 64 );   // the new one, from the plugin
 }
 
@@ -91,7 +91,7 @@ foreach ( $probes as $p ) {
         $s = array();
         foreach ( $ids as $q ) {
             if ( $q === $p ) { continue; }
-            $s[ $q ] = vgml_t_dot( $space[ $p ], $space[ $q ] );
+            $s[ $q ] = vergeml_t_dot( $space[ $p ], $space[ $q ] );
         }
         arsort( $s );
         return array_slice( array_keys( $s ), 0, $k );
@@ -126,7 +126,7 @@ foreach ( $probes as $p ) {
         $s = array();
         foreach ( $ids as $q ) {
             if ( $q === $p ) { continue; }
-            $s[ $q ] = vgml_t_dot( $space[ $p ], $space[ $q ] );
+            $s[ $q ] = vergeml_t_dot( $space[ $p ], $space[ $q ] );
         }
         arsort( $s );
         return array_slice( array_keys( $s ), 0, 10 );

@@ -68,7 +68,7 @@ add_action(
 add_filter(
 	'rest_pre_dispatch',
 	function ( $result, $server, $request ) {
-		$GLOBALS['vgml_perf'] = array(
+		$GLOBALS['vergeml_perf'] = array(
 			'start'   => microtime( true ),
 			'queries' => get_num_queries(),
 		);
@@ -81,12 +81,12 @@ add_filter(
 add_filter(
 	'rest_post_dispatch',
 	function ( $response, $server, $request ) {
-		if ( empty( $GLOBALS['vgml_perf'] ) || ! is_object( $response ) ) {
+		if ( empty( $GLOBALS['vergeml_perf'] ) || ! is_object( $response ) ) {
 			return $response;
 		}
 
 		global $wpdb;
-		$p       = $GLOBALS['vgml_perf'];
+		$p       = $GLOBALS['vergeml_perf'];
 		$handler = ( microtime( true ) - $p['start'] ) * 1000;
 		$count   = get_num_queries() - $p['queries'];
 

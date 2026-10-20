@@ -45,7 +45,7 @@ $taxonomy = 'media_category';
  *  is something you can actually navigate -- twenty identical grey squares tell
  *  you nothing about whether a filter worked.
  */
-function vgml_fixture_image( $path, $label, $width, $height, $hue ) {
+function vergeml_fixture_image( $path, $label, $width, $height, $hue ) {
 
 	if ( ! function_exists( 'imagecreatetruecolor' ) ) {
 		return false;
@@ -55,10 +55,10 @@ function vgml_fixture_image( $path, $label, $width, $height, $hue ) {
 
 	// A flat band of colour with a darker footer, so thumbnails stay legible
 	// when they are 150px wide.
-	list( $r, $g, $b ) = vgml_fixture_rgb( $hue, 0.55, 0.78 );
+	list( $r, $g, $b ) = vergeml_fixture_rgb( $hue, 0.55, 0.78 );
 	imagefilledrectangle( $im, 0, 0, $width, $height, imagecolorallocate( $im, $r, $g, $b ) );
 
-	list( $r2, $g2, $b2 ) = vgml_fixture_rgb( $hue, 0.60, 0.42 );
+	list( $r2, $g2, $b2 ) = vergeml_fixture_rgb( $hue, 0.60, 0.42 );
 	imagefilledrectangle( $im, 0, (int) ( $height * 0.72 ), $width, $height, imagecolorallocate( $im, $r2, $g2, $b2 ) );
 
 	$white = imagecolorallocate( $im, 255, 255, 255 );
@@ -79,7 +79,7 @@ function vgml_fixture_image( $path, $label, $width, $height, $hue ) {
 	return $ok;
 }
 
-function vgml_fixture_rgb( $h, $s, $v ) {
+function vergeml_fixture_rgb( $h, $s, $v ) {
 
 	$i = floor( $h * 6 );
 	$f = $h * 6 - $i;
@@ -100,7 +100,7 @@ function vgml_fixture_rgb( $h, $s, $v ) {
 }
 
 
-function vgml_fixture_attach( $name, $label, $width, $height, $hue, $thumbs = true ) {
+function vergeml_fixture_attach( $name, $label, $width, $height, $hue, $thumbs = true ) {
 
 	$uploads = wp_upload_dir();
 
@@ -110,7 +110,7 @@ function vgml_fixture_attach( $name, $label, $width, $height, $hue, $thumbs = tr
 
 	$file = trailingslashit( $uploads['path'] ) . $name;
 
-	if ( ! vgml_fixture_image( $file, $label, $width, $height, $hue ) ) {
+	if ( ! vergeml_fixture_image( $file, $label, $width, $height, $hue ) ) {
 		return 0;
 	}
 
@@ -153,7 +153,7 @@ function vgml_fixture_attach( $name, $label, $width, $height, $hue, $thumbs = tr
  *  Imagick.
  */
 
-function vgml_fixture_document( $name, $label, $seed = '' ) {
+function vergeml_fixture_document( $name, $label, $seed = '' ) {
 
 	$uploads = wp_upload_dir();
 
@@ -218,7 +218,7 @@ function vgml_fixture_document( $name, $label, $seed = '' ) {
 }
 
 
-function vgml_fixture_folder( $name, $parent, $taxonomy, $colour = '' ) {
+function vergeml_fixture_folder( $name, $parent, $taxonomy, $colour = '' ) {
 
 	$existing = term_exists( $name, $taxonomy, $parent );
 
@@ -249,7 +249,7 @@ function vgml_fixture_folder( $name, $parent, $taxonomy, $colour = '' ) {
  *  box is never in the list. Deleting somebody's real folders to tidy up a test
  *  fixture is not a trade worth making.
  */
-function vgml_fixture_wipe( $taxonomy ) {
+function vergeml_fixture_wipe( $taxonomy ) {
 
 	$removed = array( 'files' => 0, 'folders' => 0 );
 
@@ -322,12 +322,12 @@ wp_defer_term_counting( true );
 
 if ( 'wipe' === $mode ) {
 
-	$gone = vgml_fixture_wipe( $taxonomy );
+	$gone = vergeml_fixture_wipe( $taxonomy );
 	printf( "wiped %d files and %d folders\n", $gone['files'], $gone['folders'] );
 
 } elseif ( 'realistic' === $mode ) {
 
-	$gone = vgml_fixture_wipe( $taxonomy );
+	$gone = vergeml_fixture_wipe( $taxonomy );
 	printf( "cleared %d old files and %d old folders\n", $gone['files'], $gone['folders'] );
 
 	/*
@@ -375,13 +375,13 @@ if ( 'wipe' === $mode ) {
 
 	foreach ( $tree as $top => $spec ) {
 
-		$parent_id = vgml_fixture_folder( $top, 0, $taxonomy, $spec['colour'] );
+		$parent_id = vergeml_fixture_folder( $top, 0, $taxonomy, $spec['colour'] );
 		$folders[ $top ] = $parent_id;
 
 		$targets = $spec['children'] ? $spec['children'] : array( $top );
 
 		foreach ( $spec['children'] as $child ) {
-			$folders[ $child ] = vgml_fixture_folder( $child, $parent_id, $taxonomy );
+			$folders[ $child ] = vergeml_fixture_folder( $child, $parent_id, $taxonomy );
 		}
 
 		foreach ( $targets as $target ) {
@@ -393,7 +393,7 @@ if ( 'wipe' === $mode ) {
 				$size = $sizes[ ( $made + $i ) % count( $sizes ) ];
 				$hue  = fmod( $hue + 0.137, 1.0 );
 
-				$id = vgml_fixture_attach(
+				$id = vergeml_fixture_attach(
 					'vgml-fx-' . $subject . '.jpg',
 					ucwords( str_replace( '-', ' ', $subject ) ),
 					$size[0],
@@ -443,7 +443,7 @@ if ( 'wipe' === $mode ) {
 	foreach ( array( 'IMG_4821', 'IMG_4822', 'IMG_4823', 'screenshot-2026-08-14', 'scan-invoice-0912', 'DSC_0071', 'DSC_0072' ) as $i => $subject ) {
 		$size = $sizes[ $i % count( $sizes ) ];
 		$hue  = fmod( $hue + 0.137, 1.0 );
-		if ( vgml_fixture_attach( 'vgml-fx-' . $subject . '.jpg', $subject, $size[0], $size[1], $hue ) ) {
+		if ( vergeml_fixture_attach( 'vgml-fx-' . $subject . '.jpg', $subject, $size[0], $size[1], $hue ) ) {
 			$unfiled++;
 		}
 	}
@@ -467,7 +467,7 @@ if ( 'wipe' === $mode ) {
 		// something to correctly leave alone.
 		array( 'vgml-fx-brand-guidelines.pdf', 'Brand guidelines', 'brand-guidelines' ),
 	) as $document ) {
-		if ( vgml_fixture_document( $document[0], $document[1], $document[2] ) ) {
+		if ( vergeml_fixture_document( $document[0], $document[1], $document[2] ) ) {
 			$documents++;
 		}
 	}
@@ -562,14 +562,14 @@ if ( 'wipe' === $mode ) {
 
 	for ( $i = 0; $i < $folders; $i++ ) {
 		$parent = ( $i > 0 && 0 === $i % 7 ) ? $ids[ (int) ( $i / 7 ) - 1 ] : 0;
-		$ids[]  = vgml_fixture_folder( 'Folder ' . $i, $parent, $taxonomy );
+		$ids[]  = vergeml_fixture_folder( 'Folder ' . $i, $parent, $taxonomy );
 	}
 
 	$made = 0;
 
 	for ( $i = 0; $i < $files; $i++ ) {
 
-		$id = vgml_fixture_attach( 'vgml-fx-scale-' . $i . '.jpg', 'Scale ' . $i, 800, 600, fmod( $i * 0.137, 1.0 ), false );
+		$id = vergeml_fixture_attach( 'vgml-fx-scale-' . $i . '.jpg', 'Scale ' . $i, 800, 600, fmod( $i * 0.137, 1.0 ), false );
 
 		if ( $id ) {
 			wp_set_object_terms( $id, array( $ids[ $i % count( $ids ) ] ), $taxonomy, false );

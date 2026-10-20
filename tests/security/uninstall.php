@@ -14,11 +14,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$GLOBALS['vgml_ok']  = 0;
-$GLOBALS['vgml_bad'] = 0;
+$GLOBALS['vergeml_ok']  = 0;
+$GLOBALS['vergeml_bad'] = 0;
 
-function vgml_t( $name, $pass, $detail = '' ) {
-	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+function vergeml_t( $name, $pass, $detail = '' ) {
+	$pass ? $GLOBALS['vergeml_ok']++ : $GLOBALS['vergeml_bad']++;
 	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, '' !== $detail ? '  -- ' . $detail : '' );
 }
 
@@ -58,15 +58,15 @@ foreach ( $hooks as $hook ) {
 		$left[] = $hook;
 	}
 }
-vgml_t( 'every hook the plugin books is cleared, with or without arguments', ! $left, implode( ', ', $left ) );
-vgml_t( 'the plugin\'s post meta is gone', '' === get_post_meta( $att, '_vergeml_ai', true ) && '' === get_post_meta( $att, '_vergeml_placed_by', true ) );
-vgml_t( 'WordPress\'s own alt text stays', 'kept: WordPress owns this' === get_post_meta( $att, '_wp_attachment_image_alt', true ) );
-vgml_t( 'the plugin\'s term meta is gone', '' === get_term_meta( $term, 'vergeml_color', true ) && '' === get_term_meta( $term, '_vergeml_profile_members', true ) );
-vgml_t( 'its site transients are gone', false === get_site_transient( 'vergeml_probe' ) );
-vgml_t( 'its options are gone', false === get_option( 'vergeml_uninstall_wipe', false ) && false === get_option( 'vergeml_taxonomies', false ) );
-vgml_t( 'the media file itself stays', 'attachment' === get_post_type( $att ) );
+vergeml_t( 'every hook the plugin books is cleared, with or without arguments', ! $left, implode( ', ', $left ) );
+vergeml_t( 'the plugin\'s post meta is gone', '' === get_post_meta( $att, '_vergeml_ai', true ) && '' === get_post_meta( $att, '_vergeml_placed_by', true ) );
+vergeml_t( 'WordPress\'s own alt text stays', 'kept: WordPress owns this' === get_post_meta( $att, '_wp_attachment_image_alt', true ) );
+vergeml_t( 'the plugin\'s term meta is gone', '' === get_term_meta( $term, 'vergeml_color', true ) && '' === get_term_meta( $term, '_vergeml_profile_members', true ) );
+vergeml_t( 'its site transients are gone', false === get_site_transient( 'vergeml_probe' ) );
+vergeml_t( 'its options are gone', false === get_option( 'vergeml_uninstall_wipe', false ) && false === get_option( 'vergeml_taxonomies', false ) );
+vergeml_t( 'the media file itself stays', 'attachment' === get_post_type( $att ) );
 
 wp_delete_attachment( $att, true );
 
-printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
-exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
+printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
+exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

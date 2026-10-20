@@ -125,7 +125,7 @@ async function waitFor( page, base ) {
 }
 
 async function probe( page, base, action, extra = '' ) {
-	const res = await page.request.get( `${ base }/?vgml_probe=${ action }${ extra }` );
+	const res = await page.request.get( `${ base }/?vergeml_probe=${ action }${ extra }` );
 	return await res.json();
 }
 

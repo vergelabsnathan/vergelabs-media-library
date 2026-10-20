@@ -45,7 +45,7 @@ if ( count( $ids ) < 2 ) {
     exit( 1 );
 }
 
-function vgml_cost_prepare( $ids ) {
+function vergeml_cost_prepare( $ids ) {
     global $wpdb;
     // Warm the caches a listing warms, so the number is the filter's and not the post's.
     _prime_post_caches( $ids, false, true );
@@ -56,7 +56,7 @@ function vgml_cost_prepare( $ids ) {
     return (int) $wpdb->num_queries - $before;
 }
 
-$open = vgml_cost_prepare( $ids );
+$open = vergeml_cost_prepare( $ids );
 
 /*
  *  And again as the listing asks for it. The guard reads wp_doing_ajax() and
@@ -68,7 +68,7 @@ if ( ! defined( 'DOING_AJAX' ) ) {
 
 $_REQUEST['action'] = 'query-attachments';
 
-$listing = vgml_cost_prepare( $ids );
+$listing = vergeml_cost_prepare( $ids );
 
 printf( "%d pictures prepared\n\n", count( $ids ) );
 printf( "  as the details panel does   %4d queries\n", $open );

@@ -56,7 +56,7 @@ foreach ( (array) $args as $arg ) {
  *  A clustering whose result depends on the order rows came back in is one
  *  that changes when somebody uploads a file.
  */
-function vgml_spike_vectors( $limit = 0 ) {
+function vergeml_spike_vectors( $limit = 0 ) {
 
 	global $wpdb;
 
@@ -98,7 +98,7 @@ function vgml_spike_vectors( $limit = 0 ) {
 
 /* --------------------------------------------------------------- clustering */
 
-function vgml_spike_distance( $a, $b ) {
+function vergeml_spike_distance( $a, $b ) {
 
 	$sum = 0.0;
 
@@ -119,7 +119,7 @@ function vgml_spike_distance( $a, $b ) {
  *  differ, so this takes the farthest point instead -- the same idea, minus
  *  the die roll. Same input, same centroids, every time, on every machine.
  */
-function vgml_spike_seed( $points, $k ) {
+function vergeml_spike_seed( $points, $k ) {
 
 	$centroids = array( $points[0]['vector'] );
 
@@ -133,7 +133,7 @@ function vgml_spike_seed( $points, $k ) {
 			$nearest = INF;
 
 			foreach ( $centroids as $centroid ) {
-				$d = vgml_spike_distance( $point['vector'], $centroid );
+				$d = vergeml_spike_distance( $point['vector'], $centroid );
 				if ( $d < $nearest ) {
 					$nearest = $d;
 				}
@@ -159,9 +159,9 @@ function vgml_spike_seed( $points, $k ) {
 }
 
 
-function vgml_spike_kmeans( $points, $k, $max_iterations = 25 ) {
+function vergeml_spike_kmeans( $points, $k, $max_iterations = 25 ) {
 
-	$centroids  = vgml_spike_seed( $points, $k );
+	$centroids  = vergeml_spike_seed( $points, $k );
 	$k          = count( $centroids );
 	$assignment = array_fill( 0, count( $points ), -1 );
 	$iterations = 0;
@@ -177,7 +177,7 @@ function vgml_spike_kmeans( $points, $k, $max_iterations = 25 ) {
 			$bestDist = INF;
 
 			foreach ( $centroids as $c => $centroid ) {
-				$d = vgml_spike_distance( $point['vector'], $centroid );
+				$d = vergeml_spike_distance( $point['vector'], $centroid );
 				if ( $d < $bestDist ) {
 					$bestDist = $d;
 					$best     = $c;
@@ -231,7 +231,7 @@ function vgml_spike_kmeans( $points, $k, $max_iterations = 25 ) {
  *  already stored, and paying per folder to be told "photos" would be a poor
  *  trade.
  */
-function vgml_spike_label( $members, $global ) {
+function vergeml_spike_label( $members, $global ) {
 
 	$counts = array();
 
@@ -272,10 +272,10 @@ function vgml_spike_label( $members, $global ) {
 
 /* --------------------------------------------------------------------- run */
 
-function vgml_spike_run( $k = 0, $limit = 0 ) {
+function vergeml_spike_run( $k = 0, $limit = 0 ) {
 
 	$started = microtime( true );
-	$points  = vgml_spike_vectors( $limit );
+	$points  = vergeml_spike_vectors( $limit );
 	$n       = count( $points );
 
 	if ( $n < 2 ) {
@@ -294,7 +294,7 @@ function vgml_spike_run( $k = 0, $limit = 0 ) {
 		}
 	}
 
-	$result   = vgml_spike_kmeans( $points, $k );
+	$result   = vergeml_spike_kmeans( $points, $k );
 	$clusters = array();
 
 	foreach ( $points as $i => $point ) {
@@ -313,7 +313,7 @@ function vgml_spike_run( $k = 0, $limit = 0 ) {
 		foreach ( $members as $member ) {
 			$rows[] = array(
 				'id'       => $member['id'],
-				'distance' => sqrt( vgml_spike_distance( $member['vector'], $centroid ) ),
+				'distance' => sqrt( vergeml_spike_distance( $member['vector'], $centroid ) ),
 			);
 		}
 
@@ -326,7 +326,7 @@ function vgml_spike_run( $k = 0, $limit = 0 ) {
 			return $a['distance'] < $b['distance'] ? -1 : 1;
 		} );
 
-		$label = vgml_spike_label( $members, $global );
+		$label = vergeml_spike_label( $members, $global );
 
 		$tree[] = array(
 			'label'   => $label,
@@ -362,7 +362,7 @@ function vgml_spike_run( $k = 0, $limit = 0 ) {
  *  The tree as one string, so two runs can be compared by eye or by diff.
  *  This is what "runs produce diffs" needs: a stable serialisation.
  */
-function vgml_spike_fingerprint( $run ) {
+function vergeml_spike_fingerprint( $run ) {
 
 	$lines = array();
 
@@ -391,7 +391,7 @@ if ( 'sizes' === $options['mode'] ) {
 
 	foreach ( array( 25, 100, 0 ) as $limit ) {
 
-		$run = vgml_spike_run( $options['k'], $limit );
+		$run = vergeml_spike_run( $options['k'], $limit );
 
 		if ( isset( $run['error'] ) ) {
 			echo '  ', $run['error'], "\n";
@@ -406,7 +406,7 @@ if ( 'sizes' === $options['mode'] ) {
 	return;
 }
 
-$run = vgml_spike_run( $options['k'] );
+$run = vergeml_spike_run( $options['k'] );
 
 if ( isset( $run['error'] ) ) {
 	echo $run['error'], "\n";
@@ -431,7 +431,7 @@ foreach ( $run['tree'] as $branch ) {
 
 // Determinism is the property everything after this depends on, so it is
 // checked here rather than asserted in a comment.
-$again = vgml_spike_run( $options['k'] );
+$again = vergeml_spike_run( $options['k'] );
 
 printf( "\ndeterministic: %s\n\n",
-	vgml_spike_fingerprint( $run ) === vgml_spike_fingerprint( $again ) ? 'yes — two runs, identical tree' : 'NO — the tree moved between runs' );
+	vergeml_spike_fingerprint( $run ) === vergeml_spike_fingerprint( $again ) ? 'yes — two runs, identical tree' : 'NO — the tree moved between runs' );

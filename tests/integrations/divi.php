@@ -13,13 +13,13 @@
  *  left in the HTML.
  */
 
-$GLOBALS['vgml_fail'] = 0;
-$GLOBALS['vgml_n']    = 0;
+$GLOBALS['vergeml_fail'] = 0;
+$GLOBALS['vergeml_n']    = 0;
 
-function vgml_check( $name, $ok, $detail = '' ) {
-    $GLOBALS['vgml_n']++;
+function vergeml_check( $name, $ok, $detail = '' ) {
+    $GLOBALS['vergeml_n']++;
     if ( ! $ok ) {
-        $GLOBALS['vgml_fail']++;
+        $GLOBALS['vergeml_fail']++;
     }
     echo ( $ok ? '  ok   ' : '  FAIL ' ) . $name . ( '' !== $detail ? '  -- ' . $detail : '' ) . "\n";
 }
@@ -28,7 +28,7 @@ $folder = isset( $args[0] ) ? (int) $args[0] : 0;
 $theme  = wp_get_theme();
 
 echo "\n[divi]\n";
-vgml_check( 'Divi is the active theme', 'Divi' === $theme->get( 'Name' ), $theme->get( 'Name' ) . ' ' . $theme->get( 'Version' ) );
+vergeml_check( 'Divi is the active theme', 'Divi' === $theme->get( 'Name' ), $theme->get( 'Name' ) . ' ' . $theme->get( 'Version' ) );
 
 $content = '[et_pb_section fb_built="1"][et_pb_row][et_pb_column type="4_4"]'
     . '[vergeml_folder_gallery folder="' . $folder . '" columns="3" limit="6" layout="grid"]'
@@ -47,19 +47,19 @@ $response = wp_remote_get( get_permalink( $page_id ), array( 'timeout' => 60, 's
 $html     = is_wp_error( $response ) ? '' : (string) wp_remote_retrieve_body( $response );
 $code     = is_wp_error( $response ) ? $response->get_error_message() : wp_remote_retrieve_response_code( $response );
 
-vgml_check( 'the page is served', 200 === $code, 'status ' . $code . ', ' . strlen( $html ) . ' bytes' );
-vgml_check( 'Divi built the page', false !== strpos( $html, 'et_pb_section' ) );
-vgml_check( 'no raw shortcode leaked into the HTML', false === strpos( $html, '[vergeml_folder_gallery' ) );
+vergeml_check( 'the page is served', 200 === $code, 'status ' . $code . ', ' . strlen( $html ) . ' bytes' );
+vergeml_check( 'Divi built the page', false !== strpos( $html, 'et_pb_section' ) );
+vergeml_check( 'no raw shortcode leaked into the HTML', false === strpos( $html, '[vergeml_folder_gallery' ) );
 
 $gallery = preg_match( '/class="[^"]*vgml-folder-gallery[^"]*"/', $html, $m );
-vgml_check( 'the Folder gallery module rendered', 1 === $gallery, $gallery ? $m[0] : 'no vgml-folder-gallery wrapper' );
+vergeml_check( 'the Folder gallery module rendered', 1 === $gallery, $gallery ? $m[0] : 'no vgml-folder-gallery wrapper' );
 
 preg_match_all( '/<img[^>]+wp-content\/uploads/', $html, $imgs );
-vgml_check( 'with images from the folder', count( $imgs[0] ) > 0, count( $imgs[0] ) . ' images' );
+vergeml_check( 'with images from the folder', count( $imgs[0] ) > 0, count( $imgs[0] ) . ' images' );
 
 wp_delete_post( $page_id, true );
 
-echo "\n" . ( $GLOBALS['vgml_n'] - $GLOBALS['vgml_fail'] ) . '/' . $GLOBALS['vgml_n'] . " passed\n";
-if ( $GLOBALS['vgml_fail'] ) {
+echo "\n" . ( $GLOBALS['vergeml_n'] - $GLOBALS['vergeml_fail'] ) . '/' . $GLOBALS['vergeml_n'] . " passed\n";
+if ( $GLOBALS['vergeml_fail'] ) {
     exit( 1 );
 }

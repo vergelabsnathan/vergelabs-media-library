@@ -32,11 +32,11 @@ require_once ABSPATH . 'wp-admin/includes/template.php';
 
 $tax = 'media_category';
 
-$GLOBALS['vgml_ok']  = 0;
-$GLOBALS['vgml_bad'] = 0;
+$GLOBALS['vergeml_ok']  = 0;
+$GLOBALS['vergeml_bad'] = 0;
 
 function t( $name, $pass, $detail = '' ) {
-	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+	$pass ? $GLOBALS['vergeml_ok']++ : $GLOBALS['vergeml_bad']++;
 	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, $detail ? '  -- ' . $detail : '' );
 }
 
@@ -45,7 +45,7 @@ echo "\na partial settings write\n\n";
 $before = get_option( 'vergeml_taxonomies', array() );
 
 // A folder to look for at the end, on a fresh site that has none yet.
-$vgml_made = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'fields' => 'ids', 'number' => 1 ) ) ? 0 : wp_insert_term( 'vgml-settings-safety', $tax );
+$vergeml_made = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'fields' => 'ids', 'number' => 1 ) ) ? 0 : wp_insert_term( 'vgml-settings-safety', $tax );
 
 t( 'the taxonomy starts registered', taxonomy_exists( $tax ) );
 t( 'and has labels on file', ! empty( $before[ $tax ]['labels']['name'] ),
@@ -206,5 +206,5 @@ t( 'the real settings are back', taxonomy_exists( $tax ) &&
 	get_taxonomy( $tax )->labels->name === $before[ $tax ]['labels']['name'],
 	taxonomy_exists( $tax ) ? get_taxonomy( $tax )->labels->name : 'gone' );
 
-printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
-exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
+printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
+exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

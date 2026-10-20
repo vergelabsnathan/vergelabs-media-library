@@ -22,15 +22,15 @@ wp_set_current_user( 1 );
 
 $tax = 'media_category';
 
-$GLOBALS['vgml_ok']  = 0;
-$GLOBALS['vgml_bad'] = 0;
+$GLOBALS['vergeml_ok']  = 0;
+$GLOBALS['vergeml_bad'] = 0;
 
 function t( $name, $pass, $detail = '' ) {
-	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+	$pass ? $GLOBALS['vergeml_ok']++ : $GLOBALS['vergeml_bad']++;
 	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, $detail ? '  -- ' . $detail : '' );
 }
 
-function vgml_fake_upload( $post ) {
+function vergeml_fake_upload( $post ) {
 
 	$id = wp_insert_attachment( array(
 		'post_mime_type' => 'image/jpeg',
@@ -55,7 +55,7 @@ $folder = (int) $term->term_id;
 
 /* --- the request the tree sends ------------------------------------------- */
 
-$id = vgml_fake_upload( array( 'vergeml_folder' => (string) $folder, 'vergeml_folder_tax' => $tax ) );
+$id = vergeml_fake_upload( array( 'vergeml_folder' => (string) $folder, 'vergeml_folder_tax' => $tax ) );
 $in = array_map( 'absint', (array) wp_get_object_terms( $id, $tax, array( 'fields' => 'ids' ) ) );
 
 t( 'an upload carrying a folder lands in it', in_array( $folder, $in, true ), implode( ',', $in ) );
@@ -71,7 +71,7 @@ $cases = array(
 );
 
 foreach ( $cases as $label => $post ) {
-	$id = vgml_fake_upload( $post );
+	$id = vergeml_fake_upload( $post );
 	$in = (array) wp_get_object_terms( $id, $tax, array( 'fields' => 'ids' ) );
 	t( "$label files nothing", empty( $in ), implode( ',', array_map( 'absint', $in ) ) );
 	wp_delete_attachment( $id, true );
@@ -153,5 +153,5 @@ if ( $empty_id ) {
 $ghost = vergeml_zip_folder( 999999, $tax, wp_tempnam( 'vgml-zip-test' ) );
 t( 'so is a folder that does not exist', is_wp_error( $ghost ) );
 
-printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
-exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
+printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
+exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

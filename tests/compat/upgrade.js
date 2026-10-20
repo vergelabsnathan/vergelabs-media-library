@@ -50,7 +50,7 @@ async function get(url, depth) {
 }
 
 async function call(action, extra) {
-    const url = `${BASE}/?vgml_test=${action}&key=${KEY}${extra || ''}`;
+    const url = `${BASE}/?vergeml_test=${action}&key=${KEY}${extra || ''}`;
     const res = await get(url);
     const text = await res.text();
     try {

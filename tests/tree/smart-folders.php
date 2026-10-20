@@ -19,15 +19,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 wp_set_current_user( 1 );
 
-$GLOBALS['vgml_ok']  = 0;
-$GLOBALS['vgml_bad'] = 0;
+$GLOBALS['vergeml_ok']  = 0;
+$GLOBALS['vergeml_bad'] = 0;
 
 function t( $name, $pass, $detail = '' ) {
-	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+	$pass ? $GLOBALS['vergeml_ok']++ : $GLOBALS['vergeml_bad']++;
 	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, $detail ? '  -- ' . $detail : '' );
 }
 
-function vgml_scan_to_end() {
+function vergeml_scan_to_end() {
 	$result = vergeml_smart_scan_step( null );
 	$guard  = 0;
 	while ( empty( $result['complete'] ) && ! empty( $result['resume'] ) && $guard++ < 500 ) {
@@ -36,7 +36,7 @@ function vgml_scan_to_end() {
 	return $result;
 }
 
-function vgml_unused_flag( $id ) {
+function vergeml_unused_flag( $id ) {
 	return get_post_meta( $id, VERGEML_META_UNUSED, true );
 }
 
@@ -66,16 +66,16 @@ wp_update_post( array( 'ID' => $attached, 'post_parent' => $p2 ) );
 
 /* --- the scan --------------------------------------------------------------- */
 
-$done = vgml_scan_to_end();
+$done = vergeml_scan_to_end();
 
 t( 'the scan runs to completion', ! empty( $done['complete'] ), wp_json_encode( array( $done['phase'] ?? '?', $done['done'] ?? '?' ) ) );
 t( 'and reports every count when it finishes', isset( $done['counts']['unused'] ) && null !== $done['counts']['unused'] );
 
-t( 'embedded by id is used', '0' === vgml_unused_flag( $by_id ) );
-t( 'embedded by pasted URL is used', '0' === vgml_unused_flag( $by_url ) );
-t( 'the featured image is used', '0' === vgml_unused_flag( $featured ) );
-t( 'the attached child is used', '0' === vgml_unused_flag( $attached ) );
-t( 'the untouched one is unused', '1' === vgml_unused_flag( $untouched ) );
+t( 'embedded by id is used', '0' === vergeml_unused_flag( $by_id ) );
+t( 'embedded by pasted URL is used', '0' === vergeml_unused_flag( $by_url ) );
+t( 'the featured image is used', '0' === vergeml_unused_flag( $featured ) );
+t( 'the attached child is used', '0' === vergeml_unused_flag( $attached ) );
+t( 'the untouched one is unused', '1' === vergeml_unused_flag( $untouched ) );
 
 /* --- references that live outside post content ------------------------------ */
 
@@ -97,12 +97,12 @@ update_post_meta( $p3, '_fake_builder_data', '[{"elType":"widget","settings":{"i
 $mods_backup = get_option( 'theme_mods_vergeml_probe', null );
 update_option( 'theme_mods_vergeml_probe', array( 'custom_logo' => 'wp-image-' . $in_option . ' placeholder' ), false );
 
-$done2 = vgml_scan_to_end();
+$done2 = vergeml_scan_to_end();
 
-t( 'a builder-meta reference is used', '0' === vgml_unused_flag( $in_meta ),
-    var_export( vgml_unused_flag( $in_meta ), true ) );
-t( 'an option reference is used', '0' === vgml_unused_flag( $in_option ),
-    var_export( vgml_unused_flag( $in_option ), true ) );
+t( 'a builder-meta reference is used', '0' === vergeml_unused_flag( $in_meta ),
+    var_export( vergeml_unused_flag( $in_meta ), true ) );
+t( 'an option reference is used', '0' === vergeml_unused_flag( $in_option ),
+    var_export( vergeml_unused_flag( $in_option ), true ) );
 
 /* --- and the scan remembers WHO uses each file ------------------------------- */
 
@@ -150,8 +150,8 @@ file_put_contents( $big, str_repeat( 'x', (int) ( 1.5 * MB_IN_BYTES ) ) );
 
 $big_id = wp_insert_attachment( array( 'post_mime_type' => 'image/jpeg', 'post_title' => 'smart big probe', 'post_status' => 'inherit' ), $big );
 
-t( 'a fresh upload is stamped without a rescan', '1' === vgml_unused_flag( $big_id ),
-	var_export( vgml_unused_flag( $big_id ), true ) );
+t( 'a fresh upload is stamped without a rescan', '1' === vergeml_unused_flag( $big_id ),
+	var_export( vergeml_unused_flag( $big_id ), true ) );
 t( 'including its size', (int) get_post_meta( $big_id, VERGEML_META_FILESIZE, true ) > MB_IN_BYTES );
 t( 'so large finds it live', 1 === (int) vergeml_smart_counts()['large'] );
 
@@ -193,5 +193,5 @@ wp_delete_post( $p1, true );
 wp_delete_post( $p2, true );
 wp_update_post( array( 'ID' => $attached, 'post_parent' => $old_parent ) );
 
-printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
-exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
+printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
+exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

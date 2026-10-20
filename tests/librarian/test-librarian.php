@@ -19,15 +19,15 @@
  *  What this suite does not test is the screen. That is librarian.mjs.
  */
 
-$GLOBALS['vgml_pass'] = 0;
-$GLOBALS['vgml_fail'] = 0;
+$GLOBALS['vergeml_pass'] = 0;
+$GLOBALS['vergeml_fail'] = 0;
 
 function l_check( $name, $ok, $detail = '' ) {
     if ( $ok ) {
-        $GLOBALS['vgml_pass']++;
+        $GLOBALS['vergeml_pass']++;
         echo "  ok   {$name}" . ( $detail ? "  -- {$detail}" : '' ) . "\n";
     } else {
-        $GLOBALS['vgml_fail']++;
+        $GLOBALS['vergeml_fail']++;
         echo "  FAIL {$name}" . ( $detail ? "  -- {$detail}" : '' ) . "\n";
     }
 }
@@ -1015,8 +1015,8 @@ l_check( 'the seeded folders are gone',
 
 delete_option( VERGEML_LIBRARIAN_OPTION );
 
-printf( '%d/%d passed' . PHP_EOL, $GLOBALS['vgml_pass'], $GLOBALS['vgml_pass'] + $GLOBALS['vgml_fail'] );
+printf( '%d/%d passed' . PHP_EOL, $GLOBALS['vergeml_pass'], $GLOBALS['vergeml_pass'] + $GLOBALS['vergeml_fail'] );
 
-if ( $GLOBALS['vgml_fail'] > 0 ) {
+if ( $GLOBALS['vergeml_fail'] > 0 ) {
     exit( 1 );
 }

@@ -22,15 +22,15 @@
  *  otherwise.
  */
 
-$GLOBALS['vgml_pass'] = 0;
-$GLOBALS['vgml_fail'] = 0;
+$GLOBALS['vergeml_pass'] = 0;
+$GLOBALS['vergeml_fail'] = 0;
 
 function o_check( $name, $ok, $detail = '' ) {
     if ( $ok ) {
-        $GLOBALS['vgml_pass']++;
+        $GLOBALS['vergeml_pass']++;
         echo "  ok   {$name}" . ( $detail ? "  -- {$detail}" : '' ) . "\n";
     } else {
-        $GLOBALS['vgml_fail']++;
+        $GLOBALS['vergeml_fail']++;
         echo "  FAIL {$name}" . ( $detail ? "  -- {$detail}" : '' ) . "\n";
     }
 }
@@ -791,8 +791,8 @@ o_check( 'the seeded rows are gone', 0 === $left, $left . ' left behind' );
 
 delete_option( VERGEML_ORGANIZE_OPTION );
 
-printf( '%d/%d passed' . PHP_EOL, $GLOBALS['vgml_pass'], $GLOBALS['vgml_pass'] + $GLOBALS['vgml_fail'] );
+printf( '%d/%d passed' . PHP_EOL, $GLOBALS['vergeml_pass'], $GLOBALS['vergeml_pass'] + $GLOBALS['vergeml_fail'] );
 
-if ( $GLOBALS['vgml_fail'] > 0 ) {
+if ( $GLOBALS['vergeml_fail'] > 0 ) {
     exit( 1 );
 }

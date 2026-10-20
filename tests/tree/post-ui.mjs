@@ -173,7 +173,7 @@ check( 'and the URL says which folder', /media_category=/.test( filtered.url ), 
 /* --- unfiled -------------------------------------------------------------- */
 
 await page.locator( '.vgml-tree .vgml-row', { hasText: 'Unfiled' } ).first().click();
-await page.waitForFunction( () => /vgml_unfiled/.test( window.location.search ), null, { timeout: 30000 } ).catch( () => {} );
+await page.waitForFunction( () => /vergeml_unfiled/.test( window.location.search ), null, { timeout: 30000 } ).catch( () => {} );
 
 const unfiled = await page.evaluate( () => {
 	const n = document.querySelector( '.tablenav .displaying-num' );
@@ -183,7 +183,7 @@ const unfiled = await page.evaluate( () => {
 	};
 } );
 
-check( 'unfiled asks for it its own way', /vgml_unfiled=1/.test( unfiled.url ), unfiled.url );
+check( 'unfiled asks for it its own way', /vergeml_unfiled=1/.test( unfiled.url ), unfiled.url );
 check( 'and excludes the three that are filed', unfiled.total === total - 3,
 	`${ unfiled.total }, expected ${ total - 3 }` );
 

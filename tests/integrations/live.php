@@ -25,21 +25,21 @@
 
 require_once ( is_file( __DIR__ . '/lib/filing-sql.php' ) ? __DIR__ . '/lib/filing-sql.php' : ( is_file( __DIR__ . '/../../tools/lib/filing-sql.php' ) ? __DIR__ . '/../../tools/lib/filing-sql.php' : '/tmp/vgml-filing-sql.php' ) ); // vergeml_filing_words_sql(), vergeml_filing_product_sql()
 
-$GLOBALS['vgml_fail'] = 0;
-$GLOBALS['vgml_n']    = 0;
-$GLOBALS['vgml_skip'] = array();
+$GLOBALS['vergeml_fail'] = 0;
+$GLOBALS['vergeml_n']    = 0;
+$GLOBALS['vergeml_skip'] = array();
 
-function vgml_check( $name, $ok, $detail = '' ) {
-    $GLOBALS['vgml_n']++;
+function vergeml_check( $name, $ok, $detail = '' ) {
+    $GLOBALS['vergeml_n']++;
     if ( ! $ok ) {
-        $GLOBALS['vgml_fail']++;
+        $GLOBALS['vergeml_fail']++;
     }
     echo ( $ok ? '  ok   ' : '  FAIL ' ) . $name . ( '' !== $detail ? '  -- ' . $detail : '' ) . "\n";
 }
 
 /** A check this site cannot run: said, counted apart, never a pass and never a fail. */
-function vgml_skip( $name, $why ) {
-    $GLOBALS['vgml_skip'][] = $why;
+function vergeml_skip( $name, $why ) {
+    $GLOBALS['vergeml_skip'][] = $why;
     echo '  skip ' . $name . '  -- ' . $why . "\n";
 }
 
@@ -68,7 +68,7 @@ echo "\n[" . $which . "]\n";
 switch ( $which ) {
 
     case 'yoast':
-        vgml_check( 'Yoast is the plugin that is loaded', defined( 'WPSEO_VERSION' ), defined( 'WPSEO_VERSION' ) ? WPSEO_VERSION : 'not loaded' );
+        vergeml_check( 'Yoast is the plugin that is loaded', defined( 'WPSEO_VERSION' ), defined( 'WPSEO_VERSION' ) ? WPSEO_VERSION : 'not loaded' );
         update_post_meta( $page, '_yoast_wpseo_focuskw', 'gothic cathedral' );
         update_post_meta( $page, '_yoast_wpseo_metadesc', 'A walk through the nave of a gothic cathedral.' );
         update_post_meta( $page, '_yoast_wpseo_focuskeywords', wp_json_encode( array( array( 'keyword' => 'ribbed vaults', 'score' => 70 ), array( 'keyword' => 'pointed arches', 'score' => 60 ) ) ) );
@@ -76,23 +76,23 @@ switch ( $which ) {
         break;
 
     case 'rankmath':
-        vgml_check( 'Rank Math is the plugin that is loaded', defined( 'RANK_MATH_VERSION' ), defined( 'RANK_MATH_VERSION' ) ? RANK_MATH_VERSION : 'not loaded' );
+        vergeml_check( 'Rank Math is the plugin that is loaded', defined( 'RANK_MATH_VERSION' ), defined( 'RANK_MATH_VERSION' ) ? RANK_MATH_VERSION : 'not loaded' );
         update_post_meta( $page, 'rank_math_focus_keyword', 'gothic cathedral,ribbed vaults' );
         update_post_meta( $page, 'rank_math_description', 'A walk through the nave of a gothic cathedral.' );
         $expect_related = 'ribbed vaults';
         break;
 
     case 'seopress':
-        vgml_check( 'SEOPress is the plugin that is loaded', defined( 'SEOPRESS_VERSION' ), defined( 'SEOPRESS_VERSION' ) ? SEOPRESS_VERSION : 'not loaded' );
+        vergeml_check( 'SEOPress is the plugin that is loaded', defined( 'SEOPRESS_VERSION' ), defined( 'SEOPRESS_VERSION' ) ? SEOPRESS_VERSION : 'not loaded' );
         update_post_meta( $page, '_seopress_analysis_target_kw', 'gothic cathedral,pointed arches' );
         update_post_meta( $page, '_seopress_titles_desc', 'A walk through the nave of a gothic cathedral.' );
         $expect_related = 'pointed arches';
         break;
 
     case 'aioseo':
-        vgml_check( 'AIOSEO is the plugin that is loaded', defined( 'AIOSEO_VERSION' ), defined( 'AIOSEO_VERSION' ) ? AIOSEO_VERSION : 'not loaded' );
+        vergeml_check( 'AIOSEO is the plugin that is loaded', defined( 'AIOSEO_VERSION' ), defined( 'AIOSEO_VERSION' ) ? AIOSEO_VERSION : 'not loaded' );
         $table = $wpdb->prefix . 'aioseo_posts';
-        vgml_check( 'its posts table exists', $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) );
+        vergeml_check( 'its posts table exists', $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) );
         $wpdb->delete( $table, array( 'post_id' => $page ) );
         $wpdb->insert( $table, array(
             'post_id'     => $page,
@@ -105,7 +105,7 @@ switch ( $which ) {
         break;
 
     case 'woo':
-        vgml_check( 'WooCommerce is the plugin that is loaded', class_exists( 'WooCommerce' ) );
+        vergeml_check( 'WooCommerce is the plugin that is loaded', class_exists( 'WooCommerce' ) );
         /*
          *  Its own pictures (S16): the library's 1778, 1775 and 1774 went
          *  with the seed, so the case makes three attachments with index
@@ -143,11 +143,11 @@ switch ( $which ) {
          */
         // Fresh: the count is kept for the request, and this one changed products.
         $on_after = (int) vergeml_folders_on_products( true );
-        vgml_check( 'the on-products count grows by the two pictures, not by the three places they sit', 2 === $on_after - $on_before, "$on_before -> $on_after" );
+        vergeml_check( 'the on-products count grows by the two pictures, not by the three places they sit', 2 === $on_after - $on_before, "$on_before -> $on_after" );
 
         $ctx = vergeml_ai_context( $feat );
-        vgml_check( 'the product title reaches the describe context', isset( $ctx['post_title'] ) && 'VGML check deck' === $ctx['post_title'] );
-        vgml_check( 'the product categories reach the describe context', isset( $ctx['product_categories'] ) && false !== strpos( $ctx['product_categories'], 'Skateboard decks' ), isset( $ctx['product_categories'] ) ? $ctx['product_categories'] : '(none)' );
+        vergeml_check( 'the product title reaches the describe context', isset( $ctx['post_title'] ) && 'VGML check deck' === $ctx['post_title'] );
+        vergeml_check( 'the product categories reach the describe context', isset( $ctx['product_categories'] ) && false !== strpos( $ctx['product_categories'], 'Skateboard decks' ), isset( $ctx['product_categories'] ) ? $ctx['product_categories'] : '(none)' );
 
         /*
          *  File by the product (S10.8): a folder named like the category,
@@ -172,7 +172,7 @@ switch ( $which ) {
         foreach ( $rows as $r ) {
             $by_id[ (int) $r['attachment_id'] ] = (int) $r['product_id'];
         }
-        vgml_check( 'the rows carry the product: the featured (parent too) and the gallery image say it, the copy says none', 3 === count( $rows ) && $by_id[ $feat ] === (int) $product && $by_id[ $gal ] === (int) $product && 0 === $by_id[ $copy ], wp_json_encode( $by_id ) );
+        vergeml_check( 'the rows carry the product: the featured (parent too) and the gallery image say it, the copy says none', 3 === count( $rows ) && $by_id[ $feat ] === (int) $product && $by_id[ $gal ] === (int) $product && 0 === $by_id[ $copy ], wp_json_encode( $by_id ) );
         /*
          *  A folder takes part in filing only with a profile, and a profile
          *  needs the folder name's vector from the service. The watch's stage
@@ -185,21 +185,21 @@ switch ( $which ) {
          */
         if ( ! isset( $profiles[ $folder ] ) ) {
             $why = 'this site cannot make a folder vector (' . wp_get_environment_type() . ', ' . ( is_array( vergeml_meaning_vector( 'Folder: Skateboard decks' ) ) ? 'vector made now -- look again' : 'no vector from the service' ) . ')';
-            vgml_skip( 'the count puts both in Skateboard decks by the product', $why );
-            vgml_skip( 'a second count says the same', $why );
+            vergeml_skip( 'the count puts both in Skateboard decks by the product', $why );
+            vergeml_skip( 'a second count says the same', $why );
         } else {
             $rows  = vergeml_filing_product_folders( $rows, $profiles );
             $first = vergeml_filing_count( $profiles, $rows )['picks'];
-            vgml_check( 'the count puts both in Skateboard decks by the product, sure; the copy, saying the same word, is nobody\'s and lands nowhere', isset( $first[ $feat ], $first[ $gal ], $first[ $copy ] ) && $folder === (int) $first[ $feat ]['term_id'] && $folder === (int) $first[ $gal ]['term_id'] && 'product' === $first[ $feat ]['why'] && 'product' === $first[ $gal ]['why'] && 'sure' === $first[ $feat ]['confidence'] && 0 === (int) $first[ $copy ]['term_id'], wp_json_encode( array( isset( $first[ $feat ] ) ? array( $first[ $feat ]['term_id'], $first[ $feat ]['why'] ) : null, isset( $first[ $gal ] ) ? array( $first[ $gal ]['term_id'], $first[ $gal ]['why'] ) : null, isset( $first[ $copy ] ) ? array( $first[ $copy ]['term_id'], $first[ $copy ]['why'] ) : null ) ) );
+            vergeml_check( 'the count puts both in Skateboard decks by the product, sure; the copy, saying the same word, is nobody\'s and lands nowhere', isset( $first[ $feat ], $first[ $gal ], $first[ $copy ] ) && $folder === (int) $first[ $feat ]['term_id'] && $folder === (int) $first[ $gal ]['term_id'] && 'product' === $first[ $feat ]['why'] && 'product' === $first[ $gal ]['why'] && 'sure' === $first[ $feat ]['confidence'] && 0 === (int) $first[ $copy ]['term_id'], wp_json_encode( array( isset( $first[ $feat ] ) ? array( $first[ $feat ]['term_id'], $first[ $feat ]['why'] ) : null, isset( $first[ $gal ] ) ? array( $first[ $gal ]['term_id'], $first[ $gal ]['why'] ) : null, isset( $first[ $copy ] ) ? array( $first[ $copy ]['term_id'], $first[ $copy ]['why'] ) : null ) ) );
             $again = vergeml_filing_count( $profiles, $rows )['picks'];
-            vgml_check( 'a second count says the same', isset( $again[ $feat ], $again[ $gal ] ) && $again[ $feat ]['term_id'] === $first[ $feat ]['term_id'] && $again[ $gal ]['term_id'] === $first[ $gal ]['term_id'] && $again[ $feat ]['why'] === $first[ $feat ]['why'] );
+            vergeml_check( 'a second count says the same', isset( $again[ $feat ], $again[ $gal ] ) && $again[ $feat ]['term_id'] === $first[ $feat ]['term_id'] && $again[ $gal ]['term_id'] === $first[ $gal ]['term_id'] && $again[ $feat ]['why'] === $first[ $feat ]['why'] );
         }
         wp_delete_term( $folder, $tax );
-        vgml_check( 'the folder is gone again', null === get_term( $folder, $tax ) );
+        vergeml_check( 'the folder is gone again', null === get_term( $folder, $tax ) );
 
         $changed = vergeml_health_repoint( $gal, $copy );
         $gallery = get_post_meta( $product, '_product_image_gallery', true );
-        vgml_check( 'deleting a duplicate repoints the product gallery', $feat . ',' . $copy === $gallery, $gallery . ' / ' . wp_json_encode( $changed ) );
+        vergeml_check( 'deleting a duplicate repoints the product gallery', $feat . ',' . $copy === $gallery, $gallery . ' / ' . wp_json_encode( $changed ) );
 
         wp_delete_post( $product, true );
         wp_delete_term( $cat_id, 'product_cat' );
@@ -208,24 +208,24 @@ switch ( $which ) {
             wp_delete_post( $id, true );
         }
         $cat_left = get_term( $cat_id, 'product_cat' );
-        vgml_check( 'the pictures, the product and the category are gone', ! get_post( $feat ) && ! get_post( $gal ) && ! get_post( $copy ) && ! get_post( $product ) && ( null === $cat_left || is_wp_error( $cat_left ) ) );
+        vergeml_check( 'the pictures, the product and the category are gone', ! get_post( $feat ) && ! get_post( $gal ) && ! get_post( $copy ) && ! get_post( $product ) && ( null === $cat_left || is_wp_error( $cat_left ) ) );
         break;
 
     case 'acf':
-        vgml_check( 'ACF is the plugin that is loaded', class_exists( 'ACF' ) );
+        vergeml_check( 'ACF is the plugin that is loaded', class_exists( 'ACF' ) );
         // A bare-id image field, the way ACF stores one.
-        update_post_meta( $page, 'vgml_hero', '1775' );
-        update_post_meta( $page, '_vgml_hero', 'field_vgmlhero' );
+        update_post_meta( $page, 'vergeml_hero', '1775' );
+        update_post_meta( $page, '_vergeml_hero', 'field_vgmlhero' );
         // And a URL-return field, the other way ACF stores one.
-        update_post_meta( $page, 'vgml_hero_url', wp_get_attachment_url( 1775 ) );
+        update_post_meta( $page, 'vergeml_hero_url', wp_get_attachment_url( 1775 ) );
         $changed = vergeml_health_repoint( 1775, 1774 );
-        $bare    = get_post_meta( $page, 'vgml_hero', true );
-        $url     = get_post_meta( $page, 'vgml_hero_url', true );
-        vgml_check( 'a URL-return ACF field follows the surviving copy', $url === wp_get_attachment_url( 1774 ), $url );
+        $bare    = get_post_meta( $page, 'vergeml_hero', true );
+        $url     = get_post_meta( $page, 'vergeml_hero_url', true );
+        vergeml_check( 'a URL-return ACF field follows the surviving copy', $url === wp_get_attachment_url( 1774 ), $url );
         echo '  note ' . ( '1774' === $bare ? 'a bare-id ACF field was repointed' : 'a bare-id ACF field is NOT repointed (still ' . $bare . ') -- documented limit in health-delete.php' ) . "\n";
-        delete_post_meta( $page, 'vgml_hero' );
-        delete_post_meta( $page, '_vgml_hero' );
-        delete_post_meta( $page, 'vgml_hero_url' );
+        delete_post_meta( $page, 'vergeml_hero' );
+        delete_post_meta( $page, '_vergeml_hero' );
+        delete_post_meta( $page, 'vergeml_hero_url' );
         break;
 
     default:
@@ -237,24 +237,24 @@ if ( in_array( $which, array( 'yoast', 'rankmath', 'seopress', 'aioseo' ), true 
     wp_cache_delete( $page, 'post_meta' );
 
     $pc = vergeml_seo_page_context( $page );
-    vgml_check( 'the page context carries the focus keyphrase', isset( $pc['keyphrase'] ) && 'gothic cathedral' === $pc['keyphrase'], wp_json_encode( $pc ) );
-    vgml_check( 'and the meta description', isset( $pc['description'] ) && false !== strpos( $pc['description'], 'nave' ) );
+    vergeml_check( 'the page context carries the focus keyphrase', isset( $pc['keyphrase'] ) && 'gothic cathedral' === $pc['keyphrase'], wp_json_encode( $pc ) );
+    vergeml_check( 'and the meta description', isset( $pc['description'] ) && false !== strpos( $pc['description'], 'nave' ) );
     if ( '' !== $expect_related ) {
-        vgml_check( 'and the related keyphrases', isset( $pc['related'] ) && $expect_related === $pc['related'], isset( $pc['related'] ) ? $pc['related'] : '(none)' );
+        vergeml_check( 'and the related keyphrases', isset( $pc['related'] ) && $expect_related === $pc['related'], isset( $pc['related'] ) ? $pc['related'] : '(none)' );
     }
 
     $ctx = vergeml_ai_context( $att );
-    vgml_check( 'the attachment context inherits page_keyphrase', isset( $ctx['page_keyphrase'] ) && 'gothic cathedral' === $ctx['page_keyphrase'] );
+    vergeml_check( 'the attachment context inherits page_keyphrase', isset( $ctx['page_keyphrase'] ) && 'gothic cathedral' === $ctx['page_keyphrase'] );
 
     $req  = vergeml_ai_describe_request( $att );
     $body = is_array( $req ) && isset( $req['body'] ) ? ( is_string( $req['body'] ) ? $req['body'] : wp_json_encode( $req['body'] ) ) : wp_json_encode( $req );
-    vgml_check( 'the describe request body says the keyphrase', false !== strpos( $body, 'gothic cathedral' ) );
-    vgml_check( 'and does not leak the licence key', false === strpos( $body, 'v1:' ) );
+    vergeml_check( 'the describe request body says the keyphrase', false !== strpos( $body, 'gothic cathedral' ) );
+    vergeml_check( 'and does not leak the licence key', false === strpos( $body, 'v1:' ) );
 
     $lead = vergeml_seo_lead_slug( $att, 'ribbed-vaults', array( 'alt' => 'The ribbed vaults of a gothic cathedral nave', 'caption' => '', 'title' => '', 'tags' => array() ) );
-    vgml_check( 'the keyphrase leads the filename when the model said it', 'gothic-cathedral-ribbed-vaults' === $lead, $lead );
+    vergeml_check( 'the keyphrase leads the filename when the model said it', 'gothic-cathedral-ribbed-vaults' === $lead, $lead );
     $lead = vergeml_seo_lead_slug( $att, 'ribbed-vaults', array( 'alt' => 'Stone vaults above a nave', 'caption' => '', 'title' => '', 'tags' => array() ) );
-    vgml_check( 'and stays out when the model did not', 'ribbed-vaults' === $lead, $lead );
+    vergeml_check( 'and stays out when the model did not', 'ribbed-vaults' === $lead, $lead );
 
     // The gap is "on a page with a keyphrase, without alt text" -- so the alt
     // comes off for the question and goes back after.
@@ -265,13 +265,13 @@ if ( in_array( $which, array( 'yoast', 'rankmath', 'seopress', 'aioseo' ), true 
     delete_transient( 'vergeml_seo_gap_count' );
     $gap = vergeml_seo_gap_count();
     $ids = array_map( 'intval', vergeml_seo_gap_ids( 500 ) );
-    vgml_check( 'the page-gap query finds the image without alt on the keyphrase page', $gap >= 1 && in_array( $att, $ids, true ), 'gap=' . $gap );
+    vergeml_check( 'the page-gap query finds the image without alt on the keyphrase page', $gap >= 1 && in_array( $att, $ids, true ), 'gap=' . $gap );
     if ( '' !== $keep_alt ) {
         update_post_meta( $att, '_wp_attachment_image_alt', $keep_alt );
     }
     delete_transient( 'vergeml_seo_gap_count' );
     $gap_after = vergeml_seo_gap_count();
-    vgml_check( 'and stops counting it once it has alt text', '' === $keep_alt || $gap_after === $gap - 1, 'gap=' . $gap_after );
+    vergeml_check( 'and stops counting it once it has alt text', '' === $keep_alt || $gap_after === $gap - 1, 'gap=' . $gap_after );
 
     if ( $describe ) {
         // The service refuses the same image twice in a row (409), so the
@@ -282,7 +282,7 @@ if ( in_array( $which, array( 'yoast', 'rankmath', 'seopress', 'aioseo' ), true 
         clean_post_cache( $second );
         delete_transient( 'vergeml_ai_recent' );
         $r = vergeml_ai_describe( $second );
-        vgml_check( 'a real describe with page context succeeds', ! is_wp_error( $r ) && ! empty( $r['caption'] ), is_wp_error( $r ) ? $r->get_error_message() : $r['model'] . ' | ' . $r['caption'] );
+        vergeml_check( 'a real describe with page context succeeds', ! is_wp_error( $r ) && ! empty( $r['caption'] ), is_wp_error( $r ) ? $r->get_error_message() : $r['model'] . ' | ' . $r['caption'] );
         wp_update_post( array( 'ID' => $second, 'post_parent' => $keep_second ) );
     }
 
@@ -296,8 +296,8 @@ if ( in_array( $which, array( 'yoast', 'rankmath', 'seopress', 'aioseo' ), true 
 
 wp_update_post( array( 'ID' => $att, 'post_parent' => $keep_parent ) );
 
-$skipped = $GLOBALS['vgml_skip'] ? ', ' . count( $GLOBALS['vgml_skip'] ) . ' skipped: ' . implode( '; ', array_unique( $GLOBALS['vgml_skip'] ) ) : '';
-echo "\n" . ( $GLOBALS['vgml_n'] - $GLOBALS['vgml_fail'] ) . '/' . $GLOBALS['vgml_n'] . " passed{$skipped}\n";
-if ( $GLOBALS['vgml_fail'] ) {
+$skipped = $GLOBALS['vergeml_skip'] ? ', ' . count( $GLOBALS['vergeml_skip'] ) . ' skipped: ' . implode( '; ', array_unique( $GLOBALS['vergeml_skip'] ) ) : '';
+echo "\n" . ( $GLOBALS['vergeml_n'] - $GLOBALS['vergeml_fail'] ) . '/' . $GLOBALS['vergeml_n'] . " passed{$skipped}\n";
+if ( $GLOBALS['vergeml_fail'] ) {
     exit( 1 );
 }

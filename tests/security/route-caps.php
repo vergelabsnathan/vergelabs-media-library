@@ -18,11 +18,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$GLOBALS['vgml_ok']  = 0;
-$GLOBALS['vgml_bad'] = 0;
+$GLOBALS['vergeml_ok']  = 0;
+$GLOBALS['vergeml_bad'] = 0;
 
-function vgml_t( $name, $pass, $detail = '' ) {
-	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+function vergeml_t( $name, $pass, $detail = '' ) {
+	$pass ? $GLOBALS['vergeml_ok']++ : $GLOBALS['vergeml_bad']++;
 	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, '' !== $detail ? '  -- ' . $detail : '' );
 }
 
@@ -36,12 +36,12 @@ $att  = wp_insert_attachment( array( 'post_title' => 'vgml caps', 'post_mime_typ
 
 $users = array();
 foreach ( array( 'author', 'editor', 'administrator' ) as $role ) {
-	$users[ $role ] = wp_insert_user( array( 'user_login' => 'vgml_caps_' . $role . '_' . wp_rand(), 'user_pass' => wp_generate_password(), 'role' => $role ) );
+	$users[ $role ] = wp_insert_user( array( 'user_login' => 'vergeml_caps_' . $role . '_' . wp_rand(), 'user_pass' => wp_generate_password(), 'role' => $role ) );
 }
 
 $routes = rest_get_server()->get_routes( 'vergeml/v1' );
 
-function vgml_reach( $routes, $att, $term ) {
+function vergeml_reach( $routes, $att, $term ) {
 
 	$reach = array();
 
@@ -117,31 +117,31 @@ sort( $expect['editor'] );
 foreach ( array( 'author', 'editor' ) as $role ) {
 
 	wp_set_current_user( $users[ $role ] );
-	$got = vgml_reach( $routes, $att, $term );
+	$got = vergeml_reach( $routes, $att, $term );
 
 	$extra   = array_diff( $got, $expect[ $role ] );
 	$missing = array_diff( $expect[ $role ], $got );
 
-	vgml_t( "an {$role} reaches exactly the routes listed", ! $extra && ! $missing,
+	vergeml_t( "an {$role} reaches exactly the routes listed", ! $extra && ! $missing,
 		( $extra ? 'EXTRA ' . implode( ', ', $extra ) . ' ' : '' ) . ( $missing ? 'MISSING ' . implode( ', ', $missing ) : '' ) );
 }
 
 wp_set_current_user( $users['editor'] );
-$editor = vgml_reach( $routes, $att, $term );
+$editor = vergeml_reach( $routes, $att, $term );
 
 foreach ( array( 'POST /ai-run', 'GET /ai-run', 'POST /ai-index', 'POST /guide/apply', 'POST /import', 'POST /health-scan', 'POST /smart-scan', 'GET /search-meaning' ) as $named ) {
-	vgml_t( "an editor is refused {$named}", ! in_array( $named, $editor, true ) );
+	vergeml_t( "an editor is refused {$named}", ! in_array( $named, $editor, true ) );
 }
 
 wp_set_current_user( $users['administrator'] );
-$admin = vgml_reach( $routes, $att, $term );
+$admin = vergeml_reach( $routes, $att, $term );
 
 foreach ( array( 'POST /ai-run', 'GET /ai-run', 'POST /ai-index', 'POST /guide/apply', 'POST /import', 'POST /health-scan', 'POST /smart-scan' ) as $named ) {
-	vgml_t( "an administrator may {$named}", in_array( $named, $admin, true ) );
+	vergeml_t( "an administrator may {$named}", in_array( $named, $admin, true ) );
 }
 
-$all = count( vgml_reach( $routes, $att, $term ) );
-vgml_t( 'an administrator reaches every route the editor reaches', ! array_diff( $editor, $admin ) );
+$all = count( vergeml_reach( $routes, $att, $term ) );
+vergeml_t( 'an administrator reaches every route the editor reaches', ! array_diff( $editor, $admin ) );
 
 printf( "\n  (%d endpoints asked; administrator %d, editor %d)\n", count( $routes ), $all, count( $editor ) );
 
@@ -150,11 +150,11 @@ printf( "\n  (%d endpoints asked; administrator %d, editor %d)\n", count( $route
 $journey = file_get_contents( plugin_dir_path( VERGEML_FILE ) . 'core/journey.php' );
 $rename  = file_get_contents( plugin_dir_path( VERGEML_FILE ) . 'core/rename.php' );
 
-vgml_t( 'Write the alt text (admin-post) needs manage_options',
+vergeml_t( 'Write the alt text (admin-post) needs manage_options',
 	1 === preg_match( "/function vergeml_journey_do_alt\(\)\s*\{[^}]*?current_user_can\( 'manage_options' \)/s", $journey ) );
-vgml_t( 'Rename from descriptions (admin-post) needs manage_options',
+vergeml_t( 'Rename from descriptions (admin-post) needs manage_options',
 	1 === preg_match( "/function vergeml_journey_do_rename\(\)\s*\{[^}]*?current_user_can\( 'manage_options' \)/s", $journey ) );
-vgml_t( 'the rename undo (admin-post) needs manage_options',
+vergeml_t( 'the rename undo (admin-post) needs manage_options',
 	1 === preg_match( "/function vergeml_rename_handle_undo\(\)\s*\{[^}]*?current_user_can\( 'manage_options' \)/s", $rename ) );
 
 /* --- tidy -------------------------------------------------------------------- */
@@ -167,5 +167,5 @@ foreach ( $users as $id ) {
 wp_delete_attachment( $att, true );
 wp_delete_term( $term, 'media_category' );
 
-printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
-exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
+printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
+exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

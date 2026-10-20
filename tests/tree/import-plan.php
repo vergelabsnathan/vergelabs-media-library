@@ -32,11 +32,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 wp_set_current_user( 1 );
 
-$GLOBALS['vgml_ok']  = 0;
-$GLOBALS['vgml_bad'] = 0;
+$GLOBALS['vergeml_ok']  = 0;
+$GLOBALS['vergeml_bad'] = 0;
 
 function t( $name, $pass, $detail = '' ) {
-	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+	$pass ? $GLOBALS['vergeml_ok']++ : $GLOBALS['vergeml_bad']++;
 	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, $detail ? '  -- ' . $detail : '' );
 }
 
@@ -56,8 +56,8 @@ function named( $taxonomy, $name ) {
 	return $out;
 }
 
-const SRC  = 'vgml_ptest_src';
-const DEST = 'vgml_ptest_dest';
+const SRC  = 'vergeml_ptest_src';
+const DEST = 'vergeml_ptest_dest';
 
 /*
  *  Two taxonomies of our own. The source is read straight from the tables by
@@ -119,10 +119,10 @@ if ( count( $files ) === 3 ) {
 	wp_set_object_terms( $files[2], array( $top_apparel ), SRC, true );
 }
 
-add_filter( 'vergeml_import_sources', 'vgml_plan_test_source' );
+add_filter( 'vergeml_import_sources', 'vergeml_plan_test_source' );
 
-function vgml_plan_test_source( $sources ) {
-	$sources['vgml_ptest'] = array(
+function vergeml_plan_test_source( $sources ) {
+	$sources['vergeml_ptest'] = array(
 		'name'     => 'Plan test',
 		'author'   => 'the suite',
 		'kind'     => 'taxonomy',
@@ -131,7 +131,7 @@ function vgml_plan_test_source( $sources ) {
 	return $sources;
 }
 
-$read = vergeml_import_read( 'vgml_ptest' );
+$read = vergeml_import_read( 'vergeml_ptest' );
 t( 'the source reads back', ! is_wp_error( $read ) && count( $read['folders'] ) === 5,
 	is_wp_error( $read ) ? $read->get_error_code() : count( $read['folders'] ) . ' folders' );
 
@@ -139,7 +139,7 @@ t( 'the source reads back', ! is_wp_error( $read ) && count( $read['folders'] ) 
 
 $log_before = get_option( VERGEML_IMPORT_LOG, array() );
 
-$plan = vergeml_import_plan( 'vgml_ptest', DEST );
+$plan = vergeml_import_plan( 'vergeml_ptest', DEST );
 
 t( 'the plan ran', ! is_wp_error( $plan ), is_wp_error( $plan ) ? $plan->get_error_code() : '' );
 
@@ -155,11 +155,11 @@ t( 'the plan makes four folders and merges one', 4 === (int) $plan['create'] && 
 
 t( 'the plan counts four assignments', 4 === (int) $plan['assignments'], (string) $plan['assignments'] );
 
-$run = vergeml_import_run( 'vgml_ptest', DEST );
+$run = vergeml_import_run( 'vergeml_ptest', DEST );
 $passes = 0;
 
 while ( ! is_wp_error( $run ) && empty( $run['complete'] ) && ! empty( $run['resume'] ) && ++$passes < 50 ) {
-	$run = vergeml_import_run( 'vgml_ptest', DEST, $run['resume'] );
+	$run = vergeml_import_run( 'vergeml_ptest', DEST, $run['resume'] );
 }
 
 t( 'the import ran to the end', ! is_wp_error( $run ) && ! empty( $run['complete'] ),
@@ -225,5 +225,5 @@ foreach ( terms_in( SRC ) as $id ) {
 t( 'the suite left nothing behind', count( terms_in( SRC ) ) === 0 && count( terms_in( DEST ) ) === 0,
 	count( terms_in( SRC ) ) . ' source, ' . count( terms_in( DEST ) ) . ' destination' );
 
-printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
-exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
+printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
+exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

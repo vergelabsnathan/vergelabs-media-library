@@ -171,7 +171,7 @@ check( 'and nothing else is selected at the same time', 1 === otherSelected, `${
  *  after the click reads the address of the page before it.
  */
 const bookmarked = await page
-	.waitForFunction( () => window.location.search.indexOf( 'vgml_smart=ai-kind-screenshot' ) > -1, { timeout: 60000 } )
+	.waitForFunction( () => window.location.search.indexOf( 'vergeml_smart=ai-kind-screenshot' ) > -1, { timeout: 60000 } )
 	.then( () => true )
 	.catch( () => false );
 
