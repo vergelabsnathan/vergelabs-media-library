@@ -56,7 +56,7 @@ console.log( '\nwithout consent' );
 await page.fill( '#vergeml_question', '[gate] consent check -- should not send' );
 await page.click( '.vgml-help button[type=submit]' );
 await page.waitForLoadState( 'domcontentloaded' );
-check( 'it refuses to send and says why', /vgml-help=consent/.test( page.url() ) && /Tick the box/.test( await page.textContent( '.vgml-help' ) ) );
+check( 'it refuses to send and says why', /vergeml-help=consent/.test( page.url() ) && /Tick the box/.test( await page.textContent( '.vgml-help' ) ) );
 
 console.log( '\nwith consent' );
 await page.fill( '#vergeml_question', `[gate] Get help wiring check ${ new Date().toISOString() }` );
@@ -65,7 +65,7 @@ await page.click( '.vgml-help button[type=submit]' );
 await page.waitForLoadState( 'domcontentloaded' );
 const url = page.url();
 const m = url.match( /ticket=(\d+)/ );
-check( 'it sends and comes back with a ticket number', /vgml-help=sent/.test( url ) && !! m, url.slice( -60 ) );
+check( 'it sends and comes back with a ticket number', /vergeml-help=sent/.test( url ) && !! m, url.slice( -60 ) );
 check( 'the success notice names the ticket', !! m && new RegExp( `#${ m[ 1 ] }` ).test( await page.textContent( '.vgml-help' ) ) );
 
 check( 'no javascript errors', errors.length === 0, errors.slice( 0, 2 ).join( ' | ' ) );

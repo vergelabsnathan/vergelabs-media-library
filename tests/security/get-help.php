@@ -202,7 +202,7 @@ gh_check( 'the settings read as no key', '' === vergeml_ai_unseal( vergeml_ai_se
 
 $gh_free = gh_send( 'zz vgml get-help suite: free install, not a real ticket' );
 
-gh_check( 'the handler ran to its redirect and the stand-in took the ticket', false !== strpos( $gh_free['where'], 'vgml-help=sent' ), $gh_free['where'] );
+gh_check( 'the handler ran to its redirect and the stand-in took the ticket', false !== strpos( $gh_free['where'], 'vergeml-help=sent' ), $gh_free['where'] );
 gh_check( 'one ticket request was made', 1 === $gh_free['tickets'] && is_array( $gh_free['body'] ), (string) $gh_free['tickets'] );
 gh_check( 'it carries site, site_token, question and email', is_array( $gh_free['body'] ) && isset( $gh_free['body']['site'], $gh_free['body']['site_token'], $gh_free['body']['question'], $gh_free['body']['email'] ) );
 gh_check( 'the site is home_url()', is_array( $gh_free['body'] ) && home_url( '/' ) === $gh_free['body']['site'] );
@@ -222,7 +222,7 @@ gh_check( 'the settings unseal to the planted key', vergeml_ai_unseal( vergeml_a
 
 $gh_paid = gh_send( 'zz vgml get-help suite: licensed install, not a real ticket' );
 
-gh_check( 'the handler ran to its redirect and the stand-in took the ticket', false !== strpos( $gh_paid['where'], 'vgml-help=sent' ), $gh_paid['where'] );
+gh_check( 'the handler ran to its redirect and the stand-in took the ticket', false !== strpos( $gh_paid['where'], 'vergeml-help=sent' ), $gh_paid['where'] );
 gh_check( 'one ticket request was made', 1 === $gh_paid['tickets'] && is_array( $gh_paid['body'] ), (string) $gh_paid['tickets'] );
 gh_check( 'no key field', is_array( $gh_paid['body'] ) && ! array_key_exists( 'key', $gh_paid['body'] ) );
 gh_check( 'no license_key field', is_array( $gh_paid['body'] ) && ! array_key_exists( 'license_key', $gh_paid['body'] ) );

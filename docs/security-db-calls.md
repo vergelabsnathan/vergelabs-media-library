@@ -17,14 +17,14 @@ looks safest in a diff, so what is examined is `prepare()`'s own format string.
 
 | | count |
 |---|---|
-| lines mentioning `$wpdb->` | 569 |
-| `$wpdb->prepare()` calls | 195 |
-| **calls that reach the server** | **214** |
-| · prepared | 184 |
+| lines mentioning `$wpdb->` | 571 |
+| `$wpdb->prepare()` calls | 196 |
+| **calls that reach the server** | **216** |
+| · prepared | 185 |
 | · a literal, nothing interpolated | 0 |
 | · only a `$wpdb` table name | 20 |
 | · only integers it cast itself | 0 |
-| · built and escaped by `$wpdb` (insert/update/delete) | 10 |
+| · built and escaped by `$wpdb` (insert/update/delete) | 11 |
 | · read by hand, with the reason | 0 |
 | · **findings** | **0** |
 
@@ -38,7 +38,7 @@ written, or is built by `$wpdb` itself.
 
 ## Read by hand
 
-The tool proves 214 of 214 calls on its own. These 0 assemble their
+The tool proves 216 of 216 calls on its own. These 0 assemble their
 SQL from fragments across a nested loop or a function boundary, which is further
 than a static reader should be trusted to follow, so each was read and the reason
 written down. Each is keyed by a hash of its own SQL, not by its line, so editing
@@ -147,25 +147,25 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | line | in | method | class | proof |
 |---|---|---|---|---|
 | 270 | — | `get_col` | only a `$wpdb` table name | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name |
-| 366 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
-| 405 | — | `get_row` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
-| 417 | — | `get_row` | prepared | — |
-| 523 | — | `get_var` | prepared | — |
-| 737 | — | `get_var` | prepared | — |
-| 738 | — | `get_var` | prepared | — |
-| 739 | — | `get_results` | prepared | — |
+| 369 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
+| 408 | — | `get_row` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
+| 420 | — | `get_row` | prepared | — |
+| 526 | — | `get_var` | prepared | — |
+| 740 | — | `get_var` | prepared | — |
 | 741 | — | `get_var` | prepared | — |
-| 742 | — | `get_var` | prepared | — |
-| 743 | — | `get_var` | prepared | — |
-| 744 | — | `get_results` | prepared | — |
-| 786 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
-| 1915 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name; implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) — implode of a generated %d placeholder list |
-| 1935 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name; implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) — implode of a generated %d placeholder list |
-| 2808 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
-| 2830 | — | `get_results` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
-| 2851 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
-| 2869 | — | `get_results` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
-| 3333 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name; implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) — implode of a generated %d placeholder list |
+| 742 | — | `get_results` | prepared | — |
+| 744 | — | `get_var` | prepared | — |
+| 745 | — | `get_var` | prepared | — |
+| 746 | — | `get_var` | prepared | — |
+| 747 | — | `get_results` | prepared | — |
+| 789 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
+| 1918 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name; implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) — implode of a generated %d placeholder list |
+| 1938 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name; implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) — implode of a generated %d placeholder list |
+| 2811 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
+| 2833 | — | `get_results` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
+| 2854 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
+| 2872 | — | `get_results` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
+| 3336 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name; implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) — implode of a generated %d placeholder list |
 
 ### core/health-delete.php
 
@@ -193,12 +193,12 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 441 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
-| 493 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
-| 597 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name |
-| 819 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name |
-| 866 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 887 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 436 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
+| 488 | — | `get_var` | only a `$wpdb` table name | $wpdb->posts — a $wpdb table name |
+| 592 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name |
+| 814 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name |
+| 861 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 882 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) — implode of a generated %d placeholder list |
 
 ### core/import-csv.php
 
@@ -427,6 +427,13 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | 172 | — | `query` | prepared | $wpdb->usermeta — a $wpdb table name |
 | 194 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
 | 198 | — | `query` | only a `$wpdb` table name | $wpdb->usermeta — a $wpdb table name |
+
+### vergelabs-media-library.php
+
+| line | in | method | class | proof |
+|---|---|---|---|---|
+| 370 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 379 | — | `get_col` | prepared | — |
 
 ## The helpers this classification trusts
 

@@ -23,6 +23,9 @@
 
 define( 'ABSPATH', '/' );
 
+function sanitize_text_field( $s ) {
+	return trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $s ) ) );
+}
 function add_action() {}
 function add_filter() {}
 function __( $t, $d = '' ) {

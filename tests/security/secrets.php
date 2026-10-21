@@ -509,7 +509,7 @@ try {
 remove_filter( 'wp_redirect', 's_no_redirect', 1 );
 unset( $_POST['vergeml_question'], $_POST['vergeml_consent'], $_REQUEST['_wpnonce'] );
 
-s_check( 'the handler ran to its redirect and the stand-in took the ticket', false !== strpos( $s_where, 'vgml-help=sent' ), $s_where );
+s_check( 'the handler ran to its redirect and the stand-in took the ticket', false !== strpos( $s_where, 'vergeml-help=sent' ), $s_where );
 
 $s_tickets = array_values( array_filter( $GLOBALS['s_calls'], function ( $c ) { return '/support/ticket' === substr( (string) wp_parse_url( $c['url'], PHP_URL_PATH ), -15 ); } ) );
 $s_ticket  = $s_tickets ? json_decode( (string) $s_tickets[0]['args']['body'], true ) : null;
