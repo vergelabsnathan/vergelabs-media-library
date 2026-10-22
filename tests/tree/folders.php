@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 wp_set_current_user( 1 );
 
-$tax = 'media_category';
+$tax = 'vergeml_folder';
 
 $GLOBALS['vergeml_ok']  = 0;
 $GLOBALS['vergeml_bad'] = 0;
@@ -152,7 +152,7 @@ t( 'an absurd width is clamped, not stored', (int) $s['width'] === 640, 'got ' .
 $s = state( array( 'taxonomy' => $tax, 'width' => 1 ) );
 t( 'a tiny width is clamped too', (int) $s['width'] === 160, 'got ' . $s['width'] );
 
-t( 'the default skin is native', 'native' === vergeml_tree_state( 'media_category' )['skin'] || true );
+t( 'the default skin is native', 'native' === vergeml_tree_state( 'vergeml_folder' )['skin'] || true );
 $s = state( array( 'taxonomy' => $tax, 'skin' => 'minimal', 'density' => 'compact' ) );
 t( 'a known skin is accepted', 'minimal' === $s['skin'] );
 t( 'a known density is accepted', 'compact' === $s['density'] );

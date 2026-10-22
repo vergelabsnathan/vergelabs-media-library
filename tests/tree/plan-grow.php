@@ -195,21 +195,21 @@ $GLOBALS['gr_rows'] = array(
 );
 $GLOBALS['gr_placed'] = array( 5 );
 $frozen = array( 'chelsea boot; footwear' => 11 );
-$read   = vergeml_plan_grow_read( $frozen, 'media_category' );
+$read   = vergeml_plan_grow_read( $frozen, 'vergeml_folder' );
 gr_check( '10. a waiting picture with a new label is new, To sort counts as waiting', isset( $read['new']['sandal; footwear'] ) && 2 === $read['new']['sandal; footwear']['n'] && 'footwear' === $read['new']['sandal; footwear']['class'], json_encode( $read['new'] ) );
 gr_check( '11. a frozen label is never new, and a hand-placed picture never waits', ! isset( $read['new']['chelsea boot; footwear'] ), json_encode( array_keys( $read['new'] ) ) );
 gr_check( '12. a filed picture shapes its folder and its parent\'s subtree, never the growth', 2 === $read['folders'][11]['n'] && array( 1, 0, 1 ) == $read['folders'][11]['direct'] && array( 1, 0, 1 ) == $read['folders'][10]['sub'] && false === $read['folders'][30]['target'], json_encode( $read['folders'][11] ) );
 
 // The draft: every existing folder where it stands, the frozen map kept, the growth mapped to its new folder.
 $decided = array( 'place' => array( 'ankle boot; footwear' => 11 ), 'grow' => array( array( 'name' => 'Footwear', 'parent' => 10, 'labels' => array( 'sandal; footwear' ), 'n' => 5, 'objects' => array( 'sandal' ), 'kinds' => array( 'photo' ) ) ), 'left' => array() );
-$draft   = vergeml_plan_grow_draft( $decided, $frozen, 'media_category' );
+$draft   = vergeml_plan_grow_draft( $decided, $frozen, 'vergeml_folder' );
 $keys    = array_column( $draft['folders'], null, 'key' );
 gr_check( '13. the grown draft keeps every folder, name and parent, and the frozen map as it was', 4 === count( $draft['folders'] ) && 'Boots' === $keys['t11']['name'] && 't10' === $keys['t11']['parent'] && ! empty( $keys['t11']['asked'] ) && 't11' === $draft['label_map']['chelsea boot; footwear'], json_encode( $draft ) );
 gr_check( '14. the growth is new folders under their parents, its labels mapped to them, origin grow', 'Footwear' === $keys['g0']['name'] && null === $keys['g0']['term_id'] && 't10' === $keys['g0']['parent'] && 'g0' === $draft['label_map']['sandal; footwear'] && 't11' === $draft['label_map']['ankle boot; footwear'] && 'grow' === $draft['origin'], json_encode( $draft['label_map'] ) );
 
 // The fill's assignment: only waiting pictures of the growth's labels.
 $GLOBALS['gr_options'] = array( VERGEML_TALK_LABEL_MAP => $frozen );
-$a = vergeml_plan_grow_assign( $draft, 'media_category' );
+$a = vergeml_plan_grow_assign( $draft, 'vergeml_folder' );
 gr_check( '15. the fill files only waiting pictures of the growth -- not a filed, hand-placed or frozen one', array( 3 => 'g0', 4 => 'g0' ) === $a['assign'] && 4 === $a['waiting'], json_encode( $a ) );
 
 // A map whose folders are all gone is no frozen tree: the site plans from scratch (and pays) again.
@@ -222,7 +222,7 @@ gr_check( '15b. only entries whose folder still exists are frozen; none left, no
 $GLOBALS['gr_rows'][2]['in_terms'] = '99';
 $GLOBALS['gr_rows'][3]['in_terms'] = '99';
 $GLOBALS['gr_terms'][] = (object) array( 'term_id' => 99, 'name' => 'Footwear', 'parent' => 10, 'slug' => 'footwear' );
-$again = vergeml_plan_grow_read( array( 'chelsea boot; footwear' => 11, 'sandal; footwear' => 99 ), 'media_category' );
+$again = vergeml_plan_grow_read( array( 'chelsea boot; footwear' => 11, 'sandal; footwear' => 99 ), 'vergeml_folder' );
 $da    = vergeml_plan_grow_decide( $again['new'], $again['folders'] );
 gr_check( '16. planned again after the growth is filled, the tree grows no further', ! $da['place'] && ! $da['grow'], json_encode( $da ) );
 

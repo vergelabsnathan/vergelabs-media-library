@@ -31,7 +31,9 @@ const SCENARIOS = [
 	{ name: 'a parent loop in the terms table, every folder walk, WP 6.5 / PHP 7.4', file: 'term-loop.php', phases: [ 'activate', 'loop' ], php: '7.4', wp: '6.5' },
 	{ name: 'lifecycle on WP 6.5 / PHP 7.4', file: 'lifecycle.php', phases: LIFE, php: '7.4', wp: '6.5' },
 	{ name: 'lifecycle on latest / PHP 8.3', file: 'lifecycle.php', phases: LIFE, php: '8.3', wp: 'latest' },
-	{ name: 'tags made before 4.1.0 (vgml_*) move to vergeml_* on upgrade', file: 'tag-prefix.php', phases: [ 'old', 'activate', 'check' ], php: '8.3', wp: 'latest' },
+	{ name: 'folders in vergeml_folder and vgml_* tags move to vergeml_folder / vergeml_tag_* on upgrade', file: 'tag-prefix.php', phases: [ 'old', 'activate', 'check' ], php: '7.4', wp: '6.5' },
+	{ name: 'with Enhanced Media Library active, its folders wait until it is off', file: 'tag-prefix.php', phases: [ 'old', 'activate', 'check' ], php: '8.3', wp: 'latest', consts: { RT_EML: true },
+		before: [ { step: 'installPlugin', pluginData: { resource: 'wordpress.org/plugins', slug: 'enhanced-media-library' }, options: { activate: true } } ] },
 	{ name: 'a tag made after the rename: vergeml_*, at most 32 characters, usable', file: 'tag-new.php', phases: [ 'activate', 'make' ], php: '7.4', wp: '6.5' },
 	{ name: 'the picture hash on PHP 7.4 (GD resource)', file: 'health-hash.php', phases: [ 'activate', 'hash' ], php: '7.4', wp: '6.5' },
 	{ name: 'the picture hash on PHP 8.5 (GdImage)', file: 'health-hash.php', phases: [ 'activate', 'hash' ], php: '8.5', wp: 'latest' },
@@ -65,6 +67,7 @@ function run( scenario ) {
 		const steps = [
 			{ step: 'defineWpConfigConsts', consts: { WP_DEBUG: true, WP_DEBUG_LOG: '/out/debug.log', WP_DEBUG_DISPLAY: false, ...( scenario.consts || {} ) } },
 			...( scenario.multisite ? [ { step: 'enableMultisite' } ] : [] ),
+			...( scenario.before || [] ),
 			{ step: 'installPlugin', pluginData: { resource: 'vfs', path: '/zips/plugin.zip' }, options: { activate: false } },
 			...scenario.phases.map( phaseStep ),
 		];

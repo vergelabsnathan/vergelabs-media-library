@@ -95,7 +95,7 @@ $gt_author = $GLOBALS['gt_users']['author'];
 $gt_editor = $GLOBALS['gt_users']['editor'];
 $gt_admin  = $GLOBALS['gt_users']['administrator'];
 
-$gt_tax  = 'media_category';
+$gt_tax  = 'vergeml_folder';
 $gt_term = function ( $name, $parent = 0 ) use ( $gt_tax ) {
 	$t = wp_insert_term( $name . ' ' . wp_rand(), $gt_tax, array( 'parent' => $parent ) );
 	$GLOBALS['gt_terms'][] = (int) $t['term_id'];
@@ -156,7 +156,7 @@ update_option( VERGEML_PRIVATE_OPTION, $gt_map, true );
 
 wp_set_current_user( $gt_editor );
 $gt_folder_may = function ( $params ) {
-	return vergeml_can_manage_folders( gt_req( 'POST', '/vergeml/v1/folder', array_merge( array( 'taxonomy' => 'media_category' ), $params ) ) );
+	return vergeml_can_manage_folders( gt_req( 'POST', '/vergeml/v1/folder', array_merge( array( 'taxonomy' => 'vergeml_folder' ), $params ) ) );
 };
 
 gt_t( 'the admin\'s private folder is hidden from the editor', in_array( $gt_secret, vergeml_private_hidden_from(), true ) );

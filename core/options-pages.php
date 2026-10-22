@@ -561,7 +561,7 @@ function vergeml_print_settings() {
 
                                 <ul>
                                     <li><strong><?php esc_html_e( 'What will be deleted:', 'vergelabs-media-library' ); ?></strong></li>
-                                    <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : if ( 'media_category' === $taxonomy ) { continue; } ?>
+                                    <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : if ( 'vergeml_folder' === $taxonomy ) { continue; } ?>
                                         <li><?php esc_html_e( 'All', 'vergelabs-media-library' );
                                         echo ' ' . esc_html( $params['labels']['name'] ); ?></li>
                                     <?php endforeach; ?>
@@ -815,7 +815,7 @@ function vergeml_print_network_settings() {
 
                             <ul>
                                 <li><strong><?php esc_html_e( 'What will be deleted:', 'vergelabs-media-library' ); ?></strong></li>
-                                <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : if ( 'media_category' === $taxonomy ) { continue; } ?>
+                                <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : if ( 'vergeml_folder' === $taxonomy ) { continue; } ?>
                                     <li><?php esc_html_e( 'All', 'vergelabs-media-library' );
                                     echo ' ' . esc_html( $params['labels']['name'] ); ?></li>
                                 <?php endforeach; ?>
@@ -1527,9 +1527,9 @@ function vergeml_term_relationship_cleanup() {
 
     foreach ( get_option( 'vergeml_taxonomies', array() ) as $taxonomy => $params ) {
 
-        // Folders outlive the plugin: media_category is shared with other folder plugins.
+        // Folders outlive the plugin: the vergeml_folder terms and which files are in them stay.
         // Only the plugin's own taxonomies; one core or another plugin owns is left as it is.
-        if ( 'media_category' === $taxonomy || empty( $params['eml_media'] ) ) {
+        if ( 'vergeml_folder' === $taxonomy || empty( $params['eml_media'] ) ) {
             continue;
         }
 
@@ -2211,7 +2211,7 @@ function vergeml_print_media_library_options() {
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Enhanced media shortcodes','vergelabs-media-library'); ?></span></legend>
                                                 <label><input name="vergeml_lib_options[enhance_media_shortcodes]" type="hidden" value="0" /><input name="vergeml_lib_options[enhance_media_shortcodes]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['enhance_media_shortcodes'], true ); ?> /> <?php esc_html_e('Let gallery and playlist shortcodes understand media taxonomies, upload date, and an item limit','vergelabs-media-library'); ?></label>
-                                                <p class="description vgml-mono">[gallery media_category="5" limit="10" year="2015"]</p>
+                                                <p class="description vgml-mono">[gallery vergeml_folder="5" limit="10" year="2015"]</p>
                                                 <p class="description vgml-accent-text"><?php esc_html_e( 'Some themes and gallery plugins replace the default gallery. Check your galleries after turning this on, and report anything broken.', 'vergelabs-media-library' ); ?></p>
                                             </fieldset>
                                         </td>
@@ -2311,7 +2311,7 @@ function vergeml_print_taxonomies_options() {
                 printf(
                     /* translators: %s: the name of the folder taxonomy, in code formatting. */
                     esc_html__( 'The folder tree beside your media library is a category list — stored as %s, an ordinary WordPress taxonomy. Folders survive if this plugin is ever removed. Anything else you tick below becomes another way to label and filter media, alongside the folders — never a second tree. Unticking hides; it never deletes.', 'vergelabs-media-library' ),
-                    '<code class="vgml-mono">media_category</code>'
+                    '<code class="vgml-mono">vergeml_folder</code>'
                 );
                 ?>
             </p>

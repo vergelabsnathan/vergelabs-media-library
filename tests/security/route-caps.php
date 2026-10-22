@@ -30,7 +30,7 @@ echo "\nwho may call which route\n\n";
 
 wp_set_current_user( 1 );
 
-$term = wp_insert_term( 'vgml-caps-' . wp_rand(), 'media_category' );
+$term = wp_insert_term( 'vgml-caps-' . wp_rand(), 'vergeml_folder' );
 $term = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
 $att  = wp_insert_attachment( array( 'post_title' => 'vgml caps', 'post_mime_type' => 'image/jpeg', 'post_status' => 'inherit', 'post_author' => 1 ) );
 
@@ -63,7 +63,7 @@ function vergeml_reach( $routes, $att, $term ) {
 				$req  = new WP_REST_Request( $method, $path );
 
 				$req->set_url_params( array( 'id' => $att ) );
-				$req->set_param( 'taxonomy', 'media_category' );
+				$req->set_param( 'taxonomy', 'vergeml_folder' );
 				$req->set_param( 'action', false !== strpos( $route, '/folder' ) && false === strpos( $route, 'folders' ) ? 'rename' : 'accept' );
 				$req->set_param( 'id', false !== strpos( $route, 'folder' ) ? $term : $att );
 				$req->set_param( 'term_id', $term );
@@ -165,7 +165,7 @@ foreach ( $users as $id ) {
 	wp_delete_user( $id );
 }
 wp_delete_attachment( $att, true );
-wp_delete_term( $term, 'media_category' );
+wp_delete_term( $term, 'vergeml_folder' );
 
 printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
 exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

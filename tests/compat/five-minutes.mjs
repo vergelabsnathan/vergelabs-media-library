@@ -140,7 +140,7 @@ async function rest( method, route, body, headers = {} ) {
 	return { status: res.status(), json, text };
 }
 
-const tree = async () => ( await rest( 'GET', '/vergeml/v1/tree?taxonomy=media_category' ) ).json;
+const tree = async () => ( await rest( 'GET', '/vergeml/v1/tree?taxonomy=vergeml_folder' ) ).json;
 /*
  *  Read until the write shows, up to six seconds. Playground serves requests
  *  from several workers over one SQLite file and a read straight after a
@@ -151,8 +151,8 @@ const tree = async () => ( await rest( 'GET', '/vergeml/v1/tree?taxonomy=media_c
 const termsOf = async ( id, want = 0 ) => {
 	let terms = [];
 	for ( let i = 0; i < 12; i++ ) {
-		const r = await rest( 'GET', `/wp/v2/media/${ id }?_fields=media_category` );
-		terms = ( r.json && r.json.media_category ) || [];
+		const r = await rest( 'GET', `/wp/v2/media/${ id }?_fields=vergeml_folder` );
+		terms = ( r.json && r.json.vergeml_folder ) || [];
 		if ( ! want || terms.includes( want ) ) {
 			break;
 		}
@@ -331,12 +331,12 @@ try {
 		// Idempotent on a site that keeps state (the box): a run that died half way must not poison this one.
 		for ( const n of t.nodes ) {
 			if ( n.name === FOLDER ) {
-				await rest( 'POST', '/vergeml/v1/folder', { taxonomy: 'media_category', action: 'delete', id: n.id } );
+				await rest( 'POST', '/vergeml/v1/folder', { taxonomy: 'vergeml_folder', action: 'delete', id: n.id } );
 			}
 		}
 		t = await tree();
 		foldersBefore = t.nodes.length;
-		const made = await rest( 'POST', '/vergeml/v1/folder', { taxonomy: 'media_category', action: 'create', name: FOLDER } );
+		const made = await rest( 'POST', '/vergeml/v1/folder', { taxonomy: 'vergeml_folder', action: 'create', name: FOLDER } );
 		folderId = made.json && made.json.id ? Number( made.json.id ) : 0;
 		const after = await tree();
 		const node = after.nodes.find( ( n ) => n.id === folderId );
@@ -451,7 +451,7 @@ try {
 					refused = `; DELETE answered ${ r.status } ${ ( r.text || '' ).replace( /\s+/g, ' ' ).slice( 0, 100 ) }`;
 				}
 			}
-			await rest( 'POST', '/vergeml/v1/folder', { taxonomy: 'media_category', action: 'delete', id: folderId } );
+			await rest( 'POST', '/vergeml/v1/folder', { taxonomy: 'vergeml_folder', action: 'delete', id: folderId } );
 			const t = await tree();
 			const ok = gone === ids.length && t.nodes.length === foldersBefore;
 			return { ok, detail: `${ gone } of ${ ids.length } files removed; ${ t.nodes.length } folders (was ${ foldersBefore })${ refused }` };

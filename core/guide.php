@@ -784,7 +784,7 @@ function vergeml_guide_summary() {
         $by_kind[ '' === (string) $k['kind'] ? 'photo' : (string) $k['kind'] ] = (int) $k['n'];
     }
 
-    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; the taxonomy is bound.
     $unfiled = '' !== $tax ? (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM %i i WHERE i.error = '' AND i.embedding IS NOT NULL AND NOT EXISTS (
@@ -2341,11 +2341,11 @@ function vergeml_guide_tag_taxonomy( $name ) {
     }
 
     // A taxonomy key is 32 characters of [a-z0-9_], and one this plugin makes carries its prefix.
-    $key = trim( substr( sanitize_key( str_replace( array( ' ', '-' ), '_', $name ) ), 0, 24 ), '_' );
+    $key = trim( substr( sanitize_key( str_replace( array( ' ', '-' ), '_', $name ) ), 0, 20 ), '_' );
     if ( '' === $key ) {
         return null;
     }
-    $key = 'vergeml_' . $key;
+    $key = 'vergeml_tag_' . $key;
     if ( taxonomy_exists( $key ) || isset( $all[ $key ] ) ) {
         return null;
     }

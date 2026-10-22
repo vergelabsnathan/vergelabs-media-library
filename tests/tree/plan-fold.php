@@ -235,7 +235,7 @@ pf_check( '7. an unfolded map with a missing label returns nothing', '' === verg
  *  wins, exactly as an unfolded label's near-copy would (spec-tree-planner
  *  story 4).
  */
-function vergeml_librarian_taxonomy() { return 'media_category'; }
+function vergeml_librarian_taxonomy() { return 'vergeml_folder'; }
 function get_terms( $args ) { return $GLOBALS['pf_terms']; }
 // A real page: rows already past $after, at most $limit of them -- so a fixture bigger than one page actually forces vergeml_plan_draft's do-while to come back for the rest.
 function vergeml_guide_rule_rows( $taxonomy, $scope, $need, $after = 0, $limit = 0 ) {

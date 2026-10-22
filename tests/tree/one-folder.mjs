@@ -82,13 +82,13 @@ const api = ( path, data ) => page.evaluate(
 await openLibrary();
 
 async function makeFolder( name ) {
-	const tree = await api( '/vergeml/v1/tree?taxonomy=media_category' );
+	const tree = await api( '/vergeml/v1/tree?taxonomy=vergeml_folder' );
 	for ( const n of tree.nodes || [] ) {
 		if ( n.name === name ) {
-			await api( '/vergeml/v1/folder', { taxonomy: 'media_category', action: 'delete', id: n.id } );
+			await api( '/vergeml/v1/folder', { taxonomy: 'vergeml_folder', action: 'delete', id: n.id } );
 		}
 	}
-	return ( await api( '/vergeml/v1/folder', { taxonomy: 'media_category', action: 'create', name } ) ).id;
+	return ( await api( '/vergeml/v1/folder', { taxonomy: 'vergeml_folder', action: 'create', name } ) ).id;
 }
 
 const A = await makeFolder( 'OneFolder A' );
@@ -97,12 +97,12 @@ const fileId = await page.$eval( '#the-list input[name="media[]"]', ( c ) => par
 check( 'fixture ready', !! A && !! B && Number.isInteger( fileId ), `${ A }, ${ B }, file ${ fileId }` );
 
 const termsOf = () => page.evaluate( async ( i ) => {
-	const r = await window.wp.apiFetch( { path: `/wp/v2/media/${ i }?_fields=media_category` } );
-	return ( r.media_category || [] ).slice().sort();
+	const r = await window.wp.apiFetch( { path: `/wp/v2/media/${ i }?_fields=vergeml_folder` } );
+	return ( r.vergeml_folder || [] ).slice().sort();
 }, fileId );
 
 const setTerms = ( t ) => api( '/vergeml/v1/assign', {
-	taxonomy: 'media_category', attachments: [ fileId ], add: t, mode: 'move',
+	taxonomy: 'vergeml_folder', attachments: [ fileId ], add: t, mode: 'move',
 } );
 
 async function reveal() {
@@ -163,7 +163,7 @@ check( 'the setting saves as off again', await setOnePerFile( false ) );
 
 await setTerms( [] );
 for ( const id of [ A, B ] ) {
-	await api( '/vergeml/v1/folder', { taxonomy: 'media_category', action: 'delete', id } );
+	await api( '/vergeml/v1/folder', { taxonomy: 'vergeml_folder', action: 'delete', id } );
 }
 
 await browser.close();

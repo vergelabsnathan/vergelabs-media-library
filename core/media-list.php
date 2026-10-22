@@ -105,7 +105,7 @@ function vergeml_list_row_meta() {
         return array();
     }
 
-    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
     $meta     = array();
 
     /*
@@ -212,7 +212,7 @@ function vergeml_list_assets( $hook ) {
      *  A cell of ours is never the reason a row is tall.
      *
      *  Written here rather than in the stylesheet because two of the four are
-     *  named after taxonomies somebody made up -- `taxonomy-media_category`
+     *  named after taxonomies somebody made up -- `taxonomy-vergeml_folder`
      *  on one library, `taxonomy-colour` on the next -- and this is the one
      *  place that knows which columns are ours. The full value goes on the
      *  cell's title in js/vergeml-media-list.js, so an ellipsis never hides
@@ -450,7 +450,7 @@ function vergeml_list_folder_filter( $post_type, $which ) {
 
     $rendered = true;
 
-    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
     if ( ! $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
         return;
@@ -638,7 +638,7 @@ add_filter( 'bulk_actions-upload', 'vergeml_list_move_action' );
 
 function vergeml_list_move_action( $actions ) {
 
-    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
     if ( ! $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
         return $actions;
@@ -678,7 +678,7 @@ function vergeml_list_handle_move( $location, $doaction, $post_ids ) {
     // Core's upload.php checked this before calling the filter; said again here so the handler stands on its own.
     check_admin_referer( 'bulk-media' );
 
-    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
     $term     = $taxonomy ? get_term( (int) $found[1], $taxonomy ) : null;
 
     $tax_object = get_taxonomy( $taxonomy );

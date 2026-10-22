@@ -34,7 +34,7 @@ foreach ( (array) $args as $arg ) {
 
 wp_set_current_user( 1 );
 
-$taxonomy = 'media_category';
+$taxonomy = 'vergeml_folder';
 
 /* ------------------------------------------------------------------ tools */
 

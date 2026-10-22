@@ -11,8 +11,8 @@ if ( ! defined( 'ABSPATH' ) )
  *  folder plugin, and an optimiser. Neither is an error on their part; both
  *  are worth a word before the support ticket.
  *
- *  A second folder plugin filters the same media queries -- often the same
- *  media_category taxonomy -- and two filters on one query intersect rather
+ *  A second folder plugin filters the same media queries -- often a folder
+ *  taxonomy of its own -- and two filters on one query intersect rather
  *  than add up. The visible symptom is "my files disappeared", and nothing on
  *  the screen says why. So: one notice, once per person, naming the plugin.
  *  Not a refusal to run; agencies migrate one site at a time and want both

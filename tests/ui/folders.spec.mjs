@@ -1116,7 +1116,7 @@ test.describe( 'the Folders screen', () => {
 		expect( answered.result.made ).toBeGreaterThan( 0 );
 		// The result line, and -- the person chose the folder -- the way to review those five (C.3).
 		await expect( page.locator( '.g-qs .g-q.is-answered .g-q-result' ) ).toHaveText( 'Spec probe made · 5 moved · 5 by you · review' );
-		expect( await page.locator( '.g-qs .g-q.is-answered .g-q-review' ).getAttribute( 'href' ) ).toMatch( /upload\.php\?mode=list&media_category=by_you$/ );
+		expect( await page.locator( '.g-qs .g-q.is-answered .g-q-review' ).getAttribute( 'href' ) ).toMatch( /upload\.php\?mode=list&vergeml_folder=by_you$/ );
 		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
 		await expect( page.locator( '.g-tree .vgml-node.is-new' ).filter( { hasText: 'Spec probe' } ).locator( '.vgml-tag' ) ).toHaveText( 'new' );
 		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill.is-ask' ) ).toHaveText( '1 question' );
@@ -1295,7 +1295,7 @@ test.describe( 'the Folders screen', () => {
 		expect( answer.word ).toBe( 'by you' );
 
 		await page.setViewportSize( { width: 1600, height: 900 } );
-		await page.goto( `/wp-admin/upload.php?mode=list&media_category=${ encodeURIComponent( f.word.folder ) }`, { waitUntil: 'domcontentloaded' } );
+		await page.goto( `/wp-admin/upload.php?mode=list&vergeml_folder=${ encodeURIComponent( f.word.folder ) }`, { waitUntil: 'domcontentloaded' } );
 		await page.waitForSelector( '#the-list', { timeout: 30000 } );
 		const row = page.locator( `#the-list tr#post-${ f.word.id }` );
 		await expect( row ).toHaveCount( 1 );
@@ -1517,7 +1517,7 @@ test.describe( 'the Folders screen', () => {
 		const f = plantOnBox( { VGML_LEFT: 0 } );
 		expect( f.word.id, 'a filed picture to mark' ).toBeGreaterThan( 0 );
 		expect( f.placed, 'the marked one is among the marked' ).toContain( f.word.id );
-		const tax = 'media_category';
+		const tax = 'vergeml_folder';
 
 		const filtered = async () => {
 			await page.goto( `/wp-admin/upload.php?mode=list&${ tax }=by_you`, { waitUntil: 'domcontentloaded' } );
@@ -1571,7 +1571,7 @@ test.describe( 'the Folders screen', () => {
 		test.setTimeout( 300_000 );
 		await remember( page );
 		await plant( page, false );
-		const tax = 'media_category';
+		const tax = 'vergeml_folder';
 		const made = Number( ( await page.evaluate( ( [ ns, t ] ) => wp.apiFetch( { path: `${ ns }/folder`, method: 'POST', data: { taxonomy: t, action: 'create', name: 'Class probe' } } ), [ NS, tax ] ) ).id );
 		expect( made ).toBeGreaterThan( 0 );
 		const draftWith = ( classes ) => page.evaluate( ( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/session`, method: 'POST', data: { draft } } ), [ NS, {

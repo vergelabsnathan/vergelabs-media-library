@@ -1204,7 +1204,7 @@
 
 						/*
 						 *  WordPress wipes the library's filter the moment an
-						 *  upload starts (media_category -> null, so the new
+						 *  upload starts (vergeml_folder -> null, so the new
 						 *  file is guaranteed visible somewhere). With a
 						 *  folder open that meant: file lands IN the folder,
 						 *  grid quietly reverts to everything, breadcrumb
@@ -1419,7 +1419,7 @@
 			/*
 			 *  The slug, not the id.
 			 *
-			 *  WordPress resolves a taxonomy query var by slug, so ?media_category=3
+			 *  WordPress resolves a taxonomy query var by slug, so ?vergeml_folder=3
 			 *  matches a term whose slug is "3" -- which is to say nothing, silently.
 			 *  The plugin now accepts either form on the library screen, but a link
 			 *  should still be written the way WordPress writes one.
@@ -4311,7 +4311,7 @@
 	/** The list with nothing set but the folder that is showing. */
 	function listUrlWithFolder() {
 		var url = 'upload.php?mode=list';
-		var m = window.location.search.match( new RegExp( '[?&](' + ( state.taxonomy || 'media_category' ) + ')=([^&]+)' ) );
+		var m = window.location.search.match( new RegExp( '[?&](' + ( state.taxonomy || 'vergeml_folder' ) + ')=([^&]+)' ) );
 		return m ? url + '&' + m[ 1 ] + '=' + m[ 2 ] : url;
 	}
 

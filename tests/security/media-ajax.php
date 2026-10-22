@@ -71,7 +71,7 @@ function ma_file( $author ) {
 }
 
 $GLOBALS['ma_posts'] = array();
-$ma_tax  = 'media_category';
+$ma_tax  = 'vergeml_folder';
 $ma_opts = get_option( 'vergeml_lib_options' );
 
 // admin-ajax.php hooks core's handlers itself, at priority 1; a suite has to do the same.

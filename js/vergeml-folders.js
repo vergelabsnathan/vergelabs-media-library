@@ -1220,7 +1220,7 @@
 		var placed = Number( q.result && q.result.placed ) || 0;
 		if ( placed > 0 ) {
 			p.appendChild( document.createTextNode( ' · ' ) );
-			var url = ( cfg.libraryUrl || 'upload.php' ) + '?mode=list&' + encodeURIComponent( cfg.taxonomy || 'media_category' ) + '=by_you';
+			var url = ( cfg.libraryUrl || 'upload.php' ) + '?mode=list&' + encodeURIComponent( cfg.taxonomy || 'vergeml_folder' ) + '=by_you';
 			/* translators: %s: pictures the person put in a folder themselves */
 			p.appendChild( el( 'a', { class: 'g-q-review', href: url }, sprintf( __( '%s by you · review', 'vergelabs-media-library' ), fmt( placed ) ) ) );
 		}
@@ -1665,7 +1665,7 @@
 	}
 
 	function refreshTree() {
-		return api( 'GET', 'tree?taxonomy=' + encodeURIComponent( cfg.taxonomy || 'media_category' ) ).then( function ( r ) {
+		return api( 'GET', 'tree?taxonomy=' + encodeURIComponent( cfg.taxonomy || 'vergeml_folder' ) ).then( function ( r ) {
 			state.nodes = ( r && r.nodes ) || [];
 			state.facts.folders = state.nodes.length;
 			// The folders the answers made are marked before the tree is set, so the tree renders once, not twice (S6b, seam 3).

@@ -34,7 +34,7 @@ foreach ( $hooks as $i => $hook ) {
 }
 
 $att  = wp_insert_attachment( array( 'post_title' => 'vgml uninstall', 'post_mime_type' => 'image/jpeg', 'post_status' => 'inherit' ) );
-$term = wp_insert_term( 'vgml-uninstall-' . wp_rand(), 'media_category' );
+$term = wp_insert_term( 'vgml-uninstall-' . wp_rand(), 'vergeml_folder' );
 $term = is_wp_error( $term ) ? 0 : (int) $term['term_id'];
 
 update_post_meta( $att, '_wp_attachment_image_alt', 'kept: WordPress owns this' );

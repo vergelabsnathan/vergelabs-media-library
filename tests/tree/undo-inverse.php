@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 wp_set_current_user( 1 );
 
-$tax = 'media_category';
+$tax = 'vergeml_folder';
 
 // eval-file's top-level scope is not the global scope, so a `global $ok` inside a
 // function binds to nothing and the tally silently reads 0/0.

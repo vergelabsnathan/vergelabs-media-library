@@ -26,7 +26,7 @@ quiet() { grep -vE "^Deprecated:|zion|^PHP Warning|^Warning:" || true; }
 
 cd "$DIR"
 echo "== $DIR · n=$N · folders=$FOLDERS · $(date -u +%FT%TZ)"
-echo "== before: $($WP post list --post_type=attachment --post_status=any --format=count 2>/dev/null) attachments, $($WP term list media_category --format=count 2>/dev/null) folders"
+echo "== before: $($WP post list --post_type=attachment --post_status=any --format=count 2>/dev/null) attachments, $($WP term list vergeml_folder --format=count 2>/dev/null) folders"
 
 $WP eval-file "$B/scale.php" up "n=$N" "folders=$FOLDERS" 2>&1 | quiet
 
@@ -41,4 +41,4 @@ done
 
 echo; echo "== down"
 $WP eval-file "$B/scale.php" down 2>&1 | quiet
-echo "== after: $($WP post list --post_type=attachment --post_status=any --format=count 2>/dev/null) attachments, $($WP term list media_category --format=count 2>/dev/null) folders · $(date -u +%FT%TZ)"
+echo "== after: $($WP post list --post_type=attachment --post_status=any --format=count 2>/dev/null) attachments, $($WP term list vergeml_folder --format=count 2>/dev/null) folders · $(date -u +%FT%TZ)"

@@ -30,7 +30,7 @@ wp_set_current_user( 1 );
 // The validators report through add_settings_error(), which only the admin loads.
 require_once ABSPATH . 'wp-admin/includes/template.php';
 
-$tax = 'media_category';
+$tax = 'vergeml_folder';
 
 $GLOBALS['vergeml_ok']  = 0;
 $GLOBALS['vergeml_bad'] = 0;

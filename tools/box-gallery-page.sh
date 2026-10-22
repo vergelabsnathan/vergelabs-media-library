@@ -8,7 +8,7 @@ cat > /tmp/vgml-gallery-page.php <<'PHP'
 global $wpdb;
 $folder = (int) $wpdb->get_var(
     "SELECT tt.term_id FROM {$wpdb->term_taxonomy} tt
-      WHERE tt.taxonomy = 'media_category' ORDER BY tt.count DESC LIMIT 1"
+      WHERE tt.taxonomy = 'vergeml_folder' ORDER BY tt.count DESC LIMIT 1"
 );
 $name = $folder ? get_term( $folder )->name : '(none)';
 printf( "folder: #%d %s\n", $folder, $name );

@@ -46,16 +46,16 @@ const api = ( data ) => page.evaluate( ( d ) =>
 
 // Root > Child > Grand, made fresh, cleaned at the start in case a run died.
 async function fixture() {
-	const tree = await page.evaluate( () => window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } ) );
+	const tree = await page.evaluate( () => window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder' } ) );
 	for ( const n of tree.nodes || [] ) {
 		if ( /^RP / .test( n.name ) ) {
-			await api( { taxonomy: 'media_category', action: 'delete', id: n.id } ).catch( () => {} );
+			await api( { taxonomy: 'vergeml_folder', action: 'delete', id: n.id } ).catch( () => {} );
 		}
 	}
-	const root = ( await api( { taxonomy: 'media_category', action: 'create', name: 'RP Root' } ) ).id;
-	const child = ( await api( { taxonomy: 'media_category', action: 'create', name: 'RP Child', parent: root } ) ).id;
-	const grand = ( await api( { taxonomy: 'media_category', action: 'create', name: 'RP Grand', parent: child } ) ).id;
-	const other = ( await api( { taxonomy: 'media_category', action: 'create', name: 'RP Other' } ) ).id;
+	const root = ( await api( { taxonomy: 'vergeml_folder', action: 'create', name: 'RP Root' } ) ).id;
+	const child = ( await api( { taxonomy: 'vergeml_folder', action: 'create', name: 'RP Child', parent: root } ) ).id;
+	const grand = ( await api( { taxonomy: 'vergeml_folder', action: 'create', name: 'RP Grand', parent: child } ) ).id;
+	const other = ( await api( { taxonomy: 'vergeml_folder', action: 'create', name: 'RP Other' } ) ).id;
 	return { root, child, grand, other };
 }
 
@@ -134,7 +134,7 @@ async function dragFolderOnto( fromId, toId ) {
 }
 
 const parentOf = ( id ) => page.evaluate( async ( i ) => {
-	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } );
+	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder' } );
 	const n = ( t.nodes || [] ).find( ( x ) => x.id === i );
 	return n ? n.parent : null;
 }, id );
@@ -170,7 +170,7 @@ check( 'the root is still at the top', ( await parentOf( ids.root ) ) === 0 );
 
 console.log( '\n4. into a deeper descendant' );
 // Put grand back under child so there is a two-level descendant again.
-await api( { taxonomy: 'media_category', action: 'move', id: ids.grand, parent: ids.child } );
+await api( { taxonomy: 'vergeml_folder', action: 'move', id: ids.grand, parent: ids.child } );
 await page.reload( { waitUntil: 'domcontentloaded' } );
 await page.waitForTimeout( 5000 );
 await revealFixture();
@@ -184,7 +184,7 @@ check( 'the tree is intact', ( await parentOf( ids.grand ) ) === ids.child && ( 
 
 // Tidy.
 for ( const id of [ ids.grand, ids.child, ids.root, ids.other ] ) {
-	await api( { taxonomy: 'media_category', action: 'delete', id } ).catch( () => {} );
+	await api( { taxonomy: 'vergeml_folder', action: 'delete', id } ).catch( () => {} );
 }
 
 await browser.close();

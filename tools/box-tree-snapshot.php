@@ -24,7 +24,7 @@ global $wpdb;
 
 $mode = (string) getenv( 'VGML_MODE' );
 $file = (string) getenv( 'VGML_FILE' );
-$tax  = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+$tax  = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
 if ( '' === $file || ! in_array( $mode, array( 'snapshot', 'restore' ), true ) ) {
     echo "VGML_MODE=snapshot|restore and VGML_FILE=<path> are required\n";

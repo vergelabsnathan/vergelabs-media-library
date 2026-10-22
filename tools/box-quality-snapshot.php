@@ -10,7 +10,7 @@
 global $wpdb;
 
 $table = $wpdb->prefix . 'vergeml_ai_index';
-$tax   = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+$tax   = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
 $name = function ( $id ) {
     $t = get_the_title( $id );

@@ -75,7 +75,7 @@ function uf_report() {
  *  A taxonomy of this suite's own, for the length of this run.
  *
  *  It used to take vergeml_librarian_taxonomy() as the site found it, which on
- *  any real library means media_category -- and then seeded zzInvoices and
+ *  any real library means vergeml_folder -- and then seeded zzInvoices and
  *  zzHarbour into it beside every folder already there.
  *
  *  vergeml_autofile_folders() offers every term that has a centroid, so those

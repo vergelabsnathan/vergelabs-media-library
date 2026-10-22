@@ -170,7 +170,7 @@ const filtered = await page.evaluate( async () => {
 	let props = null;
 	try {
 		props = wp.media.frames && wp.media.frame
-			? wp.media.frame.state().get( 'library' ).props.toJSON().media_category
+			? wp.media.frame.state().get( 'library' ).props.toJSON().vergeml_folder
 			: null;
 	} catch ( e ) { props = 'unreadable'; }
 

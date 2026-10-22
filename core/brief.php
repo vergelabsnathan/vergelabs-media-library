@@ -372,7 +372,7 @@ function vergeml_brief_test_pick( $n ) {
     global $wpdb;
 
     $ids = array();
-    $tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
     $terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => true, 'orderby' => 'count', 'order' => 'DESC', 'number' => $n ) );
     if ( ! is_wp_error( $terms ) ) {

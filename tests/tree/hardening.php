@@ -76,7 +76,7 @@ function vergeml_refused( $response ) {
 	return false;
 }
 
-$tax = 'media_category';
+$tax = 'vergeml_folder';
 
 wp_set_current_user( 1 );
 

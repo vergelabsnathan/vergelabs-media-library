@@ -4,7 +4,7 @@
  *      node tests/tree/gallery.mjs http://46.225.66.194 admin VgmlTest7pass
  *
  *  The query behind this is old -- Enhanced Media Library's `[gallery
- *  media_category="press"]` has worked for years. What it never had was a way to
+ *  vergeml_folder="press"]` has worked for years. What it never had was a way to
  *  reach it: you had to know the shortcode existed, know the folder's slug, and
  *  switch on a setting that ships off. The block is the same idea with the
  *  knowing removed.
@@ -48,7 +48,7 @@ await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcon
 await page.waitForSelector( '.vgml-tree .vgml-row', { timeout: 60000 } );
 
 const folder = await page.evaluate( async () => {
-	const r = await window.wp.apiFetch( { path: '/vergeml/v1/gallery-folders?taxonomy=media_category' } );
+	const r = await window.wp.apiFetch( { path: '/vergeml/v1/gallery-folders?taxonomy=vergeml_folder' } );
 	const withImages = ( r.folders || [] ).filter( ( f ) => f.count > 1 ).sort( ( a, b ) => b.count - a.count )[ 0 ];
 	return withImages || null;
 } );
@@ -158,8 +158,8 @@ await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcon
 await page.waitForSelector( '.vgml-tree .vgml-row', { timeout: 60000 } );
 
 const added = await page.evaluate( async ( id ) => {
-	const media = await window.wp.apiFetch( { path: '/wp/v2/media?per_page=100&_fields=id,media_category' } );
-	const outsider = ( media || [] ).find( ( m ) => ! ( m.media_category || [] ).includes( id ) );
+	const media = await window.wp.apiFetch( { path: '/wp/v2/media?per_page=100&_fields=id,vergeml_folder' } );
+	const outsider = ( media || [] ).find( ( m ) => ! ( m.vergeml_folder || [] ).includes( id ) );
 
 	if ( ! outsider ) {
 		return 0;
@@ -168,7 +168,7 @@ const added = await page.evaluate( async ( id ) => {
 	await window.wp.apiFetch( {
 		path: '/vergeml/v1/assign',
 		method: 'POST',
-		data: { taxonomy: 'media_category', attachments: [ outsider.id ], add: [ id ], mode: 'add' },
+		data: { taxonomy: 'vergeml_folder', attachments: [ outsider.id ], add: [ id ], mode: 'add' },
 	} );
 
 	return outsider.id;
@@ -193,7 +193,7 @@ if ( added ) {
 		await window.wp.apiFetch( {
 			path: '/vergeml/v1/assign',
 			method: 'POST',
-			data: { taxonomy: 'media_category', attachments: [ args.id ], remove: [ args.folder ] },
+			data: { taxonomy: 'vergeml_folder', attachments: [ args.id ], remove: [ args.folder ] },
 		} );
 	}, { id: added, folder: folder.id } );
 }

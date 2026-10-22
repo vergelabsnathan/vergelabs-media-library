@@ -63,7 +63,7 @@ function pl_check( $label, $ok, $note = '' ) {
 
 pl_say( "\nfolders in two languages\n\n" );
 
-$pl_tax      = 'media_category';
+$pl_tax      = 'vergeml_folder';
 $pl_before   = get_option( 'polylang' );
 $pl_made     = array();
 $pl_added    = array();
@@ -105,7 +105,7 @@ if ( count( $pl_langs ) < 2 ) {
 }
 
 /*
- *  The setting that actually matters. Until media_category is in this list,
+ *  The setting that actually matters. Until vergeml_folder is in this list,
  *  Polylang is installed but is not touching folders at all, and a suite run
  *  in that state proves nothing -- which is exactly what the first run of this
  *  did, reporting everything green while Polylang was inert.
@@ -138,7 +138,7 @@ if ( ! PLL()->model->is_translated_taxonomy( $pl_tax ) ) {
     exit( 2 );
 }
 
-pl_check( 'media_category is a translated taxonomy', true, 'Polylang is filtering folders, so the checks below mean something' );
+pl_check( 'vergeml_folder is a translated taxonomy', true, 'Polylang is filtering folders, so the checks below mean something' );
 
 
 /* -------------------------------------------------------- folders per language */

@@ -50,6 +50,11 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
     $tax_query = array();
     $operator  = 'IN';
 
+    // A gallery written before the folders moved to vergeml_folder still names them the old way.
+    if ( ! empty( $atts['media_category'] ) && empty( $atts['vergeml_folder'] ) && taxonomy_exists( 'vergeml_folder' ) ) {
+        $atts['vergeml_folder'] = $atts['media_category'];
+    }
+
     foreach ( get_taxonomies_for_attachments( 'names' ) as $taxonomy ) {
 
         if ( ! empty( $atts[$taxonomy] ) ) {

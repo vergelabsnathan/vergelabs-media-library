@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 wp_set_current_user( 1 );
 
-$tax = 'media_category';
+$tax = 'vergeml_folder';
 
 $GLOBALS['vergeml_ok']  = 0;
 $GLOBALS['vergeml_bad'] = 0;

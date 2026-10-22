@@ -51,7 +51,7 @@ await page.waitForSelector( '.vgml-tree .vgml-row', { timeout: 60000 } );
 await clearNotices();
 
 const folder = await page.evaluate( async () => {
-	const r = await window.wp.apiFetch( { path: '/vergeml/v1/gallery-folders?taxonomy=media_category' } );
+	const r = await window.wp.apiFetch( { path: '/vergeml/v1/gallery-folders?taxonomy=vergeml_folder' } );
 	return ( r.folders || [] ).filter( ( f ) => f.count > 0 ).sort( ( a, b ) => b.count - a.count )[ 0 ] || null;
 } );
 
@@ -91,9 +91,9 @@ await page.setInputFiles( 'input[type=file]:not(.vgml-pick)', {
 await page.waitForTimeout( 5000 );
 
 const landed = await page.evaluate( async ( args ) => {
-	const media = await window.wp.apiFetch( { path: '/wp/v2/media?per_page=5&orderby=date&order=desc&_fields=id,slug,media_category' } );
+	const media = await window.wp.apiFetch( { path: '/wp/v2/media?per_page=5&orderby=date&order=desc&_fields=id,slug,vergeml_folder' } );
 	const mine = ( media || [] ).find( ( m ) => m.slug && m.slug.indexOf( args.stamp ) === 0 );
-	return mine ? { id: mine.id, terms: mine.media_category || [] } : null;
+	return mine ? { id: mine.id, terms: mine.vergeml_folder || [] } : null;
 }, { stamp } );
 
 check( 'the upload arrived', !! landed, landed ? `attachment ${ landed.id }` : 'not found' );
@@ -131,7 +131,7 @@ check( 'the new file is in the filtered grid, no reload', visible.tile );
  */
 const filterAfterUpload = await page.evaluate( () => {
 	const f = ( window.wp.media.frames && window.wp.media.frames.browse ) || window.wp.media.frame;
-	return f.state().get( 'library' ).props.get( 'media_category' );
+	return f.state().get( 'library' ).props.get( 'vergeml_folder' );
 } );
 check( 'and the folder filter survived the upload', filterAfterUpload === folder.id,
 	`${ filterAfterUpload } vs ${ folder.id }` );
@@ -161,9 +161,9 @@ await page.setInputFiles( 'input[type=file]:not(.vgml-pick)', {
 await page.waitForTimeout( 5000 );
 
 const unfiled = await page.evaluate( async ( args ) => {
-	const media = await window.wp.apiFetch( { path: '/wp/v2/media?per_page=5&orderby=date&order=desc&_fields=id,slug,media_category' } );
+	const media = await window.wp.apiFetch( { path: '/wp/v2/media?per_page=5&orderby=date&order=desc&_fields=id,slug,vergeml_folder' } );
 	const mine = ( media || [] ).find( ( m ) => m.slug && m.slug.indexOf( args.stamp ) === 0 );
-	return mine ? { id: mine.id, terms: mine.media_category || [] } : null;
+	return mine ? { id: mine.id, terms: mine.vergeml_folder || [] } : null;
 }, { stamp: stamp2 } );
 
 check( 'the upload arrived', !! unfiled, unfiled ? `attachment ${ unfiled.id }` : 'not found' );
@@ -237,8 +237,8 @@ await page.waitForTimeout( 2000 );
 const filed = await page.evaluate( async ( args ) => {
 	const out = [];
 	for ( const id of args.ids ) {
-		const m = await window.wp.apiFetch( { path: '/wp/v2/media/' + id + '?_fields=media_category' } );
-		out.push( ( m.media_category || [] ).includes( args.folder ) );
+		const m = await window.wp.apiFetch( { path: '/wp/v2/media/' + id + '?_fields=vergeml_folder' } );
+		out.push( ( m.vergeml_folder || [] ).includes( args.folder ) );
 	}
 	return out;
 }, { ids: dragged, folder: folder.id } );
@@ -249,7 +249,7 @@ check( 'dragging the selection filed both files', filed.length === 2 && filed.ev
 // put them back out of the folder
 await page.evaluate( async ( args ) => {
 	await window.wp.apiFetch( { path: '/vergeml/v1/assign', method: 'POST',
-		data: { taxonomy: 'media_category', attachments: args.ids, remove: [ args.folder ] } } );
+		data: { taxonomy: 'vergeml_folder', attachments: args.ids, remove: [ args.folder ] } } );
 }, { ids: dragged, folder: folder.id } );
 
 // Leave select mode so nothing later is surprised by it.
@@ -315,7 +315,7 @@ console.log( '\na move leaves the room' );
  *  a file into its own subfolder rightly keeps it on screen.
  */
 const allTerms = await page.evaluate( async () =>
-	await window.wp.apiFetch( { path: '/wp/v2/media_category?per_page=100&_fields=id,parent' } ) );
+	await window.wp.apiFetch( { path: '/wp/v2/vergeml_folder?per_page=100&_fields=id,parent' } ) );
 const parentOf = {};
 allTerms.forEach( ( t ) => { parentOf[ t.id ] = t.parent; } );
 const rootOf = ( id ) => { while ( parentOf[ id ] ) { id = parentOf[ id ]; } return id; };
@@ -349,7 +349,7 @@ check( 'the moved file left the view without a reload', ! roomAfter.includes( mo
 // put it back where it was
 await page.evaluate( async ( args ) => {
 	await window.wp.apiFetch( { path: '/vergeml/v1/assign', method: 'POST',
-		data: { taxonomy: 'media_category', attachments: [ parseInt( args.mover, 10 ) ],
+		data: { taxonomy: 'vergeml_folder', attachments: [ parseInt( args.mover, 10 ) ],
 			add: [ args.home ], remove: [ args.away ], mode: 'add' } } );
 }, { mover, home: folder.id, away: awayId } );
 await page.waitForTimeout( 800 );
@@ -410,13 +410,13 @@ check( 'the hovered row lights up for a file drag', rowLit );
 
 await page.waitForTimeout( 7000 );
 const dropped = await page.evaluate( async ( stamp ) => {
-	const found = await window.wp.apiFetch( { path: '/wp/v2/media?search=' + stamp + '&_fields=id,media_category' } );
+	const found = await window.wp.apiFetch( { path: '/wp/v2/media?search=' + stamp + '&_fields=id,vergeml_folder' } );
 	return found[ 0 ] || null;
 }, dropStamp );
 
 check( 'the dropped file uploaded into that row folder',
-	!! dropped && ( dropped.media_category || [] ).includes( rowTarget ),
-	dropped ? `${ dropped.id } -> ${ ( dropped.media_category || [] ).join( ',' ) } (wanted ${ rowTarget })` : 'no upload' );
+	!! dropped && ( dropped.vergeml_folder || [] ).includes( rowTarget ),
+	dropped ? `${ dropped.id } -> ${ ( dropped.vergeml_folder || [] ).join( ',' ) } (wanted ${ rowTarget })` : 'no upload' );
 
 if ( dropped ) {
 	await page.evaluate( async ( id ) => {
@@ -432,7 +432,7 @@ const zipUrl = await page.evaluate( () => window.vergemlTree && window.vergemlTr
 check( 'the tree carries a download link', !! zipUrl );
 
 const zip = await page.request.get(
-	`${ zipUrl }&folder=${ folder.id }&taxonomy=media_category` );
+	`${ zipUrl }&folder=${ folder.id }&taxonomy=vergeml_folder` );
 const body = await zip.body();
 
 check( 'it answers with an archive', zip.ok() && ( zip.headers()['content-type'] || '' ).indexOf( 'zip' ) !== -1,
@@ -586,13 +586,13 @@ await page.waitForNavigation( { timeout: 20000 } ).catch( () => {} );
 await page.waitForTimeout( 2000 );
 
 const listDropped = await page.evaluate( async ( stamp ) => {
-	const found = await window.wp.apiFetch( { path: '/wp/v2/media?search=' + stamp + '&_fields=id,media_category' } );
+	const found = await window.wp.apiFetch( { path: '/wp/v2/media?search=' + stamp + '&_fields=id,vergeml_folder' } );
 	return found[ 0 ] || null;
 }, listStamp );
 
 check( 'a list-screen row drop uploaded into the folder',
-	!! listDropped && ( listDropped.media_category || [] ).includes( listTarget ),
-	listDropped ? `${ listDropped.id } -> ${ ( listDropped.media_category || [] ).join( ',' ) }` : 'no upload' );
+	!! listDropped && ( listDropped.vergeml_folder || [] ).includes( listTarget ),
+	listDropped ? `${ listDropped.id } -> ${ ( listDropped.vergeml_folder || [] ).join( ',' ) }` : 'no upload' );
 check( 'and the list reloaded to show it', page.url().indexOf( 'mode=list' ) !== -1 );
 
 if ( listDropped ) {

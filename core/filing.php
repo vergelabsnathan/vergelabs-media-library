@@ -1343,7 +1343,7 @@ add_action( 'edited_term', 'vergeml_filing_on_term_change', 10, 3 );
 add_action( 'delete_term', 'vergeml_filing_on_term_change', 10, 3 );
 
 function vergeml_filing_on_term_change( $term_id, $tt_id, $taxonomy ) {
-    $wanted = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $wanted = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
     if ( $taxonomy === $wanted ) {
         vergeml_filing_forget( $term_id );
     }

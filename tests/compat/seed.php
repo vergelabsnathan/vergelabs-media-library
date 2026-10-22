@@ -6,13 +6,13 @@
 require_once ABSPATH . 'wp-admin/includes/image.php';
 
 foreach ( array( 'Logos', 'Photos' ) as $name ) {
-    if ( ! term_exists( $name, 'media_category' ) ) {
-        wp_insert_term( $name, 'media_category' );
+    if ( ! term_exists( $name, 'vergeml_folder' ) ) {
+        wp_insert_term( $name, 'vergeml_folder' );
     }
 }
 
-$logos  = get_term_by( 'name', 'Logos', 'media_category' );
-$photos = get_term_by( 'name', 'Photos', 'media_category' );
+$logos  = get_term_by( 'name', 'Logos', 'vergeml_folder' );
+$photos = get_term_by( 'name', 'Photos', 'vergeml_folder' );
 
 $fixtures = array(
     array( 'Zephyr mark', $logos ),
@@ -40,7 +40,7 @@ foreach ( $fixtures as $i => $fixture ) {
     wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $path ) );
 
     if ( $term && ! is_wp_error( $term ) ) {
-        wp_set_object_terms( $id, array( (int) $term->term_id ), 'media_category' );
+        wp_set_object_terms( $id, array( (int) $term->term_id ), 'vergeml_folder' );
     }
 }
 

@@ -82,10 +82,10 @@ t( 'nonsense settings come out as the defaults', 8 === $garbage['columns'] && 'n
 
 /* --- something to show ----------------------------------------------------- */
 
-$term = get_term_by( 'slug', 'press', 'media_category' );
+$term = get_term_by( 'slug', 'press', 'vergeml_folder' );
 
 if ( ! $term ) {
-	$terms = get_terms( array( 'taxonomy' => 'media_category', 'hide_empty' => true, 'number' => 1, 'orderby' => 'count', 'order' => 'DESC' ) );
+	$terms = get_terms( array( 'taxonomy' => 'vergeml_folder', 'hide_empty' => true, 'number' => 1, 'orderby' => 'count', 'order' => 'DESC' ) );
 	$term  = $terms ? $terms[0] : null;
 }
 

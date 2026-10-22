@@ -28,7 +28,7 @@ switch ( RT_PHASE ) {
 		register_taxonomy( 'product_cat', 'post', array( 'hierarchical' => true ) );
 
 		$ids = array();
-		foreach ( array( 'media_category' => array( 'Loop A', 'Loop B', 'Loop C' ), 'product_cat' => array( 'Shop A', 'Shop B' ) ) as $tax => $names ) {
+		foreach ( array( 'vergeml_folder' => array( 'Loop A', 'Loop B', 'Loop C' ), 'product_cat' => array( 'Shop A', 'Shop B' ) ) as $tax => $names ) {
 			foreach ( $names as $name ) {
 				$t = wp_insert_term( $name, $tax );
 				$ids[ $name ] = is_wp_error( $t ) ? 0 : (int) $t['term_taxonomy_id'];
@@ -43,36 +43,36 @@ switch ( RT_PHASE ) {
 		$set_parent( 'Loop C', 'Loop C' );
 		$set_parent( 'Shop A', 'Shop B' );
 		$set_parent( 'Shop B', 'Shop A' );
-		delete_option( 'media_category_children' );
+		delete_option( 'vergeml_folder_children' );
 		delete_option( 'product_cat_children' );
 		wp_cache_flush();
 
 		$a_term = (int) $wpdb->get_var( $wpdb->prepare( "SELECT term_id FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id = %d", $ids['Loop A'] ) );
 		$c_term = (int) $wpdb->get_var( $wpdb->prepare( "SELECT term_id FROM {$wpdb->term_taxonomy} WHERE term_taxonomy_id = %d", $ids['Loop C'] ) );
 		$pic    = rt_picture( 'loop picture' );
-		wp_set_object_terms( $pic, $a_term, 'media_category' );
+		wp_set_object_terms( $pic, $a_term, 'vergeml_folder' );
 
-		$b_term   = (int) get_term( $a_term, 'media_category' )->parent;
-		$kids_of  = function ( $p ) { return wp_list_pluck( get_terms( array( 'taxonomy' => 'media_category', 'hide_empty' => false, 'parent' => $p ) ), 'term_id' ); };
+		$b_term   = (int) get_term( $a_term, 'vergeml_folder' )->parent;
+		$kids_of  = function ( $p ) { return wp_list_pluck( get_terms( array( 'taxonomy' => 'vergeml_folder', 'hide_empty' => false, 'parent' => $p ) ), 'term_id' ); };
 		$a_kids   = $kids_of( $a_term );
 		$b_kids   = $kids_of( $b_term );
-		rt_t( 'get_terms sees the loop: B is a child of A and A of B', in_array( $b_term, $a_kids, true ) && in_array( $a_term, $b_kids, true ), "A=$a_term kids " . wp_json_encode( $a_kids ) . "; B=$b_term kids " . wp_json_encode( $b_kids ) . '; rows ' . wp_json_encode( $wpdb->get_results( $wpdb->prepare( "SELECT term_taxonomy_id, term_id, parent FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s", 'media_category' ) ) ) . ' ids ' . wp_json_encode( $ids ) );
+		rt_t( 'get_terms sees the loop: B is a child of A and A of B', in_array( $b_term, $a_kids, true ) && in_array( $a_term, $b_kids, true ), "A=$a_term kids " . wp_json_encode( $a_kids ) . "; B=$b_term kids " . wp_json_encode( $b_kids ) . '; rows ' . wp_json_encode( $wpdb->get_results( $wpdb->prepare( "SELECT term_taxonomy_id, term_id, parent FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s", 'vergeml_folder' ) ) ) . ' ids ' . wp_json_encode( $ids ) );
 
 		foreach ( array( 'A (A under B under A)' => $a_term, 'C (under itself)' => $c_term ) as $label => $start ) {
 			$zip_path = trailingslashit( get_temp_dir() ) . 'vgml-loop-' . $start . '.zip';
 			$watched  = rt_watch( function () use ( $start, $zip_path ) {
-				$r = vergeml_zip_folder( $start, 'media_category', $zip_path );
+				$r = vergeml_zip_folder( $start, 'vergeml_folder', $zip_path );
 				return is_wp_error( $r ) && 'vergeml_zip_empty' === $r->get_error_code() ? true : $r;
 			} );
 			rt_quiet( "ZIP of folder $label", $watched );
 		}
-		$zipped = vergeml_zip_folder( $a_term, 'media_category', trailingslashit( get_temp_dir() ) . 'vgml-loop-count.zip' );
+		$zipped = vergeml_zip_folder( $a_term, 'vergeml_folder', trailingslashit( get_temp_dir() ) . 'vgml-loop-count.zip' );
 		rt_t( 'the ZIP of A holds the one picture once', is_array( $zipped ) && 1 === $zipped['added'], wp_json_encode( $zipped ) );
 
 		rt_quiet( 'gallery widget folder list', rt_watch( function () { return is_array( vergeml_gallery_folder_options() ); } ) );
 		rt_quiet( 'gallery block folder list', rt_watch( function () { return ! is_wp_error( vergeml_rest_gallery_folders( new WP_REST_Request( 'GET', '/' ) ) ); } ) );
 		rt_quiet( 'shop category paths', rt_watch( function () { return is_array( vergeml_folders_product_paths() ); } ) );
-		rt_quiet( 'list-mode Move to folder options', rt_watch( function () { return is_array( vergeml_list_folder_options( 'media_category' ) ); } ) );
+		rt_quiet( 'list-mode Move to folder options', rt_watch( function () { return is_array( vergeml_list_folder_options( 'vergeml_folder' ) ); } ) );
 		rt_done( 'loop' );
 		break;
 }

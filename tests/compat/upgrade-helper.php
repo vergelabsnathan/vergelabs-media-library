@@ -81,7 +81,7 @@ add_action( 'wp_loaded', function () {
             delete_option( 'vergeml_' . $key );
         }
 
-        foreach ( array( 'media_category', 'client_project' ) as $tax ) {
+        foreach ( array( 'vergeml_folder', 'client_project' ) as $tax ) {
             if ( taxonomy_exists( $tax ) ) {
                 foreach ( get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) ) as $t )
                     wp_delete_term( $t->term_id, $tax );
@@ -132,14 +132,14 @@ add_action( 'wp_loaded', function () {
             $tax_opts['bulk_edit_save_button'] = 1;
             update_option( 'wpuxss_eml_tax_options', $tax_opts );
 
-            // a second taxonomy, cloned from the real media_category entry
+            // a second taxonomy, cloned from the real vergeml_folder entry
             $taxes = get_option( 'wpuxss_eml_taxonomies', array() );
 
-            if ( isset( $taxes['media_category'] ) ) {
+            if ( isset( $taxes['vergeml_folder'] ) ) {
 
-                $taxes['media_category']['media_popup_taxonomy_edit'] = 1;
+                $taxes['vergeml_folder']['media_popup_taxonomy_edit'] = 1;
 
-                $clone = $taxes['media_category'];
+                $clone = $taxes['vergeml_folder'];
                 $clone['hierarchical'] = 0;
                 $clone['labels'] = array_map(
                     function ( $l ) { return str_replace( array( 'Media Categories', 'Media Category' ), array( 'Client projects', 'Client project' ), $l ); },
@@ -158,13 +158,13 @@ add_action( 'wp_loaded', function () {
         }
 
         // terms need the taxonomies registered in *this* request too
-        foreach ( array( 'media_category', 'client_project' ) as $tax ) {
+        foreach ( array( 'vergeml_folder', 'client_project' ) as $tax ) {
             if ( ! taxonomy_exists( $tax ) )
                 register_taxonomy( $tax, 'attachment', array( 'hierarchical' => true, 'public' => true ) );
         }
 
         $terms = array(
-            'media_category' => array( 'Logos', 'Photos', 'Client work & co' ),
+            'vergeml_folder' => array( 'Logos', 'Photos', 'Client work & co' ),
             'client_project' => array( 'Acme rebrand', 'Zenith launch' ),
         );
 
@@ -200,7 +200,7 @@ add_action( 'wp_loaded', function () {
 
             $id = wp_insert_attachment( array( 'post_title' => $title, 'post_mime_type' => 'image/png', 'post_status' => 'inherit' ), $path );
             wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $path ) );
-            wp_set_object_terms( $id, array( $created['media_category'][ $term_name ] ), 'media_category' );
+            wp_set_object_terms( $id, array( $created['vergeml_folder'][ $term_name ] ), 'vergeml_folder' );
 
             if ( 'Zephyr mark' === $title )
                 wp_set_object_terms( $id, array( $created['client_project']['Acme rebrand'] ), 'client_project' );
@@ -247,7 +247,7 @@ add_action( 'wp_loaded', function () {
         $out['assignments'] = array();
 
         foreach ( get_posts( array( 'post_type' => 'attachment', 'post_status' => 'any', 'numberposts' => -1 ) ) as $p ) {
-            foreach ( array( 'media_category', 'client_project' ) as $tax ) {
+            foreach ( array( 'vergeml_folder', 'client_project' ) as $tax ) {
                 $t = wp_get_object_terms( $p->ID, $tax, array( 'fields' => 'names' ) );
                 if ( ! is_wp_error( $t ) && $t )
                     $out['assignments'][ $p->post_title ][ $tax ] = $t;
@@ -255,7 +255,7 @@ add_action( 'wp_loaded', function () {
         }
 
         $out['registered_taxonomies'] = array_values( array_intersect(
-            array( 'media_category', 'client_project' ),
+            array( 'vergeml_folder', 'client_project' ),
             get_object_taxonomies( 'attachment' )
         ) );
 

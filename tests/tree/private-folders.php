@@ -51,7 +51,7 @@ function pf_visible( $taxonomy ) {
 
 pf_say( "\nfolders only one person sees\n\n" );
 
-$pf_tax    = 'media_category';
+$pf_tax    = 'vergeml_folder';
 $pf_before = get_option( 'vergeml_private_folders', array() );
 
 delete_option( 'vergeml_private_folders' );

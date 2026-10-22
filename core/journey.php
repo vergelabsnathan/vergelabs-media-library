@@ -153,7 +153,7 @@ function vergeml_journey_facts() {
      *  dashboard said 29 where the tree showed 23.
      */
     $folders = 0;
-    $folder_tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $folder_tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
     if ( '' !== $folder_tax && taxonomy_exists( $folder_tax ) ) {
         $count   = wp_count_terms( array( 'taxonomy' => $folder_tax, 'hide_empty' => false ) );
@@ -1542,7 +1542,7 @@ function vergeml_journey_screen() {
                         'icon'  => 'download',
                         'label' => __( 'Export folders as CSV', 'vergelabs-media-library' ),
                         'note'  => __( 'Your whole structure, in a spreadsheet.', 'vergelabs-media-library' ),
-                        'href'  => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_export_csv&taxonomy=media_category' ), 'vergeml_export_csv' ),
+                        'href'  => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_export_csv&taxonomy=vergeml_folder' ), 'vergeml_export_csv' ),
                     );
                 }
 

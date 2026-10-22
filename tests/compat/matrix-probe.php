@@ -27,7 +27,7 @@ add_action( 'init', function () {
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the probe reads the tables by name, plugin or no plugin.
 
-    $tt = $wpdb->get_results( "SELECT term_taxonomy_id, term_id, parent, count FROM {$wpdb->term_taxonomy} WHERE taxonomy = 'media_category'", ARRAY_A );
+    $tt = $wpdb->get_results( "SELECT term_taxonomy_id, term_id, parent, count FROM {$wpdb->term_taxonomy} WHERE taxonomy = 'vergeml_folder'", ARRAY_A );
 
     $terms = array();
     foreach ( (array) $tt as $row ) {

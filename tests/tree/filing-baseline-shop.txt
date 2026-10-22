@@ -1,4 +1,4 @@
-# filing baseline, taxonomy media_category
+# filing baseline, taxonomy vergeml_folder
 # re-taken 2026-09-18: S17: the audience gate as a runner-up (the picture saying no audience): 9 placements to a question, 5 wrong sures among them; truth score 348 -> 347 of 581, right of placed 71 -> 72 %
 # folders 323, pictures 626
 # attachment	term_id	why	score	runner_up	runner_score

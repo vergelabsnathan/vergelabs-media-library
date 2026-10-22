@@ -81,7 +81,7 @@ function vergeml_drift_fresh( $text, $licence ) {
  *  and the short class phrases the matcher compares picture against folder
  *  with. Both go through the same cache and the same service.
  */
-$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 $terms    = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids' ) );
 $terms    = is_wp_error( $terms ) ? array() : array_map( 'intval', $terms );
 sort( $terms );

@@ -1106,7 +1106,7 @@ function markdown() {
 	L.push( '## Meta fields core exposes over REST' );
 	L.push( '' );
 	L.push( 'Registered with `show_in_rest`, which means core accepts writes to them on its own' );
-	L.push( 'routes — `/wp/v2/media`, `/wp/v2/media_category` — without any route of ours being' );
+	L.push( 'routes — `/wp/v2/media`, `/wp/v2/vergeml_folder` — without any route of ours being' );
 	L.push( 'involved. The `auth_callback` is the gate, and its default is `edit_posts`.' );
 	L.push( '' );
 	L.push( '| key | on | sanitize | auth callback | capability | where |' );

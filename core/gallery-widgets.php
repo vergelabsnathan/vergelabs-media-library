@@ -109,7 +109,7 @@ function vergeml_gallery_widget_atts( $settings ) {
  *
  *  The fourth door, and the one that needs no builder at all: it works in a
  *  plain post, a text widget, a theme that never heard of blocks. Registered
- *  unconditionally -- unlike the inherited [gallery media_category=...]
+ *  unconditionally -- unlike the inherited [gallery vergeml_folder=...]
  *  enhancement, it hides behind no setting, because a shortcode somebody has to
  *  switch on first is a shortcode that renders nothing with no explanation.
  *

@@ -5,7 +5,7 @@
  *  empty folders a test left behind. The names come from the design handoff,
  *  which was drawn from this very tree.
  */
-$tax  = 'media_category';
+$tax  = 'vergeml_folder';
 $tree = array(
     'Landscape and nature' => array( 'Mountains and mist', 'Meadow and blossom', 'Rural farmland', 'Piers and sunsets' ),
     'Architecture'         => array( 'City architecture details', 'Manhattan skyline' ),

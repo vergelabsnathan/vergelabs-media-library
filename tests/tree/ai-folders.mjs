@@ -102,7 +102,7 @@ await page.evaluate( async () => {
 	await window.wp.apiFetch( {
 		path: '/vergeml/v1/state',
 		method: 'POST',
-		data: { taxonomy: 'media_category', aiOpen: 1, filtersOpen: 1 },
+		data: { taxonomy: 'vergeml_folder', aiOpen: 1, filtersOpen: 1 },
 	} ).catch( () => null );
 } );
 

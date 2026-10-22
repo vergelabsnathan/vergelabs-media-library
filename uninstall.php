@@ -8,7 +8,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 /*
  *  What deleting the plugin deletes -- and what it deliberately does not.
  *
- *  The folders are media_category terms in WordPress's own tables, and the AI
+ *  The folders are vergeml_folder terms in WordPress's own tables, and the AI
  *  descriptions were paid for in credits. Neither can be rebuilt for free, so
  *  neither goes just because the plugin does: by default, uninstalling removes
  *  only the plugin's housekeeping -- transients and scheduled events -- and
@@ -52,7 +52,7 @@ function vergeml_uninstall_wipe_site() {
 
     /*
      *  The taxonomies this plugin managed, read from its own option. Ones it
-     *  created (eml_media) lose their terms, except media_category, the
+     *  created (eml_media) lose their terms, except vergeml_folder, the
      *  folders; taxonomies core or another plugin owns are not touched.
      */
     foreach ( (array) get_option( 'vergeml_taxonomies', array() ) as $taxonomy => $params ) {
@@ -61,11 +61,11 @@ function vergeml_uninstall_wipe_site() {
         $own      = ! empty( $params['eml_media'] );
         $taxonomy = (string) $taxonomy;
 
-        // Folders are ordinary terms and outlive the plugin: media_category is shared with
-        // Enhanced Media Library and other folder plugins, so its terms and links stay.
+        // Folders are ordinary terms and outlive the plugin: the vergeml_folder terms and
+        // which files are in them stay in WordPress's own tables.
         // A taxonomy another plugin or core owns (a post category assigned to media, Polylang's
         // languages, another folder plugin's) is left exactly as it is.
-        if ( 'media_category' === $taxonomy || ! $own ) {
+        if ( 'vergeml_folder' === $taxonomy || ! $own ) {
             continue;
         }
 

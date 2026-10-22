@@ -40,7 +40,7 @@ vergeml_check( 'two languages exist', $model->get_language( 'en' ) && $model->ge
 
 /* --- the folders are not split per language ----------------------------------- */
 
-vergeml_check( 'media_category is not a translated taxonomy', ! $model->is_translated_taxonomy( 'media_category' ) );
+vergeml_check( 'vergeml_folder is not a translated taxonomy', ! $model->is_translated_taxonomy( 'vergeml_folder' ) );
 
 // With media translation switched on, Polylang registers these two on
 // attachments at init. The switch is a settings-screen option; this puts the
@@ -52,11 +52,11 @@ vergeml_check( 'the tree does not draw Polylang\'s language taxonomy as folders'
 
 /* --- a translated picture keeps its folders ----------------------------------- */
 
-$folders = wp_get_object_terms( $att, 'media_category', array( 'fields' => 'ids' ) );
+$folders = wp_get_object_terms( $att, 'vergeml_folder', array( 'fields' => 'ids' ) );
 if ( empty( $folders ) ) {
-    $term = get_terms( array( 'taxonomy' => 'media_category', 'hide_empty' => false, 'number' => 1, 'fields' => 'ids' ) );
-    wp_set_object_terms( $att, array( (int) $term[0] ), 'media_category' );
-    $folders = wp_get_object_terms( $att, 'media_category', array( 'fields' => 'ids' ) );
+    $term = get_terms( array( 'taxonomy' => 'vergeml_folder', 'hide_empty' => false, 'number' => 1, 'fields' => 'ids' ) );
+    wp_set_object_terms( $att, array( (int) $term[0] ), 'vergeml_folder' );
+    $folders = wp_get_object_terms( $att, 'vergeml_folder', array( 'fields' => 'ids' ) );
 }
 sort( $folders );
 vergeml_check( 'the original sits in at least one folder', ! empty( $folders ), implode( ',', $folders ) );
@@ -67,7 +67,7 @@ $tr_id = (int) $model->post->create_media_translation( $att, 'nl' );
 vergeml_check( 'Polylang created the Dutch copy', $tr_id > 0 && $tr_id !== $att, 'id ' . $tr_id );
 vergeml_check( 'the copy shares the file', get_attached_file( $tr_id, true ) === get_attached_file( $att, true ) );
 
-$tr_folders = wp_get_object_terms( $tr_id, 'media_category', array( 'fields' => 'ids' ) );
+$tr_folders = wp_get_object_terms( $tr_id, 'vergeml_folder', array( 'fields' => 'ids' ) );
 sort( $tr_folders );
 vergeml_check( 'the copy is in the same folders', $tr_folders === $folders, implode( ',', $tr_folders ) . ' vs ' . implode( ',', $folders ) );
 

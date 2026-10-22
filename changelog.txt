@@ -5,6 +5,9 @@ The latest release, 4.1.0, is first; readme.txt carries a shorter 4.1.0 entry.
 ### 4.1.0 ###
 *A folder plan built from what your pictures show.*
 
+= Changed =
+* **Folders live in the plugin's own taxonomy, `vergeml_folder`.** Folders made in `media_category` (by this plugin or by Enhanced Media Library) and tags made by earlier versions move to their new names on update; galleries that name `media_category` keep working.
+
 = Added =
 * **Plan my folders.** On the Folders screen, one button builds a folder tree from every label the AI has recorded about your pictures. It costs 30 credits plus 15 per 100 distinct labels; the price is on the button, and it needs at least five described pictures.
 * **Your tree grows for free.** Once you confirm a tree, new pictures with new labels get new folders proposed at no charge.
@@ -21,7 +24,7 @@ The latest release, 4.1.0, is first; readme.txt carries a shorter 4.1.0 entry.
 * **File types: WordPress's own only.** The File types screen switches WordPress's known types on and off; it no longer adds new ones, and types that can run code or that a browser interprets -- PHP, HTML, CSS, JavaScript, SVG, XML, executables -- are never allowed. A type saved earlier that WordPress does not know is left out, and the screen names it.
 * **The plugin never deactivates itself.** Delete All Data no longer deactivates the plugin either; deleting it afterwards from the Plugins screen takes the rest.
 * **Safe mode is switched only in wp-config.php.** The plugin no longer enters it after crashes; a fatal error is left to WordPress's own recovery mode. With `define( 'VERGEML_SAFE_MODE', true );` the folders, media views and AI features are off, the System report and Get help stay, and nothing is deleted.
-* **The wipes keep your folders.** Complete Cleanup and the delete-on-uninstall switch leave the `media_category` terms and which files are in them, and remove the plugin's own settings, tables and other data.
+* **The wipes keep your folders.** Complete Cleanup and the delete-on-uninstall switch leave the `vergeml_folder` terms and which files are in them, and remove the plugin's own settings, tables and other data.
 * **Activation creates the plugin's tables itself.**
 * **PHP mbstring and OpenSSL are checked**, with a notice if either is missing.
 * **Scripts and styles load only on the plugin's screens and media frames.**

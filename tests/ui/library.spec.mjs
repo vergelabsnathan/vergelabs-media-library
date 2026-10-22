@@ -87,7 +87,7 @@ test.describe( 'one tree, kept in step', () => {
 		const made = await page.evaluate( () => wp.apiFetch( {
 			path: '/vergeml/v1/folder',
 			method: 'POST',
-			data: { taxonomy: 'media_category', action: 'create', name: 'zz version probe' },
+			data: { taxonomy: 'vergeml_folder', action: 'create', name: 'zz version probe' },
 		} ) );
 		expect( Number( made.id ), 'the probe folder was made' ).toBeGreaterThan( 0 );
 
@@ -102,7 +102,7 @@ test.describe( 'one tree, kept in step', () => {
 			await page.evaluate( ( id ) => wp.apiFetch( {
 				path: '/vergeml/v1/folder',
 				method: 'POST',
-				data: { taxonomy: 'media_category', action: 'delete', id },
+				data: { taxonomy: 'vergeml_folder', action: 'delete', id },
 			} ), Number( made.id ) );
 		}
 	} );

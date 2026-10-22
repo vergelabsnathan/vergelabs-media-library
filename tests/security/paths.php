@@ -274,7 +274,7 @@ if ( null === $p_last_was ) {
 
 echo "\nD  the folder archive packs only what is inside uploads\n";
 
-$p_taxes = function_exists( 'vergeml_tree_taxonomies' ) ? vergeml_tree_taxonomies() : array( 'media_category' );
+$p_taxes = function_exists( 'vergeml_tree_taxonomies' ) ? vergeml_tree_taxonomies() : array( 'vergeml_folder' );
 $p_tax   = $p_taxes[0];
 $p_term  = wp_insert_term( 'zz-vgml-paths', $p_tax );
 $p_term  = is_wp_error( $p_term ) ? 0 : (int) $p_term['term_id'];

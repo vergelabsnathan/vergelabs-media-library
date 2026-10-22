@@ -353,8 +353,8 @@ $s_skipped = array();
 
 // Two routes need a taxonomy to answer at all; the rest run with their defaults.
 $s_supply = array(
-    $s_prefix . 'state' => array( 'taxonomy' => 'media_category' ),
-    $s_prefix . 'tree'  => array( 'taxonomy' => 'media_category' ),
+    $s_prefix . 'state' => array( 'taxonomy' => 'vergeml_folder' ),
+    $s_prefix . 'tree'  => array( 'taxonomy' => 'vergeml_folder' ),
 );
 
 /*

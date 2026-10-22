@@ -41,8 +41,8 @@ fx( 'mock', vergeml_ai_ready() ? 'on, ready' : 'on, NOT ready' );
 
 $tax = vergeml_librarian_taxonomy();
 fx( 'taxonomy', $tax );
-if ( 'media_category' !== $tax ) {
-	echo "the folder taxonomy is '$tax'; the snapshot and the suite read media_category\n";
+if ( 'vergeml_folder' !== $tax ) {
+	echo "the folder taxonomy is '$tax'; the snapshot and the suite read vergeml_folder\n";
 	exit( 1 );
 }
 

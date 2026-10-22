@@ -897,7 +897,7 @@ function vergeml_health_files( $ids ) {
 
     // The folder each file sits in: one query for the whole set.
     $folders = array();
-    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
     if ( taxonomy_exists( $tax ) ) {
         $terms = wp_get_object_terms( $ids, $tax, array( 'fields' => 'all_with_object_id' ) );

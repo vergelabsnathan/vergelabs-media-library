@@ -148,7 +148,7 @@ function vergeml_term_name( $t ) {
     return html_entity_decode( (string) $t->name, ENT_QUOTES, 'UTF-8' );
 }
 function vergeml_librarian_taxonomy() {
-    return 'media_category';
+    return 'vergeml_folder';
 }
 function vergeml_filing_classes_of_object( $object ) {
     return array_values( array_filter( array_map( 'trim', preg_split( '/\s*[;,]\s*/u', mb_strtolower( trim( (string) $object ) ) ) ), 'strlen' ) );

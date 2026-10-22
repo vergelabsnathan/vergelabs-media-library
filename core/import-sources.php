@@ -77,6 +77,14 @@ function vergeml_import_sources() {
             'kind'     => 'taxonomy',
             'taxonomy' => 'feml-folder',
         ),
+        // Enhanced Media Library's own taxonomy. Its folders move over by themselves on activation
+        // once it is off (vergeml_migrate_prefixes()); this reads them while it is still active.
+        'eml' => array(
+            'name'     => 'Enhanced Media Library',
+            'author'   => 'wpUXsolutions',
+            'kind'     => 'taxonomy',
+            'taxonomy' => 'media_category',
+        ),
 
         // Custom tables. A reader each.
         'filebird' => array(

@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) )
  *  A folder, as a gallery.
  *
  *  The query behind this has existed since Enhanced Media Library: `[gallery
- *  media_category="press"]` builds a tax query and renders. What it never had
+ *  vergeml_folder="press"]` builds a tax query and renders. What it never had
  *  was a way to reach it -- you had to know the shortcode existed, know the
  *  folder's slug, and switch on a setting that is off by default. So a feature
  *  that worked for years was, in practice, not there.

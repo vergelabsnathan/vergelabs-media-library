@@ -23,7 +23,7 @@ import { test, expect } from './fixtures.mjs';
  *  writes into the library while it runs.
  */
 
-const TAX = 'media_category';
+const TAX = 'vergeml_folder';
 const NS = '/vergeml/v1';
 
 const api = ( page, path, data, method ) => page.evaluate(

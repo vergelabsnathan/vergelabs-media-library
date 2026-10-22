@@ -331,13 +331,49 @@ global $vergeml_dir,
      *  the next request has nothing left to do.
      */
     /**
-     *  Tag taxonomies this plugin made before 4.1.0 were keyed vgml_*; they take the
-     *  plugin's own prefix, vergeml_* (wordpress.org review 8). WordPress has no call
-     *  that renames a taxonomy, so the plugin's own rows are moved in term_taxonomy and
-     *  the registration list follows; a key that would collide or pass 32 characters
-     *  is left as it is.
+     *  The key of a taxonomy this plugin makes. Every one carries the plugin's prefix
+     *  (wordpress.org review 8): the folders are vergeml_folder; any other -- a tag from
+     *  the Folders screen, one added on the Taxonomies screen, one carried over from an
+     *  older version or from Enhanced Media Library -- is vergeml_tag_ and up to 20
+     *  characters of its name, which keeps it within WordPress's 32.
      */
-    function vergeml_migrate_tag_prefix() {
+    function vergeml_own_taxonomy_key( $key ) {
+
+        $key = sanitize_key( (string) $key );
+
+        if ( 'media_category' === $key ) {
+            return 'vergeml_folder';
+        }
+
+        if ( 0 === strpos( $key, 'vergeml_' ) ) {
+            return $key;
+        }
+
+        $name = trim( substr( preg_replace( '/^vgml_/', '', $key ), 0, 20 ), '_' );
+
+        return '' === $name ? '' : 'vergeml_tag_' . $name;
+    }
+
+    /** Enhanced Media Library itself still running: its folders are live in media_category. */
+    function vergeml_eml_active() {
+
+        if ( ! function_exists( 'is_plugin_active' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        return is_plugin_active( 'enhanced-media-library/enhanced-media-library.php' )
+            || is_plugin_active( 'enhanced-media-library-pro/enhanced-media-library-pro.php' );
+    }
+
+    /**
+     *  Taxonomies this plugin made under an unprefixed key -- media_category and EML's
+     *  own from before, vgml_* tags from 4.0.x -- move to their prefixed key
+     *  (vergeml_own_taxonomy_key()). WordPress has no call that renames a taxonomy, so the
+     *  plugin's own rows are moved in term_taxonomy and the registration list follows.
+     *  media_category waits while Enhanced Media Library is active, so its folders are not
+     *  taken from under it; the next admin visit after it is off moves them.
+     */
+    function vergeml_migrate_prefixes() {
 
         global $wpdb;
 
@@ -353,13 +389,17 @@ global $vergeml_dir,
 
             $old = (string) $old;
 
-            if ( 0 !== strpos( $old, 'vgml_' ) ) {
+            if ( empty( $params['eml_media'] ) || 0 === strpos( $old, 'vergeml_' ) ) {
                 continue;
             }
 
-            $new = 'vergeml_' . substr( $old, 5 );
+            if ( 'media_category' === $old && vergeml_eml_active() ) {
+                continue;
+            }
 
-            if ( strlen( $new ) > 32 || isset( $all[ $new ] ) || taxonomy_exists( $new ) ) {
+            $new = vergeml_own_taxonomy_key( $old );
+
+            if ( '' === $new || isset( $all[ $new ] ) || taxonomy_exists( $new ) ) {
                 continue;
             }
 
@@ -383,6 +423,23 @@ global $vergeml_dir,
         }
     }
 
+    // What waited for Enhanced Media Library to be switched off moves on the next admin visit, by an administrator.
+    add_action( 'admin_init', 'vergeml_migrate_prefixes_when_due' );
+
+    function vergeml_migrate_prefixes_when_due() {
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        foreach ( (array) get_option( 'vergeml_taxonomies', array() ) as $key => $params ) {
+            if ( ! empty( $params['eml_media'] ) && 0 !== strpos( (string) $key, 'vergeml_' ) ) {
+                vergeml_migrate_prefixes();
+                return;
+            }
+        }
+    }
+
     function vergeml_provision_site() {
 
         // The self-entered safe mode of 4.0.x is gone; a site it left switched off comes back.
@@ -391,7 +448,7 @@ global $vergeml_dir,
         // carry settings over from Enhanced Media Library, if it left any
         vergeml_migrate_legacy_options();
 
-        vergeml_migrate_tag_prefix();
+        vergeml_migrate_prefixes();
 
         vergeml_set_options();
 
@@ -432,7 +489,7 @@ global $vergeml_dir,
      *
      *  A subsite created after network activation gets its options and tables
      *  the moment core has finished creating it -- not on its first admin
-     *  visit, which on the front end left it with no media_category at all.
+     *  visit, which on the front end left it with no vergeml_folder at all.
      *  A subsite being deleted takes its four tables with it whether or not
      *  this plugin is loaded in that request (safe mode, deactivated): the
      *  wpmu_drop_tables filter is the belt to the $wpdb->tables braces.
@@ -593,7 +650,7 @@ global $vergeml_dir,
              *  A site that has never been provisioned -- a subsite created
              *  while the plugin was not yet network-active, say -- serving a
              *  front-end request. The options are three cheap writes and
-             *  without them no media_category exists on this site; the
+             *  without them no vergeml_folder exists on this site; the
              *  schema can wait for the first admin visit or the cron tick
              *  scheduled here.
              */
@@ -1239,7 +1296,7 @@ global $vergeml_dir,
 
             $vergeml_taxonomies = array(
 
-                'media_category' => array(
+                'vergeml_folder' => array(
                     'assigned' => 1,
                     'eml_media' => 1,
 
@@ -1268,7 +1325,7 @@ global $vergeml_dir,
                     'sort' => 0,
                     'show_in_rest' => 1,
                     'rewrite' => array(
-                        'slug' => 'media_category',
+                        'slug' => 'vergeml_folder',
                         'with_front' => 1
                     )
                 )

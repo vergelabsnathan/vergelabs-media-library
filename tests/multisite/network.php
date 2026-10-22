@@ -84,7 +84,7 @@ if ( ! is_wp_error( $site_id ) ) {
 
     switch_to_blog( (int) $site_id );
     vergeml_t( 'new site has its options', is_array( get_option( 'vergeml_taxonomies' ) ) && VERGEML_VERSION === get_option( 'vergeml_version' ), 'version=' . get_option( 'vergeml_version', '' ) );
-    vergeml_t( 'new site sees a folder taxonomy definition', isset( get_option( 'vergeml_taxonomies' )['media_category'] ) );
+    vergeml_t( 'new site sees a folder taxonomy definition', isset( get_option( 'vergeml_taxonomies' )['vergeml_folder'] ) );
 
     // Request caches do not leak across the switch.
     $GLOBALS['vergeml_index_primed'] = array( 1 => array( 'alt' => 'from site one' ) );

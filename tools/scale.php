@@ -38,7 +38,7 @@ $folders = 500;
 $dims    = 768;
 $embed   = 0.4;   // share of files that get an embedding
 $dupes   = 0.1;   // share of files that share a hash with another
-$tax     = 'media_category';
+$tax     = 'vergeml_folder';
 $marker  = 'vgml-scale-';
 $parent_name = 'Scale fixture';
 

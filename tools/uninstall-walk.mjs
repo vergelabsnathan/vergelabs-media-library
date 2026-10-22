@@ -11,7 +11,7 @@
  *  Plugins screen the way a person does it -- which is the path that runs
  *  uninstall.php with WP_UNINSTALL_PLUGIN defined.
  *
- *  Run 1, the default: folders survive as media_category terms, every file
+ *  Run 1, the default: folders survive as vergeml_folder terms, every file
  *  keeps its folder, no attachment goes, the plugin's tables and options are
  *  left for a reinstall; only transients and cron hooks are cleared.
  *  Run 2, "also remove everything": terms, links, options, usermeta and the
@@ -193,7 +193,7 @@ async function run( n, wipe ) {
 		if ( ! wipe ) {
 			const names = after.terms.map( ( t ) => t.name ).sort().join( ',' );
 			const nested = after.terms.find( ( t ) => 'Harbour' === t.name );
-			check( 'run 1: the folders survive as media_category terms', 'Harbour,Logos,Photos' === names && nested && nested.parent > 0, `${ names }; Harbour parent ${ nested ? nested.parent : '-' }` );
+			check( 'run 1: the folders survive as vergeml_folder terms', 'Harbour,Logos,Photos' === names && nested && nested.parent > 0, `${ names }; Harbour parent ${ nested ? nested.parent : '-' }` );
 			check( 'run 1: every filed picture keeps its folder', 3 === after.links, `${ after.links } links` );
 			check( 'run 1: the plugin\'s options and tables are left for a reinstall', after.options === before.options && after.tables.join() === before.tables.join(), `${ after.options } of ${ before.options } options, tables ${ after.tables.join( '+' ) || 'none' }` );
 		} else {

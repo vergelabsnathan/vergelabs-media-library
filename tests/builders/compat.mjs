@@ -113,7 +113,7 @@ for (const b of BUILDERS) {
       detail: `HTTP ${upload.status}`,
     });
 
-    const tree = await get('/wp-json/vergeml/v1/tree?taxonomy=media_category');
+    const tree = await get('/wp-json/vergeml/v1/tree?taxonomy=vergeml_folder');
     let nodes = null;
     try { nodes = JSON.parse(tree.body)?.nodes?.length ?? null; } catch {}
     checks.push({ name: 'our tree endpoint still answers', ok: tree.status === 200 && nodes !== null, detail: `HTTP ${tree.status}, ${nodes} nodes` });

@@ -22,21 +22,21 @@ switch ( RT_PHASE ) {
 	case 'work':
 		rt_t( 'the plugin is loaded as an active plugin', function_exists( 'vergeml_provision_site' ) && is_plugin_active( RT_PLUGIN ) );
 		$watched = rt_watch( function () {
-			$folder = wp_insert_term( 'Kept folder', 'media_category' );
+			$folder = wp_insert_term( 'Kept folder', 'vergeml_folder' );
 			if ( is_wp_error( $folder ) ) {
 				return $folder;
 			}
 			$a = rt_picture( 'kept picture' );
 			$b = rt_picture( 'deleted picture' );
-			wp_set_object_terms( $a, (int) $folder['term_id'], 'media_category' );
-			wp_set_object_terms( $b, (int) $folder['term_id'], 'media_category' );
+			wp_set_object_terms( $a, (int) $folder['term_id'], 'vergeml_folder' );
+			wp_set_object_terms( $b, (int) $folder['term_id'], 'vergeml_folder' );
 			wp_delete_attachment( $b, true );
 			update_option( 'rt_folder', (int) $folder['term_id'] );
 			update_option( 'rt_picture', (int) $a );
 			return true;
 		} );
 		rt_quiet( 'filing two pictures and deleting one', $watched );
-		$term = get_term( (int) get_option( 'rt_folder' ), 'media_category' );
+		$term = get_term( (int) get_option( 'rt_folder' ), 'vergeml_folder' );
 		rt_t( 'the folder counts the one picture left', $term && ! is_wp_error( $term ) && 1 === (int) $term->count, $term && ! is_wp_error( $term ) ? 'count ' . $term->count : 'no term' );
 		if ( defined( 'RT_WIPE' ) && RT_WIPE ) {
 			update_option( 'vergeml_uninstall_wipe', 1 );
@@ -59,7 +59,7 @@ switch ( RT_PHASE ) {
 		rt_t( 'the plugin files are gone', ! file_exists( WP_PLUGIN_DIR . '/vergelabs-media-library' ) );
 		global $wpdb;
 		$folder = (int) get_option( 'rt_folder' );
-		$kept   = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'media_category'", $folder ) );
+		$kept   = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE term_id = %d AND taxonomy = 'vergeml_folder'", $folder ) );
 		$in     = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tt.term_id = %d AND tr.object_id = %d", $folder, (int) get_option( 'rt_picture' ) ) );
 		rt_t( 'the folder is still there', 1 === $kept );
 		rt_t( 'the picture is still in its folder', 1 === $in );

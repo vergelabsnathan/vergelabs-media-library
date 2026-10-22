@@ -17,9 +17,9 @@
  *  2. The folder taxonomies are not translatable. Polylang asks each plugin
  *     which of its taxonomies should get a language; if the folders did, every
  *     folder would have to exist once per language and the tree would show a
- *     different set of folders depending on the language filter. The moat
- *     is a shared media_category slug (see core/taxonomies.php); a per-language
- *     split of it would break every migration the slug makes possible. WPML
+ *     different set of folders depending on the language filter. The folders
+ *     are one vergeml_folder taxonomy (see core/taxonomies.php); a per-language
+ *     split of it would break every site's tree. WPML
  *     is told the same through wpml-config.xml at the plugin root.
  *
  *  A site that wants folders per language after all can say so with
@@ -69,7 +69,7 @@ function vergeml_multilingual_taxonomies() {
     // Polylang puts on attachments when media translation is on.
     $stored = array_diff( $stored, array( 'post_tag', 'category', 'language', 'post_translations' ) );
 
-    return $stored ? array_values( $stored ) : array( 'media_category' );
+    return $stored ? array_values( $stored ) : array( 'vergeml_folder' );
 }
 
 function vergeml_multilingual_shared_folders() {

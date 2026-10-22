@@ -140,7 +140,7 @@ async function rest( method, route, body, headers = {} ) {
 	try { json = JSON.parse( await res.text() ); } catch { /* not json */ }
 	return { status: res.status(), json };
 }
-const folder = ( action, extra ) => rest( 'POST', '/vergeml/v1/folder', { taxonomy: 'media_category', action, ...extra } );
+const folder = ( action, extra ) => rest( 'POST', '/vergeml/v1/folder', { taxonomy: 'vergeml_folder', action, ...extra } );
 
 let fileId = 0;
 const scratch = [];
@@ -161,7 +161,7 @@ try {
 	await page.waitForSelector( '.vgml-tree' );
 	nonce = await page.evaluate( () => ( window.wpApiSettings && window.wpApiSettings.nonce ) || '' );
 
-	const tree = ( await rest( 'GET', '/vergeml/v1/tree?taxonomy=media_category' ) ).json;
+	const tree = ( await rest( 'GET', '/vergeml/v1/tree?taxonomy=vergeml_folder' ) ).json;
 	for ( const n of tree.nodes || [] ) {
 		if ( /^Drag (Scratch|Target)/.test( n.name ) ) {
 			await folder( 'delete', { id: n.id } ); // a run that died half way
@@ -196,10 +196,10 @@ try {
 	 *  the file unfiled; it is unfiled here again in case it did not.
 	 */
 	const unfiled = ( terms ) => ! terms.includes( scratch[ 0 ] );
-	const termsOf = async () => ( ( ( await rest( 'GET', `/wp/v2/media/${ fileId }?_fields=media_category` ) ).json || {} ).media_category ) || [];
+	const termsOf = async () => ( ( ( await rest( 'GET', `/wp/v2/media/${ fileId }?_fields=vergeml_folder` ) ).json || {} ).vergeml_folder ) || [];
 	const label = 'drag' !== spec ? null : await ( async () => {
 		if ( ! unfiled( await termsOf() ) ) {
-			await rest( 'POST', '/vergeml/v1/assign', { taxonomy: 'media_category', attachments: [ fileId ], add: [], mode: 'move' } );
+			await rest( 'POST', '/vergeml/v1/assign', { taxonomy: 'vergeml_folder', attachments: [ fileId ], add: [], mode: 'move' } );
 		}
 		await page.goto( `${ URL_MS }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcontentloaded' } );
 		await page.waitForSelector( `#post-${ fileId } .check-column label` );
@@ -231,7 +231,7 @@ try {
 			filed = ! unfiled( await termsOf() );
 		}
 		if ( filed ) {
-			await rest( 'POST', '/vergeml/v1/assign', { taxonomy: 'media_category', attachments: [ fileId ], add: [], mode: 'move' } );
+			await rest( 'POST', '/vergeml/v1/assign', { taxonomy: 'vergeml_folder', attachments: [ fileId ], add: [], mode: 'move' } );
 		}
 		return { pressed, lit: over.lit, helper: over.helper, filed };
 	} )();
@@ -253,7 +253,7 @@ try {
 		if ( fileId ) {
 			await rest( 'DELETE', `/wp/v2/media/${ fileId }?force=true` );
 		}
-		const tree = ( await rest( 'GET', '/vergeml/v1/tree?taxonomy=media_category' ) ).json;
+		const tree = ( await rest( 'GET', '/vergeml/v1/tree?taxonomy=vergeml_folder' ) ).json;
 		for ( const n of ( tree && tree.nodes ) || [] ) {
 			if ( /^Drag (Scratch|Target)/.test( n.name ) ) {
 				await folder( 'delete', { id: n.id } );

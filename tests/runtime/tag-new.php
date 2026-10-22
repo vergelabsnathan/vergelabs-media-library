@@ -21,7 +21,7 @@ switch ( RT_PHASE ) {
 			$made = null;
 			rt_quiet( "making the tag \"$name\"", rt_watch( function () use ( $name, &$made ) { $made = vergeml_guide_tag_taxonomy( $name ); return is_array( $made ); } ) );
 			$key = is_array( $made ) ? (string) $made['taxonomy'] : '';
-			rt_t( "\"$name\" is keyed with the plugin's prefix", 0 === strpos( $key, 'vergeml_' ), $key );
+			rt_t( "\"$name\" is keyed vergeml_tag_", 0 === strpos( $key, 'vergeml_tag_' ), $key );
 			rt_t( "\"$name\" fits WordPress's 32 characters", '' !== $key && strlen( $key ) <= 32, $key . ' (' . strlen( $key ) . ')' );
 			rt_t( "\"$name\" is registered on attachments", taxonomy_exists( $key ) && in_array( 'attachment', (array) get_taxonomy( $key )->object_type, true ) );
 			$term = taxonomy_exists( $key ) ? wp_insert_term( 'Sample', $key ) : null;

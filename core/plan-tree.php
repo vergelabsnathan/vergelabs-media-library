@@ -1320,7 +1320,7 @@ function vergeml_plan_frozen( $live = null ) {
     // The Folders boot hands over the term ids it already loaded, so the frozen flag costs it no query.
     if ( null === $live ) {
         $live = get_terms( array(
-            'taxonomy'   => function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category',
+            'taxonomy'   => function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder',
             'include'    => array_values( array_unique( array_map( 'intval', $map ) ) ),
             'hide_empty' => false,
             'fields'     => 'ids',

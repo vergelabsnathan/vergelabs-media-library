@@ -84,7 +84,7 @@ Service terms: [https://vergelabsmedia.com/legal/terms](https://vergelabsmedia.c
 2. Activate the plugin through the **Plugins** menu in WordPress.
 3. Find it under **VergeLabs Library** in the admin menu. The folders work straight away. The AI features need a licence key: connect one under **VergeLabs Library > Licence**, or start the free trial on the AI screen.
 
-If you are moving over from Enhanced Media Library, deactivate it before activating this one.
+If you are moving over from Enhanced Media Library, deactivate it before activating this one: its folders and settings carry over on activation.
 
 ## Frequently Asked Questions ##
 
@@ -104,9 +104,9 @@ If you want its features off, add `define( 'VERGEML_SAFE_MODE', true );` to `wp-
 
 = What happens to my folders if I uninstall it? =
 
-They stay. The folders are terms in WordPress's own tables, not the plugin's, so deleting the plugin leaves them exactly where they are -- a reinstall picks them up as you left them, and so does any other folder plugin that reads the same `media_category` taxonomy. AI descriptions already written into your images stay written. Only caches and scheduled tasks are removed.
+They stay. The folders are terms in WordPress's own tables, not the plugin's, so deleting the plugin leaves them exactly where they are -- a reinstall picks them up as you left them. AI descriptions already written into your images stay written. Only caches and scheduled tasks are removed.
 
-If you want the rest gone, that exists too, in two forms on the Utilities page: a Complete Cleanup button that wipes immediately, and a switch that makes deleting the plugin from the Plugins screen take its data with it. Both keep your folders -- the `media_category` terms and which files are in them -- because folders are ordinary terms shared with other folder plugins; they remove the plugin's own settings, tables and other data. Neither is ever the default, and neither touches a media file.
+If you want the rest gone, that exists too, in two forms on the Utilities page: a Complete Cleanup button that wipes immediately, and a switch that makes deleting the plugin from the Plugins screen take its data with it. Both keep your folders -- the `vergeml_folder` terms and which files are in them -- and remove the plugin's own settings, tables and other data. Neither is ever the default, and neither touches a media file.
 
 = Where do I report a problem? =
 
@@ -171,7 +171,7 @@ New: Plan my folders on the Folders screen builds a folder tree from what your p
 * **File types: WordPress's own only.** The File types screen no longer adds new types, and types that can run code or that a browser interprets are never allowed.
 * **The plugin never deactivates itself.** Delete All Data no longer deactivates the plugin either; deleting it afterwards from the Plugins screen takes the rest.
 * **Safe mode is switched only in wp-config.php.** The plugin no longer enters it after crashes (see the FAQ).
-* **The wipes keep your folders.** Complete Cleanup and the delete-on-uninstall switch leave the `media_category` terms and which files are in them.
+* **The wipes keep your folders.** Complete Cleanup and the delete-on-uninstall switch leave the `vergeml_folder` terms and which files are in them.
 * **Activation creates the plugin's tables itself.**
 * **PHP mbstring and OpenSSL are checked**, with a notice if either is missing.
 * **Scripts and styles load only on the plugin's screens and media frames.**

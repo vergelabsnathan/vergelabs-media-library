@@ -195,7 +195,7 @@ cc_check( 'cell_in strips exactly one apostrophe', "'=x" === vergeml_csv_cell_in
 
 echo "\nC  the export, parsed back\n";
 
-$cc_rows = vergeml_csv_export_rows( 'media_category' );
+$cc_rows = vergeml_csv_export_rows( 'vergeml_folder' );
 
 cc_check( 'the export runs on the fixture tree', is_array( $cc_rows ) && 13 === count( $cc_rows ), is_array( $cc_rows ) ? count( $cc_rows ) . ' rows' : 'error' );
 cc_check( 'the header row is first and unchanged', array( 'folder', 'attachment_id', 'filename' ) === $cc_rows[0] );

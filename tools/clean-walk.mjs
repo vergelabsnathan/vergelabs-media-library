@@ -82,11 +82,11 @@ for ( $n = 1; $n <= 4; $n++ ) {
 	$id = wp_insert_attachment( array( 'post_mime_type' => 'image/png', 'post_title' => 'walk ' . $n, 'post_status' => 'inherit', 'menu_order' => $n ), $path );
 	wp_update_attachment_metadata( $id, array( 'width' => 1, 'height' => 1, 'file' => _wp_relative_upload_path( $path ), 'sizes' => array() ) );
 }
-$walk_folder = wp_insert_term( 'Walk folder', 'media_category' );
+$walk_folder = wp_insert_term( 'Walk folder', 'vergeml_folder' );
 // The front end: one post with no gallery, one with the Folder gallery block on the walk folder.
 if ( ! is_wp_error( $walk_folder ) ) {
 	foreach ( get_posts( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'numberposts' => -1, 'fields' => 'ids' ) ) as $att ) {
-		wp_set_object_terms( $att, (int) $walk_folder['term_id'], 'media_category', true );
+		wp_set_object_terms( $att, (int) $walk_folder['term_id'], 'vergeml_folder', true );
 	}
 	$plain   = wp_insert_post( array( 'post_title' => 'Plain walk post', 'post_content' => '<!-- wp:paragraph --><p>Nothing of the plugin here.</p><!-- /wp:paragraph -->', 'post_status' => 'publish' ) );
 	$gallery = wp_insert_post( array( 'post_title' => 'Gallery walk post', 'post_content' => '<!-- wp:vergelabs/folder-gallery {"folder":' . (int) $walk_folder['term_id'] . ',"linkTo":"file","layout":"carousel"} /-->', 'post_status' => 'publish' ) );
@@ -249,7 +249,7 @@ async function modal( browser, user, pass ) {
 
 	// Folder checkbox, through core's save-attachment-compat.
 	await page.locator( '.attachments-browser li.attachment' ).first().click();
-	const box = page.locator( '.compat-attachment-fields input[type="checkbox"][name^="tax_input[media_category]"]' ).first();
+	const box = page.locator( '.compat-attachment-fields input[type="checkbox"][name^="tax_input[vergeml_folder]"]' ).first();
 	await box.waitFor( { timeout: 60000 } );
 	const was = await box.isChecked();
 	ajax.length = 0;
@@ -261,7 +261,7 @@ async function modal( browser, user, pass ) {
 	await page.reload( { waitUntil: 'load' } );
 	await page.waitForSelector( '.attachments-browser li.attachment' );
 	await page.locator( '.attachments-browser li.attachment' ).first().click();
-	const again = page.locator( '.compat-attachment-fields input[type="checkbox"][name^="tax_input[media_category]"]' ).first();
+	const again = page.locator( '.compat-attachment-fields input[type="checkbox"][name^="tax_input[vergeml_folder]"]' ).first();
 	await again.waitFor( { timeout: 60000 } );
 	const now = await again.isChecked();
 	row( now === ! was, `${ user.padEnd( 9 ) } after a reload the folder is ${ now ? 'ticked' : 'unticked' } (was ${ was ? 'ticked' : 'unticked' })` );

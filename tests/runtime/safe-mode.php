@@ -22,21 +22,21 @@ switch ( RT_PHASE ) {
 	case 'work':
 		rt_t( 'the plugin is loaded, in safe mode', function_exists( 'vergeml_safe_mode' ) && vergeml_safe_mode() );
 		$watched = rt_watch( function () {
-			if ( ! taxonomy_exists( 'media_category' ) ) {
+			if ( ! taxonomy_exists( 'vergeml_folder' ) ) {
 				return true; // nothing to file into: the folders are off, and that is not an error
 			}
-			$folder = wp_insert_term( 'Safe folder', 'media_category' );
+			$folder = wp_insert_term( 'Safe folder', 'vergeml_folder' );
 			$a      = rt_picture( 'safe picture' );
 			$b      = rt_picture( 'safe deleted' );
 			if ( ! is_wp_error( $folder ) ) {
-				wp_set_object_terms( $a, (int) $folder['term_id'], 'media_category' );
-				wp_set_object_terms( $b, (int) $folder['term_id'], 'media_category' );
+				wp_set_object_terms( $a, (int) $folder['term_id'], 'vergeml_folder' );
+				wp_set_object_terms( $b, (int) $folder['term_id'], 'vergeml_folder' );
 			}
 			wp_delete_attachment( $b, true );
 			return true;
 		} );
 		rt_quiet( 'filing and deleting pictures in safe mode', $watched );
-		rt_t( 'media_category is ' . ( taxonomy_exists( 'media_category' ) ? 'registered' : 'not registered' ) . ' in safe mode', true );
+		rt_t( 'vergeml_folder is ' . ( taxonomy_exists( 'vergeml_folder' ) ? 'registered' : 'not registered' ) . ' in safe mode', true );
 		list( , $notice ) = rt_watch( function () { do_action( 'admin_notices' ); return true; } );
 		rt_t( 'the admin notice says the plugin is in safe mode', false !== strpos( $notice, 'safe mode' ), substr( wp_strip_all_tags( $notice ), 0, 160 ) );
 		rt_done( 'work' );

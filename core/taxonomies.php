@@ -71,6 +71,9 @@ function vergeml_taxonomies_validate( $input ) {
 
         if ( isset( $params['create_taxonomy'] ) ) {
 
+            // A taxonomy made here carries the plugin's prefix, whatever key the form suggested (wordpress.org review 8).
+            $sanitized_taxonomy = function_exists( 'vergeml_own_taxonomy_key' ) ? vergeml_own_taxonomy_key( $sanitized_taxonomy ) : '';
+
             unset( $input[$taxonomy]['create_taxonomy'] );
 
             if ( taxonomy_exists( $sanitized_taxonomy ) ) {
@@ -859,9 +862,9 @@ function vergeml_backend_parse_tax_query( $query ) {
     /*
      *  One filter value, four ways of arriving at it.
      *
-     *  A taxonomy query var can reach this screen as a slug (`?media_category=
+     *  A taxonomy query var can reach this screen as a slug (`?vergeml_folder=
      *  folder-141`, which is what a link and the folder tree produce) or as a term
-     *  id (`?media_category=143`, which is what the filter dropdown submits and
+     *  id (`?vergeml_folder=143`, which is what the filter dropdown submits and
      *  what core's own term-count links use). Both have to mean the same thing.
      *
      *  They did not. Whether the id form worked depended on `filter_action` -- the
