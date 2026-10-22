@@ -108,7 +108,7 @@ window.vergeml = window.vergeml || { l10n: {} };
             });
 
             this.controller._attachmentDetailsCollapsed = collapsed ? 'true' : 'false';
-            wpCookies.set( 'eml-details-collapsed', collapsed, 30 * 24 * 60 * 60, false, false, secure );
+            wpCookies.set( 'vergeml-details-collapsed', collapsed, 30 * 24 * 60 * 60, false, false, secure );
         }
     });
 
@@ -120,7 +120,7 @@ window.vergeml = window.vergeml || { l10n: {} };
      */
     media.view.emlGridSelection = media.view.Selection.extend({
 
-        template:  media.template('eml-media-selection')
+        template:  media.template('vergeml-media-selection')
     });
 
 
@@ -371,7 +371,7 @@ window.vergeml = window.vergeml || { l10n: {} };
      */
     media.view.MediaFrame.emlGrid = media.view.MediaFrame.Select.extend({
 
-        _attachmentDetailsCollapsed: wpCookies.get( 'eml-details-collapsed' ) || 'true',
+        _attachmentDetailsCollapsed: wpCookies.get( 'vergeml-details-collapsed' ) || 'true',
 
         initialize: function() {
 

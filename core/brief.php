@@ -757,7 +757,7 @@ function vergeml_brief_assets() {
     wp_set_script_translations( 'vergeml-brief', 'vergelabs-media-library' );
     $boot = vergeml_brief_boot();
     $credits = get_option( 'vergeml_ai_credits', array() );
-    wp_localize_script( 'vergeml-brief', 'vgmlBrief', array_merge( $boot, array(
+    wp_localize_script( 'vergeml-brief', 'vergemlBrief', array_merge( $boot, array(
         'ns'         => VERGEML_REST_NS,
         'credits'    => is_array( $credits ) && isset( $credits['remaining'] ) && null !== $credits['remaining'] ? (int) $credits['remaining'] : null,
         'licenceUrl' => admin_url( 'admin.php?page=vergeml-licence' ),

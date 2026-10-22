@@ -16,7 +16,7 @@
 
 	var apiFetch = window.wp && window.wp.apiFetch;
 	var i18n = window.wp && window.wp.i18n;
-	var cfg = window.vgmlAi || {};
+	var cfg = window.vergemlAi || {};
 
 	if ( ! apiFetch || ! i18n ) {
 		return;

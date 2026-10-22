@@ -62,10 +62,11 @@ function vergeml_uninstall_wipe_site() {
         $taxonomy = (string) $taxonomy;
 
         // Folders are ordinary terms and outlive the plugin: the vergeml_folder terms and
-        // which files are in them stay in WordPress's own tables.
+        // which files are in them stay in WordPress's own tables -- under media_category too,
+        // on a site whose folders have not moved yet or where Enhanced Media Library still owns them.
         // A taxonomy another plugin or core owns (a post category assigned to media, Polylang's
         // languages, another folder plugin's) is left exactly as it is.
-        if ( 'vergeml_folder' === $taxonomy || ! $own ) {
+        if ( in_array( $taxonomy, array( 'vergeml_folder', 'media_category' ), true ) || ! $own ) {
             continue;
         }
 

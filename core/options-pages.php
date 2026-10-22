@@ -1527,9 +1527,10 @@ function vergeml_term_relationship_cleanup() {
 
     foreach ( get_option( 'vergeml_taxonomies', array() ) as $taxonomy => $params ) {
 
-        // Folders outlive the plugin: the vergeml_folder terms and which files are in them stay.
+        // Folders outlive the plugin: the vergeml_folder terms and which files are in them stay, and so do
+        // media_category's on a site whose folders have not moved yet or where Enhanced Media Library owns them.
         // Only the plugin's own taxonomies; one core or another plugin owns is left as it is.
-        if ( 'vergeml_folder' === $taxonomy || empty( $params['eml_media'] ) ) {
+        if ( in_array( $taxonomy, array( 'vergeml_folder', 'media_category' ), true ) || empty( $params['eml_media'] ) ) {
             continue;
         }
 

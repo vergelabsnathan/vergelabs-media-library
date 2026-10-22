@@ -282,12 +282,12 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | line | in | method | class | proof |
 |---|---|---|---|---|
 | 1095 | — | `get_var` | prepared | — |
-| 1545 | — | `delete` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
-| 1572 | — | `query` | prepared | — |
-| 1595 | — | `get_col` | prepared | — |
-| 1610 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $meta_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 1659 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
-| 1712 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 1546 | — | `delete` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 1573 | — | `query` | prepared | — |
+| 1596 | — | `get_col` | prepared | — |
+| 1611 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $meta_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 1660 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 1713 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
 
 ### core/organize.php
 
@@ -414,26 +414,26 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | line | in | method | class | proof |
 |---|---|---|---|---|
 | 36 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
-| 73 | — | `get_results` | prepared | $wpdb->term_taxonomy — a $wpdb table name |
-| 89 | — | `query` | prepared | $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 90 | — | `query` | prepared | $wpdb->termmeta — a $wpdb table name; implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 91 | — | `query` | prepared | $wpdb->term_taxonomy — a $wpdb table name |
-| 92 | — | `query` | prepared | $wpdb->terms — a $wpdb table name; implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 104 | — | `query` | prepared | — |
-| 114 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
-| 122 | — | `query` | only a `$wpdb` table name | $wpdb->postmeta — a $wpdb table name |
-| 124 | — | `query` | only a `$wpdb` table name | $wpdb->termmeta — a $wpdb table name |
-| 165 | — | `query` | only a `$wpdb` table name | $wpdb->sitemeta — a $wpdb table name |
-| 172 | — | `query` | prepared | $wpdb->usermeta — a $wpdb table name |
-| 194 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
-| 198 | — | `query` | only a `$wpdb` table name | $wpdb->usermeta — a $wpdb table name |
+| 74 | — | `get_results` | prepared | $wpdb->term_taxonomy — a $wpdb table name |
+| 90 | — | `query` | prepared | $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 91 | — | `query` | prepared | $wpdb->termmeta — a $wpdb table name; implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 92 | — | `query` | prepared | $wpdb->term_taxonomy — a $wpdb table name |
+| 93 | — | `query` | prepared | $wpdb->terms — a $wpdb table name; implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 105 | — | `query` | prepared | — |
+| 115 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 123 | — | `query` | only a `$wpdb` table name | $wpdb->postmeta — a $wpdb table name |
+| 125 | — | `query` | only a `$wpdb` table name | $wpdb->termmeta — a $wpdb table name |
+| 166 | — | `query` | only a `$wpdb` table name | $wpdb->sitemeta — a $wpdb table name |
+| 173 | — | `query` | prepared | $wpdb->usermeta — a $wpdb table name |
+| 195 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 199 | — | `query` | only a `$wpdb` table name | $wpdb->usermeta — a $wpdb table name |
 
 ### vergelabs-media-library.php
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 406 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
-| 415 | — | `get_col` | prepared | — |
+| 412 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 421 | — | `get_col` | prepared | — |
 
 ## The helpers this classification trusts
 

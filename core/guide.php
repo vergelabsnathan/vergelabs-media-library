@@ -94,7 +94,7 @@ function vergeml_folders_assets( $hook ) {
      *  first paint (Gate 5, tests/ui/folders.spec.mjs), and no model route
      *  fires on load: a proposal is a button with its cost.
      */
-    wp_localize_script( 'vergeml-folders', 'vgmlFolders', array(
+    wp_localize_script( 'vergeml-folders', 'vergemlFolders', array(
         'ns'        => VERGEML_REST_NS,
         'cap'       => VERGEML_GUIDE_TURN_CAP,
         'described' => (int) $boot['facts']['pictures'],

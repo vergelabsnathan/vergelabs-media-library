@@ -256,12 +256,6 @@ function vergeml_builder_register() {
         add_action( 'mfn_footer_enqueue', 'vergeml_builder_print_tree' );
     }
 
-    if ( defined( 'THEMIFY_VERSION' ) && class_exists( 'Themify_Builder_Model' ) ) {
-        // Themify loads its editor over admin-ajax and prints enqueued scripts
-        // into that response; 9 is before it does.
-        add_action( 'wp_ajax_tb_load_editor', 'vergeml_builder_load_tree', 9 );
-    }
-
     if ( class_exists( 'Tailor' ) ) {
         add_action( 'tailor_enqueue_sidebar_scripts', 'vergeml_builder_load_tree' );
     }

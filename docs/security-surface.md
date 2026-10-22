@@ -22,7 +22,7 @@ could not answer; it is not yet a finding and it is not yet safe.
 | `register_rest_route` calls | 77 |
 | REST routes | 77 |
 | REST **endpoints** (route × method config) | **85** |
-| AJAX actions | 6 (0 nopriv) |
+| AJAX actions | 5 (0 nopriv) |
 | `admin_post` handlers | 10 (0 nopriv) |
 | cron hooks | 7 |
 | admin screens | 12 |
@@ -154,7 +154,6 @@ user and nothing more; `wp_ajax_nopriv_` requires nothing at all.
 |---|---|---|---|---|---|---|---|
 | `vergeml_trial` | no | vergeml_offer_ajax_trial | manage_options | check_ajax_referer | $_POST | meta/option write, outbound http | core/offer.php:145 |
 | `vergeml-apply-settings-to-network` | no | vergeml_apply_settings_to_network | manage_network_options | check_ajax_referer | $_POST | meta/option write | core/options-pages.php:876 |
-| `tb_load_editor` | no | vergeml_builder_load_tree | upload_files, edit_posts, upload_files, manage_categories, manage_options, manage_options, manage_options | — | $request | db query | core/page-builders.php:262 |
 | `vergeml-term-counts` | no | vergeml_ajax_term_counts | upload_files | check_ajax_referer | — | db query | core/taxonomies.php:1352 |
 | `vergeml-save-attachment-order` | no | vergeml_save_attachment_order | edit_post($post_id), edit_post($attachment_id) | check_ajax_referer | $_REQUEST | post/term write | core/taxonomies.php:1390 |
 | `vergeml_rest` | no | vergeml_transport_bridge | upload_files | wp_verify_nonce | $_GET, $_SERVER, php://input | — | core/transport.php:31 |
@@ -190,7 +189,7 @@ anything it spends has to be decided before it is booked.
 | `vergeml_plan_inventory_refresh` | core/plan-tree.php:334 | vergeml_plan_inventory_refresh_event (core/plan-tree.php:343) | db query, meta/option write, outbound http, schedules cron | — |
 | `vergeml_plan_event` | core/plan-tree.php:843 | vergeml_plan_event (core/plan-tree.php:852) | meta/option write, db query, outbound http, schedules cron | — |
 | `vergeml_meaning_convert` | core/search-meaning.php:548 | vergeml_meaning_convert_tick (core/search-meaning.php:555) | db query, db write, schedules cron | — |
-| `vergeml_provision_site` | vergelabs-media-library.php:659 | vergeml_provision_site (vergelabs-media-library.php:443) | meta/option write, db write, db query | — |
+| `vergeml_provision_site` | vergelabs-media-library.php:666 | vergeml_provision_site (vergelabs-media-library.php:449) | meta/option write, db write, db query | — |
 
 ## Admin screens
 
@@ -206,10 +205,10 @@ whole of what WordPress checks before the callback runs. A screen that then read
 | `vergeml-help` | add_submenu_page | manage_options | vergeml_help_page (core/get-help.php:283) | $_GET | outbound http | wp_verify_nonce | core/get-help.php:31 |
 | `vergeml-import-folders` | add_submenu_page | manage_options | vergeml_import_screen (core/import-ui.php:309) | — | — | — | core/import-ui.php:22 |
 | `vergeml-librarian` | add_submenu_page | manage_options | vergeml_folders_page (core/guide.php:458) | — | — | — | core/guide.php:59 |
-| `vergeml-library` | add_submenu_page | manage_options | vergeml_print_media_library_options (core/options-pages.php:1755) | — | — | — | core/options-pages.php:117 |
+| `vergeml-library` | add_submenu_page | manage_options | vergeml_print_media_library_options (core/options-pages.php:1756) | — | — | — | core/options-pages.php:117 |
 | `vergeml-licence` | add_submenu_page | manage_options | vergeml_licence_page (core/licence-page.php:93) | $_GET | meta/option write, outbound http | — | core/licence-page.php:20 |
-| `vergeml-mime-types` | add_submenu_page | manage_options | vergeml_print_mimetypes_options (core/options-pages.php:2765) | — | — | — | core/options-pages.php:135 |
-| `vergeml-taxonomies` | add_submenu_page | manage_options | vergeml_print_taxonomies_options (core/options-pages.php:2271) | — | — | — | core/options-pages.php:126 |
+| `vergeml-mime-types` | add_submenu_page | manage_options | vergeml_print_mimetypes_options (core/options-pages.php:2766) | — | — | — | core/options-pages.php:135 |
+| `vergeml-taxonomies` | add_submenu_page | manage_options | vergeml_print_taxonomies_options (core/options-pages.php:2272) | — | — | — | core/options-pages.php:126 |
 | `vergeml-utilities` | add_options_page | manage_options | vergeml_print_settings (core/options-pages.php:432) | — | — | — | core/options-pages.php:172 |
 | `vergeml-utilities` | add_submenu_page | manage_network_options | vergeml_print_network_settings (core/options-pages.php:642) | $_GET | meta/option write, outbound http | wp_verify_nonce | core/options-pages.php:196 |
 
@@ -259,7 +258,7 @@ capability gate belongs to whatever screen they fire on, not to them.
 | hook | kind | callback | reads | writes | capability | nonce | where |
 |---|---|---|---|---|---|---|---|
 | `add_attachment` | action | vergeml_file_upload_into_folder | $_POST | term assign | upload_files, $tax_object->cap->assign_terms | wp_verify_nonce | core/folder-tools.php:31 |
-| `admin_enqueue_scripts` | action | vergeml_admin_enqueue_scripts | $_GET | — | — | — | vergelabs-media-library.php:887 |
+| `admin_enqueue_scripts` | action | vergeml_admin_enqueue_scripts | $_GET | — | — | — | vergelabs-media-library.php:895 |
 | `admin_init` | action | vergeml_admin_menu_redirects | $_GET | — | — | — | core/admin-menu.php:165 |
 | `admin_init` | action | vergeml_connect_router | $_GET | meta/option write, outbound http | manage_options | wp_verify_nonce | core/connect.php:93 |
 | `admin_init` | action | vergeml_neighbour_dismiss | $_GET | meta/option write | activate_plugins | wp_verify_nonce | core/neighbours.php:121 |

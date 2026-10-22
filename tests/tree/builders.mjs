@@ -105,7 +105,7 @@ check( 'with the tree already in the page', env.folders > 0, `${ env.folders } f
  *  up silently and every media modal in the builder came up without a tree.
  */
 const wrapped = await page.evaluate( () =>
-	!! ( window.wp && wp.media && wp.media.view && wp.media.view.Modal && wp.media.view.Modal.prototype.vgmlWrapped ) );
+	!! ( window.wp && wp.media && wp.media.view && wp.media.view.Modal && wp.media.view.Modal.prototype.vergemlWrapped ) );
 
 check( 'the modal wrapper survived the builder loading order', wrapped );
 
@@ -229,7 +229,7 @@ if ( ! diviPage ) {
 		const divi = await page.evaluate( () => ( {
 			config: !! window.vergemlTree,
 			script: !! document.querySelector( 'script[src*="vergeml-tree.js"]' ),
-			wrapped: !! ( window.wp && wp.media && wp.media.view && wp.media.view.Modal && wp.media.view.Modal.prototype.vgmlWrapped ),
+			wrapped: !! ( window.wp && wp.media && wp.media.view && wp.media.view.Modal && wp.media.view.Modal.prototype.vergemlWrapped ),
 			folders: window.vergemlTree && window.vergemlTree.boot ? ( window.vergemlTree.boot.nodes || [] ).length : 0,
 		} ) );
 

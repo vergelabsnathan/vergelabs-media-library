@@ -1165,10 +1165,10 @@
 				return;
 			}
 
-			if ( wp.Uploader.prototype.vgmlWrapped ) {
+			if ( wp.Uploader.prototype.vergemlWrapped ) {
 				return;
 			}
-			wp.Uploader.prototype.vgmlWrapped = true;
+			wp.Uploader.prototype.vergemlWrapped = true;
 
 			var init = wp.Uploader.prototype.init;
 
@@ -2521,8 +2521,8 @@
 	function moveDialog( ids, returnTo ) {
 
 		// One at a time: the previous dialog's key trap goes with it.
-		if ( root.vgmlMoveClose ) {
-			root.vgmlMoveClose();
+		if ( root.vergemlMoveClose ) {
+			root.vergemlMoveClose();
 		}
 
 		var all = folderOptions();
@@ -2560,13 +2560,13 @@
 
 		function close() {
 			box.remove();
-			root.vgmlMoveClose = null;
+			root.vergemlMoveClose = null;
 			document.removeEventListener( 'keydown', trap, true );
 			if ( returnTo && returnTo.focus ) {
 				returnTo.focus();
 			}
 		}
-		root.vgmlMoveClose = close;
+		root.vergemlMoveClose = close;
 
 		function choose( termId ) {
 			close();
@@ -4742,10 +4742,10 @@
 
 		var proto = wp.media.view.Modal.prototype;
 
-		if ( proto.vgmlWrapped ) {
+		if ( proto.vergemlWrapped ) {
 			return;
 		}
-		proto.vgmlWrapped = true;
+		proto.vergemlWrapped = true;
 
 		var open = proto.open;
 
@@ -5042,7 +5042,7 @@
 		 *  remembers, because someone who wants it out of the way wants it out of
 		 *  the way every time.
 		 */
-		var collapsed = window.localStorage && window.localStorage.getItem( 'vgmlModalCollapsed' ) === '1';
+		var collapsed = window.localStorage && window.localStorage.getItem( 'vergemlModalCollapsed' ) === '1';
 
 		var toggle = el( 'button', {
 			type: 'button',
@@ -5057,7 +5057,7 @@
 			toggle.setAttribute( 'aria-expanded', now ? 'false' : 'true' );
 			toggle.firstChild.innerHTML = now ? '&#9656;' : '&#9666;';
 			try {
-				window.localStorage.setItem( 'vgmlModalCollapsed', now ? '1' : '0' );
+				window.localStorage.setItem( 'vergemlModalCollapsed', now ? '1' : '0' );
 			} catch ( e ) { /* private browsing */ }
 		} );
 

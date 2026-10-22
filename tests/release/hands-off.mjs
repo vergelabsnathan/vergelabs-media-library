@@ -165,13 +165,13 @@ check( 'no plain-http loopback address in shipped code', 0 === loop.length, loop
 const GONE = [ 'vergeml_journey_facts', 'vergeml_ai_run_budget', 'vergeml_ai_describe_answers', 'vergeml_ai_run_should_nudge', 'vergeml_brief_describe', 'vergeml_folders_walk', 'vergeml_offer_trial_possible', 'vergeml_ai_parallel', 'vergeml_smart_count_branches', 'vergeml_smart_count_exclude' ];
 const seams = hits( php, /apply_filters\(\s*'([^']+)'/g ).filter( ( h ) => GONE.includes( h.m[ 1 ] ) );
 // Round 8 (2026-10-20): every name the plugin makes carries "vergeml", and a route says its capability where it is registered.
-const shortPrefix = hits( [ ...php, ...js ], /\bvgml_\w*/g ).filter( ( h ) => ! /'vgml_'|vgml_' \)|'\/\^vgml_\/'/.test( h.m.input ) );
-check( 'no vgml_ name in shipped PHP or JS (only the migration reads the old key)', 0 === shortPrefix.length, shortPrefix.slice( 0, 8 ).map( ( h ) => `${ h.at } ${ h.m[ 0 ] }` ).join( ' | ' ) );
+const shortPrefix = hits( [ ...php, ...js ], /\bvgml(?:_\w*|[A-Z]\w*)/g ).filter( ( h ) => ! /'vgml_'|vgml_' \)|'\/\^vgml_\/'/.test( h.m.input ) );
+check( 'no vgml_ name or vgml* JS global in shipped PHP or JS (only the migration reads the old key)', 0 === shortPrefix.length, shortPrefix.slice( 0, 8 ).map( ( h ) => `${ h.at } ${ h.m[ 0 ] }` ).join( ' | ' ) );
 const wrappedCaps = hits( php, /'permission_callback'\s*=>\s*'[^']+'/g );
 check( 'every route states its capability where it is registered (no permission_callback given by name)', 0 === wrappedCaps.length, wrappedCaps.map( ( h ) => `${ h.at } ${ h.m[ 0 ] }` ).join( ' | ' ) );
 // The folders are vergeml_folder; media_category is only ever read as the old or another plugin's key.
-const mc = hits( [ ...php, ...js ], /media_category/g ).filter( ( h ) => ! /'media_category' === \$(key|old)|atts\['media_category'\]|'taxonomy' => 'media_category'/.test( h.m.input ) );
-check( 'media_category is read only by the migration, the EML import and the old gallery alias', 0 === mc.length, mc.slice( 0, 8 ).map( ( h ) => h.at ).join( ' | ' ) );
+const mc = hits( [ ...php, ...js ], /media_category/g ).filter( ( h ) => ! /'media_category' === \$(key|old)|atts\['media_category'\]|'taxonomy' => 'media_category'|'vergeml_folder', 'media_category'/.test( h.m.input ) );
+check( 'media_category is read only by the migration, the EML import, the old gallery alias and the wipes keep-list', 0 === mc.length, mc.slice( 0, 8 ).map( ( h ) => h.at ).join( ' | ' ) );
 const routes = hits( php, /register_rest_route\s*\(/g ).length;
 const callbacks = php.reduce( ( n, rel ) => n + ( strip( fs.readFileSync( path.join( ROOT, rel ), 'utf8' ) ).match( /'permission_callback'\s*=>/g ) || [] ).length, 0 );
 check( `every REST endpoint has a permission_callback (${ routes } routes, ${ callbacks } callbacks)`, callbacks >= routes );

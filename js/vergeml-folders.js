@@ -20,7 +20,7 @@
  *  the same turn route a conversation's tree does, so every number beside it
  *  is the matcher's dry run and none is the paste's own.
  *
- *  Everything the first paint needs came with the page (vgmlFolders): no
+ *  Everything the first paint needs came with the page (vergemlFolders): no
  *  request stands between the page and the tree. The session persists each
  *  finished turn and the draft, keyed by term id, so a reload shows the same
  *  tree. The conversation's turns are kept for the service (the history a
@@ -31,7 +31,7 @@
 ( function () {
 	'use strict';
 
-	var cfg = window.vgmlFolders || {};
+	var cfg = window.vergemlFolders || {};
 	var TV = window.vergemlTreeView;
 	var TALK = window.vergemlTalk;
 	var STRUCT = window.vergemlStructure;

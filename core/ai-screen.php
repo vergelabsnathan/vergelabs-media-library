@@ -76,7 +76,7 @@ function vergeml_ai_screen_assets( $hook ) {
         true
     );
     wp_set_script_translations( 'vergeml-ai', 'vergelabs-media-library' );
-    wp_localize_script( 'vergeml-ai', 'vgmlAi', array(
+    wp_localize_script( 'vergeml-ai', 'vergemlAi', array(
         'tab'          => $tab,
         'ns'           => VERGEML_REST_NS,
         'canConfigure' => current_user_can( 'manage_options' ),

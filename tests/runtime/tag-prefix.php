@@ -51,6 +51,10 @@ switch ( RT_PHASE ) {
 		if ( defined( 'RT_EML' ) && RT_EML ) {
 			rt_t( 'Enhanced Media Library is active', function_exists( 'vergeml_eml_active' ) && vergeml_eml_active() );
 			rt_t( 'its folders are left in media_category while it runs', 2 === $rows( 'media_category' ) && isset( $all['media_category'] ) );
+			if ( function_exists( 'vergeml_term_relationship_cleanup' ) ) {
+				rt_quiet( 'Complete Cleanup\'s term wipe while it runs', rt_watch( function () { vergeml_term_relationship_cleanup(); return true; } ) );
+				rt_t( 'the wipe left its folders and the picture in them', 2 === $rows( 'media_category' ) && 1 === count( wp_get_object_terms( (int) get_option( 'rt_pic' ), 'media_category', array( 'fields' => 'ids' ) ) ) );
+			}
 			deactivate_plugins( 'enhanced-media-library/enhanced-media-library.php' );
 			rt_t( 'Enhanced Media Library is off', ! vergeml_eml_active() );
 			rt_quiet( 'the next admin visit', rt_watch( function () { vergeml_migrate_prefixes_when_due(); return true; } ) );

@@ -370,12 +370,17 @@ global $vergeml_dir,
      *  own from before, vgml_* tags from 4.0.x -- move to their prefixed key
      *  (vergeml_own_taxonomy_key()). WordPress has no call that renames a taxonomy, so the
      *  plugin's own rows are moved in term_taxonomy and the registration list follows.
-     *  media_category waits while Enhanced Media Library is active, so its folders are not
-     *  taken from under it; the next admin visit after it is off moves them.
+     *  Enhanced Media Library's taxonomies wait while it is active, so its folders are not
+     *  taken from under it; the next administrator's visit after it is off moves them.
+     *  Runs for an administrator, from cron or from WP-CLI, never for a visitor.
      */
     function vergeml_migrate_prefixes() {
 
         global $wpdb;
+
+        if ( ! current_user_can( 'manage_options' ) && ! wp_doing_cron() && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+            return;
+        }
 
         $all = get_option( 'vergeml_taxonomies', array() );
 
@@ -393,7 +398,8 @@ global $vergeml_dir,
                 continue;
             }
 
-            if ( 'media_category' === $old && vergeml_eml_active() ) {
+            // While Enhanced Media Library runs, its taxonomies are its own; only this plugin's 4.0.x tags move.
+            if ( 0 !== strpos( $old, 'vgml_' ) && vergeml_eml_active() ) {
                 continue;
             }
 
@@ -550,8 +556,9 @@ global $vergeml_dir,
      *
      *  Carries settings over from Enhanced Media Library, whose option names
      *  this plugin used before the fork was renamed. Copies a value only when
-     *  this plugin has none of its own yet, and never removes the originals,
-     *  so Enhanced Media Library still works if someone switches back.
+     *  this plugin has none of its own yet, and never removes the original
+     *  options. The folders themselves move to vergeml_folder
+     *  (vergeml_migrate_prefixes()) once Enhanced Media Library is not active.
      *
      *  @since    2.9.5
      */
@@ -695,7 +702,8 @@ global $vergeml_dir,
         // register eml taxonomies
         foreach ( (array) $vergeml_taxonomies as $taxonomy => $params ) {
 
-            if ( $params['eml_media'] ) {
+            // A taxonomy of ours still under an unprefixed key waits for vergeml_migrate_prefixes(), which registers nothing unprefixed.
+            if ( $params['eml_media'] && 0 === strpos( (string) $taxonomy, 'vergeml_' ) ) {
 
                 /*
                  *  Missing labels are named, not fatal.

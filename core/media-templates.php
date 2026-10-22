@@ -90,7 +90,7 @@ function vergeml_print_media_templates() { ?>
 
     </script>
 
-    <script type="text/html" id="tmpl-eml-media-selection">
+    <script type="text/html" id="tmpl-vergeml-media-selection">
 
         <div class="selection-info">
             <span class="count"></span>
