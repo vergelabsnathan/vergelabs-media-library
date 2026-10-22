@@ -32,6 +32,7 @@ const SCENARIOS = [
 	{ name: 'lifecycle on WP 6.5 / PHP 7.4', file: 'lifecycle.php', phases: LIFE, php: '7.4', wp: '6.5' },
 	{ name: 'lifecycle on latest / PHP 8.3', file: 'lifecycle.php', phases: LIFE, php: '8.3', wp: 'latest' },
 	{ name: 'tags made before 4.1.0 (vgml_*) move to vergeml_* on upgrade', file: 'tag-prefix.php', phases: [ 'old', 'activate', 'check' ], php: '8.3', wp: 'latest' },
+	{ name: 'a tag made after the rename: vergeml_*, at most 32 characters, usable', file: 'tag-new.php', phases: [ 'activate', 'make' ], php: '7.4', wp: '6.5' },
 	{ name: 'the picture hash on PHP 7.4 (GD resource)', file: 'health-hash.php', phases: [ 'activate', 'hash' ], php: '7.4', wp: '6.5' },
 	{ name: 'the picture hash on PHP 8.5 (GdImage)', file: 'health-hash.php', phases: [ 'activate', 'hash' ], php: '8.5', wp: 'latest' },
 	// "Some recent versions of PHP may be stricter" (round 7 email): the newest PHP Playground ships.

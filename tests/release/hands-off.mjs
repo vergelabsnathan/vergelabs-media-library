@@ -167,8 +167,8 @@ const seams = hits( php, /apply_filters\(\s*'([^']+)'/g ).filter( ( h ) => GONE.
 // Round 8 (2026-10-20): every name the plugin makes carries "vergeml", and a route says its capability where it is registered.
 const shortPrefix = hits( [ ...php, ...js ], /\bvgml_\w*/g ).filter( ( h ) => ! /vergeml_migrate_tag_prefix|'vgml_'|vgml_' \)/.test( h.m.input ) );
 check( 'no vgml_ name in shipped PHP or JS (only the migration reads the old key)', 0 === shortPrefix.length, shortPrefix.slice( 0, 8 ).map( ( h ) => `${ h.at } ${ h.m[ 0 ] }` ).join( ' | ' ) );
-const wrappedCaps = hits( php, /'permission_callback'\s*=>\s*'vergeml_rest_can_(manage_options|upload_files)'/g );
-check( 'no route hides a plain capability check behind a helper name', 0 === wrappedCaps.length, wrappedCaps.map( ( h ) => h.at ).join( ' | ' ) );
+const wrappedCaps = hits( php, /'permission_callback'\s*=>\s*'[^']+'/g );
+check( 'every route states its capability where it is registered (no permission_callback given by name)', 0 === wrappedCaps.length, wrappedCaps.map( ( h ) => `${ h.at } ${ h.m[ 0 ] }` ).join( ' | ' ) );
 const routes = hits( php, /register_rest_route\s*\(/g ).length;
 const callbacks = php.reduce( ( n, rel ) => n + ( strip( fs.readFileSync( path.join( ROOT, rel ), 'utf8' ) ).match( /'permission_callback'\s*=>/g ) || [] ).length, 0 );
 check( `every REST endpoint has a permission_callback (${ routes } routes, ${ callbacks } callbacks)`, callbacks >= routes );

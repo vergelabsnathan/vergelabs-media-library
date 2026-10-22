@@ -102,7 +102,7 @@ function vergeml_folders_version_route() {
     register_rest_route( VERGEML_REST_NS, '/folders/version', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_rest_folders_version',
-        'permission_callback' => 'vergeml_can_read_tree',
+        'permission_callback' => function () { return current_user_can( 'upload_files' ); },
     ) );
 }
 

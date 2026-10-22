@@ -169,7 +169,7 @@ function vergeml_register_tree_routes() {
     register_rest_route( VERGEML_REST_NS, '/tree', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_rest_tree',
-        'permission_callback' => 'vergeml_can_read_tree',
+        'permission_callback' => function () { return current_user_can( 'upload_files' ); },
         'args'                => array(
             'taxonomy' => array(
                 'required'          => true,
@@ -190,7 +190,7 @@ function vergeml_register_tree_routes() {
     register_rest_route( VERGEML_REST_NS, '/assign', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_rest_assign',
-        'permission_callback' => 'vergeml_can_assign',
+        'permission_callback' => function ( WP_REST_Request $request ) { return ( current_user_can( 'upload_files' ) || current_user_can( 'edit_posts' ) ) && vergeml_can_assign( $request ); },
         'args'                => array(
             'taxonomy'    => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             /*
@@ -211,10 +211,6 @@ function vergeml_register_tree_routes() {
     ) );
 }
 
-
-function vergeml_can_read_tree() {
-    return current_user_can( 'upload_files' );
-}
 
 
 /**

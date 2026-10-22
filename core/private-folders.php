@@ -206,7 +206,7 @@ function vergeml_private_routes() {
     register_rest_route( VERGEML_REST_NS, '/folder-privacy', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_private_rest',
-        'permission_callback' => 'vergeml_private_can_edit',
+        'permission_callback' => function ( WP_REST_Request $request ) { return current_user_can( 'manage_options' ) && vergeml_private_can_edit( $request ); },
         'args'                => array(
             'id'      => array( 'required' => true, 'type' => 'integer' ),
             'private' => array( 'type' => 'boolean', 'default' => true ),

@@ -161,7 +161,7 @@ function vergeml_quick_edit_route() {
     register_rest_route( VERGEML_REST_NS, '/file/(?P<id>\d+)', array(
         'methods'             => WP_REST_Server::EDITABLE,
         'callback'            => 'vergeml_quick_edit_save',
-        'permission_callback' => 'vergeml_rest_can_edit_this_file',
+        'permission_callback' => function ( WP_REST_Request $request ) { return current_user_can( 'edit_post', (int) $request['id'] ); },
         'args'                => array(
             'title' => array( 'type' => 'string' ),
             'alt'   => array( 'type' => 'string' ),

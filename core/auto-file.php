@@ -671,7 +671,7 @@ function vergeml_autofile_routes() {
     // One picture into one folder: asked about that picture and that folder.
     register_rest_route( VERGEML_REST_NS, '/autofile-act', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => 'vergeml_autofile_can_act',
+        'permission_callback' => function ( WP_REST_Request $request ) { return current_user_can( 'manage_options' ) && vergeml_autofile_can_act( $request ); },
         'callback'            => 'vergeml_autofile_rest_act',
         'args'                => array(
             'attachment_id' => array( 'type' => 'integer', 'required' => true ),

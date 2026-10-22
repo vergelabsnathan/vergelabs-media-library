@@ -363,7 +363,7 @@ function vergeml_register_gallery_route() {
     register_rest_route( VERGEML_REST_NS, '/gallery-folders', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_rest_gallery_folders',
-        'permission_callback' => 'vergeml_can_read_tree',
+        'permission_callback' => function () { return current_user_can( 'upload_files' ); },
         'args'                => array(
             'taxonomy' => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
         ),

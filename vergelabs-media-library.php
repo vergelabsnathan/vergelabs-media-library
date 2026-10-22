@@ -123,10 +123,6 @@ function vergeml_can_set_time_limit() {
     return function_exists( 'set_time_limit' ) && false === stripos( (string) ini_get( 'disable_functions' ), 'set_time_limit' );
 }
 
-/** A route about one file: whoever may edit that file. */
-function vergeml_rest_can_edit_this_file( WP_REST_Request $request ) {
-    return current_user_can( 'edit_post', (int) $request['id'] );
-}
 
 
 /*

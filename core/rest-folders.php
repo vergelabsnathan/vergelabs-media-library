@@ -28,7 +28,7 @@ function vergeml_register_folder_routes() {
     register_rest_route( VERGEML_REST_NS, '/folder', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_rest_folder',
-        'permission_callback' => 'vergeml_can_manage_folders',
+        'permission_callback' => function ( WP_REST_Request $request ) { $tax = get_taxonomy( (string) $request->get_param( 'taxonomy' ) ); return $tax && current_user_can( $tax->cap->manage_terms ) && vergeml_can_manage_folders( $request ); },
         'args'                => array(
             'taxonomy' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             'action'   => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
@@ -47,7 +47,7 @@ function vergeml_register_folder_routes() {
         array(
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => 'vergeml_rest_state_get',
-            'permission_callback' => 'vergeml_can_read_tree',
+            'permission_callback' => function () { return current_user_can( 'upload_files' ); },
             'args'                => array(
                 'taxonomy' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             ),
@@ -56,7 +56,7 @@ function vergeml_register_folder_routes() {
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'vergeml_rest_state_set',
             // A write with the read-level check on purpose: it stores only the caller's own tree state (open branches, width, skin) in their user options.
-            'permission_callback' => 'vergeml_can_save_own_tree_state',
+            'permission_callback' => function () { return current_user_can( 'upload_files' ); },
             'args'                => array(
                 'taxonomy' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
                 'open'     => array( 'type' => 'array' ),
@@ -82,10 +82,6 @@ function vergeml_register_folder_routes() {
  *  capability WordPress already uses for managing terms.
  */
 
-/** Saving the tree's open branches, width and skin: the caller's own UI state, for anyone who may see the tree. */
-function vergeml_can_save_own_tree_state() {
-    return current_user_can( 'upload_files' );
-}
 
 
 function vergeml_can_manage_folders( $request = null ) {

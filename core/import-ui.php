@@ -37,7 +37,7 @@ function vergeml_import_routes() {
     register_rest_route( VERGEML_REST_NS, '/import', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_rest_import',
-        'permission_callback' => 'vergeml_can_import',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'action'   => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             'source'   => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),

@@ -614,7 +614,7 @@ function vergeml_health_delete_routes() {
 		 *  match. That is not the same authority as uploading, and it is not
 		 *  the same authority as curating terms either.
 		 */
-		'permission_callback' => 'vergeml_health_can_drop',
+		'permission_callback' => function ( WP_REST_Request $request ) { return current_user_can( 'manage_options' ) && vergeml_health_can_drop( $request ); },
 
 		'args' => array(
 			'keep' => array( 'type' => 'integer', 'required' => true ),

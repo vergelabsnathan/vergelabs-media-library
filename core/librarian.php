@@ -2493,7 +2493,7 @@ function vergeml_librarian_routes() {
     register_rest_route( VERGEML_REST_NS, '/librarian-why/(?P<id>\d+)', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_librarian_rest_why',
-        'permission_callback' => 'vergeml_rest_can_edit_this_file',
+        'permission_callback' => function ( WP_REST_Request $request ) { return current_user_can( 'edit_post', (int) $request['id'] ); },
     ) );
 }
 
