@@ -210,11 +210,11 @@
         "filebird/views/particle/activation_fail.php": "c691d0a0ee4b",
         "filebird/views/settings/header.php": "94b8f780d891"
       },
-      "seen": "2026-10-21T10:06:14.098Z"
+      "seen": "2026-10-22T10:08:48.459Z"
     },
     "folders": {
-      "version": "3.2.8",
-      "updated": "2026-10-14 12:01pm GMT",
+      "version": "3.2.9",
+      "updated": "2026-10-22 6:45am GMT",
       "installs": 90000,
       "rating": 100,
       "tested": "7.1.3",
@@ -263,13 +263,13 @@
         "folders/assets/js/lottie-player.json": "4ec1ca6f53fb",
         "folders/dist/css/app.css": "bc2cfcd15655",
         "folders/dist/css/datetimepicker.css": "e994b69536c1",
-        "folders/dist/css/folders-feedback.css": "bd2aeca33a24",
+        "folders/dist/css/folders-feedback.css": "b85203fd3748",
         "folders/dist/css/folders-font.css": "1ea78ac5b62f",
-        "folders/dist/css/folders.css": "f524e6f44b0f",
+        "folders/dist/css/folders.css": "21b1e24aeb1b",
         "folders/dist/css/jstree.css": "b47dabb3e0f6",
         "folders/dist/css/media-clean.css": "f60848a6221e",
-        "folders/dist/css/media-folders.css": "da97c3fb4ad8",
-        "folders/dist/css/media.css": "f77b121bdb78",
+        "folders/dist/css/media-folders.css": "469009ffbd34",
+        "folders/dist/css/media.css": "11a9e41f9952",
         "folders/dist/css/overlayscrollbars.css": "dd6492ca09d9",
         "folders/dist/css/pricing-table.css": "6dfaced29755",
         "folders/dist/css/rating-svg.css": "4832bd7d4f0a",
@@ -282,15 +282,15 @@
         "folders/dist/fonts/premio-folder.ttf": "48d4e3bfd875",
         "folders/dist/fonts/premio-folder.woff": "5f6274e2d833",
         "folders/dist/images/wave-bg-image.png": "bed25e70233e",
-        "folders/dist/js/app.js": "c56d6277b48c",
+        "folders/dist/js/app.js": "32cd33265ff9",
         "folders/dist/js/datetimepicker.js": "baa6a2de03f1",
         "folders/dist/js/folders-feedback.js": "bfd8f6fd8d51",
-        "folders/dist/js/folders.js": "5eed2e6f5178",
+        "folders/dist/js/folders.js": "c62e023f3197",
         "folders/dist/js/jstree.js": "1313b95801e7",
         "folders/dist/js/mailcheck.js": "9658eb5acd3a",
         "folders/dist/js/media-cleaning.js": "2e6f1fd45790",
-        "folders/dist/js/media-folders.js": "113450ddaed5",
-        "folders/dist/js/media.js": "b62f2efc3b55",
+        "folders/dist/js/media-folders.js": "774f7ec66cac",
+        "folders/dist/js/media.js": "d16d912225a1",
         "folders/dist/js/new-media.js": "f71b41d7d71e",
         "folders/dist/js/overlayscrollbars.js": "c4e8ab733e59",
         "folders/dist/js/plugins.js": "da39a3ee5e6b",
@@ -303,7 +303,7 @@
         "folders/dist/js/slick.js": "ff76a8860771",
         "folders/dist/js/spectrum.js": "6d5355ddf8e2",
         "folders/dist/js/touch.js": "ecbf578a7173",
-        "folders/folders.php": "d238073d3793",
+        "folders/folders.php": "88bcc98a7f90",
         "folders/includes/Admin/Activate.php": "901f208250a0",
         "folders/includes/Admin/AdminInit.php": "5b05cf20e836",
         "folders/includes/Admin/Assets.php": "4001041bfcfe",
@@ -353,7 +353,7 @@
         "folders/includes/Media/MediaDropdown.php": "e3f9d19d2c57",
         "folders/includes/Media/MediaReplace.php": "7e430d9e69de",
         "folders/includes/Media/MediaUploadFile.php": "4115ce2cf7c8",
-        "folders/readme.txt": "54acb2df5652",
+        "folders/readme.txt": "fd9a7b757fc5",
         "folders/templates/folders/email-signup.php": "1aac375da6eb",
         "folders/templates/folders/media-cleaning.php": "da2bd5a0782a",
         "folders/templates/folders/media-replace.php": "9f3d3f33b63a",
@@ -404,7 +404,7 @@
         "folders/templates/settings/user-restrictions.php": "ea2ec7017a82",
         "folders/uninstall.php": "07c6d1aa3769"
       },
-      "seen": "2026-10-21T10:06:14.169Z"
+      "seen": "2026-10-22T10:08:48.497Z"
     },
     "enhanced-media-library": {
       "version": "2.9.4",
@@ -447,7 +447,7 @@
         "enhanced-media-library/languages/enhanced-media-library.pot": "85e1b35b2743",
         "enhanced-media-library/readme.txt": "f14860ab10be"
       },
-      "seen": "2026-10-21T10:06:14.230Z"
+      "seen": "2026-10-22T10:08:48.530Z"
     },
     "elementor": {
       "version": "4.2.3",
@@ -7156,18 +7156,18 @@
         "real-media-library-lite/vendor/devowl-wp/utils/src/Utils.php": "d292b175b432",
         "real-media-library-lite/vendor/scoper-autoload.php": "1154b70fbdc6"
       },
-      "seen": "2026-10-21T10:06:14.290Z"
+      "seen": "2026-10-22T10:08:48.561Z"
     },
     "media-library-organizer": {
-      "version": "2.1.5",
-      "updated": "2026-09-30 7:53am GMT",
+      "version": "2.1.6",
+      "updated": "2026-10-22 6:13am GMT",
       "installs": 20000,
       "rating": 94,
       "tested": "7.1.3",
       "requires_php": "5.6",
       "manifest": {
         "media-library-organizer/AGENTS.md": "822d25186255",
-        "media-library-organizer/CHANGELOG.md": "6be98a7e0f1a",
+        "media-library-organizer/CHANGELOG.md": "c3180c2adcf0",
         "media-library-organizer/_modules/dashboard/class-wpzincdashboardwidget.php": "a6093bcf0d5d",
         "media-library-organizer/_modules/dashboard/css/admin.css": "f821166a3e44",
         "media-library-organizer/_modules/dashboard/css/selectize.css": "799081b8723f",
@@ -7566,17 +7566,17 @@
         "media-library-organizer/assets/build/sidebar.css": "9a5dceccb563",
         "media-library-organizer/assets/build/sidebar.js": "cf5622ac1041",
         "media-library-organizer/assets/css/admin.css": "66d1eed4a621",
-        "media-library-organizer/assets/css/media.css": "5594dcf17f80",
+        "media-library-organizer/assets/css/media.css": "fa36cf9e8255",
         "media-library-organizer/assets/css/single-attachment.css": "b8c426d941d8",
         "media-library-organizer/assets/images/robin-logo.png": "be44e493dd0c",
         "media-library-organizer/assets/js/autocomplete.js": "a5ba29375e65",
         "media-library-organizer/assets/js/gallery-block.js": "560d6b8c0b05",
         "media-library-organizer/assets/js/import.js": "60afc780b32d",
-        "media-library-organizer/assets/js/media.js": "a4948a9461e3",
+        "media-library-organizer/assets/js/media.js": "ffba2836ef73",
         "media-library-organizer/assets/js/min/autocomplete-min.js": "e424ebe44148",
         "media-library-organizer/assets/js/min/gallery-block-min.js": "ec2bd79a8f18",
         "media-library-organizer/assets/js/min/import-min.js": "1c1af9ff90b6",
-        "media-library-organizer/assets/js/min/media-min.js": "f95c65b6ed82",
+        "media-library-organizer/assets/js/min/media-min.js": "1d6024ab1812",
         "media-library-organizer/assets/js/min/modal-attachment-min.js": "b5a2363c4a9d",
         "media-library-organizer/assets/js/min/modal-min.js": "069eda336bfc",
         "media-library-organizer/assets/js/min/quicktags-min.js": "eda009158627",
@@ -7593,14 +7593,14 @@
         "media-library-organizer/assets/js/tinymce.js": "60b5c792596b",
         "media-library-organizer/assets/scss/admin.css": "66d1eed4a621",
         "media-library-organizer/assets/scss/admin.scss": "8f2b64506817",
-        "media-library-organizer/assets/scss/media.css": "5594dcf17f80",
-        "media-library-organizer/assets/scss/media.scss": "6afc77b23019",
+        "media-library-organizer/assets/scss/media.css": "fa36cf9e8255",
+        "media-library-organizer/assets/scss/media.scss": "3ff0047af5ce",
         "media-library-organizer/assets/scss/single-attachment.css": "b8c426d941d8",
         "media-library-organizer/assets/scss/single-attachment.scss": "1a7b39377361",
         "media-library-organizer/composer.json": "f5d47e713d65",
-        "media-library-organizer/composer.lock": "eca9d74b68a2",
+        "media-library-organizer/composer.lock": "db7713cc4f7d",
         "media-library-organizer/includes/admin/class-media-library-organizer-admin-ajax.php": "9bca7af693c4",
-        "media-library-organizer/includes/admin/class-media-library-organizer-admin.php": "30b623dbae32",
+        "media-library-organizer/includes/admin/class-media-library-organizer-admin.php": "2f7a9d13d38a",
         "media-library-organizer/includes/admin/class-media-library-organizer-api.php": "b480ac1a6abc",
         "media-library-organizer/includes/admin/class-media-library-organizer-cli.php": "d47db94e34fb",
         "media-library-organizer/includes/admin/class-media-library-organizer-export.php": "5f31f4be9cdb",
@@ -7638,9 +7638,9 @@
         "media-library-organizer/languages/media-library-organizer-fr_FR.mo": "4ecb9a97ea89",
         "media-library-organizer/languages/media-library-organizer-fr_FR.po": "0ee9f3ea3e52",
         "media-library-organizer/languages/media-library-organizer.pot": "a4c579b442d4",
-        "media-library-organizer/media-library-organizer.php": "bb76bb20f479",
+        "media-library-organizer/media-library-organizer.php": "990de85e7fd4",
         "media-library-organizer/phpunit.xml": "0d5edf27d20f",
-        "media-library-organizer/readme.txt": "0ebef3713789",
+        "media-library-organizer/readme.txt": "9a1887f52bfd",
         "media-library-organizer/vendor/autoload.php": "bb5defc12dd1",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/LICENSE": "12d81f50767d",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/assets/images/animation.jpg": "62b255cfd22c",
@@ -7671,18 +7671,18 @@
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/assets/js/build/survey/survey_deps.js": "21ef9d50c61b",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/assets/js/build/tracking/tracking.asset.php": "a2124b2ba5ab",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/assets/js/build/tracking/tracking.js": "b7ed3975add1",
-        "media-library-organizer/vendor/codeinwp/themeisle-sdk/composer.json": "dc034e6ad162",
+        "media-library-organizer/vendor/codeinwp/themeisle-sdk/composer.json": "db206b3df030",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/index.php": "fbd594c58266",
-        "media-library-organizer/vendor/codeinwp/themeisle-sdk/load.php": "017f945c8c45",
-        "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Common/Abstract_module.php": "57f0f56b4a13",
+        "media-library-organizer/vendor/codeinwp/themeisle-sdk/load.php": "d966c2bca24d",
+        "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Common/Abstract_module.php": "9810c65e2e0f",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Common/Module_factory.php": "09b0577de35c",
-        "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Loader.php": "39b848deedcc",
+        "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Loader.php": "20f155ee07f9",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/About_us.php": "04cfe0807a55",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Abstract_Migration.php": "ad6bfb628ebf",
-        "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Ai_connect.php": "fea04f1326c9",
+        "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Ai_connect.php": "9a20f0dfe3e9",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Announcements.php": "0ee88722a0e2",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Compatibilities.php": "762f7fd422d9",
-        "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Crash_reporter.php": "ed87cad5c4f8",
+        "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Crash_reporter.php": "1adc40be7396",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Dashboard_widget.php": "c074fb041c51",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Featured_plugins.php": "9ecb95fd6390",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Float_widget.php": "60a1a8d1260a",
@@ -7690,7 +7690,7 @@
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Logger.php": "9655d5a3aeff",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Migrator.php": "61b828fb6c85",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Notification.php": "7afcc8d08e0e",
-        "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Promotions.php": "b4d29ee81385",
+        "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Promotions.php": "c2c3bd4bdc2a",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Recommendation.php": "01536ce7e0a2",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Review.php": "b6bd3bdae2d6",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/src/Modules/Rollback.php": "d8531efd5a8f",
@@ -7710,8 +7710,8 @@
         "media-library-organizer/vendor/composer/autoload_psr4.php": "fff6dd035a76",
         "media-library-organizer/vendor/composer/autoload_real.php": "79c234942bbe",
         "media-library-organizer/vendor/composer/autoload_static.php": "4ba695522144",
-        "media-library-organizer/vendor/composer/installed.json": "f8d7bfb41e3c",
-        "media-library-organizer/vendor/composer/installed.php": "a510e2886928",
+        "media-library-organizer/vendor/composer/installed.json": "e01422c0d145",
+        "media-library-organizer/vendor/composer/installed.php": "e97fc904ec6f",
         "media-library-organizer/views/admin/error.php": "f9481b494643",
         "media-library-organizer/views/admin/import-enhanced-media-library.php": "03d107fa52a7",
         "media-library-organizer/views/admin/import-filebird.php": "afa88f9037d0",
@@ -7738,7 +7738,7 @@
         "media-library-organizer/views/global/media-list-view-order.php": "d44dedceb315",
         "media-library-organizer/webpack.assets.config.js": "430b6cbf6e2a"
       },
-      "seen": "2026-10-21T10:06:14.357Z"
+      "seen": "2026-10-22T10:08:48.596Z"
     },
     "enable-media-replace": {
       "version": "4.2.2",
@@ -7863,7 +7863,7 @@
         "enable-media-replace/views/success.php": "6960838a0f6d",
         "enable-media-replace/views/upsell.php": "ac34421f70c2"
       },
-      "seen": "2026-10-21T10:06:14.425Z"
+      "seen": "2026-10-22T10:08:48.632Z"
     }
   },
   "checked": null,
@@ -7872,187 +7872,187 @@
       "version": "7.1.3",
       "prerelease": "7.2-beta1",
       "onBox": null,
-      "seen": "2026-10-21T10:06:14.568Z"
+      "seen": "2026-10-22T10:08:48.723Z"
     },
     "php": {
-      "version": "8.5.11",
+      "version": "8.5.12",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:14.584Z"
+      "seen": "2026-10-22T10:08:48.818Z"
     },
     "elementor": {
       "version": "4.3.5",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:14.655Z"
+      "seen": "2026-10-22T10:08:48.857Z"
     },
     "beaver-builder-lite-version": {
       "version": "2.11.1.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:14.716Z"
+      "seen": "2026-10-22T10:08:48.889Z"
     },
     "brizy": {
       "version": "2.8.24",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:14.784Z"
+      "seen": "2026-10-22T10:08:48.925Z"
     },
     "js_composer": {
       "version": "9.0.1",
       "prerelease": null,
       "onBox": "9.0.1",
-      "seen": "2026-10-21T10:06:12.017Z"
+      "seen": "2026-10-22T10:08:46.733Z"
     },
     "divi": {
       "version": "5.11.0",
       "prerelease": null,
       "onBox": "5.11.0",
-      "seen": "2026-10-21T10:06:12.017Z"
+      "seen": "2026-10-22T10:08:46.733Z"
     },
     "bricks": {
       "version": "1.15",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.090Z"
+      "seen": "2026-10-22T10:08:50.345Z"
     },
     "oxygen": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.090Z"
+      "seen": "2026-10-22T10:08:50.345Z"
     },
     "avada": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.090Z"
+      "seen": "2026-10-22T10:08:50.345Z"
     },
     "thrive-architect": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.090Z"
+      "seen": "2026-10-22T10:08:50.345Z"
     },
     "cornerstone": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.090Z"
+      "seen": "2026-10-22T10:08:50.345Z"
     },
     "yootheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.090Z"
+      "seen": "2026-10-22T10:08:50.345Z"
     },
     "betheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.090Z"
+      "seen": "2026-10-22T10:08:50.345Z"
     },
     "themify-builder": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.090Z"
+      "seen": "2026-10-22T10:08:50.345Z"
     },
     "tailor": {
       "version": "1.8.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.157Z"
+      "seen": "2026-10-22T10:08:50.380Z"
     },
     "oshine": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.157Z"
+      "seen": "2026-10-22T10:08:50.380Z"
     },
     "learnpress-frontend-editor": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.157Z"
+      "seen": "2026-10-22T10:08:50.380Z"
     },
     "dokan-lite": {
       "version": "5.3.1",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.230Z"
+      "seen": "2026-10-22T10:08:50.418Z"
     },
     "wordpress-seo": {
       "version": "28.7",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.293Z"
+      "seen": "2026-10-22T10:08:50.451Z"
     },
     "seo-by-rank-math": {
       "version": "1.0.280",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.359Z"
+      "seen": "2026-10-22T10:08:50.485Z"
     },
     "wp-seopress": {
       "version": "10.3",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.423Z"
+      "seen": "2026-10-22T10:08:50.520Z"
     },
     "all-in-one-seo-pack": {
       "version": "5.0.3",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.490Z"
+      "seen": "2026-10-22T10:08:50.556Z"
     },
     "woocommerce": {
       "version": "11.2.1",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.558Z"
+      "seen": "2026-10-22T10:08:50.592Z"
     },
     "advanced-custom-fields": {
       "version": "6.8.10",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.625Z"
+      "seen": "2026-10-22T10:08:50.628Z"
     },
     "polylang": {
-      "version": "3.9.0",
+      "version": "3.9.1",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.686Z"
+      "seen": "2026-10-22T10:08:50.659Z"
     },
     "wpml": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:16.686Z"
+      "seen": "2026-10-22T10:08:50.659Z"
     },
     "wp-rocket": {
       "version": "2.0.4",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:17.405Z"
+      "seen": "2026-10-22T10:08:51.067Z"
     },
     "filebird": {
       "version": "6.5.9",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:17.469Z"
+      "seen": "2026-10-22T10:08:51.097Z"
     },
     "real-media-library-lite": {
       "version": "4.23.7",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:17.529Z"
+      "seen": "2026-10-22T10:08:51.125Z"
     },
     "zionbuilder": {
       "version": "3.6.17",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-21T10:06:14.855Z"
+      "seen": "2026-10-22T10:08:48.962Z"
     }
   }
 }
