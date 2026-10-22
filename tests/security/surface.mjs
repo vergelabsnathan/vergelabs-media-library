@@ -86,7 +86,7 @@ const FLOOR = {
 	restEndpoints: 76,
 	restRoutes: 69,
 	// 6 since 2026-10-05: core's save-attachment-compat is core's again (wordpress.org review 2).
-	ajax: 6,
+	ajax: 5, // 6 until 2026-10-22: the hook on Themify's tb_load_editor (another plugin's AJAX action) is gone.
 	// 10 since round 6 (2026-10-12): the watchdog resume handler went with the self-entered safe mode.
 	adminPost: 10,
 	cron: 4,
