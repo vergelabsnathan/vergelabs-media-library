@@ -165,7 +165,7 @@ check( 'no plain-http loopback address in shipped code', 0 === loop.length, loop
 const GONE = [ 'vergeml_journey_facts', 'vergeml_ai_run_budget', 'vergeml_ai_describe_answers', 'vergeml_ai_run_should_nudge', 'vergeml_brief_describe', 'vergeml_folders_walk', 'vergeml_offer_trial_possible', 'vergeml_ai_parallel', 'vergeml_smart_count_branches', 'vergeml_smart_count_exclude' ];
 const seams = hits( php, /apply_filters\(\s*'([^']+)'/g ).filter( ( h ) => GONE.includes( h.m[ 1 ] ) );
 // Round 8 (2026-10-20): every name the plugin makes carries "vergeml", and a route says its capability where it is registered.
-const shortPrefix = hits( [ ...php, ...js ], /\bvgml_\w*/g ).filter( ( h ) => ! /vergeml_migrate_tag_prefix|'vgml_'|vgml_' \)/.test( h.m.input ) );
+const shortPrefix = hits( [ ...php, ...js ], /\bvgml_\w*/g ).filter( ( h ) => ! /'vgml_'|vgml_' \)|'\/\^vgml_\/'/.test( h.m.input ) );
 check( 'no vgml_ name in shipped PHP or JS (only the migration reads the old key)', 0 === shortPrefix.length, shortPrefix.slice( 0, 8 ).map( ( h ) => `${ h.at } ${ h.m[ 0 ] }` ).join( ' | ' ) );
 const wrappedCaps = hits( php, /'permission_callback'\s*=>\s*'[^']+'/g );
 check( 'every route states its capability where it is registered (no permission_callback given by name)', 0 === wrappedCaps.length, wrappedCaps.map( ( h ) => `${ h.at } ${ h.m[ 0 ] }` ).join( ' | ' ) );
