@@ -210,11 +210,11 @@
         "filebird/views/particle/activation_fail.php": "c691d0a0ee4b",
         "filebird/views/settings/header.php": "94b8f780d891"
       },
-      "seen": "2026-10-26T11:03:52.822Z"
+      "seen": "2026-10-27T10:30:52.511Z"
     },
     "folders": {
-      "version": "3.2.9",
-      "updated": "2026-10-22 6:45am GMT",
+      "version": "3.3.0",
+      "updated": "2026-10-27 5:33am GMT",
       "installs": 90000,
       "rating": 100,
       "tested": "7.1.3",
@@ -263,13 +263,14 @@
         "folders/assets/js/lottie-player.json": "4ec1ca6f53fb",
         "folders/dist/css/app.css": "bc2cfcd15655",
         "folders/dist/css/datetimepicker.css": "e994b69536c1",
-        "folders/dist/css/folders-feedback.css": "b85203fd3748",
+        "folders/dist/css/folders-feedback.css": "33466fe46104",
         "folders/dist/css/folders-font.css": "1ea78ac5b62f",
-        "folders/dist/css/folders.css": "21b1e24aeb1b",
+        "folders/dist/css/folders.css": "4c77faf63bc1",
         "folders/dist/css/jstree.css": "b47dabb3e0f6",
         "folders/dist/css/media-clean.css": "f60848a6221e",
-        "folders/dist/css/media-folders.css": "469009ffbd34",
-        "folders/dist/css/media.css": "11a9e41f9952",
+        "folders/dist/css/media-folders.css": "ccf511bb4992",
+        "folders/dist/css/media-zip.css": "6dd39c8e97dc",
+        "folders/dist/css/media.css": "13579c93073a",
         "folders/dist/css/overlayscrollbars.css": "dd6492ca09d9",
         "folders/dist/css/pricing-table.css": "6dfaced29755",
         "folders/dist/css/rating-svg.css": "4832bd7d4f0a",
@@ -282,15 +283,16 @@
         "folders/dist/fonts/premio-folder.ttf": "48d4e3bfd875",
         "folders/dist/fonts/premio-folder.woff": "5f6274e2d833",
         "folders/dist/images/wave-bg-image.png": "bed25e70233e",
-        "folders/dist/js/app.js": "32cd33265ff9",
+        "folders/dist/js/app.js": "98de7e97df88",
         "folders/dist/js/datetimepicker.js": "baa6a2de03f1",
         "folders/dist/js/folders-feedback.js": "bfd8f6fd8d51",
-        "folders/dist/js/folders.js": "c62e023f3197",
+        "folders/dist/js/folders.js": "da591a3b3ebb",
         "folders/dist/js/jstree.js": "1313b95801e7",
         "folders/dist/js/mailcheck.js": "9658eb5acd3a",
         "folders/dist/js/media-cleaning.js": "2e6f1fd45790",
-        "folders/dist/js/media-folders.js": "774f7ec66cac",
-        "folders/dist/js/media.js": "d16d912225a1",
+        "folders/dist/js/media-folders.js": "7b4c5f4bec0b",
+        "folders/dist/js/media-zip.js": "ffeb07004849",
+        "folders/dist/js/media.js": "9bbdf968a2fe",
         "folders/dist/js/new-media.js": "f71b41d7d71e",
         "folders/dist/js/overlayscrollbars.js": "c4e8ab733e59",
         "folders/dist/js/plugins.js": "da39a3ee5e6b",
@@ -303,8 +305,8 @@
         "folders/dist/js/slick.js": "ff76a8860771",
         "folders/dist/js/spectrum.js": "6d5355ddf8e2",
         "folders/dist/js/touch.js": "ecbf578a7173",
-        "folders/folders.php": "88bcc98a7f90",
-        "folders/includes/Admin/Activate.php": "901f208250a0",
+        "folders/folders.php": "1574ac29b8ec",
+        "folders/includes/Admin/Activate.php": "e0deb6ab5893",
         "folders/includes/Admin/AdminInit.php": "5b05cf20e836",
         "folders/includes/Admin/Assets.php": "4001041bfcfe",
         "folders/includes/Admin/Deactivate.php": "7de30b4c0baa",
@@ -323,11 +325,11 @@
         "folders/includes/Folders/Actions/FoldersCRUD.php": "726007a7dd00",
         "folders/includes/Folders/Actions/FoldersCache.php": "2fa5e0477749",
         "folders/includes/Folders/Actions/FoldersFilter.php": "d90238d0a6a7",
-        "folders/includes/Folders/Actions/FoldersItems.php": "8b7e996877f7",
+        "folders/includes/Folders/Actions/FoldersItems.php": "ecb1d66a5419",
         "folders/includes/Folders/Actions/FoldersPosition.php": "3433640bec65",
         "folders/includes/Folders/Actions/FoldersState.php": "432f895a0297",
         "folders/includes/Folders/AdminInit.php": "f50ed66a21ea",
-        "folders/includes/Folders/DefaultFolder.php": "57f5c1246818",
+        "folders/includes/Folders/DefaultFolder.php": "b7d39c5d285e",
         "folders/includes/Folders/FolderModals.php": "daf1f996301b",
         "folders/includes/Folders/FoldersAssets.php": "d9cb15afd493",
         "folders/includes/Folders/FoldersColumn.php": "f4955ed8de82",
@@ -346,17 +348,18 @@
         "folders/includes/Folders/Settings.php": "0a18869f92ac",
         "folders/includes/Folders/Translations/Polylang.php": "37ef212d536f",
         "folders/includes/Folders/Translations/Wpml.php": "12679cc1f437",
-        "folders/includes/Folders/UserFolders.php": "c1042af44b34",
+        "folders/includes/Folders/UserFolders.php": "343bbc845a59",
         "folders/includes/Loader.php": "a573d6f80eaa",
         "folders/includes/Media/DownloadFolder.php": "c0d6080f1a06",
         "folders/includes/Media/MediaDownload.php": "a102691e2e53",
         "folders/includes/Media/MediaDropdown.php": "e3f9d19d2c57",
-        "folders/includes/Media/MediaReplace.php": "7e430d9e69de",
+        "folders/includes/Media/MediaReplace.php": "38d715c968d7",
         "folders/includes/Media/MediaUploadFile.php": "4115ce2cf7c8",
-        "folders/readme.txt": "fd9a7b757fc5",
+        "folders/includes/Media/MediaZip.php": "b5eb72a83ae0",
+        "folders/readme.txt": "dcc76e2b04ea",
         "folders/templates/folders/email-signup.php": "1aac375da6eb",
         "folders/templates/folders/media-cleaning.php": "da2bd5a0782a",
-        "folders/templates/folders/media-replace.php": "9f3d3f33b63a",
+        "folders/templates/folders/media-replace.php": "7411d0d52fd1",
         "folders/templates/folders/modals/add-folder.php": "7a47b1bb1916",
         "folders/templates/folders/modals/add-media-folder.php": "1dc487c0d0f2",
         "folders/templates/folders/modals/add-sub-folder.php": "1ed1e40ff711",
@@ -376,6 +379,7 @@
         "folders/templates/folders/modals/shortcut.php": "44a77bbd41f6",
         "folders/templates/folders/shortcut.php": "a0e5049c0197",
         "folders/templates/folders/sidebar.php": "1ea4ef94027e",
+        "folders/templates/folders/zip-files/confirmaion.php": "73ef4edbfd85",
         "folders/templates/folders-settings.php": "eebf8775b76d",
         "folders/templates/footer/footer.php": "a08a38a72b07",
         "folders/templates/footer/help-form.php": "da39a3ee5e6b",
@@ -391,7 +395,7 @@
         "folders/templates/modals/remove-folders-data.php": "d409bfb55e75",
         "folders/templates/modals/send-email-test.php": "e88425f93c0e",
         "folders/templates/modals/update-user-permission.php": "a7aecaca3cd8",
-        "folders/templates/plans/upgrade-table.php": "ec899ae608c3",
+        "folders/templates/plans/upgrade-table.php": "d41cb73b0666",
         "folders/templates/plans/upgrade-to-pro.php": "bfbe975cafe8",
         "folders/templates/recommended-plugins.php": "bf5fd67ae9d8",
         "folders/templates/settings/access-management/role-settings.php": "a7eeff6d3fbd",
@@ -404,7 +408,7 @@
         "folders/templates/settings/user-restrictions.php": "ea2ec7017a82",
         "folders/uninstall.php": "07c6d1aa3769"
       },
-      "seen": "2026-10-26T11:03:52.856Z"
+      "seen": "2026-10-27T10:30:52.606Z"
     },
     "enhanced-media-library": {
       "version": "2.9.4",
@@ -447,7 +451,7 @@
         "enhanced-media-library/languages/enhanced-media-library.pot": "85e1b35b2743",
         "enhanced-media-library/readme.txt": "f14860ab10be"
       },
-      "seen": "2026-10-26T11:03:52.885Z"
+      "seen": "2026-10-27T10:30:52.687Z"
     },
     "elementor": {
       "version": "4.2.3",
@@ -7156,7 +7160,7 @@
         "real-media-library-lite/vendor/devowl-wp/utils/src/Utils.php": "d292b175b432",
         "real-media-library-lite/vendor/scoper-autoload.php": "1154b70fbdc6"
       },
-      "seen": "2026-10-26T11:03:52.913Z"
+      "seen": "2026-10-27T10:30:52.767Z"
     },
     "media-library-organizer": {
       "version": "2.1.6",
@@ -7738,73 +7742,82 @@
         "media-library-organizer/views/global/media-list-view-order.php": "d44dedceb315",
         "media-library-organizer/webpack.assets.config.js": "430b6cbf6e2a"
       },
-      "seen": "2026-10-26T11:03:52.944Z"
+      "seen": "2026-10-27T10:30:52.855Z"
     },
     "enable-media-replace": {
-      "version": "4.2.2",
-      "updated": "2026-08-20 2:24pm GMT",
+      "version": "4.2.3",
+      "updated": "2026-10-26 6:51pm GMT",
       "installs": 600000,
       "rating": 88,
       "tested": "7.1.3",
       "requires_php": "5.6",
       "manifest": {
-        "enable-media-replace/build/shortpixel/autoload.php": "dbfa0e8420fe",
-        "enable-media-replace/build/shortpixel/composer.json": "2d340b7cd828",
+        "enable-media-replace/LICENSE": "946b7346e0ed",
+        "enable-media-replace/build/shortpixel/PackageLoader.php": "ffedfafdcbc8",
+        "enable-media-replace/build/shortpixel/autoload.php": "139a1d368f14",
+        "enable-media-replace/build/shortpixel/composer.json": "4a044b3a4bd6",
         "enable-media-replace/build/shortpixel/filesystem/composer.json": "ed43ee7f1720",
         "enable-media-replace/build/shortpixel/filesystem/src/Controller/FileSystemController.php": "291d9becfa21",
-        "enable-media-replace/build/shortpixel/filesystem/src/Model/File/DirectoryModel.php": "33d873cfc547",
+        "enable-media-replace/build/shortpixel/filesystem/src/Model/File/DirectoryModel.php": "c89417c9ae54",
         "enable-media-replace/build/shortpixel/filesystem/src/Model/File/FileModel.php": "731ef509a6f7",
         "enable-media-replace/build/shortpixel/log/composer.json": "e99fae638ca0",
-        "enable-media-replace/build/shortpixel/log/src/DebugItem.php": "b55fb6df6d5d",
-        "enable-media-replace/build/shortpixel/log/src/ShortPixelLogger.php": "a06978b82304",
-        "enable-media-replace/build/shortpixel/log/src/view-debug-box.php": "bd1734a76220",
+        "enable-media-replace/build/shortpixel/log/src/DebugItem.php": "d651a801f079",
+        "enable-media-replace/build/shortpixel/log/src/ShortPixelLogger.php": "8f2dec323ed7",
+        "enable-media-replace/build/shortpixel/log/src/view-debug-box.php": "0f45333ae896",
         "enable-media-replace/build/shortpixel/notices/composer.json": "e264dc013d00",
+        "enable-media-replace/build/shortpixel/notices/src/NoticeController.php": "df35b944d0a8",
+        "enable-media-replace/build/shortpixel/notices/src/NoticeModel.php": "55686a6d92a9",
         "enable-media-replace/build/shortpixel/notices/src/css/notices.css": "b795e585c5aa",
         "enable-media-replace/build/shortpixel/notices/src/css/notices.css.map": "4e3217a50ff2",
         "enable-media-replace/build/shortpixel/notices/src/css/notices.scss": "9cc51dc2856b",
-        "enable-media-replace/build/shortpixel/notices/src/NoticeController.php": "df35b944d0a8",
-        "enable-media-replace/build/shortpixel/notices/src/NoticeModel.php": "beaac12465c7",
-        "enable-media-replace/build/shortpixel/PackageLoader.php": "ffedfafdcbc8",
-        "enable-media-replace/build/shortpixel/replacer/composer.json": "a3de2b76faa2",
-        "enable-media-replace/build/shortpixel/replacer/src/Libraries/Unserialize/DisallowedClassesSubstitutor.php": "06051e68ef4b",
-        "enable-media-replace/build/shortpixel/replacer/src/Libraries/Unserialize/LICENSE": "f01f337ee954",
-        "enable-media-replace/build/shortpixel/replacer/src/Libraries/Unserialize/README.md": "7cd772c94d80",
-        "enable-media-replace/build/shortpixel/replacer/src/Libraries/Unserialize/Unserialize.php": "92b9231c28e5",
-        "enable-media-replace/build/shortpixel/replacer/src/Modules/Breakdance.php": "cb5860dc84a0",
-        "enable-media-replace/build/shortpixel/replacer/src/Modules/Elementor.php": "e521293165f0",
-        "enable-media-replace/build/shortpixel/replacer/src/Modules/WpBakery.php": "93217e0a0a4f",
-        "enable-media-replace/build/shortpixel/replacer/src/Modules/YoastSeo.php": "ce3b728a229f",
-        "enable-media-replace/build/shortpixel/replacer/src/Replacer.php": "b493620d0535",
+        "enable-media-replace/build/shortpixel/replacer2/composer.json": "f5413e9dee20",
+        "enable-media-replace/build/shortpixel/replacer2/src/Classes/Data.php": "c4b2745ea35a",
+        "enable-media-replace/build/shortpixel/replacer2/src/Classes/Finder.php": "d8826d7ce3b7",
+        "enable-media-replace/build/shortpixel/replacer2/src/Classes/MetaData.php": "4bd01acc4868",
+        "enable-media-replace/build/shortpixel/replacer2/src/Classes/Setup.php": "68061c4a2d25",
+        "enable-media-replace/build/shortpixel/replacer2/src/Classes/Updater.php": "f2a43c359878",
+        "enable-media-replace/build/shortpixel/replacer2/src/Classes/Url.php": "de05f629cc40",
+        "enable-media-replace/build/shortpixel/replacer2/src/Classes/Utils.php": "31e5a5727e2e",
+        "enable-media-replace/build/shortpixel/replacer2/src/Libraries/Unserialize/DisallowedClassesSubstitutor.php": "06051e68ef4b",
+        "enable-media-replace/build/shortpixel/replacer2/src/Libraries/Unserialize/LICENSE": "f01f337ee954",
+        "enable-media-replace/build/shortpixel/replacer2/src/Libraries/Unserialize/README.md": "7cd772c94d80",
+        "enable-media-replace/build/shortpixel/replacer2/src/Libraries/Unserialize/Unserialize.php": "92b9231c28e5",
+        "enable-media-replace/build/shortpixel/replacer2/src/Modules/Breakdance.php": "135bd3440bcf",
+        "enable-media-replace/build/shortpixel/replacer2/src/Modules/Elementor.php": "526f55bbb465",
+        "enable-media-replace/build/shortpixel/replacer2/src/Modules/SmartSlider.php": "150bfd5a6396",
+        "enable-media-replace/build/shortpixel/replacer2/src/Modules/WpBakery.php": "93217e0a0a4f",
+        "enable-media-replace/build/shortpixel/replacer2/src/Modules/YoastSeo.php": "ce3b728a229f",
+        "enable-media-replace/build/shortpixel/replacer2/src/Replacer.php": "9345aadba6c5",
+        "enable-media-replace/classes/ApiKeyManager.php": "1115a9ac0754",
+        "enable-media-replace/classes/Controller/RemoteNoticeController.php": "eccae8f2803e",
+        "enable-media-replace/classes/Controller/ReplaceController.php": "2b9f3472e6d9",
+        "enable-media-replace/classes/Helper/envHelper.php": "4319fbbde682",
+        "enable-media-replace/classes/ViewController/RemoveBackgroundViewController.php": "5a2fe2b808f8",
+        "enable-media-replace/classes/ViewController/ReplaceViewController.php": "4106dc353f14",
+        "enable-media-replace/classes/ViewController/UploadViewController.php": "88e0fce2035e",
+        "enable-media-replace/classes/ViewController.php": "75e4382f9975",
         "enable-media-replace/classes/ajax.php": "1960a31c707d",
         "enable-media-replace/classes/api.php": "e4b862055a7e",
-        "enable-media-replace/classes/ApiKeyManager.php": "1115a9ac0754",
-        "enable-media-replace/classes/cache.php": "de1ff73cc6d2",
+        "enable-media-replace/classes/cache.php": "bf58aedaa102",
         "enable-media-replace/classes/compat.php": "3a8b6ff69ec0",
-        "enable-media-replace/classes/Controller/RemoteNoticeController.php": "eccae8f2803e",
-        "enable-media-replace/classes/Controller/ReplaceController.php": "76e9588f7bb9",
-        "enable-media-replace/classes/emr-plugin.php": "a29fa678198d",
+        "enable-media-replace/classes/emr-plugin.php": "30b3d90ad516",
         "enable-media-replace/classes/external/elementor.php": "5123449717c3",
         "enable-media-replace/classes/external/siteorigin.php": "07b393971976",
         "enable-media-replace/classes/external/upsell_installer.php": "58cc866edadc",
         "enable-media-replace/classes/external/wp-offload.php": "0caed01711b0",
         "enable-media-replace/classes/external/wpbakery.php": "114167d89ec3",
         "enable-media-replace/classes/externals.php": "3fc9f9febb9b",
-        "enable-media-replace/classes/functions.php": "7a137869837f",
         "enable-media-replace/classes/installHelper.php": "59c81cd9778a",
-        "enable-media-replace/classes/uihelper.php": "b6d3684a1a83",
-        "enable-media-replace/classes/ViewController/RemoveBackgroundViewController.php": "c6517986835a",
-        "enable-media-replace/classes/ViewController/ReplaceViewController.php": "c0a492f4bd64",
-        "enable-media-replace/classes/ViewController/UploadViewController.php": "5fa8acde5a38",
-        "enable-media-replace/classes/ViewController.php": "75e4382f9975",
-        "enable-media-replace/css/admin.css": "2f9e1c4b4b6c",
-        "enable-media-replace/css/admin.css.map": "2fb0cb5fb81e",
+        "enable-media-replace/classes/uihelper.php": "55f477e2e8ef",
+        "enable-media-replace/css/admin.css": "a69c69833e2d",
+        "enable-media-replace/css/admin.css.map": "4dc708d7f6a2",
         "enable-media-replace/css/edit_attachment.css": "f165cd19dcf7",
         "enable-media-replace/css/edit_attachment.css.map": "7d6026032b78",
         "enable-media-replace/css/redesign.css": "c23e1d110d4d",
-        "enable-media-replace/css/remove_background.css": "69f7fe326859",
-        "enable-media-replace/css/remove_background.css.map": "34791f3f2d07",
+        "enable-media-replace/css/remove_background.css": "143bf329d393",
+        "enable-media-replace/css/remove_background.css.map": "fdb199cdfe6f",
         "enable-media-replace/css/rtl/admin.css": "b23c5b7891be",
-        "enable-media-replace/enable-media-replace.php": "bfbce6fd098d",
+        "enable-media-replace/enable-media-replace.php": "5afcee413e61",
         "enable-media-replace/img/envira-logo.png": "7a61745b1356",
         "enable-media-replace/img/fastpixel-logo.svg": "f14a06073efc",
         "enable-media-replace/img/index.php": "eb222e355898",
@@ -7819,51 +7832,24 @@
         "enable-media-replace/img/ui-icons_555555_256x240.png": "0a037d8df967",
         "enable-media-replace/img/wp-modula.jpg": "57b8dc64c5c0",
         "enable-media-replace/index.php": "eb222e355898",
-        "enable-media-replace/js/emr_admin.js": "d490987f5ec9",
+        "enable-media-replace/js/emr_admin.js": "84d3518c807e",
         "enable-media-replace/js/emr_success.js": "15678416acad",
         "enable-media-replace/js/remove_bg.js": "e1df8b838caf",
         "enable-media-replace/js/upsell.js": "e77e78b84b5f",
-        "enable-media-replace/languages/enable-media-replace-da_DK.mo": "821536cf807d",
-        "enable-media-replace/languages/enable-media-replace-da_DK.po": "909a11f5ffea",
-        "enable-media-replace/languages/enable-media-replace-de_DE.mo": "106f0ad19bdb",
-        "enable-media-replace/languages/enable-media-replace-de_DE.po": "5684955d1ebb",
-        "enable-media-replace/languages/enable-media-replace-fr_FR.mo": "0e58427a7147",
-        "enable-media-replace/languages/enable-media-replace-fr_FR.po": "10b6e8f805d3",
-        "enable-media-replace/languages/enable-media-replace-it_IT.mo": "9bc78a008488",
-        "enable-media-replace/languages/enable-media-replace-it_IT.po": "6d23dcaa8a73",
-        "enable-media-replace/languages/enable-media-replace-ja.mo": "cd11bdccb8e9",
-        "enable-media-replace/languages/enable-media-replace-ja.po": "38bac135e03e",
-        "enable-media-replace/languages/enable-media-replace-nl_NL.mo": "525bb3da510f",
-        "enable-media-replace/languages/enable-media-replace-nl_NL.po": "3d86c6a77903",
-        "enable-media-replace/languages/enable-media-replace-pt_BR.mo": "465938e3f5e7",
-        "enable-media-replace/languages/enable-media-replace-pt_BR.po": "2e9099643f22",
-        "enable-media-replace/languages/enable-media-replace-pt_PT.mo": "b6b1338c0c30",
-        "enable-media-replace/languages/enable-media-replace-pt_PT.po": "7579f6d5dcce",
-        "enable-media-replace/languages/enable-media-replace-ru_RU.mo": "ab27e7248b26",
-        "enable-media-replace/languages/enable-media-replace-ru_RU.po": "0e36b7552f28",
-        "enable-media-replace/languages/enable-media-replace-sv_SE.mo": "872a0f1bfb3a",
-        "enable-media-replace/languages/enable-media-replace-sv_SE.po": "02f91b464f84",
-        "enable-media-replace/languages/enable-media-replace-zh_CN.mo": "cfdc76aa1e8a",
-        "enable-media-replace/languages/enable-media-replace-zh_CN.po": "6344de317be7",
-        "enable-media-replace/languages/enable-media-replace.mo": "d88773e80b52",
-        "enable-media-replace/languages/enable-media-replace.po": "3820eac67d9b",
-        "enable-media-replace/languages/index.php": "eb222e355898",
-        "enable-media-replace/LICENSE": "946b7346e0ed",
-        "enable-media-replace/readme.txt": "bd8348e81ae9",
-        "enable-media-replace/scss/admin.scss": "99f1871c0f1b",
-        "enable-media-replace/scss/edit_attachment.scss": "2039b667b361",
-        "enable-media-replace/scss/remove_background.scss": "34523a582212",
+        "enable-media-replace/readme.txt": "1439937a18ad",
         "enable-media-replace/scss/_datepicker.scss": "3f8ccf7aa9cb",
         "enable-media-replace/scss/_screens.scss": "7d5be0a6af26",
-        "enable-media-replace/thumbnail_updater.php": "ed5a32f0d2ce",
+        "enable-media-replace/scss/admin.scss": "516896d0ddae",
+        "enable-media-replace/scss/edit_attachment.scss": "2039b667b361",
+        "enable-media-replace/scss/remove_background.scss": "34523a582212",
         "enable-media-replace/views/do-replace-background.php": "ce4bd5a42d07",
         "enable-media-replace/views/error.php": "51b1903823ba",
         "enable-media-replace/views/prepare-remove-background.php": "f0897dd7c922",
-        "enable-media-replace/views/screen.php": "1e778fcd32d5",
+        "enable-media-replace/views/screen.php": "3970416ba550",
         "enable-media-replace/views/success.php": "6960838a0f6d",
         "enable-media-replace/views/upsell.php": "ac34421f70c2"
       },
-      "seen": "2026-10-26T11:03:52.976Z"
+      "seen": "2026-10-27T10:30:52.945Z"
     }
   },
   "checked": null,
@@ -7872,187 +7858,187 @@
       "version": "7.1.3",
       "prerelease": "7.2-beta1",
       "onBox": null,
-      "seen": "2026-10-26T11:03:53.066Z"
+      "seen": "2026-10-27T10:30:53.114Z"
     },
     "php": {
       "version": "8.5.12",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:53.166Z"
+      "seen": "2026-10-27T10:30:53.129Z"
     },
     "elementor": {
       "version": "4.3.5",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:53.200Z"
+      "seen": "2026-10-27T10:30:53.224Z"
     },
     "beaver-builder-lite-version": {
       "version": "2.11.1.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:53.229Z"
+      "seen": "2026-10-27T10:30:53.304Z"
     },
     "brizy": {
       "version": "2.8.24",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:53.261Z"
+      "seen": "2026-10-27T10:30:53.396Z"
     },
     "js_composer": {
       "version": "9.0.1",
       "prerelease": null,
       "onBox": "9.0.1",
-      "seen": "2026-10-26T11:03:51.395Z"
+      "seen": "2026-10-27T10:30:49.209Z"
     },
     "divi": {
       "version": "5.11.0",
       "prerelease": null,
       "onBox": "5.11.0",
-      "seen": "2026-10-26T11:03:51.395Z"
+      "seen": "2026-10-27T10:30:49.209Z"
     },
     "bricks": {
       "version": "1.15",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.580Z"
+      "seen": "2026-10-27T10:30:54.628Z"
     },
     "oxygen": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.580Z"
+      "seen": "2026-10-27T10:30:54.628Z"
     },
     "avada": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.580Z"
+      "seen": "2026-10-27T10:30:54.628Z"
     },
     "thrive-architect": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.580Z"
+      "seen": "2026-10-27T10:30:54.628Z"
     },
     "cornerstone": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.580Z"
+      "seen": "2026-10-27T10:30:54.628Z"
     },
     "yootheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.580Z"
+      "seen": "2026-10-27T10:30:54.628Z"
     },
     "betheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.580Z"
+      "seen": "2026-10-27T10:30:54.628Z"
     },
     "themify-builder": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.580Z"
+      "seen": "2026-10-27T10:30:54.628Z"
     },
     "tailor": {
       "version": "1.8.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.611Z"
+      "seen": "2026-10-27T10:30:54.716Z"
     },
     "oshine": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.612Z"
+      "seen": "2026-10-27T10:30:54.716Z"
     },
     "learnpress-frontend-editor": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.612Z"
+      "seen": "2026-10-27T10:30:54.716Z"
     },
     "dokan-lite": {
       "version": "5.3.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.644Z"
+      "seen": "2026-10-27T10:30:54.809Z"
     },
     "wordpress-seo": {
-      "version": "28.7",
+      "version": "28.8",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.674Z"
+      "seen": "2026-10-27T10:30:54.893Z"
     },
     "seo-by-rank-math": {
       "version": "1.0.280",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.705Z"
+      "seen": "2026-10-27T10:30:54.981Z"
     },
     "wp-seopress": {
       "version": "10.3",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.735Z"
+      "seen": "2026-10-27T10:30:55.066Z"
     },
     "all-in-one-seo-pack": {
       "version": "5.0.4",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.764Z"
+      "seen": "2026-10-27T10:30:55.151Z"
     },
     "woocommerce": {
       "version": "11.2.1",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.794Z"
+      "seen": "2026-10-27T10:30:55.242Z"
     },
     "advanced-custom-fields": {
       "version": "6.8.10",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.826Z"
+      "seen": "2026-10-27T10:30:55.331Z"
     },
     "polylang": {
       "version": "3.9.1",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.854Z"
+      "seen": "2026-10-27T10:30:55.412Z"
     },
     "wpml": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:54.854Z"
+      "seen": "2026-10-27T10:30:55.412Z"
     },
     "wp-rocket": {
-      "version": "2.0.4",
+      "version": "2.0.5",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:55.970Z"
+      "seen": "2026-10-27T10:30:55.893Z"
     },
     "filebird": {
       "version": "6.5.9",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:56.001Z"
+      "seen": "2026-10-27T10:30:55.974Z"
     },
     "real-media-library-lite": {
       "version": "4.23.7",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:56.028Z"
+      "seen": "2026-10-27T10:30:56.051Z"
     },
     "zionbuilder": {
       "version": "3.6.17",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-10-26T11:03:53.294Z"
+      "seen": "2026-10-27T10:30:53.485Z"
     }
   }
 }
