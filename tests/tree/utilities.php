@@ -171,6 +171,9 @@ u_check( 'a file with no vector gets an empty answer, not an error',
 
 u_say( "\nmerging, which sets aside\n" );
 
+// The merge refuses a file its caller may not delete, so someone who may has to run it.
+wp_set_current_user( 1 );
+
 $u_plan = array( array(
     'keep'  => $u_a1,
     'aside' => array( $u_a2 ),
