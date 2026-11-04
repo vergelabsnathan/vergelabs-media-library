@@ -17,8 +17,8 @@ looks safest in a diff, so what is examined is `prepare()`'s own format string.
 
 | | count |
 |---|---|
-| lines mentioning `$wpdb->` | 567 |
-| `$wpdb->prepare()` calls | 194 |
+| lines mentioning `$wpdb->` | 568 |
+| `$wpdb->prepare()` calls | 195 |
 | **calls that reach the server** | **214** |
 | · prepared | 183 |
 | · a literal, nothing interpolated | 0 |
@@ -275,7 +275,7 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 527 | — | `get_var` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name |
+| 528 | — | `get_var` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name |
 
 ### core/options-pages.php
 
@@ -390,10 +390,10 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 |---|---|---|---|---|
 | 1138 | — | `get_results` | prepared | $wpdb->term_taxonomy — a $wpdb table name |
 | 1149 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $terms ), '%d' ) ) — implode of a generated %d placeholder list |
-| 1588 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name |
-| 1598 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
-| 1641 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; implode( ', ', array_fill( 0, count( $object_types ), '%s' ) ) — implode of a generated %d placeholder list |
-| 1657 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 1606 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name |
+| 1616 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 1659 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; implode( ', ', array_fill( 0, count( $object_types ), '%s' ) ) — implode of a generated %d placeholder list |
+| 1675 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
 
 ### core/utilities.php
 
