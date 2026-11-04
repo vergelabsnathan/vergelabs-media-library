@@ -228,6 +228,11 @@ vergeml_t( 'the folder route gives an editor attachment counts for that type', i
 wp_set_current_user( $users['editor'] );
 vergeml_t( 'an editor counts all four posts', 4 === vergeml_assign_count( $term, 'vergeml_folder', 'post' ) );
 wp_set_current_user( $users['author'] );
+wp_set_current_user( $users['editor'] );
+wp_get_current_user()->add_cap( 'read_private_posts', false );
+vergeml_t( 'a role that may not read private posts does not count them, or anyone\'s drafts', 1 === vergeml_assign_count( $term, 'vergeml_folder', 'post' ) );
+wp_get_current_user()->remove_cap( 'read_private_posts' );
+wp_set_current_user( $users['author'] );
 vergeml_t( "an author counts published posts and their own, not another's private or draft", 2 === vergeml_assign_count( $term, 'vergeml_folder', 'post' ), (string) vergeml_assign_count( $term, 'vergeml_folder', 'post' ) );
 
 $loose_private = wp_insert_post( array( 'post_type' => 'post', 'post_status' => 'private', 'post_author' => 1, 'post_title' => 'vgml caps loose' ) );
@@ -338,6 +343,87 @@ if ( ! defined( 'REST_REQUEST' ) ) {
 $terms_filter = vergeml_private_filter_terms( array( 'include' => array( $hidden_term ) ), array( 'vergeml_folder' ) );
 vergeml_t( 'naming only a hidden folder over REST finds nothing', array( 0 ) === $terms_filter['include'] );
 
+/* --- sixth pass: the same read through the doors next to it --- */
+
+foreach ( array( 'contributor', 'subscriber' ) as $role ) {
+	$users[ $role ] = wp_insert_user( array( 'user_login' => 'vergeml_caps_' . $role . '_' . wp_rand(), 'user_pass' => wp_generate_password(), 'role' => $role ) );
+}
+
+function vergeml_assign_answer( $att, $term ) {
+	$req = new WP_REST_Request( 'POST', '/vergeml/v1/assign' );
+	foreach ( array( 'taxonomy' => 'vergeml_folder', 'attachments' => array( $att ), 'add' => array( $term ) ) as $k => $v ) {
+		$req->set_param( $k, $v );
+	}
+	return rest_ensure_response( vergeml_rest_assign( $req ) )->get_data();
+}
+
+wp_set_current_user( $users['contributor'] );
+$answer = vergeml_assign_answer( $att, $term );
+vergeml_t( '/assign gives a contributor no file counts', array() === $answer['counts'] && null === $answer['unassigned'], wp_json_encode( $answer ) );
+wp_set_current_user( $users['author'] );
+$answer = vergeml_assign_answer( $att, $term );
+vergeml_t( '/assign still gives an author the counts /tree gives', isset( $answer['counts'][ $term ] ) && is_int( $answer['unassigned'] ), wp_json_encode( $answer ) );
+
+wp_set_current_user( $users['subscriber'] );
+list( $status ) = vergeml_core_rest( '/wp/v2/vergeml_folder' );
+vergeml_t( 'a subscriber cannot read the folders through core', 403 === $status, (string) $status );
+wp_set_current_user( $users['contributor'] );
+list( $status ) = vergeml_core_rest( '/wp/v2/vergeml_folder' );
+vergeml_t( 'a contributor still can, for the block editor', 200 === $status, (string) $status );
+
+wp_set_current_user( $users['author'] );
+list( $status, $body ) = vergeml_core_rest( '/wp/v2/vergeml_folder', array( 'include' => array( $hidden_term ) ) );
+vergeml_t( 'include naming only it reads like an id that does not exist', '[]' === $body, substr( $body, 0, 60 ) );
+list( $status, $body ) = vergeml_core_rest( '/wp/v2/vergeml_folder', array( 'parent' => $hidden_term ) );
+vergeml_t( 'parent naming it finds nothing', '[]' === $body, substr( $body, 0, 60 ) );
+
+wp_set_current_user( $second_editor );
+$req = new WP_REST_Request( 'POST', '/wp/v2/vergeml_folder/' . $term );
+$req->set_param( 'parent', $hidden_term );
+$res = rest_do_request( $req );
+vergeml_t( 'core REST will not move a folder under it', 400 === $res->get_status() && 0 === (int) get_term( $term )->parent, (string) $res->get_status() );
+wp_update_term( $term, 'vergeml_folder', array( 'parent' => $hidden_term ) );
+vergeml_t( "core's forms will not either", 0 === (int) get_term( $term )->parent );
+vergeml_t( 'nor create a folder under it', is_wp_error( wp_insert_term( 'vgml-caps-under', 'vergeml_folder', array( 'parent' => $hidden_term ) ) ) );
+
+// One shared object cache, filled by either person first.
+clean_object_term_cache( $own_filed, 'attachment' );
+wp_set_current_user( $users['editor'] );
+update_object_term_cache( array( $own_filed ), 'attachment' );
+wp_set_current_user( $users['author'] );
+vergeml_t( "the owner filling the cache does not show it to the next person", false === get_the_terms( $own_filed, 'vergeml_folder' ) );
+clean_object_term_cache( $own_filed, 'attachment' );
+update_object_term_cache( array( $own_filed ), 'attachment' );
+wp_set_current_user( $users['editor'] );
+$owner_terms = get_the_terms( $own_filed, 'vergeml_folder' );
+vergeml_t( 'someone else filling the cache does not take it from its owner', is_array( $owner_terms ) && $hidden_term === (int) $owner_terms[0]->term_id );
+wp_set_current_user( $users['author'] );
+$shape = vergeml_private_filter_terms( array( 'fields' => 'id=>parent', 'get' => 'all' ), array( 'vergeml_folder' ) );
+vergeml_t( "the hierarchy core shares between users keeps every folder", empty( $shape['exclude'] ) );
+$shape = vergeml_private_filter_terms( array( 'fields' => 'all_with_object_id' ), array( 'vergeml_folder' ) );
+vergeml_t( "a plain object-terms read is still filtered", in_array( $hidden_term, $shape['exclude'], true ) );
+
+vergeml_t( 'media search leaves its name out of the join', false !== strpos( vergeml_search_not_hidden(), (string) $hidden_term ) );
+wp_set_current_user( $users['editor'] );
+vergeml_t( 'its owner searches it', false === strpos( vergeml_search_not_hidden(), (string) $hidden_term ) );
+wp_set_current_user( $users['author'] );
+
+// Core's shortcode preview, which has no capability check of its own.
+include_once plugin_dir_path( VERGEML_FILE ) . 'core/medialist.php';
+$GLOBALS['wp_current_filter'][] = 'wp_ajax_parse-media-shortcode';
+$preview_atts = array( 'vergeml_folder' => (string) $hidden_term );
+$preview_base = array( 'id' => 0, 'order' => 'ASC', 'orderby' => 'menu_order ID' );
+wp_set_current_user( $users['subscriber'] );
+vergeml_t( 'the shortcode preview lists no folder for a subscriber', empty( vergeml_shortcode_atts( $preview_base, $preview_base, $preview_atts )['ids'] ) );
+wp_set_current_user( $users['author'] );
+$listed = vergeml_shortcode_atts( $preview_base, $preview_base, $preview_atts );
+vergeml_t( 'the shortcode preview will not list it for an author', empty( $listed['ids'] ) || false === strpos( ',' . $listed['ids'] . ',', ',' . $own_filed . ',' ) );
+wp_set_current_user( $users['editor'] );
+$listed = vergeml_shortcode_atts( $preview_base, $preview_base, $preview_atts );
+vergeml_t( 'it still lists it for its owner', ! empty( $listed['ids'] ) && false !== strpos( ',' . $listed['ids'] . ',', ',' . $own_filed . ',' ), wp_json_encode( $listed ) );
+array_pop( $GLOBALS['wp_current_filter'] );
+wp_set_current_user( $users['author'] );
+
 // Every shape of callback a route can have: the guard runs before all of them.
 register_rest_route( 'vergeml-caps/v1', '/closure', array( 'methods' => 'GET', 'callback' => function () { return 'ok'; }, 'permission_callback' => '__return_true' ) );
 register_rest_route( 'vergeml-caps/v1', '/name', array( 'methods' => 'GET', 'callback' => 'rest_get_url_prefix', 'permission_callback' => '__return_true' ) );
@@ -378,6 +464,7 @@ vergeml_t( '/tree refuses a taxonomy the caller may not assign', true !== call_u
 $req = new WP_REST_Request( 'GET', '/vergeml/v1/state' );
 $req->set_param( 'taxonomy', 'vergeml_caps_strict' );
 vergeml_t( '/state refuses it too', true !== call_user_func( $routes['/vergeml/v1/state'][0]['permission_callback'], $req ) );
+vergeml_t( 'the lists leave out a taxonomy the caller may not assign', ! isset( vergeml_assignable_media_taxonomies()['vergeml_caps_strict'] ) && isset( vergeml_assignable_media_taxonomies()['vergeml_folder'] ) );
 $req = new WP_REST_Request( 'GET', '/vergeml/v1/gallery-folders' );
 $req->set_param( 'taxonomy', 'vergeml_caps_strict' );
 

@@ -106,6 +106,23 @@ function vergeml_search_terms( $search ) {
 
 
 /**
+ *  Somebody else's private folder is not searched by name: the name is what is hidden.
+ */
+function vergeml_search_not_hidden() {
+
+    global $wpdb;
+
+    $hidden = function_exists( 'vergeml_private_hidden_from' ) ? vergeml_private_hidden_from() : array();
+
+    if ( ! $hidden ) {
+        return '';
+    }
+
+    return $wpdb->prepare( ' AND vergeml_tt.term_id NOT IN ( ' . implode( ', ', array_fill( 0, count( $hidden ), '%d' ) ) . ' )', $hidden );
+}
+
+
+/**
  *  vergeml_posts_join
  *
  *  Adds only the joins the enabled columns actually need. Aliases are prefixed
@@ -135,6 +152,7 @@ function vergeml_posts_join( $join, $query ) {
     if ( in_array( 'taxonomies', $columns, true ) ) {
         $join .= " LEFT JOIN {$wpdb->term_relationships} AS vergeml_tr ON {$wpdb->posts}.ID = vergeml_tr.object_id"
                . " LEFT JOIN {$wpdb->term_taxonomy} AS vergeml_tt ON vergeml_tr.term_taxonomy_id = vergeml_tt.term_taxonomy_id"
+               . vergeml_search_not_hidden()
                . " LEFT JOIN {$wpdb->terms} AS vergeml_term ON vergeml_tt.term_id = vergeml_term.term_id";
     }
 

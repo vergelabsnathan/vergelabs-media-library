@@ -156,6 +156,12 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
         return $args;
     }
 
+    // Core's two stores shared by every user must hold every folder, whoever fills them: its hierarchy holds only ids, and its object cache is filtered on the way out below.
+    $fields = isset( $args['fields'] ) ? $args['fields'] : '';
+    if ( 'id=>parent' === $fields || ( 'all_with_object_id' === $fields && isset( $args['update_term_meta_cache'] ) && false === $args['update_term_meta_cache'] ) ) {
+        return $args;
+    }
+
     $hidden = vergeml_private_hidden_from();
 
     if ( empty( $hidden ) ) {
@@ -181,9 +187,34 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
 
 
 /**
- *  True when this folder is somebody else's private folder. Every door that takes
- *  a folder id from a request asks this, because get_term() does not pass through
- *  the filter above.
+ *  A file's folders come from core's object cache, which is shared between users.
+ */
+add_filter( 'get_the_terms', 'vergeml_private_filter_object_terms', 10, 3 );
+
+function vergeml_private_filter_object_terms( $terms, $post_id, $taxonomy ) {
+
+    if ( ! is_array( $terms ) || ! in_array( $taxonomy, vergeml_tree_taxonomies(), true ) ) {
+        return $terms;
+    }
+
+    $hidden = vergeml_private_hidden_from();
+    $kept   = array();
+
+    foreach ( $terms as $term ) {
+        if ( ! in_array( (int) $term->term_id, $hidden, true ) ) {
+            $kept[] = $term;
+        }
+    }
+
+    return $kept ? $kept : false;
+}
+
+
+/**
+ *  True when this folder is somebody else's private folder. The plugin's admin doors
+ *  that file into a folder or list one ask this, because get_term() does not pass
+ *  through the filter above. A gallery placed in a published post keeps showing its
+ *  pictures: visitors see that gallery by the author's choice.
  */
 function vergeml_private_is_hidden( $term_id ) {
     return in_array( (int) $term_id, vergeml_private_hidden_from(), true );
@@ -207,10 +238,40 @@ function vergeml_private_map_meta_cap( $caps, $cap, $user_id, $args ) {
 
 
 /**
+ *  Somebody else's private folder is not a parent: a shared folder moved under one
+ *  stops being drawn for everyone who cannot see it. Core's forms come through here.
+ */
+add_filter( 'wp_update_term_parent', 'vergeml_private_keep_parent', 10, 3 );
+
+function vergeml_private_keep_parent( $parent, $term_id, $taxonomy ) {
+
+    if ( ! vergeml_private_is_hidden( (int) $parent ) ) {
+        return $parent;
+    }
+
+    $term = get_term( $term_id, $taxonomy );
+
+    return $term instanceof WP_Term ? $term->parent : 0;
+}
+
+
+add_filter( 'pre_insert_term', 'vergeml_private_refuse_parent', 10, 3 );
+
+function vergeml_private_refuse_parent( $term, $taxonomy, $args = array() ) {
+
+    if ( ! empty( $args['parent'] ) && vergeml_private_is_hidden( (int) $args['parent'] ) ) {
+        return new WP_Error( 'vergeml_no_folder', __( 'That folder does not exist.', 'vergelabs-media-library' ) );
+    }
+
+    return $term;
+}
+
+
+/**
  *  Core's own term routes for the folder taxonomies.
  *
- *  A non-public taxonomy's names are not for logged-out visitors, and somebody
- *  else's private folder is not reachable by id or through include.
+ *  A non-public taxonomy's names are for people who may file into it, as on /tree,
+ *  and somebody else's private folder is not reachable by id, include or parent.
  */
 add_filter( 'rest_request_before_callbacks', 'vergeml_private_guard_core_rest', 10, 3 );
 
@@ -243,8 +304,8 @@ function vergeml_private_guard_core_rest( $response, $handler, $request ) {
     }
 
     // Only this plugin's own taxonomies: another plugin's stay as that plugin registered them.
-    if ( 0 === strpos( $taxonomy, 'vergeml_' ) && empty( $object->public ) && ! is_user_logged_in() ) {
-        return new WP_Error( 'rest_forbidden', __( 'You must be logged in to read these folders.', 'vergelabs-media-library' ), array( 'status' => 401 ) );
+    if ( 0 === strpos( $taxonomy, 'vergeml_' ) && empty( $object->public ) && ! current_user_can( $object->cap->assign_terms ) ) {
+        return new WP_Error( 'rest_forbidden', __( 'You cannot read these folders.', 'vergelabs-media-library' ), array( 'status' => rest_authorization_required_code() ) );
     }
 
     $url = $request->get_url_params();
@@ -253,8 +314,19 @@ function vergeml_private_guard_core_rest( $response, $handler, $request ) {
         return new WP_Error( 'rest_term_invalid', __( 'That folder does not exist.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
     }
 
+    // Naming only hidden folders finds nothing, exactly as naming ids that do not exist.
     if ( $request->get_param( 'include' ) ) {
-        $request->set_param( 'include', array_values( array_diff( wp_parse_id_list( $request->get_param( 'include' ) ), vergeml_private_hidden_from() ) ) );
+        $kept = array_values( array_diff( wp_parse_id_list( $request->get_param( 'include' ) ), vergeml_private_hidden_from() ) );
+        $request->set_param( 'include', $kept ? $kept : array( 0 ) );
+    }
+
+    if ( vergeml_private_is_hidden( (int) $request->get_param( 'parent' ) ) ) {
+
+        if ( 'GET' !== $request->get_method() ) {
+            return new WP_Error( 'rest_term_invalid', __( 'That folder does not exist.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
+        }
+
+        $request->set_param( 'include', array( 0 ) );
     }
 
     return $response;

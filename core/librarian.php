@@ -2959,13 +2959,13 @@ function vergeml_librarian_why( $attachment_id ) {
 
     $out = array(
         'why'           => $why,
-        'term_id'       => (int) $row['term_id'],
+        'term_id'       => in_array( (int) $row['term_id'], $hidden, true ) ? 0 : (int) $row['term_id'],
         'term'          => $term,
         'score'         => $score,
-        'runner_up'     => (int) $row['runner_up'],
+        'runner_up'     => in_array( (int) $row['runner_up'], $hidden, true ) ? 0 : (int) $row['runner_up'],
         'runner'        => $runner,
         'runner_score'  => $rscore,
-        'nearest'       => isset( $row['nearest'] ) ? (int) $row['nearest'] : 0,
+        'nearest'       => isset( $row['nearest'] ) && ! in_array( (int) $row['nearest'], $hidden, true ) ? (int) $row['nearest'] : 0,
         'near'          => $near,
         'source'        => isset( $row['source'] ) ? (string) $row['source'] : '',
         'hit'           => isset( $row['hit'] ) ? (string) $row['hit'] : '',

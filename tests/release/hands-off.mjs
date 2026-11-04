@@ -175,7 +175,7 @@ check( 'media_category is read only by the migration, the EML import, the old ga
 // Round 9 (2026-10-28): a route that takes a post_type checks the caller's capability for that type, and counts stay behind the check.
 const treeSrc = strip( fs.readFileSync( path.join( ROOT, 'core/rest-tree.php' ), 'utf8' ) );
 check( '/tree checks the capability of the post type it was asked about', /'\/tree'[\s\S]{0,1200}get_post_type_object\( \$type \)[\s\S]{0,80}->cap->edit_posts/.test( treeSrc ) );
-check( 'the tree and assign counts both go through vergeml_counts_post_type', 3 === ( treeSrc.match( /vergeml_counts_post_type\(/g ) || [] ).length && /->cap->edit_posts \) \? \$post_type : ''/.test( treeSrc ) );
+check( 'the tree and assign counts both go through vergeml_counts_post_type', 4 === ( treeSrc.match( /vergeml_counts_post_type\(/g ) || [] ).length && /->cap->edit_posts \) \? \$post_type : ''/.test( treeSrc ) );
 const countCalls = hits( php, /vergeml_(?:folder_counts|folder_unfiled_count)\(/g ).filter( ( h ) => ! /core[\\/](?:rest-tree|post-folders)\.php/.test( h.at ) );
 check( 'post-type counts are read only by rest-tree.php', 0 === countCalls.length, countCalls.map( ( h ) => h.at ).join( ' | ' ) );
 const postFolders = strip( fs.readFileSync( path.join( ROOT, 'core/post-folders.php' ), 'utf8' ) );
@@ -186,6 +186,23 @@ for ( const [ rel, min ] of [ [ 'core/folder-tools.php', 2 ], [ 'core/rest-tree.
 	check( `${ rel } refuses a hidden private folder`, n >= min, String( n ) );
 }
 check( '/tree asks about the requested taxonomy', /'\/tree'[\s\S]{0,1200}\$tax->cap->assign_terms/.test( treeSrc ) );
+// Round 9, sixth pass: the doors next to /tree.
+const read = ( rel ) => strip( fs.readFileSync( path.join( ROOT, rel ), 'utf8' ) );
+const privateSrc = read( 'core/private-folders.php' );
+check( '/assign gives file counts only to someone who sees the files', /\$sees_files = current_user_can\( 'upload_files' \)/.test( treeSrc ) && /\$sees_files \|\| vergeml_counts_post_type\(/.test( treeSrc ) && /'unassigned' => \$sees_files \?/.test( treeSrc ) );
+check( '/state does not answer with a hidden folder', /\$selected > 0 && \( ! get_term\( \$selected, \$taxonomy \) instanceof WP_Term \|\| vergeml_private_is_hidden\( \$selected \)/.test( treeSrc ) );
+const medialistSrc = read( 'core/medialist.php' );
+check( "core's shortcode preview lists nothing for someone without upload_files", /doing_action\( 'wp_ajax_parse-media-shortcode' \)[\s\S]{0,120}! current_user_can\( 'upload_files' \)/.test( medialistSrc ) && /\$preview && 'term_id' === \$field/.test( medialistSrc ) );
+check( "get_the_terms is filtered, because core's object cache is shared", /add_filter\( 'get_the_terms', 'vergeml_private_filter_object_terms'/.test( privateSrc ) );
+check( 'media search skips a hidden folder name', /vergeml_search_not_hidden\(\)\s*\. " LEFT JOIN/.test( read( 'core/search.php' ) ) );
+check( "core's term route is refused without assign_terms", /'vergeml_' \)[^\n]*! current_user_can\( \$object->cap->assign_terms \)/.test( privateSrc ) && ! /! is_user_logged_in\(\)/.test( privateSrc ) );
+check( 'a hidden folder is not a parent', /wp_update_term_parent/.test( privateSrc ) && /pre_insert_term/.test( privateSrc ) && /get_param\( 'parent' \)/.test( privateSrc ) );
+check( 'limited counts also look at read_private_posts', 2 === ( postFolders.match( /->cap->read_private_posts/g ) || [] ).length );
+for ( const rel of [ 'core/bulk-terms.php', 'core/taxonomies.php', 'core/media-list.php', 'vergelabs-media-library.php' ] ) {
+	check( `${ rel } lists only taxonomies the user may assign`, ( read( rel ).match( /vergeml_assignable_media_taxonomies\(/g ) || [] ).length >= ( 'core/taxonomies.php' === rel ? 3 : 1 ) );
+}
+const whySrc = read( 'core/librarian.php' );
+check( 'the why reader returns no hidden folder id', 3 === ( whySrc.match( /in_array\( \(int\) \$row\['(?:term_id|runner_up|nearest)'\], \$hidden, true \)/g ) || [] ).length );
 const renamer = hits( php, /VERGEML_FILE_RENAME|vergeml_file_rename\b/g );
 check( 'the unfinished file renamer is not in the build', 0 === renamer.length, renamer.map( ( h ) => h.at ).join( ' | ' ) );
 const routes = hits( php, /register_rest_route\s*\(/g ).length;

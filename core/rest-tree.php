@@ -524,7 +524,7 @@ function vergeml_tree_state( $taxonomy ) {
      */
     $selected = isset( $mine['selected'] ) ? (int) $mine['selected'] : 0;
 
-    if ( $selected > 0 && ! get_term( $selected, $taxonomy ) instanceof WP_Term ) {
+    if ( $selected > 0 && ( ! get_term( $selected, $taxonomy ) instanceof WP_Term || vergeml_private_is_hidden( $selected ) ) ) {
         $selected = 0;
     }
 
@@ -763,10 +763,13 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
 
     $for_type = (string) $request->get_param( 'post_type' );
 
+    // Filing a post does not need upload_files; the library's file counts do, as on /tree.
+    $sees_files = current_user_can( 'upload_files' );
+
     $counts = array();
     foreach ( array_unique( $touched ) as $term_id ) {
         $term = get_term( $term_id, $taxonomy );
-        if ( $term instanceof WP_Term )
+        if ( $term instanceof WP_Term && ( $sees_files || vergeml_counts_post_type( $taxonomy, $for_type ) ) )
             $counts[ (int) $term_id ] = vergeml_assign_count( $term_id, $taxonomy, $for_type );
     }
 
@@ -774,7 +777,7 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
         'changed'    => $changed,
         'refused'    => $refused,
         'counts'     => $counts,
-        'unassigned' => vergeml_count_unassigned( $taxonomy ),
+        'unassigned' => $sees_files ? vergeml_count_unassigned( $taxonomy ) : null,
         /*
          *  What to send back to undo this. The toast posts it straight back to
          *  this endpoint, so the inverse is computed here and the browser never

@@ -106,6 +106,7 @@ function vergeml_list_row_meta() {
     }
 
     $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
+    $taxonomy = isset( vergeml_assignable_media_taxonomies()[ $taxonomy ] ) ? $taxonomy : '';
     $meta     = array();
 
     /*
@@ -452,7 +453,7 @@ function vergeml_list_folder_filter( $post_type, $which ) {
 
     $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
-    if ( ! $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+    if ( ! $taxonomy || ! isset( vergeml_assignable_media_taxonomies()[ $taxonomy ] ) ) {
         return;
     }
 
@@ -570,6 +571,10 @@ function vergeml_list_folder_count( $term ) {
  */
 
 function vergeml_list_folder_options( $taxonomy ) {
+
+    if ( ! isset( vergeml_assignable_media_taxonomies()[ $taxonomy ] ) ) {
+        return array();
+    }
 
     $terms = get_terms( array(
         'taxonomy'   => $taxonomy,

@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 function vergeml_bulk_term_choices() {
 
-    $taxonomies = get_object_taxonomies( 'attachment', 'objects' );
+    $taxonomies = vergeml_assignable_media_taxonomies();
     $choices    = array();
 
     foreach ( $taxonomies as $taxonomy ) {

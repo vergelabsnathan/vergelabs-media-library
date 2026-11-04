@@ -124,7 +124,7 @@ function vergeml_folder_counts( $taxonomy, $post_type ) {
 
     // Someone who cannot edit others' posts counts what is published and their own, and that answer is not shared.
     $object  = get_post_type_object( $post_type );
-    $limited = ! $object || ! current_user_can( $object->cap->edit_others_posts );
+    $limited = ! $object || ! current_user_can( $object->cap->edit_others_posts ) || ! current_user_can( $object->cap->read_private_posts );
 
     $key    = 'vergeml_counts_' . $taxonomy . '_' . $post_type;
     $cached = $limited ? false : wp_cache_get( $key, 'vergeml' );
@@ -174,7 +174,7 @@ function vergeml_folder_unfiled_count( $taxonomy, $post_type ) {
     global $wpdb;
 
     $object  = get_post_type_object( $post_type );
-    $limited = ! $object || ! current_user_can( $object->cap->edit_others_posts );
+    $limited = ! $object || ! current_user_can( $object->cap->edit_others_posts ) || ! current_user_can( $object->cap->read_private_posts );
 
     $key    = 'vergeml_unfiled_' . $taxonomy . '_' . $post_type;
     $cached = $limited ? false : wp_cache_get( $key, 'vergeml' );

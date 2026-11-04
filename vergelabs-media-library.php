@@ -1055,7 +1055,7 @@ global $vergeml_dir,
 
 
         // In safe mode, or without what the features need, the media frame is WordPress's own.
-        if ( ! is_admin() || vergeml_features_off() ) {
+        if ( ! is_admin() || vergeml_features_off() || ! current_user_can( 'upload_files' ) ) {
             return;
         }
 
@@ -1074,7 +1074,7 @@ global $vergeml_dir,
 
         $vergeml_lib_options = get_option( 'vergeml_lib_options' );
         $vergeml_taxonomies = get_option( 'vergeml_taxonomies', array() );
-        $media_taxonomies = get_object_taxonomies( 'attachment','object' );
+        $media_taxonomies = vergeml_assignable_media_taxonomies();
         $media_taxonomy_names = array_keys( $media_taxonomies );
 
         $media_taxonomies_ready_for_script = array();

@@ -634,7 +634,7 @@ function vergeml_restrict_manage_posts( $post_type, $which ) {
 
     if ( in_array( 'taxonomies', $vergeml_lib_options['filters_to_show'] ) ) {
 
-        foreach ( get_object_taxonomies( 'attachment', 'object' ) as $taxonomy ) {
+        foreach ( vergeml_assignable_media_taxonomies() as $taxonomy ) {
 
             if ( ! (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'] )
                 continue;
@@ -1376,6 +1376,24 @@ function vergeml_compat_term_counts( $response ) {
  *  own (js/eml-media-models.js asks once the delete has gone through).
  */
 
+/**
+ *  The attachment taxonomies this user may file into: the same bar /tree sets, for
+ *  everything that lists their terms.
+ */
+function vergeml_assignable_media_taxonomies() {
+
+    $kept = array();
+
+    foreach ( get_object_taxonomies( 'attachment', 'object' ) as $name => $taxonomy ) {
+        if ( current_user_can( $taxonomy->cap->assign_terms ) ) {
+            $kept[ $name ] = $taxonomy;
+        }
+    }
+
+    return $kept;
+}
+
+
 add_action( 'wp_ajax_vergeml-term-counts', 'vergeml_ajax_term_counts' );
 
 function vergeml_ajax_term_counts() {
@@ -1391,7 +1409,7 @@ function vergeml_ajax_term_counts() {
 
     if ( ! empty( $vergeml_lib_options['show_count'] ) ) {
 
-        $terms = get_terms( array( 'taxonomy' => get_object_taxonomies( 'attachment', 'names' ), 'fields' => 'all', 'get' => 'all' ) );
+        $terms = get_terms( array( 'taxonomy' => array_keys( vergeml_assignable_media_taxonomies() ), 'fields' => 'all', 'get' => 'all' ) );
 
         foreach ( vergeml_get_media_term_pairs( $terms, 'id=>tt_id' ) as $term_id => $tt_id ) {
             $response['tcount'][ $term_id ] = vergeml_get_media_term_count( $term_id, $tt_id );

@@ -22,6 +22,13 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
 
     $vergeml_lib_options = get_option( 'vergeml_lib_options', array() );
 
+    // Core's shortcode preview answers any logged-in user: listing the library by folder or month is for people who see it.
+    $preview = doing_action( 'wp_ajax_parse-media-shortcode' );
+
+    if ( $preview && ! current_user_can( 'upload_files' ) ) {
+        return $output;
+    }
+
 
     // 3rd-party plugins can send string as a 3rd param
     if ( is_string( $atts ) || empty( $atts ) ) {
@@ -68,6 +75,11 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
             }
 
             $field = preg_match( '/^\d+$/', implode( '', $terms ) ) ? 'term_id' : 'slug';
+
+            if ( $preview && 'term_id' === $field && function_exists( 'vergeml_private_hidden_from' ) ) {
+                $terms = array_values( array_diff( array_map( 'intval', $terms ), vergeml_private_hidden_from() ) );
+                $terms = $terms ? $terms : array( 0 );
+            }
 
             $tax_query[] = array(
                 'taxonomy'         => $taxonomy,
