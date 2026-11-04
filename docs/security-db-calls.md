@@ -286,8 +286,8 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | 1573 | — | `query` | prepared | — |
 | 1596 | — | `get_col` | prepared | — |
 | 1611 | — | `query` | prepared | implode( ', ', array_fill( 0, count( $meta_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 1660 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
-| 1713 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 1661 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
+| 1714 | — | `query` | only a `$wpdb` table name | $wpdb->options — a $wpdb table name |
 
 ### core/organize.php
 
