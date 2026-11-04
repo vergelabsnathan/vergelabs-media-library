@@ -134,9 +134,9 @@ function vergeml_private_hidden_from( $user_id = 0 ) {
  *  filter dropdown would be a strange half-feature, and the name is the thing
  *  being hidden.
  *
- *  `include` is left alone deliberately: a query naming specific ids already
- *  knows which ones it wants, and silently dropping one would turn a direct
- *  lookup into an unexplained empty result.
+ *  `include` is left alone inside the plugin, where a query naming ids already
+ *  knows which it wants; a REST request names them for the caller, so there a
+ *  hidden id is dropped.
  */
 add_filter( 'get_terms_args', 'vergeml_private_filter_terms', 10, 2 );
 
@@ -152,7 +152,7 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
         return $args;
     }
 
-    if ( ! empty( $args['include'] ) ) {
+    if ( ! empty( $args['include'] ) && ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
         return $args;
     }
 
@@ -160,6 +160,13 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
 
     if ( empty( $hidden ) ) {
         return $args;
+    }
+
+    if ( ! empty( $args['include'] ) ) {
+        $args['include'] = array_values( array_diff( wp_parse_id_list( $args['include'] ), $hidden ) );
+        if ( $args['include'] ) {
+            return $args;
+        }
     }
 
     // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- hides the folders marked private from the term list: a handful of term ids, not posts.
@@ -199,8 +206,8 @@ function vergeml_private_guard_core_rest( $response, $handler, $request ) {
 
     $controller = $handler['callback'][0];
 
-    // Core's media routes filter and file by a folder's id through a parameter named after its REST base.
-    if ( $controller instanceof WP_REST_Attachments_Controller ) {
+    // Core's post and media routes filter and file by a folder's id through a parameter named after its REST base.
+    if ( $controller instanceof WP_REST_Posts_Controller ) {
         vergeml_private_strip_media_params( $request );
         return $response;
     }
@@ -238,7 +245,7 @@ function vergeml_private_guard_core_rest( $response, $handler, $request ) {
 
 
 /**
- *  A hidden folder's id means nothing on core's media routes: a read naming only
+ *  A hidden folder's id means nothing on core's post and media routes: a read naming only
  *  hidden folders lists nothing, and a write does not file into one.
  */
 function vergeml_private_strip_media_params( $request ) {
@@ -253,26 +260,37 @@ function vergeml_private_strip_media_params( $request ) {
 
         $object = get_taxonomy( $taxonomy );
         $base   = $object && $object->rest_base ? $object->rest_base : $taxonomy;
-        $value  = $request->get_param( $base );
-        $not    = $request->get_param( $base . '_exclude' );
 
-        // Excluding a hidden folder would show what is in it by what goes missing.
-        if ( null !== $not ) {
-            $request->set_param( $base . '_exclude', array_values( array_diff( wp_parse_id_list( is_array( $not ) && isset( $not['terms'] ) ? $not['terms'] : $not ), $hidden ) ) );
+        // A request that names no hidden id is left exactly as it came, in either of core's two forms.
+        foreach ( array( $base, $base . '_exclude' ) as $param ) {
+
+            $value = $request->get_param( $param );
+
+            if ( null === $value ) {
+                continue;
+            }
+
+            $object_form = is_array( $value ) && isset( $value['terms'] );
+            $asked       = wp_parse_id_list( $object_form ? $value['terms'] : $value );
+
+            if ( ! array_intersect( $asked, $hidden ) ) {
+                continue;
+            }
+
+            $kept = array_values( array_diff( $asked, $hidden ) );
+
+            // A read naming only hidden folders lists nothing; excluding one shows nothing by what goes missing.
+            if ( ! $kept && $base === $param && 'GET' === $request->get_method() ) {
+                $kept = array( 0 );
+            }
+
+            if ( $object_form ) {
+                $value['terms'] = $kept;
+                $kept           = $value;
+            }
+
+            $request->set_param( $param, $kept );
         }
-
-        if ( null === $value ) {
-            continue;
-        }
-
-        $asked = wp_parse_id_list( is_array( $value ) && isset( $value['terms'] ) ? $value['terms'] : $value );
-        $kept  = array_values( array_diff( $asked, $hidden ) );
-
-        if ( ! $kept && 'GET' === $request->get_method() ) {
-            $kept = array( 0 );
-        }
-
-        $request->set_param( $base, $kept );
     }
 }
 

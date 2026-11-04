@@ -470,6 +470,8 @@ function vergeml_ajax_query_attachments_args( $query ) {
 
                 if( is_numeric( $query[$taxonomy_name] ) || is_array( $query[$taxonomy_name] ) ) {
 
+                    $query[$taxonomy_name] = is_array( $query[$taxonomy_name] ) ? array_filter( $query[$taxonomy_name], 'is_scalar' ) : $query[$taxonomy_name];
+
                     $field = preg_match( '/^\d+$/', implode( '', (array) $query[$taxonomy_name] ) ) ? 'term_id' : 'slug';
                     $terms = (array) $query[$taxonomy_name];
 

@@ -300,6 +300,28 @@ foreach ( array( (string) $hidden_term, $hidden_term . ',0', $hidden_term . '+0'
 	vergeml_t( "query-attachments will not list it as {$form}", false === strpos( $named, (string) $hidden_term ), $named );
 }
 
+$nested_query = array( 'vergeml_folder' => array( array( (string) $term ) ) );
+$_REQUEST['query'] = $nested_query;
+$args = apply_filters( 'ajax_query_attachments_args', array( 'post_type' => 'attachment' ) + $nested_query );
+unset( $_REQUEST['query'] );
+vergeml_t( 'a nested query-attachments value does not reach core as an array', false === strpos( isset( $args['tax_query'] ) ? wp_json_encode( $args['tax_query'] ) : '', '[[' ) );
+
+$req = new WP_REST_Request( 'GET', '/wp/v2/media' );
+$req->set_param( 'vergeml_folder', array( 'terms' => array( $hidden_term, $term ), 'operator' => 'AND', 'include_children' => true ) );
+vergeml_private_strip_media_params( $req );
+$shape = $req->get_param( 'vergeml_folder' );
+vergeml_t( 'the object form keeps its operator when a hidden id is dropped', array( $term ) === $shape['terms'] && 'AND' === $shape['operator'] && true === $shape['include_children'] );
+$req = new WP_REST_Request( 'GET', '/wp/v2/media' );
+$req->set_param( 'vergeml_folder', array( 'terms' => array( $term ), 'operator' => 'AND' ) );
+vergeml_private_strip_media_params( $req );
+vergeml_t( 'a request naming no hidden id is untouched', array( 'terms' => array( $term ), 'operator' => 'AND' ) === $req->get_param( 'vergeml_folder' ) );
+
+$handler = array( 'callback' => array( new WP_REST_Posts_Controller( 'post' ), 'get_items' ) );
+$req     = new WP_REST_Request( 'GET', '/wp/v2/posts' );
+$req->set_param( 'vergeml_folder', array( $hidden_term ) );
+vergeml_private_guard_core_rest( null, $handler, $req );
+vergeml_t( 'core post routes will not list it by id', array( 0 ) === $req->get_param( 'vergeml_folder' ) );
+
 // Every shape of callback a route can have: the guard runs before all of them.
 register_rest_route( 'vergeml-caps/v1', '/closure', array( 'methods' => 'GET', 'callback' => function () { return 'ok'; }, 'permission_callback' => '__return_true' ) );
 register_rest_route( 'vergeml-caps/v1', '/name', array( 'methods' => 'GET', 'callback' => 'rest_get_url_prefix', 'permission_callback' => '__return_true' ) );
