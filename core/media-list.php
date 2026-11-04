@@ -684,7 +684,7 @@ function vergeml_list_handle_move( $location, $doaction, $post_ids ) {
     $tax_object = get_taxonomy( $taxonomy );
 
     // Core's own rule for setting terms on a post.
-    if ( ! $term instanceof WP_Term || ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) ) {
+    if ( ! $term instanceof WP_Term || ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) || ( function_exists( 'vergeml_private_is_hidden' ) && vergeml_private_is_hidden( $term->term_id ) ) ) {
         return $location;
     }
 

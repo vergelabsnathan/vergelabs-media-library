@@ -179,8 +179,6 @@ $r_admin_only = array(
     '/vergeml/v1/quarantine-act POST',
     '/vergeml/v1/quarantine-manifest GET',
     '/vergeml/v1/rename POST',
-    '/vergeml/v1/rename-files GET',
-    '/vergeml/v1/rename-files POST',
     '/vergeml/v1/say-plan POST',
     '/vergeml/v1/say-run POST',
     '/vergeml/v1/search-meaning GET',
@@ -291,20 +289,12 @@ foreach ( $r_routes as $r_route => $r_handlers ) {
  *  until 2026-09-27, when /guide/plan GET and POST did: the bottom-up plan.
  *  84/82 until 2026-09-29, when /guide/audience-split did, CAP-4's one question.)
  */
-$r_flagged = defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME;
-$r_want    = $r_flagged ? 85 : 83;
+$r_want = 83;
 
 r_check(
-    sprintf( 'the REST server holds %d of our endpoints, with the file renamer %s', $r_want, $r_flagged ? 'on' : 'off' ),
+    sprintf( 'the REST server holds %d of our endpoints', $r_want ),
     count( $r_ours ) === $r_want,
     sprintf( 'found %d', count( $r_ours ) )
-);
-
-$r_live_routes = wp_list_pluck( $r_ours, 'route' );
-
-r_check(
-    '/vergeml/v1/rename-files is ' . ( $r_flagged ? 'registered' : 'not registered, because VERGEML_FILE_RENAME is off' ),
-    in_array( '/vergeml/v1/rename-files', $r_live_routes, true ) === $r_flagged
 );
 
 $r_open = array_filter( $r_ours, function ( $e ) { return null === $e['gate']; } );

@@ -1826,9 +1826,6 @@ global $vergeml_dir,
         // title it applies and whose locked list it obeys; inside the guard,
         // because it writes to posts.
         include_once plugin_dir_path( __FILE__ ) . 'core/rename.php';
-        // Renaming the file on disk, which needs both the index (for the name)
-        // and smart-folders (for what points at it) already loaded.
-        include_once plugin_dir_path( __FILE__ ) . 'core/rename-file.php';
         // After health.php: the report asks it which copy to keep.
         include_once plugin_dir_path( __FILE__ ) . 'core/health-delete.php';
         // Look-alikes: keep this one (rewrite, then set aside) and keep both.

@@ -17,10 +17,10 @@ looks safest in a diff, so what is examined is `prepare()`'s own format string.
 
 | | count |
 |---|---|
-| lines mentioning `$wpdb->` | 571 |
-| `$wpdb->prepare()` calls | 196 |
-| **calls that reach the server** | **216** |
-| · prepared | 185 |
+| lines mentioning `$wpdb->` | 567 |
+| `$wpdb->prepare()` calls | 194 |
+| **calls that reach the server** | **214** |
+| · prepared | 183 |
 | · a literal, nothing interpolated | 0 |
 | · only a `$wpdb` table name | 20 |
 | · only integers it cast itself | 0 |
@@ -28,7 +28,7 @@ looks safest in a diff, so what is examined is `prepare()`'s own format string.
 | · read by hand, with the reason | 0 |
 | · **findings** | **0** |
 
-Read over 68 shipped PHP files.
+Read over 67 shipped PHP files.
 
 ## Findings
 
@@ -38,7 +38,7 @@ written, or is built by `$wpdb` itself.
 
 ## Read by hand
 
-The tool proves 216 of 216 calls on its own. These 0 assemble their
+The tool proves 214 of 214 calls on its own. These 0 assemble their
 SQL from fragments across a nested loop or a function boundary, which is further
 than a static reader should be trusted to follow, so each was read and the reason
 written down. Each is keyed by a hash of its own SQL, not by its line, so editing
@@ -103,12 +103,12 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | line | in | method | class | proof |
 |---|---|---|---|---|
 | 100 | — | `get_col` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
-| 269 | — | `get_row` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
-| 492 | — | `get_var` | prepared | — |
-| 520 | — | `insert` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_librarian_batches_table() returns only a $wpdb table name |
-| 570 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 777 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) — implode of a generated %d placeholder list |
-| 789 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 252 | — | `get_row` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
+| 475 | — | `get_var` | prepared | — |
+| 503 | — | `insert` | built and escaped by `$wpdb` | values escaped by $wpdb; table: vergeml_librarian_batches_table() returns only a $wpdb table name |
+| 553 | — | `get_col` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 760 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) — implode of a generated %d placeholder list |
+| 772 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) — implode of a generated %d placeholder list |
 
 ### core/brief.php
 
@@ -240,11 +240,11 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 93 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
-| 120 | — | `get_var` | prepared | — |
-| 127 | — | `get_row` | prepared | — |
-| 141 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
-| 210 | — | `get_results` | prepared | — |
+| 92 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name |
+| 119 | — | `get_var` | prepared | — |
+| 126 | — | `get_row` | prepared | — |
+| 140 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->postmeta — a $wpdb table name |
+| 209 | — | `get_results` | prepared | — |
 
 ### core/librarian.php
 
@@ -269,7 +269,7 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | 2391 | — | `query` | prepared | — |
 | 2777 | — | `get_var` | prepared | — |
 | 2874 | — | `get_results` | prepared | — |
-| 2953 | — | `get_var` | prepared | — |
+| 2954 | — | `get_var` | prepared | — |
 
 ### core/media-list.php
 
@@ -326,15 +326,8 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 132 | — | `get_results` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name; $wpdb->posts — a $wpdb table name |
-| 176 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
-
-### core/rename-file.php
-
-| line | in | method | class | proof |
-|---|---|---|---|---|
-| 134 | — | `get_col` | prepared | — |
-| 188 | — | `get_col` | prepared | — |
+| 136 | — | `get_results` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name; $wpdb->posts — a $wpdb table name |
+| 188 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
 
 ### core/rename.php
 
@@ -347,7 +340,7 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 455 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
+| 488 | — | `get_var` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
 
 ### core/search-meaning.php
 

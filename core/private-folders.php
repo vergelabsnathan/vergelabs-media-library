@@ -178,6 +178,57 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
 
 
 /**
+ *  True when this folder is somebody else's private folder. Every door that takes
+ *  a folder id from a request asks this, because get_term() does not pass through
+ *  the filter above.
+ */
+function vergeml_private_is_hidden( $term_id ) {
+    return in_array( (int) $term_id, vergeml_private_hidden_from(), true );
+}
+
+
+/**
+ *  Core's own term routes for the folder taxonomies.
+ *
+ *  A non-public taxonomy's names are not for logged-out visitors, and somebody
+ *  else's private folder is not reachable by id or through include.
+ */
+add_filter( 'rest_request_before_callbacks', 'vergeml_private_guard_core_rest', 10, 3 );
+
+function vergeml_private_guard_core_rest( $response, $handler, $request ) {
+
+    if ( is_wp_error( $response ) || ! preg_match( '#^/wp/v2/([^/]+)(?:/(\d+))?/?$#', $request->get_route(), $found ) ) {
+        return $response;
+    }
+
+    foreach ( vergeml_tree_taxonomies() as $taxonomy ) {
+
+        $object = get_taxonomy( $taxonomy );
+
+        if ( ! $object || ( $object->rest_base ? $object->rest_base : $object->name ) !== $found[1] ) {
+            continue;
+        }
+
+        if ( empty( $object->public ) && ! is_user_logged_in() ) {
+            return new WP_Error( 'rest_forbidden', __( 'You must be logged in to read these folders.', 'vergelabs-media-library' ), array( 'status' => 401 ) );
+        }
+
+        if ( ! empty( $found[2] ) && vergeml_private_is_hidden( (int) $found[2] ) ) {
+            return new WP_Error( 'rest_term_invalid', __( 'That folder does not exist.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
+        }
+
+        if ( $request->get_param( 'include' ) ) {
+            $request->set_param( 'include', array_values( array_diff( wp_parse_id_list( $request->get_param( 'include' ) ), vergeml_private_hidden_from() ) ) );
+        }
+
+        break;
+    }
+
+    return $response;
+}
+
+
+/**
  *  A deleted folder must not leave its id behind. The option would otherwise
  *  grow for ever and, once term ids were reused, start hiding folders that
  *  have nothing to do with the person who made the original.

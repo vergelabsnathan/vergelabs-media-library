@@ -52,18 +52,6 @@ function u_report() {
 
 
 $GLOBALS['u_posts']   = array();
-$GLOBALS['u_vectors'] = array();
-
-/*
- *  Vectors through the seam, for the reason tests/tree/auto-file.php explains:
- *  Playground's SQLite layer cannot store packed floats at all.
- */
-add_filter( 'vergeml_autofile_vector', function ( $vector, $attachment_id ) {
-    return isset( $GLOBALS['u_vectors'][ (int) $attachment_id ] )
-        ? $GLOBALS['u_vectors'][ (int) $attachment_id ]
-        : $vector;
-}, 10, 2 );
-
 u_say( "\nthe rest of the utilities\n\n" );
 
 vergeml_index_install();
@@ -94,7 +82,9 @@ function u_make( $title, $alt_in_index = '', $vector = null, $locked = '' ) {
     vergeml_index_set( $id, $data );
 
     if ( null !== $vector ) {
-        $GLOBALS['u_vectors'][ $id ] = $vector;
+        // Playground's SQLite cannot store packed floats, so the row is primed for this request.
+        vergeml_index_prime( array( $id ) );
+        $GLOBALS['vergeml_index_primed'][ $id ]['embedding'] = vergeml_index_vector_in( $vector );
     }
 
     return $id;

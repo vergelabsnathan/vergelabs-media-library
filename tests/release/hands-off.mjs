@@ -162,7 +162,7 @@ const loop = hits( php, /http:\/\/127\.0\.0\.1|http:\/\/localhost/g );
 check( 'no plain-http loopback address in shipped code', 0 === loop.length, loop.map( ( h ) => h.at ).join( ' | ' ) );
 
 // Seams that existed for the suites, and filters that returned SQL.
-const GONE = [ 'vergeml_journey_facts', 'vergeml_ai_run_budget', 'vergeml_ai_describe_answers', 'vergeml_ai_run_should_nudge', 'vergeml_brief_describe', 'vergeml_folders_walk', 'vergeml_offer_trial_possible', 'vergeml_ai_parallel', 'vergeml_smart_count_branches', 'vergeml_smart_count_exclude' ];
+const GONE = [ 'vergeml_journey_facts', 'vergeml_ai_run_budget', 'vergeml_ai_describe_answers', 'vergeml_ai_run_should_nudge', 'vergeml_brief_describe', 'vergeml_folders_walk', 'vergeml_offer_trial_possible', 'vergeml_ai_parallel', 'vergeml_smart_count_branches', 'vergeml_smart_count_exclude', 'vergeml_autofile_vector' ];
 const seams = hits( php, /apply_filters\(\s*'([^']+)'/g ).filter( ( h ) => GONE.includes( h.m[ 1 ] ) );
 // Round 8 (2026-10-20): every name the plugin makes carries "vergeml", and a route says its capability where it is registered.
 const shortPrefix = hits( [ ...php, ...js ], /\bvgml(?:_\w*|[A-Z]\w*)/g ).filter( ( h ) => ! /'vgml_'|vgml_' \)|'\/\^vgml_\/'/.test( h.m.input ) );
@@ -180,6 +180,14 @@ const countCalls = hits( php, /vergeml_(?:folder_counts|folder_unfiled_count)\(/
 check( 'post-type counts are read only by rest-tree.php', 0 === countCalls.length, countCalls.map( ( h ) => h.at ).join( ' | ' ) );
 const postFolders = strip( fs.readFileSync( path.join( ROOT, 'core/post-folders.php' ), 'utf8' ) );
 check( 'post-type counts are limited for a user who cannot edit others\' posts', 2 === ( postFolders.match( /->cap->edit_others_posts/g ) || [] ).length && 2 === ( postFolders.match( /%d = 0 OR p\.post_status = 'publish'/g ) || [] ).length );
+// Round 9 review: every door that takes a folder id refuses somebody else's private folder; reads ask about the taxonomy; the unfinished renamer stays out.
+for ( const [ rel, min ] of [ [ 'core/folder-tools.php', 2 ], [ 'core/rest-tree.php', 1 ], [ 'core/bulk-terms.php', 1 ], [ 'core/media-list.php', 1 ] ] ) {
+	const n = ( strip( fs.readFileSync( path.join( ROOT, rel ), 'utf8' ) ).match( /vergeml_private_is_hidden\(/g ) || [] ).length;
+	check( `${ rel } refuses a hidden private folder`, n >= min, String( n ) );
+}
+check( '/tree asks about the requested taxonomy', /'\/tree'[\s\S]{0,400}\$tax->cap->assign_terms/.test( treeSrc ) );
+const renamer = hits( php, /VERGEML_FILE_RENAME|vergeml_file_rename\b/g );
+check( 'the unfinished file renamer is not in the build', 0 === renamer.length, renamer.map( ( h ) => h.at ).join( ' | ' ) );
 const routes = hits( php, /register_rest_route\s*\(/g ).length;
 const callbacks = php.reduce( ( n, rel ) => n + ( strip( fs.readFileSync( path.join( ROOT, rel ), 'utf8' ) ).match( /'permission_callback'\s*=>/g ) || [] ).length, 0 );
 check( `every REST endpoint has a permission_callback (${ routes } routes, ${ callbacks } callbacks)`, callbacks >= routes );

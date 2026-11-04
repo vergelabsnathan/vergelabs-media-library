@@ -173,6 +173,10 @@ function vergeml_register_tree_routes() {
             if ( ! current_user_can( 'upload_files' ) ) {
                 return false;
             }
+            $tax = get_taxonomy( (string) $request->get_param( 'taxonomy' ) );
+            if ( $tax && ! current_user_can( $tax->cap->assign_terms ) ) {
+                return false;
+            }
             $type = (string) $request->get_param( 'post_type' );
             if ( '' === $type || 'attachment' === $type ) {
                 return true;
@@ -633,7 +637,7 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
     // rather than quietly creating a relationship that nothing will show.
     foreach ( array_merge( $add, $remove ) as $term_id ) {
         $term = get_term( $term_id, $taxonomy );
-        if ( ! $term instanceof WP_Term ) {
+        if ( ! $term instanceof WP_Term || ( function_exists( 'vergeml_private_is_hidden' ) && vergeml_private_is_hidden( $term_id ) ) ) {
             return new WP_Error( 'vergeml_unknown_term', __( 'One of those folders does not exist.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
         }
     }

@@ -162,7 +162,7 @@ function vergeml_handle_bulk_terms( $location, $doaction, $post_ids ) {
     $term_id  = absint( $term_id );
     $term     = $term_id ? get_term( $term_id, $taxonomy ) : null;
 
-    if ( ! $term || is_wp_error( $term ) || ! in_array( $taxonomy, get_object_taxonomies( 'attachment' ), true ) )
+    if ( ! $term || is_wp_error( $term ) || ! in_array( $taxonomy, get_object_taxonomies( 'attachment' ), true ) || ( function_exists( 'vergeml_private_is_hidden' ) && vergeml_private_is_hidden( $term_id ) ) )
         return add_query_arg( 'vergeml_op', 'noterm', $location );
 
     // Core's own rule for setting terms on a post.

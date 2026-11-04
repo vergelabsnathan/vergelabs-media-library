@@ -2933,8 +2933,9 @@ function vergeml_librarian_why( $attachment_id ) {
     $why    = (string) $row['why'];
     $term   = (int) $row['term_id'] ? get_term( (int) $row['term_id'], $taxonomy ) : null;
     $runner = (int) $row['runner_up'] ? get_term( (int) $row['runner_up'], $taxonomy ) : null;
-    $term   = $term instanceof WP_Term ? $term->name : '';
-    $runner = $runner instanceof WP_Term ? $runner->name : '';
+    $hidden = function_exists( 'vergeml_private_hidden_from' ) ? vergeml_private_hidden_from() : array();
+    $term   = $term instanceof WP_Term && ! in_array( (int) $term->term_id, $hidden, true ) ? $term->name : '';
+    $runner = $runner instanceof WP_Term && ! in_array( (int) $runner->term_id, $hidden, true ) ? $runner->name : '';
 
     /*
      *  The folder a refusal was about, read out beside the one it beat.
@@ -2944,7 +2945,7 @@ function vergeml_librarian_why( $attachment_id ) {
      *  line below names both folders from it.
      */
     $near = isset( $row['nearest'] ) && (int) $row['nearest'] ? get_term( (int) $row['nearest'], $taxonomy ) : null;
-    $near = $near instanceof WP_Term ? $near->name : '';
+    $near = $near instanceof WP_Term && ! in_array( (int) $near->term_id, $hidden, true ) ? $near->name : '';
 
     $score  = null === $row['score'] ? null : (float) $row['score'];
     $rscore = null === $row['runner_score'] ? null : (float) $row['runner_score'];

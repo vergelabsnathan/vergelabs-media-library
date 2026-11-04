@@ -380,7 +380,9 @@ function vergeml_rest_gallery_folders( WP_REST_Request $request ) {
         $taxonomy = $taxonomies ? $taxonomies[0] : '';
     }
 
-    if ( ! $taxonomy ) {
+    $tax_object = $taxonomy ? get_taxonomy( $taxonomy ) : false;
+
+    if ( ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) ) {
         return rest_ensure_response( array( 'folders' => array() ) );
     }
 

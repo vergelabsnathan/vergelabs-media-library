@@ -117,19 +117,6 @@ $GLOBALS['uf_tax']   = vergeml_librarian_taxonomy();
 $GLOBALS['uf_posts'] = array();
 $uf_terms = array();
 
-/*
- *  Vectors are also served through the seam, for the centroid the earning
- *  side still reads; the decision itself reads the row, so the row has to
- *  carry the vector as well (see uf_file).
- */
-$GLOBALS['uf_vectors'] = array();
-
-add_filter( 'vergeml_autofile_vector', function ( $vector, $attachment_id ) {
-    return isset( $GLOBALS['uf_vectors'][ (int) $attachment_id ] )
-        ? $GLOBALS['uf_vectors'][ (int) $attachment_id ]
-        : $vector;
-}, 10, 2 );
-
 uf_say( "\nfiling by itself\n\n" );
 
 if ( '' === $GLOBALS['uf_tax'] ) {
@@ -195,7 +182,6 @@ function uf_file( $title, $vector, $term_id = 0, $object = '' ) {
         'described_at' => gmdate( 'Y-m-d H:i:s' ),
     ) );
 
-    $GLOBALS['uf_vectors'][ (int) $id ] = $vector;
 
     if ( $term_id ) {
         wp_set_object_terms( (int) $id, array( (int) $term_id ), $GLOBALS['uf_tax'] );

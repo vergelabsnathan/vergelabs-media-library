@@ -244,6 +244,62 @@ foreach ( $planted as $id ) {
 $granted->remove_cap( 'edit_vergeml_secrets' );
 unregister_taxonomy_for_object_type( 'vergeml_folder', 'post' );
 
+/* --- wordpress.org round 9 review: private folders at every door, and the taxonomy on reads --- */
+
+wp_set_current_user( $users['editor'] );
+$hidden_term = wp_insert_term( 'vgml-caps-hidden-' . wp_rand(), 'vergeml_folder' );
+$hidden_term = (int) $hidden_term['term_id'];
+vergeml_private_set( $hidden_term, true );
+
+wp_set_current_user( $users['author'] );
+vergeml_t( "another's private folder is hidden from an author", vergeml_private_is_hidden( $hidden_term ) );
+
+$own = wp_insert_attachment( array( 'post_title' => 'vgml caps own', 'post_mime_type' => 'image/jpeg', 'post_status' => 'inherit', 'post_author' => $users['author'] ) );
+$req = new WP_REST_Request( 'POST', '/vergeml/v1/assign' );
+foreach ( array( 'taxonomy' => 'vergeml_folder', 'attachments' => array( $own ), 'add' => array( $hidden_term ) ) as $k => $v ) {
+	$req->set_param( $k, $v );
+}
+vergeml_t( '/assign refuses it as a destination', is_wp_error( vergeml_rest_assign( $req ) ) && ! has_term( $hidden_term, 'vergeml_folder', $own ) );
+
+function vergeml_core_rest( $route, $params = array() ) {
+	$req = new WP_REST_Request( 'GET', $route );
+	foreach ( $params as $k => $v ) {
+		$req->set_param( $k, $v );
+	}
+	return array( vergeml_private_guard_core_rest( null, array(), $req ), $req );
+}
+
+list( $got ) = vergeml_core_rest( '/wp/v2/vergeml_folder/' . $hidden_term );
+vergeml_t( 'core REST will not read it by id', is_wp_error( $got ) && 404 === $got->get_error_data()['status'] );
+list( $got, $asked ) = vergeml_core_rest( '/wp/v2/vergeml_folder', array( 'include' => array( $hidden_term, $term ) ) );
+vergeml_t( 'core REST takes it out of include', ! is_wp_error( $got ) && array( $term ) === $asked->get_param( 'include' ) );
+list( $got ) = vergeml_core_rest( '/wp/v2/vergeml_folder/' . $term );
+vergeml_t( 'core REST still reads a shared folder for a logged-in user', ! is_wp_error( $got ) );
+
+wp_set_current_user( 0 );
+list( $got ) = vergeml_core_rest( '/wp/v2/vergeml_folder' );
+vergeml_t( 'core REST refuses a logged-out visitor', is_wp_error( $got ) && 401 === $got->get_error_data()['status'] );
+
+wp_set_current_user( $users['editor'] );
+vergeml_t( 'its owner still sees it', ! vergeml_private_is_hidden( $hidden_term ) );
+
+register_taxonomy( 'vergeml_caps_strict', 'attachment', array( 'show_ui' => true, 'capabilities' => array( 'assign_terms' => 'vergeml_strict_assign' ) ) );
+wp_set_current_user( $users['author'] );
+$req = new WP_REST_Request( 'GET', '/vergeml/v1/tree' );
+$req->set_param( 'taxonomy', 'vergeml_caps_strict' );
+vergeml_t( '/tree refuses a taxonomy the caller may not assign', true !== call_user_func( $routes['/vergeml/v1/tree'][0]['permission_callback'], $req ) );
+$req = new WP_REST_Request( 'GET', '/vergeml/v1/state' );
+$req->set_param( 'taxonomy', 'vergeml_caps_strict' );
+vergeml_t( '/state refuses it too', true !== call_user_func( $routes['/vergeml/v1/state'][0]['permission_callback'], $req ) );
+$req = new WP_REST_Request( 'GET', '/vergeml/v1/gallery-folders' );
+$req->set_param( 'taxonomy', 'vergeml_caps_strict' );
+
+wp_set_current_user( 1 );
+unregister_taxonomy( 'vergeml_caps_strict' );
+wp_delete_attachment( $own, true );
+vergeml_private_set( $hidden_term, false );
+wp_delete_term( $hidden_term, 'vergeml_folder' );
+
 /* --- tidy -------------------------------------------------------------------- */
 
 wp_set_current_user( 1 );

@@ -47,7 +47,7 @@ function vergeml_register_folder_routes() {
         array(
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => 'vergeml_rest_state_get',
-            'permission_callback' => function () { return current_user_can( 'upload_files' ); },
+            'permission_callback' => function ( WP_REST_Request $request ) { $tax = get_taxonomy( (string) $request->get_param( 'taxonomy' ) ); return current_user_can( 'upload_files' ) && ( ! $tax || current_user_can( $tax->cap->assign_terms ) ); },
             'args'                => array(
                 'taxonomy' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             ),

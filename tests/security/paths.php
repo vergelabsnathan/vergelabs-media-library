@@ -70,7 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-if ( ! function_exists( 'vergeml_file_rename' ) || ! function_exists( 'vergeml_path_in_uploads' ) ) {
+if ( ! function_exists( 'vergeml_path_in_uploads' ) ) {
     echo "the plugin is not loaded, or is older than Phase 5.5 -- inactive, or safe mode?\n";
     exit( 1 );
 }
@@ -94,28 +94,6 @@ function p_check( $label, $ok, $note = '' ) {
 wp_set_current_user( 1 );
 
 echo "\nfiles, paths and uploads\n\n";
-
-
-/* ------------------------------------------------- A. the renamer is off */
-
-echo "A  the renamer is off\n";
-
-$p_flag = defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME;
-
-p_check( 'VERGEML_FILE_RENAME is not defined on this site', ! $p_flag );
-
-p_check(
-    'the /rename-files route is not registered',
-    ! array_key_exists( '/' . VERGEML_REST_NS . '/rename-files', rest_get_server()->get_routes() )
-);
-
-/*
- *  The handlers exist (the file is loaded) and are not hooked. Both halves,
- *  because a has_action() of false on a file that never loaded proves nothing.
- */
-p_check( 'core/journey.php is loaded', function_exists( 'vergeml_journey_do_file_rename' ) );
-p_check( 'admin_post_vergeml_do_file_rename is not hooked', false === has_action( 'admin_post_vergeml_do_file_rename' ) );
-p_check( 'admin_post_vergeml_undo_file_rename is not hooked', false === has_action( 'admin_post_vergeml_undo_file_rename' ) );
 
 
 /* ------------------------------------------------------- B. the fixtures */
@@ -225,49 +203,6 @@ function p_intact( $label ) {
 }
 $GLOBALS['p_outside_path'] = $p_outside;
 $GLOBALS['p_outside_hash'] = $p_hash;
-
-
-/* ------------------------------------------------------- C. the renamer */
-
-echo "\nC  the renamer refuses to move anything outside uploads\n";
-
-$p_last_was = get_option( VERGEML_FILE_OPTION, null );
-
-foreach ( $p_rows as $p_shape => $p_id ) {
-
-    $p_wanted = vergeml_file_name_for( $p_id );
-
-    p_check( $p_shape . ': a name is worked out, so the refusal below is the path check and not an empty name', '' !== $p_wanted, $p_wanted );
-    p_check( $p_shape . ': vergeml_file_rename() returns false', false === vergeml_file_rename( $p_id ) );
-    p_intact( $p_shape . ' rename' );
-    p_check( $p_shape . ': nothing was created beside the target', ! file_exists( dirname( $p_outside ) . '/' . $p_wanted ) );
-
-    // Undo, with a "before" planted so it has something to put back.
-    update_post_meta( $p_id, VERGEML_FILE_BEFORE, 'vgml-paths/before.txt' );
-    update_option( VERGEML_FILE_OPTION, array( 'ids' => array( $p_id ), 'when' => time() ), false );
-
-    $p_back = vergeml_file_undo();
-
-    p_check( $p_shape . ': vergeml_file_undo() does not report it', ! in_array( $p_id, (array) $p_back, true ) );
-    p_intact( $p_shape . ' undo' );
-
-    delete_post_meta( $p_id, VERGEML_FILE_BEFORE );
-}
-
-p_check( 'the symlink itself was not renamed', ! $p_linked || is_link( $p_link_path ) );
-
-// The real file, for contrast: the same call moves it, and undo puts it back.
-$p_real_wanted = vergeml_file_name_for( $p_real );
-p_check( 'real: the same call renames a file inside uploads', true === vergeml_file_rename( $p_real ) && file_exists( $p_dir . '/' . $p_real_wanted ), $p_real_wanted );
-update_option( VERGEML_FILE_OPTION, array( 'ids' => array( $p_real ), 'when' => time() ), false );
-vergeml_file_undo();
-p_check( 'real: and undo puts it back', file_exists( $p_real_path ) && $p_real_path === wp_normalize_path( get_attached_file( $p_real ) ) );
-
-if ( null === $p_last_was ) {
-    delete_option( VERGEML_FILE_OPTION );
-} else {
-    update_option( VERGEML_FILE_OPTION, $p_last_was, false );
-}
 
 
 /* ------------------------------------------------------- D. the archive */

@@ -170,26 +170,9 @@ function vergeml_autofile_centroid( $term_id, $taxonomy ) {
  *  vergeml_autofile_vector
  *
  *  One file's embedding, or null.
- *
- *  The single place this file reads a vector from, and filterable, which is
- *  not a courtesy: Playground cannot store one. Its SQLite layer refuses any
- *  INSERT carrying packed floats -- `WP_MySQL_Token::get_value(): must be
- *  string, null returned` -- so on the only environment available without a
- *  box, the index can hold descriptions but never embeddings. Reading through
- *  one seam means the arithmetic and the judgement in this file can be tested
- *  anywhere, with the storage proven separately where storage works.
- *
- *  It is also the hook a Pro build would use to serve vectors from somewhere
- *  else entirely.
  */
 
 function vergeml_autofile_vector( $attachment_id ) {
-
-    $vector = apply_filters( 'vergeml_autofile_vector', null, (int) $attachment_id );
-
-    if ( is_array( $vector ) && $vector ) {
-        return $vector;
-    }
 
     $row = vergeml_index_get( (int) $attachment_id );
 

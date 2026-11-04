@@ -70,6 +70,10 @@ function vergeml_file_upload_into_folder( $attachment_id ) {
         return;
     }
 
+    if ( function_exists( 'vergeml_private_is_hidden' ) && vergeml_private_is_hidden( $folder ) ) {
+        return;
+    }
+
     wp_set_object_terms( $attachment_id, array( $folder ), $taxonomy, true );
 
     if ( function_exists( 'vergeml_folder_flush_counts' ) ) {
@@ -96,7 +100,7 @@ function vergeml_file_upload_into_folder( $attachment_id ) {
  *  read-and-rename half of it. Phase 5.5 of plans/four-yesses.md.
  *
  *  Defined here because this file loads before core/ai.php and
- *  core/rename-file.php, the other two callers -- see the include order in
+ *  the other callers -- see the include order in
  *  vergelabs-media-library.php.
  */
 
@@ -246,6 +250,16 @@ function vergeml_zip_download() {
 
     if ( ! in_array( $taxonomy, $taxonomies, true ) ) {
         wp_die( esc_html__( 'That is not a media taxonomy.', 'vergelabs-media-library' ), 404 );
+    }
+
+    $tax_object = get_taxonomy( $taxonomy );
+
+    if ( ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) ) {
+        wp_die( esc_html__( 'You do not have sufficient permissions to download folders.', 'vergelabs-media-library' ), 403 );
+    }
+
+    if ( function_exists( 'vergeml_private_is_hidden' ) && vergeml_private_is_hidden( $folder ) ) {
+        wp_die( esc_html__( 'That folder does not exist.', 'vergelabs-media-library' ), 404 );
     }
 
     $tmp = wp_tempnam( 'vergeml-zip' );
