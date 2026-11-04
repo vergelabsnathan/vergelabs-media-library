@@ -1111,13 +1111,8 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 	$trail = array();
 
 	/*
-	 *  Filterable, and not only for the test that drives them.
-	 *
-	 *  A host with a short execution limit wants smaller slices, and a box with
-	 *  room wants larger ones. They are also the only way to make a library of
-	 *  two hundred take more than one pass, and a resumption that is never
-	 *  exercised is a resumption nobody has established works -- which is how
-	 *  this stopped at five thousand for as long as it did.
+	 *  Filterable: a host with a short execution limit wants smaller slices,
+	 *  and a server with room wants larger ones.
 	 */
 	$slice  = max( 1, (int) apply_filters( 'vergeml_talk_slice', VERGEML_TALK_SLICE ) );
 	$budget = max( 1, (int) apply_filters( 'vergeml_talk_pass', VERGEML_TALK_PASS ) );

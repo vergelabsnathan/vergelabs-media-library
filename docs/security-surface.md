@@ -63,11 +63,11 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/brief/turn` | POST | closure | manage_options | no | `said`, `say`, `draft`, $request | meta/option write | yes | core/brief.php:642 |
 | `/vergeml/v1/file/(?P<id>\d+)` | POST, PUT, PATCH | closure | edit_post((int) $request['id']) | yes (1) | `title`, `alt`, $request | post/term write, meta/option write | no | core/quick-edit.php:161 |
 | `/vergeml/v1/folder` | POST | closure | $tax->cap->manage_terms, manage_categories, $tax->cap->manage_terms, $cap($term_id), $tax->cap->edit_terms, manage_options, $object->cap->edit_posts, $object->cap->edit_others_posts, $object->cap->edit_others_posts, manage_options | yes (1) | `taxonomy*`, `action*`, `id`, `parent`, `name`, `color`, `ids`, `post_type`, $request | post/term write, delete, meta/option write, db query | yes | core/rest-folders.php:28 |
-| `/vergeml/v1/folder-privacy` | POST | closure | manage_options, manage_options, edit_term($term_id) | yes (1) | `id*`, `private`, $request | meta/option write | yes | core/private-folders.php:257 |
-| `/vergeml/v1/folders-apply` | POST | closure | manage_options | no | `folders*`, `plan_id*`, $request | db query, post/term write, meta/option write, outbound http, schedules cron | yes | core/folder-talk.php:2787 |
-| `/vergeml/v1/folders-progress` | GET | closure | manage_options | no | — | outbound http, schedules cron, db query, term assign, meta/option write | no | core/folder-talk.php:2809 |
-| `/vergeml/v1/folders-propose` | POST | closure | manage_options | no | `instruction*`, `history`, `mode`, $request | outbound http, db query | no | core/folder-talk.php:2769 |
-| `/vergeml/v1/folders-undo` | POST | closure | manage_options | no | — | post/term write, delete, term assign, meta/option write, db query | no | core/folder-talk.php:2797 |
+| `/vergeml/v1/folder-privacy` | POST | closure | manage_options, manage_options, edit_term($term_id) | yes (1) | `id*`, `private`, $request | meta/option write | yes | core/private-folders.php:300 |
+| `/vergeml/v1/folders-apply` | POST | closure | manage_options | no | `folders*`, `plan_id*`, $request | db query, post/term write, meta/option write, outbound http, schedules cron | yes | core/folder-talk.php:2782 |
+| `/vergeml/v1/folders-progress` | GET | closure | manage_options | no | — | outbound http, schedules cron, db query, term assign, meta/option write | no | core/folder-talk.php:2804 |
+| `/vergeml/v1/folders-propose` | POST | closure | manage_options | no | `instruction*`, `history`, `mode`, $request | outbound http, db query | no | core/folder-talk.php:2764 |
+| `/vergeml/v1/folders-undo` | POST | closure | manage_options | no | — | post/term write, delete, term assign, meta/option write, db query | no | core/folder-talk.php:2792 |
 | `/vergeml/v1/folders/version` | GET | closure | upload_files | no | — | — | no | core/folders-version.php:102 |
 | `/vergeml/v1/gallery-folders` | GET | closure | upload_files, $tax_object->cap->assign_terms | no | `taxonomy`, $request | — | no | core/gallery-block.php:363 |
 | `/vergeml/v1/guide/answer` | POST | closure | manage_options | no | `id*`, `answer*`, $request | post/term write, term assign, meta/option write, db write, db query | yes | core/guide.php:1058 |
@@ -133,7 +133,7 @@ Anything without brackets is a site-wide yes.
 | route | method | why | where |
 |---|---|---|---|
 | `/vergeml/v1/brief/turn` | POST | unscoped capability on an id from the request | core/brief.php:642 |
-| `/vergeml/v1/folders-apply` | POST | unscoped capability on an id from the request | core/folder-talk.php:2787 |
+| `/vergeml/v1/folders-apply` | POST | unscoped capability on an id from the request | core/folder-talk.php:2782 |
 | `/vergeml/v1/guide/turn` | POST | unscoped capability on an id from the request | core/guide.php:982 |
 | `/vergeml/v1/guide/answer` | POST | unscoped capability on an id from the request | core/guide.php:1058 |
 | `/vergeml/v1/health-retire` | POST | unscoped capability on an id from the request | core/health-keep.php:841 |
@@ -152,8 +152,8 @@ user and nothing more; `wp_ajax_nopriv_` requires nothing at all.
 |---|---|---|---|---|---|---|---|
 | `vergeml_trial` | no | vergeml_offer_ajax_trial | manage_options | check_ajax_referer | $_POST | meta/option write, outbound http | core/offer.php:145 |
 | `vergeml-apply-settings-to-network` | no | vergeml_apply_settings_to_network | manage_network_options | check_ajax_referer | $_POST | meta/option write | core/options-pages.php:876 |
-| `vergeml-term-counts` | no | vergeml_ajax_term_counts | upload_files | check_ajax_referer | — | db query | core/taxonomies.php:1352 |
-| `vergeml-save-attachment-order` | no | vergeml_save_attachment_order | edit_post($post_id), edit_post($attachment_id) | check_ajax_referer | $_REQUEST | post/term write | core/taxonomies.php:1390 |
+| `vergeml-term-counts` | no | vergeml_ajax_term_counts | upload_files | check_ajax_referer | — | db query | core/taxonomies.php:1372 |
+| `vergeml-save-attachment-order` | no | vergeml_save_attachment_order | edit_post($post_id), edit_post($attachment_id) | check_ajax_referer | $_REQUEST | post/term write | core/taxonomies.php:1410 |
 | `vergeml_rest` | no | vergeml_transport_bridge | upload_files | wp_verify_nonce | $_GET, $_SERVER, php://input | — | core/transport.php:31 |
 
 ## admin_post handlers
@@ -163,11 +163,11 @@ capability and the nonce are the whole of the gate.
 
 | action | nopriv | callback | capability | nonce | reads | writes | where |
 |---|---|---|---|---|---|---|---|
-| `vergeml_zip` | no | vergeml_zip_download | upload_files, $tax_object->cap->assign_terms, manage_options | check_admin_referer | $_GET | delete | core/folder-tools.php:237 |
+| `vergeml_zip` | no | vergeml_zip_download | upload_files, $tax_object->cap->assign_terms, manage_options | check_admin_referer | $_GET | delete | core/folder-tools.php:235 |
 | `vergeml_help_send` | no | vergeml_help_send | manage_options | check_admin_referer | $_POST | outbound http | core/get-help.php:192 |
 | `vergeml_export_csv` | no | vergeml_csv_download | manage_options | check_admin_referer | $_GET | filesystem | core/import-csv.php:181 |
 | `vergeml_do_alt` | no | vergeml_journey_do_alt | manage_options | check_admin_referer | — | meta/option write, db query | core/journey.php:919 |
-| `vergeml_do_rename` | no | vergeml_journey_do_rename | manage_options, edit_post($id) | check_admin_referer | — | post/term write, meta/option write, db query | core/journey.php:1000 |
+| `vergeml_do_rename` | no | vergeml_journey_do_rename | manage_options, edit_post($id) | check_admin_referer | — | post/term write, meta/option write, db query | core/journey.php:983 |
 | `vergeml_licence_save` | no | vergeml_licence_save | manage_options, manage_network_options | check_admin_referer | $_POST | meta/option write, outbound http | core/licence-page.php:33 |
 | `vergeml_rename` | no | vergeml_rename_handle_one | edit_post($id), edit_post($id) | check_admin_referer | $_GET | post/term write, meta/option write, db query | core/rename.php:343 |
 | `vergeml_rename_undo` | no | vergeml_rename_handle_undo | manage_options | check_admin_referer | — | post/term write, meta/option write, db query | core/rename.php:443 |
@@ -180,7 +180,7 @@ anything it spends has to be decided before it is booked.
 | hook | booked at | answered by | writes | reads |
 |---|---|---|---|---|
 | `vergeml_ai_run_tick` | core/ai-background.php:492 | vergeml_ai_run_tick (core/ai-background.php:312) | schedules cron, db query, meta/option write, db write, outbound http | — |
-| `vergeml_talk_refile_event` | core/folder-talk.php:1791 | vergeml_talk_refile_event (core/folder-talk.php:1780) | schedules cron, db query, term assign, meta/option write, outbound http, delete, db write | — |
+| `vergeml_talk_refile_event` | core/folder-talk.php:1786 | vergeml_talk_refile_event (core/folder-talk.php:1775) | schedules cron, db query, term assign, meta/option write, outbound http, delete, db write | — |
 | `vergeml_guide_fit_event` | core/guide.php:1682 | vergeml_guide_fit_event (core/guide.php:1697) | db query, outbound http, meta/option write | — |
 | `vergeml_plan_inventory_refresh` | core/plan-tree.php:334 | vergeml_plan_inventory_refresh_event (core/plan-tree.php:343) | db query, meta/option write, outbound http, schedules cron | — |
 | `vergeml_plan_event` | core/plan-tree.php:843 | vergeml_plan_event (core/plan-tree.php:852) | meta/option write, db query, outbound http, schedules cron | — |
@@ -195,7 +195,7 @@ whole of what WordPress checks before the callback runs. A screen that then read
 
 | slug | registered as | capability | callback | reads | writes | nonce | where |
 |---|---|---|---|---|---|---|---|
-| `vergelabs-media` | add_menu_page | manage_options | vergeml_journey_screen (core/journey.php:1069) | $_GET | meta/option write, outbound http | — | core/admin-menu.php:50 |
+| `vergelabs-media` | add_menu_page | manage_options | vergeml_journey_screen (core/journey.php:1052) | $_GET | meta/option write, outbound http | — | core/admin-menu.php:50 |
 | `vergeml-ai` | add_submenu_page | manage_options | vergeml_ai_page (core/ai-screen.php:199) | $_GET | — | wp_verify_nonce | core/ai.php:2028 |
 | `vergeml-health` | add_submenu_page | manage_options | vergeml_health_page (core/health.php:1386) | — | — | — | core/health.php:1222 |
 | `vergeml-help` | add_submenu_page | manage_options | vergeml_help_page (core/get-help.php:283) | $_GET | outbound http | wp_verify_nonce | core/get-help.php:31 |
@@ -271,14 +271,14 @@ capability gate belongs to whatever screen they fire on, not to them.
 | `admin_page_access_denied` | action | vergeml_admin_menu_redirects | $_GET | — | — | — | core/admin-menu.php:164 |
 | `ajax_query_attachments_args` | filter | vergeml_quarantine_hide_grid | $_POST | — | — | — | core/quarantine.php:229 |
 | `ajax_query_attachments_args` | filter | vergeml_smart_grid_query | $_POST | — | — | — | core/smart-folders.php:1189 |
-| `ajax_query_attachments_args` | filter | vergeml_ajax_query_attachments_args | $_REQUEST | — | — | — | core/taxonomies.php:414 |
+| `ajax_query_attachments_args` | filter | vergeml_ajax_query_attachments_args | $_REQUEST | — | manage_options | — | core/taxonomies.php:414 |
 | `attachment_fields_to_edit` | filter | vergeml_why_here_field | $_REQUEST | db query | manage_options | — | core/librarian.php:3132 |
-| `attachment_fields_to_save` | filter | vergeml_compat_save_term_checkboxes | $_REQUEST | term assign | edit_post($id), $tax_object->cap->assign_terms | check_ajax_referer | core/taxonomies.php:1261 |
+| `attachment_fields_to_save` | filter | vergeml_compat_save_term_checkboxes | $_REQUEST | term assign | edit_post($id), $tax_object->cap->assign_terms, manage_options | check_ajax_referer | core/taxonomies.php:1272 |
 | `handle_bulk_actions-upload` | filter | vergeml_handle_bulk_terms | $_REQUEST | term assign | $tax_object->cap->assign_terms, edit_post($post_id), manage_options | check_admin_referer | core/bulk-terms.php:142 |
 | `init` | action | vergeml_builder_register | $_GET | — | — | — | core/page-builders.php:178 |
 | `network_admin_menu` | action | vergeml_update_network_licence | $_POST | — | manage_network_options | wp_verify_nonce | core/options-pages.php:1021 |
 | `network_admin_menu` | action | vergeml_update_network_settings | $_POST | — | manage_network_options | check_admin_referer | core/options-pages.php:1155 |
-| `parse_tax_query` | action | vergeml_backend_parse_tax_query | $_REQUEST | — | — | — | core/taxonomies.php:795 |
+| `parse_tax_query` | action | vergeml_backend_parse_tax_query | $_REQUEST | — | manage_options | — | core/taxonomies.php:802 |
 | `pre_get_posts` | action | vergeml_folder_filter_posts | $_GET | — | — | — | core/post-folders.php:257 |
 | `pre_get_posts` | action | vergeml_quarantine_hide_list | $_GET | — | — | — | core/quarantine.php:249 |
 | `pre_get_posts` | action | vergeml_meaning_take_over | $_GET | db query, outbound http, db write, schedules cron | manage_options | wp_verify_nonce | core/search-meaning.php:728 |
@@ -287,10 +287,10 @@ capability gate belongs to whatever screen they fire on, not to them.
 | `rest_api_init` | action | vergeml_rename_routes | $request | db query, post/term write, meta/option write | upload_files, manage_options, edit_post($id) | — | core/rename.php:494 |
 | `rest_api_init` | action | vergeml_register_folder_routes | $request | — | $tax->cap->manage_terms, upload_files, $tax->cap->assign_terms, manage_categories, $cap($term_id), $tax->cap->edit_terms, manage_options | — | core/rest-folders.php:24 |
 | `rest_api_init` | action | vergeml_register_tree_routes | $request | — | upload_files, $tax->cap->assign_terms, $object->cap->edit_posts, edit_posts, $taxonomy->cap->assign_terms | — | core/rest-tree.php:165 |
-| `rest_request_before_callbacks` | filter | vergeml_private_guard_core_rest | $request | — | manage_options | — | core/private-folders.php:196 |
+| `rest_request_before_callbacks` | filter | vergeml_private_guard_core_rest | $request | — | manage_options | — | core/private-folders.php:191 |
 | `restrict_manage_posts` | action | vergeml_list_folder_filter | $_REQUEST | db query | — | — | core/media-list.php:430 |
 | `restrict_manage_posts` | action | vergeml_meaning_offer | $_GET | — | manage_options | — | core/search-meaning.php:679 |
-| `restrict_manage_posts` | action | vergeml_restrict_manage_posts | $_REQUEST | — | manage_options | — | core/taxonomies.php:573 |
+| `restrict_manage_posts` | action | vergeml_restrict_manage_posts | $_REQUEST | — | manage_options | — | core/taxonomies.php:580 |
 
 <!-- hand-written: files -->
 ## Files

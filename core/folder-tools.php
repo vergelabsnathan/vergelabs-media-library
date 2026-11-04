@@ -129,8 +129,6 @@ function vergeml_path_in_uploads( $path ) {
  *
  *  The folder's files, and its sub-folders' files, into one archive on disk.
  *
- *  Kept apart from the download handler so it can be tested without an HTTP
- *  response in the way, and reused by anything else that wants an archive.
  *  Sub-folders become directories inside the ZIP, so what comes out of the
  *  archive looks like what the tree showed.
  */

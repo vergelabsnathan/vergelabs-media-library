@@ -138,9 +138,9 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 | 276 | — | `get_var` | prepared | — |
 | 286 | — | `get_results` | prepared | — |
 | 958 | — | `get_var` | prepared | — |
-| 1137 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name; $wpdb->termmeta — a $wpdb table name; implode( ', ', array_fill( 0, count( $only_list ), '%d' ) ) — implode of a generated %d placeholder list |
-| 2278 | — | `get_results` | prepared | implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) — implode of a generated %d placeholder list |
-| 2556 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
+| 1132 | — | `get_results` | prepared | $wpdb->postmeta — a $wpdb table name; $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name; $wpdb->termmeta — a $wpdb table name; implode( ', ', array_fill( 0, count( $only_list ), '%d' ) ) — implode of a generated %d placeholder list |
+| 2273 | — | `get_results` | prepared | implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) — implode of a generated %d placeholder list |
+| 2551 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->term_taxonomy — a $wpdb table name |
 
 ### core/guide.php
 
@@ -388,12 +388,12 @@ checked, and one unproven assignment is enough to make the whole call a finding.
 
 | line | in | method | class | proof |
 |---|---|---|---|---|
-| 1120 | — | `get_results` | prepared | $wpdb->term_taxonomy — a $wpdb table name |
-| 1131 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $terms ), '%d' ) ) — implode of a generated %d placeholder list |
-| 1561 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name |
-| 1571 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
-| 1614 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; implode( ', ', array_fill( 0, count( $object_types ), '%s' ) ) — implode of a generated %d placeholder list |
-| 1630 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 1131 | — | `get_results` | prepared | $wpdb->term_taxonomy — a $wpdb table name |
+| 1142 | — | `get_results` | prepared | $wpdb->posts — a $wpdb table name; $wpdb->term_relationships — a $wpdb table name; implode( ', ', array_fill( 0, count( $terms ), '%d' ) ) — implode of a generated %d placeholder list |
+| 1581 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name |
+| 1591 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
+| 1634 | — | `get_var` | prepared | $wpdb->term_relationships — a $wpdb table name; $wpdb->posts — a $wpdb table name; implode( ', ', array_fill( 0, count( $object_types ), '%s' ) ) — implode of a generated %d placeholder list |
+| 1650 | — | `update` | built and escaped by `$wpdb` | values escaped by $wpdb; the table is a $wpdb property |
 
 ### core/utilities.php
 

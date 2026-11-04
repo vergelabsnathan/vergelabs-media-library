@@ -185,6 +185,9 @@ function vergeml_tree_assets( $hook ) {
         if ( ! $object instanceof WP_Taxonomy || ! $object->hierarchical )
             continue; // A flat taxonomy drawn as a tree is a lie about the data.
 
+        if ( ! current_user_can( $object->cap->assign_terms ) )
+            continue; // The same bar as the /tree route, so the first paint serves nothing it would refuse.
+
         $list[] = array(
             'name'  => $name,
             'label' => $object->labels->name,

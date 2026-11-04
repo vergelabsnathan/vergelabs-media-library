@@ -13,7 +13,7 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 
 | | count |
 |---|---|
-| PHP output sites with a non-literal argument | 193 |
+| PHP output sites with a non-literal argument | 189 |
 | · of those, read by hand with the reason | 0 |
 | · of those, **nothing accounted for them** | **0** |
 | JavaScript HTML sinks (`innerHTML`, `insertAdjacentHTML`, `document.write`, `.html()`) | 63 |
@@ -22,7 +22,7 @@ the page by JavaScript, where `esc_html()` does not exist and nothing warns you.
 | · of those, **still unread** | **0** |
 | JavaScript text sinks (`textContent`, `.text()`, `createTextNode`, `setAttribute`) | 255 |
 
-Over 68 PHP files and 43 JavaScript files that ship.
+Over 67 PHP files and 43 JavaScript files that ship.
 
 ## The four journeys the plan names
 

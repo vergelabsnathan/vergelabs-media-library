@@ -261,24 +261,49 @@ foreach ( array( 'taxonomy' => 'vergeml_folder', 'attachments' => array( $own ),
 }
 vergeml_t( '/assign refuses it as a destination', is_wp_error( vergeml_rest_assign( $req ) ) && ! has_term( $hidden_term, 'vergeml_folder', $own ) );
 
+// Through WordPress's own router: it matches routes without regard to case.
 function vergeml_core_rest( $route, $params = array() ) {
 	$req = new WP_REST_Request( 'GET', $route );
 	foreach ( $params as $k => $v ) {
 		$req->set_param( $k, $v );
 	}
-	return array( vergeml_private_guard_core_rest( null, array(), $req ), $req );
+	$res = rest_do_request( $req );
+	return array( $res->get_status(), wp_json_encode( $res->get_data() ) );
 }
 
-list( $got ) = vergeml_core_rest( '/wp/v2/vergeml_folder/' . $hidden_term );
-vergeml_t( 'core REST will not read it by id', is_wp_error( $got ) && 404 === $got->get_error_data()['status'] );
-list( $got, $asked ) = vergeml_core_rest( '/wp/v2/vergeml_folder', array( 'include' => array( $hidden_term, $term ) ) );
-vergeml_t( 'core REST takes it out of include', ! is_wp_error( $got ) && array( $term ) === $asked->get_param( 'include' ) );
-list( $got ) = vergeml_core_rest( '/wp/v2/vergeml_folder/' . $term );
-vergeml_t( 'core REST still reads a shared folder for a logged-in user', ! is_wp_error( $got ) );
+$hidden_name = get_term( $hidden_term )->name;
+$own_filed   = wp_insert_attachment( array( 'post_title' => 'vgml caps filed', 'post_mime_type' => 'image/jpeg', 'post_status' => 'inherit', 'post_author' => 1 ) );
+wp_set_object_terms( $own_filed, array( $hidden_term ), 'vergeml_folder' );
+
+foreach ( array( '/wp/v2/vergeml_folder/', '/wp/v2/VERGEML_FOLDER/', '/WP/V2/vergeml_folder/', '/wp/v2/Vergeml_Folder/' ) as $spelling ) {
+	list( $status, $body ) = vergeml_core_rest( $spelling . $hidden_term );
+	vergeml_t( "core REST will not read it at {$spelling}<id>", 404 === $status && false === strpos( $body, $hidden_name ), (string) $status );
+}
+foreach ( array( '/wp/v2/vergeml_folder', '/wp/v2/VERGEML_FOLDER' ) as $spelling ) {
+	list( $status, $body ) = vergeml_core_rest( $spelling, array( 'include' => array( $hidden_term ) ) );
+	vergeml_t( "core REST takes it out of include at {$spelling}", false === strpos( $body, $hidden_name ) );
+}
+list( $status ) = vergeml_core_rest( '/wp/v2/vergeml_folder/' . $term );
+vergeml_t( 'core REST still reads a shared folder for a logged-in user', 200 === $status, (string) $status );
+list( $status, $body ) = vergeml_core_rest( '/wp/v2/media', array( 'vergeml_folder' => array( $hidden_term ) ) );
+vergeml_t( 'core media will not list it by id', 200 === $status && '[]' === $body, $status . ' ' . substr( $body, 0, 60 ) );
 
 wp_set_current_user( 0 );
-list( $got ) = vergeml_core_rest( '/wp/v2/vergeml_folder' );
-vergeml_t( 'core REST refuses a logged-out visitor', is_wp_error( $got ) && 401 === $got->get_error_data()['status'] );
+foreach ( array( '/wp/v2/vergeml_folder', '/wp/v2/VERGEML_FOLDER', '/WP/V2/vergeml_folder/' . $hidden_term ) as $spelling ) {
+	list( $status, $body ) = vergeml_core_rest( $spelling );
+	vergeml_t( "a logged-out visitor is refused {$spelling}", 401 === $status, (string) $status );
+}
+list( $status, $body ) = vergeml_core_rest( '/wp/v2/media', array( 'vergeml_folder' => array( $hidden_term ) ) );
+vergeml_t( 'core media will not list it logged out', '[]' === $body, substr( $body, 0, 60 ) );
+
+register_taxonomy( 'acme_labels', 'attachment', array( 'show_ui' => true, 'public' => false, 'show_in_rest' => true ) );
+( new WP_REST_Terms_Controller( 'acme_labels' ) )->register_routes();
+list( $status ) = vergeml_core_rest( '/wp/v2/acme_labels' );
+vergeml_t( "another plugin's non-public taxonomy stays as it registered it, logged out", 401 !== $status, (string) $status );
+unregister_taxonomy( 'acme_labels' );
+
+wp_set_current_user( 1 );
+wp_delete_attachment( $own_filed, true );
 
 wp_set_current_user( $users['editor'] );
 vergeml_t( 'its owner still sees it', ! vergeml_private_is_hidden( $hidden_term ) );

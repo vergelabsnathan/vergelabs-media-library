@@ -61,13 +61,6 @@
 	color: var( --vgml-muted );
 }
 
-.vgml-dash .vgml-do-more {
-	font-size: 12px;
-	margin-top: 6px;
-	color: var( --vgml-accent-700 );
-	font-weight: 600;
-}
-
 .vgml-dash .vgml-do.is-blocked .vgml-do-note {
 	color: var( --vgml-accent-700 );
 	font-weight: 600;

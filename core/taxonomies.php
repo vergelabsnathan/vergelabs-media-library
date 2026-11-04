@@ -471,11 +471,18 @@ function vergeml_ajax_query_attachments_args( $query ) {
                 if( is_numeric( $query[$taxonomy_name] ) || is_array( $query[$taxonomy_name] ) ) {
 
                     $field = preg_match( '/^\d+$/', implode( '', (array) $query[$taxonomy_name] ) ) ? 'term_id' : 'slug';
+                    $terms = (array) $query[$taxonomy_name];
+
+                    // Somebody else's private folder lists nothing when it is named by id.
+                    if ( 'term_id' === $field && function_exists( 'vergeml_private_hidden_from' ) ) {
+                        $terms = array_values( array_diff( array_map( 'intval', $terms ), vergeml_private_hidden_from() ) );
+                        $terms = $terms ? $terms : array( 0 );
+                    }
 
                     $tax_query[] = array(
                         'taxonomy' => $taxonomy_name,
                         'field' => $field,
-                        'terms' => (array) $query[$taxonomy_name],
+                        'terms' => $terms,
                         'include_children' => (bool) $vergeml_lib_options['include_children']
                     );
                 }
@@ -938,6 +945,10 @@ function vergeml_backend_parse_tax_query( $query ) {
             $term  = ( $found instanceof WP_Term ) ? $found : false;
         }
 
+        if ( $term && function_exists( 'vergeml_private_is_hidden' ) && vergeml_private_is_hidden( $term->term_id ) ) {
+            $term = false;
+        }
+
         if ( ! $term ) {
             continue;
         }
@@ -1293,7 +1304,16 @@ function vergeml_compat_save_term_checkboxes( $post, $attachment_data ) {
             continue;
         }
 
-        wp_set_object_terms( $id, array_map( 'absint', array_keys( $tax_input[ $taxonomy ], '1', false ) ), $taxonomy, false );
+        $chosen = array_map( 'absint', array_keys( $tax_input[ $taxonomy ], '1', false ) );
+
+        // The form never shows somebody else's private folder: it cannot be chosen here, and saving does not take a file out of it.
+        if ( function_exists( 'vergeml_private_hidden_from' ) && vergeml_private_hidden_from() ) {
+            $hidden = vergeml_private_hidden_from();
+            $held   = wp_get_object_terms( $id, $taxonomy, array( 'fields' => 'ids' ) );
+            $chosen = array_merge( array_diff( $chosen, $hidden ), is_wp_error( $held ) ? array() : array_intersect( array_map( 'intval', $held ), $hidden ) );
+        }
+
+        wp_set_object_terms( $id, $chosen, $taxonomy, false );
     }
 
     return $post;

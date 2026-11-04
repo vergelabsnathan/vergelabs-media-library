@@ -970,23 +970,6 @@ function vergeml_journey_results() {
         );
     }
 
-    if ( isset( $_GET['vergeml_files_renamed'] ) ) {
-        $n      = max( 0, (int) $_GET['vergeml_files_renamed'] );
-        $said[] = sprintf(
-            /* translators: %s: how many files were renamed on disk. */
-            _n( '%s file renamed, and the pages pointing at it updated.', '%s files renamed, and the pages pointing at them updated.', $n, 'vergelabs-media-library' ),
-            number_format_i18n( $n )
-        );
-    }
-
-    if ( isset( $_GET['vergeml_files_back'] ) ) {
-        $n      = max( 0, (int) $_GET['vergeml_files_back'] );
-        $said[] = sprintf(
-            /* translators: %s: how many file names were put back. */
-            _n( '%s file name put back.', '%s file names put back.', $n, 'vergelabs-media-library' ),
-            number_format_i18n( $n )
-        );
-    }
     // phpcs:enable
 
     foreach ( $said as $line ) {

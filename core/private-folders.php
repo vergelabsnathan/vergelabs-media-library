@@ -78,11 +78,6 @@ function vergeml_private_owner( $term_id ) {
  *
  *  @param int  $term_id
  *  @param bool $mine  true to make it the current user's, false to share it.
- *
- *  Named $mine rather than $private because Gate 2 greps for
- *  `function name( ... private ...)` looking for PHP 8 constructor promotion,
- *  and a parameter that happens to be called $private reads to it as exactly
- *  that. A gate nobody trusts is a gate nobody reads.
  */
 function vergeml_private_set( $term_id, $mine ) {
 
@@ -197,7 +192,20 @@ add_filter( 'rest_request_before_callbacks', 'vergeml_private_guard_core_rest', 
 
 function vergeml_private_guard_core_rest( $response, $handler, $request ) {
 
-    if ( is_wp_error( $response ) || ! preg_match( '#^/wp/v2/([^/]+)(?:/(\d+))?/?$#', $request->get_route(), $found ) ) {
+    if ( is_wp_error( $response ) || ! isset( $handler['callback'][0] ) ) {
+        return $response;
+    }
+
+    $controller = $handler['callback'][0];
+
+    // Core's media routes filter and file by a folder's id through a parameter named after its REST base.
+    if ( $controller instanceof WP_REST_Attachments_Controller ) {
+        vergeml_private_strip_media_params( $request );
+        return $response;
+    }
+
+    // WordPress matches routes without regard to case, so the base is compared the same way.
+    if ( ! $controller instanceof WP_REST_Terms_Controller || ! preg_match( '#/([^/]+)(?:/(\d+))?/?$#', $request->get_route(), $found ) ) {
         return $response;
     }
 
@@ -205,11 +213,12 @@ function vergeml_private_guard_core_rest( $response, $handler, $request ) {
 
         $object = get_taxonomy( $taxonomy );
 
-        if ( ! $object || ( $object->rest_base ? $object->rest_base : $object->name ) !== $found[1] ) {
+        if ( ! $object || 0 !== strcasecmp( $object->rest_base ? $object->rest_base : $object->name, $found[1] ) ) {
             continue;
         }
 
-        if ( empty( $object->public ) && ! is_user_logged_in() ) {
+        // Only this plugin's own taxonomies: another plugin's stay as that plugin registered them.
+        if ( 0 === strpos( $taxonomy, 'vergeml_' ) && empty( $object->public ) && ! is_user_logged_in() ) {
             return new WP_Error( 'rest_forbidden', __( 'You must be logged in to read these folders.', 'vergelabs-media-library' ), array( 'status' => 401 ) );
         }
 
@@ -225,6 +234,40 @@ function vergeml_private_guard_core_rest( $response, $handler, $request ) {
     }
 
     return $response;
+}
+
+
+/**
+ *  A hidden folder's id means nothing on core's media routes: a read naming only
+ *  hidden folders lists nothing, and a write does not file into one.
+ */
+function vergeml_private_strip_media_params( $request ) {
+
+    $hidden = vergeml_private_hidden_from();
+
+    if ( ! $hidden ) {
+        return;
+    }
+
+    foreach ( vergeml_tree_taxonomies() as $taxonomy ) {
+
+        $object = get_taxonomy( $taxonomy );
+        $base   = $object && $object->rest_base ? $object->rest_base : $taxonomy;
+        $value  = $request->get_param( $base );
+
+        if ( null === $value ) {
+            continue;
+        }
+
+        $asked = wp_parse_id_list( is_array( $value ) && isset( $value['terms'] ) ? $value['terms'] : $value );
+        $kept  = array_values( array_diff( $asked, $hidden ) );
+
+        if ( ! $kept && 'GET' === $request->get_method() ) {
+            $kept = array( 0 );
+        }
+
+        $request->set_param( $base, $kept );
+    }
 }
 
 
