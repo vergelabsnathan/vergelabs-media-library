@@ -192,7 +192,8 @@ add_filter( 'rest_request_before_callbacks', 'vergeml_private_guard_core_rest', 
 
 function vergeml_private_guard_core_rest( $response, $handler, $request ) {
 
-    if ( is_wp_error( $response ) || ! isset( $handler['callback'][0] ) ) {
+    // A callback can be a closure or a function name: only a controller's array form says which route this is.
+    if ( is_wp_error( $response ) || ! isset( $handler['callback'] ) || ! is_array( $handler['callback'] ) || empty( $handler['callback'][0] ) ) {
         return $response;
     }
 
@@ -204,33 +205,32 @@ function vergeml_private_guard_core_rest( $response, $handler, $request ) {
         return $response;
     }
 
-    // WordPress matches routes without regard to case, so the base is compared the same way.
-    if ( ! $controller instanceof WP_REST_Terms_Controller || ! preg_match( '#/([^/]+)(?:/(\d+))?/?$#', $request->get_route(), $found ) ) {
+    if ( ! $controller instanceof WP_REST_Terms_Controller ) {
         return $response;
     }
 
-    foreach ( vergeml_tree_taxonomies() as $taxonomy ) {
+    // From the controller and the matched id, never the route's spelling: WordPress matches routes loosely.
+    $schema   = $controller->get_item_schema();
+    $taxonomy = isset( $schema['title'] ) ? (string) $schema['title'] : '';
+    $object   = get_taxonomy( $taxonomy );
 
-        $object = get_taxonomy( $taxonomy );
+    if ( ! $object || ! in_array( $taxonomy, vergeml_tree_taxonomies(), true ) ) {
+        return $response;
+    }
 
-        if ( ! $object || 0 !== strcasecmp( $object->rest_base ? $object->rest_base : $object->name, $found[1] ) ) {
-            continue;
-        }
+    // Only this plugin's own taxonomies: another plugin's stay as that plugin registered them.
+    if ( 0 === strpos( $taxonomy, 'vergeml_' ) && empty( $object->public ) && ! is_user_logged_in() ) {
+        return new WP_Error( 'rest_forbidden', __( 'You must be logged in to read these folders.', 'vergelabs-media-library' ), array( 'status' => 401 ) );
+    }
 
-        // Only this plugin's own taxonomies: another plugin's stay as that plugin registered them.
-        if ( 0 === strpos( $taxonomy, 'vergeml_' ) && empty( $object->public ) && ! is_user_logged_in() ) {
-            return new WP_Error( 'rest_forbidden', __( 'You must be logged in to read these folders.', 'vergelabs-media-library' ), array( 'status' => 401 ) );
-        }
+    $url = $request->get_url_params();
 
-        if ( ! empty( $found[2] ) && vergeml_private_is_hidden( (int) $found[2] ) ) {
-            return new WP_Error( 'rest_term_invalid', __( 'That folder does not exist.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
-        }
+    if ( ! empty( $url['id'] ) && vergeml_private_is_hidden( (int) $url['id'] ) ) {
+        return new WP_Error( 'rest_term_invalid', __( 'That folder does not exist.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
+    }
 
-        if ( $request->get_param( 'include' ) ) {
-            $request->set_param( 'include', array_values( array_diff( wp_parse_id_list( $request->get_param( 'include' ) ), vergeml_private_hidden_from() ) ) );
-        }
-
-        break;
+    if ( $request->get_param( 'include' ) ) {
+        $request->set_param( 'include', array_values( array_diff( wp_parse_id_list( $request->get_param( 'include' ) ), vergeml_private_hidden_from() ) ) );
     }
 
     return $response;
@@ -254,6 +254,12 @@ function vergeml_private_strip_media_params( $request ) {
         $object = get_taxonomy( $taxonomy );
         $base   = $object && $object->rest_base ? $object->rest_base : $taxonomy;
         $value  = $request->get_param( $base );
+        $not    = $request->get_param( $base . '_exclude' );
+
+        // Excluding a hidden folder would show what is in it by what goes missing.
+        if ( null !== $not ) {
+            $request->set_param( $base . '_exclude', array_values( array_diff( wp_parse_id_list( is_array( $not ) && isset( $not['terms'] ) ? $not['terms'] : $not ), $hidden ) ) );
+        }
 
         if ( null === $value ) {
             continue;

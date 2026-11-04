@@ -511,6 +511,11 @@ function vergeml_ajax_query_attachments_args( $query ) {
 
                         $field = preg_match( '/^\d+$/', implode( '', $terms ) ) ? 'term_id' : 'slug';
 
+                        if ( 'term_id' === $field && function_exists( 'vergeml_private_hidden_from' ) ) {
+                            $terms = array_values( array_diff( array_map( 'intval', $terms ), vergeml_private_hidden_from() ) );
+                            $terms = $terms ? $terms : array( 0 );
+                        }
+
                         $tax_query[] = array(
                             'taxonomy'         => $taxonomy_name,
                             'field'            => $field,

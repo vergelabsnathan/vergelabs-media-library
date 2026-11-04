@@ -288,8 +288,32 @@ vergeml_t( 'core REST still reads a shared folder for a logged-in user', 200 ===
 list( $status, $body ) = vergeml_core_rest( '/wp/v2/media', array( 'vergeml_folder' => array( $hidden_term ) ) );
 vergeml_t( 'core media will not list it by id', 200 === $status && '[]' === $body, $status . ' ' . substr( $body, 0, 60 ) );
 
+list( $status, $body ) = vergeml_core_rest( "/wp/v2/vergeml_folder\n", array( 'include' => array( $hidden_term ) ) );
+vergeml_t( 'a newline after the route does not get past it', false === strpos( $body, $hidden_name ), (string) $status );
+list( $status, $body ) = vergeml_core_rest( '/wp/v2/media', array( 'vergeml_folder_exclude' => array( $hidden_term ) ) );
+vergeml_t( 'excluding it from core media does not show what is in it', 200 === $status && false !== strpos( $body, '"id":' . $own_filed ), $status . ' ' . substr( $body, 0, 60 ) );
+foreach ( array( (string) $hidden_term, $hidden_term . ',0', $hidden_term . '+0' ) as $form ) {
+	$_REQUEST['query'] = array( 'vergeml_folder' => $form );
+	$args  = apply_filters( 'ajax_query_attachments_args', array( 'post_type' => 'attachment', 'vergeml_folder' => $form ) );
+	unset( $_REQUEST['query'] );
+	$named = isset( $args['tax_query'] ) ? wp_json_encode( $args['tax_query'] ) : '';
+	vergeml_t( "query-attachments will not list it as {$form}", false === strpos( $named, (string) $hidden_term ), $named );
+}
+
+// Every shape of callback a route can have: the guard runs before all of them.
+register_rest_route( 'vergeml-caps/v1', '/closure', array( 'methods' => 'GET', 'callback' => function () { return 'ok'; }, 'permission_callback' => '__return_true' ) );
+register_rest_route( 'vergeml-caps/v1', '/name', array( 'methods' => 'GET', 'callback' => 'rest_get_url_prefix', 'permission_callback' => '__return_true' ) );
+foreach ( array( '/vergeml-caps/v1/closure', '/vergeml-caps/v1/name' ) as $shape ) {
+	list( $status ) = vergeml_core_rest( $shape );
+	vergeml_t( "the guard lets {$shape} through", 200 === $status, (string) $status );
+}
+wp_set_current_user( 1 );
+list( $status ) = vergeml_core_rest( '/vergeml/v1/folders-progress' );
+vergeml_t( "the plugin's own closure route answers", 500 !== $status, (string) $status );
+wp_set_current_user( $users['author'] );
+
 wp_set_current_user( 0 );
-foreach ( array( '/wp/v2/vergeml_folder', '/wp/v2/VERGEML_FOLDER', '/WP/V2/vergeml_folder/' . $hidden_term ) as $spelling ) {
+foreach ( array( '/wp/v2/vergeml_folder', '/wp/v2/VERGEML_FOLDER', "/wp/v2/vergeml_folder\n", '/WP/V2/vergeml_folder/' . $hidden_term ) as $spelling ) {
 	list( $status, $body ) = vergeml_core_rest( $spelling );
 	vergeml_t( "a logged-out visitor is refused {$spelling}", 401 === $status, (string) $status );
 }
