@@ -820,6 +820,8 @@ function vergeml_rest_assign_batch( WP_REST_Request $request, $taxonomy, array $
     $counts  = array();
     $undo    = array();
 
+    $for_type = (string) $request->get_param( 'post_type' );
+
     foreach ( $batch as $group ) {
 
         if ( ! is_array( $group ) ) {
@@ -832,6 +834,7 @@ function vergeml_rest_assign_batch( WP_REST_Request $request, $taxonomy, array $
         $sub->set_param( 'add', isset( $group['add'] ) ? (array) $group['add'] : array() );
         $sub->set_param( 'remove', isset( $group['remove'] ) ? (array) $group['remove'] : array() );
         $sub->set_param( 'mode', isset( $group['mode'] ) ? $group['mode'] : 'add' );
+        $sub->set_param( 'post_type', $for_type );
 
         $result = vergeml_rest_assign( $sub );
 
@@ -857,8 +860,6 @@ function vergeml_rest_assign_batch( WP_REST_Request $request, $taxonomy, array $
 
     // Counts were gathered group by group, so the last group's figures are the
     // current ones; re-read anything an earlier group reported.
-    $for_type = (string) $request->get_param( 'post_type' );
-
     foreach ( array_keys( $counts ) as $term_id ) {
         $term = get_term( $term_id, $taxonomy );
         if ( $term instanceof WP_Term ) {

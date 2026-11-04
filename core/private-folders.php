@@ -187,18 +187,33 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
 
 /**
  *  Core caches a file's folders per file, not per user, and the filter above decides
- *  what goes in. So on a site with private folders that cache lasts one request, for
- *  one person: a persistent object cache would hand one person's list to the next.
+ *  what goes in. So once a site has had a private folder that cache lasts one request,
+ *  for one person: a persistent object cache would hand one person's list to the next.
+ *  It stays that way, because core's deletes never reach the backend meanwhile and
+ *  going back would serve the lists from before.
  */
 add_action( 'wp_loaded', 'vergeml_private_cache_per_request' );
 
 function vergeml_private_cache_per_request() {
 
-    if ( ! vergeml_private_map() ) {
-        return;
+    $first = false;
+
+    if ( ! get_option( 'vergeml_private_used' ) ) {
+
+        if ( ! vergeml_private_map() ) {
+            return;
+        }
+
+        update_option( 'vergeml_private_used', 1, true );
+        $first = function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' );
     }
 
     foreach ( vergeml_tree_taxonomies() as $taxonomy ) {
+
+        if ( $first ) {
+            wp_cache_flush_group( $taxonomy . '_relationships' );
+        }
+
         wp_cache_add_non_persistent_groups( $taxonomy . '_relationships' );
     }
 }

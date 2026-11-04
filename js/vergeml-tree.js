@@ -2727,7 +2727,7 @@
 		apiFetch( {
 			path: '/vergeml/v1/assign',
 			method: 'POST',
-			data: { taxonomy: payload.taxonomy, batch: payload.batch }
+			data: forThisList( { taxonomy: payload.taxonomy, batch: payload.batch } )
 		} ).then( function ( res ) {
 			applyCounts( res );
 			bumpGrid();

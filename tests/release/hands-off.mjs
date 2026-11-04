@@ -195,6 +195,8 @@ const medialistSrc = read( 'core/medialist.php' );
 check( "core's shortcode preview lists nothing for someone without upload_files", /doing_action\( 'wp_ajax_parse-media-shortcode' \)[\s\S]{0,120}! current_user_can\( 'upload_files' \)/.test( medialistSrc ) && /\$preview && 'term_id' === \$field/.test( medialistSrc ) );
 check( "get_the_terms is filtered, because core's object cache is shared", /add_filter\( 'get_the_terms', 'vergeml_private_filter_object_terms'/.test( privateSrc ) );
 check( "core's object cache does not persist between users on a site with private folders", /wp_cache_add_non_persistent_groups\( \$taxonomy \. '_relationships' \)/.test( privateSrc ) && /add_action\( 'wp_loaded', 'vergeml_private_cache_per_request' \)/.test( privateSrc ) && ! /all_with_object_id/.test( privateSrc ) );
+check( 'that stays one-way, and the wipe removes its flag', /! get_option\( 'vergeml_private_used' \)[\s\S]{0,120}! vergeml_private_map\(\)/.test( privateSrc ) && /'vergeml_private_used'/.test( read( 'core/options-pages.php' ) ) );
+check( 'an undo asks for the counts of the list it came from', /data: forThisList\( \{ taxonomy: payload\.taxonomy, batch: payload\.batch \} \)/.test( fs.readFileSync( path.join( ROOT, 'js/vergeml-tree.js' ), 'utf8' ) ) && /\$sub->set_param\( 'post_type', \$for_type \)/.test( treeSrc ) );
 const assignBatch = ( treeSrc.match( /'unassigned' => current_user_can\( 'upload_files' \) \?/g ) || [] ).length;
 check( 'the /assign batch answer asks upload_files too', 1 === assignBatch, String( assignBatch ) );
 const taxSrc = read( 'core/taxonomies.php' );

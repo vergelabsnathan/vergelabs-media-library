@@ -407,13 +407,24 @@ clean_object_term_cache( $own_filed, 'attachment' );
 update_object_term_cache( array( $own_filed ), 'attachment' );
 vergeml_t( 'and get_the_taxonomies prints it for its owner', false !== strpos( wp_json_encode( get_the_taxonomies( $own_filed ) ), $hidden_name ) );
 clean_object_term_cache( $own_filed, 'attachment' );
+$used_before = get_option( 'vergeml_private_used' );
 vergeml_private_cache_per_request();
+vergeml_t( 'a site that has a private folder keeps that cache per request', 1 === (int) get_option( 'vergeml_private_used' ) );
 wp_set_current_user( $users['author'] );
 
 $req = new WP_REST_Request( 'POST', '/vergeml/v1/assign' );
 foreach ( array( 'taxonomy' => 'vergeml_folder', 'batch' => array( array( 'attachments' => array( $att ), 'mode' => 'move' ) ) ) as $k => $v ) {
 	$req->set_param( $k, $v );
 }
+register_taxonomy_for_object_type( 'vergeml_folder', 'post' );
+$typed = new WP_REST_Request( 'POST', '/vergeml/v1/assign' );
+foreach ( array( 'taxonomy' => 'vergeml_folder', 'post_type' => 'post', 'batch' => array( array( 'attachments' => array( $att ), 'add' => array( $term ) ) ) ) as $k => $v ) {
+	$typed->set_param( $k, $v );
+}
+wp_set_current_user( $users['contributor'] );
+$answer = rest_ensure_response( vergeml_rest_assign( $typed ) )->get_data();
+vergeml_t( 'an undo from a post list carries that list\'s count for a contributor', isset( $answer['counts'][ $term ] ) && null === $answer['unassigned'], wp_json_encode( $answer ) );
+unregister_taxonomy_for_object_type( 'vergeml_folder', 'post' );
 wp_set_current_user( $users['contributor'] );
 $answer = rest_ensure_response( vergeml_rest_assign( $req ) )->get_data();
 vergeml_t( '/assign in a batch gives a contributor no unfiled count', null === $answer['unassigned'], wp_json_encode( $answer ) );
@@ -505,6 +516,11 @@ unregister_taxonomy( 'vergeml_caps_strict' );
 wp_delete_attachment( $own, true );
 vergeml_private_set( $hidden_term, false );
 wp_delete_term( $hidden_term, 'vergeml_folder' );
+vergeml_private_cache_per_request();
+vergeml_t( 'it stays per request after the last private folder goes', 1 === (int) get_option( 'vergeml_private_used' ) );
+if ( ! $used_before ) {
+	delete_option( 'vergeml_private_used' );
+}
 
 /* --- tidy -------------------------------------------------------------------- */
 
