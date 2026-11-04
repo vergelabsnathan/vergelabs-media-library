@@ -172,6 +172,14 @@ check( 'every route states its capability where it is registered (no permission_
 // The folders are vergeml_folder; media_category is only ever read as the old or another plugin's key.
 const mc = hits( [ ...php, ...js ], /media_category/g ).filter( ( h ) => ! /'media_category' === \$(key|old)|atts\['media_category'\]|'taxonomy' => 'media_category'|'vergeml_folder', 'media_category'/.test( h.m.input ) );
 check( 'media_category is read only by the migration, the EML import, the old gallery alias and the wipes keep-list', 0 === mc.length, mc.slice( 0, 8 ).map( ( h ) => h.at ).join( ' | ' ) );
+// Round 9 (2026-10-28): a route that takes a post_type checks the caller's capability for that type, and counts stay behind the check.
+const treeSrc = strip( fs.readFileSync( path.join( ROOT, 'core/rest-tree.php' ), 'utf8' ) );
+check( '/tree checks the capability of the post type it was asked about', /'\/tree'[\s\S]{0,500}get_post_type_object\( \$type \)[\s\S]{0,80}->cap->edit_posts/.test( treeSrc ) );
+check( 'the tree and assign counts both go through vergeml_counts_post_type', 3 === ( treeSrc.match( /vergeml_counts_post_type\(/g ) || [] ).length && /->cap->edit_posts \) \? \$post_type : ''/.test( treeSrc ) );
+const countCalls = hits( php, /vergeml_(?:folder_counts|folder_unfiled_count)\(/g ).filter( ( h ) => ! /core[\\/](?:rest-tree|post-folders)\.php/.test( h.at ) );
+check( 'post-type counts are read only by rest-tree.php', 0 === countCalls.length, countCalls.map( ( h ) => h.at ).join( ' | ' ) );
+const postFolders = strip( fs.readFileSync( path.join( ROOT, 'core/post-folders.php' ), 'utf8' ) );
+check( 'post-type counts are limited for a user who cannot edit others\' posts', 2 === ( postFolders.match( /->cap->edit_others_posts/g ) || [] ).length && 2 === ( postFolders.match( /%d = 0 OR p\.post_status = 'publish'/g ) || [] ).length );
 const routes = hits( php, /register_rest_route\s*\(/g ).length;
 const callbacks = php.reduce( ( n, rel ) => n + ( strip( fs.readFileSync( path.join( ROOT, rel ), 'utf8' ) ).match( /'permission_callback'\s*=>/g ) || [] ).length, 0 );
 check( `every REST endpoint has a permission_callback (${ routes } routes, ${ callbacks } callbacks)`, callbacks >= routes );

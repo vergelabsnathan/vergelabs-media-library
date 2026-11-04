@@ -169,7 +169,17 @@ function vergeml_register_tree_routes() {
     register_rest_route( VERGEML_REST_NS, '/tree', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_rest_tree',
-        'permission_callback' => function () { return current_user_can( 'upload_files' ); },
+        'permission_callback' => function ( WP_REST_Request $request ) {
+            if ( ! current_user_can( 'upload_files' ) ) {
+                return false;
+            }
+            $type = (string) $request->get_param( 'post_type' );
+            if ( '' === $type || 'attachment' === $type ) {
+                return true;
+            }
+            $object = get_post_type_object( $type );
+            return $object && current_user_can( $object->cap->edit_posts );
+        },
         'args'                => array(
             'taxonomy' => array(
                 'required'          => true,
@@ -240,6 +250,26 @@ function vergeml_can_assign( $request = null ) {
 
 
 /**
+ *  vergeml_counts_post_type
+ *
+ *  The post type a caller may have folder counts for, or '' for the attachment
+ *  counts. Every route that takes a post_type comes through here: the type must
+ *  use this taxonomy and the current user must be able to edit that type.
+ */
+
+function vergeml_counts_post_type( $taxonomy, $post_type ) {
+
+    if ( ! $post_type || 'attachment' === $post_type || ! is_object_in_taxonomy( $post_type, $taxonomy ) ) {
+        return '';
+    }
+
+    $object = get_post_type_object( $post_type );
+
+    return $object && current_user_can( $object->cap->edit_posts ) ? $post_type : '';
+}
+
+
+/**
  *  vergeml_rest_tree
  *
  *  Everything needed to draw the tree, in one response: the terms, their
@@ -278,8 +308,7 @@ function vergeml_rest_tree( WP_REST_Request $request ) {
      *  every folder at once, which is why the tree costs one extra query there
      *  rather than one per folder.
      */
-    $post_type = (string) $request->get_param( 'post_type' );
-    $post_type = ( $post_type && 'attachment' !== $post_type && post_type_exists( $post_type ) ) ? $post_type : '';
+    $post_type = vergeml_counts_post_type( $taxonomy, (string) $request->get_param( 'post_type' ) );
 
     if ( $post_type && function_exists( 'vergeml_folder_counts' ) ) {
         $counts     = vergeml_folder_counts( $taxonomy, $post_type );
@@ -528,7 +557,9 @@ function vergeml_tree_state( $taxonomy ) {
 
 function vergeml_assign_count( $term_id, $taxonomy, $post_type ) {
 
-    if ( $post_type && 'attachment' !== $post_type && function_exists( 'vergeml_folder_counts' ) ) {
+    $post_type = vergeml_counts_post_type( $taxonomy, (string) $post_type );
+
+    if ( $post_type && function_exists( 'vergeml_folder_counts' ) ) {
         $counts = vergeml_folder_counts( $taxonomy, $post_type );
         return isset( $counts[ (int) $term_id ] ) ? (int) $counts[ (int) $term_id ] : 0;
     }

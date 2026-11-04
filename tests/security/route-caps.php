@@ -157,6 +157,93 @@ vergeml_t( 'Rename from descriptions (admin-post) needs manage_options',
 vergeml_t( 'the rename undo (admin-post) needs manage_options',
 	1 === preg_match( "/function vergeml_rename_handle_undo\(\)\s*\{[^}]*?current_user_can\( 'manage_options' \)/s", $rename ) );
 
+/* --- wordpress.org round 9: counts for a post type follow that type's capabilities ---- */
+
+register_post_type( 'vergeml_caps_secret', array( 'public' => false, 'capability_type' => 'vergeml_secret', 'map_meta_cap' => true ) );
+register_taxonomy_for_object_type( 'vergeml_folder', 'vergeml_caps_secret' );
+register_taxonomy_for_object_type( 'vergeml_folder', 'post' );
+
+$planted = array();
+foreach ( array(
+	array( 'vergeml_caps_secret', 'draft', 1 ),
+	array( 'vergeml_caps_secret', 'private', 1 ),
+	array( 'post', 'publish', 1 ),
+	array( 'post', 'private', 1 ),
+	array( 'post', 'draft', 1 ),
+	array( 'post', 'draft', $users['author'] ),
+) as $p ) {
+	$id = wp_insert_post( array( 'post_type' => $p[0], 'post_status' => $p[1], 'post_author' => $p[2], 'post_title' => 'vgml caps' ) );
+	wp_set_object_terms( $id, array( $term ), 'vergeml_folder' );
+	$planted[] = $id;
+}
+
+function vergeml_tree_gate( $routes, $type ) {
+	$handler = $routes['/vergeml/v1/tree'][0];
+	$req     = new WP_REST_Request( 'GET', '/vergeml/v1/tree' );
+	$req->set_param( 'taxonomy', 'vergeml_folder' );
+	if ( '' !== $type ) {
+		$req->set_param( 'post_type', $type );
+	}
+	return true === call_user_func( $handler['permission_callback'], $req );
+}
+
+function vergeml_tree_answer( $type ) {
+	$req = new WP_REST_Request( 'GET', '/vergeml/v1/tree' );
+	$req->set_param( 'taxonomy', 'vergeml_folder' );
+	$req->set_param( 'post_type', $type );
+	return rest_ensure_response( vergeml_rest_tree( $req ) )->get_data();
+}
+
+function vergeml_stored_count( $term ) {
+	global $wpdb;
+	return (int) $wpdb->get_var( $wpdb->prepare( "SELECT count FROM {$wpdb->term_taxonomy} WHERE term_id = %d", $term ) );
+}
+
+wp_set_current_user( 1 );
+$granted = wp_get_current_user();
+$granted->add_cap( 'edit_vergeml_secrets' );
+vergeml_t( 'an administrator holding the capability may ask /tree about the restricted type', vergeml_tree_gate( $routes, 'vergeml_caps_secret' ) );
+vergeml_t( 'an administrator counts all its posts', 2 === vergeml_folder_counts( 'vergeml_folder', 'vergeml_caps_secret' )[ $term ] );
+vergeml_t( 'an administrator counts every post, cached for nobody else', 4 === vergeml_folder_counts( 'vergeml_folder', 'post' )[ $term ] );
+
+foreach ( array( 'author', 'editor' ) as $role ) {
+	wp_set_current_user( $users[ $role ] );
+	vergeml_t( "an {$role} is refused /tree for a type they cannot edit", ! vergeml_tree_gate( $routes, 'vergeml_caps_secret' ) );
+	vergeml_t( "an {$role} still reaches /tree for attachments", vergeml_tree_gate( $routes, '' ) && vergeml_tree_gate( $routes, 'attachment' ) );
+	vergeml_t( "an {$role} still reaches /tree for posts", vergeml_tree_gate( $routes, 'post' ) );
+	$answer = vergeml_tree_answer( 'vergeml_caps_secret' );
+	vergeml_t( "the tree handler called directly gives an {$role} attachment counts", 'attachment' === $answer['postType'], (string) $answer['postType'] );
+	vergeml_t( "the assign count gives an {$role} no count of that type", vergeml_stored_count( $term ) === vergeml_assign_count( $term, 'vergeml_folder', 'vergeml_caps_secret' ) );
+}
+
+wp_set_current_user( $users['editor'] );
+$req = new WP_REST_Request( 'POST', '/vergeml/v1/folder' );
+foreach ( array( 'taxonomy' => 'vergeml_folder', 'action' => 'rename', 'id' => $term, 'name' => 'vgml caps renamed', 'post_type' => 'vergeml_caps_secret' ) as $k => $v ) {
+	$req->set_param( $k, $v );
+}
+$data = rest_ensure_response( vergeml_rest_folder( $req ) )->get_data();
+vergeml_t( 'the folder route gives an editor attachment counts for that type', isset( $data['postType'] ) && 'attachment' === $data['postType'] );
+
+// post: administrator's publish, private and draft, plus the author's own draft.
+wp_set_current_user( $users['editor'] );
+vergeml_t( 'an editor counts all four posts', 4 === vergeml_assign_count( $term, 'vergeml_folder', 'post' ) );
+wp_set_current_user( $users['author'] );
+vergeml_t( "an author counts published posts and their own, not another's private or draft", 2 === vergeml_assign_count( $term, 'vergeml_folder', 'post' ), (string) vergeml_assign_count( $term, 'vergeml_folder', 'post' ) );
+
+$loose_private = wp_insert_post( array( 'post_type' => 'post', 'post_status' => 'private', 'post_author' => 1, 'post_title' => 'vgml caps loose' ) );
+$planted[]     = $loose_private;
+wp_set_current_user( 1 );
+$all_unfiled = vergeml_folder_unfiled_count( 'vergeml_folder', 'post' );
+wp_set_current_user( $users['author'] );
+vergeml_t( "an author's unfiled count leaves out another's private post", vergeml_folder_unfiled_count( 'vergeml_folder', 'post' ) < $all_unfiled );
+
+wp_set_current_user( 1 );
+foreach ( $planted as $id ) {
+	wp_delete_post( $id, true );
+}
+$granted->remove_cap( 'edit_vergeml_secrets' );
+unregister_taxonomy_for_object_type( 'vergeml_folder', 'post' );
+
 /* --- tidy -------------------------------------------------------------------- */
 
 wp_set_current_user( 1 );
