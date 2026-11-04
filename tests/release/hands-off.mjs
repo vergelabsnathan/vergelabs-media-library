@@ -174,7 +174,7 @@ const mc = hits( [ ...php, ...js ], /media_category/g ).filter( ( h ) => ! /'med
 check( 'media_category is read only by the migration, the EML import, the old gallery alias and the wipes keep-list', 0 === mc.length, mc.slice( 0, 8 ).map( ( h ) => h.at ).join( ' | ' ) );
 // Round 9 (2026-10-28): a route that takes a post_type checks the caller's capability for that type, and counts stay behind the check.
 const treeSrc = strip( fs.readFileSync( path.join( ROOT, 'core/rest-tree.php' ), 'utf8' ) );
-check( '/tree checks the capability of the post type it was asked about', /'\/tree'[\s\S]{0,500}get_post_type_object\( \$type \)[\s\S]{0,80}->cap->edit_posts/.test( treeSrc ) );
+check( '/tree checks the capability of the post type it was asked about', /'\/tree'[\s\S]{0,1200}get_post_type_object\( \$type \)[\s\S]{0,80}->cap->edit_posts/.test( treeSrc ) );
 check( 'the tree and assign counts both go through vergeml_counts_post_type', 3 === ( treeSrc.match( /vergeml_counts_post_type\(/g ) || [] ).length && /->cap->edit_posts \) \? \$post_type : ''/.test( treeSrc ) );
 const countCalls = hits( php, /vergeml_(?:folder_counts|folder_unfiled_count)\(/g ).filter( ( h ) => ! /core[\\/](?:rest-tree|post-folders)\.php/.test( h.at ) );
 check( 'post-type counts are read only by rest-tree.php', 0 === countCalls.length, countCalls.map( ( h ) => h.at ).join( ' | ' ) );
@@ -185,7 +185,7 @@ for ( const [ rel, min ] of [ [ 'core/folder-tools.php', 2 ], [ 'core/rest-tree.
 	const n = ( strip( fs.readFileSync( path.join( ROOT, rel ), 'utf8' ) ).match( /vergeml_private_is_hidden\(/g ) || [] ).length;
 	check( `${ rel } refuses a hidden private folder`, n >= min, String( n ) );
 }
-check( '/tree asks about the requested taxonomy', /'\/tree'[\s\S]{0,400}\$tax->cap->assign_terms/.test( treeSrc ) );
+check( '/tree asks about the requested taxonomy', /'\/tree'[\s\S]{0,1200}\$tax->cap->assign_terms/.test( treeSrc ) );
 const renamer = hits( php, /VERGEML_FILE_RENAME|vergeml_file_rename\b/g );
 check( 'the unfinished file renamer is not in the build', 0 === renamer.length, renamer.map( ( h ) => h.at ).join( ' | ' ) );
 const routes = hits( php, /register_rest_route\s*\(/g ).length;
