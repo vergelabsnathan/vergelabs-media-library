@@ -194,6 +194,12 @@ check( '/state does not answer with a hidden folder', /\$selected > 0 && \( ! ge
 const medialistSrc = read( 'core/medialist.php' );
 check( "core's shortcode preview lists nothing for someone without upload_files", /doing_action\( 'wp_ajax_parse-media-shortcode' \)[\s\S]{0,120}! current_user_can\( 'upload_files' \)/.test( medialistSrc ) && /\$preview && 'term_id' === \$field/.test( medialistSrc ) );
 check( "get_the_terms is filtered, because core's object cache is shared", /add_filter\( 'get_the_terms', 'vergeml_private_filter_object_terms'/.test( privateSrc ) );
+check( "core's object cache does not persist between users on a site with private folders", /wp_cache_add_non_persistent_groups\( \$taxonomy \. '_relationships' \)/.test( privateSrc ) && /add_action\( 'wp_loaded', 'vergeml_private_cache_per_request' \)/.test( privateSrc ) && ! /all_with_object_id/.test( privateSrc ) );
+const assignBatch = ( treeSrc.match( /'unassigned' => current_user_can\( 'upload_files' \) \?/g ) || [] ).length;
+check( 'the /assign batch answer asks upload_files too', 1 === assignBatch, String( assignBatch ) );
+const taxSrc = read( 'core/taxonomies.php' );
+check( 'an empty taxonomy list never reaches get_terms', /return \$names \? get_terms\(/.test( taxSrc ) && 2 === ( taxSrc.match( /\$terms = vergeml_assignable_media_terms\(\)/g ) || [] ).length && /\$terms = vergeml_assignable_media_terms\(\)/.test( read( 'vergelabs-media-library.php' ) ) );
+check( 'attachment details drop a taxonomy the user may not assign', /! current_user_can\( \$t\['cap'\]->assign_terms \)[\s\S]{0,60}unset\( \$form_fields\[ \$taxonomy \] \)/.test( taxSrc ) );
 check( 'media search skips a hidden folder name', /vergeml_search_not_hidden\(\)\s*\. " LEFT JOIN/.test( read( 'core/search.php' ) ) );
 check( "core's term route is refused without assign_terms", /'vergeml_' \)[^\n]*! current_user_can\( \$object->cap->assign_terms \)/.test( privateSrc ) && ! /! is_user_logged_in\(\)/.test( privateSrc ) );
 check( 'a hidden folder is not a parent', /wp_update_term_parent/.test( privateSrc ) && /pre_insert_term/.test( privateSrc ) && /get_param\( 'parent' \)/.test( privateSrc ) );

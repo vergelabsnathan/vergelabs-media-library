@@ -156,9 +156,8 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
         return $args;
     }
 
-    // Core's two stores shared by every user must hold every folder, whoever fills them: its hierarchy holds only ids, and its object cache is filtered on the way out below.
-    $fields = isset( $args['fields'] ) ? $args['fields'] : '';
-    if ( 'id=>parent' === $fields || ( 'all_with_object_id' === $fields && isset( $args['update_term_meta_cache'] ) && false === $args['update_term_meta_cache'] ) ) {
+    // Core's hierarchy option is shared by every user and holds only ids: it must hold every folder, whoever rebuilds it.
+    if ( isset( $args['fields'] ) && 'id=>parent' === $args['fields'] ) {
         return $args;
     }
 
@@ -187,8 +186,24 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
 
 
 /**
- *  A file's folders come from core's object cache, which is shared between users.
+ *  Core caches a file's folders per file, not per user, and the filter above decides
+ *  what goes in. So on a site with private folders that cache lasts one request, for
+ *  one person: a persistent object cache would hand one person's list to the next.
  */
+add_action( 'wp_loaded', 'vergeml_private_cache_per_request' );
+
+function vergeml_private_cache_per_request() {
+
+    if ( ! vergeml_private_map() ) {
+        return;
+    }
+
+    foreach ( vergeml_tree_taxonomies() as $taxonomy ) {
+        wp_cache_add_non_persistent_groups( $taxonomy . '_relationships' );
+    }
+}
+
+
 add_filter( 'get_the_terms', 'vergeml_private_filter_object_terms', 10, 3 );
 
 function vergeml_private_filter_object_terms( $terms, $post_id, $taxonomy ) {

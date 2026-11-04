@@ -1012,6 +1012,13 @@ function vergeml_attachment_fields_to_edit( $form_fields, $post ) {
     foreach( get_taxonomies_for_attachments() as $taxonomy ) {
 
         $t = (array) get_taxonomy($taxonomy);
+
+        // Core put its own field here, with the file's terms in it.
+        if ( ! current_user_can( $t['cap']->assign_terms ) ) {
+            unset( $form_fields[ $taxonomy ] );
+            continue;
+        }
+
         if ( ! $t['show_ui'] )
             continue;
         if ( empty($t['label']) )
@@ -1351,7 +1358,7 @@ function vergeml_compat_term_counts( $response ) {
         return $response;
     }
 
-    $terms = get_terms( array( 'taxonomy' => get_object_taxonomies( 'attachment', 'names' ), 'fields' => 'all', 'get' => 'all' ) );
+    $terms = vergeml_assignable_media_terms();
 
     $response['tcount'] = array();
 
@@ -1394,6 +1401,17 @@ function vergeml_assignable_media_taxonomies() {
 }
 
 
+/**
+ *  Their terms. No taxonomy at all means no terms: get_terms() without one returns the whole site's.
+ */
+function vergeml_assignable_media_terms() {
+
+    $names = array_keys( vergeml_assignable_media_taxonomies() );
+
+    return $names ? get_terms( array( 'taxonomy' => $names, 'fields' => 'all', 'get' => 'all' ) ) : array();
+}
+
+
 add_action( 'wp_ajax_vergeml-term-counts', 'vergeml_ajax_term_counts' );
 
 function vergeml_ajax_term_counts() {
@@ -1409,7 +1427,7 @@ function vergeml_ajax_term_counts() {
 
     if ( ! empty( $vergeml_lib_options['show_count'] ) ) {
 
-        $terms = get_terms( array( 'taxonomy' => array_keys( vergeml_assignable_media_taxonomies() ), 'fields' => 'all', 'get' => 'all' ) );
+        $terms = vergeml_assignable_media_terms();
 
         foreach ( vergeml_get_media_term_pairs( $terms, 'id=>tt_id' ) as $term_id => $tt_id ) {
             $response['tcount'][ $term_id ] = vergeml_get_media_term_count( $term_id, $tt_id );

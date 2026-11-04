@@ -1082,7 +1082,7 @@ global $vergeml_dir,
         $compat_taxonomies_to_hide = array();
 
 
-        $terms = get_terms( array( 'taxonomy' => $media_taxonomy_names, 'fields' => 'all', 'get' => 'all' ) );
+        $terms = vergeml_assignable_media_terms();
         $terms_id_tt_id_ready_for_script = vergeml_get_media_term_pairs( $terms, 'id=>tt_id' );
 
 

@@ -386,18 +386,42 @@ wp_update_term( $term, 'vergeml_folder', array( 'parent' => $hidden_term ) );
 vergeml_t( "core's forms will not either", 0 === (int) get_term( $term )->parent );
 vergeml_t( 'nor create a folder under it', is_wp_error( wp_insert_term( 'vgml-caps-under', 'vergeml_folder', array( 'parent' => $hidden_term ) ) ) );
 
-// One shared object cache, filled by either person first.
+// Core's object cache: a user switched to mid-request never reads the last one's list.
 clean_object_term_cache( $own_filed, 'attachment' );
 wp_set_current_user( $users['editor'] );
 update_object_term_cache( array( $own_filed ), 'attachment' );
 wp_set_current_user( $users['author'] );
-vergeml_t( "the owner filling the cache does not show it to the next person", false === get_the_terms( $own_filed, 'vergeml_folder' ) );
+vergeml_t( 'the owner filling the cache does not show it through get_the_terms', false === get_the_terms( $own_filed, 'vergeml_folder' ) );
 clean_object_term_cache( $own_filed, 'attachment' );
-update_object_term_cache( array( $own_filed ), 'attachment' );
+vergeml_t( 'get_the_taxonomies, which reads that cache directly, does not print its name', false === strpos( wp_json_encode( get_the_taxonomies( $own_filed ) ), $hidden_name ) );
+wp_set_current_user( 0 );
+clean_object_term_cache( $own_filed, 'attachment' );
+vergeml_t( 'nor for a logged-out visitor', false === strpos( wp_json_encode( get_the_taxonomies( $own_filed ) ), $hidden_name ) );
 wp_set_current_user( $users['editor'] );
+clean_object_term_cache( $own_filed, 'attachment' );
 $owner_terms = get_the_terms( $own_filed, 'vergeml_folder' );
-vergeml_t( 'someone else filling the cache does not take it from its owner', is_array( $owner_terms ) && $hidden_term === (int) $owner_terms[0]->term_id );
+vergeml_t( 'its owner still reads it', is_array( $owner_terms ) && $hidden_term === (int) $owner_terms[0]->term_id );
+clean_object_term_cache( $own_filed, 'attachment' );
+vergeml_private_cache_per_request();
 wp_set_current_user( $users['author'] );
+
+$req = new WP_REST_Request( 'POST', '/vergeml/v1/assign' );
+foreach ( array( 'taxonomy' => 'vergeml_folder', 'batch' => array( array( 'attachments' => array( $att ), 'mode' => 'move' ) ) ) as $k => $v ) {
+	$req->set_param( $k, $v );
+}
+wp_set_current_user( $users['contributor'] );
+$answer = rest_ensure_response( vergeml_rest_assign( $req ) )->get_data();
+vergeml_t( '/assign in a batch gives a contributor no unfiled count', null === $answer['unassigned'], wp_json_encode( $answer ) );
+wp_set_current_user( $users['author'] );
+$answer = rest_ensure_response( vergeml_rest_assign( $req ) )->get_data();
+vergeml_t( '/assign in a batch still gives an author it', is_int( $answer['unassigned'] ), wp_json_encode( $answer ) );
+
+add_role( 'vergeml_caps_uploader', 'Uploader', array( 'read' => true, 'upload_files' => true ) );
+$users['uploader'] = wp_insert_user( array( 'user_login' => 'vergeml_caps_uploader_' . wp_rand(), 'user_pass' => wp_generate_password(), 'role' => 'vergeml_caps_uploader' ) );
+wp_set_current_user( $users['uploader'] );
+vergeml_t( "someone who may assign nothing gets no terms, not the whole site's", array() === vergeml_assignable_media_terms() );
+wp_set_current_user( $users['author'] );
+remove_role( 'vergeml_caps_uploader' );
 $shape = vergeml_private_filter_terms( array( 'fields' => 'id=>parent', 'get' => 'all' ), array( 'vergeml_folder' ) );
 vergeml_t( "the hierarchy core shares between users keeps every folder", empty( $shape['exclude'] ) );
 $shape = vergeml_private_filter_terms( array( 'fields' => 'all_with_object_id' ), array( 'vergeml_folder' ) );
@@ -464,6 +488,9 @@ vergeml_t( '/tree refuses a taxonomy the caller may not assign', true !== call_u
 $req = new WP_REST_Request( 'GET', '/vergeml/v1/state' );
 $req->set_param( 'taxonomy', 'vergeml_caps_strict' );
 vergeml_t( '/state refuses it too', true !== call_user_func( $routes['/vergeml/v1/state'][0]['permission_callback'], $req ) );
+require_once ABSPATH . 'wp-admin/includes/template.php';
+$fields = apply_filters( 'attachment_fields_to_edit', array( 'vergeml_caps_strict' => array( 'value' => 'a term name' ) ), get_post( $att ) );
+vergeml_t( "the attachment details leave it out too, core's own field included", ! isset( $fields['vergeml_caps_strict'] ) );
 vergeml_t( 'the lists leave out a taxonomy the caller may not assign', ! isset( vergeml_assignable_media_taxonomies()['vergeml_caps_strict'] ) && isset( vergeml_assignable_media_taxonomies()['vergeml_folder'] ) );
 $req = new WP_REST_Request( 'GET', '/vergeml/v1/gallery-folders' );
 $req->set_param( 'taxonomy', 'vergeml_caps_strict' );

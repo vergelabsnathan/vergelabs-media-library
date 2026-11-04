@@ -870,7 +870,7 @@ function vergeml_rest_assign_batch( WP_REST_Request $request, $taxonomy, array $
         'changed'    => array_values( array_unique( $changed ) ),
         'refused'    => array_values( array_unique( $refused ) ),
         'counts'     => $counts,
-        'unassigned' => vergeml_count_unassigned( $taxonomy ),
+        'unassigned' => current_user_can( 'upload_files' ) ? vergeml_count_unassigned( $taxonomy ) : null,
         'undo'       => empty( $undo ) ? null : array( 'taxonomy' => $taxonomy, 'batch' => $undo ),
     ) );
 }
