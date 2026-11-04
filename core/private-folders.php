@@ -163,10 +163,11 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
     }
 
     if ( ! empty( $args['include'] ) ) {
-        $args['include'] = array_values( array_diff( wp_parse_id_list( $args['include'] ), $hidden ) );
-        if ( $args['include'] ) {
-            return $args;
-        }
+        // Naming only hidden folders finds nothing, not every other folder.
+        $kept            = array_values( array_diff( wp_parse_id_list( $args['include'] ), $hidden ) );
+        $args['include'] = $kept ? $kept : array( 0 );
+
+        return $args;
     }
 
     // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_exclude -- hides the folders marked private from the term list: a handful of term ids, not posts.
@@ -186,6 +187,22 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
  */
 function vergeml_private_is_hidden( $term_id ) {
     return in_array( (int) $term_id, vergeml_private_hidden_from(), true );
+}
+
+
+/**
+ *  Core's term screens and actions ask these capabilities: somebody else's private
+ *  folder cannot be opened, renamed, deleted or assigned there either.
+ */
+add_filter( 'map_meta_cap', 'vergeml_private_map_meta_cap', 10, 4 );
+
+function vergeml_private_map_meta_cap( $caps, $cap, $user_id, $args ) {
+
+    if ( ! in_array( $cap, array( 'edit_term', 'delete_term', 'assign_term' ), true ) || empty( $args[0] ) || (int) $user_id !== get_current_user_id() ) {
+        return $caps;
+    }
+
+    return vergeml_private_is_hidden( (int) $args[0] ) ? array( 'do_not_allow' ) : $caps;
 }
 
 

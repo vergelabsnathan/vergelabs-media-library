@@ -322,6 +322,22 @@ $req->set_param( 'vergeml_folder', array( $hidden_term ) );
 vergeml_private_guard_core_rest( null, $handler, $req );
 vergeml_t( 'core post routes will not list it by id', array( 0 ) === $req->get_param( 'vergeml_folder' ) );
 
+vergeml_t( "core's term capabilities refuse another's private folder", ! current_user_can( 'edit_term', $hidden_term ) && ! current_user_can( 'delete_term', $hidden_term ) && ! current_user_can( 'assign_term', $hidden_term ) );
+wp_set_current_user( $users['editor'] );
+vergeml_t( 'its owner keeps them', current_user_can( 'edit_term', $hidden_term ) );
+$second_editor = wp_insert_user( array( 'user_login' => 'vergeml_caps_editor2_' . wp_rand(), 'user_pass' => wp_generate_password(), 'role' => 'editor' ) );
+$users['editor2'] = $second_editor;
+wp_set_current_user( $second_editor );
+vergeml_t( 'another editor cannot open or rename it', ! current_user_can( 'edit_term', $hidden_term ) );
+vergeml_t( 'another editor still edits a shared folder', current_user_can( 'edit_term', $term ) );
+wp_set_current_user( $users['author'] );
+
+if ( ! defined( 'REST_REQUEST' ) ) {
+	define( 'REST_REQUEST', true );
+}
+$terms_filter = vergeml_private_filter_terms( array( 'include' => array( $hidden_term ) ), array( 'vergeml_folder' ) );
+vergeml_t( 'naming only a hidden folder over REST finds nothing', array( 0 ) === $terms_filter['include'] );
+
 // Every shape of callback a route can have: the guard runs before all of them.
 register_rest_route( 'vergeml-caps/v1', '/closure', array( 'methods' => 'GET', 'callback' => function () { return 'ok'; }, 'permission_callback' => '__return_true' ) );
 register_rest_route( 'vergeml-caps/v1', '/name', array( 'methods' => 'GET', 'callback' => 'rest_get_url_prefix', 'permission_callback' => '__return_true' ) );
