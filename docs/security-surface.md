@@ -63,7 +63,7 @@ Anything without brackets is a site-wide yes.
 | `/vergeml/v1/brief/turn` | POST | closure | manage_options | no | `said`, `say`, `draft`, $request | meta/option write | yes | core/brief.php:642 |
 | `/vergeml/v1/file/(?P<id>\d+)` | POST, PUT, PATCH | closure | edit_post((int) $request['id']) | yes (1) | `title`, `alt`, $request | post/term write, meta/option write | no | core/quick-edit.php:161 |
 | `/vergeml/v1/folder` | POST | closure | $tax->cap->manage_terms, manage_categories, $tax->cap->manage_terms, $cap($term_id), $tax->cap->edit_terms, manage_options, $object->cap->edit_posts, $object->cap->edit_others_posts, $object->cap->read_private_posts, $object->cap->edit_others_posts, $object->cap->read_private_posts, manage_options | yes (1) | `taxonomy*`, `action*`, `id`, `parent`, `name`, `color`, `ids`, `post_type`, $request | post/term write, delete, meta/option write, db query | yes | core/rest-folders.php:28 |
-| `/vergeml/v1/folder-privacy` | POST | closure | manage_options, manage_options, edit_term($term_id) | yes (1) | `id*`, `private`, $request | meta/option write | yes | core/private-folders.php:443 |
+| `/vergeml/v1/folder-privacy` | POST | closure | manage_options, manage_options, edit_term($term_id) | yes (1) | `id*`, `private`, $request | meta/option write | yes | core/private-folders.php:460 |
 | `/vergeml/v1/folders-apply` | POST | closure | manage_options | no | `folders*`, `plan_id*`, $request | db query, post/term write, meta/option write, outbound http, schedules cron | yes | core/folder-talk.php:2782 |
 | `/vergeml/v1/folders-progress` | GET | closure | manage_options | no | — | outbound http, schedules cron, db query, term assign, meta/option write | no | core/folder-talk.php:2804 |
 | `/vergeml/v1/folders-propose` | POST | closure | manage_options | no | `instruction*`, `history`, `mode`, $request | outbound http, db query | no | core/folder-talk.php:2764 |
@@ -152,8 +152,8 @@ user and nothing more; `wp_ajax_nopriv_` requires nothing at all.
 |---|---|---|---|---|---|---|---|
 | `vergeml_trial` | no | vergeml_offer_ajax_trial | manage_options | check_ajax_referer | $_POST | meta/option write, outbound http | core/offer.php:145 |
 | `vergeml-apply-settings-to-network` | no | vergeml_apply_settings_to_network | manage_network_options | check_ajax_referer | $_POST | meta/option write | core/options-pages.php:876 |
-| `vergeml-term-counts` | no | vergeml_ajax_term_counts | upload_files, $taxonomy->cap->assign_terms | check_ajax_referer | — | db query | core/taxonomies.php:1415 |
-| `vergeml-save-attachment-order` | no | vergeml_save_attachment_order | edit_post($post_id), edit_post($attachment_id) | check_ajax_referer | $_REQUEST | post/term write | core/taxonomies.php:1453 |
+| `vergeml-term-counts` | no | vergeml_ajax_term_counts | upload_files, $taxonomy->cap->assign_terms | check_ajax_referer | — | db query | core/taxonomies.php:1434 |
+| `vergeml-save-attachment-order` | no | vergeml_save_attachment_order | edit_post($post_id), edit_post($attachment_id) | check_ajax_referer | $_REQUEST | post/term write | core/taxonomies.php:1472 |
 | `vergeml_rest` | no | vergeml_transport_bridge | upload_files | wp_verify_nonce | $_GET, $_SERVER, php://input | — | core/transport.php:31 |
 
 ## admin_post handlers
@@ -287,7 +287,7 @@ capability gate belongs to whatever screen they fire on, not to them.
 | `rest_api_init` | action | vergeml_rename_routes | $request | db query, post/term write, meta/option write | upload_files, manage_options, edit_post($id) | — | core/rename.php:494 |
 | `rest_api_init` | action | vergeml_register_folder_routes | $request | — | $tax->cap->manage_terms, upload_files, $tax->cap->assign_terms, manage_categories, $cap($term_id), $tax->cap->edit_terms, manage_options | — | core/rest-folders.php:24 |
 | `rest_api_init` | action | vergeml_register_tree_routes | $request | — | upload_files, $tax->cap->assign_terms, $object->cap->edit_posts, edit_posts, $taxonomy->cap->assign_terms | — | core/rest-tree.php:165 |
-| `rest_request_before_callbacks` | filter | vergeml_private_guard_core_rest | $request | — | $object->cap->assign_terms, manage_options | — | core/private-folders.php:306 |
+| `rest_request_before_callbacks` | filter | vergeml_private_guard_core_rest | $request | — | $object->cap->assign_terms, manage_options | — | core/private-folders.php:323 |
 | `restrict_manage_posts` | action | vergeml_list_folder_filter | $_REQUEST | db query | $taxonomy->cap->assign_terms | — | core/media-list.php:431 |
 | `restrict_manage_posts` | action | vergeml_meaning_offer | $_GET | — | manage_options | — | core/search-meaning.php:679 |
 | `restrict_manage_posts` | action | vergeml_restrict_manage_posts | $_REQUEST | — | manage_options, $taxonomy->cap->assign_terms | — | core/taxonomies.php:587 |
