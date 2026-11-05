@@ -507,6 +507,8 @@ vergeml_t( '/state refuses it too', true !== call_user_func( $routes['/vergeml/v
 require_once ABSPATH . 'wp-admin/includes/template.php';
 $fields = apply_filters( 'attachment_fields_to_edit', array( 'vergeml_caps_strict' => array( 'value' => 'a term name' ) ), get_post( $att ) );
 vergeml_t( "the attachment details leave it out too, core's own field included", ! isset( $fields['vergeml_caps_strict'] ) );
+$columns = apply_filters( 'manage_taxonomies_for_attachment_columns', array( 'vergeml_caps_strict', 'category' ), 'attachment' );
+vergeml_t( "the list table's column leaves it out, and leaves other taxonomies alone", ! in_array( 'vergeml_caps_strict', $columns, true ) && in_array( 'category', $columns, true ) );
 vergeml_t( 'the lists leave out a taxonomy the caller may not assign', ! isset( vergeml_assignable_media_taxonomies()['vergeml_caps_strict'] ) && isset( vergeml_assignable_media_taxonomies()['vergeml_folder'] ) );
 $req = new WP_REST_Request( 'GET', '/vergeml/v1/gallery-folders' );
 $req->set_param( 'taxonomy', 'vergeml_caps_strict' );
@@ -514,6 +516,15 @@ $req->set_param( 'taxonomy', 'vergeml_caps_strict' );
 wp_set_current_user( 1 );
 unregister_taxonomy( 'vergeml_caps_strict' );
 wp_delete_attachment( $own, true );
+// Deleting a file in someone's private folder, as someone who cannot see that folder.
+$deleted_file = wp_insert_attachment( array( 'post_title' => 'vgml-caps-delete', 'post_mime_type' => 'image/png', 'post_status' => 'inherit' ) );
+$hidden_tt    = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT term_taxonomy_id FROM %i WHERE term_id = %d', $wpdb->term_taxonomy, $hidden_term ) );
+$wpdb->insert( $wpdb->term_relationships, array( 'object_id' => $deleted_file, 'term_taxonomy_id' => $hidden_tt ) );
+wp_set_current_user( $users['author'] );
+wp_delete_attachment( $deleted_file, true );
+vergeml_t( 'deleting a file removes its place in a folder the deleter cannot see', 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE object_id = %d', $wpdb->term_relationships, $deleted_file ) ) );
+vergeml_t( 'and that leaves the folder hidden from them afterwards', ! in_array( $hidden_term, array_map( 'intval', get_terms( array( 'taxonomy' => 'vergeml_folder', 'hide_empty' => false, 'fields' => 'ids' ) ) ), true ) );
+
 vergeml_private_set( $hidden_term, false );
 wp_delete_term( $hidden_term, 'vergeml_folder' );
 vergeml_private_cache_per_request();

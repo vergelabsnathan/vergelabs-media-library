@@ -139,6 +139,18 @@ function vergeml_private_hidden_from( $user_id = 0 ) {
  *  hidden id is dropped.
  */
 add_filter( 'get_terms_args', 'vergeml_private_filter_terms', 10, 2 );
+add_action( 'before_delete_post', 'vergeml_private_deleting_starts' );
+add_action( 'delete_attachment', 'vergeml_private_deleting_starts' );
+add_action( 'deleted_post', 'vergeml_private_deleting_ends' );
+
+function vergeml_private_deleting_starts( $post_id ) {
+    $GLOBALS['vergeml_private_deleting'][ (int) $post_id ] = true;
+}
+
+function vergeml_private_deleting_ends( $post_id ) {
+    unset( $GLOBALS['vergeml_private_deleting'][ (int) $post_id ] );
+}
+
 
 function vergeml_private_filter_terms( $args, $taxonomies ) {
 
@@ -149,6 +161,11 @@ function vergeml_private_filter_terms( $args, $taxonomies ) {
     $ours = array_intersect( (array) $taxonomies, vergeml_tree_taxonomies() );
 
     if ( empty( $ours ) ) {
+        return $args;
+    }
+
+    // Core looks up a file's folders by id to remove them as it deletes it (wp_get_object_terms, then term_exists): it has to find all of them, whoever is deleting. Only ids, or a folder the caller already names.
+    if ( ! empty( $GLOBALS['vergeml_private_deleting'] ) && ( ! empty( $args['include'] ) || ( isset( $args['fields'] ) && 'ids' === $args['fields'] ) ) ) {
         return $args;
     }
 

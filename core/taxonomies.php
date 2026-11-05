@@ -1402,6 +1402,25 @@ function vergeml_assignable_media_taxonomies() {
 
 
 /**
+ *  Core's list table adds a column for each media taxonomy, with the file's terms in it.
+ */
+add_filter( 'manage_taxonomies_for_attachment_columns', 'vergeml_assignable_media_columns' );
+
+function vergeml_assignable_media_columns( $taxonomies ) {
+
+    foreach ( $taxonomies as $key => $taxonomy ) {
+        $object = get_taxonomy( $taxonomy );
+
+        if ( 0 === strpos( $taxonomy, 'vergeml_' ) && $object && ! current_user_can( $object->cap->assign_terms ) ) {
+            unset( $taxonomies[ $key ] );
+        }
+    }
+
+    return $taxonomies;
+}
+
+
+/**
  *  Their terms. No taxonomy at all means no terms: get_terms() without one returns the whole site's.
  */
 function vergeml_assignable_media_terms() {
