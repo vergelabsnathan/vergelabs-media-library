@@ -210,7 +210,7 @@
         "filebird/views/particle/activation_fail.php": "c691d0a0ee4b",
         "filebird/views/settings/header.php": "94b8f780d891"
       },
-      "seen": "2026-11-10T13:26:41.167Z"
+      "seen": "2026-11-11T12:41:34.201Z"
     },
     "folders": {
       "version": "3.3.1",
@@ -408,7 +408,7 @@
         "folders/templates/settings/user-restrictions.php": "ea2ec7017a82",
         "folders/uninstall.php": "07c6d1aa3769"
       },
-      "seen": "2026-11-10T13:26:41.178Z"
+      "seen": "2026-11-11T12:41:34.245Z"
     },
     "enhanced-media-library": {
       "version": "2.9.4",
@@ -451,7 +451,7 @@
         "enhanced-media-library/languages/enhanced-media-library.pot": "85e1b35b2743",
         "enhanced-media-library/readme.txt": "f14860ab10be"
       },
-      "seen": "2026-11-10T13:26:41.185Z"
+      "seen": "2026-11-11T12:41:34.283Z"
     },
     "elementor": {
       "version": "4.2.3",
@@ -6887,18 +6887,18 @@
       "seen": "2026-08-23T14:41:57.734Z"
     },
     "real-media-library-lite": {
-      "version": "4.23.7",
-      "updated": "2026-09-30 5:25am GMT",
+      "version": "4.23.12",
+      "updated": "2026-11-11 9:42am GMT",
       "installs": 100000,
       "rating": 96,
       "tested": "7.1.4",
       "requires_php": "7.4.0",
       "manifest": {
-        "real-media-library-lite/CHANGELOG.md": "d57b09ce55fa",
+        "real-media-library-lite/CHANGELOG.md": "d219a1a3cb3b",
         "real-media-library-lite/LICENSE": "53f92b4cc761",
         "real-media-library-lite/LICENSE_3RD_PARTY_JS.md": "8f64e7f1d242",
         "real-media-library-lite/LICENSE_3RD_PARTY_PHP.md": "b166951dea09",
-        "real-media-library-lite/README.txt": "4593fa963df3",
+        "real-media-library-lite/README.txt": "08f7e3e7cb31",
         "real-media-library-lite/inc/Activator.php": "f8e08f4269ef",
         "real-media-library-lite/inc/AdInitiator.php": "fff2b38054b8",
         "real-media-library-lite/inc/Assets.php": "79325fb80479",
@@ -6927,8 +6927,8 @@
         "real-media-library-lite/inc/base/Core.php": "918cd191a240",
         "real-media-library-lite/inc/base/UtilsProvider.php": "eeef225cd447",
         "real-media-library-lite/inc/base/index.php": "7f793206bbc3",
-        "real-media-library-lite/inc/base/others/cachebuster-lib.php": "cb7cc97fc1ad",
-        "real-media-library-lite/inc/base/others/cachebuster.php": "29e3b143ab00",
+        "real-media-library-lite/inc/base/others/cachebuster-lib.php": "5877630f3007",
+        "real-media-library-lite/inc/base/others/cachebuster.php": "84d56ed6155e",
         "real-media-library-lite/inc/base/others/class-alias.php": "d8cdbaa517cf",
         "real-media-library-lite/inc/base/others/fallback-already.php": "d5519d8f219a",
         "real-media-library-lite/inc/base/others/fallback-php-version.php": "476f64e5d884",
@@ -7009,22 +7009,22 @@
         "real-media-library-lite/inc/view/Options.php": "6f10f905f13a",
         "real-media-library-lite/inc/view/View.php": "90f8e875fe2a",
         "real-media-library-lite/inc/view/index.php": "7f793206bbc3",
-        "real-media-library-lite/index.php": "21f6158c6e68",
+        "real-media-library-lite/index.php": "29b497cf7d7d",
         "real-media-library-lite/languages/freemium.pot": "21b392a9cc7e",
-        "real-media-library-lite/languages/meta.json": "789c52dcaba3",
+        "real-media-library-lite/languages/meta.json": "41af8494620f",
         "real-media-library-lite/languages/real-media-library.pot": "17123a85cb28",
-        "real-media-library-lite/languages/real-product-manager-wp-client.pot": "3b3d51a78f67",
+        "real-media-library-lite/languages/real-product-manager-wp-client.pot": "958ab38aad63",
         "real-media-library-lite/languages/real-utils.pot": "582a415c8d99",
         "real-media-library-lite/languages/utils.pot": "05ef9a02160d",
         "real-media-library-lite/public/dist/i18n-dependency-map-default-lite.json": "bf21a9e8fbc5",
         "real-media-library-lite/public/dist/i18n-dependency-map-default-pro.json": "bf21a9e8fbc5",
-        "real-media-library-lite/public/dist/options.css": "b1e3d1a53bdb",
-        "real-media-library-lite/public/dist/options.lite.js": "4750f3428c7f",
+        "real-media-library-lite/public/dist/options.css": "a35586e3c37e",
+        "real-media-library-lite/public/dist/options.lite.js": "f5868087eff2",
         "real-media-library-lite/public/dist/options.lite.js.LICENSE.txt": "5343bc525acf",
-        "real-media-library-lite/public/dist/rml.css": "a45e2adc73be",
-        "real-media-library-lite/public/dist/rml.lite.js": "1b33a5710749",
+        "real-media-library-lite/public/dist/rml.css": "288e7d184b2b",
+        "real-media-library-lite/public/dist/rml.lite.js": "e1aad14c1c5b",
         "real-media-library-lite/public/dist/rml.lite.js.LICENSE.txt": "5343bc525acf",
-        "real-media-library-lite/public/dist/rml_gutenberg.lite.js": "4a8b37c46c5b",
+        "real-media-library-lite/public/dist/rml_gutenberg.lite.js": "d69c9b031a58",
         "real-media-library-lite/public/images/logos/real-media-library.svg": "86a0eee35cbe",
         "real-media-library-lite/public/lib/mobx/LICENSE": "9ff21985610f",
         "real-media-library-lite/public/lib/mobx/dist/mobx.umd.production.min.js": "3bb5d7b88424",
@@ -7062,12 +7062,12 @@
         "real-media-library-lite/vendor/composer/autoload_psr4.php": "149ea9f1bdab",
         "real-media-library-lite/vendor/composer/autoload_real.php": "57a54a6abca5",
         "real-media-library-lite/vendor/composer/autoload_static.php": "1d8b80729571",
-        "real-media-library-lite/vendor/composer/installed.php": "948817d838e7",
+        "real-media-library-lite/vendor/composer/installed.php": "4974ec387abe",
         "real-media-library-lite/vendor/devowl-wp/freemium/LICENSE": "98aa472b20f9",
         "real-media-library-lite/vendor/devowl-wp/freemium/LICENSE_3RD_PARTY_JS.md": "af48d149c1bf",
         "real-media-library-lite/vendor/devowl-wp/freemium/LICENSE_3RD_PARTY_PHP.md": "6c1b105d5ae1",
-        "real-media-library-lite/vendor/devowl-wp/freemium/dist/index.js": "416a8333c209",
-        "real-media-library-lite/vendor/devowl-wp/freemium/package.json": "3507017750f0",
+        "real-media-library-lite/vendor/devowl-wp/freemium/dist/index.js": "a2b0cdfb4308",
+        "real-media-library-lite/vendor/devowl-wp/freemium/package.json": "aa04937a72fe",
         "real-media-library-lite/vendor/devowl-wp/freemium/src/Assets.php": "0668395c92a8",
         "real-media-library-lite/vendor/devowl-wp/freemium/src/Autoloader.php": "f3d5ae47c73c",
         "real-media-library-lite/vendor/devowl-wp/freemium/src/Constants.php": "f366cb7f7344",
@@ -7079,11 +7079,11 @@
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/LICENSE_3RD_PARTY_JS.md": "b86559d90fed",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/LICENSE_3RD_PARTY_PHP.md": "4fe648b8a10a",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/i18n-dependency-map-undefined.json": "bf21a9e8fbc5",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/index.css": "4ff521b01f72",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/index.js": "85bbcc23b07a",
+        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/index.css": "6820f805013f",
+        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/index.js": "9651fd5e1fd8",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/vendor-index.js": "a133f442cb4a",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/dist/vendor-index.js.LICENSE.txt": "3f3e8b3c4300",
-        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/package.json": "05e473bd1646",
+        "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/package.json": "f9a21dd6a209",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/AbstractInitiator.php": "03ff649ac679",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/Assets.php": "b5b0c9b50da8",
         "real-media-library-lite/vendor/devowl-wp/real-product-manager-wp-client/src/Core.php": "7aea0539d7a7",
@@ -7116,15 +7116,15 @@
         "real-media-library-lite/vendor/devowl-wp/real-utils/LICENSE": "6c6fb2d2f041",
         "real-media-library-lite/vendor/devowl-wp/real-utils/LICENSE_3RD_PARTY_JS.md": "af48d149c1bf",
         "real-media-library-lite/vendor/devowl-wp/real-utils/LICENSE_3RD_PARTY_PHP.md": "6c1b105d5ae1",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/feedback.css": "7bdc746539a9",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/feedback.js": "efd933e88fda",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/helper.css": "6f6e6d99fb15",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/helper.js": "11a16bbe452f",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/feedback.css": "8c423933608c",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/feedback.js": "ba5f153cc1c9",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/helper.css": "19ace83e0e7d",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/helper.js": "b17490eea67f",
         "real-media-library-lite/vendor/devowl-wp/real-utils/dist/i18n-dependency-map-others.json": "bf21a9e8fbc5",
         "real-media-library-lite/vendor/devowl-wp/real-utils/dist/i18n-dependency-map-undefined.json": "bf21a9e8fbc5",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/welcome.css": "7f1e6be98051",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/dist/welcome.css": "7b941c1f8a81",
         "real-media-library-lite/vendor/devowl-wp/real-utils/dist/welcome.js": "da39a3ee5e6b",
-        "real-media-library-lite/vendor/devowl-wp/real-utils/package.json": "d97f6b77ba3d",
+        "real-media-library-lite/vendor/devowl-wp/real-utils/package.json": "d1fe5ef92e28",
         "real-media-library-lite/vendor/devowl-wp/real-utils/src/AbstractInitiator.php": "3a0aa5f17fa7",
         "real-media-library-lite/vendor/devowl-wp/real-utils/src/Assets.php": "0e65a990f43c",
         "real-media-library-lite/vendor/devowl-wp/real-utils/src/Core.php": "4b2bb6620e4b",
@@ -7139,10 +7139,10 @@
         "real-media-library-lite/vendor/devowl-wp/utils/LICENSE": "99094e3fb3fa",
         "real-media-library-lite/vendor/devowl-wp/utils/LICENSE_3RD_PARTY_JS.md": "616146f1bf9e",
         "real-media-library-lite/vendor/devowl-wp/utils/LICENSE_3RD_PARTY_PHP.md": "eb08e256dacf",
-        "real-media-library-lite/vendor/devowl-wp/utils/dist/index.js": "e66d20f8e026",
+        "real-media-library-lite/vendor/devowl-wp/utils/dist/index.js": "19634212dbef",
         "real-media-library-lite/vendor/devowl-wp/utils/dist/vendor-index.js": "3a518c6f4ed0",
         "real-media-library-lite/vendor/devowl-wp/utils/dist/vendor-index.js.LICENSE.txt": "d4009a9f9de7",
-        "real-media-library-lite/vendor/devowl-wp/utils/package.json": "0ddfd2add4aa",
+        "real-media-library-lite/vendor/devowl-wp/utils/package.json": "63e81c18fa50",
         "real-media-library-lite/vendor/devowl-wp/utils/src/Activator.php": "f895c9febc4c",
         "real-media-library-lite/vendor/devowl-wp/utils/src/Assets.php": "e12de6a697c4",
         "real-media-library-lite/vendor/devowl-wp/utils/src/Base.php": "ee81e5d819e7",
@@ -7160,7 +7160,7 @@
         "real-media-library-lite/vendor/devowl-wp/utils/src/Utils.php": "d292b175b432",
         "real-media-library-lite/vendor/scoper-autoload.php": "1154b70fbdc6"
       },
-      "seen": "2026-11-10T13:26:41.190Z"
+      "seen": "2026-11-11T12:41:34.319Z"
     },
     "media-library-organizer": {
       "version": "2.1.6",
@@ -7742,7 +7742,7 @@
         "media-library-organizer/views/global/media-list-view-order.php": "d44dedceb315",
         "media-library-organizer/webpack.assets.config.js": "430b6cbf6e2a"
       },
-      "seen": "2026-11-10T13:26:41.196Z"
+      "seen": "2026-11-11T12:41:34.360Z"
     },
     "enable-media-replace": {
       "version": "4.2.3",
@@ -7849,190 +7849,190 @@
         "enable-media-replace/views/success.php": "6960838a0f6d",
         "enable-media-replace/views/upsell.php": "ac34421f70c2"
       },
-      "seen": "2026-11-10T13:26:41.201Z"
+      "seen": "2026-11-11T12:41:34.401Z"
     }
   },
   "checked": null,
   "dependencies": {
     "core": {
       "version": "7.1.4",
-      "prerelease": "7.2-beta4",
+      "prerelease": "7.2-beta5",
       "onBox": null,
-      "seen": "2026-11-10T13:26:41.250Z"
+      "seen": "2026-11-11T12:41:34.499Z"
     },
     "php": {
       "version": "8.5.12",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:41.266Z"
+      "seen": "2026-11-11T12:41:34.580Z"
     },
     "elementor": {
       "version": "4.4.0",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:41.270Z"
+      "seen": "2026-11-11T12:41:34.624Z"
     },
     "beaver-builder-lite-version": {
       "version": "2.11.1.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:41.274Z"
+      "seen": "2026-11-11T12:41:34.660Z"
     },
     "brizy": {
       "version": "2.8.25",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:41.278Z"
+      "seen": "2026-11-11T12:41:34.702Z"
     },
     "js_composer": {
       "version": "9.0.1",
       "prerelease": null,
       "onBox": "9.0.1",
-      "seen": "2026-11-10T13:26:39.969Z"
+      "seen": "2026-11-11T12:41:32.288Z"
     },
     "divi": {
       "version": "5.11.0",
       "prerelease": null,
       "onBox": "5.11.0",
-      "seen": "2026-11-10T13:26:39.969Z"
+      "seen": "2026-11-11T12:41:32.288Z"
     },
     "bricks": {
       "version": "1.15",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.318Z"
+      "seen": "2026-11-11T12:41:35.860Z"
     },
     "oxygen": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.318Z"
+      "seen": "2026-11-11T12:41:35.860Z"
     },
     "avada": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.318Z"
+      "seen": "2026-11-11T12:41:35.860Z"
     },
     "thrive-architect": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.318Z"
+      "seen": "2026-11-11T12:41:35.860Z"
     },
     "cornerstone": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.318Z"
+      "seen": "2026-11-11T12:41:35.860Z"
     },
     "yootheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.318Z"
+      "seen": "2026-11-11T12:41:35.860Z"
     },
     "betheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.318Z"
+      "seen": "2026-11-11T12:41:35.860Z"
     },
     "themify-builder": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.318Z"
+      "seen": "2026-11-11T12:41:35.860Z"
     },
     "tailor": {
       "version": "1.8.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.323Z"
+      "seen": "2026-11-11T12:41:35.900Z"
     },
     "oshine": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.323Z"
+      "seen": "2026-11-11T12:41:35.900Z"
     },
     "learnpress-frontend-editor": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.323Z"
+      "seen": "2026-11-11T12:41:35.900Z"
     },
     "dokan-lite": {
       "version": "5.3.4",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.327Z"
+      "seen": "2026-11-11T12:41:35.943Z"
     },
     "wordpress-seo": {
       "version": "28.8",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.332Z"
+      "seen": "2026-11-11T12:41:35.980Z"
     },
     "seo-by-rank-math": {
       "version": "1.0.282",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.335Z"
+      "seen": "2026-11-11T12:41:36.020Z"
     },
     "wp-seopress": {
       "version": "10.4",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.338Z"
+      "seen": "2026-11-11T12:41:36.059Z"
     },
     "all-in-one-seo-pack": {
       "version": "5.0.5",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.341Z"
+      "seen": "2026-11-11T12:41:36.097Z"
     },
     "woocommerce": {
       "version": "11.2.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.345Z"
+      "seen": "2026-11-11T12:41:36.135Z"
     },
     "advanced-custom-fields": {
       "version": "6.8.11",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.348Z"
+      "seen": "2026-11-11T12:41:36.176Z"
     },
     "polylang": {
       "version": "3.9.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.351Z"
+      "seen": "2026-11-11T12:41:36.212Z"
     },
     "wpml": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.351Z"
+      "seen": "2026-11-11T12:41:36.212Z"
     },
     "wp-rocket": {
       "version": "4.3.6",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.676Z"
+      "seen": "2026-11-11T12:41:37.060Z"
     },
     "filebird": {
       "version": "6.5.9",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.679Z"
+      "seen": "2026-11-11T12:41:37.094Z"
     },
     "real-media-library-lite": {
-      "version": "4.23.7",
+      "version": "4.23.12",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-10T13:26:42.682Z"
+      "seen": "2026-11-11T12:41:37.125Z"
     },
     "zionbuilder": {
       "version": "3.6.17",

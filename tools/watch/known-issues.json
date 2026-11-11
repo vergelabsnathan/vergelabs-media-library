@@ -2,6 +2,19 @@
   "_": "Written by tools/watch/triage.mjs. Read by the plugin's Get help screen and the support agent. Reds only since 2026-09-22; that day the four reds were proven false (WordPress 7.1 and 7.1.1: the contract searched media-views.js, the symbols live in media-grid.js; Yoast 28.5: the key is built from a prefix and never a quoted literal; WooCommerce 11.1.1: the stage clone cannot make folder vectors and the check read a cached count) and the five yellows were watch notes, not problems -- issues #2, #5, #13, #14, #19, #23, #24, #26, #30 on GitHub.",
   "issues": [
     {
+      "dependency": "core",
+      "name": "WordPress",
+      "slug": "core",
+      "version": "7.1.4",
+      "severity": "red",
+      "summary": "stage: 2 step(s) failed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/106",
+      "found": "2026-11-11"
+    },
+    {
       "dependency": "seo-by-rank-math",
       "name": "Rank Math SEO",
       "slug": "seo-by-rank-math",
@@ -54,19 +67,6 @@
       "status": "open",
       "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/96",
       "found": "2026-11-05"
-    },
-    {
-      "dependency": "core",
-      "name": "WordPress",
-      "slug": "core",
-      "version": "7.1.4",
-      "severity": "red",
-      "summary": "stage: 2 step(s) failed",
-      "affects": [],
-      "workaround": null,
-      "status": "open",
-      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/91",
-      "found": "2026-11-04"
     },
     {
       "dependency": "all-in-one-seo-pack",
