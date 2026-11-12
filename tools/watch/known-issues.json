@@ -2,6 +2,32 @@
   "_": "Written by tools/watch/triage.mjs. Read by the plugin's Get help screen and the support agent. Reds only since 2026-09-22; that day the four reds were proven false (WordPress 7.1 and 7.1.1: the contract searched media-views.js, the symbols live in media-grid.js; Yoast 28.5: the key is built from a prefix and never a quoted literal; WooCommerce 11.1.1: the stage clone cannot make folder vectors and the check read a cached count) and the five yellows were watch notes, not problems -- issues #2, #5, #13, #14, #19, #23, #24, #26, #30 on GitHub.",
   "issues": [
     {
+      "dependency": "woocommerce",
+      "name": "WooCommerce",
+      "slug": "woocommerce",
+      "version": "11.3.0",
+      "severity": "red",
+      "summary": "stage: 3 step(s) failed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/110",
+      "found": "2026-11-12"
+    },
+    {
+      "dependency": "brizy",
+      "name": "Brizy",
+      "slug": "brizy",
+      "version": "2.8.26",
+      "severity": "red",
+      "summary": "stage: 2 step(s) failed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/109",
+      "found": "2026-11-12"
+    },
+    {
       "dependency": "core",
       "name": "WordPress",
       "slug": "core",
