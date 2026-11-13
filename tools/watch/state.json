@@ -210,7 +210,7 @@
         "filebird/views/particle/activation_fail.php": "c691d0a0ee4b",
         "filebird/views/settings/header.php": "94b8f780d891"
       },
-      "seen": "2026-11-12T13:44:42.700Z"
+      "seen": "2026-11-13T13:04:16.321Z"
     },
     "folders": {
       "version": "3.3.1",
@@ -408,7 +408,7 @@
         "folders/templates/settings/user-restrictions.php": "ea2ec7017a82",
         "folders/uninstall.php": "07c6d1aa3769"
       },
-      "seen": "2026-11-12T13:44:42.743Z"
+      "seen": "2026-11-13T13:04:16.437Z"
     },
     "enhanced-media-library": {
       "version": "2.9.4",
@@ -451,7 +451,7 @@
         "enhanced-media-library/languages/enhanced-media-library.pot": "85e1b35b2743",
         "enhanced-media-library/readme.txt": "f14860ab10be"
       },
-      "seen": "2026-11-12T13:44:42.777Z"
+      "seen": "2026-11-13T13:04:16.536Z"
     },
     "elementor": {
       "version": "4.2.3",
@@ -7160,7 +7160,7 @@
         "real-media-library-lite/vendor/devowl-wp/utils/src/Utils.php": "d292b175b432",
         "real-media-library-lite/vendor/scoper-autoload.php": "1154b70fbdc6"
       },
-      "seen": "2026-11-12T13:44:42.812Z"
+      "seen": "2026-11-13T13:04:16.634Z"
     },
     "media-library-organizer": {
       "version": "2.1.7",
@@ -7746,7 +7746,7 @@
         "media-library-organizer/views/global/media-list-view-order.php": "d44dedceb315",
         "media-library-organizer/webpack.assets.config.js": "430b6cbf6e2a"
       },
-      "seen": "2026-11-12T13:44:42.850Z"
+      "seen": "2026-11-13T13:04:16.739Z"
     },
     "enable-media-replace": {
       "version": "4.2.3",
@@ -7853,7 +7853,7 @@
         "enable-media-replace/views/success.php": "6960838a0f6d",
         "enable-media-replace/views/upsell.php": "ac34421f70c2"
       },
-      "seen": "2026-11-12T13:44:42.890Z"
+      "seen": "2026-11-13T13:04:16.850Z"
     }
   },
   "checked": null,
@@ -7862,181 +7862,181 @@
       "version": "7.1.4",
       "prerelease": "7.2-beta5",
       "onBox": null,
-      "seen": "2026-11-12T13:44:42.986Z"
+      "seen": "2026-11-13T13:04:17.056Z"
     },
     "php": {
       "version": "8.5.12",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:43.062Z"
+      "seen": "2026-11-13T13:04:17.096Z"
     },
     "elementor": {
       "version": "4.4.0",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:43.102Z"
+      "seen": "2026-11-13T13:04:17.209Z"
     },
     "beaver-builder-lite-version": {
       "version": "2.11.1.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:43.138Z"
+      "seen": "2026-11-13T13:04:17.309Z"
     },
     "brizy": {
       "version": "2.8.26",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:43.177Z"
+      "seen": "2026-11-13T13:04:17.421Z"
     },
     "js_composer": {
       "version": "9.0.1",
       "prerelease": null,
       "onBox": "9.0.1",
-      "seen": "2026-11-12T13:44:40.228Z"
+      "seen": "2026-11-13T13:04:13.792Z"
     },
     "divi": {
       "version": "5.11.0",
       "prerelease": null,
       "onBox": "5.11.0",
-      "seen": "2026-11-12T13:44:40.228Z"
+      "seen": "2026-11-13T13:04:13.792Z"
     },
     "bricks": {
       "version": "1.15",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.309Z"
+      "seen": "2026-11-13T13:04:18.857Z"
     },
     "oxygen": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.309Z"
+      "seen": "2026-11-13T13:04:18.857Z"
     },
     "avada": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.309Z"
+      "seen": "2026-11-13T13:04:18.857Z"
     },
     "thrive-architect": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.309Z"
+      "seen": "2026-11-13T13:04:18.857Z"
     },
     "cornerstone": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.309Z"
+      "seen": "2026-11-13T13:04:18.857Z"
     },
     "yootheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.309Z"
+      "seen": "2026-11-13T13:04:18.857Z"
     },
     "betheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.309Z"
+      "seen": "2026-11-13T13:04:18.857Z"
     },
     "themify-builder": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.309Z"
+      "seen": "2026-11-13T13:04:18.857Z"
     },
     "tailor": {
       "version": "1.8.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.348Z"
+      "seen": "2026-11-13T13:04:18.961Z"
     },
     "oshine": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.348Z"
+      "seen": "2026-11-13T13:04:18.961Z"
     },
     "learnpress-frontend-editor": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.348Z"
+      "seen": "2026-11-13T13:04:18.961Z"
     },
     "dokan-lite": {
       "version": "5.3.4",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.389Z"
+      "seen": "2026-11-13T13:04:19.079Z"
     },
     "wordpress-seo": {
       "version": "28.8",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.426Z"
+      "seen": "2026-11-13T13:04:19.183Z"
     },
     "seo-by-rank-math": {
       "version": "1.0.282",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.464Z"
+      "seen": "2026-11-13T13:04:19.291Z"
     },
     "wp-seopress": {
       "version": "10.4",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.501Z"
+      "seen": "2026-11-13T13:04:19.396Z"
     },
     "all-in-one-seo-pack": {
       "version": "5.0.5",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.537Z"
+      "seen": "2026-11-13T13:04:19.502Z"
     },
     "woocommerce": {
       "version": "11.3.0",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.585Z"
+      "seen": "2026-11-13T13:04:19.632Z"
     },
     "advanced-custom-fields": {
       "version": "6.8.11",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.623Z"
+      "seen": "2026-11-13T13:04:19.739Z"
     },
     "polylang": {
       "version": "3.9.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.657Z"
+      "seen": "2026-11-13T13:04:19.836Z"
     },
     "wpml": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:44.657Z"
+      "seen": "2026-11-13T13:04:19.836Z"
     },
     "wp-rocket": {
-      "version": "4.3.6",
+      "version": "2.0.5",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:45.344Z"
+      "seen": "2026-11-13T13:04:20.338Z"
     },
     "filebird": {
       "version": "6.5.9",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:45.375Z"
+      "seen": "2026-11-13T13:04:20.435Z"
     },
     "real-media-library-lite": {
       "version": "4.23.12",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-12T13:44:45.404Z"
+      "seen": "2026-11-13T13:04:20.524Z"
     },
     "zionbuilder": {
       "version": "3.6.17",
