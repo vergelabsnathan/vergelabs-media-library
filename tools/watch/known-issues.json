@@ -5,6 +5,159 @@
       "dependency": "all-in-one-seo-pack",
       "name": "All in One SEO",
       "slug": "all-in-one-seo-pack",
+      "version": "5.0.5.1",
+      "severity": "red",
+      "summary": "1 symbol(s) gone: AIOSEO_VERSION",
+      "affects": [
+        "core/seo-context.php:76"
+      ],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/113",
+      "found": "2026-11-14"
+    },
+    {
+      "dependency": "woocommerce",
+      "name": "WooCommerce",
+      "slug": "woocommerce",
+      "version": "11.3.0",
+      "severity": "red",
+      "summary": "stage: 3 step(s) failed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/110",
+      "found": "2026-11-12"
+    },
+    {
+      "dependency": "brizy",
+      "name": "Brizy",
+      "slug": "brizy",
+      "version": "2.8.26",
+      "severity": "red",
+      "summary": "stage: 2 step(s) failed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/109",
+      "found": "2026-11-12"
+    },
+    {
+      "dependency": "core",
+      "name": "WordPress",
+      "slug": "core",
+      "version": "7.1.4",
+      "severity": "red",
+      "summary": "stage: 2 step(s) failed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/106",
+      "found": "2026-11-11"
+    },
+    {
+      "dependency": "seo-by-rank-math",
+      "name": "Rank Math SEO",
+      "slug": "seo-by-rank-math",
+      "version": "1.0.282",
+      "severity": "red",
+      "summary": "stage: 2 step(s) failed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/104",
+      "found": "2026-11-10"
+    },
+    {
+      "dependency": "elementor",
+      "name": "Elementor",
+      "slug": "elementor",
+      "version": "4.4.0",
+      "severity": "red",
+      "summary": "stage: 2 step(s) failed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/102",
+      "found": "2026-11-09"
+    },
+    {
+      "dependency": "woocommerce",
+      "name": "WooCommerce",
+      "slug": "woocommerce",
+      "version": "11.2.2",
+      "severity": "red",
+      "summary": "stage: 3 step(s) failed",
+      "affects": [],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/97",
+      "found": "2026-11-05"
+    },
+    {
+      "dependency": "all-in-one-seo-pack",
+      "name": "All in One SEO",
+      "slug": "all-in-one-seo-pack",
+      "version": "5.0.5",
+      "severity": "red",
+      "summary": "1 symbol(s) gone: AIOSEO_VERSION",
+      "affects": [
+        "core/seo-context.php:76"
+      ],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/96",
+      "found": "2026-11-05"
+    },
+    {
+      "dependency": "all-in-one-seo-pack",
+      "name": "All in One SEO",
+      "slug": "all-in-one-seo-pack",
+      "version": "5.0.4",
+      "severity": "red",
+      "summary": "1 symbol(s) gone: AIOSEO_VERSION",
+      "affects": [
+        "core/seo-context.php:76"
+      ],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/74",
+      "found": "2026-10-23"
+    },
+    {
+      "dependency": "all-in-one-seo-pack",
+      "name": "All in One SEO",
+      "slug": "all-in-one-seo-pack",
+      "version": "5.0.3",
+      "severity": "red",
+      "summary": "1 symbol(s) gone: AIOSEO_VERSION",
+      "affects": [
+        "core/seo-context.php:76"
+      ],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/52",
+      "found": "2026-10-08"
+    },
+    {
+      "dependency": "all-in-one-seo-pack",
+      "name": "All in One SEO",
+      "slug": "all-in-one-seo-pack",
+      "version": "5.0.2.1",
+      "severity": "red",
+      "summary": "1 symbol(s) gone: AIOSEO_VERSION",
+      "affects": [
+        "core/seo-context.php:76"
+      ],
+      "workaround": null,
+      "status": "open",
+      "issue": "https://github.com/vergelabsnathan/vergelabs-media-library/issues/45",
+      "found": "2026-10-02"
+    },
+    {
+      "dependency": "all-in-one-seo-pack",
+      "name": "All in One SEO",
+      "slug": "all-in-one-seo-pack",
       "version": "5.0.2",
       "severity": "red",
       "summary": "1 symbol(s) gone: AIOSEO_VERSION",
