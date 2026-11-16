@@ -1,7 +1,7 @@
 <?php
 /**
  *  Plugin Name: VergeML matrix probe (test only)
- *  Description: Answers ?vgml_matrix=state with what the site holds -- folders, files, links, locale, the debug log. Written into a Playground as an mu-plugin by tools/matrix.mjs; never shipped.
+ *  Description: Answers ?vergeml_matrix=state with what the site holds -- folders, files, links, locale, the debug log. Written into a Playground as an mu-plugin by tools/matrix.mjs; never shipped.
  *
  *  An mu-plugin for the same reason tests/uninstall/probe.php is one: the
  *  last step of the five-minute script deletes the plugin, and the check
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'init', function () {
 
-    if ( ! isset( $_GET['vgml_matrix'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a read-only probe on a throwaway site.
+    if ( ! isset( $_GET['vergeml_matrix'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a read-only probe on a throwaway site.
         return;
     }
 
@@ -27,7 +27,7 @@ add_action( 'init', function () {
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- the probe reads the tables by name, plugin or no plugin.
 
-    $tt = $wpdb->get_results( "SELECT term_taxonomy_id, term_id, parent, count FROM {$wpdb->term_taxonomy} WHERE taxonomy = 'media_category'", ARRAY_A );
+    $tt = $wpdb->get_results( "SELECT term_taxonomy_id, term_id, parent, count FROM {$wpdb->term_taxonomy} WHERE taxonomy = 'vergeml_folder'", ARRAY_A );
 
     $terms = array();
     foreach ( (array) $tt as $row ) {

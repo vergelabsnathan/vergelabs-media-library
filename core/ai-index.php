@@ -52,7 +52,7 @@ function vergeml_index_table_drop() {
 
     global $wpdb;
 
-    $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}vergeml_ai_index" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- deliberate removal of this plugin's own table during cleanup.
+    $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'vergeml_ai_index' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- deliberate removal of this plugin's own table during cleanup.
 }
 
 // The postmeta key the index was grown from. Still written by nothing, still
@@ -168,13 +168,7 @@ function vergeml_index_install() {
 }
 
 
-/**
- *  Hooked rather than called, so that safe mode -- which skips every file in
- *  this folder -- simply means nobody answers and the activation does not
- *  fatal on a function that was never defined.
- */
-
-add_action( 'vergeml_activate', 'vergeml_index_install' );
+// Called by name from vergeml_provision_site() (the main plugin file) on activation and on a version change.
 
 
 function vergeml_index_table_exists() {
@@ -254,9 +248,8 @@ function vergeml_index_prime( $ids ) {
     }
 
     foreach ( array_chunk( $ids, 1000 ) as $chunk ) {
-        $in = implode( ',', $chunk );
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids are cast to int above.
-        $rows = $wpdb->get_results( "SELECT * FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN ($in)", ARRAY_A );
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the table is ours; one %d per id, the ids are bound.
+        $rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE attachment_id IN ( ' . implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) . ' )', array_merge( array( $wpdb->vergeml_ai_index ), $chunk ) ), ARRAY_A );
         // phpcs:enable
         foreach ( $chunk as $id ) {
             $GLOBALS['vergeml_index_primed'][ $id ] = null; // known absent unless a row says otherwise
@@ -282,9 +275,10 @@ function vergeml_index_get( $attachment_id ) {
     if ( isset( $GLOBALS['vergeml_index_primed'] ) && array_key_exists( $attachment_id, $GLOBALS['vergeml_index_primed'] ) ) {
         $row = $GLOBALS['vergeml_index_primed'][ $attachment_id ];
     } else {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; there is no core API for it.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; there is no core API for it.
         $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT * FROM {$wpdb->vergeml_ai_index} WHERE attachment_id = %d",
+            'SELECT * FROM %i WHERE attachment_id = %d',
+            $wpdb->vergeml_ai_index,
             $attachment_id
         ), ARRAY_A );
         // phpcs:enable
@@ -662,12 +656,15 @@ function vergeml_index_current_stamp() {
      *  "mock". Eight credits a cycle, a cycle a minute, 2,391 credits before
      *  lunch. The pipeline that answers today is never the demo.
      */
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $row = $wpdb->get_row(
-        "SELECT model, model_version, embedding_dims, prompt_hash FROM {$wpdb->vergeml_ai_index}
-          WHERE error = '' AND described_at IS NOT NULL AND model <> 'mock'
-          ORDER BY described_at DESC, attachment_id DESC
-          LIMIT 1",
+        $wpdb->prepare(
+            "SELECT model, model_version, embedding_dims, prompt_hash FROM %i
+              WHERE error = '' AND described_at IS NOT NULL AND model <> 'mock'
+              ORDER BY described_at DESC, attachment_id DESC
+              LIMIT 1",
+            $wpdb->vergeml_ai_index
+        ),
         ARRAY_A
     );
     // phpcs:enable
@@ -730,6 +727,10 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
      */
     $cooldown = max( 0, (int) $cooldown );
 
+    // The cutoff is worked out here rather than as UTC_TIMESTAMP() - INTERVAL
+    // in SQL, which SQLite (Playground) cannot run. described_at is UTC
+    // (current_time( 'mysql', true )), and so is gmdate().
+
     // Nothing to compare against: no row can be stale. Handing back the whole
     // table because the caller passed nothing would be the worst available
     // reading of an empty argument.
@@ -752,9 +753,9 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
      */
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-        "SELECT attachment_id FROM {$wpdb->vergeml_ai_index}
+        "SELECT attachment_id FROM %i
           WHERE error = '' AND attachment_id > %d
-            AND ( %d = 0 OR described_at IS NULL OR described_at < UTC_TIMESTAMP() - INTERVAL %d SECOND )
+            AND ( %d = 0 OR described_at IS NULL OR described_at < %s )
             AND (
                     ( %d = 1 AND model <> %s )
                  OR ( %d = 1 AND model_version <> %s )
@@ -763,9 +764,10 @@ function vergeml_index_stale( $model = '', $version = '', $dims = 0, $after = 0,
                 )
           ORDER BY attachment_id ASC
           LIMIT %d",
+        $wpdb->vergeml_ai_index,
         (int) $after,
         $cooldown > 0 ? 1 : 0,
-        $cooldown,
+        gmdate( 'Y-m-d H:i:s', time() - $cooldown ),
         $check_model,
         (string) $model,
         $check_version,
@@ -796,15 +798,16 @@ function vergeml_index_pending_migration( $after = 0, $limit = 0 ) {
 
     $cap = $limit > 0 ? (int) $limit : PHP_INT_MAX;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
         "SELECT m.post_id FROM {$wpdb->postmeta} m
-          LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = m.post_id
+          LEFT JOIN %i i ON i.attachment_id = m.post_id
          WHERE m.meta_key = %s
            AND m.post_id > %d
            AND i.attachment_id IS NULL
          ORDER BY m.post_id ASC
          LIMIT %d",
+        $wpdb->vergeml_ai_index,
         VERGEML_META_AI,
         (int) $after,
         $cap
@@ -893,7 +896,8 @@ add_action( 'admin_init', 'vergeml_index_maybe_migrate' );
 
 function vergeml_index_maybe_migrate() {
 
-    if ( wp_doing_ajax() ) {
+    // admin_init also runs for admin-post.php without a login: an administrator's screen only.
+    if ( wp_doing_ajax() || ! current_user_can( 'manage_options' ) ) {
         return;
     }
 

@@ -59,13 +59,13 @@ check( 'jQuery UI draggable is loaded', await page.evaluate( () => !! ( window.j
 // Two folders of our own, so the 20,000-file fixture the benchmarks rely on is
 // never touched. Cleared first: a run that died half way must not poison the next.
 async function makeFolder( name ) {
-	const tree = await api( '/vergeml/v1/tree?taxonomy=media_category' );
+	const tree = await api( '/vergeml/v1/tree?taxonomy=vergeml_folder' );
 	for ( const n of tree.nodes || [] ) {
 		if ( n.name === name ) {
-			await api( '/vergeml/v1/folder', { taxonomy: 'media_category', action: 'delete', id: n.id } );
+			await api( '/vergeml/v1/folder', { taxonomy: 'vergeml_folder', action: 'delete', id: n.id } );
 		}
 	}
-	const made = await api( '/vergeml/v1/folder', { taxonomy: 'media_category', action: 'create', name } );
+	const made = await api( '/vergeml/v1/folder', { taxonomy: 'vergeml_folder', action: 'create', name } );
 	return made.id;
 }
 
@@ -79,12 +79,12 @@ const fileId = await page.$eval( '#the-list input[name="media[]"]', ( c ) => par
 check( 'a file to drag', Number.isInteger( fileId ), String( fileId ) );
 
 const termsOf = ( id ) => page.evaluate( async ( i ) => {
-	const r = await window.wp.apiFetch( { path: `/wp/v2/media/${ i }?_fields=media_category` } );
-	return ( r.media_category || [] ).slice().sort();
+	const r = await window.wp.apiFetch( { path: `/wp/v2/media/${ i }?_fields=vergeml_folder` } );
+	return ( r.vergeml_folder || [] ).slice().sort();
 }, id );
 
 const setTerms = ( id, terms ) => api( '/vergeml/v1/assign', {
-	taxonomy: 'media_category', attachments: [ id ], add: terms, mode: 'move',
+	taxonomy: 'vergeml_folder', attachments: [ id ], add: terms, mode: 'move',
 } );
 
 // Reveal a folder by searching for it: with two thousand seeded folders these two
@@ -221,7 +221,7 @@ seen.length = 0;
 // Leave the fixture as the benchmarks expect it.
 await setTerms( fileId, [] );
 for ( const id of [ A, B ] ) {
-	await api( '/vergeml/v1/folder', { taxonomy: 'media_category', action: 'delete', id } );
+	await api( '/vergeml/v1/folder', { taxonomy: 'vergeml_folder', action: 'delete', id } );
 }
 
 await browser.close();

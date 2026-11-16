@@ -204,18 +204,28 @@ function vergeml_csv_download() {
 
     nocache_headers();
     header( 'Content-Type: text/csv; charset=utf-8' );
+    // A CSV is data, never a page: the browser must not guess otherwise.
+    header( 'X-Content-Type-Options: nosniff' );
     header( 'Content-Disposition: attachment; filename="' . $name . '"' );
 
     /*
      *  A BOM, and only for this. Excel on Windows reads a CSV as the system
      *  code page unless one is present, which turns every accented folder name
      *  into mojibake in the one program most people will open this with.
+     *
+     *  The file's bytes go to the response as they are, not through echo: they
+     *  are a text/csv download with nosniff, never HTML, so an HTML escaper
+     *  would only corrupt them (a folder called "R&D" would arrive as
+     *  "R&amp;D"). Every cell went through vergeml_csv_cell_out(), which
+     *  neutralises spreadsheet formulas, and RFC 4180 quoting.
      */
-    echo "\xEF\xBB\xBF"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    $csv = "\xEF\xBB\xBF";
 
     foreach ( $rows as $row ) {
-        echo vergeml_csv_line( $row ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        $csv .= vergeml_csv_line( $row );
     }
+
+    file_put_contents( 'php://output', $csv );
 
     exit;
 }
@@ -328,7 +338,7 @@ function vergeml_csv_parse( $text ) {
             continue;
         }
 
-        if ( ! ctype_digit( $raw ) ) {
+        if ( ! preg_match( '/^\d+$/', (string) $raw ) ) {
             $problems[] = sprintf(
                 /* translators: 1: line number, 2: the value found. */
                 __( 'Line %1$d: “%2$s” is not a file id.', 'vergelabs-media-library' ),
@@ -409,7 +419,7 @@ function vergeml_csv_folder( $path, &$folders ) {
     $parts = array();
 
     foreach ( explode( '/', $path ) as $part ) {
-        $part = trim( $part );
+        $part = sanitize_text_field( $part );
         if ( '' !== $part ) {
             $parts[] = $part;
         }
@@ -472,11 +482,9 @@ function vergeml_csv_reject_unknown( $ids, &$files ) {
     // some MySQL configurations refuse outright.
     foreach ( array_chunk( $ids, 2000 ) as $chunk ) {
 
-        $marks = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $found = $wpdb->get_col( $wpdb->prepare(
-            "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND ID IN ({$marks})",
+            "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND ID IN ( " . implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) . ' )',
             $chunk
         ) );
         // phpcs:enable

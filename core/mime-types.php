@@ -29,14 +29,13 @@ function vergeml_mimes_validate( $input ) {
     if ( isset( $_POST['eml-restore-mime-types-settings'] ) ) {
 
         add_settings_error(
-            'mime-types',
+            'vergeml-mime-types',
             'eml_mime_types_restored',
             __('MIME Types settings restored.', 'vergelabs-media-library'),
             'updated'
         );
 
         remove_filter( 'upload_mimes', 'vergeml_upload_mimes' );
-        remove_filter( 'mime_types', 'vergeml_mime_types' );
 
         $allowed_mimes    = get_allowed_mime_types();
         $input = array();
@@ -48,7 +47,7 @@ function vergeml_mimes_validate( $input ) {
                 'singular' => $type,
                 'plural'   => $type,
                 'filter'   => 0,
-                'upload'   => isset($allowed_mimes[$ext]) ? 1 : 0
+                'upload'   => isset( $allowed_mimes[ $ext ] ) && ! vergeml_mime_refused( $ext ) ? 1 : 0
             );
         }
 
@@ -57,29 +56,53 @@ function vergeml_mimes_validate( $input ) {
 
 
     add_settings_error(
-        'mime-types',
+        'vergeml-mime-types',
         'eml_mime_types_saved',
         __('MIME Types settings saved.', 'vergelabs-media-library'),
         'updated'
     );
-    
+
+
+    $known   = wp_get_mime_types();
+    $dropped = array();
 
     foreach ( $input as $ext => $type ) {
 
-        if ( vergeml_sanitize_extension( $ext ) !== $ext ) {
-
-            // just unset anything not appropriate as file extension
-            // @todo :: add error
-            unset($input[$ext]);
+        // Only a type WordPress knows, under the MIME type WordPress gives it.
+        if ( ! is_array( $type ) || ! isset( $known[ $ext ] ) ) {
+            $dropped[] = (string) $ext;
+            unset( $input[ $ext ] );
             continue;
         }
 
-        $input[$ext]['filter'] = isset( $type['filter'] ) && !! $type['filter'] ? 1 : 0;
-        $input[$ext]['upload'] = isset( $type['upload'] ) && !! $type['upload'] ? 1 : 0;
+        $upload = isset( $type['upload'] ) && !! $type['upload'];
 
-        $input[$ext]['mime'] = sanitize_mime_type($type['mime']);
-        $input[$ext]['singular'] = sanitize_text_field($type['singular']);
-        $input[$ext]['plural'] = sanitize_text_field($type['plural']);
+        if ( $upload && vergeml_mime_refused( $ext ) ) {
+            $dropped[] = (string) $ext;
+            $upload    = false;
+        }
+
+        // These five, and nothing else the form carried.
+        $input[ $ext ] = array(
+            'mime'     => $known[ $ext ],
+            'singular' => isset( $type['singular'] ) && is_string( $type['singular'] ) ? sanitize_text_field( $type['singular'] ) : $known[ $ext ],
+            'plural'   => isset( $type['plural'] ) && is_string( $type['plural'] ) ? sanitize_text_field( $type['plural'] ) : $known[ $ext ],
+            'filter'   => empty( $type['filter'] ) ? 0 : 1,
+            'upload'   => $upload ? 1 : 0,
+        );
+    }
+
+    if ( $dropped ) {
+        add_settings_error(
+            'vergeml-mime-types',
+            'vergeml_mime_types_dropped',
+            sprintf(
+                /* translators: %s: comma-separated file extensions */
+                __( 'Not allowed, and left out: %s. Only file types WordPress itself knows can be allowed, and never a type that can run code.', 'vergelabs-media-library' ),
+                implode( ', ', array_map( 'sanitize_text_field', $dropped ) )
+            ),
+            'error'
+        );
     }
 
     return $input;
@@ -88,20 +111,52 @@ function vergeml_mimes_validate( $input ) {
 
 
 /**
- *  vergeml_sanitize_extension
+ *  vergeml_mime_refused
  *
- *  Based on the original sanitize_key
- *
- *  @since    1.0
- *  @created  24/10/13
+ *  Extensions no setting may allow for upload, even where WordPress knows
+ *  them: code a server would run, and anything a browser interprets rather
+ *  than shows -- markup, style sheets, scripts, XML and its style sheets.
+ *  Checked per part of a combined key such as "htm|html".
  */
 
-function vergeml_sanitize_extension( $key ) {
+function vergeml_mime_refused( $ext ) {
 
-    $key = strtolower( $key );
-    $key = preg_replace( '/[^a-z0-9|]/', '', $key );
-    return $key;
+    foreach ( explode( '|', strtolower( (string) $ext ) ) as $part ) {
+
+        if ( preg_match( '/^(php\d*|phtml|pht|phps|phar|cgi|pl|py|sh|bash|asp|aspx|jsp|jspx|htm|html|xhtml|xht|shtml|shtm|mht|mhtml|hta|css|xml|xsl|xslt|dfxp|svg|svgz|js|mjs|vbs|ps1|wasm|exe|htaccess|swf|com|bat|cmd|msi|dll|jar|class)$/', $part ) ) {
+            return true;
+        }
+    }
+
+    return false;
 }
+
+
+
+/**
+ *  vergeml_mimes_dropped
+ *
+ *  What the stored settings name that this version will not act on: a type
+ *  WordPress does not know (the screen used to let one be added by hand), or
+ *  a refused one marked for upload. Shown on the File types screen.
+ */
+
+function vergeml_mimes_dropped() {
+
+    $known   = wp_get_mime_types();
+    $dropped = array();
+
+    foreach ( (array) get_option( 'vergeml_mimes', array() ) as $ext => $type ) {
+
+        if ( ! isset( $known[ $ext ] ) || ( ! empty( $type['upload'] ) && vergeml_mime_refused( $ext ) ) ) {
+            $dropped[] = (string) $ext;
+        }
+    }
+
+    return $dropped;
+}
+
+
 
 
 /**
@@ -131,18 +186,19 @@ function vergeml_mimes_prepared( $reset = false ) {
     }
 
     $prepared = array();
+    $known    = wp_get_mime_types();
 
-    foreach ( get_option( 'vergeml_mimes', array() ) as $ext => $type_array ) {
+    // Dropped on read too: a setting saved before 4.1.0 may name anything.
+    foreach ( (array) get_option( 'vergeml_mimes', array() ) as $ext => $type_array ) {
 
-        $ext = vergeml_sanitize_extension( $ext );
-
-        if ( '' === $ext ) {
+        if ( ! isset( $known[ $ext ] ) ) {
             continue;
         }
 
+        // A type that can run code is never on for upload: listed here so the filter takes it off.
         $prepared[ $ext ] = array(
-            'mime'   => sanitize_mime_type( $type_array['mime'] ),
-            'upload' => ! empty( $type_array['upload'] ),
+            'mime'   => $known[ $ext ],
+            'upload' => ! vergeml_mime_refused( $ext ) && ! empty( $type_array['upload'] ),
         );
     }
 
@@ -172,11 +228,17 @@ add_filter( 'post_mime_types', 'vergeml_post_mime_types' );
 
 function vergeml_post_mime_types( $post_mime_types ) {
 
-    foreach ( get_option( 'vergeml_mimes', array() ) as $ext => $type_array ) {
+    $known = wp_get_mime_types();
 
-        if ( (bool) $type_array['filter'] ) {
+    foreach ( (array) get_option( 'vergeml_mimes', array() ) as $ext => $type_array ) {
 
-            $mime_type = sanitize_mime_type( $type_array['mime'] );
+        // Dropped on read here too: a setting saved before 4.1.0 may name anything.
+        if ( is_array( $type_array ) && ! empty( $type_array['filter'] ) && isset( $known[ $ext ] ) ) {
+
+            $mime_type = $known[ $ext ];
+            // Owner-typed labels go into a printf format, so a % in one stays a %.
+            $singular  = str_replace( '%', '%%', isset( $type_array['singular'] ) ? (string) $type_array['singular'] : $mime_type );
+            $plural    = str_replace( '%', '%%', isset( $type_array['plural'] ) ? (string) $type_array['plural'] : $mime_type );
 
             /*
              *  The singular and plural here are labels the site owner typed on
@@ -194,8 +256,8 @@ function vergeml_post_mime_types( $post_mime_types ) {
                     esc_html( $type_array['plural'] )
                 ),
                 array(
-                    'singular' => esc_html( $type_array['singular'] ) . ' <span class="count">(%s)</span>',
-                    'plural'   => esc_html( $type_array['plural'] ) . ' <span class="count">(%s)</span>',
+                    'singular' => esc_html( $singular ) . ' <span class="count">(%s)</span>',
+                    'plural'   => esc_html( $plural ) . ' <span class="count">(%s)</span>',
                     'context'  => null,
                     'domain'   => 'vergelabs-media-library',
                 )
@@ -220,54 +282,23 @@ function vergeml_post_mime_types( $post_mime_types ) {
  *  @created  03/08/13
  */
 
-add_filter( 'upload_mimes', 'vergeml_upload_mimes', 10, 2 );
+add_filter( 'upload_mimes', 'vergeml_upload_mimes' );
 
-function vergeml_upload_mimes( $types, $user = null ) {
+function vergeml_upload_mimes( $types ) {
 
+    /*
+     *  Remove-only: this filter never adds a type. The list arriving here is
+     *  what WordPress -- and, on a network, the super admin's "Upload file
+     *  types" -- allows this user; the settings switch WordPress's own types
+     *  off within it. vergeml_mimes_prepared() holds only types
+     *  wp_get_mime_types() knows, and a type vergeml_mime_refused() names is
+     *  always off, so it is taken out even where core itself would allow it.
+     *  A type another plugin added is not one of these and is left alone.
+     */
     foreach ( vergeml_mimes_prepared() as $ext => $entry ) {
 
-        // allow any mime type from settings
-        if ( $entry['upload'] ) {
-            $types[$ext] = $entry['mime'];
-        }
-        else {
-            unset( $types[$ext] );
-        }
-    }
-
-    // repeat the check from the core after adding new types
-    unset( $types['swf'], $types['exe'] );
-    if ( function_exists( 'current_user_can' ) ) {
-        $unfiltered = $user ? user_can( $user, 'unfiltered_html' ) : current_user_can( 'unfiltered_html' );
-    }
-
-    if ( empty( $unfiltered ) ) {
-        unset( $types['htm|html'], $types['js'] );
-    }
-
-    return $types;
-}
-
-
-
-
-/**
- *  vergeml_mime_types
- * 
- *  All mime types
- *
- *  @since    1.0
- *  @created  03/08/13
- */
-
-add_filter( 'mime_types', 'vergeml_mime_types' );
-
-function vergeml_mime_types( $types ) {
-
-    foreach ( vergeml_mimes_prepared() as $ext => $entry ) {
-
-        if ( ! isset( $types[$ext] ) ) {
-            $types[$ext] = $entry['mime'];
+        if ( empty( $entry['upload'] ) || vergeml_mime_refused( $ext ) ) {
+            unset( $types[ $ext ] );
         }
     }
 
@@ -313,7 +344,6 @@ function vergeml_check_filetype_and_ext( $types, $file, $filename, $mimes, $real
     }
 
 
-    // @todo :: re-think all the following
     $font_types  = array(
 
         // ttf
@@ -336,20 +366,13 @@ function vergeml_check_filetype_and_ext( $types, $file, $filename, $mimes, $real
         'application/octet-stream',     // @since 2.8.12
     );
 
-    $ms_types = array(
-
-        // for now it's for xlsm since finfo_file() returns this as its mime type
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-
-    );
-
+    /*
+     *  A font's content often reads as a generic type, so a font may pass on
+     *  it -- a font extension only. Until 4.1.0 any application/* extension
+     *  passed whenever the content read as application/octet-stream.
+     */
     if ( in_array( $real_mime, $font_types, true ) ) {
-        if ( ! in_array( substr( $type, 0, strcspn( $type, '/' ) ), array( 'application', 'font' ), true ) ) {
-            $type = false;
-            $ext  = false;
-        }
-    } else if ( in_array( $real_mime, $ms_types, true ) ) {
-        if ( ! str_contains( $type, 'application/vnd.ms-excel' ) ) {
+        if ( ! in_array( strtolower( (string) $ext ), array( 'ttf', 'otf', 'woff', 'woff2' ), true ) ) {
             $type = false;
             $ext  = false;
         }
@@ -366,11 +389,6 @@ function vergeml_check_filetype_and_ext( $types, $file, $filename, $mimes, $real
     if ( $type ) {
         $allowed = get_allowed_mime_types();
 
-        // @todo :: consider this check
-        // Either passed or real mime type must be allowed for upload
-        // if (    ! in_array( $type, $allowed, true ) && 
-        //         ! in_array( $real_mime, $allowed, true ) 
-        // ) {
 
         if ( ! in_array( $type, $allowed, true ) ) {
             $type = false;
@@ -387,8 +405,6 @@ function vergeml_check_filetype_and_ext( $types, $file, $filename, $mimes, $real
 
 
 
-// @todo ::
-// add_filter( 'wp_handle_upload_overrides', 'vergeml_handle_upload_overrides', 10, 2 );
 
 // function vergeml_handle_upload_overrides( $overrides, $file ) {
 //     return $overrides;
@@ -437,8 +453,9 @@ add_filter( 'wp_prepare_attachment_for_js', function( $response, $attachment, $m
 
         $svg_path = get_attached_file( $attachment->ID );
 
-        if( ! file_exists( $svg_path ) ) {
-            $svg_path = $response['url'];
+        // The file on disk only: never fetched back over HTTP.
+        if ( ! $svg_path || ! file_exists( $svg_path ) ) {
+            return $response;
         }
 
         $dimensions = vergeml_svg_dimensions( $svg_path );
@@ -468,7 +485,12 @@ add_filter( 'wp_prepare_attachment_for_js', function( $response, $attachment, $m
 
 function vergeml_svg_dimensions( $svg ) {
 
-    $svg = simplexml_load_file( $svg );
+    // SimpleXML is optional in PHP; without it the SVG keeps no size, as in WordPress itself.
+    if ( ! is_string( $svg ) || ! is_readable( $svg ) || ! function_exists( 'simplexml_load_file' ) ) {
+        return (object) array( 'width' => 0, 'height' => 0 );
+    }
+
+    $svg = simplexml_load_file( $svg, 'SimpleXMLElement', LIBXML_NONET );
     $width = 0;
     $height = 0;
 

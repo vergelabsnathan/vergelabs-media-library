@@ -28,25 +28,26 @@ requests carry the licence key. `vergeml_connect_base()` had one until today
 
 ## TLS
 
-17 of the 19 sites verify the certificate — nine say `'sslverify' => true`,
-eight say nothing and WordPress's default is true. The two remaining are
-loopbacks to **this site's own `wp-cron.php`**, the nudge that keeps a
-background run going on a site nobody is browsing. They follow WordPress's own
-`spawn_cron()`: `'sslverify' => apply_filters( 'https_local_ssl_verify', false )`
-— unverified unless the owner turns that core filter on, because a site with a
-self-signed certificate would otherwise never run its own cron. Nothing secret
-travels on them: the query carries the cron lock key and the body is empty. The
-suite allows that form only inside a function that names `wp-cron.php`; a
-literal `false` anywhere is red.
+Every site verifies the certificate. Until 4.1.0 two did not: the loopbacks to
+**this site's own `wp-cron.php`** that chain a background run from inside a
+cron tick followed `spawn_cron()` with
+`'sslverify' => apply_filters( 'https_local_ssl_verify', false )`, and wrote
+cron's lock themselves. Review round 2 (2026-09-30) replaced both with one
+keyless request after the run has released the lock
+(`vergeml_cron_continue_after()`, core/ai-background.php), which says nothing
+about `sslverify` and so gets WordPress's default, true. Outside a cron run the
+nudge is core's own `spawn_cron()`, whose request is core's and not a row here.
+The suite still allows the `https_local_ssl_verify` form only inside a
+function that names `wp-cron.php`; a literal `false` anywhere is red.
 
 ## The sites
 
 Hosts as they stand with no defines: `ai.vergelabs.nl` is the AI service,
-`vergelabsmedia.com` the account site, `raw.githubusercontent.com` is GitHub's.
+`vergelabsmedia.com` the account site. Since 4.1.0 no request goes to GitHub.
 
 | where | url | host | kind | decided by |
 |---|---|---|---|---|
-| core/ai-background.php | `add_query_arg( 'doing_wp_cron', $key, site_url( 'wp-cron.php' ) )` | this site | derived | this site's own address through `site_url()`; the cron nudge inside a tick, as core's spawn_cron does it |
+| core/ai-background.php | `site_url( 'wp-cron.php' )` | this site | derived | this site's own address through `site_url()`; the keyless chain inside a cron tick, sent from a shutdown function once wp-cron.php has released its lock (`vergeml_cron_continue_after()`), for the describe run and the fill alike |
 | core/ai.php | `vergeml_ai_service_url() . '/licence'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE` in wp-config.php, else the constant inside `vergeml_ai_service_url()`; two sites in this file, activate and check |
 | core/ai.php | `$request['url']` | ai.vergelabs.nl | derived | `$request` is the array vergeml_ai_describe_request() returns a few lines above — not a WP_REST_Request — and its url is `vergeml_ai_service_url()` . '/describe' |
 | core/brief.php | `$request['url']` | ai.vergelabs.nl | derived | the same array from vergeml_ai_describe_request(), so `vergeml_ai_service_url()` . '/describe'; the brief under test rides in the body |
@@ -56,8 +57,7 @@ Hosts as they stand with no defines: `ai.vergelabs.nl` is the AI service,
 | core/filing.php | `vergeml_ai_service_url() . '/folders'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()` |
 | core/folder-talk.php | `vergeml_ai_service_url() . '/folders'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()` |
 | core/folder-talk.php | `vergeml_ai_service_url() . '/name-group'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()` |
-| core/folder-talk.php | `add_query_arg( 'doing_wp_cron', $key, site_url( 'wp-cron.php' ) )` | this site | derived | this site's own address through `site_url()`; the fill's cron nudge inside a tick, the same as ai-background's since S10.2 (the lock re-taken under `$key`, that key posted) |
-| core/get-help.php | `VERGEML_KNOWN_ISSUES_URL` | raw.githubusercontent.com — GitHub's host, not ours | define | the constant at the top of core/get-help.php unless the owner defines `VERGEML_KNOWN_ISSUES_URL` first; a public JSON of known issues, read only, cached an hour; no https rule applies to this define |
+| core/get-help.php | `vergeml_help_known_issues_url()` | ai.vergelabs.nl | define | `vergeml_help_service_url()` . `/known-issues` (the rule in the row below), unless the owner defines `VERGEML_KNOWN_ISSUES_URL`; a public JSON of known issues, read only on the Check button, cached twelve hours; no https rule applies to that define. GitHub until 4.1.0 |
 | core/get-help.php | `vergeml_help_service_url() . '/support/ticket'` | ai.vergelabs.nl | define | `vergeml_help_service_url()` returns `vergeml_ai_service_url()` when core/ai.php is loaded and restates its rule (`VERGEML_AI_SERVICE`, https or loopback, else the constant) for safe mode |
 | core/guide.php | `vergeml_guide_stream_url() . '/guide/session'` | ai.vergelabs.nl | define | `VERGEML_AI_STREAM` in wp-config.php, else `vergeml_ai_service_url()` unless that is loopback, then the constant — inside `vergeml_guide_stream_url()` |
 | core/instrument.php | `vergeml_ai_service_url() . '/counts'` | ai.vergelabs.nl | define | `VERGEML_AI_SERVICE`, else the constant inside `vergeml_ai_service_url()`; sent only when the site opted in |

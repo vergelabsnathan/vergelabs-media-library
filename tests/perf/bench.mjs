@@ -144,7 +144,7 @@ await authenticate();
  *  than it looks. tests/tree/ai-folders.php measures the difference between
  *  the group off and the group on directly, with files it seeds itself.
  */
-await probe('ours: vergeml/v1/tree', '/wp-json/vergeml/v1/tree?taxonomy=media_category');
+await probe('ours: vergeml/v1/tree', '/wp-json/vergeml/v1/tree?taxonomy=vergeml_folder');
 /*
  *  The duplicates report. Budget: three statements plus the one meta sweep --
  *  the grouped md5 count, the sweep that loads every picture hash, and the two

@@ -42,9 +42,9 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *  count from before the thing they just did.
  */
 function vergeml_journey_touch() {
+    unset( $GLOBALS['vergeml_journey_facts'] );
     delete_transient( 'vergeml_journey_facts' );
     delete_transient( 'vergeml_rename_pending_count' );
-    delete_transient( 'vergeml_file_pending_count' );
 }
 
 
@@ -52,12 +52,15 @@ function vergeml_journey_facts() {
 
     // Per site, for the same reason as every request cache in this plugin:
     // a network job that switches blogs must not see the last site's figures.
-    static $facts = array();
+    if ( ! isset( $GLOBALS['vergeml_journey_facts'] ) ) {
+        $GLOBALS['vergeml_journey_facts'] = array();
+    }
+    $facts = &$GLOBALS['vergeml_journey_facts'];
 
     $blog = get_current_blog_id();
 
     if ( isset( $facts[ $blog ] ) ) {
-        return apply_filters( 'vergeml_journey_facts', $facts[ $blog ] );
+        return $facts[ $blog ];
     }
 
     /*
@@ -73,7 +76,7 @@ function vergeml_journey_facts() {
 
     if ( is_array( $cached ) && isset( $cached['images'] ) ) {
         $facts[ $blog ] = $cached;
-        return apply_filters( 'vergeml_journey_facts', $facts[ $blog ] );
+        return $facts[ $blog ];
     }
 
     global $wpdb;
@@ -85,7 +88,7 @@ function vergeml_journey_facts() {
      *  for a run and wrong for a dashboard -- on twenty thousand images it
      *  reads twenty thousand rows to print one number.
      */
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $images = (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type LIKE %s",
         $mime
@@ -113,18 +116,20 @@ function vergeml_journey_facts() {
          *  constant it is. Two statements, the first answered from the
          *  described_at index, and the whole thing is a scan with a compare.
          */
-        $current = (string) $wpdb->get_var(
-            "SELECT prompt_hash FROM {$wpdb->vergeml_ai_index}
+        $current = (string) $wpdb->get_var( $wpdb->prepare(
+            "SELECT prompt_hash FROM %i
               WHERE error = '' AND described_at IS NOT NULL AND model <> 'mock'
-              ORDER BY described_at DESC, attachment_id DESC LIMIT 1"
-        );
+              ORDER BY described_at DESC, attachment_id DESC LIMIT 1",
+            $wpdb->vergeml_ai_index
+        ) );
 
         $counts = $wpdb->get_row( $wpdb->prepare(
             "SELECT COUNT(*) AS described,
                     SUM( CASE WHEN prompt_hash IS NULL OR prompt_hash <> %s THEN 1 ELSE 0 END ) AS stale
-               FROM {$wpdb->vergeml_ai_index}
+               FROM %i
               WHERE error = ''",
-            $current
+            $current,
+            $wpdb->vergeml_ai_index
         ), ARRAY_A );
 
         $described   = isset( $counts['described'] ) ? (int) $counts['described'] : 0;
@@ -147,7 +152,7 @@ function vergeml_journey_facts() {
      *  dashboard said 29 where the tree showed 23.
      */
     $folders = 0;
-    $folder_tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $folder_tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
     if ( '' !== $folder_tax && taxonomy_exists( $folder_tax ) ) {
         $count   = wp_count_terms( array( 'taxonomy' => $folder_tax, 'hide_empty' => false ) );
@@ -200,11 +205,14 @@ function vergeml_journey_facts() {
     $recent = array();
 
     if ( isset( $wpdb->vergeml_ai_index ) ) {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $recent = $wpdb->get_results(
-            "SELECT attachment_id, caption, kind FROM {$wpdb->vergeml_ai_index}
-              WHERE error = '' AND caption <> '' AND described_at IS NOT NULL
-              ORDER BY described_at DESC, attachment_id DESC LIMIT 8",
+            $wpdb->prepare(
+                "SELECT attachment_id, caption, kind FROM %i
+                  WHERE error = '' AND caption <> '' AND described_at IS NOT NULL
+                  ORDER BY described_at DESC, attachment_id DESC LIMIT 8",
+                $wpdb->vergeml_ai_index
+            ),
             ARRAY_A
         );
         // phpcs:enable
@@ -231,18 +239,7 @@ function vergeml_journey_facts() {
 
     set_transient( 'vergeml_journey_facts', $facts[ $blog ], MINUTE_IN_SECONDS );
 
-    /**
-     *  Filter the dashboard's figures.
-     *
-     *  The seam the suite uses to put the dashboard into a state the live
-     *  library is not in -- no key, nothing described, 268 unfiled -- without
-     *  touching a row of it. Applied on every return, cached or not.
-     *
-     *  @since 3.16.2
-     *
-     *  @param array $facts  see the keys above.
-     */
-    return apply_filters( 'vergeml_journey_facts', $facts[ $blog ] );
+    return $facts[ $blog ];
 }
 
 
@@ -285,7 +282,7 @@ function vergeml_journey_progress() {
             'n'      => $f['images'] - $f['no_alt'],
             'm'      => $f['images'],
             'action' => __( 'Write alt text', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-ai' ),
+            'url'    => vergeml_journey_url( 'vergeml-ai' ),
         ),
         array(
             'id'     => 'described',
@@ -293,7 +290,7 @@ function vergeml_journey_progress() {
             'n'      => $f['described'],
             'm'      => $f['images'],
             'action' => __( 'Describe the rest', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-ai' ),
+            'url'    => vergeml_journey_url( 'vergeml-ai' ),
         ),
         array(
             'id'     => 'filed',
@@ -301,7 +298,7 @@ function vergeml_journey_progress() {
             'n'      => $f['files'] - $f['unfiled'],
             'm'      => $f['files'],
             'action' => __( 'Put files in folders', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-librarian' ),
+            'url'    => vergeml_journey_url( 'vergeml-librarian' ),
         ),
         array(
             'id'     => 'checked',
@@ -309,7 +306,7 @@ function vergeml_journey_progress() {
             'n'      => $checked,
             'm'      => $f['files'],
             'action' => __( 'Check for copies', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-health' ),
+            'url'    => vergeml_journey_url( 'vergeml-health' ),
         ),
     );
 
@@ -328,156 +325,6 @@ function vergeml_journey_progress() {
     }
 
     return $rows;
-}
-
-
-/**
- *  The second, sterner half of renaming: the file on disk.
- *
- *  Kept apart from the title rename rather than folded into it, because they
- *  are not the same risk wearing two labels. A title is a field in a database
- *  and changing it breaks nothing. A filename is a URL, and every <img src>
- *  already written into a page points at the old one.
- *
- *  So it is offered second, worded plainly about what it will and will not
- *  reach, and it says nothing at all until the scan that makes it safe has
- *  finished -- without that scan we do not know what points at the file, and
- *  the offer would be a guess dressed as a feature.
- */
-
-function vergeml_journey_file_rename() {
-
-    if ( ! function_exists( 'vergeml_file_pending' ) || ! current_user_can( 'manage_options' ) ) {
-        return null;
-    }
-
-    // Off until the renamer rewrites everything it moves -- see core/rename-file.php.
-    if ( ! ( defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME ) ) {
-        return null;
-    }
-
-    $scanned = function_exists( 'vergeml_smart_scan_state' )
-        && ! empty( vergeml_smart_scan_state()['finished'] );
-
-    if ( ! $scanned ) {
-        return array(
-            'blocked' => __( 'Renaming the files themselves needs the usage scan finished first — that is how we know which pages point at each file, so we can update them in the same go.', 'vergelabs-media-library' ),
-        );
-    }
-
-    // Bounded and remembered -- see vergeml_file_pending_count(). Counting by
-    // listing walked every described file and touched the disk for each.
-    $pending = function_exists( 'vergeml_file_pending_count' ) ? vergeml_file_pending_count() : array( 'n' => count( vergeml_file_pending() ), 'more' => false );
-    $n       = (int) $pending['n'];
-
-    if ( 0 === $n ) {
-        return null;
-    }
-
-    $shown = number_format_i18n( $n ) . ( ! empty( $pending['more'] ) ? '+' : '' );
-
-    return array(
-        'count' => sprintf(
-            /* translators: %s: how many files could be renamed on disk. */
-            _n(
-                '%s file could also be renamed on disk — “vgml-fx-real-498.jpg” to “red-synthesizer-with-controls.jpg”.',
-                '%s files could also be renamed on disk — “vgml-fx-real-498.jpg” to “red-synthesizer-with-controls.jpg”.',
-                $n,
-                'vergelabs-media-library'
-            ),
-            $shown
-        ),
-        'note'  => __( 'We move the file and every size of it, and update every page we can see pointing at it. What we cannot reach is a link written into a theme file or a stylesheet, or a page somebody has cached. One click puts it all back.', 'vergelabs-media-library' ),
-        'go'    => __( 'Rename the files too', 'vergelabs-media-library' ),
-        'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_file_rename' ), 'vergeml_do_file_rename' ),
-    );
-}
-
-
-/*
- *  Both handlers behind the same constant as the REST route in
- *  core/rename-file.php. The offer above already was; the handlers were not,
- *  so an administrator holding a nonce for the action could run the unfinished
- *  renamer on a site where it is off. Found by Phase 5.5 of plans/four-yesses.md.
- */
-if ( defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME ) {
-    add_action( 'admin_post_vergeml_do_file_rename', 'vergeml_journey_do_file_rename' );
-    add_action( 'admin_post_vergeml_undo_file_rename', 'vergeml_journey_undo_file_rename' );
-}
-
-function vergeml_journey_do_file_rename() {
-
-    // Moves files and edits other posts to match. Closer to a migration than
-    // to editing a caption, and the capability says so.
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
-    }
-
-    check_admin_referer( 'vergeml_do_file_rename' );
-
-    $done = function_exists( 'vergeml_file_rename_many' )
-        ? count( vergeml_file_rename_many( vergeml_file_pending( 200 ) ) )
-        : 0;
-
-    wp_safe_redirect( add_query_arg( 'vgml_files_renamed', $done, vergeml_journey_url( VERGEML_MENU ) ) );
-    exit;
-}
-
-
-function vergeml_journey_undo_file_rename() {
-
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
-    }
-
-    check_admin_referer( 'vergeml_undo_file_rename' );
-
-    $back = function_exists( 'vergeml_file_undo' ) ? count( vergeml_file_undo() ) : 0;
-
-    wp_safe_redirect( add_query_arg( 'vgml_files_back', $back, vergeml_journey_url( VERGEML_MENU ) ) );
-    exit;
-}
-
-
-
-function vergeml_journey_file_notice() {
-
-    if ( isset( $_GET['vgml_files_renamed'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-
-        $n = (int) $_GET['vgml_files_renamed']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-
-        printf(
-            '<div class="notice notice-success is-dismissible"><p>%s <a href="%s">%s</a></p></div>',
-            esc_html(
-                sprintf(
-                    /* translators: %s: how many files were renamed on disk. */
-                    _n( '%s file renamed, and the pages pointing at it updated.', '%s files renamed, and the pages pointing at them updated.', $n, 'vergelabs-media-library' ),
-                    number_format_i18n( $n )
-                )
-            ),
-            esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_undo_file_rename' ), 'vergeml_undo_file_rename' ) ),
-            esc_html__( 'Put the old filenames back', 'vergelabs-media-library' )
-        );
-
-        return;
-    }
-
-    if ( ! isset( $_GET['vgml_files_back'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        return;
-    }
-
-    $n = (int) $_GET['vgml_files_back']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-
-    printf(
-        '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
-        esc_html(
-            sprintf(
-                /* translators: %s: how many files got their old filename back. */
-                _n( '%s file has its old filename back.', '%s files have their old filenames back.', $n, 'vergelabs-media-library' ),
-                number_format_i18n( $n )
-            )
-        )
-    );
 }
 
 
@@ -580,7 +427,7 @@ function vergeml_journey_stages() {
             'action' => ( $f['licensed'] || $f['demo'] )
                 ? __( 'Change this', 'vergelabs-media-library' )
                 : __( 'Start here', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-licence' ),
+            'url'    => vergeml_journey_url( 'vergeml-licence' ),
         );
     }
 
@@ -599,7 +446,7 @@ function vergeml_journey_stages() {
             'blocked' => $blocked,
             'text'    => vergeml_journey_describe_text( $f ),
             'action'  => __( 'Describe them', 'vergelabs-media-library' ),
-            'url'     => vergeml_journey_url( 'media-ai' ),
+            'url'     => vergeml_journey_url( 'vergeml-ai' ),
         );
 
         /* -------------------------------------------------------- the alt */
@@ -619,7 +466,7 @@ function vergeml_journey_stages() {
                     number_format_i18n( $f['no_alt'] )
                 ),
             'action'  => __( 'Fill them in', 'vergelabs-media-library' ),
-            'url'     => vergeml_journey_url( 'media-ai' ),
+            'url'     => vergeml_journey_url( 'vergeml-ai' ),
         );
     }
 
@@ -661,7 +508,7 @@ function vergeml_journey_stages() {
                     number_format_i18n( $f['files'] )
                 ),
             'action' => $done ? __( 'See the report', 'vergelabs-media-library' ) : __( 'Scan the library', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-health' ),
+            'url'    => vergeml_journey_url( 'vergeml-health' ),
         );
     }
 
@@ -734,7 +581,7 @@ function vergeml_journey_stages() {
             'action'  => 'ready' === $stage
                 ? __( 'See where they would go', 'vergelabs-media-library' )
                 : __( 'Sort them into folders', 'vergelabs-media-library' ),
-            'url'     => vergeml_journey_url( 'media-librarian' ),
+            'url'     => vergeml_journey_url( 'vergeml-librarian' ),
         );
     }
 
@@ -748,7 +595,7 @@ function vergeml_journey_stages() {
             'done'   => false,
             'text'   => __( 'Already sorted your media with FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders or Real Media Library? We can copy those folders over so you do not start again. The other plugin keeps everything exactly as it is, you see what will happen before it happens, and it can all be undone.', 'vergelabs-media-library' ),
             'action' => __( 'Import folders', 'vergelabs-media-library' ),
-            'url'    => vergeml_journey_url( 'media-import-folders' ),
+            'url'    => vergeml_journey_url( 'vergeml-import-folders' ),
         );
     }
 
@@ -901,7 +748,7 @@ function vergeml_journey_todo() {
             'kind'    => 'primary',
             'n'       => (int) $f['undescribed'],
             'go'      => __( 'Describe them', 'vergelabs-media-library' ),
-            'url'     => vergeml_journey_url( 'media-ai' ),
+            'url'     => vergeml_journey_url( 'vergeml-ai' ),
             'blocked' => ( ! $f['licensed'] && ! $f['demo'] )
                 ? __( 'Add a licence key or switch on demo mode first.', 'vergelabs-media-library' )
                 : '',
@@ -957,11 +804,6 @@ function vergeml_journey_todo() {
     // from one of those, which is why the count above is not the library.
     $undescribed = function_exists( 'vergeml_ai_pending_count' ) ? (int) vergeml_ai_pending_count( 'unindexed' ) : 0;
 
-    // The on-disk renamer is switched off until it is whole; while it is,
-    // the screen speaks only about titles and promises nothing about files.
-    $file_feature = defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME;
-    $files        = $file_feature && function_exists( 'vergeml_file_pending_count' ) ? (int) vergeml_file_pending_count()['n'] : 0;
-
     $todo[] = array(
         'id'    => 'names',
         'title' => __( 'Titles that say nothing', 'vergelabs-media-library' ),
@@ -970,7 +812,6 @@ function vergeml_journey_todo() {
         'n'     => $names,
         'go'    => __( 'Rename from descriptions', 'vergelabs-media-library' ),
         'url'   => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_do_rename' ), 'vergeml_do_rename' ),
-        'more'  => vergeml_journey_file_rename(),
     );
 
     /* ----------------------------------------------------------- folders */
@@ -992,7 +833,7 @@ function vergeml_journey_todo() {
         'kind'  => 'secondary',
         'n'     => (int) $f['unfiled'],
         'go'    => __( 'Put them in folders', 'vergelabs-media-library' ),
-        'url'   => vergeml_journey_url( 'media-librarian' ),
+        'url'   => vergeml_journey_url( 'vergeml-librarian' ),
         // The title carries the number, so the row does not print it twice.
         'count_in_title' => true,
     );
@@ -1036,7 +877,7 @@ function vergeml_journey_todo() {
         'kind'  => 'ghost',
         'n'     => max( $copies, $sets ),
         'go'    => __( 'Review the sets', 'vergelabs-media-library' ),
-        'url'   => vergeml_journey_url( 'media-health' ),
+        'url'   => vergeml_journey_url( 'vergeml-health' ),
     );
 
     /*
@@ -1079,7 +920,9 @@ add_action( 'admin_post_vergeml_do_alt', 'vergeml_journey_do_alt' );
 
 function vergeml_journey_do_alt() {
 
-    if ( ! current_user_can( 'upload_files' ) ) {
+    // Writes alt text on every pending picture in the library: administrators
+    // only, the same bar as /ai-alt (wordpress.org review 2, 2026-10-03).
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
     }
 
@@ -1087,7 +930,7 @@ function vergeml_journey_do_alt() {
 
     $wrote = function_exists( 'vergeml_ai_apply_alt' ) ? vergeml_ai_apply_alt( 0 ) : 0;
 
-    wp_safe_redirect( add_query_arg( 'vgml_alt_written', (int) $wrote, vergeml_journey_url( VERGEML_MENU ) ) );
+    wp_safe_redirect( add_query_arg( 'vergeml_alt_written', (int) $wrote, vergeml_journey_url( VERGEML_MENU ) ) );
     exit;
 }
 
@@ -1107,8 +950,8 @@ function vergeml_journey_results() {
     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- reading a result the redirect wrote, not acting.
     $said = array();
 
-    if ( isset( $_GET['vgml_renamed'] ) ) {
-        $n      = max( 0, (int) $_GET['vgml_renamed'] );
+    if ( isset( $_GET['vergeml_renamed'] ) ) {
+        $n      = max( 0, (int) $_GET['vergeml_renamed'] );
         $said[] = 0 === $n
             ? __( 'No titles needed rewriting. A title is only written from a picture we have already looked at.', 'vergelabs-media-library' )
             : sprintf(
@@ -1118,8 +961,8 @@ function vergeml_journey_results() {
             );
     }
 
-    if ( isset( $_GET['vgml_alt_written'] ) ) {
-        $n      = max( 0, (int) $_GET['vgml_alt_written'] );
+    if ( isset( $_GET['vergeml_alt_written'] ) ) {
+        $n      = max( 0, (int) $_GET['vergeml_alt_written'] );
         $said[] = sprintf(
             /* translators: %s: how many pictures got alt text. */
             _n( '%s picture now has alt text.', '%s pictures now have alt text.', $n, 'vergelabs-media-library' ),
@@ -1127,23 +970,6 @@ function vergeml_journey_results() {
         );
     }
 
-    if ( isset( $_GET['vgml_files_renamed'] ) ) {
-        $n      = max( 0, (int) $_GET['vgml_files_renamed'] );
-        $said[] = sprintf(
-            /* translators: %s: how many files were renamed on disk. */
-            _n( '%s file renamed, and the pages pointing at it updated.', '%s files renamed, and the pages pointing at them updated.', $n, 'vergelabs-media-library' ),
-            number_format_i18n( $n )
-        );
-    }
-
-    if ( isset( $_GET['vgml_files_back'] ) ) {
-        $n      = max( 0, (int) $_GET['vgml_files_back'] );
-        $said[] = sprintf(
-            /* translators: %s: how many file names were put back. */
-            _n( '%s file name put back.', '%s file names put back.', $n, 'vergelabs-media-library' ),
-            number_format_i18n( $n )
-        );
-    }
     // phpcs:enable
 
     foreach ( $said as $line ) {
@@ -1158,7 +984,8 @@ add_action( 'admin_post_vergeml_do_rename', 'vergeml_journey_do_rename' );
 
 function vergeml_journey_do_rename() {
 
-    if ( ! current_user_can( 'upload_files' ) ) {
+    // Rewrites the title of every pending file: administrators only.
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You cannot do that.', 'vergelabs-media-library' ) );
     }
 
@@ -1168,7 +995,7 @@ function vergeml_journey_do_rename() {
         ? count( vergeml_rename_apply( vergeml_rename_pending() ) )
         : 0;
 
-    wp_safe_redirect( add_query_arg( 'vgml_renamed', $done, vergeml_journey_url( VERGEML_MENU ) ) );
+    wp_safe_redirect( add_query_arg( 'vergeml_renamed', $done, vergeml_journey_url( VERGEML_MENU ) ) );
     exit;
 }
 
@@ -1176,11 +1003,11 @@ function vergeml_journey_do_rename() {
 
 function vergeml_journey_alt_notice() {
 
-    if ( ! isset( $_GET['vgml_alt_written'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( ! isset( $_GET['vergeml_alt_written'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         return;
     }
 
-    $n = (int) $_GET['vgml_alt_written']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $n = (int) $_GET['vergeml_alt_written']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
     printf(
         '<div class="notice notice-success is-dismissible"><p>%s</p></div>',
@@ -1224,7 +1051,7 @@ function vergeml_journey_alt_notice() {
  */
 function vergeml_journey_screen() {
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
@@ -1241,16 +1068,16 @@ function vergeml_journey_screen() {
     $figures = array(
         array( 'n' => $f['files'],   'label' => __( 'files', 'vergelabs-media-library' ),   'url' => 0 === $f['files'] ? admin_url( 'media-new.php' ) : admin_url( 'upload.php' ) ),
         array( 'n' => $f['folders'], 'label' => __( 'folders', 'vergelabs-media-library' ), 'url' => admin_url( 'upload.php' ) ),
-        array( 'n' => $f['unfiled'], 'label' => __( 'unfiled', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-librarian' ), 'warn' => $f['unfiled'] > 0 ),
-        array( 'n' => $f['no_alt'],  'label' => __( 'no alt text', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-ai' ), 'warn' => $f['no_alt'] > 0 ),
+        array( 'n' => $f['unfiled'], 'label' => __( 'unfiled', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-librarian' ), 'warn' => $f['unfiled'] > 0 ),
+        array( 'n' => $f['no_alt'],  'label' => __( 'no alt text', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-ai' ), 'warn' => $f['no_alt'] > 0 ),
     );
 
     if ( null !== $f['unused'] ) {
-        $figures[] = array( 'n' => $f['unused'], 'label' => __( 'used nowhere', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-health' ), 'warn' => $f['unused'] > 0 );
+        $figures[] = array( 'n' => $f['unused'], 'label' => __( 'used nowhere', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-health' ), 'warn' => $f['unused'] > 0 );
     }
 
     if ( null !== $f['credits'] ) {
-        $figures[] = array( 'n' => $f['credits'], 'label' => __( 'credits left', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-ai' ) );
+        $figures[] = array( 'n' => $f['credits'], 'label' => __( 'credits left', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-ai' ) );
     }
 
     ?>
@@ -1273,11 +1100,11 @@ function vergeml_journey_screen() {
             }
         }
 
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Your media library', 'vergelabs-media-library' ),
             __( 'Where things stand, and what to do next.', 'vergelabs-media-library' ),
             $meta
-        );
+        ), vergeml_kses_allowed() );
         ?>
 
         <?php
@@ -1289,14 +1116,14 @@ function vergeml_journey_screen() {
         $band = array(
             array( 'n' => $f['files'],   'l' => __( 'files', 'vergelabs-media-library' ) ),
             array( 'n' => $f['folders'], 'l' => __( 'folders', 'vergelabs-media-library' ) ),
-            array( 'n' => $f['unfiled'], 'l' => __( 'unfiled', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-librarian' ) ),
-            array( 'n' => $f['no_alt'],  'l' => __( 'no alt text', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-ai' ) ),
+            array( 'n' => $f['unfiled'], 'l' => __( 'unfiled', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-librarian' ) ),
+            array( 'n' => $f['no_alt'],  'l' => __( 'no alt text', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-ai' ) ),
         );
         if ( null !== $f['unused'] ) {
             $band[] = array( 'n' => $f['unused'], 'l' => __( 'used nowhere', 'vergelabs-media-library' ), 'tip' => __( 'Files not used in any post, page or product yet.', 'vergelabs-media-library' ) );
         }
         if ( null !== $f['credits'] ) {
-            $band[] = array( 'n' => $f['credits'], 'l' => __( 'credits left', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'media-licence' ) );
+            $band[] = array( 'n' => $f['credits'], 'l' => __( 'credits left', 'vergelabs-media-library' ), 'url' => vergeml_journey_url( 'vergeml-licence' ) );
         }
         ?>
         <div class="vgml-band">
@@ -1355,16 +1182,6 @@ function vergeml_journey_screen() {
                     <div class="vgml-do-text">
                         <div class="vgml-do-title"><?php echo esc_html( $item['title'] ); ?></div>
                         <div class="vgml-do-note"><?php echo esc_html( $blocked ? $item['blocked'] : $item['note'] ); ?></div>
-                        <?php if ( ! $blocked && ! empty( $item['more'] ) ) : ?>
-                            <?php if ( ! empty( $item['more']['blocked'] ) ) : ?>
-                                <div class="vgml-do-more"><?php echo esc_html( $item['more']['blocked'] ); ?></div>
-                            <?php else : ?>
-                                <div class="vgml-do-more">
-                                    <?php echo esc_html( $item['more']['count'] ); ?>
-                                    <a href="<?php echo esc_url( $item['more']['url'] ); ?>"><?php echo esc_html( $item['more']['go'] ); ?></a>
-                                </div>
-                            <?php endif; ?>
-                        <?php endif; ?>
                     </div>
                     <?php if ( ! $blocked ) : ?>
                         <a class="<?php echo esc_attr( $class ); ?>" href="<?php echo esc_url( $item['url'] ); ?>"><?php echo esc_html( $item['go'] ); ?></a>
@@ -1531,7 +1348,7 @@ function vergeml_journey_screen() {
                         'icon'  => 'search',
                         'label' => __( 'Scan for duplicate files', 'vergelabs-media-library' ),
                         'note'  => __( 'Free, sends nothing anywhere, changes nothing.', 'vergelabs-media-library' ),
-                        'href'  => vergeml_journey_url( 'media-health' ),
+                        'href'  => vergeml_journey_url( 'vergeml-health' ),
                     );
                 }
 
@@ -1541,7 +1358,7 @@ function vergeml_journey_screen() {
                         'icon'  => 'download',
                         'label' => __( 'Export folders as CSV', 'vergelabs-media-library' ),
                         'note'  => __( 'Your whole structure, in a spreadsheet.', 'vergelabs-media-library' ),
-                        'href'  => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_export_csv&taxonomy=media_category' ), 'vergeml_export_csv' ),
+                        'href'  => wp_nonce_url( admin_url( 'admin-post.php?action=vergeml_export_csv&taxonomy=vergeml_folder' ), 'vergeml_export_csv' ),
                     );
                 }
 
@@ -1566,7 +1383,7 @@ function vergeml_journey_screen() {
                             <?php endif; ?>
 
                                 <span class="vgml-quick-ico"><?php
-                                    echo function_exists( 'vergeml_icon' ) ? vergeml_icon( $act['icon'], 18 ) : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal SVG.
+                                    echo wp_kses( function_exists( 'vergeml_icon' ) ? vergeml_icon( $act['icon'], 18 ) : '', vergeml_kses_allowed() );
                                 ?></span>
                                 <span class="vgml-quick-text">
                                     <span class="vgml-quick-label"><?php echo esc_html( $act['label'] ); ?></span>
@@ -1629,7 +1446,7 @@ function vergeml_journey_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-journey',
         plugins_url( 'js/vergeml-journey.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-journey.js' ),
         true
     );

@@ -151,10 +151,16 @@ function greenEdit( d, dep ) {
 		if ( ! cur || cur === to || cur.localeCompare( to, undefined, { numeric: true } ) > 0 ) return false;
 		text = text.replace( /^Tested up to:.*$/m, `Tested up to: ${ to }` );
 	} else {
-		const marker = '<!-- watch:verified -->';
+		// The sentence above the list, not an HTML comment: wordpress.org's
+		// readme rules allow no HTML in readme.txt (review 2, 2026-10-04).
+		const marker = 'What passed is recorded here, newest first:\n\n';
 		const line = `* ${ dep.name } ${ d.version } — contract intact${ stageFor( d.key ) ? ', stage suites passed' : '' } (${ new Date().toISOString().slice( 0, 10 ) })`;
 		if ( ! text.includes( marker ) ) return false; // the readme has no verified-against list yet; nothing to edit
-		text = text.replace( marker, `${ marker }\n${ line }` );
+		// The newest line per product only: the readme is meant to be brief (review 2, RM-32), and an older
+		// release of the same product passing says nothing the newer line does not.
+		const prefix = `* ${ dep.name } `;
+		text = text.split( '\n' ).filter( ( l ) => ! ( l.startsWith( prefix ) && / — contract intact/.test( l ) ) ).join( '\n' );
+		text = text.replace( marker, `${ marker }${ line }\n` );
 	}
 	if ( DRY ) { console.log( `  [dry-run] would edit readme.txt for ${ d.key } ${ d.version }` ); return true; }
 	writeFileSync( readme, text );

@@ -31,7 +31,7 @@ $say( 'ai pending missing-alt', function_exists( 'vergeml_ai_pending_count' ) ? 
 $say( 'progress', function_exists( 'vergeml_journey_progress' ) ? vergeml_journey_progress() : null );
 
 echo "\n== folders ==\n";
-$tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+$tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 $say( 'librarian taxonomy', $tax );
 $say( 'terms in it', (int) wp_count_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) ) );
 $say( 'top-level terms', (int) wp_count_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'parent' => 0 ) ) );

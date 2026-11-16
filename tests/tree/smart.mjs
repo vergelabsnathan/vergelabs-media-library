@@ -55,7 +55,7 @@ await page.waitForSelector( '.vgml-tree .vgml-row', { timeout: 60000 } );
 // and seed one missing-alt image, because an AI pass may have filled them all
 await page.evaluate( async () => {
 	await window.wp.apiFetch( { path: '/vergeml/v1/state', method: 'POST',
-		data: { taxonomy: 'media_category', filtersOpen: 1 } } );
+		data: { taxonomy: 'vergeml_folder', filtersOpen: 1 } } );
 	const one = ( await window.wp.apiFetch( { path: '/wp/v2/media?media_type=image&per_page=1&_fields=id' } ) )[ 0 ];
 	window.__vgmlAltSeed = one.id;
 	await window.wp.apiFetch( { path: '/wp/v2/media/' + one.id, method: 'POST', data: { alt_text: '' } } );
@@ -173,7 +173,7 @@ check( 'and the grid shows the folder again', after.tiles === Math.min( folder.c
 
 console.log( '\nlist view' );
 
-await page.goto( `${ BASE }/wp-admin/upload.php?mode=list&vgml_smart=no-alt`, { waitUntil: 'domcontentloaded' } );
+await page.goto( `${ BASE }/wp-admin/upload.php?mode=list&vergeml_smart=no-alt`, { waitUntil: 'domcontentloaded' } );
 await page.waitForTimeout( 1500 );
 
 const list = await page.evaluate( () => {

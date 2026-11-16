@@ -379,8 +379,10 @@ const WRITES = [
 	[ /\bwp_delete_(post|attachment|term|file)\s*\(/, 'delete' ],
 	[ /\bwp_set_object_terms\s*\(|\bwp_(add|remove)_object_terms\s*\(/, 'term assign' ],
 	[ /\b(update|add|delete)_(post|term|user|option|site_option)_?meta\s*\(|\bupdate_option\s*\(|\bdelete_option\s*\(|\bupdate_user_meta\s*\(/, 'meta/option write' ],
-	[ /\b(rename|unlink|copy|file_put_contents|mkdir|rmdir)\s*\(/, 'filesystem' ],
+	[ /\b(rename|unlink|copy|file_put_contents|mkdir|rmdir)\s*\(|\bWP_Filesystem_Direct\b/, 'filesystem' ],
 	[ /\bwp_remote_(get|post|request|head)\s*\(/, 'outbound http' ],
+	// spawn_cron() posts to the site's own wp-cron.php: a loopback, but a request all the same.
+	[ /\bspawn_cron\s*\(/, 'outbound http' ],
 	[ /\bwp_schedule_(single_)?event\s*\(/, 'schedules cron' ],
 	[ /\bwp_(set_current_user|set_auth_cookie)\s*\(/, 'auth' ],
 ];
@@ -421,8 +423,9 @@ function analyse( body, startedIn, depth = 3, seen = new Set() ) {
 
 		if ( left <= 0 ) return;
 
-		for ( const m of text.matchAll( /\b(vergeml_[A-Za-z0-9_]*)\s*\(/g ) ) {
-			const name = m[ 1 ];
+		// Called by name, or handed by name to register_shutdown_function() to run as the request ends.
+		for ( const m of text.matchAll( /\b(vergeml_[A-Za-z0-9_]*)\s*\(|register_shutdown_function\(\s*'(vergeml_[A-Za-z0-9_]*)'/g ) ) {
+			const name = m[ 1 ] || m[ 2 ];
 			if ( seen.has( name ) || ! funcs.has( name ) ) continue;
 			seen.add( name );
 			found.callees.add( name );
@@ -1103,7 +1106,7 @@ function markdown() {
 	L.push( '## Meta fields core exposes over REST' );
 	L.push( '' );
 	L.push( 'Registered with `show_in_rest`, which means core accepts writes to them on its own' );
-	L.push( 'routes — `/wp/v2/media`, `/wp/v2/media_category` — without any route of ours being' );
+	L.push( 'routes — `/wp/v2/media`, `/wp/v2/vergeml_folder` — without any route of ours being' );
 	L.push( 'involved. The `auth_callback` is the gate, and its default is `edit_posts`.' );
 	L.push( '' );
 	L.push( '| key | on | sanitize | auth callback | capability | where |' );
@@ -1190,7 +1193,8 @@ function handWritten() {
 const roleLists = ( () => {
 
 	const key = ( r ) => `${ r.route } ${ r.methods }`;
-	const gate = ( r ) => [ ...new Set( r.permCaps.map( ( c ) => c.cap ) ) ].sort().join( '+' );
+	// A taxonomy's own term capability ($taxonomy->cap->assign_terms) is edit_posts unless the taxonomy says otherwise.
+	const gate = ( r ) => [ ...new Set( r.permCaps.map( ( c ) => ( /->cap->/.test( c.cap ) ? 'edit_posts' : c.cap ) ) ) ].sort().join( '+' );
 
 	const authorMay = [];
 	const objectScoped = [];
@@ -1199,6 +1203,8 @@ const roleLists = ( () => {
 	for ( const r of restRows ) {
 		const g = gate( r );
 		if ( g === 'edit_post' ) objectScoped.push( key( r ) );
+		// Gated on a term (an editor's folder edits): manage_options there is only an exception path, not the gate.
+		else if ( /manage_categories/.test( g ) && /edit_term|delete_term|\$cap\(|edit_posts/.test( g ) ) continue;
 		else if ( /manage_options|manage_network_options|delete_posts/.test( g ) ) adminOnly.push( key( r ) );
 		else if ( g === 'upload_files' || g === 'edit_posts+upload_files' ) authorMay.push( key( r ) );
 	}

@@ -22,11 +22,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 wp_set_current_user( 1 );
 
-$GLOBALS['vgml_ok']  = 0;
-$GLOBALS['vgml_bad'] = 0;
+$GLOBALS['vergeml_ok']  = 0;
+$GLOBALS['vergeml_bad'] = 0;
 
 function t( $name, $pass, $detail = '' ) {
-	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+	$pass ? $GLOBALS['vergeml_ok']++ : $GLOBALS['vergeml_bad']++;
 	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, $detail ? '  -- ' . $detail : '' );
 }
 
@@ -119,5 +119,5 @@ if ( $subscriber ) {
 	}
 }
 
-printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
-exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
+printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
+exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

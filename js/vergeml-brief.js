@@ -12,7 +12,7 @@
 ( function () {
 	'use strict';
 
-	var cfg = window.vgmlBrief || {};
+	var cfg = window.vergemlBrief || {};
 	var TALK = window.vergemlTalk;
 	var wp = window.wp;
 	if ( ! TALK || ! wp || ! wp.apiFetch || ! wp.i18n ) {
@@ -368,5 +368,4 @@
 		}
 	} ).catch( function () {} );
 
-	window.vgmlBriefApp = { state: state, talk: talk };
 }() );

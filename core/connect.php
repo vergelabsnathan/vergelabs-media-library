@@ -36,7 +36,7 @@ const VERGEML_CONNECT_TTL    = DAY_IN_SECONDS;
  *  plans/four-yesses.md; nothing used the filter.
  */
 function vergeml_connect_base() {
-    $base = defined( 'VERGEML_SITE_URL' ) ? VERGEML_SITE_URL : 'https://vergelabsmedia.com';
+    $base = defined( 'VERGEML_SITE_URL' ) && is_string( VERGEML_SITE_URL ) && 0 === strpos( VERGEML_SITE_URL, 'https://' ) ? VERGEML_SITE_URL : 'https://vergelabsmedia.com';
 
     return untrailingslashit( $base );
 }
@@ -62,7 +62,7 @@ function vergeml_buy_url( $path, $screen ) {
 /** The nonce-protected URL behind the "Connect" button. */
 function vergeml_connect_start_url() {
     return wp_nonce_url(
-        admin_url( 'admin.php?page=media-licence&vergeml_connect=start' ),
+        admin_url( 'admin.php?page=vergeml-licence&vergeml_connect=start' ),
         VERGEML_CONNECT_NONCE
     );
 }
@@ -95,14 +95,21 @@ add_action( 'admin_init', 'vergeml_connect_router' );
 /** Both halves of the round trip arrive on admin_init. */
 function vergeml_connect_router() {
 
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- routing only: which half of the round trip this request is. Neither half trusts it: "start" verifies VERGEML_CONNECT_NONCE in vergeml_connect_start(), "callback" the per-user state in vergeml_connect_finish(), both after the manage_options check below.
     if ( ! isset( $_GET['vergeml_connect'] ) ) {
         return;
     }
     $step = sanitize_key( wp_unslash( $_GET['vergeml_connect'] ) );
+    // phpcs:enable
 
     // Binding a paid licence to a site is an owner's decision, not an editor's.
     if ( ! current_user_can( 'manage_options' ) ) {
         return;
+    }
+
+    // A key is stored sealed (vergeml_ai_seal()); without OpenSSL nothing could be stored, so no code is spent.
+    if ( ! function_exists( 'openssl_encrypt' ) ) {
+        vergeml_connect_redirect_with( 'openssl' );
     }
 
     if ( 'start' === $step ) {
@@ -128,7 +135,7 @@ function vergeml_connect_start() {
         array(
             'state'        => rawurlencode( $state ),
             'site'         => rawurlencode( home_url() ),
-            'redirect_uri' => rawurlencode( admin_url( 'admin.php?page=media-licence' ) ),
+            'redirect_uri' => rawurlencode( admin_url( 'admin.php?page=vergeml-licence' ) ),
         ),
         vergeml_connect_base() . '/connect'
     );
@@ -141,8 +148,13 @@ function vergeml_connect_start() {
 /** Check the state, redeem the code for the key, store it. */
 function vergeml_connect_finish() {
 
+    // The state was minted in vergeml_connect_start() behind a nonce, is
+    // deleted before it is compared, and the router has already required
+    // manage_options.
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- OAuth-style return from vergelabsmedia.com; authenticated by the single-use per-user state compared with hash_equals below, not a nonce, because the request originates off-site.
     $state  = isset( $_GET['state'] ) ? sanitize_text_field( wp_unslash( $_GET['state'] ) ) : '';
     $code   = isset( $_GET['code'] ) ? sanitize_text_field( wp_unslash( $_GET['code'] ) ) : '';
+    // phpcs:enable
     $expect = get_transient( 'vergeml_connect_state_' . get_current_user_id() );
 
     delete_transient( 'vergeml_connect_state_' . get_current_user_id() );
@@ -205,7 +217,7 @@ function vergeml_connect_finish() {
 
 /** Back to the AI screen, saying what happened. */
 function vergeml_connect_redirect_with( $result ) {
-    wp_safe_redirect( admin_url( 'admin.php?page=media-licence&vergeml_connected=' . rawurlencode( $result ) ) );
+    wp_safe_redirect( admin_url( 'admin.php?page=vergeml-licence&vergeml_connected=' . rawurlencode( $result ) ) );
     exit;
 }
 
@@ -213,7 +225,8 @@ function vergeml_connect_redirect_with( $result ) {
  *  The invitation, and the result.
  *
  *  Printed by the AI screen itself rather than hooked to admin_notices: the
- *  shell clears every notice action on a VergeLabs screen, deliberately, so
+ *  shell clears every notice a plugin hooks on a VergeLabs screen, this one's
+ *  included (WordPress's own stay), so
  *  anything that belongs on one is drawn by it.
  *
  *  A site with no key cannot describe anything, so the button belongs exactly
@@ -225,8 +238,11 @@ function vergeml_connect_banner() {
         return;
     }
 
-    if ( isset( $_GET['vergeml_connected'] ) ) {
-        $result = sanitize_key( wp_unslash( $_GET['vergeml_connected'] ) );
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only: chooses which result notice to print after the redirect from vergeml_connect_redirect_with(); nothing is stored or changed on this request.
+    $result = isset( $_GET['vergeml_connected'] ) ? sanitize_key( wp_unslash( $_GET['vergeml_connected'] ) ) : null;
+    // phpcs:enable
+
+    if ( null !== $result ) {
 
         if ( 'connected' === $result ) {
             printf(
@@ -240,6 +256,14 @@ function vergeml_connect_banner() {
             printf(
                 '<div class="notice notice-error is-dismissible"><p>%s</p></div>',
                 esc_html__( 'This licence is already in use on as many sites as it allows. Disconnect it from another site, or use another licence, to connect this one.', 'vergelabs-media-library' )
+            );
+            return;
+        }
+
+        if ( 'openssl' === $result ) {
+            printf(
+                '<div class="notice notice-error is-dismissible"><p>%s</p></div>',
+                esc_html__( 'This server cannot store a licence key: the PHP OpenSSL extension is missing. Nothing was changed.', 'vergelabs-media-library' )
             );
             return;
         }

@@ -28,17 +28,25 @@ window.vergeml = window.vergeml || { l10n: {} };
             var result = original.Attachment.sync.apply( this, arguments );
 
 
-            if ( 'delete' === method ) {
+            /*
+             *  Core deletes the attachment and answers "1", which wp.media.ajax
+             *  reads as a failure, so this waits for either answer and then
+             *  asks for the counts with an action of the plugin's own.
+             */
+            if ( 'delete' === method && result && result.always ) {
 
-                result.done( function( resp ) {
+                result.always( function() {
 
-                    _.each( resp.tcount, function( count, term_id ) {
+                    wp.ajax.post( 'vergeml-term-counts', { nonce: vergeml.l10n.term_counts_nonce } ).done( function( data ) {
 
-                        var $option = $( '.eml-taxonomy-filters option[value="'+term_id+'"]' ),
-                            text = $option.text();
+                        _.each( data && data.tcount, function( count, term_id ) {
 
-                        text = text.replace( /\(.*?\)/, '('+count+')' );
-                        $option.text( text );
+                            var $option = $( '.eml-taxonomy-filters option[value="'+term_id+'"]' ),
+                                text = $option.text();
+
+                            text = text.replace( /\(.*?\)/, '('+count+')' );
+                            $option.text( text );
+                        });
                     });
                 });
             }
@@ -97,7 +105,7 @@ window.vergeml = window.vergeml || { l10n: {} };
                 return;
             }
 
-            return wp.media.post( 'save-attachment-order', {
+            return wp.media.post( 'vergeml-save-attachment-order', {
                 nonce: nonce,
                 post_id: wp.media.model.settings.post.id,
                 attachments: attachments
@@ -254,9 +262,12 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 
 
-    // many thanks to
-    // https://github.com/litejs/natural-compare-lite
-    // for the natural compare code!
+    /*
+     *  Natural compare from natural-compare-lite,
+     *  https://github.com/litejs/natural-compare-lite
+     *  Copyright (c) 2012-2015 Lauri Rooden <lauri@rooden.ee>. MIT License,
+     *  https://opensource.org/licenses/MIT
+     */
     media.natCompare = function(a, b) {
 
         var i,

@@ -31,7 +31,7 @@ test( 'every link our screens offer leads somewhere that renders', async ( { pag
 			if ( SKIP.test( href ) ) continue;
 			if ( ! href.includes( '/wp-admin/' ) ) continue;
 			// Only pages that are ours or that we send people to.
-			if ( ! /page=(vergelabs-media|media-|mime-types)/.test( href ) && ! /upload\.php/.test( href ) ) continue;
+			if ( ! /page=(vergelabs-media|vergeml-)/.test( href ) && ! /upload\.php/.test( href ) ) continue;
 			if ( seen.has( href ) ) continue;
 			seen.add( href );
 			found.push( href );

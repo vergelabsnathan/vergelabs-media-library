@@ -47,7 +47,7 @@ const clearNotices = () => page.evaluate( () => {
 const call = ( data ) => page.evaluate( ( d ) => window.wp.apiFetch( {
 	path: '/vergeml/v1/folder',
 	method: 'POST',
-	data: Object.assign( { taxonomy: 'media_category' }, d ),
+	data: Object.assign( { taxonomy: 'vergeml_folder' }, d ),
 } ), data );
 
 const stamp = 'zzpost' + Math.floor( Math.random() * 9000 + 1000 );
@@ -100,13 +100,13 @@ const seeded = await page.evaluate( async ( args ) => {
 	await window.wp.apiFetch( {
 		path: '/vergeml/v1/assign',
 		method: 'POST',
-		data: { taxonomy: 'media_category', attachments: ids, add: [ args.folder ], mode: 'add' },
+		data: { taxonomy: 'vergeml_folder', attachments: ids, add: [ args.folder ], mode: 'add' },
 	} );
 
 	await window.wp.apiFetch( {
 		path: '/vergeml/v1/assign',
 		method: 'POST',
-		data: { taxonomy: 'media_category', attachments: media.map( ( m ) => m.id ), add: [ args.folder ], mode: 'add' },
+		data: { taxonomy: 'vergeml_folder', attachments: media.map( ( m ) => m.id ), add: [ args.folder ], mode: 'add' },
 	} );
 
 	return { posts: ids, media: media.map( ( m ) => m.id ) };
@@ -120,8 +120,8 @@ check( 'and one file in the same folder', seeded.media.length === 1, seeded.medi
 console.log( '\nthe count' );
 
 const counts = await page.evaluate( async ( id ) => {
-	const asPosts = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category&post_type=post' } );
-	const asMedia = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } );
+	const asPosts = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder&post_type=post' } );
+	const asMedia = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder' } );
 	const find = ( t ) => ( t.nodes || [] ).find( ( n ) => n.id === id );
 	return { posts: ( find( asPosts ) || {} ).count, media: ( find( asMedia ) || {} ).count };
 }, folder );
@@ -168,12 +168,12 @@ const filtered = await page.evaluate( () => {
 } );
 
 check( 'the list narrows to the folder', filtered.total === 3, `${ total } -> ${ filtered.total }` );
-check( 'and the URL says which folder', /media_category=/.test( filtered.url ), filtered.url );
+check( 'and the URL says which folder', /vergeml_folder=/.test( filtered.url ), filtered.url );
 
 /* --- unfiled -------------------------------------------------------------- */
 
 await page.locator( '.vgml-tree .vgml-row', { hasText: 'Unfiled' } ).first().click();
-await page.waitForFunction( () => /vgml_unfiled/.test( window.location.search ), null, { timeout: 30000 } ).catch( () => {} );
+await page.waitForFunction( () => /vergeml_unfiled/.test( window.location.search ), null, { timeout: 30000 } ).catch( () => {} );
 
 const unfiled = await page.evaluate( () => {
 	const n = document.querySelector( '.tablenav .displaying-num' );
@@ -183,7 +183,7 @@ const unfiled = await page.evaluate( () => {
 	};
 } );
 
-check( 'unfiled asks for it its own way', /vgml_unfiled=1/.test( unfiled.url ), unfiled.url );
+check( 'unfiled asks for it its own way', /vergeml_unfiled=1/.test( unfiled.url ), unfiled.url );
 check( 'and excludes the three that are filed', unfiled.total === total - 3,
 	`${ unfiled.total }, expected ${ total - 3 }` );
 
@@ -239,8 +239,8 @@ if ( rowBox ) {
 	check( 'the count went up on screen', after === before + 1, `${ before } -> ${ after }` );
 
 	const stored = await page.evaluate( async ( args ) => {
-		const p = await window.wp.apiFetch( { path: `/wp/v2/posts/${ args.post }?_fields=media_category` } );
-		return p.media_category || [];
+		const p = await window.wp.apiFetch( { path: `/wp/v2/posts/${ args.post }?_fields=vergeml_folder` } );
+		return p.vergeml_folder || [];
 	}, { post: rowBox.id } );
 
 	check( 'and the post really is in the folder', stored.indexOf( folder ) !== -1, stored.join( ',' ) );

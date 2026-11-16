@@ -17,6 +17,6 @@ $r = vergeml_ai_index_step( 'missing-alt', 6, true );
 printf( "step: described=%d remaining=%d errors=%s\n", count( $r['described'] ), (int) $r['remaining'], wp_json_encode( $r['errors'] ) );
 
 echo "\n== folders now ==\n";
-foreach ( get_terms( array( 'taxonomy' => 'media_category', 'hide_empty' => false ) ) as $term ) {
+foreach ( get_terms( array( 'taxonomy' => 'vergeml_folder', 'hide_empty' => false ) ) as $term ) {
     printf( "%-32s %4d  parent=%d\n", $term->name, $term->count, $term->parent );
 }

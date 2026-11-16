@@ -8,7 +8,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 /*
  *  What deleting the plugin deletes -- and what it deliberately does not.
  *
- *  The folders are media_category terms in WordPress's own tables, and the AI
+ *  The folders are vergeml_folder terms in WordPress's own tables, and the AI
  *  descriptions were paid for in credits. Neither can be rebuilt for free, so
  *  neither goes just because the plugin does: by default, uninstalling removes
  *  only the plugin's housekeeping -- transients and scheduled events -- and
@@ -32,14 +32,17 @@ function vergeml_uninstall_housekeeping() {
 
     // Transients, in both storage shapes -- underscores escaped so the
     // wildcard is the only wildcard.
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
     $wpdb->query(
         "DELETE FROM {$wpdb->options}
          WHERE option_name LIKE '\_transient\_vergeml\_%'
             OR option_name LIKE '\_transient\_timeout\_vergeml\_%'"
     );
 
-    wp_clear_scheduled_hook( 'vergeml_meaning_convert' );
-    wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+    // Every hook the plugin books, whatever arguments an event carries.
+    foreach ( array( 'vergeml_meaning_convert', 'vergeml_ai_run_tick', 'vergeml_talk_refile_event', 'vergeml_guide_fit_event', 'vergeml_plan_inventory_refresh', 'vergeml_plan_event', 'vergeml_provision_site' ) as $vergeml_hook ) {
+        wp_unschedule_hook( $vergeml_hook );
+    }
 }
 
 
@@ -49,9 +52,8 @@ function vergeml_uninstall_wipe_site() {
 
     /*
      *  The taxonomies this plugin managed, read from its own option. Ones it
-     *  created (eml_media) lose their terms outright; shared ones -- a post
-     *  category that was merely assigned to media -- only lose their links to
-     *  attachments, never the terms themselves.
+     *  created (eml_media) lose their terms, except vergeml_folder, the
+     *  folders; taxonomies core or another plugin owns are not touched.
      */
     foreach ( (array) get_option( 'vergeml_taxonomies', array() ) as $taxonomy => $params ) {
 
@@ -59,6 +61,16 @@ function vergeml_uninstall_wipe_site() {
         $own      = ! empty( $params['eml_media'] );
         $taxonomy = (string) $taxonomy;
 
+        // Folders are ordinary terms and outlive the plugin: the vergeml_folder terms and
+        // which files are in them stay in WordPress's own tables -- under media_category too,
+        // on a site whose folders have not moved yet or where Enhanced Media Library still owns them.
+        // A taxonomy another plugin or core owns (a post category assigned to media, Polylang's
+        // languages, another folder plugin's) is left exactly as it is.
+        if ( in_array( $taxonomy, array( 'vergeml_folder', 'media_category' ), true ) || ! $own ) {
+            continue;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall reads the term ids of a taxonomy this plugin registered, to delete them below; it runs once, so there is nothing to cache.
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT term_taxonomy_id, term_id FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s",
             $taxonomy
@@ -70,35 +82,18 @@ function vergeml_uninstall_wipe_site() {
 
         $tt_ids   = array_map( 'absint', wp_list_pluck( $rows, 'term_taxonomy_id' ) );
         $term_ids = array_map( 'absint', wp_list_pluck( $rows, 'term_id' ) );
-        $tt_in    = implode( ',', array_fill( 0, count( $tt_ids ), '%d' ) );
 
         if ( $own ) {
 
-            $term_in = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
-
-            // $tt_in / $term_in are strings of %d placeholders sized to the id
-            // lists, which are absint()ed above; every value is placeheld.
-            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->term_relationships} WHERE term_taxonomy_id IN ($tt_in)", $tt_ids ) );
-            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->termmeta} WHERE term_id IN ($term_in)", $term_ids ) );
+            // The id lists are absint()ed above; one %d per id, every value is placeheld.
+            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
+            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->term_relationships} WHERE term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) . ' )', $tt_ids ) );
+            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->termmeta} WHERE term_id IN ( " . implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) . ' )', $term_ids ) );
             $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s", $taxonomy ) );
-            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->terms} WHERE term_id IN ($term_in)", $term_ids ) );
+            $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->terms} WHERE term_id IN ( " . implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) . ' )', $term_ids ) );
             // phpcs:enable
 
             delete_option( $taxonomy . '_children' );
-        }
-        else {
-
-            // Attachments only; the taxonomy keeps living its own life.
-            // $tt_in is %d placeholders sized to the list; every value is placeheld.
-            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-            $wpdb->query( $wpdb->prepare(
-                "DELETE tr FROM {$wpdb->term_relationships} tr
-                 INNER JOIN {$wpdb->posts} p ON tr.object_id = p.ID
-                 WHERE p.post_type = 'attachment' AND tr.term_taxonomy_id IN ($tt_in)",
-                $tt_ids
-            ) );
-            // phpcs:enable
         }
     }
 
@@ -106,7 +101,8 @@ function vergeml_uninstall_wipe_site() {
     // moves, the organize runs. Descriptions already written into
     // attachments stay there; these are working tables.
     foreach ( array( 'vergeml_ai_index', 'vergeml_librarian_batches', 'vergeml_librarian_moves', 'vergeml_organize_runs' ) as $table ) {
-        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- uninstall drops this plugin's own four tables; $table comes from the literal list above.
+        $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . $table ) );
     }
 
     /*
@@ -115,7 +111,18 @@ function vergeml_uninstall_wipe_site() {
      *  whichever ones were added after it was written. Transients do not
      *  match: their rows start with _transient_, not vergeml_.
      */
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
     $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'vergeml\_%'" );
+
+    /*
+     *  The plugin's own meta on files and folders: what it recorded about a
+     *  picture (_vergeml_*) and about a folder (vergeml_* and _vergeml_*).
+     *  WordPress's own fields -- the alt text and captions it wrote -- stay.
+     */
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the prefix, and nothing is left to cache.
+    $wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key LIKE '\_vergeml\_%'" );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the same, for term meta.
+    $wpdb->query( "DELETE FROM {$wpdb->termmeta} WHERE meta_key LIKE 'vergeml\_%' OR meta_key LIKE '\_vergeml\_%'" );
 }
 
 
@@ -154,6 +161,9 @@ if ( is_multisite() ) {
             delete_site_option( $vergeml_site_option );
         }
         delete_site_transient( 'vergeml_network_overview' );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own network transients directly: no API deletes them by prefix.
+        $wpdb->query( "DELETE FROM {$wpdb->sitemeta} WHERE meta_key LIKE '\_site\_transient\_vergeml\_%' OR meta_key LIKE '\_site\_transient\_timeout\_vergeml\_%'" );
     }
 
     if ( $vergeml_any_wipe ) {
@@ -180,7 +190,12 @@ else {
         delete_site_option( 'vergeml_mimes_backup' );
         delete_site_option( 'vergeml_notices' );
 
+        // On a single site, site transients live in the options table.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own transients directly: no API deletes them by prefix.
+        $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\_site\_transient\_vergeml\_%' OR option_name LIKE '\_site\_transient\_timeout\_vergeml\_%'" );
+
         // Per-user leftovers: dismissed notices, remembered tree state.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall removes this plugin's own rows directly: no API deletes every row with the vergeml_ prefix, and nothing is left to cache.
         $wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE 'vergeml\_%'" );
     }
 }

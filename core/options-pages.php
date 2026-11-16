@@ -18,28 +18,28 @@ function vergeml_register_setting() {
 
     // plugin settings: media library
     register_setting(
-        'media-library', //option_group
+        'vergeml-library', //option_group
         'vergeml_lib_options', //option_name
         'vergeml_lib_options_validate' //sanitize_callback
     );
 
     // plugin settings: taxonomies
     register_setting(
-        'media-taxonomies', //option_group
+        'vergeml-taxonomies', //option_group
         'vergeml_taxonomies', //option_name
         'vergeml_taxonomies_validate' //sanitize_callback
     );
 
     // plugin settings: taxonomies options
     register_setting(
-        'media-taxonomies', //option_group
+        'vergeml-taxonomies', //option_group
         'vergeml_tax_options', //option_name
         'vergeml_tax_options_validate' //sanitize_callback
     );
 
     // plugin settings: mime types
     register_setting(
-        'mime-types', //option_group
+        'vergeml-mime-types', //option_group
         'vergeml_mimes', //option_name
         'vergeml_mimes_validate' //sanitize_callback
     );
@@ -48,7 +48,7 @@ function vergeml_register_setting() {
     // validated explicitly in vergeml_update_network_settings; the callback
     // below is the generic guard for anything arriving via the Settings API
     register_setting(
-        'eml-network-settings', //option_group
+        'vergeml-network-settings', //option_group
         'vergeml_network_options', //option_name
         'vergeml_sanitize_option_array' //sanitize_callback
     );
@@ -57,13 +57,6 @@ function vergeml_register_setting() {
     register_setting(
         'vergeml_backup', //option_group
         'vergeml_backup', //option_name
-        'vergeml_sanitize_option_array' //sanitize_callback
-    );
-
-    // plugin settings: remote admin notices
-    register_setting(
-        'vergeml_notices', //option_group
-        'vergeml_notices', //option_name
         'vergeml_sanitize_option_array' //sanitize_callback
     );
 }
@@ -121,21 +114,12 @@ function vergeml_admin_media_menu() {
     }
 
 
-    $eml_media_options_page = add_submenu_page(
-        '',
-        __('Media Settings','vergelabs-media-library'), //page_title
-        '',                                //menu_title
-        'manage_options',                  //capability
-        'media',                           //menu_slug
-        'vergeml_print_media_settings'  //callback
-    );
-
     $eml_medialibrary_options_page = add_submenu_page(
         VERGEML_MENU,
         __('Media Library','vergelabs-media-library') . ' &lsaquo; ' . __('Media Settings','vergelabs-media-library'),
         __('Media Library','vergelabs-media-library'),
         'manage_options',
-        'media-library',
+        'vergeml-library',
         'vergeml_print_media_library_options'
     );
 
@@ -144,7 +128,7 @@ function vergeml_admin_media_menu() {
         __('Media Taxonomies','vergelabs-media-library') . ' &lsaquo; ' . __('Media Settings','vergelabs-media-library'),
         __('Media Taxonomies','vergelabs-media-library'),
         'manage_options',
-        'media-taxonomies',
+        'vergeml-taxonomies',
         'vergeml_print_taxonomies_options'
     );
 
@@ -153,13 +137,10 @@ function vergeml_admin_media_menu() {
         __('MIME Types','vergelabs-media-library') . ' &lsaquo; ' . __('Media Settings','vergelabs-media-library'),
         __('MIME Types','vergelabs-media-library'),
         'manage_options',
-        'mime-types',
+        'vergeml-mime-types',
         'vergeml_print_mimetypes_options'
     );
 
-
-    add_action( 'load-' . $eml_media_options_page, 'vergeml_load_media_options_page' );
-    add_action( $eml_media_options_page, 'vergeml_media_options_page' );
 
     add_action('admin_print_scripts-' . $eml_medialibrary_options_page, 'vergeml_medialibrary_options_page_scripts');
     add_action('admin_print_scripts-' . $eml_taxonomies_options_page, 'vergeml_taxonomies_options_page_scripts');
@@ -192,7 +173,7 @@ function vergeml_admin_utility_menu() {
        __('VergeLabs Media Library Utilities','vergelabs-media-library'),
        __('Media Utilities','vergelabs-media-library'),
        'manage_options',
-       'eml-settings',
+       'vergeml-utilities',
        'vergeml_print_settings'
     );
 
@@ -217,336 +198,11 @@ function vergeml_network_admin_menu() {
         __('VergeLabs Media Library Utilities','vergelabs-media-library'),
         __('Media Utilities','vergelabs-media-library'),
         'manage_network_options',
-        'eml-settings',
+        'vergeml-utilities',
         'vergeml_print_network_settings'
     );
 
     add_action('admin_print_scripts-' . $eml_network_options_page, 'vergeml_options_page_scripts');
-}
-
-
-
-/**
- *  vergeml_submenu_order
- *
- *  Custom admin media menu.
- *
- *  @since    2.6
- *  @created  04/03/18
- */
-
-add_action( 'admin_menu', 'vergeml_submenu_order', 1001 );
-
-function vergeml_submenu_order() {
-
-    global $submenu;
-
-
-    if ( ! isset( $submenu['options-general.php'] ) ) {
-        return;
-    }
-
-    $media_key = 0;
-    $media_items = array();
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading which settings tab to mark active, no state is changed.
-    $requested_page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-    $page = in_array( $requested_page, array( 'media', 'media-library', 'media-taxonomies', 'mime-types' ), true ) ? $requested_page : '';
-    $settings_menu = array_values( $submenu['options-general.php'] );
-
-    foreach( $settings_menu as $key => $item ) {
-
-        if ( 'options-media.php' === $item[2] ) {
-
-            $media_key = $key;
-            $settings_menu[$key][2] = 'options-general.php?page=media';
-            $settings_menu[$key][4] = ( 'media' === $page ) ? 'eml-menu-media current' : 'eml-menu-media';
-        }
-
-        if ( in_array( $item[2], array('media-library','media-taxonomies','mime-types') ) ) {
-
-            $item[4] = 'eml-media-submenu';
-            $media_items[] = $item;
-
-            unset( $settings_menu[$key] );
-        }
-    }
-
-    array_splice( $settings_menu, $media_key+1, 0, $media_items );
-    $submenu['options-general.php'] = $settings_menu;
-}
-
-
-
-/**
- *  vergeml_load_media_options_page
- *
- *  Ensure compatibility with default options-media.php for third-parties
- *
- *  @since    2.3
- *  @created  14/06/16
- */
-
-function vergeml_load_media_options_page() {
-
-    global $pagenow, $title;
-
-    // to avoid the unknown global value (php 8)
-    // @todo: look deeper
-    $title = '';
-
-    $hook_suffix = $pagenow = 'options-media.php';
-
-    /*
-     *  These are WordPress's own admin page lifecycle hooks, not ours. This
-     *  screen replaces options-media.php, so it has to fire them or every other
-     *  plugin that enqueues assets or prints markup for that screen is silently
-     *  skipped. Prefixing them would not namespace anything, it would stop them
-     *  reaching the callbacks they exist for.
-     */
-
-    // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hooks, deliberately fired.
-    do_action( "load-{$hook_suffix}" );
-    do_action( 'admin_enqueue_scripts', $hook_suffix );
-    do_action( "admin_print_styles-{$hook_suffix}" );
-    do_action( "admin_print_scripts-{$hook_suffix}" );
-    do_action( "admin_head-{$hook_suffix}" );
-    // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-
-    add_filter( 'admin_body_class', 'vergeml_admin_body_class_for_media_options_page' );
-    add_filter( 'admin_title', 'vergeml_admin_title_for_media_options_page', 10, 2 );
-}
-
-
-
-/**
- *  vergeml_admin_body_class_for_media_options_page
- *
- *  Ensure compatibility with default options-media.php for third-parties
- *
- *  @since    2.3.6
- *  @created  16/12/16
- */
-
-function vergeml_admin_body_class_for_media_options_page( $admin_body_class ) {
-
-    $hook_suffix = 'options-media.php';
-
-    $admin_body_class .= preg_replace('/[^a-z0-9_\-]+/i', '-', $hook_suffix);
-
-    return $admin_body_class;
-}
-
-
-
-/**
- *  vergeml_admin_title_for_media_options_page
- *
- *  @since    2.3.6
- *  @created  16/12/16
- */
-
-function vergeml_admin_title_for_media_options_page( $admin_title, $title ) {
-
-    $admin_title = __('Media Settings','vergelabs-media-library') . $admin_title;
-
-    return $admin_title;
-}
-
-
-
-/**
- *  vergeml_media_options_page
- *
- *  Ensure compatibility with default options-media.php for third-parties
- *
- *  @since    2.3.6
- *  @created  16/12/16
- */
-
-function vergeml_media_options_page() {
-
-    $hook_suffix = 'options-media.php';
-
-    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- fires core's own options-media.php screen hook.
-    do_action( $hook_suffix );
-}
-
-
-
-/**
- *  vergeml_print_media_settings
- *
- *  Based on wp-admin/options-media.php
- *
- *  @since    2.2.1
- *  @created  11/04/16
- */
-
-function vergeml_print_media_settings() {
-
-    if ( ! current_user_can( 'manage_options' ) )
-        wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
-
-    if ( is_multisite() ) {
-
-        $vergeml_network_options = get_site_option( 'vergeml_network_options', array() );
-
-        if ( ! current_user_can( 'manage_network_options' ) && ! vergeml_network_flag( 'media_settings' ) )
-            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
-    }
-
-    settings_errors();
-
-
-    $title = __( 'Media Settings', 'vergelabs-media-library' );
-    ?>
-
-    <div class="wrap">
-    <h1><?php echo esc_html( $title ); ?></h1>
-
-    <?php
-    /*
-     *  The tab strip is gone from the plugin's own screens -- they sit in a menu
-     *  of their own now, and a page carrying navigation that repeats the sidebar
-     *  beside it is asking to be read twice. This screen is not in that menu, so
-     *  it keeps a way back to it.
-     */
-    printf(
-        '<p><a href="%1$s">&larr; %2$s</a></p>',
-        esc_url( admin_url( 'admin.php?page=' . VERGEML_MENU ) ),
-        esc_html__( 'Media Library settings', 'vergelabs-media-library' )
-    );
-    ?>
-
-    <form action="options.php" method="post">
-    <?php settings_fields( 'media' ); ?>
-
-    <h2 class="title"><?php esc_html_e( 'Image sizes', 'vergelabs-media-library' ); ?></h2>
-    <p><?php esc_html_e( 'The sizes listed below determine the maximum dimensions in pixels to use when adding an image to the Media Library.', 'vergelabs-media-library' ); ?></p>
-
-    <table class="form-table" role="presentation">
-    <tr>
-    <th scope="row"><?php esc_html_e( 'Thumbnail size', 'vergelabs-media-library' ); ?></th>
-    <td><fieldset><legend class="screen-reader-text"><span>
-        <?php
-        /* translators: Hidden accessibility text. */
-        esc_html_e( 'Thumbnail size', 'vergelabs-media-library' );
-        ?>
-    </span></legend>
-    <label for="thumbnail_size_w"><?php esc_html_e( 'Width', 'vergelabs-media-library' ); ?></label>
-    <input name="thumbnail_size_w" type="number" step="1" min="0" id="thumbnail_size_w" value="<?php form_option( 'thumbnail_size_w' ); ?>" class="small-text" />
-    <br />
-    <label for="thumbnail_size_h"><?php esc_html_e( 'Height', 'vergelabs-media-library' ); ?></label>
-    <input name="thumbnail_size_h" type="number" step="1" min="0" id="thumbnail_size_h" value="<?php form_option( 'thumbnail_size_h' ); ?>" class="small-text" />
-    </fieldset>
-    <input name="thumbnail_crop" type="checkbox" id="thumbnail_crop" value="1" <?php checked( '1', get_option( 'thumbnail_crop' ) ); ?>/>
-    <label for="thumbnail_crop"><?php esc_html_e( 'Crop thumbnail to exact dimensions (normally thumbnails are proportional)', 'vergelabs-media-library' ); ?></label>
-    </td>
-    </tr>
-
-    <tr>
-    <th scope="row"><?php esc_html_e( 'Medium size', 'vergelabs-media-library' ); ?></th>
-    <td><fieldset><legend class="screen-reader-text"><span>
-        <?php
-        /* translators: Hidden accessibility text. */
-        esc_html_e( 'Medium size', 'vergelabs-media-library' );
-        ?>
-    </span></legend>
-    <label for="medium_size_w"><?php esc_html_e( 'Max Width', 'vergelabs-media-library' ); ?></label>
-    <input name="medium_size_w" type="number" step="1" min="0" id="medium_size_w" value="<?php form_option( 'medium_size_w' ); ?>" class="small-text" />
-    <br />
-    <label for="medium_size_h"><?php esc_html_e( 'Max Height', 'vergelabs-media-library' ); ?></label>
-    <input name="medium_size_h" type="number" step="1" min="0" id="medium_size_h" value="<?php form_option( 'medium_size_h' ); ?>" class="small-text" />
-    </fieldset></td>
-    </tr>
-
-    <tr>
-    <th scope="row"><?php esc_html_e( 'Large size', 'vergelabs-media-library' ); ?></th>
-    <td><fieldset><legend class="screen-reader-text"><span>
-        <?php
-        /* translators: Hidden accessibility text. */
-        esc_html_e( 'Large size', 'vergelabs-media-library' );
-        ?>
-    </span></legend>
-    <label for="large_size_w"><?php esc_html_e( 'Max Width', 'vergelabs-media-library' ); ?></label>
-    <input name="large_size_w" type="number" step="1" min="0" id="large_size_w" value="<?php form_option( 'large_size_w' ); ?>" class="small-text" />
-    <br />
-    <label for="large_size_h"><?php esc_html_e( 'Max Height', 'vergelabs-media-library' ); ?></label>
-    <input name="large_size_h" type="number" step="1" min="0" id="large_size_h" value="<?php form_option( 'large_size_h' ); ?>" class="small-text" />
-    </fieldset></td>
-    </tr>
-
-    <?php do_settings_fields( 'media', 'default' ); ?>
-    </table>
-
-    <?php
-    /**
-     * @global array $wp_settings
-     */
-    if ( isset( $GLOBALS['wp_settings']['media']['embeds'] ) ) :
-        ?>
-    <h2 class="title"><?php esc_html_e( 'Embeds', 'vergelabs-media-library' ); ?></h2>
-    <table class="form-table" role="presentation">
-        <?php do_settings_fields( 'media', 'embeds' ); ?>
-    </table>
-    <?php endif; ?>
-
-    <?php if ( ! is_multisite() ) : ?>
-    <h2 class="title"><?php esc_html_e( 'Uploading Files', 'vergelabs-media-library' ); ?></h2>
-    <table class="form-table" role="presentation">
-        <?php
-        /*
-         * If upload_url_path is not the default (empty),
-         * or upload_path is not the default ('wp-content/uploads' or empty),
-         * they can be edited, otherwise they're locked.
-         */
-        if ( get_option( 'upload_url_path' )
-            || get_option( 'upload_path' ) && 'wp-content/uploads' !== get_option( 'upload_path' ) ) :
-            ?>
-    <tr>
-    <th scope="row"><label for="upload_path"><?php esc_html_e( 'Store uploads in this folder', 'vergelabs-media-library' ); ?></label></th>
-    <td><input name="upload_path" type="text" id="upload_path" value="<?php echo esc_attr( get_option( 'upload_path' ) ); ?>" class="regular-text code" />
-    <p class="description">
-            <?php
-            /* translators: %s: wp-content/uploads */
-            printf( esc_html__( 'Default is %s', 'vergelabs-media-library' ), '<code>wp-content/uploads</code>' );
-            ?>
-    </p>
-    </td>
-    </tr>
-
-    <tr>
-    <th scope="row"><label for="upload_url_path"><?php esc_html_e( 'Full URL path to files', 'vergelabs-media-library' ); ?></label></th>
-    <td><input name="upload_url_path" type="text" id="upload_url_path" value="<?php echo esc_attr( get_option( 'upload_url_path' ) ); ?>" class="regular-text code" />
-    <p class="description"><?php esc_html_e( 'Configuring this is optional. By default, it should be blank.', 'vergelabs-media-library' ); ?></p>
-    </td>
-    </tr>
-    <tr>
-    <td colspan="2" class="td-full">
-    <?php else : ?>
-    <tr>
-    <td class="td-full">
-    <?php endif; ?>
-    <label for="uploads_use_yearmonth_folders">
-    <input name="uploads_use_yearmonth_folders" type="checkbox" id="uploads_use_yearmonth_folders" value="1"<?php checked( '1', get_option( 'uploads_use_yearmonth_folders' ) ); ?> />
-        <?php esc_html_e( 'Organize my uploads into month- and year-based folders', 'vergelabs-media-library' ); ?>
-    </label>
-    </td>
-    </tr>
-
-        <?php do_settings_fields( 'media', 'uploads' ); ?>
-    </table>
-    <?php endif; ?>
-
-    <?php do_settings_sections( 'media' ); ?>
-
-    <?php submit_button(); ?>
-
-    </form>
-
-    </div>
-
-    <?php
 }
 
 
@@ -630,9 +286,9 @@ function vergeml_taxonomies_options_page_scripts() {
         'tax_new' => __( 'New Taxonomy', 'vergelabs-media-library' ),
 
         'tax_deletion_confirm_title' => __( 'Remove Taxonomy', 'vergelabs-media-library' ),
-        'tax_deletion_confirm_text_p1' => '<p>' . __( 'The taxonomy is removed. Its files are not.', 'vergelabs-media-library' ) . '</p>',
-        'tax_deletion_confirm_text_p2' => '<p>' . __( 'The terms stay in the database. A taxonomy made with the same name later gets them back.', 'vergelabs-media-library' ) . '</p>',
-        'tax_deletion_confirm_text_p3' => '<p>' . __( 'Media items will remain intact.', 'vergelabs-media-library' ) . '</p>',
+        'tax_deletion_confirm_text_p1' => '<p>' . esc_html__( 'The taxonomy is removed. Its files are not.', 'vergelabs-media-library' ) . '</p>',
+        'tax_deletion_confirm_text_p2' => '<p>' . esc_html__( 'The terms stay in the database. A taxonomy made with the same name later gets them back.', 'vergelabs-media-library' ) . '</p>',
+        'tax_deletion_confirm_text_p3' => '<p>' . esc_html__( 'Media items will remain intact.', 'vergelabs-media-library' ) . '</p>',
         // The button "Yes, remove taxonomy" is the confirmation; asking again
         // under three lines that already said it is a question nobody asked.
         'tax_deletion_confirm_text_p4' => '',
@@ -656,13 +312,7 @@ function vergeml_taxonomies_options_page_scripts() {
         'okay' => __( 'Ok', 'vergelabs-media-library' ),
         'cancel' => __( 'Cancel', 'vergelabs-media-library' ),
 
-        'sync_warning_title' => __( 'Synchronize Now', 'vergelabs-media-library' ),
-        'sync_warning_text' => __( 'This cannot be undone.', 'vergelabs-media-library' ),
-        'sync_warning_yes' => __( 'Synchronize', 'vergelabs-media-library' ),
-        'sync_warning_no' => __( 'Cancel', 'vergelabs-media-library' ),
-        'in_progress_sync_text' => __( 'Synchronizing...', 'vergelabs-media-library' ),
-
-        'bulk_edit_nonce' => wp_create_nonce( 'eml-bulk-edit-nonce' )
+        'bulk_edit_nonce' => wp_create_nonce( 'vergeml-bulk-edit-nonce' )
     );
 
     wp_localize_script(
@@ -703,10 +353,6 @@ function vergeml_mimetype_options_page_scripts() {
 
         'okay' => __( 'Ok', 'vergelabs-media-library' ),
         'cancel' => __( 'Cancel', 'vergelabs-media-library' ),
-
-        'mime_error_cannot_save_title' => __( 'MIME Types cannot be saved', 'vergelabs-media-library' ),
-        'mime_error_empty_fields' => __( 'Every column needs a value.', 'vergelabs-media-library' ),
-        'mime_error_duplicate' => __( 'That extension or MIME type is already listed.', 'vergelabs-media-library' )
     );
 
     wp_localize_script(
@@ -740,13 +386,13 @@ function vergeml_options_page_scripts() {
 
     $l10n_data = array(
         'cleanup_warning_title' => __( 'Complete Cleanup', 'vergelabs-media-library' ),
-        'cleanup_warning_text_p1' => '<p>' . __( 'You are about to <strong style="text-transform:uppercase">delete all plugin data</strong> from the database including backups.', 'vergelabs-media-library' ) . '</p>',
-        'cleanup_warning_text_p2' => '<p>' . __( 'This cannot be undone.', 'vergelabs-media-library') . '</p>',
+        'cleanup_warning_text_p1' => '<p>' . wp_kses_post( __( 'You are about to <strong style="text-transform:uppercase">delete all plugin data</strong> from the database including backups.', 'vergelabs-media-library' ) ) . '</p>',
+        'cleanup_warning_text_p2' => '<p>' . esc_html__( 'Your folders are kept. This cannot be undone.', 'vergelabs-media-library') . '</p>',
         'cleanup_warning_yes' => __( 'Yes, delete all data', 'vergelabs-media-library' ),
         'in_progress_cleanup_text' => __( 'Cleaning...', 'vergelabs-media-library' ),
         'cancel' => __( 'Cancel', 'vergelabs-media-library' ),
 
-        'apply_to_network_nonce' => wp_create_nonce( 'eml-apply-to-network-nonce' ),
+        'apply_to_network_nonce' => wp_create_nonce( 'vergeml-apply-to-network-nonce' ),
         'applying_settings_title' => __( 'Unify Media Settings over Network', 'vergelabs-media-library' ),
         'applying_media_library_settings_text' => sprintf(
             /* translators: %s: the emphasised phrase "will be overwritten" */
@@ -826,7 +472,7 @@ function vergeml_print_settings() {
 
                             <form method="post">
                                 <input type='hidden' name='eml-settings-export' />
-                                <?php wp_nonce_field( 'eml_settings_export_nonce', 'eml-settings-export-nonce' ); ?>
+                                <?php wp_nonce_field( 'vergeml_settings_export_nonce', 'vergeml-settings-export-nonce' ); ?>
                                 <?php submit_button( __( 'Export Plugin Settings', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-export', true ); ?>
                             </form>
 
@@ -854,7 +500,7 @@ function vergeml_print_settings() {
                             <form method="post" enctype="multipart/form-data">
                                 <p><input type="file" name="import_file"/></p>
                                 <input type='hidden' name='eml-settings-import' />
-                                <?php wp_nonce_field( 'eml_settings_import_nonce', 'eml-settings-import-nonce' ); ?>
+                                <?php wp_nonce_field( 'vergeml_settings_import_nonce', 'vergeml-settings-import-nonce' ); ?>
                                 <?php submit_button(  __( 'Import Plugin Settings', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-import' ); ?>
                             </form>
 
@@ -890,7 +536,7 @@ function vergeml_print_settings() {
 
                                 <form method="post">
                                     <input type='hidden' name='eml-settings-restore' />
-                                    <?php wp_nonce_field( 'eml_settings_restore_nonce', 'eml-settings-restore-nonce' ); ?>
+                                    <?php wp_nonce_field( 'vergeml_settings_restore_nonce', 'vergeml-settings-restore-nonce' ); ?>
                                     <?php submit_button( __( 'Restore Settings from the Backup', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-restore', true, array( 'id' => 'eml-submit-settings-restore' ) ); ?>
                                 </form>
 
@@ -915,7 +561,7 @@ function vergeml_print_settings() {
 
                                 <ul>
                                     <li><strong><?php esc_html_e( 'What will be deleted:', 'vergelabs-media-library' ); ?></strong></li>
-                                    <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : ?>
+                                    <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : if ( 'vergeml_folder' === $taxonomy ) { continue; } ?>
                                         <li><?php esc_html_e( 'All', 'vergelabs-media-library' );
                                         echo ' ' . esc_html( $params['labels']['name'] ); ?></li>
                                     <?php endforeach; ?>
@@ -926,6 +572,7 @@ function vergeml_print_settings() {
                                 <ul>
                                     <li><strong><?php esc_html_e( 'What will remain intact:', 'vergelabs-media-library' ); ?></strong></li>
                                     <li><?php esc_html_e( 'All media items', 'vergelabs-media-library' ); ?></li>
+                                    <li><?php esc_html_e( 'Your folders, and which files are in them', 'vergelabs-media-library' ); ?></li>
                                     <li><?php esc_html_e( 'All taxonomies not listed above', 'vergelabs-media-library' ); ?></li>
                                 </ul>
 
@@ -935,8 +582,8 @@ function vergeml_print_settings() {
 
                                 <form id="eml-form-cleanup" method="post">
                                     <input type='hidden' name='eml-settings-cleanup' />
-                                    <?php wp_nonce_field( 'eml_settings_cleanup_nonce', 'eml-settings-cleanup-nonce' ); ?>
-                                    <?php submit_button( __( 'Delete All Data & Deactivate', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-cleanup', true ); ?>
+                                    <?php wp_nonce_field( 'vergeml_settings_cleanup_nonce', 'vergeml-settings-cleanup-nonce' ); ?>
+                                    <?php submit_button( __( 'Delete All Data', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-cleanup', true ); ?>
                                 </form>
 
                                 <hr />
@@ -949,7 +596,7 @@ function vergeml_print_settings() {
                                     <p>
                                         <label>
                                             <input type="checkbox" name="vergeml_uninstall_wipe" value="1" <?php checked( (bool) get_option( 'vergeml_uninstall_wipe' ) ); ?> />
-                                            <?php esc_html_e( 'Also remove all folders, settings and the AI index when the plugin is deleted', 'vergelabs-media-library' ); ?>
+                                            <?php esc_html_e( 'Also remove the settings, tables and AI index of this plugin when it is deleted (your folders stay)', 'vergelabs-media-library' ); ?>
                                         </label>
                                     </p>
                                     <?php wp_nonce_field( 'vergeml_uninstall_wipe_nonce', 'vergeml-uninstall-wipe-nonce' ); ?>
@@ -1028,7 +675,7 @@ function vergeml_print_network_settings() {
 
                                 <form method="post">
 
-                                    <?php settings_fields( 'eml-network-settings' ); ?>
+                                    <?php settings_fields( 'vergeml-network-settings' ); ?>
 
                                     <table class="form-table">
 
@@ -1057,7 +704,7 @@ function vergeml_print_network_settings() {
                                             <td>
                                                 <fieldset>
                                                     <legend class="screen-reader-text"><span><?php esc_html_e('Remove all data on uninstall','vergelabs-media-library'); ?></span></legend>
-                                                    <label><input name="vergeml_network_options[uninstall_wipe]" type="hidden" value="0" /><input name="vergeml_network_options[uninstall_wipe]" type="checkbox" value="1" <?php checked( true, (bool) get_site_option( 'vergeml_uninstall_wipe_network' ), true ); ?> /> <?php esc_html_e('Remove every site\'s folders, settings and AI index when the plugin is deleted from the network. Off, deleting the plugin keeps them all — a reinstall picks them up.','vergelabs-media-library'); ?></label>
+                                                    <label><input name="vergeml_network_options[uninstall_wipe]" type="hidden" value="0" /><input name="vergeml_network_options[uninstall_wipe]" type="checkbox" value="1" <?php checked( true, (bool) get_site_option( 'vergeml_uninstall_wipe_network' ), true ); ?> /> <?php esc_html_e('Remove the settings, tables and AI index of every site when the plugin is deleted from the network; the folders stay. Off, deleting the plugin keeps everything, and a reinstall picks it up.','vergelabs-media-library'); ?></label>
 </fieldset>
                                             </td>
                                         </tr>
@@ -1098,11 +745,11 @@ function vergeml_print_network_settings() {
                                             <td>
                                                 <fieldset>
                                                     <legend class="screen-reader-text"><span><?php esc_html_e('Media Library Settings','vergelabs-media-library'); ?></span></legend>
-                                                    <a class="add-new-h2 vergeml-apply-settings-to-network" data-settings="media-library" href="javascript:;"><?php esc_html_e( 'Apply to ALL Network websites', 'vergelabs-media-library' ); ?></a>
+                                                    <a class="add-new-h2 vergeml-apply-settings-to-network" data-settings="vergeml-library" href="javascript:;"><?php esc_html_e( 'Apply to ALL Network websites', 'vergelabs-media-library' ); ?></a>
                                                     <p class="description"><?php printf(
                                                         /* translators: %s: link to the Media Library settings page */
                                                         esc_html__( 'Main website %s settings will be applied to all websites on the Network.', 'vergelabs-media-library' ),
-                                                        '<a href="' . esc_url( admin_url( 'options-general.php?page=media-library' ) ) . '" target="_blank">' . esc_html__( 'Media Library', 'vergelabs-media-library' ) . '</a>'
+                                                        '<a href="' . esc_url( admin_url( 'admin.php?page=vergeml-library' ) ) . '" target="_blank">' . esc_html__( 'Media Library', 'vergelabs-media-library' ) . '</a>'
                                                     ); ?></p>
                                                 </fieldset>
                                             </td>
@@ -1113,11 +760,11 @@ function vergeml_print_network_settings() {
                                             <td>
                                                 <fieldset>
                                                     <legend class="screen-reader-text"><span><?php esc_html_e('Media Taxonomies Settings','vergelabs-media-library'); ?></span></legend>
-                                                    <a class="add-new-h2 vergeml-apply-settings-to-network" data-settings="media-taxonomies" href="javascript:;"><?php esc_html_e( 'Apply to ALL Network websites', 'vergelabs-media-library' ); ?></a>
+                                                    <a class="add-new-h2 vergeml-apply-settings-to-network" data-settings="vergeml-taxonomies" href="javascript:;"><?php esc_html_e( 'Apply to ALL Network websites', 'vergelabs-media-library' ); ?></a>
                                                     <p class="description"><?php printf(
                                                         /* translators: %s: link to the Media Taxonomies settings page */
                                                         esc_html__( 'Main website %s settings will be applied to all websites on the Network.', 'vergelabs-media-library' ),
-                                                        '<a href="' . esc_url( admin_url( 'options-general.php?page=media-taxonomies' ) ) . '" target="_blank">' . esc_html__( 'Media Taxonomies', 'vergelabs-media-library' ) . '</a>'
+                                                        '<a href="' . esc_url( admin_url( 'admin.php?page=vergeml-taxonomies' ) ) . '" target="_blank">' . esc_html__( 'Media Taxonomies', 'vergelabs-media-library' ) . '</a>'
                                                     ); ?></p>
                                                 </fieldset>
                                             </td>
@@ -1128,11 +775,11 @@ function vergeml_print_network_settings() {
                                             <td>
                                                 <fieldset>
                                                     <legend class="screen-reader-text"><span><?php esc_html_e('MIME Types Settings','vergelabs-media-library'); ?></span></legend>
-                                                    <a class="add-new-h2 vergeml-apply-settings-to-network" data-settings="mime-types" href="javascript:;"><?php esc_html_e( 'Apply to ALL Network websites', 'vergelabs-media-library' ); ?></a>
+                                                    <a class="add-new-h2 vergeml-apply-settings-to-network" data-settings="vergeml-mime-types" href="javascript:;"><?php esc_html_e( 'Apply to ALL Network websites', 'vergelabs-media-library' ); ?></a>
                                                     <p class="description"><?php printf(
                                                         /* translators: %s: link to the MIME Types settings page */
                                                         esc_html__( 'Main website %s settings will be applied to all websites on the Network.', 'vergelabs-media-library' ),
-                                                        '<a href="' . esc_url( admin_url( 'options-general.php?page=mime-types' ) ) . '" target="_blank">' . esc_html__( 'MIME Types', 'vergelabs-media-library' ) . '</a>'
+                                                        '<a href="' . esc_url( admin_url( 'admin.php?page=vergeml-mime-types' ) ) . '" target="_blank">' . esc_html__( 'MIME Types', 'vergelabs-media-library' ) . '</a>'
                                                     ); ?></p>
                                                 </fieldset>
                                             </td>
@@ -1168,7 +815,7 @@ function vergeml_print_network_settings() {
 
                             <ul>
                                 <li><strong><?php esc_html_e( 'What will be deleted:', 'vergelabs-media-library' ); ?></strong></li>
-                                <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : ?>
+                                <?php foreach( (array) $vergeml_taxonomies as $taxonomy => $params ) : if ( 'vergeml_folder' === $taxonomy ) { continue; } ?>
                                     <li><?php esc_html_e( 'All', 'vergelabs-media-library' );
                                     echo ' ' . esc_html( $params['labels']['name'] ); ?></li>
                                 <?php endforeach; ?>
@@ -1180,6 +827,7 @@ function vergeml_print_network_settings() {
                             <ul>
                                 <li><strong><?php esc_html_e( 'What will remain intact:', 'vergelabs-media-library' ); ?></strong></li>
                                 <li><?php esc_html_e( 'All media items', 'vergelabs-media-library' ); ?></li>
+                                    <li><?php esc_html_e( 'Your folders, and which files are in them', 'vergelabs-media-library' ); ?></li>
                                 <li><?php esc_html_e( 'All taxonomies not listed above', 'vergelabs-media-library' ); ?></li>
                             </ul>
 
@@ -1189,8 +837,8 @@ function vergeml_print_network_settings() {
 
                             <form id="eml-form-cleanup" method="post">
                                 <input type='hidden' name='eml-settings-cleanup' />
-                                <?php wp_nonce_field( 'eml_settings_cleanup_nonce', 'eml-settings-cleanup-nonce' ); ?>
-                                <?php submit_button( __( 'Delete All Data & Network Deactivate', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-cleanup', true ); ?>
+                                <?php wp_nonce_field( 'vergeml_settings_cleanup_nonce', 'vergeml-settings-cleanup-nonce' ); ?>
+                                <?php submit_button( __( 'Delete All Data', 'vergelabs-media-library' ), 'primary', 'eml-submit-settings-cleanup', true ); ?>
                             </form>
 
                         </div>
@@ -1229,10 +877,13 @@ add_action( 'wp_ajax_vergeml-apply-settings-to-network', 'vergeml_apply_settings
 
 function vergeml_apply_settings_to_network() {
 
-    if ( ! isset( $_REQUEST['settings'] ) )
+    check_ajax_referer( 'vergeml-apply-to-network-nonce', 'nonce' );
+
+    // Network settings only exist on a network.
+    if ( ! is_multisite() || ! current_user_can( 'manage_network_options' ) || ! isset( $_POST['settings'] ) )
         wp_send_json_error();
 
-    check_ajax_referer( 'eml-apply-to-network-nonce', 'nonce' );
+    $which = sanitize_key( wp_unslash( $_POST['settings'] ) );
 
     /*
      *  This writes options into every site on the network, so it needs the
@@ -1240,13 +891,7 @@ function vergeml_apply_settings_to_network() {
      *  Upstream relied on the nonce alone, which only held because the nonce
      *  is printed on a super-admin screen.
      *
-     *  Gated on is_multisite() because a single site grants nobody
-     *  manage_network_options, not even an administrator. Checking it
-     *  unconditionally would reject the very users allowed to be here.
      */
-
-    if ( is_multisite() && ! current_user_can( 'manage_network_options' ) )
-        wp_send_json_error();
 
 
     $plugins = get_site_option( 'active_sitewide_plugins');
@@ -1265,23 +910,25 @@ function vergeml_apply_settings_to_network() {
 
             switch_to_blog( $site_id );
 
-            switch ( $_REQUEST['settings'] ) {
-                case 'media-library':
+            switch ( $which ) {
+                case 'vergeml-library':
                     update_option( 'vergeml_lib_options', $vergeml_lib_options );
                     break;
 
-                case 'media-taxonomies':
+                case 'vergeml-taxonomies':
                     update_option( 'vergeml_taxonomies', $vergeml_taxonomies );
                     update_option( 'vergeml_tax_options', $vergeml_tax_options );
                     break;
 
-                case 'mime-types':
+                case 'vergeml-mime-types':
                     update_option( 'vergeml_mimes', $vergeml_mimes );
                     break;
             }
 
             restore_current_blog();
         }
+
+        restore_current_blog();
     }
 
     wp_send_json_success();
@@ -1399,7 +1046,7 @@ function vergeml_update_network_licence() {
 
     update_site_option( 'vergeml_ai_network', $network );
 
-    add_settings_error( 'eml-network-settings', 'vergeml_network_licence_saved', __( 'Network licence saved.', 'vergelabs-media-library' ), 'updated' );
+    add_settings_error( 'vergeml-network-settings', 'vergeml_network_licence_saved', __( 'Network licence saved.', 'vergelabs-media-library' ), 'updated' );
 }
 
 
@@ -1435,7 +1082,6 @@ function vergeml_print_network_overview() {
             $credits  = function_exists( 'vergeml_ai_refresh_credits' )
                 ? array( 'remaining' => vergeml_ai_refresh_credits() )
                 : get_option( 'vergeml_ai_credits', array() );
-            $watchdog = get_option( 'vergeml_watchdog', array() );
             $network  = get_site_option( 'vergeml_ai_network', array() );
 
             $own_key = is_array( $ai ) && ! empty( $ai['license_key'] );
@@ -1446,8 +1092,8 @@ function vergeml_print_network_overview() {
                 'name'    => get_option( 'blogname' ),
                 'url'     => get_admin_url( (int) $site_id, 'admin.php?page=vergelabs-media' ),
                 'version' => (string) get_option( 'vergeml_version', '' ),
-                'tables'  => (bool) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'vergeml_ai_index' ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                'safe'    => is_array( $watchdog ) && ! empty( $watchdog['safe'] ),
+                'tables'  => (bool) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . 'vergeml_ai_index' ) ) ), // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                'safe'    => vergeml_safe_mode(),
                 'key'     => $own_key && ! ( $net_key && ! empty( $network['lock'] ) ) ? 'own' : ( $net_key ? 'network' : 'none' ),
                 'credits' => is_array( $credits ) && isset( $credits['remaining'] ) ? (int) $credits['remaining'] : null,
             );
@@ -1513,7 +1159,7 @@ function vergeml_update_network_settings() {
     if ( ! isset($_POST['eml-submit-network-settings']) )
         return;
 
-    check_admin_referer( 'eml-network-settings-options' );
+    check_admin_referer( 'vergeml-network-settings-options' );
 
     if ( ! current_user_can( 'manage_network_options' ) )
         return;
@@ -1543,7 +1189,7 @@ function vergeml_update_network_settings() {
     update_site_option( 'vergeml_uninstall_wipe_network', empty( $posted['uninstall_wipe'] ) ? 0 : 1 );
 
     add_settings_error(
-        'eml-network-settings',
+        'vergeml-network-settings',
         'eml_network_settings_saved',
         __('Network settings saved.', 'vergelabs-media-library'),
         'updated'
@@ -1566,7 +1212,7 @@ function vergeml_settings_export() {
     if ( ! isset( $_POST['eml-settings-export'] ) )
         return;
 
-    if ( ! isset( $_POST['eml-settings-export-nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['eml-settings-export-nonce'] ) ), 'eml_settings_export_nonce' ) )
+    if ( ! isset( $_POST['vergeml-settings-export-nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['vergeml-settings-export-nonce'] ) ), 'vergeml_settings_export_nonce' ) )
         return;
 
     if ( ! current_user_can( 'manage_options' ) )
@@ -1590,7 +1236,7 @@ function vergeml_settings_export() {
     header( 'Content-Disposition: attachment; filename=vergeml-settings-' . gmdate( 'm-d-Y_hia' ) . '.json' );
     header( "Expires: 0" );
 
-    echo json_encode( $settings );
+    echo wp_json_encode( $settings );
 
     exit;
 }
@@ -1611,7 +1257,7 @@ function vergeml_settings_import() {
     if ( ! isset( $_POST['eml-settings-import'] ) )
         return;
 
-    if ( ! isset( $_POST['eml-settings-import-nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['eml-settings-import-nonce'] ) ), 'eml_settings_import_nonce' ) )
+    if ( ! isset( $_POST['vergeml-settings-import-nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['vergeml-settings-import-nonce'] ) ), 'vergeml_settings_import_nonce' ) )
         return;
 
     if ( ! current_user_can( 'manage_options' ) )
@@ -1637,7 +1283,8 @@ function vergeml_settings_import() {
     $import_file = array(
         'name'     => isset( $_FILES['import_file']['name'] ) ? sanitize_file_name( wp_unslash( $_FILES['import_file']['name'] ) ) : '',
         'type'     => isset( $_FILES['import_file']['type'] ) ? sanitize_mime_type( wp_unslash( $_FILES['import_file']['type'] ) ) : '',
-        'tmp_name' => isset( $_FILES['import_file']['tmp_name'] ) ? sanitize_text_field( wp_unslash( $_FILES['import_file']['tmp_name'] ) ) : '',
+        // PHP sets tmp_name itself and never slashes it; wp_unslash() would strip a Windows path's backslashes.
+        'tmp_name' => isset( $_FILES['import_file']['tmp_name'] ) ? sanitize_text_field( $_FILES['import_file']['tmp_name'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.MissingUnslash
         'error'    => isset( $_FILES['import_file']['error'] ) ? (int) $_FILES['import_file']['error'] : UPLOAD_ERR_NO_FILE,
         'size'     => isset( $_FILES['import_file']['size'] ) ? (int) $_FILES['import_file']['size'] : 0,
     );
@@ -1645,7 +1292,7 @@ function vergeml_settings_import() {
     if ( empty( $import_file['tmp_name'] ) || ! is_uploaded_file( $import_file['tmp_name'] ) ) {
 
         add_settings_error(
-            'eml-settings',
+            'vergeml-utilities',
             'eml_settings_file_absent',
             __('Settings cannot be imported. Please upload a file to import settings.', 'vergelabs-media-library'),
             'error'
@@ -1655,18 +1302,22 @@ function vergeml_settings_import() {
     }
 
 
-    // backup settings
-    $settings = vergeml_get_settings();
-    update_option( 'vergeml_backup', $settings );
+    // A settings file is a few kilobytes; anything far larger is not one.
+    $json_data = $import_file['size'] > 0 && $import_file['size'] <= 1048576 ? file_get_contents( $import_file['tmp_name'] ) : '';
+    $settings  = json_decode( (string) $json_data, true );
 
+    // The four sections an export writes, each an array, or nothing is changed.
+    $sections = array( 'taxonomies', 'lib_options', 'tax_options', 'mimes' );
+    $complete = is_array( $settings );
 
-    $json_data = file_get_contents( $import_file['tmp_name'] );
-    $settings = json_decode( $json_data, true );
+    foreach ( $sections as $section ) {
+        $complete = $complete && isset( $settings[ $section ] ) && is_array( $settings[ $section ] );
+    }
 
-    if ( empty( $settings ) ) {
+    if ( ! $complete ) {
 
         add_settings_error(
-            'eml-settings',
+            'vergeml-utilities',
             'eml_settings_wrong_format',
             __('Settings cannot be imported. Please upload a correct JSON file to import settings.', 'vergelabs-media-library'),
             'error'
@@ -1676,13 +1327,17 @@ function vergeml_settings_import() {
     }
 
 
+    // The backup only once the file is known to be good, so a bad file never costs the last good one.
+    update_option( 'vergeml_backup', vergeml_get_settings() );
+
+    // Each through its register_setting() validator.
     update_option( 'vergeml_taxonomies', $settings['taxonomies'] );
     update_option( 'vergeml_lib_options', $settings['lib_options'] );
     update_option( 'vergeml_tax_options', $settings['tax_options'] );
     update_option( 'vergeml_mimes', $settings['mimes'] );
 
     add_settings_error(
-        'eml-settings',
+        'vergeml-utilities',
         'eml_settings_imported',
         __('Plugin settings imported.', 'vergelabs-media-library'),
         'updated'
@@ -1705,7 +1360,7 @@ function vergeml_settings_restoring() {
     if ( ! isset( $_POST['eml-settings-restore'] ) )
         return;
 
-    if ( ! isset( $_POST['eml-settings-restore-nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['eml-settings-restore-nonce'] ) ), 'eml_settings_restore_nonce' ) )
+    if ( ! isset( $_POST['vergeml-settings-restore-nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['vergeml-settings-restore-nonce'] ) ), 'vergeml_settings_restore_nonce' ) )
         return;
 
     if ( ! current_user_can( 'manage_options' ) )
@@ -1722,17 +1377,20 @@ function vergeml_settings_restoring() {
 
     $vergeml_backup = get_option( 'vergeml_backup' );
 
+    // No backup, or not one this plugin wrote: nothing to restore.
+    if ( ! is_array( $vergeml_backup ) || ! isset( $vergeml_backup['taxonomies'], $vergeml_backup['lib_options'], $vergeml_backup['tax_options'], $vergeml_backup['mimes'] ) ) {
+        return;
+    }
+
     update_option( 'vergeml_taxonomies', $vergeml_backup['taxonomies'] );
     update_option( 'vergeml_lib_options', $vergeml_backup['lib_options'] );
     update_option( 'vergeml_tax_options', $vergeml_backup['tax_options'] );
     update_option( 'vergeml_mimes', $vergeml_backup['mimes'] );
 
-    do_action( 'vergeml_pro_set_settings', $vergeml_backup );
-
     update_option( 'vergeml_backup', '' );
 
     add_settings_error(
-        'eml-settings',
+        'vergeml-utilities',
         'eml_settings_restored',
         __('Plugin settings restored from the backup.', 'vergelabs-media-library'),
         'updated'
@@ -1764,7 +1422,7 @@ function vergeml_uninstall_wipe_save() {
     update_option( 'vergeml_uninstall_wipe', isset( $_POST['vergeml_uninstall_wipe'] ) ? '1' : '0' );
 
     add_settings_error(
-        'eml-settings',
+        'vergeml-utilities',
         'vergeml_uninstall_wipe_saved',
         __( 'Saved.', 'vergelabs-media-library' ),
         'updated'
@@ -1779,7 +1437,7 @@ function vergeml_settings_cleanup() {
     if ( ! isset( $_POST['eml-settings-cleanup'] ) )
         return;
 
-    if ( ! isset( $_POST['eml-settings-cleanup-nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['eml-settings-cleanup-nonce'] ) ), 'eml_settings_cleanup_nonce' ) )
+    if ( ! isset( $_POST['vergeml-settings-cleanup-nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['vergeml-settings-cleanup-nonce'] ) ), 'vergeml_settings_cleanup_nonce' ) )
         return;
 
     if ( ! current_user_can( 'manage_options' ) )
@@ -1800,8 +1458,9 @@ function vergeml_settings_cleanup() {
         vergeml_options_cleanup();
         vergeml_transients_cleanup();
         vergeml_cleanup_drop_tables();
-        wp_clear_scheduled_hook( 'vergeml_meaning_convert' );
-        wp_clear_scheduled_hook( 'vergeml_ai_run_tick' );
+        foreach ( array( 'vergeml_meaning_convert', 'vergeml_ai_run_tick', 'vergeml_talk_refile_event', 'vergeml_guide_fit_event', 'vergeml_plan_inventory_refresh', 'vergeml_plan_event', 'vergeml_provision_site' ) as $hook ) {
+            wp_unschedule_hook( $hook );
+        }
     };
 
     if ( is_multisite() ) {
@@ -1822,7 +1481,19 @@ function vergeml_settings_cleanup() {
     vergeml_user_meta_cleanup();
 
     vergeml_site_options_cleanup();
-    deactivate_plugins( vergeml_get_basename(), false, is_multisite() );
+
+    /*
+     *  Deactivating stays the owner's click on the Plugins screen, where this
+     *  sends them (wordpress.org guidelines: a plugin never changes the active
+     *  plugins). Until then the plugin runs and may write a default or two
+     *  again, so deleting it from there takes those with it.
+     */
+    if ( is_multisite() ) {
+        update_site_option( 'vergeml_uninstall_wipe_network', '1' );
+    }
+    else {
+        update_option( 'vergeml_uninstall_wipe', '1' );
+    }
 
 
     wp_safe_redirect( self_admin_url( 'plugins.php' ) );
@@ -1847,7 +1518,7 @@ function vergeml_settings_cleanup() {
  *  that matter are cleaned by the core hooks fired around the delete.
  */
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 function vergeml_term_relationship_cleanup() {
 
@@ -1855,6 +1526,13 @@ function vergeml_term_relationship_cleanup() {
 
 
     foreach ( get_option( 'vergeml_taxonomies', array() ) as $taxonomy => $params ) {
+
+        // Folders outlive the plugin: the vergeml_folder terms and which files are in them stay, and so do
+        // media_category's on a site whose folders have not moved yet or where Enhanced Media Library owns them.
+        // Only the plugin's own taxonomies; one core or another plugin owns is left as it is.
+        if ( in_array( $taxonomy, array( 'vergeml_folder', 'media_category' ), true ) || empty( $params['eml_media'] ) ) {
+            continue;
+        }
 
         $terms = get_terms( array( 'taxonomy' => $taxonomy, 'fields' => 'all', 'get' => 'all' ) );
         $term_pairs = vergeml_get_media_term_pairs( $terms, 'id=>tt_id' );
@@ -1867,51 +1545,6 @@ function vergeml_term_relationship_cleanup() {
 
             $wpdb->delete( $wpdb->term_taxonomy, array( 'taxonomy' => $taxonomy ), array( '%s' ) );
             delete_option( $taxonomy . '_children' );
-        }
-        elseif ( ! empty( $term_pairs ) ) {
-
-            $deleted_tt_ids = array();
-            $rows2remove_format = join( ', ', array_fill( 0, count( $term_pairs ), '%d' ) );
-
-            $results = $wpdb->get_results( $wpdb->prepare(
-                "
-                    SELECT $wpdb->term_relationships.term_taxonomy_id, $wpdb->term_relationships.object_id
-                    FROM $wpdb->term_relationships
-                    INNER JOIN $wpdb->posts
-                    ON $wpdb->term_relationships.object_id = $wpdb->posts.ID
-                    WHERE $wpdb->posts.post_type = 'attachment'
-                    AND $wpdb->term_relationships.term_taxonomy_id IN ($rows2remove_format)
-                ",
-                $term_pairs
-            ) );
-
-            foreach ( $results as $result ) {
-                $deleted_tt_ids[$result->object_id][] = $result->term_taxonomy_id;
-            }
-
-            foreach( $deleted_tt_ids as $attachment_id => $tt_ids ) {
-                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook; other plugins and core caches rely on it firing.
-                do_action( 'delete_term_relationships', $attachment_id, $tt_ids );
-            }
-
-            $removed = $wpdb->query( $wpdb->prepare(
-                "
-                    DELETE $wpdb->term_relationships.* FROM $wpdb->term_relationships
-                    INNER JOIN $wpdb->posts
-                    ON $wpdb->term_relationships.object_id = $wpdb->posts.ID
-                    WHERE $wpdb->posts.post_type = 'attachment'
-                    AND $wpdb->term_relationships.term_taxonomy_id IN ($rows2remove_format)
-                ",
-                $term_pairs
-            ) );
-
-            if ( false !== $removed ) {
-
-                foreach( $deleted_tt_ids as $attachment_id => $tt_ids ) {
-                    // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook; other plugins and core caches rely on it firing.
-                    do_action( 'deleted_term_relationships', $attachment_id, $tt_ids );
-                }
-            }
         }
     }
 }
@@ -1937,7 +1570,7 @@ function vergeml_cleanup_drop_tables() {
     global $wpdb;
 
     foreach ( array( 'vergeml_ai_index', 'vergeml_librarian_batches', 'vergeml_librarian_moves', 'vergeml_organize_runs' ) as $table ) {
-        $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- deliberate removal of this plugin's own tables.
+        $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . $table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- deliberate removal of this plugin's own tables.
     }
 }
 
@@ -1953,16 +1586,17 @@ function vergeml_user_meta_cleanup() {
 
     /*
      *  $table and $id_column are internal constants from _get_meta_table(), not
-     *  user input, so they are interpolated. Every value is placeheld. There is
-     *  no cache to prime or invalidate here: this runs once, from the settings
+     *  user input, and go in as identifiers (%i). Every value is placeheld. There
+     *  is no cache to prime or invalidate here: this runs once, from the settings
      *  cleanup action, over rows this plugin owns.
      */
 
     // Both shapes: the plain key, and on a network the per-site copy that
     // carries the blog prefix (wp_2_vergeml_...).
     $meta_ids = $wpdb->get_col(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identifiers are internal, values are placeheld below.
-        $wpdb->prepare( "SELECT $id_column FROM $table WHERE meta_key LIKE %s OR meta_key LIKE %s",
+        $wpdb->prepare( 'SELECT %i FROM %i WHERE meta_key LIKE %s OR meta_key LIKE %s',
+            $id_column,
+            $table,
             $wpdb->esc_like( $meta_key ) . '%',
             $wpdb->esc_like( $wpdb->base_prefix ) . '%' . $wpdb->esc_like( '_' . $meta_key ) . '%' )
     ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own user meta.
@@ -1972,12 +1606,13 @@ function vergeml_user_meta_cleanup() {
         return;
     }
 
-    $meta_ids     = array_map( 'absint', $meta_ids );
-    $placeholders = implode( ',', array_fill( 0, count( $meta_ids ), '%d' ) );
+    $meta_ids = array_map( 'absint', $meta_ids );
 
     $wpdb->query(
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identifiers are internal, ids are placeheld.
-        $wpdb->prepare( "DELETE FROM $table WHERE $id_column IN ( $placeholders )", $meta_ids )
+        $wpdb->prepare(
+            'DELETE FROM %i WHERE %i IN ( ' . implode( ', ', array_fill( 0, count( $meta_ids ), '%d' ) ) . ' )',
+            array_merge( array( $table, $id_column ), $meta_ids )
+        )
     ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own user meta.
 }
 
@@ -1990,7 +1625,7 @@ function vergeml_user_meta_cleanup() {
  *  @created  28/04/18
  */
 
-// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, PluginCheck.Security.DirectDB.UnescapedDBParameter
+// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 function vergeml_options_cleanup() {
 
@@ -2006,12 +1641,11 @@ function vergeml_options_cleanup() {
         'vergeml_ai',
         'vergeml_ai_credits',
         'vergeml_private_folders',
+        'vergeml_private_used',
         'vergeml_folders_version',
         'vergeml_watchdog',
         'vergeml_uninstall_wipe'
     );
-
-    $options = apply_filters( 'vergeml_pro_add_options', $options );
 
     foreach ( $options as $option ) {
         delete_option( $option );
@@ -2021,8 +1655,7 @@ function vergeml_options_cleanup() {
      *  And then the sweep, because the list above has never once been
      *  complete: every feature that stores an option would have to remember
      *  to add itself here, and the ones that forgot lingered after a
-     *  "complete" cleanup. The list stays for the filter -- Pro options are
-     *  not all vergeml_-prefixed.
+     *  "complete" cleanup.
      */
     global $wpdb;
     $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'vergeml\_%' AND option_name NOT LIKE '\_transient%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own options.
@@ -2053,8 +1686,6 @@ function vergeml_site_options_cleanup() {
         delete_site_transient( 'vergeml_network_overview' );
     }
 
-    $options = apply_filters( 'vergeml_pro_add_options', $options );
-
     foreach ( $options as $option ) {
         delete_site_option( $option );
     }
@@ -2079,17 +1710,12 @@ function vergeml_transients_cleanup() {
      *  register itself here, and the one that forgot would linger forever.
      *  Underscores escaped so the wildcard is the only wildcard.
      */
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the cleanup deletes this plugin's transients by prefix; no API deletes by prefix, and nothing is cached after a delete.
     $wpdb->query(
         "DELETE FROM {$wpdb->options}
          WHERE option_name LIKE '\_transient\_vergeml\_%'
             OR option_name LIKE '\_transient\_timeout\_vergeml\_%'"
     ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one-off cleanup of this plugin's own transients.
-
-    $transients = apply_filters( 'vergeml_pro_add_transients', array() );
-
-    foreach ( $transients as $transient ) {
-        delete_site_transient( $transient );
-    }
 }
 
 
@@ -2152,10 +1778,10 @@ function vergeml_print_media_library_options() {
     <div id="vergeml-media-library-options-wrap" class="wrap eml-options">
 
         <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Library settings', 'vergelabs-media-library' ),
             __( 'Ordering, filters, search and uploads on the media screen.', 'vergelabs-media-library' )
-        );
+        ), vergeml_kses_allowed() );
         ?>
 
 
@@ -2167,7 +1793,7 @@ function vergeml_print_media_library_options() {
 
                     <form id="vergeml-form-media-library" method="post" action="options.php">
 
-                        <?php settings_fields( 'media-library' ); ?>
+                        <?php settings_fields( 'vergeml-library' ); ?>
 
                         <?php
                         /*
@@ -2176,7 +1802,7 @@ function vergeml_print_media_library_options() {
                          *  words are the screen's own; nothing here is a label
                          *  invented for the summary.
                          */
-                        $vgml_filters_named = array(
+                        $vergeml_filters_named = array(
                             'types'      => __( 'Types', 'vergelabs-media-library' ),
                             'dates'      => __( 'Dates', 'vergelabs-media-library' ),
                             'authors'    => __( 'Authors', 'vergelabs-media-library' ),
@@ -2184,7 +1810,7 @@ function vergeml_print_media_library_options() {
                             'ai'         => __( 'AI folders', 'vergelabs-media-library' ),
                         );
 
-                        $vgml_search_named = array(
+                        $vergeml_search_named = array(
                             'titles'       => __( 'Titles', 'vergelabs-media-library' ),
                             'captions'     => __( 'Captions', 'vergelabs-media-library' ),
                             'descriptions' => __( 'Descriptions', 'vergelabs-media-library' ),
@@ -2193,38 +1819,38 @@ function vergeml_print_media_library_options() {
                             'taxonomies'   => __( 'Media taxonomies', 'vergelabs-media-library' ),
                         );
 
-                        $vgml_shown = array_intersect_key( $vgml_filters_named, array_flip( (array) $vergeml_lib_options['filters_to_show'] ) );
-                        $vgml_searched = array_intersect_key( $vgml_search_named, array_flip( (array) $vergeml_lib_options['search_in'] ) );
+                        $vergeml_shown = array_intersect_key( $vergeml_filters_named, array_flip( (array) $vergeml_lib_options['filters_to_show'] ) );
+                        $vergeml_searched = array_intersect_key( $vergeml_search_named, array_flip( (array) $vergeml_lib_options['search_in'] ) );
 
-                        $vgml_orderby_named = array(
+                        $vergeml_orderby_named = array(
                             'date'      => __( 'By date', 'vergelabs-media-library' ),
                             'title'     => __( 'By title', 'vergelabs-media-library' ),
                             'menuOrder' => __( 'In your own order', 'vergelabs-media-library' ),
                         );
 
-                        $vgml_caption_named = array(
+                        $vergeml_caption_named = array(
                             'title'    => __( 'caption from the title', 'vergelabs-media-library' ),
                             'filename' => __( 'caption from the file name', 'vergelabs-media-library' ),
                             'caption'  => __( 'caption from the caption', 'vergelabs-media-library' ),
                         );
 
                         if ( ! empty( $vergeml_lib_options['search_on_enter'] ) ) {
-                            $vgml_when_search = __( 'on the Enter key', 'vergelabs-media-library' );
+                            $vergeml_when_search = __( 'on the Enter key', 'vergelabs-media-library' );
                         } elseif ( ! empty( $vergeml_lib_options['search_auto'] ) ) {
                             /* translators: %d: how many letters before the search runs. */
-                            $vgml_when_search = sprintf( __( 'as you type, from %d letters', 'vergelabs-media-library' ), (int) $vergeml_lib_options['search_min_letters'] );
+                            $vergeml_when_search = sprintf( __( 'as you type, from %d letters', 'vergelabs-media-library' ), (int) $vergeml_lib_options['search_min_letters'] );
                         } else {
-                            $vgml_when_search = __( 'on the search button', 'vergelabs-media-library' );
+                            $vergeml_when_search = __( 'on the search button', 'vergelabs-media-library' );
                         }
 
-                        $vgml_facts = array(
+                        $vergeml_facts = array(
                             'order' => vergeml_acc_facts( array(
-                                isset( $vgml_orderby_named[ $vergeml_lib_options['media_orderby'] ] ) ? $vgml_orderby_named[ $vergeml_lib_options['media_orderby'] ] : '',
+                                isset( $vergeml_orderby_named[ $vergeml_lib_options['media_orderby'] ] ) ? $vergeml_orderby_named[ $vergeml_lib_options['media_orderby'] ] : '',
                                 'DESC' === $vergeml_lib_options['media_order'] ? __( 'descending', 'vergelabs-media-library' ) : __( 'ascending', 'vergelabs-media-library' ),
                                 ! empty( $vergeml_lib_options['natural_sort'] ) ? __( 'natural order', 'vergelabs-media-library' ) : '',
                             ) ),
                             'filters' => vergeml_acc_facts( array(
-                                $vgml_shown ? implode( ', ', $vgml_shown ) : __( 'No filters', 'vergelabs-media-library' ),
+                                $vergeml_shown ? implode( ', ', $vergeml_shown ) : __( 'No filters', 'vergelabs-media-library' ),
                                 ! empty( $vergeml_lib_options['show_count'] ) ? __( 'with counts', 'vergelabs-media-library' ) : '',
                                 ! empty( $vergeml_lib_options['force_filters'] ) ? __( 'in every popup', 'vergelabs-media-library' ) : '',
                             ) ),
@@ -2234,16 +1860,16 @@ function vergeml_print_media_library_options() {
                                 sprintf( __( '%d at a time', 'vergelabs-media-library' ), (int) $vergeml_lib_options['loads_per_page'] ),
                             ) ),
                             'search' => vergeml_acc_facts( array(
-                                $vgml_searched ? implode( ', ', $vgml_searched ) : __( 'Nothing', 'vergelabs-media-library' ),
-                                $vgml_when_search,
+                                $vergeml_searched ? implode( ', ', $vergeml_searched ) : __( 'Nothing', 'vergelabs-media-library' ),
+                                $vergeml_when_search,
                             ) ),
                             'grid' => vergeml_acc_facts( array(
                                 /* translators: %d: the thumbnail column width in pixels. */
                                 sprintf( __( '%dpx columns', 'vergelabs-media-library' ), (int) $vergeml_lib_options['ideal_column_width'] ),
                                 /* translators: %d: the sidebar width in pixels. */
                                 sprintf( __( '%dpx sidebar', 'vergelabs-media-library' ), (int) $vergeml_lib_options['grid_sidebar_width'] ),
-                                ! empty( $vergeml_lib_options['grid_show_caption'] ) && isset( $vgml_caption_named[ $vergeml_lib_options['grid_caption_type'] ] )
-                                    ? $vgml_caption_named[ $vergeml_lib_options['grid_caption_type'] ]
+                                ! empty( $vergeml_lib_options['grid_show_caption'] ) && isset( $vergeml_caption_named[ $vergeml_lib_options['grid_caption_type'] ] )
+                                    ? $vergeml_caption_named[ $vergeml_lib_options['grid_caption_type'] ]
                                     : __( 'no caption', 'vergelabs-media-library' ),
                             ) ),
                             'shortcodes' => ! empty( $vergeml_lib_options['enhance_media_shortcodes'] )
@@ -2252,9 +1878,9 @@ function vergeml_print_media_library_options() {
                         );
                         ?>
 
-                        <div class="vgml-acc" data-acc="media-library">
+                        <div class="vgml-acc" data-acc="vergeml-library">
 
-                        <?php vergeml_acc_start( 'order', __( 'Order', 'vergelabs-media-library' ), $vgml_facts['order'] ); ?>
+                        <?php vergeml_acc_start( 'order', __( 'Order', 'vergelabs-media-library' ), $vergeml_facts['order'] ); ?>
 
                         <div class="postbox">
 
@@ -2303,7 +1929,7 @@ function vergeml_print_media_library_options() {
 
                         <?php vergeml_acc_end(); ?>
 
-                        <?php vergeml_acc_start( 'filters', __( 'Filters', 'vergelabs-media-library' ), $vgml_facts['filters'] ); ?>
+                        <?php vergeml_acc_start( 'filters', __( 'Filters', 'vergelabs-media-library' ), $vergeml_facts['filters'] ); ?>
 
                         <div class="postbox">
 
@@ -2375,7 +2001,7 @@ function vergeml_print_media_library_options() {
 
                         <?php vergeml_acc_end(); ?>
 
-                        <?php vergeml_acc_start( 'scrolling', __( 'Scrolling', 'vergelabs-media-library' ), $vgml_facts['scrolling'] ); ?>
+                        <?php vergeml_acc_start( 'scrolling', __( 'Scrolling', 'vergelabs-media-library' ), $vergeml_facts['scrolling'] ); ?>
 
                         <div class="postbox">
 
@@ -2423,7 +2049,7 @@ function vergeml_print_media_library_options() {
 
                         <?php vergeml_acc_end(); ?>
 
-                        <?php vergeml_acc_start( 'search', __( 'Search', 'vergelabs-media-library' ), $vgml_facts['search'] ); ?>
+                        <?php vergeml_acc_start( 'search', __( 'Search', 'vergelabs-media-library' ), $vergeml_facts['search'] ); ?>
 
                         <div class="postbox">
 
@@ -2507,7 +2133,7 @@ function vergeml_print_media_library_options() {
 
                         <?php vergeml_acc_end(); ?>
 
-                        <?php vergeml_acc_start( 'grid', __( 'Grid Mode', 'vergelabs-media-library' ), $vgml_facts['grid'] ); ?>
+                        <?php vergeml_acc_start( 'grid', __( 'Grid Mode', 'vergelabs-media-library' ), $vergeml_facts['grid'] ); ?>
 
                         <div class="postbox">
 
@@ -2573,7 +2199,7 @@ function vergeml_print_media_library_options() {
                         }
                         ?>
 
-                        <?php vergeml_acc_start( 'shortcodes', __( 'Media Shortcodes', 'vergelabs-media-library' ), $vgml_facts['shortcodes'] ); ?>
+                        <?php vergeml_acc_start( 'shortcodes', __( 'Media Shortcodes', 'vergelabs-media-library' ), $vergeml_facts['shortcodes'] ); ?>
 
                         <div class="postbox">
 
@@ -2587,7 +2213,7 @@ function vergeml_print_media_library_options() {
                                             <fieldset>
                                                 <legend class="screen-reader-text"><span><?php esc_html_e('Enhanced media shortcodes','vergelabs-media-library'); ?></span></legend>
                                                 <label><input name="vergeml_lib_options[enhance_media_shortcodes]" type="hidden" value="0" /><input name="vergeml_lib_options[enhance_media_shortcodes]" type="checkbox" value="1" <?php checked( true, (bool) $vergeml_lib_options['enhance_media_shortcodes'], true ); ?> /> <?php esc_html_e('Let gallery and playlist shortcodes understand media taxonomies, upload date, and an item limit','vergelabs-media-library'); ?></label>
-                                                <p class="description vgml-mono">[gallery media_category="5" limit="10" year="2015"]</p>
+                                                <p class="description vgml-mono">[gallery vergeml_folder="5" limit="10" year="2015"]</p>
                                                 <p class="description vgml-accent-text"><?php esc_html_e( 'Some themes and gallery plugins replace the default gallery. Check your galleries after turning this on, and report anything broken.', 'vergelabs-media-library' ); ?></p>
                                             </fieldset>
                                         </td>
@@ -2664,10 +2290,10 @@ function vergeml_print_taxonomies_options() {
     <div id="vergeml-global-options-wrap" class="wrap eml-options">
 
         <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Folders and categories', 'vergelabs-media-library' ),
             __( 'Which categories act as folders, and which other taxonomies apply to media.', 'vergelabs-media-library' )
-        );
+        ), vergeml_kses_allowed() );
         ?>
 
         <?php
@@ -2687,7 +2313,7 @@ function vergeml_print_taxonomies_options() {
                 printf(
                     /* translators: %s: the name of the folder taxonomy, in code formatting. */
                     esc_html__( 'The folder tree beside your media library is a category list — stored as %s, an ordinary WordPress taxonomy. Folders survive if this plugin is ever removed. Anything else you tick below becomes another way to label and filter media, alongside the folders — never a second tree. Unticking hides; it never deletes.', 'vergelabs-media-library' ),
-                    '<code class="vgml-mono">media_category</code>'
+                    '<code class="vgml-mono">vergeml_folder</code>'
                 );
                 ?>
             </p>
@@ -2702,43 +2328,43 @@ function vergeml_print_taxonomies_options() {
 
                     <form id="vergeml-form-taxonomies" method="post" action="options.php">
 
-                        <?php settings_fields( 'media-taxonomies' ); ?>
+                        <?php settings_fields( 'vergeml-taxonomies' ); ?>
 
                         <?php
                         // What each section is set to, on the line beside its name.
-                        $vgml_tax_saved    = (array) get_option( 'vergeml_taxonomies', array() );
-                        $vgml_tax_opts     = (array) get_option( 'vergeml_tax_options', array() );
-                        $vgml_tax_assigned = 0;
+                        $vergeml_tax_saved    = (array) get_option( 'vergeml_taxonomies', array() );
+                        $vergeml_tax_opts     = (array) get_option( 'vergeml_tax_options', array() );
+                        $vergeml_tax_assigned = 0;
 
-                        foreach ( $vgml_tax_saved as $vgml_tax_row ) {
+                        foreach ( $vergeml_tax_saved as $vergeml_tax_row ) {
 
-                            if ( ! empty( $vgml_tax_row['assigned'] ) ) {
-                                $vgml_tax_assigned++;
+                            if ( ! empty( $vergeml_tax_row['assigned'] ) ) {
+                                $vergeml_tax_assigned++;
                             }
                         }
 
-                        $vgml_tax_on_media = count( get_object_taxonomies( 'attachment' ) );
+                        $vergeml_tax_on_media = count( get_object_taxonomies( 'attachment' ) );
 
-                        $vgml_facts = array(
+                        $vergeml_facts = array(
                             /* translators: %d: how many taxonomies are on media. */
-                            'taxonomies' => sprintf( _n( '%d on media', '%d on media', $vgml_tax_on_media, 'vergelabs-media-library' ), $vgml_tax_on_media ),
-                            'also'       => 0 === $vgml_tax_assigned
+                            'taxonomies' => sprintf( _n( '%d on media', '%d on media', $vergeml_tax_on_media, 'vergelabs-media-library' ), $vergeml_tax_on_media ),
+                            'also'       => 0 === $vergeml_tax_assigned
                                 ? __( 'None', 'vergelabs-media-library' )
                                 /* translators: %d: how many other taxonomies also show on media. */
-                                : sprintf( _n( '%d also shown', '%d also shown', $vgml_tax_assigned, 'vergelabs-media-library' ), $vgml_tax_assigned ),
+                                : sprintf( _n( '%d also shown', '%d also shown', $vergeml_tax_assigned, 'vergelabs-media-library' ), $vergeml_tax_assigned ),
                             'options'    => vergeml_acc_facts( array(
-                                ! empty( $vgml_tax_opts['one_folder_per_file'] )
+                                ! empty( $vergeml_tax_opts['one_folder_per_file'] )
                                     ? __( 'One folder per file', 'vergelabs-media-library' )
                                     : __( 'A file may sit in several folders', 'vergelabs-media-library' ),
-                                ! empty( $vgml_tax_opts['tax_archives'] ) ? __( 'archive pages on', 'vergelabs-media-library' ) : '',
-                                ! empty( $vgml_tax_opts['edit_all_as_hierarchical'] ) ? __( 'all shown as hierarchical', 'vergelabs-media-library' ) : '',
+                                ! empty( $vergeml_tax_opts['tax_archives'] ) ? __( 'archive pages on', 'vergelabs-media-library' ) : '',
+                                ! empty( $vergeml_tax_opts['edit_all_as_hierarchical'] ) ? __( 'all shown as hierarchical', 'vergelabs-media-library' ) : '',
                             ) ),
                         );
                         ?>
 
-                        <div class="vgml-acc" data-acc="media-taxonomies">
+                        <div class="vgml-acc" data-acc="vergeml-taxonomies">
 
-                        <?php vergeml_acc_start( 'taxonomies', __( 'Media taxonomies', 'vergelabs-media-library' ), $vgml_facts['taxonomies'] ); ?>
+                        <?php vergeml_acc_start( 'taxonomies', __( 'Media taxonomies', 'vergelabs-media-library' ), $vergeml_facts['taxonomies'] ); ?>
 
                         <div class="postbox">
 
@@ -2776,9 +2402,9 @@ function vergeml_print_taxonomies_options() {
                                         else
                                             $li_class = 'wpuxss-non-eml-taxonomy';
 
-                                        $html .= '<li class="' . $li_class . '" id="' . esc_attr($taxonomy->name) . '">';
+                                        $html .= '<li class="' . esc_attr( $li_class ) . '" id="' . esc_attr($taxonomy->name) . '">';
 
-                                        $html .= '<input name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][eml_media]" type="hidden" value="' . $eml_media . '" />';
+                                        $html .= '<input name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][eml_media]" type="hidden" value="' . esc_attr( (int) $eml_media ) . '" />';
                                         /*
                                          *  This form carries the whole taxonomy.
                                          *
@@ -2787,36 +2413,36 @@ function vergeml_print_taxonomies_options() {
                                          *  posting a partial taxonomy switched off everything it did not mention.
                                          */
                                         $html .= '<input name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][_full]" type="hidden" value="1" />';
-                                        $html .= '<label><input class="vergeml-assigned" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][assigned]" type="checkbox" value="1" ' . checked( true, $assigned, false ) . ' title="' . __('Assign Taxonomy','vergelabs-media-library') . '" />' . esc_html($taxonomy->label) . '</label>';
-                                        $html .= '<a class="vergeml-button-edit" title="' . __('Edit Taxonomy','vergelabs-media-library') . '" href="javascript:;">' . __('Edit','vergelabs-media-library') . ' &darr;</a>';
+                                        $html .= '<label><input class="vergeml-assigned" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][assigned]" type="checkbox" value="1" ' . checked( true, $assigned, false ) . ' title="' . esc_attr__('Assign Taxonomy','vergelabs-media-library') . '" />' . esc_html($taxonomy->label) . '</label>';
+                                        $html .= '<a class="vergeml-button-edit" title="' . esc_attr__('Edit Taxonomy','vergelabs-media-library') . '" href="#">' . esc_html__('Edit','vergelabs-media-library') . ' &darr;</a>';
 
                                         if ( $eml_media ) {
 
-                                            $html .= '<a class="vergeml-button-remove" title="' . __('Delete Taxonomy','vergelabs-media-library') . '" href="javascript:;">&ndash;</a>';
+                                            $html .= '<a class="vergeml-button-remove" title="' . esc_attr__('Delete Taxonomy','vergelabs-media-library') . '" href="#">&ndash;</a>';
 
                                             $html .= '<div class="vergeml-taxonomy-edit" style="display:none;">';
 
                                             $html .= '<div class="vergeml-labels-edit">';
-                                            $html .= '<h4>' . __('Labels','vergelabs-media-library') . '</h4>';
+                                            $html .= '<h4>' . esc_html__('Labels','vergelabs-media-library') . '</h4>';
                                             $html .= '<ul>';
-                                            $html .= '<li><label>' . __('Singular','vergelabs-media-library') . '</label><input type="text" class="vergeml-singular_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][singular_name]" value="' . esc_html($taxonomy->labels->singular_name) . '" /></li>';
-                                            $html .= '<li><label>' . __('Plural','vergelabs-media-library') . '</label><input type="text" class="vergeml-name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][name]" value="' . esc_html($taxonomy->labels->name) . '" /></li>';
-                                            $html .= '<li><label>' . __('Menu Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-menu_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][menu_name]" value="' . esc_html($taxonomy->labels->menu_name) . '" /></li>';
-                                            $html .= '<li><label>' . __('All','vergelabs-media-library') . '</label><input type="text" class="vergeml-all_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][all_items]" value="' . esc_html($taxonomy->labels->all_items) . '" /></li>';
-                                            $html .= '<li><label>' . __('Edit','vergelabs-media-library') . '</label><input type="text" class="vergeml-edit_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][edit_item]" value="' . esc_html($taxonomy->labels->edit_item) . '" /></li>';
-                                            $html .= '<li><label>' . __('View','vergelabs-media-library') . '</label><input type="text" class="vergeml-view_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][view_item]" value="' . esc_html($taxonomy->labels->view_item) . '" /></li>';
-                                            $html .= '<li><label>' . __('Update','vergelabs-media-library') . '</label><input type="text" class="vergeml-update_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][update_item]" value="' . esc_html($taxonomy->labels->update_item) . '" /></li>';
-                                            $html .= '<li><label>' . __('Add New','vergelabs-media-library') . '</label><input type="text" class="vergeml-add_new_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][add_new_item]" value="' . esc_html($taxonomy->labels->add_new_item) . '" /></li>';
-                                            $html .= '<li><label>' . __('New','vergelabs-media-library') . '</label><input type="text" class="vergeml-new_item_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][new_item_name]" value="' . esc_html($taxonomy->labels->new_item_name) . '" /></li>';
-                                            $html .= '<li><label>' . __('Parent','vergelabs-media-library') . '</label><input type="text" class="vergeml-parent_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][parent_item]" value="' . esc_html($taxonomy->labels->parent_item) . '" /></li>';
-                                            $html .= '<li><label>' . __('Search','vergelabs-media-library') . '</label><input type="text" class="vergeml-search_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][search_items]" value="' . esc_html($taxonomy->labels->search_items) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Singular','vergelabs-media-library') . '</label><input type="text" class="vergeml-singular_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][singular_name]" value="' . esc_attr($taxonomy->labels->singular_name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Plural','vergelabs-media-library') . '</label><input type="text" class="vergeml-name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][name]" value="' . esc_attr($taxonomy->labels->name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Menu Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-menu_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][menu_name]" value="' . esc_attr($taxonomy->labels->menu_name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('All','vergelabs-media-library') . '</label><input type="text" class="vergeml-all_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][all_items]" value="' . esc_attr($taxonomy->labels->all_items) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Edit','vergelabs-media-library') . '</label><input type="text" class="vergeml-edit_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][edit_item]" value="' . esc_attr($taxonomy->labels->edit_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('View','vergelabs-media-library') . '</label><input type="text" class="vergeml-view_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][view_item]" value="' . esc_attr($taxonomy->labels->view_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Update','vergelabs-media-library') . '</label><input type="text" class="vergeml-update_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][update_item]" value="' . esc_attr($taxonomy->labels->update_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Add New','vergelabs-media-library') . '</label><input type="text" class="vergeml-add_new_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][add_new_item]" value="' . esc_attr($taxonomy->labels->add_new_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('New','vergelabs-media-library') . '</label><input type="text" class="vergeml-new_item_name" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][new_item_name]" value="' . esc_attr($taxonomy->labels->new_item_name) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Parent','vergelabs-media-library') . '</label><input type="text" class="vergeml-parent_item" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][parent_item]" value="' . esc_attr($taxonomy->labels->parent_item) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Search','vergelabs-media-library') . '</label><input type="text" class="vergeml-search_items" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][labels][search_items]" value="' . esc_attr($taxonomy->labels->search_items) . '" /></li>';
                                             $html .= '</ul>';
                                             $html .= '</div>';
 
                                             $html .= '<div class="vergeml-settings-edit">';
-                                            $html .= '<h4>' . __('Settings','vergelabs-media-library') . '</h4>';
+                                            $html .= '<h4>' . esc_html__('Settings','vergelabs-media-library') . '</h4>';
                                             $html .= '<ul>';
-                                            $html .= '<li><label>' . __('Taxonomy Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-taxonomy-name" name="" value="' . esc_attr($taxonomy->name) . '" disabled="disabled" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Taxonomy Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-taxonomy-name" name="" value="' . esc_attr($taxonomy->name) . '" disabled="disabled" /></li>';
                                             /*
                                              *  These four read the stored setting, not the registered taxonomy.
                                              *
@@ -2832,16 +2458,16 @@ function vergeml_print_taxonomies_options() {
                                              *  then rendered unchecked, saving again kept it off. There was no way back
                                              *  from inside the interface.
                                              */
-                                            $html .= '<li><label>' . __('Hierarchical','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-hierarchical" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][hierarchical]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['hierarchical'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Column for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_admin_column" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_admin_column]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['show_admin_column'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Filter for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Edit in Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Remember Terms Order (sort)','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-sort" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][sort]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['sort'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Show in REST','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_in_rest" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_in_rest]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['show_in_rest'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Also use for','vergelabs-media-library') . '</label>' . vergeml_folder_post_types_field( $taxonomy->name ) . '</li>';
-                                            $html .= '<li><label>' . __('Rewrite Slug','vergelabs-media-library') . '</label><input type="text" class="vergeml-slug" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][rewrite][slug]" value="' . esc_attr($vergeml_taxonomies[$taxonomy->name]['rewrite']['slug']) . '" /></li>';
-                                            $html .= '<li><label>' . __('Slug with Front','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-with_front" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][rewrite][with_front]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['rewrite']['with_front'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Hierarchical','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-hierarchical" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][hierarchical]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['hierarchical'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Column for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_admin_column" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_admin_column]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['show_admin_column'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Filter for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Edit in Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Remember Terms Order (sort)','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-sort" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][sort]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['sort'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Show in REST','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_in_rest" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][show_in_rest]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['show_in_rest'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Also use for','vergelabs-media-library') . '</label>' . wp_kses( vergeml_folder_post_types_field( $taxonomy->name ), vergeml_kses_allowed() ) . '</li>';
+                                            $html .= '<li><label>' . esc_html__('Rewrite Slug','vergelabs-media-library') . '</label><input type="text" class="vergeml-slug" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][rewrite][slug]" value="' . esc_attr($vergeml_taxonomies[$taxonomy->name]['rewrite']['slug']) . '" /></li>';
+                                            $html .= '<li><label>' . esc_html__('Slug with Front','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-with_front" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][rewrite][with_front]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['rewrite']['with_front'], false ) . ' /></li>';
                                             $html .= '</ul>';
                                             $html .= '</div>';
 
@@ -2852,11 +2478,11 @@ function vergeml_print_taxonomies_options() {
                                             $html .= '<div class="vergeml-taxonomy-edit" style="display:none;">';
 
                                             $html .= '<div class="vergeml-settings-edit">';
-                                            $html .= '<h4>' . __('Settings','vergelabs-media-library') . '</h4>';
+                                            $html .= '<h4>' . esc_html__('Settings','vergelabs-media-library') . '</h4>';
                                             $html .= '<ul>';
-                                            $html .= '<li><label>' . __('Filter for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /></li>';
-                                            $html .= '<li><label>' . __('Edit in Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Filter for List View','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /></li>';
+                                            $html .= '<li><label>' . esc_html__('Edit in Media Popup','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /></li>';
                                             $html .= '</ul>';
                                             $html .= '</div>';
                                             $html .= '</div>';
@@ -2868,42 +2494,42 @@ function vergeml_print_taxonomies_options() {
                                 $html .= '<li class="vergeml-clone" style="display:none">';
                                 $html .= '<input name="" type="hidden" class="vergeml-eml_media" value="1" />';
                                 $html .= '<input name="" type="hidden" class="vergeml-create_taxonomy" value="1" />';
-                                $html .= '<label class="vergeml-taxonomy-label"><input class="vergeml-assigned" name="" type="checkbox" class="vergeml-assigned" value="1" checked="checked" title="' . __('Assign Taxonomy','vergelabs-media-library') . '" />' . '<span>' . __('New Taxonomy','vergelabs-media-library') . '</span></label>';
+                                $html .= '<label class="vergeml-taxonomy-label"><input class="vergeml-assigned" name="" type="checkbox" class="vergeml-assigned" value="1" checked="checked" title="' . esc_attr__('Assign Taxonomy','vergelabs-media-library') . '" />' . '<span>' . esc_html__('New Taxonomy','vergelabs-media-library') . '</span></label>';
 
-                                $html .= '<a class="vergeml-button-remove" title="' . __('Delete Taxonomy','vergelabs-media-library') . '" href="javascript:;">&ndash;</a>';
+                                $html .= '<a class="vergeml-button-remove" title="' . esc_attr__('Delete Taxonomy','vergelabs-media-library') . '" href="#">&ndash;</a>';
 
                                 $html .= '<div class="vergeml-taxonomy-edit">';
 
                                 $html .= '<div class="vergeml-labels-edit">';
-                                $html .= '<h4>' . __('Labels','vergelabs-media-library') . '</h4>';
+                                $html .= '<h4>' . esc_html__('Labels','vergelabs-media-library') . '</h4>';
                                 $html .= '<ul>';
-                                $html .= '<li><label>' . __('Singular','vergelabs-media-library') . '</label><input type="text" class="vergeml-singular_name" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Plural','vergelabs-media-library') . '</label><input type="text" class="vergeml-name" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Menu Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-menu_name" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('All','vergelabs-media-library') . '</label><input type="text" class="vergeml-all_items" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Edit','vergelabs-media-library') . '</label><input type="text" class="vergeml-edit_item" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('View','vergelabs-media-library') . '</label><input type="text" class="vergeml-view_item" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Update','vergelabs-media-library') . '</label><input type="text" class="vergeml-update_item" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Add New','vergelabs-media-library') . '</label><input type="text" class="vergeml-add_new_item" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('New','vergelabs-media-library') . '</label><input type="text" class="vergeml-new_item_name" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Parent','vergelabs-media-library') . '</label><input type="text" class="vergeml-parent_item" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Search','vergelabs-media-library') . '</label><input type="text" class="vergeml-search_items" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Singular','vergelabs-media-library') . '</label><input type="text" class="vergeml-singular_name" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Plural','vergelabs-media-library') . '</label><input type="text" class="vergeml-name" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Menu Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-menu_name" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('All','vergelabs-media-library') . '</label><input type="text" class="vergeml-all_items" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Edit','vergelabs-media-library') . '</label><input type="text" class="vergeml-edit_item" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('View','vergelabs-media-library') . '</label><input type="text" class="vergeml-view_item" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Update','vergelabs-media-library') . '</label><input type="text" class="vergeml-update_item" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Add New','vergelabs-media-library') . '</label><input type="text" class="vergeml-add_new_item" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('New','vergelabs-media-library') . '</label><input type="text" class="vergeml-new_item_name" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Parent','vergelabs-media-library') . '</label><input type="text" class="vergeml-parent_item" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Search','vergelabs-media-library') . '</label><input type="text" class="vergeml-search_items" name="" value="" /></li>';
                                 $html .= '</ul>';
                                 $html .= '</div>';
 
                                 $html .= '<div class="vergeml-settings-edit">';
-                                $html .= '<h4>' . __('Settings','vergelabs-media-library') . '</h4>';
+                                $html .= '<h4>' . esc_html__('Settings','vergelabs-media-library') . '</h4>';
                                 $html .= '<ul>';
-                                $html .= '<li><label>' . __('Taxonomy Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-taxonomy-name" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Hierarchical','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-hierarchical" name="" value="1" checked="checked" /></li>';
-                                $html .= '<li><label>' . __('Column for List View','vergelabs-media-library') . '</label><input class="vergeml-show_admin_column" type="checkbox" name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Filter for List View','vergelabs-media-library') . '</label><input class="vergeml-admin_filter" type="checkbox"  name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input class="vergeml-media_uploader_filter" type="checkbox" name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Edit in Media Popup','vergelabs-media-library') . '</label><input class="vergeml-media_popup_taxonomy_edit" type="checkbox" name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Remember Terms Order (sort)','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-sort" name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Show in REST','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_in_rest" name="" value="1" /></li>';
-                                $html .= '<li><label>' . __('Rewrite Slug','vergelabs-media-library') . '</label><input type="text" class="vergeml-slug" name="" value="" /></li>';
-                                $html .= '<li><label>' . __('Slug with Front','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-with_front" name="" value="1" checked="checked" /></li>';
+                                $html .= '<li><label>' . esc_html__('Taxonomy Name','vergelabs-media-library') . '</label><input type="text" class="vergeml-taxonomy-name" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Hierarchical','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-hierarchical" name="" value="1" checked="checked" /></li>';
+                                $html .= '<li><label>' . esc_html__('Column for List View','vergelabs-media-library') . '</label><input class="vergeml-show_admin_column" type="checkbox" name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Filter for List View','vergelabs-media-library') . '</label><input class="vergeml-admin_filter" type="checkbox"  name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label><input class="vergeml-media_uploader_filter" type="checkbox" name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Edit in Media Popup','vergelabs-media-library') . '</label><input class="vergeml-media_popup_taxonomy_edit" type="checkbox" name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Remember Terms Order (sort)','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-sort" name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Show in REST','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-show_in_rest" name="" value="1" /></li>';
+                                $html .= '<li><label>' . esc_html__('Rewrite Slug','vergelabs-media-library') . '</label><input type="text" class="vergeml-slug" name="" value="" /></li>';
+                                $html .= '<li><label>' . esc_html__('Slug with Front','vergelabs-media-library') . '</label><input type="checkbox" class="vergeml-with_front" name="" value="1" checked="checked" /></li>';
                                 $html .= '</ul>';
                                 $html .= '</div>';
 
@@ -2914,8 +2540,7 @@ function vergeml_print_taxonomies_options() {
 
                                     <ul class="vergeml-settings-list vergeml-media-taxonomy-list">
                                         <?php
-                                        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- assembled above from esc_attr() and esc_html() parts plus literal form markup, which wp_kses would strip.
-                                        echo $html;
+                                        echo wp_kses( $html, vergeml_kses_allowed() );
                                         ?>
                                     </ul>
                                     <div class="vergeml-button-container-right"><a class="vgml-btn vgml-btn-ghost vergeml-button-create-taxonomy" href="javascript:;">+ <?php esc_html_e( 'Add a new taxonomy', 'vergelabs-media-library' ); ?></a></div>
@@ -2927,7 +2552,7 @@ function vergeml_print_taxonomies_options() {
 
                         <?php vergeml_acc_end(); ?>
 
-                        <?php vergeml_acc_start( 'also', __( 'Also show on media', 'vergelabs-media-library' ), $vgml_facts['also'] ); ?>
+                        <?php vergeml_acc_start( 'also', __( 'Also show on media', 'vergelabs-media-library' ), $vergeml_facts['also'] ); ?>
 
                         <div class="postbox">
                             <p class="vgml-note vgml-tax-other-note"><?php esc_html_e( 'Taxonomies from posts, products and the theme. Ticked ones appear in the filter bar and edit panel.', 'vergelabs-media-library' ); ?></p>
@@ -2967,15 +2592,15 @@ function vergeml_print_taxonomies_options() {
 
                                                 $html .= '<li class="wpuxss-non-eml-taxonomy" id="' . esc_attr($taxonomy->name) . '">';
                                                 $html .= '<input name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][eml_media]" type="hidden" value="' . esc_attr($vergeml_taxonomies[$taxonomy->name]['eml_media']) . '" />';
-                                                $html .= '<label><input class="vergeml-assigned" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][assigned]" type="checkbox" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['assigned'], false ) . ' title="' . __('Assign Taxonomy','vergelabs-media-library') . '" />' . esc_html($taxonomy->label) . '</label>';
-                                                $html .= '<a class="vergeml-button-edit" title="' . __('Edit Taxonomy','vergelabs-media-library') . '" href="javascript:;">' . __('Edit','vergelabs-media-library') . ' &darr;</a>';
+                                                $html .= '<label><input class="vergeml-assigned" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][assigned]" type="checkbox" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['assigned'], false ) . ' title="' . esc_attr__('Assign Taxonomy','vergelabs-media-library') . '" />' . esc_html($taxonomy->label) . '</label>';
+                                                $html .= '<a class="vergeml-button-edit" title="' . esc_attr__('Edit Taxonomy','vergelabs-media-library') . '" href="#">' . esc_html__('Edit','vergelabs-media-library') . ' &darr;</a>';
                                                 $html .= '<div class="vergeml-taxonomy-edit" style="display:none;">';
 
-                                                $html .= '<h4>' . __('Settings','vergelabs-media-library') . '</h4>';
+                                                $html .= '<h4>' . esc_html__('Settings','vergelabs-media-library') . '</h4>';
                                                 $html .= '<ul>';
-                                                $html .= '<li><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-admin_filter" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-admin_filter">' . __('Filter for List View','vergelabs-media-library') . '</label></li>';
-                                                $html .= '<li><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_uploader_filter" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_uploader_filter">' . __('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label></li>';
-                                                $html .= '<li><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_popup_taxonomy_edit" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_popup_taxonomy_edit">' . __('Edit in Media Popup','vergelabs-media-library') . '</label></li>';
+                                                $html .= '<li><input type="checkbox" class="vergeml-admin_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][admin_filter]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-admin_filter" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-admin_filter">' . esc_html__('Filter for List View','vergelabs-media-library') . '</label></li>';
+                                                $html .= '<li><input type="checkbox" class="vergeml-media_uploader_filter" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_uploader_filter]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_uploader_filter" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_uploader_filter'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_uploader_filter">' . esc_html__('Filter for Grid View / Media Popup','vergelabs-media-library') . '</label></li>';
+                                                $html .= '<li><input type="checkbox" class="vergeml-media_popup_taxonomy_edit" name="vergeml_taxonomies[' . esc_attr($taxonomy->name) . '][media_popup_taxonomy_edit]" id="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_popup_taxonomy_edit" value="1" ' . checked( true, (bool) $vergeml_taxonomies[$taxonomy->name]['media_popup_taxonomy_edit'], false ) . ' /><label for="vergeml_taxonomies-' . esc_attr($taxonomy->name) . '-media_popup_taxonomy_edit">' . esc_html__('Edit in Media Popup','vergelabs-media-library') . '</label></li>';
 
                                                 /*
                                                  *  Auto-assign. This used to be greyed out and labelled
@@ -3017,8 +2642,7 @@ function vergeml_print_taxonomies_options() {
                                                 <h4><?php echo esc_html($post_type->label); ?></h4>
                                                 <ul class="vergeml-settings-list vergeml-non-media-taxonomy-list">
                                                     <?php
-                                                    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- assembled above from esc_attr() and esc_html() parts plus literal form markup, which wp_kses would strip.
-                                                    echo $html;
+                                                    echo wp_kses( $html, vergeml_kses_allowed() );
                                                     ?>
                                                 </ul>
 
@@ -3035,7 +2659,7 @@ function vergeml_print_taxonomies_options() {
 
                         <?php vergeml_acc_end(); ?>
 
-                        <?php vergeml_acc_start( 'options', __( 'Options', 'vergelabs-media-library' ), $vgml_facts['options'] ); ?>
+                        <?php vergeml_acc_start( 'options', __( 'Options', 'vergelabs-media-library' ), $vergeml_facts['options'] ); ?>
 
                         <?php $vergeml_tax_options = get_option( 'vergeml_tax_options' ); ?>
 
@@ -3159,14 +2783,24 @@ function vergeml_print_mimetypes_options() {
     <div id="vergeml-global-options-wrap" class="wrap eml-options">
 
         <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'File types', 'vergelabs-media-library' ),
             __( 'What may be uploaded, and how each type is labelled and filtered.', 'vergelabs-media-library' ),
             '<button type="button" class="button" id="eml-restore-mime-types-settings" name="eml-restore-mime-types-settings" value="1">' . esc_html__( 'Restore WordPress defaults', 'vergelabs-media-library' ) . '</button>'
-                . '<a class="button button-primary vergeml-button-create-mime" href="javascript:;">' . esc_html__( 'Add a file type', 'vergelabs-media-library' ) . '</a>'
-        );
+        ), vergeml_kses_allowed() );
         ?>
-        <p class="vgml-ft-safety"><?php esc_html_e( 'WordPress role restrictions still apply to allowed types. SVG can carry scripts — keep it off unless a sanitizer plugin is installed and you trust the uploader with HTML.', 'vergelabs-media-library' ); ?></p>
+        <p class="vgml-ft-safety"><?php esc_html_e( 'Only file types WordPress itself knows can be allowed. Types that can run code or that a browser interprets -- PHP, HTML, CSS, JavaScript, SVG, XML, executables -- cannot be allowed here. WordPress role restrictions still apply.', 'vergelabs-media-library' ); ?></p>
+        <?php
+        $vergeml_dropped = vergeml_mimes_dropped();
+        if ( $vergeml_dropped ) : ?>
+            <div class="notice notice-warning inline"><p><?php
+                echo esc_html( sprintf(
+                    /* translators: %s: comma-separated file extensions */
+                    __( 'Your saved settings name types this version does not allow, so they are left out: %s.', 'vergelabs-media-library' ),
+                    implode( ', ', $vergeml_dropped )
+                ) );
+            ?></p></div>
+        <?php endif; ?>
 
 
         <div id="poststuff">
@@ -3177,7 +2811,7 @@ function vergeml_print_mimetypes_options() {
 
                     <form method="post" action="options.php" id="vergeml-form-mimetypes">
 
-                        <?php settings_fields( 'mime-types' ); ?>
+                        <?php settings_fields( 'vergeml-mime-types' ); ?>
 
                         <div class="vgml-ft-toolbar">
                             <input type="search" class="vgml-input" id="vgml-ft-q" placeholder="<?php esc_attr_e( 'Filter extensions or MIME types…', 'vergelabs-media-library' ); ?>" aria-label="<?php esc_attr_e( 'Filter file types', 'vergelabs-media-library' ); ?>">
@@ -3212,13 +2846,8 @@ function vergeml_print_mimetypes_options() {
                          *  already names. Ninety-eight types in one table was a
                          *  4,600px screen; a person came here to change one of
                          *  them and had to scroll past the other ninety-seven.
-                         *
-                         *  A new type goes into Other and stays there until it
-                         *  is saved, because its kind is not known until it has
-                         *  a MIME type. eml-mimetype-options.js clones into
-                         *  .vgml-ft-new for that reason.
                          */
-                        $vgml_ft_kinds = array(
+                        $vergeml_ft_kinds = array(
                             'image' => __( 'Images', 'vergelabs-media-library' ),
                             'video' => __( 'Video', 'vergelabs-media-library' ),
                             'audio' => __( 'Audio', 'vergelabs-media-library' ),
@@ -3226,43 +2855,43 @@ function vergeml_print_mimetypes_options() {
                             'other' => __( 'Other', 'vergelabs-media-library' ),
                         );
 
-                        $vgml_ft_rows = array_fill_keys( array_keys( $vgml_ft_kinds ), array() );
+                        $vergeml_ft_rows = array_fill_keys( array_keys( $vergeml_ft_kinds ), array() );
 
                         foreach ( $all_mimes as $type => $mime ) {
 
                             if ( isset( $vergeml_mimes[ $type ] ) ) {
-                                $vgml_ft_rows[ $kind_of( (string) $mime ) ][ $type ] = $mime;
+                                $vergeml_ft_rows[ $kind_of( (string) $mime ) ][ $type ] = $mime;
                             }
                         }
                         ?>
 
-                        <div class="vgml-acc" data-acc="mime-types">
+                        <div class="vgml-acc" data-acc="vergeml-mime-types">
 
-                        <?php foreach ( $vgml_ft_kinds as $vgml_kind => $vgml_kind_label ) :
+                        <?php foreach ( $vergeml_ft_kinds as $vergeml_kind => $vergeml_kind_label ) :
 
-                            $vgml_kind_rows = $vgml_ft_rows[ $vgml_kind ];
-                            $vgml_kind_up   = 0;
+                            $vergeml_kind_rows = $vergeml_ft_rows[ $vergeml_kind ];
+                            $vergeml_kind_up   = 0;
 
-                            foreach ( $vgml_kind_rows as $vgml_row_type => $vgml_row_mime ) {
+                            foreach ( $vergeml_kind_rows as $vergeml_row_type => $vergeml_row_mime ) {
 
-                                if ( ! empty( $vergeml_mimes[ $vgml_row_type ]['upload'] ) ) {
-                                    $vgml_kind_up++;
+                                if ( ! empty( $vergeml_mimes[ $vergeml_row_type ]['upload'] ) ) {
+                                    $vergeml_kind_up++;
                                 }
                             }
 
                             vergeml_acc_start(
-                                $vgml_kind,
-                                $vgml_kind_label,
+                                $vergeml_kind,
+                                $vergeml_kind_label,
                                 vergeml_acc_facts( array(
                                     /* translators: %d: how many file types are in this section. */
-                                    sprintf( _n( '%d type', '%d types', count( $vgml_kind_rows ), 'vergelabs-media-library' ), count( $vgml_kind_rows ) ),
+                                    sprintf( _n( '%d type', '%d types', count( $vergeml_kind_rows ), 'vergelabs-media-library' ), count( $vergeml_kind_rows ) ),
                                     /* translators: %d: how many of them may be uploaded. */
-                                    sprintf( __( '%d may be uploaded', 'vergelabs-media-library' ), $vgml_kind_up ),
+                                    sprintf( __( '%d may be uploaded', 'vergelabs-media-library' ), $vergeml_kind_up ),
                                 ) )
                             );
                             ?>
 
-                        <table class="vergeml-mime-type-list wp-list-table widefat<?php echo 'other' === $vgml_kind ? ' vgml-ft-new' : ''; ?>" cellspacing="0">
+                        <table class="vergeml-mime-type-list wp-list-table widefat" cellspacing="0">
                             <thead>
                             <tr>
                                 <th scope="col" class="manage-column vergeml-column-extension"><?php esc_html_e('Extension','vergelabs-media-library'); ?></th>
@@ -3278,7 +2907,7 @@ function vergeml_print_mimetypes_options() {
 
                             <tbody>
 
-                            <?php foreach ( $vgml_kind_rows as $type => $mime ) :
+                            <?php foreach ( $vergeml_kind_rows as $type => $mime ) :
 
                                 if ( isset( $vergeml_mimes[$type] ) ) :
 
@@ -3291,28 +2920,20 @@ function vergeml_print_mimetypes_options() {
                                     $allowed = (bool) $vergeml_mimes[$type]['upload']; ?>
                                     <tr data-kind="<?php echo esc_attr( $kind_of( (string) $mime ) ); ?>" data-search="<?php echo esc_attr( strtolower( $type . ' ' . $mime . ' ' . $vergeml_mimes[$type]['singular'] . ' ' . $vergeml_mimes[$type]['plural'] ) ); ?>">
                                     <td id="<?php echo esc_attr( $type ); ?>"><?php echo esc_html( $label ); ?></td>
-                                    <td><code><?php echo esc_html($mime); ?></code><?php if ( '' !== $note ) : ?><span class="vgml-ft-note"><?php echo esc_html( $note ); ?></span><?php endif; ?><input type="hidden" class="vergeml-mime" name="vergeml_mimes[<?php echo esc_attr($type); ?>][mime]" value="<?php echo esc_html($vergeml_mimes[$type]['mime']); ?>" /></td>
-                                    <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][singular]" value="<?php echo esc_html($vergeml_mimes[$type]['singular']); ?>" /></td>
-                                    <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][plural]" value="<?php echo esc_html($vergeml_mimes[$type]['plural']); ?>" /></td>
-                                    <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][filter]" title="<?php esc_html_e('Add Filter','vergelabs-media-library'); ?>" value="1" <?php checked(true, (bool) $vergeml_mimes[$type]['filter']); ?> /></td>
-                                    <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][upload]" title="<?php esc_html_e('Allow Upload','vergelabs-media-library'); ?>" value="1" <?php checked(true, $allowed); ?> /></td>
-                                    <td><a class="vergeml-button-remove" title="<?php esc_html_e('Delete MIME Type','vergelabs-media-library'); ?>" href="javascript:;">&ndash;</a></td>
+                                    <td><code><?php echo esc_html($mime); ?></code><?php if ( '' !== $note ) : ?><span class="vgml-ft-note"><?php echo esc_html( $note ); ?></span><?php endif; ?><input type="hidden" class="vergeml-mime" name="vergeml_mimes[<?php echo esc_attr($type); ?>][mime]" value="<?php echo esc_attr($vergeml_mimes[$type]['mime']); ?>" /></td>
+                                    <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][singular]" value="<?php echo esc_attr($vergeml_mimes[$type]['singular']); ?>" /></td>
+                                    <td><input type="text" name="vergeml_mimes[<?php echo esc_attr($type); ?>][plural]" value="<?php echo esc_attr($vergeml_mimes[$type]['plural']); ?>" /></td>
+                                    <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][filter]" title="<?php esc_attr_e('Add Filter','vergelabs-media-library'); ?>" value="1" <?php checked(true, (bool) $vergeml_mimes[$type]['filter']); ?> /></td>
+                                    <?php if ( vergeml_mime_refused( $type ) ) : ?>
+                                    <td class="checkbox_td"><input type="checkbox" title="<?php esc_attr_e( 'Blocked for safety', 'vergelabs-media-library' ); ?>" disabled /></td>
+                                    <?php else : ?>
+                                    <td class="checkbox_td"><input type="checkbox" name="vergeml_mimes[<?php echo esc_attr($type); ?>][upload]" title="<?php esc_attr_e('Allow Upload','vergelabs-media-library'); ?>" value="1" <?php checked(true, $allowed); ?> /></td>
+                                    <?php endif; ?>
+                                    <td><a class="vergeml-button-remove" title="<?php esc_attr_e('Delete MIME Type','vergelabs-media-library'); ?>" href="javascript:;">&ndash;</a></td>
                                     </tr>
 
                                 <?php endif; ?>
                             <?php endforeach; ?>
-
-                            <?php if ( 'other' === $vgml_kind ) : ?>
-                            <tr class="vergeml-clone" style="display:none;">
-                                <td><input type="text" class="vergeml-type" placeholder="jpg|jpeg|jpe" /></td>
-                                <td><input type="text" class="vergeml-mime" placeholder="image/jpeg" /></td>
-                                <td><input type="text" class="vergeml-singular" placeholder="Image" /></td>
-                                <td><input type="text" class="vergeml-plural" placeholder="Images" /></td>
-                                <td class="checkbox_td"><input type="checkbox" class="vergeml-filter" title="<?php esc_html_e('Add Filter','vergelabs-media-library'); ?>" value="1" /></td>
-                                <td class="checkbox_td"><input type="checkbox" class="vergeml-upload" title="<?php esc_html_e('Allow Upload','vergelabs-media-library'); ?>" value="1" /></td>
-                                <td><a class="vergeml-button-remove" title="<?php esc_html_e('Delete MIME Type','vergelabs-media-library'); ?>" href="javascript:;">&ndash;</a></td>
-                            </tr>
-                            <?php endif; ?>
 
                             </tbody>
                         </table>
@@ -3328,61 +2949,13 @@ function vergeml_print_mimetypes_options() {
                             <button type="button" class="button" id="vgml-ft-clear"><?php esc_html_e( 'Clear the filter', 'vergelabs-media-library' ); ?></button>
                         </div>
                         <?php vergeml_print_mimetypes_buttons(); ?>
-                        <script>
-                        ( function () {
-                            var q = document.getElementById( 'vgml-ft-q' );
-                            var kinds = document.querySelectorAll( '.vgml-ft-kinds button' );
-                            var rows = document.querySelectorAll( '.vergeml-mime-type-list tbody tr[data-kind]' );
-                            var count = document.getElementById( 'vgml-ft-count' );
-                            var empty = document.getElementById( 'vgml-ft-empty' );
-                            var clear = document.getElementById( 'vgml-ft-clear' );
-                            var kind = 'all';
-                            var total = rows.length;
-                            <?php /* translators: 1: how many file types are shown, 2: how many there are */ ?>
-                            var shownOf = <?php echo wp_json_encode( __( '%1$s of %2$s types shown', 'vergelabs-media-library' ) ); ?>;
-                            var sections = document.querySelectorAll( '.vgml-acc-item' );
-                            /*
-                             *  A filter that hides rows inside closed sections
-                             *  finds nothing a person can see. So a filter opens
-                             *  the sections that still have a row and closes the
-                             *  ones that do not; with no filter on, the sections
-                             *  are theirs again and js/vergeml-settings.js has
-                             *  the last word.
-                             */
-                            function apply() {
-                                var needle = ( q.value || '' ).trim().toLowerCase();
-                                var shown = 0;
-                                var live = {};
-                                Array.prototype.forEach.call( rows, function ( r ) {
-                                    var ok = ( kind === 'all' || r.getAttribute( 'data-kind' ) === kind ) && ( ! needle || r.getAttribute( 'data-search' ).indexOf( needle ) >= 0 );
-                                    r.classList.toggle( 'is-hidden', ! ok );
-                                    if ( ok ) { shown++; live[ r.getAttribute( 'data-kind' ) ] = true; }
-                                } );
-                                if ( 'all' !== kind || needle ) {
-                                    Array.prototype.forEach.call( sections, function ( s ) {
-                                        s.open = live[ s.getAttribute( 'data-section' ) ] === true;
-                                    } );
-                                }
-                                count.textContent = shownOf.replace( '%1$s', String( shown ) ).replace( '%2$s', String( total ) );
-                                empty.hidden = shown > 0;
-                            }
-                            q.addEventListener( 'input', apply );
-                            Array.prototype.forEach.call( kinds, function ( b ) {
-                                b.addEventListener( 'click', function () {
-                                    kind = b.getAttribute( 'data-kind' );
-                                    Array.prototype.forEach.call( kinds, function ( x ) { x.classList.toggle( 'is-on', x === b ); } );
-                                    apply();
-                                } );
-                            } );
-                            clear.addEventListener( 'click', function () {
-                                q.value = '';
-                                kind = 'all';
-                                Array.prototype.forEach.call( kinds, function ( x ) { x.classList.toggle( 'is-on', x.getAttribute( 'data-kind' ) === 'all' ); } );
-                                apply();
-                            } );
-                            apply();
-                        }() );
-                        </script>
+                        <?php
+                        wp_enqueue_script( 'vergeml-file-types-filter', plugins_url( 'js/vergeml-file-types-filter.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-file-types-filter.js' ), true );
+                        wp_localize_script( 'vergeml-file-types-filter', 'vergemlFileTypes', array(
+                            /* translators: 1: how many file types are shown, 2: how many there are */
+                            'shownOf' => __( '%1$s of %2$s types shown', 'vergelabs-media-library' ),
+                        ) );
+                        ?>
 
                     </form>
 
@@ -3449,144 +3022,3 @@ function vergeml_print_credits() { ?>
 
     <?php
 }
-
-
-
-
-
-
-
-/**
- *  vergeml_admin_notice
- *
- *  Shows a notice
- * 
- *  @since    2.8.10
- *  @created  2024/04
- */
-
-add_action( 'admin_notices', 'vergeml_admin_notice' );
-add_action( 'network_admin_notices', 'vergeml_admin_notice' );
-
-function vergeml_admin_notice() {
-
-    global // $pagenow,
-           $current_screen;
-
-
-    if ( ! current_user_can( 'manage_options' ) ) {
-        return;
-    }
-
-
-    $notices = get_site_option( 'vergeml_notices', array() );
-
-
-    if ( empty( $notices ) ) {
-        return;
-    }
-
-
-    if ( ! isset( $notices['current'] ) ) {
-        return;
-    }
-
-
-    $notice_id = $notices['current'];
-
-
-    $user_id = get_current_user_id();
-    if ( get_user_meta( $user_id, "vergeml_{$notice_id}_notice_dismissed" ) ) {
-        return;
-    }
-
-
-    $notice = $notices[$notice_id];
-
-
-    if (    ! empty( $notice['version'] ) && 
-            version_compare( VERGEML_VERSION, $notice['version'], '>=' ) 
-        ) {
-        return;
-    }
-
-
-    if (    ! empty( $notice['for'] ) ) {
-
-        // a notice for multisite users only
-        if ( in_array( 'multisite', $notice['for'] ) && ! is_multisite() ) {
-            return;
-        }
-    }
-
-
-    if (    ! isset( $notice['screens'] ) || 
-            ! in_array( $current_screen->base, $notice['screens'] ) 
-        ) {
-        return;
-    }
-
-
-    printf(
-        '<div class="notice notice-%2$s is-dismissible eml-admin-notice dashicons-before" id="%3$s">
-            %1$s
-        </div>',
-        wp_kses(
-            $notice['message'],
-            array(
-                'p'      => array(),
-                'a'      => array(
-                    'href'   => array(),
-                    'title'  => array(),
-                    'class'  => array(),
-                    'target' => array()
-                ),
-                'br'     => array(),
-                'em'     => array(),
-                'strong' => array( 
-                    'class'  => array()
-                )
-            )
-        ),
-        esc_attr( $notice['type'] ),
-        esc_html( $notice_id )
-    );
-}
-
-
-
-/**
- *  vergeml_admin_notice_dismiss
- *
- *  Associates a dismissed notice mark with a user
- * 
- *  @since    2.8.10
- *  @created  2024/04
- */
-
-add_action( 'wp_ajax_vergeml-admin-notice-dismiss', 'vergeml_admin_notice_dismiss' );
-
-function vergeml_admin_notice_dismiss() {
-
-    if ( ! isset( $_POST['notice_id'] ) )
-        wp_die();
-
-
-    check_ajax_referer( 'eml-admin-notice-nonce', 'nonce' );
-
-
-    if ( ! isset( $_POST['notice_id'] ) )
-        wp_send_json_error();
-
-    $notice_id = sanitize_text_field( wp_unslash( $_POST['notice_id'] ) );
-    $user_id = get_current_user_id();
-
-    update_user_meta( $user_id, "vergeml_{$notice_id}_notice_dismissed", true );
-
-
-    wp_die();
-}
-
-
-
-

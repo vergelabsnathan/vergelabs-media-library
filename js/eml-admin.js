@@ -3,18 +3,11 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 ( function( $ ) {
 
-    _.extend( vergeml.l10n, vergeml_admin_l10n );
 
 
 
 
     var w;
-
-
-    if ( 'settings_page_media' == window.adminpage )
-        window.adminpage = 'options-media-php';
-    if ( 'settings_page_media' == window.pagenow )
-        window.pagenow = 'options-media';
 
 
     if ( $(window).width() < 600 )
@@ -101,23 +94,11 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 
     window.vergemlFullscreenSpinnerStart = function( text ) {
-        $('body').append( '<div class="fullscreen-spinner-box"><div class="fullscreen-spinner-inner-box"><span class="eml-spinner">'+text+'</span></div></div>' );
+        $('body').append( '<div class="vergeml-fullscreen-spinner-box"><div class="vergeml-fullscreen-spinner-inner-box"><span class="eml-spinner">'+text+'</span></div></div>' );
     }
 
 
     window.vergemlFullscreenSpinnerStop = function() {
-        $('.fullscreen-spinner-box').remove();
+        $('.vergeml-fullscreen-spinner-box').remove();
     }
-
-    $( document ).on( 'click', '.eml-admin-notice .notice-dismiss', function( event ) {
-
-        var notice_id = $( event.currentTarget ).parent('.eml-admin-notice').attr('id');
-
-        $.post( ajaxurl, {
-            nonce:     vergeml.l10n.admin_notice_nonce,
-            action:    'vergeml-admin-notice-dismiss',
-            notice_id: notice_id
-        });        
-    });
-
 })( jQuery );

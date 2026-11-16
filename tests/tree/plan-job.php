@@ -121,6 +121,10 @@ function wp_schedule_single_event( $ts, $hook ) {
     return true;
 }
 function spawn_cron() {}
+// The main plugin file's (78f1a5f), which this fixture does not load; a job here never asks for more time.
+function vergeml_can_set_time_limit() {
+    return false;
+}
 function wp_load_alloptions() {
     return $GLOBALS['pj_autoloaded'];
 }
@@ -144,7 +148,7 @@ function vergeml_term_name( $t ) {
     return html_entity_decode( (string) $t->name, ENT_QUOTES, 'UTF-8' );
 }
 function vergeml_librarian_taxonomy() {
-    return 'media_category';
+    return 'vergeml_folder';
 }
 function vergeml_filing_classes_of_object( $object ) {
     return array_values( array_filter( array_map( 'trim', preg_split( '/\s*[;,]\s*/u', mb_strtolower( trim( (string) $object ) ) ) ), 'strlen' ) );
@@ -221,7 +225,8 @@ class PJ_Wpdb {
     public $postmeta         = 'wp_postmeta';
     public function prepare( $q ) {
         $args = array_slice( func_get_args(), 1 );
-        return vsprintf( str_replace( array( '%d', '%s' ), array( '%d', "'%s'" ), $q ), $args );
+        // %i is an identifier since round 4's %i rewrite; vsprintf does not know it.
+        return vsprintf( str_replace( array( '%d', '%s', '%i' ), array( '%d', "'%s'", '`%s`' ), $q ), $args );
     }
     public function get_row( $q ) {
         return array( 'n' => count( $GLOBALS['pj_rows'] ), 'at' => $GLOBALS['pj_stamp'] );
@@ -442,17 +447,17 @@ pj_check( '11. a press whose button showed less than the plan now costs is refus
 pj_reset();
 pj_press();
 $shown = pj_session()['plan']['price'];
-// Seventeen labels more are described before cron starts the job: 19 labels cost 12, the button said 11.
+// Seventeen labels more are described before cron starts the job: 19 labels cost 33 (30 + 15 per 100 labels, rounded up), the button said 31.
 for ( $i = 0; $i < 17; $i++ ) {
     $GLOBALS['pj_rows'][] = pj_row( 100 + $i, 'thing ' . $i . '; stuff', '', array( 0, 0, 1 ) );
 }
 vergeml_plan_event();
 $s = pj_session();
-pj_check( '12. a job whose full count costs more than the button said fails before the ask, and carries the new price', 11 === $shown && array() === $GLOBALS['pj_calls'] && 'failed' === $s['plan']['state'] && 12 === $s['plan']['price'] && 'The plan now costs 12 credits. Nothing was charged.' === $s['plan']['message'], json_encode( $s['plan'] ) );
+pj_check( '12. a job whose full count costs more than the button said fails before the ask, and carries the new price', 31 === $shown && array() === $GLOBALS['pj_calls'] && 'failed' === $s['plan']['state'] && 33 === $s['plan']['price'] && 'The plan now costs 33 credits. Nothing was charged.' === $s['plan']['message'], json_encode( $s['plan'] ) );
 
 pj_reset();
 vergeml_plan_rest_start( new WP_REST_Request( array() ) );
-pj_check( '13. a screen from before the check (no price sent) is held to the press\'s own count', 11 === pj_session()['plan']['price'] && 'running' === pj_session()['plan']['state'] );
+pj_check( '13. a screen from before the check (no price sent) is held to the press\'s own count', 31 === pj_session()['plan']['price'] && 'running' === pj_session()['plan']['state'] );
 
 /* ----------------------------------- L2  a library too small to make a folder */
 

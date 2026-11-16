@@ -41,14 +41,14 @@ function vergeml_ai_tab() {
 }
 
 function vergeml_ai_tab_url( $tab ) {
-    return admin_url( 'admin.php?page=media-ai' . ( 'describe' === $tab ? '' : '&tab=' . $tab ) );
+    return admin_url( 'admin.php?page=vergeml-ai' . ( 'describe' === $tab ? '' : '&tab=' . $tab ) );
 }
 
 add_action( 'admin_enqueue_scripts', 'vergeml_ai_screen_assets' );
 
 function vergeml_ai_screen_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-ai' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-ai' ) ) {
         return;
     }
 
@@ -71,12 +71,12 @@ function vergeml_ai_screen_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-ai',
         plugins_url( 'js/vergeml-ai.js', VERGEML_FILE ),
-        array( 'wp-api-fetch', 'wp-i18n' ),
+        array( 'vergeml-transport', 'wp-i18n' ),
         vergeml_asset_ver( 'js/vergeml-ai.js' ),
         true
     );
     wp_set_script_translations( 'vergeml-ai', 'vergelabs-media-library' );
-    wp_localize_script( 'vergeml-ai', 'vgmlAi', array(
+    wp_localize_script( 'vergeml-ai', 'vergemlAi', array(
         'tab'          => $tab,
         'ns'           => VERGEML_REST_NS,
         'canConfigure' => current_user_can( 'manage_options' ),
@@ -113,34 +113,51 @@ function vergeml_ai_screen_counts() {
         'stale'     => function_exists( 'vergeml_ai_pending_count' ) ? (int) vergeml_ai_pending_count( 'stale' ) : 0,
     );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table, and core's.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table, and core's.
     $c['images'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_status = 'inherit' AND post_mime_type LIKE 'image/%'" );
     // DISTINCT: a picture with two alt rows (an import left duplicates on the box) is one picture with alt text.
     $c['alt_have'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_wp_attachment_image_alt' WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE 'image/%' AND m.meta_value <> ''" );
 
     if ( '' !== $t ) {
-        $c['described'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND embedding IS NOT NULL" );
-        $c['alt_model'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT i.attachment_id) FROM {$t} i JOIN {$wpdb->postmeta} m ON m.post_id = i.attachment_id AND m.meta_key = '_wp_attachment_image_alt' WHERE i.error = '' AND m.meta_value = i.alt" );
-        $c['titled']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} i JOIN {$wpdb->posts} p ON p.ID = i.attachment_id WHERE i.error = '' AND p.post_title = i.title" );
-        foreach ( (array) $wpdb->get_results( "SELECT kind, COUNT(*) n FROM {$t} WHERE error = '' GROUP BY kind ORDER BY n DESC", ARRAY_A ) as $row ) {
+        $c['described'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND embedding IS NOT NULL", $t ) );
+        $c['alt_model'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT i.attachment_id) FROM %i i JOIN {$wpdb->postmeta} m ON m.post_id = i.attachment_id AND m.meta_key = '_wp_attachment_image_alt' WHERE i.error = '' AND m.meta_value = i.alt", $t ) );
+        $c['titled']    = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i i JOIN {$wpdb->posts} p ON p.ID = i.attachment_id WHERE i.error = '' AND p.post_title = i.title", $t ) );
+        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT kind, COUNT(*) n FROM %i WHERE error = '' GROUP BY kind ORDER BY n DESC", $t ), ARRAY_A ) as $row ) {
             $c['kinds'][ '' === (string) $row['kind'] ? 'none' : (string) $row['kind'] ] = (int) $row['n'];
         }
-        $flags = $wpdb->get_row( "SELECT SUM(has_people = 1) people, SUM(has_text = 1) txt FROM {$t} WHERE error = ''", ARRAY_A );
+        $flags = $wpdb->get_row( $wpdb->prepare( "SELECT SUM(has_people = 1) people, SUM(has_text = 1) txt FROM %i WHERE error = ''", $t ), ARRAY_A );
         $c['people'] = (int) ( $flags ? $flags['people'] : 0 );
         $c['text']   = (int) ( $flags ? $flags['txt'] : 0 );
-        $sums = array();
-        foreach ( array( 'object', 'material', 'colour', 'setting', 'style', 'audience', 'season', 'details' ) as $f ) {
-            $sums[] = $wpdb->prepare( "SUM(filing LIKE %s AND filing NOT LIKE %s) AS {$f}", '%"' . $f . '":"%', '%"' . $f . '":""%' );
-        }
-        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- every fragment above went through prepare(); the field names come from the fixed list, not from input.
-        $filing = $wpdb->get_row( 'SELECT ' . implode( ', ', $sums ) . " FROM {$t} WHERE error = ''", ARRAY_A );
+        // A field counts when the filing JSON carries it with a value: "field":"x", not "field":"".
+        $filing = $wpdb->get_row( $wpdb->prepare(
+            "SELECT SUM(filing LIKE %s AND filing NOT LIKE %s) AS object,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS material,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS colour,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS setting,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS style,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS audience,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS season,
+                    SUM(filing LIKE %s AND filing NOT LIKE %s) AS details
+               FROM %i WHERE error = ''",
+            array(
+                '%"object":"%', '%"object":""%',
+                '%"material":"%', '%"material":""%',
+                '%"colour":"%', '%"colour":""%',
+                '%"setting":"%', '%"setting":""%',
+                '%"style":"%', '%"style":""%',
+                '%"audience":"%', '%"audience":""%',
+                '%"season":"%', '%"season":""%',
+                '%"details":"%', '%"details":""%',
+                $t,
+            )
+        ), ARRAY_A );
         foreach ( (array) $filing as $f => $n ) {
             $c['filing'][ $f ] = (int) $n;
         }
         $c['runs'] = array_map( function ( $r ) {
             return array( 'day' => (string) $r['d'], 'last' => (string) $r['last'], 'n' => (int) $r['n'] );
-        }, (array) $wpdb->get_results( "SELECT DATE(described_at) d, MAX(described_at) last, COUNT(*) n FROM {$t} WHERE error = '' AND described_at IS NOT NULL GROUP BY DATE(described_at) ORDER BY d DESC LIMIT 3", ARRAY_A ) );
-        $c['last'] = (string) $wpdb->get_var( "SELECT MAX(described_at) FROM {$t} WHERE error = ''" );
+        }, (array) $wpdb->get_results( $wpdb->prepare( "SELECT DATE(described_at) d, MAX(described_at) last, COUNT(*) n FROM %i WHERE error = '' AND described_at IS NOT NULL GROUP BY DATE(described_at) ORDER BY d DESC LIMIT 3", $t ), ARRAY_A ) );
+        $c['last'] = (string) $wpdb->get_var( $wpdb->prepare( "SELECT MAX(described_at) FROM %i WHERE error = ''", $t ) );
     }
     // phpcs:enable
 
@@ -181,7 +198,7 @@ function vergeml_ai_facts_line( $c ) {
 
 function vergeml_ai_page() {
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
@@ -200,12 +217,12 @@ function vergeml_ai_page() {
             printf(
                 '<div class="notice notice-info"><p>%s <a href="%s">%s</a></p></div>',
                 esc_html__( 'No licence is connected, so nothing can be described yet.', 'vergelabs-media-library' ),
-                esc_url( admin_url( 'admin.php?page=media-licence' ) ),
+                esc_url( admin_url( 'admin.php?page=vergeml-licence' ) ),
                 esc_html__( 'Connect one on the Licence tab', 'vergelabs-media-library' )
             );
         }
 
-        echo vergeml_pg_head( __( 'AI', 'vergelabs-media-library' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head( __( 'AI', 'vergelabs-media-library' ) ), vergeml_kses_allowed() );
         ?>
         <p class="vgml-ai-factsline" id="vgml-ai-counts"><?php echo esc_html( vergeml_ai_facts_line( $counts ) ); ?></p>
 
@@ -302,10 +319,11 @@ function vergeml_ai_tab_describe( $c ) {
             </div>
             <div class="vgml-import-bar vgml-ai-bar" id="vgml-ai-bar" hidden><div class="vgml-import-fill" id="vgml-ai-fill"></div></div>
             <div class="vgml-import-bar vgml-ai-bar" id="vgml-ai-bg-bar" hidden><div class="vgml-import-fill" id="vgml-ai-bg-fill"></div></div>
-            <?php if ( ! $offer && isset( $_GET['vgml_trial'] ) && $c['missing'] > 0 ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a display flag, not an action. ?>
+            <?php // The run starts by itself only after the owner's own press on the trial offer, which minted this nonce. ?>
+            <?php if ( ! $offer && isset( $_GET['vergeml_trial'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['vergeml_trial'] ) ), 'vergeml_trial_start' ) && $c['missing'] > 0 ) : ?>
             <?php /* translators: %s: a number of pictures */ ?>
             <p class="vgml-ai-line"><?php echo esc_html( sprintf( __( '%s free credits on this site. Writing alt text now; it stops when they are used.', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?></p>
-            <script>window.addEventListener( 'load', function () { var b = document.getElementById( 'vgml-ai-alt' ); if ( b && ! b.disabled ) { b.click(); } } );</script>
+            <?php vergeml_screen_script( 'vergeml-trial-start', 'vergeml-trial-start.js' ); ?>
             <?php endif; ?>
             <p class="vgml-ai-line" id="vgml-ai-note"></p>
             <p class="vgml-ai-line" id="vgml-ai-bg-note"></p>
@@ -392,7 +410,7 @@ function vergeml_ai_tab_describe( $c ) {
             </ul>
             <div class="vgml-ai-buttons">
                 <a class="vgml-btn" href="<?php echo esc_url( vergeml_buy_url( '/pricing', 'ai' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Get credits ↗', 'vergelabs-media-library' ); ?></a>
-                <a class="vgml-btn vgml-btn-ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=media-licence' ) ); ?>"><?php esc_html_e( 'Licence →', 'vergelabs-media-library' ); ?></a>
+                <a class="vgml-btn vgml-btn-ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=vergeml-licence' ) ); ?>"><?php esc_html_e( 'Licence →', 'vergelabs-media-library' ); ?></a>
             </div>
         </div>
         <?php if ( $c['runs'] ) : ?>

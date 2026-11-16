@@ -513,8 +513,8 @@ function vergeml_filing_vocabulary( $limit = 80 ) {
     if ( isset( $known[ (int) $limit ] ) ) {
         return $known[ (int) $limit ];
     }
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    $rows  = (array) $wpdb->get_col( "SELECT filing FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND filing IS NOT NULL AND filing <> '' ORDER BY described_at DESC LIMIT 5000" );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    $rows  = (array) $wpdb->get_col( $wpdb->prepare( "SELECT filing FROM %i WHERE error = '' AND filing IS NOT NULL AND filing <> '' ORDER BY described_at DESC LIMIT 5000", $wpdb->vergeml_ai_index ) );
     $count = array();
     $seen  = array();
     foreach ( $rows as $json ) {
@@ -1140,20 +1140,18 @@ function vergeml_filing_members_layers( $term_ids, $taxonomy ) {
     if ( ! $term_ids || ! isset( $wpdb->vergeml_ai_index ) ) {
         return array();
     }
-    $in = implode( ',', $term_ids );
     // A locked folder is never a candidate, so it has no layer and owns no word: on the tech library To sort held seven
     // smart speakers, won the word, and Batteries and Components both ceded it (2026-09-17).
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; one %d per term id, the ids are bound.
     $stamps = $wpdb->get_results( $wpdb->prepare(
         "SELECT tt.term_id, COUNT(*) AS n, SUM(i.attachment_id) AS ids, SUM(i.attachment_id * i.attachment_id) AS sq, MAX(i.described_at) AS last
            FROM {$wpdb->term_relationships} tr
            JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-           JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = tr.object_id
+           JOIN %i i ON i.attachment_id = tr.object_id
            LEFT JOIN {$wpdb->termmeta} lk ON lk.term_id = tt.term_id AND lk.meta_key = %s AND lk.meta_value = '1'
-          WHERE tt.taxonomy = %s AND tt.term_id IN ({$in}) AND lk.term_id IS NULL AND i.error = '' AND i.filing IS NOT NULL AND i.filing <> ''
+          WHERE tt.taxonomy = %s AND tt.term_id IN ( " . implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) . " ) AND lk.term_id IS NULL AND i.error = '' AND i.filing IS NOT NULL AND i.filing <> ''
        GROUP BY tt.term_id",
-        VERGEML_FILING_LOCKED,
-        $taxonomy
+        array_merge( array( $wpdb->vergeml_ai_index, VERGEML_FILING_LOCKED, $taxonomy ), $term_ids )
     ), ARRAY_A );
     $out   = array();
     $stale = array();
@@ -1174,15 +1172,15 @@ function vergeml_filing_members_layers( $term_ids, $taxonomy ) {
     if ( ! $stale ) {
         return $out;
     }
-    $in   = implode( ',', array_keys( $stale ) );
+    $stale_ids = array_keys( $stale );
     $rows = $wpdb->get_results( $wpdb->prepare(
         "SELECT tt.term_id, i.attachment_id, i.filing, i.kind, i.embedding
            FROM {$wpdb->term_relationships} tr
            JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-           JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = tr.object_id
-          WHERE tt.taxonomy = %s AND tt.term_id IN ({$in}) AND i.error = '' AND i.filing IS NOT NULL AND i.filing <> ''
+           JOIN %i i ON i.attachment_id = tr.object_id
+          WHERE tt.taxonomy = %s AND tt.term_id IN ( " . implode( ', ', array_fill( 0, count( $stale_ids ), '%d' ) ) . " ) AND i.error = '' AND i.filing IS NOT NULL AND i.filing <> ''
        ORDER BY tt.term_id, i.attachment_id",
-        $taxonomy
+        array_merge( array( $wpdb->vergeml_ai_index, $taxonomy ), $stale_ids )
     ), ARRAY_A );
     // phpcs:enable
     $members = array();
@@ -1345,7 +1343,7 @@ add_action( 'edited_term', 'vergeml_filing_on_term_change', 10, 3 );
 add_action( 'delete_term', 'vergeml_filing_on_term_change', 10, 3 );
 
 function vergeml_filing_on_term_change( $term_id, $tt_id, $taxonomy ) {
-    $wanted = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $wanted = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
     if ( $taxonomy === $wanted ) {
         vergeml_filing_forget( $term_id );
     }
@@ -1564,53 +1562,6 @@ function vergeml_filing_word_match( $word, $class ) {
     }
     $cw = explode( ' ', $c );
     return count( $cw ) > 1 && end( $cw ) === $w ? 0.95 : 0.0;
-}
-
-/**
- *  The SELECT and JOIN fragments a reader adds so a row carries the picture's
- *  file, title and alt (S10.9); $i is the index table's alias. The alt counts
- *  only when a person wrote it: the describer's own alt (the index keeps it,
- *  and the AI screen counts "alt equals the model's" the same way) is a
- *  sentence naming everything in the scene, and on the tech library, where
- *  every alt is the model's, it doubled the ties (margin 62 -> 162 against
- *  104 from the file and title alone, 2026-09-17).
- */
-function vergeml_filing_words_sql( $i = 'i' ) {
-    global $wpdb;
-    return array(
-        'select' => "wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = {$i}.alt THEN '' ELSE wp_a.meta_value END AS alt",
-        'join'   => "LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = {$i}.attachment_id
-           LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = {$i}.attachment_id AND wp_f.meta_key = '_wp_attached_file'
-           LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = {$i}.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'",
-    );
-}
-
-/**
- *  The SELECT and JOIN fragments a reader adds so a row carries the product
- *  the picture belongs to (S10.8): the product it is the featured image of
- *  (_thumbnail_id), the one whose gallery lists it (_product_image_gallery),
- *  or the one it was uploaded to (post_parent) -- the first that is a
- *  product, as product_id, else NULL. Each is one correlated lookup that
- *  narrows on the meta key first, so a picture in no shop costs three index
- *  reads. Without WooCommerce's product type there is nothing to join: the
- *  column is NULL and the join empty.
- */
-function vergeml_filing_product_sql( $i = 'i' ) {
-    global $wpdb;
-    if ( ! function_exists( 'post_type_exists' ) || ! post_type_exists( 'product' ) ) {
-        return array( 'select' => 'NULL AS product_id', 'join' => '' );
-    }
-    return array(
-        'select' => "COALESCE(
-            ( SELECT vp1.ID FROM {$wpdb->postmeta} vm1 JOIN {$wpdb->posts} vp1 ON vp1.ID = vm1.post_id AND vp1.post_type = 'product'
-               WHERE vm1.meta_key = '_thumbnail_id' AND vm1.meta_value = CAST({$i}.attachment_id AS CHAR) LIMIT 1 ),
-            ( SELECT vp2.ID FROM {$wpdb->postmeta} vm2 JOIN {$wpdb->posts} vp2 ON vp2.ID = vm2.post_id AND vp2.post_type = 'product'
-               WHERE vm2.meta_key = '_product_image_gallery' AND FIND_IN_SET({$i}.attachment_id, vm2.meta_value) LIMIT 1 ),
-            ( SELECT vp3.ID FROM {$wpdb->posts} va3 JOIN {$wpdb->posts} vp3 ON vp3.ID = va3.post_parent AND vp3.post_type = 'product'
-               WHERE va3.ID = {$i}.attachment_id LIMIT 1 )
-          ) AS product_id",
-        'join'   => '',
-    );
 }
 
 /**
@@ -1833,7 +1784,7 @@ function vergeml_filing_ask_model( $rows, $profiles ) {
  *  @param array $row An index row: 'filing' (json), 'kind', 'embedding'; 'placed_by',
  *                    'in_locked' (sits in a locked folder) and 'in_locked_other'
  *                    (one besides To sort) when the caller joined them;
- *                    'file', 'title', 'alt' (vergeml_filing_words_sql) or 'words' ready-made.
+ *                    'file', 'title', 'alt' or 'words' ready-made.
  *  @return array 'classes', 'kind', 'audience', 'vector', 'placed_by', 'in_locked', 'in_locked_other', 'words'.
  */
 function vergeml_filing_facts( $row ) {
@@ -3135,7 +3086,7 @@ function vergeml_filing_profile_existing( $taxonomy, $force = false ) {
 function vergeml_filing_profile_ask( $current, &$charged = 0, $from = 0, $total = null ) {
 
     if ( ! function_exists( 'vergeml_ai_settings' ) ) {
-        return new WP_Error( 'no_ai', 'AI not loaded.' );
+        return new WP_Error( 'no_ai', __( 'The AI features are not loaded.', 'vergelabs-media-library' ) );
     }
     $settings = vergeml_ai_settings();
     $licence  = vergeml_ai_unseal( isset( $settings['license_key'] ) ? $settings['license_key'] : '' );

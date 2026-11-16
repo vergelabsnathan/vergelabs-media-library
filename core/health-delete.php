@@ -175,6 +175,116 @@ function vergeml_health_pick_keep( $ids ) {
  * @return array{content:int,thumbs:int} What was changed.
  */
 /**
+ *  Whether this person may have this content written into this post: they
+ *  may edit the post, and kses would not cut anything out of it on the way
+ *  in. wp_update_post() runs content through kses for anyone without
+ *  unfiltered_html (an administrator on a multisite), and a post that holds
+ *  an iframe would lose it -- a duplicate file is not worth that.
+ */
+function vergeml_health_may_rewrite( $post_id, $content ) {
+
+	return current_user_can( 'edit_post', (int) $post_id )
+		&& ( current_user_can( 'unfiltered_html' ) || wp_kses_post( $content ) === $content );
+}
+
+/**
+ *  Write a post's content the way an edit does: wp_update_post(), so
+ *  revisions, save_post and the caches see it. Slashed, as it expects.
+ */
+function vergeml_health_write_content( $post_id, $content ) {
+
+	$done = wp_update_post( wp_slash( array( 'ID' => (int) $post_id, 'post_content' => $content ) ), true );
+
+	return $done && ! is_wp_error( $done );
+}
+
+/**
+ *  One postmeta row rewritten by its id, through the metadata API so its hooks
+ *  and cache run. The stored value is raw, so it is unserialized first or the
+ *  API would serialize it a second time.
+ */
+function vergeml_health_write_meta( $meta_id, $raw ) {
+
+	return (bool) update_metadata_by_mid( 'post', (int) $meta_id, maybe_unserialize( $raw ) );
+}
+
+/**
+ *  An attachment's parent, through wp_update_post().
+ */
+function vergeml_health_write_parent( $post_id, $parent ) {
+
+	$done = wp_update_post( array( 'ID' => (int) $post_id, 'post_parent' => (int) $parent ), true );
+
+	return $done && ! is_wp_error( $done );
+}
+
+/**
+ *  The posts a repoint from one file to the other would change that this
+ *  person may not change: no edit_post on them, or content kses would cut.
+ *  A file is deleted only when this is empty; otherwise a reference that
+ *  could not be moved would break when the file goes.
+ *
+ * @return int[]
+ */
+function vergeml_health_repoint_refused( $from, $to ) {
+
+	global $wpdb;
+
+	$from    = (int) $from;
+	$to      = (int) $to;
+	$refused = array();
+	$old_url = wp_get_attachment_url( $from );
+	$new_url = wp_get_attachment_url( $to );
+
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- the same reads vergeml_health_repoint() makes, before it writes.
+	if ( is_string( $old_url ) && is_string( $new_url ) && $old_url !== $new_url ) {
+
+		$old_stem = preg_replace( '/\.[a-zA-Z0-9]+$/', '', $old_url );
+		$new_stem = preg_replace( '/\.[a-zA-Z0-9]+$/', '', $new_url );
+		$like     = '%' . $wpdb->esc_like( $old_stem ) . '%';
+
+		$posts = $wpdb->get_results( $wpdb->prepare(
+			"SELECT ID, post_content FROM {$wpdb->posts} WHERE post_content LIKE %s AND post_status != 'trash'",
+			$like
+		) );
+
+		foreach ( (array) $posts as $post ) {
+			$content = vergeml_health_repoint_ids( str_replace( $old_stem, $new_stem, $post->post_content ), $from, $to );
+			if ( $content !== $post->post_content && ! vergeml_health_may_rewrite( (int) $post->ID, $content ) ) {
+				$refused[] = (int) $post->ID;
+			}
+		}
+
+		foreach ( (array) $wpdb->get_col( $wpdb->prepare(
+			"SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key <> '_thumbnail_id' AND meta_value LIKE %s",
+			$like
+		) ) as $post_id ) {
+			if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
+				$refused[] = (int) $post_id;
+			}
+		}
+	}
+
+	$holders = $wpdb->get_col( $wpdb->prepare(
+		"SELECT post_id FROM {$wpdb->postmeta}
+		  WHERE ( meta_key = '_thumbnail_id' AND meta_value = %s )
+		     OR ( meta_key = '_product_image_gallery' AND CONCAT( ',', meta_value, ',' ) LIKE %s )",
+		(string) $from,
+		'%,' . $wpdb->esc_like( (string) $from ) . ',%'
+	) );
+	// phpcs:enable
+
+	foreach ( (array) $holders as $post_id ) {
+		if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
+			$refused[] = (int) $post_id;
+		}
+	}
+
+	return array_values( array_unique( $refused ) );
+}
+
+
+/**
  *  The attachment id where a block or a builder wrote it, moved from one
  *  copy to the other. Whole ids only: 12 is not the front of 123.
  */
@@ -233,18 +343,13 @@ function vergeml_health_repoint( $from, $to ) {
 			// wp-image-123.
 			$content = vergeml_health_repoint_ids( $content, $from, $to );
 
-			if ( $content === $post->post_content ) {
+			if ( $content === $post->post_content || ! vergeml_health_may_rewrite( (int) $post->ID, $content ) ) {
 				continue;
 			}
 
-			$wpdb->update(
-				$wpdb->posts,
-				array( 'post_content' => $content ),
-				array( 'ID' => (int) $post->ID )
-			);
-
-			clean_post_cache( (int) $post->ID );
-			$changed['content']++;
+			if ( vergeml_health_write_content( (int) $post->ID, $content ) ) {
+				$changed['content']++;
+			}
 		}
 		// phpcs:enable
 	}
@@ -309,18 +414,19 @@ function vergeml_health_repoint( $from, $to ) {
 				continue;
 			}
 
-			$wpdb->update( $wpdb->postmeta, array( 'meta_value' => $value ), array( 'meta_id' => (int) $row->meta_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-			wp_cache_delete( (int) $row->post_id, 'post_meta' );
+			vergeml_health_write_meta( (int) $row->meta_id, $value );
 			$changed['meta']++;
 		}
 	}
 
 	// WooCommerce: the product gallery is a comma-separated list of ids.
+	// Matched as ",<id>," inside ",<list>," -- FIND_IN_SET() in a form SQLite
+	// (Playground) can run as well.
 	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 	$galleries = $wpdb->get_results( $wpdb->prepare(
 		"SELECT meta_id, post_id, meta_value FROM {$wpdb->postmeta}
-		  WHERE meta_key = '_product_image_gallery' AND FIND_IN_SET( %s, meta_value )",
-		(string) $from
+		  WHERE meta_key = '_product_image_gallery' AND CONCAT( ',', meta_value, ',' ) LIKE %s",
+		'%,' . $wpdb->esc_like( (string) $from ) . ',%'
 	) );
 	// phpcs:enable
 
@@ -342,8 +448,7 @@ function vergeml_health_repoint( $from, $to ) {
 	$to_parent   = (int) get_post_field( 'post_parent', $to );
 
 	if ( $from_parent > 0 && 0 === $to_parent ) {
-		$wpdb->update( $wpdb->posts, array( 'post_parent' => $from_parent ), array( 'ID' => $to ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		clean_post_cache( $to );
+		vergeml_health_write_parent( $to, $from_parent );
 	}
 
 	return $changed;
@@ -426,6 +531,12 @@ function vergeml_health_delete_copies( $keep, $drop ) {
 		$path  = get_attached_file( $id );
 		$bytes = ( is_string( $path ) && file_exists( $path ) ) ? (int) filesize( $path ) : 0;
 
+		// A reference this person may not move stays, and so does the file it points at.
+		if ( vergeml_health_repoint_refused( $id, $keep ) ) {
+			$failed[] = $id;
+			continue;
+		}
+
 		// Everything pointing at it moves first. Deleting is the last step.
 		$moved    = vergeml_health_repoint( $id, $keep );
 		$content += $moved['content'];
@@ -463,6 +574,33 @@ function vergeml_health_delete_copies( $keep, $drop ) {
 
 /* --------------------------------------------------------------------- REST */
 
+/**
+ *  The health routes that take files out of the library: administrators, and
+ *  asked about each file named -- the one kept may be edited, every one
+ *  dropped may be deleted, and all of them are pictures in the library.
+ */
+function vergeml_health_can_drop( WP_REST_Request $request ) {
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return false;
+	}
+
+	$keep = (int) $request->get_param( 'keep' );
+
+	if ( 'attachment' !== get_post_type( $keep ) || ! current_user_can( 'edit_post', $keep ) ) {
+		return false;
+	}
+
+	foreach ( (array) $request->get_param( 'drop' ) as $id ) {
+		if ( 'attachment' !== get_post_type( (int) $id ) || ! current_user_can( 'delete_post', (int) $id ) ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
 add_action( 'rest_api_init', 'vergeml_health_delete_routes' );
 
 function vergeml_health_delete_routes() {
@@ -476,9 +614,7 @@ function vergeml_health_delete_routes() {
 		 *  match. That is not the same authority as uploading, and it is not
 		 *  the same authority as curating terms either.
 		 */
-		'permission_callback' => function () {
-			return current_user_can( 'manage_options' ) && current_user_can( 'delete_posts' );
-		},
+		'permission_callback' => function ( WP_REST_Request $request ) { return current_user_can( 'manage_options' ) && vergeml_health_can_drop( $request ); },
 
 		'args' => array(
 			'keep' => array( 'type' => 'integer', 'required' => true ),
@@ -490,9 +626,7 @@ function vergeml_health_delete_routes() {
 	register_rest_route( VERGEML_REST_NS, '/health-uses', array(
 		'methods'             => WP_REST_Server::READABLE,
 		'callback'            => 'vergeml_health_rest_uses',
-		'permission_callback' => function () {
-			return current_user_can( 'manage_categories' );
-		},
+		'permission_callback' => function () { return current_user_can( 'manage_options' ); },
 		'args'                => array(
 			'ids' => array( 'type' => 'string', 'required' => true ),
 		),

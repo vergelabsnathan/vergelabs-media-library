@@ -122,8 +122,12 @@ function vergeml_folder_counts( $taxonomy, $post_type ) {
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- a grouped count with no core API equivalent; cached below.
 
+    // Someone who cannot edit others' posts counts what is published and their own, and that answer is not shared.
+    $object  = get_post_type_object( $post_type );
+    $limited = ! $object || ! current_user_can( $object->cap->edit_others_posts ) || ! current_user_can( $object->cap->read_private_posts );
+
     $key    = 'vergeml_counts_' . $taxonomy . '_' . $post_type;
-    $cached = wp_cache_get( $key, 'vergeml' );
+    $cached = $limited ? false : wp_cache_get( $key, 'vergeml' );
 
     if ( false !== $cached ) {
         return (array) $cached;
@@ -137,9 +141,12 @@ function vergeml_folder_counts( $taxonomy, $post_type ) {
           WHERE tt.taxonomy = %s
             AND p.post_type = %s
             AND p.post_status NOT IN ( 'trash', 'auto-draft' )
+            AND ( %d = 0 OR p.post_status = 'publish' OR p.post_author = %d )
           GROUP BY tt.term_id",
         $taxonomy,
-        $post_type
+        $post_type,
+        (int) $limited,
+        get_current_user_id()
     ) );
 
     // phpcs:enable
@@ -148,7 +155,9 @@ function vergeml_folder_counts( $taxonomy, $post_type ) {
         $counts[ (int) $row->term_id ] = (int) $row->total;
     }
 
-    wp_cache_set( $key, $counts, 'vergeml', 30 );
+    if ( ! $limited ) {
+        wp_cache_set( $key, $counts, 'vergeml', 30 );
+    }
 
     return $counts;
 }
@@ -164,8 +173,11 @@ function vergeml_folder_unfiled_count( $taxonomy, $post_type ) {
 
     global $wpdb;
 
+    $object  = get_post_type_object( $post_type );
+    $limited = ! $object || ! current_user_can( $object->cap->edit_others_posts ) || ! current_user_can( $object->cap->read_private_posts );
+
     $key    = 'vergeml_unfiled_' . $taxonomy . '_' . $post_type;
-    $cached = wp_cache_get( $key, 'vergeml' );
+    $cached = $limited ? false : wp_cache_get( $key, 'vergeml' );
 
     if ( false !== $cached ) {
         return (int) $cached;
@@ -178,6 +190,7 @@ function vergeml_folder_unfiled_count( $taxonomy, $post_type ) {
            FROM {$wpdb->posts} p
           WHERE p.post_type = %s
             AND p.post_status NOT IN ( 'trash', 'auto-draft' )
+            AND ( %d = 0 OR p.post_status = 'publish' OR p.post_author = %d )
             AND NOT EXISTS (
                 SELECT 1
                   FROM {$wpdb->term_relationships} tr
@@ -185,12 +198,16 @@ function vergeml_folder_unfiled_count( $taxonomy, $post_type ) {
                  WHERE tr.object_id = p.ID AND tt.taxonomy = %s
             )",
         $post_type,
+        (int) $limited,
+        get_current_user_id(),
         $taxonomy
     ) );
 
     // phpcs:enable
 
-    wp_cache_set( $key, $count, 'vergeml', 30 );
+    if ( ! $limited ) {
+        wp_cache_set( $key, $count, 'vergeml', 30 );
+    }
 
     return $count;
 }
@@ -241,7 +258,7 @@ add_action( 'pre_get_posts', 'vergeml_folder_filter_posts' );
 
 function vergeml_folder_filter_posts( $query ) {
 
-    if ( ! is_admin() || ! $query->is_main_query() || empty( $_GET['vgml_unfiled'] ) ) {
+    if ( ! is_admin() || ! $query->is_main_query() || empty( $_GET['vergeml_unfiled'] ) ) {
         return;
     }
 
@@ -292,9 +309,7 @@ function vergeml_folder_post_types_field( $taxonomy ) {
         return '<span class="description">' . esc_html__( 'No other post types are available.', 'vergelabs-media-library' ) . '</span>';
     }
 
-    $name = 'vergeml_taxonomies[' . esc_attr( $taxonomy ) . '][post_types][]';
-
-    $html = '<select multiple="multiple" size="' . esc_attr( min( 5, count( $types ) ) ) . '" class="vergeml-post_types" name="' . $name . '">';
+    $html = '<select multiple="multiple" size="' . esc_attr( min( 5, count( $types ) ) ) . '" class="vergeml-post_types" name="' . esc_attr( 'vergeml_taxonomies[' . $taxonomy . '][post_types][]' ) . '">';
 
     foreach ( $types as $type => $label ) {
         $html .= '<option value="' . esc_attr( $type ) . '"' . selected( true, in_array( $type, $chosen, true ), false ) . '>'

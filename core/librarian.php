@@ -269,13 +269,7 @@ function vergeml_librarian_install() {
 }
 
 
-/**
- *  Hooked rather than called, so safe mode -- which skips every file in this
- *  folder -- simply means nobody answers, and the activation does not fatal
- *  on a function that was never defined.
- */
-
-add_action( 'vergeml_activate', 'vergeml_librarian_install' );
+// Called by name from vergeml_provision_site() (the main plugin file) on activation and on a version change.
 
 
 /**
@@ -333,7 +327,8 @@ add_action( 'admin_init', 'vergeml_librarian_housekeeping' );
 
 function vergeml_librarian_housekeeping() {
 
-    if ( wp_doing_ajax() ) {
+    // admin_init also runs for admin-post.php without a login: an administrator's screen only.
+    if ( wp_doing_ajax() || ! current_user_can( 'manage_options' ) ) {
         return;
     }
 
@@ -366,9 +361,10 @@ function vergeml_librarian_batch_get( $batch_id ) {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; there is no core API for it.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; there is no core API for it.
     $row = $wpdb->get_row( $wpdb->prepare(
-        "SELECT * FROM {$wpdb->vergeml_librarian_batches} WHERE batch_id = %d",
+        'SELECT * FROM %i WHERE batch_id = %d',
+        $wpdb->vergeml_librarian_batches,
         (int) $batch_id
     ), ARRAY_A );
     // phpcs:enable
@@ -417,12 +413,13 @@ function vergeml_librarian_batch_save( $batch ) {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     return false !== $wpdb->query( $wpdb->prepare(
-        "UPDATE {$wpdb->vergeml_librarian_batches}
+        'UPDATE %i
             SET status = %s, step_cursor = %d, done_n = %d, skip_n = %d,
                 params = %s, reason = %s, updated_at = %s
-          WHERE batch_id = %d",
+          WHERE batch_id = %d',
+        $wpdb->vergeml_librarian_batches,
         (string) $batch['status'],
         (int) $batch['cursor'],
         (int) $batch['done'],
@@ -492,17 +489,20 @@ function vergeml_librarian_scheme_datetype() {
      *  library that has never been described still has dates, and a scheme
      *  that needed the index would not be the fallback it exists to be.
      */
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $rows = $wpdb->get_results(
-        "SELECT p.ID AS id,
-                YEAR( p.post_date ) AS y,
-                MONTH( p.post_date ) AS m,
-                p.post_mime_type AS mime,
-                i.kind AS kind
-           FROM {$wpdb->posts} p
-           LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = p.ID
-          WHERE p.post_type = 'attachment'
-          ORDER BY p.ID ASC",
+        $wpdb->prepare(
+            "SELECT p.ID AS id,
+                    YEAR( p.post_date ) AS y,
+                    MONTH( p.post_date ) AS m,
+                    p.post_mime_type AS mime,
+                    i.kind AS kind
+               FROM {$wpdb->posts} p
+               LEFT JOIN %i i ON i.attachment_id = p.ID
+              WHERE p.post_type = 'attachment'
+              ORDER BY p.ID ASC",
+            $wpdb->vergeml_ai_index
+        ),
         ARRAY_A
     );
     // phpcs:enable
@@ -724,9 +724,9 @@ function vergeml_librarian_latest_done_run() {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $row = $wpdb->get_row(
-        "SELECT * FROM {$wpdb->vergeml_organize_runs} WHERE status = 'done' ORDER BY run_id DESC LIMIT 1",
+        $wpdb->prepare( "SELECT * FROM %i WHERE status = 'done' ORDER BY run_id DESC LIMIT 1", $wpdb->vergeml_organize_runs ),
         ARRAY_A
     );
     // phpcs:enable
@@ -770,44 +770,6 @@ function vergeml_librarian_scheme_tree( $scheme, $run_id = 0 ) {
     $run = $run_id > 0 ? vergeml_organize_run_get( $run_id ) : vergeml_librarian_latest_done_run();
 
     return ( $run && ! empty( $run['tree'] ) ) ? $run['tree'] : array();
-}
-
-
-/* ---------------------------------------------------------------- the gate */
-
-/**
- *  vergeml_librarian_gate
- *
- *  Applying a folder tree is local work, and nothing may restrict it: it
- *  always goes ahead (WordPress.org Guidelines 5 and 6). The function stays
- *  so its three callers keep their shape; there is deliberately no filter here
- *  for anything to hang a restriction on.
- */
-
-function vergeml_librarian_gate( $context = array() ) {
-
-    return array( 'allow' => true, 'reason' => '' );
-}
-
-
-/**
- *  What applying would cost, as the gate sees it.
- *
- *  Zero and honest about being zero. The service is not live, so a figure
- *  here would be a number somebody made up, and this screen's whole argument
- *  is that its numbers are counted.
- */
-
-function vergeml_librarian_credits( $context = array() ) {
-
-    $gate = vergeml_librarian_gate( $context );
-
-    return array(
-        'cost'   => 0,
-        'mode'   => 'mock',
-        'allow'  => $gate['allow'],
-        'reason' => $gate['reason'],
-    );
 }
 
 
@@ -893,10 +855,6 @@ function vergeml_librarian_preflight( $scheme, $run_id, $branches ) {
         'filed'      => count( $filed ),
         'folders'    => array( 'create' => $create, 'reuse' => $reuse ),
         'estimate'   => $estimate,
-        'credits'    => vergeml_librarian_credits( array(
-            'scheme' => $scheme,
-            'files'  => $unfiled,
-        ) ),
         'quote'      => $quote,
     );
 }
@@ -920,14 +878,12 @@ function vergeml_librarian_filed( $ids, $taxonomy ) {
         return array();
     }
 
-    $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $found = $wpdb->get_col( $wpdb->prepare(
         "SELECT DISTINCT tr.object_id
            FROM {$wpdb->term_relationships} tr
            JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
-          WHERE tt.taxonomy = %s AND tr.object_id IN ( $placeholders )",
+          WHERE tt.taxonomy = %s AND tr.object_id IN ( " . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . ' )',
         array_merge( array( $taxonomy ), $ids )
     ) );
     // phpcs:enable
@@ -1229,12 +1185,6 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
         return $plan;
     }
 
-    $gate = vergeml_librarian_gate( array(
-        'scheme' => $plan['scheme'],
-        'files'  => count( $plan['work'] ),
-        'stage'  => 'create',
-    ) );
-
     /*
      *  The files that already have a folder are dropped here rather than
      *  skipped one at a time later, and it buys two things.
@@ -1310,12 +1260,12 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
         array(
             'run_id'      => (int) $plan['run_id'],
             'scheme'      => (string) $plan['scheme'],
-            'status'      => $gate['allow'] ? 'running' : 'paused',
+            'status'      => 'running',
             'step_cursor' => 0,
             'done_n'      => 0,
             'skip_n'      => $skipped,
             'params'      => wp_json_encode( $params ),
-            'reason'      => vergeml_librarian_reason( $gate['allow'] ? '' : $gate['reason'] ),
+            'reason'      => '',
             'user_id'     => $user,
             'approved_at' => $user ? $now : null,
             'created_at'  => $now,
@@ -1329,12 +1279,12 @@ function vergeml_librarian_batch_create( $scheme, $run_id, $branches ) {
         'batch_id'    => (int) $wpdb->insert_id,
         'run_id'      => (int) $plan['run_id'],
         'scheme'      => (string) $plan['scheme'],
-        'status'      => $gate['allow'] ? 'running' : 'paused',
+        'status'      => 'running',
         'cursor'      => 0,
         'done'        => 0,
         'skipped'     => $skipped,
         'params'      => $params,
-        'reason'      => $gate['allow'] ? '' : $gate['reason'],
+        'reason'      => '',
         'user_id'     => $user,
         'approved_at' => $user ? $now : '',
         'created_at'  => $now,
@@ -1433,6 +1383,8 @@ function vergeml_librarian_chunk( $per_item_ms ) {
 
 function vergeml_librarian_apply_step( $batch_id ) {
 
+    global $wpdb;
+
     $started = microtime( true );
 
     $batch = vergeml_librarian_batch_get( $batch_id );
@@ -1448,26 +1400,6 @@ function vergeml_librarian_apply_step( $batch_id ) {
     $params = $batch['params'];
     $work   = isset( $params['work'] ) ? (array) $params['work'] : array();
     $total  = count( $work );
-
-    /*
-     *  The gate, at the top of every step and not only at the start. A credit
-     *  balance can run out mid-batch, and the answer to that is to stop with
-     *  a reason rather than to keep going because permission was granted a
-     *  minute ago.
-     */
-    $gate = vergeml_librarian_gate( array(
-        'scheme'   => $batch['scheme'],
-        'batch_id' => $batch['batch_id'],
-        'files'    => $total - (int) $batch['cursor'],
-        'stage'    => 'step',
-    ) );
-
-    if ( ! $gate['allow'] ) {
-        $batch['status'] = 'paused';
-        $batch['reason'] = $gate['reason'];
-        vergeml_librarian_batch_save( $batch );
-        return vergeml_librarian_report( $batch, $started );
-    }
 
     if ( 'paused' === $batch['status'] ) {
         // Resuming is what asking for a step on a paused batch means.
@@ -1559,9 +1491,8 @@ function vergeml_librarian_apply_step( $batch_id ) {
         }
         $veto_prof = $branch_ids ? vergeml_filing_profiles( $branch_ids, $taxonomy ) : array();
         if ( $veto_prof ) {
-            $in = implode( ',', array_map( 'intval', $ids ) );
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ids are cast to int above; this plugin's own table.
-            foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, kind, filing FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL AND attachment_id IN ($in)", ARRAY_A ) as $r ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table, bound as an identifier; one %d per id and the ids are bound.
+            foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, embedding, kind, filing FROM %i WHERE error = '' AND embedding IS NOT NULL AND attachment_id IN ( " . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . ' )', array_merge( array( $wpdb->vergeml_ai_index ), $ids ) ), ARRAY_A ) as $r ) {
                 $veto_rows[ (int) $r['attachment_id'] ] = $r;
             }
         }
@@ -1816,46 +1747,33 @@ function vergeml_librarian_move_reason( $reason ) {
  *  was already in flight when this shipped finishes on the rows it started
  *  with, and writes an empty reason rather than a fatal.
  *
- *  The two scores are the one place the placeholder list varies by row. A
- *  null cannot travel through prepare as %f -- it would arrive as 0.000000,
- *  which is the exact lie this column exists to avoid -- so the literal NULL
- *  goes into the placeholder instead, beside the placeholders that were
- *  already being interpolated here.
+ *  The two scores are the one place a row can differ. A null cannot travel
+ *  through prepare as %f -- it would arrive as 0.000000, which is the exact
+ *  lie this column exists to avoid -- so each score travels with a flag, and
+ *  the row turns a flag of 0 into NULL. Every row has the same shape, so the
+ *  statement is one literal template repeated once per move.
  */
 
 function vergeml_librarian_moves_insert( $moves ) {
 
     global $wpdb;
 
-    $rows   = array();
-    $values = array();
+    $values = array( $wpdb->vergeml_librarian_moves );
 
     foreach ( $moves as $move ) {
 
         $reason = vergeml_librarian_move_reason( isset( $move[4] ) ? $move[4] : null );
-
-        $rows[] = '(%d, %d, %d, %d, 0, %s, '
-            . ( null === $reason['score'] ? 'NULL' : '%f' )
-            . ', %d, '
-            . ( null === $reason['runner_score'] ? 'NULL' : '%f' )
-            . ', %s, %s, %d, %s, %s)';
 
         $values[] = (int) $move[0];
         $values[] = (int) $move[1];
         $values[] = (int) $move[2];
         $values[] = (int) $move[3];
         $values[] = $reason['why'];
-
-        if ( null !== $reason['score'] ) {
-            $values[] = $reason['score'];
-        }
-
+        $values[] = null === $reason['score'] ? 0 : 1;
+        $values[] = null === $reason['score'] ? 0.0 : $reason['score'];
         $values[] = $reason['runner_up'];
-
-        if ( null !== $reason['runner_score'] ) {
-            $values[] = $reason['runner_score'];
-        }
-
+        $values[] = null === $reason['runner_score'] ? 0 : 1;
+        $values[] = null === $reason['runner_score'] ? 0.0 : $reason['runner_score'];
         $values[] = $reason['prompt_hash'];
         $values[] = $reason['model_version'];
         $values[] = $reason['nearest'];
@@ -1863,24 +1781,14 @@ function vergeml_librarian_moves_insert( $moves ) {
         $values[] = $reason['hit'];
     }
 
-    /*
-     *  The placeholder list is interpolated and the values still go through
-     *  prepare, which is the same shape every IN clause in this plugin uses.
-     *
-     *  Handing prepare() a query it had been given in a variable is not: the
-     *  sniffs cannot follow a string that was built elsewhere, so it reads as
-     *  an unprepared query and Plugin Check refuses it -- and Plugin Check is
-     *  the submission gate.
-     */
-    $placeholders = implode( ', ', $rows );
-
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    // The table is an identifier (%i), then one row template per move; the number of placeholders grows with the number of moves, which the sniff cannot count.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
     $wpdb->query( $wpdb->prepare(
-        "INSERT INTO {$wpdb->vergeml_librarian_moves}
+        'INSERT INTO %i
              ( batch_id, attachment_id, term_id, term_created, undone,
                why, score, runner_up, runner_score, prompt_hash, model_version,
                nearest, source, hit )
-         VALUES {$placeholders}",
+         VALUES ' . implode( ', ', array_fill( 0, count( $moves ), '( %d, %d, %d, %d, 0, %s, CASE WHEN %d = 1 THEN %f END, %d, CASE WHEN %d = 1 THEN %f END, %s, %s, %d, %s, %s )' ) ),
         $values
     ) );
     // phpcs:enable
@@ -2153,13 +2061,14 @@ function vergeml_librarian_moves_pending( $batch_id, $limit ) {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     return (array) $wpdb->get_results( $wpdb->prepare(
-        "SELECT move_id, attachment_id, term_id, term_created
-           FROM {$wpdb->vergeml_librarian_moves}
+        'SELECT move_id, attachment_id, term_id, term_created
+           FROM %i
           WHERE batch_id = %d AND undone = 0 AND term_id > 0
           ORDER BY move_id DESC
-          LIMIT %d",
+          LIMIT %d',
+        $wpdb->vergeml_librarian_moves,
         (int) $batch_id,
         (int) $limit
     ), ARRAY_A );
@@ -2191,15 +2100,13 @@ function vergeml_librarian_term_objects( $term_ids, $taxonomy ) {
         return array();
     }
 
-    $placeholders = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
-
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $rows = (array) $wpdb->get_results( $wpdb->prepare(
         "SELECT tt.term_id AS term_id, COUNT( tr.object_id ) AS held
            FROM {$wpdb->term_taxonomy} tt
            LEFT JOIN {$wpdb->term_relationships} tr ON tr.term_taxonomy_id = tt.term_taxonomy_id
-          WHERE tt.taxonomy = %s AND tt.term_id IN ( $placeholders )
-          GROUP BY tt.term_id",
+          WHERE tt.taxonomy = %s AND tt.term_id IN ( " . implode( ', ', array_fill( 0, count( $term_ids ), '%d' ) ) . ' )
+          GROUP BY tt.term_id',
         array_merge( array( $taxonomy ), $term_ids )
     ), ARRAY_A );
     // phpcs:enable
@@ -2224,12 +2131,10 @@ function vergeml_librarian_moves_mark( $move_ids ) {
         return;
     }
 
-    $placeholders = implode( ',', array_fill( 0, count( $move_ids ), '%d' ) );
-
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $wpdb->query( $wpdb->prepare(
-        "UPDATE {$wpdb->vergeml_librarian_moves} SET undone = 1 WHERE move_id IN ( $placeholders )",
-        $move_ids
+        'UPDATE %i SET undone = 1 WHERE move_id IN ( ' . implode( ', ', array_fill( 0, count( $move_ids ), '%d' ) ) . ' )',
+        array_merge( array( $wpdb->vergeml_librarian_moves ), $move_ids )
     ) );
     // phpcs:enable
 }
@@ -2269,18 +2174,15 @@ function vergeml_librarian_moves_undone( $batch_ids, $attachment_ids ) {
         return 0;
     }
 
-    $batches = implode( ',', array_fill( 0, count( $batch_ids ), '%d' ) );
-    $files   = implode( ',', array_fill( 0, count( $attachment_ids ), '%d' ) );
-
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $done = $wpdb->query( $wpdb->prepare(
-        "UPDATE {$wpdb->vergeml_librarian_moves}
+        'UPDATE %i
             SET undone = 1
           WHERE undone = 0
             AND term_id <> 0
-            AND batch_id IN ( $batches )
-            AND attachment_id IN ( $files )",
-        array_merge( $batch_ids, $attachment_ids )
+            AND batch_id IN ( ' . implode( ', ', array_fill( 0, count( $batch_ids ), '%d' ) ) . ' )
+            AND attachment_id IN ( ' . implode( ', ', array_fill( 0, count( $attachment_ids ), '%d' ) ) . ' )',
+        array_merge( array( $wpdb->vergeml_librarian_moves ), $batch_ids, $attachment_ids )
     ) );
     // phpcs:enable
 
@@ -2417,12 +2319,13 @@ function vergeml_librarian_batches( $limit = VERGEML_LIBRARIAN_KEEP ) {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $rows = (array) $wpdb->get_results( $wpdb->prepare(
-        "SELECT batch_id, run_id, scheme, status, step_cursor, done_n, skip_n, reason, created_at, updated_at
-           FROM {$wpdb->vergeml_librarian_batches}
+        'SELECT batch_id, run_id, scheme, status, step_cursor, done_n, skip_n, reason, created_at, updated_at
+           FROM %i
           ORDER BY batch_id DESC
-          LIMIT %d",
+          LIMIT %d',
+        $wpdb->vergeml_librarian_batches,
         (int) $limit
     ), ARRAY_A );
     // phpcs:enable
@@ -2468,9 +2371,10 @@ function vergeml_librarian_prune( $keep = VERGEML_LIBRARIAN_KEEP ) {
 
     $keep = max( 1, (int) $keep );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $cutoff = (int) $wpdb->get_var( $wpdb->prepare(
-        "SELECT batch_id FROM {$wpdb->vergeml_librarian_batches} ORDER BY batch_id DESC LIMIT %d, 1",
+        'SELECT batch_id FROM %i ORDER BY batch_id DESC LIMIT %d, 1',
+        $wpdb->vergeml_librarian_batches,
         $keep
     ) );
 
@@ -2479,12 +2383,14 @@ function vergeml_librarian_prune( $keep = VERGEML_LIBRARIAN_KEEP ) {
     }
 
     $wpdb->query( $wpdb->prepare(
-        "DELETE FROM {$wpdb->vergeml_librarian_moves} WHERE batch_id <= %d",
+        'DELETE FROM %i WHERE batch_id <= %d',
+        $wpdb->vergeml_librarian_moves,
         $cutoff
     ) );
 
     return (int) $wpdb->query( $wpdb->prepare(
-        "DELETE FROM {$wpdb->vergeml_librarian_batches} WHERE batch_id <= %d",
+        'DELETE FROM %i WHERE batch_id <= %d',
+        $wpdb->vergeml_librarian_batches,
         $cutoff
     ) );
     // phpcs:enable
@@ -2497,13 +2403,10 @@ add_action( 'rest_api_init', 'vergeml_librarian_routes' );
 
 function vergeml_librarian_routes() {
 
-    $can = function () {
-        return current_user_can( 'manage_categories' );
-    };
 
     register_rest_route( VERGEML_REST_NS, '/librarian-schemes', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_librarian_rest_schemes',
         'args'                => array(
             // Naming one asks for its whole tree as well as its summary: the
@@ -2523,24 +2426,24 @@ function vergeml_librarian_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/librarian-preflight', array(
         'methods'             => 'GET, POST',
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_librarian_rest_preflight',
         'args'                => array(
             'scheme'   => array( 'type' => 'string', 'default' => 'subject' ),
             'run_id'   => array( 'type' => 'integer', 'default' => 0 ),
-            'branches' => array( 'default' => array() ),
+            'branches' => array( 'type' => array( 'array', 'string' ), 'default' => array() ),
         ),
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/librarian-apply-step', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_librarian_rest_apply',
         'args'                => array(
             'batch_id' => array( 'type' => 'integer', 'default' => 0 ),
             'scheme'   => array( 'type' => 'string', 'default' => 'subject' ),
             'run_id'   => array( 'type' => 'integer', 'default' => 0 ),
-            'branches' => array( 'default' => array() ),
+            'branches' => array( 'type' => array( 'array', 'string' ), 'default' => array() ),
         ),
     ) );
 
@@ -2550,7 +2453,7 @@ function vergeml_librarian_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/librarian-pause', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_librarian_rest_pause',
         'args'                => array(
             'batch_id' => array( 'type' => 'integer', 'required' => true ),
@@ -2559,7 +2462,7 @@ function vergeml_librarian_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/librarian-undo-step', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_librarian_rest_undo',
         'args'                => array(
             'batch_id' => array( 'type' => 'integer', 'required' => true ),
@@ -2568,7 +2471,7 @@ function vergeml_librarian_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/librarian-batches', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_librarian_rest_batches',
     ) );
 
@@ -2590,9 +2493,7 @@ function vergeml_librarian_routes() {
     register_rest_route( VERGEML_REST_NS, '/librarian-why/(?P<id>\d+)', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_librarian_rest_why',
-        'permission_callback' => function ( WP_REST_Request $request ) {
-            return current_user_can( 'edit_post', (int) $request['id'] );
-        },
+        'permission_callback' => function ( WP_REST_Request $request ) { return current_user_can( 'edit_post', (int) $request['id'] ); },
     ) );
 }
 
@@ -2745,13 +2646,6 @@ function vergeml_librarian_rest_apply( WP_REST_Request $request ) {
         }
 
         $batch_id = (int) $batch['batch_id'];
-
-        // A batch the gate refused is created and paused, not stepped: the
-        // reason is what the screen has to show, and stepping it would only
-        // ask the same question again.
-        if ( 'paused' === $batch['status'] ) {
-            return rest_ensure_response( vergeml_librarian_report( $batch, microtime( true ) ) );
-        }
     }
 
     $result = vergeml_librarian_apply_step( $batch_id );
@@ -2879,8 +2773,8 @@ function vergeml_librarian_tools_ready() {
 
     global $wpdb;
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = ''" ) > 0;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = ''", $wpdb->vergeml_ai_index ) ) > 0;
 }
 
 
@@ -2978,7 +2872,8 @@ function vergeml_librarian_why( $attachment_id ) {
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table, one picture, on demand.
     $rows = (array) $wpdb->get_results( $wpdb->prepare(
-        "SELECT * FROM {$wpdb->vergeml_librarian_moves} WHERE attachment_id = %d AND undone = 0 ORDER BY move_id DESC LIMIT 20",
+        'SELECT * FROM %i WHERE attachment_id = %d AND undone = 0 ORDER BY move_id DESC LIMIT 20',
+        $wpdb->vergeml_librarian_moves,
         $attachment_id
     ), ARRAY_A );
 
@@ -3038,8 +2933,9 @@ function vergeml_librarian_why( $attachment_id ) {
     $why    = (string) $row['why'];
     $term   = (int) $row['term_id'] ? get_term( (int) $row['term_id'], $taxonomy ) : null;
     $runner = (int) $row['runner_up'] ? get_term( (int) $row['runner_up'], $taxonomy ) : null;
-    $term   = $term instanceof WP_Term ? $term->name : '';
-    $runner = $runner instanceof WP_Term ? $runner->name : '';
+    $hidden = function_exists( 'vergeml_private_hidden_from' ) ? vergeml_private_hidden_from() : array();
+    $term   = $term instanceof WP_Term && ! in_array( (int) $term->term_id, $hidden, true ) ? $term->name : '';
+    $runner = $runner instanceof WP_Term && ! in_array( (int) $runner->term_id, $hidden, true ) ? $runner->name : '';
 
     /*
      *  The folder a refusal was about, read out beside the one it beat.
@@ -3049,26 +2945,27 @@ function vergeml_librarian_why( $attachment_id ) {
      *  line below names both folders from it.
      */
     $near = isset( $row['nearest'] ) && (int) $row['nearest'] ? get_term( (int) $row['nearest'], $taxonomy ) : null;
-    $near = $near instanceof WP_Term ? $near->name : '';
+    $near = $near instanceof WP_Term && ! in_array( (int) $near->term_id, $hidden, true ) ? $near->name : '';
 
     $score  = null === $row['score'] ? null : (float) $row['score'];
     $rscore = null === $row['runner_score'] ? null : (float) $row['runner_score'];
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
     $filed = (int) $row['batch_id'] ? (string) $wpdb->get_var( $wpdb->prepare(
-        "SELECT created_at FROM {$wpdb->vergeml_librarian_batches} WHERE batch_id = %d",
+        'SELECT created_at FROM %i WHERE batch_id = %d',
+        $wpdb->vergeml_librarian_batches,
         (int) $row['batch_id']
     ) ) : '';
 
     $out = array(
         'why'           => $why,
-        'term_id'       => (int) $row['term_id'],
+        'term_id'       => in_array( (int) $row['term_id'], $hidden, true ) ? 0 : (int) $row['term_id'],
         'term'          => $term,
         'score'         => $score,
-        'runner_up'     => (int) $row['runner_up'],
+        'runner_up'     => in_array( (int) $row['runner_up'], $hidden, true ) ? 0 : (int) $row['runner_up'],
         'runner'        => $runner,
         'runner_score'  => $rscore,
-        'nearest'       => isset( $row['nearest'] ) ? (int) $row['nearest'] : 0,
+        'nearest'       => isset( $row['nearest'] ) && ! in_array( (int) $row['nearest'], $hidden, true ) ? (int) $row['nearest'] : 0,
         'near'          => $near,
         'source'        => isset( $row['source'] ) ? (string) $row['source'] : '',
         'hit'           => isset( $row['hit'] ) ? (string) $row['hit'] : '',
@@ -3248,7 +3145,7 @@ function vergeml_why_here_field( $fields, $post ) {
      *  worked out where it is read.
      */
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading which request this is, not acting on it.
-    if ( wp_doing_ajax() && isset( $_REQUEST['action'] ) && 'query-attachments' === $_REQUEST['action'] ) {
+    if ( wp_doing_ajax() && isset( $_REQUEST['action'] ) && 'query-attachments' === sanitize_key( wp_unslash( $_REQUEST[ 'action' ] ) ) ) {
         return $fields;
     }
 
@@ -3332,7 +3229,7 @@ function vergeml_why_here_assets() {
     wp_enqueue_script(
         'vergeml-why-view',
         plugins_url( 'js/vergeml-why-view.js', VERGEML_FILE ),
-        array( 'media-views', 'wp-api-fetch' ),
+        array( 'media-views', 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-why-view.js' ),
         true
     );

@@ -22,6 +22,13 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
 
     $vergeml_lib_options = get_option( 'vergeml_lib_options', array() );
 
+    // Core's shortcode preview answers any logged-in user: listing the library by folder or month is for people who see it.
+    $preview = doing_action( 'wp_ajax_parse-media-shortcode' );
+
+    if ( $preview && ! current_user_can( 'upload_files' ) ) {
+        return $output;
+    }
+
 
     // 3rd-party plugins can send string as a 3rd param
     if ( is_string( $atts ) || empty( $atts ) ) {
@@ -50,11 +57,16 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
     $tax_query = array();
     $operator  = 'IN';
 
+    // A gallery written before the folders moved to vergeml_folder still names them the old way.
+    if ( ! empty( $atts['media_category'] ) && empty( $atts['vergeml_folder'] ) && taxonomy_exists( 'vergeml_folder' ) ) {
+        $atts['vergeml_folder'] = $atts['media_category'];
+    }
+
     foreach ( get_taxonomies_for_attachments( 'names' ) as $taxonomy ) {
 
         if ( ! empty( $atts[$taxonomy] ) ) {
 
-            if ( str_contains( $atts[$taxonomy], '+' ) ) {
+            if ( false !== strpos( $atts[$taxonomy], '+' ) ) {
                 $terms = explode( '+', $atts[$taxonomy] );
                 $operator = 'AND';
             }
@@ -62,7 +74,12 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
                 $terms = explode( ',', $atts[$taxonomy] );
             }
 
-            $field = ctype_digit( implode( '', $terms ) ) ? 'term_id' : 'slug';
+            $field = preg_match( '/^\d+$/', implode( '', $terms ) ) ? 'term_id' : 'slug';
+
+            if ( $preview && 'term_id' === $field && function_exists( 'vergeml_private_hidden_from' ) ) {
+                $terms = array_values( array_diff( array_map( 'intval', $terms ), vergeml_private_hidden_from() ) );
+                $terms = $terms ? $terms : array( 0 );
+            }
 
             $tax_query[] = array(
                 'taxonomy'         => $taxonomy,
@@ -81,11 +98,11 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
     if ( empty( $atts['ids'] ) || $custom_query ) {
 
         if ( empty( $atts['orderby'] ) || 'post__in' === $atts['orderby'] ) {
-            $output['orderby'] = $atts['orderby'] = ( 'menuOrder' === $vergeml_lib_options['media_orderby'] ) ? 'menu_order' : esc_attr( $vergeml_lib_options['media_orderby'] );
+            $output['orderby'] = $atts['orderby'] = vergeml_lib_orderby( $vergeml_lib_options );
         }
 
         if ( empty( $atts['order'] ) ) {
-            $output['order'] = $atts['order'] = esc_attr( $vergeml_lib_options['media_order'] );
+            $output['order'] = $atts['order'] = vergeml_lib_order( $vergeml_lib_options );
         }
     }
 
@@ -105,11 +122,6 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
     if ( ! empty( $atts['type'] ) ) {
         $mime_type = $atts['type'];
     }
-    // @todo
-    // elseif ( ! empty( $output['type'] ) ) {
-    //     $mime_type = $output['type'];
-    //     unset( $output['type'] );
-    // }
     else {
         $mime_type = 'image';
     }
@@ -125,7 +137,7 @@ function vergeml_shortcode_atts( $output, $defaults = array(), $atts = array(), 
         'post_mime_type' => $mime_type,
         'order' => $atts['order'],
         'orderby' => $atts['orderby'],
-        'posts_per_page' => $posts_per_page, // @todo :: add pagination
+        'posts_per_page' => $posts_per_page,
     );
 
 

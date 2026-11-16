@@ -39,6 +39,12 @@ const VERGEML_USER_TREE_STATE = 'vergeml_tree_state';
 
 add_action( 'init', 'vergeml_register_tree_meta' );
 
+/** Writing a folder's colour or order through core's term routes: asked about that folder. */
+function vergeml_tree_meta_auth( $allowed, $meta_key, $term_id ) {
+    return current_user_can( 'edit_term', (int) $term_id );
+}
+
+
 function vergeml_register_tree_meta() {
 
     foreach ( vergeml_tree_taxonomies() as $taxonomy ) {
@@ -48,7 +54,7 @@ function vergeml_register_tree_meta() {
             'single'            => true,
             'show_in_rest'      => true,
             'sanitize_callback' => 'vergeml_sanitize_color',
-            'auth_callback'     => function () { return current_user_can( 'manage_categories' ); },
+            'auth_callback'     => 'vergeml_tree_meta_auth',
         ) );
 
         register_term_meta( $taxonomy, VERGEML_TERM_ORDER, array(
@@ -56,7 +62,7 @@ function vergeml_register_tree_meta() {
             'single'            => true,
             'show_in_rest'      => true,
             'sanitize_callback' => 'absint',
-            'auth_callback'     => function () { return current_user_can( 'manage_categories' ); },
+            'auth_callback'     => 'vergeml_tree_meta_auth',
         ) );
     }
 }
@@ -163,7 +169,21 @@ function vergeml_register_tree_routes() {
     register_rest_route( VERGEML_REST_NS, '/tree', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_rest_tree',
-        'permission_callback' => 'vergeml_can_read_tree',
+        'permission_callback' => function ( WP_REST_Request $request ) {
+            if ( ! current_user_can( 'upload_files' ) ) {
+                return false;
+            }
+            $tax = get_taxonomy( (string) $request->get_param( 'taxonomy' ) );
+            if ( $tax && ! current_user_can( $tax->cap->assign_terms ) ) {
+                return false;
+            }
+            $type = (string) $request->get_param( 'post_type' );
+            if ( '' === $type || 'attachment' === $type ) {
+                return true;
+            }
+            $object = get_post_type_object( $type );
+            return $object && current_user_can( $object->cap->edit_posts );
+        },
         'args'                => array(
             'taxonomy' => array(
                 'required'          => true,
@@ -184,7 +204,7 @@ function vergeml_register_tree_routes() {
     register_rest_route( VERGEML_REST_NS, '/assign', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_rest_assign',
-        'permission_callback' => 'vergeml_can_assign',
+        'permission_callback' => function ( WP_REST_Request $request ) { return ( current_user_can( 'upload_files' ) || current_user_can( 'edit_posts' ) ) && vergeml_can_assign( $request ); },
         'args'                => array(
             'taxonomy'    => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             /*
@@ -206,10 +226,6 @@ function vergeml_register_tree_routes() {
 }
 
 
-function vergeml_can_read_tree() {
-    return current_user_can( 'upload_files' );
-}
-
 
 /**
  *  vergeml_can_assign
@@ -219,14 +235,41 @@ function vergeml_can_read_tree() {
  *  files must not be authorised by whether the caller may edit the first.
  */
 
-function vergeml_can_assign() {
+function vergeml_can_assign( $request = null ) {
     /*
      *  Coarse gate over two different jobs now: filing a file, and filing a post.
      *  Someone who edits posts but cannot upload is still allowed to reach the
      *  endpoint -- what they may actually touch is decided per object inside the
      *  handler, which is where it has always really been decided.
      */
-    return current_user_can( 'upload_files' ) || current_user_can( 'edit_posts' );
+    if ( ! current_user_can( 'upload_files' ) && ! current_user_can( 'edit_posts' ) ) {
+        return false;
+    }
+
+    // Filing is assigning terms: the folder taxonomy's own assign_terms capability, before any object is looked at.
+    $taxonomy = $request instanceof WP_REST_Request ? get_taxonomy( (string) $request->get_param( 'taxonomy' ) ) : false;
+
+    return ! $taxonomy || current_user_can( $taxonomy->cap->assign_terms );
+}
+
+
+/**
+ *  vergeml_counts_post_type
+ *
+ *  The post type a caller may have folder counts for, or '' for the attachment
+ *  counts. Every route that takes a post_type comes through here: the type must
+ *  use this taxonomy and the current user must be able to edit that type.
+ */
+
+function vergeml_counts_post_type( $taxonomy, $post_type ) {
+
+    if ( ! $post_type || 'attachment' === $post_type || ! is_object_in_taxonomy( $post_type, $taxonomy ) ) {
+        return '';
+    }
+
+    $object = get_post_type_object( $post_type );
+
+    return $object && current_user_can( $object->cap->edit_posts ) ? $post_type : '';
 }
 
 
@@ -269,8 +312,7 @@ function vergeml_rest_tree( WP_REST_Request $request ) {
      *  every folder at once, which is why the tree costs one extra query there
      *  rather than one per folder.
      */
-    $post_type = (string) $request->get_param( 'post_type' );
-    $post_type = ( $post_type && 'attachment' !== $post_type && post_type_exists( $post_type ) ) ? $post_type : '';
+    $post_type = vergeml_counts_post_type( $taxonomy, (string) $request->get_param( 'post_type' ) );
 
     if ( $post_type && function_exists( 'vergeml_folder_counts' ) ) {
         $counts     = vergeml_folder_counts( $taxonomy, $post_type );
@@ -420,7 +462,7 @@ function vergeml_ai_for_tree( $post_type ) {
         // Nothing has been looked at: either the index has never been asked,
         // or it holds no finished descriptions.
         'ladder'    => ( null === $described || 0 === (int) $described ),
-        'url'       => admin_url( 'admin.php?page=media-ai' ),
+        'url'       => current_user_can( 'manage_options' ) ? admin_url( 'admin.php?page=vergeml-ai' ) : '',
     );
 }
 
@@ -482,7 +524,7 @@ function vergeml_tree_state( $taxonomy ) {
      */
     $selected = isset( $mine['selected'] ) ? (int) $mine['selected'] : 0;
 
-    if ( $selected > 0 && ! get_term( $selected, $taxonomy ) instanceof WP_Term ) {
+    if ( $selected > 0 && ( ! get_term( $selected, $taxonomy ) instanceof WP_Term || vergeml_private_is_hidden( $selected ) ) ) {
         $selected = 0;
     }
 
@@ -519,7 +561,9 @@ function vergeml_tree_state( $taxonomy ) {
 
 function vergeml_assign_count( $term_id, $taxonomy, $post_type ) {
 
-    if ( $post_type && 'attachment' !== $post_type && function_exists( 'vergeml_folder_counts' ) ) {
+    $post_type = vergeml_counts_post_type( $taxonomy, (string) $post_type );
+
+    if ( $post_type && function_exists( 'vergeml_folder_counts' ) ) {
         $counts = vergeml_folder_counts( $taxonomy, $post_type );
         return isset( $counts[ (int) $term_id ] ) ? (int) $counts[ (int) $term_id ] : 0;
     }
@@ -593,7 +637,7 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
     // rather than quietly creating a relationship that nothing will show.
     foreach ( array_merge( $add, $remove ) as $term_id ) {
         $term = get_term( $term_id, $taxonomy );
-        if ( ! $term instanceof WP_Term ) {
+        if ( ! $term instanceof WP_Term || ( function_exists( 'vergeml_private_is_hidden' ) && vergeml_private_is_hidden( $term_id ) ) ) {
             return new WP_Error( 'vergeml_unknown_term', __( 'One of those folders does not exist.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
         }
     }
@@ -719,10 +763,13 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
 
     $for_type = (string) $request->get_param( 'post_type' );
 
+    // Filing a post does not need upload_files; the library's file counts do, as on /tree.
+    $sees_files = current_user_can( 'upload_files' );
+
     $counts = array();
     foreach ( array_unique( $touched ) as $term_id ) {
         $term = get_term( $term_id, $taxonomy );
-        if ( $term instanceof WP_Term )
+        if ( $term instanceof WP_Term && ( $sees_files || vergeml_counts_post_type( $taxonomy, $for_type ) ) )
             $counts[ (int) $term_id ] = vergeml_assign_count( $term_id, $taxonomy, $for_type );
     }
 
@@ -730,7 +777,7 @@ function vergeml_rest_assign( WP_REST_Request $request ) {
         'changed'    => $changed,
         'refused'    => $refused,
         'counts'     => $counts,
-        'unassigned' => vergeml_count_unassigned( $taxonomy ),
+        'unassigned' => $sees_files ? vergeml_count_unassigned( $taxonomy ) : null,
         /*
          *  What to send back to undo this. The toast posts it straight back to
          *  this endpoint, so the inverse is computed here and the browser never
@@ -773,6 +820,8 @@ function vergeml_rest_assign_batch( WP_REST_Request $request, $taxonomy, array $
     $counts  = array();
     $undo    = array();
 
+    $for_type = (string) $request->get_param( 'post_type' );
+
     foreach ( $batch as $group ) {
 
         if ( ! is_array( $group ) ) {
@@ -785,6 +834,7 @@ function vergeml_rest_assign_batch( WP_REST_Request $request, $taxonomy, array $
         $sub->set_param( 'add', isset( $group['add'] ) ? (array) $group['add'] : array() );
         $sub->set_param( 'remove', isset( $group['remove'] ) ? (array) $group['remove'] : array() );
         $sub->set_param( 'mode', isset( $group['mode'] ) ? $group['mode'] : 'add' );
+        $sub->set_param( 'post_type', $for_type );
 
         $result = vergeml_rest_assign( $sub );
 
@@ -810,8 +860,6 @@ function vergeml_rest_assign_batch( WP_REST_Request $request, $taxonomy, array $
 
     // Counts were gathered group by group, so the last group's figures are the
     // current ones; re-read anything an earlier group reported.
-    $for_type = (string) $request->get_param( 'post_type' );
-
     foreach ( array_keys( $counts ) as $term_id ) {
         $term = get_term( $term_id, $taxonomy );
         if ( $term instanceof WP_Term ) {
@@ -823,7 +871,7 @@ function vergeml_rest_assign_batch( WP_REST_Request $request, $taxonomy, array $
         'changed'    => array_values( array_unique( $changed ) ),
         'refused'    => array_values( array_unique( $refused ) ),
         'counts'     => $counts,
-        'unassigned' => vergeml_count_unassigned( $taxonomy ),
+        'unassigned' => current_user_can( 'upload_files' ) ? vergeml_count_unassigned( $taxonomy ) : null,
         'undo'       => empty( $undo ) ? null : array( 'taxonomy' => $taxonomy, 'batch' => $undo ),
     ) );
 }

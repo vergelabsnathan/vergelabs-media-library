@@ -11,15 +11,15 @@ if ( ! defined( 'ABSPATH' ) )
  *  folder plugin, and an optimiser. Neither is an error on their part; both
  *  are worth a word before the support ticket.
  *
- *  A second folder plugin filters the same media queries -- often the same
- *  media_category taxonomy -- and two filters on one query intersect rather
+ *  A second folder plugin filters the same media queries -- often a folder
+ *  taxonomy of its own -- and two filters on one query intersect rather
  *  than add up. The visible symptom is "my files disappeared", and nothing on
  *  the screen says why. So: one notice, once per person, naming the plugin.
  *  Not a refusal to run; agencies migrate one site at a time and want both
  *  active for an afternoon.
  *
  *  An optimiser that combines or defers scripts can move the transport
- *  fallback -- printed inline after wp-api-fetch on purpose -- away from the
+ *  fallback -- which has to follow wp-api-fetch -- away from the
  *  script it patches. Our files are ES5 and survive minification; it is the
  *  order that matters. WP Rocket exposes filters for exactly this, and the
  *  attributes below are read by Autoptimize, LiteSpeed Cache and Cloudflare
@@ -131,9 +131,15 @@ function vergeml_neighbour_dismiss() {
         return;
     }
 
-    $key = preg_replace( '/[^a-z0-9_]/', '', (string) wp_unslash( $_GET['vergeml_dismiss_neighbours'] ) );
+    // The same person the notice is shown to.
+    if ( ! current_user_can( 'activate_plugins' ) ) {
+        return;
+    }
 
-    if ( 0 === strpos( $key, 'vergeml_neighbours_' ) ) {
+    $key = 'vergeml_neighbours_' . md5( implode( ',', array_keys( vergeml_neighbour_folder_plugins() ) ) );
+
+    // Only the key of the notice on screen: the set of other folder plugins active now.
+    if ( sanitize_key( wp_unslash( $_GET['vergeml_dismiss_neighbours'] ) ) === $key ) {
         update_user_meta( get_current_user_id(), $key, 1 );
     }
 
@@ -157,12 +163,13 @@ function vergeml_neighbour_is_ours( $handle ) {
 
 /*
  *  WP Rocket: leave our scripts out of combine, minify and defer. The
- *  patterns are matched against the script URL.
+ *  patterns are regular expressions matched against the script URL's path,
+ *  so the plugin's js/ folder is taken from plugins_url() -- a moved
+ *  wp-content or a renamed plugin folder still matches -- and quoted.
  */
 function vergeml_neighbour_rocket_exclude( $excluded ) {
     $excluded   = (array) $excluded;
-    $excluded[] = '/wp-content/plugins/vergelabs-media-library/js/(.*).js';
-    $excluded[] = 'wp-includes/js/dist/api-fetch(.*).js'; // the transport is printed after this one
+    $excluded[] = preg_quote( wp_make_link_relative( plugins_url( 'js/', VERGEML_FILE ) ), '#' ) . '(.*).js';
     return $excluded;
 }
 

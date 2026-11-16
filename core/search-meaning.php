@@ -333,14 +333,15 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
     // prefix rather than a different sample on every reload.
     $after = 0;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
     do {
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT attachment_id, projection
-               FROM {$wpdb->vergeml_ai_index}
+               FROM %i
               WHERE error = '' AND projection IS NOT NULL AND attachment_id > %d
            ORDER BY attachment_id ASC
               LIMIT %d",
+            $wpdb->vergeml_ai_index,
             $after,
             VERGEML_MEANING_CHUNK
         ), ARRAY_A );
@@ -362,10 +363,11 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
         }
     } while ( count( $rows ) === VERGEML_MEANING_CHUNK && microtime( true ) < $deadline );
 
-    $pending = (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
-          WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL"
-    );
+    $pending = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM %i
+          WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL",
+        $wpdb->vergeml_ai_index
+    ) );
     // phpcs:enable
 
     // Unconverted rows left means the background tick has work to do.
@@ -413,15 +415,22 @@ function vergeml_meaning_search( $text, $limit = 60 ) {
     arsort( $scored );
     $shortlist = array_slice( $scored, 0, $depth, true );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
-    $ready = $wpdb->get_results(
-        "SELECT attachment_id, embedding
-           FROM {$wpdb->vergeml_ai_index}
-          WHERE error = '' AND embedding IS NOT NULL
-            AND attachment_id IN (" . implode( ',', array_map( 'intval', array_keys( $shortlist ) ) ) . ')',
-        ARRAY_A
-    );
-    // phpcs:enable
+    $short_ids = array_map( 'intval', array_keys( $shortlist ) );
+    $ready     = array();
+    if ( $short_ids ) {
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; one %d per id, the ids are bound.
+        $ready = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT attachment_id, embedding
+                   FROM %i
+                  WHERE error = '' AND embedding IS NOT NULL
+                    AND attachment_id IN ( " . implode( ', ', array_fill( 0, count( $short_ids ), '%d' ) ) . ' )',
+                array_merge( array( $wpdb->vergeml_ai_index ), $short_ids )
+            ),
+            ARRAY_A
+        );
+        // phpcs:enable
+    }
 
     $scored = array();
 
@@ -480,13 +489,14 @@ function vergeml_meaning_convert_batch( $deadline, $max_slices = 4, $keep = null
 
     for ( $slice = 0; $slice < $max_slices && microtime( true ) < $deadline; $slice++ ) {
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
         $rows = $wpdb->get_results( $wpdb->prepare(
             "SELECT attachment_id, embedding
-               FROM {$wpdb->vergeml_ai_index}
+               FROM %i
               WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL
            ORDER BY described_at DESC
               LIMIT %d",
+            $wpdb->vergeml_ai_index,
             VERGEML_MEANING_CONVERT
         ), ARRAY_A );
 
@@ -557,11 +567,12 @@ function vergeml_meaning_convert_tick() {
 
     delete_transient( 'vergeml_meaning_convert_lock' );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-    $pending = (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
-          WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL"
-    );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    $pending = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM %i
+          WHERE error = '' AND embedding IS NOT NULL AND projection IS NULL",
+        $wpdb->vergeml_ai_index
+    ) );
     // phpcs:enable
 
     if ( $pending > 0 ) {
@@ -603,9 +614,8 @@ function vergeml_meaning_routes() {
     register_rest_route( VERGEML_REST_NS, '/search-meaning', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_meaning_rest',
-        'permission_callback' => function () {
-            return current_user_can( 'upload_files' );
-        },
+        // Sends the typed phrase to the AI service: administrators only.
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             's'     => array( 'type' => 'string', 'required' => true ),
             'limit' => array( 'type' => 'integer', 'default' => 60 ),
@@ -617,7 +627,7 @@ function vergeml_meaning_routes() {
 function vergeml_meaning_rest( WP_REST_Request $request ) {
 
     $ids = vergeml_meaning_search(
-        (string) $request->get_param( 's' ),
+        sanitize_text_field( (string) $request->get_param( 's' ) ),
         max( 1, min( 200, (int) $request->get_param( 'limit' ) ) )
     );
 
@@ -674,6 +684,11 @@ function vergeml_meaning_offer( $post_type, $which = '' ) {
         return; // once, in the bar above the table
     }
 
+    // A request to the AI service: offered to administrators only.
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
     $term = isset( $_GET['s'] ) ? trim( sanitize_text_field( wp_unslash( $_GET['s'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading the search WordPress is already running.
 
     if ( '' === $term ) {
@@ -681,7 +696,7 @@ function vergeml_meaning_offer( $post_type, $which = '' ) {
     }
 
     // Already looking at one, so there is nowhere for a link to lead.
-    if ( isset( $_GET['vgml_meaning'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( isset( $_GET['vergeml_meaning'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
         printf(
             '<span class="vgml-meaning-on">%s</span>',
@@ -693,7 +708,8 @@ function vergeml_meaning_offer( $post_type, $which = '' ) {
 
     printf(
         '<a class="vgml-meaning-go" href="%s">%s</a>',
-        esc_url( add_query_arg( array( 's' => $term, 'vgml_meaning' => 1 ), admin_url( 'upload.php' ) ) ),
+        // The flag is a nonce: a search by meaning is a request to the service, so a link from elsewhere cannot start one.
+        esc_url( add_query_arg( array( 's' => $term, 'vergeml_meaning' => wp_create_nonce( 'vergeml_meaning' ) ), admin_url( 'upload.php' ) ) ),
         esc_html__( 'Search by meaning', 'vergelabs-media-library' )
     );
 }
@@ -717,7 +733,7 @@ function vergeml_meaning_take_over( $query ) {
         return;
     }
 
-    if ( ! isset( $_GET['vgml_meaning'] ) || ! isset( $_GET['s'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    if ( ! isset( $_GET['vergeml_meaning'], $_GET['s'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['vergeml_meaning'] ) ), 'vergeml_meaning' ) || ! current_user_can( 'manage_options' ) ) {
         return;
     }
 
@@ -727,7 +743,7 @@ function vergeml_meaning_take_over( $query ) {
         return;
     }
 
-    $term = trim( sanitize_text_field( wp_unslash( $_GET['s'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $term = trim( sanitize_text_field( wp_unslash( $_GET['s'] ) ) );
     $ids  = vergeml_meaning_search( $term, 120 );
 
     if ( null === $ids ) {

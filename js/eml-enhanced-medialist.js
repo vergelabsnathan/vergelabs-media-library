@@ -3,7 +3,7 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 
 
-function emlIsFilterBased( attrs ) {
+function vergemlIsFilterBased( attrs ) {
 
     if ( _.isUndefined( attrs ) || _.isEmpty( attrs ) ) {
         return false;
@@ -55,7 +55,7 @@ function emlIsFilterBased( attrs ) {
             original.MediaFrame.Post.galleryMenu.apply( this, arguments );
 
             var library = this.state().get('library'),
-                isFilterBased = emlIsFilterBased( library.props.toJSON() );
+                isFilterBased = vergemlIsFilterBased( library.props.toJSON() );
 
 
             if ( isFilterBased ) {
@@ -68,7 +68,7 @@ function emlIsFilterBased( attrs ) {
             original.MediaFrame.Post.playlistMenu.apply( this, arguments );
 
             var library = this.state().get('library'),
-                isFilterBased = emlIsFilterBased( library.props.toJSON() );
+                isFilterBased = vergemlIsFilterBased( library.props.toJSON() );
 
 
             if ( isFilterBased ) {
@@ -81,7 +81,7 @@ function emlIsFilterBased( attrs ) {
             original.MediaFrame.Post.playlistMenu.apply( this, arguments );
 
             var library = this.state().get('library'),
-                isFilterBased = emlIsFilterBased( library.props.toJSON() );
+                isFilterBased = vergemlIsFilterBased( library.props.toJSON() );
 
 
             if ( isFilterBased ) {
@@ -104,7 +104,7 @@ function emlIsFilterBased( attrs ) {
         initialize: function() {
 
             var state = this.controller.state(),
-                isFilterBased = emlIsFilterBased( state.get('library').props.toJSON() ),
+                isFilterBased = vergemlIsFilterBased( state.get('library').props.toJSON() ),
                 isMediaList = 'gallery-edit' === state.get('id') || 'playlist-edit' === state.get('id') || 'video-playlist-edit' === state.get('id');
 
 
@@ -205,7 +205,7 @@ function emlIsFilterBased( attrs ) {
      */
     vergeml.basedOnHTML = function( library ) {
 
-        var isFilterBased = emlIsFilterBased( library.props.toJSON() ),
+        var isFilterBased = vergemlIsFilterBased( library.props.toJSON() ),
             append = '',
             date,
             months = media.view.settings.months,
@@ -215,7 +215,7 @@ function emlIsFilterBased( attrs ) {
 
         if ( isFilterBased ) {
 
-            append = '<br class="clear" /><h3>' + vergeml.l10n.based_on + '</h3><span class="setting eml-filter-based"><ul class="eml-filter-based">';
+            append = '<br class="clear" /><h3>' + _.escape( vergeml.l10n.based_on ) + '</h3><span class="setting eml-filter-based"><ul class="eml-filter-based">';
 
             _.each( vergeml.l10n.taxonomies, function( attrs, taxonomy ) {
 
@@ -263,7 +263,7 @@ function emlIsFilterBased( attrs ) {
                     append += '<li>' + media.view.l10n.uploadedToThisPost + '</li>';
                 }
                 else if ( parseInt( uploadedTo ) ) {
-                    append += '<li>' + vergeml.l10n.uploaded_to + uploadedTo + '</li>';
+                    append += '<li>' + _.escape( vergeml.l10n.uploaded_to ) + parseInt( uploadedTo, 10 ) + '</li>';
                 }
             }
             append += '</ul></span>';

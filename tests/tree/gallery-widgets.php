@@ -23,15 +23,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 wp_set_current_user( 1 );
 
-$GLOBALS['vgml_ok']  = 0;
-$GLOBALS['vgml_bad'] = 0;
+$GLOBALS['vergeml_ok']  = 0;
+$GLOBALS['vergeml_bad'] = 0;
 
 function t( $name, $pass, $detail = '' ) {
-	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+	$pass ? $GLOBALS['vergeml_ok']++ : $GLOBALS['vergeml_bad']++;
 	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, $detail ? '  -- ' . $detail : '' );
 }
 
-function vgml_front_imgs( $post_id ) {
+function vergeml_front_imgs( $post_id ) {
 
 	$got = wp_remote_get( get_permalink( $post_id ), array( 'timeout' => 30 ) );
 
@@ -82,10 +82,10 @@ t( 'nonsense settings come out as the defaults', 8 === $garbage['columns'] && 'n
 
 /* --- something to show ----------------------------------------------------- */
 
-$term = get_term_by( 'slug', 'press', 'media_category' );
+$term = get_term_by( 'slug', 'press', 'vergeml_folder' );
 
 if ( ! $term ) {
-	$terms = get_terms( array( 'taxonomy' => 'media_category', 'hide_empty' => true, 'number' => 1, 'orderby' => 'count', 'order' => 'DESC' ) );
+	$terms = get_terms( array( 'taxonomy' => 'vergeml_folder', 'hide_empty' => true, 'number' => 1, 'orderby' => 'count', 'order' => 'DESC' ) );
 	$term  = $terms ? $terms[0] : null;
 }
 
@@ -152,7 +152,7 @@ if ( ! function_exists( 'vc_map' ) ) {
 	update_post_meta( $bid, '_wpb_vc_js_status', 'true' );
 
 	$made[] = $bid;
-	$front  = vgml_front_imgs( $bid );
+	$front  = vergeml_front_imgs( $bid );
 
 	t( 'the page renders the gallery', ! isset( $front['err'] ) && $front['gallery'] > 0,
 		isset( $front['err'] ) ? $front['err'] : $front['gallery'] . ' markers' );
@@ -209,7 +209,7 @@ if ( ! did_action( 'elementor/loaded' ) && ! class_exists( '\Elementor\Plugin' )
 	update_post_meta( $pid, '_elementor_version', ELEMENTOR_VERSION );
 
 	$made[] = $pid;
-	$front  = vgml_front_imgs( $pid );
+	$front  = vergeml_front_imgs( $pid );
 
 	t( 'the page renders the gallery', ! isset( $front['err'] ) && $front['gallery'] > 0,
 		isset( $front['err'] ) ? $front['err'] : $front['gallery'] . ' markers' );
@@ -249,7 +249,7 @@ if ( ! class_exists( 'ET_Builder_Module' ) && ! defined( 'ET_BUILDER_PLUGIN_DIR'
 	update_post_meta( $did, '_et_pb_use_builder', 'on' );
 
 	$made[] = $did;
-	$front  = vgml_front_imgs( $did );
+	$front  = vergeml_front_imgs( $did );
 
 	t( 'the page renders the gallery', ! isset( $front['err'] ) && $front['gallery'] > 0,
 		isset( $front['err'] ) ? $front['err'] : $front['gallery'] . ' markers' );
@@ -265,5 +265,5 @@ foreach ( $made as $pid ) {
 	wp_delete_post( $pid, true );
 }
 
-printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
-exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
+printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
+exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

@@ -72,9 +72,9 @@ function snap_plugin_digest( $dir ) {
 const VGML_SNAP_TABLES = array( 'terms', 'termmeta', 'rels', 'alts', 'postmeta', 'batches', 'moves', 'index', 'posts' );
 
 $state = array(
-	'terms'    => snap_rows( "SELECT t.term_id, t.name, t.slug, tt.taxonomy, tt.parent, tt.description, tt.count FROM {$p}terms t JOIN {$p}term_taxonomy tt ON tt.term_id = t.term_id WHERE tt.taxonomy = 'media_category' ORDER BY t.term_id" ),
-	'termmeta' => snap_rows( "SELECT tm.meta_id, tm.term_id, tm.meta_key, tm.meta_value FROM {$p}termmeta tm JOIN {$p}term_taxonomy tt ON tt.term_id = tm.term_id WHERE tt.taxonomy = 'media_category' ORDER BY tm.term_id, tm.meta_key, tm.meta_id" ),
-	'rels'     => snap_rows( "SELECT tr.object_id, tt.term_id FROM {$p}term_relationships tr JOIN {$p}term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tt.taxonomy = 'media_category' ORDER BY tr.object_id, tt.term_id" ),
+	'terms'    => snap_rows( "SELECT t.term_id, t.name, t.slug, tt.taxonomy, tt.parent, tt.description, tt.count FROM {$p}terms t JOIN {$p}term_taxonomy tt ON tt.term_id = t.term_id WHERE tt.taxonomy = 'vergeml_folder' ORDER BY t.term_id" ),
+	'termmeta' => snap_rows( "SELECT tm.meta_id, tm.term_id, tm.meta_key, tm.meta_value FROM {$p}termmeta tm JOIN {$p}term_taxonomy tt ON tt.term_id = tm.term_id WHERE tt.taxonomy = 'vergeml_folder' ORDER BY tm.term_id, tm.meta_key, tm.meta_id" ),
+	'rels'     => snap_rows( "SELECT tr.object_id, tt.term_id FROM {$p}term_relationships tr JOIN {$p}term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tt.taxonomy = 'vergeml_folder' ORDER BY tr.object_id, tt.term_id" ),
 	'alts'     => snap_rows( "SELECT post_id, meta_value FROM {$p}postmeta WHERE meta_key = '_wp_attachment_image_alt' ORDER BY post_id" ),
 	'postmeta' => snap_rows( "SELECT post_id, meta_key, MD5(meta_value) FROM {$p}postmeta WHERE meta_key IN ('_wp_attached_file', '_wp_attachment_metadata', '_vergeml_placed_by', '_vergeml_autonomy') ORDER BY post_id, meta_key" ),
 	'batches'  => snap_rows( "SELECT batch_id, run_id, scheme, status, step_cursor, done_n, skip_n, params, reason, user_id, approved_at, created_at FROM {$p}vergeml_librarian_batches ORDER BY batch_id" ),

@@ -101,7 +101,7 @@ $W eval 'exit( defined( "VERGEML_VERSION" ) && function_exists( "vergeml_tree_ta
 step "plugin loaded, tree taxonomies present" $?
 
 # As an administrator: the route is capability-gated, and wp-cli has no user.
-$W eval '$u = get_users( array( "role" => "administrator", "number" => 1, "fields" => "ID" ) ); wp_set_current_user( (int) $u[0] ); rest_get_server(); $q = new WP_REST_Request( "GET", "/vergeml/v1/tree" ); $q->set_param( "taxonomy", "media_category" ); $r = rest_do_request( $q ); fwrite( STDERR, "tree status " . $r->get_status() . "
+$W eval '$u = get_users( array( "role" => "administrator", "number" => 1, "fields" => "ID" ) ); wp_set_current_user( (int) $u[0] ); rest_get_server(); $q = new WP_REST_Request( "GET", "/vergeml/v1/tree" ); $q->set_param( "taxonomy", "vergeml_folder" ); $r = rest_do_request( $q ); fwrite( STDERR, "tree status " . $r->get_status() . "
 " ); exit( 200 === $r->get_status() ? 0 : 1 );' 2>&1 | grep "tree status" 
 step "REST tree 200 as an administrator" ${PIPESTATUS[0]}
 
@@ -125,7 +125,7 @@ if [ -n "$T" ] && [ -f /tmp/vgml-live.php ]; then
     step "integration check $T" ${PIPESTATUS[0]}
 fi
 if [ "$SLUG" = "Divi" ] && [ -f /tmp/vgml-divi.php ]; then
-    FOLDER=$($W term list media_category --fields=term_id --orderby=count --order=DESC --format=csv 2>/dev/null | sed -n 2p)
+    FOLDER=$($W term list vergeml_folder --fields=term_id --orderby=count --order=DESC --format=csv 2>/dev/null | sed -n 2p)
     $W eval-file /tmp/vgml-divi.php "$FOLDER" 2>&1 | grep -v Deprecated | grep -E "ok|FAIL|passed"
     step "Divi render check" ${PIPESTATUS[0]}
 fi

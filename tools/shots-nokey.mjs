@@ -24,7 +24,7 @@ await page.fill( '#user_login', process.env.UI_USER ?? 'admin' );
 await page.fill( '#user_pass', process.env.UI_PASS ?? 'password' );
 await Promise.all( [ page.waitForNavigation( { waitUntil: 'domcontentloaded' } ), page.click( '#wp-submit' ) ] );
 
-for ( const [ name, slug ] of [ [ 'licence', 'media-licence' ], [ 'dashboard', 'vergelabs-media' ], [ 'library-settings', 'media-library' ] ] ) {
+for ( const [ name, slug ] of [ [ 'licence', 'vergeml-licence' ], [ 'dashboard', 'vergelabs-media' ], [ 'library-settings', 'vergeml-library' ] ] ) {
 	await page.goto( `${ BASE }/wp-admin/admin.php?page=${ slug }`, { waitUntil: 'domcontentloaded' } );
 	await page.waitForTimeout( 1200 );
 	const file = path.join( OUT, `shot-nokey-${ name }.png` );

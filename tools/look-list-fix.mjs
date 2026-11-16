@@ -36,7 +36,7 @@ const OURS_EXTRA = '#taxonomy-colour, #vergeml_used, #vgmlpro_source';
 const OURS_EXTRA_CELLS = '.taxonomy-colour, .vergeml_used, .vgmlpro_source';
 
 /* All of ours: a cell of ours may never be the reason a row is tall. */
-const OURS_CELLS = '.taxonomy-media_category, .taxonomy-colour, .vergeml_used, .vgmlpro_source';
+const OURS_CELLS = '.taxonomy-vergeml_folder, .taxonomy-colour, .vergeml_used, .vgmlpro_source';
 
 const NOWRAP = `
 	.wp-list-table td:is(${ OURS_CELLS }) {

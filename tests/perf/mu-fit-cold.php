@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: VergeML walk: the dry run gives up
- * Description: While a request carries vgml_fit_cold, the guide's dry run gets a budget of nothing and answers null, so the screen's "no numbers yet" state can be walked on a warm box.
+ * Description: While a request carries vergeml_fit_cold, the guide's dry run gets a budget of nothing and answers null, so the screen's "no numbers yet" state can be walked on a warm box.
  *
  * vergeml_guide_draft_fit() stops at twenty seconds and answers nothing rather
  * than half a count. On this box, warm, the run takes seven to ten seconds and
@@ -10,7 +10,7 @@
  *
  * The budget is a filter, so the walk asks for it per request:
  *
- *     wp.apiFetch( { path: '/vergeml/v1/guide/turn?vgml_fit_cold=1', ... } )
+ *     wp.apiFetch( { path: '/vergeml/v1/guide/turn?vergeml_fit_cold=1', ... } )
  *
  * One request, no option to leave behind, and nothing to clean up if a spec
  * dies mid-way. tests/ui/folders.spec.mjs is the only caller.
@@ -20,5 +20,5 @@
 
 add_filter( 'vergeml_guide_fit_budget', function ( $n ) {
 	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, test box, no state changes.
-	return isset( $_GET['vgml_fit_cold'] ) ? 0 : $n;
+	return isset( $_GET['vergeml_fit_cold'] ) ? 0 : $n;
 } );

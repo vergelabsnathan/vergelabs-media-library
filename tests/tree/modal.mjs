@@ -169,7 +169,7 @@ if ( picked ) {
 		selected: [ ...document.querySelectorAll( '.media-modal .vgml-node.is-selected .vgml-name' ) ].map( ( n ) => n.textContent ),
 		props: ( () => {
 			try {
-				return window.__vgmlFrame.state().get( 'library' ).props.toJSON().media_category;
+				return window.__vgmlFrame.state().get( 'library' ).props.toJSON().vergeml_folder;
 			} catch ( e ) {
 				return 'unreadable';
 			}

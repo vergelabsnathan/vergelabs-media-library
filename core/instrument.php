@@ -80,11 +80,13 @@ function vergeml_stats_snapshot() {
         "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_status = 'inherit'"
     );
 
-    $families = $wpdb->get_results(
-        "SELECT SUBSTRING_INDEX( post_mime_type, '/', 1 ) AS family, COUNT(*) AS c
+    // Counted per MIME type and folded into families below: SUBSTRING_INDEX()
+    // did it in SQL, and SQLite (Playground) does not have it.
+    $types = $wpdb->get_results(
+        "SELECT post_mime_type AS mime, COUNT(*) AS c
          FROM {$wpdb->posts}
          WHERE post_type = 'attachment' AND post_status = 'inherit'
-         GROUP BY family"
+         GROUP BY post_mime_type"
     );
 
     $recent = (int) $wpdb->get_var( $wpdb->prepare(
@@ -96,10 +98,13 @@ function vergeml_stats_snapshot() {
 
     $mimes = array();
 
-    foreach ( (array) $families as $row ) {
+    foreach ( (array) $types as $row ) {
+        // The part before the slash, as SUBSTRING_INDEX( mime, '/', 1 ) gave.
         // sanitize_key, so a malformed mime in the database cannot put an
-        // arbitrary string into the snapshot through the back door.
-        $mimes[ sanitize_key( (string) $row->family ) ] = (int) $row->c;
+        // arbitrary string into the snapshot through the back door; it also
+        // lowercases, as MySQL's GROUP BY on a _ci column did.
+        $family           = sanitize_key( strstr( (string) $row->mime . '/', '/', true ) );
+        $mimes[ $family ] = ( isset( $mimes[ $family ] ) ? $mimes[ $family ] : 0 ) + (int) $row->c;
     }
 
     $folders = 0;
@@ -247,7 +252,8 @@ add_action( 'admin_init', 'vergeml_stats_maybe_refresh' );
 
 function vergeml_stats_maybe_refresh() {
 
-    if ( wp_doing_ajax() || ! vergeml_stats_opted() ) {
+    // admin_init also runs for admin-post.php without a login: an administrator's screen only.
+    if ( wp_doing_ajax() || ! current_user_can( 'manage_options' ) || ! vergeml_stats_opted() ) {
         return;
     }
 
@@ -266,9 +272,7 @@ function vergeml_stats_routes() {
         'callback'            => 'vergeml_stats_rest_opt',
         // Deciding what a site shares about itself is the site owner's call,
         // not a folder manager's.
-        'permission_callback' => function () {
-            return current_user_can( 'manage_options' );
-        },
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'opted' => array( 'type' => 'boolean', 'required' => true ),
         ),
@@ -385,35 +389,11 @@ function vergeml_stats_settings_section() {
 
 function vergeml_stats_script() {
 
-    wp_enqueue_script( 'wp-api-fetch' );
+    vergeml_screen_script( 'vergeml-stats-opt', 'vergeml-stats-opt.js', array( 'vergeml-transport' ) );
 
-    $l10n = wp_json_encode( array(
+    wp_localize_script( 'vergeml-stats-opt', 'vergemlStatsOpt', array(
         'on'     => __( 'On. The counts go once a day.', 'vergelabs-media-library' ),
         'off'    => __( 'Off. What was collected has been deleted.', 'vergelabs-media-library' ),
         'failed' => __( 'That did not save.', 'vergelabs-media-library' ),
     ) );
-
-    wp_add_inline_script( 'wp-api-fetch', '( function () {
-	var l10n = ' . $l10n . ';
-	var box = document.getElementById( "vgml-stats-opt" );
-	var note = document.getElementById( "vgml-stats-note" );
-	if ( ! box || ! window.wp || ! window.wp.apiFetch ) {
-		return;
-	}
-	box.addEventListener( "change", function () {
-		box.disabled = true;
-		window.wp.apiFetch( {
-			path: "/vergeml/v1/stats-opt",
-			method: "POST",
-			data: { opted: box.checked }
-		} ).then( function ( r ) {
-			box.disabled = false;
-			note.textContent = r.opted ? l10n.on : l10n.off;
-		} ).catch( function () {
-			box.disabled = false;
-			box.checked = ! box.checked;
-			note.textContent = l10n.failed;
-		} );
-	} );
-} )();' );
 }

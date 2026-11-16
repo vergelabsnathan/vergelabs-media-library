@@ -44,10 +44,9 @@ const VERGEML_AI_RUN_GAP = 5;
 
 /** How many files one step describes before the budget is checked again.
  *
- *  Eight, which is one group in flight together -- so a chunk now costs about
- *  what a single file used to, and the budget is still only checked between
- *  chunks. Three was chosen when they went one at a time. */
-const VERGEML_AI_RUN_CHUNK = 16;
+ *  Three, one at a time: about twelve seconds, and at most three minutes if
+ *  every call runs to its sixty-second timeout -- inside the lock's four. */
+const VERGEML_AI_RUN_CHUNK = 3;
 
 
 /**
@@ -100,6 +99,15 @@ function vergeml_ai_run_schedule() {
 }
 
 
+// admin_init also runs for admin-post.php without a login: only an administrator's request revives a run.
+add_action( 'admin_init', 'vergeml_ai_run_revive_on_admin' );
+
+function vergeml_ai_run_revive_on_admin() {
+    if ( ! wp_doing_ajax() && current_user_can( 'manage_options' ) ) {
+        vergeml_ai_run_revive();
+    }
+}
+
 /**
  *  vergeml_ai_run_revive
  *
@@ -115,7 +123,7 @@ function vergeml_ai_run_schedule() {
  *
  *  @return bool  whether it booked one.
  */
-add_action( 'admin_init', 'vergeml_ai_run_revive' );
+
 
 function vergeml_ai_run_revive() {
 
@@ -159,56 +167,69 @@ function vergeml_ai_run_nudge() {
         return;
     }
 
-    /*
-     *  A host with a system cron of its own, or a suite that starts a run
-     *  only to look at it, can leave the event to be picked up rather than
-     *  have a pass spawned this instant.
-     */
-    if ( ! apply_filters( 'vergeml_ai_run_should_nudge', true ) ) {
-        return;
-    }
-
-    /*
-     *  wp-cron.php only works when the key in the request matches the
-     *  'doing_cron' lock. Posting a fresh key without taking the lock, which
-     *  is what this did until 3 September 2026, is refused on line one of
-     *  the lock check: every nudge on the box came back in zero seconds and
-     *  the run waited for whatever else happened to spawn cron. Outside a
-     *  cron run, core's spawn_cron() takes the lock and posts; it declines
-     *  while a run holds the lock, and that run drops it as it ends.
-     */
+    // Outside a cron run: core's spawn_cron(), which takes the 'doing_cron'
+    // lock with its own key and posts it, or declines while a run holds the
+    // lock -- and that run reaches the booked event itself.
     if ( ! defined( 'DOING_CRON' ) ) {
         spawn_cron();
         return;
     }
 
-    /*
-     *  Inside a tick spawn_cron() refuses outright, so the next request is
-     *  chained the way core's own does it: take the lock with a new key and
-     *  post that key. The finishing run only clears the lock when it still
-     *  holds it, so the handover is clean.
-     */
-    $key = sprintf( '%.22F', microtime( true ) );
-    set_transient( 'doing_cron', $key );
+    vergeml_cron_continue();
+}
+
+
+/**
+ *  Inside a cron run: ask for the next pass of a job whose event is already
+ *  booked, without touching cron's lock. Shared by the describe run and the
+ *  refile (core/folder-talk.php, vergeml_talk_refile_schedule); outside a
+ *  cron run both call core's spawn_cron() instead.
+ *
+ *  Inside a cron run spawn_cron() refuses. Until 4.1.0 this wrote
+ *  'doing_cron' itself with a new key and posted that key: the next pass
+ *  came at once, but wp-cron.php checks the lock between hooks, so the run
+ *  it was called from stopped before any other plugin's due events. Now the
+ *  event is left booked and, once this request has finished -- a shutdown
+ *  function, after wp-cron.php has released its own lock -- wp-cron.php is
+ *  asked the way a system cron asks it: no key, so wp-cron.php takes the
+ *  lock under its own rules (WP_CRON_LOCK_TIMEOUT) or returns because a run
+ *  holds it. Nothing here writes the lock. The request uses WordPress's
+ *  default certificate check; where a loopback cannot pass it, the run goes
+ *  on at the pace of the screen's poll and of visitors, as WP-Cron does.
+ */
+function vergeml_cron_continue() {
+
+    static $booked = false;
+
+    if ( ! $booked ) {
+        $booked = true;
+        register_shutdown_function( 'vergeml_cron_continue_after' );
+    }
+}
+
+/** The shutdown half of vergeml_cron_continue(): runs after wp-cron.php released its lock. */
+function vergeml_cron_continue_after() {
+
+    $lock = (float) get_transient( 'doing_cron' );
+
+    // A run holds the lock (another spawn got there first): it reaches the booked event itself.
+    if ( $lock && $lock + WP_CRON_LOCK_TIMEOUT > microtime( true ) ) {
+        return;
+    }
 
     wp_remote_post(
-        add_query_arg( 'doing_wp_cron', $key, site_url( 'wp-cron.php' ) ),
+        site_url( 'wp-cron.php' ),
         array(
-            'timeout'   => 0.01,
-            'blocking'  => false,
-            'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
-            'headers'   => array( 'Cache-Control' => 'no-cache' ),
+            'timeout'  => 0.01,
+            'blocking' => false,
+            'headers'  => array( 'Cache-Control' => 'no-cache' ),
         )
     );
 }
 
 
 function vergeml_ai_run_unschedule() {
-    $next = wp_next_scheduled( VERGEML_AI_RUN_HOOK );
-    while ( false !== $next ) {
-        wp_unschedule_event( $next, VERGEML_AI_RUN_HOOK );
-        $next = wp_next_scheduled( VERGEML_AI_RUN_HOOK );
-    }
+    wp_clear_scheduled_hook( VERGEML_AI_RUN_HOOK );
 }
 
 
@@ -288,7 +309,7 @@ function vergeml_ai_run_stop( $reason = '' ) {
 
 add_action( VERGEML_AI_RUN_HOOK, 'vergeml_ai_run_tick' );
 
-function vergeml_ai_run_tick() {
+function vergeml_ai_run_tick( $budget = null ) {
 
     $state = vergeml_ai_run_state();
 
@@ -309,17 +330,21 @@ function vergeml_ai_run_tick() {
     /*
      *  The lock is a heartbeat, not a lease. It lived five minutes and was
      *  set once, so a pass killed half-way held the run up for the rest of
-     *  those minutes. Now it lasts two and is renewed before every batch; a
-     *  batch is sixteen calls in flight together, each capped at sixty
-     *  seconds, so a living pass never lets it lapse and a dead one is found
-     *  out within two minutes of its last batch (vergeml_ai_run_revive).
+     *  those minutes. Now it lasts four and is renewed before every batch; a
+     *  batch is three calls one after another, each capped at sixty seconds,
+     *  so a living pass never lets it lapse and a dead one is found out
+     *  within four minutes of its last batch (vergeml_ai_run_revive).
      */
-    set_transient( 'vergeml_ai_run_lock', time(), 2 * MINUTE_IN_SECONDS );
+    set_transient( 'vergeml_ai_run_lock', time(), 4 * MINUTE_IN_SECONDS );
 
     // Cron requests inherit the site's limit, which on shared hosting is
-    // often 30 seconds. Ask for more; carry on without it if refused.
-    if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a long cron job on shared hosting; refused silently where disallowed.
+    // often 30 seconds. Ask for the pass's own budget plus the longest a
+    // batch started just before it ends can take (three calls one after
+    // another, each capped at sixty seconds, then the writes); carry on without it if
+    // refused. Bounded, not 0: a pass that hangs past this is dead anyway,
+    // and vergeml_ai_run_revive() starts the next one.
+    if ( vergeml_can_set_time_limit() ) {
+        set_time_limit( VERGEML_AI_RUN_BUDGET + 180 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job on shared hosting; refused silently where disallowed.
     }
 
     $started = time();
@@ -331,11 +356,11 @@ function vergeml_ai_run_tick() {
      *  is the same outage.
      */
     $waiting = true;
-    // The budget is a constant; a suite reaches the tail's other branch through the filter.
-    $budget = (int) apply_filters( 'vergeml_ai_run_budget', VERGEML_AI_RUN_BUDGET );
+    // Seconds of work in this pass. Cron passes nothing (or ''), which is the constant.
+    $budget = is_int( $budget ) ? $budget : VERGEML_AI_RUN_BUDGET;
 
     do {
-        set_transient( 'vergeml_ai_run_lock', time(), 2 * MINUTE_IN_SECONDS );
+        set_transient( 'vergeml_ai_run_lock', time(), 4 * MINUTE_IN_SECONDS );
 
         $result   = vergeml_ai_index_step( $state['scope'], VERGEML_AI_RUN_CHUNK, $state['apply_alt'] );
         $held_now = 0;
@@ -482,17 +507,14 @@ function vergeml_ai_run_routes() {
         array(
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => 'vergeml_ai_run_rest_status',
-            'permission_callback' => function () {
-                return current_user_can( 'manage_categories' );
-            },
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'vergeml_ai_run_rest_write',
-            // Same bar as /ai-index: this describes files and writes their meta.
-            'permission_callback' => function () {
-                return current_user_can( 'manage_categories' );
-            },
+            // A library-wide run that spends credits and writes alt text: site
+            // administrators only (wordpress.org review 2, 2026-10-03).
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
             'args'                => array(
                 'action'    => array( 'type' => 'string', 'default' => 'start' ),
                 'scope'     => array( 'type' => 'string', 'default' => 'unindexed' ),
@@ -578,14 +600,14 @@ add_action( 'admin_enqueue_scripts', 'vergeml_ai_run_assets' );
 
 function vergeml_ai_run_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-ai' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-ai' ) ) {
         return;
     }
 
     wp_enqueue_script(
         'vergeml-ai-background',
         plugins_url( 'js/vergeml-ai-background.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-ai-background.js' ),
         true
     );

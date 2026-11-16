@@ -282,13 +282,7 @@ function vergeml_organize_install() {
 }
 
 
-/**
- *  Hooked rather than called, so safe mode -- which skips every file in this
- *  folder -- simply means nobody answers, and the activation does not fatal on
- *  a function that was never defined.
- */
-
-add_action( 'vergeml_activate', 'vergeml_organize_install' );
+// Called by name from vergeml_provision_site() (the main plugin file) on activation and on a version change.
 
 
 /**
@@ -305,7 +299,8 @@ add_action( 'admin_init', 'vergeml_organize_housekeeping' );
 
 function vergeml_organize_housekeeping() {
 
-    if ( wp_doing_ajax() ) {
+    // admin_init also runs for admin-post.php without a login: an administrator's screen only.
+    if ( wp_doing_ajax() || ! current_user_can( 'manage_options' ) ) {
         return;
     }
 
@@ -351,9 +346,10 @@ function vergeml_organize_run_get( $run_id ) {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; there is no core API for it.
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; there is no core API for it.
     $row = $wpdb->get_row( $wpdb->prepare(
-        "SELECT * FROM {$wpdb->vergeml_organize_runs} WHERE run_id = %d",
+        'SELECT * FROM %i WHERE run_id = %d',
+        $wpdb->vergeml_organize_runs,
         (int) $run_id
     ), ARRAY_A );
     // phpcs:enable
@@ -372,9 +368,9 @@ function vergeml_organize_run_latest() {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $row = $wpdb->get_row(
-        "SELECT * FROM {$wpdb->vergeml_organize_runs} ORDER BY run_id DESC LIMIT 1",
+        $wpdb->prepare( 'SELECT * FROM %i ORDER BY run_id DESC LIMIT 1', $wpdb->vergeml_organize_runs ),
         ARRAY_A
     );
     // phpcs:enable
@@ -511,12 +507,13 @@ function vergeml_organize_run_save( $run ) {
      *  three against a budget of two. Every value below still goes through
      *  prepare; only the introspection is gone.
      */
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     return false !== $wpdb->query( $wpdb->prepare(
-        "UPDATE {$wpdb->vergeml_organize_runs}
+        'UPDATE %i
             SET status = %s, k = %d, n = %d, load_cursor = %d,
                 tree = %s, params = %s, updated_at = %s
-          WHERE run_id = %d",
+          WHERE run_id = %d',
+        $wpdb->vergeml_organize_runs,
         (string) $run['status'],
         (int) $run['k'],
         (int) $run['n'],
@@ -541,9 +538,9 @@ function vergeml_organize_count() {
 
     global $wpdb;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     return (int) $wpdb->get_var(
-        "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE embedding IS NOT NULL"
+        $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE embedding IS NOT NULL', $wpdb->vergeml_ai_index )
     );
     // phpcs:enable
 }
@@ -665,37 +662,28 @@ function vergeml_organize_vectors( $after = 0, $limit = 0, $scope = array() ) {
 
     if ( $scope ) {
 
-        $placeholders = implode( ',', array_fill( 0, count( $scope ), '%d' ) );
-
-        $params   = $scope;
-        $params[] = (int) $after;
-        $params[] = $cap;
-
-        /*
-         *  $placeholders is a string of %d markers matching count( $scope ),
-         *  and every value travels through prepare. The sniffs cannot count a
-         *  dynamic list.
-         */
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+        // The table is an identifier (%i); one %d per id in the scope, then the cursor and the limit.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT attachment_id, embedding, embedding_dims, tags, kind, document_type
-               FROM {$wpdb->vergeml_ai_index}
-              WHERE embedding IS NOT NULL AND attachment_id IN ( $placeholders ) AND attachment_id > %d
+            'SELECT attachment_id, embedding, embedding_dims, tags, kind, document_type
+               FROM %i
+              WHERE embedding IS NOT NULL AND attachment_id IN ( ' . implode( ', ', array_fill( 0, count( $scope ), '%d' ) ) . ' ) AND attachment_id > %d
               ORDER BY attachment_id ASC
-              LIMIT %d",
-            $params
+              LIMIT %d',
+            array_merge( array( $wpdb->vergeml_ai_index ), $scope, array( (int) $after, $cap ) )
         ), ARRAY_A );
         // phpcs:enable
 
     } else {
 
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT attachment_id, embedding, embedding_dims, tags, kind, document_type
-               FROM {$wpdb->vergeml_ai_index}
+            'SELECT attachment_id, embedding, embedding_dims, tags, kind, document_type
+               FROM %i
               WHERE embedding IS NOT NULL AND attachment_id > %d
               ORDER BY attachment_id ASC
-              LIMIT %d",
+              LIMIT %d',
+            $wpdb->vergeml_ai_index,
             (int) $after,
             $cap
         ), ARRAY_A );
@@ -2753,9 +2741,10 @@ function vergeml_organize_prune( $keep = VERGEML_ORGANIZE_KEEP ) {
 
     $keep = max( 1, (int) $keep );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $cutoff = (int) $wpdb->get_var( $wpdb->prepare(
-        "SELECT run_id FROM {$wpdb->vergeml_organize_runs} ORDER BY run_id DESC LIMIT %d, 1",
+        'SELECT run_id FROM %i ORDER BY run_id DESC LIMIT %d, 1',
+        $wpdb->vergeml_organize_runs,
         $keep
     ) );
 
@@ -2764,7 +2753,8 @@ function vergeml_organize_prune( $keep = VERGEML_ORGANIZE_KEEP ) {
     }
 
     return (int) $wpdb->query( $wpdb->prepare(
-        "DELETE FROM {$wpdb->vergeml_organize_runs} WHERE run_id <= %d",
+        'DELETE FROM %i WHERE run_id <= %d',
+        $wpdb->vergeml_organize_runs,
         $cutoff
     ) );
     // phpcs:enable
@@ -2801,13 +2791,13 @@ function vergeml_organize_quote() {
         );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $images = (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type LIKE %s",
         $wpdb->esc_like( 'image/' ) . '%'
     ) );
 
-    $described = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND described_at IS NOT NULL" );
+    $described = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND described_at IS NOT NULL", $wpdb->vergeml_ai_index ) );
     // phpcs:enable
 
     /*
@@ -2833,13 +2823,11 @@ function vergeml_organize_quote() {
 
     if ( $copy_ids ) {
 
-        $placeholders = implode( ',', array_fill( 0, count( $copy_ids ), '%d' ) );
-
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $copies_described = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
-              WHERE error = '' AND described_at IS NOT NULL AND attachment_id IN ( $placeholders )",
-            $copy_ids
+            "SELECT COUNT(*) FROM %i
+              WHERE error = '' AND described_at IS NOT NULL AND attachment_id IN ( " . implode( ', ', array_fill( 0, count( $copy_ids ), '%d' ) ) . ' )',
+            array_merge( array( $wpdb->vergeml_ai_index ), $copy_ids )
         ) );
         // phpcs:enable
     }
@@ -2880,9 +2868,7 @@ function vergeml_organize_routes() {
         // Proposing a tree writes nothing but this feature's own rows, and it
         // is the same curation bar as the scans rather than the one that
         // governs uploading.
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_organize_rest_step',
         'args'                => array(
             'run_id'        => array( 'type' => 'integer', 'default' => 0 ),
@@ -2893,9 +2879,7 @@ function vergeml_organize_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/organize-cancel', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_organize_rest_cancel',
         'args'                => array(
             'run_id' => array( 'type' => 'integer', 'required' => true ),
@@ -2904,9 +2888,7 @@ function vergeml_organize_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/organize-run', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_organize_rest_run',
         'args'                => array(
             'run_id'  => array( 'type' => 'integer', 'default' => 0 ),
@@ -2916,9 +2898,7 @@ function vergeml_organize_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/organize-quote', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_organize_rest_quote',
     ) );
 }
@@ -3064,9 +3044,10 @@ function vergeml_organize_rest_cancel( WP_REST_Request $request ) {
 
     $run_id = (int) $request->get_param( 'run_id' );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $status = $wpdb->get_var( $wpdb->prepare(
-        "SELECT status FROM {$wpdb->vergeml_organize_runs} WHERE run_id = %d",
+        'SELECT status FROM %i WHERE run_id = %d',
+        $wpdb->vergeml_organize_runs,
         $run_id
     ) );
     // phpcs:enable
@@ -3079,9 +3060,10 @@ function vergeml_organize_rest_cancel( WP_REST_Request $request ) {
         return rest_ensure_response( array( 'run_id' => $run_id, 'status' => (string) $status, 'cancelled' => false ) );
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $wpdb->query( $wpdb->prepare(
-        "UPDATE {$wpdb->vergeml_organize_runs} SET status = 'cancelled', updated_at = %s WHERE run_id = %d",
+        "UPDATE %i SET status = 'cancelled', updated_at = %s WHERE run_id = %d",
+        $wpdb->vergeml_organize_runs,
         current_time( 'mysql', true ),
         $run_id
     ) );

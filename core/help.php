@@ -90,7 +90,7 @@ function vergeml_help_texts() {
 
         /* ---------------------------------------------------------- the AI */
 
-        'license_key' => __( 'The key from your purchase email. It connects this site to the AI service and is stored encrypted — nothing is sent anywhere until you enter one and start a run.', 'vergelabs-media-library' ),
+        'license_key' => __( 'The key from your purchase email. It connects this site to the AI service and is stored encrypted. With a key connected, your remaining credits are checked when you open one of the plugin\'s screens; pictures are sent only during a run you start.', 'vergelabs-media-library' ),
 
         'credits' => __( 'One credit describes one image. The number shown is whatever was left after the last run, so it updates when you next describe something.', 'vergelabs-media-library' ),
 

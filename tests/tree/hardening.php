@@ -24,15 +24,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$GLOBALS['vgml_ok']  = 0;
-$GLOBALS['vgml_bad'] = 0;
+$GLOBALS['vergeml_ok']  = 0;
+$GLOBALS['vergeml_bad'] = 0;
 
 function t( $name, $pass, $detail = '' ) {
-	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+	$pass ? $GLOBALS['vergeml_ok']++ : $GLOBALS['vergeml_bad']++;
 	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, $detail ? '  -- ' . $detail : '' );
 }
 
-function vgml_user( $role ) {
+function vergeml_user( $role ) {
 
 	$login = 'vgmlh_' . $role;
 	$user  = get_user_by( 'login', $login );
@@ -51,7 +51,7 @@ function vgml_user( $role ) {
 	return is_wp_error( $id ) ? 0 : (int) $id;
 }
 
-function vgml_call( $route, $params ) {
+function vergeml_call( $route, $params ) {
 
 	$method = ( '/tree' === $route ) ? 'GET' : 'POST';
 	$r      = new WP_REST_Request( $method, '/' . VERGEML_REST_NS . $route );
@@ -63,7 +63,7 @@ function vgml_call( $route, $params ) {
 	return rest_do_request( $r );
 }
 
-function vgml_refused( $response ) {
+function vergeml_refused( $response ) {
 
 	if ( is_wp_error( $response ) ) {
 		return true;
@@ -76,7 +76,7 @@ function vgml_refused( $response ) {
 	return false;
 }
 
-$tax = 'media_category';
+$tax = 'vergeml_folder';
 
 wp_set_current_user( 1 );
 
@@ -96,7 +96,7 @@ $roles = array( 'subscriber', 'contributor', 'author', 'editor' );
 $users = array();
 
 foreach ( $roles as $role ) {
-	$users[ $role ] = vgml_user( $role );
+	$users[ $role ] = vergeml_user( $role );
 }
 
 t( 'four roles to try them as', count( array_filter( $users ) ) === 4, implode( ', ', array_keys( array_filter( $users ) ) ) );
@@ -109,23 +109,23 @@ foreach ( array( 'subscriber', 'contributor', 'author' ) as $role ) {
 
 	wp_set_current_user( $users[ $role ] );
 
-	$made = vgml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'create', 'name' => 'sneaky ' . $role ) );
-	t( "a $role cannot create a folder", vgml_refused( $made ),
-		vgml_refused( $made ) ? '' : 'CREATED' );
+	$made = vergeml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'create', 'name' => 'sneaky ' . $role ) );
+	t( "a $role cannot create a folder", vergeml_refused( $made ),
+		vergeml_refused( $made ) ? '' : 'CREATED' );
 
-	$gone = vgml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'delete', 'id' => $folder ) );
-	t( "a $role cannot delete one", vgml_refused( $gone ) && get_term( $folder, $tax ) instanceof WP_Term,
+	$gone = vergeml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'delete', 'id' => $folder ) );
+	t( "a $role cannot delete one", vergeml_refused( $gone ) && get_term( $folder, $tax ) instanceof WP_Term,
 		get_term( $folder, $tax ) instanceof WP_Term ? '' : 'THE FOLDER IS GONE' );
 
-	$moved = vgml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'order', 'parent' => 0, 'ids' => array( $folder ) ) );
-	t( "nor rearrange them", vgml_refused( $moved ) );
+	$moved = vergeml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'order', 'parent' => 0, 'ids' => array( $folder ) ) );
+	t( "nor rearrange them", vergeml_refused( $moved ) );
 }
 
 wp_set_current_user( $users['editor'] );
-$editor_made = vgml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'create', 'name' => 'editor folder ' . wp_rand( 100, 999 ) ) );
-t( 'an editor can, because they manage categories', ! vgml_refused( $editor_made ) );
+$editor_made = vergeml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'create', 'name' => 'editor folder ' . wp_rand( 100, 999 ) ) );
+t( 'an editor can, because they manage categories', ! vergeml_refused( $editor_made ) );
 
-if ( ! vgml_refused( $editor_made ) ) {
+if ( ! vergeml_refused( $editor_made ) ) {
 	$data = $editor_made->get_data();
 	if ( ! empty( $data['id'] ) ) {
 		wp_set_current_user( 1 );
@@ -138,24 +138,24 @@ if ( ! vgml_refused( $editor_made ) ) {
 echo "\nfiling somebody else's file\n";
 
 wp_set_current_user( $users['subscriber'] );
-$sub = vgml_call( '/assign', array( 'taxonomy' => $tax, 'attachments' => array( $file ), 'add' => array( $folder ), 'mode' => 'add' ) );
-t( 'a subscriber is refused outright', vgml_refused( $sub ) );
+$sub = vergeml_call( '/assign', array( 'taxonomy' => $tax, 'attachments' => array( $file ), 'add' => array( $folder ), 'mode' => 'add' ) );
+t( 'a subscriber is refused outright', vergeml_refused( $sub ) );
 
 /*
  *  The one that matters. An author has upload_files, so they get through the
  *  coarse gate -- and the file belongs to the administrator.
  */
 wp_set_current_user( $users['author'] );
-$author = vgml_call( '/assign', array( 'taxonomy' => $tax, 'attachments' => array( $file ), 'add' => array( $folder ), 'mode' => 'add' ) );
+$author = vergeml_call( '/assign', array( 'taxonomy' => $tax, 'attachments' => array( $file ), 'add' => array( $folder ), 'mode' => 'add' ) );
 
 $after = wp_get_object_terms( $file, $tax, array( 'fields' => 'ids' ) );
 $after = is_wp_error( $after ) ? array() : array_map( 'absint', $after );
 
-t( 'an author reaches the endpoint', ! vgml_refused( $author ) );
+t( 'an author reaches the endpoint', ! vergeml_refused( $author ) );
 t( 'but cannot file a file that is not theirs', ! in_array( $folder, $after, true ),
 	in_array( $folder, $after, true ) ? 'IT WAS FILED' : 'refused per file' );
 
-if ( ! vgml_refused( $author ) ) {
+if ( ! vergeml_refused( $author ) ) {
 	$body = $author->get_data();
 	t( 'and is told it was refused rather than ignored',
 		! empty( $body['refused'] ) && in_array( $file, array_map( 'absint', (array) $body['refused'] ), true ),
@@ -171,31 +171,31 @@ wp_set_current_user( 1 );
 $other = wp_insert_term( 'hardening other ' . wp_rand( 1000, 9999 ), 'category' );
 $other = is_wp_error( $other ) ? 0 : (int) $other['term_id'];
 
-$cross = vgml_call( '/assign', array( 'taxonomy' => $tax, 'attachments' => array( $file ), 'add' => array( $other ), 'mode' => 'add' ) );
-t( 'a term from another taxonomy is refused', vgml_refused( $cross ),
-	vgml_refused( $cross ) ? '' : 'ACCEPTED' );
+$cross = vergeml_call( '/assign', array( 'taxonomy' => $tax, 'attachments' => array( $file ), 'add' => array( $other ), 'mode' => 'add' ) );
+t( 'a term from another taxonomy is refused', vergeml_refused( $cross ),
+	vergeml_refused( $cross ) ? '' : 'ACCEPTED' );
 
-$cross_order = vgml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'order', 'parent' => 0, 'ids' => array( $other ) ) );
-t( 'and cannot be rearranged into ours', vgml_refused( $cross_order ) );
+$cross_order = vergeml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'order', 'parent' => 0, 'ids' => array( $other ) ) );
+t( 'and cannot be rearranged into ours', vergeml_refused( $cross_order ) );
 
-$not_ours = vgml_call( '/tree', array( 'taxonomy' => 'category' ) );
-t( 'the tree refuses a taxonomy that is not a media one', vgml_refused( $not_ours ) );
+$not_ours = vergeml_call( '/tree', array( 'taxonomy' => 'category' ) );
+t( 'the tree refuses a taxonomy that is not a media one', vergeml_refused( $not_ours ) );
 
-$nonsense = vgml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'create', 'name' => '   ' ) );
-t( 'a folder named only spaces is refused', vgml_refused( $nonsense ) );
+$nonsense = vergeml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'create', 'name' => '   ' ) );
+t( 'a folder named only spaces is refused', vergeml_refused( $nonsense ) );
 
-$negative = vgml_call( '/assign', array( 'taxonomy' => $tax, 'attachments' => array( -5, 0 ), 'add' => array( $folder ), 'mode' => 'add' ) );
-t( 'ids that cannot exist are refused', vgml_refused( $negative ),
-	vgml_refused( $negative ) ? '' : 'ACCEPTED' );
+$negative = vergeml_call( '/assign', array( 'taxonomy' => $tax, 'attachments' => array( -5, 0 ), 'add' => array( $folder ), 'mode' => 'add' ) );
+t( 'ids that cannot exist are refused', vergeml_refused( $negative ),
+	vergeml_refused( $negative ) ? '' : 'ACCEPTED' );
 
 /* --- a name that is trying something --------------------------------------- */
 
 echo "\na folder name that is trying something\n";
 
 $payload = '<script>alert(1)</script>';
-$made    = vgml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'create', 'name' => $payload ) );
+$made    = vergeml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'create', 'name' => $payload ) );
 
-if ( ! vgml_refused( $made ) ) {
+if ( ! vergeml_refused( $made ) ) {
 
 	$id   = (int) $made->get_data()['id'];
 	$term = get_term( $id, $tax );
@@ -203,7 +203,7 @@ if ( ! vgml_refused( $made ) ) {
 
 	t( 'a script tag does not survive as one', false === strpos( $name, '<script' ), $name );
 
-	$tree  = vgml_call( '/tree', array( 'taxonomy' => $tax ) );
+	$tree  = vergeml_call( '/tree', array( 'taxonomy' => $tax ) );
 	$found = '';
 
 	foreach ( $tree->get_data()['nodes'] as $n ) {
@@ -226,33 +226,33 @@ echo "\nimporting\n";
 
 foreach ( array( 'subscriber', 'author' ) as $role ) {
 	wp_set_current_user( $users[ $role ] );
-	$run = vgml_call( '/import', array( 'action' => 'run', 'source' => 'filebird', 'taxonomy' => $tax ) );
-	t( "a $role cannot run an import", vgml_refused( $run ), vgml_refused( $run ) ? '' : 'IT RAN' );
+	$run = vergeml_call( '/import', array( 'action' => 'run', 'source' => 'filebird', 'taxonomy' => $tax ) );
+	t( "a $role cannot run an import", vergeml_refused( $run ), vergeml_refused( $run ) ? '' : 'IT RAN' );
 }
 
 wp_set_current_user( 1 );
 
-$bogus = vgml_call( '/import', array( 'action' => 'run', 'source' => 'not-a-plugin', 'taxonomy' => $tax ) );
-t( 'an unknown source is refused', vgml_refused( $bogus ) );
+$bogus = vergeml_call( '/import', array( 'action' => 'run', 'source' => 'not-a-plugin', 'taxonomy' => $tax ) );
+t( 'an unknown source is refused', vergeml_refused( $bogus ) );
 
-$bogus_action = vgml_call( '/import', array( 'action' => 'destroy-everything' ) );
-t( 'an unknown action is refused', vgml_refused( $bogus_action ) );
+$bogus_action = vergeml_call( '/import', array( 'action' => 'destroy-everything' ) );
+t( 'an unknown action is refused', vergeml_refused( $bogus_action ) );
 
 /* --- reading --------------------------------------------------------------- */
 
 echo "\nreading\n";
 
 wp_set_current_user( $users['subscriber'] );
-$read = vgml_call( '/tree', array( 'taxonomy' => $tax ) );
-t( 'a subscriber cannot read the tree', vgml_refused( $read ),
-	vgml_refused( $read ) ? '' : 'READABLE' );
+$read = vergeml_call( '/tree', array( 'taxonomy' => $tax ) );
+t( 'a subscriber cannot read the tree', vergeml_refused( $read ),
+	vergeml_refused( $read ) ? '' : 'READABLE' );
 
 wp_set_current_user( 0 );
-$out = vgml_call( '/tree', array( 'taxonomy' => $tax ) );
-t( 'nor can somebody logged out', vgml_refused( $out ) );
+$out = vergeml_call( '/tree', array( 'taxonomy' => $tax ) );
+t( 'nor can somebody logged out', vergeml_refused( $out ) );
 
-$out_write = vgml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'create', 'name' => 'anon' ) );
-t( 'and they certainly cannot write', vgml_refused( $out_write ) );
+$out_write = vergeml_call( '/folder', array( 'taxonomy' => $tax, 'action' => 'create', 'name' => 'anon' ) );
+t( 'and they certainly cannot write', vergeml_refused( $out_write ) );
 
 /* tidy */
 wp_set_current_user( 1 );
@@ -269,5 +269,5 @@ foreach ( $users as $id ) {
 	}
 }
 
-printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
-exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
+printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
+exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

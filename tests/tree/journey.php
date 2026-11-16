@@ -257,15 +257,12 @@ jn_say( "\nF  four progress rows, each its own count, no total\n" );
 
 /** Overrides the dashboard's figures for one call. */
 function jn_with_facts( $over, $fn ) {
-    $GLOBALS['jn_facts_over'] = $over;
-    add_filter( 'vergeml_journey_facts', 'jn_fake_facts', 99 );
+    // The request cache, not the transient: nothing is written that another request could read.
+    $real = vergeml_journey_facts();
+    $GLOBALS['vergeml_journey_facts'][ get_current_blog_id() ] = array_merge( $real, $over );
     $out = call_user_func( $fn );
-    remove_filter( 'vergeml_journey_facts', 'jn_fake_facts', 99 );
+    $GLOBALS['vergeml_journey_facts'][ get_current_blog_id() ] = $real;
     return $out;
-}
-
-function jn_fake_facts( $f ) {
-    return array_merge( $f, $GLOBALS['jn_facts_over'] );
 }
 
 /** The dashboard, rendered as an administrator, and the user put back. */

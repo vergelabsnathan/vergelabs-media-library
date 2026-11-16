@@ -66,7 +66,7 @@ test.describe( 'the settings screens', () => {
 		// It opened on "Assign following taxonomies to Media Library" beside a
 		// list of checkboxes, which tells somebody nothing at all and never
 		// says which taxonomy is the folder tree they have been using.
-		expect( text, 'the folder taxonomy is named' ).toMatch( /media_category/ );
+		expect( text, 'the folder taxonomy is named' ).toMatch( /vergeml_folder/ );
 		expect( text, 'and it says folders outlive the plugin' ).toMatch( /removed|outlive|survive/i );
 		expect( text, 'the old instruction is gone' ).not.toMatch( /Assign following taxonomies/i );
 	} );

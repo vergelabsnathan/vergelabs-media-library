@@ -207,6 +207,7 @@
 	}
 
 	wp.blocks.registerBlockType( 'vergelabs/folder-gallery', {
+		apiVersion: 3,
 		title: l10n.title || 'Folder gallery',
 		description: l10n.description,
 		icon: 'images-alt2',

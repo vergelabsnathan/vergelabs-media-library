@@ -105,8 +105,8 @@ function vergeml_plan_inventory( $force = false, $stale = false ) {
     global $wpdb;
     $t = $wpdb->vergeml_ai_index;
 
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    $stamp = $wpdb->get_row( "SELECT COUNT(*) AS n, MAX(described_at) AS at FROM {$t} WHERE error = '' AND embedding IS NOT NULL", ARRAY_A );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    $stamp = $wpdb->get_row( $wpdb->prepare( "SELECT COUNT(*) AS n, MAX(described_at) AS at FROM %i WHERE error = '' AND embedding IS NOT NULL", $t ), ARRAY_A );
     $key   = md5( wp_json_encode( $stamp ) . '|' . VERGEML_PLAN_INVENTORY_VERSION . '|' . VERGEML_PLAN_FOLD_BUDGET );
     $held  = get_option( VERGEML_PLAN_CACHE );
     if ( is_array( $held ) && isset( $held['key'] ) && $held['key'] === $key ) {
@@ -130,8 +130,8 @@ function vergeml_plan_inventory( $force = false, $stale = false ) {
     $after      = 0;
     $timed_out  = false;
     do {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-        $rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, kind, filing FROM {$t} WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d ORDER BY attachment_id ASC LIMIT 500", $after ), ARRAY_A );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+        $rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, kind, filing FROM %i WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d ORDER BY attachment_id ASC LIMIT 500", $t, $after ), ARRAY_A );
         foreach ( $rows as $r ) {
             $after = (int) $r['attachment_id'];
             ++$pictures;
@@ -341,8 +341,12 @@ function vergeml_plan_schedule_refresh() {
 add_action( VERGEML_PLAN_REFRESH_HOOK, 'vergeml_plan_inventory_refresh_event' );
 
 function vergeml_plan_inventory_refresh_event() {
-    if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( 0 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
+    // Five minutes, not unlimited: the forced inventory reads the index 500
+    // rows a query and folds at most VERGEML_PLAN_FOLD_BUDGET labels, seconds
+    // on the libraries measured. A job still going after this is stuck, and
+    // the next page render books another refresh.
+    if ( vergeml_can_set_time_limit() ) {
+        set_time_limit( 5 * MINUTE_IN_SECONDS ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
     vergeml_plan_inventory( true );
     delete_transient( VERGEML_PLAN_REFRESH_HOOK );
@@ -375,13 +379,13 @@ function vergeml_plan_label_sums( $labels ) {
         $id_of[ $l['label'] ] = $l['id'];
     }
     // Mid re-embed after a model change the index holds two sizes of vector; only the library's most common one is summed.
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    $dims  = (int) $wpdb->get_var( "SELECT embedding_dims FROM {$t} WHERE error = '' AND embedding IS NOT NULL GROUP BY embedding_dims ORDER BY COUNT(*) DESC LIMIT 1" );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    $dims  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT embedding_dims FROM %i WHERE error = '' AND embedding IS NOT NULL GROUP BY embedding_dims ORDER BY COUNT(*) DESC LIMIT 1", $t ) );
     $sums  = array();
     $after = 0;
     do {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-        $rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, kind, filing, embedding, embedding_dims FROM {$t} WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d ORDER BY attachment_id ASC LIMIT 500", $after ), ARRAY_A );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+        $rows = (array) $wpdb->get_results( $wpdb->prepare( "SELECT attachment_id, kind, filing, embedding, embedding_dims FROM %i WHERE error = '' AND embedding IS NOT NULL AND attachment_id > %d ORDER BY attachment_id ASC LIMIT 500", $t, $after ), ARRAY_A );
         foreach ( $rows as $r ) {
             $after = (int) $r['attachment_id'];
             // A label the inventory folded away is not in $id_of by its own text; its fold label, if that survived the budget, is.
@@ -558,8 +562,8 @@ function vergeml_plan_gain( $label_map, $label_index, $taxonomy ) {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one read of the hand-placed pictures.
         $user = array_flip( array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = 'user'", VERGEML_FILING_PLACED_BY ) ) ) );
     }
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    $dims  = (int) $wpdb->get_var( "SELECT embedding_dims FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL GROUP BY embedding_dims ORDER BY COUNT(*) DESC LIMIT 1" );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    $dims  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT embedding_dims FROM %i WHERE error = '' AND embedding IS NOT NULL GROUP BY embedding_dims ORDER BY COUNT(*) DESC LIMIT 1", $wpdb->vergeml_ai_index ) );
     $after = 0;
     do {
         $rows = (array) vergeml_guide_rule_rows( $taxonomy, 'all', array( 'filing', 'terms', 'embedding' ), $after, 500 );
@@ -852,8 +856,8 @@ function vergeml_plan_event() {
         return;
     }
     set_transient( VERGEML_PLAN_LOCK, time(), VERGEML_PLAN_TIMEOUT + 60 );
-    if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( VERGEML_PLAN_TIMEOUT + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
+    if ( vergeml_can_set_time_limit() ) {
+        set_time_limit( VERGEML_PLAN_TIMEOUT + 60 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
     /*
      *  Named and marked started before anything is spent, in the session and
@@ -1316,7 +1320,7 @@ function vergeml_plan_frozen( $live = null ) {
     // The Folders boot hands over the term ids it already loaded, so the frozen flag costs it no query.
     if ( null === $live ) {
         $live = get_terms( array(
-            'taxonomy'   => function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category',
+            'taxonomy'   => function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder',
             'include'    => array_values( array_unique( array_map( 'intval', $map ) ) ),
             'hide_empty' => false,
             'fields'     => 'ids',
@@ -1439,8 +1443,8 @@ function vergeml_plan_grow_read( $frozen, $taxonomy ) {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one read of the pictures a person or a product placed.
         $kept = array_flip( array_map( 'intval', (array) $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value IN ('user','answer','product')", VERGEML_FILING_PLACED_BY ) ) ) );
     }
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-    $dims  = (int) $wpdb->get_var( "SELECT embedding_dims FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL GROUP BY embedding_dims ORDER BY COUNT(*) DESC LIMIT 1" );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    $dims  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT embedding_dims FROM %i WHERE error = '' AND embedding IS NOT NULL GROUP BY embedding_dims ORDER BY COUNT(*) DESC LIMIT 1", $wpdb->vergeml_ai_index ) );
     $new   = array();
     $after = 0;
     do {
@@ -1842,15 +1846,12 @@ function vergeml_plan_rest_audience_split( WP_REST_Request $request ) {
 }
 
 function vergeml_plan_routes() {
-    $may = function () {
-        return current_user_can( 'manage_categories' );
-    };
     register_rest_route( VERGEML_REST_NS, '/guide/plan', array(
-        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_plan_rest_poll', 'permission_callback' => $may ),
-        array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_start', 'permission_callback' => $may ),
+        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_plan_rest_poll', 'permission_callback' => function () { return current_user_can( 'manage_options' ); } ),
+        array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_start', 'permission_callback' => function () { return current_user_can( 'manage_options' ); }, 'args' => array( 'price' => array( 'type' => 'integer', 'minimum' => 0 ) ) ),
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/audience-split', array(
-        array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_audience_split', 'permission_callback' => $may ),
+        array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => 'vergeml_plan_rest_audience_split', 'permission_callback' => function () { return current_user_can( 'manage_options' ); }, 'args' => array( 'answer' => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ) ) ),
     ) );
 }
 

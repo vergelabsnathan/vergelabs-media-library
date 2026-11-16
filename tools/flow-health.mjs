@@ -50,7 +50,7 @@ await page.fill( '#user_login', USER );
 await page.fill( '#user_pass', PASS );
 await Promise.all( [ page.waitForNavigation( { waitUntil: 'domcontentloaded', timeout: 30000 } ), page.click( '#wp-submit' ) ] );
 
-await page.goto( `${ BASE }/wp-admin/admin.php?page=media-health`, { waitUntil: 'domcontentloaded', timeout: 30000 } );
+await page.goto( `${ BASE }/wp-admin/admin.php?page=vergeml-health`, { waitUntil: 'domcontentloaded', timeout: 30000 } );
 await page.waitForSelector( '#vgml-health-scan', { timeout: 15000 } );
 
 const reportsBefore = calls.filter( ( c ) => c.path.endsWith( 'health-report' ) ).length;

@@ -13,11 +13,11 @@ const SLUGS = {
 	'ai-how': `${ SCREEN.ai }&tab=how`,
 	'ai-search': `${ SCREEN.ai }&tab=search`,
 	duplicates: SCREEN.duplicates,
-	import: 'media-import-folders',
-	licence: 'media-licence',
+	import: 'vergeml-import-folders',
+	licence: 'vergeml-licence',
 	taxonomies: SCREEN.taxonomies,
-	library: 'media-library',
-	filetypes: 'mime-types',
+	library: 'vergeml-library',
+	filetypes: 'vergeml-mime-types',
 };
 
 for ( const [ name, slug ] of Object.entries( SLUGS ) ) {

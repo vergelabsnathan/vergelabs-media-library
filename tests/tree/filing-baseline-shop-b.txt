@@ -1,4 +1,4 @@
-# filing baseline, taxonomy media_category
+# filing baseline, taxonomy vergeml_folder
 # re-taken 2026-09-18: S16-S17 on HEMA's tree: member words only where alike (3 to the floor), a folder's name claims the planner's classes (5 to another folder), the audience gate as a runner-up (6 to a question), the Dutch audience compounds read (21 names, no pick moved); fits 292 -> 283, sure 227 -> 221, likely 67 -> 64, nothing 332 -> 341; no truth on this tree
 # folders 292, pictures 626
 # attachment	term_id	why	score	runner_up	runner_score

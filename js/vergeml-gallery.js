@@ -13,6 +13,14 @@
 
 ( function () {
 	'use strict';
+	var l = window.vergemlGallery || {};
+	var t = {
+		previousImages: l.previousImages || 'Previous images',
+		nextImages: l.nextImages || 'Next images',
+		previousImage: l.previousImage || 'Previous image',
+		nextImage: l.nextImage || 'Next image',
+		close: l.close || 'Close'
+	};
 
 	/* --- carousel ---------------------------------------------------------- */
 
@@ -39,8 +47,8 @@
 		};
 
 		var rtl = 'rtl' === document.documentElement.dir;
-		var prev = mk( 'prev', rtl ? '&#8250;' : '&#8249;', 'Previous images' );
-		var next = mk( 'next', rtl ? '&#8249;' : '&#8250;', 'Next images' );
+		var prev = mk( 'prev', rtl ? '&#8250;' : '&#8249;', t.previousImages );
+		var next = mk( 'next', rtl ? '&#8249;' : '&#8250;', t.nextImages );
 
 		var step = function () {
 			var slide = gallery.querySelector( '.wp-block-image' );
@@ -117,12 +125,23 @@
 		overlay.setAttribute( 'role', 'dialog' );
 		overlay.setAttribute( 'aria-modal', 'true' );
 
-		overlay.innerHTML =
-			'<img alt="" />' +
-			'<p class="vgml-lightbox-caption"></p>' +
-			'<button type="button" class="vgml-lightbox-nav" data-dir="prev" aria-label="Previous image">&#8249;</button>' +
-			'<button type="button" class="vgml-lightbox-nav" data-dir="next" aria-label="Next image">&#8250;</button>' +
-			'<button type="button" class="vgml-lightbox-close" aria-label="Close">&#10005;</button>';
+		overlay.innerHTML = '<img alt="" /><p class="vgml-lightbox-caption"></p>';
+
+		// The labels are translated strings, so they go in as attributes, never as markup.
+		var button = function ( cls, dir, label, glyph ) {
+			var b = document.createElement( 'button' );
+			b.type = 'button';
+			b.className = cls;
+			if ( dir ) {
+				b.setAttribute( 'data-dir', dir );
+			}
+			b.setAttribute( 'aria-label', label );
+			b.textContent = glyph;
+			overlay.appendChild( b );
+		};
+		button( 'vgml-lightbox-nav', 'prev', t.previousImage, '‹' );
+		button( 'vgml-lightbox-nav', 'next', t.nextImage, '›' );
+		button( 'vgml-lightbox-close', '', t.close, '✕' );
 
 		overlay.addEventListener( 'click', function ( e ) {
 			var nav = e.target.closest( '.vgml-lightbox-nav' );

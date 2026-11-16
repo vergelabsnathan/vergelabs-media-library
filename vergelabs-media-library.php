@@ -2,21 +2,20 @@
 /*
 Plugin Name: VergeLabs Media Library
 Plugin URI: https://vergelabsmedia.com
-Description: Categories, tags and custom taxonomies for the media library, MIME type management, and configurable media grid filters.
-Version: 4.0.7
+Description: Folders, categories and tags for the media library. Optional AI alt text and descriptions through the VergeLabs service.
+Version: 4.1.0
 Requires at least: 6.5
 Requires PHP: 7.4
 Author: VergeLabs
 Author URI: https://vergelabs.nl
 Text Domain: vergelabs-media-library
-Domain Path: /languages
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
 Based on Enhanced Media Library by wpUXsolutions.
 https://wordpress.org/plugins/enhanced-media-library/
 
-Copyright 2013-2024 wpUXsolutions  (original work)
+Copyright 2013-2024 wpUXsolutions  (email : wpUXsolutions@gmail.com)
 Copyright 2026 VergeLabs  (modifications)
 
 This program is free software; you can redistribute it and/or modify it under
@@ -31,8 +30,16 @@ if ( ! defined( 'ABSPATH' ) )
     exit;
 
 
+/*
+ *  A second copy of this plugin active beside the first (an old folder name,
+ *  a manual upload next to the installed one): the first copy loaded runs and
+ *  this one stays out, instead of both defining the same functions.
+ */
+if ( defined( 'VERGEML_VERSION' ) ) {
+    return;
+}
 
-if ( ! defined('VERGEML_VERSION') ) define( 'VERGEML_VERSION', '4.0.7' );
+define( 'VERGEML_VERSION', '4.1.0' );
 
 /**
  *  Cache-busting asset version: the plugin version plus the file's mtime.
@@ -76,16 +83,6 @@ function vergeml_asset_ver( $rel ) {
 }
 
 /*
- *  Translations from the plugin's own languages/ folder, which the header's
- *  Domain Path advertises. WordPress's just-in-time loading covers files
- *  dropped into wp-content/languages/plugins/; a .mo placed here, where the
- *  header says it goes, was silently ignored on WordPress before 6.7.
- */
-add_action( 'init', function () {
-    load_plugin_textdomain( 'vergelabs-media-library', false, dirname( plugin_basename( VERGEML_FILE ) ) . '/languages' );
-}, 1 );
-
-/*
  *  Right-to-left. WordPress swaps <name>.css for <name>-rtl.css on an RTL
  *  locale for any style marked this way; the -rtl files are generated from
  *  the sources by tools/rtl.mjs and committed. Late in the enqueue order so
@@ -109,11 +106,88 @@ if ( ! defined('VERGEML_FILE') )    define( 'VERGEML_FILE', __FILE__ );
 
 
 /*
- *  Loaded before anything else, so the handler is watching while the code it
- *  guards is running. See core/watchdog.php for what it does and does not do.
+ *  A few lines of script one screen needs for itself: a file in js/,
+ *  enqueued while that screen renders and printed in the footer, after the
+ *  elements it looks up. No script is ever built from a string.
  */
+function vergeml_screen_script( $handle, $file, $deps = array() ) {
+    wp_enqueue_script( $handle, plugins_url( 'js/' . $file, VERGEML_FILE ), $deps, vergeml_asset_ver( 'js/' . $file ), true );
+}
+
+
+/**
+ *  Whether set_time_limit() may be called: PHP 7.4 still defines a function
+ *  disable_functions turned off, and calling it there warns.
+ */
+function vergeml_can_set_time_limit() {
+    return function_exists( 'set_time_limit' ) && false === stripos( (string) ini_get( 'disable_functions' ), 'set_time_limit' );
+}
+
+
+
+/*
+ *  The allow-list for wp_kses() where a helper's markup is printed.
+ *
+ *  The screens are drawn by helpers that return HTML -- a page head, a card,
+ *  a settings row -- each escaping its own parts. Printing their result
+ *  through wp_kses keeps that promise at the echo as well: the post allow-list,
+ *  plus the form controls and the inline SVG icons (core/icons.php) the
+ *  screens are made of, and the image attributes core's own image markup
+ *  carries.
+ */
+function vergeml_kses_allowed() {
+
+    static $allowed = null;
+
+    if ( null !== $allowed ) {
+        return $allowed;
+    }
+
+    $global = array( 'class' => true, 'id' => true, 'style' => true, 'title' => true, 'role' => true, 'hidden' => true, 'tabindex' => true, 'data-*' => true, 'aria-*' => true, 'aria-hidden' => true, 'aria-label' => true, 'aria-labelledby' => true, 'aria-describedby' => true, 'aria-expanded' => true, 'aria-controls' => true, 'aria-current' => true, 'aria-pressed' => true, 'aria-live' => true, 'dir' => true, 'lang' => true );
+
+    $extra = array(
+        'form'     => array( 'action' => true, 'method' => true, 'enctype' => true, 'name' => true, 'target' => true ),
+        'input'    => array( 'type' => true, 'name' => true, 'value' => true, 'checked' => true, 'disabled' => true, 'readonly' => true, 'placeholder' => true, 'min' => true, 'max' => true, 'step' => true, 'size' => true, 'maxlength' => true, 'autocomplete' => true, 'required' => true, 'multiple' => true, 'accept' => true, 'pattern' => true, 'list' => true ),
+        'select'   => array( 'name' => true, 'multiple' => true, 'size' => true, 'disabled' => true, 'required' => true, 'autocomplete' => true ),
+        'option'   => array( 'value' => true, 'selected' => true, 'disabled' => true, 'label' => true ),
+        'optgroup' => array( 'label' => true, 'disabled' => true ),
+        'button'   => array( 'type' => true, 'name' => true, 'value' => true, 'disabled' => true, 'form' => true ),
+        'textarea' => array( 'name' => true, 'rows' => true, 'cols' => true, 'readonly' => true, 'disabled' => true, 'placeholder' => true, 'maxlength' => true ),
+        'label'    => array( 'for' => true ),
+        'fieldset' => array( 'disabled' => true, 'name' => true ),
+        'legend'   => array(),
+        'details'  => array( 'open' => true, 'name' => true ),
+        'summary'  => array(),
+        'progress' => array( 'value' => true, 'max' => true ),
+        'meter'    => array( 'value' => true, 'min' => true, 'max' => true, 'low' => true, 'high' => true, 'optimum' => true ),
+        'time'     => array( 'datetime' => true ),
+        'img'      => array( 'src' => true, 'srcset' => true, 'sizes' => true, 'alt' => true, 'width' => true, 'height' => true, 'loading' => true, 'decoding' => true, 'fetchpriority' => true ),
+        'svg'      => array( 'width' => true, 'height' => true, 'viewbox' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true, 'focusable' => true, 'xmlns' => true ),
+        'g'        => array( 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'transform' => true, 'opacity' => true ),
+        'path'     => array( 'd' => true, 'fill' => true, 'stroke' => true, 'stroke-width' => true, 'stroke-linecap' => true, 'stroke-linejoin' => true, 'opacity' => true, 'fill-rule' => true, 'clip-rule' => true, 'transform' => true ),
+        'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true, 'fill' => true, 'stroke' => true, 'opacity' => true, 'transform' => true ),
+        'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true, 'fill' => true, 'stroke' => true, 'opacity' => true ),
+        'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true, 'stroke' => true, 'stroke-width' => true ),
+        'polyline' => array( 'points' => true, 'fill' => true, 'stroke' => true ),
+        'polygon'  => array( 'points' => true, 'fill' => true, 'stroke' => true ),
+    );
+
+    $allowed = wp_kses_allowed_html( 'post' );
+
+    foreach ( $extra as $tag => $attrs ) {
+        $allowed[ $tag ] = array_merge( isset( $allowed[ $tag ] ) ? $allowed[ $tag ] : array(), $global, $attrs );
+    }
+
+    foreach ( $allowed as $tag => $attrs ) {
+        $allowed[ $tag ] = array_merge( $global, (array) $attrs );
+    }
+
+    return $allowed;
+}
+
+
+// Safe mode, switched in wp-config.php (core/watchdog.php); read before the feature files load.
 require_once plugin_dir_path( __FILE__ ) . 'core/watchdog.php';
-vergeml_watchdog_boot();
 
 
 
@@ -124,7 +198,6 @@ global $vergeml_dir,
 
 
 
-if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
 
     /**
@@ -257,25 +330,163 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
      *  when walking a network -- and stamps the version so the lazy check on
      *  the next request has nothing left to do.
      */
+    /**
+     *  The key of a taxonomy this plugin makes. Every one carries the plugin's prefix
+     *  (wordpress.org review 8): the folders are vergeml_folder; any other -- a tag from
+     *  the Folders screen, one added on the Taxonomies screen, one carried over from an
+     *  older version or from Enhanced Media Library -- is vergeml_tag_ and up to 20
+     *  characters of its name, which keeps it within WordPress's 32.
+     */
+    function vergeml_own_taxonomy_key( $key ) {
+
+        $key = sanitize_key( (string) $key );
+
+        if ( 'media_category' === $key ) {
+            return 'vergeml_folder';
+        }
+
+        if ( 0 === strpos( $key, 'vergeml_' ) ) {
+            return $key;
+        }
+
+        $name = trim( substr( preg_replace( '/^vgml_/', '', $key ), 0, 20 ), '_' );
+
+        return '' === $name ? '' : 'vergeml_tag_' . $name;
+    }
+
+    /** Enhanced Media Library itself still running: its folders are live in media_category. */
+    function vergeml_eml_active() {
+
+        if ( ! function_exists( 'is_plugin_active' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        return is_plugin_active( 'enhanced-media-library/enhanced-media-library.php' )
+            || is_plugin_active( 'enhanced-media-library-pro/enhanced-media-library-pro.php' );
+    }
+
+    /**
+     *  Taxonomies this plugin made under an unprefixed key -- media_category and EML's
+     *  own from before, vgml_* tags from 4.0.x -- move to their prefixed key
+     *  (vergeml_own_taxonomy_key()). WordPress has no call that renames a taxonomy, so the
+     *  plugin's own rows are moved in term_taxonomy and the registration list follows.
+     *  Enhanced Media Library's taxonomies wait while it is active, so its folders are not
+     *  taken from under it; the next administrator's visit after it is off moves them.
+     *  Runs for an administrator, from cron or from WP-CLI, never for a visitor.
+     */
+    function vergeml_migrate_prefixes() {
+
+        global $wpdb;
+
+        if ( ! current_user_can( 'manage_options' ) && ! wp_doing_cron() && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+            return;
+        }
+
+        $all = get_option( 'vergeml_taxonomies', array() );
+
+        if ( ! is_array( $all ) ) {
+            return;
+        }
+
+        $moved = array();
+
+        foreach ( $all as $old => $params ) {
+
+            $old = (string) $old;
+
+            if ( empty( $params['eml_media'] ) || 0 === strpos( $old, 'vergeml_' ) ) {
+                continue;
+            }
+
+            // While Enhanced Media Library runs, its taxonomies are its own; only this plugin's 4.0.x tags move.
+            if ( 0 !== strpos( $old, 'vgml_' ) && vergeml_eml_active() ) {
+                continue;
+            }
+
+            $new = vergeml_own_taxonomy_key( $old );
+
+            if ( '' === $new || isset( $all[ $new ] ) || taxonomy_exists( $new ) ) {
+                continue;
+            }
+
+            $wpdb->update( $wpdb->term_taxonomy, array( 'taxonomy' => $new ), array( 'taxonomy' => $old ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- renaming the plugin's own taxonomy; there is no API for it.
+
+            if ( isset( $params['rewrite']['slug'] ) && $old === $params['rewrite']['slug'] ) {
+                $params['rewrite']['slug'] = $new;
+            }
+
+            unset( $all[ $old ] );
+            $all[ $new ] = $params;
+            delete_option( $old . '_children' );
+            $moved[ $new ] = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT term_id FROM %i WHERE taxonomy = %s', $wpdb->term_taxonomy, $new ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery -- the rows just moved, for their cache.
+        }
+
+        if ( $moved ) {
+            update_option( 'vergeml_taxonomies', $all );
+            foreach ( $moved as $taxonomy => $ids ) {
+                clean_term_cache( $ids, $taxonomy );
+            }
+        }
+    }
+
+    // What waited for Enhanced Media Library to be switched off moves on the next admin visit, by an administrator.
+    add_action( 'admin_init', 'vergeml_migrate_prefixes_when_due' );
+
+    function vergeml_migrate_prefixes_when_due() {
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        foreach ( (array) get_option( 'vergeml_taxonomies', array() ) as $key => $params ) {
+            if ( ! empty( $params['eml_media'] ) && 0 !== strpos( (string) $key, 'vergeml_' ) ) {
+                vergeml_migrate_prefixes();
+                return;
+            }
+        }
+    }
+
     function vergeml_provision_site() {
+
+        // The self-entered safe mode of 4.0.x is gone; a site it left switched off comes back.
+        delete_option( 'vergeml_watchdog' );
 
         // carry settings over from Enhanced Media Library, if it left any
         vergeml_migrate_legacy_options();
+
+        vergeml_migrate_prefixes();
 
         vergeml_set_options();
 
 
         /*
-         *  Schema, for the feature files that keep their own table.
-         *
-         *  An action rather than a call: in safe mode none of those files are
-         *  loaded, so nothing answers and activation does not fatal on a
-         *  function that was never defined. Runs on activation and on every
-         *  version change, which is where dbDelta belongs.
+         *  Schema, for the feature files that keep their own table: each
+         *  installer is called here, by name, with its file loaded first if this
+         *  request has not loaded it yet -- so the tables are made by dbDelta on
+         *  activation whatever order WordPress included things in. In safe mode
+         *  the feature files stay unloaded and their tables wait for the next
+         *  version check. Runs on activation and on every version change.
          */
-        do_action( 'vergeml_activate' );
+        foreach ( array(
+            'core/ai-index.php'  => 'vergeml_index_install',
+            'core/organize.php'  => 'vergeml_organize_install',
+            'core/librarian.php' => 'vergeml_librarian_install',
+        ) as $vergeml_schema_file => $vergeml_install ) {
 
-        update_option( 'vergeml_version', VERGEML_VERSION );
+            if ( ! function_exists( $vergeml_install ) && ! vergeml_features_off() ) {
+                include_once plugin_dir_path( VERGEML_FILE ) . $vergeml_schema_file;
+            }
+
+            if ( function_exists( $vergeml_install ) ) {
+                call_user_func( $vergeml_install );
+            }
+        }
+
+        // Stamped only when the tables could be made: in safe mode or without mbstring the next request after
+        // the fix finds the version behind and provisions then.
+        if ( ! vergeml_features_off() ) {
+            update_option( 'vergeml_version', VERGEML_VERSION );
+        }
     }
 
 
@@ -284,7 +495,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
      *
      *  A subsite created after network activation gets its options and tables
      *  the moment core has finished creating it -- not on its first admin
-     *  visit, which on the front end left it with no media_category at all.
+     *  visit, which on the front end left it with no vergeml_folder at all.
      *  A subsite being deleted takes its four tables with it whether or not
      *  this plugin is loaded in that request (safe mode, deactivated): the
      *  wpmu_drop_tables filter is the belt to the $wpdb->tables braces.
@@ -345,8 +556,9 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
      *
      *  Carries settings over from Enhanced Media Library, whose option names
      *  this plugin used before the fork was renamed. Copies a value only when
-     *  this plugin has none of its own yet, and never removes the originals,
-     *  so Enhanced Media Library still works if someone switches back.
+     *  this plugin has none of its own yet, and never removes the original
+     *  options. The folders themselves move to vergeml_folder
+     *  (vergeml_migrate_prefixes()) once Enhanced Media Library is not active.
      *
      *  @since    2.9.5
      */
@@ -437,7 +649,6 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
             if ( add_option( 'vergeml_upgrading', time(), '', 'no' ) ) {
                 vergeml_provision_site();
-                delete_site_transient( 'eml_transient' );
                 delete_option( 'vergeml_upgrading' );
             }
         }
@@ -446,7 +657,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
              *  A site that has never been provisioned -- a subsite created
              *  while the plugin was not yet network-active, say -- serving a
              *  front-end request. The options are three cheap writes and
-             *  without them no media_category exists on this site; the
+             *  without them no vergeml_folder exists on this site; the
              *  schema can wait for the first admin visit or the cron tick
              *  scheduled here.
              */
@@ -491,7 +702,8 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // register eml taxonomies
         foreach ( (array) $vergeml_taxonomies as $taxonomy => $params ) {
 
-            if ( $params['eml_media'] ) {
+            // A taxonomy of ours still under an unprefixed key waits for vergeml_migrate_prefixes(), which registers nothing unprefixed.
+            if ( $params['eml_media'] && 0 === strpos( (string) $taxonomy, 'vergeml_' ) ) {
 
                 /*
                  *  Missing labels are named, not fatal.
@@ -519,7 +731,8 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                 if ( (bool) $vergeml_tax_options['tax_archives'] ) {
 
                     $rewrite = array(
-                        'slug' => vergeml_sanitize_slug( $params['rewrite']['slug'], $taxonomy ),
+                        // core/taxonomies.php's sanitiser when the features are loaded; WordPress's own when they are not.
+                        'slug' => function_exists( 'vergeml_sanitize_slug' ) ? vergeml_sanitize_slug( $params['rewrite']['slug'], $taxonomy ) : sanitize_title( $params['rewrite']['slug'], $taxonomy ),
                         'with_front' => (bool) $params['rewrite']['with_front']
                     );
                     $public = true;
@@ -543,7 +756,8 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                         'show_ui'               => true,
                         'show_admin_column'     => (bool) $params['show_admin_column'],
                         'hierarchical'          => (bool) $params['hierarchical'],
-                        'update_count_callback' => 'vergeml_update_attachment_term_count',
+                        // The counter lives with the feature files; with those off (safe mode, no mbstring) core counts.
+                        'update_count_callback' => function_exists( 'vergeml_update_attachment_term_count' ) ? 'vergeml_update_attachment_term_count' : '_update_generic_term_count',
                         'sort'                  => (bool) $params['sort'],
                         'show_in_rest'          => (bool) $params['show_in_rest'],
                         'query_var'             => sanitize_key( $taxonomy ),
@@ -599,7 +813,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
             }
         }
 
-        // assign/unassign taxonomies to atachment
+        // Taxonomies the settings put on attachments.
         foreach ( $vergeml_taxonomies as $taxonomy => $params ) {
 
             $taxonomy = sanitize_key($taxonomy);
@@ -607,8 +821,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
             if ( (bool) $params['assigned'] )
                 register_taxonomy_for_object_type( $taxonomy, 'attachment' );
 
-            if ( ! (bool) $params['assigned'] )
+            // Unticking hides only the plugin's own taxonomies; another owner's registration is left as it is.
+            if ( ! (bool) $params['assigned'] && ! empty( $params['eml_media'] ) )
                 unregister_taxonomy_for_object_type( $taxonomy, 'attachment' );
+
         }
 
 
@@ -641,19 +857,26 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                 continue;
             }
 
-            if ( in_array( 'attachment', $params->object_type ) &&
-                 isset( $wp_taxonomies[$taxonomy]->update_count_callback ) &&
-                 '_update_generic_term_count' === $wp_taxonomies[$taxonomy]->update_count_callback ) {
-
-                unset( $wp_taxonomies[$taxonomy]->update_count_callback );
+            /*
+             *  Only a taxonomy on attachments, and only one still counted by
+             *  core's own counter: another plugin's callback is never replaced,
+             *  and a taxonomy not on media is not this plugin's to touch.
+             */
+            if ( empty( $params->object_type ) || ! in_array( 'attachment', $params->object_type, true ) ) {
+                continue;
             }
 
-            if ( in_array( 'post', $params->object_type ) ) {
+            $core_counter = in_array( (string) ( isset( $wp_taxonomies[ $taxonomy ]->update_count_callback ) ? $wp_taxonomies[ $taxonomy ]->update_count_callback : '' ), array( '', '_update_generic_term_count', '_update_post_term_count' ), true );
 
-                if ( in_array( 'attachment', $params->object_type ) )
-                    $wp_taxonomies[$taxonomy]->update_count_callback = 'vergeml_update_post_term_count';
-                else
-                    unset( $wp_taxonomies[$taxonomy]->update_count_callback );
+            if ( ! $core_counter ) {
+                continue;
+            }
+
+            if ( in_array( 'post', $params->object_type, true ) && function_exists( 'vergeml_update_post_term_count' ) ) {
+                $wp_taxonomies[ $taxonomy ]->update_count_callback = 'vergeml_update_post_term_count';
+            }
+            elseif ( '_update_generic_term_count' === $wp_taxonomies[ $taxonomy ]->update_count_callback ) {
+                $wp_taxonomies[ $taxonomy ]->update_count_callback = '';
             }
         }
 
@@ -671,11 +894,42 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
     add_action( 'admin_enqueue_scripts', 'vergeml_admin_enqueue_scripts' );
 
+    /**
+     *  Whether this admin screen is one the plugin's own styles and scripts
+     *  belong on: the media library and Add New, an attachment, the media
+     *  taxonomies' term screens, and the plugin's own pages.
+     */
+    function vergeml_is_own_admin_screen() {
+
+        $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+        if ( ! $screen ) {
+            return false;
+        }
+
+        if ( in_array( $screen->base, array( 'upload', 'media' ), true ) || 'attachment' === $screen->post_type ) {
+            return true;
+        }
+
+        if ( in_array( $screen->base, array( 'edit-tags', 'term' ), true ) && $screen->taxonomy
+             && in_array( $screen->taxonomy, get_object_taxonomies( 'attachment' ), true ) ) {
+            return true;
+        }
+
+        return false !== strpos( (string) $screen->id, 'vergelabs-media' ) || false !== strpos( (string) $screen->id, 'vergeml-' );
+    }
+
+
     function vergeml_admin_enqueue_scripts() {
 
         global $vergeml_dir,
                $current_screen;
 
+
+        // The media library, its taxonomy screens and the plugin's own screens; nowhere else.
+        if ( ! vergeml_is_own_admin_screen() ) {
+            return;
+        }
 
         $media_library_mode = get_user_option( 'media_library_mode', get_current_user_id() ) ? get_user_option( 'media_library_mode', get_current_user_id() ) : 'grid';
 
@@ -692,16 +946,9 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         );
         wp_style_add_data( 'vergeml-admin-custom-style', 'rtl', 'replace' );
 
-        // media styles
-        wp_enqueue_style(
-            'vergeml-admin-media-style',
-            $vergeml_dir . 'css/eml-admin-media.css',
-            false,
-            VERGEML_VERSION,
-            'all'
-        );
+        // The media frame's styles on these screens too, list view included (vergeml_enqueue_media adds them wherever a frame opens).
+        wp_enqueue_style( 'vergeml-admin-media-style', $vergeml_dir . 'css/eml-admin-media.css', false, VERGEML_VERSION, 'all' );
         wp_style_add_data( 'vergeml-admin-media-style', 'rtl', 'replace' );
-
 
         wp_enqueue_style ( 'wp-jquery-ui-dialog' );
 
@@ -714,17 +961,6 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
             VERGEML_VERSION,
             true
         );
-
-        $admin_l10n = array(
-            'admin_notice_nonce' => wp_create_nonce( 'eml-admin-notice-nonce' )
-        );
-
-        wp_localize_script(
-            'vergeml-admin-script',
-            'vergeml_admin_l10n',
-            $admin_l10n
-        );
-
 
         // scripts for list view :: /wp-admin/upload.php
         if ( isset( $current_screen ) && 'upload' === $current_screen->base && 'list' === $media_library_mode ) {
@@ -739,7 +975,8 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
             $media_list_l10n = array(
                 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only: the list view rebuilds its own filter links from the current query string.
-                '$_GET'             => wp_json_encode( map_deep( wp_unslash( $_GET ), 'sanitize_text_field' ) ),
+                // The one request value the list script reads.
+                '$_GET'             => wp_json_encode( array( 'attachment-filter' => isset( $_GET['attachment-filter'] ) ? sanitize_key( wp_unslash( $_GET['attachment-filter'] ) ) : '' ) ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- which filter the list shows, not an action.
                 'uncategorized'     => __( 'All Uncategorized', 'vergelabs-media-library' ),
                 'reset_all_filters' => __( 'Reset All Filters', 'vergelabs-media-library' ),
                 'filters_to_show'   => $vergeml_lib_options ? array_map( 'sanitize_key', $vergeml_lib_options['filters_to_show'] ) : array(
@@ -757,11 +994,6 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         }
 
 
-        // scripts for grid view :: /wp-admin/upload.php
-        if ( isset( $current_screen ) && 'upload' === $current_screen->base && 'grid' === $media_library_mode ) {
-
-            wp_dequeue_script( 'media' );
-        }
     }
 
 
@@ -769,7 +1001,6 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
     /**
      *  vergeml_register_scripts
      * 
-     *  @todo :: make a separate one for Elementor if need be
      *
      *  @since    2.9.1
      *  @created  2024/05
@@ -823,16 +1054,27 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                $current_screen;
 
 
-        if ( ! is_admin() ) {
+        // In safe mode, or without what the features need, the media frame is WordPress's own.
+        if ( ! is_admin() || vergeml_features_off() || ! current_user_can( 'upload_files' ) ) {
             return;
         }
+
+        // The media frame's styles, wherever WordPress opens a media frame -- and only there.
+        wp_enqueue_style(
+            'vergeml-admin-media-style',
+            $vergeml_dir . 'css/eml-admin-media.css',
+            false,
+            VERGEML_VERSION,
+            'all'
+        );
+        wp_style_add_data( 'vergeml-admin-media-style', 'rtl', 'replace' );
 
 
         $media_library_mode = get_user_option( 'media_library_mode', get_current_user_id() ) ? get_user_option( 'media_library_mode', get_current_user_id() ) : 'grid';
 
         $vergeml_lib_options = get_option( 'vergeml_lib_options' );
         $vergeml_taxonomies = get_option( 'vergeml_taxonomies', array() );
-        $media_taxonomies = get_object_taxonomies( 'attachment','object' );
+        $media_taxonomies = vergeml_assignable_media_taxonomies();
         $media_taxonomy_names = array_keys( $media_taxonomies );
 
         $media_taxonomies_ready_for_script = array();
@@ -840,7 +1082,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         $compat_taxonomies_to_hide = array();
 
 
-        $terms = get_terms( array( 'taxonomy' => $media_taxonomy_names, 'fields' => 'all', 'get' => 'all' ) );
+        $terms = vergeml_assignable_media_terms();
         $terms_id_tt_id_ready_for_script = vergeml_get_media_term_pairs( $terms, 'id=>tt_id' );
 
 
@@ -853,7 +1095,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                 foreach( get_users( array( 'capability' => 'upload_files' ) ) as $user ) {
                     $users_ready_for_script[] = array(
                         'user_id' => $user->ID,
-                        'user_name' => $user->data->display_name
+                        'user_name' => esc_html( $user->data->display_name ) // the media filters render this as HTML
                     );
                 }
             }
@@ -869,7 +1111,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
                 ob_start();
 
-                    wp_terms_checklist( 0, array( 'taxonomy' => $taxonomy->name, 'checked_ontop' => false, 'walker' => new Walker_Media_Taxonomy_Uploader_Filter() ) );
+                    wp_terms_checklist( 0, array( 'taxonomy' => $taxonomy->name, 'checked_ontop' => false, 'walker' => new vergeml_Walker_Media_Taxonomy_Uploader_Filter() ) );
 
                     $html = '';
                     if ( ob_get_contents() != false ) {
@@ -884,8 +1126,9 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                 $taxonomy_terms = json_decode( $html, true );
 
                 $media_taxonomies_ready_for_script[$taxonomy->name] = array(
-                    'singular_name' => $taxonomy->labels->singular_name,
-                    'plural_name'   => $taxonomy->labels->name,
+                    // Escaped here: the media filters and labels render these as HTML.
+                    'singular_name' => esc_html( $taxonomy->labels->singular_name ),
+                    'plural_name'   => esc_html( $taxonomy->labels->name ),
                     'term_list'     => $taxonomy_terms,
                 );
 
@@ -914,20 +1157,13 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         wp_enqueue_script( 'vergeml-media-views-script' );
 
 
-        // TODO:
-        // wp_enqueue_script(
-        //     'vergeml-tags-box-script',
-        //     '/wp-admin/js/tags-box.js',
-        //     array(),
-        //     VERGEML_VERSION,
-        //     true
-        // );
 
 
         $media_models_l10n = array(
             'media_orderby'   => $vergeml_lib_options ? sanitize_text_field( $vergeml_lib_options['media_orderby'] ) : 'date',
             'media_order'     => $vergeml_lib_options ? strtoupper( sanitize_text_field( $vergeml_lib_options['media_order'] ) ) : 'DESC',
-            'bulk_edit_nonce' => wp_create_nonce( 'eml-bulk-edit-nonce' ),
+            'bulk_edit_nonce' => wp_create_nonce( 'vergeml-bulk-edit-nonce' ),
+            'term_counts_nonce' => wp_create_nonce( 'vergeml-term-counts' ),
             'natural_sort'    => (bool) $vergeml_lib_options['natural_sort'],
             'loads_per_page'  => (int) $vergeml_lib_options['loads_per_page']
         );
@@ -1022,10 +1258,11 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                 true
             );
 
+            // After core's media.js, which stays: see the note at the top of the file.
             wp_enqueue_script(
                 'vergeml-media-script',
                 $vergeml_dir . 'js/eml-media.js',
-                array( 'media-grid' ),
+                array( 'media', 'vergeml-media-grid-script' ),
                 VERGEML_VERSION,
                 true
             );
@@ -1067,7 +1304,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
 
             $vergeml_taxonomies = array(
 
-                'media_category' => array(
+                'vergeml_folder' => array(
                     'assigned' => 1,
                     'eml_media' => 1,
 
@@ -1096,7 +1333,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                     'sort' => 0,
                     'show_in_rest' => 1,
                     'rewrite' => array(
-                        'slug' => 'media_category',
+                        'slug' => 'vergeml_folder',
                         'with_front' => 1
                     )
                 )
@@ -1329,7 +1566,7 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
                     'singular' => $type,
                     'plural'   => $type,
                     'filter'   => 0,
-                    'upload'   => isset($allowed_mimes[$ext]) ? 1 : 0
+                    'upload'   => isset( $allowed_mimes[ $ext ] ) && ! ( function_exists( 'vergeml_mime_refused' ) && vergeml_mime_refused( $ext ) ) ? 1 : 0
                 );
             }
 
@@ -1384,10 +1621,10 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         $settings_page = is_network_admin() ? 'settings.php' : 'options-general.php';
 
         if ( ! is_network_admin() ) {
-            $custom_links['settings'] = '<a href="' . self_admin_url($settings_page.'?page=media') . '">' . __( 'Media Settings', 'vergelabs-media-library' ) . '</a>';
+            $custom_links['settings'] = '<a href="' . esc_url( admin_url( 'admin.php?page=' . VERGEML_MENU ) ) . '">' . esc_html__( 'Media Settings', 'vergelabs-media-library' ) . '</a>';
         }
 
-        $custom_links['utility'] = '<a href="' . self_admin_url($settings_page.'?page=eml-settings') . '">' . __( 'Utilities', 'vergelabs-media-library' ) . '</a>';
+        $custom_links['utility'] = '<a href="' . esc_url( self_admin_url( $settings_page . '?page=vergeml-utilities' ) ) . '">' . esc_html__( 'Utilities', 'vergelabs-media-library' ) . '</a>';
 
         return array_merge( $custom_links, $actions );
     }
@@ -1444,144 +1681,187 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
      *  Free functionality
      */
 
+    /**
+     *  What this host lacks that the plugin needs (wordpress.org review 2, round 5): checked before anything uses
+     *  it, and explained instead of failing. mbstring runs the folders, filing and search, so without it the
+     *  features stay off as in safe mode; OpenSSL keeps the licence key encrypted, so without it only the AI
+     *  features are unavailable (core/ai.php).
+     */
+    function vergeml_requirements_missing() {
+
+        $missing = array();
+
+        if ( ! function_exists( 'mb_strtolower' ) || ! function_exists( 'mb_substr' ) ) {
+            $missing[] = 'mbstring';
+        }
+
+        if ( ! function_exists( 'openssl_encrypt' ) ) {
+            $missing[] = 'openssl';
+        }
+
+        return $missing;
+    }
+
+    /** Safe mode, or no mbstring: the plugin's features do not load. */
+    function vergeml_features_off() {
+        return vergeml_safe_mode() || in_array( 'mbstring', vergeml_requirements_missing(), true );
+    }
+
+    add_action( 'admin_notices', 'vergeml_requirements_notice' );
+    add_action( 'network_admin_notices', 'vergeml_requirements_notice' );
+
+    function vergeml_requirements_notice() {
+
+        $missing = vergeml_requirements_missing();
+
+        if ( ! $missing || ! current_user_can( 'activate_plugins' ) ) {
+            return;
+        }
+
+        echo '<div class="notice notice-error"><p>';
+        if ( in_array( 'mbstring', $missing, true ) ) {
+            esc_html_e( 'VergeLabs Media Library needs the PHP mbstring extension, which this server does not have. Its features stay off until your host enables it; your folders and files are untouched.', 'vergelabs-media-library' );
+        } else {
+            esc_html_e( 'VergeLabs Media Library needs the PHP OpenSSL extension to keep a licence key encrypted, and this server does not have it. The AI features stay off until your host enables it; folders work as usual.', 'vergelabs-media-library' );
+        }
+        echo '</p></div>';
+    }
+
+
     /*
-     *  Safe mode stops here. Everything below this line is the plugin's actual
-     *  behaviour, and after two fatal errors in an hour none of it loads --
-     *  the site comes back, the plugin stays active, and the notice in
-     *  core/watchdog.php explains why.
+     *  Safe mode (VERGEML_SAFE_MODE in wp-config.php) or a server without
+     *  mbstring stops here: everything below is the plugin's behaviour, and a
+     *  notice says why it is off (core/watchdog.php, vergeml_requirements_notice()).
      */
     // Outside the guard on purpose: a site in safe mode is the one that most
     // needs to ask for help, and the report is what support needs first.
     // Both files are functions and one menu item; neither touches the database.
-    include_once( 'core/system-report.php' );
-    include_once( 'core/get-help.php' );
+    include_once plugin_dir_path( __FILE__ ) . 'core/system-report.php';
+    include_once plugin_dir_path( __FILE__ ) . 'core/get-help.php';
 
-    if ( ! vergeml_safe_mode() ) {
+    if ( ! vergeml_features_off() ) {
 
-        include_once( 'core/mime-types.php' );
-        include_once( 'core/taxonomies.php' );
-        include_once( 'core/media-templates.php' );
-        include_once( 'core/compatibility.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/mime-types.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/taxonomies.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/media-templates.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/compatibility.php';
         // Other folder plugins and optimisers: a notice, and exclusions.
-        include_once( 'core/neighbours.php' );
-        include_once( 'core/search.php' );
-        include_once( 'core/auto-assign.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/neighbours.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/search.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/auto-assign.php';
         // Polylang and WPML: a translated copy of a filed image keeps its folders.
-        include_once( 'core/multilingual.php' );
-        include_once( 'core/bulk-terms.php' );
-        include_once( 'core/rest-tree.php' );
-        include_once( 'core/rest-folders.php' );
-        include_once( 'core/folders-version.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/multilingual.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/bulk-terms.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/rest-tree.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/rest-folders.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/folders-version.php';
         // The second road to every endpoint above and below: the same handlers
         // reached through admin-ajax when a host or a security plugin has
         // closed /wp-json/. Inside the guard, like everything it stands in for.
-        include_once( 'core/transport.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/transport.php';
         // After rest-tree.php, whose taxonomy list it filters and whose nodes
         // it adds a field to. Inside the guard: it hides folders from people,
         // and anything that hides things has to be switchable off.
-        include_once( 'core/private-folders.php' );
-        include_once( 'core/tree-ui.php' );
-        include_once( 'core/import-sources.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/private-folders.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/tree-ui.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/import-sources.php';
         // After import-sources.php, whose reader dispatch it adds a case to,
         // and whose source registry it filters. Before import-ui.php, which
         // routes the upload at it.
-        include_once( 'core/import-csv.php' );
-        include_once( 'core/import.php' );
-        include_once( 'core/import-ui.php' );
-        include_once( 'core/post-folders.php' );
-        include_once( 'core/page-builders.php' );
-        include_once( 'core/gallery-block.php' );
-        include_once( 'core/gallery-widgets.php' );
-        include_once( 'core/folder-tools.php' );
-        include_once( 'core/smart-folders.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/import-csv.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/import.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/import-ui.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/post-folders.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/page-builders.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/gallery-block.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/gallery-widgets.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/folder-tools.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/smart-folders.php';
         // After smart-folders.php: the health report reads the size index that
         // file defines, and reuses its constant rather than restating it.
-        include_once( 'core/health.php' );
-        include_once( 'core/instrument.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/health.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/instrument.php';
         // Before ai.php: the AI layer reads and writes through the index.
-        include_once( 'core/ai-index.php' );
-        include_once( 'core/ai.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/ai-index.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/ai.php';
         // The AI screen itself: three tabs over the engine above. After ai.php,
         // whose menu entry names the page callback this file defines.
-        include_once( 'core/ai-screen.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/ai-screen.php';
         // What the page an image sits on is trying to be; advisory context for describe.
-        include_once( 'core/seo-context.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/seo-context.php';
         // After ai.php: the background run is that file's own step function on
         // a schedule, so it is meaningless without it. Inside the guard like
         // everything else -- a run that crashes has to be switchable off, and
         // safe mode also unhooks the cron callback that would crash again.
-        include_once( 'core/ai-background.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/ai-background.php';
         // After both: the AI smart folders hang off smart-folders.php's
         // registry and join ai-index.php's table, so neither may be missing
         // when this file registers its filters. Inside the guard like the
         // rest -- in safe mode the panel goes back to five folders rather
         // than to five broken ones.
-        include_once( 'core/ai-folders.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/ai-folders.php';
         // After ai-index.php: the proposed tree is clustered from the vectors
         // that file stores, and reads them through $wpdb->vergeml_ai_index --
         // which does not exist until ai-index.php has registered it.
-        include_once( 'core/organize.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/organize.php';
         // After organize.php: the Librarian reviews and applies the trees that
         // file proposes, and reads them through its helpers. Inside the guard
         // like everything else here, so a crash while applying can be switched
         // off -- which for the one feature that writes to somebody's library
         // is the whole reason the guard exists.
-        include_once( 'core/librarian.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/librarian.php';
         // After librarian.php: filing by itself writes into that file's moves
         // log, so its undo covers this without knowing it exists, and it uses
         // its taxonomy helper. Inside the guard, like everything that writes.
-        include_once( 'core/auto-file.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/auto-file.php';
         // After auto-file.php: spoken commands log their moves through the
         // same batch helper, and refuse to exist without the taxonomy helper
         // both of them share.
-        include_once( 'core/nl-commands.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/nl-commands.php';
         // Setting files aside. After smart-folders.php, whose registry it
         // adds a row to; inside the guard, because it hides things from the
         // media library and that has to be switchable off.
-        include_once( 'core/quarantine.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/quarantine.php';
         // Naming files after what is in them. After the index, whose stored
         // title it applies and whose locked list it obeys; inside the guard,
         // because it writes to posts.
-        include_once( 'core/rename.php' );
-        // Renaming the file on disk, which needs both the index (for the name)
-        // and smart-folders (for what points at it) already loaded.
-        include_once( 'core/rename-file.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/rename.php';
         // After health.php: the report asks it which copy to keep.
-        include_once( 'core/health-delete.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/health-delete.php';
         // Look-alikes: keep this one (rewrite, then set aside) and keep both.
         // After quarantine.php, which it sets aside with, and health-delete.php,
         // whose id repointing it shares.
-        include_once( 'core/health-keep.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/health-keep.php';
         // After librarian.php and search-meaning.php: it borrows the folder
         // taxonomy from one and the embedding call from the other.
-        include_once( 'core/folder-talk.php' );
-        include_once( 'core/guide.php' );
-        include_once( 'core/plan-tree.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/folder-talk.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/guide.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/plan-tree.php';
         // The brief as a conversation. After guide.php, whose token mint and
         // stream address it borrows, and after ai.php, whose describe request
         // and row write it reuses; inside the guard, because adopting a brief
         // writes the catalogue and starts a run.
-        include_once( 'core/brief.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/brief.php';
         // Editing a file from the list it is in. After the index, whose lock
         // on a hand-written field is the whole reason this is safe.
-        include_once( 'core/quick-edit.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/quick-edit.php';
         // The media list in list mode: our columns off the default set, the
         // folder filter in core's own filter bar, and Move to folder in bulk
         // actions. After taxonomies.php, whose filter row it takes the folder
         // dropdown out of, and after smart-folders.php and librarian.php,
         // whose column key and folder taxonomy it names.
-        include_once( 'core/media-list.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/media-list.php';
         // Searching by what a picture means. After organize.php, whose
         // projection and distance it borrows so that "alike" means one thing
         // in this plugin, and after ai.php for the service URL.
-        include_once( 'core/search-meaning.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/search-meaning.php';
         // Try a query: both searches run for one phrase, each hit with its why.
         // After search-meaning.php, whose ranking and scores it reads.
-        include_once( 'core/search-try.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/search-try.php';
         // Last, because each of the three things in it stands on something
         // above: the health report's duplicate groups, the index's locked
         // fields, and the vectors auto-file reads.
-        include_once( 'core/utilities.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/utilities.php';
         // Last of the guarded files: it wraps every screen the ones above
         // registered, so it has to see a finished menu. Inside the guard --
         // if the shell breaks, safe mode gives back plain WordPress screens
@@ -1590,24 +1870,22 @@ if ( ! function_exists( 'vergeml_get_slug' ) ) {
         // import, so it loads after all of them. Every read is guarded --
         // in safe mode those files are absent and the stage is simply not
         // in the list.
-        include_once( 'core/icons.php' );
-        include_once( 'core/journey.php' );
-        include_once( 'core/help.php' );
-        include_once( 'core/admin-shell.php' );
-        include_once( 'core/filing.php' );
-        include_once( 'core/connect.php' );
-        include_once( 'core/offer.php' );
-        include_once( 'core/licence-page.php' );
+        include_once plugin_dir_path( __FILE__ ) . 'core/icons.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/journey.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/help.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/admin-shell.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/filing.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/connect.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/offer.php';
+        include_once plugin_dir_path( __FILE__ ) . 'core/licence-page.php';
 
         if ( vergeml_enhance_media_shortcodes() ) {
-            include_once( 'core/medialist.php' );
+            include_once plugin_dir_path( __FILE__ ) . 'core/medialist.php';
         }
 
         if ( is_admin() ) {
             // Before the option pages: they hang their screens off its menu.
-            include_once( 'core/admin-menu.php' );
-            include_once( 'core/options-pages.php' );
+            include_once plugin_dir_path( __FILE__ ) . 'core/admin-menu.php';
+            include_once plugin_dir_path( __FILE__ ) . 'core/options-pages.php';
         }
     }
-
-}

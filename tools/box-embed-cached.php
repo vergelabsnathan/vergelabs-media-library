@@ -44,7 +44,7 @@ if ( '' === $licence ) {
 /**
  *  One /embed call, straight out, touching no cache in either direction.
  */
-function vgml_drift_fresh( $text, $licence ) {
+function vergeml_drift_fresh( $text, $licence ) {
 
     $response = wp_remote_post(
         vergeml_ai_service_url() . '/embed',
@@ -81,7 +81,7 @@ function vgml_drift_fresh( $text, $licence ) {
  *  and the short class phrases the matcher compares picture against folder
  *  with. Both go through the same cache and the same service.
  */
-$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 $terms    = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids' ) );
 $terms    = is_wp_error( $terms ) ? array() : array_map( 'intval', $terms );
 sort( $terms );
@@ -114,15 +114,15 @@ foreach ( $phrases as $row ) {
     $cached = get_transient( $slot );
 
     if ( ! is_array( $cached ) ) {
-        printf( "%-12s %-8s %-8s %-12s %-12s %s\n", $label, 'none', '-', '-', '-', vgml_drift_snip( $text ) );
+        printf( "%-12s %-8s %-8s %-12s %-12s %s\n", $label, 'none', '-', '-', '-', vergeml_drift_snip( $text ) );
         $cold++;
         continue;
     }
 
-    $fresh = vgml_drift_fresh( trim( $text ), $licence );
+    $fresh = vergeml_drift_fresh( trim( $text ), $licence );
 
     if ( ! is_array( $fresh ) ) {
-        printf( "%-12s %-8s %-8s %-12s %-12s %s\n", $label, substr( md5( wp_json_encode( $cached ) ), 0, 6 ), 'ERR', $fresh, '-', vgml_drift_snip( $text ) );
+        printf( "%-12s %-8s %-8s %-12s %-12s %s\n", $label, substr( md5( wp_json_encode( $cached ) ), 0, 6 ), 'ERR', $fresh, '-', vergeml_drift_snip( $text ) );
         continue;
     }
 
@@ -153,11 +153,11 @@ foreach ( $phrases as $row ) {
         substr( md5( wp_json_encode( $fresh ) ), 0, 6 ),
         sprintf( '%.3e', $max ),
         sprintf( '%.9f', $cos ),
-        vgml_drift_snip( $text )
+        vergeml_drift_snip( $text )
     );
 }
 
-function vgml_drift_snip( $text ) {
+function vergeml_drift_snip( $text ) {
     $text = (string) $text;
     return mb_strlen( $text ) > 46 ? mb_substr( $text, 0, 43 ) . '...' : $text;
 }

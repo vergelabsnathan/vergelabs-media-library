@@ -185,6 +185,9 @@ function vergeml_tree_assets( $hook ) {
         if ( ! $object instanceof WP_Taxonomy || ! $object->hierarchical )
             continue; // A flat taxonomy drawn as a tree is a lie about the data.
 
+        if ( ! current_user_can( $object->cap->assign_terms ) )
+            continue; // The same bar as the /tree route, so the first paint serves nothing it would refuse.
+
         $list[] = array(
             'name'  => $name,
             'label' => $object->labels->name,
@@ -231,6 +234,9 @@ function vergeml_tree_assets( $hook ) {
         'state'      => $state,
         'boot'       => $boot,
         'canManage'  => current_user_can( 'manage_categories' ),
+        // Administrators only: the smart-folder scan writes to every attachment,
+        // and making a folder private hides it from everyone else.
+        'canScan'    => current_user_can( 'manage_options' ),
         /*
          *  The modal is a different room: about 700px wide, opened to pick a file
          *  rather than to reorganise. The panel is collapsible there, folders can
@@ -270,8 +276,8 @@ function vergeml_tree_assets( $hook ) {
          *  found by people who already knew it existed. The media library is
          *  where somebody is standing when the problem occurs to them.
          */
-        'librarianUrl' => current_user_can( 'manage_categories' )
-            ? admin_url( 'admin.php?page=media-librarian' )
+        'librarianUrl' => current_user_can( 'manage_options' )
+            ? admin_url( 'admin.php?page=vergeml-librarian' )
             : '',
         /*
          *  A ready-made, nonce-carrying download link; the browser only appends
@@ -392,6 +398,7 @@ function vergeml_tree_assets( $hook ) {
             /* translators: %d: number of folders a file belongs to. */
             'inFolders'      => __( 'in %d folders', 'vergelabs-media-library' ),
             'smartScan'      => __( 'Scan', 'vergelabs-media-library' ),
+            'smartNotScanned' => __( 'Not scanned yet', 'vergelabs-media-library' ),
             /* translators: 1: posts scanned, 2: posts total. */
             'scanPosts'      => __( '%1$s / %2$s posts', 'vergelabs-media-library' ),
             /* translators: 1: files stamped, 2: files total. */

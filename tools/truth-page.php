@@ -22,6 +22,8 @@
  *  under the picture so a wrong description can be seen for what it is, and
  *  "wrong picture" keeps a picture the seed fetched badly out of the truth.
  */
+
+require_once ( is_file( __DIR__ . '/lib/filing-sql.php' ) ? __DIR__ . '/lib/filing-sql.php' : ( is_file( __DIR__ . '/../../tools/lib/filing-sql.php' ) ? __DIR__ . '/../../tools/lib/filing-sql.php' : '/tmp/vgml-filing-sql.php' ) ); // vergeml_filing_words_sql(), vergeml_filing_product_sql()
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }

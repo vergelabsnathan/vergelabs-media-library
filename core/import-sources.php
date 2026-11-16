@@ -77,6 +77,14 @@ function vergeml_import_sources() {
             'kind'     => 'taxonomy',
             'taxonomy' => 'feml-folder',
         ),
+        // Enhanced Media Library's own taxonomy. Its folders move over by themselves on activation
+        // once it is off (vergeml_migrate_prefixes()); this reads them while it is still active.
+        'eml' => array(
+            'name'     => 'Enhanced Media Library',
+            'author'   => 'wpUXsolutions',
+            'kind'     => 'taxonomy',
+            'taxonomy' => 'media_category',
+        ),
 
         // Custom tables. A reader each.
         'filebird' => array(
@@ -110,7 +118,7 @@ function vergeml_import_read( $key ) {
     $sources = vergeml_import_sources();
 
     if ( ! isset( $sources[ $key ] ) ) {
-        return new WP_Error( 'vergeml_unknown_source', __( 'That is not a folder plugin this can read.', 'vergelabs-media-library' ) );
+        return new WP_Error( 'vergeml_unknown_source', __( 'That is not a folder plugin this can read.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
 
     $source = $sources[ $key ];
@@ -128,7 +136,7 @@ function vergeml_import_read( $key ) {
             return vergeml_import_read_csv();
     }
 
-    return new WP_Error( 'vergeml_unknown_source', __( 'That is not a folder plugin this can read.', 'vergelabs-media-library' ) );
+    return new WP_Error( 'vergeml_unknown_source', __( 'That is not a folder plugin this can read.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
 }
 
 
@@ -372,5 +380,5 @@ function vergeml_table_exists( $table ) {
     global $wpdb;
 
     // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
+    return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) === $table;
 }

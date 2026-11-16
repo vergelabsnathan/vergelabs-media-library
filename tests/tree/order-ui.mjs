@@ -54,7 +54,7 @@ const stamp = 'zzord' + Math.floor( Math.random() * 9000 + 1000 );
 const call = ( data ) => page.evaluate( ( d ) => window.wp.apiFetch( {
 	path: '/vergeml/v1/folder',
 	method: 'POST',
-	data: Object.assign( { taxonomy: 'media_category' }, d ),
+	data: Object.assign( { taxonomy: 'vergeml_folder' }, d ),
 } ), data );
 
 const aaa = ( await call( { action: 'create', name: `${ stamp } aaa` } ) ).id;
@@ -88,7 +88,7 @@ const names = () => page.evaluate( ( stamp ) =>
 		.map( ( t ) => t.slice( -2 ) ), stamp );
 
 const parentOf = async ( id ) => page.evaluate( async ( id ) => {
-	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } );
+	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder' } );
 	const n = ( t.nodes || [] ).find( ( n ) => n.id === id );
 	return n ? n.parent : null;
 }, id );

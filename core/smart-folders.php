@@ -267,51 +267,27 @@ function vergeml_smart_counts( $fresh = false ) {
      */
 
     /*
-     *  What none of these five may count, as a WHERE fragment over `p`.
+     *  What none of these five may count: a file set aside.
      *
      *  A badge that counts what the folder will not show is a badge that lies:
      *  quarantine hides its files from the grid and the list, so a count that
      *  ignores it promises twenty files to a view that can only ever display
-     *  nineteen. The exclusion arrives through a filter rather than being
-     *  written in here, for the same reason the folders themselves do -- in
-     *  safe mode core/quarantine.php never loads, nothing is hidden from the
-     *  views either, and the numbers still agree with what is on screen.
+     *  nineteen. In safe mode core/quarantine.php never loads and nothing is
+     *  hidden from the views either, so its flag switches the exclusion off
+     *  and the numbers still agree with what is on screen.
      *
-     *  Fragments carry no placeholders. They are built from constants, and
-     *  the argument list below is positional.
-     *
-     *  **This filter returns SQL, and the SQL is interpolated.** Whatever comes
-     *  back is spliced into the WHERE of five statements as it is, with no
-     *  escaping and no placeholder, because it is a fragment and not a value.
-     *  Build it from `$wpdb` table names, constants and literals only. Never put
-     *  request text, an option, or anything a person typed into it -- a term
-     *  name here is an injection, and this comment is the only warning there
-     *  is. A value belongs in a branch's `args` (see `vergeml_smart_count_branches`
-     *  below), where it goes through prepare().
+     *  The statement is a literal, prepared once; the set-aside key and its
+     *  flag are placeholders like every other value. With the AI folders on
+     *  and the index table laid down (vergeml_ai_folders_counted), a second
+     *  literal adds their branches: four, grouped by column, plus how many
+     *  files have been looked at and how many there are -- without those a
+     *  count of forty reads as "forty screenshots" on a library where two
+     *  hundred of eight thousand files have been described. Unknown enum
+     *  values are stored verbatim and match no folder, which is why
+     *  `_described` is asked for rather than added up.
      */
-    $exclude = (string) apply_filters( 'vergeml_smart_count_exclude', '' );
-
-    $core_sql = "SELECT 'unused' AS k, COUNT(*) AS c FROM {$wpdb->posts} p
-          JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = '1'
-         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' {$exclude}
-         UNION ALL
-         SELECT 'no-alt', COUNT(*) FROM {$wpdb->posts} p
-          LEFT JOIN {$wpdb->postmeta} a ON a.post_id = p.ID AND a.meta_key = '_wp_attachment_image_alt'
-         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-           AND p.post_mime_type LIKE %s
-           AND ( a.meta_id IS NULL OR a.meta_value = '' ) {$exclude}
-         UNION ALL
-         SELECT 'large', COUNT(*) FROM {$wpdb->posts} p
-          JOIN {$wpdb->postmeta} f ON f.post_id = p.ID AND f.meta_key = %s
-         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-           AND CAST( f.meta_value AS UNSIGNED ) > %d {$exclude}
-         UNION ALL
-         SELECT 'unattached', COUNT(*) FROM {$wpdb->posts} p
-         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_parent = 0 {$exclude}
-         UNION ALL
-         SELECT 'recent', COUNT(*) FROM {$wpdb->posts} p
-         WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-           AND p.post_date >= %s AND p.post_date < %s {$exclude}";
+    $aside    = defined( 'VERGEML_QUARANTINE_META' ) ? VERGEML_QUARANTINE_META : '';
+    $aside_on = '' !== $aside ? 1 : 0;
 
     /*
      *  This month as a half-open range, not YEAR() and MONTH().
@@ -328,66 +304,130 @@ function vergeml_smart_counts( $fresh = false ) {
     $month_from = sprintf( '%04d-%02d-01 00:00:00', (int) current_time( 'Y' ), (int) current_time( 'n' ) );
     $month_to   = gmdate( 'Y-m-d H:i:s', strtotime( $month_from . ' +1 month' ) );
 
-    $core_args = array(
-        VERGEML_META_UNUSED,
-        $wpdb->esc_like( 'image/' ) . '%',
-        VERGEML_META_FILESIZE,
-        vergeml_large_bytes(),
-        $month_from,
-        $month_to,
+    $args = array(
+        VERGEML_META_UNUSED, $aside_on, $aside,
+        $wpdb->esc_like( 'image/' ) . '%', $aside_on, $aside,
+        VERGEML_META_FILESIZE, vergeml_large_bytes(), $aside_on, $aside,
+        $aside_on, $aside,
+        $month_from, $month_to, $aside_on, $aside,
+        $aside,
     );
 
-    /*
-     *  Extra branches, each `array( 'sql' => ..., 'args' => array() )`, and
-     *  each producing the same two columns as the five above.
-     *
-     *  **`sql` is interpolated; `args` is prepared.** The `sql` string is
-     *  appended to the statement as it is, so it must be built from `$wpdb`
-     *  table names, constants and literals, with a `%s`/`%d` placeholder for
-     *  every value and that value in `args`. Nothing a person typed goes in
-     *  `sql`, ever. core/quarantine.php and core/ai-folders.php are the two
-     *  implementations to copy.
-     */
-    $extra_sql  = '';
-    $extra_args = array();
+    $extended = function_exists( 'vergeml_ai_folders_counted' ) && vergeml_ai_folders_counted();
 
-    foreach ( (array) apply_filters( 'vergeml_smart_count_branches', array() ) as $branch ) {
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $args is spread, one value per placeholder; one indexed statement for a panel that ships with the page; the plugin's table is bound as %i, every value is bound.
+    $wpdb->last_error = '';
 
-        if ( empty( $branch['sql'] ) ) {
-            continue;
-        }
+    if ( $extended ) {
 
-        $extra_sql .= ' UNION ALL ' . $branch['sql'];
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT 'unused' AS k, COUNT(*) AS c FROM {$wpdb->posts} p
+               JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = '1'
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx WHERE qx.post_id = p.ID AND qx.meta_key = %s ) )
+             UNION ALL
+             SELECT 'no-alt', COUNT(*) FROM {$wpdb->posts} p
+               LEFT JOIN {$wpdb->postmeta} a ON a.post_id = p.ID AND a.meta_key = '_wp_attachment_image_alt'
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+                AND p.post_mime_type LIKE %s
+                AND ( a.meta_id IS NULL OR a.meta_value = '' )
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx WHERE qx.post_id = p.ID AND qx.meta_key = %s ) )
+             UNION ALL
+             SELECT 'large', COUNT(*) FROM {$wpdb->posts} p
+               JOIN {$wpdb->postmeta} f ON f.post_id = p.ID AND f.meta_key = %s
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+                AND CAST( f.meta_value AS UNSIGNED ) > %d
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx WHERE qx.post_id = p.ID AND qx.meta_key = %s ) )
+             UNION ALL
+             SELECT 'unattached', COUNT(*) FROM {$wpdb->posts} p
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_parent = 0
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx WHERE qx.post_id = p.ID AND qx.meta_key = %s ) )
+             UNION ALL
+             SELECT 'recent', COUNT(*) FROM {$wpdb->posts} p
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+                AND p.post_date >= %s AND p.post_date < %s
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx WHERE qx.post_id = p.ID AND qx.meta_key = %s ) )
+             UNION ALL
+             SELECT 'quarantine', COUNT(*) FROM {$wpdb->posts} p
+               JOIN {$wpdb->postmeta} q ON q.post_id = p.ID AND q.meta_key = %s
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+             UNION ALL
+             SELECT CONCAT( 'ai-kind-', x.kind ), COUNT(*) FROM {$wpdb->posts} p
+               JOIN %i x ON x.attachment_id = p.ID
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND x.kind <> ''
+              GROUP BY x.kind
+             UNION ALL
+             SELECT CONCAT( 'ai-doc-', x.document_type ), COUNT(*) FROM {$wpdb->posts} p
+               JOIN %i x ON x.attachment_id = p.ID
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND x.document_type <> ''
+              GROUP BY x.document_type
+             UNION ALL
+             SELECT 'ai-people', COUNT(*) FROM {$wpdb->posts} p
+               JOIN %i x ON x.attachment_id = p.ID
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND x.has_people = 1
+             UNION ALL
+             SELECT 'ai-text', COUNT(*) FROM {$wpdb->posts} p
+               JOIN %i x ON x.attachment_id = p.ID
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND x.has_text = 1
+             UNION ALL
+             SELECT '_described', COUNT(*) FROM {$wpdb->posts} p
+               JOIN %i x ON x.attachment_id = p.ID
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND x.described_at IS NOT NULL
+             UNION ALL
+             SELECT '_total', COUNT(*) FROM {$wpdb->posts} p
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'",
+            ...array_merge( $args, array_fill( 0, 5, $wpdb->vergeml_ai_index ) )
+        ) );
 
-        if ( ! empty( $branch['args'] ) ) {
-            $extra_args = array_merge( $extra_args, array_values( (array) $branch['args'] ) );
+        /*
+         *  If the AI half failed -- the index table dropped by hand is the
+         *  realistic way -- the five core numbers went down with it, and the
+         *  panel would show a tree with no counts at all because of a feature
+         *  it may not even use. So the core five are asked again on their own,
+         *  and everything the AI half was going to answer reports null: not
+         *  looked, rather than none. One query on the normal path; two only
+         *  when something is already broken.
+         */
+        if ( '' !== (string) $wpdb->last_error ) {
+            $extended = false;
         }
     }
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- one indexed statement for a panel that ships with the page; every value is bound below.
-    $wpdb->last_error = '';
+    if ( ! $extended ) {
 
-    $rows = $wpdb->get_results( $wpdb->prepare(
-        $core_sql . $extra_sql,
-        array_merge( $core_args, $extra_args )
-    ) );
-
-    /*
-     *  If the extension's half of the statement failed -- the index table
-     *  dropped by hand is the realistic way -- the five core numbers went down
-     *  with it, and the panel would show a tree with no counts at all because
-     *  of a feature it may not even use. So the core five are asked again on
-     *  their own, and everything the extension was going to answer reports
-     *  null: not looked, rather than none.
-     *
-     *  One query on the normal path. Two only when something is already
-     *  broken, which is the right place to spend an extra one.
-     */
-    $extended = '' !== $extra_sql;
-
-    if ( $extended && '' !== (string) $wpdb->last_error ) {
-        $extended = false;
-        $rows     = $wpdb->get_results( $wpdb->prepare( $core_sql, $core_args ) );
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT 'unused' AS k, COUNT(*) AS c FROM {$wpdb->posts} p
+               JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s AND m.meta_value = '1'
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx WHERE qx.post_id = p.ID AND qx.meta_key = %s ) )
+             UNION ALL
+             SELECT 'no-alt', COUNT(*) FROM {$wpdb->posts} p
+               LEFT JOIN {$wpdb->postmeta} a ON a.post_id = p.ID AND a.meta_key = '_wp_attachment_image_alt'
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+                AND p.post_mime_type LIKE %s
+                AND ( a.meta_id IS NULL OR a.meta_value = '' )
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx WHERE qx.post_id = p.ID AND qx.meta_key = %s ) )
+             UNION ALL
+             SELECT 'large', COUNT(*) FROM {$wpdb->posts} p
+               JOIN {$wpdb->postmeta} f ON f.post_id = p.ID AND f.meta_key = %s
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+                AND CAST( f.meta_value AS UNSIGNED ) > %d
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx WHERE qx.post_id = p.ID AND qx.meta_key = %s ) )
+             UNION ALL
+             SELECT 'unattached', COUNT(*) FROM {$wpdb->posts} p
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_parent = 0
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx WHERE qx.post_id = p.ID AND qx.meta_key = %s ) )
+             UNION ALL
+             SELECT 'recent', COUNT(*) FROM {$wpdb->posts} p
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+                AND p.post_date >= %s AND p.post_date < %s
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx WHERE qx.post_id = p.ID AND qx.meta_key = %s ) )
+             UNION ALL
+             SELECT 'quarantine', COUNT(*) FROM {$wpdb->posts} p
+               JOIN {$wpdb->postmeta} q ON q.post_id = p.ID AND q.meta_key = %s
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'",
+            ...$args
+        ) );
     }
     // phpcs:enable
 
@@ -732,9 +772,6 @@ function vergeml_smart_scan_step( $resume = null ) {
     if ( is_array( $resume ) && is_array( $stored ) ) {
         $state = $stored;
     }
-    elseif ( is_array( $resume ) && isset( $resume['refs'] ) ) {
-        $state = $resume; // a browser from before this change, carrying it all
-    }
     else {
         delete_option( VERGEML_SCAN_PROGRESS );
         $state = array(
@@ -792,27 +829,22 @@ function vergeml_smart_scan_step( $resume = null ) {
         $meta_blobs = array();
 
         if ( $ids ) {
-            $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-
             $params   = $ids;
             $params[] = $wpdb->esc_like( '_vergeml' ) . '%';
             $params[] = '%' . $wpdb->esc_like( 'wp-image-' ) . '%';
             $params[] = '%' . $wpdb->esc_like( 'uploads' ) . '%';
 
             /*
-             *  $placeholders is a string of %d markers matching count( $ids ),
-             *  and every value -- ids and LIKE patterns alike -- travels
-             *  through prepare. The sniff cannot count a dynamic list.
+             *  One %d marker per id, written where the list goes, and every
+             *  value -- ids and LIKE patterns alike -- travels through prepare.
              */
-            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
             $rows = $wpdb->get_results( $wpdb->prepare(
                 "SELECT post_id, meta_value FROM {$wpdb->postmeta}
-                 WHERE post_id IN ( $placeholders )
+                 WHERE post_id IN ( " . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . " )
                    AND meta_key NOT LIKE %s
                    AND ( meta_value LIKE %s OR meta_value LIKE %s )",
                 $params
             ) );
-            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
             foreach ( (array) $rows as $row ) {
                 $meta_blobs[ (int) $row->post_id ][] = (string) $row->meta_value;
@@ -1078,7 +1110,8 @@ function vergeml_used_in_field( $fields, $post ) {
                 continue;
             }
 
-            $title = get_the_title( $source );
+            // A draft or a private post's title only for someone who may read it.
+            $title = current_user_can( 'read_post', $source ) ? get_the_title( $source ) : '';
 
             if ( '' === $title ) {
                 continue; // The referencing post has been deleted since the scan.
@@ -1099,8 +1132,8 @@ function vergeml_used_in_field( $fields, $post ) {
              *  it actually is one.
              */
             $links[] = $edit
-                ? '<a class="vgml-used-pill" href="' . esc_url( $edit ) . '">' . $inside . '</a>'
-                : '<span class="vgml-used-pill is-flat">' . $inside . '</span>';
+                ? '<a class="vgml-used-pill" href="' . esc_url( $edit ) . '">' . wp_kses_post( $inside ) . '</a>'
+                : '<span class="vgml-used-pill is-flat">' . wp_kses_post( $inside ) . '</span>';
         }
 
         $html = $links
@@ -1111,7 +1144,7 @@ function vergeml_used_in_field( $fields, $post ) {
     $fields['vergeml_used_in'] = array(
         'label' => __( 'Used in', 'vergelabs-media-library' ),
         'input' => 'html',
-        'html'  => '<div class="vgml-used-in">' . $html . '</div>',
+        'html'  => '<div class="vgml-used-in">' . wp_kses_post( $html ) . '</div>',
     );
 
     return $fields;
@@ -1129,9 +1162,7 @@ function vergeml_register_smart_routes() {
         'callback'            => 'vergeml_rest_smart_scan',
         // The scan writes meta on every attachment; that is curation, not
         // uploading, so it takes the folder-management capability.
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'resume' => array( 'type' => 'object' ),
         ),
@@ -1159,11 +1190,18 @@ add_filter( 'ajax_query_attachments_args', 'vergeml_smart_grid_query', 20 );
 
 function vergeml_smart_grid_query( $args ) {
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- reading which filter the media grid asked for; core has checked the ajax nonce already.
+    /*
+     *  No nonce: core's wp_ajax_query_attachments() checks upload_files and
+     *  no nonce, and this filter runs inside it. The value only chooses which
+     *  of the smart folders' read-only queries narrows a listing this user
+     *  may already run: sanitize_key, then the allow-list below
+     *  (vergeml_smart_folders()); anything else leaves $args as it was.
+     */
+    // phpcs:disable WordPress.Security.NonceVerification.Missing -- read-only view choice inside core's query-attachments AJAX, which checks upload_files and no nonce; sanitize_key and an allow-list below.
     $key = isset( $_POST['query']['vergeml_smart'] )
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing
         ? sanitize_key( wp_unslash( $_POST['query']['vergeml_smart'] ) )
         : '';
+    // phpcs:enable
 
     if ( '' === $key ) {
         return $args;
@@ -1192,7 +1230,7 @@ function vergeml_smart_list_query( $query ) {
     global $pagenow;
 
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a bookmarkable read-only filter.
-    $key = isset( $_GET['vgml_smart'] ) ? sanitize_key( wp_unslash( $_GET['vgml_smart'] ) ) : '';
+    $key = isset( $_GET['vergeml_smart'] ) ? sanitize_key( wp_unslash( $_GET['vergeml_smart'] ) ) : '';
 
     if ( 'upload.php' !== $pagenow || '' === $key || ! array_key_exists( $key, vergeml_smart_folders() ) ) {
         return;
@@ -1312,7 +1350,8 @@ function vergeml_used_cell( $column, $attachment_id ) {
             continue;
         }
 
-        $title = get_the_title( $source );
+        // A draft or a private post's title only for someone who may read it.
+            $title = current_user_can( 'read_post', $source ) ? get_the_title( $source ) : '';
 
         if ( '' === $title ) {
             continue; // the referencing post has gone since the scan
@@ -1334,7 +1373,7 @@ function vergeml_used_cell( $column, $attachment_id ) {
 
     $more = count( $sources ) - $shown;
 
-    echo implode( '<br>', $lines ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- each line escaped above.
+    echo wp_kses( implode( '<br>', $lines ), vergeml_kses_allowed() );
 
     if ( $more > 0 ) {
         printf(

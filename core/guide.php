@@ -42,8 +42,8 @@ const VERGEML_GUIDE_PROPOSE_CREDITS = 10;
 add_action( 'admin_menu', 'vergeml_guide_redirect', 999 );
 
 function vergeml_guide_redirect() {
-    if ( isset( $_GET['page'] ) && 'media-guide' === $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, which screen this is.
-        wp_safe_redirect( admin_url( 'admin.php?page=media-librarian' ) );
+    if ( isset( $_GET['page'] ) && 'media-guide' === sanitize_key( wp_unslash( $_GET['page'] ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only, which screen this is.
+        wp_safe_redirect( admin_url( 'admin.php?page=vergeml-librarian' ) );
         exit;
     }
 }
@@ -60,8 +60,8 @@ function vergeml_folders_menu() {
         VERGEML_MENU,
         __( 'Folders', 'vergelabs-media-library' ),
         __( 'Folders', 'vergelabs-media-library' ),
-        'manage_categories',
-        'media-librarian',
+        'manage_options',
+        'vergeml-librarian',
         'vergeml_folders_page'
     );
 }
@@ -70,7 +70,7 @@ add_action( 'admin_enqueue_scripts', 'vergeml_folders_assets' );
 
 function vergeml_folders_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-librarian' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-librarian' ) ) {
         return;
     }
 
@@ -85,7 +85,7 @@ function vergeml_folders_assets( $hook ) {
     wp_enqueue_script( 'vergeml-tree-view', plugins_url( 'js/vergeml-tree-view.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-tree-view.js' ), true );
     // The paste reader: text to the same draft shape, no model, no request.
     wp_enqueue_script( 'vergeml-structure', plugins_url( 'js/vergeml-structure.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-structure.js' ), true );
-    wp_enqueue_script( 'vergeml-folders', plugins_url( 'js/vergeml-folders.js', VERGEML_FILE ), array( 'wp-api-fetch', 'wp-i18n', 'vergeml-tree-view', 'vergeml-structure', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-folders.js' ), true );
+    wp_enqueue_script( 'vergeml-folders', plugins_url( 'js/vergeml-folders.js', VERGEML_FILE ), array( 'vergeml-transport', 'wp-i18n', 'vergeml-tree-view', 'vergeml-structure', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-folders.js' ), true );
     wp_set_script_translations( 'vergeml-folders', 'vergelabs-media-library' );
 
     /*
@@ -94,7 +94,7 @@ function vergeml_folders_assets( $hook ) {
      *  first paint (Gate 5, tests/ui/folders.spec.mjs), and no model route
      *  fires on load: a proposal is a button with its cost.
      */
-    wp_localize_script( 'vergeml-folders', 'vgmlFolders', array(
+    wp_localize_script( 'vergeml-folders', 'vergemlFolders', array(
         'ns'        => VERGEML_REST_NS,
         'cap'       => VERGEML_GUIDE_TURN_CAP,
         'described' => (int) $boot['facts']['pictures'],
@@ -108,8 +108,8 @@ function vergeml_folders_assets( $hook ) {
         // The folders the fill's answers made: the done tree marks them new.
         'made'      => function_exists( 'vergeml_talk_made_by_answer' ) ? vergeml_talk_made_by_answer() : array(),
         'undo'      => $boot['undo'],
-        'aiUrl'     => admin_url( 'admin.php?page=media-ai' ),
-        'licenceUrl'=> admin_url( 'admin.php?page=media-licence' ),
+        'aiUrl'     => admin_url( 'admin.php?page=vergeml-ai' ),
+        'licenceUrl'=> admin_url( 'admin.php?page=vergeml-licence' ),
         // "Show me" opens a picture in the library's own modal, where Why is it here answers for it.
         'libraryUrl'=> admin_url( 'upload.php' ),
         'proposeCredits' => VERGEML_GUIDE_PROPOSE_CREDITS,
@@ -117,7 +117,6 @@ function vergeml_folders_assets( $hook ) {
         'plan'           => function_exists( 'vergeml_plan_facts' ) && $boot['facts']['pictures'] > 0 ? vergeml_plan_facts( ! empty( $boot['session']['frozen'] ), true ) : null,
         // Folders a confirm reads per request: the progress row counts batches by it (S10.0).
         'profileBatch'   => defined( 'VERGEML_FILING_PROFILE_BATCH' ) ? VERGEML_FILING_PROFILE_BATCH : 60,
-        'walk'      => (bool) apply_filters( 'vergeml_folders_walk', false ),
     ) );
 }
 
@@ -328,12 +327,15 @@ function vergeml_folders_product_paths( $limit = 500 ) {
     $paths   = array();
     $total   = 0;
 
-    $walk = function ( $parent, $trail ) use ( &$walk, &$paths, &$total, $kids, $default, $limit ) {
+    $seen = array();
+
+    $walk = function ( $parent, $trail ) use ( &$walk, &$paths, &$total, &$seen, $kids, $default, $limit ) {
         foreach ( isset( $kids[ $parent ] ) ? $kids[ $parent ] : array() as $t ) {
             $id = (int) $t->term_id;
-            if ( $id === $default && 0 === (int) $t->count && empty( $kids[ $id ] ) ) {
-                continue;
+            if ( isset( $seen[ $id ] ) || ( $id === $default && 0 === (int) $t->count && empty( $kids[ $id ] ) ) ) {
+                continue; // a parent loop in the terms table is followed once
             }
+            $seen[ $id ] = true;
             $total++;
             $here = array_merge( $trail, array( vergeml_term_name( $t ) ) );
             if ( count( $paths ) < $limit ) {
@@ -402,18 +404,20 @@ function vergeml_folders_facts( $taxonomy, $folders ) {
     $t = $wpdb->vergeml_ai_index;
 
     if ( '' !== $taxonomy ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; the taxonomy is bound.
         $row = $wpdb->get_row( $wpdb->prepare(
             "SELECT COUNT(*) AS n, MAX(i.described_at) AS last,
                     SUM( CASE WHEN NOT EXISTS (
                         SELECT 1 FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
                          WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s ) THEN 1 ELSE 0 END ) AS unfiled
-               FROM {$t} i WHERE i.error = '' AND i.embedding IS NOT NULL",
-            $taxonomy
+               FROM %i i WHERE i.error = '' AND i.embedding IS NOT NULL",
+            $taxonomy,
+            $t
         ), ARRAY_A );
+        // phpcs:enable
     } else {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
-        $row = $wpdb->get_row( "SELECT COUNT(*) AS n, MAX(described_at) AS last, COUNT(*) AS unfiled FROM {$t} WHERE error = '' AND embedding IS NOT NULL", ARRAY_A );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT COUNT(*) AS n, MAX(described_at) AS last, COUNT(*) AS unfiled FROM %i WHERE error = '' AND embedding IS NOT NULL", $t ), ARRAY_A );
     }
 
     if ( is_array( $row ) ) {
@@ -453,7 +457,7 @@ function vergeml_folders_when( $ts ) {
 
 function vergeml_folders_page() {
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
@@ -518,8 +522,8 @@ function vergeml_guide_described_count() {
     if ( ! isset( $wpdb->vergeml_ai_index ) ) {
         return 0;
     }
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
-    return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL" );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND embedding IS NOT NULL", $wpdb->vergeml_ai_index ) );
 }
 
 
@@ -604,7 +608,7 @@ function vergeml_guide_session_out( $s, $live = null ) {
 
 /** The confirm's ask, as two numbers for the screen: folders it would profile, credits that costs. */
 function vergeml_guide_profile_facts( $draft ) {
-    if ( ! is_array( $draft ) || empty( $draft['folders'] ) ) {
+    if ( ! is_array( $draft ) || empty( $draft['folders'] ) || ! vergeml_guide_can_profile() ) {
         return array( 'folders' => 0, 'credits' => 0 );
     }
     $ask = vergeml_guide_profile_ask( $draft );
@@ -732,15 +736,15 @@ function vergeml_guide_summary() {
     global $wpdb;
     $t = $wpdb->vergeml_ai_index;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
-    $total      = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND embedding IS NOT NULL" );
-    $last       = (string) $wpdb->get_var( "SELECT MAX(described_at) FROM {$t} WHERE error = ''" );
-    $kinds      = $wpdb->get_results( "SELECT kind, COUNT(*) AS n FROM {$t} WHERE error = '' AND embedding IS NOT NULL GROUP BY kind", ARRAY_A );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+    $total      = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND embedding IS NOT NULL", $t ) );
+    $last       = (string) $wpdb->get_var( $wpdb->prepare( "SELECT MAX(described_at) FROM %i WHERE error = ''", $t ) );
+    $kinds      = $wpdb->get_results( $wpdb->prepare( "SELECT kind, COUNT(*) AS n FROM %i WHERE error = '' AND embedding IS NOT NULL GROUP BY kind", $t ), ARRAY_A );
     // "audience":"" is the empty answer; only a real value counts.
-    $n_audience = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND filing LIKE '%\"audience\":\"%' AND filing NOT LIKE '%\"audience\":\"\"%'" );
-    $n_brand    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND ( filing LIKE '%\"brand\":\"_%' OR tags REGEXP '(^|,)[[:space:]]*(apple|samsung|dell|lg|nike|adidas|sony|hp|lenovo|asus|logitech|canon|nikon)' )" );
-    $n_size     = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE error = '' AND ( caption REGEXP '[0-9]+(\\\\.[0-9]+)? ?(inch|\"|cm|mm)' OR filing REGEXP '[0-9]+(\\\\.[0-9]+)? ?(inch|\"|cm|mm)' )" );
-    $rows       = $wpdb->get_results( $wpdb->prepare( "SELECT filing FROM {$t} WHERE error = '' AND filing IS NOT NULL AND filing <> '' ORDER BY described_at DESC LIMIT %d", VERGEML_GUIDE_SAMPLE ), ARRAY_A );
+    $n_audience = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND filing LIKE %s AND filing NOT LIKE %s", $t, '%"audience":"%', '%"audience":""%' ) );
+    $n_brand    = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND ( filing LIKE %s OR tags REGEXP '(^|,)[[:space:]]*(apple|samsung|dell|lg|nike|adidas|sony|hp|lenovo|asus|logitech|canon|nikon)' )", $t, '%"brand":"_%' ) );
+    $n_size     = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND ( caption REGEXP '[0-9]+(\\\\.[0-9]+)? ?(inch|\"|cm|mm)' OR filing REGEXP '[0-9]+(\\\\.[0-9]+)? ?(inch|\"|cm|mm)' )", $t ) );
+    $rows       = $wpdb->get_results( $wpdb->prepare( "SELECT filing FROM %i WHERE error = '' AND filing IS NOT NULL AND filing <> '' ORDER BY described_at DESC LIMIT %d", $t, VERGEML_GUIDE_SAMPLE ), ARRAY_A );
     // phpcs:enable
 
     $groups = array();
@@ -780,13 +784,16 @@ function vergeml_guide_summary() {
         $by_kind[ '' === (string) $k['kind'] ? 'photo' : (string) $k['kind'] ] = (int) $k['n'];
     }
 
-    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table; the taxonomy is bound.
     $unfiled = '' !== $tax ? (int) $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM {$t} i WHERE i.error = '' AND i.embedding IS NOT NULL AND NOT EXISTS (
+        "SELECT COUNT(*) FROM %i i WHERE i.error = '' AND i.embedding IS NOT NULL AND NOT EXISTS (
             SELECT 1 FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
              WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s )",
+        $t,
         $tax
-    ) ) : $total; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+    ) ) : $total;
+    // phpcs:enable
 
     /*
      *  A site that sells says so in its own words (S20). The service puts the
@@ -844,21 +851,15 @@ function vergeml_guide_summary_fresh( &$s ) {
 /* -------------------------------------------------------------- the token */
 
 /**
- *  Where the browser streams from. The service the plugin talks to
- *  server-side may sit on the loopback of this very host (the test box does);
- *  a browser cannot reach that, and the token has to be minted where it will
- *  be presented, so both go to the same public address.
+ *  Where the browser streams from: the service's own address, unless
+ *  VERGEML_AI_STREAM names another one.
  */
 function vergeml_guide_stream_url() {
 
-    if ( defined( 'VERGEML_AI_STREAM' ) && is_string( VERGEML_AI_STREAM ) && '' !== VERGEML_AI_STREAM ) {
+    if ( defined( 'VERGEML_AI_STREAM' ) && is_string( VERGEML_AI_STREAM ) && 0 === strpos( VERGEML_AI_STREAM, 'https://' ) ) {
         return untrailingslashit( VERGEML_AI_STREAM );
     }
-    $url = vergeml_ai_service_url();
-    if ( preg_match( '#^https?://(127\.0\.0\.1|localhost|\[::1\])(:|/|$)#i', $url ) ) {
-        return 'https://ai.vergelabs.nl/v1';
-    }
-    return $url;
+    return vergeml_ai_service_url();
 }
 
 /**
@@ -961,17 +962,14 @@ function vergeml_guide_token_out( $s ) {
 add_action( 'rest_api_init', 'vergeml_guide_routes' );
 
 function vergeml_guide_routes() {
-    $may = function () {
-        return current_user_can( 'manage_categories' );
-    };
     register_rest_route( VERGEML_REST_NS, '/guide/session', array(
-        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_guide_rest_session', 'permission_callback' => $may ),
+        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_guide_rest_session', 'permission_callback' => function () { return current_user_can( 'manage_options' ); } ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'vergeml_guide_rest_session',
-            'permission_callback' => $may,
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
             'args'                => array(
-                'draft' => array( 'required' => false ),
+                'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
                 'reset' => array( 'type' => 'boolean', 'required' => false ),
             ),
         ),
@@ -979,17 +977,17 @@ function vergeml_guide_routes() {
     register_rest_route( VERGEML_REST_NS, '/guide/token', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_token',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/turn', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_turn',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'said'  => array( 'type' => 'object', 'required' => false ),
             'say'   => array( 'type' => 'object', 'required' => false ),
-            'draft' => array( 'required' => false ),
-            // Several turns in one write, in order: what a suite plants and puts back.
+            'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
+            // Several turns in one write, applied in order, each through the same checks as a single one.
             'turns' => array( 'type' => 'array', 'required' => false ),
         ),
     ) );
@@ -997,17 +995,17 @@ function vergeml_guide_routes() {
     register_rest_route( VERGEML_REST_NS, '/guide/product-categories', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_guide_rest_product_categories',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/rules', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_guide_rest_rules',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/rule', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_rule',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'rule'    => array( 'type' => 'string', 'required' => true ),
             'options' => array( 'type' => 'object', 'required' => false ),
@@ -1016,51 +1014,51 @@ function vergeml_guide_routes() {
     register_rest_route( VERGEML_REST_NS, '/guide/apply', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_apply',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/progress', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_guide_rest_progress',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/stop', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_stop',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/undo', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_undo',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     // "This is my tree": the profiles stored, the planner asked once about folders the draft gives no classes, edits refused after.
     register_rest_route( VERGEML_REST_NS, '/guide/confirm', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_confirm',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/guide/unconfirm', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_unconfirm',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     // The earlier classes back on every folder a confirm re-profiled within the day (C.4).
     register_rest_route( VERGEML_REST_NS, '/guide/profiles-restore', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_profiles_restore',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     // The questions the fill left, and where the step stands. Read-only and cheap.
     register_rest_route( VERGEML_REST_NS, '/guide/questions', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_guide_rest_questions',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     // One answer to one question: keep-parent | split | new-folder | put-in:<term> | leave | show-me.
     register_rest_route( VERGEML_REST_NS, '/guide/answer', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_guide_rest_answer',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'id'     => array( 'type' => 'string', 'required' => true ),
             'answer' => array( 'type' => 'string', 'required' => true ),
@@ -1191,7 +1189,8 @@ function vergeml_guide_confirm( &$s ) {
      *  so the planner still sees where it hangs.
      */
     $ask  = vergeml_guide_profile_ask( $s['draft'] );
-    $want = $ask['want'];
+    // Without a licence key the confirm is local: every folder keeps the profile its own name gives it, and the service is not asked.
+    $want = vergeml_guide_can_profile() ? $ask['want'] : array();
 
     /*
      *  One batch a call (C.5). Six planner calls of twenty seconds inside
@@ -1276,6 +1275,11 @@ function vergeml_guide_confirm( &$s ) {
     $s['confirmed_at'] = time();
 
     return array( 'profiled' => $profiled, 'charged' => $charged );
+}
+
+/** Whether a confirm may ask the service to profile folders: only with a licence key connected. Confirming never needs one. */
+function vergeml_guide_can_profile() {
+    return function_exists( 'vergeml_ai_settings' ) && '' !== vergeml_ai_unseal( (string) vergeml_ai_settings()['license_key'] );
 }
 
 /**
@@ -1697,8 +1701,8 @@ function vergeml_guide_fit_event() {
         return;
     }
     set_transient( VERGEML_GUIDE_FIT_LOCK, time(), VERGEML_GUIDE_FIT_BUDGET + 60 );
-    if ( function_exists( 'set_time_limit' ) ) {
-        @set_time_limit( VERGEML_GUIDE_FIT_BUDGET + 60 ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
+    if ( vergeml_can_set_time_limit() ) {
+        set_time_limit( VERGEML_GUIDE_FIT_BUDGET + 60 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- a cron job; refused silently where disallowed.
     }
 
     $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : '';
@@ -1901,11 +1905,51 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
     $profiles = vergeml_filing_settle_claims( $profiles );
 
     $vectors = array();
-    $words   = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9), as the fill reads them.
-    $product = vergeml_filing_product_sql( 'i' ); // The product the picture belongs to (S10.8), as the fill reads it: a literal NULL where nothing sells.
+    /*
+     *  The columns and joins are written out: the picture's file, title and alt
+     *  (S10.9) and the product the picture belongs to (S10.8), as the fill reads them,
+     *  so the fit reads what the fill reads. Where nothing sells the product column
+     *  is a literal NULL.
+     */
+    $sells = function_exists( 'post_type_exists' ) && post_type_exists( 'product' );
     foreach ( array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) as $chunk ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
-        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by, {$words['select']}, {$product['select']} FROM {$wpdb->vergeml_ai_index} i LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s {$words['join']} {$product['join']} WHERE i.attachment_id IN (" . implode( ',', $chunk ) . ')', VERGEML_FILING_PLACED_BY ), ARRAY_A ) as $v ) {
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the LIKE patterns, the meta key and one %d per id are bound.
+        if ( $sells ) {
+            $found = $wpdb->get_results( $wpdb->prepare(
+                "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by,
+                        wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt,
+                        COALESCE(
+                          ( SELECT vp1.ID FROM {$wpdb->postmeta} vm1 JOIN {$wpdb->posts} vp1 ON vp1.ID = vm1.post_id AND vp1.post_type = 'product'
+                             WHERE vm1.meta_key = '_thumbnail_id' AND vm1.meta_value = CAST(i.attachment_id AS CHAR) LIMIT 1 ),
+                          ( SELECT vp2.ID FROM {$wpdb->postmeta} vm2 JOIN {$wpdb->posts} vp2 ON vp2.ID = vm2.post_id AND vp2.post_type = 'product'
+                             WHERE vm2.meta_key = '_product_image_gallery' AND CONCAT( ',', vm2.meta_value, ',' ) LIKE CONCAT( %s, i.attachment_id, %s ) LIMIT 1 ),
+                          ( SELECT vp3.ID FROM {$wpdb->posts} va3 JOIN {$wpdb->posts} vp3 ON vp3.ID = va3.post_parent AND vp3.post_type = 'product'
+                             WHERE va3.ID = i.attachment_id LIMIT 1 )
+                        ) AS product_id
+                   FROM %i i
+                   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
+                   LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = i.attachment_id
+                   LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = i.attachment_id AND wp_f.meta_key = '_wp_attached_file'
+                   LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = i.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'
+                  WHERE i.attachment_id IN ( " . implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) . ' )',
+                array_merge( array( '%,', ',%', $wpdb->vergeml_ai_index, VERGEML_FILING_PLACED_BY ), $chunk )
+            ), ARRAY_A );
+        } else {
+            $found = $wpdb->get_results( $wpdb->prepare(
+                "SELECT i.attachment_id, i.embedding, i.tags, pm.meta_value AS placed_by,
+                        wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt,
+                        NULL AS product_id
+                   FROM %i i
+                   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
+                   LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = i.attachment_id
+                   LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = i.attachment_id AND wp_f.meta_key = '_wp_attached_file'
+                   LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = i.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'
+                  WHERE i.attachment_id IN ( " . implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) . ' )',
+                array_merge( array( $wpdb->vergeml_ai_index, VERGEML_FILING_PLACED_BY ), $chunk )
+            ), ARRAY_A );
+        }
+        // phpcs:enable
+        foreach ( (array) $found as $v ) {
             $vectors[ (int) $v['attachment_id'] ] = $v;
         }
     }
@@ -1941,6 +1985,7 @@ function vergeml_guide_draft_fit( $draft, $taxonomy, $budget = null ) {
      *  counts per draft key and "does it change hands".
      */
     // A picture in a locked folder is kept, in the run and so here (the run reads it off the row in SQL).
+    // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- the locked flag is term meta; get_terms over one taxonomy's folders, not over posts.
     $locked = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids', 'meta_key' => VERGEML_FILING_LOCKED, 'meta_value' => '1' ) );
     $locked = is_wp_error( $locked ) ? array() : array_map( 'intval', (array) $locked );
 
@@ -2295,16 +2340,14 @@ function vergeml_guide_tag_taxonomy( $name ) {
         }
     }
 
-    // A taxonomy key is 32 characters of [a-z0-9_]. Core's own names are not ours to take.
-    $key = trim( substr( sanitize_key( str_replace( array( ' ', '-' ), '_', $name ) ), 0, 32 ), '_' );
+    // A taxonomy key is 32 characters of [a-z0-9_], and one this plugin makes carries its prefix.
+    $key = trim( substr( sanitize_key( str_replace( array( ' ', '-' ), '_', $name ) ), 0, 20 ), '_' );
     if ( '' === $key ) {
         return null;
     }
+    $key = 'vergeml_tag_' . $key;
     if ( taxonomy_exists( $key ) || isset( $all[ $key ] ) ) {
-        $key = 'vgml_' . substr( $key, 0, 27 );
-        if ( taxonomy_exists( $key ) || isset( $all[ $key ] ) ) {
-            return null;
-        }
+        return null;
     }
 
     $labels = array(
@@ -2746,44 +2789,118 @@ function vergeml_guide_rule_rows( $taxonomy, $scope, $need = array(), $after = 0
 
     global $wpdb;
 
-    $t      = $wpdb->vergeml_ai_index;
-    $select = 'i.attachment_id, i.kind';
-    $join   = '';
-    $group  = '';
+    $dated  = in_array( 'date', $need, true );
+    $termed = in_array( 'terms', $need, true );
 
-    if ( in_array( 'filing', $need, true ) ) {
-        $select .= ', i.filing';
+    /*
+     *  One literal statement per join shape: the date join and the terms join
+     *  with its GROUP BY. Everything else is a bound value. A column nobody
+     *  asked for is read as attachment_id and dropped below, so the filing
+     *  text and the embedding are only read when a rule needs them.
+     */
+    $filing        = in_array( 'filing', $need, true );
+    $embedding     = in_array( 'embedding', $need, true );
+    $col_filing    = $filing ? 'filing' : 'attachment_id';
+    $col_embedding = $embedding ? 'embedding' : 'attachment_id';
+    $unfiled       = 'unfiled' === $scope ? 1 : 0;
+    $after         = (int) $after; // Every id is above 0, so 0 filters nothing.
+    $limit         = (int) $limit > 0 ? (int) $limit : PHP_INT_MAX; // No limit is the largest one.
+
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the columns are chosen above from two literals each, the rest is bound.
+    if ( $dated && $termed ) {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT i.attachment_id, i.kind, i.%i AS filing, i.%i AS embedding, p.post_date, GROUP_CONCAT( tt.term_id ) AS in_terms
+               FROM %i i
+               JOIN {$wpdb->posts} p ON p.ID = i.attachment_id
+               LEFT JOIN {$wpdb->term_relationships} tr ON tr.object_id = i.attachment_id
+               LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = %s
+              WHERE i.error = '' AND i.embedding IS NOT NULL
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s ) )
+                AND i.attachment_id > %d
+              GROUP BY i.attachment_id
+              ORDER BY i.attachment_id ASC
+              LIMIT %d",
+            $col_filing,
+            $col_embedding,
+            $wpdb->vergeml_ai_index,
+            $taxonomy,
+            $unfiled,
+            $taxonomy,
+            $after,
+            $limit
+        ), ARRAY_A );
+    } elseif ( $termed ) {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT i.attachment_id, i.kind, i.%i AS filing, i.%i AS embedding, GROUP_CONCAT( tt.term_id ) AS in_terms
+               FROM %i i
+               LEFT JOIN {$wpdb->term_relationships} tr ON tr.object_id = i.attachment_id
+               LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = %s
+              WHERE i.error = '' AND i.embedding IS NOT NULL
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s ) )
+                AND i.attachment_id > %d
+              GROUP BY i.attachment_id
+              ORDER BY i.attachment_id ASC
+              LIMIT %d",
+            $col_filing,
+            $col_embedding,
+            $wpdb->vergeml_ai_index,
+            $taxonomy,
+            $unfiled,
+            $taxonomy,
+            $after,
+            $limit
+        ), ARRAY_A );
+    } elseif ( $dated ) {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT i.attachment_id, i.kind, i.%i AS filing, i.%i AS embedding, p.post_date
+               FROM %i i
+               JOIN {$wpdb->posts} p ON p.ID = i.attachment_id
+              WHERE i.error = '' AND i.embedding IS NOT NULL
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s ) )
+                AND i.attachment_id > %d
+              ORDER BY i.attachment_id ASC
+              LIMIT %d",
+            $col_filing,
+            $col_embedding,
+            $wpdb->vergeml_ai_index,
+            $unfiled,
+            $taxonomy,
+            $after,
+            $limit
+        ), ARRAY_A );
+    } else {
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            "SELECT i.attachment_id, i.kind, i.%i AS filing, i.%i AS embedding
+               FROM %i i
+              WHERE i.error = '' AND i.embedding IS NOT NULL
+                AND ( %d = 0 OR NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s ) )
+                AND i.attachment_id > %d
+              ORDER BY i.attachment_id ASC
+              LIMIT %d",
+            $col_filing,
+            $col_embedding,
+            $wpdb->vergeml_ai_index,
+            $unfiled,
+            $taxonomy,
+            $after,
+            $limit
+        ), ARRAY_A );
     }
-    if ( in_array( 'embedding', $need, true ) ) {
-        $select .= ', i.embedding';
-    }
-    if ( in_array( 'date', $need, true ) ) {
-        $select .= ', p.post_date';
-        $join   .= " JOIN {$wpdb->posts} p ON p.ID = i.attachment_id";
-    }
-    if ( in_array( 'terms', $need, true ) ) {
-        $select .= ', GROUP_CONCAT( tt.term_id ) AS in_terms';
-        $join   .= $wpdb->prepare( " LEFT JOIN {$wpdb->term_relationships} tr ON tr.object_id = i.attachment_id
-                     LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = %s", $taxonomy );
-        $group   = ' GROUP BY i.attachment_id';
+    // phpcs:enable
+
+    $rows = (array) $rows;
+    if ( ! $filing || ! $embedding ) {
+        foreach ( array_keys( $rows ) as $k ) {
+            if ( ! $filing ) {
+                unset( $rows[ $k ]['filing'] );
+            }
+            if ( ! $embedding ) {
+                unset( $rows[ $k ]['embedding'] );
+            }
+        }
     }
 
-    $where = "i.error = '' AND i.embedding IS NOT NULL";
-    if ( 'unfiled' === $scope ) {
-        $where .= $wpdb->prepare( " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->term_relationships} r JOIN {$wpdb->term_taxonomy} x ON x.term_taxonomy_id = r.term_taxonomy_id WHERE r.object_id = i.attachment_id AND x.taxonomy = %s )", $taxonomy );
-    }
-    $after = (int) $after;
-    if ( $after > 0 ) {
-        $where .= $wpdb->prepare( ' AND i.attachment_id > %d', $after );
-    }
-    $limit_sql = '';
-    $limit     = (int) $limit;
-    if ( $limit > 0 ) {
-        $limit_sql = $wpdb->prepare( ' LIMIT %d', $limit );
-    }
-
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; the parts are prepared above.
-    return (array) $wpdb->get_results( "SELECT {$select} FROM {$t} i{$join} WHERE {$where}{$group} ORDER BY i.attachment_id ASC{$limit_sql}", ARRAY_A );
+    return $rows;
 }
 
 /** Live folders by lowercased path ("apparel/women") and by id. */
@@ -3214,10 +3331,19 @@ function vergeml_guide_rule_fit( $taxonomy, $o ) {
         // The matcher wants the vector too; read it for the unfiled rows only.
         $vectors  = array();
         $chunks   = array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 );
-        $words    = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
         foreach ( $chunks as $chunk ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
-            foreach ( (array) $wpdb->get_results( "SELECT i.attachment_id, i.embedding, i.tags, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id IN (" . implode( ',', $chunk ) . ')', ARRAY_A ) as $v ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are written out as literal columns and joins; one %d per id and the ids are bound.
+            $found = $wpdb->get_results( $wpdb->prepare(
+                "SELECT i.attachment_id, i.embedding, i.tags,
+                        wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt
+                   FROM %i i
+                   LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = i.attachment_id
+                   LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = i.attachment_id AND wp_f.meta_key = '_wp_attached_file'
+                   LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = i.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'
+                  WHERE i.attachment_id IN ( " . implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) . ' )',
+                array_merge( array( $wpdb->vergeml_ai_index ), $chunk )
+            ), ARRAY_A );
+            foreach ( (array) $found as $v ) {
                 $vectors[ (int) $v['attachment_id'] ] = $v;
             }
         }

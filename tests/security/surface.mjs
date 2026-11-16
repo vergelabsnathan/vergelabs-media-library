@@ -26,7 +26,7 @@
  *       → "no entry point is open to visitors who are not logged in" FAILs.
  *    3. vergeml_can_manage_folders() made `return true`
  *       → "every REST endpoint asks a capability question" FAILs.
- *    4. the sanitize callback dropped from register_setting( 'mime-types', … )
+ *    4. the sanitize callback dropped from register_setting( 'vergeml-mime-types', … )
  *       → "every registered setting names a sanitize callback" FAILs.
  *    5. the main menu's capability changed from manage_categories to read
  *       → "no admin screen is registered with a capability every logged-in user
@@ -85,12 +85,16 @@ const c = model.counted;
 const FLOOR = {
 	restEndpoints: 76,
 	restRoutes: 69,
-	ajax: 7,
-	adminPost: 11,
+	// 6 since 2026-10-05: core's save-attachment-compat is core's again (wordpress.org review 2).
+	ajax: 5, // 6 until 2026-10-22: the hook on Themify's tb_load_editor (another plugin's AJAX action) is gone.
+	// 10 since round 6 (2026-10-12): the watchdog resume handler went with the self-entered safe mode.
+	adminPost: 8,
 	cron: 4,
-	screens: 13,
+	// 12 since 2026-10-05: the hidden copy of Settings > Media is gone (wordpress.org review 2).
+	screens: 12,
 	frontend: 2,
-	settings: 7,
+	// 6 since 4.1.0's review round: the vergeml_notices setting belonged to the removed remote-notice printer.
+	settings: 6,
 	metaRest: 2,
 	inputHooks: 36,
 };

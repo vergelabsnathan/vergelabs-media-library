@@ -138,7 +138,7 @@ function vergeml_quick_edit_assets( $hook ) {
     wp_enqueue_script(
         'vergeml-quick-edit',
         plugins_url( 'js/vergeml-quick-edit.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-quick-edit.js' ),
         true
     );
@@ -161,9 +161,7 @@ function vergeml_quick_edit_route() {
     register_rest_route( VERGEML_REST_NS, '/file/(?P<id>\d+)', array(
         'methods'             => WP_REST_Server::EDITABLE,
         'callback'            => 'vergeml_quick_edit_save',
-        'permission_callback' => function ( WP_REST_Request $request ) {
-            return current_user_can( 'edit_post', (int) $request['id'] );
-        },
+        'permission_callback' => function ( WP_REST_Request $request ) { return current_user_can( 'edit_post', (int) $request['id'] ); },
         'args'                => array(
             'title' => array( 'type' => 'string' ),
             'alt'   => array( 'type' => 'string' ),
@@ -193,7 +191,7 @@ function vergeml_quick_edit_save( WP_REST_Request $request ) {
         $title = sanitize_text_field( (string) $request->get_param( 'title' ) );
 
         if ( $title !== $post->post_title ) {
-            wp_update_post( array( 'ID' => $id, 'post_title' => $title ) );
+            wp_update_post( array( 'ID' => $id, 'post_title' => wp_slash( $title ) ) );
         }
     }
 
@@ -203,7 +201,7 @@ function vergeml_quick_edit_save( WP_REST_Request $request ) {
 
         // Emptying it is how somebody hands the field back, and the index
         // treats it that way -- so it is stored rather than skipped.
-        update_post_meta( $id, '_wp_attachment_image_alt', $alt );
+        update_post_meta( $id, '_wp_attachment_image_alt', wp_slash( $alt ) );
     }
 
     $fresh = get_post( $id );

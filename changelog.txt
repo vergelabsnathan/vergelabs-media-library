@@ -1,6 +1,142 @@
-== VergeLabs Media Library: changelog before 4.0 ==
+== VergeLabs Media Library: changelog ==
 
-The current versions are in readme.txt.
+The latest release, 4.1.0, is first; readme.txt carries a shorter 4.1.0 entry.
+
+### 4.1.0 ###
+*A folder plan built from what your pictures show.*
+
+= Changed =
+* **Folders live in the plugin's own taxonomy, `vergeml_folder`.** Folders made in `media_category` (by this plugin or by Enhanced Media Library) and tags made by earlier versions move to their new names on update; galleries that name `media_category` keep working.
+
+= Added =
+* **Plan my folders.** On the Folders screen, one button builds a folder tree from every label the AI has recorded about your pictures. It costs 30 credits plus 15 per 100 distinct labels; the price is on the button, and it needs at least five described pictures.
+* **Your tree grows for free.** Once you confirm a tree, new pictures with new labels get new folders proposed at no charge.
+* **A plan that does not beat your folders is not shown, and its credits are asked back.** The same happens if the plan does not arrive or you confirm your tree while it runs.
+* **The audience is asked, not guessed.** When your pictures do not show whether they are for men, women or kids, the Tree step asks once before splitting folders that way.
+
+= Fixed =
+* **A licence with no free seat now says so.** Saving or connecting one used to report success, and every AI request after it failed.
+
+= Changed =
+* **The known-problems list comes from the AI service** at `ai.vergelabs.nl`, not from GitHub. It is still fetched only when you press "Check for known problems".
+* **The plugin's admin screens have new addresses**, all starting `vergeml-` (for example `admin.php?page=vergeml-ai`). Bookmarks to the old ones are sent on to the new.
+* **Library-wide work is an administrator's.** The dashboard, Folders, AI, Health and Import screens, and everything that runs across the library, spends credits or calls the AI service, now need the Administrator role. Editors keep the folder tree in the media library: filing, and changing one folder or one file at a time. Making a folder private, the smart-folder scan and search by meaning are an administrator's.
+* **File types: WordPress's own only.** The File types screen switches WordPress's known types on and off; it no longer adds new ones, and types that can run code or that a browser interprets -- PHP, HTML, CSS, JavaScript, SVG, XML, executables -- are never allowed. A type saved earlier that WordPress does not know is left out, and the screen names it.
+* **The plugin never deactivates itself.** Delete All Data no longer deactivates the plugin either; deleting it afterwards from the Plugins screen takes the rest.
+* **Safe mode is switched only in wp-config.php.** The plugin no longer enters it after crashes; a fatal error is left to WordPress's own recovery mode. With `define( 'VERGEML_SAFE_MODE', true );` the folders, media views and AI features are off, the System report and Get help stay, and nothing is deleted.
+* **The wipes keep your folders.** Complete Cleanup and the delete-on-uninstall switch leave the `vergeml_folder` terms and which files are in them, and remove the plugin's own settings, tables and other data.
+* **Activation creates the plugin's tables itself.**
+* **PHP mbstring and OpenSSL are checked**, with a notice if either is missing.
+* **Scripts and styles load only on the plugin's screens and media frames.**
+* **Settings > Media is WordPress's own screen again.** The plugin's copy of it is gone; its old address opens WordPress's.
+* **With Enhanced Media Library active, nothing of it is switched off any more.** A notice on the media screens asks you to deactivate one of the two.
+* **Describing goes one picture at a time, through WordPress's own HTTP functions**, so proxy and firewall settings apply to it. A run takes longer than before.
+
+### 4.0.7 ###
+*The plugin contacts nothing until you ask it to.*
+
+= Changed =
+* **No price is fetched on the AI screen.** A site without a licence sees how many credits its library needs; the price is on the cart the button opens.
+* **The known-problems list is fetched only when you press "Check for known problems"** on the Get help screen. Opening the dashboard or the Help screen no longer downloads it, and when GitHub cannot be reached the screen says so instead of reporting no problems.
+* **Versions before 4.0 moved from the readme to `changelog.txt`.**
+* **Reference sections moved from the description into the FAQ**, so the plugin page shows the whole External services section instead of cutting it off.
+
+### 4.0.6 ###
+*Demo mode stays usable on a site without a licence, and code the original plugin kept for its paid edition is gone.*
+
+= Changed =
+* **Demo mode is never replaced by the free-try offer.** It runs on your site and needs no licence, so the AI screen keeps its Describe buttons while it is on.
+* **Nothing can hold back applying a folder tree.** The hook the original plugin kept for a paid add-on is gone, and the Librarian applies every folder whatever any other code says.
+* **Code the original plugin kept for its paid edition is removed**, including a Select all button only that edition could show.
+* **The readme says which requests the free try and the price quote make**, under External services.
+
+### 4.0.5 ###
+*A site without a licence can try the AI free on 25 pictures, and sees what its own library would cost, instead of an error.*
+
+= New =
+* **Try it free on 25 pictures.** On the AI screen, a site without a licence enters an email address and gets 25 free credits for that site, connected by itself. Alt text is then written for 25 pictures without one. One free try per site and per email; not on local or test sites.
+* **The AI screen says what is missing and what it costs.** Where pressing Alt text used to answer "Configure an AI endpoint and key first", a site without a licence sees how many of its pictures have no alt text, and a button that buys exactly those credits at the current price.
+
+### 4.0.4 ###
+*While the AI service is away, pictures wait instead of being marked as failed; a re-describe that fails keeps the description the picture already had.*
+
+= Fixed =
+* **While the AI service is away, pictures wait.** A picture the service could not answer for — a temporary error, or no answer at all — is set aside and tried again, for as long as the service is away; nothing is marked as failed for a failure that is not the file's. Before, an unreachable service marked every picture a run reached, and three temporary errors marked one for good.
+* **A re-describe that fails keeps the description the picture already had.** It stays in search, filing and the counts; the failure is in the run's report only.
+* **A run in the background whose pictures are all set aside waits ten minutes** instead of asking again at once.
+
+### 4.0.3 ###
+*Screen Options opens over the folder panel on the media list, not under it; the AI-outage answer in the FAQ says what a describe run does.*
+
+= Fixed =
+* **Screen Options opens over the folder panel on the media list, not under it.** 4.0.2 brought the tab back; the panel it opens was still under the folder tree, so the column checkboxes on the left could not be ticked.
+* **The FAQ answer "What happens when the AI service is down?" says what the describe run does:** a temporary error sets a picture aside and tries again, an unreachable service marks it, and the Alt text button on the AI screen picks marked pictures up once the service is back. The previous answer promised more than the run did.
+
+### 4.0.2 ###
+*Dragging into a folder works again beside FileBird, and two tabs the folder panel had covered are back.*
+
+= Fixed =
+* **Dragging one file into a folder works again beside FileBird and other plugins that add a column to the media list;** the checkbox column no longer takes the table's spare width.
+* **Screen Options and Help open again on the media list beside the folder panel;** a folder no longer lights up for another plugin's drag.
+
+### 4.0.1 ###
+*A support ticket that keeps your key to itself, a CSV export a spreadsheet can't turn into a command, and a PHP 8.4 warning that is gone.*
+
+= Fixed =
+* **The support ticket no longer carries your licence key.** It now sends the last four characters of the key and your site's address; the service matches those to a licence itself, and a free install still sends nothing.
+* **A CSV cell that starts with `=`, `+`, `-`, `@`, tab or a carriage return no longer opens as a formula.** The export quotes it safely; importing it back strips the safety mark, so the cell round-trips unchanged.
+* **A PHP 8.4+ deprecation notice on every AI request is gone.** `vergeml_ai_rest_status()` took an implicit-nullable parameter; it is explicit now.
+
+### 4.0.0 ###
+*A screen that builds your folders and fills them, filing that reads what a picture shows, and a shop that sorts itself*
+
+= Folders: build a tree, then fill it =
+* **The Folders screen is a workflow, not a conversation.** Tree, Fill, Describe, Alt text, Rename -- each step reachable by clicking, none of them a gate. The page opens without asking the AI anything; *Propose folders* is a button with its credit cost printed on it.
+* **Paste your folder tree.** One folder per line, `Clothing > Hoodies` for depth. A folder that already exists at that place is reused. Refusals name the line: no name, deeper than five levels, more than five hundred folders.
+* **Or build it by clicking** -- `+` on any row adds a child, `×` removes one, and a name may itself be a path.
+* **Confirm locks the tree** and stores its words on the folders. Unconfirm offers to restore the classes a confirm replaced.
+* **The words a folder files by are yours to edit.** They show as pills after the folder's name; `×` removes one and the count re-runs without asking the AI; `#word` adds one.
+* **Built for a catalogue.** Parents start closed and carry their counts, a find box appears from ten folders, and hovering a closed parent previews what is inside it without opening it.
+
+= Filing that reads what a picture shows =
+* **One way of filing, with three honest answers:** it fits, it is between two folders, or nothing fits. A picture between two children of one folder goes in the parent rather than nowhere. A picture you placed by hand is never moved, and a locked folder is never filed into.
+* **The number before you press is the number that happens.** The estimate on the Tree step and the fill itself now count with the same code.
+* **It learns from your own folders.** A folder holding three or more described pictures is read over them, and a second round re-reads what the first left: *round 1: 553 placed · round 2: 87 more · 113 to sort*.
+* **A "view" of your tree files nothing.** A branch that repeats names from elsewhere -- a sale, a season -- is recognised as a view. One such branch had been swallowing 201 of 626 pictures.
+* **Why a picture is where it is** now shows on the picture's own edit screen and in the grid: the folder, the word that matched, the score, the folder it could not beat, and the batch someone approved.
+
+= Shops =
+* **One press turns your product categories into folders.** On a site that sells, the Tree step offers your own categories -- nine folders where it used to take four typed instructions.
+* **Pictures are filed by the product they belong to**, before anything is guessed at: featured image, gallery, or uploaded to the product. Your product's category named the folder, so it is a fact rather than a judgement -- nothing is asked about where the picture might go. On a real shop that placed 32 of 33 pictures.
+* **The steps come in a different order on a shop** -- Tree, Fill, then Describe -- because the products place their own pictures first and describing is only for what nothing placed.
+
+= Alt text and describing =
+* **Alt text never overwrites what you wrote.**
+* **Changing the brief no longer re-describes your library by itself.** The count waits on a button that shows the credits before you press it.
+* The AI screen's summary line updates when a run ends instead of waiting for a reload.
+
+= The media library =
+* **The folders panel is on the list view too**, not only the grid, and the table keeps its own width beside it.
+* **The list toolbar is one row** -- the folder you are in, search, filters, the view switch and the pages. On a test site the first row went from 429 to 201 pixels tall.
+* **A new filter, "Placed by hand"**, lists the pictures you moved yourself.
+* **The media library opens at a quarter of a million pictures.** The counts behind the smart folders cost ten seconds of database time on every admin page and now cost 8.6 milliseconds. Above fifty thousand files the expensive ones say "not looked" rather than guessing.
+
+= Fixed =
+* **Six buttons did nothing at all, silently** -- Complete Cleanup, Restore default MIME types, Apply settings to the network and three taxonomy confirmations. Sixteen call sites named four functions that did not exist.
+* **The reset-filters button crashed the media list on a fresh site**, taking the rest of the screen's JavaScript with it.
+* **An update did not reach a browser that already had the old scripts.** The cache-busting string was built from timestamps that arrive as 1980 from a zip, so it never changed.
+* **A folder with an `&` in its name** was matched against the stored `&amp;` and quietly failed to match itself.
+* **Running beside Enhanced Media Library**, its older copy of the shared media scripts answered first and the grid ignored your folders.
+* Pressing Move no longer waits half a minute before answering, and a fill can no longer stall behind a stuck cron.
+
+= Changed, and worth knowing before you update =
+* **Filing decisions have moved.** A fill after updating will place pictures differently than the same library did before.
+* **The Rules tab is gone.** Paste, product categories, clicking or the conversation are the ways in.
+* **The media list's toolbar is rebuilt as one row** -- the controls are all there, but not where they were.
+* **Above fifty thousand files the smart-folder counts are not computed**, on purpose.
+* **A confirmed tree refuses edits** until you unconfirm it.
+* **With Enhanced Media Library active, its media scripts and grid template are now set aside** so the two do not fight.
+* **The readme's "External services" section has been rewritten** to say everything that leaves your site, which is more than it used to say. Nothing new was added to what the plugin sends; the account of it was incomplete.
 
 ### 3.16.1 ###
 *The list, made readable, and two plugins that were quietly narrowing it*

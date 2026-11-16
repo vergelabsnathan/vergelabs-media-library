@@ -3,7 +3,7 @@
  *
  *      node tests/tree/filter.mjs http://46.225.66.194 admin VgmlTest7pass
  *
- *  A taxonomy filter can arrive as a slug -- `?media_category=folder-141`, which
+ *  A taxonomy filter can arrive as a slug -- `?vergeml_folder=folder-141`, which
  *  is what a link and the folder tree produce -- or as a term id, which is what
  *  the filter dropdown submits and what core's own term-count links use. Both
  *  have to mean the same thing.
@@ -50,7 +50,7 @@ await page.goto( `${ BASE }/wp-admin/upload.php?mode=list`, { waitUntil: 'domcon
 await page.waitForTimeout( 1500 );
 
 const term = await page.evaluate( async () => {
-	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } );
+	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder' } );
 	const n = ( t.nodes || [] ).filter( ( n ) => n.count > 0 ).sort( ( a, b ) => b.count - a.count )[ 0 ];
 	return n ? { id: n.id, slug: n.slug, name: n.name, count: n.count } : null;
 } );
@@ -61,7 +61,7 @@ const load = async ( qs ) => {
 	await page.goto( `${ BASE }/wp-admin/upload.php?mode=list&${ qs }`, { waitUntil: 'domcontentloaded' } );
 	await page.waitForTimeout( 1200 );
 	return page.evaluate( () => {
-		const select = document.querySelector( 'select[name="media_category"]' );
+		const select = document.querySelector( 'select[name="vergeml_folder"]' );
 		// The row count is capped at the page size, so it says nothing about how
 		// big the filtered set is. The total is what distinguishes two filters.
 		const shown = document.querySelector( '.tablenav .displaying-num' );
@@ -81,10 +81,10 @@ const load = async ( qs ) => {
 console.log( '\nthe same folder, four ways' );
 
 const forms = {
-	'id + filter_action': `media_category=${ term.id }&filter_action=Filter`,
-	'slug alone': `media_category=${ term.slug }`,
-	'id alone': `media_category=${ term.id }`,
-	'slug + filter_action': `media_category=${ term.slug }&filter_action=Filter`,
+	'id + filter_action': `vergeml_folder=${ term.id }&filter_action=Filter`,
+	'slug alone': `vergeml_folder=${ term.slug }`,
+	'id alone': `vergeml_folder=${ term.id }`,
+	'slug + filter_action': `vergeml_folder=${ term.slug }&filter_action=Filter`,
 };
 
 const seen = {};
@@ -111,8 +111,8 @@ check( 'the dropdown shows the folder every time',
 
 console.log( '\nany folder, and none' );
 
-const anyFolder = await load( 'media_category=in' );
-const noFolder = await load( 'media_category=not_in' );
+const anyFolder = await load( 'vergeml_folder=in' );
+const noFolder = await load( 'vergeml_folder=not_in' );
 
 check( 'files in some folder', anyFolder.total > 0, `${ anyFolder.total } files` );
 check( 'files in no folder', noFolder.total !== null, `${ noFolder.total } files` );
@@ -127,7 +127,7 @@ check( 'the unfiled filter agrees with "not in"', unfiled.total === noFolder.tot
 
 console.log( '\nnonsense' );
 
-const nonsense = await load( 'media_category=no-such-folder-anywhere' );
+const nonsense = await load( 'vergeml_folder=no-such-folder-anywhere' );
 check( 'an unknown folder does not fatal', ! errors.length, errors.slice( 0, 1 ).join( '' ) );
 check( 'and does not silently show the whole library', nonsense.total !== anyFolder.total,
 	`${ nonsense.total } files` );

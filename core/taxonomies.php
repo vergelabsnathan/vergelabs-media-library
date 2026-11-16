@@ -32,13 +32,15 @@ function vergeml_taxonomies_validate( $input ) {
      *
      *  Absent is not empty, and this is the difference.
      */
+    // A Settings API form post only (options.php checked its nonce): an import or a restore
+    // calls update_option() with no form at all, and until 4.1.0 was silently ignored here.
     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- the Settings API checked the nonce for this option group before calling us.
-    if ( ! isset( $_POST['vergeml_taxonomies'] ) ) {
+    if ( isset( $_POST['option_page'] ) && ! isset( $_POST['vergeml_taxonomies'] ) ) {
         $kept = get_option( 'vergeml_taxonomies', array() );
         return is_array( $kept ) ? $kept : array();
     }
 
-    if ( ! $input ) $input = array();
+    $input = is_array( $input ) ? $input : array();
 
     /*
      *  Anything this function does not write is carried over from what is stored.
@@ -60,9 +62,17 @@ function vergeml_taxonomies_validate( $input ) {
 
     foreach ( $input as $taxonomy => $params ) {
 
+        if ( ! is_array( $params ) ) {
+            unset( $input[ $taxonomy ] );
+            continue;
+        }
+
         $sanitized_taxonomy = sanitize_key( $taxonomy );
 
         if ( isset( $params['create_taxonomy'] ) ) {
+
+            // A taxonomy made here carries the plugin's prefix, whatever key the form suggested (wordpress.org review 8).
+            $sanitized_taxonomy = function_exists( 'vergeml_own_taxonomy_key' ) ? vergeml_own_taxonomy_key( $sanitized_taxonomy ) : '';
 
             unset( $input[$taxonomy]['create_taxonomy'] );
 
@@ -147,7 +157,9 @@ function vergeml_taxonomies_validate( $input ) {
         $input[$taxonomy]['media_popup_taxonomy_edit'] = isset($params['media_popup_taxonomy_edit']) && !! $params['media_popup_taxonomy_edit'] ? 1 : 0;
 
 
-        if ( isset( $params['labels'] ) ) {
+        if ( isset( $params['labels'] ) && is_array( $params['labels'] ) ) {
+
+            $params['labels'] = wp_parse_args( $params['labels'], array( 'name' => '', 'singular_name' => '' ) );
 
             $default_labels = array(
                 'menu_name' => $params['labels']['name'],
@@ -161,7 +173,15 @@ function vergeml_taxonomies_validate( $input ) {
                 'search_items' => 'Search ' . $params['labels']['name']
             );
 
+            $input[$taxonomy]['labels'] = array();
+
             foreach ( $params['labels'] as $label => $value ) {
+
+                $label = sanitize_key( $label );
+
+                if ( '' === $label || ! is_string( $value ) ) {
+                    continue;
+                }
 
                 $input[$taxonomy]['labels'][$label] = sanitize_text_field($value);
 
@@ -182,8 +202,46 @@ function vergeml_taxonomies_validate( $input ) {
         }
     }
 
+    /*
+     *  What is stored per taxonomy, and nothing else a request carried.
+     */
+    $keys = array( 'assigned', 'eml_media', 'labels', 'hierarchical', 'show_admin_column', 'admin_filter', 'media_uploader_filter', 'media_popup_taxonomy_edit', 'sort', 'show_in_rest', 'rewrite', 'post_types', 'taxonomy_auto_assign' );
+
+    foreach ( $input as $taxonomy => $params ) {
+
+        $input[ $taxonomy ] = array_intersect_key( (array) $params, array_flip( $keys ) );
+
+        if ( isset( $input[ $taxonomy ]['rewrite'] ) ) {
+            $rewrite = (array) $input[ $taxonomy ]['rewrite'];
+            $input[ $taxonomy ]['rewrite'] = array(
+                'slug'       => isset( $rewrite['slug'] ) && is_string( $rewrite['slug'] ) ? vergeml_sanitize_slug( $rewrite['slug'], $taxonomy ) : $taxonomy,
+                'with_front' => empty( $rewrite['with_front'] ) ? 0 : 1,
+            );
+        }
+
+        if ( isset( $input[ $taxonomy ]['post_types'] ) ) {
+            $input[ $taxonomy ]['post_types'] = array_values( array_filter( array_map( 'sanitize_key', (array) $input[ $taxonomy ]['post_types'] ) ) );
+        }
+
+        if ( isset( $input[ $taxonomy ]['labels'] ) ) {
+            $labels = array();
+            foreach ( (array) $input[ $taxonomy ]['labels'] as $label => $value ) {
+                if ( is_string( $value ) ) {
+                    $labels[ sanitize_key( $label ) ] = sanitize_text_field( $value );
+                }
+            }
+            $input[ $taxonomy ]['labels'] = $labels;
+        }
+
+        foreach ( array( 'assigned', 'eml_media', 'hierarchical', 'show_admin_column', 'admin_filter', 'media_uploader_filter', 'media_popup_taxonomy_edit', 'sort', 'show_in_rest', 'taxonomy_auto_assign' ) as $flag ) {
+            if ( isset( $input[ $taxonomy ][ $flag ] ) ) {
+                $input[ $taxonomy ][ $flag ] = empty( $input[ $taxonomy ][ $flag ] ) ? 0 : 1;
+            }
+        }
+    }
+
     add_settings_error(
-        'media-taxonomies',
+        'vergeml-taxonomies',
         'eml_taxonomy_settings_saved',
         __('Folders and categories settings saved.', 'vergelabs-media-library'),
         'updated'
@@ -219,6 +277,23 @@ function vergeml_sanitize_slug( $slug, $fallback_slug = '' ) {
 
 
 /**
+ *  The library's default order, read against the values the settings screen
+ *  offers -- a value stored before 4.1.0 may be anything.
+ */
+function vergeml_lib_orderby( $options ) {
+    $by = isset( $options['media_orderby'] ) ? $options['media_orderby'] : 'date';
+    if ( 'menuOrder' === $by ) {
+        return 'menu_order';
+    }
+    return in_array( $by, array( 'date', 'title' ), true ) ? $by : 'date';
+}
+
+function vergeml_lib_order( $options ) {
+    return isset( $options['media_order'] ) && 'DESC' === $options['media_order'] ? 'DESC' : 'ASC';
+}
+
+
+/**
  *  vergeml_lib_options_validate
  *
  *  @since    2.2.1
@@ -226,14 +301,18 @@ function vergeml_sanitize_slug( $slug, $fallback_slug = '' ) {
 
 function vergeml_lib_options_validate( $input ) {
 
-    foreach ( (array)$input as $key => $option ) {
+    $input  = is_array( $input ) ? $input : array();
+    $choice = array(
+        'media_orderby'     => array( 'date', 'title', 'menuOrder' ),
+        'media_order'       => array( 'ASC', 'DESC' ),
+        'grid_caption_type' => array( 'title', 'filename', 'caption' ),
+    );
 
-        if (    'media_orderby' === $key || 
-                'media_order' === $key || 
-                'grid_caption_type' === $key
-            ) {
-            $input[$key] = sanitize_text_field( $option );
+    foreach ( $input as $key => $option ) {
 
+        // One of the values the screen offers, or the first of them.
+        if ( isset( $choice[ $key ] ) ) {
+            $input[$key] = is_string( $option ) && in_array( $option, $choice[ $key ], true ) ? $option : $choice[ $key ][0];
         }
         elseif ( 'filters_to_show' === $key ) {
             // 'ai' is the AI folder group in the tree panel, not a filter
@@ -242,11 +321,11 @@ function vergeml_lib_options_validate( $input ) {
             // this allowlist or saving the settings page would quietly drop
             // it every time.
             $allowed = array( 'types', 'dates', 'authors', 'taxonomies', 'ai' );
-            $input[$key] = array_values( array_intersect( $option, $allowed ) );
+            $input[$key] = array_values( array_intersect( (array) $option, $allowed ) );
         }
         elseif ( 'search_in' === $key ) {
             $allowed = array( 'filenames', 'titles', 'captions', 'descriptions', 'authors', 'taxonomies' );
-            $input[$key] = array_values( array_intersect( $option, $allowed ) );
+            $input[$key] = array_values( array_intersect( (array) $option, $allowed ) );
         }
         elseif ( 'loads_per_page' === $key || 
                  'grid_sidebar_width' === $key || 
@@ -265,7 +344,7 @@ function vergeml_lib_options_validate( $input ) {
     }
 
     add_settings_error(
-        'media-library',
+        'vergeml-library',
         'eml_library_settings_saved',
         __('Media Library settings saved.', 'vergelabs-media-library'),
         'updated'
@@ -289,16 +368,18 @@ function vergeml_tax_options_validate( $input ) {
     // The same trap the other way round: saving the taxonomies form carries no
     // options, and rebuilding them from nothing switches every one of them off.
     // phpcs:ignore WordPress.Security.NonceVerification.Missing -- the Settings API checked the nonce for this option group before calling us.
-    if ( ! isset( $_POST['vergeml_tax_options'] ) ) {
+    if ( isset( $_POST['option_page'] ) && ! isset( $_POST['vergeml_tax_options'] ) ) {
         $kept = get_option( 'vergeml_tax_options', array() );
         return is_array( $kept ) ? $kept : array();
     }
 
-    foreach ( (array)$input as $key => $option ) {
-        $input[$key] = isset( $option ) && !! $option ? 1 : 0;
+    $clean = array();
+
+    foreach ( (array) $input as $key => $option ) {
+        $clean[ sanitize_key( $key ) ] = empty( $option ) ? 0 : 1;
     }
 
-    return $input;
+    return $clean;
 }
 
 
@@ -389,12 +470,21 @@ function vergeml_ajax_query_attachments_args( $query ) {
 
                 if( is_numeric( $query[$taxonomy_name] ) || is_array( $query[$taxonomy_name] ) ) {
 
-                    $field = ctype_digit( implode( '', (array) $query[$taxonomy_name] ) ) ? 'term_id' : 'slug';
+                    $query[$taxonomy_name] = is_array( $query[$taxonomy_name] ) ? array_filter( $query[$taxonomy_name], 'is_scalar' ) : $query[$taxonomy_name];
+
+                    $field = preg_match( '/^\d+$/', implode( '', (array) $query[$taxonomy_name] ) ) ? 'term_id' : 'slug';
+                    $terms = (array) $query[$taxonomy_name];
+
+                    // Somebody else's private folder lists nothing when it is named by id.
+                    if ( 'term_id' === $field && function_exists( 'vergeml_private_hidden_from' ) ) {
+                        $terms = array_values( array_diff( array_map( 'intval', $terms ), vergeml_private_hidden_from() ) );
+                        $terms = $terms ? $terms : array( 0 );
+                    }
 
                     $tax_query[] = array(
                         'taxonomy' => $taxonomy_name,
                         'field' => $field,
-                        'terms' => (array) $query[$taxonomy_name],
+                        'terms' => $terms,
                         'include_children' => (bool) $vergeml_lib_options['include_children']
                     );
                 }
@@ -413,7 +503,7 @@ function vergeml_ajax_query_attachments_args( $query ) {
 
                         $operator  = 'IN';
 
-                        if ( str_contains( $query[$taxonomy_name], '+' ) ) {
+                        if ( false !== strpos( $query[$taxonomy_name], '+' ) ) {
                             $terms = explode( '+', $query[$taxonomy_name] );
                             $operator = 'AND';
                         }
@@ -421,7 +511,12 @@ function vergeml_ajax_query_attachments_args( $query ) {
                             $terms = explode( ',', $query[$taxonomy_name] );
                         }
 
-                        $field = ctype_digit( implode( '', $terms ) ) ? 'term_id' : 'slug';
+                        $field = preg_match( '/^\d+$/', implode( '', $terms ) ) ? 'term_id' : 'slug';
+
+                        if ( 'term_id' === $field && function_exists( 'vergeml_private_hidden_from' ) ) {
+                            $terms = array_values( array_diff( array_map( 'intval', $terms ), vergeml_private_hidden_from() ) );
+                            $terms = $terms ? $terms : array( 0 );
+                        }
 
                         $tax_query[] = array(
                             'taxonomy'         => $taxonomy_name,
@@ -518,7 +613,7 @@ function vergeml_restrict_manage_posts( $post_type, $which ) {
     $vergeml_taxonomies = get_option( 'vergeml_taxonomies', array() );
 
     // Two spellings of one question: the dropdown's, and the folder tree's URL.
-    $uncategorized = ( ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] ) || ! empty( $_REQUEST['uncategorized'] ) ) ? 1 : 0;
+    $uncategorized = ( ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === sanitize_key( wp_unslash( $_REQUEST[ 'attachment-filter' ] ) ) ) || ! empty( $_REQUEST['uncategorized'] ) ) ? 1 : 0;
 
 
     if ( current_user_can( 'manage_options' ) && in_array( 'authors', $vergeml_lib_options['filters_to_show'] ) ) {
@@ -539,7 +634,7 @@ function vergeml_restrict_manage_posts( $post_type, $which ) {
 
     if ( in_array( 'taxonomies', $vergeml_lib_options['filters_to_show'] ) ) {
 
-        foreach ( get_object_taxonomies( 'attachment', 'object' ) as $taxonomy ) {
+        foreach ( vergeml_assignable_media_taxonomies() as $taxonomy ) {
 
             if ( ! (bool) $vergeml_taxonomies[$taxonomy->name]['admin_filter'] )
                 continue;
@@ -648,15 +743,13 @@ function vergeml_dropdown_cats( $output, $r ) {
     if ( isset( $r['show_option_in'] ) && $r['show_option_in'] ) {
 
         $show_option_in = $r['show_option_in'];
-        $selected = ( isset($r['selected']) && 'in' === strval($r['selected']) ) ? " selected='selected'" : '';
-        $new_output .= "\t<option value='in'{$selected}>" . esc_html($show_option_in) . "</option>\n";
+        $new_output .= "\t<option value='in'" . selected( isset( $r['selected'] ) && 'in' === strval( $r['selected'] ), true, false ) . '>' . esc_html($show_option_in) . "</option>\n";
     }
 
     if ( isset( $r['show_option_not_in'] ) && $r['show_option_not_in'] ) {
 
         $show_option_not_in = $r['show_option_not_in'];
-        $selected = ( isset($r['selected']) && 'not_in' === strval($r['selected']) ) ? " selected='selected'" : '';
-        $new_output .= "\t<option value='not_in'{$selected}>" . esc_html($show_option_not_in) . "</option>\n";
+        $new_output .= "\t<option value='not_in'" . selected( isset( $r['selected'] ) && 'not_in' === strval( $r['selected'] ), true, false ) . '>' . esc_html($show_option_not_in) . "</option>\n";
     }
 
     array_splice( $options_array, 2, 0, $new_output );
@@ -751,7 +844,7 @@ function vergeml_backend_parse_tax_query( $query ) {
 
 
     // Two spellings of one question: the dropdown's, and the folder tree's URL.
-    $uncategorized = ( ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] ) || ! empty( $_REQUEST['uncategorized'] ) ) ? 1 : 0;
+    $uncategorized = ( ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === sanitize_key( wp_unslash( $_REQUEST[ 'attachment-filter' ] ) ) ) || ! empty( $_REQUEST['uncategorized'] ) ) ? 1 : 0;
     $vergeml_lib_options = get_option( 'vergeml_lib_options' );
 
 
@@ -783,9 +876,9 @@ function vergeml_backend_parse_tax_query( $query ) {
     /*
      *  One filter value, four ways of arriving at it.
      *
-     *  A taxonomy query var can reach this screen as a slug (`?media_category=
+     *  A taxonomy query var can reach this screen as a slug (`?vergeml_folder=
      *  folder-141`, which is what a link and the folder tree produce) or as a term
-     *  id (`?media_category=143`, which is what the filter dropdown submits and
+     *  id (`?vergeml_folder=143`, which is what the filter dropdown submits and
      *  what core's own term-count links use). Both have to mean the same thing.
      *
      *  They did not. Whether the id form worked depended on `filter_action` -- the
@@ -859,6 +952,10 @@ function vergeml_backend_parse_tax_query( $query ) {
             $term  = ( $found instanceof WP_Term ) ? $found : false;
         }
 
+        if ( $term && function_exists( 'vergeml_private_is_hidden' ) && vergeml_private_is_hidden( $term->term_id ) ) {
+            $term = false;
+        }
+
         if ( ! $term ) {
             continue;
         }
@@ -915,6 +1012,13 @@ function vergeml_attachment_fields_to_edit( $form_fields, $post ) {
     foreach( get_taxonomies_for_attachments() as $taxonomy ) {
 
         $t = (array) get_taxonomy($taxonomy);
+
+        // Core put its own field here, with the file's terms in it.
+        if ( ! current_user_can( $t['cap']->assign_terms ) ) {
+            unset( $form_fields[ $taxonomy ] );
+            continue;
+        }
+
         if ( ! $t['show_ui'] )
             continue;
         if ( empty($t['label']) )
@@ -926,19 +1030,18 @@ function vergeml_attachment_fields_to_edit( $form_fields, $post ) {
 
             ob_start();
 
-                wp_terms_checklist( $post->ID, array( 'taxonomy' => $taxonomy, 'checked_ontop' => false, 'walker' => new Walker_Media_Taxonomy_Checklist() ) );
+                wp_terms_checklist( $post->ID, array( 'taxonomy' => $taxonomy, 'checked_ontop' => false, 'walker' => new vergeml_Walker_Media_Taxonomy_Checklist() ) );
 
                 if ( ob_get_contents() != false ) {
-                    $html = '<ul class="term-list">' . ob_get_contents() . '</ul>';
+                    $html = '<ul class="term-list">' . wp_kses( ob_get_contents(), vergeml_kses_allowed() ) . '</ul>';
                 }
                 else {
 
-                    $not_found = sprintf(
+                    $html = '<ul class="term-list"><li>' . sprintf(
                         /* translators: %s: name of a taxonomy, for example "Media Categories" */
                         esc_html__( 'No %s found.', 'vergelabs-media-library' ),
                         esc_html( $t['label'] )
-                    );
-                    $html = '<ul class="term-list"><li>' . $not_found . ' <a href="' . esc_url( admin_url( '/edit-tags.php?taxonomy=' . $taxonomy . '&post_type=attachment' ) ) . '">' . esc_html__( 'Add some', 'vergelabs-media-library' ) . '.</a></li></ul>';
+                    ) . ' <a href="' . esc_url( admin_url( '/edit-tags.php?taxonomy=' . $taxonomy . '&post_type=attachment' ) ) . '">' . esc_html__( 'Add some', 'vergelabs-media-library' ) . '.</a></li></ul>';
                 }
 
             ob_end_clean();
@@ -979,8 +1082,6 @@ class vergeml_Walker_CategoryDropdown extends Walker_CategoryDropdown {
 
         $vergeml_lib_options = get_option( 'vergeml_lib_options' );
 
-        $pad = str_repeat('&nbsp;', $depth * 3);
-
         /** This filter is documented in wp-includes/category-template.php */
         // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter, applied so term names render the way core does.
         $cat_name = apply_filters( 'list_cats', $category->name, $category );
@@ -991,13 +1092,13 @@ class vergeml_Walker_CategoryDropdown extends Walker_CategoryDropdown {
             $value_field = 'term_id';
         }
 
-        $output .= "\t<option class=\"level-$depth\" value=\"" . esc_attr( $category->{$value_field} ) . "\"";
+        $output .= "\t<option class=\"level-" . (int) $depth . "\" value=\"" . esc_attr( $category->{$value_field} ) . "\"";
 
         // Type-juggling causes false matches, so we force everything to a string.
         if ( (string) $category->{$value_field} === (string) $args['selected'] )
             $output .= ' selected="selected"';
         $output .= '>';
-        $output .= $pad.$cat_name;
+        $output .= str_repeat( '&nbsp;', (int) $depth * 3 ) . esc_html( $cat_name );
 
 
         if ( $args['show_count'] && (bool) $vergeml_lib_options['show_count'] ) {
@@ -1028,7 +1129,7 @@ class vergeml_Walker_CategoryDropdown extends Walker_CategoryDropdown {
  *  and a stale number is worse than the query.
  */
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
 function vergeml_get_media_term_count( $term_id, $tt_id ) {
 
@@ -1052,17 +1153,15 @@ function vergeml_get_media_term_count( $term_id, $tt_id ) {
         }
     }
 
-    $terms_format = join( ', ', array_fill( 0, count( $terms ), '%d' ) );
-
     $results = $wpdb->get_results( $wpdb->prepare(
         "
-            SELECT ID FROM $wpdb->posts, $wpdb->term_relationships WHERE $wpdb->posts.ID = $wpdb->term_relationships.object_id AND post_type = 'attachment' AND ( post_status = 'publish' OR post_status = 'inherit' ) AND term_taxonomy_id IN ($terms_format) GROUP BY ID
-        ",
+            SELECT ID FROM $wpdb->posts, $wpdb->term_relationships WHERE $wpdb->posts.ID = $wpdb->term_relationships.object_id AND post_type = 'attachment' AND ( post_status = 'publish' OR post_status = 'inherit' ) AND term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $terms ), '%d' ) ) . ' ) GROUP BY ID
+        ',
         $terms
     ) );
 
     $count = $results ? $wpdb->num_rows : 0;
-    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 
     return $count;
 }
@@ -1070,7 +1169,7 @@ function vergeml_get_media_term_count( $term_id, $tt_id ) {
 
 
 /**
- *  Walker_Media_Taxonomy_Checklist
+ *  vergeml_Walker_Media_Taxonomy_Checklist
  *
  *  Based on /wp-includes/category-template.php
  *
@@ -1078,35 +1177,34 @@ function vergeml_get_media_term_count( $term_id, $tt_id ) {
  *  @created  09/09/13
  */
 
-if ( ! class_exists( 'Walker_Media_Taxonomy_Checklist' ) ) {
 
-    class Walker_Media_Taxonomy_Checklist extends Walker {
+    class vergeml_Walker_Media_Taxonomy_Checklist extends Walker {
 
         var $tree_type = 'category';
         var $db_fields = array ('parent' => 'parent', 'id' => 'term_id');
 
         function start_lvl( &$output, $depth = 0, $args = array() ) {
 
-            $indent = str_repeat("\t", $depth);
-            $output .= "$indent<ul class='children'>\n";
+            $output .= str_repeat( "\t", (int) $depth ) . "<ul class='children'>\n";
         }
 
         function end_lvl( &$output, $depth = 0, $args = array() ) {
 
-            $indent = str_repeat("\t", $depth);
-            $output .= "$indent</ul>\n";
+            $output .= str_repeat( "\t", (int) $depth ) . "</ul>\n";
         }
 
         function start_el( &$output, $category, $depth = 0, $args = array(), $id = 0 ) {
 
-            extract($args);
+            $taxonomy      = empty( $args['taxonomy'] ) ? 'category' : $args['taxonomy'];
+            $popular_cats  = isset( $args['popular_cats'] ) ? (array) $args['popular_cats'] : array();
+            $selected_cats = isset( $args['selected_cats'] ) ? (array) $args['selected_cats'] : array();
 
-            if ( empty($taxonomy) )
-                $taxonomy = 'category';
-
-            $class = in_array( $category->term_id, $popular_cats ) ? ' class="popular-category"' : '';
-            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter, applied so term names render the way core does.
-            $output .= "\n<li id='{$taxonomy}-{$category->term_id}'$class>" . "<label class='selectit'><input value='0' type='hidden' name='tax_input[{$taxonomy}][{$category->term_id}]' /><input value='1' type='checkbox' name='tax_input[{$taxonomy}][{$category->term_id}]' id='in-{$taxonomy}-{$category->term_id}'" . checked( in_array( $category->term_id, $selected_cats ), true, false ) . disabled( empty( $args['disabled'] ), false, false ) . " />" . esc_html( apply_filters('the_category', $category->name )) . "</label>";
+            $output .= "\n<li id='" . esc_attr( $taxonomy ) . '-' . (int) $category->term_id . "'" . ( in_array( $category->term_id, $popular_cats ) ? ' class="popular-category"' : '' ) . '>'
+                . "<label class='selectit'><input value='0' type='hidden' name='tax_input[" . esc_attr( $taxonomy ) . '][' . (int) $category->term_id . "]' />"
+                . "<input value='1' type='checkbox' name='tax_input[" . esc_attr( $taxonomy ) . '][' . (int) $category->term_id . "]' id='in-" . esc_attr( $taxonomy ) . '-' . (int) $category->term_id . "'"
+                . checked( in_array( $category->term_id, $selected_cats ), true, false ) . disabled( empty( $args['disabled'] ), false, false ) . ' />'
+                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter, applied so term names render the way core does.
+                . esc_html( apply_filters( 'the_category', $category->name ) ) . '</label>';
         }
 
         function end_el( &$output, $category, $depth = 0, $args = array() ) {
@@ -1114,12 +1212,11 @@ if ( ! class_exists( 'Walker_Media_Taxonomy_Checklist' ) ) {
             $output .= "</li>\n";
         }
     }
-}
 
 
 
 /**
- *  Walker_Media_Taxonomy_Uploader_Filter
+ *  vergeml_Walker_Media_Taxonomy_Uploader_Filter
  *
  *  Based on /wp-includes/category-template.php
  *
@@ -1127,9 +1224,8 @@ if ( ! class_exists( 'Walker_Media_Taxonomy_Checklist' ) ) {
  *  @created  05/11/13
  */
 
-if ( ! class_exists( 'Walker_Media_Taxonomy_Uploader_Filter' ) ) {
 
-    class Walker_Media_Taxonomy_Uploader_Filter extends Walker {
+    class vergeml_Walker_Media_Taxonomy_Uploader_Filter extends Walker {
 
         var $tree_type = 'category';
         var $db_fields = array ('parent' => 'parent', 'id' => 'term_id');
@@ -1146,8 +1242,6 @@ if ( ! class_exists( 'Walker_Media_Taxonomy_Uploader_Filter' ) ) {
         }
 
         function start_el( &$output, $category, $depth = 0, $args = array(), $id = 0 ) {
-
-            extract($args);
 
             $vergeml_lib_options = get_option( 'vergeml_lib_options' );
             $indent = str_repeat('&nbsp;&nbsp;&nbsp;', $depth);
@@ -1163,7 +1257,7 @@ if ( ! class_exists( 'Walker_Media_Taxonomy_Uploader_Filter' ) ) {
                 // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
             );
 
-            $output .= json_encode( $el );
+            $output .= wp_json_encode( $el );
         }
 
         function end_el( &$output, $category, $depth = 0, $args = array() ) {
@@ -1171,178 +1265,195 @@ if ( ! class_exists( 'Walker_Media_Taxonomy_Uploader_Filter' ) ) {
                 $output .= "";
         }
     }
-}
 
 
 
 /**
- *  vergeml_save_attachment_compat
+ *  vergeml_compat_save_term_checkboxes
  *
- *  Based on /wp-admin/includes/ajax-actions.php
+ *  The folder and category checkboxes in the attachment details panel post
+ *  tax_input[taxonomy][term_id] along with core's save-attachment-compat.
+ *  Core's own handler answers that request; it has verified the
+ *  update-post nonce and edit_post on the attachment before it applies this
+ *  filter. The text fields (title, caption, a taxonomy typed as names) are
+ *  core's to save, exactly as core saves them.
  *
- *  @since    1.0.6
- *  @created  06/14/14
+ *  Until 4.1.0 this plugin answered save-attachment-compat in place of core.
+ *
+ *  @since    4.1.0
  */
 
-add_action( 'wp_ajax_save-attachment-compat', 'vergeml_save_attachment_compat', 0 );
+add_filter( 'attachment_fields_to_save', 'vergeml_compat_save_term_checkboxes', 10, 2 );
 
-function vergeml_save_attachment_compat() {
+function vergeml_compat_save_term_checkboxes( $post, $attachment_data ) {
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- only the id, and only to build the nonce action checked immediately below.
-    $id = isset( $_REQUEST['id'] ) ? absint( $_REQUEST['id'] ) : 0;
+    if ( ! wp_doing_ajax() || ! doing_action( 'wp_ajax_save-attachment-compat' ) || empty( $post['ID'] ) ) {
+        return $post;
+    }
 
-    if ( ! $id )
-        wp_send_json_error();
+    $id = (int) $post['ID'];
 
-    /*
-     *  Verify before reading anything else. Upstream checked the nonce after
-     *  pulling the submitted fields out of the request; nothing was exploitable
-     *  because the write still came later, but there is no reason to touch the
-     *  payload of an unverified request at all.
-     */
+    // Core checked this nonce a moment ago; asking again costs nothing and keeps the request read honest.
+    if ( ! check_ajax_referer( 'update-post_' . $id, 'nonce', false ) || ! current_user_can( 'edit_post', $id ) ) {
+        return $post;
+    }
 
-    check_ajax_referer( 'update-post_' . $id, 'nonce' );
+    if ( empty( $_REQUEST['tax_input'] ) || ! is_array( $_REQUEST['tax_input'] ) ) {
+        return $post;
+    }
 
-    if ( empty( $_REQUEST['attachments'] ) || empty( $_REQUEST['attachments'][ $id ] ) )
-        wp_send_json_error();
+    $tax_input = map_deep( wp_unslash( $_REQUEST['tax_input'] ), 'sanitize_text_field' );
 
+    foreach ( get_object_taxonomies( 'attachment', 'names' ) as $taxonomy ) {
+
+        $tax_object = get_taxonomy( $taxonomy );
+
+        // Core's own rule for setting terms on a post.
+        if ( ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) ) {
+            continue;
+        }
+
+        // A taxonomy typed as names is core's to save; one the request does not name keeps its terms.
+        if ( isset( $attachment_data[ $taxonomy ] ) || ! isset( $tax_input[ $taxonomy ] ) || ! is_array( $tax_input[ $taxonomy ] ) ) {
+            continue;
+        }
+
+        $chosen = array_map( 'absint', array_keys( $tax_input[ $taxonomy ], '1', false ) );
+
+        // The form never shows somebody else's private folder: it cannot be chosen here, and saving does not take a file out of it.
+        if ( function_exists( 'vergeml_private_hidden_from' ) && vergeml_private_hidden_from() ) {
+            $hidden = vergeml_private_hidden_from();
+            $held   = wp_get_object_terms( $id, $taxonomy, array( 'fields' => 'ids' ) );
+            $chosen = array_merge( array_diff( $chosen, $hidden ), is_wp_error( $held ) ? array() : array_intersect( array_map( 'intval', $held ), $hidden ) );
+        }
+
+        wp_set_object_terms( $id, $chosen, $taxonomy, false );
+    }
+
+    return $post;
+}
+
+
+/**
+ *  vergeml_compat_term_counts
+ *
+ *  The counts beside each term in the grid's taxonomy filters, carried on
+ *  the attachment core sends back from save-attachment-compat
+ *  (js/vergeml-media-views.js reads `tcount`). Only on that reply.
+ *
+ *  @since    4.1.0
+ */
+
+add_filter( 'wp_prepare_attachment_for_js', 'vergeml_compat_term_counts' );
+
+function vergeml_compat_term_counts( $response ) {
+
+    if ( ! wp_doing_ajax() || ! doing_action( 'wp_ajax_save-attachment-compat' ) ) {
+        return $response;
+    }
 
     $vergeml_lib_options = get_option( 'vergeml_lib_options' );
 
-    /*
-     *  Left slashed and unsanitised on purpose, exactly as core's own
-     *  wp_ajax_save_attachment_compat does. This is attachment field content --
-     *  title, caption, description -- which is handed to the
-     *  attachment_fields_to_save filter and then to wp_update_post, both of
-     *  which expect slashed input and do the sanitising themselves. Cleaning it
-     *  here would double-unslash and strip markup people are allowed to save.
-     */
-
-    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- see above; sanitised downstream by wp_update_post.
-    $attachment_data = $_REQUEST['attachments'][ $id ];
-
-    if ( ! current_user_can( 'edit_post', $id ) )
-        wp_send_json_error();
-
-    $post = get_post( $id, ARRAY_A );
-
-    if ( 'attachment' != $post['post_type'] )
-        wp_send_json_error();
-
-    /** This filter is documented in wp-admin/includes/media.php */
-    // phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core filter; this handler stands in for core's, so it must run the same filter.
-    $post = apply_filters( 'attachment_fields_to_save', $post, $attachment_data );
-    // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-
-    if ( isset( $post['errors'] ) ) {
-
-        $errors = $post['errors']; // @todo return me and display me!
-        unset( $post['errors'] );
+    if ( empty( $vergeml_lib_options['show_count'] ) ) {
+        return $response;
     }
 
-    wp_update_post( $post );
+    $terms = vergeml_assignable_media_terms();
 
+    $response['tcount'] = array();
 
-    $media_taxonomy_names = get_object_taxonomies( 'attachment','names' );
-
-    if ( (bool) $vergeml_lib_options['show_count'] ) {
-
-        $terms = get_terms( array( 'taxonomy' => $media_taxonomy_names, 'fields' => 'all', 'get' => 'all' ) );
-        $term_pairs = vergeml_get_media_term_pairs( $terms, 'id=>tt_id' );
+    foreach ( vergeml_get_media_term_pairs( $terms, 'id=>tt_id' ) as $term_id => $tt_id ) {
+        $response['tcount'][ $term_id ] = vergeml_get_media_term_count( $term_id, $tt_id );
     }
 
-
-    foreach ( $media_taxonomy_names as $taxonomy ) {
-
-        if ( isset( $attachment_data[ $taxonomy ] ) ) {
-
-            $term_ids = array_map( 'trim', preg_split( '/,+/', $attachment_data[ $taxonomy ] ) );
-        }
-        elseif ( isset( $_REQUEST['tax_input'] ) ) {
-
-            if ( ! isset( $_REQUEST['tax_input'][ $taxonomy ] ) ) {
-                continue;
-            }
-            else {
-                $term_ids = array_keys( $_REQUEST['tax_input'][ $taxonomy ], 1 );
-                $term_ids = array_map( 'intval', $term_ids );
-            }
-        }
-
-        wp_set_object_terms( $id, $term_ids, $taxonomy, false );
-
-        if ( (bool) $vergeml_lib_options['show_count'] ) {
-
-            foreach( $term_pairs as $term_id => $tt_id) {
-                $tcount[$term_id] = vergeml_get_media_term_count( $term_id, $tt_id );
-            }
-        }
-    }
-
-    if ( ! $attachment = wp_prepare_attachment_for_js( $id ) )
-        wp_send_json_error();
-
-    if ( (bool) $vergeml_lib_options['show_count'] )
-        $attachment['tcount'] = $tcount;
-
-
-    wp_send_json_success( $attachment );
+    return $response;
 }
 
 
 
 /**
- *  vergeml_delete_post
+ *  vergeml_ajax_term_counts
  *
- *  Based on /wp-admin/includes/ajax-actions.php
+ *  The media counts beside each term in the grid's taxonomy filters, asked
+ *  for after an attachment is deleted.
  *
- *  @since    2.3
- *  @created  17/06/16
+ *  Until 4.1.0 this plugin answered WordPress's own delete-post AJAX action
+ *  in place of core, only to put these counts in the reply. Core deletes
+ *  the attachment itself now, and the counts come from this action of our
+ *  own (js/eml-media-models.js asks once the delete has gone through).
  */
 
-add_action( 'wp_ajax_delete-post', 'vergeml_delete_post', 0 );
+/**
+ *  The attachment taxonomies this user may file into: the same bar /tree sets, for
+ *  everything that lists their terms.
+ */
+function vergeml_assignable_media_taxonomies() {
 
-function vergeml_delete_post() {
+    $kept = array();
 
-    if ( empty( $action ) )
-        $action = 'delete-post';
-
-    $id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
-
-    check_ajax_referer( "{$action}_$id" );
-
-    if ( ! current_user_can( 'delete_post', $id ) )
-        wp_die( -1 );
-
-    if ( ! $post = get_post( $id ) )
-        wp_die( 1 );
-
-
-    if ( 'attachment' === $post->post_type ) {
-
-        $response = array();
-        $vergeml_lib_options = get_option('vergeml_lib_options');
-
-        if ( wp_delete_post( $id ) ) {
-
-            if ( (bool) $vergeml_lib_options['show_count'] ) {
-
-                $terms = get_terms( array( 'taxonomy' => get_object_taxonomies( 'attachment', 'names' ), 'fields' => 'all', 'get' => 'all' ) );
-
-                foreach( vergeml_get_media_term_pairs( $terms, 'id=>tt_id' ) as $term_id => $tt_id ) {
-                    $response['tcount'][$term_id] = vergeml_get_media_term_count( $term_id, $tt_id );
-                }
-            }
-
-            wp_send_json_success( $response );
+    foreach ( get_object_taxonomies( 'attachment', 'object' ) as $name => $taxonomy ) {
+        if ( current_user_can( $taxonomy->cap->assign_terms ) ) {
+            $kept[ $name ] = $taxonomy;
         }
-        else
-            wp_send_json_error();
     }
-    elseif ( wp_delete_post( $id ) )
-        wp_die( 1 );
-    else
-        wp_die( 0 );
+
+    return $kept;
+}
+
+
+/**
+ *  Core's list table adds a column for each media taxonomy, with the file's terms in it.
+ */
+add_filter( 'manage_taxonomies_for_attachment_columns', 'vergeml_assignable_media_columns' );
+
+function vergeml_assignable_media_columns( $taxonomies ) {
+
+    foreach ( $taxonomies as $key => $taxonomy ) {
+        $object = get_taxonomy( $taxonomy );
+
+        if ( 0 === strpos( $taxonomy, 'vergeml_' ) && $object && ! current_user_can( $object->cap->assign_terms ) ) {
+            unset( $taxonomies[ $key ] );
+        }
+    }
+
+    return $taxonomies;
+}
+
+
+/**
+ *  Their terms. No taxonomy at all means no terms: get_terms() without one returns the whole site's.
+ */
+function vergeml_assignable_media_terms() {
+
+    $names = array_keys( vergeml_assignable_media_taxonomies() );
+
+    return $names ? get_terms( array( 'taxonomy' => $names, 'fields' => 'all', 'get' => 'all' ) ) : array();
+}
+
+
+add_action( 'wp_ajax_vergeml-term-counts', 'vergeml_ajax_term_counts' );
+
+function vergeml_ajax_term_counts() {
+
+    check_ajax_referer( 'vergeml-term-counts', 'nonce' );
+
+    if ( ! current_user_can( 'upload_files' ) ) {
+        wp_send_json_error( null, 403 );
+    }
+
+    $response            = array( 'tcount' => array() );
+    $vergeml_lib_options = get_option( 'vergeml_lib_options' );
+
+    if ( ! empty( $vergeml_lib_options['show_count'] ) ) {
+
+        $terms = vergeml_assignable_media_terms();
+
+        foreach ( vergeml_get_media_term_pairs( $terms, 'id=>tt_id' ) as $term_id => $tt_id ) {
+            $response['tcount'][ $term_id ] = vergeml_get_media_term_count( $term_id, $tt_id );
+        }
+    }
+
+    wp_send_json_success( $response );
 }
 
 
@@ -1350,13 +1461,15 @@ function vergeml_delete_post() {
 /**
  *  vergeml_save_attachment_order
  *
- *  Based on /wp-admin/includes/ajax-actions.php
+ *  The plugin's own ordering action, asked by js/eml-media-models.js. Core's
+ *  save-attachment-order needs a post; this one also orders the library
+ *  itself (post_id 0). Until 4.1.0 it answered core's action name.
  *
  *  @since    2.2
  *  @created  11/02/16
  */
 
-add_action( 'wp_ajax_save-attachment-order', 'vergeml_save_attachment_order', 0 );
+add_action( 'wp_ajax_vergeml-save-attachment-order', 'vergeml_save_attachment_order' );
 
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
@@ -1390,7 +1503,7 @@ function vergeml_save_attachment_order() {
             wp_send_json_error();
     }
     else {
-        check_ajax_referer( 'eml-bulk-edit-nonce', 'nonce' );
+        check_ajax_referer( 'vergeml-bulk-edit-nonce', 'nonce' );
     }
 
 
@@ -1414,40 +1527,21 @@ function vergeml_save_attachment_order() {
 
 
     asort( $attachments2edit );
-    $order = array_keys( $attachments2edit );
-    $order_format = join( ', ', array_fill( 0, count( $order ), '%d' ) );
 
-    /*
-     *  Renumbering menu_order across a whole drag-and-drop reorder in one
-     *  statement. Doing it through wp_update_post would be one full post save
-     *  per item, which on a few hundred images is the difference between
-     *  instant and unusable. The MySQL counter variable is why it cannot be
-     *  expressed with the posts API. Ids are placeheld; table names are $wpdb's.
-     */
+    // menu_order renumbered 1..n in the order asked, through wp_update_post() on each file edit_post allowed above.
+    $position = 0;
+    $failed   = false;
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
-    $wpdb->query( 'SELECT @i:=0' );
+    foreach ( array_keys( $attachments2edit ) as $reordered_id ) {
 
-    $result = $wpdb->query( $wpdb->prepare(
-        "
-            UPDATE $wpdb->posts SET $wpdb->posts.menu_order = ( @i:=@i+1 )
-            WHERE $wpdb->posts.ID IN ( $order_format ) ORDER BY FIELD( $wpdb->posts.ID, $order_format )
-        ",
-        array_merge( $order, $order )
-    ) );
-    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+        $done = wp_update_post( array( 'ID' => $reordered_id, 'menu_order' => ++$position ), true );
 
-    /*
-     *  The rows were changed underneath the object cache, so drop each post
-     *  from it or the old menu_order is served until something else evicts it.
-     */
-
-    foreach ( $order as $reordered_id ) {
-        clean_post_cache( $reordered_id );
+        if ( ! $done || is_wp_error( $done ) ) {
+            $failed = true;
+        }
     }
 
-
-    if ( ! $result )
+    if ( $failed || ! $position )
         wp_send_json_error();
 
     wp_send_json_success();
@@ -1599,16 +1693,12 @@ function vergeml_update_post_term_count( $terms, $taxonomy ) {
              *  $wpdb and are not input, which is why they stay interpolated.
              */
 
-            $placeholders = implode( ', ', array_fill( 0, count( $object_types ), '%s' ) );
-
-            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names are from $wpdb, every value is placeheld.
             $count += (int) $wpdb->get_var(
                 $wpdb->prepare(
-                    "SELECT COUNT(*) FROM $wpdb->term_relationships, $wpdb->posts WHERE $wpdb->posts.ID = $wpdb->term_relationships.object_id AND post_status = 'publish' AND post_type IN ( $placeholders ) AND term_taxonomy_id = %d",
+                    "SELECT COUNT(*) FROM $wpdb->term_relationships, $wpdb->posts WHERE $wpdb->posts.ID = $wpdb->term_relationships.object_id AND post_status = 'publish' AND post_type IN ( " . implode( ', ', array_fill( 0, count( $object_types ), '%s' ) ) . ' ) AND term_taxonomy_id = %d',
                     array_merge( $object_types, array( $term ) )
                 )
             );
-            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         }
 
         /*
@@ -1628,19 +1718,6 @@ function vergeml_update_post_term_count( $terms, $taxonomy ) {
 
 
 
-// TODO: Quick Edit for the List mode (MediaFrame.EditAttachments)
-// add_filter( 'media_row_actions', 'vergeml_media_row_actions', 10, 2 );
-//
-// if ( ! function_exists( 'vergeml_media_row_actions' ) ) {
-//
-//     function vergeml_media_row_actions( $actions, $post ) {
-//
-//         $first = array_splice ( $actions, 0, 1 );
-//         $actions = array_merge ( $first, array( 'eml_quick_edit' => '<a href="#" data-attachment-id="' . $post->ID . '">Quick Edit</a>' ), $actions );
-//
-//         return $actions;
-//     }
-// }
 
 
 
@@ -1764,8 +1841,8 @@ function vergeml_pre_get_posts( $query ) {
 
     $vergeml_lib_options = get_option( 'vergeml_lib_options', array() );
 
-    $orderby = ( 'menuOrder' === $vergeml_lib_options['media_orderby'] ) ? 'menu_order' : esc_attr( $vergeml_lib_options['media_orderby'] );
-    $order = esc_attr( $vergeml_lib_options['media_order'] );
+    $orderby = vergeml_lib_orderby( $vergeml_lib_options );
+    $order   = vergeml_lib_order( $vergeml_lib_options );
 
     $query->set('orderby', $orderby );
     $query->set('order', $order );

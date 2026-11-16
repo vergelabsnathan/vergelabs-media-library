@@ -23,9 +23,9 @@ define( 'VERGEML_TRIAL_PICTURES', 25 );
 /** Whether the service would give this site a free try: not on local or test hosts. */
 function vergeml_offer_trial_possible() {
     $host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
-    $ok   = '' !== $host && ! preg_match( '/^(localhost|127\.|10\.|192\.168\.)|\.(local|test|localhost|example|invalid)$|(^|\.)playground\.wordpress\.net$|^\d+\.\d+\.\d+\.\d+$/i', $host );
-    // A walk on a local Playground shows the button to press it; the service still refuses the host.
-    return (bool) apply_filters( 'vergeml_offer_trial_possible', $ok );
+    // Without OpenSSL the key could not be stored (vergeml_ai_seal()), so the free try is not offered at all.
+    $ok   = function_exists( 'openssl_encrypt' ) && '' !== $host && ! preg_match( '/^(localhost|127\.|10\.|192\.168\.)|\.(local|test|localhost|example|invalid)$|(^|\.)playground\.wordpress\.net$|^\d+\.\d+\.\d+\.\d+$/i', $host );
+    return $ok;
 }
 
 /** Whether the offer replaces the AI actions on this request. Never in demo mode: that runs locally and stays usable. */
@@ -95,41 +95,23 @@ function vergeml_offer_box( $missing ) {
                 <li><?php esc_html_e( 'A free key is made for this site and connected here by itself', 'vergelabs-media-library' ); ?></li>
             </ul>
             <div class="vgml-offer-row">
-                <input type="email" id="vgml-offer-email" class="regular-text" autocomplete="email" value="<?php echo esc_attr( $admin->user_email ); ?>" placeholder="you@yoursite.com">
+                <input type="email" id="vgml-offer-email" class="regular-text" aria-label="<?php esc_attr_e( 'Email address', 'vergelabs-media-library' ); ?>" autocomplete="email" value="<?php echo esc_attr( $admin->user_email ); ?>" placeholder="you@yoursite.com">
                 <?php /* translators: %s: a number of pictures */ ?>
                 <button type="button" class="vgml-btn vgml-btn-primary" id="vgml-offer-go"><?php echo esc_html( sprintf( __( 'Start · %s free', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?></button>
             </div>
-            <p class="vgml-note" id="vgml-offer-msg"><?php esc_html_e( 'One free try per site and per email. No card.', 'vergelabs-media-library' ); ?></p>
+            <p class="vgml-note" id="vgml-offer-msg"><?php esc_html_e( 'One free try per site and per email. No card. Your email and this site\'s address go to VergeLabs to make the key, and we email you once, when the free pictures are used.', 'vergelabs-media-library' ); ?></p>
         </div>
-        <script>
-        ( function () {
-            var tryBtn = document.getElementById( 'vgml-offer-try' ),
-                start  = document.getElementById( 'vgml-offer-start-panel' ),
-                form   = document.getElementById( 'vgml-offer-form' ),
-                go     = document.getElementById( 'vgml-offer-go' ),
-                email  = document.getElementById( 'vgml-offer-email' ),
-                msg    = document.getElementById( 'vgml-offer-msg' );
-            if ( ! tryBtn ) { return; }
-            tryBtn.addEventListener( 'click', function () { start.hidden = true; form.hidden = false; email.focus(); } );
-            go.addEventListener( 'click', function () {
-                go.disabled = true;
-                go.textContent = <?php echo wp_json_encode( __( 'Making your key…', 'vergelabs-media-library' ) ); ?>;
-                var body = new URLSearchParams( { action: 'vergeml_trial', _ajax_nonce: <?php echo wp_json_encode( wp_create_nonce( 'vergeml_trial' ) ); ?>, email: email.value } );
-                fetch( ajaxurl, { method: 'POST', credentials: 'same-origin', body: body } )
-                    .then( function ( r ) { return r.json(); } )
-                    .then( function ( r ) {
-                        if ( r && r.success ) { location.href = r.data.next; return; }
-                        msg.textContent = ( r && r.data && r.data.message ) || <?php echo wp_json_encode( __( 'That did not work. Try again in a minute.', 'vergelabs-media-library' ) ); ?>;
-                        go.disabled = false;
-                        go.textContent = <?php echo wp_json_encode( sprintf( __( 'Start · %s free', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ) ); ?>;
-                    } )
-                    .catch( function () {
-                        msg.textContent = <?php echo wp_json_encode( __( 'The service did not answer. Try again in a minute.', 'vergelabs-media-library' ) ); ?>;
-                        go.disabled = false;
-                    } );
-            } );
-        } )();
-        </script>
+        <?php
+        wp_enqueue_script( 'vergeml-offer-trial', plugins_url( 'js/vergeml-offer-trial.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-offer-trial.js' ), true );
+        wp_localize_script( 'vergeml-offer-trial', 'vergemlOfferTrial', array(
+            'making' => __( 'Making your key…', 'vergelabs-media-library' ),
+            'nonce'  => wp_create_nonce( 'vergeml_trial' ),
+            'failed' => __( 'That did not work. Try again in a minute.', 'vergelabs-media-library' ),
+            /* translators: %s: a number of pictures */
+            'start'  => sprintf( __( 'Start · %s free', 'vergelabs-media-library' ), number_format_i18n( VERGEML_TRIAL_PICTURES ) ),
+            'silent' => __( 'The service did not answer. Try again in a minute.', 'vergelabs-media-library' ),
+        ) );
+        ?>
         <?php endif; ?>
     </section>
     <?php
@@ -204,11 +186,14 @@ function vergeml_offer_ajax_trial() {
     $settings                = get_option( 'vergeml_ai', array() );
     $settings                = is_array( $settings ) ? $settings : array();
     $settings['license_key'] = vergeml_ai_seal( sanitize_text_field( (string) $body['key'] ) );
+    if ( '' === $settings['license_key'] ) {
+        wp_send_json_error( array( 'message' => __( 'This server cannot store a key: the PHP OpenSSL extension is missing.', 'vergelabs-media-library' ) ), 500 );
+    }
     update_option( 'vergeml_ai', $settings, false );
 
     if ( function_exists( 'vergeml_ai_refresh_credits' ) ) {
         vergeml_ai_refresh_credits( true );
     }
 
-    wp_send_json_success( array( 'next' => add_query_arg( 'vgml_trial', '1', admin_url( 'admin.php?page=media-ai' ) ) ) );
+    wp_send_json_success( array( 'next' => add_query_arg( 'vergeml_trial', wp_create_nonce( 'vergeml_trial_start' ), admin_url( 'admin.php?page=vergeml-ai' ) ) ) );
 }

@@ -36,7 +36,7 @@ await page.waitForTimeout( 2000 );
 
 console.log( '\nthe AI screen' );
 
-await page.goto( `${ BASE }/wp-admin/admin.php?page=media-ai`, { waitUntil: 'domcontentloaded' } );
+await page.goto( `${ BASE }/wp-admin/admin.php?page=vergeml-ai`, { waitUntil: 'domcontentloaded' } );
 await page.waitForSelector( '#vgml-ai-run', { timeout: 30000 } );
 await page.waitForTimeout( 1500 );
 

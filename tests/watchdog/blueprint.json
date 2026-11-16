@@ -1,8 +1,0 @@
-{
-  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
-  "login": true,
-  "preferredVersions": { "php": "8.3", "wp": "latest" },
-  "steps": [
-    { "step": "activatePlugin", "pluginPath": "vergelabs-media-library/vergelabs-media-library.php" }
-  ]
-}

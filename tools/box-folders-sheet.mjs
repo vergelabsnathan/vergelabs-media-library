@@ -54,7 +54,7 @@ for ( const site of SITES ) {
 	}
 	await Promise.all( [ page.waitForNavigation( { waitUntil: 'domcontentloaded' } ).catch( () => null ), page.click( '#wp-submit' ) ] );
 
-	await page.goto( `${ site.base }/wp-admin/admin.php?page=media-librarian`, { waitUntil: 'domcontentloaded' } );
+	await page.goto( `${ site.base }/wp-admin/admin.php?page=vergeml-librarian`, { waitUntil: 'domcontentloaded' } );
 	await page.waitForSelector( '#vgml-folders .g-card', { state: 'attached', timeout: 30000 } );
 	await page.waitForTimeout( 1200 );
 

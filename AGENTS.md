@@ -7,8 +7,8 @@ A WordPress media library plugin — folders, categories, and AI alt text — fo
 
 ## Policy
 
-- Never re-enable `/rename-files`. It is gated behind `VERGEML_FILE_RENAME` (`core/journey.php:355`) and the reference rewrite underneath it is unfinished.
-- Never store folder structure outside the `media_category` taxonomy. Folders being ordinary terms is the product's central promise — a customer can remove the plugin and keep them.
+- The on-disk file renamer was removed for wordpress.org review 9; it is in git history (`core/rename-file.php`) and its reference rewrite was never finished. Do not bring it back unfinished.
+- Never store folder structure outside the `vergeml_folder` taxonomy (renamed from `media_category` for wordpress.org review 8; `vergeml_migrate_prefixes()` moves old sites). Folders being ordinary terms is the product's central promise — a customer can remove the plugin and keep them. Every taxonomy the plugin makes is keyed by `vergeml_own_taxonomy_key()`.
 - Never widen what the plugin sends to the service without updating `readme.txt`'s External services section in the same commit. `docs/outbound-audit-2026-09-19.md` enumerates every outbound call.
 
 ## Where things are

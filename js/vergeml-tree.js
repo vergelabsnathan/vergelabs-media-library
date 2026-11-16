@@ -392,7 +392,10 @@
 			if ( state.aiOpen ) {
 
 				if ( state.ai.ladder ) {
-					out.push( { pseudo: 'ai-ladder', ai: state.ai, depth: 0, id: -81 } );
+					// The way into the AI screen, which only administrators can open.
+					if ( state.ai.url ) {
+						out.push( { pseudo: 'ai-ladder', ai: state.ai, depth: 0, id: -81 } );
+					}
 				} else {
 					smartAi.forEach( function ( sf, i ) {
 						out.push( {
@@ -971,7 +974,8 @@
 		if ( sf._progress ) {
 			row.appendChild( el( 'span', { class: 'vgml-count vgml-smart-progress' }, sf._progress ) );
 		} else if ( null === sf.count || undefined === sf.count ) {
-			row.appendChild( el( 'span', { class: 'vgml-count vgml-smart-scan' }, l10n.smartScan ) );
+			// Only an administrator can start the scan; anyone else is told it has not run.
+			row.appendChild( el( 'span', { class: 'vgml-count vgml-smart-scan' }, cfg.canScan ? l10n.smartScan : l10n.smartNotScanned ) );
 		} else if ( sf.count ) {
 			row.appendChild( el( 'span', { class: 'vgml-count' }, String( sf.count ) ) );
 		}
@@ -981,7 +985,9 @@
 				return;
 			}
 			if ( null === sf.count || undefined === sf.count ) {
-				runSmartScan( sf );
+				if ( cfg.canScan ) {
+					runSmartScan( sf );
+				}
 			} else {
 				smartSelect( sf.key );
 			}
@@ -1010,7 +1016,7 @@
 		syncListBar();
 
 		var url = new URL( window.location.href );
-		url.searchParams.set( 'vgml_smart', key );
+		url.searchParams.set( 'vergeml_smart', key );
 		url.searchParams.delete( state.taxonomy );
 		url.searchParams.delete( unfiledVar() );
 		url.searchParams.delete( 'paged' );
@@ -1159,10 +1165,10 @@
 				return;
 			}
 
-			if ( wp.Uploader.prototype.vgmlWrapped ) {
+			if ( wp.Uploader.prototype.vergemlWrapped ) {
 				return;
 			}
-			wp.Uploader.prototype.vgmlWrapped = true;
+			wp.Uploader.prototype.vergemlWrapped = true;
 
 			var init = wp.Uploader.prototype.init;
 
@@ -1198,7 +1204,7 @@
 
 						/*
 						 *  WordPress wipes the library's filter the moment an
-						 *  upload starts (media_category -> null, so the new
+						 *  upload starts (vergeml_folder -> null, so the new
 						 *  file is guaranteed visible somewhere). With a
 						 *  folder open that meant: file lands IN the folder,
 						 *  grid quietly reverts to everything, breadcrumb
@@ -1413,7 +1419,7 @@
 			/*
 			 *  The slug, not the id.
 			 *
-			 *  WordPress resolves a taxonomy query var by slug, so ?media_category=3
+			 *  WordPress resolves a taxonomy query var by slug, so ?vergeml_folder=3
 			 *  matches a term whose slug is "3" -- which is to say nothing, silently.
 			 *  The plugin now accepts either form on the library screen, but a link
 			 *  should still be written the way WordPress writes one.
@@ -1430,7 +1436,7 @@
 		}
 
 		// Paging belongs to the previous folder, and so does a smart filter.
-		url.searchParams.delete( 'vgml_smart' );
+		url.searchParams.delete( 'vergeml_smart' );
 		url.searchParams.delete( 'paged' );
 
 		// Against the swap in flight, when there is one: a click while the
@@ -1455,7 +1461,7 @@
 	 *  which nothing else on that screen is going to collide with.
 	 */
 	function unfiledVar() {
-		return ( cfg.postType && 'attachment' !== cfg.postType ) ? 'vgml_unfiled' : 'uncategorized';
+		return ( cfg.postType && 'attachment' !== cfg.postType ) ? 'vergeml_unfiled' : 'uncategorized';
 	}
 
 	/*
@@ -1487,10 +1493,10 @@
 				kind.selectedIndex = 0; // "All media items", whichever value core gave it
 			}
 		}
-		var smart = form.querySelector( 'input[name="vgml_smart"]' );
+		var smart = form.querySelector( 'input[name="vergeml_smart"]' );
 		if ( state.smartSelected ) {
 			if ( ! smart ) {
-				smart = el( 'input', { type: 'hidden', name: 'vgml_smart' } );
+				smart = el( 'input', { type: 'hidden', name: 'vergeml_smart' } );
 				form.appendChild( smart );
 			}
 			smart.value = state.smartSelected;
@@ -1518,14 +1524,14 @@
 		if ( params.get( unfiledVar() ) ) {
 			return -1;
 		}
-		if ( params.get( 'vgml_smart' ) ) {
-			return 'smart:' + params.get( 'vgml_smart' );
+		if ( params.get( 'vergeml_smart' ) ) {
+			return 'smart:' + params.get( 'vergeml_smart' );
 		}
 		return null;
 	}
 
 	// The vars that mean the URL was chosen, not merely arrived at. `item` is core's deep link to one picture's modal: restoring a remembered folder over it navigated away and the modal never opened (2026-09-16).
-	var URL_VARS = [ 's', 'paged', 'orderby', 'order', 'attachment-filter', 'm', 'author', 'filter_action', 'post_mime_type', 'detached', 'vgml_meaning', 'vgml_smart', 'item' ];
+	var URL_VARS = [ 's', 'paged', 'orderby', 'order', 'attachment-filter', 'm', 'author', 'filter_action', 'post_mime_type', 'detached', 'vergeml_meaning', 'vergeml_smart', 'item' ];
 
 	function urlIsBare() {
 		var params = new URL( window.location.href ).searchParams;
@@ -2515,8 +2521,8 @@
 	function moveDialog( ids, returnTo ) {
 
 		// One at a time: the previous dialog's key trap goes with it.
-		if ( root.vgmlMoveClose ) {
-			root.vgmlMoveClose();
+		if ( root.vergemlMoveClose ) {
+			root.vergemlMoveClose();
 		}
 
 		var all = folderOptions();
@@ -2554,13 +2560,13 @@
 
 		function close() {
 			box.remove();
-			root.vgmlMoveClose = null;
+			root.vergemlMoveClose = null;
 			document.removeEventListener( 'keydown', trap, true );
 			if ( returnTo && returnTo.focus ) {
 				returnTo.focus();
 			}
 		}
-		root.vgmlMoveClose = close;
+		root.vergemlMoveClose = close;
 
 		function choose( termId ) {
 			close();
@@ -2721,7 +2727,7 @@
 		apiFetch( {
 			path: '/vergeml/v1/assign',
 			method: 'POST',
-			data: { taxonomy: payload.taxonomy, batch: payload.batch }
+			data: forThisList( { taxonomy: payload.taxonomy, batch: payload.batch } )
 		} ).then( function ( res ) {
 			applyCounts( res );
 			bumpGrid();
@@ -3271,7 +3277,8 @@
 		 *  impossible to tidy up -- but taking it over is how a colleague's
 		 *  filing quietly disappears, and the endpoint refuses it too.
 		 */
-		if ( ! ownedByOther( node ) ) {
+		// Privacy hides a folder from everyone else, so only an administrator sets it.
+		if ( cfg.canScan && ! ownedByOther( node ) ) {
 			var isMine = ownedByMe( node );
 			item( isMine ? l10n.makeShared : l10n.makePrivate, false, function () {
 				setPrivacy( node, ! isMine );
@@ -3509,7 +3516,7 @@
 						var n = state.byId[ state.selected ];
 						url.searchParams.set( state.taxonomy, n && n.slug ? n.slug : state.selected );
 						url.searchParams.delete( unfiledVar() );
-						url.searchParams.delete( 'vgml_smart' );
+						url.searchParams.delete( 'vergeml_smart' );
 					}
 					window.location.href = url.href;
 				}, 600 );
@@ -4304,7 +4311,7 @@
 	/** The list with nothing set but the folder that is showing. */
 	function listUrlWithFolder() {
 		var url = 'upload.php?mode=list';
-		var m = window.location.search.match( new RegExp( '[?&](' + ( state.taxonomy || 'media_category' ) + ')=([^&]+)' ) );
+		var m = window.location.search.match( new RegExp( '[?&](' + ( state.taxonomy || 'vergeml_folder' ) + ')=([^&]+)' ) );
 		return m ? url + '&' + m[ 1 ] + '=' + m[ 2 ] : url;
 	}
 
@@ -4536,38 +4543,6 @@
 		armUploaders();
 
 		/*
-		 *  Bulk select, made additive. The heritage grid builds its selection
-		 *  with `multiple` off, so core's toggleSelection falls through to
-		 *  reset([model]) -- every click REPLACED the selection, and no number
-		 *  of clicks ever selected two files. In select mode a plain click
-		 *  now toggles membership; shift-ranges pass through untouched.
-		 */
-		if ( window.wp && wp.media && wp.media.view && wp.media.view.Attachment &&
-				! wp.media.view.Attachment.prototype.vgmlToggleWrapped ) {
-
-			wp.media.view.Attachment.prototype.vgmlToggleWrapped = true;
-
-			var vgmlToggle = wp.media.view.Attachment.prototype.toggleSelection;
-
-			wp.media.view.Attachment.prototype.toggleSelection = function ( options ) {
-				/*
-				 *  Scoped to the library grid (eml-grid mode): the post
-				 *  editor's media modal also runs a 'select' mode, and its
-				 *  replace-on-click behaviour is what everyone inserting an
-				 *  image into a post expects.
-				 */
-				var inSelect = this.controller && this.controller.isModeActive &&
-					this.controller.isModeActive( 'select' ) &&
-					this.controller.isModeActive( 'eml-grid' );
-				if ( inSelect && ( ! options || ! options.method ) ) {
-					options = options || {};
-					options.method = 'toggle';
-				}
-				return vgmlToggle.call( this, options );
-			};
-		}
-
-		/*
 		 *  The toolbar labels are screen-reader-only now, which leaves the
 		 *  search input a naked box. Its own label already says what it is --
 		 *  move those words inside as the placeholder.
@@ -4767,10 +4742,10 @@
 
 		var proto = wp.media.view.Modal.prototype;
 
-		if ( proto.vgmlWrapped ) {
+		if ( proto.vergemlWrapped ) {
 			return;
 		}
-		proto.vgmlWrapped = true;
+		proto.vergemlWrapped = true;
 
 		var open = proto.open;
 
@@ -5067,7 +5042,7 @@
 		 *  remembers, because someone who wants it out of the way wants it out of
 		 *  the way every time.
 		 */
-		var collapsed = window.localStorage && window.localStorage.getItem( 'vgmlModalCollapsed' ) === '1';
+		var collapsed = window.localStorage && window.localStorage.getItem( 'vergemlModalCollapsed' ) === '1';
 
 		var toggle = el( 'button', {
 			type: 'button',
@@ -5082,7 +5057,7 @@
 			toggle.setAttribute( 'aria-expanded', now ? 'false' : 'true' );
 			toggle.firstChild.innerHTML = now ? '&#9656;' : '&#9666;';
 			try {
-				window.localStorage.setItem( 'vgmlModalCollapsed', now ? '1' : '0' );
+				window.localStorage.setItem( 'vergemlModalCollapsed', now ? '1' : '0' );
 			} catch ( e ) { /* private browsing */ }
 		} );
 

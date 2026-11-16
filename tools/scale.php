@@ -38,7 +38,7 @@ $folders = 500;
 $dims    = 768;
 $embed   = 0.4;   // share of files that get an embedding
 $dupes   = 0.1;   // share of files that share a hash with another
-$tax     = 'media_category';
+$tax     = 'vergeml_folder';
 $marker  = 'vgml-scale-';
 $parent_name = 'Scale fixture';
 
@@ -54,7 +54,7 @@ foreach ( (array) $args as $arg ) {
 
 wp_set_current_user( 1 );
 
-function vgml_scale_line( $label, $started, $q0, $extra = '' ) {
+function vergeml_scale_line( $label, $started, $q0, $extra = '' ) {
     global $wpdb;
     printf(
         "  %-46s %7.0f ms  %5d queries  %4d MB%s\n",
@@ -238,23 +238,23 @@ $big_term = $fx ? (int) $fx['terms'][0] : 0;
 wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
 $req = new WP_REST_Request( 'GET', '/vergeml/v1/tree' ); $req->set_param( 'taxonomy', $tax );
 $res = rest_do_request( $req ); $data = $res->get_data();
-vgml_scale_line( 'GET /vergeml/v1/tree (cold cache)', $t, $q, sprintf( '%d nodes, %s unfiled, %d KB', count( $data['nodes'] ?? array() ), number_format( (int) ( $data['unassigned'] ?? 0 ) ), strlen( wp_json_encode( $data ) ) / 1024 ) );
+vergeml_scale_line( 'GET /vergeml/v1/tree (cold cache)', $t, $q, sprintf( '%d nodes, %s unfiled, %d KB', count( $data['nodes'] ?? array() ), number_format( (int) ( $data['unassigned'] ?? 0 ) ), strlen( wp_json_encode( $data ) ) / 1024 ) );
 
 $q = $wpdb->num_queries; $t = microtime( true );
 $res = rest_do_request( $req );
-vgml_scale_line( 'GET /vergeml/v1/tree (warm cache)', $t, $q );
+vergeml_scale_line( 'GET /vergeml/v1/tree (warm cache)', $t, $q );
 
 // 2. the unfiled count on its own, uncached
 wp_cache_delete( 'vergeml_unfiled_' . $tax . '_attachment', 'vergeml' ); wp_cache_flush();
 $q = $wpdb->num_queries; $t = microtime( true );
 $u = function_exists( 'vergeml_count_unassigned' ) ? vergeml_count_unassigned( $tax ) : -1;
-vgml_scale_line( 'unfiled count (NOT EXISTS)', $t, $q, number_format( $u ) );
+vergeml_scale_line( 'unfiled count (NOT EXISTS)', $t, $q, number_format( $u ) );
 
 // 3. recounting one big term, as every assignment does
 if ( $big_tt ) {
     $q = $wpdb->num_queries; $t = microtime( true );
     vergeml_update_attachment_term_count( array( $big_tt ), get_taxonomy( $tax ) );
-    vgml_scale_line( 'recount one folder (per assignment)', $t, $q, get_term( $big_term, $tax )->count . ' files' );
+    vergeml_scale_line( 'recount one folder (per assignment)', $t, $q, get_term( $big_term, $tax )->count . ' files' );
 }
 
 // 4. the media grid, one folder, 40 per page, with our filter
@@ -264,39 +264,39 @@ if ( $big_term ) {
     $args = vergeml_ajax_query_attachments_args( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => 40, 'paged' => 1 ) );
     $grid = new WP_Query( $args );
     unset( $_REQUEST['query'] );
-    vgml_scale_line( 'media grid, one folder, 40/page', $t, $q, $grid->found_posts . ' found' );
+    vergeml_scale_line( 'media grid, one folder, 40/page', $t, $q, $grid->found_posts . ' found' );
 
     wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
     $grid = new WP_Query( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => 40, 'paged' => 1 ) );
-    vgml_scale_line( 'media grid, all files, 40/page (core)', $t, $q, number_format( $grid->found_posts ) . ' found' );
+    vergeml_scale_line( 'media grid, all files, 40/page (core)', $t, $q, number_format( $grid->found_posts ) . ' found' );
 }
 
 // 5. wp/v2/media through REST, which the block editor and our search use
 wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
 $req = new WP_REST_Request( 'GET', '/wp/v2/media' ); $req->set_param( 'per_page', 40 );
 $res = rest_do_request( $req );
-vgml_scale_line( 'GET /wp/v2/media?per_page=40', $t, $q, count( (array) $res->get_data() ) . ' items' );
+vergeml_scale_line( 'GET /wp/v2/media?per_page=40', $t, $q, count( (array) $res->get_data() ) . ' items' );
 
 // 6. the dashboard facts, which every plugin page loads
 wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
 $f = vergeml_journey_facts();
-vgml_scale_line( 'dashboard facts (journey)', $t, $q, sprintf( '%s images, %s described, %s stale', number_format( $f['images'] ), number_format( $f['described'] ), number_format( $f['stale'] ) ) );
+vergeml_scale_line( 'dashboard facts (journey)', $t, $q, sprintf( '%s images, %s described, %s stale', number_format( $f['images'] ), number_format( $f['described'] ), number_format( $f['stale'] ) ) );
 
 // 7. the whole dashboard screen, rendered
 wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
 ob_start(); vergeml_journey_screen(); $html = ob_get_clean();
-vgml_scale_line( 'dashboard screen, full render', $t, $q, ( strlen( $html ) / 1024 ) . ' KB' );
+vergeml_scale_line( 'dashboard screen, full render', $t, $q, ( strlen( $html ) / 1024 ) . ' KB' );
 
 // 8. duplicates report over the hashes
 wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
 $rep = vergeml_health_report();
-vgml_scale_line( 'duplicates report', $t, $q, sprintf( '%d dupe groups', count( $rep['duplicates']['groups'] ?? array() ) ) );
+vergeml_scale_line( 'duplicates report', $t, $q, sprintf( '%d dupe groups', count( $rep['duplicates']['groups'] ?? array() ) ) );
 
 // 9. AI backlog queries, as the AI screen and the runner ask them
 foreach ( array( 'unindexed', 'missing-alt', 'stale' ) as $scope ) {
     wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
     $c = count( vergeml_ai_pending( $scope ) );
-    vgml_scale_line( "pending('$scope')", $t, $q, number_format( $c ) );
+    vergeml_scale_line( "pending('$scope')", $t, $q, number_format( $c ) );
 }
 
 // 10. search by meaning, the real path (core/search-meaning.php): the query
@@ -311,7 +311,7 @@ if ( function_exists( 'vergeml_meaning_search' ) ) {
     wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
     $found = vergeml_meaning_search( $text, 60 );
     $meta  = isset( $GLOBALS['vergeml_meaning_meta'] ) ? $GLOBALS['vergeml_meaning_meta'] : array();
-    vgml_scale_line( 'search by meaning (scan + score + rank)', $t, $q, sprintf( '%d hits, scanned %s of %s with a projection%s', count( (array) $found ), number_format( (int) ( $meta['scanned'] ?? 0 ) ), number_format( $with ), ! empty( $meta['partial'] ) ? ', PARTIAL (budget)' : '' ) );
+    vergeml_scale_line( 'search by meaning (scan + score + rank)', $t, $q, sprintf( '%d hits, scanned %s of %s with a projection%s', count( (array) $found ), number_format( (int) ( $meta['scanned'] ?? 0 ) ), number_format( $with ), ! empty( $meta['partial'] ) ? ', PARTIAL (budget)' : '' ) );
     delete_transient( 'vergeml_qv2_' . md5( strtolower( $text ) ) );
 }
 
@@ -323,7 +323,7 @@ if ( function_exists( 'vergeml_health_scan_step' ) ) {
     $batch_ids    = vergeml_health_backlog( 0, VERGEML_HEALTH_BATCH );
     wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
     $step = vergeml_health_scan_step( 0 );
-    vgml_scale_line( 'duplicate scan, one step', $t, $q, sprintf( '%d hashed, %s remaining', $step['hashed'], number_format( $step['remaining'] ) ) );
+    vergeml_scale_line( 'duplicate scan, one step', $t, $q, sprintf( '%d hashed, %s remaining', $step['hashed'], number_format( $step['remaining'] ) ) );
     if ( $batch_ids ) {
         $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s AND post_id IN (" . implode( ',', array_map( 'intval', $batch_ids ) ) . ')', VERGEML_META_HASH ) );
     }
@@ -341,13 +341,13 @@ $columns = function_exists( 'vergeml_search_columns' ) ? vergeml_search_columns(
 foreach ( array( 'group7', 'scale' ) as $word ) {
     wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
     $grid = new WP_Query( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'posts_per_page' => 40, 'paged' => 1, 's' => $word ) );
-    vgml_scale_line( "media grid search \"$word\", 40/page", $t, $q, number_format( $grid->found_posts ) . ' found' . ( $columns ? ', widened to ' . implode( '+', $columns ) : ', core columns only' ) );
+    vergeml_scale_line( "media grid search \"$word\", 40/page", $t, $q, number_format( $grid->found_posts ) . ' found' . ( $columns ? ', widened to ' . implode( '+', $columns ) : ', core columns only' ) );
 }
 if ( function_exists( 'vergeml_search_try' ) ) {
     foreach ( array( 'group7', 'scale caption' ) as $word ) {
         wp_cache_flush(); $q = $wpdb->num_queries; $t = microtime( true );
         $try = vergeml_search_try( $word );
-        vgml_scale_line( "try a query \"$word\" (word pass)", $t, $q, sprintf( '%s matched, meaning %s', number_format( (int) $try['word']['total'] ), empty( $try['meaning']['available'] ) ? 'not connected' : 'ran' ) );
+        vergeml_scale_line( "try a query \"$word\" (word pass)", $t, $q, sprintf( '%s matched, meaning %s', number_format( (int) $try['word']['total'] ), empty( $try['meaning']['available'] ) ? 'not connected' : 'ran' ) );
     }
 }
 

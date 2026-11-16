@@ -179,10 +179,11 @@ function vergeml_talk_samples( $limit = 40 ) {
 		return array();
 	}
 
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-	$total = (int) $wpdb->get_var(
-		"SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND caption != ''"
-	);
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+	$total = (int) $wpdb->get_var( $wpdb->prepare(
+		"SELECT COUNT(*) FROM %i WHERE error = '' AND caption != ''",
+		$wpdb->vergeml_ai_index
+	) );
 
 	if ( $total < 1 ) {
 		return array();
@@ -191,10 +192,11 @@ function vergeml_talk_samples( $limit = 40 ) {
 	$every = max( 1, (int) floor( $total / max( 1, (int) $limit ) ) );
 
 	$rows = $wpdb->get_results( $wpdb->prepare(
-		"SELECT caption, filing FROM {$wpdb->vergeml_ai_index}
+		"SELECT caption, filing FROM %i
 		  WHERE error = '' AND caption != ''
 	   ORDER BY attachment_id ASC
 		  LIMIT %d",
+		$wpdb->vergeml_ai_index,
 		VERGEML_TALK_SCAN
 	), ARRAY_A );
 	// phpcs:enable
@@ -234,9 +236,9 @@ function vergeml_talk_audience_share() {
 	if ( ! isset( $wpdb->vergeml_ai_index ) ) {
 		return 0.0;
 	}
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-	$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND filing IS NOT NULL AND filing <> ''" );
-	$with  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND filing IS NOT NULL AND filing LIKE '%\"audience\":\"%' AND filing NOT LIKE '%\"audience\":\"\"%'" );
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+	$total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND filing IS NOT NULL AND filing <> ''", $wpdb->vergeml_ai_index ) );
+	$with  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE error = '' AND filing IS NOT NULL AND filing LIKE %s AND filing NOT LIKE %s", $wpdb->vergeml_ai_index, '%"audience":"%', '%"audience":""%' ) );
 	// phpcs:enable
 	return $total > 0 ? round( $with / $total, 3 ) : 0.0;
 }
@@ -270,11 +272,12 @@ function vergeml_talk_groups() {
 		return array();
 	}
 
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-	$total = (int) $wpdb->get_var(
-		"SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
-		  WHERE error = '' AND embedding IS NOT NULL AND caption != ''"
-	);
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+	$total = (int) $wpdb->get_var( $wpdb->prepare(
+		"SELECT COUNT(*) FROM %i
+		  WHERE error = '' AND embedding IS NOT NULL AND caption != ''",
+		$wpdb->vergeml_ai_index
+	) );
 
 	if ( $total < 12 ) {
 		return array(); // Too few to have a shape worth reporting.
@@ -282,10 +285,11 @@ function vergeml_talk_groups() {
 
 	$rows = $wpdb->get_results( $wpdb->prepare(
 		"SELECT embedding, caption
-		   FROM {$wpdb->vergeml_ai_index}
+		   FROM %i
 		  WHERE error = '' AND embedding IS NOT NULL AND caption != ''
 	   ORDER BY attachment_id ASC
 		  LIMIT %d",
+		$wpdb->vergeml_ai_index,
 		VERGEML_TALK_GROUP_SAMPLE
 	), ARRAY_A );
 	// phpcs:enable
@@ -950,11 +954,12 @@ function vergeml_talk_apply( $folders, $tags = array(), $opts = array() ) {
 
 	update_option( VERGEML_TALK_UNDO, $before, false );
 
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-	$total = (int) $wpdb->get_var(
-		"SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index}
-		  WHERE error = '' AND embedding IS NOT NULL"
-	);
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+	$total = (int) $wpdb->get_var( $wpdb->prepare(
+		"SELECT COUNT(*) FROM %i
+		  WHERE error = '' AND embedding IS NOT NULL",
+		$wpdb->vergeml_ai_index
+	) );
 	// phpcs:enable
 
 	$state = array(
@@ -1106,13 +1111,8 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 	$trail = array();
 
 	/*
-	 *  Filterable, and not only for the test that drives them.
-	 *
-	 *  A host with a short execution limit wants smaller slices, and a box with
-	 *  room wants larger ones. They are also the only way to make a library of
-	 *  two hundred take more than one pass, and a resumption that is never
-	 *  exercised is a resumption nobody has established works -- which is how
-	 *  this stopped at five thousand for as long as it did.
+	 *  Filterable: a host with a short execution limit wants smaller slices,
+	 *  and a server with room wants larger ones.
 	 */
 	$slice  = max( 1, (int) apply_filters( 'vergeml_talk_slice', VERGEML_TALK_SLICE ) );
 	$budget = max( 1, (int) apply_filters( 'vergeml_talk_pass', VERGEML_TALK_PASS ) );
@@ -1123,14 +1123,23 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 
 	do {
 		// Round 2 (S10.7) looks only at what round 1 left unplaced.
-		$only = ! empty( $state['round_ids'] )
-			? ' AND i.attachment_id IN (' . implode( ',', array_map( 'intval', (array) $state['round_ids'] ) ) . ')'
-			: '';
-		$words   = vergeml_filing_words_sql( 'i' );   // The picture's file, title and alt (S10.9).
-		$product = vergeml_filing_product_sql( 'i' ); // The product it belongs to, when the site sells (S10.8).
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table; the ids are cast to int.
+		$only_ids = ! empty( $state['round_ids'] ) ? array_map( 'intval', (array) $state['round_ids'] ) : array();
+		// Round 2 only: a flag, and the ids (one 0 stands in when there are none, so the list is never empty).
+		$only_list = $only_ids ? $only_ids : array( 0 );
+		// The product it belongs to, when the site sells (S10.8), written out and switched by a flag.
+		$sells = function_exists( 'post_type_exists' ) && post_type_exists( 'product' ) ? 1 : 0;
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are written out as literal columns.
 		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.caption, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by, {$words['select']}, {$product['select']},
+			"SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.caption, i.tags, i.prompt_hash, i.model_version, pm.meta_value AS placed_by,
+			        wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt,
+			        CASE WHEN %d = 1 THEN COALESCE(
+			            ( SELECT vp1.ID FROM {$wpdb->postmeta} vm1 JOIN {$wpdb->posts} vp1 ON vp1.ID = vm1.post_id AND vp1.post_type = 'product'
+			               WHERE vm1.meta_key = '_thumbnail_id' AND vm1.meta_value = CAST(i.attachment_id AS CHAR) LIMIT 1 ),
+			            ( SELECT vp2.ID FROM {$wpdb->postmeta} vm2 JOIN {$wpdb->posts} vp2 ON vp2.ID = vm2.post_id AND vp2.post_type = 'product'
+			               WHERE vm2.meta_key = '_product_image_gallery' AND CONCAT( ',', vm2.meta_value, ',' ) LIKE CONCAT( %s, i.attachment_id, %s ) LIMIT 1 ),
+			            ( SELECT vp3.ID FROM {$wpdb->posts} va3 JOIN {$wpdb->posts} vp3 ON vp3.ID = va3.post_parent AND vp3.post_type = 'product'
+			               WHERE va3.ID = i.attachment_id LIMIT 1 )
+			        ) END AS product_id,
 			        ( SELECT COUNT(*) FROM {$wpdb->term_relationships} tr
 			            JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
 			            JOIN {$wpdb->termmeta} tm ON tm.term_id = tt.term_id AND tm.meta_key = %s AND tm.meta_value = '1'
@@ -1139,21 +1148,33 @@ function vergeml_talk_refile_run( $deadline, $slice_cap = null ) {
 			            JOIN {$wpdb->term_taxonomy} tt2 ON tt2.term_taxonomy_id = tr2.term_taxonomy_id
 			            JOIN {$wpdb->termmeta} tm2 ON tm2.term_id = tt2.term_id AND tm2.meta_key = %s AND tm2.meta_value = '1'
 			           WHERE tr2.object_id = i.attachment_id AND tt2.taxonomy = %s AND tt2.term_id != %d ) AS in_locked_other
-			   FROM {$wpdb->vergeml_ai_index} i
+			   FROM %i i
 			   LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = i.attachment_id AND pm.meta_key = %s
-			   {$words['join']}
-			   {$product['join']}
-			  WHERE i.error = '' AND i.embedding IS NOT NULL AND i.attachment_id > %d{$only}
+			   LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = i.attachment_id
+			   LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = i.attachment_id AND wp_f.meta_key = '_wp_attached_file'
+			   LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = i.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'
+			  WHERE i.error = '' AND i.embedding IS NOT NULL AND i.attachment_id > %d
+			    AND ( %d = 0 OR i.attachment_id IN ( " . implode( ', ', array_fill( 0, count( $only_list ), '%d' ) ) . " ) )
 		   ORDER BY i.attachment_id ASC
 			  LIMIT %d",
-			VERGEML_FILING_LOCKED,
-			$taxonomy,
-			VERGEML_FILING_LOCKED,
-			$taxonomy,
-			$to_sort_id,
-			VERGEML_FILING_PLACED_BY,
-			(int) $state['after'],
-			$slice
+			array_merge(
+				array(
+					$sells,
+					'%,',
+					',%',
+					VERGEML_FILING_LOCKED,
+					$taxonomy,
+					VERGEML_FILING_LOCKED,
+					$taxonomy,
+					$to_sort_id,
+					$wpdb->vergeml_ai_index,
+					VERGEML_FILING_PLACED_BY,
+					(int) $state['after'],
+					$only_ids ? 1 : 0,
+				),
+				$only_list,
+				array( $slice )
+			)
 		), ARRAY_A );
 		// phpcs:enable
 
@@ -1699,34 +1720,19 @@ function vergeml_talk_refile_schedule() {
 	/*
 	 *  WP-Cron fires on page loads, so on a site nobody is browsing a job that
 	 *  says it is still going simply stops. The describe run learned that the
-	 *  hard way; re-filing makes the same promise and needs the same nudge --
-	 *  and, since 2026-09-16, the same nudge exactly (core/ai-background.php,
-	 *  vergeml_ai_run_nudge). Until then this posted a fresh key without
-	 *  taking cron's lock, which wp-cron.php refuses on line one of its lock
-	 *  check: on the box's shop site the first tick's own spawn held the lock
-	 *  under a key no arriving request carried, every later post was turned
-	 *  away, and the fill stood for four minutes (C.5, S10.2).
-	 *
-	 *  Outside a cron run core's spawn_cron() takes the lock and posts; inside
-	 *  a tick it refuses outright, so the next request is chained the way
-	 *  core's own is: the lock re-taken under a new key, and that key posted.
+	 *  hard way; re-filing makes the same promise and uses the same nudge
+	 *  (core/ai-background.php, vergeml_ai_run_nudge): core's spawn_cron()
+	 *  outside a cron run, and inside one vergeml_cron_continue(), a keyless
+	 *  request to wp-cron.php once this run has released cron's lock. The lock
+	 *  is never written here (4.1.0; until then this took it with a new key,
+	 *  C.5, S10.2).
 	 */
 	if ( ! defined( 'DOING_CRON' ) ) {
 		spawn_cron();
 		return;
 	}
 
-	$key = sprintf( '%.22F', microtime( true ) );
-	set_transient( 'doing_cron', $key );
-
-	// A loopback to this site's own wp-cron.php, on the rule core's spawn_cron()
-	// uses: unverified unless the owner turns https_local_ssl_verify on.
-	wp_remote_post( add_query_arg( 'doing_wp_cron', $key, site_url( 'wp-cron.php' ) ), array(
-		'timeout'   => 0.01,
-		'blocking'  => false,
-		'sslverify' => apply_filters( 'https_local_ssl_verify', false ),
-		'headers'   => array( 'Cache-Control' => 'no-cache' ),
-	) );
+	vergeml_cron_continue();
 }
 
 
@@ -2263,8 +2269,8 @@ function vergeml_talk_questions_build( &$state, $deadline = null ) {
 	$facts    = array();
 	$captions = array();
 	foreach ( array_chunk( $residue, 500 ) as $chunk ) {
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
-		foreach ( (array) $wpdb->get_results( "SELECT attachment_id, embedding, kind, filing, caption FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', array_map( 'intval', $chunk ) ) . ')', ARRAY_A ) as $row ) {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table (%i); one %d per id, and the table and the ids are bound.
+		foreach ( (array) $wpdb->get_results( $wpdb->prepare( 'SELECT attachment_id, embedding, kind, filing, caption FROM %i WHERE attachment_id IN ( ' . implode( ', ', array_fill( 0, count( $chunk ), '%d' ) ) . ' )', array_merge( array( $wpdb->vergeml_ai_index ), $chunk ) ), ARRAY_A ) as $row ) {
 			$facts[ (int) $row['attachment_id'] ]    = vergeml_filing_facts( $row );
 			$captions[ (int) $row['attachment_id'] ] = (string) $row['caption'];
 		}
@@ -2541,11 +2547,12 @@ function vergeml_talk_fill_status() {
 
 	$unfiled = 0;
 	if ( '' !== $taxonomy && isset( $wpdb->vergeml_ai_index ) ) {
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
 		$unfiled = (int) $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->vergeml_ai_index} i WHERE i.error = '' AND i.embedding IS NOT NULL AND NOT EXISTS (
+			"SELECT COUNT(*) FROM %i i WHERE i.error = '' AND i.embedding IS NOT NULL AND NOT EXISTS (
 				SELECT 1 FROM {$wpdb->term_relationships} tr JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
 				 WHERE tr.object_id = i.attachment_id AND tt.taxonomy = %s )",
+			$wpdb->vergeml_ai_index,
 			$taxonomy
 		) );
 	}
@@ -2753,14 +2760,11 @@ add_action( 'rest_api_init', 'vergeml_talk_routes' );
 
 function vergeml_talk_routes() {
 
-	$may = function () {
-		return current_user_can( 'manage_categories' );
-	};
 
 	register_rest_route( VERGEML_REST_NS, '/folders-propose', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_talk_rest_propose',
-		'permission_callback' => $may,
+		'permission_callback' => function () { return current_user_can( 'manage_options' ); },
 		'args'                => array(
 			'instruction' => array( 'type' => 'string', 'required' => true ),
 			// What has already been said, so a refinement refines rather than
@@ -2778,7 +2782,7 @@ function vergeml_talk_routes() {
 	register_rest_route( VERGEML_REST_NS, '/folders-apply', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_talk_rest_apply',
-		'permission_callback' => $may,
+		'permission_callback' => function () { return current_user_can( 'manage_options' ); },
 		'args'                => array(
 			'folders' => array( 'type' => 'array', 'required' => true ),
 			'plan_id' => array( 'type' => 'string', 'required' => true ),
@@ -2788,7 +2792,7 @@ function vergeml_talk_routes() {
 	register_rest_route( VERGEML_REST_NS, '/folders-undo', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_talk_rest_undo',
-		'permission_callback' => $may,
+		'permission_callback' => function () { return current_user_can( 'manage_options' ); },
 	) );
 
 	/*
@@ -2802,7 +2806,7 @@ function vergeml_talk_routes() {
 		'callback'            => function () {
 			return rest_ensure_response( vergeml_talk_progress() );
 		},
-		'permission_callback' => $may,
+		'permission_callback' => function () { return current_user_can( 'manage_options' ); },
 	) );
 }
 
@@ -2865,12 +2869,12 @@ function vergeml_talk_rest_propose( WP_REST_Request $request ) {
 		}
 		$said[] = array(
 			'role' => ( isset( $turn['role'] ) && 'assistant' === $turn['role'] ) ? 'assistant' : 'user',
-			'text' => (string) substr( (string) $turn['text'], 0, 400 ),
+			'text' => (string) substr( sanitize_textarea_field( (string) $turn['text'] ), 0, 400 ),
 		);
 	}
 
 	$result = vergeml_talk_propose(
-		(string) $request->get_param( 'instruction' ),
+		sanitize_textarea_field( (string) $request->get_param( 'instruction' ) ),
 		$said,
 		(string) $request->get_param( 'mode' )
 	);

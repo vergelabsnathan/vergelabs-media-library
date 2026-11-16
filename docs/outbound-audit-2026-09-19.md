@@ -21,6 +21,13 @@ ones a mistake would most embarrass us: the support ticket's payload
 browser-side stream call (`js/vergeml-talk.js:396-404`), and the known-issues
 cache durations (`core/get-help.php:59-71`).
 
+> **2026-09-30 (4.1.0, review round 2):** the known-problems feed moved from
+> `raw.githubusercontent.com` to the AI service's `/v1/known-issues`
+> (`core/get-help.php`, `vergeml_help_known_issues_url()`). Same file, same
+> trigger (the Check button only), same cache; nothing new is sent. GitHub is
+> no longer a destination of shipped code. The service route is
+> `app/api/support/known-issues/route.ts` in the service repo.
+
 ## Where requests can go
 
 | Destination | Set by | Changeable |
@@ -28,7 +35,7 @@ cache durations (`core/get-help.php:59-71`).
 | `https://ai.vergelabs.nl/v1` | `vergeml_ai_service_url()` | `VERGEML_AI_SERVICE`, only `https://` or localhost; no filter, deliberately |
 | `https://vergelabsmedia.com` | `vergeml_connect_base()` | `VERGEML_SITE_URL`; no filter |
 | the stream host | `vergeml_guide_stream_url()` | `VERGEML_AI_STREAM`; no filter |
-| `raw.githubusercontent.com/…/known-issues.json` | `VERGEML_KNOWN_ISSUES_URL` | wp-config constant |
+| `https://ai.vergelabs.nl/v1/known-issues` (until 4.1.0: `raw.githubusercontent.com/…/known-issues.json`) | `vergeml_help_known_issues_url()` = `vergeml_help_service_url()` + `/known-issues` | `VERGEML_KNOWN_ISSUES_URL`, or `VERGEML_AI_SERVICE` with the rest of `/v1` |
 | the site's own `wp-cron.php` | `site_url()` | — (loopback) |
 
 ## The calls
@@ -49,7 +56,7 @@ cache durations (`core/get-help.php:59-71`).
 | `/v1/support/ticket` | site URL, a persistent per-site token, **the typed question**, **an email address**, the matched known issues, **the plaintext licence key** (until 4.0.0; from 4.0.1 — story 3.2, `fcad5ea` — the key's last four characters only, matched to an activation on the site), and **the whole system report** — home URL, WP / PHP / MySQL versions, server limits, debug flags, theme, attachment count, every attachment taxonomy with its term count, fifteen plugin settings, and **the name and version of every active plugin** | the Send button on Get help: `manage_options`, nonce, a question, and a consent tick | **no** |
 | `vergelabsmedia.com/api/connect/exchange` | the one-time code, the site URL | returning from the Connect handshake | **no** |
 | `vergelabsmedia.com/connect` — **browser redirect** | `state`, the site URL, the admin URL, and the admin's IP and headers | pressing Connect | **no** |
-| `raw.githubusercontent.com/…/known-issues.json` | nothing in the request; **the site address travels in WordPress's default User-Agent** | opening Get help until 4.0.7; **from 4.0.7 only the Check for known problems button** (no screen fetches it by opening; the price quote the AI screen fetched in 4.0.5–4.0.6 is gone too). Cached **12 hours**; a failure is not cached and the screen says so | **no** |
+| `/v1/known-issues` (until 4.1.0 `raw.githubusercontent.com/…/known-issues.json`; moved 2026-09-30 because Plugin Check reports a GitHub URL as OffloadedContent) | nothing in the request; **the site address travels in WordPress's default User-Agent** | opening Get help until 4.0.7; **from 4.0.7 only the Check for known problems button** (no screen fetches it by opening; the price quote the AI screen fetched in 4.0.5–4.0.6 is gone too). Cached **12 hours**; a failure -- network error, non-200, or a body with no `issues` list, which is what a service without the route answers -- is not cached and the screen says so | **no** |
 | the site's own `wp-cron.php` (×2) | a `doing_wp_cron` key | chaining a describe or refile pass from inside a tick | no |
 
 ## What can leave the site

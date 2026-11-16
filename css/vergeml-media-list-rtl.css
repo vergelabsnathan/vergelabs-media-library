@@ -163,7 +163,6 @@
  *  line of ours is never the reason a row is tall.
  */
 .wp-list-table.media .column-title .filename {
-	color: #5B6884;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;

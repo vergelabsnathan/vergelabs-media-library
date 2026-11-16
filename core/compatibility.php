@@ -7,7 +7,6 @@ if ( ! defined( 'ABSPATH' ) )
 
 /**
  *  Elementor
- *  @TODO: temporary solution
  *
  *  @since    2.5
  *  @since    2.9.2 register scripts for Elementor added
@@ -23,7 +22,6 @@ function vergeml_elementor_scripts() {
     global $vergeml_dir;
 
 
-    wp_enqueue_style( 'common' );
     wp_enqueue_style(
         'vergeml-elementor-media-style',
         $vergeml_dir . 'css/eml-admin-media.css',
@@ -33,98 +31,6 @@ function vergeml_elementor_scripts() {
 }
 
 
-
-
-
-/**
- *  Impreza Theme
- *
- *  @since    2.8.8
- *  @created  08/2021
- */
-
-add_action( 'after_setup_theme', 'vergeml_after_setup_theme_impreza', 9 );
-
-function vergeml_after_setup_theme_impreza() {
-
-    remove_filter( 'attachment_fields_to_edit', 'us_attachment_fields_to_edit_categories' );
-}
-
-
-
-/**
- *  SimpLy Gallery plugin
- *
- *  @since    2.8.9
- *  @created  10/2021
- */
-
-add_action( 'wp_loaded', 'vergeml_compat_on_wp_loaded' );
-
-function vergeml_compat_on_wp_loaded() {
-
-    remove_filter( 'ajax_query_attachments_args', 'pgc_sgb_ajaxQueryAttachmentsArgs', 20 );
-}
-
-
-
-/**
- *  Enhanced Media Library, active at the same time
- *
- *  The careless upgrade: this plugin installed before the old one is switched
- *  off. Both are then on the media screens, and both ship the same forked
- *  media JavaScript -- models, views, grid, admin. Two copies on one page and
- *  the older one answers: the tree sets media_category on the library, the
- *  request leaves without it, and the grid shows every file (matrix,
- *  2026-09-11). The newer fork wins, so the old one's scripts and styles are
- *  taken off the page while it is still active -- and so is its media
- *  template: both print #tmpl-attachment-grid-view, wp.template() takes the
- *  first on the page, and the old one reads a global its own scripts no longer
- *  define, so the grid rendered nothing. Its other PHP is left alone; the
- *  upgrade suite proves both can run.
- *
- *  @since    3.16.2
- */
-
-add_action( 'admin_enqueue_scripts', 'vergeml_compat_eml_scripts', 100 );
-add_action( 'wp_enqueue_media', 'vergeml_compat_eml_scripts', 100 );
-add_action( 'wp_loaded', 'vergeml_compat_eml_templates' );
-
-function vergeml_compat_eml_templates() {
-
-    if ( function_exists( 'wpuxss_eml_print_media_templates' ) ) {
-        remove_action( 'print_media_templates', 'wpuxss_eml_print_media_templates' );
-    }
-}
-
-function vergeml_compat_eml_scripts() {
-
-    if ( ! function_exists( 'wpuxss_eml_enqueue_media' ) ) {
-        return;
-    }
-
-    $scripts = array(
-        'wpuxss-eml-admin-script',
-        'wpuxss-eml-media-list-script',
-        'wpuxss-eml-media-models-script',
-        'wpuxss-eml-media-views-script',
-        'wpuxss-eml-enhanced-medialist-script',
-        'wpuxss-eml-media-editor-script',
-        'wpuxss-eml-media-grid-script',
-        'wpuxss-eml-media-script',
-        'wpuxss-eml-taxonomies-options-script',
-    );
-
-    foreach ( $scripts as $handle ) {
-        wp_dequeue_script( $handle );
-        wp_deregister_script( $handle );
-    }
-
-    foreach ( array( 'wpuxss-eml-admin-custom-style', 'wpuxss-eml-admin-media-style' ) as $handle ) {
-        wp_dequeue_style( $handle );
-        wp_deregister_style( $handle );
-    }
-}
 
 
 

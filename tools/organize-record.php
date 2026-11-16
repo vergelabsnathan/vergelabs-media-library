@@ -39,7 +39,7 @@ $home = trailingslashit( home_url() );
  *  Recorded relative to the site that produced them. An absolute URL to
  *  whichever box happened to record this would make the fixture about the box.
  */
-function vgml_record_relative( $branches, $home ) {
+function vergeml_record_relative( $branches, $home ) {
 
     foreach ( $branches as $i => $branch ) {
 
@@ -104,7 +104,7 @@ foreach ( $shapes as $shape ) {
             'k'             => $run['k'],
             'n'             => $run['n'],
             'took'          => $run['params']['took'],
-            'tree'          => vgml_record_relative( $run['tree'], $home ),
+            'tree'          => vergeml_record_relative( $run['tree'], $home ),
         ),
     );
 
@@ -115,7 +115,7 @@ foreach ( $shapes as $shape ) {
     printf( "%-6s %2d branches, n=%d, %d steps -> %s\n",
         $shape['name'], count( $run['tree'] ), $run['n'], $steps, $path );
 
-    $GLOBALS['vgml_recorded'][] = $run['run_id'];
+    $GLOBALS['vergeml_recorded'][] = $run['run_id'];
 }
 
 /*
@@ -123,7 +123,7 @@ foreach ( $shapes as $shape ) {
  *  phase makes and Phase 3 has to render. Recording it means the screen is
  *  built against a real one rather than an invented one.
  */
-$diff = vergeml_organize_diff( $GLOBALS['vgml_recorded'][0], $GLOBALS['vgml_recorded'][1] );
+$diff = vergeml_organize_diff( $GLOBALS['vergeml_recorded'][0], $GLOBALS['vergeml_recorded'][1] );
 
 file_put_contents(
     $out . '/diff.json',

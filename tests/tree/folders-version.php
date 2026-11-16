@@ -36,7 +36,7 @@ wp_set_current_user( 1 );
 $GLOBALS['fv_pass'] = 0;
 $GLOBALS['fv_fail'] = 0;
 $GLOBALS['fv_log']  = '';
-$GLOBALS['fv_tax']  = 'media_category';
+$GLOBALS['fv_tax']  = 'vergeml_folder';
 
 function fv_say( $line ) {
     $GLOBALS['fv_log'] .= $line;
@@ -86,7 +86,7 @@ function fv_cleanup() {
 }
 
 if ( ! taxonomy_exists( $GLOBALS['fv_tax'] ) ) {
-    echo "media_category is not registered here\n";
+    echo "vergeml_folder is not registered here\n";
     exit( 1 );
 }
 

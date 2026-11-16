@@ -36,13 +36,13 @@ window.vergeml = window.vergeml || { l10n: {} };
 
         switch ( settings ) {
 
-            case 'media-library':
+            case 'vergeml-library':
                 applying_settings_text = vergeml.l10n.applying_media_library_settings_text;
                 break;
-            case 'media-taxonomies':
+            case 'vergeml-taxonomies':
                 applying_settings_text = vergeml.l10n.applying_media_taxonomies_settings_text;
                 break;
-            case 'mime-types':
+            case 'vergeml-mime-types':
                 applying_settings_text = vergeml.l10n.applying_mime_types_settings_text;
                 break;
             default:

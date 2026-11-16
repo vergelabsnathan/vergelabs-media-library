@@ -105,7 +105,8 @@ function vergeml_list_row_meta() {
         return array();
     }
 
-    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
+    $taxonomy = isset( vergeml_assignable_media_taxonomies()[ $taxonomy ] ) ? $taxonomy : '';
     $meta     = array();
 
     /*
@@ -117,8 +118,12 @@ function vergeml_list_row_meta() {
     $moves = array();
     if ( isset( $GLOBALS['wpdb']->vergeml_librarian_moves ) && function_exists( 'vergeml_filing_confidence' ) ) {
         $ids = array_map( 'intval', wp_list_pluck( $posts, 'ID' ) );
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- this plugin's own table; ids are integers.
-        foreach ( (array) $GLOBALS['wpdb']->get_results( "SELECT attachment_id, term_id, why, score FROM {$GLOBALS['wpdb']->vergeml_librarian_moves} WHERE undone = 0 AND attachment_id IN (" . implode( ',', $ids ) . ') ORDER BY move_id DESC', ARRAY_A ) as $row ) {
+        $move_rows = array();
+        if ( $ids ) {
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table (%i); one %d per id, and the ids are bound.
+            $move_rows = (array) $GLOBALS['wpdb']->get_results( $GLOBALS['wpdb']->prepare( 'SELECT attachment_id, term_id, why, score FROM %i WHERE undone = 0 AND attachment_id IN ( ' . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . ' ) ORDER BY move_id DESC', array_merge( array( $GLOBALS['wpdb']->vergeml_librarian_moves ), $ids ) ), ARRAY_A );
+        }
+        foreach ( $move_rows as $row ) {
             if ( ! isset( $moves[ (int) $row['attachment_id'] ][ (int) $row['term_id'] ] ) ) {
                 $moves[ (int) $row['attachment_id'] ][ (int) $row['term_id'] ] = $row;
             }
@@ -208,7 +213,7 @@ function vergeml_list_assets( $hook ) {
      *  A cell of ours is never the reason a row is tall.
      *
      *  Written here rather than in the stylesheet because two of the four are
-     *  named after taxonomies somebody made up -- `taxonomy-media_category`
+     *  named after taxonomies somebody made up -- `taxonomy-vergeml_folder`
      *  on one library, `taxonomy-colour` on the next -- and this is the one
      *  place that knows which columns are ours. The full value goes on the
      *  cell's title in js/vergeml-media-list.js, so an ellipsis never hides
@@ -217,7 +222,7 @@ function vergeml_list_assets( $hook ) {
     $cells = array();
 
     foreach ( vergeml_list_our_columns() as $column ) {
-        $cells[] = '.wp-list-table.media td.column-' . $column;
+        $cells[] = '.wp-list-table.media td.column-' . sanitize_html_class( $column );
     }
 
     /*
@@ -251,7 +256,7 @@ function vergeml_list_assets( $hook ) {
         $headings = array();
 
         foreach ( vergeml_list_our_columns() as $column ) {
-            $headings[] = '.wp-list-table.media .column-' . $column;
+            $headings[] = '.wp-list-table.media .column-' . sanitize_html_class( $column );
         }
 
         $css .= "\n\n" . implode( ",\n", $headings ) . " {\n\twidth: 9%;\n}";
@@ -292,7 +297,8 @@ function vergeml_list_assets( $hook ) {
     $css .= "\n\nbody.vgml-file-share-30 .wp-list-table.media .column-title {\n\twidth: 30%;\n}"
           . "\n\nbody.vgml-file-share-40 .wp-list-table.media .column-title {\n\twidth: 40%;\n}";
 
-    wp_add_inline_style( 'vergeml-media-list', $css );
+    // Escaped at output: selectors and declarations only, no markup can close the style element.
+    wp_add_inline_style( 'vergeml-media-list', wp_strip_all_tags( $css ) );
 
     wp_enqueue_script(
         'vergeml-media-list',
@@ -386,17 +392,16 @@ class vergeml_Walker_FolderDropdown extends Walker_CategoryDropdown {
 
     function start_el( &$output, $category, $depth = 0, $args = array(), $id = 0 ) {
 
-        $pad   = str_repeat( '&nbsp;', $depth * 3 );
         $count = vergeml_get_media_term_count( $category->term_id, $category->term_taxonomy_id );
 
-        $output .= "\t<option class=\"level-$depth\" value=\"" . esc_attr( $category->term_id ) . "\"";
+        $output .= "\t<option class=\"level-" . (int) $depth . "\" value=\"" . esc_attr( $category->term_id ) . "\"";
 
         // Type-juggling causes false matches, so everything is compared as a string.
         if ( (string) $category->term_id === (string) $args['selected'] ) {
             $output .= ' selected="selected"';
         }
 
-        $output .= '>' . $pad . esc_html( sprintf(
+        $output .= '>' . str_repeat( '&nbsp;', (int) $depth * 3 ) . esc_html( sprintf(
             /* translators: 1: folder name, 2: how many files are in it. */
             __( '%1$s (%2$s)', 'vergelabs-media-library' ),
             vergeml_list_folder_name( $category->name ),
@@ -446,21 +451,21 @@ function vergeml_list_folder_filter( $post_type, $which ) {
 
     $rendered = true;
 
-    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
-    if ( ! $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+    if ( ! $taxonomy || ! isset( vergeml_assignable_media_taxonomies()[ $taxonomy ] ) ) {
         return;
     }
 
     global $wp_query;
 
     // The two spellings of Unfiled: this dropdown's, and the folder tree's URL.
-    $unfiled = ( isset( $_REQUEST[ $taxonomy ] ) && 'not_in' === $_REQUEST[ $taxonomy ] )
-        || ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === $_REQUEST['attachment-filter'] )
+    $unfiled = ( isset( $_REQUEST[ $taxonomy ] ) && 'not_in' === sanitize_key( wp_unslash( $_REQUEST[ $taxonomy ] ) ) )
+        || ( isset( $_REQUEST['attachment-filter'] ) && 'uncategorized' === sanitize_key( wp_unslash( $_REQUEST[ 'attachment-filter' ] ) ) )
         || ! empty( $_REQUEST['uncategorized'] );
 
     // Placed by hand: the pictures a person chose a folder for (a drag, an answer's Put in) -- the ones a fill never re-judges, so the ones to review.
-    $by_you = isset( $_REQUEST[ $taxonomy ] ) && 'by_you' === $_REQUEST[ $taxonomy ];
+    $by_you = isset( $_REQUEST[ $taxonomy ] ) && 'by_you' === sanitize_key( wp_unslash( $_REQUEST[ $taxonomy ] ) );
 
     $selected = $unfiled
         ? 'not_in'
@@ -502,7 +507,7 @@ function vergeml_list_folder_filter( $post_type, $which ) {
     ) );
 
     // Third, after Unfiled: core's dropdown has two fixed options and no third.
-    echo preg_replace( '/(<option[^>]*value=[\'"]not_in[\'"][^>]*>.*?<\/option>)/s', '$1' . str_replace( '$', '\\$', $option ), $dropdown, 1 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- core's own markup, plus one option escaped above.
+    echo wp_kses( preg_replace( '/(<option[^>]*value=[\'"]not_in[\'"][^>]*>.*?<\/option>)/s', '$1' . str_replace( '$', '\\$', $option ), $dropdown, 1 ), vergeml_kses_allowed() );
 }
 
 // phpcs:enable WordPress.Security.NonceVerification.Recommended
@@ -567,6 +572,10 @@ function vergeml_list_folder_count( $term ) {
 
 function vergeml_list_folder_options( $taxonomy ) {
 
+    if ( ! isset( vergeml_assignable_media_taxonomies()[ $taxonomy ] ) ) {
+        return array();
+    }
+
     $terms = get_terms( array(
         'taxonomy'   => $taxonomy,
         'hide_empty' => false,
@@ -583,11 +592,13 @@ function vergeml_list_folder_options( $taxonomy ) {
         $children[ (int) $term->parent ][] = $term;
     }
 
-    return vergeml_list_folder_branch( $children, 0, 0 );
+    $seen = array();
+
+    return vergeml_list_folder_branch( $children, 0, 0, $seen );
 }
 
 
-function vergeml_list_folder_branch( $children, $parent, $depth ) {
+function vergeml_list_folder_branch( $children, $parent, $depth, &$seen ) {
 
     $out = array();
 
@@ -597,6 +608,11 @@ function vergeml_list_folder_branch( $children, $parent, $depth ) {
 
     foreach ( $children[ $parent ] as $term ) {
 
+        if ( isset( $seen[ (int) $term->term_id ] ) ) {
+            continue; // a parent loop in the terms table is followed once
+        }
+        $seen[ (int) $term->term_id ] = true;
+
         $out[ 'vergeml-move-' . (int) $term->term_id ] = str_repeat( '&nbsp;', $depth * 3 ) . esc_html( sprintf(
             /* translators: 1: folder name, 2: how many files are in it. */
             __( '%1$s (%2$s)', 'vergelabs-media-library' ),
@@ -604,7 +620,7 @@ function vergeml_list_folder_branch( $children, $parent, $depth ) {
             number_format_i18n( vergeml_list_folder_count( $term ) )
         ) );
 
-        $out += vergeml_list_folder_branch( $children, (int) $term->term_id, $depth + 1 );
+        $out += vergeml_list_folder_branch( $children, (int) $term->term_id, $depth + 1, $seen );
     }
 
     return $out;
@@ -627,7 +643,7 @@ add_filter( 'bulk_actions-upload', 'vergeml_list_move_action' );
 
 function vergeml_list_move_action( $actions ) {
 
-    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
     if ( ! $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
         return $actions;
@@ -664,10 +680,16 @@ function vergeml_list_handle_move( $location, $doaction, $post_ids ) {
         return $location;
     }
 
-    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    // Core's upload.php checked this before calling the filter; said again here so the handler stands on its own.
+    check_admin_referer( 'bulk-media' );
+
+    $taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
     $term     = $taxonomy ? get_term( (int) $found[1], $taxonomy ) : null;
 
-    if ( ! $term instanceof WP_Term ) {
+    $tax_object = get_taxonomy( $taxonomy );
+
+    // Core's own rule for setting terms on a post.
+    if ( ! $term instanceof WP_Term || ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) || ( function_exists( 'vergeml_private_is_hidden' ) && vergeml_private_is_hidden( $term->term_id ) ) ) {
         return $location;
     }
 
@@ -679,7 +701,7 @@ function vergeml_list_handle_move( $location, $doaction, $post_ids ) {
 
         $post_id = absint( $post_id );
 
-        if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+        if ( ! $post_id || 'attachment' !== get_post_type( $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
             continue;
         }
 
@@ -698,16 +720,16 @@ function vergeml_list_handle_move( $location, $doaction, $post_ids ) {
 
     return add_query_arg(
         array(
-            'vgml_moved' => $moved,
+            'vergeml_moved' => $moved,
             /*
              *  Encoded here on purpose: add_query_arg() does not encode its
              *  values, so a folder called "Client work & co" would end the
              *  query string at the ampersand. PHP decodes it once out of
              *  $_GET, so the read side needs no decode of its own.
              */
-            'vgml_to'    => rawurlencode( vergeml_list_folder_name( $term->name ) ),
+            'vergeml_to'    => rawurlencode( vergeml_list_folder_name( $term->name ) ),
         ),
-        remove_query_arg( array( 'vgml_moved', 'vgml_to' ), $location )
+        remove_query_arg( array( 'vergeml_moved', 'vergeml_to' ), $location )
     );
 }
 
@@ -727,12 +749,12 @@ function vergeml_list_move_notice() {
     }
 
     // phpcs:disable WordPress.Security.NonceVerification.Recommended -- reading our own redirect result to display it.
-    if ( ! isset( $_GET['vgml_moved'] ) ) {
+    if ( ! isset( $_GET['vergeml_moved'] ) ) {
         return;
     }
 
-    $moved = absint( $_GET['vgml_moved'] );
-    $to    = isset( $_GET['vgml_to'] ) ? sanitize_text_field( wp_unslash( $_GET['vgml_to'] ) ) : '';
+    $moved = absint( $_GET['vergeml_moved'] );
+    $to    = isset( $_GET['vergeml_to'] ) ? sanitize_text_field( wp_unslash( $_GET['vergeml_to'] ) ) : '';
     // phpcs:enable WordPress.Security.NonceVerification.Recommended
 
     printf(

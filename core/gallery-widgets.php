@@ -58,6 +58,9 @@ function vergeml_gallery_folder_options() {
         }
 
         foreach ( $by_parent[ $parent ] as $term ) {
+            if ( isset( $out[ (int) $term->term_id ] ) ) {
+                continue; // a parent loop in the terms table is followed once
+            }
             $label = $prefix ? $prefix . ' / ' . $term->name : $term->name;
             $out[ (int) $term->term_id ] = $label;
             $walk( (int) $term->term_id, $label );
@@ -106,7 +109,7 @@ function vergeml_gallery_widget_atts( $settings ) {
  *
  *  The fourth door, and the one that needs no builder at all: it works in a
  *  plain post, a text widget, a theme that never heard of blocks. Registered
- *  unconditionally -- unlike the inherited [gallery media_category=...]
+ *  unconditionally -- unlike the inherited [gallery vergeml_folder=...]
  *  enhancement, it hides behind no setting, because a shortcode somebody has to
  *  switch on first is a shortcode that renders nothing with no explanation.
  *
@@ -393,7 +396,7 @@ function vergeml_register_elementor_gallery( $widgets_manager ) {
                     . '</div>';
             }
 
-            echo $html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built entirely from esc_*'d parts by vergeml_render_gallery_block().
+            echo wp_kses( $html, vergeml_kses_allowed() );
         }
     }
 

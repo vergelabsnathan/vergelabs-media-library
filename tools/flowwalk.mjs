@@ -48,7 +48,7 @@ async function where() {
 
 async function go() {
 
-	await page.goto( `${ BASE }/wp-admin/admin.php?page=media-librarian`, { waitUntil: 'networkidle' } );
+	await page.goto( `${ BASE }/wp-admin/admin.php?page=vergeml-librarian`, { waitUntil: 'networkidle' } );
 	await page.waitForSelector( '#vgml-lib-stage h2, #vgml-lib-review h2', { timeout: 30000 } );
 	await page.waitForTimeout( 1200 );
 }

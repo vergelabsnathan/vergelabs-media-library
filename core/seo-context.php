@@ -77,8 +77,10 @@ function vergeml_seo_page_context( $post_id ) {
 
         global $wpdb;
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- All in One SEO keeps keyphrases in its own table with no API for them; one prepared read by post id, feeding one describe request.
         $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT keyphrases, description FROM {$wpdb->prefix}aioseo_posts WHERE post_id = %d",
+            'SELECT keyphrases, description FROM %i WHERE post_id = %d',
+            $wpdb->prefix . 'aioseo_posts',
             $post_id
         ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- another plugin's table, read once per describe.
 
@@ -237,7 +239,7 @@ function vergeml_seo_keyphrase_keys() {
 
 
 /**
- *  vergeml_seo_gap_sql
+ *  vergeml_seo_gap_ids
  *
  *  Images sitting on a page that has a focus keyphrase, with no alt text.
  *
@@ -246,76 +248,88 @@ function vergeml_seo_keyphrase_keys() {
  *  A page speaks for an image the same two ways as the context does: it was
  *  uploaded there, or the "Used in" scan found it there.
  *
- *  @param  string $select  What to select: 'p.ID' or 'COUNT(DISTINCT p.ID)'.
- *  @return string          A prepared statement, minus the trailing LIMIT.
+ *  Pages with a keyphrase, each with a flag for cornerstone / pillar so the
+ *  pages the site cares most about come first, then by id so a run walks in
+ *  order. One pass over the meta table: a row counts as a keyphrase when it
+ *  is one of those keys with a value, and as a star when it is one of the
+ *  cornerstone keys switched on. All in One SEO keeps its own table and joins
+ *  in flat, so a site running it gets the statement with that table in it.
+ *
+ *  Literal statements with every value bound: the two key lists fill the
+ *  IN () lists in the order they appear, one placeholder per key, so a
+ *  changed list changes its placeholders with it; that table's name, an
+ *  identifier, comes just before the LIKE it feeds.
+ *  _vergeml_used_in is a comma list of post ids; the CONCAT ... LIKE is
+ *  FIND_IN_SET() spelled so SQLite (Playground) can run it too.
+ *
+ *  @param  int $limit  How many; 0 for all.
+ *  @return int[]
  */
-
-function vergeml_seo_gap_sql( $select ) {
-
-    global $wpdb;
-
-    $keys  = "'" . implode( "','", array_map( 'esc_sql', vergeml_seo_keyphrase_keys() ) ) . "'";
-    $stars = "'" . implode( "','", array_map( 'esc_sql', vergeml_seo_cornerstone_keys() ) ) . "'";
-    $mime  = $wpdb->esc_like( 'image/' ) . '%';
-
-    /*
-     *  Pages with a keyphrase, each with a flag for cornerstone / pillar so
-     *  the pages the site cares most about come first. One pass over the
-     *  meta table: a row counts as a keyphrase when it is one of those keys
-     *  with a value, and as a star when it is one of the cornerstone keys
-     *  switched on. All in One SEO keeps its own table and joins in flat.
-     */
-    $pages = "SELECT post_id,
-                     MAX( CASE WHEN meta_key IN ($stars) AND meta_value IN ('1','on') THEN 1 ELSE 0 END ) AS pri
-                FROM {$wpdb->postmeta}
-               WHERE ( meta_key IN ($keys) AND meta_value <> '' )
-                  OR ( meta_key IN ($stars) AND meta_value IN ('1','on') )
-            GROUP BY post_id
-              HAVING SUM( CASE WHEN meta_key IN ($keys) AND meta_value <> '' THEN 1 ELSE 0 END ) > 0";
-
-    if ( defined( 'AIOSEO_VERSION' ) ) {
-        $pages .= " UNION SELECT post_id, 0 AS pri FROM {$wpdb->prefix}aioseo_posts WHERE keyphrases LIKE '%\"keyphrase\":\"_%'";
-    }
-
-    // $select, $keys and $stars are literals from this file, never input; the
-    // one value from outside is the MIME pattern, and it is placeheld.
-    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    return $wpdb->prepare(
-        "SELECT $select FROM {$wpdb->posts} p
-           LEFT JOIN {$wpdb->postmeta} alt  ON alt.post_id  = p.ID AND alt.meta_key  = '_wp_attachment_image_alt'
-           LEFT JOIN {$wpdb->postmeta} used ON used.post_id = p.ID AND used.meta_key = '_vergeml_used_in'
-          INNER JOIN ( $pages ) kw
-                  ON kw.post_id = p.post_parent
-                  OR ( used.meta_value IS NOT NULL AND FIND_IN_SET( kw.post_id, used.meta_value ) )
-          WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
-            AND ( alt.meta_id IS NULL OR alt.meta_value = '' )",
-        $mime
-    );
-}
-
 
 function vergeml_seo_gap_ids( $limit = 0 ) {
 
     global $wpdb;
 
-    $cap = $limit > 0 ? (int) $limit : PHP_INT_MAX;
+    $cap  = $limit > 0 ? (int) $limit : PHP_INT_MAX;
+    $keys = vergeml_seo_keyphrase_keys();
+    $star = vergeml_seo_cornerstone_keys();
+    $tail = array( '%,', ',%', $wpdb->esc_like( 'image/' ) . '%', $cap );
 
-    // Cornerstone and pillar pages first, then by id so a run walks in order.
-    // The statement is prepared in vergeml_seo_gap_sql; the LIMIT is placeheld here.
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-    return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-        vergeml_seo_gap_sql( 'p.ID, MAX( kw.pri ) AS pri' ) . ' GROUP BY p.ID ORDER BY pri DESC, p.ID ASC LIMIT %d',
-        $cap
-    ) ) );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- every value is bound: the key lists and the tail, one per placeholder; the All in One SEO table is an identifier (%i).
+    if ( defined( 'AIOSEO_VERSION' ) ) {
+
+        $ids = $wpdb->get_col( $wpdb->prepare(
+            "SELECT p.ID FROM {$wpdb->posts} p
+               LEFT JOIN {$wpdb->postmeta} alt  ON alt.post_id  = p.ID AND alt.meta_key  = '_wp_attachment_image_alt'
+               LEFT JOIN {$wpdb->postmeta} used ON used.post_id = p.ID AND used.meta_key = '_vergeml_used_in'
+              INNER JOIN ( SELECT post_id,
+                                  MAX( CASE WHEN meta_key IN ( " . implode( ', ', array_fill( 0, count( $star ), '%s' ) ) . " ) AND meta_value IN ( '1', 'on' ) THEN 1 ELSE 0 END ) AS pri
+                             FROM {$wpdb->postmeta}
+                            WHERE ( meta_key IN ( " . implode( ', ', array_fill( 0, count( $keys ), '%s' ) ) . " ) AND meta_value <> '' )
+                               OR ( meta_key IN ( " . implode( ', ', array_fill( 0, count( $star ), '%s' ) ) . " ) AND meta_value IN ( '1', 'on' ) )
+                         GROUP BY post_id
+                           HAVING SUM( CASE WHEN meta_key IN ( " . implode( ', ', array_fill( 0, count( $keys ), '%s' ) ) . " ) AND meta_value <> '' THEN 1 ELSE 0 END ) > 0
+                            UNION SELECT post_id, 0 AS pri FROM %i WHERE keyphrases LIKE %s ) kw
+                      ON kw.post_id = p.post_parent
+                      OR ( used.meta_value IS NOT NULL AND CONCAT( ',', used.meta_value, ',' ) LIKE CONCAT( %s, kw.post_id, %s ) )
+              WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
+                AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
+              GROUP BY p.ID ORDER BY MAX( kw.pri ) DESC, p.ID ASC LIMIT %d",
+            array_merge( $star, $keys, $star, $keys, array( $wpdb->prefix . 'aioseo_posts', '%"keyphrase":"_%' ), $tail )
+        ) );
+
+    } else {
+
+        $ids = $wpdb->get_col( $wpdb->prepare(
+            "SELECT p.ID FROM {$wpdb->posts} p
+               LEFT JOIN {$wpdb->postmeta} alt  ON alt.post_id  = p.ID AND alt.meta_key  = '_wp_attachment_image_alt'
+               LEFT JOIN {$wpdb->postmeta} used ON used.post_id = p.ID AND used.meta_key = '_vergeml_used_in'
+              INNER JOIN ( SELECT post_id,
+                                  MAX( CASE WHEN meta_key IN ( " . implode( ', ', array_fill( 0, count( $star ), '%s' ) ) . " ) AND meta_value IN ( '1', 'on' ) THEN 1 ELSE 0 END ) AS pri
+                             FROM {$wpdb->postmeta}
+                            WHERE ( meta_key IN ( " . implode( ', ', array_fill( 0, count( $keys ), '%s' ) ) . " ) AND meta_value <> '' )
+                               OR ( meta_key IN ( " . implode( ', ', array_fill( 0, count( $star ), '%s' ) ) . " ) AND meta_value IN ( '1', 'on' ) )
+                         GROUP BY post_id
+                           HAVING SUM( CASE WHEN meta_key IN ( " . implode( ', ', array_fill( 0, count( $keys ), '%s' ) ) . " ) AND meta_value <> '' THEN 1 ELSE 0 END ) > 0 ) kw
+                      ON kw.post_id = p.post_parent
+                      OR ( used.meta_value IS NOT NULL AND CONCAT( ',', used.meta_value, ',' ) LIKE CONCAT( %s, kw.post_id, %s ) )
+              WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE %s
+                AND ( alt.meta_id IS NULL OR alt.meta_value = '' )
+              GROUP BY p.ID ORDER BY MAX( kw.pri ) DESC, p.ID ASC LIMIT %d",
+            array_merge( $star, $keys, $star, $keys, $tail )
+        ) );
+    }
     // phpcs:enable
+
+    return array_map( 'intval', $ids );
 }
 
 
 /**
  *  vergeml_seo_gap_count
  *
- *  Counted in the database, held for a minute: the number sits on a button
- *  that is redrawn on every status poll, and the join is not free at scale.
+ *  How many, held for a minute: the number sits on a button that is redrawn
+ *  on every status poll, and the join is not free at scale.
  */
 
 function vergeml_seo_gap_count() {
@@ -326,10 +340,7 @@ function vergeml_seo_gap_count() {
         return (int) $cached;
     }
 
-    global $wpdb;
-
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- prepared in vergeml_seo_gap_sql.
-    $n = (int) $wpdb->get_var( vergeml_seo_gap_sql( 'COUNT(DISTINCT p.ID)' ) );
+    $n = count( vergeml_seo_gap_ids() );
 
     set_transient( 'vergeml_seo_gap_count', $n, MINUTE_IN_SECONDS );
 

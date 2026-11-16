@@ -14,7 +14,7 @@
 
 global $wpdb;
 
-$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
 printf( "taxonomy: %s\n", $taxonomy );
 

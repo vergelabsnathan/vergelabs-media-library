@@ -62,8 +62,8 @@ foreach ( array( 'Footwear', 'Furniture', 'Bicycles', "Women's apparel", 'Leathe
 }
 
 echo "
-=== parallelism
+=== plan
 ";
 $c = get_option( 'vergeml_ai_credits', array() );
-printf( "  plan: %s   vergeml_ai_parallel(): %d
-", isset( $c['plan'] ) ? $c['plan'] : '(not cached yet)', vergeml_ai_parallel() );
+printf( "  plan: %s   (describing is one call at a time since 4.1.0)
+", isset( $c['plan'] ) ? $c['plan'] : '(not cached yet)' );

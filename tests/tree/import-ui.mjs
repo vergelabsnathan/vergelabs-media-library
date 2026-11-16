@@ -38,7 +38,7 @@ await page.fill( '#user_pass', PASS );
 await page.click( '#wp-submit' );
 await page.waitForTimeout( 2500 );
 
-const SCREEN = `${ BASE }/wp-admin/options-general.php?page=media-import-folders`;
+const SCREEN = `${ BASE }/wp-admin/options-general.php?page=vergeml-import-folders`;
 
 await page.goto( SCREEN, { waitUntil: 'domcontentloaded' } );
 await page.waitForSelector( '.vgml-import-card', { timeout: 60000 } );
@@ -92,7 +92,7 @@ check( 'it reports real numbers', !! filebird && /\d/.test( filebird.summary ), 
 console.log( '\nthe preview' );
 
 const beforeTerms = await page.evaluate( async () => {
-	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } );
+	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder' } );
 	return ( t.nodes || [] ).length;
 } );
 
@@ -103,7 +103,7 @@ const planText = await page.textContent( '.vgml-import-plan-line' );
 check( 'it says what it will do', !! planText && /\d/.test( planText ), planText.trim() );
 
 const afterPreview = await page.evaluate( async () => {
-	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } );
+	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder' } );
 	return ( t.nodes || [] ).length;
 } );
 check( 'the preview changed nothing', afterPreview === beforeTerms, `${ beforeTerms } -> ${ afterPreview }` );
@@ -170,7 +170,7 @@ check( 'the result adds up', sourceFolders > 0 && createdN + mergedN === sourceF
 	`${ createdN } + ${ mergedN } of ${ sourceFolders } | ${ resultLine }` );
 
 const imported = await page.evaluate( async () => {
-	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } );
+	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder' } );
 	return ( t.nodes || [] ).length;
 } );
 check( 'folders arrived', imported > beforeTerms, `${ beforeTerms } -> ${ imported }` );
@@ -198,7 +198,7 @@ await page.waitForFunction(
 check( 'undo finished', true, `${ Math.round( ( Date.now() - u0 ) / 1000 ) }s` );
 
 const afterUndo = await page.evaluate( async () => {
-	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } );
+	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder' } );
 	return ( t.nodes || [] ).length;
 } );
 check( 'undo removed what it added', afterUndo === beforeTerms, `${ imported } -> ${ afterUndo }, expected ${ beforeTerms }` );

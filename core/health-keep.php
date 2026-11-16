@@ -392,19 +392,24 @@ function vergeml_health_rewrite_source( $source_id, $from, $to, $map, &$record )
 
 	$post = get_post( $source_id );
 
-	if ( ! $post ) {
+	// A post this person may not edit is not rewritten; its use stays, and so does the file.
+	if ( ! $post || ! current_user_can( 'edit_post', $source_id ) ) {
 		return false;
 	}
-
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the same direct writes core/health-delete.php makes, recorded for undo.
 
 	$content = vergeml_health_rewrite_text( $post->post_content, $map, $from, $to );
 
 	if ( $content !== $post->post_content ) {
-		$wpdb->update( $wpdb->posts, array( 'post_content' => $content ), array( 'ID' => $source_id ) );
-		clean_post_cache( $source_id );
-		$record['posts'][] = array( 'id' => $source_id, 'before' => $post->post_content, 'after' => $content );
+
+		if ( ! vergeml_health_may_rewrite( $source_id, $content ) || ! vergeml_health_write_content( $source_id, $content ) ) {
+			return false;
+		}
+
+		// What was stored, which undo compares against: save_post filters may have touched it.
+		$record['posts'][] = array( 'id' => $source_id, 'before' => $post->post_content, 'after' => (string) get_post_field( 'post_content', $source_id, 'raw' ) );
 	}
+
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- meta rows by meta_id, as core/health-delete.php does, recorded for undo.
 
 	$rows = $wpdb->get_results( $wpdb->prepare(
 		"SELECT meta_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE post_id = %d",
@@ -433,7 +438,7 @@ function vergeml_health_rewrite_source( $source_id, $from, $to, $map, &$record )
 			continue;
 		}
 
-		$wpdb->update( $wpdb->postmeta, array( 'meta_value' => $value ), array( 'meta_id' => (int) $row->meta_id ) );
+		vergeml_health_write_meta( (int) $row->meta_id, $value );
 		$record['metas'][] = array( 'meta_id' => (int) $row->meta_id, 'post_id' => $source_id, 'before' => (string) $row->meta_value, 'after' => $value );
 	}
 
@@ -441,13 +446,11 @@ function vergeml_health_rewrite_source( $source_id, $from, $to, $map, &$record )
 
 	// Attached to this post: the kept file takes the place, the other floats free.
 	if ( (int) get_post_field( 'post_parent', $from ) === $source_id ) {
-		$wpdb->update( $wpdb->posts, array( 'post_parent' => 0 ), array( 'ID' => $from ) );
-		clean_post_cache( $from );
+		vergeml_health_write_parent( $from, 0 );
 		$record['parents'][] = array( 'id' => $from, 'before' => $source_id );
 
 		if ( 0 === (int) get_post_field( 'post_parent', $to ) ) {
-			$wpdb->update( $wpdb->posts, array( 'post_parent' => $source_id ), array( 'ID' => $to ) );
-			clean_post_cache( $to );
+			vergeml_health_write_parent( $to, $source_id );
 			$record['parents'][] = array( 'id' => $to, 'before' => 0 );
 		}
 	}
@@ -733,13 +736,13 @@ function vergeml_health_keep_undo( $token ) {
 	$back   = 0;
 	$kept   = 0;
 
-	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the inverse of the writes above.
+	// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- the inverse of the writes above.
 
 	foreach ( (array) $record['posts'] as $change ) {
 		clean_post_cache( (int) $change['id'] );
-		if ( (string) get_post_field( 'post_content', (int) $change['id'] ) === (string) $change['after'] ) {
-			$wpdb->update( $wpdb->posts, array( 'post_content' => $change['before'] ), array( 'ID' => (int) $change['id'] ) );
-			clean_post_cache( (int) $change['id'] );
+		if ( (string) get_post_field( 'post_content', (int) $change['id'], 'raw' ) === (string) $change['after']
+				&& vergeml_health_may_rewrite( (int) $change['id'], (string) $change['before'] )
+				&& vergeml_health_write_content( (int) $change['id'], (string) $change['before'] ) ) {
 			$back++;
 		} else {
 			$kept++; // Edited since; left as the person left it.
@@ -749,8 +752,7 @@ function vergeml_health_keep_undo( $token ) {
 	foreach ( (array) $record['metas'] as $change ) {
 		$now = $wpdb->get_var( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_id = %d", (int) $change['meta_id'] ) );
 		if ( (string) $now === (string) $change['after'] ) {
-			$wpdb->update( $wpdb->postmeta, array( 'meta_value' => $change['before'] ), array( 'meta_id' => (int) $change['meta_id'] ) );
-			wp_cache_delete( (int) $change['post_id'], 'post_meta' );
+			vergeml_health_write_meta( (int) $change['meta_id'], $change['before'] );
 		}
 	}
 
@@ -761,8 +763,7 @@ function vergeml_health_keep_undo( $token ) {
 	}
 
 	foreach ( (array) $record['parents'] as $change ) {
-		$wpdb->update( $wpdb->posts, array( 'post_parent' => (int) $change['before'] ), array( 'ID' => (int) $change['id'] ) );
-		clean_post_cache( (int) $change['id'] );
+		vergeml_health_write_parent( (int) $change['id'], (int) $change['before'] );
 	}
 
 	foreach ( (array) $record['used'] as $change ) {
@@ -817,14 +818,11 @@ function vergeml_health_keep_routes() {
 
 	// Rewriting other people's pages and taking files out of the library:
 	// the same authority as the delete route, minus the deleting.
-	$can = function () {
-		return current_user_can( 'manage_options' );
-	};
 
 	register_rest_route( VERGEML_REST_NS, '/health-keep', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_health_rest_keep',
-		'permission_callback' => $can,
+		'permission_callback' => function ( WP_REST_Request $request ) { return current_user_can( 'manage_options' ) && vergeml_health_can_drop( $request ); },
 		'args'                => array(
 			'keep' => array( 'type' => 'integer', 'required' => true ),
 			'drop' => array( 'type' => 'array', 'required' => true, 'items' => array( 'type' => 'integer' ) ),
@@ -834,7 +832,7 @@ function vergeml_health_keep_routes() {
 	register_rest_route( VERGEML_REST_NS, '/health-keep-undo', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_health_rest_keep_undo',
-		'permission_callback' => $can,
+		'permission_callback' => function () { return current_user_can( 'manage_options' ); },
 		'args'                => array(
 			'token' => array( 'type' => 'string', 'required' => true ),
 		),
@@ -843,7 +841,7 @@ function vergeml_health_keep_routes() {
 	register_rest_route( VERGEML_REST_NS, '/health-retire', array(
 		'methods'             => WP_REST_Server::CREATABLE,
 		'callback'            => 'vergeml_health_rest_retire',
-		'permission_callback' => $can,
+		'permission_callback' => function () { return current_user_can( 'manage_options' ); },
 		'args'                => array(
 			'ids'  => array( 'type' => 'array', 'required' => true, 'items' => array( 'type' => 'integer' ) ),
 			'undo' => array( 'type' => 'boolean', 'default' => false ),

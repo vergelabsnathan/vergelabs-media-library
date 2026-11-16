@@ -227,7 +227,7 @@ for ( const mode of [ 'list', 'grid' ] ) {
 	await page.evaluate( () => window.wp.apiFetch( {
 		path: '/vergeml/v1/state',
 		method: 'POST',
-		data: { taxonomy: 'media_category', skin: 'native', density: 'comfortable' },
+		data: { taxonomy: 'vergeml_folder', skin: 'native', density: 'comfortable' },
 	} ) ).catch( () => {} );
 	await ctx.close();
 }

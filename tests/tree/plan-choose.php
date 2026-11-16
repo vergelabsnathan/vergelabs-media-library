@@ -92,7 +92,7 @@ pc_check( '8. a label with no vector stays out', 0 === $gap['placed'], (string) 
  *  vergeml_plan_draft asks its two collaborators for.
  */
 function vergeml_librarian_taxonomy() {
-    return 'media_category';
+    return 'vergeml_folder';
 }
 function get_terms( $args ) {
     return $GLOBALS['pc_terms'];

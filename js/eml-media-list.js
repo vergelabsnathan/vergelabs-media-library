@@ -14,12 +14,12 @@
 
 
         // Add "All Uncategorized" option
-        $mainFilter.append('<option value="uncategorized">'+l10n.uncategorized+'</option>');
+        $mainFilter.append( $( '<option value="uncategorized"></option>' ).text( l10n.uncategorized ) );
 
 
         // Add "Reset All Filters" button
         if ( $filters.length > 1 ) {
-            $('#post-query-submit').after('<input type="submit" name="filter_action" id="eml-reset-filters-query-submit" class="button" value="'+l10n.reset_all_filters+'">');
+            $('#post-query-submit').after( $( '<input type="submit" name="filter_action" id="eml-reset-filters-query-submit" class="button">' ).val( l10n.reset_all_filters ) );
             $resetFilters = $('#eml-reset-filters-query-submit');
         }
 

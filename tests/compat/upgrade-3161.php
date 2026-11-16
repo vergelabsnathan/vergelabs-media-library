@@ -76,10 +76,10 @@ $new_cols_empty = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}vergeml_librar
 up( 'old rows have the new columns at their defaults', $new_cols_empty === $old_moves, (string) $new_cols_empty );
 
 up( 'twenty pictures', 20 === (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}posts WHERE post_type = 'attachment'" ) );
-up( 'three folders', 3 === (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}term_taxonomy WHERE taxonomy = 'media_category'" ) );
-$rels = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}term_relationships tr JOIN {$p}term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tt.taxonomy = 'media_category'" );
+up( 'three folders', 3 === (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}term_taxonomy WHERE taxonomy = 'vergeml_folder'" ) );
+$rels = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$p}term_relationships tr JOIN {$p}term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tt.taxonomy = 'vergeml_folder'" );
 up( 'six pictures still filed', 6 === $rels, (string) $rels );
-up( 'the folder counts add up to six', 6 === (int) $wpdb->get_var( "SELECT SUM(count) FROM {$p}term_taxonomy WHERE taxonomy = 'media_category'" ) );
+up( 'the folder counts add up to six', 6 === (int) $wpdb->get_var( "SELECT SUM(count) FROM {$p}term_taxonomy WHERE taxonomy = 'vergeml_folder'" ) );
 
 // Row for row, through the same literal-SQL compare the snapshot was frozen
 // with: terms and their meta, relationships, alt texts, both librarian tables
@@ -131,11 +131,11 @@ if ( ! getenv( 'VGML_SMOKE' ) ) {
 		new WP_Http_Cookie( array( 'name' => AUTH_COOKIE, 'value' => wp_generate_auth_cookie( $uid, $exp, 'auth' ) ) ),
 		new WP_Http_Cookie( array( 'name' => LOGGED_IN_COOKIE, 'value' => wp_generate_auth_cookie( $uid, $exp, 'logged_in' ) ) ),
 	);
-	$r    = wp_remote_get( admin_url( 'admin.php?page=media-librarian' ), array( 'timeout' => 60, 'sslverify' => false, 'cookies' => $jar ) );
+	$r    = wp_remote_get( admin_url( 'admin.php?page=vergeml-librarian' ), array( 'timeout' => 60, 'sslverify' => false, 'cookies' => $jar ) );
 	$code = is_wp_error( $r ) ? $r->get_error_message() : (string) wp_remote_retrieve_response_code( $r );
 	$body = is_wp_error( $r ) ? '' : (string) wp_remote_retrieve_body( $r );
 	up( 'the Folders screen answers 200, logged in', '200' === $code, $code );
-	up( 'and it is the Folders screen, not the login form', false !== strpos( $body, 'page=media-librarian' ) && false === strpos( $body, 'id="loginform"' ) );
+	up( 'and it is the Folders screen, not the login form', false !== strpos( $body, 'page=vergeml-librarian' ) && false === strpos( $body, 'id="loginform"' ) );
 }
 
 // What was written to debug.log since this file started: on the box, the two

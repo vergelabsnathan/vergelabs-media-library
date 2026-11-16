@@ -235,7 +235,7 @@ function vergeml_quarantine_hide_grid( $args ) {
      *  handed a NOT EXISTS on the way past. Without this guard the one view
      *  that exists to show quarantined files would always be empty.
      */
-    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- reading which view was asked for; core checked the ajax nonce.
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only view choice inside core's query-attachments AJAX, which checks upload_files and no nonce; sanitize_key, and only 'quarantine' changes anything (it keeps the set-aside files in that one view).
     $asked = isset( $_POST['query']['vergeml_smart'] ) ? sanitize_key( wp_unslash( $_POST['query']['vergeml_smart'] ) ) : '';
 
     if ( 'quarantine' === $asked ) {
@@ -258,7 +258,7 @@ function vergeml_quarantine_hide_list( $query ) {
 
     // Same guard as the grid: the folder that shows them must be allowed to.
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a read-only view switch.
-    $asked = isset( $_GET['vgml_smart'] ) ? sanitize_key( wp_unslash( $_GET['vgml_smart'] ) ) : '';
+    $asked = isset( $_GET['vergeml_smart'] ) ? sanitize_key( wp_unslash( $_GET['vergeml_smart'] ) ) : '';
 
     if ( 'quarantine' === $asked ) {
         return;
@@ -327,44 +327,6 @@ function vergeml_quarantine_folder( $folders ) {
 }
 
 
-add_filter( 'vergeml_smart_count_branches', 'vergeml_quarantine_count_branch' );
-
-function vergeml_quarantine_count_branch( $branches ) {
-
-    global $wpdb;
-
-    $branches[] = array(
-        'sql'  => "SELECT 'quarantine' AS k, COUNT(*) AS c
-                     FROM {$wpdb->posts} p
-                     JOIN {$wpdb->postmeta} q ON q.post_id = p.ID AND q.meta_key = %s
-                    WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'",
-        'args' => array( VERGEML_QUARANTINE_META ),
-    );
-
-    return $branches;
-}
-
-
-/*
- *  And the other five must not count what this one has taken away, or the
- *  badge above a folder disagrees with the number of files inside it. The
- *  meta key is a class constant rather than anything a request carries, and
- *  the fragment holds no placeholders, because the statement it joins is
- *  prepared with a positional argument list.
- */
-
-add_filter( 'vergeml_smart_count_exclude', 'vergeml_quarantine_count_exclude' );
-
-function vergeml_quarantine_count_exclude( $sql ) {
-
-    global $wpdb;
-
-    return $sql . " AND NOT EXISTS ( SELECT 1 FROM {$wpdb->postmeta} qx
-                                      WHERE qx.post_id = p.ID
-                                        AND qx.meta_key = '" . VERGEML_QUARANTINE_META . "' )";
-}
-
-
 add_filter( 'vergeml_smart_query_args', 'vergeml_quarantine_query_args', 10, 2 );
 
 function vergeml_quarantine_query_args( $args, $key ) {
@@ -384,13 +346,10 @@ add_action( 'rest_api_init', 'vergeml_quarantine_routes' );
 
 function vergeml_quarantine_routes() {
 
-    $can = function () {
-        return current_user_can( 'manage_categories' );
-    };
 
     register_rest_route( VERGEML_REST_NS, '/quarantine', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_quarantine_rest_list',
     ) );
 
@@ -401,10 +360,10 @@ function vergeml_quarantine_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/quarantine-act', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_quarantine_rest_act',
         'args'                => array(
-            'ids'    => array( 'required' => true ),
+            'ids'    => array( 'type' => 'array', 'items' => array( 'type' => 'integer' ), 'required' => true ),
             'action' => array( 'type' => 'string', 'required' => true ),
             'reason' => array( 'type' => 'string', 'default' => '' ),
         ),
@@ -412,7 +371,7 @@ function vergeml_quarantine_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/quarantine-manifest', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_quarantine_rest_manifest',
     ) );
 }
@@ -498,14 +457,14 @@ add_action( 'admin_enqueue_scripts', 'vergeml_quarantine_assets' );
 
 function vergeml_quarantine_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-health' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-health' ) ) {
         return;
     }
 
     wp_enqueue_script(
         'vergeml-quarantine',
         plugins_url( 'js/vergeml-quarantine.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-quarantine.js' ),
         true
     );

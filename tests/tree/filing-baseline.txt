@@ -1,4 +1,4 @@
-# filing baseline, taxonomy media_category
+# filing baseline, taxonomy vergeml_folder
 # re-taken 2026-09-18: S16: a folder's name claims the planner classes it names (people off Interviews and Conference talks: six pictures to People or Conference talks, sure); 611/558/60 -> 615/562/56
 # folders 21, pictures 1000
 # attachment	term_id	why	score	runner_up	runner_score

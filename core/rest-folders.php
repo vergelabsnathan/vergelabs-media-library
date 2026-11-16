@@ -28,7 +28,7 @@ function vergeml_register_folder_routes() {
     register_rest_route( VERGEML_REST_NS, '/folder', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_rest_folder',
-        'permission_callback' => 'vergeml_can_manage_folders',
+        'permission_callback' => function ( WP_REST_Request $request ) { $tax = get_taxonomy( (string) $request->get_param( 'taxonomy' ) ); return $tax && current_user_can( $tax->cap->manage_terms ) && vergeml_can_manage_folders( $request ); },
         'args'                => array(
             'taxonomy' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             'action'   => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
@@ -47,7 +47,7 @@ function vergeml_register_folder_routes() {
         array(
             'methods'             => WP_REST_Server::READABLE,
             'callback'            => 'vergeml_rest_state_get',
-            'permission_callback' => 'vergeml_can_read_tree',
+            'permission_callback' => function ( WP_REST_Request $request ) { $tax = get_taxonomy( (string) $request->get_param( 'taxonomy' ) ); return current_user_can( 'upload_files' ) && ( ! $tax || current_user_can( $tax->cap->assign_terms ) ); },
             'args'                => array(
                 'taxonomy' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             ),
@@ -55,7 +55,8 @@ function vergeml_register_folder_routes() {
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'vergeml_rest_state_set',
-            'permission_callback' => 'vergeml_can_read_tree',
+            // A write with the read-level check on purpose: it stores only the caller's own tree state (open branches, width, skin) in their user options.
+            'permission_callback' => function () { return current_user_can( 'upload_files' ); },
             'args'                => array(
                 'taxonomy' => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
                 'open'     => array( 'type' => 'array' ),
@@ -81,8 +82,77 @@ function vergeml_register_folder_routes() {
  *  capability WordPress already uses for managing terms.
  */
 
-function vergeml_can_manage_folders() {
-    return current_user_can( 'manage_categories' );
+
+
+function vergeml_can_manage_folders( $request = null ) {
+
+    $tax = $request instanceof WP_REST_Request ? get_taxonomy( (string) $request->get_param( 'taxonomy' ) ) : false;
+
+    // A request about a taxonomy that is not there: refused before the handler.
+    if ( $request instanceof WP_REST_Request && ! $tax ) {
+        return false;
+    }
+
+    // Asked without a request (a screen deciding what to show): core's capability for managing terms.
+    if ( ! $tax ) {
+        return current_user_can( 'manage_categories' );
+    }
+
+    // Core's bar for managing this taxonomy's terms comes first, whatever the action.
+    if ( ! current_user_can( $tax->cap->manage_terms ) ) {
+        return false;
+    }
+
+    $id     = (int) $request->get_param( 'id' );
+    $parent = (int) $request->get_param( 'parent' );
+
+    /*
+     *  The folder itself, the way core asks about a term: one request changes
+     *  one folder, or the order of the siblings it names. Somebody else's
+     *  private folder is theirs, unless the caller administers the site. A
+     *  folder that does not exist is the handler's 404 to give, not a 403.
+     */
+    $may = function ( $cap, $term_id ) use ( $tax ) {
+
+        $term_id = (int) $term_id;
+
+        if ( ! vergeml_term_in( $term_id, $tax->name ) ) {
+            return true;
+        }
+
+        // A folder hidden from this person is not theirs to change (private-folders.php decides who).
+        if ( function_exists( 'vergeml_private_hidden_from' ) && in_array( $term_id, vergeml_private_hidden_from(), true ) ) {
+            return false;
+        }
+
+        return current_user_can( $cap, $term_id );
+    };
+
+    switch ( $request->get_param( 'action' ) ) {
+
+        case 'create':
+            return current_user_can( $tax->cap->edit_terms ) && ( ! $parent || $may( 'edit_term', $parent ) );
+
+        case 'delete':
+            return $may( 'delete_term', $id );
+
+        case 'order':
+            foreach ( (array) $request->get_param( 'ids' ) as $sibling ) {
+                if ( ! $may( 'edit_term', $sibling ) ) {
+                    return false;
+                }
+            }
+            return ! $parent || $may( 'edit_term', $parent );
+
+        case 'rename':
+        case 'color':
+        case 'move':
+            // Into a folder too, when it names one: somebody else's private folder is not a destination.
+            return $may( 'edit_term', $id ) && ( ! $parent || $may( 'edit_term', $parent ) );
+
+        default:
+            return false;
+    }
 }
 
 
@@ -120,7 +190,7 @@ function vergeml_rest_folder( WP_REST_Request $request ) {
 
     $action = $request->get_param( 'action' );
     $id     = vergeml_id( $request->get_param( 'id' ) );
-    $name   = trim( (string) $request->get_param( 'name' ) );
+    $name   = sanitize_text_field( (string) $request->get_param( 'name' ) );
     $parent = vergeml_id( $request->get_param( 'parent' ) );
 
     switch ( $action ) {

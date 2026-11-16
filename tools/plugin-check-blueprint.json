@@ -16,6 +16,10 @@
       "options": {
         "activate": true
       }
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php $f = '/wordpress/wp-content/plugins/plugin-check/vendor/squizlabs/php_codesniffer/src/Reporter.php'; $s = file_get_contents( $f ); if ( false === strpos( $s, '(FILE_APPEND | LOCK_EX)' ) ) { throw new Exception( 'Plugin Check PHPCS Reporter no longer takes LOCK_EX -- re-check tools/plugin-check.mjs' ); } file_put_contents( $f, str_replace( '(FILE_APPEND | LOCK_EX)', 'FILE_APPEND', $s ) );"
     }
   ]
 }

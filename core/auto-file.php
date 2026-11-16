@@ -170,26 +170,9 @@ function vergeml_autofile_centroid( $term_id, $taxonomy ) {
  *  vergeml_autofile_vector
  *
  *  One file's embedding, or null.
- *
- *  The single place this file reads a vector from, and filterable, which is
- *  not a courtesy: Playground cannot store one. Its SQLite layer refuses any
- *  INSERT carrying packed floats -- `WP_MySQL_Token::get_value(): must be
- *  string, null returned` -- so on the only environment available without a
- *  box, the index can hold descriptions but never embeddings. Reading through
- *  one seam means the arithmetic and the judgement in this file can be tested
- *  anywhere, with the storage proven separately where storage works.
- *
- *  It is also the hook a Pro build would use to serve vectors from somewhere
- *  else entirely.
  */
 
 function vergeml_autofile_vector( $attachment_id ) {
-
-    $vector = apply_filters( 'vergeml_autofile_vector', null, (int) $attachment_id );
-
-    if ( is_array( $vector ) && $vector ) {
-        return $vector;
-    }
 
     $row = vergeml_index_get( (int) $attachment_id );
 
@@ -265,11 +248,19 @@ function vergeml_autofile_suggest( $attachment_id, $folders = null ) {
      *  gets one from its name.
      */
     global $wpdb;
-    $words = vergeml_filing_words_sql( 'i' ); // The picture's file, title and alt (S10.9).
-    $row   = $wpdb->get_row( $wpdb->prepare( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-        "SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.prompt_hash, i.model_version, {$words['select']} FROM {$wpdb->vergeml_ai_index} i {$words['join']} WHERE i.attachment_id = %d AND i.error = '' AND i.embedding IS NOT NULL",
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- this plugin's own table (%i); the picture's file, title and alt (S10.9) are written out as literal columns and joins; the id is bound.
+    $row   = $wpdb->get_row( $wpdb->prepare(
+        "SELECT i.attachment_id, i.embedding, i.kind, i.filing, i.prompt_hash, i.model_version,
+                wp_p.post_title AS title, wp_f.meta_value AS file, CASE WHEN wp_a.meta_value = i.alt THEN '' ELSE wp_a.meta_value END AS alt
+           FROM %i i
+           LEFT JOIN {$wpdb->posts} wp_p ON wp_p.ID = i.attachment_id
+           LEFT JOIN {$wpdb->postmeta} wp_f ON wp_f.post_id = i.attachment_id AND wp_f.meta_key = '_wp_attached_file'
+           LEFT JOIN {$wpdb->postmeta} wp_a ON wp_a.post_id = i.attachment_id AND wp_a.meta_key = '_wp_attachment_image_alt'
+          WHERE i.attachment_id = %d AND i.error = '' AND i.embedding IS NOT NULL",
+        $wpdb->vergeml_ai_index,
         (int) $attachment_id
     ), ARRAY_A );
+    // phpcs:enable
     if ( ! $row || ! function_exists( 'vergeml_filing_pick' ) ) {
         return null;
     }
@@ -482,9 +473,10 @@ function vergeml_autofile_batch( $how ) {
 
     // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $existing = $wpdb->get_var( $wpdb->prepare(
-        "SELECT batch_id FROM {$wpdb->vergeml_librarian_batches}
+        "SELECT batch_id FROM %i
           WHERE scheme = %s AND status = %s AND DATE( created_at ) = %s
           ORDER BY batch_id DESC LIMIT 1",
+        $wpdb->vergeml_librarian_batches,
         $scheme,
         'running',
         $day
@@ -555,24 +547,24 @@ function vergeml_autofile_sweep( $limit = VERGEML_AUTOFILE_CHUNK ) {
 
     $table = vergeml_index_table();
 
-    $tt = vergeml_autofile_tt_ids( $taxonomy );
+    $tt_ids = array_map( 'intval', explode( ',', vergeml_autofile_tt_ids( $taxonomy ) ) );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- the table is vergeml_index_table() ($wpdb->vergeml_ai_index), bound as %i; one %d per term_taxonomy id (or the single 0); the table, the ids and the limit are bound.
     $ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT p.ID
            FROM {$wpdb->posts} p
-           JOIN {$table} x ON x.attachment_id = p.ID
+           JOIN %i x ON x.attachment_id = p.ID
           WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
             -- described, which is the cheap half of the question. Whether it
             -- has a usable vector is asked per file through the seam above,
             -- because that is the half the database cannot answer everywhere.
             AND NOT EXISTS (
                 SELECT 1 FROM {$wpdb->term_relationships} tr
-                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( {$tt} )
+                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) . " )
             )
           ORDER BY p.ID DESC
           LIMIT %d",
-        (int) $limit
+        array_merge( array( $table ), $tt_ids, array( (int) $limit ) )
     ) );
     // phpcs:enable
 
@@ -644,9 +636,6 @@ add_action( 'rest_api_init', 'vergeml_autofile_routes' );
 
 function vergeml_autofile_routes() {
 
-    $can = function () {
-        return current_user_can( 'manage_categories' );
-    };
 
     /*
      *  One pass. Creatable rather than readable because it can file things --
@@ -655,16 +644,17 @@ function vergeml_autofile_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/autofile-step', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_autofile_rest_step',
         'args'                => array(
             'limit' => array( 'type' => 'integer', 'default' => VERGEML_AUTOFILE_CHUNK ),
         ),
     ) );
 
+    // One picture into one folder: asked about that picture and that folder.
     register_rest_route( VERGEML_REST_NS, '/autofile-act', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function ( WP_REST_Request $request ) { return current_user_can( 'manage_options' ) && vergeml_autofile_can_act( $request ); },
         'callback'            => 'vergeml_autofile_rest_act',
         'args'                => array(
             'attachment_id' => array( 'type' => 'integer', 'required' => true ),
@@ -672,6 +662,24 @@ function vergeml_autofile_routes() {
             'action'        => array( 'type' => 'string', 'required' => true ),
         ),
     ) );
+}
+
+
+/*
+ *  Administrators only: five accepts earn a folder, and an earned folder
+ *  files the whole library by itself. And only a picture into one of the
+ *  plugin's folders.
+ */
+function vergeml_autofile_can_act( WP_REST_Request $request ) {
+
+    $attachment = (int) $request->get_param( 'attachment_id' );
+
+    return current_user_can( 'manage_options' )
+        && 'attachment' === get_post_type( $attachment )
+        && current_user_can( 'edit_post', $attachment )
+        && get_taxonomy( vergeml_librarian_taxonomy() )
+        && current_user_can( get_taxonomy( vergeml_librarian_taxonomy() )->cap->assign_terms )
+        && get_term( (int) $request->get_param( 'term_id' ), vergeml_librarian_taxonomy() ) instanceof WP_Term;
 }
 
 
@@ -745,20 +753,31 @@ function vergeml_autofile_loose_count( $unlooked = false ) {
 
     $table = vergeml_index_table();
 
-    $described = $unlooked
-        ? "AND NOT EXISTS ( SELECT 1 FROM {$table} x WHERE x.attachment_id = p.ID )"
-        : '';
+    $tt_ids = array_map( 'intval', explode( ',', $tt ) );
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    return (int) $wpdb->get_var(
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- the table is $wpdb->vergeml_ai_index, bound as %i; one %d per term_taxonomy id; the table and the ids are bound.
+    if ( $unlooked ) {
+        return (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->posts} p
+              WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
+                AND NOT EXISTS ( SELECT 1 FROM %i x WHERE x.attachment_id = p.ID )
+                AND NOT EXISTS (
+                    SELECT 1 FROM {$wpdb->term_relationships} tr
+                     WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) . " )
+                )",
+            array_merge( array( $table ), $tt_ids )
+        ) );
+    }
+
+    return (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM {$wpdb->posts} p
           WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
-            {$described}
             AND NOT EXISTS (
                 SELECT 1 FROM {$wpdb->term_relationships} tr
-                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( {$tt} )
-            )"
-    );
+                 WHERE tr.object_id = p.ID AND tr.term_taxonomy_id IN ( " . implode( ', ', array_fill( 0, count( $tt_ids ), '%d' ) ) . " )
+            )",
+        $tt_ids
+    ) );
     // phpcs:enable
 }
 
@@ -845,14 +864,14 @@ add_action( 'admin_enqueue_scripts', 'vergeml_autofile_assets' );
 
 function vergeml_autofile_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-librarian' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-librarian' ) ) {
         return;
     }
 
     wp_enqueue_script(
         'vergeml-autofile',
         plugins_url( 'js/vergeml-autofile.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-autofile.js' ),
         true
     );
@@ -872,7 +891,7 @@ function vergeml_autofile_assets( $hook ) {
         // Built here rather than derived from ajaxurl in the browser: a
         // string-replace on a global that WordPress happens to print is not a
         // way to know where a screen lives.
-        'aiUrl'         => admin_url( 'admin.php?page=media-ai' ),
+        'aiUrl'         => admin_url( 'admin.php?page=vergeml-ai' ),
         'nextPropose'   => __( 'None of the folders you already have is a close enough match. Sorting into folders, below, can work out new folders for these instead — it looks at what is in the pictures rather than trying to fit them into what exists.', 'vergelabs-media-library' ),
         /* translators: %d: number of files not yet described. */
         'nextDescribe'  => __( 'We have not looked at %d of your loose files yet, so there is nothing to compare them against. Describe them on the AI screen and come back.', 'vergelabs-media-library' ),

@@ -19,24 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) exit;
  *  vergeml_meaning_search(), whose one embed call the service does not charge.
  */
 
-/** The fields a word can be found in, with the column each is. */
-function vergeml_search_try_fields() {
-    return array(
-        'title'       => 'p.post_title',
-        'file'        => 'p.post_name',
-        'caption'     => 'p.post_excerpt',
-        'description' => 'p.post_content',
-        'ai_caption'  => 'i.caption',
-        'ai_tags'     => 'i.tags',
-        'ai_title'    => 'i.title',
-    );
-}
-
-/** WordPress's own search columns: what a search finds with this plugin off. */
-function vergeml_search_try_core_fields() {
-    return array( 'title', 'caption', 'description' );
-}
-
 /**
  *  @param string $q
  *  @return array { query, terms, word: { total, core, per_word, hits[] }, meaning: { available, total, shown, seconds, hits[] } }
@@ -56,41 +38,62 @@ function vergeml_search_try( $q ) {
         return $out;
     }
 
-    $fields = vergeml_search_try_fields();
-    $core   = vergeml_search_try_core_fields();
-    $from   = "FROM {$wpdb->posts} p LEFT JOIN {$wpdb->vergeml_ai_index} i ON i.attachment_id = p.ID AND i.error = ''
-               WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE 'image/%'";
-
-    // Every word has to match something, in any of the fields.
-    $where_all  = array();
-    $where_core = array();
-    foreach ( $terms as $term ) {
-        $like = '%' . $wpdb->esc_like( $term ) . '%';
-        $any  = array();
-        $own  = array();
-        foreach ( $fields as $name => $column ) {
-            $any[] = $wpdb->prepare( "{$column} LIKE %s", $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- column from a fixed list.
-            if ( in_array( $name, $core, true ) ) {
-                $own[] = $wpdb->prepare( "{$column} LIKE %s", $like ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-            }
-        }
-        $where_all[]  = '( ' . implode( ' OR ', $any ) . ' )';
-        $where_core[] = '( ' . implode( ' OR ', $own ) . ' )';
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-        $out['word']['per_word'][] = array( 'word' => $term, 'n' => (int) $wpdb->get_var( "SELECT COUNT(*) {$from} AND ( " . implode( ' OR ', $any ) . ' )' ) );
+    /*
+     *  Every word has to match something, in any of the fields. The fields are
+     *  joined with a space into one text per picture -- a word has no spaces
+     *  (vergeml_search_terms splits on them), so it cannot match across two
+     *  fields -- and each word is one of eight slots: a flag and a LIKE
+     *  pattern, the flag off for a slot past the last word. Two literal
+     *  statements, every value bound: the counts, then the rows.
+     */
+    $terms = array_slice( array_values( $terms ), 0, 8 );
+    $slots = array();
+    for ( $n = 0; $n < 8; $n++ ) {
+        $slots[] = isset( $terms[ $n ] ) ? 1 : 0;
+        $slots[] = isset( $terms[ $n ] ) ? '%' . $wpdb->esc_like( $terms[ $n ] ) . '%' : '';
     }
+    $image = $wpdb->esc_like( 'image/' ) . '%';
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- assembled from prepared pieces.
-    $out['word']['total'] = (int) $wpdb->get_var( "SELECT COUNT(*) {$from} AND " . implode( ' AND ', $where_all ) );
-    $out['word']['core']  = (int) $wpdb->get_var( "SELECT COUNT(*) {$from} AND " . implode( ' AND ', $where_core ) );
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- read-only; the plugin's table is bound as %i, every value is bound: the slots built above, spread, one per placeholder.
+    $counts = $wpdb->get_row( $wpdb->prepare(
+        "SELECT SUM( %d = 1 AND s.hay LIKE %s ) AS w0, SUM( %d = 1 AND s.hay LIKE %s ) AS w1,
+                SUM( %d = 1 AND s.hay LIKE %s ) AS w2, SUM( %d = 1 AND s.hay LIKE %s ) AS w3,
+                SUM( %d = 1 AND s.hay LIKE %s ) AS w4, SUM( %d = 1 AND s.hay LIKE %s ) AS w5,
+                SUM( %d = 1 AND s.hay LIKE %s ) AS w6, SUM( %d = 1 AND s.hay LIKE %s ) AS w7,
+                SUM( ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s )
+                 AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) ) AS total,
+                SUM( ( %d = 0 OR s.own LIKE %s ) AND ( %d = 0 OR s.own LIKE %s ) AND ( %d = 0 OR s.own LIKE %s ) AND ( %d = 0 OR s.own LIKE %s )
+                 AND ( %d = 0 OR s.own LIKE %s ) AND ( %d = 0 OR s.own LIKE %s ) AND ( %d = 0 OR s.own LIKE %s ) AND ( %d = 0 OR s.own LIKE %s ) ) AS core
+           FROM ( SELECT CONCAT( p.post_title, ' ', p.post_name, ' ', p.post_excerpt, ' ', p.post_content, ' ',
+                                 COALESCE( i.caption, '' ), ' ', COALESCE( i.tags, '' ), ' ', COALESCE( i.title, '' ) ) AS hay,
+                         CONCAT( p.post_title, ' ', p.post_excerpt, ' ', p.post_content ) AS own
+                    FROM {$wpdb->posts} p
+                    LEFT JOIN %i i ON i.attachment_id = p.ID AND i.error = ''
+                   WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE %s ) s",
+        ...array_merge( $slots, $slots, $slots, array( $wpdb->vergeml_ai_index, $image ) )
+    ), ARRAY_A );
 
-    $rows = $wpdb->get_results(
-        "SELECT p.ID, p.post_title, p.post_name, p.post_excerpt, p.post_content, i.caption, i.tags, i.title AS ai_title
-         {$from} AND " . implode( ' AND ', $where_all ) . '
-         ORDER BY p.post_date DESC, p.ID DESC LIMIT 30',
-        ARRAY_A
-    );
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT s.ID, s.post_title, s.post_name, s.post_excerpt, s.post_content, s.caption, s.tags, s.ai_title
+           FROM ( SELECT p.ID, p.post_title, p.post_name, p.post_excerpt, p.post_content, p.post_date,
+                         i.caption, i.tags, i.title AS ai_title,
+                         CONCAT( p.post_title, ' ', p.post_name, ' ', p.post_excerpt, ' ', p.post_content, ' ',
+                                 COALESCE( i.caption, '' ), ' ', COALESCE( i.tags, '' ), ' ', COALESCE( i.title, '' ) ) AS hay
+                    FROM {$wpdb->posts} p
+                    LEFT JOIN %i i ON i.attachment_id = p.ID AND i.error = ''
+                   WHERE p.post_type = 'attachment' AND p.post_status = 'inherit' AND p.post_mime_type LIKE %s ) s
+          WHERE ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s )
+            AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s ) AND ( %d = 0 OR s.hay LIKE %s )
+          ORDER BY s.post_date DESC, s.ID DESC LIMIT 30",
+        ...array_merge( array( $wpdb->vergeml_ai_index, $image ), $slots )
+    ), ARRAY_A );
     // phpcs:enable
+
+    foreach ( $terms as $n => $term ) {
+        $out['word']['per_word'][] = array( 'word' => $term, 'n' => (int) ( $counts ? $counts[ 'w' . $n ] : 0 ) );
+    }
+    $out['word']['total'] = (int) ( $counts ? $counts['total'] : 0 );
+    $out['word']['core']  = (int) ( $counts ? $counts['core'] : 0 );
 
     $word_ids = array();
     foreach ( (array) $rows as $row ) {
@@ -138,8 +141,8 @@ function vergeml_search_try( $q ) {
             $out['meaning']['total']     = count( $scores );
             $out['meaning']['shown']     = count( $ids );
             if ( $ids ) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- ids cast to int.
-                $found = $wpdb->get_results( "SELECT attachment_id, title, caption, tags FROM {$wpdb->vergeml_ai_index} WHERE attachment_id IN (" . implode( ',', array_map( 'intval', $ids ) ) . ')', ARRAY_A );
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one %d per id; the table (%i) and the ids are bound.
+                $found = $wpdb->get_results( $wpdb->prepare( 'SELECT attachment_id, title, caption, tags FROM %i WHERE attachment_id IN ( ' . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . ' )', array_merge( array( $wpdb->vergeml_ai_index ), $ids ) ), ARRAY_A );
                 $by    = array();
                 foreach ( (array) $found as $row ) {
                     $by[ (int) $row['attachment_id'] ] = $row;
@@ -193,9 +196,8 @@ function vergeml_search_try_routes() {
     register_rest_route( VERGEML_REST_NS, '/search-try', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_search_try_rest',
-        'permission_callback' => function () {
-            return current_user_can( 'upload_files' );
-        },
+        // Sends the typed phrase to the AI service: administrators only.
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             's' => array( 'type' => 'string', 'required' => true ),
         ),

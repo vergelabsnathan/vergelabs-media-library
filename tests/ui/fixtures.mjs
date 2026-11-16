@@ -14,11 +14,11 @@ const PASS = process.env.UI_PASS ?? 'password';
 /** The plugin's own screens, by the slug the menu uses. */
 export const SCREEN = {
 	dashboard: 'vergelabs-media',
-	folders: 'media-librarian',
-	ai: 'media-ai',
+	folders: 'vergeml-librarian',
+	ai: 'vergeml-ai',
 	guide: 'media-guide',
-	duplicates: 'media-health',
-	taxonomies: 'media-taxonomies',
+	duplicates: 'vergeml-health',
+	taxonomies: 'vergeml-taxonomies',
 };
 
 let cookies = null;

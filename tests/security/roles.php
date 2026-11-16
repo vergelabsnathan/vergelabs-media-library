@@ -101,9 +101,6 @@ $r_author_may = array(
     '/vergeml/v1/folders/version GET',
     '/vergeml/v1/gallery-folders GET',
     '/vergeml/v1/rename GET',
-    '/vergeml/v1/rename POST',
-    '/vergeml/v1/search-meaning GET',
-    '/vergeml/v1/search-try GET',
     '/vergeml/v1/state GET',
     '/vergeml/v1/state POST',
     '/vergeml/v1/tree GET',
@@ -118,7 +115,15 @@ $r_object_scoped = array(
 /** Administrator only: the gate asks manage_options or delete_posts. */
 $r_admin_only = array(
     '/vergeml/v1/ai-alt POST',
+    '/vergeml/v1/ai-index POST',
+    '/vergeml/v1/ai-run GET',
+    '/vergeml/v1/ai-run POST',
     '/vergeml/v1/ai-settings POST',
+    '/vergeml/v1/ai-status GET',
+    '/vergeml/v1/alt-fill-step POST',
+    '/vergeml/v1/alt-undo POST',
+    '/vergeml/v1/autofile-act POST',
+    '/vergeml/v1/autofile-step POST',
     '/vergeml/v1/brief/adopt POST',
     '/vergeml/v1/brief/discard POST',
     '/vergeml/v1/brief/session GET',
@@ -126,12 +131,60 @@ $r_admin_only = array(
     '/vergeml/v1/brief/test POST',
     '/vergeml/v1/brief/token POST',
     '/vergeml/v1/brief/turn POST',
+    '/vergeml/v1/folder-privacy POST',
+    '/vergeml/v1/folders-apply POST',
+    '/vergeml/v1/folders-progress GET',
+    '/vergeml/v1/folders-propose POST',
+    '/vergeml/v1/folders-undo POST',
+    '/vergeml/v1/guide/answer POST',
+    '/vergeml/v1/guide/apply POST',
+    '/vergeml/v1/guide/audience-split POST',
+    '/vergeml/v1/guide/confirm POST',
+    '/vergeml/v1/guide/plan GET',
+    '/vergeml/v1/guide/plan POST',
+    '/vergeml/v1/guide/product-categories GET',
+    '/vergeml/v1/guide/profiles-restore POST',
+    '/vergeml/v1/guide/progress GET',
+    '/vergeml/v1/guide/questions GET',
+    '/vergeml/v1/guide/rule POST',
+    '/vergeml/v1/guide/rules GET',
+    '/vergeml/v1/guide/session GET',
+    '/vergeml/v1/guide/session POST',
+    '/vergeml/v1/guide/stop POST',
+    '/vergeml/v1/guide/token POST',
+    '/vergeml/v1/guide/turn POST',
+    '/vergeml/v1/guide/unconfirm POST',
+    '/vergeml/v1/guide/undo POST',
     '/vergeml/v1/health-delete POST',
     '/vergeml/v1/health-keep POST',
     '/vergeml/v1/health-keep-undo POST',
+    '/vergeml/v1/health-report GET',
     '/vergeml/v1/health-retire POST',
-    '/vergeml/v1/rename-files GET',
-    '/vergeml/v1/rename-files POST',
+    '/vergeml/v1/health-scan POST',
+    '/vergeml/v1/health-uses GET',
+    '/vergeml/v1/import POST',
+    '/vergeml/v1/librarian-apply-step POST',
+    '/vergeml/v1/librarian-batches GET',
+    '/vergeml/v1/librarian-pause POST',
+    '/vergeml/v1/librarian-preflight GET, POST',
+    '/vergeml/v1/librarian-schemes GET',
+    '/vergeml/v1/librarian-undo-step POST',
+    '/vergeml/v1/merge-plan GET',
+    '/vergeml/v1/merge-run POST',
+    '/vergeml/v1/organize-cancel POST',
+    '/vergeml/v1/organize-quote GET',
+    '/vergeml/v1/organize-run GET',
+    '/vergeml/v1/organize-step POST',
+    '/vergeml/v1/quarantine GET',
+    '/vergeml/v1/quarantine-act POST',
+    '/vergeml/v1/quarantine-manifest GET',
+    '/vergeml/v1/rename POST',
+    '/vergeml/v1/say-plan POST',
+    '/vergeml/v1/say-run POST',
+    '/vergeml/v1/search-meaning GET',
+    '/vergeml/v1/search-try GET',
+    '/vergeml/v1/similar GET',
+    '/vergeml/v1/smart-scan POST',
     '/vergeml/v1/stats-opt POST',
 );
 
@@ -236,20 +289,12 @@ foreach ( $r_routes as $r_route => $r_handlers ) {
  *  until 2026-09-27, when /guide/plan GET and POST did: the bottom-up plan.
  *  84/82 until 2026-09-29, when /guide/audience-split did, CAP-4's one question.)
  */
-$r_flagged = defined( 'VERGEML_FILE_RENAME' ) && VERGEML_FILE_RENAME;
-$r_want    = $r_flagged ? 85 : 83;
+$r_want = 83;
 
 r_check(
-    sprintf( 'the REST server holds %d of our endpoints, with the file renamer %s', $r_want, $r_flagged ? 'on' : 'off' ),
+    sprintf( 'the REST server holds %d of our endpoints', $r_want ),
     count( $r_ours ) === $r_want,
     sprintf( 'found %d', count( $r_ours ) )
-);
-
-$r_live_routes = wp_list_pluck( $r_ours, 'route' );
-
-r_check(
-    '/vergeml/v1/rename-files is ' . ( $r_flagged ? 'registered' : 'not registered, because VERGEML_FILE_RENAME is off' ),
-    in_array( '/vergeml/v1/rename-files', $r_live_routes, true ) === $r_flagged
 );
 
 $r_open = array_filter( $r_ours, function ( $e ) { return null === $e['gate']; } );
@@ -404,48 +449,18 @@ r_check(
 );
 
 /*
- *  An editor is expected to reach the rest -- the 47 gated on manage_categories
- *  are the folder and librarian screens, and an editor runs those. Asserted so
- *  that a gate accidentally raised to manage_options shows up as the support
- *  ticket it would otherwise become.
+ *  An editor keeps the media library's folders: the tree, filing, and changing
+ *  one folder or one file at a time (wordpress.org review 2, 2026-10-03, moved
+ *  every library-wide write, run and AI call to manage_options). Asserted so a
+ *  gate raised too far -- the tree itself -- shows up here.
  */
-r_check(
-    'an editor reaches the folder and librarian endpoints',
-    count( $r_reached ) >= 58,
-    sprintf( 'reached %d', count( $r_reached ) )
-);
-
-
-/* ------------------------------- 6. the premise under the 47 unscoped routes */
-
-/*
- *  47 endpoints write to attachments behind a site-wide `manage_categories`
- *  without asking `edit_post` about the file. On stock WordPress that cannot be
- *  used to touch a file you could not already touch, because every role holding
- *  manage_categories also holds edit_others_posts. That is the whole argument,
- *  so it is asserted here: on a site where a custom role breaks it, those 47
- *  become reachable by somebody who should not reach them, and this row says so
- *  on that site rather than in a document nobody runs.
- */
-$r_broken = array();
-
-foreach ( wp_roles()->roles as $r_slug => $r_role_data ) {
-
-    $r_caps = isset( $r_role_data['capabilities'] ) ? $r_role_data['capabilities'] : array();
-
-    $r_files = ! empty( $r_caps['manage_categories'] );
-    $r_others = ! empty( $r_caps['edit_others_posts'] );
-
-    if ( $r_files && ! $r_others ) {
-        $r_broken[] = $r_slug;
-    }
+foreach ( array( '/vergeml/v1/tree GET', '/vergeml/v1/assign POST', '/vergeml/v1/folder POST', '/vergeml/v1/state POST' ) as $r_need ) {
+    r_check(
+        'an editor still reaches ' . $r_need,
+        in_array( $r_need, $r_reached, true ),
+        sprintf( 'reached %d', count( $r_reached ) )
+    );
 }
-
-r_check(
-    'no role on this site holds manage_categories without edit_others_posts',
-    0 === count( $r_broken ),
-    'these do, so the 47 folder endpoints are reachable by them: ' . implode( ', ', $r_broken )
-);
 
 
 /* ----------------------------------------------------------------- put back */

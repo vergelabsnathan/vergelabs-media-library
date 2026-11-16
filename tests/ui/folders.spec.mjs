@@ -204,7 +204,30 @@ async function open_( page ) {
 	await ready( page );
 }
 
+/*
+ *  The screens' state is closure-private in the shipped scripts; the suite reads it through a
+ *  handle it adds to the script in transit, so no test hook ships (wordpress.org round 6).
+ */
+const HANDLES = {
+	'vergeml-folders.js': "window.vgmlFoldersApp = { state: state, view: function () { return view; }, preview: function () { return previewView; }, stop: stop, setStep: setStep, render: renderCards, progress: renderProgress, rows: dom.progress };",
+	'vergeml-brief.js': 'window.vgmlBriefApp = { state: state, talk: talk };',
+};
+
+async function exposeHandles( page ) {
+	for ( const [ file, line ] of Object.entries( HANDLES ) ) {
+		await page.route( ( url ) => url.pathname.endsWith( '/js/' + file ), async ( route ) => {
+			const response = await route.fetch();
+			const body = ( await response.text() ).replace( /\}\(\)\s*\);\s*$/, '\t' + line + '\n}() );\n' );
+			await route.fulfill( { response, body } );
+		} );
+	}
+}
+
 test.describe( 'the Folders screen', () => {
+
+	test.beforeEach( async ( { page } ) => {
+		await exposeHandles( page );
+	} );
 
 	test.afterEach( async ( { page } ) => {
 		await restore( page );
@@ -1016,7 +1039,7 @@ test.describe( 'the Folders screen', () => {
 		await remember( page );
 		await plant( page, false );
 		await page.goto( '/wp-admin/admin.php?page=media-guide', { waitUntil: 'domcontentloaded' } );
-		await expect( page ).toHaveURL( /page=media-librarian/ );
+		await expect( page ).toHaveURL( /page=vergeml-librarian/ );
 	} );
 
 	/*
@@ -1093,7 +1116,7 @@ test.describe( 'the Folders screen', () => {
 		expect( answered.result.made ).toBeGreaterThan( 0 );
 		// The result line, and -- the person chose the folder -- the way to review those five (C.3).
 		await expect( page.locator( '.g-qs .g-q.is-answered .g-q-result' ) ).toHaveText( 'Spec probe made · 5 moved · 5 by you · review' );
-		expect( await page.locator( '.g-qs .g-q.is-answered .g-q-review' ).getAttribute( 'href' ) ).toMatch( /upload\.php\?mode=list&media_category=by_you$/ );
+		expect( await page.locator( '.g-qs .g-q.is-answered .g-q-review' ).getAttribute( 'href' ) ).toMatch( /upload\.php\?mode=list&vergeml_folder=by_you$/ );
 		await expect( page.locator( '.g-tree .vgml-node.is-new .vgml-name' ).filter( { hasText: 'Spec probe' } ) ).toHaveCount( 1 );
 		await expect( page.locator( '.g-tree .vgml-node.is-new' ).filter( { hasText: 'Spec probe' } ).locator( '.vgml-tag' ) ).toHaveText( 'new' );
 		await expect( page.locator( '.g-card[data-card="fill"] .g-card-head .g-pill.is-ask' ) ).toHaveText( '1 question' );
@@ -1272,7 +1295,7 @@ test.describe( 'the Folders screen', () => {
 		expect( answer.word ).toBe( 'by you' );
 
 		await page.setViewportSize( { width: 1600, height: 900 } );
-		await page.goto( `/wp-admin/upload.php?mode=list&media_category=${ encodeURIComponent( f.word.folder ) }`, { waitUntil: 'domcontentloaded' } );
+		await page.goto( `/wp-admin/upload.php?mode=list&vergeml_folder=${ encodeURIComponent( f.word.folder ) }`, { waitUntil: 'domcontentloaded' } );
 		await page.waitForSelector( '#the-list', { timeout: 30000 } );
 		const row = page.locator( `#the-list tr#post-${ f.word.id }` );
 		await expect( row ).toHaveCount( 1 );
@@ -1494,7 +1517,7 @@ test.describe( 'the Folders screen', () => {
 		const f = plantOnBox( { VGML_LEFT: 0 } );
 		expect( f.word.id, 'a filed picture to mark' ).toBeGreaterThan( 0 );
 		expect( f.placed, 'the marked one is among the marked' ).toContain( f.word.id );
-		const tax = 'media_category';
+		const tax = 'vergeml_folder';
 
 		const filtered = async () => {
 			await page.goto( `/wp-admin/upload.php?mode=list&${ tax }=by_you`, { waitUntil: 'domcontentloaded' } );
@@ -1548,7 +1571,7 @@ test.describe( 'the Folders screen', () => {
 		test.setTimeout( 300_000 );
 		await remember( page );
 		await plant( page, false );
-		const tax = 'media_category';
+		const tax = 'vergeml_folder';
 		const made = Number( ( await page.evaluate( ( [ ns, t ] ) => wp.apiFetch( { path: `${ ns }/folder`, method: 'POST', data: { taxonomy: t, action: 'create', name: 'Class probe' } } ), [ NS, tax ] ) ).id );
 		expect( made ).toBeGreaterThan( 0 );
 		const draftWith = ( classes ) => page.evaluate( ( [ ns, draft ] ) => wp.apiFetch( { path: `${ ns }/guide/session`, method: 'POST', data: { draft } } ), [ NS, {

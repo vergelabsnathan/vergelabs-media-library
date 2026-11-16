@@ -22,7 +22,7 @@ function vergeml_licence_menu() {
         __( 'Licence', 'vergelabs-media-library' ),
         __( 'Licence', 'vergelabs-media-library' ),
         'manage_options',
-        'media-licence',
+        'vergeml-licence',
         'vergeml_licence_page'
     );
 }
@@ -38,6 +38,11 @@ function vergeml_licence_save() {
         wp_die( esc_html__( 'You do not have permission to do that.', 'vergelabs-media-library' ) );
     }
     check_admin_referer( 'vergeml_licence_save' );
+
+    // The network administrator set this site's key and locked it: the same refusal as /ai-settings.
+    if ( is_multisite() && ! empty( vergeml_ai_settings()['network_locked'] ) && ! current_user_can( 'manage_network_options' ) ) {
+        wp_die( esc_html__( 'You do not have permission to do that.', 'vergelabs-media-library' ) );
+    }
 
     $settings = get_option( 'vergeml_ai', array() );
     $settings = is_array( $settings ) ? $settings : array();
@@ -62,21 +67,23 @@ function vergeml_licence_save() {
         $result = 'removed';
     } else {
         $key = isset( $_POST['vergeml_licence_key'] ) ? sanitize_text_field( wp_unslash( $_POST['vergeml_licence_key'] ) ) : '';
-        if ( '' !== $key ) {
+        if ( '' !== $key && ! function_exists( 'openssl_encrypt' ) ) {
+            $result = 'nossl';
+        } elseif ( '' !== $key ) {
             $settings['license_key'] = vergeml_ai_seal( $key );
             update_option( 'vergeml_ai', $settings, false );
             // The seat on the licence, then the balance.
             $seat   = function_exists( 'vergeml_ai_activate_site' ) ? vergeml_ai_activate_site() : true;
             $check  = vergeml_ai_refresh_credits( true );
-            $state  = function_exists( 'vergeml_ai_credits_state' ) ? vergeml_ai_credits_state() : 'ok';
-            $result = ( null === $check && 'rejected' === $state ) ? 'rejected' : 'saved';
+            $state  = function_exists( 'vergeml_ai_credits_state' ) ? vergeml_ai_credits_state() : array();
+            $result = ( null === $check && isset( $state['state'] ) && 'rejected' === $state['state'] ) ? 'rejected' : 'saved';
             if ( is_wp_error( $seat ) && 'vergeml_ai_seat_limit' === $seat->get_error_code() ) {
                 $result = 'seat_limit';
             }
         }
     }
 
-    wp_safe_redirect( admin_url( 'admin.php?page=media-licence&vergeml_licence=' . $result ) );
+    wp_safe_redirect( admin_url( 'admin.php?page=vergeml-licence&vergeml_licence=' . $result ) );
     exit;
 }
 
@@ -142,14 +149,14 @@ function vergeml_licence_page() {
     <div class="wrap vgml-home vgml-licence">
 
         <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Licence', 'vergelabs-media-library' ),
-            __( 'This site\'s connection to VergeLabs. Images go to the service only to be described; nothing else leaves your site.', 'vergelabs-media-library' ),
+            __( 'This site\'s connection to VergeLabs. What goes to the service, and when, is listed under External services in the plugin\'s readme.', 'vergelabs-media-library' ),
             '<a class="button" href="https://vergelabsmedia.com/account" target="_blank" rel="noopener">' . esc_html__( 'Your account ↗', 'vergelabs-media-library' ) . '</a>'
                 . '<a class="button button-primary" href="' . esc_url( vergeml_buy_url( '/pricing', 'licence' ) ) . '" target="_blank" rel="noopener">' . esc_html__( 'Get credits ↗', 'vergelabs-media-library' ) . '</a>'
-        );
+        ), vergeml_kses_allowed() );
 
-        echo '<div class="vgml-status-band">' . $band . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above.
+        echo wp_kses( '<div class="vgml-status-band">' . $band . '</div>', vergeml_kses_allowed() );
 
         if ( isset( $_GET['vergeml_licence'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a notice after a redirect, no action taken.
             $r = sanitize_key( wp_unslash( $_GET['vergeml_licence'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
@@ -157,6 +164,7 @@ function vergeml_licence_page() {
                 'saved'    => array( 'success', __( 'Licence saved. This site is connected.', 'vergelabs-media-library' ) ),
                 'rejected' => array( 'error', __( 'That key was not recognised by the service. It is saved, but nothing can be described with it until it is.', 'vergelabs-media-library' ) ),
                 'removed'  => array( 'success', __( 'The licence was removed from this site.', 'vergelabs-media-library' ) ),
+                'nossl'    => array( 'error', __( 'This server cannot store a licence key: the PHP OpenSSL extension is missing. Nothing was saved.', 'vergelabs-media-library' ) ),
                 'seat_limit' => array( 'error', __( 'This licence is already in use on as many sites as it allows. Disconnect it from another site, or use another licence, to connect this one.', 'vergelabs-media-library' ) ),
             );
             if ( isset( $m[ $r ] ) ) {
@@ -173,29 +181,29 @@ function vergeml_licence_page() {
         echo '<section class="vgml-pg-card vgml-licence-rows"><div class="vgml-pg-card-body is-rows">';
 
         if ( $connected ) {
-            echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            echo wp_kses( vergeml_pg_row(
                 __( 'Licence', 'vergelabs-media-library' ),
                 '',
                 '…' . esc_html( substr( $key, -4 ) ) . ' <span class="vgml-muted">— ' . esc_html( $network
                     ? __( 'set by the network administrator for every site.', 'vergelabs-media-library' )
                     : __( 'the last four characters match what your account page shows.', 'vergelabs-media-library' ) ) . '</span>'
-            );
-            echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            ), vergeml_kses_allowed() );
+            echo wp_kses( vergeml_pg_row(
                 __( 'Plan', 'vergelabs-media-library' ),
                 '',
                 esc_html( '' === $plan_name ? '—' : $plan_name )
-            );
-            echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            ), vergeml_kses_allowed() );
+            echo wp_kses( vergeml_pg_row(
                 __( 'Credits', 'vergelabs-media-library' ),
                 '',
                 esc_html( null === $left ? '—' : number_format_i18n( $left ) ) . ' <span class="vgml-muted">— ' . esc_html( ( 'ok' !== $state && function_exists( 'vergeml_ai_credits_warning' ) && '' !== (string) vergeml_ai_credits_warning() )
                     ? (string) vergeml_ai_credits_warning()
                     : __( 'one describes one picture.', 'vergelabs-media-library' ) ) . '</span>'
-            );
+            ), vergeml_kses_allowed() );
         }
 
         if ( ! $locked ) {
-            echo vergeml_pg_row( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            echo wp_kses( vergeml_pg_row(
                 $connected ? __( 'Change licence', 'vergelabs-media-library' ) : __( 'Connect', 'vergelabs-media-library' ),
                 $connected
                     ? __( 'Sign in at vergelabsmedia.com, pick another licence, and you are brought straight back. The old licence gets its seat back.', 'vergelabs-media-library' )
@@ -204,7 +212,7 @@ function vergeml_licence_page() {
                     ? '<a class="button' . ( $connected ? '' : ' button-primary' ) . '" href="' . esc_url( $connect ) . '">'
                         . esc_html( $connected ? __( 'Connect a different licence', 'vergelabs-media-library' ) : __( 'Connect to VergeLabs', 'vergelabs-media-library' ) ) . '</a>'
                     : ''
-            );
+            ), vergeml_kses_allowed() );
         }
 
         echo '</div></section>';
@@ -219,7 +227,7 @@ function vergeml_licence_page() {
                     <h6 class="vgml-kicker"><?php esc_html_e( 'Or paste a key', 'vergelabs-media-library' ); ?></h6>
                     <p class="vgml-note"><?php esc_html_e( 'From the licence tab of your account at vergelabsmedia.com.', 'vergelabs-media-library' ); ?></p>
                     <div class="vgml-licence-paste">
-                        <input type="text" name="vergeml_licence_key" class="vgml-input" autocomplete="off" spellcheck="false" placeholder="<?php echo esc_attr( $connected ? '•••••••• (saved)' : 'VGML-…' ); ?>">
+                        <input type="text" name="vergeml_licence_key" class="vgml-input" aria-label="<?php esc_attr_e( 'Licence key', 'vergelabs-media-library' ); ?>" autocomplete="off" spellcheck="false" placeholder="<?php echo esc_attr( $connected ? '•••••••• (saved)' : 'VGML-…' ); ?>">
                         <button type="submit" class="button button-primary"><?php esc_html_e( 'Save key', 'vergelabs-media-library' ); ?></button>
                     </div>
                 </div>
@@ -243,26 +251,18 @@ function vergeml_licence_page() {
                         </span>
                     </div>
                 </div>
-                <script>
-                ( function () {
-                    var box = document.querySelector( '.vgml-licence-remove' );
-                    if ( ! box ) { return; }
-                    var open = box.querySelector( '.vgml-licence-remove-open' );
-                    var ask = box.querySelector( '.vgml-licence-remove-confirm' );
-                    var no = box.querySelector( '.vgml-licence-remove-no' );
-                    open.addEventListener( 'click', function () { open.hidden = true; ask.hidden = false; } );
-                    no.addEventListener( 'click', function () { ask.hidden = true; open.hidden = false; } );
-                }() );
-                </script>
+                <?php
+                wp_enqueue_script( 'vergeml-licence-remove', plugins_url( 'js/vergeml-licence-remove.js', VERGEML_FILE ), array(), vergeml_asset_ver( 'js/vergeml-licence-remove.js' ), true );
+                ?>
                 <?php endif; ?>
             </form>
             <?php
         else :
-            echo vergeml_pg_card_open( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+            echo wp_kses( vergeml_pg_card_open(
                 __( 'Set for the network', 'vergelabs-media-library' ),
                 array( 'note' => __( 'The network administrator set one licence for every site and locked it. Change it under Network Admin → Media.', 'vergelabs-media-library' ) )
-            );
-            echo vergeml_pg_card_close(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal markup.
+            ), vergeml_kses_allowed() );
+            echo wp_kses( vergeml_pg_card_close(), vergeml_kses_allowed() );
         endif;
 
         if ( ! $connected ) :
@@ -307,25 +307,5 @@ function vergeml_licence_page() {
  */
 function vergeml_licence_demo_script() {
 
-    wp_enqueue_script( 'wp-api-fetch' );
-
-    wp_add_inline_script( 'wp-api-fetch', '( function () {
-	var box = document.getElementById( "vgml-demo-mode" );
-	if ( ! box || box.disabled || ! window.wp || ! window.wp.apiFetch ) {
-		return;
-	}
-	box.addEventListener( "change", function () {
-		box.disabled = true;
-		window.wp.apiFetch( {
-			path: "/vergeml/v1/ai-settings",
-			method: "POST",
-			data: { mock: box.checked ? 1 : 0 }
-		} ).then( function () {
-			box.disabled = false;
-		} ).catch( function () {
-			box.disabled = false;
-			box.checked = ! box.checked;
-		} );
-	} );
-} )();' );
+    vergeml_screen_script( 'vergeml-demo-mode', 'vergeml-demo-mode.js', array( 'vergeml-transport' ) );
 }

@@ -74,23 +74,18 @@ const REVIEWED = {
 		[ '3b644de74c', 'a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow character appended' ],
 	],
 
-	'js/eml-media.js': [
-		[ '5075804ae4', "core's own Find Posts dialog: x.data is the HTML table core builds in wp_ajax_find_posts, behind core's nonce and capability. This mirrors core's media.js" ],
-	],
-
 	'js/vergeml-gallery.js': [
 		[ '8e5f448d16', 'glyph is a parameter of mk(), called exactly twice, both times with an HTML entity literal' ],
 	],
 
 	'js/vergeml-media-views.js': [
-		[ '7e52d60663', 'i.item is the rendered output of a wp.media template, not a value out of the database' ],
-		[ '922a72803e', "$('<div/>').html( t.term_row ).text() -- a detached node used to decode entities, with only .text() read back; term_row is built by our PHP with esc_html()" ],
-		[ '56d3889526', 'this.text comes from options.text, and the only construction of this view passes a vergeml.l10n string' ],
+		[ '638ed41b71', 'compat.item is the rendered output of a wp.media template, not a value out of the database' ],
+		[ '8cbde23373', "$('<div/>').html( term.term_row ).text() -- a detached node used to decode entities, with only .text() read back; term_row is built by our PHP with esc_html()" ],
 		[ '0531e42831', 'l10n.noMedia, one of our own translated strings' ],
 	],
 
 	'js/vergeml-taxonomies-options.js': [
-		[ 'ed5afe42cb', 'a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow' ],
+		[ 'ff192819c0', 'a jQuery .html( fn ) returning one of two vergeml.l10n strings with an arrow' ],
 	],
 
 	'js/vergeml-tree-view.js': [
@@ -108,30 +103,6 @@ const REVIEWED = {
 
 	/* --- PHP ----------------------------------------------------------- */
 
-	'core/gallery-widgets.php': [
-		[ 'e60edee9bb', 'vergeml_render_gallery_block() builds every part with wp_get_attachment_image(), esc_url(), esc_attr() and an (int) cast, and puts the caption through wp_kses_post(). The front-end path, so the one that matters most' ],
-	],
-
-	'core/import-csv.php': [
-		[ '7700958a44', 'a CSV download, not markup: text/csv with Content-Disposition attachment, quoted per RFC 4180. Not an XSS sink -- but see "The CSV export, and spreadsheet formulas", which is a separate finding' ],
-	],
-
-	'core/licence-page.php': [
-		[ 'fbcf74ab5e', '$band is assembled on three branches, each from esc_html__() or esc_html() plus literal markup' ],
-	],
-
-	'core/media-list.php': [
-		[ '0ad7967fe8', "wp_dropdown_categories( echo => false ) -- core's own escaped markup -- with one option of ours spliced in after Unfiled, whose text is esc_html() of a translated string with number_format_i18n() (the Placed by hand filter, C.3)" ],
-	],
-
-	'core/options-pages.php': [
-		[ 'cd9e4aee76', 'json_encode() into a download: application/json with Content-Disposition attachment, so not an HTML context. wp_json_encode() would be the house style' ],
-		[ 'e60edee9bb', 'assembled from __() translations and literal form markup; no value out of the request or the database is interpolated unescaped. Two sites, the media and non-media post-type branches, with the same expression' ],
-	],
-
-	'core/smart-folders.php': [
-		[ 'dde83623fc', 'each $lines[] entry is sprintf( \'<a href="%s">%s</a>\', esc_url( get_edit_post_link( … ) ), esc_html( $title ) )' ],
-	],
 };
 
 const SKIP = new Set( [

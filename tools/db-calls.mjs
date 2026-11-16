@@ -110,57 +110,6 @@ const BUILDERS = [ 'insert', 'update', 'delete', 'replace' ];
  */
 const REVIEWED = {
 
-	'core/ai-index.php': [
-		[ '77b42d1645',
-		  "$in is implode of an array_chunk of $ids, and $ids is array_map( 'intval', (array) $ids ) on the function's first line -- integers, every one of them" ],
-	],
-
-	'core/auto-file.php': [
-		[ '0605b2be08',
-		  "$words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site; the one id is bound through %d" ],
-	],
-
-	'core/ai-screen.php': [
-		[ '56dead9d32',
-		  'every $sums[] element is its own $wpdb->prepare() fragment, and the column alias after AS comes from a literal list of eight field names in the foreach header above it' ],
-	],
-
-	'core/folder-talk.php': [
-		[ 'ab6eb6af5f',
-		  "$words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site; $product is vergeml_filing_product_sql( 'i' ): literal correlated subqueries on {$wpdb->posts} and {$wpdb->postmeta}, or the literal NULL AS product_id, and an empty join; $only implodes array_map( 'intval', ... ) of the round's ids" ],
-	],
-
-	'core/guide.php': [
-		[ '3e80c7c338',
-		  "$chunk comes from array_chunk( array_map( function ( $r ) { return (int) $r['attachment_id']; }, $rows ), 500 ) by way of $chunks -- integers by construction; $words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site" ],
-		[ '42215bda29',
-		  "$chunk is array_chunk of the same (int) map over $rows -- integers by construction; $words is vergeml_filing_words_sql( 'i' ) (core/filing.php): a literal SELECT list and LEFT JOINs on {$wpdb->posts} and {$wpdb->postmeta} with literal meta keys, the alias its only argument and a literal 'i' at every call site; $product is vergeml_filing_product_sql( 'i' ): literal correlated subqueries on {$wpdb->posts} and {$wpdb->postmeta}, or the literal NULL AS product_id, and an empty join; the meta key is bound through %s" ],
-	],
-
-	'core/search-try.php': [
-		[ '36af7892eb',
-		  "each $any[] is $wpdb->prepare( \"{$column} LIKE %s\", $like ); $column comes from vergeml_search_try_fields(), a literal array of seven, and the search term goes through esc_like() and a placeholder" ],
-		[ '3e7ba748c4',
-		  'each $where_all[] is "( " . implode( " OR ", $any ) . " )" over the prepared fragments above, and {$from} interpolates two $wpdb table names and nothing else' ],
-		[ '6a95da9eb6',
-		  'the same as the row above, restricted to the three columns WordPress itself searches' ],
-		[ 'db4c1ee30a',
-		  'the rows query behind the same two assembled lists; LIMIT 30 is a literal' ],
-	],
-
-	'core/seo-context.php': [
-		[ '1f45eb3c01',
-		  "vergeml_seo_gap_sql() interpolates its $select argument, and both of its two call sites pass a hardcoded literal; the $keys and $stars lists inside it are array_map( 'esc_sql', ... )" ],
-		[ 'ace3ecc40b',
-		  'the same function, the other call site, also a hardcoded literal' ],
-	],
-
-	'core/smart-folders.php': [
-		[ '77f8356ddc',
-		  'the interpolated {$exclude} and each appended $branch[\'sql\'] come from two filters, not from a request; both of our own implementations build from $wpdb table names and constants, and every value is bound through prepare(). An extension point that accepts SQL -- see "Two filters that accept SQL" in the doc' ],
-		[ '043d77dfa1',
-		  'the same $core_sql, read a second time for the extended flag' ],
-	],
 };
 
 const PROVEN_HELPERS = {
@@ -1043,24 +992,6 @@ function markdown() {
 		L.push( `| ${ c.rel }:${ c.line } | \`${ c.fingerprint }\` | \`${ c.method }\` | ${ esc( c.reviewed ) } |` );
 	}
 	L.push( '' );
-	L.push( '### Two filters that accept SQL' );
-	L.push( '' );
-	L.push( '`core/smart-folders.php` builds the counts panel from two filters:' );
-	L.push( '' );
-	L.push( '- `vergeml_smart_count_exclude` — a string appended to each `WHERE`.' );
-	L.push( '- `vergeml_smart_count_branches` — each branch contributing its own `sql` and `args`.' );
-	L.push( '' );
-	L.push( 'Neither carries request input and neither is reachable by a visitor: a filter can' );
-	L.push( 'only be added by code already running on the site, and our own two implementations' );
-	L.push( '(`core/quarantine.php`, `core/ai-folders.php`) build from `$wpdb` table names and' );
-	L.push( 'constants with every value bound through `prepare()`.' );
-	L.push( '' );
-	L.push( 'It is still an extension point that accepts SQL, and a third-party plugin could pass' );
-	L.push( 'request text into it without realising where it lands. The contract is not documented' );
-	L.push( 'anywhere a plugin author would read it. **Found, not done:** say so in the docblock,' );
-	L.push( 'and prefer a branch that passes `args` over one that interpolates.' );
-	L.push( '' );
-
 	L.push( '## Every call' );
 	L.push( '' );
 	L.push( 'Sorted by file. The proof column says why the tool is satisfied; where it names a' );

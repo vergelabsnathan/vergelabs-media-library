@@ -17,7 +17,7 @@ const { chromium } = require('playwright');
 // always use the default, so a runner pointing it somewhere else was silently
 // testing the wrong site -- or nothing at all.
 const BASE = process.argv[2] || 'http://127.0.0.1:8899';
-const TAXONOMY = 'media_category';
+const TAXONOMY = 'vergeml_folder';
 
 const results = [];
 const check = (name, ok, detail = '') => {
@@ -136,7 +136,7 @@ const check = (name, ok, detail = '') => {
       const both = await page.evaluate(async ([id, tax, n]) => {
         const res = await fetch(`/wp-json/wp/v2/media/${id}`, { headers: { 'X-WP-Nonce': n } });
         const item = await res.json();
-        return item[tax] ?? item['media_category'] ?? [];
+        return item[tax] ?? item['vergeml_folder'] ?? [];
       }, [ids[0], TAXONOMY, nonce]);
 
       check('the same file is in both folders', Array.isArray(both) && both.length >= 2, `in ${both.length} folders`);
@@ -151,7 +151,7 @@ const check = (name, ok, detail = '') => {
       const after = await page.evaluate(async ([id, n]) => {
         const res = await fetch(`/wp-json/wp/v2/media/${id}`, { headers: { 'X-WP-Nonce': n } });
         const item = await res.json();
-        return item['media_category'] ?? [];
+        return item['vergeml_folder'] ?? [];
       }, [ids[0], nonce]);
       check('move leaves exactly one folder', after.length === 1, `in ${after.length}`);
 

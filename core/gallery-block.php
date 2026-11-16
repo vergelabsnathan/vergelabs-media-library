@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) )
  *  A folder, as a gallery.
  *
  *  The query behind this has existed since Enhanced Media Library: `[gallery
- *  media_category="press"]` builds a tax query and renders. What it never had
+ *  vergeml_folder="press"]` builds a tax query and renders. What it never had
  *  was a way to reach it -- you had to know the shortcode existed, know the
  *  folder's slug, and switch on a setting that is off by default. So a feature
  *  that worked for years was, in practice, not there.
@@ -50,6 +50,13 @@ function vergeml_register_gallery_assets() {
         VERGEML_VERSION,
         true
     );
+    wp_localize_script( 'vergeml-gallery', 'vergemlGallery', array(
+        'previousImages' => __( 'Previous images', 'vergelabs-media-library' ),
+        'nextImages'     => __( 'Next images', 'vergelabs-media-library' ),
+        'previousImage'  => __( 'Previous image', 'vergelabs-media-library' ),
+        'nextImage'      => __( 'Next image', 'vergelabs-media-library' ),
+        'close'          => __( 'Close', 'vergelabs-media-library' ),
+    ) );
 }
 
 
@@ -70,7 +77,7 @@ function vergeml_register_gallery_block() {
     wp_register_script(
         'vergeml-gallery-block',
         plugins_url( 'js/vergeml-gallery-block.js', VERGEML_FILE ),
-        array( 'wp-blocks', 'wp-element', 'wp-components', 'wp-block-editor', 'wp-i18n', 'wp-api-fetch', 'wp-server-side-render' ),
+        array( 'wp-blocks', 'wp-element', 'wp-components', 'wp-block-editor', 'wp-i18n', 'vergeml-transport', 'wp-server-side-render' ),
         VERGEML_VERSION,
         true
     );
@@ -109,7 +116,7 @@ function vergeml_register_gallery_block() {
     ) );
 
     register_block_type( 'vergelabs/folder-gallery', array(
-        'api_version'     => 2,
+        'api_version'     => 3,
         'title'           => __( 'Folder gallery', 'vergelabs-media-library' ),
         'category'        => 'media',
         'icon'            => 'images-alt2',
@@ -214,6 +221,7 @@ function vergeml_gallery_query( $atts ) {
         'post_status'    => 'inherit',
         'post_mime_type' => 'image',
         'posts_per_page' => $limit > 0 ? $limit : -1,
+        'fields'         => empty( $atts['ids'] ) ? '' : 'ids',
         'orderby'        => $chosen['orderby'],
         'order'          => $chosen['order'],
         // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- a folder gallery is a term lookup; there is no version of the feature without one, and it is bounded to a single term.
@@ -268,7 +276,7 @@ function vergeml_render_gallery_block( $attributes ) {
 
         if ( 'file' === $link_to ) {
             $href = wp_get_attachment_url( $image->ID );
-            $img  = '<a href="' . esc_url( $href ) . '">' . $img . '</a>';
+            $img  = '<a href="' . esc_url( $href ) . '">' . wp_kses( $img, vergeml_kses_allowed() ) . '</a>';
         } elseif ( 'lightbox' === $link_to ) {
             /*
              *  An ordinary link to the full-size file, marked for the script to
@@ -277,9 +285,9 @@ function vergeml_render_gallery_block( $attributes ) {
              *  working link, never the only way to the image.
              */
             $href = wp_get_attachment_url( $image->ID );
-            $img  = '<a class="vgml-lightbox" href="' . esc_url( $href ) . '">' . $img . '</a>';
+            $img  = '<a class="vgml-lightbox" href="' . esc_url( $href ) . '">' . wp_kses( $img, vergeml_kses_allowed() ) . '</a>';
         } elseif ( 'post' === $link_to ) {
-            $img = '<a href="' . esc_url( get_permalink( $image->ID ) ) . '">' . $img . '</a>';
+            $img = '<a href="' . esc_url( get_permalink( $image->ID ) ) . '">' . wp_kses( $img, vergeml_kses_allowed() ) . '</a>';
         }
 
         $caption = wp_get_attachment_caption( $image->ID );
@@ -288,7 +296,7 @@ function vergeml_render_gallery_block( $attributes ) {
             $img .= '<figcaption class="wp-element-caption">' . wp_kses_post( $caption ) . '</figcaption>';
         }
 
-        $items .= '<figure class="wp-block-image size-' . esc_attr( $size ) . '">' . $img . '</figure>';
+        $items .= '<figure class="wp-block-image size-' . esc_attr( $size ) . '">' . wp_kses( $img, vergeml_kses_allowed() ) . '</figure>';
     }
 
     if ( '' === $items ) {
@@ -313,9 +321,6 @@ function vergeml_render_gallery_block( $attributes ) {
         ? '--vgml-slide:calc((100% - ' . ( ( $columns - 1 ) * 16 ) . 'px)/' . $columns . ');'
         : '--vgml-columns:' . (int) $columns . ';';
 
-    $wrapper = function_exists( 'get_block_wrapper_attributes' )
-        ? get_block_wrapper_attributes( array_filter( array( 'class' => $classes, 'style' => $style ) ) )
-        : 'class="' . esc_attr( $classes ) . '"' . ( $style ? ' style="' . esc_attr( $style ) . '"' : '' );
 
     /*
      *  The stylesheet rides along with every render. It used to come only for
@@ -331,7 +336,14 @@ function vergeml_render_gallery_block( $attributes ) {
         wp_enqueue_script( 'vergeml-gallery' );
     }
 
-    return '<figure ' . $wrapper . '>' . $items . '</figure>';
+    // The wrapper's attributes come escaped from core, or from esc_attr(); $items was escaped piece by piece as it was built.
+    $out  = '<figure ' . ( function_exists( 'get_block_wrapper_attributes' )
+        ? get_block_wrapper_attributes( array_filter( array( 'class' => $classes, 'style' => $style ) ) )
+        : 'class="' . esc_attr( $classes ) . '"' . ( $style ? ' style="' . esc_attr( $style ) . '"' : '' ) ) . '>';
+    $out .= $items;
+    $out .= '</figure>';
+
+    return $out;
 }
 
 
@@ -351,7 +363,7 @@ function vergeml_register_gallery_route() {
     register_rest_route( VERGEML_REST_NS, '/gallery-folders', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_rest_gallery_folders',
-        'permission_callback' => 'vergeml_can_read_tree',
+        'permission_callback' => function () { return current_user_can( 'upload_files' ); },
         'args'                => array(
             'taxonomy' => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
         ),
@@ -368,7 +380,9 @@ function vergeml_rest_gallery_folders( WP_REST_Request $request ) {
         $taxonomy = $taxonomies ? $taxonomies[0] : '';
     }
 
-    if ( ! $taxonomy ) {
+    $tax_object = $taxonomy ? get_taxonomy( $taxonomy ) : false;
+
+    if ( ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) ) {
         return rest_ensure_response( array( 'folders' => array() ) );
     }
 
@@ -390,13 +404,20 @@ function vergeml_rest_gallery_folders( WP_REST_Request $request ) {
      *  Flattened with the path in the name, because a select cannot show a tree
      *  and "2025" on its own tells you nothing about which 2025 it is.
      */
-    $walk = function ( $parent, $prefix ) use ( &$walk, &$out, $by_parent, $taxonomy ) {
+    $seen = array();
+
+    $walk = function ( $parent, $prefix ) use ( &$walk, &$out, &$seen, $by_parent, $taxonomy ) {
 
         if ( empty( $by_parent[ $parent ] ) ) {
             return;
         }
 
         foreach ( $by_parent[ $parent ] as $term ) {
+
+            if ( isset( $seen[ (int) $term->term_id ] ) ) {
+                continue; // a parent loop in the terms table is followed once
+            }
+            $seen[ (int) $term->term_id ] = true;
 
             $label = $prefix ? $prefix . ' / ' . $term->name : $term->name;
 
@@ -407,6 +428,7 @@ function vergeml_rest_gallery_folders( WP_REST_Request $request ) {
                     'taxonomy' => $taxonomy,
                     'folder'   => (int) $term->term_id,
                     'children' => false,
+                    'ids'      => true,
                 ) ) ),
             );
 

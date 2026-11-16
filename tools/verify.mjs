@@ -123,6 +123,8 @@ const SUITES = [
 	 *  The 4.0.0 archive shipped .harness/active.json (Epic 1 retro, A-1).
 	 */
 	{ name: 'archive-hygiene', file: 'tests/release/archive-hygiene.mjs', env: 'local' },
+	// Nothing of core's or another plugin's is answered, switched off or overwritten (wordpress.org review 2).
+	{ name: 'hands-off', file: 'tests/release/hands-off.mjs', env: 'local' },
 	/*
 	 *  The copy standard, over the strings Phase 4 struck. Reads the source
 	 *  from disk, so env 'local'. Copy rots back: "Please try again" is the
@@ -328,6 +330,25 @@ const SUITES = [
 	 *  like get-help.
 	 */
 	{ name: 'ai-outage', file: 'tests/ai/outage.php', env: 'local', php: 'playground' },
+	// The self-entered safe mode (the watchdog) was removed in 4.1.0; safe mode is VERGEML_SAFE_MODE only.
+	// File types: WordPress's own types only, never one that runs code (wordpress.org review 2).
+	{ name: 'mime-allowlist', file: 'tests/security/mime-allowlist.php', env: 'local', php: 'playground' },
+	// Every vergeml/v1 route's permission, asked as author, editor and administrator (wordpress.org review 2).
+	{ name: 'route-caps', file: 'tests/security/route-caps.php', env: 'local', php: 'playground' },
+	// What deleting the plugin removes, and what it leaves (rulebook audit HB-149).
+	{ name: 'uninstall', file: 'tests/security/uninstall.php', env: 'local', php: 'playground' },
+	// Saving one Media Taxonomies form keeps the other option; an import is not a form (rulebook audit review).
+	{ name: 'settings-safety', file: 'tests/tree/settings-safety.php', env: 'local', php: 'playground' },
+	// Core's media-modal saves are core's: the folder checkboxes ride core's own handler, ordering is ours (wordpress.org review 2).
+	{ name: 'media-ajax', file: 'tests/security/media-ajax.php', env: 'local', php: 'playground' },
+	// The gates the review of review 2's fixes found untested: admin rows, private folders, author bulk, logged-out admin_init, the bridge.
+	{ name: 'gates', file: 'tests/security/gates.php', env: 'local', php: 'playground' },
+	// A clean activation: no output, no notice, no request, the four tables made by dbDelta during it (wordpress.org round 5).
+	{ name: 'activation', file: 'tests/security/activation.php', env: 'local', php: 'playground', fresh: true },
+	// An import in passes, a resume the browser cannot forge, undo of exactly what it did (code review of review 2).
+	{ name: 'import-passes', file: 'tests/tree/import-passes.php', env: 'local', php: 'playground' },
+	// Health keep and delete rewrite other posts through wp_update_post, only those the person may edit (wordpress.org review 2).
+	{ name: 'health-rewrite', file: 'tests/tree/health-rewrite.php', env: 'local', php: 'playground' },
 	// The folders version stamp and its route, including the one-query budget.
 	{ name: 'folders-version', file: 'tests/tree/folders-version.php', env: 'box', php: true },
 	{ name: 'guide', file: 'tests/tree/guide.php', env: 'box', php: true },
@@ -488,7 +509,6 @@ const SUITES = [
 	 *  their generated sizes and rewrites real post content -- and because a
 	 *  rename that half-works is a broken image on somebody's page.
 	 */
-	{ name: 'rename-files', file: 'tests/rename/files.php', env: 'box', php: true },
 	/*
 	 *  Two suites for the Librarian, and they answer different questions. The
 	 *  PHP one is about what applying and undoing actually do to the database
@@ -505,7 +525,6 @@ const SUITES = [
 	 *  tests/librarian/gate7-blueprint.json drives it through Playground.
 	 */
 	{ name: 'librarian-schema', file: 'tests/librarian/gate7-schema.php', env: 'box', php: true },
-	{ name: 'watchdog', file: 'tests/watchdog/recovery.js', env: 'playground' },
 ];
 
 /*
@@ -889,8 +908,9 @@ function runPhpPlayground( suite ) {
 		const out = path.join( outDir, 'result.txt' );
 		const blueprint = path.join( outDir, 'blueprint.json' );
 
+		// fresh: the plugin is mounted but never loaded, so the suite's own activate_plugin() is its first include, as on a real site.
 		fs.writeFileSync( blueprint, JSON.stringify( { steps: [
-			{ step: 'activatePlugin', pluginPath: MOUNT },
+			...( suite.fresh ? [] : [ { step: 'activatePlugin', pluginPath: MOUNT } ] ),
 			{
 				step: 'runPHP',
 				// Whatever the suite prints, fatal errors included, reaches the file: the shutdown function runs after exit().

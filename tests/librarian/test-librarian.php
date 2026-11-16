@@ -19,15 +19,15 @@
  *  What this suite does not test is the screen. That is librarian.mjs.
  */
 
-$GLOBALS['vgml_pass'] = 0;
-$GLOBALS['vgml_fail'] = 0;
+$GLOBALS['vergeml_pass'] = 0;
+$GLOBALS['vergeml_fail'] = 0;
 
 function l_check( $name, $ok, $detail = '' ) {
     if ( $ok ) {
-        $GLOBALS['vgml_pass']++;
+        $GLOBALS['vergeml_pass']++;
         echo "  ok   {$name}" . ( $detail ? "  -- {$detail}" : '' ) . "\n";
     } else {
-        $GLOBALS['vgml_fail']++;
+        $GLOBALS['vergeml_fail']++;
         echo "  FAIL {$name}" . ( $detail ? "  -- {$detail}" : '' ) . "\n";
     }
 }
@@ -535,7 +535,7 @@ echo "\nthe gate\n";
 // Applying a tree is local work, and nothing may hold it back (WordPress.org
 // Guidelines 5-6): not a licence, not a credit balance, not a filter someone
 // hangs on the old hook name.
-l_check( 'the gate is open by default', vergeml_librarian_gate()['allow'] );
+l_check( 'there is no gate function left to hang a restriction on', ! function_exists( 'vergeml_librarian_gate' ) && ! function_exists( 'vergeml_librarian_credits' ) );
 
 $g = array( l_attachment( 'g1' ), l_attachment( 'g2' ) );
 $gate_run = l_run( array( l_branch( 'zz Gated', $g ) ) );
@@ -879,8 +879,8 @@ if ( is_wp_error( $preflight ) ) {
     l_check( 'it counts the folders it would create',
         1 === (int) $preflight['folders']['create'], $preflight['folders']['create'] . ' to create' );
 
-    l_check( 'credits are zero and say they are mock',
-        0 === (int) $preflight['credits']['cost'] && 'mock' === $preflight['credits']['mode'] );
+    l_check( 'the pre-flight carries no credits: applying is local and costs nothing',
+        ! isset( $preflight['credits'] ) );
 }
 
 
@@ -1015,8 +1015,8 @@ l_check( 'the seeded folders are gone',
 
 delete_option( VERGEML_LIBRARIAN_OPTION );
 
-printf( '%d/%d passed' . PHP_EOL, $GLOBALS['vgml_pass'], $GLOBALS['vgml_pass'] + $GLOBALS['vgml_fail'] );
+printf( '%d/%d passed' . PHP_EOL, $GLOBALS['vergeml_pass'], $GLOBALS['vergeml_pass'] + $GLOBALS['vergeml_fail'] );
 
-if ( $GLOBALS['vgml_fail'] > 0 ) {
+if ( $GLOBALS['vergeml_fail'] > 0 ) {
     exit( 1 );
 }

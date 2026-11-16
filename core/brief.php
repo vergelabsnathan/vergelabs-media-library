@@ -193,12 +193,12 @@ function vergeml_brief_catalogue() {
     );
 
     if ( $described > 0 && isset( $wpdb->vergeml_ai_index ) ) {
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-        foreach ( (array) $wpdb->get_results( "SELECT kind, COUNT(*) n FROM {$wpdb->vergeml_ai_index} WHERE error = '' GROUP BY kind ORDER BY n DESC", ARRAY_A ) as $row ) {
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+        foreach ( (array) $wpdb->get_results( $wpdb->prepare( "SELECT kind, COUNT(*) n FROM %i WHERE error = '' GROUP BY kind ORDER BY n DESC", $wpdb->vergeml_ai_index ), ARRAY_A ) as $row ) {
             $catalogue['kinds'][ '' === (string) $row['kind'] ? 'none' : (string) $row['kind'] ] = (int) $row['n'];
         }
         $freq = array();
-        foreach ( (array) $wpdb->get_col( "SELECT tags FROM {$wpdb->vergeml_ai_index} WHERE error = ''" ) as $raw ) {
+        foreach ( (array) $wpdb->get_col( $wpdb->prepare( "SELECT tags FROM %i WHERE error = ''", $wpdb->vergeml_ai_index ) ) as $raw ) {
             foreach ( (array) vergeml_index_tags_out( $raw ) as $tag ) {
                 $tag = mb_strtolower( trim( (string) $tag ) );
                 if ( '' !== $tag ) {
@@ -372,17 +372,18 @@ function vergeml_brief_test_pick( $n ) {
     global $wpdb;
 
     $ids = array();
-    $tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
     $terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => true, 'orderby' => 'count', 'order' => 'DESC', 'number' => $n ) );
     if ( ! is_wp_error( $terms ) ) {
         foreach ( $terms as $term ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
             $id = (int) $wpdb->get_var( $wpdb->prepare(
-                "SELECT i.attachment_id FROM {$wpdb->vergeml_ai_index} i
+                "SELECT i.attachment_id FROM %i i
                    JOIN {$wpdb->term_relationships} tr ON tr.object_id = i.attachment_id
                   WHERE i.error = '' AND i.embedding IS NOT NULL AND tr.term_taxonomy_id = %d
                   ORDER BY i.attachment_id ASC LIMIT 1",
+                $wpdb->vergeml_ai_index,
                 $term->term_taxonomy_id
             ) );
             if ( $id && ! in_array( $id, $ids, true ) ) {
@@ -394,8 +395,8 @@ function vergeml_brief_test_pick( $n ) {
         }
     }
     if ( count( $ids ) < $n ) {
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- this plugin's own table.
-        foreach ( (array) $wpdb->get_col( $wpdb->prepare( "SELECT attachment_id FROM {$wpdb->vergeml_ai_index} WHERE error = '' AND embedding IS NOT NULL ORDER BY described_at DESC, attachment_id DESC LIMIT %d", $n * 2 ) ) as $id ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- this plugin's own table.
+        foreach ( (array) $wpdb->get_col( $wpdb->prepare( "SELECT attachment_id FROM %i WHERE error = '' AND embedding IS NOT NULL ORDER BY described_at DESC, attachment_id DESC LIMIT %d", $wpdb->vergeml_ai_index, $n * 2 ) ) as $id ) {
             $id = (int) $id;
             if ( ! in_array( $id, $ids, true ) ) {
                 $ids[] = $id;
@@ -410,14 +411,6 @@ function vergeml_brief_test_pick( $n ) {
 
 /** One picture described with a brief other than the one in use, straight against the service, nothing written. */
 function vergeml_brief_describe_with( $attachment_id, $brief ) {
-    /*
-     *  A suite may stand in for the service here: a test that spends five
-     *  credits on every push is not a test that runs on every push.
-     */
-    $stand_in = apply_filters( 'vergeml_brief_describe', null );
-    if ( is_callable( $stand_in ) ) {
-        return call_user_func( $stand_in, $attachment_id, $brief );
-    }
     $request = vergeml_ai_describe_request( $attachment_id );
     if ( is_wp_error( $request ) ) {
         return $request;
@@ -537,7 +530,7 @@ function vergeml_brief_test() {
  *  here, because the control the person pressed said it would. No run's end
  *  and no describe step starts one on its own any more (S12).
  *
- *  @param array $args 'start' false leaves the run unstarted (a suite).
+ *  @param array $args 'start' false saves the brief without starting the re-describe run.
  *  @return array|WP_Error { session, run }
  */
 function vergeml_brief_adopt( $args = array() ) {
@@ -606,8 +599,11 @@ function vergeml_brief_adopt( $args = array() ) {
         'assistant',
         'say',
         $pending > 0
-            /* translators: %s: pictures */
-            ? sprintf( __( 'Brief in use.', 'vergelabs-media-library' ) . "\n- " . _n( '%s picture is described again in the background', '%s pictures are described again in the background', $pending, 'vergelabs-media-library' ) . "\n- " . __( 'The Describe tab shows the run', 'vergelabs-media-library' ), number_format_i18n( $pending ) )
+            ? __( 'Brief in use.', 'vergelabs-media-library' ) . "\n- " . sprintf(
+                /* translators: %s: how many pictures */
+                _n( '%s picture is described again in the background', '%s pictures are described again in the background', $pending, 'vergelabs-media-library' ),
+                number_format_i18n( $pending )
+            ) . "\n- " . __( 'The Describe tab shows the run', 'vergelabs-media-library' )
             : __( 'Brief in use.', 'vergelabs-media-library' ) . "\n- " . __( 'Every picture is on it', 'vergelabs-media-library' ),
         array( 'free' => true )
     );
@@ -626,50 +622,47 @@ function vergeml_brief_adopt( $args = array() ) {
 add_action( 'rest_api_init', 'vergeml_brief_routes' );
 
 function vergeml_brief_routes() {
-    $may = function () {
-        return current_user_can( 'manage_options' );
-    };
     register_rest_route( VERGEML_REST_NS, '/brief/session', array(
-        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_brief_rest_session', 'permission_callback' => $may ),
+        array( 'methods' => WP_REST_Server::READABLE, 'callback' => 'vergeml_brief_rest_session', 'permission_callback' => function () { return current_user_can( 'manage_options' ); } ),
         array(
             'methods'             => WP_REST_Server::CREATABLE,
             'callback'            => 'vergeml_brief_rest_session',
-            'permission_callback' => $may,
+            'permission_callback' => function () { return current_user_can( 'manage_options' ); },
             'args'                => array(
                 'reset' => array( 'type' => 'boolean', 'required' => false ),
-                'draft' => array( 'required' => false ),
+                'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
             ),
         ),
     ) );
     register_rest_route( VERGEML_REST_NS, '/brief/token', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_brief_rest_token',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/brief/turn', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_brief_rest_turn',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'said'  => array( 'type' => 'object', 'required' => false ),
             'say'   => array( 'type' => 'object', 'required' => false ),
-            'draft' => array( 'required' => false ),
+            'draft' => array( 'type' => array( 'object', 'null' ), 'required' => false ),
         ),
     ) );
     register_rest_route( VERGEML_REST_NS, '/brief/test', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_brief_rest_test',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/brief/adopt', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_brief_rest_adopt',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
     register_rest_route( VERGEML_REST_NS, '/brief/discard', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_brief_rest_discard',
-        'permission_callback' => $may,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
 }
 
@@ -760,14 +753,14 @@ function vergeml_brief_assets() {
         return;
     }
     vergeml_talk_assets();
-    wp_enqueue_script( 'vergeml-brief', plugins_url( 'js/vergeml-brief.js', VERGEML_FILE ), array( 'wp-api-fetch', 'wp-i18n', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-brief.js' ), true );
+    wp_enqueue_script( 'vergeml-brief', plugins_url( 'js/vergeml-brief.js', VERGEML_FILE ), array( 'vergeml-transport', 'wp-i18n', 'vergeml-talk' ), vergeml_asset_ver( 'js/vergeml-brief.js' ), true );
     wp_set_script_translations( 'vergeml-brief', 'vergelabs-media-library' );
     $boot = vergeml_brief_boot();
     $credits = get_option( 'vergeml_ai_credits', array() );
-    wp_localize_script( 'vergeml-brief', 'vgmlBrief', array_merge( $boot, array(
+    wp_localize_script( 'vergeml-brief', 'vergemlBrief', array_merge( $boot, array(
         'ns'         => VERGEML_REST_NS,
         'credits'    => is_array( $credits ) && isset( $credits['remaining'] ) && null !== $credits['remaining'] ? (int) $credits['remaining'] : null,
-        'licenceUrl' => admin_url( 'admin.php?page=media-licence' ),
-        'describeUrl'=> admin_url( 'admin.php?page=media-ai' ),
+        'licenceUrl' => admin_url( 'admin.php?page=vergeml-licence' ),
+        'describeUrl'=> admin_url( 'admin.php?page=vergeml-ai' ),
     ) ) );
 }

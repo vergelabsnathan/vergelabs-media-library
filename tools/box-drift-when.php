@@ -111,7 +111,7 @@ printf( "already past their deadline: %d\n", $expired );
 
 echo "\n== folder profiles ==\n";
 
-$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+$taxonomy = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 $terms    = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids' ) );
 $terms    = is_wp_error( $terms ) ? array() : array_map( 'intval', $terms );
 sort( $terms );

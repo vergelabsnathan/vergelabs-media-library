@@ -94,10 +94,10 @@ function cs_text( $rows ) {
 
 cs_say( "\nfolders as a file\n\n" );
 
-$cs_tax = 'media_category';
+$cs_tax = 'vergeml_folder';
 
 if ( ! in_array( $cs_tax, vergeml_tree_taxonomies(), true ) ) {
-    cs_say( "media_category is not a tree taxonomy on this site.\n" );
+    cs_say( "vergeml_folder is not a tree taxonomy on this site.\n" );
     exit( 1 );
 }
 

@@ -23,11 +23,11 @@ const PASS = process.argv[ 4 ] ?? '';
 
 const SCREENS = [
 	[ 'dashboard', 'admin.php?page=vergelabs-media' ],
-	[ 'ai', 'admin.php?page=media-ai' ],
-	[ 'librarian', 'admin.php?page=media-librarian' ],
-	[ 'health', 'admin.php?page=media-health' ],
-	[ 'import', 'admin.php?page=media-import-folders' ],
-	[ 'settings-library', 'admin.php?page=media-library' ],
+	[ 'ai', 'admin.php?page=vergeml-ai' ],
+	[ 'librarian', 'admin.php?page=vergeml-librarian' ],
+	[ 'health', 'admin.php?page=vergeml-health' ],
+	[ 'import', 'admin.php?page=vergeml-import-folders' ],
+	[ 'settings-library', 'admin.php?page=vergeml-library' ],
 	[ 'media-grid', 'upload.php?mode=grid' ],
 ];
 

@@ -27,19 +27,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 wp_set_current_user( 1 );
 
-$tax = 'media_category';
+// The validators report through add_settings_error(), which only the admin loads.
+require_once ABSPATH . 'wp-admin/includes/template.php';
 
-$GLOBALS['vgml_ok']  = 0;
-$GLOBALS['vgml_bad'] = 0;
+$tax = 'vergeml_folder';
+
+$GLOBALS['vergeml_ok']  = 0;
+$GLOBALS['vergeml_bad'] = 0;
 
 function t( $name, $pass, $detail = '' ) {
-	$pass ? $GLOBALS['vgml_ok']++ : $GLOBALS['vgml_bad']++;
+	$pass ? $GLOBALS['vergeml_ok']++ : $GLOBALS['vergeml_bad']++;
 	printf( "  %s %s%s\n", $pass ? 'ok  ' : 'FAIL', $name, $detail ? '  -- ' . $detail : '' );
 }
 
 echo "\na partial settings write\n\n";
 
 $before = get_option( 'vergeml_taxonomies', array() );
+
+// A folder to look for at the end, on a fresh site that has none yet.
+$vergeml_made = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false, 'fields' => 'ids', 'number' => 1 ) ) ? 0 : wp_insert_term( 'vgml-settings-safety', $tax );
 
 t( 'the taxonomy starts registered', taxonomy_exists( $tax ) );
 t( 'and has labels on file', ! empty( $before[ $tax ]['labels']['name'] ),
@@ -63,6 +69,9 @@ t( 'and has labels on file', ! empty( $before[ $tax ]['labels']['name'] ),
 unset( $_POST['vergeml_taxonomies'] );
 unset( $_POST['vergeml_tax_options'] );
 
+// A Settings API form post: options.php sends option_page with every form (4.1.0 keys the guard on it).
+$_POST['option_page'] = 'vergeml-taxonomies';
+
 $kept = vergeml_taxonomies_validate( null );
 
 t( 'a form that did not carry the taxonomies keeps them', count( (array) $kept ) === count( (array) $before ),
@@ -75,6 +84,7 @@ t( 'and show_in_rest intact', ! empty( $kept[ $tax ]['show_in_rest'] ),
 
 $opts_before = get_option( 'vergeml_tax_options', array() );
 $opts_kept   = vergeml_tax_options_validate( null );
+unset( $_POST['option_page'] );
 
 t( 'and the same for the options in that group',
 	count( (array) $opts_kept ) === count( (array) $opts_before ),
@@ -115,8 +125,8 @@ t( 'a partial save keeps hierarchical', ! empty( $survived[ $tax ]['hierarchical
 	var_export( $survived[ $tax ]['hierarchical'] ?? null, true ) );
 t( 'and show_in_rest', ! empty( $survived[ $tax ]['show_in_rest'] ),
 	var_export( $survived[ $tax ]['show_in_rest'] ?? null, true ) );
-t( 'and the post types', isset( $survived[ $tax ]['post_types'] ) &&
-	$survived[ $tax ]['post_types'] === ( $before[ $tax ]['post_types'] ?? array() ),
+// Whatever was stored, unchanged -- none at all on a site that never set any.
+t( 'and the post types', ( $survived[ $tax ]['post_types'] ?? array() ) === ( $before[ $tax ]['post_types'] ?? array() ),
 	wp_json_encode( $survived[ $tax ]['post_types'] ?? null ) );
 t( 'and the labels', ! empty( $survived[ $tax ]['labels']['name'] ) );
 
@@ -196,5 +206,5 @@ t( 'the real settings are back', taxonomy_exists( $tax ) &&
 	get_taxonomy( $tax )->labels->name === $before[ $tax ]['labels']['name'],
 	taxonomy_exists( $tax ) ? get_taxonomy( $tax )->labels->name : 'gone' );
 
-printf( "\n%d/%d passed\n\n", $GLOBALS['vgml_ok'], $GLOBALS['vgml_ok'] + $GLOBALS['vgml_bad'] );
-exit( $GLOBALS['vgml_bad'] ? 1 : 0 );
+printf( "\n%d/%d passed\n\n", $GLOBALS['vergeml_ok'], $GLOBALS['vergeml_ok'] + $GLOBALS['vergeml_bad'] );
+exit( $GLOBALS['vergeml_bad'] ? 1 : 0 );

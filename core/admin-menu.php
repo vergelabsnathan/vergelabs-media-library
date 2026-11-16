@@ -43,14 +43,14 @@ add_action( 'admin_menu', 'vergeml_admin_menu', 9 );
 
 function vergeml_admin_menu() {
 
-    if ( ! current_user_can( 'manage_options' ) && ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         return;
     }
 
     add_menu_page(
         __( 'VergeLabs Library', 'vergelabs-media-library' ),
         __( 'VergeLabs Library', 'vergelabs-media-library' ),
-        'manage_categories',
+        'manage_options',
         VERGEML_MENU,
         // The dashboard IS the plugin's home. It used to be a card menu called
         // Overview, with a second home screen called Start above it -- two
@@ -77,16 +77,20 @@ function vergeml_admin_menu() {
      *  entry answers 403. The entries stay; the sidebar simply does not draw
      *  them.
      */
-    add_action( 'admin_head', 'vergeml_hide_submenu' );
+    add_action( 'admin_enqueue_scripts', 'vergeml_hide_submenu' );
 }
 
 
 function vergeml_hide_submenu() {
 
-    printf(
-        '<style>#adminmenu .toplevel_page_%s .wp-submenu{display:none}</style>',
-        esc_attr( VERGEML_MENU )
-    );
+    // Only where the plugin's own nav is drawn beside it; elsewhere the sidebar is core's to show.
+    if ( '' === vergeml_shell_current() ) {
+        return;
+    }
+
+    wp_register_style( 'vergeml-hide-submenu', false, array(), VERGEML_VERSION );
+    wp_enqueue_style( 'vergeml-hide-submenu' );
+    wp_add_inline_style( 'vergeml-hide-submenu', wp_strip_all_tags( '#adminmenu .toplevel_page_' . sanitize_html_class( VERGEML_MENU ) . ' .wp-submenu{display:none}' ) );
 }
 
 
@@ -125,8 +129,27 @@ function vergeml_menu_icon() {
  *
  *  These screens lived under Settings for years and people have them bookmarked,
  *  linked from their own notes, and open in a tab. Moving a menu is not a reason
- *  to break a URL.
+ *  to break a URL. Nor is renaming one: until 4.1.0 the screens' slugs were
+ *  generic (media-ai, mime-types, eml-settings ...), and a bookmark, a link
+ *  from the VergeLabs site or a licence connect that set out before the update
+ *  arrives at the old one.
  */
+
+/** Every screen slug before 4.1.0, and what it is now. */
+function vergeml_admin_renamed_pages() {
+    return array(
+        'media-library'        => 'vergeml-library',
+        'media-taxonomies'     => 'vergeml-taxonomies',
+        'mime-types'           => 'vergeml-mime-types',
+        'media-import-folders' => 'vergeml-import-folders',
+        'media-ai'             => 'vergeml-ai',
+        'media-librarian'      => 'vergeml-librarian',
+        'media-health'         => 'vergeml-health',
+        'media-licence'        => 'vergeml-licence',
+        'media-help'           => 'vergeml-help',
+        'eml-settings'         => 'vergeml-utilities',
+    );
+}
 
 /*
  *  admin_page_access_denied, not admin_init.
@@ -145,20 +168,52 @@ function vergeml_admin_menu_redirects() {
 
     global $pagenow;
 
-    if ( 'options-general.php' !== $pagenow ) {
-        return;
-    }
-
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- reading which screen was asked for, not acting on it.
+    // phpcs:disable WordPress.Security.NonceVerification.Recommended -- reading which screen was asked for and passing the request on unchanged; nothing is acted on here.
     $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 
-    $moved = array( 'media-library', 'media-taxonomies', 'mime-types', 'media-import-folders' );
+    // Until 4.1.0 the plugin had its own copy of Settings > Media at these two
+    // addresses. Core's own screen is the only one now.
+    if ( 'admin_page_access_denied' === current_filter() && in_array( $page, array( 'media', 'vergeml-media-settings' ), true ) ) {
+        wp_safe_redirect( admin_url( 'options-media.php' ), 301 );
+        exit;
+    }
 
-    if ( ! in_array( $page, $moved, true ) ) {
+    $renamed = vergeml_admin_renamed_pages();
+    $new     = isset( $renamed[ $page ] ) ? $renamed[ $page ] : $page;
+
+    // An old slug is only ours when nothing answers it: another plugin may
+    // register a page called "media" or "mime-types", and that page is left alone.
+    if ( $new !== $page && 'admin_page_access_denied' !== current_filter() ) {
         return;
     }
 
-    wp_safe_redirect( admin_url( 'admin.php?page=' . $page ), 301 );
+    // Out of Settings into the plugin's own menu.
+    $moved = array( 'vergeml-library', 'vergeml-taxonomies', 'vergeml-mime-types', 'vergeml-import-folders' );
+    $base  = 'options-general.php' === $pagenow && in_array( $new, $moved, true ) ? 'admin.php' : $pagenow;
+
+    if ( $new === $page && $base === $pagenow ) {
+        return;
+    }
+
+    // What the old address carried along: a connect callback's state and code, a tab, a notice.
+    $args = array();
+    // The plugin's own notices and flags are listed by name, as core's are.
+    $keys = array(
+        'tab', 'state', 'code', 'error', 'settings-updated', 'paged', 's', 'ticket', 'why',
+        'vergeml_moved', 'vergeml_to', 'vergeml_renamed', 'vergeml_renamed_back',
+        'vergeml_alt_written', 'vergeml_smart', 'vergeml_meaning', 'vergeml_unfiled', 'vergeml_trial', 'vergeml-help', 'vergeml-check',
+        'vergeml_op', 'vergeml_done', 'vergeml_skipped', 'vergeml_term', 'vergeml_connected', 'vergeml_licence',
+        'vergeml_refresh', 'vergeml_quick', 'vergeml_ai_filter',
+    );
+    foreach ( $keys as $key ) {
+        if ( isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ) {
+            $args[ $key ] = sanitize_text_field( wp_unslash( $_GET[ $key ] ) );
+        }
+    }
+    // phpcs:enable
+    $args['page'] = $new;
+
+    wp_safe_redirect( add_query_arg( rawurlencode_deep( $args ), self_admin_url( $base ) ), 301 );
     exit;
 }
 
@@ -175,7 +230,7 @@ function vergeml_admin_menu_redirects() {
 
 function vergeml_admin_home() {
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
@@ -191,43 +246,43 @@ function vergeml_admin_home() {
 
     $cards = array(
         array(
-            'page'  => 'media-taxonomies',
+            'page'  => 'vergeml-taxonomies',
             'title' => __( 'Folders and categories', 'vergelabs-media-library' ),
             'text'  => __( 'Which of your categories act as folders, what they are called, and which kinds of content they apply to.', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
         ),
         array(
-            'page'  => 'media-import-folders',
+            'page'  => 'vergeml-import-folders',
             'title' => __( 'Import folders', 'vergelabs-media-library' ),
             'text'  => __( 'Bring your folders over from FileBird, Premio Folders, WP Media Folder, HappyFiles, Wicked Folders or Real Media Library. Nothing is taken from them, and it can be undone.', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
-            'page'  => 'media-library',
+            'page'  => 'vergeml-library',
             'title' => __( 'Library settings', 'vergelabs-media-library' ),
             'text'  => __( 'Ordering, filters, what the grid and the list show, and how uploads are filed.', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',
         ),
         array(
-            'page'  => 'media-ai',
+            'page'  => 'vergeml-ai',
             'title' => __( 'AI', 'vergelabs-media-library' ),
             'text'  => __( 'Describe your pictures once; search finds what they show, and missing alt text fills itself in.', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
-            'page'  => 'media-librarian',
+            'page'  => 'vergeml-librarian',
             'title' => __( 'Folders', 'vergelabs-media-library' ),
             'text'  => __( 'Say what folders you want, or pick a rule. The folders answer. One button moves the pictures; undo for a day.', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
-            'page'  => 'media-health',
+            'page'  => 'vergeml-health',
             'title' => __( 'Library health', 'vergelabs-media-library' ),
             'text'  => __( 'Which files are copies of each other — the same upload twice, or one photo exported again at another size — and how much space they take. Reads only.', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
-            'page'  => 'mime-types',
+            'page'  => 'vergeml-mime-types',
             'title' => __( 'File types', 'vergelabs-media-library' ),
             'text'  => __( 'Which file types may be uploaded, and how they are grouped in the library filters.', 'vergelabs-media-library' ),
             'cap'   => 'manage_options',

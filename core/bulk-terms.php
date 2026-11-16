@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) )
 
 function vergeml_bulk_term_choices() {
 
-    $taxonomies = get_object_taxonomies( 'attachment', 'objects' );
+    $taxonomies = vergeml_assignable_media_taxonomies();
     $choices    = array();
 
     foreach ( $taxonomies as $taxonomy ) {
@@ -146,9 +146,11 @@ function vergeml_handle_bulk_terms( $location, $doaction, $post_ids ) {
     if ( 'vergeml-add-term' !== $doaction && 'vergeml-remove-term' !== $doaction )
         return $location;
 
+    // Core's upload.php checked this before calling the filter; said again here so the handler stands on its own.
+    check_admin_referer( 'bulk-media' );
+
     $location = remove_query_arg( array( 'vergeml_done', 'vergeml_skipped', 'vergeml_term', 'vergeml_op' ), $location );
 
-    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- core checked bulk-media before calling this filter.
     $raw = isset( $_REQUEST['vergeml_bulk_term'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['vergeml_bulk_term'] ) ) : '';
 
     if ( '' === $raw || false === strpos( $raw, ':' ) )
@@ -160,7 +162,13 @@ function vergeml_handle_bulk_terms( $location, $doaction, $post_ids ) {
     $term_id  = absint( $term_id );
     $term     = $term_id ? get_term( $term_id, $taxonomy ) : null;
 
-    if ( ! $term || is_wp_error( $term ) || ! in_array( $taxonomy, get_object_taxonomies( 'attachment' ), true ) )
+    if ( ! $term || is_wp_error( $term ) || ! in_array( $taxonomy, get_object_taxonomies( 'attachment' ), true ) || ( function_exists( 'vergeml_private_is_hidden' ) && vergeml_private_is_hidden( $term_id ) ) )
+        return add_query_arg( 'vergeml_op', 'noterm', $location );
+
+    // Core's own rule for setting terms on a post.
+    $tax_object = get_taxonomy( $taxonomy );
+
+    if ( ! $tax_object || ! current_user_can( $tax_object->cap->assign_terms ) )
         return add_query_arg( 'vergeml_op', 'noterm', $location );
 
     $done    = 0;
@@ -170,7 +178,7 @@ function vergeml_handle_bulk_terms( $location, $doaction, $post_ids ) {
 
         $post_id = absint( $post_id );
 
-        if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+        if ( ! $post_id || 'attachment' !== get_post_type( $post_id ) || ! current_user_can( 'edit_post', $post_id ) ) {
             $skipped++;
             continue;
         }

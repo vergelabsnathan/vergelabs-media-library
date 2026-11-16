@@ -150,8 +150,8 @@ if ( await fold.count() ) {
  *  tick, the file, its folder and its date, and measure the same rows again.
  */
 await page.addStyleTag( { content: `
-	.wp-list-table th:not(#cb):not(#title):not(#taxonomy-media_category):not(#date),
-	.wp-list-table td:not(.check-column):not(.title):not(.taxonomy-media_category):not(.date) { display: none !important; }
+	.wp-list-table th:not(#cb):not(#title):not(#taxonomy-vergeml_folder):not(#date),
+	.wp-list-table td:not(.check-column):not(.title):not(.taxonomy-vergeml_folder):not(.date) { display: none !important; }
 ` } );
 await page.waitForTimeout( 800 );
 

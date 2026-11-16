@@ -270,6 +270,7 @@ function vergeml_nl_select( $phrase, $limit = 500 ) {
     if ( isset( $vocab['folders'][ $key ] ) && '' !== $taxonomy ) {
 
         $query = new WP_Query( array_merge( $args, array(
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- the files in one folder are a taxonomy query by definition; WP_Query pages them.
             'tax_query' => array( array(
                 'taxonomy' => $taxonomy,
                 'field'    => 'term_id',
@@ -285,6 +286,7 @@ function vergeml_nl_select( $phrase, $limit = 500 ) {
         $terms = get_terms( array( 'taxonomy' => $taxonomy, 'hide_empty' => false, 'fields' => 'ids' ) );
 
         $query = new WP_Query( array_merge( $args, array(
+            // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- the files in no folder are a taxonomy query by definition; WP_Query pages them.
             'tax_query' => array( array(
                 'taxonomy' => $taxonomy,
                 'field'    => 'term_id',
@@ -498,7 +500,8 @@ function vergeml_nl_run( $plan ) {
 
     foreach ( $ids as $id ) {
 
-        if ( ! get_post( $id ) ) {
+        // A picture only, and one this person may edit: the ids come from the request.
+        if ( 'attachment' !== get_post_type( $id ) || ! current_user_can( 'edit_post', $id ) ) {
             continue;
         }
 
@@ -536,9 +539,6 @@ add_action( 'rest_api_init', 'vergeml_nl_routes' );
 
 function vergeml_nl_routes() {
 
-    $can = function () {
-        return current_user_can( 'manage_categories' );
-    };
 
     /*
      *  Two endpoints, and the split is the safety.
@@ -550,7 +550,7 @@ function vergeml_nl_routes() {
      */
     register_rest_route( VERGEML_REST_NS, '/say-plan', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_nl_rest_plan',
         'args'                => array(
             'text' => array( 'type' => 'string', 'required' => true ),
@@ -559,10 +559,10 @@ function vergeml_nl_routes() {
 
     register_rest_route( VERGEML_REST_NS, '/say-run', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_nl_rest_run',
         'args'                => array(
-            'plan' => array( 'required' => true ),
+            'plan' => array( 'type' => 'object', 'required' => true ),
         ),
     ) );
 }
@@ -570,7 +570,7 @@ function vergeml_nl_routes() {
 
 function vergeml_nl_rest_plan( WP_REST_Request $request ) {
 
-    $plan = vergeml_nl_plan( (string) $request->get_param( 'text' ) );
+    $plan = vergeml_nl_plan( sanitize_text_field( (string) $request->get_param( 'text' ) ) );
 
     if ( is_wp_error( $plan ) ) {
         return $plan;
@@ -656,7 +656,7 @@ function vergeml_nl_card() {
         <h2><?php esc_html_e( 'Move files by typing a sentence', 'vergelabs-media-library' ); ?></h2>
         <p class="description"><?php esc_html_e( 'For when you already know what you want and it is faster to say it than to click it. We show you exactly which files would move before anything happens, and it cannot delete anything.', 'vergelabs-media-library' ); ?></p>
         <p>
-            <input type="text" id="vgml-say-text" class="regular-text" placeholder="<?php esc_attr_e( 'move the screenshots into Products', 'vergelabs-media-library' ); ?>">
+            <input type="text" id="vgml-say-text" class="regular-text" aria-label="<?php esc_attr_e( 'What to do with your files', 'vergelabs-media-library' ); ?>" placeholder="<?php esc_attr_e( 'move the screenshots into Products', 'vergelabs-media-library' ); ?>">
             <button type="button" class="button" id="vgml-say-plan"><?php esc_html_e( 'Show me what it would do', 'vergelabs-media-library' ); ?></button>
         </p>
         <p class="vgml-say-examples">
@@ -683,14 +683,14 @@ add_action( 'admin_enqueue_scripts', 'vergeml_nl_assets' );
 
 function vergeml_nl_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-librarian' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-librarian' ) ) {
         return;
     }
 
     wp_enqueue_script(
         'vergeml-say',
         plugins_url( 'js/vergeml-say.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-say.js' ),
         true
     );

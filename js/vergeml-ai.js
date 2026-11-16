@@ -16,7 +16,7 @@
 
 	var apiFetch = window.wp && window.wp.apiFetch;
 	var i18n = window.wp && window.wp.i18n;
-	var cfg = window.vgmlAi || {};
+	var cfg = window.vergemlAi || {};
 
 	if ( ! apiFetch || ! i18n ) {
 		return;
@@ -210,7 +210,7 @@
 			apiFetch( {
 				path: '/vergeml/v1/ai-index',
 				method: 'POST',
-				data: { scope: scope, limit: 24, apply_alt: applyAlt },
+				data: { scope: scope, limit: 5, apply_alt: applyAlt },
 			} ).then( function ( r ) {
 
 				r.described.forEach( function ( d ) {

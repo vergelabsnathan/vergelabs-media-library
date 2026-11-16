@@ -20,7 +20,7 @@
  *  the same turn route a conversation's tree does, so every number beside it
  *  is the matcher's dry run and none is the paste's own.
  *
- *  Everything the first paint needs came with the page (vgmlFolders): no
+ *  Everything the first paint needs came with the page (vergemlFolders): no
  *  request stands between the page and the tree. The session persists each
  *  finished turn and the draft, keyed by term id, so a reload shows the same
  *  tree. The conversation's turns are kept for the service (the history a
@@ -31,7 +31,7 @@
 ( function () {
 	'use strict';
 
-	var cfg = window.vgmlFolders || {};
+	var cfg = window.vergemlFolders || {};
 	var TV = window.vergemlTreeView;
 	var TALK = window.vergemlTalk;
 	var STRUCT = window.vergemlStructure;
@@ -608,7 +608,7 @@
 			next.addEventListener( 'click', function () { setStep( 'fill' ); } );
 			dom.treeMove.appendChild( next );
 			dom.treeMove.appendChild( quiet( __( 'Unconfirm', 'vergelabs-media-library' ), onUnconfirm ) );
-			if ( frozen() && described && licensed && cfg.plan && cfg.plan.labels > 0 && false !== cfg.plan.enough ) {
+			if ( frozen() && described && cfg.plan && cfg.plan.labels > 0 && false !== cfg.plan.enough ) {
 				renderPlanButton();
 			}
 			return;
@@ -670,7 +670,8 @@
 			dom.treeMove.appendChild( propose );
 			dom.treeMove.appendChild( pill( cfg.proposeCredits || 10, __( 'credits', 'vergelabs-media-library' ) ) );
 		}
-		if ( described && licensed && cfg.plan && cfg.plan.labels > 0 && false !== cfg.plan.enough ) {
+		// The growth of a filled plan runs on this site alone and costs nothing, so it needs no licence (story 10).
+		if ( described && ( licensed || frozen() ) && cfg.plan && cfg.plan.labels > 0 && false !== cfg.plan.enough ) {
 			renderPlanButton();
 			/*
 			 *  CAP-4: an audience split (men/women/kids) never comes from the
@@ -903,7 +904,8 @@
 	}
 
 	function canPlan() {
-		return canTalk() || ( frozen() && described && licensed && ! capped() && ! running() );
+		// A growth is local and free: no licence and no conversation cap stand in its way.
+		return canTalk() || ( frozen() && described && ! running() );
 	}
 
 	function onPlan() {
@@ -1218,7 +1220,7 @@
 		var placed = Number( q.result && q.result.placed ) || 0;
 		if ( placed > 0 ) {
 			p.appendChild( document.createTextNode( ' · ' ) );
-			var url = ( cfg.libraryUrl || 'upload.php' ) + '?mode=list&' + encodeURIComponent( cfg.taxonomy || 'media_category' ) + '=by_you';
+			var url = ( cfg.libraryUrl || 'upload.php' ) + '?mode=list&' + encodeURIComponent( cfg.taxonomy || 'vergeml_folder' ) + '=by_you';
 			/* translators: %s: pictures the person put in a folder themselves */
 			p.appendChild( el( 'a', { class: 'g-q-review', href: url }, sprintf( __( '%s by you · review', 'vergelabs-media-library' ), fmt( placed ) ) ) );
 		}
@@ -1663,7 +1665,7 @@
 	}
 
 	function refreshTree() {
-		return api( 'GET', 'tree?taxonomy=' + encodeURIComponent( cfg.taxonomy || 'media_category' ) ).then( function ( r ) {
+		return api( 'GET', 'tree?taxonomy=' + encodeURIComponent( cfg.taxonomy || 'vergeml_folder' ) ).then( function ( r ) {
 			state.nodes = ( r && r.nodes ) || [];
 			state.facts.folders = state.nodes.length;
 			// The folders the answers made are marked before the tree is set, so the tree renders once, not twice (S6b, seam 3).
@@ -2613,6 +2615,4 @@
 
 	// Nothing opens by itself: no turn, no proposal, no model route until a button is pressed.
 
-	// progress: the one row every long step renders through (S10.0), driven by the suite with models of its own.
-	window.vgmlFoldersApp = { state: state, view: function () { return view; }, preview: function () { return previewView; }, stop: stop, setStep: setStep, render: renderCards, progress: renderProgress, rows: dom.progress };
 }() );

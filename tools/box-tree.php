@@ -1,7 +1,7 @@
 <?php
 /* The folder tree as it stands, with counts and a few members each. Read-only. */
 global $wpdb;
-$tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+$tax = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 $terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) );
 if ( is_wp_error( $terms ) ) { echo $terms->get_error_message(), "\n"; return; }
 $by_parent = array(); foreach ( $terms as $t ) { $by_parent[ $t->parent ][] = $t; }

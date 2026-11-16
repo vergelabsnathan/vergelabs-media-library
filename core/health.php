@@ -261,24 +261,19 @@ function vergeml_health_dhash_source( $attachment_id, $original ) {
 /**
  *  vergeml_health_free
  *
- *  Free a GD image, on the versions where that means anything.
+ *  Free a GD image now rather than at the end of the scan.
  *
- *  Up to PHP 7.4 an image is a resource and imagedestroy() is how its memory
- *  comes back — on a shared host hashing a large library, skipping it is the
- *  difference between finishing and hitting the memory limit. From PHP 8.0 it
- *  is a GdImage object freed by the garbage collector, imagedestroy() has done
- *  nothing at all, and **8.5 deprecates it**: a scan of sixty files wrote 545
- *  deprecation lines into debug.log, which is a wordpress.org submission item.
- *
- *  is_resource() tells the two apart without asking the version number: true on
- *  7.4 where the call still matters, false on 8+ where it is noise.
+ *  On a shared host hashing a large library, holding every image until the
+ *  request ends is the difference between finishing and hitting the memory
+ *  limit. Dropping the caller's last reference frees it on every version: a
+ *  GD resource (PHP 7.4) and a GdImage object (8.0+) both go when nothing
+ *  holds them. imagedestroy() is not used: 8.5 deprecates it, and a scan of
+ *  sixty files once wrote 545 deprecation lines into debug.log.
  */
 
-function vergeml_health_free( $image ) {
+function vergeml_health_free( &$image ) {
 
-    if ( is_resource( $image ) ) {
-        imagedestroy( $image );
-    }
+    $image = null;
 }
 
 
@@ -521,26 +516,13 @@ function vergeml_health_scan_step( $cursor = 0 ) {
 
 function vergeml_health_reset() {
 
-    global $wpdb;
-
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- one delete beats a meta call per attachment, and the key is this plugin's own indexed meta.
-    $wpdb->delete( $wpdb->postmeta, array( 'meta_key' => VERGEML_META_HASH ) );
-    // phpcs:enable
+    // The plugin's own meta key, on every attachment, in one call.
+    delete_post_meta_by_key( VERGEML_META_HASH );
 
     // The metas went out from under the object cache, so anything holding a
     // copy of them has to be told.
     wp_cache_set_posts_last_changed();
 
-    // Not every object-cache drop-in can flush a group; one that cannot
-    // returns false and keeps serving the old metas. Then the whole cache goes.
-    if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
-        wp_cache_flush_group( 'post_meta' );
-    } elseif ( ! is_multisite() ) {
-        // On a network one shared cache serves every site; emptying it for
-        // one site's health reset is not this site's call. The last-changed
-        // stamp above already retires the post caches that matter most.
-        wp_cache_flush();
-    }
 
     delete_option( VERGEML_HEALTH_OPTION );
 }
@@ -871,16 +853,13 @@ function vergeml_health_files( $ids ) {
         return array();
     }
 
-    $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-
     /*
-     *  $placeholders is a string of %d markers matching count( $ids ), and
-     *  every value travels through prepare. The sniffs cannot count a dynamic
-     *  list, and the first statement's only placeholders live inside it.
+     *  One %d per id in each IN list, and every value travels through
+     *  prepare.
      */
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $posts = $wpdb->get_results( $wpdb->prepare(
-        "SELECT * FROM {$wpdb->posts} WHERE ID IN ( $placeholders )",
+        "SELECT * FROM {$wpdb->posts} WHERE ID IN ( " . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . ' )',
         $ids
     ) );
 
@@ -902,7 +881,7 @@ function vergeml_health_files( $ids ) {
 
     $metas = $wpdb->get_results( $wpdb->prepare(
         "SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta}
-         WHERE post_id IN ( $placeholders ) AND meta_key IN ( %s, %s, %s )",
+         WHERE post_id IN ( " . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . " ) AND meta_key IN ( %s, %s, %s )",
         $params
     ) );
     // phpcs:enable
@@ -918,7 +897,7 @@ function vergeml_health_files( $ids ) {
 
     // The folder each file sits in: one query for the whole set.
     $folders = array();
-    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'media_category';
+    $tax     = function_exists( 'vergeml_librarian_taxonomy' ) ? vergeml_librarian_taxonomy() : 'vergeml_folder';
 
     if ( taxonomy_exists( $tax ) ) {
         $terms = wp_get_object_terms( $ids, $tax, array( 'fields' => 'all_with_object_id' ) );
@@ -1199,9 +1178,7 @@ function vergeml_health_routes() {
         'callback'            => 'vergeml_health_rest_scan',
         // Hashing writes meta on every attachment: curation, the same bar as
         // the usage scan rather than the one that governs uploading.
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'cursor' => array( 'type' => 'integer', 'default' => 0 ),
             'reset'  => array( 'type' => 'boolean', 'default' => false ),
@@ -1211,9 +1188,7 @@ function vergeml_health_routes() {
     register_rest_route( VERGEML_REST_NS, '/health-report', array(
         'methods'             => WP_REST_Server::READABLE,
         'callback'            => 'vergeml_health_rest_report',
-        'permission_callback' => function () {
-            return current_user_can( 'manage_categories' );
-        },
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
     ) );
 }
 
@@ -1248,8 +1223,8 @@ function vergeml_health_menu() {
         VERGEML_MENU,
         __( 'Library health', 'vergelabs-media-library' ),
         __( 'Library health', 'vergelabs-media-library' ),
-        'manage_categories',
-        'media-health',
+        'manage_options',
+        'vergeml-health',
         'vergeml_health_page'
     );
 }
@@ -1259,14 +1234,14 @@ add_action( 'admin_enqueue_scripts', 'vergeml_health_assets' );
 
 function vergeml_health_assets( $hook ) {
 
-    if ( false === strpos( (string) $hook, 'media-health' ) ) {
+    if ( false === strpos( (string) $hook, 'vergeml-health' ) ) {
         return;
     }
 
     wp_enqueue_script(
         'vergeml-health',
         plugins_url( 'js/vergeml-health.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         vergeml_asset_ver( 'js/vergeml-health.js' ),
         true
     );
@@ -1410,7 +1385,7 @@ function vergeml_health_assets( $hook ) {
 
 function vergeml_health_page() {
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
@@ -1431,13 +1406,13 @@ function vergeml_health_page() {
             ? sprintf( __( 'Last scanned %s ago.', 'vergelabs-media-library' ), human_time_diff( $scanned, time() ) )
             : __( 'Not scanned yet. Scanning changes nothing.', 'vergelabs-media-library' );
 
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Duplicates', 'vergelabs-media-library' ),
             __( 'The same picture uploaded twice, or saved again at another size. Scanning changes nothing.', 'vergelabs-media-library' ),
             '<div class="vgml-health-scanbox"><button type="button" class="button" id="vgml-health-scan">'
                 . esc_html( $scanned > 0 ? __( 'Scan again', 'vergelabs-media-library' ) : __( 'Scan the library', 'vergelabs-media-library' ) ) . '</button>'
                 . '<span class="vgml-health-when" id="vgml-health-counts">' . esc_html( $when ) . '</span></div>'
-        );
+        ), vergeml_kses_allowed() );
         ?>
 
         <div class="vgml-import-bar vgml-health-bar" id="vgml-health-bar" hidden><div class="vgml-import-fill" id="vgml-health-fill"></div></div>

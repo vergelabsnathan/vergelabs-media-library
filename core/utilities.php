@@ -134,7 +134,8 @@ function vergeml_merge_run( $plan ) {
 
             $id = (int) $id;
 
-            if ( ! $id || $id === $keep ) {
+            // The plan arrives from the request: a picture this person may delete, nothing else.
+            if ( ! $id || $id === $keep || 'attachment' !== get_post_type( $id ) || ! current_user_can( 'delete_post', $id ) ) {
                 continue;
             }
 
@@ -341,13 +342,14 @@ function vergeml_similar( $attachment_id, $limit = 12 ) {
 
     $table = vergeml_index_table();
 
-    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- $table is vergeml_index_table(), $wpdb->vergeml_ai_index, bound as an identifier (%i); the id is bound.
     $ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT x.attachment_id
-           FROM {$table} x
+           FROM %i x
            JOIN {$wpdb->posts} p ON p.ID = x.attachment_id
           WHERE p.post_type = 'attachment' AND p.post_status = 'inherit'
             AND x.attachment_id <> %d",
+        $table,
         (int) $attachment_id
     ) );
     // phpcs:enable
@@ -400,39 +402,36 @@ add_action( 'rest_api_init', 'vergeml_utilities_routes' );
 
 function vergeml_utilities_routes() {
 
-    $can = function () {
-        return current_user_can( 'manage_categories' );
-    };
 
     register_rest_route( VERGEML_REST_NS, '/merge-plan', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_rest_merge_plan',
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/merge-run', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_rest_merge_run',
-        'args'                => array( 'plan' => array( 'required' => true ) ),
+        'args'                => array( 'plan' => array( 'type' => 'array', 'required' => true ) ),
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/alt-fill-step', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_rest_alt_fill',
         'args'                => array( 'limit' => array( 'type' => 'integer', 'default' => 25 ) ),
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/alt-undo', array(
         'methods'             => WP_REST_Server::CREATABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_rest_alt_undo',
     ) );
 
     register_rest_route( VERGEML_REST_NS, '/similar', array(
         'methods'             => WP_REST_Server::READABLE,
-        'permission_callback' => $can,
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'callback'            => 'vergeml_rest_similar',
         'args'                => array(
             'id'    => array( 'type' => 'integer', 'required' => true ),

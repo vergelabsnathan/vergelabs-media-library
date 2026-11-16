@@ -45,7 +45,7 @@ function vergeml_import_plan( $key, $taxonomy ) {
     }
 
     if ( ! in_array( $taxonomy, vergeml_tree_taxonomies(), true ) ) {
-        return new WP_Error( 'vergeml_unknown_taxonomy', __( 'That is not a media taxonomy.', 'vergelabs-media-library' ) );
+        return new WP_Error( 'vergeml_unknown_taxonomy', __( 'That is not a media taxonomy.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
 
     $folders = $read['folders'];
@@ -120,6 +120,26 @@ function vergeml_import_plan( $key, $taxonomy ) {
  *  afterwards stays filed.
  */
 
+/**
+ *  One import's record from this site's log, or null.
+ */
+function vergeml_import_record( $id ) {
+
+    $log = get_option( VERGEML_IMPORT_LOG, array() );
+
+    foreach ( is_array( $log ) ? $log : array() as $entry ) {
+        if ( is_array( $entry ) && isset( $entry['id'] ) && $entry['id'] === $id ) {
+            return array(
+                'added'   => isset( $entry['added'] ) ? (array) $entry['added'] : array(),
+                'created' => isset( $entry['created'] ) ? (array) $entry['created'] : array(),
+            );
+        }
+    }
+
+    return null;
+}
+
+
 function vergeml_import_run( $key, $taxonomy, $resume = null ) {
 
     $read = vergeml_import_read( $key );
@@ -129,7 +149,7 @@ function vergeml_import_run( $key, $taxonomy, $resume = null ) {
     }
 
     if ( ! in_array( $taxonomy, vergeml_tree_taxonomies(), true ) ) {
-        return new WP_Error( 'vergeml_unknown_taxonomy', __( 'That is not a media taxonomy.', 'vergelabs-media-library' ) );
+        return new WP_Error( 'vergeml_unknown_taxonomy', __( 'That is not a media taxonomy.', 'vergelabs-media-library' ), array( 'status' => 400 ) );
     }
 
     $folders  = $read['folders'];
@@ -197,9 +217,24 @@ function vergeml_import_run( $key, $taxonomy, $resume = null ) {
      *  it got, and each pass writes its own progress.
      */
     $chunk = (int) apply_filters( 'vergeml_import_chunk', 500 );
+    $chunk = $chunk > 0 ? $chunk : 500;
 
-    $done  = ( $resume && isset( $resume['done'] ) ) ? (int) $resume['done'] : 0;
-    $added = ( $resume && isset( $resume['added'] ) ) ? (array) $resume['added'] : array();
+    /*
+     *  The caller hands back only where it is (the id and how far it got).
+     *  What was added and created so far is read from this site's own record
+     *  of the import, never from the request: undo removes exactly that.
+     */
+    $id    = ( $resume && ! empty( $resume['id'] ) ) ? sanitize_key( (string) $resume['id'] ) : '';
+    $prior = $id ? vergeml_import_record( $id ) : null;
+
+    if ( $id && ! $prior ) {
+        return new WP_Error( 'vergeml_no_import', __( 'That import is not on record any more.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
+    }
+
+    $id    = $prior ? $id : uniqid( 'imp', false );
+
+    $done  = ( $prior && isset( $resume['done'] ) ) ? max( 0, (int) $resume['done'] ) : 0;
+    $added = $prior ? (array) $prior['added'] : array();
 
     // Flatten to a stable list so a resume lands exactly where it left off; the
     // source's own order is what makes that stable.
@@ -251,14 +286,12 @@ function vergeml_import_run( $key, $taxonomy, $resume = null ) {
      *  record that only exists on completion would leave that change with no way
      *  back. This way the undo is always current with what has actually happened.
      */
-    $id = ( $resume && ! empty( $resume['id'] ) ) ? $resume['id'] : uniqid( 'imp', false );
-
     $record = array(
         'id'       => $id,
         'source'   => $key,
         'taxonomy' => $taxonomy,
         'when'     => time(),
-        'created'  => ( $resume && isset( $resume['created'] ) ) ? array_values( array_unique( array_merge( (array) $resume['created'], $created ) ) ) : $created,
+        'created'  => $prior ? array_values( array_unique( array_merge( (array) $prior['created'], $created ) ) ) : $created,
         'added'    => $added,
     );
 
@@ -301,10 +334,8 @@ function vergeml_import_run( $key, $taxonomy, $resume = null ) {
         // Handed straight back on the next call; the caller never has to
         // understand it.
         'resume'      => $done >= $total ? null : array(
-            'id'      => $id,
-            'done'    => $done,
-            'added'   => $added,
-            'created' => $record['created'],
+            'id'   => $id,
+            'done' => $done,
         ),
     );
 }
@@ -331,7 +362,7 @@ function vergeml_import_undo( $id ) {
         $result = vergeml_import_undo_step( $id, $result['resume'] );
 
         if ( ++$passes > 10000 ) {
-            return new WP_Error( 'vergeml_undo_stuck', __( 'The undo did not finish.', 'vergelabs-media-library' ) );
+            return new WP_Error( 'vergeml_undo_stuck', __( 'The undo did not finish.', 'vergelabs-media-library' ), array( 'status' => 409 ) );
         }
     }
 
@@ -372,7 +403,7 @@ function vergeml_import_undo_step( $id, $resume = null ) {
     }
 
     if ( ! $found ) {
-        return new WP_Error( 'vergeml_no_import', __( 'That import is not on record any more.', 'vergelabs-media-library' ) );
+        return new WP_Error( 'vergeml_no_import', __( 'That import is not on record any more.', 'vergelabs-media-library' ), array( 'status' => 404 ) );
     }
 
     $taxonomy = $found['taxonomy'];

@@ -5,7 +5,7 @@ const p = await b.newPage({ viewport:{width:1440,height:900} });
 await p.goto(`${BASE}/wp-login.php`,{waitUntil:'domcontentloaded'});
 await p.fill('#user_login','admin'); await p.fill('#user_pass','lXw3M7HX3QLNVefX61aM');
 await Promise.all([p.waitForNavigation(),p.click('#wp-submit')]);
-await p.goto(`${BASE}/wp-admin/admin.php?page=media-library`,{waitUntil:'networkidle'});
+await p.goto(`${BASE}/wp-admin/admin.php?page=vergeml-library`,{waitUntil:'networkidle'});
 const out = await p.evaluate(() => {
   const box = document.querySelector('.vgml-shell-content .postbox');
   if (!box) return { err: 'no .postbox inside .vgml-shell-content' };

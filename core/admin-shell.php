@@ -61,38 +61,38 @@ function vergeml_shell_pages() {
             'icon'  => 'dashboard',
             'sub'   => __( 'Where things stand', 'vergelabs-media-library' ),
             'label' => __( 'Dashboard', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
-            'slug'  => 'media-librarian',
+            'slug'  => 'vergeml-librarian',
             'icon'  => 'librarian',
             'sub'   => __( 'Build the folders', 'vergelabs-media-library' ),
             'label' => __( 'Folders', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
-            'slug'  => 'media-ai',
+            'slug'  => 'vergeml-ai',
             'icon'  => 'ai',
             'sub'   => __( 'Describe, alt text, credits', 'vergelabs-media-library' ),
             'label' => __( 'AI', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
-            'slug'  => 'media-health',
+            'slug'  => 'vergeml-health',
             'icon'  => 'duplicates',
             'sub'   => __( 'Copies, and space they take', 'vergelabs-media-library' ),
             'label' => __( 'Duplicates', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
-            'slug'  => 'media-import-folders',
+            'slug'  => 'vergeml-import-folders',
             'icon'  => 'import',
             'sub'   => __( 'From another plugin, or a CSV', 'vergelabs-media-library' ),
             'label' => __( 'Import folders', 'vergelabs-media-library' ),
-            'cap'   => 'manage_categories',
+            'cap'   => 'manage_options',
         ),
         array(
-            'slug'  => 'media-licence',
+            'slug'  => 'vergeml-licence',
             'icon'  => 'key',
             'sub'   => __( 'Connection, key and credits', 'vergelabs-media-library' ),
             'label' => __( 'Licence', 'vergelabs-media-library' ),
@@ -100,7 +100,7 @@ function vergeml_shell_pages() {
             'group' => 'settings',
         ),
         array(
-            'slug'  => 'media-taxonomies',
+            'slug'  => 'vergeml-taxonomies',
             'icon'  => 'folders',
             'sub'   => __( 'Which categories act as folders', 'vergelabs-media-library' ),
             'label' => __( 'Folders and categories', 'vergelabs-media-library' ),
@@ -108,7 +108,7 @@ function vergeml_shell_pages() {
             'group' => 'settings',
         ),
         array(
-            'slug'  => 'media-library',
+            'slug'  => 'vergeml-library',
             'icon'  => 'sliders',
             'sub'   => __( 'Ordering, filters and uploads', 'vergelabs-media-library' ),
             'label' => __( 'Library settings', 'vergelabs-media-library' ),
@@ -116,7 +116,7 @@ function vergeml_shell_pages() {
             'group' => 'settings',
         ),
         array(
-            'slug'  => 'mime-types',
+            'slug'  => 'vergeml-mime-types',
             'icon'  => 'file',
             'sub'   => __( 'What may be uploaded', 'vergelabs-media-library' ),
             'label' => __( 'File types', 'vergelabs-media-library' ),
@@ -254,7 +254,7 @@ function vergeml_shell_open() {
                  *  time. A button under the list is still findable -- which
                  *  is why it was added -- without claiming to be a tab.
                  */
-                echo vergeml_shell_leave(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped below.
+                echo wp_kses( vergeml_shell_leave(), vergeml_kses_allowed() );
                 ?>
 
                 <?php
@@ -271,7 +271,7 @@ function vergeml_shell_open() {
                  *  since, precisely so that "how many credits are left" never
                  *  needs a request of its own.
                  */
-                echo vergeml_shell_credits(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built and escaped below.
+                echo wp_kses( vergeml_shell_credits(), vergeml_kses_allowed() );
                 ?>
 
                 <p class="vgml-shell-version">
@@ -327,7 +327,7 @@ function vergeml_shell_leave() {
                 . '<span class="vgml-shell-leave-arrow" aria-hidden="true">&#8599;</span>'
             . '</a>',
             esc_url( admin_url( 'upload.php' ) ),
-            $icon, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- literal SVG, see core/icons.php.
+            wp_kses( $icon, vergeml_kses_allowed() ),
             esc_html__( 'Open your folders', 'vergelabs-media-library' )
         )
         . '<p class="vgml-shell-out-note">'
@@ -373,7 +373,7 @@ function vergeml_shell_credits() {
     $left = (int) $stored['remaining'];
     $when = isset( $stored['time'] ) ? (int) $stored['time'] : 0;
 
-    $url = function_exists( 'vergeml_shell_url' ) ? vergeml_shell_url( 'media-licence' ) : admin_url( 'admin.php?page=media-licence' );
+    $url = function_exists( 'vergeml_shell_url' ) ? vergeml_shell_url( 'vergeml-licence' ) : admin_url( 'admin.php?page=vergeml-licence' );
 
     /*
      *  "as of five minutes ago" was said whether or not anybody had managed to
@@ -437,10 +437,10 @@ function vergeml_shell_badges() {
     if ( function_exists( 'vergeml_journey_facts' ) ) {
         $f = vergeml_journey_facts();
         if ( ! empty( $f['unfiled'] ) ) {
-            $out['media-librarian'] = (int) $f['unfiled'];
+            $out['vergeml-librarian'] = (int) $f['unfiled'];
         }
         if ( ! empty( $f['no_alt'] ) ) {
-            $out['media-ai'] = (int) $f['no_alt'];
+            $out['vergeml-ai'] = (int) $f['no_alt'];
         }
     }
 
@@ -448,7 +448,7 @@ function vergeml_shell_badges() {
         $h    = vergeml_health_state();
         $sets = isset( $h['related']['groups'] ) ? count( (array) $h['related']['groups'] ) + (int) ( isset( $h['related']['more'] ) ? $h['related']['more'] : 0 ) : 0;
         if ( $sets > 0 ) {
-            $out['media-health'] = $sets;
+            $out['vergeml-health'] = $sets;
         }
     }
 
@@ -457,16 +457,14 @@ function vergeml_shell_badges() {
 
 
 /**
- *  Other people's notices, off our screens.
+ *  This plugin's own notices, off its own screens.
  *
- *  The sort flow is a five step process, and the first thing above step one
- *  was another plugin's banner telling somebody to go and create their first
- *  folder somewhere else. A screen that walks a person through a decision
- *  cannot also be a noticeboard.
- *
- *  WordPress's own notices stay: an update, a failed cron, a permissions
- *  problem are all things somebody has to see wherever they are standing.
- *  What goes is everything registered by another plugin.
+ *  These screens draw their own state in place -- a run, a result, a
+ *  warning -- so the plugin's notices would say the same thing twice above
+ *  them. Only callbacks defined in this plugin's files are taken off, and
+ *  only on its screens. WordPress's notices and other plugins' notices are
+ *  left exactly as they are: hiding somebody else's notice is not ours to do
+ *  (wordpress.org plugin guidelines).
  */
 
 add_filter( 'admin_body_class', 'vergeml_shell_body_class' );
@@ -487,8 +485,48 @@ function vergeml_shell_quiet() {
         return;
     }
 
-    remove_all_actions( 'admin_notices' );
-    remove_all_actions( 'all_admin_notices' );
+    global $wp_filter;
+
+    foreach ( array( 'admin_notices', 'all_admin_notices' ) as $hook ) {
+
+        if ( empty( $wp_filter[ $hook ] ) || ! $wp_filter[ $hook ] instanceof WP_Hook ) {
+            continue;
+        }
+
+        foreach ( $wp_filter[ $hook ]->callbacks as $priority => $callbacks ) {
+            foreach ( $callbacks as $callback ) {
+                if ( vergeml_shell_is_own_callback( $callback['function'] ) ) {
+                    remove_action( $hook, $callback['function'], $priority );
+                }
+            }
+        }
+    }
+}
+
+/**
+ *  Whether a hooked callback is defined in one of this plugin's own files.
+ */
+function vergeml_shell_is_own_callback( $callback ) {
+
+    try {
+        if ( is_string( $callback ) && false !== strpos( $callback, '::' ) ) {
+            $callback = explode( '::', $callback, 2 );
+        }
+
+        if ( is_array( $callback ) ) {
+            $ref = new ReflectionMethod( $callback[0], $callback[1] );
+        } elseif ( is_object( $callback ) && ! $callback instanceof Closure ) {
+            $ref = new ReflectionMethod( $callback, '__invoke' );
+        } else {
+            $ref = new ReflectionFunction( $callback );
+        }
+    } catch ( ReflectionException $e ) {
+        return false;
+    }
+
+    $file = $ref->getFileName();
+
+    return false !== $file && 0 === strpos( wp_normalize_path( $file ), wp_normalize_path( plugin_dir_path( VERGEML_FILE ) ) );
 }
 
 
@@ -577,10 +615,12 @@ function vergeml_pg_head( $title, $lede = '', $action_html = '' ) {
     $out .= '</div>';
 
     if ( '' !== (string) $action_html ) {
-        $out .= '<div class="vgml-pg-head-action">' . $action_html . '</div>';
+        $out .= '<div class="vgml-pg-head-action">' . wp_kses( $action_html, vergeml_kses_allowed() ) . '</div>';
     }
 
-    return $out . '</div>';
+    $out .= '</div>';
+
+    return $out;
 }
 
 
@@ -610,13 +650,15 @@ function vergeml_pg_card_open( $title, $args = array() ) {
         $out .= '</h2>';
 
         if ( '' !== (string) $args['action_html'] ) {
-            $out .= '<div class="vgml-pg-card-action">' . $args['action_html'] . '</div>';
+            $out .= '<div class="vgml-pg-card-action">' . wp_kses( $args['action_html'], vergeml_kses_allowed() ) . '</div>';
         }
 
         $out .= '</div>';
     }
 
-    return $out . '<div class="vgml-pg-card-body' . ( $args['rows'] ? ' is-rows' : '' ) . '">';
+    $out .= '<div class="vgml-pg-card-body' . ( $args['rows'] ? ' is-rows' : '' ) . '">';
+
+    return $out;
 }
 
 
@@ -640,7 +682,7 @@ function vergeml_pg_row( $label, $help, $control_html, $stacked = false ) {
         $out .= '<span class="vgml-pg-row-help">' . esc_html( $help ) . '</span>';
     }
 
-    $out .= '</div><div class="vgml-pg-row-control">' . $control_html . '</div></div>';
+    $out .= '</div><div class="vgml-pg-row-control">' . wp_kses( $control_html, vergeml_kses_allowed() ) . '</div></div>';
 
     return $out;
 }
@@ -663,13 +705,15 @@ function vergeml_pg_figures( $figures ) {
 
         $lead = ! empty( $figure['lead'] ) ? ' is-lead' : '';
 
-        $out .= '<div class="vgml-pg-figure' . $lead . '">'
+        $out .= '<div class="vgml-pg-figure' . esc_attr( $lead ) . '">'
             . '<span class="vgml-pg-figure-n">' . esc_html( $figure['n'] ) . '</span>'
             . '<span class="vgml-pg-figure-l">' . esc_html( $figure['l'] ) . '</span>'
             . '</div>';
     }
 
-    return $out . '</div>';
+    $out .= '</div>';
+
+    return $out;
 }
 
 
@@ -744,7 +788,9 @@ function vergeml_pg_actions( $buttons_html, $note = '' ) {
         $out .= '<span class="vgml-pg-actions-note">' . esc_html( $note ) . '</span>';
     }
 
-    return $out . $buttons_html . '</div>';
+    $out .= wp_kses( $buttons_html, vergeml_kses_allowed() ) . '</div>';
+
+    return $out;
 }
 
 
@@ -758,5 +804,7 @@ function vergeml_pg_empty( $title, $text = '' ) {
         $out .= esc_html( $text );
     }
 
-    return $out . '</div>';
+    $out .= '</div>';
+
+    return $out;
 }

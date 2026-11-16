@@ -48,7 +48,7 @@ await page.waitForTimeout( 2500 );
 const call = ( data ) => page.evaluate( ( d ) => window.wp.apiFetch( {
 	path: '/vergeml/v1/folder',
 	method: 'POST',
-	data: Object.assign( { taxonomy: 'media_category' }, d ),
+	data: Object.assign( { taxonomy: 'vergeml_folder' }, d ),
 } ), data );
 
 /*
@@ -140,7 +140,7 @@ check( 'the colour appears without a reload', coloured && coloured.icon !== icon
 	`${ iconBefore } -> ${ coloured ? coloured.icon : 'gone' }` );
 
 const stored = await page.evaluate( async ( id ) => {
-	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=media_category' } );
+	const t = await window.wp.apiFetch( { path: '/vergeml/v1/tree?taxonomy=vergeml_folder' } );
 	const n = ( t.nodes || [] ).find( ( n ) => n.id === id );
 	return n ? n.color : null;
 }, target );
@@ -231,7 +231,7 @@ await call( { action: 'delete', id: target } );
 await page.evaluate( () => window.wp.apiFetch( {
 	path: '/vergeml/v1/state',
 	method: 'POST',
-	data: { taxonomy: 'media_category', selected: 0 },
+	data: { taxonomy: 'vergeml_folder', selected: 0 },
 } ).catch( () => {} ) );
 
 await browser.close();

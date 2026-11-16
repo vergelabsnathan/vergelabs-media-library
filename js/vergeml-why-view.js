@@ -30,7 +30,7 @@
 
 	var Details = wp.media.view.Attachment.Details;
 
-	if ( ! Details || Details.prototype.vgmlWhyWrapped ) {
+	if ( ! Details || Details.prototype.vergemlWhyWrapped ) {
 		return;
 	}
 
@@ -171,7 +171,7 @@
 
 	var render = Details.prototype.render;
 
-	Details.prototype.vgmlWhyWrapped = true;
+	Details.prototype.vergemlWhyWrapped = true;
 
 	Details.prototype.render = function () {
 		var out = render.apply( this, arguments );

@@ -12,15 +12,15 @@ if ( ! defined( 'WP_ADMIN' ) ) {
     define( 'WP_ADMIN', true );
 }
 
-$GLOBALS['vgml_pass'] = 0;
-$GLOBALS['vgml_fail'] = 0;
+$GLOBALS['vergeml_pass'] = 0;
+$GLOBALS['vergeml_fail'] = 0;
 
 function ai_check( $name, $ok, $detail = '' ) {
     if ( $ok ) {
-        $GLOBALS['vgml_pass']++;
+        $GLOBALS['vergeml_pass']++;
         echo "  ok   {$name}" . ( $detail ? "  -- {$detail}" : '' ) . "\n";
     } else {
-        $GLOBALS['vgml_fail']++;
+        $GLOBALS['vergeml_fail']++;
         echo "  FAIL {$name}" . ( $detail ? "  -- {$detail}" : '' ) . "\n";
     }
 }
@@ -123,9 +123,9 @@ update_option( 'vergeml_ai', $settings, false );
 
 echo "\nthe sealed licence\n";
 
-$sealed = vergeml_ai_seal( 'vgml_test_key_123' );
+$sealed = vergeml_ai_seal( 'vergeml_test_key_123' );
 ai_check( 'sealing produces a v1 blob, not the key', 0 === strpos( $sealed, 'v1:' ) && false === strpos( $sealed, 'test_key' ) );
-ai_check( 'and it unseals to the exact key', 'vgml_test_key_123' === vergeml_ai_unseal( $sealed ) );
+ai_check( 'and it unseals to the exact key', 'vergeml_test_key_123' === vergeml_ai_unseal( $sealed ) );
 ai_check( 'garbage does not unseal', '' === vergeml_ai_unseal( 'v1:not-a-blob' ) && '' === vergeml_ai_unseal( 'plaintext' ) );
 ai_check( 'the service url is pinned to https', 0 === strpos( vergeml_ai_service_url(), 'https://' ) );
 
@@ -314,7 +314,7 @@ delete_post_meta( $legacy_id, '_vergeml_ai' );
 delete_post_meta( $legacy_id, '_wp_attachment_image_alt' );
 vergeml_index_delete( $legacy_id );
 
-printf( '%d/%d passed' . PHP_EOL, $GLOBALS['vgml_pass'], $GLOBALS['vgml_pass'] + $GLOBALS['vgml_fail'] );
-if ( $GLOBALS['vgml_fail'] > 0 ) {
+printf( '%d/%d passed' . PHP_EOL, $GLOBALS['vergeml_pass'], $GLOBALS['vergeml_pass'] + $GLOBALS['vergeml_fail'] );
+if ( $GLOBALS['vergeml_fail'] > 0 ) {
     exit( 1 );
 }

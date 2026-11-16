@@ -10,15 +10,15 @@
  *  a real library, and useless as a test of whether the reduction works.
  */
 
-$GLOBALS['vgml_pass'] = 0;
-$GLOBALS['vgml_fail'] = 0;
+$GLOBALS['vergeml_pass'] = 0;
+$GLOBALS['vergeml_fail'] = 0;
 
 function h_check( $name, $ok, $detail = '' ) {
     if ( $ok ) {
-        $GLOBALS['vgml_pass']++;
+        $GLOBALS['vergeml_pass']++;
         echo "  ok   {$name}" . ( $detail ? "  -- {$detail}" : '' ) . "\n";
     } else {
-        $GLOBALS['vgml_fail']++;
+        $GLOBALS['vergeml_fail']++;
         echo "  FAIL {$name}" . ( $detail ? "  -- {$detail}" : '' ) . "\n";
     }
 }
@@ -78,12 +78,12 @@ function h_attach( $path, $mime ) {
         wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $path ) );
     }
 
-    $GLOBALS['vgml_made'][] = $id;
+    $GLOBALS['vergeml_made'][] = $id;
 
     return $id;
 }
 
-$GLOBALS['vgml_made'] = array();
+$GLOBALS['vergeml_made'] = array();
 
 $dir = trailingslashit( $uploads['basedir'] ) . 'zzhealth';
 wp_mkdir_p( $dir );
@@ -136,11 +136,11 @@ $t = h_attach( $t_path, 'image/jpeg' );
 $g = h_attach( $g_path, 'image/gif' );
 $s = h_attach( $s_path, 'image/svg+xml' );
 
-h_check( 'seven files seeded', 7 === count( $GLOBALS['vgml_made'] ), implode( ',', $GLOBALS['vgml_made'] ) );
+h_check( 'seven files seeded', 7 === count( $GLOBALS['vergeml_made'] ), implode( ',', $GLOBALS['vergeml_made'] ) );
 
 echo "\nhashing\n";
 
-foreach ( $GLOBALS['vgml_made'] as $id ) {
+foreach ( $GLOBALS['vergeml_made'] as $id ) {
     update_post_meta( $id, VERGEML_META_HASH, vergeml_health_hash_file( $id ) );
 }
 
@@ -460,7 +460,7 @@ h_check( 'and leaves vergeml_stats alone',
 
 echo "\ntidying up\n";
 
-foreach ( $GLOBALS['vgml_made'] as $id ) {
+foreach ( $GLOBALS['vergeml_made'] as $id ) {
     wp_delete_attachment( $id, true );
 }
 
@@ -475,7 +475,7 @@ delete_option( 'vergeml_stats' );
 
 h_check( 'the seeded files are gone', null === get_post( $a ) );
 
-printf( '%d/%d passed' . PHP_EOL, $GLOBALS['vgml_pass'], $GLOBALS['vgml_pass'] + $GLOBALS['vgml_fail'] );
-if ( $GLOBALS['vgml_fail'] > 0 ) {
+printf( '%d/%d passed' . PHP_EOL, $GLOBALS['vergeml_pass'], $GLOBALS['vergeml_pass'] + $GLOBALS['vergeml_fail'] );
+if ( $GLOBALS['vergeml_fail'] > 0 ) {
     exit( 1 );
 }

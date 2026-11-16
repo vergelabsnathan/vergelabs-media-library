@@ -76,8 +76,7 @@ $GLOBALS['ao_fail']      = 0;
 $GLOBALS['ao_answer']    = null;      // what the describe endpoint answers next
 $GLOBALS['ao_describes'] = 0;         // describe calls seen since the counter was read
 $GLOBALS['ao_others']    = array();
-$GLOBALS['ao_handed']    = null;      // answers handed through the parallel seam, or null
-$GLOBALS['ao_nudges']    = 0;         // how often a run asked whether it may nudge
+$GLOBALS['ao_nudges']    = 0;         // how often a run nudged cron (a wp-cron.php loopback, answered here)
 $GLOBALS['ao_before']    = array();
 $GLOBALS['ao_ids']       = array();
 $GLOBALS['ao_done']      = false;
@@ -97,7 +96,9 @@ function ao_catch( $pre, $args, $url ) {
     $path = (string) wp_parse_url( $url, PHP_URL_PATH );
 
     if ( '/describe' !== substr( $path, -9 ) ) {
-        if ( 'wp-cron.php' !== substr( $path, -11 ) ) {
+        if ( 'wp-cron.php' === substr( $path, -11 ) ) {
+            $GLOBALS['ao_nudges']++;
+        } else {
             $GLOBALS['ao_others'][] = $path;
         }
         return array( 'headers' => array(), 'body' => '{}', 'response' => array( 'code' => 200, 'message' => 'OK' ), 'cookies' => array(), 'filename' => null );
@@ -109,24 +110,15 @@ function ao_catch( $pre, $args, $url ) {
         return new WP_Error( 'http_request_failed', 'cURL error 7: Failed to connect' );
     }
 
+    if ( 'timeout' === $GLOBALS['ao_answer'] ) {
+        return new WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out' );
+    }
+
     if ( 'back' === $GLOBALS['ao_answer'] ) {
         return array( 'headers' => array(), 'body' => wp_json_encode( array( 'caption' => 'A one-pixel test picture', 'alt' => 'One pixel', 'model' => 'stand-in', 'prompt_hash' => 'p2' ) ), 'response' => array( 'code' => 200, 'message' => 'OK' ), 'cookies' => array(), 'filename' => null );
     }
 
     return array( 'headers' => array(), 'body' => '', 'response' => array( 'code' => (int) $GLOBALS['ao_answer'], 'message' => 'Service Unavailable' ), 'cookies' => array(), 'filename' => null );
-}
-
-/** The parallel path's seam: hands the loop the answers a request_multiple would have brought back. */
-function ao_hand( $answers, $ids ) {
-    if ( null === $GLOBALS['ao_handed'] ) {
-        return $answers;
-    }
-    $GLOBALS['ao_describes'] += count( $ids );
-    $out = array();
-    foreach ( $ids as $id ) {
-        $out[ $id ] = $GLOBALS['ao_handed'];
-    }
-    return $out;
 }
 
 function ao_describes() {
@@ -165,7 +157,6 @@ function ao_restore() {
     $GLOBALS['ao_done'] = true;
 
     remove_filter( 'pre_http_request', 'ao_catch', 1 );
-    remove_filter( 'vergeml_ai_describe_answers', 'ao_hand', 1 );
 
     $state = vergeml_ai_run_state();
     if ( ! empty( $state['active'] ) ) {
@@ -203,6 +194,14 @@ function ao_restore() {
             set_transient( 'vergeml_ai_recent', $GLOBALS['ao_before']['vergeml_ai_recent'], VERGEML_AI_HOLD_SECONDS );
         }
     }
+
+    if ( array_key_exists( 'doing_cron', $GLOBALS['ao_before'] ) ) {
+        if ( false === $GLOBALS['ao_before']['doing_cron'] ) {
+            delete_transient( 'doing_cron' );
+        } else {
+            set_transient( 'doing_cron', $GLOBALS['ao_before']['doing_cron'] );
+        }
+    }
 }
 
 /** One step, the hold lifted first as ten minutes would. */
@@ -236,10 +235,9 @@ $GLOBALS['ao_before']['run']               = get_option( 'vergeml_ai_run', false
 
 register_shutdown_function( 'ao_restore' );
 add_filter( 'pre_http_request', 'ao_catch', 1, 3 );
-add_filter( 'vergeml_ai_describe_answers', 'ao_hand', 1, 2 );
-add_filter( 'vergeml_ai_parallel', function () { return 1; } );
-// A nudge is counted, never sent (this suite holds the cron wire).
-add_filter( 'vergeml_ai_run_should_nudge', function () { $GLOBALS['ao_nudges']++; return false; } );
+// A nudge is spawn_cron()'s loopback to wp-cron.php: ao_catch counts and answers it, so it is never sent
+// (this suite holds the cron wire). Cron's own lock is put back as found.
+$GLOBALS['ao_before']['doing_cron'] = get_transient( 'doing_cron' );
 
 $ao_ai = is_array( $GLOBALS['ao_before']['vergeml_ai'] ) ? $GLOBALS['ao_before']['vergeml_ai'] : array();
 $ao_ai['license_key'] = vergeml_ai_seal( 'VGML-' . strtoupper( wp_generate_password( 30, false, false ) ) . 'ZZZZ' );
@@ -249,7 +247,7 @@ update_option( 'vergeml_ai', $ao_ai, false );
 echo "\nai-outage: what a describe run does while the service is away\n\n";
 
 ao_check( 'the pass is ready: a key is set and mock is off', vergeml_ai_ready() && empty( vergeml_ai_settings()['mock'] ) && ! defined( 'VERGEML_AI_MOCK' ) );
-ao_check( 'transient: no answer at all, on either path, and a temporary status', vergeml_ai_transient( new WP_Error( 'http_request_failed', '' ) ) && vergeml_ai_transient( new WP_Error( 'vergeml_ai_transport', '' ) ) && vergeml_ai_transient( new WP_Error( 'vergeml_ai_service_503', '' ) ) && vergeml_ai_transient( new WP_Error( 'vergeml_ai_service_429', '' ) ) );
+ao_check( 'transient: no answer at all, on either path, and a temporary status', vergeml_ai_transient( new WP_Error( 'http_request_failed', '' ) ) && vergeml_ai_transient( new WP_Error( 'vergeml_ai_no_answer', '' ) ) && vergeml_ai_transient( new WP_Error( 'vergeml_ai_service_503', '' ) ) && vergeml_ai_transient( new WP_Error( 'vergeml_ai_service_429', '' ) ) );
 ao_check( 'not transient: an answer about the file, a bad key, no credits', ! vergeml_ai_transient( new WP_Error( 'vergeml_ai_service_400', '' ) ) && ! vergeml_ai_transient( new WP_Error( 'vergeml_ai_service_200', '' ) ) && ! vergeml_ai_transient( new WP_Error( 'vergeml_ai_bad_license', '' ) ) && ! vergeml_ai_transient( new WP_Error( 'vergeml_ai_out_of_credits', '' ) ) );
 
 // A, B, C, D, E, then four more for the streak (F1-F4). D gets a description below.
@@ -289,16 +287,15 @@ ao_check( "A is still in 'unindexed'", in_array( $ao_a, vergeml_ai_pending( 'uni
 
 /* ---------------------------------------- 2. the parallel path's seam */
 
-echo "\n2  the service cannot be reached (parallel path, through the seam)\n";
+echo "\n2  the service times out (through the HTTP API, as every call goes)\n";
 
-// B is next by id; the seam answers for whatever the step asks.
+// Everything but E is held, so the step asks for E alone.
 delete_transient( 'vergeml_ai_recent' );
 vergeml_ai_recently_described( array_values( array_diff( $ao_mine, array( $ao_e ) ) ), true );
-$GLOBALS['ao_handed'] = new WP_Error( 'vergeml_ai_transport', 'cURL error 28: Operation timed out' );
-$ao_r2 = vergeml_ai_index_step( 'unindexed', 24, false );
-$GLOBALS['ao_handed'] = null;
+$GLOBALS['ao_answer'] = 'timeout';
+$ao_r2 = vergeml_ai_index_step( 'unindexed', 5, false );
 
-ao_check( 'one picture asked through the seam', 1 === ao_describes() );
+ao_check( 'one picture asked', 1 === ao_describes() );
 ao_check( 'picture E is held: reported once, not fatal, no row', ao_reported_once( $ao_r2, $ao_e ) && null === vergeml_index_get( $ao_e ), wp_json_encode( $ao_r2['errors'] ) );
 
 
@@ -397,14 +394,16 @@ ao_check( 'a demo (mock) row the service refuses is marked, not kept as if real'
 
 /* ------------------------------------------------ 9. the service back */
 
-echo "\n9  the service back: one step after the hold lapses\n";
+echo "\n9  the service back: the steps after the hold lapses\n";
 
+// Six waiting, five to a step (VERGEML_AI_STEP_MAX): two steps, and nothing asked twice.
 delete_transient( 'vergeml_ai_recent' );
 $GLOBALS['ao_answer'] = 'back';
-$ao_r9 = vergeml_ai_index_step( 'unindexed', 24, true );
-$ao_r9_ids = array_map( function ( $d ) { return (int) $d['id']; }, $ao_r9['described'] );
+$ao_r9  = vergeml_ai_index_step( 'unindexed', 24, true );
+$ao_r9b = vergeml_ai_index_step( 'unindexed', 24, true );
+$ao_r9_ids = array_map( function ( $d ) { return (int) $d['id']; }, array_merge( $ao_r9['described'], $ao_r9b['described'] ) );
 
-ao_check( 'everything still waiting is described: B, E and the four of step 6', 6 === ao_describes() && 6 === count( $ao_r9['described'] ) && in_array( $ao_b, $ao_r9_ids, true ) && in_array( $ao_e, $ao_r9_ids, true ) && empty( $ao_r9['errors'] ), count( $ao_r9['described'] ) . ' described: ' . implode( ', ', $ao_r9_ids ) );
+ao_check( 'everything still waiting is described, five then one: B, E and the four of step 6', 6 === ao_describes() && 5 === count( $ao_r9['described'] ) && 1 === count( $ao_r9b['described'] ) && 6 === count( array_unique( $ao_r9_ids ) ) && in_array( $ao_b, $ao_r9_ids, true ) && in_array( $ao_e, $ao_r9_ids, true ) && empty( $ao_r9['errors'] ) && empty( $ao_r9b['errors'] ), count( $ao_r9_ids ) . ' described: ' . implode( ', ', $ao_r9_ids ) );
 ao_check( 'the alt text is on B', 'One pixel' === get_post_meta( $ao_b, '_wp_attachment_image_alt', true ) );
 ao_check( "'unindexed' is empty", array() === vergeml_ai_pending( 'unindexed' ), wp_json_encode( vergeml_ai_pending( 'unindexed' ) ) );
 
@@ -429,6 +428,7 @@ foreach ( array( $ao_a, $ao_b, $ao_e, $ao_f[0], $ao_f[1], $ao_f[2], $ao_f[3] ) a
 delete_transient( 'vergeml_ai_recent' );
 delete_transient( 'vergeml_ai_run_lock' );
 $GLOBALS['ao_answer'] = 'unreachable';
+delete_transient( 'doing_cron' );
 $GLOBALS['ao_nudges'] = 0;
 $ao_started = vergeml_ai_run_start( 'unindexed', false, 'outage suite' );
 ao_check( 'the run starts, and asks to nudge once', ! is_wp_error( $ao_started ) && ! empty( vergeml_ai_run_state()['active'] ) && 1 === $GLOBALS['ao_nudges'], is_wp_error( $ao_started ) ? $ao_started->get_error_message() : 'active, nudges ' . $GLOBALS['ao_nudges'] );
@@ -445,7 +445,7 @@ $ao_state = vergeml_ai_run_state();
 $ao_next  = wp_next_scheduled( 'vergeml_ai_run_tick' );
 $ao_asked = ao_describes();
 
-ao_check( 'the tick asked once for each of the seven, held them all (no rows), and the run is still active', 7 === $ao_asked && ! empty( $ao_state['active'] ) && null === vergeml_index_get( $ao_a ) && null === vergeml_index_get( $ao_f[3] ), "$ao_asked asked" );
+ao_check( 'the tick asked once for each of its first step (' . VERGEML_AI_RUN_CHUNK . '), held them all (no rows), stopped there, and the run is still active', VERGEML_AI_RUN_CHUNK === $ao_asked && ! empty( $ao_state['active'] ) && null === vergeml_index_get( $ao_a ) && null === vergeml_index_get( $ao_f[3] ), "$ao_asked asked" );
 ao_check( 'held pictures are not counted as failed', 0 === (int) $ao_state['failed'] && empty( $ao_state['failed_ids'] ), 'failed ' . $ao_state['failed'] );
 ao_check( 'the next pass is booked after the hold, not now', false !== $ao_next && $ao_next >= $ao_t0 + VERGEML_AI_HOLD_SECONDS, false === $ao_next ? 'nothing booked' : ( $ao_next - $ao_t0 ) . ' s away' );
 ao_check( 'and it is not chased: no nudge asked for', 0 === $GLOBALS['ao_nudges'], 'nudges ' . $GLOBALS['ao_nudges'] );
@@ -465,8 +465,6 @@ $ao_booked = wp_next_scheduled( 'vergeml_ai_run_tick' );
 if ( false !== $ao_booked ) {
     wp_unschedule_event( $ao_booked, 'vergeml_ai_run_tick' );
 }
-add_filter( 'vergeml_ai_run_budget', '__return_zero' );
-add_filter( 'vergeml_ai_parallel', function () { return 1; } );
 $GLOBALS['ao_answer'] = 'back';
 $GLOBALS['ao_nudges'] = 0;
 $ao_started12 = vergeml_ai_run_start( 'unindexed', true, 'outage suite' );
@@ -474,17 +472,17 @@ $ao_booked = wp_next_scheduled( 'vergeml_ai_run_tick' );
 if ( false !== $ao_booked ) {
     wp_unschedule_event( $ao_booked, 'vergeml_ai_run_tick' );
 }
+delete_transient( 'doing_cron' );
 $GLOBALS['ao_nudges'] = 0;
-// Three of the seven on hold: the step describes four, the recount keeps the run alive, the tail books the rest.
+// Three of the seven on hold (F2-F4): the step describes A, B and E, the recount keeps the run alive, the tail books the rest.
 vergeml_ai_recently_described( array( $ao_f[1], $ao_f[2], $ao_f[3] ), true );
 $ao_t12 = time();
-vergeml_ai_run_tick();
+vergeml_ai_run_tick( 0 );
 $ao_state12 = vergeml_ai_run_state();
 $ao_next12  = wp_next_scheduled( 'vergeml_ai_run_tick' );
 $ao_asked12 = ao_describes();
-remove_filter( 'vergeml_ai_run_budget', '__return_zero' );
 
-ao_check( 'one step described the four it asked and the run is still active with three left', ! is_wp_error( $ao_started12 ) && 4 === $ao_asked12 && 4 === (int) $ao_state12['described'] && ! empty( $ao_state12['active'] ) && 3 === (int) $ao_state12['remaining'], "$ao_asked12 asked, described " . $ao_state12['described'] . ', remaining ' . $ao_state12['remaining'] );
+ao_check( 'one step described the three it asked and the run is still active with four left', ! is_wp_error( $ao_started12 ) && 3 === $ao_asked12 && 3 === (int) $ao_state12['described'] && ! empty( $ao_state12['active'] ) && 4 === (int) $ao_state12['remaining'], "$ao_asked12 asked, described " . $ao_state12['described'] . ', remaining ' . $ao_state12['remaining'] );
 ao_check( 'the next pass is booked now', false !== $ao_next12 && $ao_next12 <= $ao_t12 + 1, false === $ao_next12 ? 'nothing booked' : ( $ao_next12 - $ao_t12 ) . ' s away' );
 ao_check( 'and chased: the nudge was asked for', 1 === $GLOBALS['ao_nudges'], 'nudges ' . $GLOBALS['ao_nudges'] );
 

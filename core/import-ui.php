@@ -23,8 +23,8 @@ function vergeml_import_menu() {
         VERGEML_MENU,
         __( 'Import Folders', 'vergelabs-media-library' ),
         __( 'Import Folders', 'vergelabs-media-library' ),
-        'manage_categories',
-        'media-import-folders',
+        'manage_options',
+        'vergeml-import-folders',
         'vergeml_import_screen'
     );
 }
@@ -37,7 +37,7 @@ function vergeml_import_routes() {
     register_rest_route( VERGEML_REST_NS, '/import', array(
         'methods'             => WP_REST_Server::CREATABLE,
         'callback'            => 'vergeml_rest_import',
-        'permission_callback' => 'vergeml_can_import',
+        'permission_callback' => function () { return current_user_can( 'manage_options' ); },
         'args'                => array(
             'action'   => array( 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
             'source'   => array( 'type' => 'string', 'sanitize_callback' => 'sanitize_key' ),
@@ -54,12 +54,12 @@ function vergeml_import_routes() {
 
 
 /**
- *  Importing writes folders and files wholesale, so it takes the capability that
- *  governs restructuring rather than the one that governs uploading.
+ *  Importing creates folders and files every attachment it maps in one run, so
+ *  it is a site administrator's action (wordpress.org review 2, 2026-10-03).
  */
 
 function vergeml_can_import() {
-    return current_user_can( 'manage_categories' );
+    return current_user_can( 'manage_options' );
 }
 
 
@@ -308,7 +308,7 @@ function vergeml_import_history() {
 
 function vergeml_import_screen() {
 
-    if ( ! current_user_can( 'manage_categories' ) ) {
+    if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'vergelabs-media-library' ) );
     }
 
@@ -325,9 +325,9 @@ function vergeml_import_screen() {
     <div class="wrap vgml-import">
 
         <?php
-        echo vergeml_pg_head( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in the helper.
+        echo wp_kses( vergeml_pg_head(
             __( 'Import folders', 'vergelabs-media-library' )
-        );
+        ), vergeml_kses_allowed() );
         ?>
 
         <?php
@@ -357,14 +357,14 @@ function vergeml_import_assets( $hook ) {
      *  suffix moved with it. Matched on the slug rather than on the whole hook,
      *  which is the part that does not change when the menu is rearranged again.
      */
-    if ( 'media-import-folders' !== substr( (string) $hook, -20 ) ) {
+    if ( 'vergeml-import-folders' !== substr( (string) $hook, -22 ) ) {
         return;
     }
 
     wp_enqueue_script(
         'vergeml-import',
         plugins_url( 'js/vergeml-import.js', VERGEML_FILE ),
-        array( 'wp-api-fetch' ),
+        array( 'vergeml-transport' ),
         VERGEML_VERSION,
         true
     );

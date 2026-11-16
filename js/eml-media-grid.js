@@ -23,8 +23,8 @@ window.vergeml = window.vergeml || { l10n: {} };
         buttons: {
             check  : true,
             edit   : true,
-            remove : false, // TODO: consider 'delete' button
-            attach : false // TODO: consider 'attach' button
+            remove : false,
+            attach : false
         }
     });
 
@@ -35,7 +35,7 @@ window.vergeml = window.vergeml || { l10n: {} };
 
     _.extend( media.view.Attachment.prototype, {
 
-        template:  media.template('attachment-grid-view'),
+        template:  media.template('vergeml-attachment-grid-view'),
 
         events: newEvents,
 
@@ -80,7 +80,7 @@ window.vergeml = window.vergeml || { l10n: {} };
 
             // collapse
             this.$el.find('.setting, #alt-text-description').wrapAll( '<div class="eml-collapse" />' );
-            this.$el.find('.compat-meta').before( '<a class="eml-toggle-collapse" href="javascript:;">'+vergeml.l10n.more_details+'</a>' );
+            this.$el.find('.compat-meta').before( $( '<a class="eml-toggle-collapse" href="javascript:;"></a>' ).text( vergeml.l10n.more_details ) );
 
             this.toggleCollapse();
         },
@@ -108,7 +108,7 @@ window.vergeml = window.vergeml || { l10n: {} };
             });
 
             this.controller._attachmentDetailsCollapsed = collapsed ? 'true' : 'false';
-            wpCookies.set( 'eml-details-collapsed', collapsed, 30 * 24 * 60 * 60, false, false, secure );
+            wpCookies.set( 'vergeml-details-collapsed', collapsed, 30 * 24 * 60 * 60, false, false, secure );
         }
     });
 
@@ -120,7 +120,7 @@ window.vergeml = window.vergeml || { l10n: {} };
      */
     media.view.emlGridSelection = media.view.Selection.extend({
 
-        template:  media.template('eml-media-selection')
+        template:  media.template('vergeml-media-selection')
     });
 
 
@@ -341,12 +341,37 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 
     /**
+     * wp.media.view.emlGridAttachment
+     *
+     * Bulk select, made additive -- in this grid only. Its selection is built
+     * with `multiple` off, so core's toggleSelection falls through to
+     * reset([model]): every click replaced the selection. In select mode a
+     * plain click toggles membership; shift-ranges pass through untouched.
+     * A subclass handed to this frame's library state, so no other media
+     * frame on the site changes.
+     */
+    media.view.emlGridAttachment = media.view.Attachment.Library.extend({
+
+        toggleSelection: function( options ) {
+
+            if ( this.controller && this.controller.isModeActive && this.controller.isModeActive( 'select' ) &&
+                    ( ! options || ! options.method ) ) {
+                options = _.extend( {}, options, { method: 'toggle' } );
+            }
+
+            return media.view.Attachment.Library.prototype.toggleSelection.call( this, options );
+        }
+    });
+
+
+
+    /**
      * wp.media.view.MediaFrame.emlGrid
      *
      */
     media.view.MediaFrame.emlGrid = media.view.MediaFrame.Select.extend({
 
-        _attachmentDetailsCollapsed: wpCookies.get( 'eml-details-collapsed' ) || 'true',
+        _attachmentDetailsCollapsed: wpCookies.get( 'vergeml-details-collapsed' ) || 'true',
 
         initialize: function() {
 
@@ -417,6 +442,7 @@ window.vergeml = window.vergeml || { l10n: {} };
 
                     // searchable         : true,
                     filterable         : 'all',
+                    AttachmentView     : media.view.emlGridAttachment,
 
                     // autoSelect         : false, // true,
                     // editable:   true,
@@ -615,7 +641,6 @@ window.vergeml = window.vergeml || { l10n: {} };
 
 
 
-    //TODO: move to PHP side
     $('body').addClass('eml-grid');
 
 
