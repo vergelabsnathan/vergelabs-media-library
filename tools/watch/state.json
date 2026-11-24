@@ -5,7 +5,7 @@
       "updated": "2026-10-13 8:28pm GMT",
       "installs": 200000,
       "rating": 94,
-      "tested": "7.1.4",
+      "tested": "7.1.5",
       "requires_php": "7.4",
       "manifest": {
         "filebird/assets/css/photoswipe/default-skin.css": "5930fb5d3d6f",
@@ -210,14 +210,14 @@
         "filebird/views/particle/activation_fail.php": "c691d0a0ee4b",
         "filebird/views/settings/header.php": "94b8f780d891"
       },
-      "seen": "2026-11-15T12:43:03.128Z"
+      "seen": "2026-11-23T15:56:16.840Z"
     },
     "folders": {
       "version": "3.3.1",
       "updated": "2026-11-05 11:00am GMT",
       "installs": 90000,
       "rating": 100,
-      "tested": "7.1.4",
+      "tested": "7.1.5",
       "requires_php": false,
       "manifest": {
         "folders/assets/images/footer/close.svg": "62731fd08494",
@@ -408,14 +408,14 @@
         "folders/templates/settings/user-restrictions.php": "ea2ec7017a82",
         "folders/uninstall.php": "07c6d1aa3769"
       },
-      "seen": "2026-11-15T12:43:03.134Z"
+      "seen": "2026-11-23T15:56:16.956Z"
     },
     "enhanced-media-library": {
       "version": "2.9.4",
       "updated": "2024-07-15 2:07pm GMT",
       "installs": 60000,
       "rating": 86,
-      "tested": "6.5.14",
+      "tested": "6.5.15",
       "requires_php": "5.6",
       "manifest": {
         "enhanced-media-library/core/compatibility.php": "d4c3b6f62c90",
@@ -451,7 +451,7 @@
         "enhanced-media-library/languages/enhanced-media-library.pot": "85e1b35b2743",
         "enhanced-media-library/readme.txt": "f14860ab10be"
       },
-      "seen": "2026-11-15T12:43:03.138Z"
+      "seen": "2026-11-23T15:56:17.055Z"
     },
     "elementor": {
       "version": "4.2.3",
@@ -6891,7 +6891,7 @@
       "updated": "2026-11-11 9:42am GMT",
       "installs": 100000,
       "rating": 96,
-      "tested": "7.1.4",
+      "tested": "7.1.5",
       "requires_php": "7.4.0",
       "manifest": {
         "real-media-library-lite/CHANGELOG.md": "d219a1a3cb3b",
@@ -7160,19 +7160,19 @@
         "real-media-library-lite/vendor/devowl-wp/utils/src/Utils.php": "d292b175b432",
         "real-media-library-lite/vendor/scoper-autoload.php": "1154b70fbdc6"
       },
-      "seen": "2026-11-15T12:43:03.141Z"
+      "seen": "2026-11-23T15:56:17.152Z"
     },
     "media-library-organizer": {
-      "version": "2.1.7",
-      "updated": "2026-11-11 1:46pm GMT",
+      "version": "2.1.8",
+      "updated": "2026-11-16 10:39pm GMT",
       "installs": 20000,
       "rating": 94,
-      "tested": "7.1.4",
+      "tested": "7.1.5",
       "requires_php": "5.6",
       "manifest": {
         "media-library-organizer/AGENTS.md": "822d25186255",
-        "media-library-organizer/CHANGELOG.md": "70f1cf6e2ee1",
-        "media-library-organizer/_modules/dashboard/class-wpzincdashboardwidget.php": "a6093bcf0d5d",
+        "media-library-organizer/CHANGELOG.md": "e7d7d933ecd6",
+        "media-library-organizer/_modules/dashboard/class-wpzincdashboardwidget.php": "5e44c66a8d53",
         "media-library-organizer/_modules/dashboard/css/admin.css": "f821166a3e44",
         "media-library-organizer/_modules/dashboard/css/selectize.css": "799081b8723f",
         "media-library-organizer/_modules/dashboard/feather/activity.svg": "e0f088b88535",
@@ -7566,9 +7566,9 @@
         "media-library-organizer/assets/build/gallery/style-index-rtl.css": "ca7d78168eca",
         "media-library-organizer/assets/build/gallery/style-index.css": "d25b38dce7fb",
         "media-library-organizer/assets/build/settings.css": "ef07e9f329c0",
-        "media-library-organizer/assets/build/settings.js": "8cc874307260",
+        "media-library-organizer/assets/build/settings.js": "628ca36ab88a",
         "media-library-organizer/assets/build/sidebar.css": "9a5dceccb563",
-        "media-library-organizer/assets/build/sidebar.js": "1d7157dc2cb5",
+        "media-library-organizer/assets/build/sidebar.js": "5cf6c4fea425",
         "media-library-organizer/assets/css/admin.css": "66d1eed4a621",
         "media-library-organizer/assets/css/media.css": "fa36cf9e8255",
         "media-library-organizer/assets/css/single-attachment.css": "b8c426d941d8",
@@ -7642,9 +7642,9 @@
         "media-library-organizer/languages/media-library-organizer-fr_FR.mo": "4ecb9a97ea89",
         "media-library-organizer/languages/media-library-organizer-fr_FR.po": "0ee9f3ea3e52",
         "media-library-organizer/languages/media-library-organizer.pot": "a4c579b442d4",
-        "media-library-organizer/media-library-organizer.php": "334403f6f116",
+        "media-library-organizer/media-library-organizer.php": "44072235f025",
         "media-library-organizer/phpunit.xml": "0d5edf27d20f",
-        "media-library-organizer/readme.txt": "8aff020af244",
+        "media-library-organizer/readme.txt": "086d8118b14e",
         "media-library-organizer/vendor/autoload.php": "bb5defc12dd1",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/LICENSE": "12d81f50767d",
         "media-library-organizer/vendor/codeinwp/themeisle-sdk/assets/images/animation.jpg": "62b255cfd22c",
@@ -7719,7 +7719,7 @@
         "media-library-organizer/vendor/composer/autoload_real.php": "79c234942bbe",
         "media-library-organizer/vendor/composer/autoload_static.php": "4ba695522144",
         "media-library-organizer/vendor/composer/installed.json": "189e829b8593",
-        "media-library-organizer/vendor/composer/installed.php": "f42434827776",
+        "media-library-organizer/vendor/composer/installed.php": "2aa666a17732",
         "media-library-organizer/views/admin/error.php": "f9481b494643",
         "media-library-organizer/views/admin/import-enhanced-media-library.php": "03d107fa52a7",
         "media-library-organizer/views/admin/import-filebird.php": "afa88f9037d0",
@@ -7746,14 +7746,14 @@
         "media-library-organizer/views/global/media-list-view-order.php": "d44dedceb315",
         "media-library-organizer/webpack.assets.config.js": "430b6cbf6e2a"
       },
-      "seen": "2026-11-15T12:43:03.145Z"
+      "seen": "2026-11-23T15:56:17.262Z"
     },
     "enable-media-replace": {
       "version": "4.2.3",
       "updated": "2026-10-26 6:51pm GMT",
       "installs": 600000,
       "rating": 88,
-      "tested": "7.1.4",
+      "tested": "7.1.5",
       "requires_php": "5.6",
       "manifest": {
         "enable-media-replace/LICENSE": "946b7346e0ed",
@@ -7853,190 +7853,190 @@
         "enable-media-replace/views/success.php": "6960838a0f6d",
         "enable-media-replace/views/upsell.php": "ac34421f70c2"
       },
-      "seen": "2026-11-15T12:43:03.149Z"
+      "seen": "2026-11-23T15:56:17.372Z"
     }
   },
   "checked": null,
   "dependencies": {
     "core": {
-      "version": "7.1.4",
-      "prerelease": "7.2-beta5",
+      "version": "7.1.5",
+      "prerelease": "7.2-RC2",
       "onBox": null,
-      "seen": "2026-11-15T12:43:03.198Z"
+      "seen": "2026-11-23T15:56:17.577Z"
     },
     "php": {
-      "version": "8.5.12",
+      "version": "8.6.0",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:03.217Z"
+      "seen": "2026-11-23T15:56:17.615Z"
     },
     "elementor": {
-      "version": "4.4.0",
+      "version": "4.4.1",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:03.221Z"
+      "seen": "2026-11-23T15:56:17.727Z"
     },
     "beaver-builder-lite-version": {
-      "version": "2.11.1.2",
+      "version": "2.11.2.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:03.224Z"
+      "seen": "2026-11-23T15:56:17.827Z"
     },
     "brizy": {
       "version": "2.8.26",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:03.227Z"
+      "seen": "2026-11-23T15:56:17.938Z"
     },
     "js_composer": {
       "version": "9.0.1",
       "prerelease": null,
       "onBox": "9.0.1",
-      "seen": "2026-11-15T12:43:02.327Z"
+      "seen": "2026-11-23T15:56:12.831Z"
     },
     "divi": {
       "version": "5.11.0",
       "prerelease": null,
       "onBox": "5.11.0",
-      "seen": "2026-11-15T12:43:02.327Z"
+      "seen": "2026-11-23T15:56:12.831Z"
     },
     "bricks": {
       "version": "1.15",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.011Z"
+      "seen": "2026-11-23T15:56:19.353Z"
     },
     "oxygen": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.011Z"
+      "seen": "2026-11-23T15:56:19.353Z"
     },
     "avada": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.011Z"
+      "seen": "2026-11-23T15:56:19.353Z"
     },
     "thrive-architect": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.011Z"
+      "seen": "2026-11-23T15:56:19.353Z"
     },
     "cornerstone": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.011Z"
+      "seen": "2026-11-23T15:56:19.353Z"
     },
     "yootheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.011Z"
+      "seen": "2026-11-23T15:56:19.353Z"
     },
     "betheme": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.011Z"
+      "seen": "2026-11-23T15:56:19.353Z"
     },
     "themify-builder": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.011Z"
+      "seen": "2026-11-23T15:56:19.353Z"
     },
     "tailor": {
       "version": "1.8.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.015Z"
+      "seen": "2026-11-23T15:56:19.457Z"
     },
     "oshine": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.015Z"
+      "seen": "2026-11-23T15:56:19.457Z"
     },
     "learnpress-frontend-editor": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.015Z"
+      "seen": "2026-11-23T15:56:19.457Z"
     },
     "dokan-lite": {
-      "version": "5.3.4",
+      "version": "5.3.6",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.018Z"
+      "seen": "2026-11-23T15:56:19.573Z"
     },
     "wordpress-seo": {
-      "version": "28.8",
+      "version": "28.9",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.021Z"
+      "seen": "2026-11-23T15:56:19.676Z"
     },
     "seo-by-rank-math": {
       "version": "1.0.282",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.024Z"
+      "seen": "2026-11-23T15:56:19.780Z"
     },
     "wp-seopress": {
       "version": "10.4",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.026Z"
+      "seen": "2026-11-23T15:56:19.884Z"
     },
     "all-in-one-seo-pack": {
       "version": "5.0.5.1",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.029Z"
+      "seen": "2026-11-23T15:56:19.989Z"
     },
     "woocommerce": {
-      "version": "11.3.0",
+      "version": "11.3.1",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.032Z"
+      "seen": "2026-11-23T15:56:20.134Z"
     },
     "advanced-custom-fields": {
-      "version": "6.8.11",
+      "version": "6.8.12",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.035Z"
+      "seen": "2026-11-23T15:56:20.245Z"
     },
     "polylang": {
       "version": "3.9.2",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.038Z"
+      "seen": "2026-11-23T15:56:20.344Z"
     },
     "wpml": {
       "version": null,
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.038Z"
+      "seen": "2026-11-23T15:56:20.344Z"
     },
     "wp-rocket": {
       "version": "2.0.5",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.350Z"
+      "seen": "2026-11-23T15:56:20.891Z"
     },
     "filebird": {
       "version": "6.5.9",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.353Z"
+      "seen": "2026-11-23T15:56:20.993Z"
     },
     "real-media-library-lite": {
       "version": "4.23.12",
       "prerelease": null,
       "onBox": null,
-      "seen": "2026-11-15T12:43:04.356Z"
+      "seen": "2026-11-23T15:56:21.088Z"
     },
     "zionbuilder": {
       "version": "3.6.17",
